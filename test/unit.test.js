@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { buildAss } from '../src/lib/ass.js';
 import { buildSrt } from '../src/lib/srt.js';
+import { wrapLines } from '../src/lib/text.js';
 import { slugify } from '../src/lib/fsx.js';
 import { computeLayout } from '../src/pipeline.js';
 import { normalizeScript } from '../src/steps/analyze.js';
@@ -67,4 +68,22 @@ test('script : les repliques sont ordonnees, espacees et dans les bornes', () =>
 test('slugify : accents et espaces donnent un nom de fichier sain', () => {
   assert.equal(slugify('/videos/Mon Clip Éléphant.MP4'), 'mon-clip-elephant');
   assert.equal(slugify('/videos/!!!.mp4'), 'reaction');
+});
+
+test('sous-titres : la ponctuation double francaise ne saute pas seule a la ligne', () => {
+  const cues = [{ start: 1, end: 3, text: 'Non mais il est serieux la ?' }];
+
+  const dialogue = buildAss(cues, { width: 1080, height: 1920, marginBottom: 800 })
+    .split('\n').find((line) => line.startsWith('Dialogue:'));
+  assert.ok(!/\\N\s*\?/.test(dialogue), `« ? » isole sur sa ligne : ${dialogue}`);
+  assert.ok(dialogue.includes('la\\h?'), 'espace insecable ASS attendue avant « ? »');
+
+  const srt = buildSrt(cues);
+  assert.ok(!/\n\?/.test(srt), '« ? » isole en debut de ligne dans le SRT');
+});
+
+test('retour a la ligne : les lignes respectent la largeur demandee', () => {
+  const lines = wrapLines('Attends attends regarde bien ce truc la tout de suite', 20);
+  assert.ok(lines.length > 1);
+  assert.ok(lines.every((line) => line.length <= 20), `ligne trop longue : ${JSON.stringify(lines)}`);
 });

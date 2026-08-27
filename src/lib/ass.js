@@ -5,6 +5,8 @@
  * l'echelle par libass depuis une resolution arbitraire, avec une taille de
  * texte imprevisible selon la version de ffmpeg.
  */
+import { wrapLines } from './text.js';
+
 export function buildAss(cues, { width, height, marginBottom, fontName = 'DejaVu Sans', fontSize, maxChars = 26 }) {
   const size = fontSize ?? Math.round(height * 0.036);
 
@@ -29,7 +31,8 @@ export function buildAss(cues, { width, height, marginBottom, fontName = 'DejaVu
   const events = sorted.map((cue, i) => {
     const next = sorted[i + 1];
     const end = next ? Math.min(cue.end, next.start - 0.08) : cue.end;
-    const text = wrap(cue.text, maxChars).join('\\N');
+    // `\h` : espace insecable ASS, pour que « ? » ne saute pas seul a la ligne.
+    const text = wrapLines(cue.text, maxChars, '\\h').join('\\N');
     return `Dialogue: 0,${assTime(cue.start)},${assTime(Math.max(cue.start + 0.4, end))},Reaction,,0,0,0,,${text}`;
   });
 
@@ -45,21 +48,4 @@ function assTime(seconds) {
   const m = String(Math.floor((total % 3600) / 60)).padStart(2, '0');
   const s = String(total % 60).padStart(2, '0');
   return `${h}:${m}:${s}.${String(cs).padStart(2, '0')}`;
-}
-
-function wrap(text, maxChars) {
-  const words = text.replace(/[{}\\]/g, '').split(/\s+/);
-  const lines = [];
-  let current = '';
-
-  for (const word of words) {
-    if (current && (current + ' ' + word).length > maxChars) {
-      lines.push(current);
-      current = word;
-    } else {
-      current = current ? current + ' ' + word : word;
-    }
-  }
-  if (current) lines.push(current);
-  return lines;
 }
