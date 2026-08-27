@@ -1,0 +1,23 @@
+{
+  "name": "reaction-studio",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Pipeline de generation de videos TikTok 9:16 \u00ab reaction \u00bb : une video source + un personnage qui reagit, script ecrit par IA et cale sur les temps forts.",
+  "type": "module",
+  "bin": {
+    "rs": "./bin/rs.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "demo": "node bin/rs.js demo",
+    "render": "node bin/rs.js render",
+    "test": "node --test test/unit.test.js",
+    "test:smoke": "node --test --test-timeout 600000 test/smoke.test.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.121.0",
+    "zod": "^4.4.3"
+  }
+}
