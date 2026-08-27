@@ -52,7 +52,7 @@ trois briques sont indépendantes : vous pouvez n'en activer qu'une.
 |---|---|---|
 | **Écriture du script** | répliques génériques, calage réel | `ANTHROPIC_API_KEY` → Claude analyse les images de la vidéo et écrit les répliques |
 | **Voix** | `espeak-ng`, robotique mais audible | `ELEVENLABS_API_KEY` + `ELEVENLABS_VOICE_ID` → voix réaliste |
-| **Personnage** | maquette animée par l'enveloppe de la voix | `RS_AVATAR_PROVIDER=cmd` → votre service de rendu (voir [docs/PROVIDERS.md](docs/PROVIDERS.md)) |
+| **Personnage** | maquette animée par l'enveloppe de la voix | `RS_AVATAR_PROVIDER=cmd` → un service de lip-sync. Script Hedra prêt à l'emploi, voir [docs/PROVIDERS.md](docs/PROVIDERS.md) |
 
 Le personnage est volontairement branché par une commande externe plutôt que
 par un client HTTP figé : les services de génération d'avatars changent d'API

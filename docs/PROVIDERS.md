@@ -46,7 +46,52 @@ RS_AVATAR_CMD='./examples/providers/still-zoom.sh {image} {out} {duration} {widt
 node bin/rs.js render ma-video.mp4
 ```
 
-## Brancher un service de lip-sync
+## Hedra (Character-3)
+
+`examples/providers/hedra.sh` implémente le parcours complet : recherche du
+modèle, téléversement du portrait et de la voix, lancement du rendu, attente,
+téléchargement.
+
+```bash
+export HEDRA_API_KEY="..."
+
+RS_AVATAR_PROVIDER=cmd \
+RS_REACTOR_IMAGE=./assets/personnage.png \
+RS_AVATAR_CMD='./examples/providers/hedra.sh {image} {audio} {out} {duration} {width} {height} {persona}' \
+node bin/rs.js render ma-video.mp4 --layout pip
+```
+
+Le format demandé à Hedra suit le panneau à remplir : bulle carrée → `1:1`,
+panneau large → `16:9`. Le `{persona}` devient le prompt décrivant le
+personnage, complété par une consigne d'expressivité.
+
+### Vérifiez les endpoints au premier lancement
+
+Les chemins et noms de champs de cette API ont changé plusieurs fois. Ils sont
+tous regroupés en tête du script et surchargeables sans le modifier :
+
+| Variable | Défaut | Rôle |
+|---|---|---|
+| `HEDRA_BASE_URL` | `https://api.hedra.com/web-app/public` | racine de l'API |
+| `HEDRA_AUTH_HEADER` | `X-API-Key` | en-tête d'authentification |
+| `HEDRA_EP_MODELS` / `HEDRA_EP_ASSETS` / `HEDRA_EP_UPLOAD` / `HEDRA_EP_GENERATIONS` / `HEDRA_EP_STATUS` | voir le script | chemins |
+| `HEDRA_JQ_ASSET_ID` / `HEDRA_JQ_GENERATION_ID` / `HEDRA_JQ_STATUS` / `HEDRA_JQ_VIDEO_URL` | plusieurs replis | champs lus dans les réponses |
+| `HEDRA_MODEL_ID` | détecté automatiquement | court-circuite la recherche du modèle |
+| `HEDRA_RESOLUTION` / `HEDRA_ASPECT_RATIO` | `540p` / déduit du panneau | format de sortie |
+
+Commencez par un tour à blanc, qui n'envoie aucune requête et écrit un clip
+témoin pour que le reste du pipeline aille au bout :
+
+```bash
+HEDRA_DRY_RUN=1 RS_AVATAR_PROVIDER=cmd ... node bin/rs.js render ma-video.mp4
+```
+
+En cas d'échec réel, le script affiche le code HTTP, l'URL appelée et la réponse
+complète, puis nomme la constante à corriger. Un `404` sur `/assets` veut dire
+que `HEDRA_EP_ASSETS` est faux ; une réponse sans identifiant veut dire que
+`HEDRA_JQ_ASSET_ID` ne pointe pas au bon endroit.
+
+## Brancher un autre service de lip-sync
 
 `examples/providers/lipsync-http.sh` est un squelette complet : création de la
 tâche, attente avec plafond de temps, téléchargement, et un message d'erreur

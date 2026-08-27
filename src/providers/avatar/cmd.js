@@ -7,11 +7,11 @@ import { log } from '../../lib/log.js';
  * en local, un script maison) sans toucher au pipeline.
  *
  * Placeholders remplaces dans RS_AVATAR_CMD :
- *   {audio} {image} {out} {duration} {width} {height}
+ *   {audio} {image} {out} {duration} {width} {height} {persona}
  * La commande doit ecrire une video a {out}. Le montage se charge ensuite du
  * recadrage et du calage sur la duree exacte.
  */
-export async function render({ voiceTrack, outFile, duration, image, cmd, width, height }) {
+export async function render({ voiceTrack, outFile, duration, image, cmd, width, height, persona }) {
   if (!cmd) throw new Error('RS_AVATAR_PROVIDER=cmd mais RS_AVATAR_CMD est vide.');
 
   const command = cmd
@@ -20,7 +20,8 @@ export async function render({ voiceTrack, outFile, duration, image, cmd, width,
     .replaceAll('{out}', quote(outFile))
     .replaceAll('{duration}', duration.toFixed(3))
     .replaceAll('{width}', String(width))
-    .replaceAll('{height}', String(height));
+    .replaceAll('{height}', String(height))
+    .replaceAll('{persona}', quote(persona || ''));
 
   log.detail(`commande avatar : ${command}`);
   await run(command);
