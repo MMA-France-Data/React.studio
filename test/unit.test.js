@@ -30,18 +30,54 @@ test('sous-titres : une replique qui deborde sur la suivante est tronquee', () =
   assert.match(srt, /00:00:01,000 --> 00:00:02,920/);
 });
 
-test('layout : hauteurs paires et somme egale a la hauteur de sortie', () => {
+test('layout split : hauteurs paires et somme egale a la hauteur de sortie', () => {
   for (const ratio of [0.35, 0.5, 0.6, 0.77]) {
     const layout = computeLayout({ width: 1080, height: 1920, topRatio: ratio });
-    assert.equal(layout.top.height % 2, 0);
-    assert.equal(layout.bottom.height % 2, 0);
-    assert.equal(layout.top.height + layout.bottom.height, 1920);
+    assert.equal(layout.mode, 'split');
+    assert.equal(layout.source.height % 2, 0);
+    assert.equal(layout.reactor.height % 2, 0);
+    assert.equal(layout.source.height + layout.reactor.height, 1920);
   }
 });
 
-test('layout : un ratio aberrant est ramene dans des bornes jouables', () => {
-  assert.ok(computeLayout({ width: 1080, height: 1920, topRatio: 5 }).bottom.height > 0);
-  assert.ok(computeLayout({ width: 1080, height: 1920, topRatio: -3 }).top.height > 0);
+test('layout : un reglage aberrant est ramene dans des bornes jouables', () => {
+  assert.ok(computeLayout({ width: 1080, height: 1920, topRatio: 5 }).reactor.height > 0);
+  assert.ok(computeLayout({ width: 1080, height: 1920, topRatio: -3 }).source.height > 0);
+
+  const huge = computeLayout({ width: 1080, height: 1920, layout: 'pip', pipScale: 9 });
+  assert.ok(huge.reactor.width <= 1080 * 0.6);
+});
+
+test('layout pip : la bulle reste entierement dans le cadre', () => {
+  const positions = ['bottom-left', 'bottom-right', 'top-left', 'top-right'];
+
+  for (const pipPosition of positions) {
+    for (const pipScale of [0.2, 0.34, 0.55]) {
+      const layout = computeLayout({ width: 1080, height: 1920, layout: 'pip', pipScale, pipPosition });
+
+      assert.equal(layout.mode, 'pip');
+      assert.equal(layout.reactor.width % 2, 0);
+      assert.ok(layout.reactor.x >= 0, `${pipPosition} deborde a gauche`);
+      assert.ok(layout.reactor.y >= 0, `${pipPosition} deborde en haut`);
+      assert.ok(layout.reactor.x + layout.reactor.width <= 1080, `${pipPosition} deborde a droite`);
+      assert.ok(layout.reactor.y + layout.reactor.height <= 1920, `${pipPosition} deborde en bas`);
+    }
+  }
+});
+
+test('layout pip : les sous-titres ne passent jamais sous la bulle', () => {
+  const layout = computeLayout({ width: 1080, height: 1920, layout: 'pip', pipPosition: 'bottom-left' });
+  const bubbleTopFromBottom = layout.height - layout.reactor.y;
+
+  assert.ok(
+    layout.captionsBottom >= bubbleTopFromBottom,
+    `sous-titres a ${layout.captionsBottom}px du bas, bulle a ${bubbleTopFromBottom}px`,
+  );
+});
+
+test('layout : la source occupe tout le cadre en pip, une portion en split', () => {
+  assert.equal(computeLayout({ width: 1080, height: 1920, layout: 'pip' }).source.height, 1920);
+  assert.ok(computeLayout({ width: 1080, height: 1920, topRatio: 0.6 }).source.height < 1920);
 });
 
 test('script : les repliques sont ordonnees, espacees et dans les bornes', () => {

@@ -18,7 +18,11 @@ Options
   --out <fichier.mp4>   chemin de sortie
   --out-dir <dossier>   dossier de sortie             (defaut : out)
   --reactor-image <img> portrait du personnage
-  --top-ratio <0.35-0.85> part de hauteur pour la video source (defaut : 0.60)
+  --layout <split|pip>  split : source en haut, personnage en bas (sources horizontales)
+                        pip   : source plein cadre, personnage en bulle (sources verticales)
+  --top-ratio <0.35-0.85> mode split : part de hauteur pour la source (defaut : 0.60)
+  --pip-scale <0.18-0.6>  mode pip : diametre de la bulle / largeur (defaut : 0.34)
+  --pip-position <bottom-left|bottom-right|top-left|top-right>
   --fps <n>             images par seconde            (defaut : 30)
   --vision <auto|claude|stub>
   --tts <auto|elevenlabs|espeak>
@@ -58,6 +62,9 @@ function configFrom(options) {
     'avatar.provider': options.avatar,
     'avatar.reactorImage': options['reactor-image'],
     'render.topRatio': options['top-ratio'] ? Number(options['top-ratio']) : undefined,
+    'render.layout': options.layout,
+    'render.pipScale': options['pip-scale'] ? Number(options['pip-scale']) : undefined,
+    'render.pipPosition': options['pip-position'],
     'render.fps': options.fps ? Number(options.fps) : undefined,
   });
 }

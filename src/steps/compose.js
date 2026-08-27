@@ -6,25 +6,34 @@ import { buildAss } from '../lib/ass.js';
 import { buildSrt } from '../lib/srt.js';
 import { log } from '../lib/log.js';
 
+const RING_WIDTH = 6; // epaisseur du liseré autour de la bulle, en pixels
+
 /**
- * Montage final : video source en haut, personnage en bas, repliques incrustees,
- * son de la source attenue sous la voix. Tout se fait en une passe ffmpeg pour
- * eviter les pertes de reencodage successives.
+ * Montage final : la source, le personnage, les repliques incrustees et le son
+ * de la source attenue sous la voix. Tout en une passe ffmpeg, pour eviter les
+ * reencodages successifs.
  */
 export async function compose({ source, sourceInfo, reactorFile, voiceTrack, clips, layout, duration, outFile, workDir, config }) {
-  const { width, fps, disclosure, font } = config.render;
+  const { fps, disclosure, font } = config.render;
 
   const cues = clips.map((clip) => ({ start: clip.start, end: clip.end, text: clip.line }));
   const assFile = path.join(workDir, 'captions.ass');
   const srtFile = outFile.replace(/\.mp4$/, '.srt');
 
   await fs.writeFile(assFile, buildAss(cues, {
-    width,
+    width: layout.width,
     height: layout.height,
-    // Les sous-titres se posent juste au-dessus du personnage, dans la video source.
-    marginBottom: layout.bottom.height + Math.round(layout.height * 0.02),
+    marginBottom: layout.captionsBottom,
   }), 'utf8');
   await fs.writeFile(srtFile, buildSrt(cues), 'utf8');
+
+  const inputs = ['-i', source, '-i', reactorFile, '-i', voiceTrack];
+
+  // Le liseré de la bulle est un cercle plein, pose sous le personnage.
+  if (layout.mode === 'pip') {
+    const ringSize = layout.reactor.width + RING_WIDTH * 2;
+    inputs.push('-f', 'lavfi', '-i', `color=c=0xF5F5F5:s=${ringSize}x${ringSize}:d=${ffSeconds(duration)}:r=${fps}`);
+  }
 
   const filters = [
     ...buildVideoFilters({ layout, fps, duration, disclosure, font, assFile }),
@@ -32,9 +41,7 @@ export async function compose({ source, sourceInfo, reactorFile, voiceTrack, cli
   ];
 
   await ffmpeg([
-    '-i', source,
-    '-i', reactorFile,
-    '-i', voiceTrack,
+    ...inputs,
     '-filter_complex', filters.join(';'),
     '-map', '[vout]',
     '-map', '[aout]',
@@ -45,43 +52,26 @@ export async function compose({ source, sourceInfo, reactorFile, voiceTrack, cli
     '-c:a', 'aac', '-b:a', '192k', '-ar', '48000',
     '-movflags', '+faststart',
     outFile,
-  ], 'montage final');
+  ], `montage final (${layout.mode})`);
 
   log.ok(`montage : ${path.basename(outFile)}`);
   return { outFile, srtFile };
 }
 
 function buildVideoFilters({ layout, fps, duration, disclosure, font, assFile }) {
-  const { width, height } = layout;
-  const top = layout.top.height;
-  const bottom = layout.bottom.height;
+  const chains = layout.mode === 'pip'
+    ? buildPipChains({ layout, fps, duration })
+    : buildSplitChains({ layout, fps, duration });
 
-  const chains = [
-    // Source : fond flou recadre plein cadre + image entiere par-dessus. Aucune
-    // perte de contenu quel que soit le format d'origine (portrait ou paysage).
-    `[0:v]fps=${fps},setsar=1,split=2[srcbg][srcfg]`,
-    `[srcbg]scale=${width}:${top}:force_original_aspect_ratio=increase,crop=${width}:${top},boxblur=24:2,eq=brightness=-0.10:saturation=0.7[topbg]`,
-    `[srcfg]scale=${width}:${top}:force_original_aspect_ratio=decrease[topfg]`,
-    `[topbg][topfg]overlay=(W-w)/2:(H-h)/2:shortest=0,setsar=1[top]`,
-
-    // Personnage : recadrage centre, puis calage exact sur la duree (le dernier
-    // cadre est fige si le provider a rendu trop court).
-    `[1:v]fps=${fps},scale=${width}:${bottom}:force_original_aspect_ratio=increase,crop=${width}:${bottom},setsar=1,` +
-      `tpad=stop_mode=clone:stop_duration=${ffSeconds(duration)},trim=0:${ffSeconds(duration)},setpts=PTS-STARTPTS[bottom]`,
-
-    `[top][bottom]vstack=inputs=2[stacked]`,
-    `[stacked]drawbox=x=0:y=${top - 2}:w=${width}:h=4:color=0x0A0A0A@0.9:t=fill[seam]`,
-  ];
-
-  let label = 'seam';
+  let label = 'composed';
 
   if (disclosure && font) {
     chains.push(`[${label}]${drawtext({
       font,
       text: disclosure,
-      size: Math.round(width * 0.024),
-      x: `w-text_w-${Math.round(width * 0.03)}`,
-      y: Math.round(width * 0.03),
+      size: Math.round(layout.width * 0.024),
+      x: `w-text_w-${Math.round(layout.width * 0.03)}`,
+      y: Math.round(layout.width * 0.03),
       color: 'white@0.9',
       box: true,
     })}[labelled]`);
@@ -90,6 +80,68 @@ function buildVideoFilters({ layout, fps, duration, disclosure, font, assFile })
 
   chains.push(`[${label}]subtitles=${escapeFilterValue(assFile)}[vout]`);
   return chains;
+}
+
+/** Source en haut, personnage en bas, empiles. */
+function buildSplitChains({ layout, fps, duration }) {
+  const { width } = layout;
+  const top = layout.source.height;
+
+  return [
+    ...fitSource('[0:v]', { fps, width, height: top, out: 'top' }),
+    fitReactor('[1:v]', { fps, duration, ...layout.reactor, out: 'bottom' }),
+    `[top][bottom]vstack=inputs=2[stacked]`,
+    `[stacked]drawbox=x=0:y=${top - 2}:w=${width}:h=4:color=0x0A0A0A@0.9:t=fill[composed]`,
+  ];
+}
+
+/**
+ * Source en plein cadre, personnage dans une bulle ronde. C'est le format qui
+ * rend justice aux sources verticales : elles gardent tout le cadre.
+ */
+function buildPipChains({ layout, fps, duration }) {
+  const { width, height, reactor } = layout;
+
+  return [
+    ...fitSource('[0:v]', { fps, width, height, out: 'base' }),
+    fitReactor('[1:v]', { fps, duration, ...reactor, out: 'square' }),
+    `[square]${circleMask()}[bubble]`,
+    `[3:v]${circleMask()}[ring]`,
+    `[base][ring]overlay=x=${reactor.x - RING_WIDTH}:y=${reactor.y - RING_WIDTH}:shortest=0[ringed]`,
+    `[ringed][bubble]overlay=x=${reactor.x}:y=${reactor.y}:shortest=0[composed]`,
+  ];
+}
+
+/**
+ * Remplit un cadre sans jamais rogner le sujet : un fond flou recadre en dessous,
+ * l'image entiere par-dessus. Fonctionne quel que soit le format de la source.
+ */
+function fitSource(input, { fps, width, height, out }) {
+  return [
+    `${input}fps=${fps},setsar=1,split=2[${out}_bg][${out}_fg]`,
+    `[${out}_bg]scale=${width}:${height}:force_original_aspect_ratio=increase,crop=${width}:${height},boxblur=24:2,eq=brightness=-0.10:saturation=0.7[${out}_blur]`,
+    `[${out}_fg]scale=${width}:${height}:force_original_aspect_ratio=decrease[${out}_fit]`,
+    `[${out}_blur][${out}_fit]overlay=(W-w)/2:(H-h)/2:shortest=0,setsar=1[${out}]`,
+  ];
+}
+
+/**
+ * Le personnage, lui, est recadre pour remplir : c'est un visage, on veut qu'il
+ * occupe le cadre. La duree est calee exactement — dernier cadre fige si le
+ * provider a rendu trop court, coupe s'il a rendu trop long.
+ */
+function fitReactor(input, { fps, duration, width, height, out }) {
+  return `${input}fps=${fps},scale=${width}:${height}:force_original_aspect_ratio=increase,crop=${width}:${height},setsar=1,`
+    + `tpad=stop_mode=clone:stop_duration=${ffSeconds(duration)},trim=0:${ffSeconds(duration)},setpts=PTS-STARTPTS[${out}]`;
+}
+
+/**
+ * Decoupe un cercle dans un cadre carre. Le bord est adouci sur un pixel :
+ * un masque binaire donne un escalier visible sur un visage.
+ */
+function circleMask() {
+  return "format=rgba,geq=r='r(X,Y)':g='g(X,Y)':b='b(X,Y)':"
+    + "a='clip(255*((W/2-1)-hypot(X-W/2,Y-H/2)),0,255)'";
 }
 
 function buildAudioFilters({ hasSourceAudio }) {

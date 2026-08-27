@@ -35,3 +35,30 @@ test('pipeline complet, providers de secours', async () => {
     await fs.rm(outDir, { recursive: true, force: true });
   }
 });
+
+/**
+ * Le mode pip repose sur un masque circulaire calcule par `geq` : un filtre peu
+ * courant, dont l'absence ou un changement de syntaxe casserait le montage sans
+ * que les tests unitaires s'en apercoivent.
+ */
+test('montage en bulle (pip)', async () => {
+  const outDir = await fs.mkdtemp(path.join(os.tmpdir(), 'rs-pip-'));
+
+  try {
+    const source = await makeSampleSource(outDir);
+    const config = loadConfig({
+      'vision.provider': 'stub',
+      'avatar.provider': 'placeholder',
+      'render.layout': 'pip',
+    });
+
+    const result = await render({ source, outDir, config });
+    const output = await probe(result.outFile);
+
+    assert.equal(output.width, 1080);
+    assert.equal(output.height, 1920);
+    assert.ok(output.hasAudio);
+  } finally {
+    await fs.rm(outDir, { recursive: true, force: true });
+  }
+});

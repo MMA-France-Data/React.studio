@@ -1,26 +1,30 @@
 # reaction-studio
 
-Génère des vidéos **TikTok 9:16 « réaction »** : la vidéo source en haut, un
-personnage qui réagit en bas, avec des répliques écrites par IA et calées sur
-les temps forts de la vidéo.
+Génère des vidéos **TikTok 9:16 « réaction »** : une vidéo source, un
+personnage qui la regarde et réagit, avec des répliques écrites par IA et calées
+sur les temps forts. Deux formats de cadre selon l'orientation de la source.
 
 ```
-┌───────────────────────┐  1080 x 1920
-│                       │
-│     vidéo source      │  60 % de la hauteur
-│   (fond flou si le    │
-│    format ne colle    │
-│         pas)          │
-│                       │
-│   « Non mais il est   │  répliques incrustées,
-│      sérieux là ? »   │  juste au-dessus du personnage
-├───────────────────────┤
-│                       │
-│  le personnage qui    │  40 %
-│       réagit          │
-│                       │
-└───────────────────────┘
+   split  (source horizontale)        pip  (source verticale)
+┌───────────────────────┐         ┌───────────────────────┐
+│                       │         │                       │
+│     vidéo source      │         │                       │
+│   (fond flou si le    │         │     vidéo source      │
+│  format ne colle pas) │         │     en plein cadre    │
+│                       │         │                       │
+│   « Non mais il est   │         │                       │
+│      sérieux là ? »   │         │   « Non mais il est   │
+├───────────────────────┤         │      sérieux là ? »   │
+│                       │         │   ⬤                   │
+│  le personnage qui    │         │  personnage           │
+│       réagit          │         │                       │
+└───────────────────────┘         └───────────────────────┘
 ```
+
+**Choisissez le format selon l'orientation de la source.** Une vidéo verticale
+empilée se retrouve écrasée dans le tiers central du cadre : `--layout pip` lui
+rend toute la surface et pose le personnage dans une bulle. Une vidéo
+horizontale, elle, ne perd rien à l'empilement : `--layout split` (le défaut).
 
 ## Démarrage
 
@@ -68,7 +72,10 @@ Options principales :
 --persona "<texte>"       qui réagit, et comment
 --out <fichier.mp4>       chemin de sortie
 --reactor-image <img>     portrait du personnage
---top-ratio <0.35-0.85>   part de hauteur pour la vidéo source (défaut 0.60)
+--layout <split|pip>      format du cadre (défaut split)
+--top-ratio <0.35-0.85>   split : part de hauteur pour la source (défaut 0.60)
+--pip-scale <0.18-0.6>    pip : diamètre de la bulle / largeur (défaut 0.34)
+--pip-position <bottom-left|bottom-right|top-left|top-right>
 --vision <auto|claude|stub>
 --tts <auto|elevenlabs|espeak>
 --avatar <placeholder|cmd>
@@ -89,8 +96,9 @@ vidéo source
    │      └─ Claude (vision) → script.json : { t, réplique, émotion, ce qui déclenche }
    ├─ TTS par réplique   → clips posés à leur timecode sur une piste voix unique
    ├─ provider avatar    → clip du personnage, piloté par la piste voix
-   └─ ffmpeg (une passe) → empilement 9:16, sous-titres ASS, son source atténué
-                            sous la voix, mention « contenu généré par IA »
+   └─ ffmpeg (une passe) → montage 9:16 (empilement ou bulle), sous-titres ASS,
+                            son source atténué sous la voix, mention
+                            « contenu généré par IA »
 ```
 
 Deux points qui font la différence sur ce format :

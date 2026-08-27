@@ -48,7 +48,26 @@ node bin/rs.js render ma-video.mp4
 
 ## Brancher un service de lip-sync
 
-Le principe est le même pour tous : vous envoyez une image et un audio, vous
+`examples/providers/lipsync-http.sh` est un squelette complet : création de la
+tâche, attente avec plafond de temps, téléchargement, et un message d'erreur
+lisible à chaque étape qui peut échouer.
+
+```bash
+export LIPSYNC_API_URL="https://api.exemple.com/v1"
+export LIPSYNC_API_KEY="..."
+
+RS_AVATAR_PROVIDER=cmd \
+RS_REACTOR_IMAGE=./assets/personnage.png \
+RS_AVATAR_CMD='./examples/providers/lipsync-http.sh {image} {audio} {out} {duration}' \
+node bin/rs.js render ma-video.mp4 --layout pip
+```
+
+Trois blocs y sont marqués `ADAPTER` : la création de la tâche, la lecture du
+statut, et le champ contenant l'URL du résultat. **Ce sont les seuls endroits à
+modifier**, et leurs valeurs se prennent dans la documentation à jour du service
+que vous utilisez — les noms de champs de cette catégorie d'API changent souvent.
+
+Le principe reste le même partout : vous envoyez une image et un audio, vous
 récupérez une vidéo. Votre script fait trois choses — envoyer, attendre, et
 télécharger le résultat vers `{out}`.
 
