@@ -15,6 +15,8 @@ remplacés à l'exécution :
 | `{image}` | le portrait du personnage (`RS_REACTOR_IMAGE`), chaîne vide si non défini |
 | `{out}` | le fichier vidéo à écrire |
 | `{duration}` | la durée attendue, en secondes |
+| `{width}` | largeur du panneau du personnage, en pixels |
+| `{height}` | hauteur du panneau du personnage, en pixels |
 
 La commande doit écrire une vidéo à `{out}`. **Ni le cadrage ni la durée n'ont
 besoin d'être exacts** : le montage recadre au format du panneau et cale sur la
@@ -30,14 +32,17 @@ node bin/rs.js render ma-video.mp4
 
 ## Exemple fourni, qui marche tout de suite
 
-`examples/providers/still-zoom.sh` : un portrait fixe avec un lent zoom avant.
-Pas de synchronisation labiale, mais aucun service externe, aucun coût, et un
-cadre qui ne semble pas figé.
+`examples/providers/still-zoom.sh` : un portrait avec un lent zoom avant. Pas
+de synchronisation labiale, mais aucun service externe, aucun coût, et un cadre
+qui ne semble pas figé. Il gère les portraits détourés (fond transparent) en
+composant le sujet sur un fond uni, et se règle avec `RS_REACTOR_BG`,
+`RS_REACTOR_FILL` (plan plus ou moins serré) et `RS_REACTOR_Y` (hauteur du
+sujet dans le cadre).
 
 ```bash
 RS_AVATAR_PROVIDER=cmd \
 RS_REACTOR_IMAGE=./assets/personnage.jpg \
-RS_AVATAR_CMD='./examples/providers/still-zoom.sh {image} {audio} {out} {duration}' \
+RS_AVATAR_CMD='./examples/providers/still-zoom.sh {image} {out} {duration} {width} {height}' \
 node bin/rs.js render ma-video.mp4
 ```
 
