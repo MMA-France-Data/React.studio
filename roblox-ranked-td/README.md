@@ -8,7 +8,8 @@ Tout est construit par code (carte, interface, tours, ennemis) : pas besoin de m
 ## Le jeu
 
 - Chaque joueur défend **sa propre base** sur son terrain. Les deux reçoivent exactement les mêmes vagues.
-- 4 tours (Mitrailleur, Sniper, Mortier, Givreur), chacune avec 3 niveaux.
+- 4 tours (Mitrailleur, Sniper, Mortier, Givreur), chacune avec 3 niveaux : le modèle évolue (anneau au niv. 2,
+  couronne au niv. 3), un badge ●●○ au-dessus de chaque tour et une fiche qui compare les 3 niveaux.
 - **Envois** : tu paies pour envoyer des ennemis en plus chez l'adversaire, et ça augmente ton revenu
   par vague. C'est le cœur du 1v1 : économiser ou attaquer ?
 - Le premier dont la base tombe perd. Après 20 minutes, la base avec le plus de vie gagne.

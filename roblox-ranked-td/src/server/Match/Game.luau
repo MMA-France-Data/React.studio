@@ -317,11 +317,50 @@ function Game:buildTowerModel(lane: Lane, tower)
 	self:refreshTowerModel(tower)
 end
 
+local function decoration(model: Model, name: string, props)
+	local part = Instance.new("Part")
+	part.Name = name
+	part.Anchored = true
+	part.CanCollide = false
+	part.CastShadow = false
+	part.Material = Enum.Material.Neon
+	for key, value in props do
+		(part :: any)[key] = value
+	end
+	part.Parent = model
+	return part
+end
+
+-- Le modèle évolue à chaque niveau : plus haut, anneau lumineux au niv. 2, couronne au niv. 3.
 function Game:refreshTowerModel(tower)
 	local height = 1.5 + tower.level * 1.2
+	local top = tower.position + Vector3.new(0, 1 + height, 0)
 	tower.body.Size = Vector3.new(2.4, height, 2.4)
 	tower.body.CFrame = CFrame.new(tower.position + Vector3.new(0, 1 + height / 2, 0))
-	tower.body.Material = if tower.level >= Towers.maxLevel(tower.type) then Enum.Material.Neon else Enum.Material.SmoothPlastic
+
+	for _, name in { "Ring", "Crown" } do
+		local old = tower.model:FindFirstChild(name)
+		if old then
+			old:Destroy()
+		end
+	end
+	if tower.level >= 2 then
+		decoration(tower.model, "Ring", {
+			Shape = Enum.PartType.Cylinder,
+			Size = Vector3.new(0.4, 3.4, 3.4),
+			CFrame = CFrame.new(tower.position + Vector3.new(0, 1 + height * 0.6, 0)) * CFrame.Angles(0, 0, math.rad(90)),
+			Color = tower.def.color:Lerp(Color3.new(1, 1, 1), 0.5),
+		})
+	end
+	if tower.level >= 3 then
+		decoration(tower.model, "Crown", {
+			Shape = Enum.PartType.Ball,
+			Size = Vector3.one * 1.6,
+			Position = top + Vector3.new(0, 0.6, 0),
+			Color = Color3.fromRGB(255, 205, 80),
+		})
+	end
+
 	tower.model:SetAttribute("Level", tower.level)
 end
 

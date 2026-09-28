@@ -7,6 +7,7 @@ local Config = require(Shared.Config)
 local Remotes = require(Shared.Remotes)
 local Sends = require(Shared.Sends)
 local Towers = require(Shared.Towers)
+local TowerCard = require(script.Parent.TowerCard)
 local UI = require(script.Parent.UI)
 
 local MatchUI = {}
@@ -116,18 +117,27 @@ function MatchUI.start(TowerPlacement)
 		}),
 	})
 	local towerButtons = {}
+	local hoveredType: string? = nil
 	for index, towerType in Towers.ORDER do
 		local def = Towers.Defs[towerType]
 		local button = UI.button({
 			Size = UDim2.new(0, 130, 1, 0),
 			LayoutOrder = index,
 			BackgroundColor3 = def.color,
-			Text = `[{index}] {def.displayName}\n{def.levels[1].cost} or`,
-			MaxTextSize = 18,
+			Text = `[{index}] {def.displayName}\n{def.levels[1].cost} or  •  {Towers.maxLevel(towerType)} niv.`,
+			MaxTextSize = 17,
 			Parent = towerBar,
 		})
 		button.Activated:Connect(function()
 			TowerPlacement.startPlacing(towerType)
+		end)
+		button.MouseEnter:Connect(function()
+			hoveredType = towerType
+		end)
+		button.MouseLeave:Connect(function()
+			if hoveredType == towerType then
+				hoveredType = nil
+			end
 		end)
 		towerButtons[towerType] = button
 	end
@@ -163,46 +173,43 @@ function MatchUI.start(TowerPlacement)
 		sendButtons[sendId] = button
 	end
 
-	-- Panneau de la tour sélectionnée (en bas à gauche)
+	-- Fiche de tour (au-dessus de la boutique) : les 3 niveaux côte à côte.
+	-- Tour sélectionnée -> niveaux + boutons ; survol / pose -> aperçu boutique.
 	local towerPanel = UI.new("Frame", {
-		AnchorPoint = Vector2.new(0, 1),
-		Position = UDim2.new(0, 16, 1, -92),
-		Size = UDim2.new(0, 240, 0, 150),
-		BackgroundColor3 = UI.Colors.Panel,
-		BackgroundTransparency = 0.1,
+		AnchorPoint = Vector2.new(0.5, 1),
+		Position = UDim2.new(0.5, 0, 1, -92),
+		Size = UDim2.fromOffset(TowerCard.WIDTH, TowerCard.HEIGHT + 48),
+		BackgroundTransparency = 1,
 		Visible = false,
 		Parent = gui,
-	}, { UI.corner(12), UI.padding(10) })
-	local towerTitle = UI.label({
-		Size = UDim2.new(1, 0, 0, 24),
-		Font = Enum.Font.GothamBold,
-		TextXAlignment = Enum.TextXAlignment.Left,
-		MaxTextSize = 20,
-		Parent = towerPanel,
 	})
-	local towerStats = UI.label({
-		Position = UDim2.new(0, 0, 0, 26),
-		Size = UDim2.new(1, 0, 0, 40),
-		TextXAlignment = Enum.TextXAlignment.Left,
-		TextYAlignment = Enum.TextYAlignment.Top,
-		TextColor3 = UI.Colors.Muted,
-		TextWrapped = true,
-		MaxTextSize = 14,
+	local towerCard = TowerCard.new(towerPanel)
+	local actions = UI.new("Frame", {
+		AnchorPoint = Vector2.new(0, 1),
+		Position = UDim2.new(0, 0, 1, 0),
+		Size = UDim2.new(1, 0, 0, 42),
+		BackgroundTransparency = 1,
 		Parent = towerPanel,
 	})
 	local upgradeButton = UI.button({
-		Position = UDim2.new(0, 0, 1, -40),
-		Size = UDim2.new(0.58, -4, 0, 40),
+		Size = UDim2.new(0.62, -4, 1, 0),
 		BackgroundColor3 = UI.Colors.Success,
-		MaxTextSize = 16,
-		Parent = towerPanel,
+		MaxTextSize = 18,
+		Parent = actions,
 	})
 	local sellButton = UI.button({
-		Position = UDim2.new(0.58, 4, 1, -40),
-		Size = UDim2.new(0.42, -4, 0, 40),
+		Position = UDim2.new(0.62, 4, 0, 0),
+		Size = UDim2.new(0.38, -4, 1, 0),
 		BackgroundColor3 = UI.Colors.Error,
+		MaxTextSize = 18,
+		Parent = actions,
+	})
+	local placeHint = UI.label({
+		Size = UDim2.fromScale(1, 1),
+		TextColor3 = UI.Colors.Text,
+		TextStrokeTransparency = 0.5,
 		MaxTextSize = 16,
-		Parent = towerPanel,
+		Parent = actions,
 	})
 	upgradeButton.Activated:Connect(TowerPlacement.upgradeSelected)
 	sellButton.Activated:Connect(TowerPlacement.sellSelected)
@@ -323,21 +330,28 @@ function MatchUI.start(TowerPlacement)
 			end
 		end
 
-		-- Tour sélectionnée
+		-- Fiche de tour
 		local selected = TowerPlacement.getSelected()
+		local previewType = placing or hoveredType
 		if selected and selected.Parent then
 			local towerType = selected:GetAttribute("TowerType")
 			local level = selected:GetAttribute("Level") or 1
-			local def = Towers.Defs[towerType]
-			local stats = Towers.stats(towerType, level)
 			local upgradeCost = Towers.upgradeCost(towerType, level)
 			towerPanel.Visible = true
-			towerTitle.Text = `{def.displayName} — niv. {level}/{Towers.maxLevel(towerType)}`
-			towerStats.Text = `Dégâts {stats.damage} • Portée {stats.range} • Cadence {stats.cooldown}s\n{def.description}`
-			upgradeButton.Text = if upgradeCost then `Améliorer [E]\n{upgradeCost} or` else "Niveau max"
-			upgradeButton.BackgroundTransparency = if upgradeCost and gold >= upgradeCost then 0 else 0.6
+			towerCard:render(towerType, level, gold)
+			upgradeButton.Visible, sellButton.Visible, placeHint.Visible = true, true, false
+			upgradeButton.Text = if upgradeCost then `Améliorer [E]  •  {upgradeCost} or` else "★ Niveau max ★"
+			upgradeButton.BackgroundColor3 = if upgradeCost then UI.Colors.Success else UI.Colors.Gold
+			upgradeButton.BackgroundTransparency = if not upgradeCost or gold >= upgradeCost then 0 else 0.6
 			local refund = math.floor(Towers.totalCost(towerType, level) * Config.Match.SELL_REFUND)
-			sellButton.Text = `Vendre [X]\n+{refund} or`
+			sellButton.Text = `Vendre [X]  •  +{refund} or`
+		elseif previewType then
+			towerPanel.Visible = true
+			towerCard:render(previewType, 0, gold)
+			upgradeButton.Visible, sellButton.Visible, placeHint.Visible = false, false, true
+			placeHint.Text = if placing
+				then "Clique sur ton terrain pour poser  •  Maj : en poser plusieurs  •  Q : annuler"
+				else "Clique pour choisir cette tour"
 		else
 			towerPanel.Visible = false
 		end

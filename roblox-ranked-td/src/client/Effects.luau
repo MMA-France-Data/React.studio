@@ -104,9 +104,83 @@ local function addHealthBar(enemy: Instance)
 	billboard.Parent = enemy
 end
 
+-- Badge au-dessus de chaque tour : 3 pastilles qui se remplissent avec le niveau
+-- (dorées au niveau max). Visible sur tes tours comme sur celles de l'adversaire.
+local function addTowerBadge(model: Instance)
+	local towerType = model:GetAttribute("TowerType")
+	local def = towerType and Towers.Defs[towerType]
+	if not def or not model:IsA("Model") then
+		return
+	end
+	local anchor = model:WaitForChild("Base", 5)
+	if not anchor then
+		return
+	end
+	local maxLevel = Towers.maxLevel(towerType)
+
+	local billboard = Instance.new("BillboardGui")
+	billboard.Name = "LevelBadge"
+	billboard.Size = UDim2.fromOffset(78, 26)
+	billboard.AlwaysOnTop = true
+	billboard.MaxDistance = 110
+	billboard.Adornee = anchor
+
+	local background = Instance.new("Frame")
+	background.Size = UDim2.fromScale(1, 1)
+	background.BackgroundColor3 = Color3.fromRGB(20, 22, 30)
+	background.BackgroundTransparency = 0.25
+	background.Parent = billboard
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(1, 0)
+	corner.Parent = background
+	local layout = Instance.new("UIListLayout")
+	layout.FillDirection = Enum.FillDirection.Horizontal
+	layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+	layout.VerticalAlignment = Enum.VerticalAlignment.Center
+	layout.Padding = UDim.new(0, 6)
+	layout.Parent = background
+
+	local pips = {}
+	for index = 1, maxLevel do
+		local pip = Instance.new("Frame")
+		pip.Size = UDim2.fromOffset(14, 14)
+		pip.LayoutOrder = index
+		pip.Parent = background
+		local pipCorner = Instance.new("UICorner")
+		pipCorner.CornerRadius = UDim.new(1, 0)
+		pipCorner.Parent = pip
+		local stroke = Instance.new("UIStroke")
+		stroke.Color = Color3.new(1, 1, 1)
+		stroke.Transparency = 0.4
+		stroke.Parent = pip
+		pips[index] = pip
+	end
+
+	local function update()
+		local level = model:GetAttribute("Level") or 1
+		local maxed = level >= maxLevel
+		for index, pip in pips do
+			local filled = index <= level
+			pip.BackgroundColor3 = if maxed then Color3.fromRGB(255, 205, 80) elseif filled then def.color else Color3.fromRGB(45, 48, 60)
+			pip.BackgroundTransparency = if filled then 0 else 0.2
+		end
+		-- Le badge suit la hauteur de la tour (qui grandit à chaque niveau).
+		billboard.StudsOffsetWorldSpace = Vector3.new(0, 1.5 + level * 1.2 + (if maxed then 3.2 else 2), 0)
+	end
+	update()
+	model:GetAttributeChangedSignal("Level"):Connect(update)
+	billboard.Parent = model
+end
+
 function Effects.start()
 	effectsFolder.Parent = workspace
 	Remotes.get("TowerFired").OnClientEvent:Connect(onTowerFired)
+
+	local towers = workspace:WaitForChild("Towers")
+	towers.ChildAdded:Connect(addTowerBadge)
+	for _, model in towers:GetChildren() do
+		task.spawn(addTowerBadge, model)
+	end
 
 	local enemies = workspace:WaitForChild("Enemies")
 	enemies.ChildAdded:Connect(addHealthBar)

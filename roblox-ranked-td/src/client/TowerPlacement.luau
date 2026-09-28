@@ -31,6 +31,13 @@ local ghostReason: string? = nil
 local usingTouch = false
 local lastTouchPosition: Vector3? = nil
 
+-- Contour lumineux autour de la tour sélectionnée.
+local selectionHighlight = Instance.new("Highlight")
+selectionHighlight.FillColor = Color3.new(1, 1, 1)
+selectionHighlight.FillTransparency = 0.85
+selectionHighlight.OutlineColor = Color3.new(1, 1, 1)
+selectionHighlight.DepthMode = Enum.HighlightDepthMode.Occluded
+
 local floorParams = RaycastParams.new()
 floorParams.FilterType = Enum.RaycastFilterType.Include
 local towerParams = RaycastParams.new()
@@ -87,6 +94,7 @@ end
 function TowerPlacement.cancel()
 	placingType = nil
 	selectedModel = nil
+	selectionHighlight.Parent = nil
 	ghostPosition = nil
 	hideVisuals()
 	changed:Fire()
@@ -97,6 +105,7 @@ function TowerPlacement.startPlacing(towerType: string)
 		return
 	end
 	selectedModel = nil
+	selectionHighlight.Parent = nil
 	placingType = if placingType == towerType then nil else towerType
 	if not placingType then
 		hideVisuals()
@@ -107,6 +116,8 @@ end
 function TowerPlacement.select(model: Model?)
 	placingType = nil
 	selectedModel = model
+	selectionHighlight.Adornee = model
+	selectionHighlight.Parent = model
 	hideVisuals()
 	changed:Fire()
 end
