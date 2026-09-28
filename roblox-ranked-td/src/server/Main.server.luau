@@ -1,0 +1,35 @@
+-- Point d'entrée serveur. Une seule place Roblox sert à la fois de lobby et de serveur de match :
+--   serveur public   -> Lobby (file ranked, classement)
+--   serveur réservé  -> Match (créé par le matchmaking via TeleportService:ReserveServer)
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+
+local Shared = ReplicatedStorage:WaitForChild("Shared")
+local Config = require(Shared.Config)
+local Remotes = require(Shared.Remotes)
+local PlayerData = require(script.Parent.PlayerData)
+
+local function detectMode(): string
+	if RunService:IsStudio() and Config.STUDIO_FORCE_MODE ~= "Auto" then
+		return Config.STUDIO_FORCE_MODE
+	end
+	-- Un serveur réservé a un PrivateServerId mais pas de propriétaire.
+	if game.PrivateServerId ~= "" and game.PrivateServerOwnerId == 0 then
+		return "Match"
+	end
+	return "Lobby"
+end
+
+Remotes.init()
+
+local mode = detectMode()
+ReplicatedStorage:SetAttribute("ServerMode", mode)
+print("[RankedTD] Mode serveur :", mode)
+
+PlayerData.start()
+
+if mode == "Match" then
+	require(script.Parent.Match).start()
+else
+	require(script.Parent.Lobby).start()
+end
