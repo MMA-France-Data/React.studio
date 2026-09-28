@@ -48,7 +48,7 @@ local function defaultIdle()
 		-- Machines à sous
 		unlockedTowers = startingTowers(), -- [type] = true
 		towerDupes = {}, -- [type] = nombre de doublons (IdleConfig.DUPLICATE_DAMAGE_BONUS de dégâts chacun)
-		pendingSpinTier = 0, -- lancer gratuit de la machine à tours (0 = aucun, sinon palier)
+		-- (plus de lancer gratuit par vague : les lancers de l'autel se paient en pièces, voir migrateFreeSpin)
 		bonuses = {}, -- inventaire de bonus (ids de IdleConfig.BONUSES)
 		lastBonusSpinAt = 0, -- os.time() du dernier lancer payé en pièces
 	}
@@ -107,6 +107,18 @@ local function migrateSpots(idle)
 	idle.unlockedSpots = count
 end
 
+-- Avant, chaque vague réussie donnait 1 lancer gratuit de l'autel (idle.pendingSpinTier > 0 = un lancer
+-- en attente). Les lancers se paient maintenant en pièces : un lancer en attente dans une ancienne
+-- sauvegarde est remboursé au prix d'un lancer à ton record (IdleConfig.towerSpinCost), puis le champ
+-- est supprimé. Une seule fois : sans le champ, il ne se passe plus rien.
+local function migrateFreeSpin(data)
+	local pending = data.idle.pendingSpinTier
+	data.idle.pendingSpinTier = nil
+	if typeof(pending) == "number" and pending > 0 and typeof(data.coins) == "number" then
+		data.coins += IdleConfig.towerSpinCost(data.idle.highestWave, 1)
+	end
+end
+
 -- Complète les champs manquants (utile quand tu ajoutes des champs plus tard).
 local function reconcile(data)
 	for key, value in defaultData() do
@@ -122,6 +134,7 @@ local function reconcile(data)
 			data.idle[key] = value
 		end
 	end
+	migrateFreeSpin(data)
 	return data
 end
 

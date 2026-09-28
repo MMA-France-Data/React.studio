@@ -1,9 +1,12 @@
 --!native
 --!optimize 2
 -- Moteur de combat du simulateur : reproduit PlotGame:step (src/server/Hub/PlotGame.luau) à pas fixe.
---   apparitions (écarts de la vague, MAX_ENEMIES) -> déplacements (vitesse x ENEMY_SPEED_MULTIPLIER,
---   ralentissements) -> tirs des tours (dans l'ordre des emplacements) -> retrait des morts -> fin de vague
---   (base à 0 PV = vague ratée ; plus rien à faire apparaître et plus d'ennemi = vague réussie).
+--   apparitions (écarts de la vague, MAX_ENEMIES) -> déplacements (vitesse x ENEMY_SPEED_MULTIPLIER x facteur
+--   du type d'ennemi, ralentissements) -> tirs des tours (dans l'ordre des emplacements) -> retrait des morts
+--   -> fin de vague (UN SEUL ennemi au bout du chemin = vague ratée, pas de PV de base ; plus rien à faire
+--   apparaître et plus d'ennemi = vague réussie).
+-- Ralentissements comme applySlow dans PlotGame : ils ne s'additionnent pas, le plus fort gagne, un égal
+-- prolonge, un plus faible est ignoré tant que l'actuel dure.
 -- Deux usages :
 --   Engine.runWave(comp, tours)  : vraie vague (les ennemis meurent, pièces, fuites vers la base)
 --   Engine.hits(comp, tours)     : vague « immortelle » : les ennemis ne meurent jamais et on compte les coups
@@ -29,8 +32,13 @@ Engine.HITS_DT = 0.1 -- pas des vagues « immortelles » (estimations seulement)
 
 local EPS = 1e-9
 local MAX_ENEMIES = IdleConfig.MAX_ENEMIES
-local BASE_HEALTH = IdleConfig.BASE_HEALTH
 local SPEED_MULTIPLIER = IdleConfig.ENEMY_SPEED_MULTIPLIER
+
+-- Vitesse d'un ennemi sur les parcelles (studs/s, sans ralentissement), comme PlotGame : vitesse de
+-- Enemies.luau x ENEMY_SPEED_MULTIPLIER x facteur de son type (IdleConfig.enemySpeedFactor).
+function Engine.enemySpeed(name: string): number
+	return Enemies.Defs[name].speed * SPEED_MULTIPLIER * IdleConfig.enemySpeedFactor(name)
+end
 
 ----------------------------------------------------------------------
 -- Chemin précalculé (mêmes calculs que PlotLayout.pointAt, sans créer de Vector3)
@@ -82,7 +90,6 @@ function Engine.composition(wave: number, forcedType: string?)
 		local groupKey = item.enemy .. "@" .. item.health
 		local g = groupOf[groupKey]
 		if not g then
-			local def = Enemies.Defs[item.enemy]
 			g = #groups + 1
 			groupOf[groupKey] = g
 			groups[g] = {
@@ -90,20 +97,20 @@ function Engine.composition(wave: number, forcedType: string?)
 				count = 0,
 				hp = item.health,
 				reward = item.reward,
-				damage = def.damage,
-				speed = def.speed * SPEED_MULTIPLIER,
+				speed = Engine.enemySpeed(item.enemy),
 			}
 		end
 		local group = groups[g]
 		group.count += 1
-		items[i] = { g = g, at = at, hp = item.health, reward = item.reward, speed = group.speed, damage = group.damage }
+		items[i] = { g = g, at = at, hp = item.health, reward = item.reward, speed = group.speed }
 		at += item.gap
 	end
 
-	local maxLeak, totalHp, totalReward, parts = 0, 0, 0, {}
+	local totalHp, totalReward, parts = 0, 0, {}
 	for g, group in groups do
-		maxLeak += group.count * group.damage
-		totalHp += group.count * group.hp
+		-- PV à infliger à tout le groupe : une seule fuite fait rater la vague, chaque ennemi doit tomber.
+		group.need = group.count * group.hp
+		totalHp += group.need
 		totalReward += group.count * group.reward
 		parts[g] = group.name .. group.count
 	end
@@ -113,9 +120,8 @@ function Engine.composition(wave: number, forcedType: string?)
 		waveType = waveType,
 		items = items,
 		groups = groups,
-		maxLeak = maxLeak,
-		-- Une vague dont tous les ennemis réunis font moins de BASE_HEALTH dégâts ne peut pas être ratée.
-		failable = maxLeak >= BASE_HEALTH,
+		-- Pas de PV de base : un seul ennemi qui passe suffit, toutes les vagues peuvent être ratées.
+		failable = true,
 		totalHp = totalHp,
 		totalReward = totalReward,
 		-- Même clé = mêmes coups portés en vague immortelle (les PV relatifs des groupes ne changent pas).
@@ -161,11 +167,27 @@ local function byDistanceDesc(a, b)
 	return a.dist > b.dist
 end
 
+-- Même règle que applySlow (PlotGame.luau) : le plus fort gagne, un égal prolonge, un plus faible est
+-- ignoré tant que l'actuel dure.
+local function applySlow(enemy, slow: number, duration: number, now: number)
+	if now >= enemy.slowUntil or slow > enemy.slowFactor then
+		enemy.slowFactor = slow
+		enemy.slowUntil = now + duration
+	elseif slow == enemy.slowFactor then
+		local untilTime = now + duration
+		if untilTime > enemy.slowUntil then
+			enemy.slowUntil = untilTime
+		end
+	end
+end
+
 -- immortal = true : les ennemis ne perdent pas de PV, hitsOut[i][g] compte les coups de la tour i.
 -- Sinon usefulOut[i] cumule les dégâts utiles de la tour i (sans les dégâts perdus sur un ennemi déjà presque mort).
--- baseMode : nil = comme le jeu (la vague s'arrête quand la base tombe) ;
---            "ignore" = la vague va jusqu'au bout même si la base tombe (success dit si elle aurait tenu) ;
---            "strict" = ratée dès qu'un seul ennemi atteint la base (banc d'essai des tours).
+-- baseMode : nil = comme le jeu (vague ratée dès la première fuite ; la simulation continue quand même jusqu'au
+--                  bout pour savoir QUI aurait fui, mais le temps, les pièces et les dégâts rendus sont ceux
+--                  du moment de la première fuite, comme dans le jeu) ;
+--            "ignore" = la vague va jusqu'au bout (success dit si aucun ennemi n'a fui, leakScore de combien) ;
+--            "strict" = s'arrête à la première fuite (plus rapide : banc d'essai des tours).
 local function simulate(comp, towers, immortal: boolean, dt: number, hitsOut, usefulOut, leakOut, baseMode: string?)
 	local items = comp.items
 	local nItems = #items
@@ -173,8 +195,9 @@ local function simulate(comp, towers, immortal: boolean, dt: number, hitsOut, us
 	local enemies = {}
 	local n = 0
 	local spawnIndex = 1
-	local ignoreBase = baseMode == "ignore"
-	local baseHealth = if baseMode == "strict" then 1e-9 else BASE_HEALTH
+	local stopAtLeak = baseMode == "strict"
+	local leaked = false
+	local leakStep, leakCoins, leakUseful = nil, nil, nil
 	local coins = 0
 	local removed = 0
 	local step = 0
@@ -225,7 +248,6 @@ local function simulate(comp, towers, immortal: boolean, dt: number, hitsOut, us
 				maxHp = item.hp,
 				reward = item.reward,
 				speed = item.speed,
-				damage = item.damage,
 				dist = 0,
 				seg = 2,
 				x = PX[1],
@@ -249,12 +271,25 @@ local function simulate(comp, towers, immortal: boolean, dt: number, hitsOut, us
 				if distance >= PATH_LENGTH then
 					enemy.dead = true
 					removed += 1
-					baseHealth -= enemy.damage
-					if leakOut then
-						leakOut[enemy.g] += enemy.damage
-						-- Écart au succès, continu : un ennemi arrivé à la base avec 10 % de ses PV compte 10 %
-						-- de ses dégâts (sert à comparer des achats quand la vague est ratée).
-						leakScore += enemy.damage * enemy.hp / enemy.maxHp
+					if not immortal then
+						-- Une seule fuite = vague ratée (PlotGame:step s'arrête là, les tours ne tirent plus).
+						if not leaked then
+							leaked = true
+							leakStep, leakCoins = step, coins
+							if usefulOut then
+								leakUseful = table.clone(usefulOut)
+							end
+						end
+						if stopAtLeak then
+							return false, step, coins, 0, step, coins, nil
+						end
+						if leakOut then
+							-- Nombre d'ennemis de ce groupe qui auraient fui
+							leakOut[enemy.g] += 1
+							-- Écart au succès, continu : un ennemi arrivé à la base avec 10 % de ses PV compte
+							-- 0,1 (sert à comparer des achats quand la vague est ratée).
+							leakScore += enemy.hp / enemy.maxHp
+						end
 					end
 				else
 					local seg = enemy.seg
@@ -286,9 +321,7 @@ local function simulate(comp, towers, immortal: boolean, dt: number, hitsOut, us
 							local dx, dz = enemy.x - tx, enemy.z - tz
 							if dx * dx + dz * dz <= range2 then
 								attacked = true
-								local current = if now < enemy.slowUntil then enemy.slowFactor else 0
-								enemy.slowFactor = math.max(current, slow)
-								enemy.slowUntil = math.max(enemy.slowUntil, now + slowDuration)
+								applySlow(enemy, slow, slowDuration, now)
 								hitEnemy(enemy, damage, ti)
 							end
 						end
@@ -345,9 +378,7 @@ local function simulate(comp, towers, immortal: boolean, dt: number, hitsOut, us
 						else
 							local slow = tower.slow
 							if slow then
-								local current = if now < target.slowUntil then target.slowFactor else 0
-								target.slowFactor = math.max(current, slow)
-								target.slowUntil = math.max(target.slowUntil, now + tower.slowDuration)
+								applySlow(target, slow, tower.slowDuration, now)
 							end
 							hitEnemy(target, tower.damage, ti)
 						end
@@ -375,22 +406,27 @@ local function simulate(comp, towers, immortal: boolean, dt: number, hitsOut, us
 			removed = 0
 		end
 
-		if not immortal and not ignoreBase and baseHealth <= 0 then
-			return false, step, coins, leakScore
-		elseif spawnIndex > nItems and n == 0 then
-			return baseHealth > 0, step, coins, leakScore
+		if spawnIndex > nItems and n == 0 then
+			return not leaked, step, coins, leakScore, leakStep, leakCoins, leakUseful
 		end
 	end
 end
 
 -- Vraie vague. Renvoie { success, steps, seconds, coins (sans bonus de pièces), useful[i], leak[g], leakScore }.
--- baseMode : voir simulate (nil = comme le jeu). Avec "ignore", leakScore mesure de combien il s'en faut
--- (0 = aucune fuite). dt : pas de temps (Engine.DT par défaut).
+-- baseMode : voir simulate. nil = comme le jeu : vague ratée = arrêtée à la première fuite (seconds, coins et
+-- useful sont ceux de ce moment) ; leak[g] = nombre d'ennemis de chaque groupe qui auraient fui en allant
+-- jusqu'au bout, leakScore = leurs PV restants (en ennemis entiers ; 0 = aucune fuite).
+-- "strict" : s'arrête à la première fuite, sans leak ni leakScore (banc d'essai). dt : Engine.DT par défaut.
 function Engine.runWave(comp, towers, baseMode: string?, dt: number?)
 	local useful = table.create(#towers, 0)
 	local leak = table.create(#comp.groups, 0)
 	local step = dt or Engine.DT
-	local success, steps, coins, leakScore = simulate(comp, towers, false, step, nil, useful, leak, baseMode)
+	local success, steps, coins, leakScore, leakStep, leakCoins, leakUseful =
+		simulate(comp, towers, false, step, nil, useful, leak, baseMode)
+	if not success and baseMode == nil and leakStep then
+		-- Comme le jeu : la vague s'arrête à la première fuite.
+		steps, coins, useful = leakStep, leakCoins, leakUseful or useful
+	end
 	return {
 		success = success,
 		steps = steps,

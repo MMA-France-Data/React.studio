@@ -1,7 +1,9 @@
 -- Interface de ta parcelle : pièces, vague en cours, et panneau des emplacements / tours.
--- Clique sur un emplacement libre pour poser une tour, sur une tour pour la remplacer ou la
--- vendre (50 % remboursés), sur n'importe quel cadenas pour débloquer CET emplacement (le prix
--- ne dépend que du nombre d'emplacements déjà possédés, il monte après chaque achat).
+-- Emplacement libre : clique sur une carte pour poser la tour. Tour posée : sa fiche (Améliorer, Vendre,
+-- bonus) et un bouton « Remplacer… » à part ; remplacer demande toujours une confirmation, pour ne
+-- jamais perdre une grosse tour par accident (vendre aussi : 2 clics).
+-- Clique sur n'importe quel cadenas pour débloquer CET emplacement (le prix ne dépend que du nombre
+-- d'emplacements déjà possédés, il monte après chaque achat).
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
@@ -43,12 +45,22 @@ end
 
 local CARD_WIDTH = 100
 local PANEL_HEIGHT = 272
+-- Un bouton de confirmation ignore les clics juste après son apparition : un double clic ne valide jamais rien.
+local CONFIRM_ARM_DELAY = 0.4
+-- Après une pose, pas de nouvelle pose sur cet emplacement tant que la tour n'est pas arrivée (sinon un
+-- double clic sur une carte remplaçait la tour qu'on venait de poser).
+local PLACE_LOCK_TIME = 2
+local SELL_CONFIRM_TIME = 3 -- secondes pour confirmer une vente (2e clic)
 
 local function kindLabel(def): string
 	if def.kind == "Single" and def.slow then
 		return "Ralentit 1 cible"
 	end
 	return KIND_LABELS[def.kind] or ""
+end
+
+local function refundPercent(): number
+	return math.floor(IdleConfig.SELL_REFUND * 100 + 0.5)
 end
 
 function PlotUI.start()
@@ -106,7 +118,7 @@ function PlotUI.start()
 	local wavePanel = UI.new("Frame", {
 		AnchorPoint = Vector2.new(0.5, 0),
 		Position = UDim2.new(0.5, 0, 0, 58),
-		Size = UDim2.new(0, 340, 0, 78),
+		Size = UDim2.new(0, 340, 0, 82),
 		BackgroundColor3 = UI.Colors.Panel,
 		BackgroundTransparency = 0.15,
 		Parent = gui,
@@ -124,11 +136,16 @@ function PlotUI.start()
 		MaxTextSize = 13,
 		Parent = wavePanel,
 	})
-	local _, setBaseHealth = UI.bar({
-		Position = UDim2.new(0, 0, 0, 40),
-		Size = UDim2.new(1, 0, 0, 10),
+	-- Pas de PV de base : un seul ennemi qui atteint la base fait rater la vague.
+	UI.label({
+		Position = UDim2.new(0, 0, 0, 38),
+		Size = UDim2.new(1, 0, 0, 13),
+		Font = Enum.Font.GothamBold,
+		TextColor3 = Color3.fromRGB(235, 160, 110),
+		Text = "⚠ 1 ennemi qui passe = vague ratée",
+		MaxTextSize = 12,
 		Parent = wavePanel,
-	}, UI.Colors.Success)
+	})
 	local waveInfo = UI.label({
 		Position = UDim2.new(0, 0, 0, 52),
 		Size = UDim2.new(1, 0, 0, 14),
@@ -186,6 +203,7 @@ function PlotUI.start()
 		Parent = panel,
 	})
 
+	-- Cartes des tours : sur un emplacement libre (pose directe) ou après « Remplacer… ».
 	local cardRow = UI.new("Frame", {
 		Position = UDim2.new(0, 0, 0, 52),
 		Size = UDim2.new(1, 0, 0, 120),
@@ -229,10 +247,10 @@ function PlotUI.start()
 			MaxTextSize = 12,
 			Parent = card,
 		})
-		UI.label({
-			Position = UDim2.new(0, 0, 0, 40),
-			Size = UDim2.new(1, 0, 0, 40),
-			Text = `DPS {NumberFormat.short(IdleTowers.dps(towerType, 1))}\nPortée {def.range}`,
+		-- DPS, vitesse d'attaque et portée au niveau 1 (doublons compris) : mis à jour dans refreshCards.
+		local stats = UI.label({
+			Position = UDim2.new(0, 0, 0, 38),
+			Size = UDim2.new(1, 0, 0, 46),
 			MaxTextSize = 13,
 			Parent = card,
 		})
@@ -244,8 +262,46 @@ function PlotUI.start()
 			MaxTextSize = 17,
 			Parent = card,
 		})
-		cards[towerType] = { button = card, price = price }
+		cards[towerType] = { button = card, price = price, stats = stats }
 	end
+
+	-- Fiche de la tour posée (à la place des cartes) : ses stats et le bouton « Remplacer… », à part.
+	local towerInfo = UI.new("Frame", {
+		Position = UDim2.new(0, 0, 0, 52),
+		Size = UDim2.new(1, 0, 0, 120),
+		BackgroundColor3 = UI.Colors.Background,
+		BackgroundTransparency = 0.4,
+		Visible = false,
+		Parent = panel,
+	}, { UI.corner(10), UI.padding(8) })
+	local towerStats = UI.label({
+		Size = UDim2.new(1, -250, 1, 0),
+		TextXAlignment = Enum.TextXAlignment.Left,
+		TextYAlignment = Enum.TextYAlignment.Center,
+		TextWrapped = true,
+		RichText = true,
+		MaxTextSize = 16,
+		Parent = towerInfo,
+	})
+	local replaceButton = UI.button({
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.new(1, 0, 0, 12),
+		Size = UDim2.fromOffset(230, 46),
+		BackgroundColor3 = UI.Colors.Warning,
+		Text = "Remplacer…",
+		MaxTextSize = 20,
+		Parent = towerInfo,
+	})
+	UI.label({
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.new(1, 0, 0, 64),
+		Size = UDim2.fromOffset(230, 36),
+		TextColor3 = UI.Colors.Muted,
+		TextWrapped = true,
+		Text = "Par une autre tour, qui repart au niveau 1 (avec confirmation)",
+		MaxTextSize = 12,
+		Parent = towerInfo,
+	})
 
 	-- Bonus de l'inventaire à poser sur la tour sélectionnée.
 	local bonusRow = UI.new("Frame", {
@@ -263,7 +319,8 @@ function PlotUI.start()
 		}),
 	})
 
-	-- Bas du panneau : [Améliorer] [Vendre] pour une tour, [Débloquer] pour un cadenas.
+	-- Bas du panneau : [Améliorer] [Vendre] pour une tour, [Débloquer] pour un cadenas,
+	-- [Garder ma tour] pendant le choix d'un remplacement.
 	local actionButton = UI.button({
 		AnchorPoint = Vector2.new(1, 1),
 		Position = UDim2.new(1, 0, 1, 0),
@@ -281,11 +338,86 @@ function PlotUI.start()
 		Visible = false,
 		Parent = panel,
 	})
+	local backButton = UI.button({
+		AnchorPoint = Vector2.new(0, 1),
+		Position = UDim2.new(0, 0, 1, 0),
+		Size = UDim2.new(1, 0, 0, 44),
+		BackgroundColor3 = UI.Colors.PanelLight,
+		Text = "← Garder ma tour",
+		MaxTextSize = 20,
+		Visible = false,
+		Parent = panel,
+	})
+
+	-- Confirmation du remplacement : recouvre tout le panneau. Ses boutons sont en bas, loin des cartes
+	-- (un double clic sur une carte ne tombe jamais sur « Confirmer »).
+	local confirmFrame = UI.new("TextButton", {
+		Size = UDim2.fromScale(1, 1),
+		BackgroundColor3 = UI.Colors.Panel,
+		AutoButtonColor = false,
+		Text = "",
+		ZIndex = 10,
+		Visible = false,
+		Parent = panel,
+	}, { UI.corner(10) })
+	local confirmTitle = UI.label({
+		Position = UDim2.new(0, 0, 0, 6),
+		Size = UDim2.new(1, 0, 0, 64),
+		Font = Enum.Font.GothamBlack,
+		TextWrapped = true,
+		RichText = true,
+		MaxTextSize = 24,
+		Parent = confirmFrame,
+	})
+	local confirmDetail = UI.label({
+		Position = UDim2.new(0, 0, 0, 78),
+		Size = UDim2.new(1, 0, 0, 64),
+		TextWrapped = true,
+		RichText = true,
+		MaxTextSize = 17,
+		Parent = confirmFrame,
+	})
+	local cancelReplaceButton = UI.button({
+		AnchorPoint = Vector2.new(0, 1),
+		Position = UDim2.new(0, 0, 1, 0),
+		Size = UDim2.new(0.5, -4, 0, 44),
+		BackgroundColor3 = UI.Colors.PanelLight,
+		Text = "Annuler",
+		MaxTextSize = 20,
+		Parent = confirmFrame,
+	})
+	local confirmReplaceButton = UI.button({
+		AnchorPoint = Vector2.new(1, 1),
+		Position = UDim2.new(1, 0, 1, 0),
+		Size = UDim2.new(0.5, -4, 0, 44),
+		BackgroundColor3 = UI.Colors.Error,
+		Text = "Confirmer le remplacement",
+		MaxTextSize = 20,
+		Parent = confirmFrame,
+	})
 
 	------------------------------------------------------------------
 	-- Sélection
 	------------------------------------------------------------------
 	local selectedSpot: number? = nil
+	local replacing = false -- tour posée : cartes affichées pour choisir la remplaçante
+	local replacingSince = 0
+	local confirmReplace = nil -- { spot, model, towerType, openedAt } : fenêtre de confirmation ouverte
+	local pendingPlace = {} -- [spotIndex] = { towerType, at } : pose envoyée, tour pas encore arrivée
+	local sellArmedAt: number? = nil -- 1er clic sur « Vendre »
+	-- Affichage du panneau ("locked", "empty", "tower", "replace", "confirm") et heure de son dernier
+	-- changement : un bouton qui vient d'apparaître sous la souris ignore le 2e clic d'un double clic.
+	local panelMode = ""
+	local modeChangedAt = 0
+	local function setMode(mode: string)
+		if mode ~= panelMode then
+			panelMode = mode
+			modeChangedAt = os.clock()
+		end
+	end
+	local function justChanged(): boolean
+		return os.clock() - modeChangedAt < CONFIRM_ARM_DELAY
+	end
 	local highlight = Instance.new("Highlight")
 	highlight.FillTransparency = 0.8
 	highlight.OutlineColor = Color3.new(1, 1, 1)
@@ -307,8 +439,22 @@ function PlotUI.start()
 		end
 		return nil
 	end
+	local function refundOf(tower: Model): number
+		return math.floor((tower:GetAttribute("Spent") or 0) * IdleConfig.SELL_REFUND)
+	end
+
+	local confirmBonus: string? = nil
+	local confirmBonusAt = 0
 
 	local function select(spotIndex: number?)
+		if spotIndex ~= selectedSpot then
+			-- Autre emplacement : on repart de sa fiche (aucun choix en cours ne suit la sélection).
+			replacing = false
+			confirmReplace = nil
+			sellArmedAt = nil
+			confirmBonus = nil
+			panelMode = ""
+		end
 		selectedSpot = spotIndex
 		panel.Visible = spotIndex ~= nil
 		local target = spotIndex and (towerOn(spotIndex) or spotPad(spotIndex))
@@ -324,22 +470,92 @@ function PlotUI.start()
 		return table.find(listAttribute(player, "UnlockedTowers"), towerType) ~= nil
 	end
 
+	-- Déclarée ici, remplie plus bas (les boutons ci-dessous la rappellent après chaque changement).
+	local refreshPanel: () -> ()
+
 	for towerType, card in cards do
 		card.button.Activated:Connect(function()
-			if not selectedSpot then
+			local spotIndex = selectedSpot
+			if not spotIndex or pendingPlace[spotIndex] or confirmReplace then
 				return
 			end
+			local def = IdleTowers.Defs[towerType]
 			if not isUnlocked(towerType) then
-				UI.toast(`{IdleTowers.Defs[towerType].displayName} : invoque-la à l'autel des héros !`, "Warning")
+				UI.toast(`{def.displayName} : invoque-la à l'autel des héros !`, "Warning")
 				return
 			end
-			plotAction:FireServer("Place", selectedSpot, towerType)
+			local tower = towerOn(spotIndex)
+			if not tower then
+				-- Emplacement libre : pose directe (pas assez de pièces : rien n'est envoyé, l'emplacement
+				-- n'est pas bloqué 2 s pour rien).
+				if coins() < def.placeCost then
+					UI.toast(`Il te faut {NumberFormat.short(def.placeCost)} pièces`, "Error")
+					return
+				end
+				pendingPlace[spotIndex] = { towerType = towerType, at = os.clock() }
+				plotAction:FireServer("Place", spotIndex, towerType)
+				refreshPanel()
+				return
+			end
+			-- Emplacement occupé : seulement après « Remplacer… », et toujours avec confirmation.
+			if not replacing or os.clock() - replacingSince < CONFIRM_ARM_DELAY then
+				return
+			end
+			if tower:GetAttribute("TowerType") == towerType then
+				UI.toast("Cette tour est déjà posée ici", "Warning")
+				return
+			end
+			if coins() + refundOf(tower) < def.placeCost then
+				UI.toast(`Il te faut {NumberFormat.short(def.placeCost)} pièces`, "Error")
+				return
+			end
+			confirmReplace = { spot = spotIndex, model = tower, towerType = towerType, openedAt = os.clock() }
+			refreshPanel()
 		end)
 	end
 
+	replaceButton.Activated:Connect(function()
+		if justChanged() or not selectedSpot or pendingPlace[selectedSpot] or not towerOn(selectedSpot) then
+			return
+		end
+		replacing = true
+		replacingSince = os.clock()
+		sellArmedAt = nil
+		refreshPanel()
+	end)
+	backButton.Activated:Connect(function()
+		if justChanged() then
+			return
+		end
+		replacing = false
+		confirmReplace = nil
+		refreshPanel()
+	end)
+	cancelReplaceButton.Activated:Connect(function()
+		confirmReplace = nil
+		refreshPanel()
+	end)
+	confirmReplaceButton.Activated:Connect(function()
+		local confirm = confirmReplace
+		if not confirm or os.clock() - confirm.openedAt < CONFIRM_ARM_DELAY then
+			return
+		end
+		confirmReplace = nil
+		replacing = false
+		-- La tour a pu changer entre-temps (vendue, déjà remplacée) : on ne remplace que celle affichée.
+		if selectedSpot ~= confirm.spot or towerOn(confirm.spot) ~= confirm.model then
+			UI.toast("La tour a changé entre-temps : rien n'a été remplacé", "Warning")
+			refreshPanel()
+			return
+		end
+		pendingPlace[confirm.spot] = { towerType = confirm.towerType, at = os.clock() }
+		-- 4e argument = la tour remplacée : sans lui, le serveur refuse de poser sur une tour existante.
+		plotAction:FireServer("Place", confirm.spot, confirm.towerType, confirm.model:GetAttribute("TowerType"))
+		refreshPanel()
+	end)
+
 	-- Pose d'un bonus : si la tour en a déjà un, il faut cliquer deux fois (l'ancien est perdu).
 	local bonusRowKey = nil
-	local confirmBonus: string? = nil
 	local function rebuildBonusRow(tower: Model?)
 		local inventory = player:GetAttribute("Bonuses") or ""
 		local current = tower and tower:GetAttribute("Bonus") or ""
@@ -388,7 +604,11 @@ function PlotUI.start()
 			button.Activated:Connect(function()
 				if currentBonus and confirmBonus ~= bonus.id then
 					confirmBonus = bonus.id
+					confirmBonusAt = os.clock()
 					return
+				end
+				if confirmBonus == bonus.id and os.clock() - confirmBonusAt < CONFIRM_ARM_DELAY then
+					return -- double clic : pas une confirmation
 				end
 				confirmBonus = nil
 				Remotes.get("MachineAction"):FireServer("ApplyBonus", selectedSpot, bonus.id)
@@ -408,7 +628,8 @@ function PlotUI.start()
 	end
 
 	actionButton.Activated:Connect(function()
-		if not selectedSpot then
+		-- justChanged : ex. 2e clic d'un double clic sur « Confirmer » qui tomberait sur « Vendre ».
+		if not selectedSpot or justChanged() then
 			return
 		end
 		local owned = ownedSpots()
@@ -416,77 +637,35 @@ function PlotUI.start()
 			-- Achète CET emplacement (le serveur vérifie le numéro et les pièces).
 			plotAction:FireServer("BuySpot", selectedSpot)
 		elseif towerOn(selectedSpot) then
-			plotAction:FireServer("Sell", selectedSpot)
+			-- Vente en 2 clics : le 1er arme le bouton, le 2e (pas trop vite, pas trop tard) vend.
+			local now = os.clock()
+			if sellArmedAt and now - sellArmedAt <= SELL_CONFIRM_TIME then
+				if now - sellArmedAt >= CONFIRM_ARM_DELAY then
+					sellArmedAt = nil
+					plotAction:FireServer("Sell", selectedSpot)
+				end
+			else
+				sellArmedAt = now
+			end
+			refreshPanel()
 		end
 	end)
 
 	local function upgradeSelected()
-		if selectedSpot and towerOn(selectedSpot) then
+		-- Pas pendant un remplacement (bouton Améliorer caché) : inutile d'améliorer la tour qu'on remplace.
+		if selectedSpot and not confirmReplace and not replacing and towerOn(selectedSpot) then
 			plotAction:FireServer("Upgrade", selectedSpot)
 		end
 	end
 	upgradeButton.Activated:Connect(upgradeSelected)
 
-	local function refreshPanel()
-		local spotIndex = selectedSpot
-		if not spotIndex then
-			return
-		end
-		local owned, ownedCount = ownedSpots()
-		local tower = towerOn(spotIndex)
-		highlight.Adornee = tower or spotPad(spotIndex)
-		highlight.Parent = highlight.Adornee
-
-		upgradeButton.Visible = false
-		bonusRow.Visible = false
-		actionButton.Size = UDim2.new(1, 0, 0, 44)
-
-		if not owned[spotIndex] then
-			-- Emplacement verrouillé : n'importe lequel s'achète, au même prix (celui du prochain).
-			cardRow.Visible = false
-			local cost = PlotLayout.spotCost(ownedCount + 1)
-			panelTitle.Text = `🔒 Emplacement {spotIndex}`
-			panelSubtitle.Text = "Débloque-le pour y poser une tour. Chaque achat augmente le prix des suivants."
-			actionButton.Visible = true
-			actionButton.Text = `Débloquer • {NumberFormat.short(cost)} pièces`
-			actionButton.BackgroundColor3 = UI.Colors.Success
-			actionButton.BackgroundTransparency = if coins() >= cost then 0 else 0.6
-			return
-		end
-
-		cardRow.Visible = true
-		local refund = 0
-		local currentType = tower and tower:GetAttribute("TowerType")
-		if tower then
-			local def = IdleTowers.Defs[currentType]
-			local level = tower:GetAttribute("Level") or 1
-			local upgradeCost = IdleTowers.upgradeCost(currentType, level)
-			refund = math.floor((tower:GetAttribute("Spent") or 0) * IdleConfig.SELL_REFUND)
-			local dupes = dupesOf(player, currentType)
-			local bonusId = tower:GetAttribute("Bonus")
-			local now = IdleTowers.dpsOf(IdleTowers.effectiveStats(currentType, level, dupes, bonusId))
-			local nextLevel = IdleTowers.dpsOf(IdleTowers.effectiveStats(currentType, level + 1, dupes, bonusId))
-			local extras = if dupes > 0 then `  •  doublons +{math.floor(dupes * IdleConfig.DUPLICATE_DAMAGE_BONUS * 100 + 0.5)} %` else ""
-			panelTitle.Text = `{def.displayName} • Niv. {level}{extras}`
-			panelSubtitle.Text = `DPS {NumberFormat.short(now)} → {NumberFormat.short(nextLevel)} au niveau {level + 1}  •  ou remplace-la (revendue +{NumberFormat.short(refund)}) :`
-			bonusRow.Visible = true
-			rebuildBonusRow(tower)
-
-			upgradeButton.Visible = true
-			upgradeButton.Text = `Améliorer [E] • {NumberFormat.short(upgradeCost)}`
-			upgradeButton.BackgroundTransparency = if coins() >= upgradeCost then 0 else 0.6
-			actionButton.Visible = true
-			actionButton.Size = UDim2.new(0.4, -4, 0, 44)
-			actionButton.Text = `Vendre • +{NumberFormat.short(refund)}`
-			actionButton.BackgroundColor3 = UI.Colors.Error
-			actionButton.BackgroundTransparency = 0
-		else
-			panelTitle.Text = `Emplacement {spotIndex}`
-			panelSubtitle.Text = "Choisis une tour à poser :"
-			actionButton.Visible = false
-		end
-
+	-- Cartes : stats au niveau 1 (doublons compris) et prix. currentType = tour à remplacer (ou nil),
+	-- refund = ce que rapporte sa revente, locked = une pose est en cours sur cet emplacement.
+	local function refreshCards(currentType: string?, refund: number, locked: boolean)
 		for towerType, card in cards do
+			local stats = IdleTowers.effectiveStats(towerType, 1, dupesOf(player, towerType))
+			card.stats.Text = `DPS {NumberFormat.short(IdleTowers.dpsOf(stats))}\n{UI.attackSpeed(stats.cooldown)}\nPortée {string.format("%g", stats.range)}`
+
 			local cost = IdleTowers.Defs[towerType].placeCost
 			if not isUnlocked(towerType) then
 				card.price.Text = "🔒 Autel"
@@ -500,8 +679,171 @@ function PlotUI.start()
 				local affordable = coins() + refund >= cost
 				card.price.Text = NumberFormat.short(cost)
 				card.price.TextColor3 = if affordable then UI.Colors.Gold else UI.Colors.Error
-				card.button.BackgroundTransparency = if affordable then 0 else 0.5
+				card.button.BackgroundTransparency = if affordable and not locked then 0 else 0.5
 			end
+		end
+	end
+
+	-- Lignes de la fiche d'une tour posée (niveau, doublons et bonus compris).
+	local function towerSheet(towerType: string, level: number, dupes: number, bonusId: string?): string
+		local def = IdleTowers.Defs[towerType]
+		local stats = IdleTowers.effectiveStats(towerType, level, dupes, bonusId)
+		local nextStats = IdleTowers.effectiveStats(towerType, level + 1, dupes, bonusId)
+		local lines = {
+			`DPS <b>{NumberFormat.short(IdleTowers.dpsOf(stats))}</b>  →  {NumberFormat.short(IdleTowers.dpsOf(nextStats))} au niveau {level + 1}`,
+			`Dégâts <b>{NumberFormat.short(stats.damage)}</b> par coup  •  Vitesse <b>{UI.attackSpeed(stats.cooldown)}</b>  •  Portée <b>{string.format("%g", stats.range)}</b>`,
+		}
+		-- Façon d'attaquer : cible, zone, chaîne, ralentissement.
+		local special = {}
+		if stats.chains then
+			table.insert(special, `Éclair sur {stats.chains} ennemis`)
+		elseif def.kind == "Splash" and stats.splash then
+			table.insert(special, `Zone (rayon {string.format("%g", stats.splash)})`)
+		elseif def.kind == "Aura" then
+			table.insert(special, "Frappe tous les ennemis à portée")
+		else
+			table.insert(special, KIND_LABELS[def.kind] or "")
+		end
+		if def.targeting == "Strongest" then
+			table.insert(special, "vise le plus résistant")
+		end
+		if stats.slow and stats.slowDuration then
+			table.insert(special, `ralentit de {math.floor(stats.slow * 100 + 0.5)} % pendant {string.format("%g", stats.slowDuration)} s`)
+		end
+		table.insert(lines, table.concat(special, "  •  "))
+		if dupes > 0 then
+			-- Arrondi : sans lui, 29 doublons affichaient +57 % au lieu de +58 % (virgules des calculs).
+			local percent = math.floor(dupes * IdleConfig.DUPLICATE_DAMAGE_BONUS * 100 + 0.5)
+			table.insert(lines, `Doublons : {NumberFormat.short(dupes)} (+{NumberFormat.short(percent)} % de dégâts)`)
+		end
+		return table.concat(lines, "\n")
+	end
+
+	function refreshPanel()
+		local spotIndex = selectedSpot
+		if not spotIndex then
+			return
+		end
+		local owned, ownedCount = ownedSpots()
+		local tower = towerOn(spotIndex)
+		highlight.Adornee = tower or spotPad(spotIndex)
+		highlight.Parent = highlight.Adornee
+
+		-- Pose en cours : terminée quand la nouvelle tour est arrivée (ou après PLACE_LOCK_TIME, si le
+		-- serveur l'a refusée).
+		local pending = pendingPlace[spotIndex]
+		if pending and ((tower and tower:GetAttribute("TowerType") == pending.towerType) or os.clock() - pending.at > PLACE_LOCK_TIME) then
+			pendingPlace[spotIndex] = nil
+			pending = nil
+		end
+		-- La tour a changé (vendue, remplacée...) pendant un choix : on revient à la fiche de l'emplacement.
+		if confirmReplace and (confirmReplace.spot ~= spotIndex or confirmReplace.model ~= tower) then
+			confirmReplace = nil
+		end
+		if not tower then
+			replacing = false
+			sellArmedAt = nil
+		end
+		if sellArmedAt and os.clock() - sellArmedAt > SELL_CONFIRM_TIME then
+			sellArmedAt = nil
+		end
+
+		cardRow.Visible = false
+		towerInfo.Visible = false
+		bonusRow.Visible = false
+		upgradeButton.Visible = false
+		actionButton.Visible = false
+		backButton.Visible = false
+		confirmFrame.Visible = false
+		actionButton.Size = UDim2.new(1, 0, 0, 44)
+
+		if not owned[spotIndex] then
+			-- Emplacement verrouillé : n'importe lequel s'achète, au même prix (celui du prochain).
+			setMode("locked")
+			local cost = PlotLayout.spotCost(ownedCount + 1)
+			panelTitle.Text = `🔒 Emplacement {spotIndex}`
+			panelSubtitle.Text = "Débloque-le pour y poser une tour. Chaque achat augmente le prix des suivants."
+			actionButton.Visible = true
+			actionButton.Text = `Débloquer • {NumberFormat.short(cost)} pièces`
+			actionButton.BackgroundColor3 = UI.Colors.Success
+			actionButton.BackgroundTransparency = if coins() >= cost then 0 else 0.6
+			return
+		end
+
+		if not tower then
+			-- Emplacement libre : les cartes posent directement.
+			setMode("empty")
+			panelTitle.Text = `Emplacement {spotIndex}`
+			panelSubtitle.Text = if pending then "Pose en cours…" else "Choisis une tour à poser :"
+			cardRow.Visible = true
+			refreshCards(nil, 0, pending ~= nil)
+			return
+		end
+		local currentType = tower:GetAttribute("TowerType")
+		local def = IdleTowers.Defs[currentType]
+		if not def then
+			setMode("unknown")
+			panelTitle.Text = `Emplacement {spotIndex}`
+			panelSubtitle.Text = ""
+			return
+		end
+
+		local level = tower:GetAttribute("Level") or 1
+		local refund = refundOf(tower)
+
+		if confirmReplace then
+			setMode("confirm")
+			local newDef = IdleTowers.Defs[confirmReplace.towerType]
+			local bonus = IdleConfig.BONUS_BY_ID[tower:GetAttribute("Bonus") or ""]
+			-- Inventaire plein : le serveur ne peut pas rendre le bonus (PlotGame:removeTower), on le dit.
+			local inventoryFull = #listAttribute(player, "Bonuses") >= IdleConfig.MAX_BONUS_INVENTORY
+			local bonusLine = if not bonus
+				then ""
+				elseif inventoryFull then `\n<font color="#F06464">Son bonus ({bonus.displayName}) sera PERDU : ton inventaire est plein.</font>`
+				else `\nSon bonus ({bonus.displayName}) retourne dans ton inventaire.`
+			confirmTitle.Text = `Remplacer ton <font color="#{def.color:Lerp(Color3.new(1, 1, 1), 0.4):ToHex()}">{def.displayName} niv. {level}</font> par <font color="#{newDef.color:Lerp(Color3.new(1, 1, 1), 0.4):ToHex()}">{newDef.displayName}</font> ?`
+			confirmDetail.Text = `Tu récupères {refundPercent()} % : <b>{NumberFormat.short(refund)} pièces</b>.`
+				.. `\n{newDef.displayName} coûte {NumberFormat.short(newDef.placeCost)} pièces et repart au <b>niveau 1</b>.`
+				.. bonusLine
+			confirmReplaceButton.BackgroundTransparency = if os.clock() - confirmReplace.openedAt < CONFIRM_ARM_DELAY then 0.5 else 0
+			confirmFrame.Visible = true
+			return
+		end
+
+		if replacing then
+			setMode("replace")
+			panelTitle.Text = `Remplacer : {def.displayName} • Niv. {level}`
+			panelSubtitle.Text = `Choisis la nouvelle tour (elle repart au niveau 1 ; tu récupères {refundPercent()} % : +{NumberFormat.short(refund)}) :`
+			cardRow.Visible = true
+			refreshCards(currentType, refund, pending ~= nil)
+			backButton.Visible = true
+			return
+		end
+
+		-- Fiche de la tour posée.
+		setMode("tower")
+		local dupes = dupesOf(player, currentType)
+		local upgradeCost = IdleTowers.upgradeCost(currentType, level)
+		panelTitle.Text = `{def.displayName} • Niv. {level}`
+		panelSubtitle.Text = if pending then "Remplacement en cours…" else def.description or ""
+		towerInfo.Visible = true
+		towerStats.Text = towerSheet(currentType, level, dupes, tower:GetAttribute("Bonus"))
+		replaceButton.BackgroundTransparency = if pending then 0.6 else 0
+		bonusRow.Visible = true
+		rebuildBonusRow(tower)
+
+		upgradeButton.Visible = true
+		upgradeButton.Text = `Améliorer [E] • {NumberFormat.short(upgradeCost)}`
+		upgradeButton.BackgroundTransparency = if coins() >= upgradeCost then 0 else 0.6
+		actionButton.Visible = true
+		actionButton.Size = UDim2.new(0.4, -4, 0, 44)
+		actionButton.BackgroundColor3 = UI.Colors.Error
+		if sellArmedAt then
+			actionButton.Text = `Confirmer la vente • +{NumberFormat.short(refund)}`
+			actionButton.BackgroundTransparency = if os.clock() - sellArmedAt < CONFIRM_ARM_DELAY then 0.4 else 0
+		else
+			actionButton.Text = `Vendre • +{NumberFormat.short(refund)}`
+			actionButton.BackgroundTransparency = 0
 		end
 	end
 
@@ -565,12 +907,9 @@ function PlotUI.start()
 		wavePanel.Visible = wave ~= nil
 		if wave then
 			local waveType = IdleConfig.WAVE_TYPES[plot:GetAttribute("WaveType")] or IdleConfig.WAVE_TYPES.Mixed
-			local maxHealth = plot:GetAttribute("MaxBaseHealth") or IdleConfig.BASE_HEALTH
-			local health = plot:GetAttribute("BaseHealth") or maxHealth
 			waveLabel.Text = `Vague {wave} • {waveType.displayName}`
 			waveLabel.TextColor3 = if waveType.displayName == "SEIGNEUR DE GUERRE" then UI.Colors.Error else UI.Colors.Text
 			hintLabel.Text = waveType.hint
-			setBaseHealth(health / maxHealth)
 			local state = plot:GetAttribute("State")
 			if state == "Intermission" then
 				local nextAt = plot:GetAttribute("NextWaveAt") or 0

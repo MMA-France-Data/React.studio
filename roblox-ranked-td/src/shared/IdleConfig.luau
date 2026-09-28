@@ -4,11 +4,9 @@
 -- Les chiffres ci-dessous ont été réglés avec le simulateur tools/balance (voir tools/balance/RESULTS.md).
 local IdleConfig = {}
 
-IdleConfig.STARTING_COINS = 25
--- PV de la base, remis à neuf à chaque vague. 10 (et non 20) : chaque type de vague peut être raté
--- (avant, les Escarmouches et les Charges de cavalerie ne faisaient presque jamais assez de dégâts,
--- et seuls les boss bloquaient).
-IdleConfig.BASE_HEALTH = 10
+IdleConfig.STARTING_COINS = 50 -- 25 avant : le début était trop dur
+-- Pas de PV de base : UN SEUL ennemi qui atteint le bout du chemin = vague ratée (on redescend d'une
+-- vague, voir PlotGame:step). Chaque ennemi compte, du petit écuyer au Seigneur de guerre.
 IdleConfig.FIRST_WAVE_DELAY = 4
 IdleConfig.WAVE_CLEAR_DELAY = 1.5
 IdleConfig.WAVE_FAIL_DELAY = 3
@@ -17,8 +15,8 @@ IdleConfig.WAVE_FAIL_DELAY = 3
 -- Au mur, tu farmes les vagues d'avant jusqu'à pouvoir t'offrir l'amélioration qui te débloque.
 -- Les grands nombres viennent des vagues elles-mêmes : chaque vague rapporte 25 % de plus que la précédente
 -- (x9 toutes les 10 vagues). Joueur actif (simulateur, sans forge ni renaissance) : ~1 milliard (B) de
--- pièces par minute vers 16 h de jeu, ~1 trillion (T) vers 30 h, ~1 quadrillion (Qa) vers 50 h,
--- ~1 quintillion (Qi) vers 75 h, et ça continue (voir tools/balance/RESULTS.md).
+-- pièces par minute vers 14 h de jeu, ~1 trillion (T) vers 22 h, ~1 quadrillion (Qa) vers 29 h,
+-- ~1 quintillion (Qi) vers 39 h, et ça continue (voir tools/balance/RESULTS.md).
 -- Les PV montent aussi de x1,25 par vague, MULTIPLIÉS par un facteur qui dépend du numéro de la vague
 -- (voir healthBudget plus bas) : au total, ils montent toujours un peu plus vite que les pièces.
 IdleConfig.HEALTH_GROWTH = 1.25 -- PV x1,25 par vague (fois le facteur de HEALTH_WAVE_POWER)
@@ -35,7 +33,25 @@ IdleConfig.UPGRADE_COST_BASE = 20 -- niveau 1 -> 2 : 20 pièces, pour toutes les
 -- mettre sur une seule tour était toujours mieux).
 IdleConfig.UPGRADE_COST_GROWTH = 1.35
 
-IdleConfig.ENEMY_SPEED_MULTIPLIER = 1.6 -- les ennemis vont plus vite sur les parcelles qu'en ranked
+-- Vitesse des ennemis sur les parcelles = vitesse de Enemies.luau x ENEMY_SPEED_MULTIPLIER x le facteur
+-- de leur type (ENEMY_SPEED_FACTORS, 1 si absent). Réglages du mode infini seulement : le ranked garde
+-- les vitesses de Enemies.luau.
+IdleConfig.ENEMY_SPEED_MULTIPLIER = 1.35 -- 1,6 avant : les ennemis allaient un peu trop vite
+IdleConfig.ENEMY_SPEED_FACTORS = {
+	Fast = 0.7, -- cavaliers : toujours les plus rapides, mais plus des éclairs (13 studs/s au lieu de 22)
+	-- écuyers : 13 studs/s au lieu de 19. Pas plus de 0,81 : les cavaliers doivent rester les plus rapides.
+	Swarm = 0.8,
+	-- Chevaliers lourds, colosse et Seigneur de guerre : freinés moins que les autres (7,4 / 4,7 / 5,4 studs/s,
+	-- contre 8 / 4,8 / 5,6 avant). Plus lents, les vagues du début duraient trop longtemps (vague 10 après
+	-- ~8 min) et une Garde colossale ratée faisait perdre 1 min 30 sans rapporter une pièce.
+	Tank = 1.1,
+	Giant = 1.15,
+	Boss = 1.15,
+}
+-- Doit rester entre 0 et 2,5 : le facteur voyage sur 1 octet dans le paquet des positions (PlotGame).
+function IdleConfig.enemySpeedFactor(enemyType: string): number
+	return IdleConfig.ENEMY_SPEED_FACTORS[enemyType] or 1
+end
 IdleConfig.MAX_ENEMIES = 80 -- par parcelle
 IdleConfig.SYNC_RATE = 6 -- envois de position des ennemis aux clients par seconde
 IdleConfig.SHOTS_RATE = 10 -- envois des effets de tir par seconde
@@ -48,8 +64,8 @@ IdleConfig.MAX_DROPS = 40
 IdleConfig.SELL_REFUND = 0.5 -- part du prix rendue à la vente (prix des tours : IdleTowers.luau)
 
 ----------------------------------------------------------------------
--- Machine à tours : 1 lancer gratuit à chaque vague réussie, sans cumul.
--- Plus la vague réussie est haute, meilleures sont les chances (le lancer garde le meilleur palier).
+-- Machine à tours (Autel des héros) : les lancers se paient en pièces, par 1, 10, 100, 1 000 ou 1 000 000.
+-- Les chances dépendent de ton RECORD (idle.highestWave), exactement celles affichées par l'autel.
 ----------------------------------------------------------------------
 IdleConfig.STARTING_TOWERS = { "MachineGun" }
 -- +2 % de dégâts permanents par doublon. Les tours communes en reçoivent des centaines : à +5 %, elles
@@ -64,16 +80,19 @@ IdleConfig.RARITIES = {
 	Legendary = { displayName = "Légendaire", color = Color3.fromRGB(255, 190, 50) },
 }
 
--- Chances (en %) de chaque rareté selon la vague réussie. Aux paliers hauts, les Épiques et les
+-- Chances (en %) de chaque rareté selon ton record. Aux paliers hauts, les Épiques et les
 -- Légendaires tombent plus souvent : les doublons se répartissent mieux entre les 8 tours.
+-- Épiques 10 % dès la vague 10 et Légendaires 5 % dès la vague 25 (8 % et 3 % avant) : avec des lancers
+-- payants, le joueur simulé ne débloquait les légendaires que vers la vague 50 (vers 35-45 maintenant).
 IdleConfig.TOWER_SPIN_TIERS = {
 	{ minWave = 1, odds = { Common = 80, Rare = 20, Epic = 0, Legendary = 0 } },
-	{ minWave = 10, odds = { Common = 60, Rare = 32, Epic = 8, Legendary = 0 } },
-	{ minWave = 25, odds = { Common = 45, Rare = 35, Epic = 17, Legendary = 3 } },
+	{ minWave = 10, odds = { Common = 58, Rare = 32, Epic = 10, Legendary = 0 } },
+	{ minWave = 25, odds = { Common = 43, Rare = 35, Epic = 17, Legendary = 5 } },
 	{ minWave = 50, odds = { Common = 25, Rare = 35, Epic = 28, Legendary = 12 } },
 	{ minWave = 100, odds = { Common = 15, Rare = 30, Epic = 35, Legendary = 20 } },
 }
 
+-- Palier de chances pour ce record (à appeler avec idle.highestWave, jamais avec la vague en cours).
 function IdleConfig.towerSpinTier(wave: number): number
 	local tier = 1
 	for index, info in IdleConfig.TOWER_SPIN_TIERS do
@@ -82,6 +101,79 @@ function IdleConfig.towerSpinTier(wave: number): number
 		end
 	end
 	return tier
+end
+
+-- Lancers proposés par l'autel, dans l'ordre des boutons : count = nombre de lancers d'un coup,
+-- minWave = record nécessaire pour voir le bouton, price = prix du lot en nombre de lancers x1.
+-- Chaque bouton apparaît quand son prix devient raisonnable (en vagues de gains à ton record) :
+--   x100 (record 40) : ~7 vagues de gains ; x1 000 (record 150) : ~22 vagues, ~17 au record 200.
+--   x1 000 000 (record 1 000) : ~4 000 vagues de gains. Il reste un objectif lointain, exprès.
+-- ATTENTION, ne pas mettre de remise de gros (price plus petit que count), surtout sur x1 000 000.
+-- Ici PV et pièces grandissent au même rythme (x1,25 par vague) : multiplier tous ses dégâts par M
+-- fait avancer le record d'un facteur ~M^(1/2,4). Un million de lancers, c'est x1 500 à x3 500 de dégâts :
+-- essayé à 5 000 lancers x1 le lot, le joueur simulé est passé de la vague 377 à la vague 600-1 000
+-- en 6 h. Même x1 000 à moitié prix faisait arriver la vague 100 ~1 h 20 plus tôt.
+IdleConfig.TOWER_SPIN_BULKS = {
+	{ count = 1, minWave = 1, price = 1 },
+	{ count = 10, minWave = 1, price = 10 },
+	{ count = 100, minWave = 40, price = 100 },
+	{ count = 1000, minWave = 150, price = 1000 },
+	{ count = 1000000, minWave = 1000, price = 1000000 },
+}
+
+-- Prix d'UN lancer : TOWER_SPIN_COST_WAVES vague de gains à ton record jusqu'à la vague
+-- TOWER_SPIN_DISCOUNT_WAVE, puis divisé par (record / 10)^0,9 : le prix suit les pièces, mais de moins
+-- en moins vite. En vagues de gains à ton record (simulateur, tools/balance/RESULTS.md) :
+--   record 1-10 : 1 lancer = 0,25 vague (x10 = 2,5)     record 40 : 0,07 (x100 = 7)
+--   record 100  : 0,03 (x100 = 3)                        record 300 : 0,012     record 1 000 : 0,004
+-- Attention en réglant : chaque doublon donne +2 % de dégâts (DUPLICATE_DAMAGE_BONUS). Avec des lancers
+-- bien moins chers loin dans le jeu (avant : divisé par (record / 10)^2), les doublons (jusqu'à x2 300 de
+-- dégâts sur une tour) écrasaient tout : vague 1 066 en 100 h au lieu de 376, des murs de plus en plus courts.
+IdleConfig.TOWER_SPIN_COST_WAVES = 0.25
+IdleConfig.TOWER_SPIN_DISCOUNT_WAVE = 10
+IdleConfig.TOWER_SPIN_DISCOUNT_POWER = 0.9
+
+-- Record « propre » pour les prix et les chances (une valeur abîmée compte comme la vague 1).
+local function cleanRecord(highestWave: any): number
+	if typeof(highestWave) ~= "number" or highestWave ~= highestWave then
+		return 1
+	end
+	return math.clamp(math.floor(highestWave), 1, IdleConfig.MAX_SCALING_WAVE)
+end
+
+-- Prix d'un seul lancer à ce record (arrondi à 2 chiffres, au moins 1 pièce).
+function IdleConfig.towerSpinUnitCost(highestWave: number): number
+	local record = cleanRecord(highestWave)
+	local discount = math.max(1, record / IdleConfig.TOWER_SPIN_DISCOUNT_WAVE) ^ IdleConfig.TOWER_SPIN_DISCOUNT_POWER
+	local raw = IdleConfig.rewardBudget(record) * IdleConfig.TOWER_SPIN_COST_WAVES / discount
+	if raw < 1 then
+		return 1
+	end
+	local magnitude = 10 ^ math.max(0, math.floor(math.log10(raw)) - 1)
+	return math.max(1, math.floor(raw / magnitude + 0.5) * magnitude)
+end
+
+-- Prix total de `count` lancers d'un coup à ce record : prix d'un lancer x `price` du lot
+-- (TOWER_SPIN_BULKS ; count si le lot n'a pas de prix à lui). Toujours fini : les pièces arrêtent de
+-- grandir à MAX_SCALING_WAVE.
+function IdleConfig.towerSpinCost(highestWave: number, count: number): number
+	local price = count
+	for _, bulk in IdleConfig.TOWER_SPIN_BULKS do
+		if bulk.count == count and bulk.price then
+			price = bulk.price
+		end
+	end
+	return IdleConfig.towerSpinUnitCost(highestWave) * price
+end
+
+-- Vrai si ce nombre de lancers est proposé (TOWER_SPIN_BULKS) et débloqué à ce record.
+function IdleConfig.towerSpinBulkAvailable(highestWave: number, count: any): boolean
+	for _, bulk in IdleConfig.TOWER_SPIN_BULKS do
+		if bulk.count == count then
+			return cleanRecord(highestWave) >= bulk.minWave
+		end
+	end
+	return false
 end
 
 ----------------------------------------------------------------------
@@ -155,26 +247,41 @@ function IdleConfig.formatPercent(value: number): string
 end
 
 -- Chaque vague a un budget de PV total et un budget de pièces, qui grandissent à chaque vague.
--- Le type de vague décide comment ce budget est réparti : 40 petites nuées ou 3 géants énormes.
+-- Le type de vague décide comment ce budget est réparti : 40 petits écuyers ou un seul colosse énorme.
 -- La difficulté reste donc comparable, mais ce ne sont pas les mêmes tours qui brillent.
---   PV totaux de la vague w = HEALTH_BUDGET x HEALTH_GROWTH^(w - 1) x ((w + 5) / 6)^2,3
---   pièces de la vague w    = REWARD_BUDGET x REWARD_GROWTH^(w - 1)
--- Le facteur ((w + 5) / 6)^2,3 fait monter les PV bien plus vite que les pièces au début, puis de moins
--- en moins : d'une vague à la suivante, PV x1,45 à la vague 10, x1,35 à la 25, x1,30 à la 50, x1,28 à la
--- 100, x1,26 à la 200 (pièces toujours x1,25). Résultat (simulateur) : les 10 premières vagues passent
--- sans mur, les murs commencent vers la vague 13 (quelques minutes), durent ~10-15 min vers les vagues
--- 30-70, puis s'allongent : ~15 min en médiane vers 71-100 (mais 1 mur sur 7 y dépasse 1 h, surtout Garde
--- colossale et Seigneur de guerre), ~20-35 min en médiane après la vague 100.
--- Exemples : vague 10 -> 1,1 K PV et 59 pièces, vague 50 -> 164 M PV et 448 K pièces,
--- vague 100 -> 51 T PV et 31 B pièces, vague 200 -> 1,2 Sp PV et 154 Qi pièces.
+--   PV totaux de la vague w = HEALTH_BUDGET x HEALTH_GROWTH^(w - 1) x ((w + 5) / 6)^2,4
+--   pièces de la vague w    = REWARD_BUDGET x REWARD_GROWTH^(w - 1) x bonus de début (voir plus bas)
+-- Le facteur ((w + 5) / 6)^2,4 fait monter les PV bien plus vite que les pièces au début, puis de moins
+-- en moins : d'une vague à la suivante, PV x1,46 à la vague 10, x1,35 à la 25, x1,30 à la 50, x1,28 à la
+-- 100, x1,26 à la 200 (pièces toujours x1,25).
+-- Comme PV et pièces grandissent au même rythme (x1,25), seul ce facteur les sépare : multiplier tous ses
+-- dégâts par M (doublons, forge, bonus de renaissance) fait avancer le record d'un facteur ~M^(1/2,4).
+-- Résultat (simulateur, joueur actif sans forge ni renaissance, voir tools/balance/RESULTS.md) : vague 10
+-- vers 7 min sans mur, premier mur vers la vague 15 (2 min), vague 25 vers 42 min, vague 50 vers 4 h 30,
+-- vague 100 vers 16 h 30 ; murs de ~2 min (vagues 11-30), ~7 min (31-70), ~12 min (71-100) en médiane,
+-- ~17 min après la vague 100 (mais 1 mur sur 5 dépasse 20 à 30 min dès la vague 31).
+-- Exemples : vague 10 -> 1,2 K PV et 59 pièces (82 avec le bonus de début), vague 50 -> 205 M PV et 448 K pièces,
+-- vague 100 -> 68 T PV et 31 B pièces, vague 200 -> 1,7 Sp PV et 154 Qi pièces.
 -- Sans limite, les PV deviendraient infinis vers la vague 3 100 (au-delà de ~1,8e308, Luau passe à
 -- l'infini et un DataStore ne sait pas le sauver) : à partir de MAX_SCALING_WAVE, PV et pièces arrêtent
--- de grandir. Avec la forge et les renaissances, le simulateur atteint les vagues 750 à 1 200 vers 100 h de jeu.
+-- de grandir.
 IdleConfig.MAX_SCALING_WAVE = 3000
 IdleConfig.HEALTH_BUDGET = 18 -- PV totaux de la vague 1
-IdleConfig.HEALTH_WAVE_POWER = 2.3 -- forme de la courbe : plus grand = début plus dur, fin plus douce
-IdleConfig.HEALTH_WAVE_OFFSET = 5 -- décale le facteur : plus grand = premières vagues plus dures
+-- Forme de la courbe : plus grand = PV plus hauts partout, et de plus en plus loin dans le jeu. 2,4 (2,3
+-- avant) : avec les lancers payants et la règle « une fuite = ratée », la vague 100 arrivait vers 13 h.
+IdleConfig.HEALTH_WAVE_POWER = 2.4
+IdleConfig.HEALTH_WAVE_OFFSET = 5 -- décale le facteur : plus grand = PV plus bas au début (courbe plus douce)
 IdleConfig.REWARD_BUDGET = 8 -- pièces totales de la vague 1
+-- Bonus de début : +50 % de pièces à la vague 1, qui fond jusqu'à 0 à la vague 40 (+32 % à la vague 15,
+-- +19 % à la 25). Les premières vagues étaient trop dures, surtout 15 à 25 (et une seule fuite fait
+-- maintenant rater la vague). Il ne change rien après la vague 40.
+IdleConfig.EARLY_REWARD_BONUS = 0.5
+IdleConfig.EARLY_REWARD_END_WAVE = 40
+
+function IdleConfig.earlyRewardBonus(wave: number): number
+	local left = (IdleConfig.EARLY_REWARD_END_WAVE - wave) / (IdleConfig.EARLY_REWARD_END_WAVE - 1)
+	return 1 + IdleConfig.EARLY_REWARD_BONUS * math.clamp(left, 0, 1)
+end
 
 function IdleConfig.healthBudget(wave: number): number
 	wave = math.min(wave, IdleConfig.MAX_SCALING_WAVE)
@@ -185,14 +292,20 @@ end
 
 function IdleConfig.rewardBudget(wave: number): number
 	wave = math.min(wave, IdleConfig.MAX_SCALING_WAVE)
-	return IdleConfig.REWARD_BUDGET * IdleConfig.REWARD_GROWTH ^ (wave - 1)
+	return IdleConfig.REWARD_BUDGET * IdleConfig.REWARD_GROWTH ^ (wave - 1) * IdleConfig.earlyRewardBonus(wave)
 end
 
 -- Types de vagues. share = part du budget, count = nombre d'ennemis, gap = secondes entre deux.
 -- Les parts sont réglées pour que chaque type bloque de temps en temps (murs variés) et que le Seigneur
--- de guerre reste le plus dur : les cavaliers et les écuyers sont rapides (moins de temps sous le feu des
--- tours), ils ont donc une plus petite part du budget ; les colosses sont lents, ils en ont une plus grosse.
--- Les pièces suivent les mêmes parts (une Garde colossale rapporte plus qu'une Charge de cavalerie).
+-- de guerre reste le plus dur. Une seule fuite fait rater la vague : chaque ennemi, même le plus petit,
+-- doit tomber. Le Totem de givre (zone + ralentissement) vient bien à bout des Levées et des Charges ;
+-- un ennemi unique et énorme (colosse, Seigneur de guerre) ne peut compter que sur les tours qui le
+-- visent, d'où sa plus petite part.
+-- Les pièces suivent les mêmes parts. Attention : au mur d'une vague x6 (46, 56...), on farme la Garde
+-- colossale d'avant, qui rapporte 2 fois moins qu'une Escarmouche : ces murs restent parmi les plus longs
+-- avant la vague 100 (~25 min à 1 h vers les vagues 46-76, simulateur ; pire avec une part de 0,35-0,4).
+-- Essayé : une Garde qui rapporte autant qu'une Escarmouche raccourcit ces murs, mais la vague 100 arrive
+-- alors vers 14 h au lieu de 16 h 30.
 IdleConfig.WAVE_TYPES = {
 	Mixed = {
 		displayName = "Escarmouche",
@@ -209,34 +322,38 @@ IdleConfig.WAVE_TYPES = {
 		displayName = "Levée des écuyers",
 		hint = "Une foule de jeunes soldats : les attaques de zone brillent",
 		groups = function(wave)
-			-- 15 écuyers au début (19 à la vague 13), jusqu'à 45 à partir de la vague 90
-			return { { enemy = "Swarm", share = 0.68, count = 15 + math.min(wave // 3, 30), gap = 0.18 } }
+			-- 15 écuyers au début (19 à la vague 13), jusqu'à 45 à partir de la vague 90. Part 0,75 (0,68 avant) :
+			-- avec le Totem de givre renforcé, les Levées ne bloquaient presque plus jamais.
+			return { { enemy = "Swarm", share = 0.75, count = 15 + math.min(wave // 3, 30), gap = 0.18 } }
 		end,
 	},
 	Rush = {
 		displayName = "Charge de cavalerie",
 		hint = "Les cavaliers sont très rapides : ralentis-les !",
 		groups = function(wave)
-			return { { enemy = "Fast", share = 0.6, count = 12 + math.min(wave // 6, 12), gap = 0.3 } }
+			-- Part 0,7 (0,6 avant) : les cavaliers sont moins rapides et le Totem les ralentit bien plus.
+			return { { enemy = "Fast", share = 0.7, count = 12 + math.min(wave // 6, 12), gap = 0.3 } }
 		end,
 	},
 	Giants = {
 		displayName = "Garde colossale",
-		hint = "De gigantesques chevaliers : concentre tes dégâts",
-		groups = function(wave)
-			return { { enemy = "Giant", share = 1.5, count = 2 + math.min(wave // 25, 2), gap = 3 } }
+		hint = "Un chevalier colossal : concentre tes dégâts",
+		groups = function(_wave)
+			-- UN SEUL colosse (avant : 2 à 4 colosses et une part de 1,5). Part 0,5 : à 1 ou 1,5, seules
+			-- les tours qui le visent comptent et ses murs dépassaient 30 min à 1 h dès la vague 25.
+			return { { enemy = "Giant", share = 0.5, count = 1, gap = 0 } }
 		end,
 	},
 	Boss = {
 		displayName = "SEIGNEUR DE GUERRE",
 		hint = "Un immense chevalier mène l'assaut : concentre toute ta puissance",
 		groups = function(wave)
-			-- Le Seigneur de guerre grossit avec les vagues : 0,4 du budget à la vague 10 (premier boss
-			-- facile), 0,8 à partir de la vague 20 ; en plus de ses 6 fantassins. Plus, et ses murs
-			-- dépassaient 2 h vers les vagues 70-100.
+			-- UN SEUL Seigneur de guerre, escorté de 6 fantassins.
+			-- Il grossit avec les vagues : 0,3 du budget à la vague 10 (premier boss facile), 0,5 à partir de
+			-- la vague 20. Avant, 0,8 : seul, il bloquait 20 à 30 min dès la vague 30.
 			return {
 				{ enemy = "Normal", share = 0.4, count = 6, gap = 0.5 },
-				{ enemy = "Boss", share = math.clamp(wave / 25, 0.4, 0.8), count = 1, gap = 0 },
+				{ enemy = "Boss", share = math.clamp(wave / 40, 0.3, 0.5), count = 1, gap = 0 },
 			}
 		end,
 	},

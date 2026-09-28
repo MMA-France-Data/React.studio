@@ -44,9 +44,16 @@ local relay
 if ctx == "SERVER" then
 	relay = Instance.new("RemoteEvent")
 	relay.Name = "__AutoTestLog"
-	relay.OnServerEvent:Connect(function(_, text)
+	relay.OnServerEvent:Connect(function(player, text)
 		if typeof(text) == "string" then
 			post(text)
+			-- Commande du scénario client : « CMD:OpenMachine:Tower » ouvre une machine comme le ferait
+			-- son ProximityPrompt (un plugin ne peut pas simuler de clic ni de touche).
+			local machine = text:match("CMD:OpenMachine:(%a+)")
+			local remotes = ReplicatedStorage:FindFirstChild("Remotes")
+			if machine and remotes and remotes:FindFirstChild("OpenMachine") then
+				remotes.OpenMachine:FireClient(player, machine)
+			end
 		end
 	end)
 	relay.Parent = ReplicatedStorage

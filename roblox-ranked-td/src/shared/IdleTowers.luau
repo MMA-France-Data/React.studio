@@ -4,14 +4,16 @@
 --
 -- Équilibrage (réglé avec le banc d'essai de tools/balance) : toutes les tours ont le même prix
 -- d'amélioration à un niveau donné, donc à niveau égal on compare directement leurs stats.
--- Plus une tour est rare, plus elle est forte, et chaque type de vague a sa meilleure tour (banc d'essai) :
---   Escarmouche et Charge de cavalerie -> l'Archer au début, puis l'Oracle de la foudre (éclairs sur 4 ennemis)
---   Levée des écuyers                  -> Totem de givre et Catapulte au début, puis Trébuchet et Oracle
---   Garde colossale                    -> l'Archer au début, puis le Sorcier des arcanes (vise le plus résistant)
---   Seigneur de guerre                 -> le Mage des tempêtes (son ralentissement garde le boss sous le feu),
---                                         puis le Trébuchet royal ; la Baliste lourde aide beaucoup en soutien
--- Le joueur simulé change de tours au fil du jeu : Archer, Totem, Mage et Baliste au début, Trébuchet et
--- Oracle vers les vagues 26-50, Catapulte et Trébuchet vers 51-100, Sorcier et Baliste après la vague 100.
+-- Plus une tour est rare, plus elle est forte, et chaque type de vague a sa meilleure tour (banc d'essai,
+-- une seule fuite = vague ratée) :
+--   Levée des écuyers et Charge de cavalerie -> le Totem de givre (zone + ralentissement), tout le jeu
+--   Escarmouche                              -> le Totem de givre au début, puis l'Oracle de la foudre
+--   Garde colossale                          -> l'Archer au début, puis le Trébuchet royal
+--                                               (le Mage des tempêtes aide beaucoup en soutien)
+--   Seigneur de guerre                       -> le Totem de givre au début, puis le Sorcier des arcanes
+-- En soutien, le Totem de givre rend l'équipe plus forte contre tous les types de vague (x1,1 à x2,1).
+-- Le joueur simulé change de tours au fil du jeu : Totem, Mage et Archers au début, Baliste et Oracle vers
+-- les vagues 26-50, Baliste et Catapulte ensuite (le Totem reste pour son ralentissement).
 -- Les tours communes reçoivent beaucoup plus de doublons que les légendaires, ce qui les garde utiles.
 -- La portée compte énormément : 30 pour la Baliste couvre ~3 fois plus de chemin que 15 pour l'Archer,
 -- 70 pour le Trébuchet couvre tout le chemin ; ces tours ont donc moins de dégâts par seconde.
@@ -37,15 +39,23 @@ IdleTowers.Defs = {
 	Frost = {
 		rarity = "Common",
 		displayName = "Totem de givre",
-		description = "Une rune glaciale blesse et ralentit les troupes proches.",
+		description = "Une rune glaciale blesse et ralentit fortement les troupes proches.",
 		kind = "Aura",
 		color = Color3.fromRGB(150, 230, 255),
 		placeCost = 25,
-		damage = 4.2, -- touche tous les ennemis proches à chaque seconde : bon contre les hordes
-		range = 12,
+		-- Touche tous les ennemis proches à chaque seconde : la meilleure tour contre les Levées d'écuyers et
+		-- les Charges de cavalerie, et la plus forte de toutes au début (simulateur). 6 dégâts (4,2 avant,
+		-- « il ne fait presque pas de dégâts ») : comme les ennemis restent 2 fois plus longtemps dans son
+		-- aura, chaque passage fait ~2 fois plus de dégâts qu'avant. Plus (8 dégâts, portée 12, -65 %), il
+		-- était la meilleure tour contre presque tout jusqu'à la vague 100 : les autres ne servaient plus.
+		damage = 6,
+		range = 11,
 		cooldown = 1,
-		slow = 0.25,
-		slowDuration = 1.5,
+		-- -60 % de vitesse (25 % avant, presque invisible). Dure 2,5 s : plus que le temps entre deux
+		-- impulsions (1 s), donc un ennemi dans l'aura reste ralenti tout le temps, et encore un peu après.
+		-- Les ralentissements ne s'additionnent pas : le plus fort gagne (applySlow dans PlotGame.luau).
+		slow = 0.6,
+		slowDuration = 2.5,
 	},
 	Bomb = {
 		rarity = "Rare",
@@ -82,7 +92,9 @@ IdleTowers.Defs = {
 		targeting = "Strongest",
 		color = Color3.fromRGB(200, 60, 60),
 		placeCost = 80,
-		damage = 40,
+		-- 50 (40 avant) : le Sorcier des arcanes, aussi Épique, faisait mieux qu'elle contre tous les types de
+		-- vague (banc d'essai) ; maintenant elle le bat contre les Levées d'écuyers au début.
+		damage = 50,
 		range = 30,
 		cooldown = 4, -- tire rarement : excellente contre les gros, faible contre les foules
 		splash = 2,
@@ -95,7 +107,7 @@ IdleTowers.Defs = {
 		targeting = "Strongest",
 		color = Color3.fromRGB(255, 70, 200),
 		placeCost = 120,
-		damage = 9,
+		damage = 10, -- 9 avant : le joueur simulé ne s'en servait presque pas
 		range = 18,
 		cooldown = 0.25,
 	},
@@ -107,7 +119,9 @@ IdleTowers.Defs = {
 		targeting = "First",
 		color = Color3.fromRGB(150, 110, 255),
 		placeCost = 250,
-		damage = 15, -- par ennemi touché (4 ennemis par éclair)
+		-- par ennemi touché (4 ennemis par éclair). 18 (15 avant) : la meilleure tour contre les Escarmouches
+		-- à partir de la vague 25 ; à 15, le Totem de givre renforcé la battait partout.
+		damage = 18,
 		range = 20,
 		cooldown = 1.2,
 		chains = 4,

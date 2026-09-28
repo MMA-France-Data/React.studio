@@ -163,24 +163,22 @@ local referenceId = if runsByScenario.base then "base" else options.scenarios[1]
 Report.section("entete")
 Report.header(options)
 
--- Vagues impossibles à rater : tous leurs ennemis réunis font moins de BASE_HEALTH dégâts à la base.
+-- Une seule fuite = vague ratée : vitesse de chaque ennemi et temps qu'il passe sur le chemin (sans / avec
+-- le ralentissement du Totem de givre pendant tout le trajet).
 do
-	local firstFailable, safeCount = {}, 0
-	for wave = 1, 100 do
-		local comp = Engine.composition(wave)
-		if comp.failable then
-			firstFailable[comp.waveType] = firstFailable[comp.waveType] or wave
-		else
-			safeCount += 1
-		end
-	end
+	local frost = IdleTowers.Defs.Frost
 	local parts = {}
-	for _, waveType in Report.WAVE_TYPE_ORDER do
-		local wave = firstFailable[waveType]
-		table.insert(parts, `{Report.waveTypeName(waveType)} dès la {if wave then wave else "(jamais avant 100)"}`)
+	for _, name in { "Normal", "Fast", "Tank", "Swarm", "Giant", "Boss" } do
+		local speed = Engine.enemySpeed(name)
+		table.insert(
+			parts,
+			string.format("%s %.1f studs/s (%.0f s", Modules.Enemies.Defs[name].displayName, speed, Engine.PATH_LENGTH / speed)
+				.. (if frost.slow then string.format(", %.0f s ralenti", Engine.PATH_LENGTH / (speed * (1 - frost.slow))) else "")
+				.. ")"
+		)
 	end
-	out(`Vagues qu'on peut rater (tous leurs ennemis réunis font au moins {IdleConfig.BASE_HEALTH} dégâts à la base) : {table.concat(parts, ", ")}.`)
-	out(`=> {safeCount} vagues sur 100 passent même sans aucune tour : les murs ne peuvent venir que des autres.`)
+	out("Une seule fuite fait rater la vague. Vitesse des ennemis et temps pour parcourir tout le chemin (sans / avec")
+	out(`le ralentissement du Totem de givre, -{math.floor((frost.slow or 0) * 100 + 0.5)} %, sur tout le trajet) : {table.concat(parts, ", ")}.`)
 	out()
 end
 
@@ -266,14 +264,42 @@ do
 			shortNumber(Report.wavesOfRewards(PlotLayout.spotCost(#PlotLayout.SPOTS), 90))
 		)
 	)
-	out("- Machine à tours : 1 lancer par vague réussie, y compris en farmant (vague N-1 réussie, N ratée : 1 lancer toutes les 2 vagues) ;")
-	out(
-		string.format(
-			"  chaque doublon = +%s %% de dégâts sans limite. Au palier 1, %d %% de chances de tomber sur une Commune (2 tours) : l'Archer en reçoit beaucoup.",
-			IdleConfig.formatPercent(IdleConfig.DUPLICATE_DAMAGE_BONUS * 100),
-			IdleConfig.TOWER_SPIN_TIERS[1].odds.Common
+	-- Autel des héros : prix d'un lancer et de chaque lot, en vagues de gains (prix / pièces d'une vague au record).
+	do
+		-- 3 chiffres significatifs (un lancer peut valoir 0,0003 vague de gains)
+		local function waves3(value: number): string
+			return if value >= 1000 then shortNumber(value) else string.format("%.3g", value)
+		end
+		local parts = {}
+		for _, record in { 1, 10, 25, 60, 100, 150, 200, 300, 500, 1000 } do
+			table.insert(parts, `v{record} : {waves3(Report.wavesOfRewards(IdleConfig.towerSpinUnitCost(record), record))}`)
+		end
+		out("- Autel des héros : prix d'UN lancer en vagues de gains au record : " .. table.concat(parts, ", ") .. ".")
+		local bulks = {}
+		for _, bulk in IdleConfig.TOWER_SPIN_BULKS do
+			local texts, records = {}, { bulk.minWave }
+			for _, record in { 100, 200, 500, 1000 } do
+				if record > bulk.minWave then
+					table.insert(records, record)
+				end
+			end
+			for _, record in records do
+				table.insert(
+					texts,
+					`{waves3(Report.wavesOfRewards(IdleConfig.towerSpinCost(record, bulk.count), record))} à la v{record}`
+				)
+			end
+			table.insert(bulks, `x{Modules.NumberFormat.short(bulk.count)} (dès la v{bulk.minWave}) = {table.concat(texts, ", ")}`)
+		end
+		out("  Lots, en vagues de gains : " .. table.concat(bulks, " ; ") .. ".")
+		out(
+			string.format(
+				"  Chaque doublon = +%s %% de dégâts sans limite. Au palier 1, %d %% de chances de tomber sur une Commune (2 tours).",
+				IdleConfig.formatPercent(IdleConfig.DUPLICATE_DAMAGE_BONUS * 100),
+				IdleConfig.TOWER_SPIN_TIERS[1].odds.Common
+			)
 		)
-	)
+	end
 	-- Puissance des tours à budget égal (budget = 12 vagues de gains de la vague 50), calculée avec les vrais prix.
 	local budget = 12 * IdleConfig.rewardBudget(50)
 	local texts, best, values = {}, 0, {}
@@ -314,7 +340,7 @@ for _, scenarioId in options.scenarios do
 	local lo, hi = Report.minMax(frontiers)
 	out(`Record après {options.hours} h : vague {math.floor(mean(frontiers) + 0.5)} en moyenne ({lo} - {hi}).`)
 	local spins, dupesEnd, maxDupes, maxDupesType, played, failed = {}, {}, {}, {}, {}, {}
-	local spentBy = { upgrade = 0, place = 0, spot = 0, replace = 0, forge = 0 }
+	local spentBy = { upgrade = 0, place = 0, spot = 0, replace = 0, forge = 0, spin = 0 }
 	for _, run in runs do
 		table.insert(spins, run.spins)
 		local total, best, bestType = 0, 0, nil
@@ -343,15 +369,37 @@ for _, scenarioId in options.scenarios do
 	end
 	out(
 		string.format(
-			"Machine à tours : %.0f lancers (%.0f par heure), %.0f doublons ; le plus sur une tour : %.0f (%s, soit +%.0f %% de dégâts).",
-			mean(spins),
-			mean(spins) / options.hours,
-			mean(dupesEnd),
-			mean(maxDupes),
+			"Autel des héros : %s lancers achetés en moyenne, %s doublons ; le plus sur une tour : %s (%s, soit +%s %% de dégâts).",
+			shortNumber(mean(spins)),
+			shortNumber(mean(dupesEnd)),
+			shortNumber(mean(maxDupes)),
 			if mostDuped then Run.shortName(mostDuped) else "-",
-			mean(maxDupes) * IdleConfig.DUPLICATE_DAMAGE_BONUS * 100
+			shortNumber(mean(maxDupes) * IdleConfig.DUPLICATE_DAMAGE_BONUS * 100)
 		)
 	)
+	do
+		-- Lots achetés : combien de fois, et à quel record le premier achat (moyenne des graines qui l'ont fait).
+		local parts = {}
+		for _, bulk in IdleConfig.TOWER_SPIN_BULKS do
+			local counts, firstWaves, firstTimes = {}, {}, {}
+			for _, run in runs do
+				local buys = run.spinBuys[bulk.count]
+				table.insert(counts, if buys then buys.n else 0)
+				if buys then
+					table.insert(firstWaves, buys.firstWave)
+					table.insert(firstTimes, buys.firstT)
+				end
+			end
+			table.insert(
+				parts,
+				`x{Modules.NumberFormat.short(bulk.count)} : {shortNumber(mean(counts))} achats`
+					.. (if #firstWaves > 0
+						then ` (1er au record {math.floor(mean(firstWaves) + 0.5)}, {duration(mean(firstTimes))}{if #firstWaves < #runs then `, {#firstWaves}/{#runs}` else ""})`
+						else " (jamais)")
+			)
+		end
+		out("  Lots achetés : " .. table.concat(parts, " ; ") .. ".")
+	end
 	out(string.format("Vagues jouées : %.0f dont %.0f ratées.", mean(played), mean(failed)))
 	local totalSpent = 0
 	for _, amount in spentBy do
@@ -360,14 +408,36 @@ for _, scenarioId in options.scenarios do
 	if totalSpent > 0 then
 		out(
 			string.format(
-				"Dépenses : améliorations %.0f %%, emplacements %.0f %%, tours posées %.0f %%, remplacements %.0f %%, forge %.0f %%.",
+				"Dépenses : améliorations %.0f %%, emplacements %.0f %%, tours posées %.0f %%, remplacements %.0f %%, autel %.0f %%, forge %.0f %%.",
 				spentBy.upgrade / totalSpent * 100,
 				spentBy.spot / totalSpent * 100,
 				spentBy.place / totalSpent * 100,
 				spentBy.replace / totalSpent * 100,
+				spentBy.spin / totalSpent * 100,
 				spentBy.forge / totalSpent * 100
 			)
 		)
+		-- Part de l'autel par tranche de vagues (chaque partie compte autant)
+		local parts = {}
+		for _, bucket in { "1-25", "26-50", "51-100", "101+" } do
+			local shares = {}
+			for _, run in runs do
+				local row = run.spentByBucket[bucket]
+				if row then
+					local total = 0
+					for _, amount in row do
+						total += amount
+					end
+					if total > 0 then
+						table.insert(shares, row.spin / total)
+					end
+				end
+			end
+			if #shares > 0 then
+				table.insert(parts, `vagues {bucket} : {Report.pct(mean(shares))}`)
+			end
+		end
+		out("  Part de l'autel dans les dépenses : " .. table.concat(parts, ", ") .. ".")
 	end
 	out()
 	out("Jalons (premier passage de la vague ; moyenne des graines) :")
@@ -677,7 +747,7 @@ out()
 -- 6. Banc d'essai des tours : N tours du même type (N = emplacements du joueur simulé à cette vague), chacune
 -- sur les emplacements qui couvrent le plus de chemin pour sa portée, même budget chacune.
 -- Mesure : le multiplicateur de dégâts minimal pour que ces N tours passent la vague (k), avec les vraies
--- règles (la base a BASE_HEALTH PV). La puissance relative est 100 x k(meilleure) / k(tour) : 100 = la
+-- règles (une seule fuite = vague ratée). La puissance relative est 100 x k(meilleure) / k(tour) : 100 = la
 -- meilleure, 50 = deux fois moins forte.
 ----------------------------------------------------------------------
 Report.section("banc")
@@ -708,7 +778,7 @@ local function passes(comp, team, mult: number): boolean
 	table.sort(towers, function(a, b)
 		return a.spot < b.spot
 	end)
-	return Engine.runWave(comp, towers).success
+	return Engine.runWave(comp, towers, "strict").success
 end
 
 -- Plus petit multiplicateur de dégâts (à 3 % près) qui fait réussir l'épreuve ; math.huge si aucun
@@ -826,7 +896,7 @@ out("BANC D'ESSAI DES TOURS : N tours du même type sur leurs meilleurs emplacem
 out(string.rep("=", 100))
 out(`N = emplacements du joueur simulé (scénario « {referenceId} ») à cette vague ; budget par tour = sa dépense moyenne par tour.`)
 out("Chaque tour va sur les emplacements qui couvrent le plus de chemin pour SA portée. Épreuve : réussir la vague (vraies")
-out("règles : la base a " .. IdleConfig.BASE_HEALTH .. " PV), construite comme ce type. Case = puissance relative sans doublons / avec")
+out("règles : une seule fuite = vague ratée), construite comme ce type. Case = puissance relative sans doublons / avec")
 out("les doublons moyens de ce moment. 100 = la meilleure tour sans doublons contre ce type de vague ; 50 = il lui faudrait 2 fois")
 out("plus de dégâts. * = la meilleure. « k » = multiplicateur de dégâts dont la meilleure tour a besoin pour réussir")
 out("(k < 1 : elle réussit avec de la marge).")
@@ -899,7 +969,7 @@ for _, wave in BENCH_WAVES do
 		table.insert(headers, Report.waveTypeName(waveType))
 	end
 	Report.table(headers, rows, { "l" })
-	out("  (0 = impossible même avec des dégâts infinis : ces tours ne tirent pas assez souvent, trop d'ennemis atteignent la base.)")
+	out("  (0 = impossible même avec des dégâts infinis : ces tours ne tirent pas assez souvent, un ennemi atteint la base.)")
 	local main = benchSupport(wave, budget, cells, count)
 	benchResults[wave] = { cells = cells, bestK = bestK, main = main }
 end
@@ -914,13 +984,12 @@ out(string.rep("=", 100))
 out(`RENAISSANCE EN BOUCLE (tours du scénario « {referenceId} » à différents moments, aucun achat pendant la boucle)`)
 out(string.rep("=", 100))
 out("Rejouer 1..N = temps pour repasser les vagues 1 à N juste après une renaissance (le « cycle »), et ce que ça rapporte :")
-out("le bonus de pièces (%/h de boucle) et les lancers de la machine à tours (1 par vague réussie).")
-out("À comparer à une heure de jeu normal à ce moment : vagues gagnées, hausse du revenu, lancers.")
+out("le bonus de pièces (%/h de boucle). À comparer à une heure de jeu normal à ce moment : vagues gagnées, hausse du revenu.")
 local DT = Engine.DT
 local function replay(towers, lastWave: number)
 	local total = Engine.delaySteps(IdleConfig.FIRST_WAVE_DELAY) * DT
 	for wave = 1, lastWave do
-		local result = Engine.runWave(Engine.composition(wave), towers)
+		local result = Engine.runWave(Engine.composition(wave), towers, "strict")
 		if not result.success then
 			return nil
 		end
@@ -930,7 +999,7 @@ local function replay(towers, lastWave: number)
 end
 local rebirthSummary = {}
 for _, hour in CHECKPOINTS do
-	local byN, frontiers, progress, spinRates = {}, {}, {}, {}
+	local byN, frontiers, progress = {}, {}, {}
 	for _, run in reference do
 		local cp = run.checkpoints[hour]
 		if cp then
@@ -949,14 +1018,13 @@ for _, hour in CHECKPOINTS do
 				local later = run.hourly[hour + window]
 				if later then
 					table.insert(progress, (later - cp.frontier) / window)
-					table.insert(spinRates, (run.hourlySpins[hour + window] - run.hourlySpins[hour]) / window)
 					break
 				end
 			end
 		end
 	end
 	if #frontiers > 0 then
-		local parts, bestRate, bestSpins, bestCycle = {}, 0, 0, nil
+		local parts, bestRate, bestCycle = {}, 0, nil
 		for _, lastWave in { 15, 25, 50, 75, 100, 150, 200 } do
 			local list = byN[lastWave]
 			if list and #list > 0 then
@@ -966,25 +1034,21 @@ for _, hour in CHECKPOINTS do
 				if rate > bestRate then
 					bestRate, bestCycle = rate, { wave = lastWave, t = t }
 				end
-				bestSpins = math.max(bestSpins, lastWave / (t / 3600))
 				table.insert(parts, `1..{lastWave} : {duration(t)} (+{IdleConfig.formatPercent(gain)} %, {string.format("%.1f", rate)} %/h)`)
 			end
 		end
 		local wavesPerHour = mean(progress)
 		local growth = if wavesPerHour then (IdleConfig.REWARD_GROWTH ^ wavesPerHour - 1) * 100 else nil
-		local normalSpins = mean(spinRates)
 		out()
 		out(`À {hour} h (record moyen : vague {math.floor(mean(frontiers) + 0.5)}) :`)
 		out("  " .. table.concat(parts, "  |  "))
 		if wavesPerHour then
 			out(
 				string.format(
-					"  jeu normal : %.1f vagues/h -> revenu +%.0f %%/h, %.0f lancers/h ; meilleure boucle : +%.1f %%/h de bonus, jusqu'à %.0f lancers/h",
+					"  jeu normal : %.1f vagues/h -> revenu +%.0f %%/h ; meilleure boucle : +%.1f %%/h de bonus",
 					wavesPerHour,
 					growth,
-					normalSpins,
-					bestRate,
-					bestSpins
+					bestRate
 				)
 			)
 		end
@@ -993,8 +1057,6 @@ for _, hour in CHECKPOINTS do
 			bestRate = bestRate,
 			growth = growth,
 			bestCycle = bestCycle,
-			normalSpins = normalSpins,
-			loopSpins = bestSpins,
 		})
 	end
 end
@@ -1078,14 +1140,14 @@ do
 		table.insert(blocked, total)
 	end
 	local b = mean(blocked)
-	local verdict = between(t10 and t10 / 60, 5, 8, "TROP RAPIDE", "TROP LENT")
+	local verdict = between(t10 and t10 / 60, 4, 7, "TROP RAPIDE", "TROP LENT")
 	if b >= 30 then
 		verdict = if verdict == "OK" then "MUR" else verdict .. " + MUR"
 	end
-	row("Vagues 1 à 10 fluides", "5-8 min, sans mur", `vague 10 à {duration(t10)}, dont {duration(b)} bloqué`, verdict)
+	row("Vagues 1 à 10 fluides", "4-7 min, sans mur", `vague 10 à {duration(t10)}, dont {duration(b)} bloqué`, verdict)
 end
 
--- Premier vrai mur
+-- Premier vrai mur : vers les vagues 12-16, et court (1-3 min)
 do
 	local firstWalls, firstDurations = {}, {}
 	for _, run in reference do
@@ -1098,18 +1160,22 @@ do
 		end
 	end
 	local firstWall = mean(firstWalls)
+	local verdict = between(firstWall, 12, 16)
+	if verdict == "OK" and mean(firstDurations) > 3 * 60 then
+		verdict = "TROP LONG"
+	end
 	row(
 		"Premier vrai mur (>= 1 min)",
-		"vers les vagues 12-16",
+		"vers les vagues 12-16, court (1-3 min)",
 		if firstWall then `vague {table.concat(firstWalls, ", ")} ({duration(mean(firstDurations))} en moyenne)` else "aucun",
-		between(firstWall, 12, 16)
+		verdict
 	)
 end
 
--- Vague 15
+-- Vague 15 (pas de cible chiffrée : entre la vague 10 et la vague 25)
 do
 	local t15 = reach(reference, 15)
-	row("Vague 15 (renaissance possible)", "20-30 min", duration(t15), between(t15 and t15 / 60, 20, 30))
+	row("Vague 15 (renaissance possible)", "à mesurer", duration(t15), "info")
 end
 
 -- Murs au début et plus tard. On juge la médiane (mur « typique ») et le mur que 80 % des murs ne dépassent
@@ -1153,11 +1219,11 @@ do
 	local earlyText, earlyMedian, earlyP80 = describe(wallsIn(reference, 11, 30, 30))
 	row("Murs du début (vagues 11-30)", "1-5 min de farm", earlyText, judge(earlyMedian, earlyP80, 5 * 60, 8 * 60))
 	-- Deux tranches : sur 31-100 d'un bloc, les murs courts des vagues 31-70 cachaient les murs d'une heure
-	-- et plus des vagues 71-100.
+	-- et plus des vagues 71-100. Cible : ~10-20 min au plus, 80 % des murs sous 20 min.
 	local midText, midMedian, midP80 = describe(wallsIn(reference, 31, 70, 30))
-	row("Murs plus tard (vagues 31-70)", "10-20 min au plus", midText, judge(midMedian, midP80, 20 * 60, 30 * 60))
+	row("Murs plus tard (vagues 31-70)", "~10-20 min au plus (80 % sous 20 min)", midText, judge(midMedian, midP80, 15 * 60, 20 * 60))
 	local lateText, lateMedian, lateP80 = describe(wallsIn(reference, 71, 100, 30))
-	row("Murs plus tard (vagues 71-100)", "10-20 min au plus", lateText, judge(lateMedian, lateP80, 20 * 60, 30 * 60))
+	row("Murs plus tard (vagues 71-100)", "~10-20 min au plus (80 % sous 20 min)", lateText, judge(lateMedian, lateP80, 15 * 60, 20 * 60))
 	local afterText = describe(wallsIn(reference, 101, 100000, 30))
 	row("Murs après la vague 100", "à mesurer (idle : ils s'allongent)", afterText, "info")
 end
@@ -1199,6 +1265,33 @@ do
 			elseif not bossHardest then "BOSS PAS LES PLUS DURS"
 			else "OK"
 	)
+	-- Une seule fuite = vague ratée : les vagues rapides ou nombreuses (Charge, Levée) ne doivent pas devenir
+	-- des murs absurdes. Leur médiane doit rester sous 1,5 fois celle des Escarmouches et des Gardes colossales.
+	local others = {}
+	for _, waveType in { "Mixed", "Giants" } do
+		for _, seconds in byType[waveType] or {} do
+			table.insert(others, seconds)
+		end
+	end
+	local reference_ = if #others > 0 then median(others) else nil
+	local texts, absurd = {}, {}
+	for _, waveType in { "Rush", "Horde" } do
+		local list = byType[waveType]
+		if list and #list > 0 then
+			table.insert(texts, `{Report.waveTypeName(waveType)} : {#list} murs, médiane {duration(median(list))}, max {duration(math.max(table.unpack(list)))}`)
+			if reference_ and median(list) > 1.5 * reference_ then
+				table.insert(absurd, Report.waveTypeName(waveType))
+			end
+		else
+			table.insert(texts, `{Report.waveTypeName(waveType)} : aucun mur d'au moins 1 min`)
+		end
+	end
+	row(
+		"Une fuite = ratée : Charge et Levée pas absurdes",
+		"murs de Charge et de Levée pas plus longs (médiane < 1,5x Escarmouche + Garde)",
+		table.concat(texts, " ; ") .. (if reference_ then ` ; Escarmouche + Garde : médiane {duration(reference_)}` else ""),
+		if #absurd > 0 then `TROP DURES ({table.concat(absurd, ", ")})` else "OK"
+	)
 end
 
 -- Zone morte : longue période sans rien acheter
@@ -1219,7 +1312,7 @@ do
 end
 
 -- Longue traîne
-for _, target in { { 25, 0.75, 1.5, "~1 h" }, { 50, 4, 8, "4-8 h" }, { 100, 20, 40, "20-40 h" } } do
+for _, target in { { 25, 0.5, 0.75, "30-45 min" }, { 50, 3, 6, "3-6 h" }, { 100, 15, 30, "15-30 h" } } do
 	local wave = target[1]
 	local cells = {}
 	local refT, refN = reach(reference, wave)
@@ -1420,6 +1513,145 @@ do
 	end
 end
 
+-- Totem de givre : il doit VRAIMENT ralentir et faire de vrais dégâts (demande du propriétaire), donc valoir
+-- sa place : posé par le joueur simulé, une vraie part des dégâts quelque part, fort au banc d'essai.
+do
+	local frost = IdleTowers.Defs.Frost
+	-- Meilleure part des dégâts utiles (tranche x type de vague) et nombre moyen de Totems posés aux jalons
+	local bestShare, bestKey = 0, "-"
+	for _, run in reference do
+		for key, damageRow in run.damage do
+			local total = 0
+			for _, v in damageRow do
+				total += v
+			end
+			if total > 0 and (damageRow.Frost or 0) / total > bestShare then
+				bestShare, bestKey = damageRow.Frost / total, key
+			end
+		end
+	end
+	local placed = {}
+	for _, wave in { 10, 25, 50, 100 } do
+		local counts = {}
+		for _, run in reference do
+			local snap = run.firstClear[wave]
+			if snap then
+				table.insert(counts, if snap.byType.Frost then snap.byType.Frost.n else 0)
+			end
+		end
+		if #counts > 0 then
+			table.insert(placed, string.format("v%d : %.1f", wave, mean(counts)))
+		end
+	end
+	-- Banc d'essai : meilleure puissance (seul) et meilleur soutien du Totem
+	local benchParts, bestPower, bestSupport = {}, 0, 0
+	for _, wave in BENCH_WAVES do
+		local bench = benchResults[wave]
+		if bench then
+			local powerMax, supportMax, powerType = 0, 0, "-"
+			for _, waveType in Report.WAVE_TYPE_ORDER do
+				local cell = bench.cells.Frost[waveType]
+				if not cell.tooExpensive then
+					if (cell.power or 0) > powerMax then
+						powerMax, powerType = cell.power, Report.waveTypeName(waveType)
+					end
+					supportMax = math.max(supportMax, cell.support or 0)
+				end
+			end
+			bestPower = math.max(bestPower, powerMax)
+			bestSupport = math.max(bestSupport, supportMax)
+			table.insert(benchParts, `v{wave} {math.floor(powerMax + 0.5)} ({powerType}) / soutien {math.floor(supportMax + 0.5)}`)
+		end
+	end
+	local useful = bestShare >= 0.1 or bestPower >= 60
+	row(
+		"Totem de givre : ralentit vraiment, vrais dégâts",
+		"posé par le joueur, >= 10 % des dégâts quelque part ou >= 60 au banc d'essai",
+		string.format(
+			"-%d %% de vitesse pendant %.1f s, %s dégâts/s en zone ; meilleure part des dégâts %s (%s) ; Totems posés %s ; banc d'essai (seul / soutien) : %s",
+			math.floor(frost.slow * 100 + 0.5),
+			frost.slowDuration,
+			shortNumber(frost.damage / frost.cooldown),
+			Report.pct(bestShare),
+			bestKey,
+			table.concat(placed, ", "),
+			table.concat(benchParts, " ; ")
+		),
+		if useful and bestSupport > 100 then "OK" elseif useful then "OK (seul)" else "PAS ASSEZ FORT"
+	)
+end
+
+-- Autel des héros : acheté régulièrement (déblocages au début, doublons ensuite) sans être le seul achat ;
+-- les gros lots (x1 000, x1 M) doivent servir aux joueurs avancés.
+do
+	-- Par tranche de vagues : part des pièces dépensées à l'autel et nombre d'achats pour 10 vagues
+	-- (« régulièrement » = au moins 2 achats toutes les 10 vagues, dans chaque tranche atteinte).
+	local BUCKETS = { { "1-25", 1, 25 }, { "26-50", 26, 50 }, { "51-100", 51, 100 }, { "101+", 101, math.huge } }
+	local shares, parts, rates = {}, {}, {}
+	for _, info in BUCKETS do
+		local bucket = info[1]
+		local list, perTen = {}, {}
+		for _, run in reference do
+			local spent = run.spentByBucket[bucket]
+			if spent then
+				local total = 0
+				for _, amount in spent do
+					total += amount
+				end
+				if total > 0 then
+					table.insert(list, spent.spin / total)
+				end
+			end
+			local waves = math.min(run.frontier, info[3]) - info[2] + 1
+			if waves >= 5 then
+				table.insert(perTen, (run.spinBuysByBucket[bucket] or 0) / waves * 10)
+			end
+		end
+		if #list > 0 then
+			shares[bucket] = mean(list)
+			rates[bucket] = mean(perTen) or 0
+			table.insert(parts, `{bucket} : {Report.pct(shares[bucket])} des pièces, {string.format("%.1f", rates[bucket])} achats / 10 vagues`)
+		end
+	end
+	local bulkParts, bigUsed = {}, 0
+	for _, bulk in IdleConfig.TOWER_SPIN_BULKS do
+		local buyers, firstWaves = 0, {}
+		for _, run in reference do
+			local buys = run.spinBuys[bulk.count]
+			if buys then
+				buyers += 1
+				table.insert(firstWaves, buys.firstWave)
+			end
+		end
+		table.insert(
+			bulkParts,
+			`x{Modules.NumberFormat.short(bulk.count)} ({buyers}/{#reference}{if #firstWaves > 0 then `, dès la v{math.floor(mean(firstWaves) + 0.5)}` else ""})`
+		)
+		if bulk.count >= 1000 and buyers > 0 then
+			bigUsed += 1
+		end
+	end
+	local regular, dominant = true, false
+	for bucket, share in shares do
+		if rates[bucket] < 2 then
+			regular = false
+		end
+		if share > 0.7 then
+			dominant = true
+		end
+	end
+	row(
+		"Autel des héros acheté régulièrement",
+		"acheté à chaque étape (>= 2 achats / 10 vagues), pas le seul achat (<= 70 % des pièces), x1 000 / x1 M utilisés",
+		`par tranche : {table.concat(parts, " ; ")} ; lots achetés (graines, record du 1er achat) : {table.concat(bulkParts, ", ")}`,
+		if not regular then "PAS ASSEZ ACHETÉ"
+			elseif dominant then "TROP DOMINANT"
+			elseif bigUsed == 0 then "GROS LOTS JAMAIS ACHETÉS"
+			elseif bigUsed == 1 then "OK (x1 M pas utilisé)"
+			else "OK"
+	)
+end
+
 -- Grands nombres : au moins des trillions (T) par minute vers 80-90 h de jeu
 do
 	local parts = {}
@@ -1481,7 +1713,7 @@ do
 			"Renaissance : bonus petit mais utile",
 			"+1 % (v15), +4 % (v50), +7 % (v100)",
 			string.format(
-				"renaissance-seule : %.0f renaissances, bonus +%s %% ; record à %d h : %.0f contre %.0f sans ; %s ; lancers de machine x%.1f",
+				"renaissance-seule : %.0f renaissances, bonus +%s %% ; record à %d h : %.0f contre %.0f sans ; %s ; lancers de l'autel achetés x%.1f",
 				mean(rebirths),
 				IdleConfig.formatPercent(mean(bonuses)),
 				options.hours,
@@ -1505,25 +1737,12 @@ do
 			row("Durée d'un cycle de renaissance", "à mesurer", `revenir au record après une renaissance : {duration(mean(cycles))} en moyenne ({#cycles} cycles)`, "info")
 		end
 	end
-	local parts, loopBetter, spinsBetter = {}, 0, 0
+	local parts, loopBetter = {}, 0
 	for _, summary in rebirthSummary do
 		if summary.growth then
-			table.insert(
-				parts,
-				string.format(
-					"%d h : +%.1f contre +%.0f %%/h, %.0f contre %.0f lancers/h",
-					summary.hour,
-					summary.bestRate,
-					summary.growth,
-					summary.loopSpins,
-					summary.normalSpins
-				)
-			)
+			table.insert(parts, string.format("%d h : +%.1f contre +%.0f %%/h", summary.hour, summary.bestRate, summary.growth))
 			if summary.bestRate > summary.growth then
 				loopBetter += 1
-			end
-			if summary.loopSpins > 3 * summary.normalSpins then
-				spinsBetter += 1
 			end
 		end
 	end
@@ -1531,11 +1750,9 @@ do
 		row(
 			"Farmer les renaissances",
 			"à mesurer (accepté même si la boucle rapporte plus)",
-			"boucle contre jeu normal (bonus contre hausse du revenu, lancers de machine) : " .. table.concat(parts, " ; "),
+			"boucle contre jeu normal (bonus de pièces contre hausse du revenu) : " .. table.concat(parts, " ; "),
 			-- Accepté par le propriétaire : renaître en boucle peut rapporter plus que progresser. Mesuré, pas jugé.
-			if loopBetter > 0 then `info : boucle mieux payée ({loopBetter} fois, accepté)`
-				elseif spinsBetter > 0 then `info : lancers x3+ en boucle ({spinsBetter} fois, accepté)`
-				else "info"
+			if loopBetter > 0 then `info : boucle mieux payée ({loopBetter} fois, accepté)` else "info"
 		)
 	end
 end
@@ -1576,7 +1793,7 @@ end
 out()
 out(`=> {okCount} objectif(s) atteint(s) sur {checked}.`)
 out()
-out("Hypothèses : joueur connecté en continu et actif (ramasse tout, machine à tours à chaque vague, achats entre les vagues),")
+out("Hypothèses : joueur connecté en continu et actif (ramasse tout, achète entre les vagues, lancers de l'autel compris),")
 out("sans Robux. Les scénarios « forge » et « renaissance » ajoutent la forge runique en pièces et/ou la renaissance (voir README).")
 out()
 

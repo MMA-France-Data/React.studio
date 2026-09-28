@@ -1,6 +1,6 @@
 # Outil d'équilibrage du mode solo
 
-Un simulateur « sans écran » du **mode infini** (ta parcelle : vagues sans fin, machine à tours,
+Un simulateur « sans écran » du **mode infini** (ta parcelle : vagues sans fin, autel des héros,
 améliorations, emplacements, forge runique, renaissance). Il fait tourner les **vrais modules du jeu**
 (`src/shared`) hors de Studio, avec la commande `luau`, et joue des dizaines d'heures de jeu en quelques
 minutes pour vérifier l'équilibrage. Le ranked n'est pas simulé.
@@ -21,7 +21,7 @@ Depuis le dossier `roblox-ranked-td` :
 powershell -ExecutionPolicy Bypass -File tools\balance\idle\run.ps1
 ```
 
-Environ 35 minutes : 4 scénarios x 3 parties x 100 h de jeu. Pour un essai rapide (environ 2 à 3 minutes :
+Environ 30 minutes : 4 scénarios x 3 parties x 100 h de jeu. Pour un essai rapide (environ 3 à 5 minutes :
 3 parties x 40 h, scénario `base` seulement) :
 
 ```bat
@@ -48,9 +48,9 @@ Autres options (à ajouter après `run.ps1`) :
      farm grandit, la valeur « neutre » de `UPGRADE_COST_GROWTH`, l'écart de prix entre deux emplacements,
      la puissance des tours à budget égal. Tout est lu dans les fonctions du jeu (`healthBudget`,
      `upgradeCost`…) : si tu changes une formule, cette partie suit.
-  3. **Un bloc par scénario** : jalons (vagues 5, 10, 15, 20, 25, 30, 40, 50…), murs, emplacements
-     achetés (5e, 6e… : quand, à quel prix, lequel), tours obtenues à la machine, part des dégâts de
-     chaque tour.
+  3. **Un bloc par scénario** : lancers achetés à l'autel (combien, quels lots, à partir de quel record, part
+     des dépenses), jalons (vagues 5, 10, 15, 20, 25, 30, 40, 50…), murs, emplacements achetés (5e, 6e… :
+     quand, à quel prix, lequel), tours obtenues à l'autel, part des dégâts de chaque tour.
   4. **Comparaison des scénarios** : temps pour atteindre chaque vague.
   5. **Grands nombres** : pour chaque scénario, record, pièces en poche, revenu par minute et total gagné
      à 1, 5, 10, 25, 50, 80, 90 et 100 h (valeur du milieu des graines), l'heure où le revenu atteint
@@ -64,13 +64,13 @@ Autres options (à ajouter après `run.ps1`) :
 - `heures.csv` : une ligne par heure de jeu (record, pièces, revenu, total gagné, emplacements…), pour
   tracer des courbes.
   Les deux CSV utilisent `;` et la virgule décimale : ils s'ouvrent directement dans Excel en français.
-- `journal.txt` (avec `-Journal`) : chaque vague réussie ou ratée, chaque achat, chaque lancer de machine,
+- `journal.txt` (avec `-Journal`) : chaque vague réussie ou ratée, chaque achat, chaque lot de lancers de l'autel,
   chaque bonus posé, chaque renaissance, avec l'heure de jeu et les pièces en poche.
 
 ### Quelques définitions
 
 - **Temps** : temps de jeu cumulé depuis le tout début, joueur connecté en continu.
-- **Graine** : une suite de tirages de la machine à tours et de la forge. Même graine = même partie.
+- **Graine** : une suite de tirages de l'autel des héros et de la forge. Même graine = même partie.
   Les valeurs du rapport sont des moyennes sur les graines (« 3/5 » = seulement 3 graines sur 5).
 - **Mur** : temps entre le premier échec d'une vague et sa réussite. Pendant un mur, le jeu fait farmer
   tout seul (vague N-1 réussie, vague N ratée, et ainsi de suite) et le joueur achète dès qu'il peut.
@@ -79,14 +79,14 @@ Autres options (à ajouter après `run.ps1`) :
 - **Banc d'essai** : N tours du même type (N = nombre d'emplacements du joueur simulé à cette vague),
   chacune sur les emplacements qui couvrent le plus de chemin pour sa portée, avec le même budget par tour
   (celui du joueur simulé à cette vague). Épreuve : réussir une vague de chaque type, avec les vraies
-  règles (la base a `BASE_HEALTH` PV). Le simulateur cherche de combien il faudrait multiplier les dégâts
+  règles (un seul ennemi qui passe = vague ratée). Le simulateur cherche de combien il faudrait multiplier les dégâts
   pour y arriver. 100 = la meilleure tour contre ce type de vague ; 50 = il lui faudrait 2 fois plus de
   dégâts ; 0 = impossible (pas assez de tirs). Le tableau « Soutien » remplace 3 tours principales par
   3 exemplaires d'une autre tour : plus de 100 = cette tour aide mieux que des tours principales en plus
   (c'est là que les tours qui ralentissent se montrent).
 - **Renaissance en boucle** : avec les tours du joueur simulé à 2 h, 5 h, 10 h…, temps pour rejouer les
-  vagues 1 à N après une renaissance (le « cycle ») et ce que ça rapporte (bonus de pièces par heure,
-  lancers de la machine par heure), comparé à une heure de jeu normal au même moment.
+  vagues 1 à N après une renaissance (le « cycle ») et ce que ça rapporte (bonus de pièces par heure),
+  comparé à une heure de jeu normal au même moment.
 
 ## Essayer des réglages sans toucher à `src/` (`-Regler`)
 
@@ -117,14 +117,17 @@ réglage dans `src/shared`, le simulateur l'utilise au prochain lancement.
 `Engine.luau` refait pas à pas `PlotGame:step` (`src/server/Hub/PlotGame.luau`) :
 
 - vagues de `IdleConfig.buildWave` (écarts entre ennemis, `MAX_ENEMIES`), chemin `PlotLayout.PATH`,
-  vitesse des ennemis x `ENEMY_SPEED_MULTIPLIER`, ralentissements (Totem de givre, Mage des tempêtes) ;
+  vitesse des ennemis x `ENEMY_SPEED_MULTIPLIER` x facteur de leur type (`ENEMY_SPEED_FACTORS`),
+  ralentissements (Totem de givre, Mage des tempêtes : le plus fort gagne, ils ne s'additionnent pas) ;
 - tirs des tours dans l'ordre des emplacements : simple (le plus avancé), `Strongest` (le plus de PV),
   zone, aura, chaîne ; recharges ; stats de `IdleTowers.effectiveStats` (niveau, doublons, bonus de la forge) ;
-- base de `BASE_HEALTH` PV : vague ratée = une vague plus bas, réussie = vague suivante ; délais
-  `FIRST_WAVE_DELAY`, `WAVE_CLEAR_DELAY`, `WAVE_FAIL_DELAY` ;
-- pièces des ennemis tués x (1 + bonus de pièces), y compris pendant une vague ratée ;
-- machine à tours (1 lancer par vague réussie, sans cumul, paliers et chances de `TOWER_SPIN_TIERS`,
-  déblocage ou doublon), forge runique (`bonusSpinCost`, 1 lancer / 30 min, le bonus remplacé est perdu),
+- pas de PV de base : **un seul ennemi au bout du chemin = vague ratée** (arrêtée tout de suite), une vague
+  plus bas ; réussie = vague suivante ; délais `FIRST_WAVE_DELAY`, `WAVE_CLEAR_DELAY`, `WAVE_FAIL_DELAY` ;
+- pièces des ennemis tués x (1 + bonus de pièces), y compris ceux tués avant la fuite d'une vague ratée ;
+- autel des héros : lancers payés en pièces par lots (`TOWER_SPIN_BULKS`, prix `towerSpinCost`), chances du
+  palier du **record** (`TOWER_SPIN_TIERS`), déblocage ou doublon, tirage des gros lots comme le serveur
+  (nombre de tours par rareté puis par tour), forge runique (`bonusSpinCost`, 1 lancer / 30 min, le bonus
+  remplacé est perdu),
   emplacements (le n-ième acheté coûte `PlotLayout.spotCost(n)` ; achetés dans n'importe quel ordre si le
   jeu le permet, c'est-à-dire si `PlotLayout.startingSpots` existe, sinon dans l'ordre 5, 6, 7…), prix des
   tours et des améliorations, remplacement remboursé à 50 % (le bonus de l'ancienne tour revient dans
@@ -142,21 +145,25 @@ dans `Engine.luau` ou `Run.luau`, sinon le simulateur ne correspond plus au jeu.
 Un joueur **actif** (réglages dans `Run.POLICY`, en haut de `idle/Run.luau`) :
 
 - il est connecté en continu et ramasse toutes les pièces tout de suite ;
-- il lance la machine à tours après chaque vague réussie (donc un lancer par vague réussie) ;
 - entre deux vagues, il dépense ses pièces sur l'achat qui a le **meilleur rapport gain / prix** :
   améliorer une tour, poser une tour sur un emplacement vide, acheter un emplacement et y poser une tour
   (quand l'ordre est libre, il compare pour chaque tour les 3 emplacements libres qui couvrent le plus de
-  chemin à sa portée), ou remplacer une de ses 3 tours les moins utiles (seulement une tour posée depuis
+  chemin à sa portée), remplacer une de ses 3 tours les moins utiles (seulement une tour posée depuis
   au moins 2 h, une seule par entracte, et seulement si c'est nettement mieux : sans ces limites, au mur,
-  il revendait en boucle des tours de haut niveau et perdait la moitié de leur prix à chaque fois) ;
-- le « gain » est mesuré contre les **prochaines vagues qui peuvent être ratées**, selon leur type (et, s'il
-  est bloqué, contre la vague qui bloque, en visant les ennemis qui ont vraiment atteint sa base) : le
-  moteur rejoue ces vagues avec des ennemis immortels pour compter combien de coups chaque tour peut
-  porter (portée, zone, chaîne, ralentissements), puis multiplie par les dégâts, plafonnés aux PV de
-  l'ennemi (un gros tir sur un petit écuyer est gâché) ;
+  il revendait en boucle des tours de haut niveau et perdait la moitié de leur prix à chaque fois), ou
+  **acheter des lancers à l'autel** : un lot vaut les doublons attendus sur ses tours posées (+2 % de dégâts
+  chacun) plus la chance de débloquer une tour qui ferait mieux que ses achats actuels ; à rapport presque
+  égal, il prend le plus gros lot qu'il peut payer (x10 plutôt que 10 fois x1) ;
+- le « gain » est mesuré contre les **prochaines vagues** (et, s'il est bloqué, contre la vague qui bloque,
+  en visant les ennemis qui l'ont vraiment traversée) : le moteur rejoue ces vagues avec des ennemis
+  immortels pour compter combien de coups chaque tour peut porter (portée, zone, chaîne, ralentissements),
+  puis multiplie par les dégâts, plafonnés aux PV de l'ennemi (un gros tir sur un petit écuyer est gâché).
+  Une seule fuite fait rater la vague : chaque groupe d'ennemis compte d'autant plus que ses tours en
+  viennent mal à bout (PV à infliger / puissance utile, au carré) ;
 - une tour neuve est jugée avec ses améliorations suivantes (au niveau où elle devient la plus rentable) ;
-- si le meilleur achat est trop cher mais payable en moins de 5 min de farm, il économise ; sinon il
-  prend le meilleur achat abordable (s'il vaut au moins 25 % du meilleur) ;
+- si le meilleur achat est trop cher mais payable en moins de 5 min de farm (30 min pour un lot x1 000 ou
+  x1 000 000 de l'autel), il économise ; sinon il prend le meilleur achat abordable (s'il vaut au moins 25 %
+  du meilleur) ;
 - il ne vend jamais une tour sans la remplacer.
 
 Option `-Regler "Joueur.SOLVER=true"` : au mur (bloqué depuis 2 min, puis toutes les 30 min), le joueur
@@ -196,7 +203,7 @@ Pas de Robux dans aucun scénario.
 ## Limites
 
 - Le joueur simulé est bon mais pas parfait : un vrai joueur peut faire mieux (acheter pendant une vague,
-  mieux combiner ses tours) ou moins bien (ne pas ramasser toutes les pièces, oublier la machine,
+  mieux combiner ses tours) ou moins bien (ne pas ramasser toutes les pièces, oublier l'autel,
   se déconnecter). Les temps du rapport sont ceux d'un joueur actif connecté en continu. Changer ses
   réglages (`Joueur.…`) change les temps d'environ 10 à 20 %, pas les grandes conclusions.
 - Le banc d'essai compare N tours du même type, ou N - 3 tours principales + 3 autres ; il ne teste pas

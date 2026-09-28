@@ -120,4 +120,14 @@ return function(log)
 	else
 		log("Error", "[CTEST] bouton Renaissance introuvable")
 	end
+
+	-- Autel des héros (machine à tours) : fenêtre, puis un achat x10 et son résumé.
+	-- (Ouverte par le plugin, via la commande « CMD:OpenMachine », comme son ProximityPrompt.)
+	task.wait(1)
+	say("CMD:OpenMachine:Tower")
+	task.wait(1.5)
+	shot("altar")
+	ReplicatedStorage.Remotes.MachineAction:FireServer("SpinTower", 10)
+	task.wait(3)
+	shot("altar_x10")
 end

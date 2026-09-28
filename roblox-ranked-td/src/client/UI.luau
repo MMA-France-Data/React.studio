@@ -139,6 +139,20 @@ function UI.formatTime(seconds: number): string
 	return string.format("%d:%02d", seconds // 60, seconds % 60)
 end
 
+-- Vitesse d'attaque en attaques par seconde, à partir du temps entre deux attaques (cooldown) :
+-- 0,2 s -> « 5 atq/s », 4 s -> « 0.25 atq/s », 1,2 s -> « 0.83 atq/s », 0,1 s -> « 10 atq/s ».
+function UI.attackSpeed(cooldown: number): string
+	local rate = if typeof(cooldown) == "number" and cooldown > 0 then 1 / cooldown else 0
+	local text
+	if rate >= 10 then
+		text = string.format("%d", math.floor(rate + 0.5))
+	else
+		-- 2 chiffres après la virgule au plus, sans zéros inutiles (1.50 -> 1.5, 5.00 -> 5)
+		text = string.format("%.2f", rate):gsub("0+$", ""):gsub("%.$", "")
+	end
+	return text .. " atq/s"
+end
+
 local toastGui = nil
 local toastList = nil
 local toastCount = 0

@@ -131,6 +131,10 @@ end
 --   Invoke(player, "Call", "buySpot", 9)        -> achète l'emplacement 9 (n'importe lequel)
 --   Invoke(player, "Set", "wave", 30)           -> change un champ de data.idle
 --   Invoke(player, "Set", "bestWave", 50)       -> puis "Call", "rebirth" pour tester la renaissance
+--   Invoke(player, "Call", "spinTower", 100)    -> 100 lancers de l'autel (renvoie le résultat)
+--   Invoke(player, "StartWave", 40)             -> lance tout de suite la vague 40 (vague en cours effacée)
+--   Invoke(player, "Leak")                      -> pousse le premier ennemi vivant au bout du chemin
+--                                                  (test de la règle « une fuite = vague ratée »)
 --   Invoke(player, "Data")                      -> renvoie les données du joueur
 local function setupStudioDebug()
 	if not RunService:IsStudio() then
@@ -149,6 +153,18 @@ local function setupStudioDebug()
 		elseif command == "Set" and data then
 			local key, value = ...
 			data.idle[key] = value
+		elseif command == "StartWave" and plotGame then
+			plotGame.idle.wave = ...
+			plotGame:clearEnemies()
+			plotGame:startWave()
+		elseif command == "Leak" and plotGame then
+			for _, enemy in plotGame.enemies do
+				if not enemy.dead then
+					enemy.distance = PlotLayout.PATH_LENGTH -- au prochain pas, il dépasse le bout du chemin
+					return true
+				end
+			end
+			return false
 		elseif command == "Data" then
 			return data
 		end
@@ -215,7 +231,7 @@ function Hub.start()
 	Players.PlayerRemoving:Connect(function(player)
 		lastPlotAction[player] = nil
 	end)
-	Remotes.get("PlotAction").OnServerEvent:Connect(function(player, action, spotIndex, towerType)
+	Remotes.get("PlotAction").OnServerEvent:Connect(function(player, action, spotIndex, towerType, replaceType)
 		local plotGame = games[player]
 		local now = os.clock()
 		if not plotGame or now - (lastPlotAction[player] or 0) < 0.15 then
@@ -223,7 +239,9 @@ function Hub.start()
 		end
 		lastPlotAction[player] = now
 		if action == "Place" then
-			plotGame:placeTower(spotIndex, towerType)
+			-- replaceType = la tour remplacée (remplacement confirmé), sinon rien : placeTower refuse alors
+			-- un emplacement déjà occupé.
+			plotGame:placeTower(spotIndex, towerType, replaceType)
 		elseif action == "Upgrade" then
 			plotGame:upgradeTower(spotIndex)
 		elseif action == "Sell" then
@@ -249,7 +267,7 @@ function Hub.start()
 			end)
 		end
 	end
-	Remotes.get("MachineAction").OnServerEvent:Connect(function(player, action, spotIndex, bonusId)
+	Remotes.get("MachineAction").OnServerEvent:Connect(function(player, action, arg1, arg2)
 		local plotGame = games[player]
 		local now = os.clock()
 		if not plotGame or now - (lastPlotAction[player] or 0) < 0.3 then
@@ -257,11 +275,13 @@ function Hub.start()
 		end
 		lastPlotAction[player] = now
 		if action == "SpinTower" then
-			plotGame:spinTower()
+			-- arg1 = nombre de lancers (rien = 1) : spinTower vérifie qu'il est proposé à ce record, et les pièces.
+			plotGame:spinTower(arg1)
 		elseif action == "SpinBonusCoins" then
 			plotGame:spinBonusWithCoins()
 		elseif action == "ApplyBonus" then
-			plotGame:applyBonus(spotIndex, bonusId)
+			-- arg1 = emplacement, arg2 = id du bonus
+			plotGame:applyBonus(arg1, arg2)
 		end
 	end)
 

@@ -1,149 +1,170 @@
 # Équilibrage du mode solo : résultats
 
 Le simulateur (`tools/balance/idle`, voir [`README.md`](README.md)) a joué le mode infini avec les **vrais
-modules du jeu**. Référence : le scénario **« base »** = un joueur actif (il ramasse tout, lance la machine à
-tours à chaque vague, achète au meilleur rapport), **sans forge runique ni renaissance**, 3 parties de 100 h.
+modules du jeu**. Référence : le scénario **« base »** = un joueur actif (il ramasse tout, achète au meilleur
+rapport gain / prix, lancers de l'autel compris), **sans forge runique ni renaissance**, 3 parties de 100 h.
 Les chiffres « après » viennent de `idle/out/rapport.txt`.
 
-> **Relecture (correction du simulateur).** Loin dans le jeu (après ~40 h, vers la vague 130), le joueur simulé
-> jugeait mal les petits achats : ses tours faisaient 1e20 de dégâts et plus, et le gain d'une tour neuve ou
-> de bas niveau (1e-16 de ce total) était arrondi à zéro. Il n'améliorait plus jamais ses nouvelles tours et
-> finissait avec 21 tours au niveau 1 et une seule tour de haut niveau. C'est corrigé (`idle/Run.luau`,
-> `logGain`) : jusqu'à la vague 100 (~22 h), rien ne change ; après, les chiffres ci-dessous sont ceux du
-> simulateur corrigé (record 217 à 100 h au lieu de 206, murs après la vague 100 moins extrêmes, renaissance et
-> forge beaucoup plus fortes qu'annoncé avant). Le mur « vagues 31-100 » est aussi coupé en deux (31-70 et
-> 71-100) : sur la tranche entière, la bonne médiane cachait les murs d'une heure et plus des vagues 71-100.
+## Les nouvelles règles de cette mise à jour
 
-## Objectifs : avant / après
+Retours du propriétaire après ses essais, déjà codés dans le jeu (`PlotGame.luau`) et maintenant suivis par
+le simulateur :
+
+- **Une seule fuite = vague ratée** : plus de PV de base, un seul ennemi au bout du chemin et on redescend
+  d'une vague (la vague s'arrête tout de suite ; les pièces des ennemis déjà tués restent).
+- **Autel des héros payant** : plus de lancer gratuit par vague ; x1, x10, x100, x1 000, x1 000 000 payés en
+  pièces, aux chances du **record**.
+- **Un seul colosse** par Garde colossale, **un seul Seigneur de guerre** (et 6 fantassins) par vague de boss.
+- **Totem de givre renforcé**, ennemis plus lents, cavaliers freinés, 50 pièces au départ et +50 % de
+  pièces au début (qui fond jusqu'à la vague 40).
+
+Le simulateur a été mis à jour pour ces règles (moteur, joueur simulé qui achète des lots à l'autel quand
+ça vaut le coup, nouveaux objectifs). **« Avant »** ci-dessous = ces nouvelles règles avec les réglages tels
+qu'ils étaient livrés ; **« après »** = après ce réglage.
+
+## Objectifs : avant / après (scénario « base », moyenne de 3 parties)
 
 | Objectif | Cible | Avant | Après |
 |---|---|---|---|
-| Vagues 1 à 10 | 5-8 min, sans mur | 13 min, dont 7 min bloqué (boss de la vague 10) | **7 min, aucun mur** |
-| Premier vrai mur | vers la vague 12-16 | vague 10 | **vague 13** (3 min) |
-| Vague 15 (renaissance possible) | 20-30 min | 16 min | **23 min** |
-| Vague 25 | ~1 h | 50 min | **1 h 07** |
-| Vague 50 | 4-8 h | 6 h 35 | **4 h 35** |
-| Vague 100 | 20-40 h | jamais en 50 h (record 93) | **21 h 56** |
-| Murs du début (vagues 11-30) | 1-5 min | médiane 18 min | **médiane 3 min** (80 % font moins de 10 min) |
-| Murs vagues 31-70 | 10-20 min au plus | médiane 1 h 37 (31-100), jusqu'à 15 h | **médiane 11 min** (80 % font moins de 18 min) |
-| Murs vagues 71-100 | 10-20 min au plus | (voir ci-dessus) | **TROP LONGS** : médiane 16 min, mais 80 % font moins de 52 min seulement ; 14 % dépassent 1 h (boss 80, 90, 100 ; Garde 85, 95 ; Charge 91 : 1 h à 1 h 30 en moyenne, jusqu'à 2 h 26) |
-| Murs après la vague 100 | (idle : ils s'allongent) | - | médiane 28 min (80 % font moins de 1 h 05, jusqu'à 4 h 21) |
-| Murs variés | pas que des boss, boss les plus durs | 100 % des murs = boss | Escarmouche 49 %, Levée 13 %, Charge 16 %, Garde 11 %, boss 12 % (**boss les plus longs** : médiane 32 min) |
-| Pas de zone morte | jamais 1 h sans achat | 33 min au plus | 17 min au plus |
-| 22 emplacements | le dernier vers la vague 80-100 | 13,8 en 50 h, le 22e hors de portée | **un toutes les 4-5 vagues, le 22e vers la vague 98** |
-| 8 tours utiles | chacune ≥ 10 % des dégâts quelque part | Archer 100 %, 5 tours à 0 % | **toutes entre 51 et 86 %** selon le moment |
-| Chaque type de vague a sa tour | tours différentes | 3 | **6 tours différentes** |
-| Aucune tour dominée pour toujours | aucune | Catapulte, Sorcier, Oracle | **aucune** |
-| Légendaires fortes, pas écrasantes | x1 à x3 | x0,56 à x1,96 | x0,81 à x1,54 |
-| Grands nombres | ≥ 1 T de pièces / min vers 80-90 h | ~15 M / min à 50 h | **1 T / min vers 29 h ; 8,2 Qi / min à 80 h ; 130 Qi / min à 90 h** |
-| Nombres finis | jusqu'à la vague 1500 et au niveau 1000 | non vérifié | **oui** (voir plus bas) |
+| Vagues 1 à 10 | 4-7 min, sans mur | 8 min | **7 min**, aucun mur |
+| Premier vrai mur | vague 12-16, court (1-3 min) | vague 15, **19 min** | **vague 14-15, 2 min** |
+| Vague 25 | 30-45 min | 1 h 32 | **42 min** |
+| Vague 50 | 3-6 h | 4 h 59 | **4 h 32** |
+| Vague 100 | 15-30 h | 11 h 52 (trop tôt) | **16 h 37** |
+| Murs vagues 11-30 | 1-5 min | médiane 15 min, 20 % au-delà de 40 min | **médiane 2 min** (80 % sous 5 min) |
+| Murs vagues 31-70 | ~10-20 min au plus | médiane 15 min, 20 % au-delà de 1 h 06 | **médiane 7 min**, 80 % sous 21 min (UN PEU LONGS) |
+| Murs vagues 71-100 | ~10-20 min au plus | médiane 16 min, 20 % au-delà de 57 min | **médiane 12 min**, 80 % sous 27 min (UN PEU LONGS) |
+| Murs après la vague 100 | plus longs, c'est de l'idle | médiane 4 min (le jeu s'emballe) | médiane 17 min (80 % sous 32 min) |
+| Murs variés, boss les plus durs | plusieurs types | Garde colossale 50 % (53 min), boss 50 % | **5 types** : Escarmouche 58 %, Charge 13 %, Garde 12 %, boss 13 % (le plus long : 19 min), Levée 5 % |
+| Charge et Levée pas absurdes (une fuite = ratée) | pas plus longues que les autres | jamais bloquantes | médianes 4 et 5 min (Escarmouche + Garde : 8 min) |
+| Totem de givre | ralentit vraiment, vrais dégâts, vaut sa place | meilleure tour contre presque tout (100 % des dégâts par endroits) | **-60 % de vitesse**, 6 dégâts/s en zone ; 87 % des dégâts au début ; meilleur contre Levées et Charges tout le jeu ; en soutien, l'équipe est 1,1 à 2,1 fois plus forte (le plus contre Levées et Charges) |
+| Autel des héros | acheté régulièrement, pas le seul achat | 30 % des pièces au début, puis des doublons à l'infini | acheté tout le jeu (5 à 220 achats / 10 vagues), 3 à 14 % des pièces ; x100, x1 000 et x1 M jamais achetés (voir plus bas) |
+| Les 8 tours utiles | chacune >= 10 % des dégâts quelque part | **non** (Oracle 0 %, Trébuchet 6 %) | **oui** (de 21 % à 99 %) |
+| Chaque type de vague a sa tour | tours différentes | 4 | **5** (Totem, Oracle, Archer, Trébuchet, Sorcier) |
+| Aucune tour dominée pour toujours | aucune | aucune | aucune |
+| Légendaires fortes, pas écrasantes | x1 à x3 | x0,26 à x1,16 | x0,47 à x1,35 |
+| Grands nombres | ≥ 1 T de pièces / min vers 80-90 h | oui (1 T vers 15 h, 1e105 / min à 100 h) | oui : 1 B / min vers 14 h, **1 T vers 22 h**, 1 Qi vers 39 h, 1 Dc vers 88 h |
+| Record à 100 h | (long à la fin) | vague 1 066 | vague 376 |
 
-**16 objectifs atteints sur 18.** Deux ratés :
-- « UN PEU LONGS » au début : la médiane des murs est bonne (3 min) mais 20 % des murs dépassent 8 min
-  (surtout la Levée d'écuyers 21 et la Garde colossale 25).
-- « TROP LONGS » vers les vagues 71-100 : 40 % des murs dépassent 20 min et 14 % dépassent 1 h. Attention, les
-  deux cibles se contredisent un peu : avec un mur sur presque chaque vague, atteindre la vague 100 en 20-40 h
-  demande ~20-40 min par vague entre les vagues 50 et 100 ; des murs de 20 min au plus demanderaient des murs
-  très réguliers (aujourd'hui, les boss et les Gardes colossales de ces vagues bloquent 3 à 5 fois plus que
-  les autres).
+**16 objectifs atteints sur 20** (10 avant). Pour comparer, la mise à jour précédente (anciennes règles, lancer
+gratuit à chaque vague) donnait vague 25 en 1 h 07, vague 50 en 4 h 35 et vague 100 en 22 h.
 
-### Les pièces au fil des heures (scénario « base », valeur du milieu des 3 parties)
+### Ce qui reste (honnêtement)
 
-| Temps | Record | Pièces en poche | Revenu par minute | Total gagné |
-|---|---|---|---|---|
-| 1 h | vague 24 | 2,2 K | 970 | 25 K |
-| 10 h | vague 73 | 65 M | 40 M | 3,3 B |
-| 25 h | vague 107 | 7 B | 100 B | 9,8 T |
-| 50 h | vague 149 | 32 T | 836 T | 237 Qa |
-| 80 h | vague 190 | 442 Qa | 8,2 Qi | 1,8 Sx |
-| 90 h | vague 204 | 1,36 Sx | 130 Qi | 39 Sx |
-| 100 h | vague 216 | 1,4 Sx | 3,69 Sx | 879 Sx |
-
-Revenu par minute : 1 M vers 6 h, 1 B vers 16 h, **1 T vers 29 h**, 1 Qa vers 51 h, 1 Qi vers 73 h, 1 Sx vers 93 h.
-Les trillions arrivent donc avant 80-90 h (le minimum demandé) et ensuite tout continue d'exploser.
-Pour qu'ils arrivent plus tard, baisser `IdleConfig.REWARD_GROWTH` (par exemple 1,22) et relancer.
-
-**Limites des nombres** : sans garde-fou, les PV deviendraient infinis vers la vague 3 100 ; à partir de
-`IdleConfig.MAX_SCALING_WAVE` (3 000), PV et pièces arrêtent de grandir, donc tout reste fini. Vague 1500 :
-ennemi de 8,8e151 PV, 1,5e146 pièces par vague. Améliorations : niveau 1000 = 3,2e131 pièces ; un prix ne
-deviendrait infini qu'au niveau ~2 300, jamais nécessaire. `NumberFormat.short` a des suffixes jusqu'à
-10^93 (Tg) puis passe en notation scientifique (« 1.23e96 ») : les PV y passent vers la vague 930.
+1. **Murs des vagues 31-100 un peu longs** : la médiane est bonne (7 et 12 min), mais 1 mur sur 5 dépasse
+   21 min (31-70) et 27 min (71-100). Les deux cibles tirent en sens contraire : avec des murs plus courts
+   (80 % sous 20 min), la vague 100 arrive vers 13-14 h, avant la cible de 15-30 h. Les murs les plus longs :
+   la Garde colossale et le Seigneur de guerre des vagues 70-100 (17-38 min), et les Escarmouches des vagues
+   46, 56, 66, 76 (24-57 min) : au mur d'une vague x6, on farme la Garde colossale x5, qui rapporte moins.
+   Essayé ensuite (3 parties x 30 h) : une Garde colossale qui rapporte autant qu'une Escarmouche donne 80 % des
+   murs sous 18 min (31-70) et 22 min (71-100), mais la vague 100 arrive en 13 h 52 ; toutes les vagues qui
+   rapportent pareil, 17 et 21 min, vague 100 en 12 h 45 (14 h 42 avec `HEALTH_WAVE_POWER` 2,45, mais 80 % sous
+   24 min pour 71-100). Aucun ne fait mieux sur tous les objectifs : réglages gardés.
+2. **x100, x1 000 et x1 000 000 jamais achetés** par le joueur simulé du scénario « base » : il dépense tout à
+   chaque entracte et n'a jamais 7 à 20 vagues de gains en poche d'un coup. Un joueur qui revient après une pause,
+   si. Dans les autres scénarios, le x100 sert un peu (en moyenne 3 achats avec la forge, 61 avec forge +
+   renaissance, 78 avec la renaissance seule, à partir des records 140-430) et le x1 000 une seule fois (1 partie
+   sur 3, record 922). Le x1 000 000 n'est jamais acheté : il est exprès très loin (voir « La règle qui explique tout »).
+3. **22e emplacement vers la vague 104** (cible des réglages précédents : 80-100 ; 167 avant). Le prix n'est
+   pas le frein : le 22e coûte 0,03 vague de gains à la vague 100. Prix des emplacements inchangés.
+4. **Vague 10 vers 7 min** : juste dans la cible (4-7 min). Le temps vient surtout de la marche des ennemis
+   jusqu'aux 4 premiers emplacements (près de la base), et on les a ralentis.
+5. Les chiffres bougent d'environ 1 h (vague 100) et de quelques minutes (murs) entre deux réglages presque
+   identiques : 3 parties, et chaque partie fait des choix un peu différents.
 
 ## Ce qui a changé et pourquoi
 
-1. **Les vagues grandissent beaucoup plus** (`IdleConfig`) : pièces **x1,25 par vague** (avant x1,18), PV
-   x1,25 par vague multipliés par `((vague + 5) / 6)^2,3` (avant x1,22). Au total les PV montent toujours un
-   peu plus vite que les pièces : x1,45 d'une vague à l'autre vers la vague 10, x1,30 à la 50, x1,28 à la 100.
-   `HEALTH_BUDGET` 150 -> 18. Pourquoi : les grands nombres viennent des vagues elles-mêmes, et cette
-   forme donne des murs courts au début qui s'allongent doucement, au lieu d'exploser (avant, le temps de
-   farm était multiplié par 1,11 à chaque vague).
-2. **Même prix d'amélioration pour toutes les tours** (`IdleTowers.upgradeCost`) : 20 pièces pour le
-   niveau 2, puis **x1,35 par niveau** (avant : prix de pose x 2 x 1,5 par niveau). Pourquoi : avant, à dépense
-   égale, l'Archer (10 pièces) finissait 5 fois plus fort que le Trébuchet (400 pièces), d'où 100 % des dégâts
-   pour l'Archer. Et avec un prix qui monte comme les dégâts (x1,35), une pièce rapporte autant de dégâts à
-   n'importe quel niveau d'une tour : une tour neuve vaut autant la peine d'être améliorée qu'une vieille tour
-   (avec un prix plus lent que les dégâts, tout mettre sur une seule tour était toujours mieux).
-3. **Stats des tours** (`IdleTowers`) : Totem 2 -> 4,2 ; Catapulte 12 -> 17 ; Mage 8 -> 14 ; Baliste 45 ->
-   40 (recharge 3 -> 4 s, zone 4 -> 2) ; Sorcier 6 -> 9 (recharge 0,1 -> 0,25 s, vise le plus résistant) ;
-   Oracle 30 -> 15 par ennemi touché ; Trébuchet 220 -> 40 (zone 10 -> 5). Pourquoi : à prix égal, chaque type
-   de vague a maintenant sa meilleure tour (Oracle contre Escarmouches et Charges, Sorcier contre la Garde
-   colossale, Trébuchet et Mage contre les boss, Totem et Catapulte contre les hordes au début) et la portée
-   (30 pour la Baliste, 70 pour le Trébuchet) est compensée par moins de dégâts.
-4. **`BASE_HEALTH` 20 -> 10** : chaque type de vague peut être raté (avant, seuls les boss et les hordes
-   pouvaient bloquer).
-5. **Types de vagues** : parts du budget ajustées (Levée 1 -> 0,68 avec 15 à 45 écuyers ; Charge 1 -> 0,6 ;
-   Garde 1,2 -> 1,5 ; Escarmouche 1 -> 1,07 ; boss 1,5 -> de 0,4 à la vague 10 jusqu'à 0,8 dès la vague 20).
-   Les 10 premières vagues sont des Escarmouches (sauf la 5 et le boss de la 10), et la vague juste avant chaque
-   boss aussi : c'est celle qu'on farme quand le boss bloque, et elle rapporte bien.
-6. **Doublons +5 % -> +2 %** et machine à tours un peu plus généreuse aux paliers hauts (vague 50+ : 12 % de
-   Légendaires, vague 100+ : 20 %). Pourquoi : les tours communes recevaient des centaines de doublons et
-   écrasaient les autres ; les grands nombres doivent venir des vagues, pas des doublons.
-7. **Emplacements** (`PlotLayout`) : 500 x3,8 (qui accélère) -> **100 x2,6** par emplacement : le 5e vers la
-   vague 14, le 22e (~1,1 B) vers la vague 98. Avant, chaque emplacement coûtait 4 à 7 fois le précédent.
-8. **`MAX_SCALING_WAVE` = 3 000** : garde-fou contre les nombres infinis (voir plus haut).
+1. **Garde colossale : part 1,5 → 0,5** (`IdleConfig.WAVE_TYPES`). Un seul colosse avec tout le budget : seules
+   les tours qui le visent comptent, et une Garde ratée ne rapporte rien. Avant, c'était LE mur (médiane 53 min,
+   jusqu'à 1 h 43). Plus bas que 0,5, les vagues x6 devenaient des murs de 30 min et plus (on y farme la Garde).
+2. **Seigneur de guerre : 0,4 → 0,8 devient 0,3 → 0,5** (+ les 6 fantassins). Il reste le mur le plus long.
+3. **Levée des écuyers 0,68 → 0,75, Charge de cavalerie 0,6 → 0,7** : avec le Totem renforcé et des ennemis
+   plus lents, elles ne bloquaient plus jamais. Elles bloquent maintenant un peu (médianes 4-5 min), sans
+   devenir absurdes malgré la règle « une fuite = ratée ».
+4. **Vitesses** (`ENEMY_SPEED_FACTORS`) : chevaliers lourds x1,1, colosse et Seigneur de guerre x1,15 (7,4 /
+   4,7 / 5,4 studs/s, contre 8 / 4,8 / 5,6 avant la mise à jour : ils restent un peu plus lents qu'avant).
+   Cavaliers et écuyers inchangés (13 studs/s). Pourquoi : vague 10 en 8 min et Gardes ratées interminables.
+5. **Totem de givre** (`IdleTowers`) : 8 dégâts → **6**, portée 12 → **11**, ralentissement 65 % → **60 %**
+   (avant la mise à jour : 4,2 dégâts, 25 %). À 8 / 12 / 65 %, il était la meilleure tour contre presque tout
+   jusqu'à la vague 100 et l'Oracle et le Trébuchet ne servaient à rien. Maintenant : chaque passage dans
+   son aura fait ~2 fois plus de dégâts qu'avant la mise à jour, il ralentit 2,4 fois plus, il est le meilleur
+   contre les Levées et les Charges tout le jeu et l'équipe est 1,1 à 2,1 fois plus forte avec lui en soutien (le plus contre Levées et Charges).
+6. **Oracle 15 → 18, Sorcier 9 → 10, Baliste 40 → 50** : l'Oracle est redevenu le meilleur contre les
+   Escarmouches ; la Baliste était moins bonne que le Sorcier contre tout.
+7. **Autel des héros** :
+   - prix d'un lancer : 0,25 vague de gains à ton record jusqu'à la vague 10, puis divisé par (record / 10)^0,9
+     (`TOWER_SPIN_COST_WAVES` 0,3 → 0,25, `TOWER_SPIN_DISCOUNT_POWER` 2 → 0,9). Avant, les lancers devenaient
+     si peu chers que les doublons (x2 300 de dégâts sur une tour) écrasaient tout : vague 1 066 en 100 h, murs
+     de plus en plus courts ;
+   - lots : x100 dès le record 40, x1 000 dès 150, x1 000 000 dès 1 000, toujours au prix normal (champ
+     `price` = nombre de lancers x1 que coûte le lot) ;
+   - chances : 10 % d'Épiques dès la vague 10 (8 % avant), 5 % de Légendaires dès la vague 25 (3 % avant).
+     Déblocages : Totem tout de suite, Catapulte vers la vague 7, Mage vers 13, Oracle 33, Sorcier 41,
+     Trébuchet 44, Baliste 46.
 
-Le prix de la forge en pièces (`bonusSpinCost`, 15 vagues de gains à ton record) suit automatiquement la
-nouvelle croissance des pièces.
+   | Record | 1 lancer | x10 | x100 | x1 000 | x1 000 000 |
+   |---|---|---|---|---|---|
+   | 1-10 | 0,25 vague de gains | 2,5 | - | - | - |
+   | 40 | 0,07 | 0,7 | 7 | - | - |
+   | 100 | 0,03 | 0,3 | 3 | - | - |
+   | 150 | 0,02 | 0,2 | 2 | 22 | - |
+   | 300 | 0,012 | 0,12 | 1,2 | 12 | - |
+   | 1 000 | 0,004 | 0,04 | 0,4 | 4 | 4 000 |
+8. **PV : `HEALTH_WAVE_POWER` 2,3 → 2,4** : un peu plus de PV partout (x1,2 à la vague 25, x1,3 à la 100) pour
+   que la vague 100 arrive après 15 h malgré tout ce qui précède.
 
-## Renaissance et forge (pour information)
+Inchangés : 50 pièces au départ, +50 % de pièces au début, croissance x1,25 des pièces et des PV,
+améliorations, emplacements (`PlotLayout`), renaissance, forge.
 
-- **Renaissance** (formule inchangée, règle acceptée par le propriétaire) : **très forte** avec ces réglages.
-  En renaissant dès qu'il bloque 15 min à son record, le joueur simulé fait ~53 renaissances en 100 h, bonus
-  de pièces +615 %, record **487 contre 217** sans ; vague 100 en 17 h au lieu de 22 h, vague 200 en 39 h au
-  lieu de 86 h ; 3,6 fois plus de lancers de machine. Un cycle (revenir au record) dure 53 min en moyenne.
-  Rejouer 1 à 25 prend 3 min et rapporte jusqu'à +40 % de bonus par heure et ~500 lancers de machine par heure
-  (contre ~30 en jeu normal).
-- **Forge runique en pièces** (1 lancer / 30 min) : **très forte** aussi : record 471 à 100 h contre 217 sans,
-  vague 100 en 10 h 38 au lieu de 22 h. Forge + renaissance : vagues 750 à 1 200 à 100 h (915 en moyenne ; les
-  PV passent en notation scientifique vers la vague 930).
-- Explication commune : loin dans le jeu, les PV montent à peine plus vite que les pièces (x1,264 contre x1,25
-  à la vague 200) et le prix des améliorations monte comme les dégâts. Pour une vague de plus, le temps de
-  farm n'est multiplié que par ~1,01 : un revenu x7 (renaissances) ou des dégâts x20 à x100 (forge) font gagner
-  des centaines de vagues. Un joueur actif qui utilise la forge en pièces arrive donc à la vague 100 vers
-  10-17 h, sous la cible de 20-40 h (qui n'est tenue que sans forge ni renaissance).
-- Pistes (non appliquées, choix de design à faire) : des PV qui montent nettement plus vite que les pièces
-  loin dans le jeu (par exemple `HEALTH_WAVE_POWER` plus grand, ou `HEALTH_GROWTH` 1,26), ce qui allonge
-  aussi les murs sans forge ; ou une forge moins fréquente. Essais faits AVANT la correction du simulateur
-  (donc seulement indicatifs) : un lancer toutes les 2 h donnait encore la vague 432 ; `HEALTH_GROWTH` 1,26
-  ramenait la forge à la vague 247, mais sans forge la vague 100 arrivait alors à 40 h avec des murs d'environ
-  1 h après la vague 100.
+## La règle qui explique tout (utile pour les prochains réglages)
+
+Les PV et les pièces grandissent **au même rythme** (x1,25 par vague) : ce qui les sépare, c'est seulement le
+facteur `((vague + 5) / 6)^2,4` des PV. Du coup, **multiplier tous ses dégâts par M fait avancer le record
+d'un facteur ~M^(1/2,4)**, pas d'un nombre fixe de vagues. Doubler ses dégâts vers la vague 400 fait gagner
+~130 vagues. D'où :
+
+- **Le x1 000 000 ne peut pas être abordable sans danger** : un million de lancers, c'est 75 000 à 175 000
+  doublons par tour, donc x1 500 à x3 500 de dégâts. Essayé au prix de 5 000 lancers le lot (dès le record
+  300) : le joueur simulé est passé de la vague 377 à la vague 600-1 000 en 6 h. Il reste donc un objectif
+  lointain (record 1 000, ~4 000 vagues de gains). Le seul moyen de le rendre achetable serait que les
+  doublons rapportent de moins en moins (ex. +2 % pour les 100 premiers, puis moins) : c'est un choix de
+  design, pas un réglage.
+- Même le x1 000 à moitié prix (dès le record 80) faisait arriver la vague 100 ~1 h 20 plus tôt. D'où : pas de
+  remise de gros.
+- La forge et la renaissance sont très fortes loin dans le jeu (voir plus bas).
+
+## Forge et renaissance (pour information, règles inchangées)
+
+| Scénario | Record à 100 h (avant) | Record à 100 h (après) | Vague 100 (après) |
+|---|---|---|---|
+| base | 1 066 | 376 | 16 h 37 |
+| renaissance seule (dès qu'il bloque 15 min) | 1 906 | 490 | 15 h 19 |
+| forge en pièces (1 lancer / 30 min) | 1 806 | 595 | 12 h 26 |
+| forge + renaissance | 3 000 (limite du simulateur) | 901 | 14 h 27 |
+
+- **Renaissance** : ~40 renaissances en 100 h, bonus de pièces +460 à +510 %, record 490 contre 376.
+- **Forge runique** : ~86 lancers, meilleur bonus posé x57 en moyenne : record 595 contre 376. Dans ce scénario, le
+  joueur simulé met le prix de la forge de côté dès le début, ce qui ralentit ses 25 premières vagues
+  (vague 25 en 50 min) : c'est sa façon de jouer, pas le jeu.
+- Avant ce réglage, les doublons à bas prix s'ajoutaient à tout ça et le jeu s'emballait (vague 3 000,
+  la limite, atteinte en 100 h avec forge + renaissance).
 
 ## Limites
 
 - Le joueur simulé n'achète qu'entre les vagues, ramasse tout tout de suite, ne se déconnecte jamais et
   n'utilise pas de Robux : les temps sont ceux d'un joueur actif connecté en continu.
-- Il ne revend une tour que si elle est posée depuis 2 h (une seule par entracte) : sans cette limite, il
-  revendait en boucle des tours de haut niveau au mur.
-- 3 parties par scénario : les chiffres varient de ~10 % d'une partie à l'autre (plus pour la forge).
+- Il dépense tout à chaque entracte (il n'économise que 5 min, 30 min pour un gros lot plus rentable) : il
+  n'achète donc presque jamais les gros lots au prix normal (jamais dans le scénario « base »).
+- 3 parties par scénario : les chiffres varient de ~10 % d'un réglage presque identique à l'autre.
 
 ## Relancer
 
 Depuis le dossier `roblox-ranked-td` :
 
 ```bat
-powershell -ExecutionPolicy Bypass -File tools\balance\idle\run.ps1            (complet : ~35 min, 4 scénarios x 3 parties x 100 h)
-powershell -ExecutionPolicy Bypass -File tools\balance\idle\run.ps1 -Rapide    (~2-3 min : 3 parties x 40 h, scénario base)
-powershell -ExecutionPolicy Bypass -File tools\balance\idle\run.ps1 -Rapide -Regler "IdleConfig.REWARD_GROWTH=1.22"
+powershell -ExecutionPolicy Bypass -File tools\balance\idle\run.ps1            (complet : ~30 min, 4 scénarios x 3 parties x 100 h)
+powershell -ExecutionPolicy Bypass -File tools\balance\idle\run.ps1 -Rapide    (~5 min : 3 parties x 40 h, scénario base)
+powershell -ExecutionPolicy Bypass -File tools\balance\idle\run.ps1 -Rapide -Regler "IdleConfig.HEALTH_WAVE_POWER=2.35"
 ```
 
 Le rapport commence par la comparaison aux objectifs (`idle\out\rapport.txt`).

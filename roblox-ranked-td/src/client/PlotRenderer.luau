@@ -232,23 +232,27 @@ end
 
 ----------------------------------------------------------------------
 
--- Étiquette « Niv. X » au-dessus de chaque tour des parcelles (mise à jour à chaque amélioration).
+-- Étiquette « Niv. X » au pied de chaque tour des parcelles (mise à jour à chaque amélioration).
 local function addLevelTag(model: Instance)
 	if not model:IsA("Model") or not model:GetAttribute("SpotIndex") then
 		return
 	end
 	local def = IdleTowers.Defs[model:GetAttribute("TowerType")]
 	local anchor = model:WaitForChild("Base", 5)
-	if not def or not anchor then
+	if not def or not anchor or not anchor:IsA("BasePart") or model:FindFirstChild("LevelTag") then
 		return
 	end
 
 	local billboard = Instance.new("BillboardGui")
 	billboard.Name = "LevelTag"
-	billboard.Size = UDim2.fromOffset(70, 24)
-	-- Au-dessus du sommet de la tour (les modèles n'ont pas tous la même hauteur), et devant le décor :
-	-- elle ne s'affiche de toute façon que de près (ProximityLabel).
-	billboard.AlwaysOnTop = true
+	billboard.Size = UDim2.fromOffset(64, 22)
+	-- Sous la tour, collée à son pied (le socle « Base », au centre de l'emplacement).
+	-- Pas de StudsOffsetWorldSpace : il suit l'orientation de la pièce, et « Base » est un cylindre
+	-- redressé (tourné de 90°) qui pivote en plus quand la tour vise. L'ancien décalage « vers le haut »
+	-- partait donc sur le côté : les étiquettes flottaient à 10-20 studs à droite des tours.
+	-- StudsOffset suit la caméra : toujours un peu plus bas à l'écran, sans aucun décalage horizontal.
+	billboard.StudsOffset = Vector3.new(0, -1.2, 0)
+	billboard.AlwaysOnTop = true -- par-dessus le modèle ; ne s'affiche que de près (ProximityLabel)
 	ProximityLabel.register(billboard, Config.LabelDistance.Close)
 	billboard.Adornee = anchor
 	local label = Instance.new("TextLabel")
@@ -263,29 +267,11 @@ local function addLevelTag(model: Instance)
 	corner.CornerRadius = UDim.new(1, 0)
 	corner.Parent = label
 
-	-- Hauteur du point le plus haut de la tour (en coordonnées du monde, pièces tournées comprises).
-	local function towerTop(): number
-		local top = anchor.Position.Y
-		for _, part in model:GetDescendants() do
-			if part:IsA("BasePart") then
-				local cf, size = part.CFrame, part.Size
-				local halfHeight = (math.abs(cf.RightVector.Y) * size.X + math.abs(cf.UpVector.Y) * size.Y + math.abs(cf.LookVector.Y) * size.Z) / 2
-				top = math.max(top, cf.Position.Y + halfHeight)
-			end
-		end
-		return top
-	end
-
 	local function update()
 		label.Text = `Niv. {model:GetAttribute("Level") or 1}`
-		billboard.StudsOffsetWorldSpace = Vector3.new(0, towerTop() - anchor.Position.Y + 1.5, 0)
 	end
 	update()
 	model:GetAttributeChangedSignal("Level"):Connect(update)
-	-- Les pièces de la tour peuvent arriver après l'étiquette (streaming) : on recalcule sa hauteur.
-	model.DescendantAdded:Connect(function()
-		task.defer(update)
-	end)
 	billboard.Parent = model
 end
 

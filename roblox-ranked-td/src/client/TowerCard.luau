@@ -10,7 +10,7 @@ local TowerCard = {}
 TowerCard.__index = TowerCard
 
 TowerCard.WIDTH = 480
-TowerCard.HEIGHT = 196
+TowerCard.HEIGHT = 212 -- jusqu'à 6 lignes de stats (dont la vitesse d'attaque)
 
 local GREEN = "#5AE08C"
 local RED = "#F06464"
@@ -28,6 +28,8 @@ local function statRows(def, stats)
 		{ "Dégâts", stats.damage, "", false },
 		{ "Portée", stats.range, "", false },
 		{ "Cadence", stats.cooldown, "s", true },
+		-- Vitesse d'attaque : attaques par seconde (1 / cadence), arrondie à 0,01
+		{ "Vitesse", math.floor(1 / stats.cooldown * 100 + 0.5) / 100, " atq/s", false },
 		{ "DPS", math.floor(stats.damage / stats.cooldown * 10 + 0.5) / 10, "", false },
 	}
 	if def.kind == "Splash" then

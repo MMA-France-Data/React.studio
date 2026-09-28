@@ -17,34 +17,43 @@ Les boutons « Mon fief » et « Arène royale » servent à se déplacer vite.
 
 ## Le mode infini (ta parcelle)
 
-- Des vagues sans fin arrivent sur ta parcelle. **Impossible de perdre** : si ta base tombe, tu redescends
-  d'une vague et tu réessaies. Vague réussie → vague suivante.
-- Les gains grandissent de ×1,25 par vague et les PV un peu plus vite (×1,45 vers la vague 10, ×1,30 à la 50,
+- Des vagues sans fin arrivent sur ta parcelle. **Impossible de perdre**, mais pas de PV de base : si **un seul**
+  ennemi atteint ta base, la vague est ratée, tu redescends d'une vague et tu réessaies. Vague réussie → vague suivante.
+- Les gains grandissent de ×1,25 par vague et les PV un peu plus vite (×1,46 vers la vague 10, ×1,30 à la 50,
   ×1,28 à la 100 ; réglages dans `IdleConfig.luau`) : les pièces passent de quelques unités à des trillions,
   puis des quadrillions, des quintillions… (réglé avec `tools/balance`, voir `tools/balance/RESULTS.md`).
 - 5 types de vagues : **Escarmouche**, **Levée des écuyers** (masse de petits soldats → tours de zone),
-  **Charge de cavalerie** (rapides → ralentissement), **Garde colossale** (lente et blindée → gros dégâts),
-  **Seigneur de guerre** toutes les 10 vagues.
+  **Charge de cavalerie** (rapides → ralentissement), **Garde colossale** (un seul chevalier colossal, lent et
+  blindé → gros dégâts), **Seigneur de guerre** toutes les 10 vagues (un seul boss et son escorte).
+- Bonus de début : +50 % de pièces à la vague 1, qui fond jusqu'à 0 à la vague 40 (`IdleConfig.earlyRewardBonus`) ;
+  50 pièces au départ.
 - Les ennemis tués lâchent des **pièces à ramasser** (les pièces proches s'empilent). Le bonus de pièces
   s'additionne : ennemi à 3 pièces, +100 % → 6, +200 % → 9.
 - 8 défenses (`IdleTowers.luau`) : Archer du rempart, Totem de givre, Catapulte, Mage des tempêtes,
   Baliste lourde, Sorcier des arcanes, Oracle de la foudre et Trébuchet royal. Clique sur un emplacement
-  pour poser une défense ; poser sur une tour existante la remplace (50 % remboursés), vendre rend 50 %.
+  libre pour poser une défense. Clique sur une tour pour voir sa fiche (DPS, dégâts, vitesse en atq/s,
+  portée) : « Remplacer… » puis une confirmation la remplace (50 % remboursés), vendre (2 clics) rend 50 %.
+  Le serveur refuse toute pose sur une tour existante sans cette confirmation (`PlotGame:placeTower`).
 - Clique sur **n'importe quel cadenas** pour débloquer cet emplacement. Tous les cadenas affichent le même prix
   (celui de ton prochain emplacement), qui monte après chaque achat. Les emplacements possédés sont sauvegardés
   dans `data.idle.ownedSpots` (`unlockedSpots` = leur nombre) ; les anciennes sauvegardes sont converties
   automatiquement (`PlayerData.luau`).
 - **Améliorations** : clique sur une tour → « Améliorer » (ou touche E). Niveaux illimités, dégâts ×1,35 par
   niveau, prix ×1,35 par niveau (20 pièces pour le niveau 2, le même prix pour toutes les tours). Les PV des
-  vagues montent un peu plus vite que les gains (×1,28 à ×1,45 contre ×1,25) :
+  vagues montent un peu plus vite que les gains (×1,28 à ×1,46 contre ×1,25) :
   on bloque souvent, on farme un peu, une amélioration débloque les vagues suivantes.
-- Chemin de ~360 studs (6 allers-retours) et ennemis 1,6× plus rapides qu'en ranked.
+- Chemin de ~360 studs (6 allers-retours) et ennemis 1,35× plus rapides qu'en ranked, sauf les cavaliers
+  et les écuyers, freinés (13 studs/s), et les chevaliers lourds, colosses et Seigneurs de guerre, un peu
+  moins lents (`IdleConfig.ENEMY_SPEED_FACTORS`).
+- Le **Totem de givre** ralentit de 60 % tout ce qui passe dans son aura (et encore 2,5 s après) et blesse
+  tous les ennemis proches à chaque seconde (6 dégâts). Les ralentissements ne s'additionnent pas : le plus
+  fort gagne.
 
 ### Renaissance (bouton « Renaissance » dans la colonne de gauche)
 
 - Possible dès que tu as réussi la **vague 15** dans ta run actuelle. Seule la vague repart à 1 : tu gardes
   tes pièces, tes tours, leurs améliorations, tes emplacements, les machines (tours débloquées, doublons,
-  bonus, lancer en attente) et ton record de tous les temps.
+  bonus) et ton record de tous les temps.
 - En échange, un **bonus de pièces permanent** qui dépend de ta meilleure vague de la run :
   `gain = 1 + 6 × ((vague − 15) / 85) ^ 0,8` → +1 % à la vague 15, +4 % à la 50, +7 % à la 100, et ça continue
   de monter ensuite (+12,2 % à la 200). Arrondi à 0,1 % (`IdleConfig.rebirthGain`).
@@ -55,10 +64,15 @@ Les boutons « Mon fief » et « Arène royale » servent à se déplacer vite.
 
 ### L'Autel des héros et la Forge runique
 
-- **Autel des héros** : 1 invocation gratuite à chaque vague réussie, sans cumul (l'invocation garde le meilleur
-  palier). Au départ seul l'Archer du rempart est débloqué. 8 tours en 4 raretés (Commune, Rare, Épique,
-  Légendaire) ; plus la vague réussie est haute, meilleures sont les chances (`IdleConfig.TOWER_SPIN_TIERS`).
-  Un doublon donne +2 % de dégâts permanents à cette tour.
+- **Autel des héros** : les invocations se paient en pièces, par x1, x10, x100 (record 40), x1 000 (record 150)
+  ou x1 000 000 (record 1 000, un objectif lointain) (`IdleConfig.TOWER_SPIN_BULKS`). Prix d'une
+  invocation : 0,25 vague de gains à ton record, de moins en moins au-delà de la vague 10 (0,03 vague au
+  record 100, `IdleConfig.towerSpinCost`). Au départ seul l'Archer du
+  rempart est débloqué. 8 tours en 4 raretés (Commune, Rare, Épique, Légendaire) ; les chances dépendent de ton
+  **record** (`IdleConfig.TOWER_SPIN_TIERS`), exactement celles affichées par l'autel. Un doublon donne +2 % de
+  dégâts permanents à cette tour. Les gros lots ne lancent pas un million de fois : le serveur tire directement
+  combien de tours tombent de chaque rareté (`PlotGame:spinTower`). Un lancer gratuit en attente dans une
+  ancienne sauvegarde est remboursé en pièces (`PlayerData.luau`).
 - **Forge runique** : x2 dégâts, x2 vitesse d'attaque, x3, x5, x10, x20, x50, x100 dégâts (chances affichées
   dans la forge). 1 rune en pièces toutes les 30 minutes, forges en Robux à volonté. Le bonus va dans
   l'inventaire et se pose sur une tour (1 par tour ; en poser un nouveau remplace l'ancien, vendre la tour

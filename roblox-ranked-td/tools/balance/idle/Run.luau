@@ -1,26 +1,29 @@
 --!optimize 2
 -- Une partie du mode infini jouée par un joueur simulé, du début jusqu'à la durée demandée.
--- Règles reprises de PlotGame.luau : vague réussie -> vague suivante + 1 lancer de la machine à tours
--- (palier de la vague réussie, sans cumul), vague ratée -> une vague plus bas, délais entre vagues,
--- prix des emplacements (le n-ième coûte PlotLayout.spotCost(n), achetés dans n'importe quel ordre),
--- des tours, des améliorations, revente à 50 %, bonus de pièces.
+-- Règles reprises de PlotGame.luau : vague réussie -> vague suivante, vague ratée (UN SEUL ennemi au bout
+-- du chemin) -> une vague plus bas, délais entre vagues, prix des emplacements (le n-ième coûte
+-- PlotLayout.spotCost(n), achetés dans n'importe quel ordre), des tours, des améliorations, revente à 50 %,
+-- bonus de pièces, lancers de l'autel des héros payés en pièces (x1, x10, x100... aux chances du record).
 --
 -- Le joueur simulé (réglages dans Run.POLICY) :
 --   * ramasse toutes les pièces tout de suite (joueur actif) ;
---   * lance la machine à tours après chaque vague réussie ;
 --   * pendant chaque entracte, dépense ses pièces sur l'achat qui a le meilleur rapport gain / prix :
 --       - améliorer une tour,
 --       - poser une tour sur un emplacement vide,
 --       - acheter un emplacement + y poser une tour (il choisit l'emplacement le mieux placé pour cette tour),
---       - remplacer une des tours les plus faibles (50 % remboursés).
+--       - remplacer une des tours les plus faibles (50 % remboursés),
+--       - acheter des lancers à l'autel des héros (Run:spinOptions : doublons des tours posées + chance de
+--         débloquer une tour qui vaut mieux que les achats actuels) ; à rapport presque égal, il prend le
+--         plus gros lot qu'il peut payer (x10 plutôt que 10 fois x1).
 --     (scénarios avec forge : le prix du lancer de la forge est mis de côté avant tout, voir forgeReserve)
 --     Le « gain » d'une tour neuve compte aussi ses améliorations suivantes (on la juge au niveau où elle
---     devient rentable). Le gain est mesuré contre les prochaines vagues qui peuvent être ratées (ou contre
---     la vague qui bloque, en visant les ennemis qui ont vraiment atteint la base) grâce aux vagues
---     « immortelles » d'Engine.hits : coups que chaque tour peut porter, x dégâts (plafonnés aux PV de
---     l'ennemi, un gros tir sur un petit écuyer est gâché).
---   * si le meilleur achat est trop cher mais payable en moins de SAVE_SECONDS de farm, il économise ;
---     sinon il achète le meilleur achat abordable ;
+--     devient rentable). Le gain est mesuré contre les prochaines vagues (ou contre la vague qui bloque, en
+--     visant les ennemis qui l'ont vraiment traversée) grâce aux vagues « immortelles » d'Engine.hits :
+--     coups que chaque tour peut porter, x dégâts (plafonnés aux PV de l'ennemi, un gros tir sur un petit
+--     écuyer est gâché). Une seule fuite fait rater la vague : chaque groupe d'ennemis compte d'autant plus
+--     que les tours en viennent mal à bout (voir Run:evaluate).
+--   * si le meilleur achat est trop cher mais payable en moins de SAVE_SECONDS de farm (BIG_SPIN_SAVE_SECONDS
+--     pour un lot x1 000 ou plus de l'autel), il économise ; sinon il achète le meilleur achat abordable ;
 --   * au mur, il essaie avec le vrai moteur une tour qui ralentit à la place d'une autre (Run:wallSolver).
 local Modules = require("./Modules")
 local Engine = require("./Engine")
@@ -60,6 +63,12 @@ Run.POLICY = {
 	LONG_FOCUS = 8, -- un remplacement est jugé sur les 8 prochaines vagues ratables
 	PACKAGE_COST_CAP = 30, -- une tour neuve est jugée jusqu'à 30x ce qu'on peut payer bientôt
 	FORGE_SAVE_SECONDS = 1800, -- forge : met de côté le prix du lancer s'il vaut moins de 30 min de revenu
+	-- Autel des héros : à rapport gain / prix presque égal (au moins 90 % du meilleur lot), il prend le plus
+	-- gros lot qu'il peut payer.
+	SPIN_BULK_TOLERANCE = 0.9,
+	BIG_SPIN_SAVE_SECONDS = 1800, -- ... et il économise jusqu'à 30 min de revenu pour un lot x1 000 ou plus
+	-- s'il a le meilleur rapport
+	BLOCKED_LEAK_WEIGHT = 0.7, -- au mur : part des ennemis qui ont vraiment fui dans le poids des groupes
 	REBIRTH_STUCK = 15 * 60, -- scénario « renaissance » : renaît après 15 min bloqué au record
 	MAX_WAVE = 3000,
 }
@@ -67,7 +76,7 @@ Run.POLICY = {
 Run.SCENARIOS = {
 	base = {
 		id = "base",
-		label = "joueur actif : machine à tours à chaque vague, achats au meilleur rapport, sans forge ni renaissance",
+		label = "joueur actif : achats au meilleur rapport (lancers de l'autel compris), sans forge ni renaissance",
 		forge = false,
 		rebirth = false,
 	},
@@ -202,7 +211,6 @@ function Run.new(scenarioId: string, seed: number)
 		self.unlocked[towerType] = true
 	end
 	self.dupes = {}
-	self.pendingSpinTier = 0
 	self.bonuses = {}
 	self.lastBonusSpinAt = -math.huge
 	self.coinBonus = 0
@@ -222,9 +230,11 @@ function Run.new(scenarioId: string, seed: number)
 	self.walls = {} -- { wave, seconds }
 	self.lastPurchaseAt = 0
 	self.longestNoPurchase, self.longestNoPurchaseAt = 0, 0
-	self.purchases = { upgrade = 0, place = 0, spot = 0, replace = 0, forge = 0 }
+	self.purchases = { upgrade = 0, place = 0, spot = 0, replace = 0, forge = 0, spin = 0 }
 	self.unlockedAt = {}
-	self.spins = 0
+	self.spins = 0 -- lancers de l'autel achetés (x10 = 10 lancers)
+	self.spinBuys = {} -- [nombre du lot] = { n = achats, firstWave = record au 1er achat, firstT }
+	self.spinBuysByBucket = {} -- [tranche de vagues] = nombre d'achats à l'autel (tous lots confondus)
 	self.forgeSpins, self.forgeSpent = 0, 0
 	self.bonusLog = {}
 	self.damage = {} -- [tranche|typeDeVague][typeDeTour] = dégâts utiles
@@ -236,7 +246,8 @@ function Run.new(scenarioId: string, seed: number)
 	self.runWallSince = nil
 	self.pendingCycle = nil
 	self.spotTimes = {} -- [n] = { t, wave, spot } : quand le n-ième emplacement a été acheté, et lequel
-	self.spentBy = { upgrade = 0, place = 0, spot = 0, replace = 0, forge = 0 } -- pièces dépensées par type d'achat
+	self.spentBy = { upgrade = 0, place = 0, spot = 0, replace = 0, forge = 0, spin = 0 } -- pièces dépensées par type d'achat
+	self.spentByBucket = {} -- [tranche de vagues] = { [type d'achat] = pièces } (tranche = record au moment de l'achat)
 	self.journal = nil -- liste de lignes si le journal détaillé est demandé (run.ps1 -Journal)
 	return self
 end
@@ -314,21 +325,27 @@ end
 function Run:buildFocus(long: boolean?)
 	local focus = {}
 	local start = math.max(self.wave, self.frontier + 1)
+	-- Le poids de chaque groupe d'ennemis (lambda) est calculé par Run:evaluate, selon la puissance actuelle.
+	-- leak = ennemis qui ont vraiment fui au dernier échec de cette vague (au mur seulement).
 	local function add(wave: number, weight: number, leak)
 		local comp = Engine.composition(wave)
-		local lambda, total = {}, 0
+		local eps, leakShare = {}, nil
 		for g, group in comp.groups do
-			local potential = group.count * group.damage
-			local value = if leak then leak[g] + 0.1 * potential else potential
-			lambda[g] = value
-			total += value
+			eps[g] = 1e-6 * group.need
 		end
-		local eps = {}
-		for g, group in comp.groups do
-			lambda[g] /= total
-			eps[g] = 1e-6 * group.count * group.hp
+		if leak then
+			local total = 0
+			for g in comp.groups do
+				total += leak[g]
+			end
+			if total > 0 then
+				leakShare = {}
+				for g in comp.groups do
+					leakShare[g] = leak[g] / total
+				end
+			end
 		end
-		table.insert(focus, { wave = wave, comp = comp, weight = weight, lambda = lambda, eps = eps })
+		table.insert(focus, { wave = wave, comp = comp, weight = weight, lambda = {}, eps = eps, leakShare = leakShare })
 	end
 
 	local blockedLeak = if long then nil else self.failLeak[start]
@@ -381,6 +398,21 @@ function Run:evaluate(focus)
 			f.contrib[spot] = contrib
 		end
 		f.U = U
+		-- Poids des groupes : une seule fuite fait rater la vague, donc c'est le groupe dont les tours viennent
+		-- le moins bien à bout qui compte (PV à infliger / puissance utile, au carré). Au mur, on vise aussi
+		-- les ennemis qui ont vraiment fui (BLOCKED_LEAK_WEIGHT).
+		local total = 0
+		for g, group in groups do
+			local lack = group.need / math.max(U[g], f.eps[g])
+			f.lambda[g] = lack * lack
+			total += f.lambda[g]
+		end
+		for g in groups do
+			f.lambda[g] /= total
+			if f.leakShare then
+				f.lambda[g] = P.BLOCKED_LEAK_WEIGHT * f.leakShare[g] + (1 - P.BLOCKED_LEAK_WEIGHT) * f.lambda[g]
+			end
+		end
 	end
 	self.powers = powers
 end
@@ -615,6 +647,18 @@ end
 ----------------------------------------------------------------------
 -- Actions (mêmes règles que PlotGame:placeTower / upgradeTower / buySpot)
 ----------------------------------------------------------------------
+-- Pièces dépensées, par type d'achat et par tranche de vagues (record + 1 au moment de l'achat).
+function Run:addSpent(kind: string, cost: number)
+	self.spentBy[kind] += cost
+	local bucket = Run.bucketOf(self.frontier + 1)
+	local row = self.spentByBucket[bucket]
+	if not row then
+		row = { upgrade = 0, place = 0, spot = 0, replace = 0, forge = 0, spin = 0 }
+		self.spentByBucket[bucket] = row
+	end
+	row[kind] += cost
+end
+
 function Run:purchased(kind: string)
 	self.purchases[kind] += 1
 	local gap = self.t - self.lastPurchaseAt
@@ -633,6 +677,11 @@ function Run:removeTower(spot: number)
 end
 
 function Run:execute(option)
+	if option.kind == "spin" then
+		self:buySpins(option.count)
+		self:purchased("spin")
+		return
+	end
 	if option.kind == "upgrade" then
 		local tower = self.towers[option.spot]
 		local cost = IdleTowers.upgradeCost(tower.type, tower.level)
@@ -640,7 +689,7 @@ function Run:execute(option)
 		self.coins -= cost
 		tower.level += 1
 		tower.spent += cost
-		self.spentBy.upgrade += cost
+		self:addSpent("upgrade", cost)
 		self:changed(false)
 		self:purchased("upgrade")
 		self:log(`achat : amélioration {Run.shortName(tower.type)} (empl. {option.spot}) niv {tower.level} pour {Modules.NumberFormat.short(cost)}`)
@@ -657,7 +706,7 @@ function Run:execute(option)
 		self.owned[spot] = true
 		self.unlockedSpots = nth
 		self.spotTimes[nth] = { t = self.t, wave = self.frontier + 1, spot = spot }
-		self.spentBy.spot += cost
+		self:addSpent("spot", cost)
 		self:purchased("spot")
 		self:log(`achat : emplacement {spot} pour {Modules.NumberFormat.short(cost)}`)
 	end
@@ -672,7 +721,7 @@ function Run:execute(option)
 	end
 	self.coins = math.max(0, self.coins - def.placeCost)
 	self.towers[spot] = { type = option.type, level = 1, spent = def.placeCost, bonus = nil, placedAt = self.t }
-	self.spentBy[if existing then "replace" else "place"] += def.placeCost
+	self:addSpent(if existing then "replace" else "place", def.placeCost)
 	self:changed(true)
 	self:purchased(if existing then "replace" else "place")
 	self:log(`achat : pose {Run.shortName(option.type)} sur l'empl. {spot} pour {Modules.NumberFormat.short(def.placeCost)}`)
@@ -714,6 +763,7 @@ function Run:spend()
 	local longFocus = nil
 	local reserve = self:forgeReserve()
 	local replaced = false -- au plus un remplacement par entracte
+	self.unlockValues = nil -- valeur des tours à débloquer : recalculée une fois par entracte
 	for _ = 1, 400 do
 		local available = self.coins - reserve
 		if available <= 0 then
@@ -736,6 +786,12 @@ function Run:spend()
 		self:evaluate(focus)
 		self:upgradeOptions(focus, options)
 		self:packageOptions(focus, options, false)
+		-- Autel des héros : comparé aux autres achats (le meilleur rapport actuel sert à juger les déblocages)
+		local bestRatio = 0
+		for _, option in options do
+			bestRatio = math.max(bestRatio, option.ratio)
+		end
+		self:spinOptions(focus, options, bestRatio)
 		local best, bestAffordable = nil, nil
 		for _, option in options do
 			if not best or option.ratio > best.ratio then
@@ -751,7 +807,9 @@ function Run:spend()
 		local choice = best
 		if best.cost > available then
 			local wait = if self.income > 0 then (best.cost - available) / self.income else math.huge
-			if wait <= P.SAVE_SECONDS then
+			-- Un gros lot de l'autel (x1 000 et plus) vaut qu'on économise plus longtemps (comme un vrai joueur).
+			local patience = if best.kind == "spin" and best.count >= 1000 then P.BIG_SPIN_SAVE_SECONDS else P.SAVE_SECONDS
+			if wait <= patience then
 				return -- économise pour le meilleur achat
 			end
 			-- Trop long à économiser : il prend le meilleur achat abordable, s'il vaut au moins
@@ -760,6 +818,19 @@ function Run:spend()
 				return
 			end
 			choice = bestAffordable
+		end
+		if choice.kind == "spin" then
+			-- À rapport presque égal, le plus gros lot payable (comme un vrai joueur : x100 plutôt que 100 x1).
+			for _, option in options do
+				if
+					option.kind == "spin"
+					and option.count > choice.count
+					and option.cost <= available
+					and option.ratio >= P.SPIN_BULK_TOLERANCE * choice.ratio
+				then
+					choice = option
+				end
+			end
 		end
 		if choice.kind == "replace" then
 			replaced = true
@@ -772,28 +843,260 @@ end
 -- Machines
 ----------------------------------------------------------------------
 
--- Machine à tours (PlotGame:spinTower)
-function Run:spinTower()
-	local tier = self.pendingSpinTier
-	if tier <= 0 then
-		return
+-- Tirages des lots de l'autel : mêmes lois que PlotGame (binomialRoll / splitRolls), avec le Rng du simulateur.
+-- Jusqu'à EXACT_SPINS essais : un tirage par essai ; au-delà : loi normale (ou de Poisson s'il y a peu de succès).
+local EXACT_SPINS = 1000
+
+function Run:normalRoll(): number
+	local u1 = 1 - self.rng:next()
+	local u2 = self.rng:next()
+	return math.sqrt(-2 * math.log(u1)) * math.cos(2 * math.pi * u2)
+end
+
+function Run:poissonRoll(mean: number): number
+	local limit, count, product = math.exp(-mean), 0, self.rng:next()
+	while product > limit do
+		count += 1
+		product *= self.rng:next()
 	end
-	self.pendingSpinTier = 0
-	self.spins += 1
+	return count
+end
+
+function Run:binomialRoll(trials: number, chance: number): number
+	if trials <= 0 or chance <= 0 then
+		return 0
+	elseif chance >= 1 then
+		return trials
+	elseif trials <= EXACT_SPINS then
+		local hits = 0
+		for _ = 1, trials do
+			if self.rng:next() < chance then
+				hits += 1
+			end
+		end
+		return hits
+	end
+	local mean = trials * chance
+	if mean < 30 then
+		return math.min(trials, self:poissonRoll(mean))
+	elseif trials - mean < 30 then
+		return math.max(0, trials - self:poissonRoll(trials - mean))
+	end
+	local roll = math.floor(mean + math.sqrt(mean * (1 - chance)) * self:normalRoll() + 0.5)
+	return math.clamp(roll, 0, trials)
+end
+
+function Run:splitRolls(total: number, weights: { number }): { number }
+	local counts = table.create(#weights, 0)
+	local last, weightLeft = 0, 0
+	for i, weight in weights do
+		if weight > 0 then
+			last = i
+			weightLeft += weight
+		end
+	end
+	local left = total
+	for i, weight in weights do
+		if weight <= 0 then
+			continue
+		elseif i == last then
+			counts[i] = left
+			break
+		end
+		local got = self:binomialRoll(left, weight / weightLeft)
+		counts[i] = got
+		left -= got
+		weightLeft -= weight
+	end
+	return counts
+end
+
+-- Chance (0 à 1) de chaque tour à UN lancer, aux chances du record (IdleConfig.towerSpinTier(record)).
+function Run:spinChances(): { [string]: number }
+	local odds = IdleConfig.TOWER_SPIN_TIERS[IdleConfig.towerSpinTier(self.highestWave)].odds
+	local total = 0
+	for _, rarity in IdleConfig.RARITY_ORDER do
+		total += odds[rarity] or 0
+	end
+	local chances = {}
+	for _, rarity in IdleConfig.RARITY_ORDER do
+		local choices = IdleTowers.ofRarity(rarity)
+		for _, towerType in choices do
+			chances[towerType] = (odds[rarity] or 0) / total / #choices
+		end
+	end
+	return chances
+end
+
+-- Autel des héros : `count` lancers payés en pièces (PlotGame:spinTower : nombre proposé ET débloqué au
+-- record, prix IdleConfig.towerSpinCost, chances du record, tirage par rareté puis par tour).
+function Run:buySpins(count: number)
+	local cost = IdleConfig.towerSpinCost(self.highestWave, count)
+	assert(IdleConfig.towerSpinBulkAvailable(self.highestWave, count) and self.coins >= cost)
+	self.coins -= cost
+	self.spins += count
+	self:addSpent("spin", cost)
+	local buys = self.spinBuys[count]
+	if not buys then
+		buys = { n = 0, firstWave = self.highestWave, firstT = self.t, spent = 0 }
+		self.spinBuys[count] = buys
+	end
+	buys.n += 1
+	buys.spent += cost
+	local bucket = Run.bucketOf(self.frontier + 1)
+	self.spinBuysByBucket[bucket] = (self.spinBuysByBucket[bucket] or 0) + 1
+	local tier = IdleConfig.towerSpinTier(self.highestWave)
 	local odds = IdleConfig.TOWER_SPIN_TIERS[tier].odds
-	local rarity = self.rng:weighted(IdleConfig.RARITY_ORDER, function(name)
-		return odds[name] or 0
-	end)
-	local choices = IdleTowers.ofRarity(rarity)
-	local towerType = choices[self.rng:int(1, #choices)]
-	if not self.unlocked[towerType] then
-		self.unlocked[towerType] = true
-		self.unlockedAt[towerType] = { t = self.t, wave = self.frontier }
-		self:log(`machine à tours (palier {tier}) : NOUVELLE TOUR {Run.shortName(towerType)} ({IdleConfig.RARITIES[rarity].displayName})`)
-	else
-		self.dupes[towerType] = (self.dupes[towerType] or 0) + 1
-		self:changed(false)
-		self:log(`machine à tours (palier {tier}) : doublon {Run.shortName(towerType)} n°{self.dupes[towerType]}`)
+	local rarityWeights = {}
+	for index, rarity in IdleConfig.RARITY_ORDER do
+		rarityWeights[index] = odds[rarity] or 0
+	end
+	local perRarity = self:splitRolls(count, rarityWeights)
+	local parts = {}
+	for index = #IdleConfig.RARITY_ORDER, 1, -1 do
+		local rarity = IdleConfig.RARITY_ORDER[index]
+		local choices = IdleTowers.ofRarity(rarity)
+		local perTower = self:splitRolls(perRarity[index], table.create(#choices, 1))
+		for i, towerType in choices do
+			local got = perTower[i]
+			if got > 0 then
+				local isNew = not self.unlocked[towerType]
+				if isNew then
+					self.unlocked[towerType] = true
+					self.unlockedAt[towerType] = { t = self.t, wave = self.frontier }
+				end
+				local dupes = if isNew then got - 1 else got
+				if dupes > 0 then
+					self.dupes[towerType] = (self.dupes[towerType] or 0) + dupes
+				end
+				table.insert(parts, `{Run.shortName(towerType)} x{Modules.NumberFormat.short(got)}{if isNew then " (NOUVELLE)" else ""}`)
+			end
+		end
+	end
+	self:changed(false)
+	self.unlockValues = nil -- les tours débloquées ont peut-être changé
+	self:log(`autel x{Modules.NumberFormat.short(count)} (palier {tier}) pour {Modules.NumberFormat.short(cost)} : {table.concat(parts, ", ")}`)
+end
+
+-- Valeur de débloquer chaque tour encore verrouillée : ce que sa meilleure pose rapporte EN PLUS de ce que
+-- les mêmes pièces rapporteraient avec le meilleur achat actuel (bestRatio). 0 si elle ne ferait pas mieux.
+-- Calculé une fois par entracte (c'est long), remis à zéro après un lancer.
+function Run:computeUnlockValues(focus, bestRatio: number)
+	local values = {}
+	local weakest, weakestShare = nil, math.huge
+	for spot in self.towers do
+		local share = 0
+		for _, f in focus do
+			for g in f.comp.groups do
+				if f.U[g] > 0 then
+					share += f.weight * f.lambda[g] * f.contrib[spot][g] / f.U[g]
+				end
+			end
+		end
+		if share < weakestShare then
+			weakest, weakestShare = spot, share
+		end
+	end
+	for _, towerType in IdleTowers.ORDER do
+		if not self.unlocked[towerType] then
+			local candidates = {}
+			for spot = 1, SPOT_COUNT do
+				if self.owned[spot] and not self.towers[spot] then
+					table.insert(candidates, { spot = spot, newSpot = false })
+					break
+				end
+			end
+			for _, spot in SPOTS_BY_COVERAGE[towerType] do
+				if not self.owned[spot] then
+					table.insert(candidates, { spot = spot, newSpot = true })
+					break
+				end
+			end
+			if weakest then
+				table.insert(candidates, { spot = weakest, newSpot = false })
+			end
+			local best = 0
+			for _, candidate in candidates do
+				local option = self:packageOption(focus, candidate.spot, towerType, candidate.newSpot)
+				if option.ratio > 0 then
+					-- Coût du paquet jugé (pose + améliorations jusqu'au niveau retenu) = gain / rapport
+					local packageCost = option.gain / option.ratio
+					best = math.max(best, option.gain - bestRatio * packageCost)
+				end
+			end
+			values[towerType] = best
+		end
+	end
+	return values
+end
+
+-- Options d'achat à l'autel : un lot par nombre proposé et débloqué au record (IdleConfig.TOWER_SPIN_BULKS).
+-- Gain d'un lot de n lancers = doublons attendus sur les tours posées (+2 % de dégâts chacun) + meilleure
+-- tour débloquée attendue (valeur de computeUnlockValues x chance d'en tomber au moins une).
+function Run:spinOptions(focus, options, bestRatio: number)
+	local chances = self:spinChances()
+	local anyLocked = false
+	for _, towerType in IdleTowers.ORDER do
+		if not self.unlocked[towerType] then
+			anyLocked = true
+		end
+	end
+	if anyLocked and not self.unlockValues then
+		self.unlockValues = self:computeUnlockValues(focus, bestRatio)
+	end
+	-- Tours verrouillées, de la plus utile à la moins utile
+	local locked = {}
+	if anyLocked then
+		for towerType, value in self.unlockValues do
+			if value > 0 and chances[towerType] > 0 then
+				table.insert(locked, { type = towerType, value = value })
+			end
+		end
+		table.sort(locked, function(a, b)
+			return a.value > b.value
+		end)
+	end
+	local bonus = IdleConfig.DUPLICATE_DAMAGE_BONUS
+	for _, bulk in IdleConfig.TOWER_SPIN_BULKS do
+		local n = bulk.count
+		if IdleConfig.towerSpinBulkAvailable(self.highestWave, n) then
+			local cost = IdleConfig.towerSpinCost(self.highestWave, n)
+			-- Débloquer : espérance de la meilleure tour obtenue (on ne pose que la meilleure d'abord)
+			local unlockGain, noneYet = 0, 1
+			for _, entry in locked do
+				local got = 1 - (1 - chances[entry.type]) ^ n
+				unlockGain += entry.value * got * noneYet
+				noneYet *= 1 - got
+			end
+			-- Doublons : dégâts des tours posées x (1 + (d + k) x 2 %) / (1 + d x 2 %), k = n x chance
+			local factor = {}
+			for towerType in self.unlocked do
+				local d = self.dupes[towerType] or 0
+				factor[towerType] = (1 + (d + n * chances[towerType]) * bonus) / (1 + d * bonus)
+			end
+			local dupeGain = 0
+			for _, f in focus do
+				for g, group in f.comp.groups do
+					local delta = 0
+					for spot, tower in self.towers do
+						local power = self.powers[spot]
+						local hits = f.hits[spot][g]
+						if hits > 0 then
+							local old = math.min(power.damage, group.hp)
+							local new = math.min(power.damage * factor[tower.type], group.hp)
+							delta += hits * power.speed * (new - old)
+						end
+					end
+					if delta > 0 then
+						dupeGain += f.weight * f.lambda[g] * logGain(f.U[g], f.eps[g], delta)
+					end
+				end
+			end
+			local gain = unlockGain + dupeGain
+			if gain > 0 then
+				table.insert(options, { kind = "spin", count = n, cost = cost, ratio = gain / cost, gain = gain })
+			end
+		end
 	end
 end
 
@@ -813,7 +1116,7 @@ function Run:spinForge()
 	self.lastBonusSpinAt = self.t
 	self.forgeSpins += 1
 	self.forgeSpent += cost
-	self.spentBy.forge += cost
+	self:addSpent("forge", cost)
 	local bonus = self.rng:weighted(IdleConfig.BONUSES, function(entry)
 		return entry.chance
 	end)
@@ -973,10 +1276,6 @@ function Run:endWave(wave: number, comp, result): number
 		self.bestWave = math.max(self.bestWave, wave)
 		self.highestWave = math.max(self.highestWave, wave)
 		self.wave = wave + 1
-		local tier = IdleConfig.towerSpinTier(wave)
-		if tier > self.pendingSpinTier then
-			self.pendingSpinTier = tier
-		end
 		if wave > self.frontier then
 			self.frontier = wave
 			local wall = 0
@@ -1091,7 +1390,6 @@ end
 
 -- Entracte : machines, bonus, renaissance, achats. Renvoie true si le joueur est reparti de la vague 1.
 function Run:intermission(): boolean
-	self:spinTower()
 	self:useForge()
 	self:applyBonuses()
 	local rebirthed = false
@@ -1165,7 +1463,7 @@ function Run:play(maxSeconds: number, onHour: ((any, number) -> ())?)
 					if result.success then "réussie" else "RATÉE",
 					result.seconds,
 					Modules.NumberFormat.short(earned),
-					if result.success then "" else ` (la base a pris {leaked} dégâts)`
+					if result.success then "" else ` ({leaked} ennemi(s) auraient atteint la base)`
 				)
 			)
 		end

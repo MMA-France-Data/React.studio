@@ -8,14 +8,21 @@ local DEFINITIONS = {
 	QueueAction = "RemoteEvent", -- client -> serveur : "Join" | "Leave"
 	HubAction = "RemoteEvent", -- client -> serveur : "GoHome" | "GoRanked"
 	-- Mode infini (parcelles)
-	PlotAction = "RemoteEvent", -- client -> serveur : ("Place", spot, type) | ("Upgrade", spot) | ("Sell", spot) | ("BuySpot", spot) | "Rebirth"
+	-- client -> serveur : ("Place", spot, type, typeRemplacé?) | ("Upgrade", spot) | ("Sell", spot) | ("BuySpot", spot) | "Rebirth"
+	-- (typeRemplacé : seulement pour un remplacement confirmé ; sans lui, poser sur une tour est refusé)
+	PlotAction = "RemoteEvent",
 	PlotSync = "RemoteEvent", -- serveur -> clients : (plotIndex, buffer, count) positions des ennemis
 	PlotShots = "UnreliableRemoteEvent", -- serveur -> clients : (plotIndex, buffer, count) tirs
 	CoinDrop = "RemoteEvent", -- serveur -> propriétaire : ("Set" | "Collect", id, position, montant)
 	-- Machines à sous
 	OpenMachine = "RemoteEvent", -- serveur -> client : ("Tower" | "Bonus") quand on active une machine
-	MachineAction = "RemoteEvent", -- client -> serveur : "SpinTower" | "SpinBonusCoins" | ("ApplyBonus", spot, bonusId)
-	MachineResult = "RemoteEvent", -- serveur -> client : résultat d'un lancer
+	-- client -> serveur : ("SpinTower", nombre de lancers : 1 si absent, voir IdleConfig.TOWER_SPIN_BULKS)
+	--                    | "SpinBonusCoins" | ("ApplyBonus", spot, bonusId)
+	MachineAction = "RemoteEvent",
+	-- serveur -> client : résultat d'un lancer. Autel des héros : { machine = "Tower", count, tower, rarity,
+	-- isNew, dupes, results = { { tower, rarity, count, isNew } } } (voir PlotGame:spinTower).
+	-- Forge runique : { machine = "Bonus", bonus, source }.
+	MachineResult = "RemoteEvent",
 	-- Commun
 	Notify = "RemoteEvent", -- serveur -> client : (message, kind)
 	-- Match

@@ -1,7 +1,8 @@
 -- Simulation du mode infini sur une parcelle (une instance par joueur).
 --
--- Impossible de perdre : si une vague fait tomber la base, on redescend d'une vague et on
--- réessaie. Vague réussie -> vague suivante. On oscille donc autour de sa vague maximale.
+-- Impossible de perdre : si UN SEUL ennemi atteint le bout du chemin, la vague est ratée, on redescend
+-- d'une vague et on réessaie (pas de PV de base). Vague réussie -> vague suivante. On oscille donc
+-- autour de sa vague maximale.
 --
 -- Les ennemis n'existent que sous forme de données côté serveur. Les clients reçoivent leur
 -- position quelques fois par seconde (paquet binaire compact) et les affichent eux-mêmes :
@@ -28,7 +29,9 @@ for index, name in IdleTowers.ORDER do
 	TOWER_INDEX[name] = index
 end
 
--- Taille d'un ennemi dans le paquet : id u32, type u8, distance f32, PV % u8, vitesse % u8
+-- Taille d'un ennemi dans le paquet : id u32, type u8, distance f32, PV % u8, vitesse % u8.
+-- « vitesse % » = facteur de son type (IdleConfig.ENEMY_SPEED_FACTORS) x ralentissement, en % :
+-- le client avance l'ennemi à vitesse de Enemies.luau x ENEMY_SPEED_MULTIPLIER x ce facteur.
 local ENEMY_BYTES = 11
 -- Taille d'un tir : départ 3xf32, arrivée 3xf32, type u8, rayon u8
 local SHOT_BYTES = 26
@@ -58,7 +61,6 @@ function PlotGame.new(plot, player: Player, data)
 
 	self.state = "Intermission"
 	self.nextWaveAt = os.clock() + IdleConfig.FIRST_WAVE_DELAY
-	self.baseHealth = IdleConfig.BASE_HEALTH
 
 	self.towerFolder = Instance.new("Folder")
 	self.towerFolder.Name = "Towers"
@@ -74,7 +76,6 @@ function PlotGame.new(plot, player: Player, data)
 
 	self:refreshSpots()
 	self:setAttr("OwnerUserId", player.UserId)
-	self:setAttr("MaxBaseHealth", IdleConfig.BASE_HEALTH)
 	self:setAttr("NextWaveAt", workspace:GetServerTimeNow() + IdleConfig.FIRST_WAVE_DELAY)
 	self:syncAttributes()
 	return self
@@ -116,7 +117,6 @@ function PlotGame:syncAttributes()
 	self:setAttr("HighestWave", self.idle.highestWave)
 	self:setAttr("UnlockedSpots", self.idle.unlockedSpots)
 	self:setAttr("State", self.state)
-	self:setAttr("BaseHealth", math.max(0, self.baseHealth))
 	self:setAttr("EnemiesLeft", alive + (#self.spawnQueue - self.spawnIndex + 1))
 end
 
@@ -133,7 +133,6 @@ function PlotGame:startWave()
 		table.insert(self.spawnQueue, { enemy = item.enemy, health = item.health, reward = item.reward, at = at })
 		at += item.gap
 	end
-	self.baseHealth = IdleConfig.BASE_HEALTH
 	self.state = "Running"
 end
 
@@ -143,7 +142,8 @@ function PlotGame:clearEnemies()
 	self.spawnIndex = 1
 end
 
-function PlotGame:endWave(success: boolean)
+-- Fin de vague. Ratée = un ennemi (leakedName) a atteint le bout du chemin.
+function PlotGame:endWave(success: boolean, leakedName: string?)
 	local wave = self.idle.wave
 	self:clearEnemies()
 	self.state = "Intermission"
@@ -153,16 +153,10 @@ function PlotGame:endWave(success: boolean)
 		self.idle.highestWave = math.max(self.idle.highestWave, wave)
 		self.idle.wave = wave + 1
 		delay = IdleConfig.WAVE_CLEAR_DELAY
-		-- 1 lancer de machine à tours, sans cumul : on garde le meilleur palier.
-		local tier = IdleConfig.towerSpinTier(wave)
-		if tier > self.idle.pendingSpinTier then
-			self.idle.pendingSpinTier = tier
-			self:publishInventory()
-		end
 	else
 		self.idle.wave = math.max(1, wave - 1)
 		delay = IdleConfig.WAVE_FAIL_DELAY
-		self:notify(`Vague {wave} ratée : retour à la vague {self.idle.wave}`, "Warning")
+		self:notify(`Vague {wave} ratée : un {leakedName or "ennemi"} a atteint ta base ! Retour à la vague {self.idle.wave}`, "Warning")
 	end
 	self.nextWaveAt = os.clock() + delay
 	self:setAttr("NextWaveAt", workspace:GetServerTimeNow() + delay)
@@ -170,7 +164,7 @@ end
 
 -- Renaissance : seule la vague repart à 1 (nouvelle run), contre un bonus de pièces permanent
 -- (IdleConfig.rebirthGain, selon la meilleure vague de la run). Tout le reste est gardé : pièces,
--- tours, améliorations, emplacements, tours débloquées, doublons, bonus, lancer en attente, record.
+-- tours, améliorations, emplacements, tours débloquées, doublons, bonus, record.
 -- Les piles de pièces déjà au sol restent à ramasser.
 function PlotGame:rebirth()
 	local gain = IdleConfig.rebirthGain(self.idle.bestWave)
@@ -186,7 +180,6 @@ function PlotGame:rebirth()
 	-- La vague en cours s'arrête : ennemis et file d'apparition vidés, entracte avant la vague 1.
 	self:clearEnemies()
 	self.state = "Intermission"
-	self.baseHealth = IdleConfig.BASE_HEALTH
 	self.nextWaveAt = os.clock() + IdleConfig.FIRST_WAVE_DELAY
 	self:setAttr("NextWaveAt", workspace:GetServerTimeNow() + IdleConfig.FIRST_WAVE_DELAY)
 	self:syncAttributes()
@@ -206,6 +199,8 @@ function PlotGame:spawnEnemy(item)
 		id = self:newId(),
 		typeIndex = ENEMY_INDEX[item.enemy],
 		def = def,
+		-- Facteur de vitesse de son type, propre au mode infini (cavaliers freinés...).
+		speedScale = IdleConfig.enemySpeedFactor(item.enemy),
 		health = item.health,
 		maxHealth = item.health,
 		reward = item.reward,
@@ -280,6 +275,25 @@ local function horizontalDistance(a: Vector3, b: Vector3): number
 	return math.sqrt(dx * dx + dz * dz)
 end
 
+-- Ralentissements : ils ne s'additionnent jamais, le plus fort gagne. Un ralentissement plus fort
+-- remplace l'actuel, un égal le prolonge, un plus faible est ignoré tant que l'actuel dure (sans ça,
+-- 60 % pendant 1 s puis 25 % pendant 3 s donnaient 60 % pendant 3 s).
+local function applySlow(enemy, slow: number, duration: number, now: number)
+	local active = now < enemy.slowUntil
+	if not active or slow > enemy.slowFactor then
+		enemy.slowFactor = slow
+		enemy.slowUntil = now + duration
+	elseif slow == enemy.slowFactor then
+		enemy.slowUntil = math.max(enemy.slowUntil, now + duration)
+	end
+end
+
+-- Vitesse actuelle en fraction de la vitesse normale du mode infini : type x ralentissement.
+local function speedFactorOf(enemy, now: number): number
+	local slowFactor = if now < enemy.slowUntil then 1 - enemy.slowFactor else 1
+	return enemy.speedScale * slowFactor
+end
+
 function PlotGame:damageEnemy(enemy, amount: number)
 	if enemy.dead then
 		return
@@ -312,9 +326,8 @@ function PlotGame:towerAttack(tower, now: number): boolean
 		for _, enemy in self.enemies do
 			if not enemy.dead and horizontalDistance(tower.position, enemy.position) <= stats.range then
 				hitAny = true
-				local currentSlow = if now < enemy.slowUntil then enemy.slowFactor else 0
-				enemy.slowFactor = math.max(currentSlow, stats.slow)
-				enemy.slowUntil = math.max(enemy.slowUntil, now + stats.slowDuration)
+				-- Totem de givre : ralentit fortement tout ce qui est dans l'aura (voir IdleTowers.luau).
+				applySlow(enemy, stats.slow, stats.slowDuration, now)
 				self:damageEnemy(enemy, stats.damage)
 			end
 		end
@@ -372,9 +385,7 @@ function PlotGame:towerAttack(tower, now: number): boolean
 	else
 		if stats.slow then
 			-- Tour électrique : fort ralentissement sur une seule cible.
-			local currentSlow = if now < target.slowUntil then target.slowFactor else 0
-			target.slowFactor = math.max(currentSlow, stats.slow)
-			target.slowUntil = math.max(target.slowUntil, now + stats.slowDuration)
+			applySlow(target, stats.slow, stats.slowDuration, now)
 		end
 		self:damageEnemy(target, stats.damage)
 		self:addShot(muzzle, impact, tower.type, 0)
@@ -402,22 +413,19 @@ function PlotGame:step(dt: number)
 		self:spawnEnemy(item)
 	end
 
-	-- Déplacements
+	-- Déplacements. Un seul ennemi au bout du chemin = vague ratée, tout de suite.
 	for _, enemy in self.enemies do
 		if enemy.dead then
 			continue
 		end
-		local speed = enemy.def.speed * IdleConfig.ENEMY_SPEED_MULTIPLIER
-		if now < enemy.slowUntil then
-			speed *= 1 - enemy.slowFactor
-		end
+		local speed = enemy.def.speed * IdleConfig.ENEMY_SPEED_MULTIPLIER * speedFactorOf(enemy, now)
 		enemy.distance += speed * dt
 		if enemy.distance >= PlotLayout.PATH_LENGTH then
-			enemy.dead = true
-			self.baseHealth -= enemy.def.damage
-		else
-			enemy.position = self.cframe:PointToWorldSpace((PlotLayout.pointAt(enemy.distance)))
+			self:endWave(false, enemy.def.displayName)
+			self:syncAttributes()
+			return
 		end
+		enemy.position = self.cframe:PointToWorldSpace((PlotLayout.pointAt(enemy.distance)))
 	end
 
 	-- Tours
@@ -435,9 +443,7 @@ function PlotGame:step(dt: number)
 		end
 	end
 
-	if self.baseHealth <= 0 then
-		self:endWave(false)
-	elseif self.spawnIndex > #self.spawnQueue and #self.enemies == 0 then
+	if self.spawnIndex > #self.spawnQueue and #self.enemies == 0 then
 		self:endWave(true)
 	end
 	self:syncAttributes()
@@ -463,7 +469,7 @@ function PlotGame:buildSyncPacket(): (buffer?, number)
 	local packet = buffer.create(count * ENEMY_BYTES)
 	for i, enemy in self.enemies do
 		local offset = (i - 1) * ENEMY_BYTES
-		local speedFactor = if now < enemy.slowUntil then 1 - enemy.slowFactor else 1
+		local speedFactor = speedFactorOf(enemy, now)
 		buffer.writeu32(packet, offset, enemy.id)
 		buffer.writeu8(packet, offset + 4, enemy.typeIndex)
 		buffer.writef32(packet, offset + 5, enemy.distance)
@@ -547,8 +553,11 @@ function PlotGame:ownsSpot(spotIndex: any): boolean
 	return PlotLayout.isSpotIndex(spotIndex) and self.idle.ownedSpots[tostring(spotIndex)] == true
 end
 
--- Poser une tour. Si l'emplacement est occupé, l'ancienne est remplacée et rembourse 50 %.
-function PlotGame:placeTower(spotIndex: any, towerType: any)
+-- Poser une tour. Emplacement occupé : seulement pour un remplacement confirmé, où le client nomme la
+-- tour qu'il remplace (replaceType, envoyé par la confirmation de PlotUI) ; l'ancienne rembourse alors 50 %.
+-- Sans ça (clic parti avant l'arrivée de la tour à cause du lag...), la pose est refusée : une grosse
+-- tour n'est jamais remplacée par accident.
+function PlotGame:placeTower(spotIndex: any, towerType: any, replaceType: any)
 	if not self:ownsSpot(spotIndex) or typeof(towerType) ~= "string" or not IdleTowers.Defs[towerType] then
 		return
 	end
@@ -560,6 +569,10 @@ function PlotGame:placeTower(spotIndex: any, towerType: any)
 	local existing = self.towers[spotIndex]
 	if existing and existing.type == towerType then
 		self:notify("Cette tour est déjà posée ici", "Error")
+		return
+	end
+	if existing and replaceType ~= existing.type then
+		self:notify("Il y a déjà une tour ici : clique dessus puis « Remplacer… »", "Warning")
 		return
 	end
 	local refund = if existing then math.floor(existing.spent * IdleConfig.SELL_REFUND) else 0
@@ -683,6 +696,82 @@ local function rollWeighted(entries, weightOf)
 	return entries[#entries]
 end
 
+-- Lancers en grand nombre (x1 000, x1 000 000) : on ne lance pas un million de fois. On tire directement
+-- COMBIEN de lancers tombent sur chaque rareté, puis sur chaque tour, avec la même loi que des lancers un
+-- par un (loi binomiale). Jusqu'à EXACT_SPINS essais : un tirage par essai (exact). Au-delà : loi normale
+-- (ou loi de Poisson quand il n'y a que quelques succès attendus). Jamais négatif, et le total est
+-- toujours exact : la dernière case reçoit ce qui reste.
+local EXACT_SPINS = 1000
+
+-- Nombre au hasard selon une loi normale (moyenne 0, écart-type 1), méthode de Box-Muller.
+local function normalRoll(): number
+	local u1 = 1 - random:NextNumber() -- entre 0 (exclu) et 1 : pas de log(0)
+	local u2 = random:NextNumber()
+	return math.sqrt(-2 * math.log(u1)) * math.cos(2 * math.pi * u2)
+end
+
+-- Loi de Poisson (méthode de Knuth) : pour une moyenne petite (< 30).
+local function poissonRoll(mean: number): number
+	local limit, count, product = math.exp(-mean), 0, random:NextNumber()
+	while product > limit do
+		count += 1
+		product *= random:NextNumber()
+	end
+	return count
+end
+
+-- Nombre de succès sur `trials` essais qui réussissent chacun avec la chance `chance` (0 à 1).
+local function binomialRoll(trials: number, chance: number): number
+	if trials <= 0 or chance <= 0 then
+		return 0
+	elseif chance >= 1 then
+		return trials
+	elseif trials <= EXACT_SPINS then
+		local hits = 0
+		for _ = 1, trials do
+			if random:NextNumber() < chance then
+				hits += 1
+			end
+		end
+		return hits
+	end
+	local mean = trials * chance
+	if mean < 30 then
+		return math.min(trials, poissonRoll(mean))
+	elseif trials - mean < 30 then
+		return math.max(0, trials - poissonRoll(trials - mean))
+	end
+	local roll = math.floor(mean + math.sqrt(mean * (1 - chance)) * normalRoll() + 0.5)
+	return math.clamp(roll, 0, trials)
+end
+
+-- Répartit `total` lancers entre des cases selon leurs poids : { [i] = nombre }, somme = total exactement.
+local function splitRolls(total: number, weights: { number }): { number }
+	local counts = table.create(#weights, 0)
+	local last = 0 -- dernière case qui peut recevoir quelque chose
+	local weightLeft = 0
+	for i, weight in weights do
+		if weight > 0 then
+			last = i
+			weightLeft += weight
+		end
+	end
+	local left = total
+	for i, weight in weights do
+		if weight <= 0 then
+			continue
+		elseif i == last then
+			counts[i] = left
+			break
+		end
+		local got = binomialRoll(left, weight / weightLeft)
+		counts[i] = got
+		left -= got
+		weightLeft -= weight
+	end
+	return counts
+end
+
 -- Inventaire visible par le client (attributs du joueur).
 function PlotGame:publishInventory()
 	local player = self.player
@@ -699,7 +788,8 @@ function PlotGame:publishInventory()
 	player:SetAttribute("UnlockedTowers", table.concat(unlocked, ","))
 	player:SetAttribute("TowerDupes", table.concat(dupes, ","))
 	player:SetAttribute("Bonuses", table.concat(self.idle.bonuses, ","))
-	player:SetAttribute("TowerSpinTier", self.idle.pendingSpinTier)
+	-- Plus d'attribut TowerSpinTier : le client calcule le palier depuis le record (attribut HighestWave
+	-- de la parcelle, IdleConfig.towerSpinTier), exactement comme le serveur.
 	player:SetAttribute("LastBonusSpinAt", self.idle.lastBonusSpinAt)
 end
 
@@ -709,36 +799,85 @@ function PlotGame:sendResult(result)
 	end
 end
 
--- Machine à tours : utilise le lancer gratuit gagné en passant une vague.
-function PlotGame:spinTower()
-	local tier = self.idle.pendingSpinTier
-	if tier <= 0 then
-		self:notify("Passe une vague pour gagner un lancer !", "Warning")
-		return
+-- Machine à tours : `count` lancers payés en pièces (1, 10, 100... voir IdleConfig.TOWER_SPIN_BULKS ;
+-- rien = 1). Le serveur vérifie tout : nombre proposé ET débloqué à ton record, pièces suffisantes.
+-- Les chances sont celles du palier de ton RECORD (idle.highestWave), celles affichées par l'autel.
+-- La 1re fois qu'une tour tombe, elle est débloquée ; ensuite chaque exemplaire est un doublon.
+-- Envoie (et renvoie, pour les tests) le résultat :
+--   { machine = "Tower", count, tower, rarity, isNew, dupes, results = { { tower, rarity, count, isNew } } }
+-- tower/rarity/isNew/dupes = la tour la plus marquante (la plus rare ; à rareté égale, une nouvelle) ;
+-- results = une ligne par tour obtenue, de la plus rare à la plus commune. nil si l'achat est refusé.
+function PlotGame:spinTower(count: any)
+	if count == nil then
+		count = 1
 	end
-	self.idle.pendingSpinTier = 0
-
-	local odds = IdleConfig.TOWER_SPIN_TIERS[tier].odds
-	local rarity = rollWeighted(IdleConfig.RARITY_ORDER, function(name)
-		return odds[name] or 0
-	end)
-	local choices = IdleTowers.ofRarity(rarity)
-	local towerType = choices[random:NextInteger(1, #choices)]
-
-	local isNew = not self.idle.unlockedTowers[towerType]
-	if isNew then
-		self.idle.unlockedTowers[towerType] = true
-	else
-		self.idle.towerDupes[towerType] = (self.idle.towerDupes[towerType] or 0) + 1
+	local record = self.idle.highestWave
+	if not IdleConfig.towerSpinBulkAvailable(record, count) then
+		for _, bulk in IdleConfig.TOWER_SPIN_BULKS do
+			if bulk.count == count then
+				self:notify(`Atteins la vague {bulk.minWave} pour lancer x{NumberFormat.short(count)} d'un coup`, "Error")
+				return nil
+			end
+		end
+		self:notify("Nombre de lancers invalide", "Error")
+		return nil
 	end
+	local cost = IdleConfig.towerSpinCost(record, count)
+	if self.data.coins < cost then
+		self:notify(`Il te faut {NumberFormat.short(cost)} pièces`, "Error")
+		return nil
+	end
+	PlayerData.addCoins(self.player, -cost)
+
+	-- Combien de lancers par rareté, puis par tour (voir splitRolls).
+	local odds = IdleConfig.TOWER_SPIN_TIERS[IdleConfig.towerSpinTier(record)].odds
+	local rarityWeights = {}
+	for index, rarity in IdleConfig.RARITY_ORDER do
+		rarityWeights[index] = odds[rarity] or 0
+	end
+	local perRarity = splitRolls(count, rarityWeights)
+
+	local results = {}
+	for index = #IdleConfig.RARITY_ORDER, 1, -1 do -- de la plus rare à la plus commune
+		local rarity = IdleConfig.RARITY_ORDER[index]
+		local choices = IdleTowers.ofRarity(rarity)
+		local perTower = splitRolls(perRarity[index], table.create(#choices, 1)) -- chaque tour a la même chance
+		for i, towerType in choices do
+			local got = perTower[i]
+			if got > 0 then
+				local isNew = not self.idle.unlockedTowers[towerType]
+				local dupes = if isNew then got - 1 else got
+				if isNew then
+					self.idle.unlockedTowers[towerType] = true
+				end
+				if dupes > 0 then
+					self.idle.towerDupes[towerType] = (self.idle.towerDupes[towerType] or 0) + dupes
+				end
+				table.insert(results, { tower = towerType, rarity = rarity, count = got, isNew = isNew })
+			end
+		end
+	end
+
+	-- La plus marquante : la plus rare (la 1re de la liste) ; à rareté égale, une tour débloquée.
+	local notable = results[1]
+	for _, entry in results do
+		if entry.rarity == notable.rarity and entry.isNew and not notable.isNew then
+			notable = entry
+		end
+	end
+
 	self:publishInventory()
-	self:sendResult({
+	local result = {
 		machine = "Tower",
-		tower = towerType,
-		rarity = rarity,
-		isNew = isNew,
-		dupes = self.idle.towerDupes[towerType] or 0,
-	})
+		count = count,
+		tower = notable.tower,
+		rarity = notable.rarity,
+		isNew = notable.isNew,
+		dupes = self.idle.towerDupes[notable.tower] or 0,
+		results = results,
+	}
+	self:sendResult(result)
+	return result
 end
 
 -- Tire un bonus et le met dans l'inventaire (utilisé par le lancer en pièces et par l'achat Robux).

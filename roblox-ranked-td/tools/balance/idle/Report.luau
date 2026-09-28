@@ -162,14 +162,22 @@ function Report.header(options)
 			IdleConfig.UPGRADE_COST_GROWTH
 		)
 	)
+	-- Facteurs de vitesse différents de 1 (tous les types d'ennemis, lus dans IdleConfig)
+	local factors = {}
+	for _, name in Modules.Enemies.ORDER do
+		if IdleConfig.enemySpeedFactor(name) ~= 1 then
+			table.insert(factors, `{name} x{IdleConfig.enemySpeedFactor(name)}`)
+		end
+	end
 	out(
-		`  base {IdleConfig.BASE_HEALTH} PV, chemin {math.floor(PlotLayout.PATH_LENGTH)} studs, ennemis x{IdleConfig.ENEMY_SPEED_MULTIPLIER}, `
+		`  une seule fuite = vague ratée, {coins(IdleConfig.STARTING_COINS)} pièces au départ, chemin {math.floor(PlotLayout.PATH_LENGTH)} studs, `
+			.. `ennemis x{IdleConfig.ENEMY_SPEED_MULTIPLIER} ({table.concat(factors, ", ")}), `
 			.. `emplacements {PlotLayout.STARTING_SPOTS} gratuits puis {coins(PlotLayout.spotCost(PlotLayout.STARTING_SPOTS + 1))} -> {coins(PlotLayout.spotCost(#PlotLayout.SPOTS))} `
 			.. `(achetés {if Run.POLICY.SPOTS_ANY_ORDER then "dans n'importe quel ordre" else "dans l'ordre"}), `
 			.. `doublon +{IdleConfig.DUPLICATE_DAMAGE_BONUS * 100} %.`
 	)
-	out("Joueur simulé : actif, ramasse toutes les pièces tout de suite, lance la machine à tours à chaque vague réussie,")
-	out("achète entre les vagues au meilleur rapport gain / prix (voir tools/balance/README.md).")
+	out("Joueur simulé : actif, ramasse toutes les pièces tout de suite, achète entre les vagues au meilleur rapport")
+	out("gain / prix, lancers de l'autel des héros compris (voir tools/balance/README.md).")
 	out("Temps = temps de jeu cumulé depuis le tout début (joueur connecté en continu). Moyennes sur les graines.")
 	out()
 end
