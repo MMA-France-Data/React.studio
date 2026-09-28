@@ -66,13 +66,13 @@ function PlotGame.new(plot, player: Player, data)
 
 	for key, saved in self.idle.towers do
 		local spotIndex = tonumber(key)
-		if spotIndex and IdleTowers.Defs[saved.type] and spotIndex <= self.idle.unlockedSpots then
+		if IdleTowers.Defs[saved.type] and self:ownsSpot(spotIndex) then
 			self:createTower(spotIndex, saved.type, saved.level or 1, saved.spent or 0, saved.bonus)
 		end
 	end
 	self:publishInventory()
 
-	HubMap.setUnlockedSpots(plot, self.idle.unlockedSpots)
+	self:refreshSpots()
 	self:setAttr("OwnerUserId", player.UserId)
 	self:setAttr("MaxBaseHealth", IdleConfig.BASE_HEALTH)
 	self:setAttr("NextWaveAt", workspace:GetServerTimeNow() + IdleConfig.FIRST_WAVE_DELAY)
@@ -541,16 +541,15 @@ function PlotGame:removeTower(spotIndex: number)
 	end
 end
 
-local function validSpot(self, spotIndex: any): boolean
-	return typeof(spotIndex) == "number"
-		and spotIndex == math.floor(spotIndex)
-		and spotIndex >= 1
-		and spotIndex <= self.idle.unlockedSpots
+-- Vrai si le joueur possède cet emplacement (numéro valide ET acheté ou de départ).
+-- Toutes les actions sur un emplacement passent par là : le client ne peut rien faire ailleurs.
+function PlotGame:ownsSpot(spotIndex: any): boolean
+	return PlotLayout.isSpotIndex(spotIndex) and self.idle.ownedSpots[tostring(spotIndex)] == true
 end
 
 -- Poser une tour. Si l'emplacement est occupé, l'ancienne est remplacée et rembourse 50 %.
 function PlotGame:placeTower(spotIndex: any, towerType: any)
-	if not validSpot(self, spotIndex) or typeof(towerType) ~= "string" or not IdleTowers.Defs[towerType] then
+	if not self:ownsSpot(spotIndex) or typeof(towerType) ~= "string" or not IdleTowers.Defs[towerType] then
 		return
 	end
 	local def = IdleTowers.Defs[towerType]
@@ -582,7 +581,7 @@ end
 
 -- Améliorer une tour : +1 niveau, dégâts multipliés (voir IdleConfig.UPGRADE_DAMAGE).
 function PlotGame:upgradeTower(spotIndex: any)
-	local tower = validSpot(self, spotIndex) and self.towers[spotIndex]
+	local tower = self:ownsSpot(spotIndex) and self.towers[spotIndex]
 	if not tower then
 		return
 	end
@@ -600,7 +599,7 @@ function PlotGame:upgradeTower(spotIndex: any)
 end
 
 function PlotGame:sellTower(spotIndex: any)
-	if not validSpot(self, spotIndex) or not self.towers[spotIndex] then
+	if not self:ownsSpot(spotIndex) or not self.towers[spotIndex] then
 		return
 	end
 	local refund = math.floor(self.towers[spotIndex].spent * IdleConfig.SELL_REFUND)
@@ -609,21 +608,56 @@ function PlotGame:sellTower(spotIndex: any)
 	self:notify(`Tour vendue : +{NumberFormat.short(refund)} pièces`, "Success")
 end
 
--- Débloque l'emplacement suivant (toujours dans l'ordre).
-function PlotGame:buySpot()
-	local spotIndex = self.idle.unlockedSpots + 1
-	if spotIndex > #PlotLayout.SPOTS then
-		self:notify("Tous les emplacements sont débloqués", "Info")
+-- Nombre d'emplacements possédés, compté dans la liste (c'est elle qui fait foi).
+function PlotGame:countOwnedSpots(): number
+	local count = 0
+	for _ in self.idle.ownedSpots do
+		count += 1
+	end
+	return count
+end
+
+-- Prix du prochain emplacement, le même pour tous les cadenas (nil si tout est débloqué).
+function PlotGame:nextSpotCost(): number?
+	local count = self:countOwnedSpots()
+	if count >= #PlotLayout.SPOTS then
+		return nil
+	end
+	return PlotLayout.spotCost(count + 1)
+end
+
+-- Met à jour les cadenas de la map et l'attribut OwnedSpots (ex. "1,2,3,4,9", lu par PlotUI).
+function PlotGame:refreshSpots()
+	local list = {}
+	for spotIndex = 1, #PlotLayout.SPOTS do
+		if self.idle.ownedSpots[tostring(spotIndex)] then
+			table.insert(list, spotIndex)
+		end
+	end
+	HubMap.setOwnedSpots(self.plot, self.idle.ownedSpots, self:nextSpotCost())
+	self:setAttr("OwnedSpots", table.concat(list, ","))
+end
+
+-- Débloque l'emplacement choisi par le joueur, dans n'importe quel ordre.
+-- Le prix ne dépend que du nombre d'emplacements déjà possédés : le n-ième coûte spotCost(n).
+function PlotGame:buySpot(spotIndex: any)
+	if not PlotLayout.isSpotIndex(spotIndex) then
 		return
 	end
-	local cost = PlotLayout.spotCost(spotIndex)
+	if self:ownsSpot(spotIndex) then
+		self:notify("Cet emplacement est déjà débloqué", "Info")
+		return
+	end
+	local count = self:countOwnedSpots()
+	local cost = PlotLayout.spotCost(count + 1)
 	if self.data.coins < cost then
 		self:notify(`Il te faut {NumberFormat.short(cost)} pièces`, "Error")
 		return
 	end
 	PlayerData.addCoins(self.player, -cost)
-	self.idle.unlockedSpots = spotIndex
-	HubMap.setUnlockedSpots(self.plot, spotIndex)
+	self.idle.ownedSpots[tostring(spotIndex)] = true
+	self.idle.unlockedSpots = count + 1
+	self:refreshSpots()
 	self:syncAttributes()
 	self:notify(`Emplacement {spotIndex} débloqué !`, "Success")
 end
@@ -743,7 +777,7 @@ end
 
 -- Pose un bonus de l'inventaire sur une tour (remplace le bonus déjà posé, qui est perdu).
 function PlotGame:applyBonus(spotIndex: any, bonusId: any)
-	local tower = validSpot(self, spotIndex) and self.towers[spotIndex]
+	local tower = self:ownsSpot(spotIndex) and self.towers[spotIndex]
 	if not tower or typeof(bonusId) ~= "string" or not IdleConfig.BONUS_BY_ID[bonusId] then
 		return
 	end
@@ -765,7 +799,7 @@ function PlotGame:destroy()
 	self:clearEnemies()
 	table.clear(self.drops)
 	self.dropCount = 0
-	HubMap.setUnlockedSpots(self.plot, PlotLayout.STARTING_SPOTS)
+	HubMap.resetSpots(self.plot)
 	-- Paquet vide : les clients effacent les ennemis de cette parcelle.
 	Remotes.get("PlotSync"):FireAllClients(self.index, buffer.create(0), 0)
 	for name in self.attributeCache do

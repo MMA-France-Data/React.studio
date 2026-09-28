@@ -9,8 +9,9 @@ Les assauts opposent fantassins, écuyers, cavaliers rapides, chevaliers lourds 
 ## La map principale
 
 Chaque serveur accueille 6 joueurs (à régler dans *Game Settings > Places > Server Size*).
-Chacun reçoit sa parcelle : un chemin, une base et 22 emplacements de tours (4 débloqués au départ, les autres de 500 pièces
-jusqu'à ~1,1 Qa pour le dernier, voir `PlotLayout.spotCost`).
+Chacun reçoit sa parcelle : un chemin, une base et 22 emplacements de tours (4 débloqués au départ, les 18 autres
+s'achètent **dans n'importe quel ordre**). Le prix ne dépend que du nombre d'emplacements déjà possédés : 500 pièces
+pour le 5e, jusqu'à ~1,1 Qa pour le 22e (voir `PlotLayout.spotCost`).
 Au centre, le **sceau de l'Arène royale** lance la recherche d'une partie ranked.
 Les boutons « Mon fief » et « Arène royale » servent à se déplacer vite.
 
@@ -28,7 +29,10 @@ Les boutons « Mon fief » et « Arène royale » servent à se déplacer vite.
 - 8 défenses (`IdleTowers.luau`) : Archer du rempart, Totem de givre, Catapulte, Mage des tempêtes,
   Baliste lourde, Sorcier des arcanes, Oracle de la foudre et Trébuchet royal. Clique sur un emplacement
   pour poser une défense ; poser sur une tour existante la remplace (50 % remboursés), vendre rend 50 %.
-- Clique sur le cadenas suivant pour débloquer un emplacement.
+- Clique sur **n'importe quel cadenas** pour débloquer cet emplacement. Tous les cadenas affichent le même prix
+  (celui de ton prochain emplacement), qui monte après chaque achat. Les emplacements possédés sont sauvegardés
+  dans `data.idle.ownedSpots` (`unlockedSpots` = leur nombre) ; les anciennes sauvegardes sont converties
+  automatiquement (`PlayerData.luau`).
 - **Améliorations** : clique sur une tour → « Améliorer » (ou touche E). Niveaux illimités, dégâts ×1,35 par
   niveau, prix ×1,5 par niveau. Les PV des vagues montent un peu plus vite que les gains (×1,22 contre ×1,18) :
   on bloque souvent, on farme un peu, une amélioration débloque les vagues suivantes.

@@ -1,6 +1,7 @@
 -- Interface de ta parcelle : pièces, vague en cours, et panneau des emplacements / tours.
 -- Clique sur un emplacement libre pour poser une tour, sur une tour pour la remplacer ou la
--- vendre (50 % remboursés), sur un cadenas pour débloquer l'emplacement suivant.
+-- vendre (50 % remboursés), sur n'importe quel cadenas pour débloquer CET emplacement (le prix
+-- ne dépend que du nombre d'emplacements déjà possédés, il monte après chaque achat).
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
@@ -65,6 +66,27 @@ function PlotUI.start()
 	end
 	local function coins(): number
 		return player:GetAttribute("Coins") or 0
+	end
+	-- Emplacements possédés : attribut "OwnedSpots" de la parcelle (ex. "1,2,3,4,9"), publié par le
+	-- serveur (PlotGame:refreshSpots). Renvoie { [spotIndex] = true } et leur nombre.
+	local function ownedSpots(): ({ [number]: boolean }, number)
+		local plot = myPlotFolder()
+		local raw = plot and plot:GetAttribute("OwnedSpots")
+		local owned, count = {}, 0
+		if typeof(raw) ~= "string" or raw == "" then
+			for spotIndex = 1, PlotLayout.STARTING_SPOTS do
+				owned[spotIndex] = true
+			end
+			return owned, PlotLayout.STARTING_SPOTS
+		end
+		for _, text in string.split(raw, ",") do
+			local spotIndex = tonumber(text)
+			if spotIndex and not owned[spotIndex] then
+				owned[spotIndex] = true
+				count += 1
+			end
+		end
+		return owned, count
 	end
 
 	------------------------------------------------------------------
@@ -386,10 +408,10 @@ function PlotUI.start()
 		if not selectedSpot then
 			return
 		end
-		local plot = myPlotFolder()
-		local unlocked = plot and plot:GetAttribute("UnlockedSpots") or PlotLayout.STARTING_SPOTS
-		if selectedSpot > unlocked then
-			plotAction:FireServer("BuySpot")
+		local owned = ownedSpots()
+		if not owned[selectedSpot] then
+			-- Achète CET emplacement (le serveur vérifie le numéro et les pièces).
+			plotAction:FireServer("BuySpot", selectedSpot)
 		elseif towerOn(selectedSpot) then
 			plotAction:FireServer("Sell", selectedSpot)
 		end
@@ -407,8 +429,7 @@ function PlotUI.start()
 		if not spotIndex then
 			return
 		end
-		local plot = myPlotFolder()
-		local unlocked = plot and plot:GetAttribute("UnlockedSpots") or PlotLayout.STARTING_SPOTS
+		local owned, ownedCount = ownedSpots()
 		local tower = towerOn(spotIndex)
 		highlight.Adornee = tower or spotPad(spotIndex)
 		highlight.Parent = highlight.Adornee
@@ -417,22 +438,16 @@ function PlotUI.start()
 		bonusRow.Visible = false
 		actionButton.Size = UDim2.new(1, 0, 0, 44)
 
-		if spotIndex > unlocked then
-			-- Emplacement verrouillé
+		if not owned[spotIndex] then
+			-- Emplacement verrouillé : n'importe lequel s'achète, au même prix (celui du prochain).
 			cardRow.Visible = false
-			local nextSpot = unlocked + 1
-			local cost = PlotLayout.spotCost(nextSpot)
+			local cost = PlotLayout.spotCost(ownedCount + 1)
 			panelTitle.Text = `🔒 Emplacement {spotIndex}`
-			if spotIndex == nextSpot then
-				panelSubtitle.Text = "Débloque-le pour y poser une tour."
-				actionButton.Visible = true
-				actionButton.Text = `Débloquer • {NumberFormat.short(cost)} pièces`
-				actionButton.BackgroundColor3 = UI.Colors.Success
-				actionButton.BackgroundTransparency = if coins() >= cost then 0 else 0.6
-			else
-				panelSubtitle.Text = `Débloque d'abord l'emplacement {nextSpot} ({NumberFormat.short(cost)} pièces).`
-				actionButton.Visible = false
-			end
+			panelSubtitle.Text = "Débloque-le pour y poser une tour. Chaque achat augmente le prix des suivants."
+			actionButton.Visible = true
+			actionButton.Text = `Débloquer • {NumberFormat.short(cost)} pièces`
+			actionButton.BackgroundColor3 = UI.Colors.Success
+			actionButton.BackgroundTransparency = if coins() >= cost then 0 else 0.6
 			return
 		end
 

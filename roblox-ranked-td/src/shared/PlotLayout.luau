@@ -56,8 +56,9 @@ end
 PlotLayout.BASE_POSITION = Vector3.new(0, 0, -59)
 PlotLayout.PLAYER_SPAWN = Vector3.new(-20, 3, -60)
 
--- Emplacements de tours, dans l'ordre de déblocage.
--- 22 emplacements : les STARTING_SPOTS premiers sont gratuits, les autres s'achètent avec des pièces.
+-- Emplacements de tours.
+-- 22 emplacements : les STARTING_SPOTS premiers sont gratuits (possédés dès le départ), les autres
+-- s'achètent avec des pièces, dans n'importe quel ordre (le joueur choisit lequel).
 PlotLayout.STARTING_SPOTS = 4
 PlotLayout.SPOTS = {
 	Vector3.new(-4, 0, -13),
@@ -84,14 +85,32 @@ PlotLayout.SPOTS = {
 	Vector3.new(14, 0, 41),
 }
 
+-- Vrai si `value` est un numéro d'emplacement qui existe (nombre entier de 1 à 22).
+-- Le serveur s'en sert pour vérifier ce qu'envoie le client.
+function PlotLayout.isSpotIndex(value: any): boolean
+	return typeof(value) == "number" and value == math.floor(value) and value >= 1 and value <= #PlotLayout.SPOTS
+end
+
+-- Emplacements possédés au départ, au format des sauvegardes : { ["1"] = true, ["2"] = true, ... }
+-- (clés en texte, comme data.idle.towers).
+function PlotLayout.startingSpots(): { [string]: boolean }
+	local owned = {}
+	for spotIndex = 1, PlotLayout.STARTING_SPOTS do
+		owned[tostring(spotIndex)] = true
+	end
+	return owned
+end
+
 -- Prix des emplacements à débloquer : de plus en plus cher, et la hausse elle-même accélère.
+-- Le prix ne dépend PAS de l'emplacement choisi, seulement du nombre d'emplacements déjà possédés :
+-- spotCost(n) = prix pour posséder son n-ième emplacement (n = possédés + 1).
 -- 5e emplacement : 500 pièces … 22e : ~1,1 Qa (un quadrillion).
 PlotLayout.SPOT_BASE_COST = 500
 PlotLayout.SPOT_COST_GROWTH = 3.8
 PlotLayout.SPOT_COST_ACCELERATION = 1.02
 
-function PlotLayout.spotCost(spotIndex: number): number
-	local k = spotIndex - PlotLayout.STARTING_SPOTS - 1
+function PlotLayout.spotCost(nth: number): number
+	local k = nth - PlotLayout.STARTING_SPOTS - 1
 	if k < 0 then
 		return 0
 	end

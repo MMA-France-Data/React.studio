@@ -216,35 +216,48 @@ local function buildPlot(index: number, parent: Instance)
 	}
 end
 
--- Met à jour l'apparence des emplacements selon le nombre débloqué.
-function HubMap.setUnlockedSpots(plot, unlocked: number)
+-- Met à jour l'apparence des emplacements : possédés (owned[tostring(spotIndex)] = true) ou verrouillés.
+-- Tous les cadenas affichent le même prix, nextCost : le prix ne dépend que du nombre d'emplacements
+-- déjà possédés, pas de celui qu'on choisit (à rappeler après chaque achat, le prix monte partout).
+function HubMap.setOwnedSpots(plot, owned: { [string]: boolean }, nextCost: number?)
+	local priceText = "🔒 " .. (if nextCost then NumberFormat.short(nextCost) else "")
 	for _, pad in plot.spots:GetChildren() do
 		local spotIndex = pad:GetAttribute("SpotIndex")
-		local isUnlocked = spotIndex <= unlocked
+		local isUnlocked = owned[tostring(spotIndex)] == true
 		pad.Color = if isUnlocked then Color3.fromRGB(132, 124, 106) else Color3.fromRGB(49, 47, 43)
 		pad.Transparency = if isUnlocked then 0 else 0.35
 		pad:SetAttribute("Unlocked", isUnlocked)
 		local lock = pad:FindFirstChild("Lock")
-		if isUnlocked and lock then
-			lock:Destroy()
-		elseif not isUnlocked and not lock then
-			local gui = Instance.new("BillboardGui")
-			gui.Name = "Lock"
-			gui.Size = UDim2.fromOffset(96, 26)
-			gui.StudsOffsetWorldSpace = Vector3.new(0, 1.5, 0)
-			ProximityLabel.register(gui, Config.LabelDistance.Close)
-			gui.Parent = pad
+		if isUnlocked then
+			if lock then
+				lock:Destroy()
+			end
+			continue
+		end
+		if not lock then
+			lock = Instance.new("BillboardGui")
+			lock.Name = "Lock"
+			lock.Size = UDim2.fromOffset(96, 26)
+			lock.StudsOffsetWorldSpace = Vector3.new(0, 1.5, 0)
+			ProximityLabel.register(lock, Config.LabelDistance.Close)
+			lock.Parent = pad
 			local icon = Instance.new("TextLabel")
+			icon.Name = "Price"
 			icon.Size = UDim2.fromScale(1, 1)
 			icon.BackgroundTransparency = 1
 			icon.Font = Enum.Font.GothamBlack
 			icon.TextScaled = true
 			icon.TextColor3 = Color3.fromRGB(255, 205, 80)
 			icon.TextStrokeTransparency = 0.3
-			icon.Text = "🔒 " .. NumberFormat.short(PlotLayout.spotCost(spotIndex))
-			icon.Parent = gui
+			icon.Parent = lock
 		end
+		lock.Price.Text = priceText
 	end
+end
+
+-- Emplacements d'une parcelle sans propriétaire : seulement ceux de départ, prix du 5e sur les cadenas.
+function HubMap.resetSpots(plot)
+	HubMap.setOwnedSpots(plot, PlotLayout.startingSpots(), PlotLayout.spotCost(PlotLayout.STARTING_SPOTS + 1))
 end
 
 function HubMap.build()
@@ -341,7 +354,7 @@ function HubMap.build()
 	local plots = {}
 	for index = 1, PlotLayout.COUNT do
 		plots[index] = buildPlot(index, plotsFolder)
-		HubMap.setUnlockedSpots(plots[index], PlotLayout.STARTING_SPOTS)
+		HubMap.resetSpots(plots[index])
 	end
 
 	hub.Parent = workspace

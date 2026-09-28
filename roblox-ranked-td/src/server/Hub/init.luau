@@ -128,6 +128,7 @@ end
 -- depuis la barre de commande ou un plugin.
 --   Invoke(player, "Coins", 1e6)                -> ajoute des pièces
 --   Invoke(player, "Call", "placeTower", 1, "MachineGun") -> appelle une méthode de PlotGame
+--   Invoke(player, "Call", "buySpot", 9)        -> achète l'emplacement 9 (n'importe lequel)
 --   Invoke(player, "Set", "wave", 30)           -> change un champ de data.idle
 --   Invoke(player, "Set", "bestWave", 50)       -> puis "Call", "rebirth" pour tester la renaissance
 --   Invoke(player, "Data")                      -> renvoie les données du joueur
@@ -228,7 +229,8 @@ function Hub.start()
 		elseif action == "Sell" then
 			plotGame:sellTower(spotIndex)
 		elseif action == "BuySpot" then
-			plotGame:buySpot()
+			-- N'importe quel emplacement verrouillé : buySpot vérifie le numéro, la possession et les pièces.
+			plotGame:buySpot(spotIndex)
 		elseif action == "Rebirth" then
 			-- Renaissance : le serveur vérifie lui-même la vague minimale (PlotGame:rebirth).
 			plotGame:rebirth()

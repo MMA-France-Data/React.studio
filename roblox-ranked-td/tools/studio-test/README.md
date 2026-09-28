@@ -15,7 +15,8 @@ powershell -ExecutionPolicy Bypass -File tools\studio-test\run.ps1
 powershell -ExecutionPolicy Bypass -File tools\studio-test\run.ps1 -Place match
 ```
 
-- `hub` (par défaut) : map principale. Le scénario pose les 8 tours, les améliore, pose des bonus,
+- `hub` (par défaut) : map principale. Le scénario achète des emplacements dans le désordre (prix,
+  cadenas, refus), pose les 8 tours, les améliore, pose des bonus,
   puis vérifie la renaissance (vagues 10, 15, 50 et 100) et écrit `[PASS]` / `[FAIL]`.
 - `match` : match ranked en solo (le bot joue l'autre terrain après 10 s).
 - Résultats dans `tools\studio-test\out\` : `studio-output.log` (la Sortie du serveur et du client)

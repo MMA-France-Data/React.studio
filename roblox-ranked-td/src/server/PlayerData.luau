@@ -37,7 +37,9 @@ local function defaultIdle()
 		wave = 1, -- vague en cours
 		bestWave = 1, -- meilleure vague de la run actuelle (depuis la dernière renaissance)
 		highestWave = 1, -- meilleure vague de tous les temps
-		unlockedSpots = PlotLayout.STARTING_SPOTS,
+		-- Emplacements possédés, achetés dans n'importe quel ordre : [tostring(spotIndex)] = true.
+		ownedSpots = PlotLayout.startingSpots(),
+		unlockedSpots = PlotLayout.STARTING_SPOTS, -- NOMBRE d'emplacements possédés (recalculé depuis ownedSpots)
 		towers = {}, -- [tostring(spotIndex)] = { type, level, spent }
 		-- Bonus de pièces en %, gagné par les renaissances (IdleConfig.rebirthGain, PlotGame:rebirth).
 		-- S'additionne : gain = base x (1 + bonus/100). Ex : ennemi à 3 pièces -> +100 % = 6, +200 % = 9.
@@ -71,6 +73,40 @@ local function defaultData()
 	}
 end
 
+-- Emplacements possédés. Les anciennes sauvegardes n'ont que unlockedSpots = N, qui voulait dire
+-- « emplacements 1 à N » (achetés dans l'ordre) : on les convertit en liste ownedSpots.
+-- Les valeurs abîmées sont ignorées, les emplacements de départ toujours ajoutés, et
+-- unlockedSpots est recalculé depuis la liste (c'est elle qui fait foi).
+local function migrateSpots(idle)
+	local owned = {}
+	if typeof(idle.ownedSpots) == "table" then
+		for key, value in idle.ownedSpots do
+			local spotIndex = tonumber(key)
+			if value == true and PlotLayout.isSpotIndex(spotIndex) then
+				owned[tostring(spotIndex)] = true
+			end
+		end
+	else
+		local count = tonumber(idle.unlockedSpots) or 0
+		if count ~= count then
+			count = 0 -- NaN
+		end
+		for spotIndex = 1, math.clamp(math.floor(count), 0, #PlotLayout.SPOTS) do
+			owned[tostring(spotIndex)] = true
+		end
+	end
+	for key in PlotLayout.startingSpots() do
+		owned[key] = true
+	end
+
+	local count = 0
+	for _ in owned do
+		count += 1
+	end
+	idle.ownedSpots = owned
+	idle.unlockedSpots = count
+end
+
 -- Complète les champs manquants (utile quand tu ajoutes des champs plus tard).
 local function reconcile(data)
 	for key, value in defaultData() do
@@ -78,6 +114,9 @@ local function reconcile(data)
 			data[key] = value
 		end
 	end
+	-- Avant de compléter data.idle : sinon ownedSpots serait rempli avec les 4 emplacements de départ
+	-- et on perdrait ceux déjà achetés dans une ancienne sauvegarde.
+	migrateSpots(data.idle)
 	for key, value in defaultIdle() do
 		if data.idle[key] == nil then
 			data.idle[key] = value
