@@ -19,9 +19,29 @@ local KIND_LABELS = {
 	Single = "Cible unique",
 	Splash = "Zone",
 	Aura = "Zone autour",
+	Chain = "Chaîne (4 cibles)",
 }
 
-local CARD_WIDTH = 116
+local function listAttribute(player: Player, name: string): { string }
+	local raw = player:GetAttribute(name)
+	if typeof(raw) ~= "string" or raw == "" then
+		return {}
+	end
+	return string.split(raw, ",")
+end
+
+local function dupesOf(player: Player, towerType: string): number
+	for _, entry in listAttribute(player, "TowerDupes") do
+		local name, count = string.match(entry, "^(%w+):(%d+)$")
+		if name == towerType then
+			return tonumber(count) or 0
+		end
+	end
+	return 0
+end
+
+local CARD_WIDTH = 100
+local PANEL_HEIGHT = 272
 
 local function kindLabel(def): string
 	if def.kind == "Single" and def.slow then
@@ -102,12 +122,20 @@ function PlotUI.start()
 	local panel = UI.new("Frame", {
 		AnchorPoint = Vector2.new(0.5, 1),
 		Position = UDim2.new(0.5, 0, 1, -16),
-		Size = UDim2.fromOffset(count * (CARD_WIDTH + 8) + 12, 232),
+		Size = UDim2.fromOffset(count * (CARD_WIDTH + 8) + 12, PANEL_HEIGHT),
 		BackgroundColor3 = UI.Colors.Panel,
 		BackgroundTransparency = 0.05,
 		Visible = false,
 		Parent = gui,
 	}, { UI.corner(14), UI.padding(10), UI.stroke() })
+	-- Réduit le panneau sur les petits écrans (téléphones).
+	local panelScale = UI.new("UIScale", { Parent = panel })
+	local function fitPanel()
+		local viewport = workspace.CurrentCamera.ViewportSize
+		panelScale.Scale = math.min(1, (viewport.X - 24) / panel.Size.X.Offset, (viewport.Y * 0.55) / PANEL_HEIGHT)
+	end
+	fitPanel()
+	workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(fitPanel)
 	local panelTitle = UI.label({
 		Size = UDim2.new(1, -40, 0, 26),
 		Font = Enum.Font.GothamBlack,
@@ -156,13 +184,15 @@ function PlotUI.start()
 			Text = "",
 			Parent = cardRow,
 		}, { UI.corner(10), UI.padding(6) })
-		local stroke = UI.stroke(def.color, 2)
+		local rarity = IdleConfig.RARITIES[def.rarity]
+		local stroke = UI.stroke(rarity.color, 2)
 		stroke.Transparency = 0
 		stroke.Parent = card
 		UI.label({
 			Size = UDim2.new(1, 0, 0, 20),
 			Font = Enum.Font.GothamBlack,
 			Text = def.displayName,
+			TextColor3 = rarity.color:Lerp(Color3.new(1, 1, 1), 0.4),
 			MaxTextSize = 15,
 			Parent = card,
 		})
@@ -191,6 +221,22 @@ function PlotUI.start()
 		})
 		cards[towerType] = { button = card, price = price }
 	end
+
+	-- Bonus de l'inventaire à poser sur la tour sélectionnée.
+	local bonusRow = UI.new("Frame", {
+		Position = UDim2.new(0, 0, 0, 178),
+		Size = UDim2.new(1, 0, 0, 30),
+		BackgroundTransparency = 1,
+		Visible = false,
+		Parent = panel,
+	}, {
+		UI.new("UIListLayout", {
+			FillDirection = Enum.FillDirection.Horizontal,
+			Padding = UDim.new(0, 6),
+			SortOrder = Enum.SortOrder.LayoutOrder,
+			VerticalAlignment = Enum.VerticalAlignment.Center,
+		}),
+	})
 
 	-- Bas du panneau : [Améliorer] [Vendre] pour une tour, [Débloquer] pour un cadenas.
 	local actionButton = UI.button({
@@ -249,12 +295,91 @@ function PlotUI.start()
 		select(nil)
 	end)
 
+	local function isUnlocked(towerType: string): boolean
+		return table.find(listAttribute(player, "UnlockedTowers"), towerType) ~= nil
+	end
+
 	for towerType, card in cards do
 		card.button.Activated:Connect(function()
-			if selectedSpot then
-				plotAction:FireServer("Place", selectedSpot, towerType)
+			if not selectedSpot then
+				return
 			end
+			if not isUnlocked(towerType) then
+				UI.toast(`{IdleTowers.Defs[towerType].displayName} : gagne-la à la machine à tours !`, "Warning")
+				return
+			end
+			plotAction:FireServer("Place", selectedSpot, towerType)
 		end)
+	end
+
+	-- Pose d'un bonus : si la tour en a déjà un, il faut cliquer deux fois (l'ancien est perdu).
+	local bonusRowKey = nil
+	local confirmBonus: string? = nil
+	local function rebuildBonusRow(tower: Model?)
+		local inventory = player:GetAttribute("Bonuses") or ""
+		local current = tower and tower:GetAttribute("Bonus") or ""
+		local key = `{selectedSpot}:{inventory}:{current}:{confirmBonus}`
+		if key == bonusRowKey then
+			return
+		end
+		bonusRowKey = key
+		for _, child in bonusRow:GetChildren() do
+			if not child:IsA("UIListLayout") then
+				child:Destroy()
+			end
+		end
+
+		local currentBonus = IdleConfig.BONUS_BY_ID[current]
+		UI.label({
+			Size = UDim2.fromOffset(150, 28),
+			LayoutOrder = 0,
+			TextXAlignment = Enum.TextXAlignment.Left,
+			Font = Enum.Font.GothamBold,
+			TextColor3 = if currentBonus then UI.Colors.Gold else UI.Colors.Muted,
+			Text = if currentBonus then `★ {currentBonus.displayName}` else "Aucun bonus",
+			MaxTextSize = 14,
+			Parent = bonusRow,
+		})
+
+		local counts = {}
+		for _, id in listAttribute(player, "Bonuses") do
+			counts[id] = (counts[id] or 0) + 1
+		end
+		for order, bonus in IdleConfig.BONUSES do
+			local amount = counts[bonus.id]
+			if not amount then
+				continue
+			end
+			local confirming = confirmBonus == bonus.id
+			local button = UI.button({
+				Size = UDim2.fromOffset(if confirming then 150 else 96, 28),
+				LayoutOrder = order,
+				BackgroundColor3 = if confirming then UI.Colors.Error else UI.Colors.Gold,
+				TextColor3 = Color3.fromRGB(30, 25, 10),
+				Text = if confirming then `Remplacer ? {bonus.displayName}` else `{bonus.displayName} ({amount})`,
+				MaxTextSize = 13,
+				Parent = bonusRow,
+			})
+			button.Activated:Connect(function()
+				if currentBonus and confirmBonus ~= bonus.id then
+					confirmBonus = bonus.id
+					return
+				end
+				confirmBonus = nil
+				Remotes.get("MachineAction"):FireServer("ApplyBonus", selectedSpot, bonus.id)
+			end)
+		end
+		if next(counts) == nil then
+			UI.label({
+				Size = UDim2.fromOffset(300, 28),
+				LayoutOrder = 99,
+				TextXAlignment = Enum.TextXAlignment.Left,
+				TextColor3 = UI.Colors.Muted,
+				Text = "Gagne des bonus à la machine à bonus 🎰",
+				MaxTextSize = 13,
+				Parent = bonusRow,
+			})
+		end
 	end
 
 	actionButton.Activated:Connect(function()
@@ -289,6 +414,7 @@ function PlotUI.start()
 		highlight.Parent = highlight.Adornee
 
 		upgradeButton.Visible = false
+		bonusRow.Visible = false
 		actionButton.Size = UDim2.new(1, 0, 0, 44)
 
 		if spotIndex > unlocked then
@@ -318,8 +444,15 @@ function PlotUI.start()
 			local level = tower:GetAttribute("Level") or 1
 			local upgradeCost = IdleTowers.upgradeCost(currentType, level)
 			refund = math.floor((tower:GetAttribute("Spent") or 0) * IdleConfig.SELL_REFUND)
-			panelTitle.Text = `{def.displayName} • Niv. {level}`
-			panelSubtitle.Text = `DPS {NumberFormat.short(IdleTowers.dps(currentType, level))} → {NumberFormat.short(IdleTowers.dps(currentType, level + 1))} au niveau {level + 1}  •  ou remplace-la (revendue +{NumberFormat.short(refund)}) :`
+			local dupes = dupesOf(player, currentType)
+			local bonusId = tower:GetAttribute("Bonus")
+			local now = IdleTowers.dpsOf(IdleTowers.effectiveStats(currentType, level, dupes, bonusId))
+			local nextLevel = IdleTowers.dpsOf(IdleTowers.effectiveStats(currentType, level + 1, dupes, bonusId))
+			local extras = if dupes > 0 then `  •  doublons +{math.floor(dupes * IdleConfig.DUPLICATE_DAMAGE_BONUS * 100 + 0.5)} %` else ""
+			panelTitle.Text = `{def.displayName} • Niv. {level}{extras}`
+			panelSubtitle.Text = `DPS {NumberFormat.short(now)} → {NumberFormat.short(nextLevel)} au niveau {level + 1}  •  ou remplace-la (revendue +{NumberFormat.short(refund)}) :`
+			bonusRow.Visible = true
+			rebuildBonusRow(tower)
 
 			upgradeButton.Visible = true
 			upgradeButton.Text = `Améliorer [E] • {NumberFormat.short(upgradeCost)}`
@@ -337,7 +470,11 @@ function PlotUI.start()
 
 		for towerType, card in cards do
 			local cost = IdleTowers.Defs[towerType].placeCost
-			if towerType == currentType then
+			if not isUnlocked(towerType) then
+				card.price.Text = "🔒 Machine"
+				card.price.TextColor3 = UI.Colors.Muted
+				card.button.BackgroundTransparency = 0.7
+			elseif towerType == currentType then
 				card.price.Text = "POSÉE"
 				card.price.TextColor3 = UI.Colors.Success
 				card.button.BackgroundTransparency = 0.5

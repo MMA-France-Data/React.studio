@@ -24,4 +24,5 @@ else
 	require(script.Parent.LobbyUI).start()
 	require(script.Parent.PlotRenderer).start()
 	require(script.Parent.PlotUI).start()
+	require(script.Parent.MachineUI).start()
 end

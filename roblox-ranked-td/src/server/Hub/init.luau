@@ -11,6 +11,7 @@ local Ranks = require(Shared.Ranks)
 local Remotes = require(Shared.Remotes)
 local Leaderboard = require(script.Parent.Leaderboard)
 local Matchmaking = require(script.Parent.Matchmaking)
+local Monetization = require(script.Parent.Monetization)
 local PlayerData = require(script.Parent.PlayerData)
 local PlotGame = require(script.PlotGame)
 local HubMap = require(script.HubMap)
@@ -197,6 +198,45 @@ function Hub.start()
 			plotGame:buySpot()
 		end
 	end)
+
+	-- Machines à sous : chaque joueur n'utilise que les machines de SA parcelle.
+	for plotIndex, plot in map.plots do
+		for machine, prompt in plot.machines do
+			prompt.Triggered:Connect(function(player)
+				if Plots.get(player) == plotIndex then
+					Remotes.get("OpenMachine"):FireClient(player, machine)
+				else
+					Remotes.get("Notify"):FireClient(player, "Ce n'est pas ta machine : va sur ta parcelle !", "Warning")
+				end
+			end)
+		end
+	end
+	Remotes.get("MachineAction").OnServerEvent:Connect(function(player, action, spotIndex, bonusId)
+		local plotGame = games[player]
+		local now = os.clock()
+		if not plotGame or now - (lastPlotAction[player] or 0) < 0.3 then
+			return
+		end
+		lastPlotAction[player] = now
+		if action == "SpinTower" then
+			plotGame:spinTower()
+		elseif action == "SpinBonusCoins" then
+			plotGame:spinBonusWithCoins()
+		elseif action == "ApplyBonus" then
+			plotGame:applyBonus(spotIndex, bonusId)
+		end
+	end)
+
+	-- Achat Robux : un lancer de la machine à bonus.
+	Monetization.onProduct(Config.Products.BONUS_SPIN, function(player)
+		local plotGame = games[player]
+		if not plotGame then
+			return false
+		end
+		plotGame:grantBonusSpin("Robux")
+		return true
+	end)
+	Monetization.start()
 
 	Remotes.get("QueueAction").OnServerEvent:Connect(function(player, action)
 		if action == "Join" then

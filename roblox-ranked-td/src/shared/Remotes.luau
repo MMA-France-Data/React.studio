@@ -12,6 +12,10 @@ local DEFINITIONS = {
 	PlotSync = "RemoteEvent", -- serveur -> clients : (plotIndex, buffer, count) positions des ennemis
 	PlotShots = "UnreliableRemoteEvent", -- serveur -> clients : (plotIndex, buffer, count) tirs
 	CoinDrop = "RemoteEvent", -- serveur -> propriétaire : ("Set" | "Collect", id, position, montant)
+	-- Machines à sous
+	OpenMachine = "RemoteEvent", -- serveur -> client : ("Tower" | "Bonus") quand on active une machine
+	MachineAction = "RemoteEvent", -- client -> serveur : "SpinTower" | "SpinBonusCoins" | ("ApplyBonus", spot, bonusId)
+	MachineResult = "RemoteEvent", -- serveur -> client : résultat d'un lancer
 	-- Commun
 	Notify = "RemoteEvent", -- serveur -> client : (message, kind)
 	-- Match

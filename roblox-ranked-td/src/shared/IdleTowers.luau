@@ -1,14 +1,15 @@
 -- Tours du mode infini (ta parcelle). Indépendantes des tours du ranked.
--- Toutes disponibles pour l'instant ; la boutique gérera le déblocage et la machine à sous
--- les bonus.
+-- Au départ seul le Mitrailleur est débloqué ; les autres se gagnent à la machine à tours
+-- (rareté = chance de l'obtenir). Doublons et bonus de la machine à bonus s'appliquent en plus.
 local IdleConfig = require(script.Parent.IdleConfig)
 
 local IdleTowers = {}
 
-IdleTowers.ORDER = { "MachineGun", "Frost", "Bomb", "Tesla", "Rocket" }
+IdleTowers.ORDER = { "MachineGun", "Frost", "Bomb", "Tesla", "Rocket", "Laser", "Chain", "Orbital" }
 
 IdleTowers.Defs = {
 	MachineGun = {
+		rarity = "Common",
 		displayName = "Mitrailleur",
 		description = "Rafales très rapides sur l'ennemi le plus avancé.",
 		kind = "Single",
@@ -20,6 +21,7 @@ IdleTowers.Defs = {
 		cooldown = 0.2,
 	},
 	Frost = {
+		rarity = "Common",
 		displayName = "Givre",
 		description = "Zone glacée : blesse et ralentit un peu tout ce qui passe.",
 		kind = "Aura",
@@ -32,6 +34,7 @@ IdleTowers.Defs = {
 		slowDuration = 1.5,
 	},
 	Bomb = {
+		rarity = "Rare",
 		displayName = "Bombe",
 		description = "Explosions de zone : idéale contre les hordes.",
 		kind = "Splash",
@@ -44,6 +47,7 @@ IdleTowers.Defs = {
 		splash = 7,
 	},
 	Tesla = {
+		rarity = "Rare",
 		displayName = "Électrique",
 		description = "Électrocute une cible et la ralentit fortement : parfait contre les rush et les boss.",
 		kind = "Single",
@@ -57,6 +61,7 @@ IdleTowers.Defs = {
 		slowDuration = 1.2,
 	},
 	Rocket = {
+		rarity = "Epic",
 		displayName = "Lance-roquettes",
 		description = "Longue portée, grosse explosion sur l'ennemi le plus résistant : contre géants et boss.",
 		kind = "Splash",
@@ -67,6 +72,44 @@ IdleTowers.Defs = {
 		range = 30,
 		cooldown = 3,
 		splash = 4,
+	},
+	Laser = {
+		rarity = "Epic",
+		displayName = "Laser",
+		description = "Rayon continu qui fait fondre une cible.",
+		kind = "Single",
+		targeting = "First",
+		color = Color3.fromRGB(255, 70, 200),
+		placeCost = 120,
+		damage = 6,
+		range = 18,
+		cooldown = 0.1,
+	},
+	Chain = {
+		rarity = "Legendary",
+		displayName = "Foudre en chaîne",
+		description = "L'éclair rebondit sur 4 ennemis à la fois.",
+		kind = "Chain",
+		targeting = "First",
+		color = Color3.fromRGB(150, 110, 255),
+		placeCost = 250,
+		damage = 30,
+		range = 20,
+		cooldown = 1.2,
+		chains = 4,
+	},
+	Orbital = {
+		rarity = "Legendary",
+		displayName = "Frappe orbitale",
+		description = "Énorme explosion n'importe où sur le chemin, sur l'ennemi le plus résistant.",
+		kind = "Splash",
+		targeting = "Strongest",
+		color = Color3.fromRGB(120, 240, 255),
+		placeCost = 400,
+		damage = 220,
+		range = 70,
+		cooldown = 5,
+		splash = 10,
 	},
 }
 
@@ -95,9 +138,40 @@ function IdleTowers.upgradeCost(towerType: string, level: number): number
 	return math.floor(raw / magnitude + 0.5) * magnitude
 end
 
+-- Stats finales d'une tour posée : niveau + doublons (+5 % chacun) + bonus de la machine à bonus.
+function IdleTowers.effectiveStats(towerType: string, level: number, dupes: number?, bonusId: string?)
+	local base = IdleTowers.stats(towerType, level)
+	local bonus = bonusId and IdleConfig.BONUS_BY_ID[bonusId]
+	if (dupes or 0) == 0 and not bonus then
+		return base
+	end
+	local stats = table.clone(base)
+	stats.damage *= 1 + (dupes or 0) * IdleConfig.DUPLICATE_DAMAGE_BONUS
+	if bonus and bonus.kind == "Damage" then
+		stats.damage *= bonus.mult
+	elseif bonus and bonus.kind == "Speed" then
+		stats.cooldown /= bonus.mult
+	end
+	return stats
+end
+
+-- Dégâts par seconde (une Foudre en chaîne compte toutes ses cibles).
+function IdleTowers.dpsOf(stats): number
+	return stats.damage * (stats.chains or 1) / stats.cooldown
+end
+
 function IdleTowers.dps(towerType: string, level: number): number
-	local stats = IdleTowers.stats(towerType, level)
-	return stats.damage / stats.cooldown
+	return IdleTowers.dpsOf(IdleTowers.stats(towerType, level))
+end
+
+function IdleTowers.ofRarity(rarity: string): { string }
+	local list = {}
+	for _, towerType in IdleTowers.ORDER do
+		if IdleTowers.Defs[towerType].rarity == rarity then
+			table.insert(list, towerType)
+		end
+	end
+	return list
 end
 
 return IdleTowers

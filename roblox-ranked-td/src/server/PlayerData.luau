@@ -24,6 +24,14 @@ local loadedCallbacks = {}
 local beforeReleaseCallbacks = {}
 local pendingWrites = 0
 
+local function startingTowers()
+	local towers = {}
+	for _, towerType in IdleConfig.STARTING_TOWERS do
+		towers[towerType] = true
+	end
+	return towers
+end
+
 local function defaultIdle()
 	return {
 		wave = 1, -- vague en cours
@@ -35,6 +43,12 @@ local function defaultIdle()
 		-- Ex : ennemi à 3 pièces -> +100 % = 6, +200 % = 9.
 		coinBonus = 0,
 		rebirths = 0,
+		-- Machines à sous
+		unlockedTowers = startingTowers(), -- [type] = true
+		towerDupes = {}, -- [type] = nombre de doublons (+5 % de dégâts chacun)
+		pendingSpinTier = 0, -- lancer gratuit de la machine à tours (0 = aucun, sinon palier)
+		bonuses = {}, -- inventaire de bonus (ids de IdleConfig.BONUSES)
+		lastBonusSpinAt = 0, -- os.time() du dernier lancer payé en pièces
 	}
 end
 
@@ -53,6 +67,7 @@ local function defaultData()
 		-- Mode infini (parcelle). Les pièces ne sont jamais remises à zéro par les saisons.
 		coins = IdleConfig.STARTING_COINS,
 		idle = defaultIdle(),
+		processedReceipts = {}, -- achats Robux déjà livrés (évite de donner deux fois)
 	}
 end
 

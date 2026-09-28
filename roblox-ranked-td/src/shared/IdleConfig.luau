@@ -31,6 +31,69 @@ IdleConfig.MAX_DROPS = 40
 
 IdleConfig.SELL_REFUND = 0.5 -- part du prix rendue à la vente (prix des tours : IdleTowers.luau)
 
+----------------------------------------------------------------------
+-- Machine à tours : 1 lancer gratuit à chaque vague réussie, sans cumul.
+-- Plus la vague réussie est haute, meilleures sont les chances (le lancer garde le meilleur palier).
+----------------------------------------------------------------------
+IdleConfig.STARTING_TOWERS = { "MachineGun" }
+IdleConfig.DUPLICATE_DAMAGE_BONUS = 0.05 -- +5 % de dégâts permanents par doublon
+
+IdleConfig.RARITY_ORDER = { "Common", "Rare", "Epic", "Legendary" }
+IdleConfig.RARITIES = {
+	Common = { displayName = "Commune", color = Color3.fromRGB(190, 195, 205) },
+	Rare = { displayName = "Rare", color = Color3.fromRGB(80, 150, 255) },
+	Epic = { displayName = "Épique", color = Color3.fromRGB(180, 90, 255) },
+	Legendary = { displayName = "Légendaire", color = Color3.fromRGB(255, 190, 50) },
+}
+
+-- Chances (en %) de chaque rareté selon la vague réussie.
+IdleConfig.TOWER_SPIN_TIERS = {
+	{ minWave = 1, odds = { Common = 80, Rare = 20, Epic = 0, Legendary = 0 } },
+	{ minWave = 10, odds = { Common = 60, Rare = 32, Epic = 8, Legendary = 0 } },
+	{ minWave = 25, odds = { Common = 45, Rare = 35, Epic = 17, Legendary = 3 } },
+	{ minWave = 50, odds = { Common = 30, Rare = 38, Epic = 25, Legendary = 7 } },
+	{ minWave = 100, odds = { Common = 20, Rare = 35, Epic = 32, Legendary = 13 } },
+}
+
+function IdleConfig.towerSpinTier(wave: number): number
+	local tier = 1
+	for index, info in IdleConfig.TOWER_SPIN_TIERS do
+		if wave >= info.minWave then
+			tier = index
+		end
+	end
+	return tier
+end
+
+----------------------------------------------------------------------
+-- Machine à bonus : le bonus obtenu va dans ton inventaire, puis se pose sur une tour
+-- (un seul bonus par tour ; en poser un nouveau remplace l'ancien).
+-- 1 lancer en pièces toutes les 30 minutes, lancers en Robux à volonté (Config.Products).
+----------------------------------------------------------------------
+IdleConfig.BONUS_SPIN_COOLDOWN = 30 * 60
+IdleConfig.MAX_BONUS_INVENTORY = 50
+IdleConfig.BONUSES = {
+	{ id = "Damage2", displayName = "x2 dégâts", kind = "Damage", mult = 2, chance = 35 },
+	{ id = "Speed2", displayName = "x2 vitesse d'attaque", kind = "Speed", mult = 2, chance = 30 },
+	{ id = "Damage3", displayName = "x3 dégâts", kind = "Damage", mult = 3, chance = 18 },
+	{ id = "Damage5", displayName = "x5 dégâts", kind = "Damage", mult = 5, chance = 10 },
+	{ id = "Damage10", displayName = "x10 dégâts", kind = "Damage", mult = 10, chance = 5 },
+	{ id = "Damage20", displayName = "x20 dégâts", kind = "Damage", mult = 20, chance = 1.5 },
+	{ id = "Damage50", displayName = "x50 dégâts", kind = "Damage", mult = 50, chance = 0.4 },
+	{ id = "Damage100", displayName = "x100 dégâts", kind = "Damage", mult = 100, chance = 0.1 },
+}
+IdleConfig.BONUS_BY_ID = {}
+for _, bonus in IdleConfig.BONUSES do
+	IdleConfig.BONUS_BY_ID[bonus.id] = bonus
+end
+
+-- Prix d'un lancer en pièces : ~15 vagues de gains à ton record, pour rester intéressant à tout moment.
+function IdleConfig.bonusSpinCost(highestWave: number): number
+	local raw = IdleConfig.REWARD_BUDGET * IdleConfig.REWARD_GROWTH ^ (math.max(1, highestWave) - 1) * 15
+	local magnitude = 10 ^ math.max(0, math.floor(math.log10(raw)) - 1)
+	return math.floor(raw / magnitude + 0.5) * magnitude
+end
+
 -- Chaque vague a un budget de PV total et un budget de pièces, qui grandissent à chaque vague.
 -- Le type de vague décide comment ce budget est réparti : 40 petites nuées ou 3 géants énormes.
 -- La difficulté reste donc comparable, mais ce ne sont pas les mêmes tours qui brillent.

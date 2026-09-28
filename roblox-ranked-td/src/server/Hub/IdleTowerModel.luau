@@ -95,6 +95,49 @@ function IdleTowerModel.create(towerType: string, cframe: CFrame, parent: Instan
 			Color = color,
 			Material = Enum.Material.Neon,
 		})
+	elseif towerType == "Laser" then
+		newPart(model, "Body", { Size = Vector3.new(1.6, 5, 1.6), CFrame = cframe * CFrame.new(0, 3.5, 0), Color = Color3.fromRGB(230, 230, 240) })
+		newPart(model, "Lens", {
+			Shape = Enum.PartType.Ball,
+			Size = Vector3.one * 1.8,
+			CFrame = cframe * CFrame.new(0, 6.6, 0),
+			Color = color,
+			Material = Enum.Material.Neon,
+		})
+		newPart(model, "Ring", {
+			Shape = Enum.PartType.Cylinder,
+			Size = Vector3.new(0.3, 3, 3),
+			CFrame = cframe * CFrame.new(0, 5.4, 0) * UPRIGHT,
+			Color = color,
+			Material = Enum.Material.Neon,
+		})
+	elseif towerType == "Chain" then
+		newPart(model, "Body", { Size = Vector3.new(2.2, 4, 2.2), CFrame = cframe * CFrame.new(0, 3, 0), Color = Color3.fromRGB(60, 50, 90) })
+		for i, offset in { Vector3.new(1.3, 5.6, 0), Vector3.new(-1.3, 5.6, 0), Vector3.new(0, 6.4, 0) } do
+			newPart(model, "Orb" .. i, {
+				Shape = Enum.PartType.Ball,
+				Size = Vector3.one * 1.2,
+				CFrame = cframe * CFrame.new(offset),
+				Color = color,
+				Material = Enum.Material.Neon,
+			})
+		end
+	elseif towerType == "Orbital" then
+		newPart(model, "Mast", { Size = Vector3.new(0.8, 7, 0.8), CFrame = cframe * CFrame.new(0, 4.5, 0), Color = Color3.fromRGB(200, 205, 215), Material = Enum.Material.Metal })
+		newPart(model, "Dish", {
+			Shape = Enum.PartType.Cylinder,
+			Size = Vector3.new(0.4, 5, 5),
+			CFrame = cframe * CFrame.new(0, 8.2, 0) * CFrame.Angles(math.rad(30), 0, math.rad(90)),
+			Color = Color3.fromRGB(230, 235, 245),
+			Material = Enum.Material.Metal,
+		})
+		newPart(model, "Beacon", {
+			Shape = Enum.PartType.Ball,
+			Size = Vector3.one * 0.9,
+			CFrame = cframe * CFrame.new(0, 9, 0),
+			Color = color,
+			Material = Enum.Material.Neon,
+		})
 	else -- Rocket
 		newPart(model, "Body", { Size = Vector3.new(2.6, 2, 2.6), CFrame = cframe * CFrame.new(0, 2, 0), Color = dark })
 		newPart(model, "Launcher", {

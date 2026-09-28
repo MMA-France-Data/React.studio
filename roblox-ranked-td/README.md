@@ -23,13 +23,26 @@ Les boutons « Ma base » et « Cercle ranked » servent à se déplacer vite.
   ralentissement), **Géants** (lents et énormes → gros dégâts), **Boss** toutes les 10 vagues.
 - Les ennemis tués lâchent des **pièces à ramasser** (les pièces proches s'empilent). Le bonus de pièces
   s'additionne : ennemi à 3 pièces, +100 % → 6, +200 % → 9.
-- 5 tours (`IdleTowers.luau`) : Mitrailleur, Givre, Bombe, Électrique, Lance-roquettes. Clique sur un
-  emplacement pour poser une tour ; poser sur une tour existante la remplace (50 % remboursés), vendre rend 50 %.
+- 8 tours (`IdleTowers.luau`) : Mitrailleur, Givre, Bombe, Électrique, Lance-roquettes, Laser, Foudre en chaîne,
+  Frappe orbitale. Clique sur un emplacement pour poser une tour ; poser sur une tour existante la remplace (50 % remboursés), vendre rend 50 %.
 - Clique sur le cadenas suivant pour débloquer un emplacement.
 - **Améliorations** : clique sur une tour → « Améliorer » (ou touche E). Niveaux illimités, dégâts ×1,35 par
   niveau, prix ×1,5 par niveau. Les PV des vagues montent un peu plus vite que les gains (×1,22 contre ×1,18) :
   on bloque souvent, on farme un peu, une amélioration débloque les vagues suivantes.
 - Chemin de ~360 studs (6 allers-retours) et ennemis 1,6× plus rapides qu'en ranked.
+
+### Les deux machines à sous (devant chaque parcelle, ou boutons en haut à droite)
+
+- **Machine à tours** : 1 lancer gratuit à chaque vague réussie, sans cumul (le lancer garde le meilleur
+  palier). Au départ seul le Mitrailleur est débloqué. 8 tours en 4 raretés (Commune, Rare, Épique,
+  Légendaire) ; plus la vague réussie est haute, meilleures sont les chances (`IdleConfig.TOWER_SPIN_TIERS`).
+  Un doublon donne +5 % de dégâts permanents à cette tour.
+- **Machine à bonus** : x2 dégâts, x2 vitesse d'attaque, x3, x5, x10, x20, x50, x100 dégâts (chances affichées
+  dans la machine). 1 lancer en pièces toutes les 30 minutes, lancers en Robux à volonté. Le bonus va dans
+  l'inventaire et se pose sur une tour (1 par tour ; en poser un nouveau remplace l'ancien, vendre la tour
+  rend le bonus).
+- **Robux** : crée un Developer Product dans le Creator Dashboard et mets son ID dans
+  `Config.Products.BONUS_SPIN`. Chaque achat n'est livré qu'une fois (`Monetization.luau`).
 - Côté technique, les ennemis n'existent que sous forme de données sur le serveur ; chaque client reçoit leurs
   positions 6 fois par seconde dans un paquet binaire et les affiche lui-même (`PlotGame.luau`, `PlotRenderer.luau`).
 
@@ -118,8 +131,8 @@ vagues dans `Enemies.luau`, les envois dans `Sends.luau`, le tracé du chemin da
 ```
 src/
   shared/   (ReplicatedStorage.Shared)   Config, IdleConfig, IdleTowers, NumberFormat, Elo, Ranks, Towers, Enemies, Sends, MapLayout, PlotLayout, Placement, Remotes
-  server/   (ServerScriptService.Server) Main, PlayerData, Leaderboard, Matchmaking, Hub/{init, HubMap, Plots, PlotGame, IdleTowerModel}, Match/{init, Game, MapBuilder}
-  client/   (StarterPlayerScripts.Client) Main, LobbyUI, PlotUI, PlotRenderer, MatchUI, TowerCard, TowerPlacement, Effects, UI
+  server/   (ServerScriptService.Server) Main, PlayerData, Leaderboard, Matchmaking, Monetization, Hub/{init, HubMap, Plots, PlotGame, IdleTowerModel}, Match/{init, Game, MapBuilder}
+  client/   (StarterPlayerScripts.Client) Main, LobbyUI, PlotUI, PlotRenderer, MachineUI, MatchUI, TowerCard, TowerPlacement, Effects, UI
 ```
 
 ## Limites connues / pistes d'amélioration

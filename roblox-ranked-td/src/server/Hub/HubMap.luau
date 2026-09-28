@@ -146,11 +146,46 @@ local function buildPlot(index: number, parent: Instance)
 	})
 	local ownerLabel = billboard(post, "Parcelle libre", Vector3.new(0, 5, 0), UDim2.fromOffset(260, 44), color)
 
+	-- Deux machines à sous devant l'entrée
+	local machines = {}
+	for _, info in {
+		{ key = "Tower", x = -20, title = "🎰 MACHINE À TOURS", color = Color3.fromRGB(180, 90, 255) },
+		{ key = "Bonus", x = 20, title = "🎰 MACHINE À BONUS", color = Color3.fromRGB(255, 190, 50) },
+	} do
+		local cabinet = part({
+			Name = info.key .. "Machine",
+			Size = Vector3.new(5, 7, 3),
+			CFrame = PlotLayout.worldCFrame(index, Vector3.new(info.x, 3.5, -l / 2 - 8)) * CFrame.Angles(0, math.rad(180), 0),
+			Color = info.color,
+			Material = Enum.Material.SmoothPlastic,
+			Parent = folder,
+		})
+		part({
+			Name = "Screen",
+			Size = Vector3.new(3.8, 2.6, 0.2),
+			CFrame = cabinet.CFrame * CFrame.new(0, 1.2, -1.55),
+			Color = Color3.fromRGB(20, 20, 30),
+			Material = Enum.Material.Neon,
+			CanCollide = false,
+			Parent = folder,
+		})
+		billboard(cabinet, info.title, Vector3.new(0, 5.5, 0), UDim2.fromOffset(240, 34), info.color)
+		local prompt = Instance.new("ProximityPrompt")
+		prompt.ActionText = "Ouvrir"
+		prompt.ObjectText = info.title
+		prompt.HoldDuration = 0
+		prompt.MaxActivationDistance = 12
+		prompt.RequiresLineOfSight = false
+		prompt.Parent = cabinet
+		machines[info.key] = prompt
+	end
+
 	return {
 		index = index,
 		folder = folder,
 		ownerLabel = ownerLabel,
 		spots = spots,
+		machines = machines,
 	}
 end
 

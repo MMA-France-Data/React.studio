@@ -10,6 +10,12 @@ Config.SEASON = 1
 --              (Test > Clients and Servers > 2 joueurs, ou 1 joueur contre un bot)
 Config.STUDIO_FORCE_MODE = "Auto"
 
+-- Produits Robux (Developer Products), à créer dans le Creator Dashboard :
+-- Monétisation > Developer Products, puis colle l'ID ici. 0 = pas encore configuré.
+Config.Products = {
+	BONUS_SPIN = 0, -- un lancer de la machine à bonus
+}
+
 Config.Data = {
 	DATASTORE_NAME = "RankedTD_PlayerData_v1",
 	-- Dans Studio, utilise des DataStores en mémoire (rien n'est sauvegardé pour de vrai).

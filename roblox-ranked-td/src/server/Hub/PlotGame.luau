@@ -67,9 +67,10 @@ function PlotGame.new(plot, player: Player, data)
 	for key, saved in self.idle.towers do
 		local spotIndex = tonumber(key)
 		if spotIndex and IdleTowers.Defs[saved.type] and spotIndex <= self.idle.unlockedSpots then
-			self:createTower(spotIndex, saved.type, saved.level or 1, saved.spent or 0)
+			self:createTower(spotIndex, saved.type, saved.level or 1, saved.spent or 0, saved.bonus)
 		end
 	end
+	self:publishInventory()
 
 	HubMap.setUnlockedSpots(plot, self.idle.unlockedSpots)
 	self:setAttr("OwnerUserId", player.UserId)
@@ -148,6 +149,12 @@ function PlotGame:endWave(success: boolean)
 		self.idle.highestWave = math.max(self.idle.highestWave, wave)
 		self.idle.wave = wave + 1
 		delay = IdleConfig.WAVE_CLEAR_DELAY
+		-- 1 lancer de machine à tours, sans cumul : on garde le meilleur palier.
+		local tier = IdleConfig.towerSpinTier(wave)
+		if tier > self.idle.pendingSpinTier then
+			self.idle.pendingSpinTier = tier
+			self:publishInventory()
+		end
 	else
 		self.idle.wave = math.max(1, wave - 1)
 		delay = IdleConfig.WAVE_FAIL_DELAY
@@ -256,8 +263,13 @@ function PlotGame:addShot(from: Vector3, to: Vector3, towerType: string, radius:
 	end
 end
 
+-- Stats d'une tour posée : niveau, doublons et bonus compris.
+function PlotGame:statsOf(tower)
+	return IdleTowers.effectiveStats(tower.type, tower.level, self.idle.towerDupes[tower.type], tower.bonus)
+end
+
 function PlotGame:towerAttack(tower, now: number): boolean
-	local stats = IdleTowers.stats(tower.type, tower.level)
+	local stats = self:statsOf(tower)
 	local muzzle = tower.position + Vector3.new(0, 5, 0)
 
 	if stats.kind == "Aura" then
@@ -275,6 +287,30 @@ function PlotGame:towerAttack(tower, now: number): boolean
 			self:addShot(tower.position, tower.position, tower.type, stats.range)
 		end
 		return hitAny
+	end
+
+	if stats.kind == "Chain" then
+		-- Touche les N ennemis les plus avancés à portée.
+		local inRange = {}
+		for _, enemy in self.enemies do
+			if not enemy.dead and horizontalDistance(tower.position, enemy.position) <= stats.range then
+				table.insert(inRange, enemy)
+			end
+		end
+		if #inRange == 0 then
+			return false
+		end
+		table.sort(inRange, function(a, b)
+			return a.distance > b.distance
+		end)
+		local from = muzzle
+		for i = 1, math.min(stats.chains, #inRange) do
+			local enemy = inRange[i]
+			self:addShot(from, enemy.position, tower.type, 0)
+			from = enemy.position
+			self:damageEnemy(enemy, stats.damage)
+		end
+		return true
 	end
 
 	local target, bestScore = nil, -math.huge
@@ -354,7 +390,7 @@ function PlotGame:step(dt: number)
 		tower.cooldown -= dt
 		if tower.cooldown <= 0 then
 			local attacked = self:towerAttack(tower, now)
-			tower.cooldown = if attacked then IdleTowers.stats(tower.type, tower.level).cooldown else 0
+			tower.cooldown = if attacked then self:statsOf(tower).cooldown else 0
 		end
 	end
 
@@ -427,13 +463,17 @@ end
 -- Tours et emplacements (actions du joueur)
 ----------------------------------------------------------------------
 
-function PlotGame:createTower(spotIndex: number, towerType: string, level: number, spent: number)
+function PlotGame:createTower(spotIndex: number, towerType: string, level: number, spent: number, bonus: string?)
+	if bonus and not IdleConfig.BONUS_BY_ID[bonus] then
+		bonus = nil
+	end
 	local cframe = PlotLayout.worldCFrame(self.index, PlotLayout.SPOTS[spotIndex] + Vector3.new(0, 0.3, 0))
 	local model = IdleTowerModel.create(towerType, cframe, self.towerFolder, {
 		SpotIndex = spotIndex,
 		PlotIndex = self.index,
 		Level = level,
 		Spent = spent,
+		Bonus = bonus or "",
 	})
 	self.towers[spotIndex] = {
 		spotIndex = spotIndex,
@@ -443,12 +483,22 @@ function PlotGame:createTower(spotIndex: number, towerType: string, level: numbe
 		position = cframe.Position,
 		cooldown = 0,
 		model = model,
+		bonus = bonus,
 	}
-	self.idle.towers[tostring(spotIndex)] = { type = towerType, level = level, spent = spent }
+	self:saveTower(self.towers[spotIndex])
 end
 
+function PlotGame:saveTower(tower)
+	self.idle.towers[tostring(tower.spotIndex)] = { type = tower.type, level = tower.level, spent = tower.spent, bonus = tower.bonus }
+end
+
+-- Retire la tour. Son bonus éventuel retourne dans l'inventaire.
 function PlotGame:removeTower(spotIndex: number)
 	local tower = self.towers[spotIndex]
+	if tower and tower.bonus and #self.idle.bonuses < IdleConfig.MAX_BONUS_INVENTORY then
+		table.insert(self.idle.bonuses, tower.bonus)
+		self:publishInventory()
+	end
 	if tower then
 		tower.model:Destroy()
 		self.towers[spotIndex] = nil
@@ -469,6 +519,10 @@ function PlotGame:placeTower(spotIndex: any, towerType: any)
 		return
 	end
 	local def = IdleTowers.Defs[towerType]
+	if not self.idle.unlockedTowers[towerType] then
+		self:notify(`{def.displayName} n'est pas encore débloquée : gagne-la à la machine à tours !`, "Error")
+		return
+	end
 	local existing = self.towers[spotIndex]
 	if existing and existing.type == towerType then
 		self:notify("Cette tour est déjà posée ici", "Error")
@@ -507,7 +561,7 @@ function PlotGame:upgradeTower(spotIndex: any)
 	tower.spent += cost
 	tower.model:SetAttribute("Level", tower.level)
 	tower.model:SetAttribute("Spent", tower.spent)
-	self.idle.towers[tostring(spotIndex)] = { type = tower.type, level = tower.level, spent = tower.spent }
+	self:saveTower(tower)
 end
 
 function PlotGame:sellTower(spotIndex: any)
@@ -537,6 +591,137 @@ function PlotGame:buySpot()
 	HubMap.setUnlockedSpots(self.plot, spotIndex)
 	self:syncAttributes()
 	self:notify(`Emplacement {spotIndex} débloqué !`, "Success")
+end
+
+----------------------------------------------------------------------
+-- Machines à sous
+----------------------------------------------------------------------
+
+local random = Random.new()
+
+local function rollWeighted(entries, weightOf)
+	local total = 0
+	for _, entry in entries do
+		total += weightOf(entry)
+	end
+	local roll = random:NextNumber() * total
+	for _, entry in entries do
+		roll -= weightOf(entry)
+		if roll <= 0 then
+			return entry
+		end
+	end
+	return entries[#entries]
+end
+
+-- Inventaire visible par le client (attributs du joueur).
+function PlotGame:publishInventory()
+	local player = self.player
+	local unlocked, dupes = {}, {}
+	for _, towerType in IdleTowers.ORDER do
+		if self.idle.unlockedTowers[towerType] then
+			table.insert(unlocked, towerType)
+		end
+		local count = self.idle.towerDupes[towerType]
+		if count and count > 0 then
+			table.insert(dupes, `{towerType}:{count}`)
+		end
+	end
+	player:SetAttribute("UnlockedTowers", table.concat(unlocked, ","))
+	player:SetAttribute("TowerDupes", table.concat(dupes, ","))
+	player:SetAttribute("Bonuses", table.concat(self.idle.bonuses, ","))
+	player:SetAttribute("TowerSpinTier", self.idle.pendingSpinTier)
+	player:SetAttribute("LastBonusSpinAt", self.idle.lastBonusSpinAt)
+end
+
+function PlotGame:sendResult(result)
+	if self.player.Parent then
+		Remotes.get("MachineResult"):FireClient(self.player, result)
+	end
+end
+
+-- Machine à tours : utilise le lancer gratuit gagné en passant une vague.
+function PlotGame:spinTower()
+	local tier = self.idle.pendingSpinTier
+	if tier <= 0 then
+		self:notify("Passe une vague pour gagner un lancer !", "Warning")
+		return
+	end
+	self.idle.pendingSpinTier = 0
+
+	local odds = IdleConfig.TOWER_SPIN_TIERS[tier].odds
+	local rarity = rollWeighted(IdleConfig.RARITY_ORDER, function(name)
+		return odds[name] or 0
+	end)
+	local choices = IdleTowers.ofRarity(rarity)
+	local towerType = choices[random:NextInteger(1, #choices)]
+
+	local isNew = not self.idle.unlockedTowers[towerType]
+	if isNew then
+		self.idle.unlockedTowers[towerType] = true
+	else
+		self.idle.towerDupes[towerType] = (self.idle.towerDupes[towerType] or 0) + 1
+	end
+	self:publishInventory()
+	self:sendResult({
+		machine = "Tower",
+		tower = towerType,
+		rarity = rarity,
+		isNew = isNew,
+		dupes = self.idle.towerDupes[towerType] or 0,
+	})
+end
+
+-- Tire un bonus et le met dans l'inventaire (utilisé par le lancer en pièces et par l'achat Robux).
+function PlotGame:grantBonusSpin(source: string)
+	local bonus = rollWeighted(IdleConfig.BONUSES, function(entry)
+		return entry.chance
+	end)
+	if #self.idle.bonuses < IdleConfig.MAX_BONUS_INVENTORY then
+		table.insert(self.idle.bonuses, bonus.id)
+	end
+	self:publishInventory()
+	self:sendResult({ machine = "Bonus", bonus = bonus.id, source = source })
+end
+
+-- Machine à bonus, lancer payé en pièces : 1 toutes les 30 minutes.
+function PlotGame:spinBonusWithCoins()
+	local now = os.time()
+	local waitLeft = self.idle.lastBonusSpinAt + IdleConfig.BONUS_SPIN_COOLDOWN - now
+	if waitLeft > 0 then
+		self:notify(`Prochain lancer en pièces dans {math.ceil(waitLeft / 60)} min`, "Warning")
+		return
+	end
+	if #self.idle.bonuses >= IdleConfig.MAX_BONUS_INVENTORY then
+		self:notify("Ton inventaire de bonus est plein", "Error")
+		return
+	end
+	local cost = IdleConfig.bonusSpinCost(self.idle.highestWave)
+	if self.data.coins < cost then
+		self:notify(`Il te faut {NumberFormat.short(cost)} pièces`, "Error")
+		return
+	end
+	PlayerData.addCoins(self.player, -cost)
+	self.idle.lastBonusSpinAt = now
+	self:grantBonusSpin("Coins")
+end
+
+-- Pose un bonus de l'inventaire sur une tour (remplace le bonus déjà posé, qui est perdu).
+function PlotGame:applyBonus(spotIndex: any, bonusId: any)
+	local tower = validSpot(self, spotIndex) and self.towers[spotIndex]
+	if not tower or typeof(bonusId) ~= "string" or not IdleConfig.BONUS_BY_ID[bonusId] then
+		return
+	end
+	local inventoryIndex = table.find(self.idle.bonuses, bonusId)
+	if not inventoryIndex then
+		return
+	end
+	table.remove(self.idle.bonuses, inventoryIndex)
+	tower.bonus = bonusId
+	tower.model:SetAttribute("Bonus", bonusId)
+	self:saveTower(tower)
+	self:publishInventory()
+	self:notify(`Bonus {IdleConfig.BONUS_BY_ID[bonusId].displayName} posé !`, "Success")
 end
 
 -- Le joueur quitte le serveur : on libère la parcelle (sa progression est déjà dans ses données).
