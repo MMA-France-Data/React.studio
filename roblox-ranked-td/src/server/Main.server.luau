@@ -28,8 +28,13 @@ print("[RankedTD] Mode serveur :", mode)
 
 PlayerData.start()
 
-if mode == "Match" then
-	require(script.Parent.Match).start()
-else
-	require(script.Parent.Lobby).start()
+local ok, err = xpcall(function()
+	if mode == "Match" then
+		require(script.Parent.Match).start()
+	else
+		require(script.Parent.Lobby).start()
+	end
+end, debug.traceback)
+if not ok then
+	warn(`[RankedTD] Échec du démarrage en mode {mode} :\n{err}`)
 end

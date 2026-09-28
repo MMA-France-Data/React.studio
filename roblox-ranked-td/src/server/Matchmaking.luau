@@ -23,10 +23,9 @@ local MM = Config.Matchmaking
 
 local Matchmaking = {}
 
-local queueMap = MemoryStoreService:GetSortedMap("RankedTD_Queue_S" .. Config.SEASON)
-local assignments = MemoryStoreService:GetHashMap("RankedTD_Assignments")
-local matchInfos = MemoryStoreService:GetHashMap("RankedTD_Matches")
-local leaderMap = MemoryStoreService:GetHashMap("RankedTD_Leader")
+-- Créés dans Matchmaking.start() : dans Studio (jeu non publié), MemoryStoreService peut refuser
+-- l'accès, et une erreur au chargement du module empêcherait tout le lobby de démarrer.
+local queueMap, assignments, matchInfos, leaderMap
 
 -- [Player] = { state = "Joining" | "Searching" | "Teleporting", joinedAt = number }
 local localQueue = {}
@@ -58,6 +57,10 @@ function Matchmaking.join(player: Player)
 	end
 	if RunService:IsStudio() then
 		notify:FireClient(player, "Le matchmaking a besoin d'un jeu publié. Pour tester le gameplay : Config.STUDIO_FORCE_MODE = \"Match\".", "Warning")
+		return
+	end
+	if not queueMap then
+		notify:FireClient(player, "Le matchmaking est indisponible pour le moment.", "Error")
 		return
 	end
 	local data = PlayerData.get(player)
@@ -102,6 +105,9 @@ function Matchmaking.leave(player: Player)
 	localQueue[player] = nil
 	if player.Parent then
 		setQueueState(player, "Idle")
+	end
+	if not queueMap then
+		return
 	end
 	task.spawn(function()
 		pcall(function()
@@ -320,6 +326,18 @@ function Matchmaking.start()
 
 	if RunService:IsStudio() then
 		return -- pas de MemoryStore/téléportation utiles dans Studio
+	end
+
+	local ok, err = pcall(function()
+		queueMap = MemoryStoreService:GetSortedMap("RankedTD_Queue_S" .. Config.SEASON)
+		assignments = MemoryStoreService:GetHashMap("RankedTD_Assignments")
+		matchInfos = MemoryStoreService:GetHashMap("RankedTD_Matches")
+		leaderMap = MemoryStoreService:GetHashMap("RankedTD_Leader")
+	end)
+	if not ok then
+		warn("[Matchmaking] MemoryStoreService indisponible :", err)
+		queueMap = nil
+		return
 	end
 
 	-- Suivi des joueurs locaux : assignations + maintien de l'entrée dans la file.
