@@ -30,7 +30,7 @@ PlotLayout.BASE_POSITION = Vector3.new(0, 0, -39)
 PlotLayout.PLAYER_SPAWN = Vector3.new(-20, 3, -40)
 
 -- Emplacements de tours, dans l'ordre de déblocage.
--- Les STARTING_SPOTS premiers sont gratuits, les autres s'achètent avec des pièces.
+-- 22 emplacements : les STARTING_SPOTS premiers sont gratuits, les autres s'achètent avec des pièces.
 PlotLayout.STARTING_SPOTS = 4
 PlotLayout.SPOTS = {
 	Vector3.new(-4, 0, -1),
@@ -49,7 +49,30 @@ PlotLayout.SPOTS = {
 	Vector3.new(13, 0, 17),
 	Vector3.new(-10, 0, 34),
 	Vector3.new(4, 0, 34),
+	Vector3.new(-28, 0, 17),
+	Vector3.new(28, 0, 17),
+	Vector3.new(-28, 0, -18),
+	Vector3.new(28, 0, -18),
+	Vector3.new(14, 0, 34),
+	Vector3.new(24, 0, 40),
 }
+
+-- Prix des emplacements à débloquer : de plus en plus cher, et la hausse elle-même accélère.
+-- 5e emplacement : 500 pièces … 22e : ~1,1 Qa (un quadrillion).
+PlotLayout.SPOT_BASE_COST = 500
+PlotLayout.SPOT_COST_GROWTH = 3.8
+PlotLayout.SPOT_COST_ACCELERATION = 1.02
+
+function PlotLayout.spotCost(spotIndex: number): number
+	local k = spotIndex - PlotLayout.STARTING_SPOTS - 1
+	if k < 0 then
+		return 0
+	end
+	local raw = PlotLayout.SPOT_BASE_COST * PlotLayout.SPOT_COST_GROWTH ^ k * PlotLayout.SPOT_COST_ACCELERATION ^ (k * k)
+	-- Arrondi à 2 chiffres significatifs pour des prix lisibles.
+	local magnitude = 10 ^ math.max(0, math.floor(math.log10(raw)) - 1)
+	return math.floor(raw / magnitude + 0.5) * magnitude
+end
 
 -- CFrame de l'origine d'une parcelle : son axe +Z pointe vers l'extérieur de la map.
 function PlotLayout.cframe(plotIndex: number): CFrame

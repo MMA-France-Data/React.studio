@@ -8,7 +8,8 @@ Tout est construit par code (carte, interface, tours, ennemis) : pas besoin de m
 ## La map principale
 
 Chaque serveur accueille 6 joueurs (à régler dans *Game Settings > Places > Server Size*).
-Chacun reçoit sa parcelle : un chemin, une base et 16 emplacements de tours (4 débloqués au départ).
+Chacun reçoit sa parcelle : un chemin, une base et 22 emplacements de tours (4 débloqués au départ, les autres de 500 pièces
+jusqu'à ~1,1 Qa pour le dernier, voir `PlotLayout.spotCost`).
 Au centre, un **cercle rouge** : entrer dedans lance la recherche d'une partie ranked.
 Les boutons « Ma base » et « Cercle ranked » servent à se déplacer vite.
 

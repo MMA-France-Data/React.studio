@@ -1,7 +1,9 @@
 -- Construit la map principale : place centrale (cercle ranked + classement) et 6 parcelles.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local PlotLayout = require(ReplicatedStorage:WaitForChild("Shared").PlotLayout)
+local Shared = ReplicatedStorage:WaitForChild("Shared")
+local NumberFormat = require(Shared.NumberFormat)
+local PlotLayout = require(Shared.PlotLayout)
 
 local HubMap = {}
 
@@ -166,15 +168,18 @@ function HubMap.setUnlockedSpots(plot, unlocked: number)
 		elseif not isUnlocked and not lock then
 			local gui = Instance.new("BillboardGui")
 			gui.Name = "Lock"
-			gui.Size = UDim2.fromOffset(28, 28)
+			gui.Size = UDim2.fromOffset(96, 26)
 			gui.StudsOffsetWorldSpace = Vector3.new(0, 1.5, 0)
 			gui.MaxDistance = 60
 			gui.Parent = pad
 			local icon = Instance.new("TextLabel")
 			icon.Size = UDim2.fromScale(1, 1)
 			icon.BackgroundTransparency = 1
+			icon.Font = Enum.Font.GothamBlack
 			icon.TextScaled = true
-			icon.Text = "🔒"
+			icon.TextColor3 = Color3.fromRGB(255, 205, 80)
+			icon.TextStrokeTransparency = 0.3
+			icon.Text = "🔒 " .. NumberFormat.short(PlotLayout.spotCost(spotIndex))
 			icon.Parent = gui
 		end
 	end
