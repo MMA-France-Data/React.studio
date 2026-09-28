@@ -191,7 +191,7 @@ function HubMap.build()
 
 	part({
 		Name = "Ground",
-		Size = Vector3.new(400, 1, 400),
+		Size = Vector3.new(480, 1, 480),
 		Position = Vector3.new(0, -0.7, 0),
 		Color = Color3.fromRGB(60, 64, 80),
 		Material = Enum.Material.Slate,

@@ -17,8 +17,8 @@ Les boutons « Ma base » et « Cercle ranked » servent à se déplacer vite.
 
 - Des vagues sans fin arrivent sur ta parcelle. **Impossible de perdre** : si ta base tombe, tu redescends
   d'une vague et tu réessaies. Vague réussie → vague suivante.
-- Les PV et les gains grandissent de ×1,15 par vague (réglages dans `IdleConfig.luau`) : les pièces passent
-  de quelques unités à des trillions.
+- Les PV grandissent de ×1,22 et les gains de ×1,18 par vague (réglages dans `IdleConfig.luau`) : les pièces
+  passent de quelques unités à des trillions.
 - 5 types de vagues : **Mixte**, **Horde** (masse de petits ennemis → tours de zone), **Rush** (rapides →
   ralentissement), **Géants** (lents et énormes → gros dégâts), **Boss** toutes les 10 vagues.
 - Les ennemis tués lâchent des **pièces à ramasser** (les pièces proches s'empilent). Le bonus de pièces
@@ -26,6 +26,10 @@ Les boutons « Ma base » et « Cercle ranked » servent à se déplacer vite.
 - 5 tours (`IdleTowers.luau`) : Mitrailleur, Givre, Bombe, Électrique, Lance-roquettes. Clique sur un
   emplacement pour poser une tour ; poser sur une tour existante la remplace (50 % remboursés), vendre rend 50 %.
 - Clique sur le cadenas suivant pour débloquer un emplacement.
+- **Améliorations** : clique sur une tour → « Améliorer » (ou touche E). Niveaux illimités, dégâts ×1,35 par
+  niveau, prix ×1,5 par niveau. Les PV des vagues montent un peu plus vite que les gains (×1,22 contre ×1,18) :
+  on bloque souvent, on farme un peu, une amélioration débloque les vagues suivantes.
+- Chemin de ~360 studs (6 allers-retours) et ennemis 1,6× plus rapides qu'en ranked.
 - Côté technique, les ennemis n'existent que sous forme de données sur le serveur ; chaque client reçoit leurs
   positions 6 fois par seconde dans un paquet binaire et les affiche lui-même (`PlotGame.luau`, `PlotRenderer.luau`).
 

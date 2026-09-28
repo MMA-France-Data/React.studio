@@ -189,6 +189,8 @@ function Hub.start()
 		lastPlotAction[player] = now
 		if action == "Place" then
 			plotGame:placeTower(spotIndex, towerType)
+		elseif action == "Upgrade" then
+			plotGame:upgradeTower(spotIndex)
 		elseif action == "Sell" then
 			plotGame:sellTower(spotIndex)
 		elseif action == "BuySpot" then

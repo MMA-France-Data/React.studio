@@ -336,7 +336,7 @@ function PlotGame:step(dt: number)
 		if enemy.dead then
 			continue
 		end
-		local speed = enemy.def.speed
+		local speed = enemy.def.speed * IdleConfig.ENEMY_SPEED_MULTIPLIER
 		if now < enemy.slowUntil then
 			speed *= 1 - enemy.slowFactor
 		end
@@ -489,6 +489,25 @@ function PlotGame:placeTower(spotIndex: any, towerType: any)
 	if existing then
 		self:notify(`{def.displayName} posé • ancienne tour revendue +{NumberFormat.short(refund)}`, "Success")
 	end
+end
+
+-- Améliorer une tour : +1 niveau, dégâts multipliés (voir IdleConfig.UPGRADE_DAMAGE).
+function PlotGame:upgradeTower(spotIndex: any)
+	local tower = validSpot(self, spotIndex) and self.towers[spotIndex]
+	if not tower then
+		return
+	end
+	local cost = IdleTowers.upgradeCost(tower.type, tower.level)
+	if self.data.coins < cost then
+		self:notify(`Il te faut {NumberFormat.short(cost)} pièces`, "Error")
+		return
+	end
+	PlayerData.addCoins(self.player, -cost)
+	tower.level += 1
+	tower.spent += cost
+	tower.model:SetAttribute("Level", tower.level)
+	tower.model:SetAttribute("Spent", tower.spent)
+	self.idle.towers[tostring(spotIndex)] = { type = tower.type, level = tower.level, spent = tower.spent }
 end
 
 function PlotGame:sellTower(spotIndex: any)

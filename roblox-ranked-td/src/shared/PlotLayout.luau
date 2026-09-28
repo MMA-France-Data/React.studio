@@ -5,25 +5,30 @@
 local PlotLayout = {}
 
 PlotLayout.COUNT = 6
-PlotLayout.RING_RADIUS = 125 -- distance entre le centre de la map et le centre d'une parcelle
+PlotLayout.RING_RADIUS = 140 -- distance entre le centre de la map et le centre d'une parcelle
 PlotLayout.WIDTH = 64
-PlotLayout.LENGTH = 90
+PlotLayout.LENGTH = 130
 PlotLayout.PATH_WIDTH = 6
 
 PlotLayout.RANKED_CIRCLE_RADIUS = 9
 PlotLayout.RANKED_CIRCLE_POSITION = Vector3.new(0, 0, 20)
 
+-- 6 allers-retours : un long chemin (~360 studs) pour laisser le temps aux tours de travailler.
 PlotLayout.PATH = {
-	Vector3.new(-22, 0, 42),
-	Vector3.new(-22, 0, 26),
-	Vector3.new(22, 0, 26),
-	Vector3.new(22, 0, 8),
-	Vector3.new(-22, 0, 8),
-	Vector3.new(-22, 0, -10),
-	Vector3.new(22, 0, -10),
-	Vector3.new(22, 0, -26),
-	Vector3.new(0, 0, -26),
-	Vector3.new(0, 0, -34),
+	Vector3.new(-22, 0, 62),
+	Vector3.new(-22, 0, 50),
+	Vector3.new(22, 0, 50),
+	Vector3.new(22, 0, 32),
+	Vector3.new(-22, 0, 32),
+	Vector3.new(-22, 0, 14),
+	Vector3.new(22, 0, 14),
+	Vector3.new(22, 0, -4),
+	Vector3.new(-22, 0, -4),
+	Vector3.new(-22, 0, -22),
+	Vector3.new(22, 0, -22),
+	Vector3.new(22, 0, -40),
+	Vector3.new(0, 0, -40),
+	Vector3.new(0, 0, -54),
 }
 
 -- Longueurs cumulées du chemin, pour placer un ennemi selon la distance parcourue.
@@ -48,35 +53,35 @@ function PlotLayout.pointAt(distance: number): (Vector3, Vector3)
 	return path[#path], (path[#path] - path[#path - 1]).Unit
 end
 
-PlotLayout.BASE_POSITION = Vector3.new(0, 0, -39)
-PlotLayout.PLAYER_SPAWN = Vector3.new(-20, 3, -40)
+PlotLayout.BASE_POSITION = Vector3.new(0, 0, -59)
+PlotLayout.PLAYER_SPAWN = Vector3.new(-20, 3, -60)
 
 -- Emplacements de tours, dans l'ordre de déblocage.
 -- 22 emplacements : les STARTING_SPOTS premiers sont gratuits, les autres s'achètent avec des pièces.
 PlotLayout.STARTING_SPOTS = 4
 PlotLayout.SPOTS = {
-	Vector3.new(-4, 0, -1),
-	Vector3.new(5, 0, -1),
-	Vector3.new(-5, 0, -18),
-	Vector3.new(4, 0, -18),
-	Vector3.new(-14, 0, -36),
-	Vector3.new(14, 0, -36),
-	Vector3.new(-13, 0, -1),
-	Vector3.new(14, 0, -1),
-	Vector3.new(-14, 0, -18),
-	Vector3.new(13, 0, -18),
-	Vector3.new(-5, 0, 17),
-	Vector3.new(4, 0, 17),
-	Vector3.new(-14, 0, 17),
-	Vector3.new(13, 0, 17),
-	Vector3.new(-10, 0, 34),
-	Vector3.new(4, 0, 34),
-	Vector3.new(-28, 0, 17),
-	Vector3.new(28, 0, 17),
-	Vector3.new(-28, 0, -18),
-	Vector3.new(28, 0, -18),
-	Vector3.new(14, 0, 34),
-	Vector3.new(24, 0, 40),
+	Vector3.new(-4, 0, -13),
+	Vector3.new(5, 0, -13),
+	Vector3.new(-4, 0, -31),
+	Vector3.new(5, 0, -31),
+	Vector3.new(-13, 0, -13),
+	Vector3.new(14, 0, -13),
+	Vector3.new(-13, 0, -31),
+	Vector3.new(14, 0, -31),
+	Vector3.new(-4, 0, 5),
+	Vector3.new(5, 0, 5),
+	Vector3.new(-13, 0, 5),
+	Vector3.new(14, 0, 5),
+	Vector3.new(-14, 0, -56),
+	Vector3.new(14, 0, -56),
+	Vector3.new(-4, 0, 23),
+	Vector3.new(5, 0, 23),
+	Vector3.new(-13, 0, 23),
+	Vector3.new(14, 0, 23),
+	Vector3.new(-4, 0, 41),
+	Vector3.new(5, 0, 41),
+	Vector3.new(-13, 0, 41),
+	Vector3.new(14, 0, 41),
 }
 
 -- Prix des emplacements à débloquer : de plus en plus cher, et la hausse elle-même accélère.

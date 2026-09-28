@@ -9,9 +9,17 @@ IdleConfig.FIRST_WAVE_DELAY = 4
 IdleConfig.WAVE_CLEAR_DELAY = 1.5
 IdleConfig.WAVE_FAIL_DELAY = 3
 
-IdleConfig.HEALTH_GROWTH = 1.15 -- PV x1,15 par vague  (vague 100 : x1 million)
-IdleConfig.REWARD_GROWTH = 1.15 -- pièces x1,15 par vague
+-- Rythme « souvent bloqué, souvent débloqué » : les PV montent un peu plus vite que les gains.
+-- Au mur, tu farmes les vagues d'avant jusqu'à pouvoir t'offrir l'amélioration qui te débloque.
+IdleConfig.HEALTH_GROWTH = 1.22 -- PV x1,22 par vague
+IdleConfig.REWARD_GROWTH = 1.18 -- pièces x1,18 par vague
 
+-- Améliorations des tours (niveaux illimités)
+IdleConfig.UPGRADE_DAMAGE = 1.35 -- dégâts x1,35 par niveau
+IdleConfig.UPGRADE_COST_BASE = 2 -- niveau 1 -> 2 : 2x le prix de pose
+IdleConfig.UPGRADE_COST_GROWTH = 1.5 -- chaque niveau suivant coûte x1,5
+
+IdleConfig.ENEMY_SPEED_MULTIPLIER = 1.6 -- les ennemis vont plus vite sur les parcelles qu'en ranked
 IdleConfig.MAX_ENEMIES = 80 -- par parcelle
 IdleConfig.SYNC_RATE = 6 -- envois de position des ennemis aux clients par seconde
 IdleConfig.SHOTS_RATE = 10 -- envois des effets de tir par seconde
@@ -26,8 +34,8 @@ IdleConfig.SELL_REFUND = 0.5 -- part du prix rendue à la vente (prix des tours 
 -- Chaque vague a un budget de PV total et un budget de pièces, qui grandissent à chaque vague.
 -- Le type de vague décide comment ce budget est réparti : 40 petites nuées ou 3 géants énormes.
 -- La difficulté reste donc comparable, mais ce ne sont pas les mêmes tours qui brillent.
-IdleConfig.HEALTH_BUDGET = 60 -- PV totaux de la vague 1
-IdleConfig.REWARD_BUDGET = 6 -- pièces totales de la vague 1
+IdleConfig.HEALTH_BUDGET = 150 -- PV totaux de la vague 1
+IdleConfig.REWARD_BUDGET = 8 -- pièces totales de la vague 1
 
 function IdleConfig.healthBudget(wave: number): number
 	return IdleConfig.HEALTH_BUDGET * IdleConfig.HEALTH_GROWTH ^ (wave - 1)

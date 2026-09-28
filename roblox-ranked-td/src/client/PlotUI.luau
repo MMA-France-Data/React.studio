@@ -192,12 +192,22 @@ function PlotUI.start()
 		cards[towerType] = { button = card, price = price }
 	end
 
+	-- Bas du panneau : [Améliorer] [Vendre] pour une tour, [Débloquer] pour un cadenas.
 	local actionButton = UI.button({
-		AnchorPoint = Vector2.new(0, 1),
-		Position = UDim2.new(0, 0, 1, 0),
+		AnchorPoint = Vector2.new(1, 1),
+		Position = UDim2.new(1, 0, 1, 0),
 		Size = UDim2.new(1, 0, 0, 44),
 		BackgroundColor3 = UI.Colors.Error,
 		MaxTextSize = 20,
+		Parent = panel,
+	})
+	local upgradeButton = UI.button({
+		AnchorPoint = Vector2.new(0, 1),
+		Position = UDim2.new(0, 0, 1, 0),
+		Size = UDim2.new(0.6, -4, 0, 44),
+		BackgroundColor3 = UI.Colors.Success,
+		MaxTextSize = 20,
+		Visible = false,
 		Parent = panel,
 	})
 
@@ -260,6 +270,13 @@ function PlotUI.start()
 		end
 	end)
 
+	local function upgradeSelected()
+		if selectedSpot and towerOn(selectedSpot) then
+			plotAction:FireServer("Upgrade", selectedSpot)
+		end
+	end
+	upgradeButton.Activated:Connect(upgradeSelected)
+
 	local function refreshPanel()
 		local spotIndex = selectedSpot
 		if not spotIndex then
@@ -270,6 +287,9 @@ function PlotUI.start()
 		local tower = towerOn(spotIndex)
 		highlight.Adornee = tower or spotPad(spotIndex)
 		highlight.Parent = highlight.Adornee
+
+		upgradeButton.Visible = false
+		actionButton.Size = UDim2.new(1, 0, 0, 44)
 
 		if spotIndex > unlocked then
 			-- Emplacement verrouillé
@@ -295,11 +315,18 @@ function PlotUI.start()
 		local currentType = tower and tower:GetAttribute("TowerType")
 		if tower then
 			local def = IdleTowers.Defs[currentType]
+			local level = tower:GetAttribute("Level") or 1
+			local upgradeCost = IdleTowers.upgradeCost(currentType, level)
 			refund = math.floor((tower:GetAttribute("Spent") or 0) * IdleConfig.SELL_REFUND)
-			panelTitle.Text = `{def.displayName} • emplacement {spotIndex}`
-			panelSubtitle.Text = `Remplacer par une autre tour (l'ancienne est revendue +{NumberFormat.short(refund)}) :`
+			panelTitle.Text = `{def.displayName} • Niv. {level}`
+			panelSubtitle.Text = `DPS {NumberFormat.short(IdleTowers.dps(currentType, level))} → {NumberFormat.short(IdleTowers.dps(currentType, level + 1))} au niveau {level + 1}  •  ou remplace-la (revendue +{NumberFormat.short(refund)}) :`
+
+			upgradeButton.Visible = true
+			upgradeButton.Text = `Améliorer [E] • {NumberFormat.short(upgradeCost)}`
+			upgradeButton.BackgroundTransparency = if coins() >= upgradeCost then 0 else 0.6
 			actionButton.Visible = true
-			actionButton.Text = `Vendre • +{NumberFormat.short(refund)} pièces`
+			actionButton.Size = UDim2.new(0.4, -4, 0, 44)
+			actionButton.Text = `Vendre • +{NumberFormat.short(refund)}`
 			actionButton.BackgroundColor3 = UI.Colors.Error
 			actionButton.BackgroundTransparency = 0
 		else
@@ -333,6 +360,9 @@ function PlotUI.start()
 		end
 		if input.KeyCode == Enum.KeyCode.Q then
 			select(nil)
+			return
+		elseif input.KeyCode == Enum.KeyCode.E then
+			upgradeSelected()
 			return
 		end
 		local isClick = input.UserInputType == Enum.UserInputType.MouseButton1

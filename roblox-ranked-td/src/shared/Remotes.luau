@@ -8,7 +8,7 @@ local DEFINITIONS = {
 	QueueAction = "RemoteEvent", -- client -> serveur : "Join" | "Leave"
 	HubAction = "RemoteEvent", -- client -> serveur : "GoHome" | "GoRanked"
 	-- Mode infini (parcelles)
-	PlotAction = "RemoteEvent", -- client -> serveur : ("Place", spot, type) | ("Sell", spot) | ("BuySpot")
+	PlotAction = "RemoteEvent", -- client -> serveur : ("Place", spot, type) | ("Upgrade", spot) | ("Sell", spot) | ("BuySpot")
 	PlotSync = "RemoteEvent", -- serveur -> clients : (plotIndex, buffer, count) positions des ennemis
 	PlotShots = "UnreliableRemoteEvent", -- serveur -> clients : (plotIndex, buffer, count) tirs
 	CoinDrop = "RemoteEvent", -- serveur -> propriétaire : ("Set" | "Collect", id, position, montant)

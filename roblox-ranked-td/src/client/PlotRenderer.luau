@@ -7,6 +7,7 @@ local TweenService = game:GetService("TweenService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Enemies = require(Shared.Enemies)
+local IdleConfig = require(Shared.IdleConfig)
 local IdleTowers = require(Shared.IdleTowers)
 local NumberFormat = require(Shared.NumberFormat)
 local PlotLayout = require(Shared.PlotLayout)
@@ -211,7 +212,56 @@ end
 
 ----------------------------------------------------------------------
 
+-- Étiquette « Niv. X » au-dessus de chaque tour des parcelles (mise à jour à chaque amélioration).
+local function addLevelTag(model: Instance)
+	if not model:IsA("Model") or not model:GetAttribute("SpotIndex") then
+		return
+	end
+	local def = IdleTowers.Defs[model:GetAttribute("TowerType")]
+	local anchor = model:WaitForChild("Base", 5)
+	if not def or not anchor then
+		return
+	end
+
+	local billboard = Instance.new("BillboardGui")
+	billboard.Name = "LevelTag"
+	billboard.Size = UDim2.fromOffset(70, 24)
+	billboard.StudsOffsetWorldSpace = Vector3.new(0, 8, 0)
+	billboard.MaxDistance = 90
+	billboard.Adornee = anchor
+	local label = Instance.new("TextLabel")
+	label.Size = UDim2.fromScale(1, 1)
+	label.BackgroundColor3 = Color3.fromRGB(20, 22, 30)
+	label.BackgroundTransparency = 0.25
+	label.Font = Enum.Font.GothamBlack
+	label.TextScaled = true
+	label.TextColor3 = def.color:Lerp(Color3.new(1, 1, 1), 0.4)
+	label.Parent = billboard
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(1, 0)
+	corner.Parent = label
+
+	local function update()
+		label.Text = `Niv. {model:GetAttribute("Level") or 1}`
+	end
+	update()
+	model:GetAttributeChangedSignal("Level"):Connect(update)
+	billboard.Parent = model
+end
+
 function PlotRenderer.start()
+	local plotsFolder = workspace:WaitForChild("Hub"):WaitForChild("Plots")
+	plotsFolder.DescendantAdded:Connect(function(instance)
+		if instance:IsA("Model") then
+			task.defer(addLevelTag, instance)
+		end
+	end)
+	for _, instance in plotsFolder:GetDescendants() do
+		if instance:IsA("Model") then
+			task.spawn(addLevelTag, instance)
+		end
+	end
+
 	folder.Parent = workspace
 	coinFolder.Parent = workspace
 
@@ -223,7 +273,7 @@ function PlotRenderer.start()
 		local parts, cframes = {}, {}
 		for _, state in plots do
 			for _, enemy in state.enemies do
-				enemy.distance = math.min(PlotLayout.PATH_LENGTH, enemy.distance + enemy.def.speed * (enemy.speedFactor or 1) * dt)
+				enemy.distance = math.min(PlotLayout.PATH_LENGTH, enemy.distance + enemy.def.speed * IdleConfig.ENEMY_SPEED_MULTIPLIER * (enemy.speedFactor or 1) * dt)
 				local localPosition, direction = PlotLayout.pointAt(enemy.distance)
 				local position = state.cframe:PointToWorldSpace(localPosition) + Vector3.new(0, enemy.def.size / 2, 0)
 				local worldDirection = state.cframe:VectorToWorldSpace(direction)

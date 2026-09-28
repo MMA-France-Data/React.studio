@@ -1,6 +1,8 @@
 -- Tours du mode infini (ta parcelle). Indépendantes des tours du ranked.
--- Toutes disponibles pour l'instant ; la boutique (étape 3) gérera le déblocage,
--- les améliorations et les bonus de la machine à sous.
+-- Toutes disponibles pour l'instant ; la boutique gérera le déblocage et la machine à sous
+-- les bonus.
+local IdleConfig = require(script.Parent.IdleConfig)
+
 local IdleTowers = {}
 
 IdleTowers.ORDER = { "MachineGun", "Frost", "Bomb", "Tesla", "Rocket" }
@@ -68,9 +70,29 @@ IdleTowers.Defs = {
 	},
 }
 
--- Stats effectives (l'étape 3 ajoutera les niveaux d'amélioration et les bonus de la machine à sous).
-function IdleTowers.stats(towerType: string, _level: number)
-	return IdleTowers.Defs[towerType]
+-- Améliorations : niveaux illimités. Chaque niveau multiplie les dégâts, et chaque
+-- amélioration coûte plus cher que la précédente (réglages dans IdleConfig).
+local statsCache = {}
+
+-- Stats effectives d'une tour à un niveau donné (dégâts multipliés par le niveau).
+function IdleTowers.stats(towerType: string, level: number)
+	local key = towerType .. ":" .. level
+	local cached = statsCache[key]
+	if cached then
+		return cached
+	end
+	local def = IdleTowers.Defs[towerType]
+	local stats = table.clone(def)
+	stats.damage = def.damage * IdleConfig.UPGRADE_DAMAGE ^ (level - 1)
+	statsCache[key] = stats
+	return stats
+end
+
+-- Prix pour passer du niveau `level` au niveau `level + 1`.
+function IdleTowers.upgradeCost(towerType: string, level: number): number
+	local raw = IdleTowers.Defs[towerType].placeCost * IdleConfig.UPGRADE_COST_BASE * IdleConfig.UPGRADE_COST_GROWTH ^ (level - 1)
+	local magnitude = 10 ^ math.max(0, math.floor(math.log10(raw)) - 1)
+	return math.floor(raw / magnitude + 0.5) * magnitude
 end
 
 function IdleTowers.dps(towerType: string, level: number): number
