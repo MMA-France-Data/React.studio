@@ -4,6 +4,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.Config)
+local PlotLayout = require(Shared.PlotLayout)
 local Ranks = require(Shared.Ranks)
 local Remotes = require(Shared.Remotes)
 local UI = require(script.Parent.UI)
@@ -109,6 +110,14 @@ function LobbyUI.start()
 		end
 	end)
 
+	-- Le conseil « entre dans le sceau » n'apparaît que près du sceau rouge.
+	local function nearRankedCircle(): boolean
+		local character = player.Character
+		local root = character and character:FindFirstChild("HumanoidRootPart")
+		return root ~= nil
+			and (root.Position - PlotLayout.RANKED_CIRCLE_POSITION).Magnitude <= Config.LabelDistance.Medium
+	end
+
 	local function update()
 		local mmr = player:GetAttribute("Mmr")
 		local games = player:GetAttribute("GamesPlayed") or 0
@@ -134,7 +143,7 @@ function LobbyUI.start()
 			statusLabel.Text = "Adversaire trouvé ! Téléportation vers le match..."
 		else
 			button.Visible = false
-			statusLabel.Text = "Entre dans le sceau rouge pour défier un autre royaume"
+			statusLabel.Text = if nearRankedCircle() then "Entre dans le sceau rouge pour défier un autre royaume" else ""
 		end
 	end
 

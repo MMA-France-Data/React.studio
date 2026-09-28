@@ -16,6 +16,14 @@ Config.Products = {
 	BONUS_SPIN = 0, -- un lancer de la machine à bonus
 }
 
+-- Distance (en studs) entre ton personnage et un objet sous laquelle son texte flottant s'affiche :
+-- l'écran reste lisible, chaque étiquette n'apparaît que quand on s'approche (ProximityLabel.luau).
+Config.LabelDistance = {
+	Close = 25, -- niveaux des tours, prix des emplacements, montants des pièces, noms des autels
+	Medium = 45, -- barres de vie sur les parcelles, panneaux des fiefs, badges des tours en match
+	Far = 80, -- barres de vie et forteresses en match (on regarde son terrain de loin)
+}
+
 Config.Data = {
 	DATASTORE_NAME = "RankedTD_PlayerData_v1",
 	-- Dans Studio, utilise des DataStores en mémoire (rien n'est sauvegardé pour de vrai).

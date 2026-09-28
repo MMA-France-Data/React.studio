@@ -15,6 +15,9 @@ Remotes.get("Notify").OnClientEvent:Connect(function(message: string, kind: stri
 	UI.toast(message, kind)
 end)
 
+-- Textes flottants (niveaux, prix, barres de vie...) visibles seulement quand on s'approche.
+require(Shared.ProximityLabel).start()
+
 if mode == "Match" then
 	-- La liste des joueurs de Roblox cacherait le panneau de l'adversaire (en haut à droite),
 	-- qui affiche déjà les mêmes infos.

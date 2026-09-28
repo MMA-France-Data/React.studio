@@ -5,6 +5,8 @@ local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
+local Config = require(Shared.Config)
+local ProximityLabel = require(Shared.ProximityLabel)
 local Remotes = require(Shared.Remotes)
 local Towers = require(Shared.Towers)
 
@@ -287,7 +289,7 @@ local function addHealthBar(enemy: Instance)
 	local billboard = Instance.new("BillboardGui")
 	billboard.Size = UDim2.fromOffset(40, 6)
 	billboard.StudsOffset = Vector3.new(0, enemy.Size.Y / 2 + 1, 0)
-	billboard.MaxDistance = 150
+	ProximityLabel.register(billboard, Config.LabelDistance.Far)
 	billboard.AlwaysOnTop = true
 
 	local background = Instance.new("Frame")
@@ -330,7 +332,7 @@ local function addTowerBadge(model: Instance)
 	billboard.Name = "LevelBadge"
 	billboard.Size = UDim2.fromOffset(78, 26)
 	billboard.AlwaysOnTop = true
-	billboard.MaxDistance = 110
+	ProximityLabel.register(billboard, Config.LabelDistance.Medium)
 	billboard.Adornee = anchor
 
 	local background = Instance.new("Frame")

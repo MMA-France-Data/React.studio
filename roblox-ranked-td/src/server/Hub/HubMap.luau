@@ -3,8 +3,10 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Lighting = game:GetService("Lighting")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
+local Config = require(Shared.Config)
 local NumberFormat = require(Shared.NumberFormat)
 local PlotLayout = require(Shared.PlotLayout)
+local ProximityLabel = require(Shared.ProximityLabel)
 
 local HubMap = {}
 
@@ -32,7 +34,7 @@ local function billboard(adornee: BasePart, text: string, offset: Vector3, size:
 	local gui = Instance.new("BillboardGui")
 	gui.Size = size
 	gui.StudsOffsetWorldSpace = offset
-	gui.MaxDistance = maxDistance or 140
+	ProximityLabel.register(gui, maxDistance or Config.LabelDistance.Medium)
 	gui.Parent = adornee
 	local label = Instance.new("TextLabel")
 	label.Size = UDim2.fromScale(1, 1)
@@ -168,7 +170,7 @@ local function buildPlot(index: number, parent: Instance)
 		Material = Enum.Material.Wood,
 		Parent = folder,
 	})
-	local ownerLabel = billboard(post, "Fief libre", Vector3.new(0, 5, 0), UDim2.fromOffset(145, 26), color, 72)
+	local ownerLabel = billboard(post, "Fief libre", Vector3.new(0, 5, 0), UDim2.fromOffset(145, 26), color, Config.LabelDistance.Medium)
 
 	-- Deux machines à sous devant l'entrée
 	local machines = {}
@@ -193,7 +195,7 @@ local function buildPlot(index: number, parent: Instance)
 			CanCollide = false,
 			Parent = folder,
 		})
-		billboard(cabinet, info.title, Vector3.new(0, 4.8, 0), UDim2.fromOffset(130, 20), info.color, 48)
+		billboard(cabinet, info.title, Vector3.new(0, 4.8, 0), UDim2.fromOffset(130, 20), info.color, Config.LabelDistance.Close)
 		local prompt = Instance.new("ProximityPrompt")
 		prompt.ActionText = "Ouvrir"
 		prompt.ObjectText = info.title
@@ -230,7 +232,7 @@ function HubMap.setUnlockedSpots(plot, unlocked: number)
 			gui.Name = "Lock"
 			gui.Size = UDim2.fromOffset(96, 26)
 			gui.StudsOffsetWorldSpace = Vector3.new(0, 1.5, 0)
-			gui.MaxDistance = 60
+			ProximityLabel.register(gui, Config.LabelDistance.Close)
 			gui.Parent = pad
 			local icon = Instance.new("TextLabel")
 			icon.Size = UDim2.fromScale(1, 1)

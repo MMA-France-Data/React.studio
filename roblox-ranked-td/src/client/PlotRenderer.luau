@@ -6,12 +6,14 @@ local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
+local Config = require(Shared.Config)
 local Enemies = require(Shared.Enemies)
 local IdleConfig = require(Shared.IdleConfig)
 local IdleTowers = require(Shared.IdleTowers)
 local MedievalModels = require(Shared.MedievalModels)
 local NumberFormat = require(Shared.NumberFormat)
 local PlotLayout = require(Shared.PlotLayout)
+local ProximityLabel = require(Shared.ProximityLabel)
 local Remotes = require(Shared.Remotes)
 local Effects = require(script.Parent.Effects)
 
@@ -53,7 +55,7 @@ local function createEnemy(def)
 	local billboard = Instance.new("BillboardGui")
 	billboard.Size = UDim2.fromOffset(math.max(30, def.size * 12), 5)
 	billboard.StudsOffset = Vector3.new(0, def.size / 2 + 0.8, 0)
-	billboard.MaxDistance = 90
+	ProximityLabel.register(billboard, Config.LabelDistance.Medium)
 	billboard.AlwaysOnTop = true
 	billboard.Parent = part
 	local background = Instance.new("Frame")
@@ -207,7 +209,7 @@ local function onCoinDrop(action: string, id: number, position: Vector3, amount:
 		local billboard = Instance.new("BillboardGui")
 		billboard.Size = UDim2.fromOffset(90, 22)
 		billboard.StudsOffset = Vector3.new(0, 1.8, 0)
-		billboard.MaxDistance = 120
+		ProximityLabel.register(billboard, Config.LabelDistance.Close)
 		billboard.Parent = part
 		local label = Instance.new("TextLabel")
 		label.Size = UDim2.fromScale(1, 1)
@@ -244,8 +246,10 @@ local function addLevelTag(model: Instance)
 	local billboard = Instance.new("BillboardGui")
 	billboard.Name = "LevelTag"
 	billboard.Size = UDim2.fromOffset(70, 24)
-	billboard.StudsOffsetWorldSpace = Vector3.new(0, 8, 0)
-	billboard.MaxDistance = 90
+	-- Au-dessus du sommet de la tour (les modèles n'ont pas tous la même hauteur), et devant le décor :
+	-- elle ne s'affiche de toute façon que de près (ProximityLabel).
+	billboard.AlwaysOnTop = true
+	ProximityLabel.register(billboard, Config.LabelDistance.Close)
 	billboard.Adornee = anchor
 	local label = Instance.new("TextLabel")
 	label.Size = UDim2.fromScale(1, 1)
@@ -259,11 +263,29 @@ local function addLevelTag(model: Instance)
 	corner.CornerRadius = UDim.new(1, 0)
 	corner.Parent = label
 
+	-- Hauteur du point le plus haut de la tour (en coordonnées du monde, pièces tournées comprises).
+	local function towerTop(): number
+		local top = anchor.Position.Y
+		for _, part in model:GetDescendants() do
+			if part:IsA("BasePart") then
+				local cf, size = part.CFrame, part.Size
+				local halfHeight = (math.abs(cf.RightVector.Y) * size.X + math.abs(cf.UpVector.Y) * size.Y + math.abs(cf.LookVector.Y) * size.Z) / 2
+				top = math.max(top, cf.Position.Y + halfHeight)
+			end
+		end
+		return top
+	end
+
 	local function update()
 		label.Text = `Niv. {model:GetAttribute("Level") or 1}`
+		billboard.StudsOffsetWorldSpace = Vector3.new(0, towerTop() - anchor.Position.Y + 1.5, 0)
 	end
 	update()
 	model:GetAttributeChangedSignal("Level"):Connect(update)
+	-- Les pièces de la tour peuvent arriver après l'étiquette (streaming) : on recalcule sa hauteur.
+	model.DescendantAdded:Connect(function()
+		task.defer(update)
+	end)
 	billboard.Parent = model
 end
 

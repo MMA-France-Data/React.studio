@@ -16,9 +16,12 @@ return function(log)
 		say("SHOT:" .. name)
 		task.wait(1.2)
 	end
+	-- Les textes flottants (MaxDistance) se basent sur le point visé par la caméra (Focus), qui suit
+	-- normalement le personnage : on le place sur la cible, comme si le joueur s'y trouvait.
 	local function look(from, at)
 		camera.CameraType = Enum.CameraType.Scriptable
 		camera.CFrame = CFrame.lookAt(from, at)
+		camera.Focus = CFrame.new(at)
 	end
 	local function restoreCamera()
 		camera.CameraType = Enum.CameraType.Custom
@@ -66,6 +69,33 @@ return function(log)
 		shot("hub_plot_fight")
 		look(cf:PointToWorldSpace(Vector3.new(-10, 12, -2)), cf:PointToWorldSpace(Vector3.new(6, 3, -22)))
 		shot("hub_towers_close")
+		-- Le personnage s'approche des tours (caméra normale) : les étiquettes proches doivent apparaître.
+		restoreCamera()
+		local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+		-- Étiquettes « Niv. X » allumées (ProximityLabel) : aucune de loin, toutes de près.
+		local function enabledLevelTags()
+			local enabled, total = 0, 0
+			for _, gui in workspace:GetDescendants() do
+				if gui:IsA("BillboardGui") and gui.Name == "LevelTag" then
+					total += 1
+					enabled += if gui.Enabled then 1 else 0
+				end
+			end
+			return enabled, total
+		end
+		if root then
+			local home = root.CFrame
+			root.CFrame = CFrame.new(cf:PointToWorldSpace(Vector3.new(-20, 4, -75))) -- loin des tours
+			task.wait(0.8)
+			local far, total = enabledLevelTags()
+			log(if far == 0 then "Info" else "Error", `[{if far == 0 then "PASS" else "FAIL"}] loin des tours : {far}/{total} étiquettes affichées`)
+			root.CFrame = CFrame.new(cf:PointToWorldSpace(Vector3.new(0, 4, -22))) -- au milieu des tours
+			task.wait(0.8)
+			local near = enabledLevelTags()
+			log(if near == total and total > 0 then "Info" else "Error", `[{if near == total and total > 0 then "PASS" else "FAIL"}] près des tours : {near}/{total} étiquettes affichées`)
+			shot("hub_near_towers")
+			root.CFrame = home
+		end
 	end
 	restoreCamera()
 	task.wait(1)

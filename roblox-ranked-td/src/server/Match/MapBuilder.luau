@@ -2,7 +2,9 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Lighting = game:GetService("Lighting")
 
+local Config = require(ReplicatedStorage:WaitForChild("Shared").Config)
 local MapLayout = require(ReplicatedStorage:WaitForChild("Shared").MapLayout)
+local ProximityLabel = require(ReplicatedStorage:WaitForChild("Shared").ProximityLabel)
 
 local MapBuilder = {}
 
@@ -103,6 +105,7 @@ local function buildLane(laneIndex: number, parent: Instance)
 	billboard.Name = "Label"
 	billboard.Size = UDim2.fromOffset(200, 40)
 	billboard.StudsOffset = Vector3.new(0, 6, 0)
+	ProximityLabel.register(billboard, Config.LabelDistance.Far)
 	billboard.AlwaysOnTop = true
 	billboard.Parent = base
 	local label = Instance.new("TextLabel")

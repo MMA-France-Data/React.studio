@@ -142,6 +142,7 @@ end
 local toastGui = nil
 local toastList = nil
 local toastCount = 0
+local MAX_TOASTS = 3
 
 -- Petite notification en haut de l'écran.
 function UI.toast(message: string, kind: string?)
@@ -150,7 +151,7 @@ function UI.toast(message: string, kind: string?)
 		toastList = UI.new("Frame", {
 			AnchorPoint = Vector2.new(0.5, 0),
 			Position = UDim2.new(0.5, 0, 0, 90),
-			Size = UDim2.new(0.5, 0, 0.5, 0),
+			Size = UDim2.new(0.36, 0, 0.5, 0),
 			BackgroundTransparency = 1,
 			Parent = toastGui,
 		}, {
@@ -162,10 +163,30 @@ function UI.toast(message: string, kind: string?)
 		})
 	end
 
+	-- Peu de texte à l'écran : un message identique à un message affiché n'est pas répété, et
+	-- au-delà de MAX_TOASTS le plus ancien disparaît.
+	for _, existing in toastList:GetChildren() do
+		if existing:IsA("TextLabel") and existing.Text == message and existing.TextTransparency < 0.5 then
+			return
+		end
+	end
+	local visible = {}
+	for _, existing in toastList:GetChildren() do
+		if existing:IsA("TextLabel") then
+			table.insert(visible, existing)
+		end
+	end
+	table.sort(visible, function(a, b)
+		return a.LayoutOrder < b.LayoutOrder
+	end)
+	for i = 1, #visible - MAX_TOASTS + 1 do
+		visible[i]:Destroy()
+	end
+
 	local color = UI.Colors[kind or "Info"] or UI.Colors.PanelLight
 	toastCount += 1
 	local toast = UI.new("TextLabel", {
-		Size = UDim2.new(1, 0, 0, 36),
+		Size = UDim2.new(1, 0, 0, 28),
 		BackgroundColor3 = color,
 		BackgroundTransparency = 0.1,
 		Font = Enum.Font.GothamBold,
@@ -177,10 +198,10 @@ function UI.toast(message: string, kind: string?)
 	}, {
 		UI.corner(8),
 		UI.padding(6),
-		UI.new("UITextSizeConstraint", { MaxTextSize = 20 }),
+		UI.new("UITextSizeConstraint", { MaxTextSize = 16 }),
 	})
 
-	task.delay(3, function()
+	task.delay(2.5, function()
 		local tween = TweenService:Create(toast, TweenInfo.new(0.4), { BackgroundTransparency = 1, TextTransparency = 1 })
 		tween:Play()
 		tween.Completed:Wait()
