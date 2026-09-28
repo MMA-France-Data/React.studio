@@ -13,6 +13,22 @@ jusqu'à ~1,1 Qa pour le dernier, voir `PlotLayout.spotCost`).
 Au centre, un **cercle rouge** : entrer dedans lance la recherche d'une partie ranked.
 Les boutons « Ma base » et « Cercle ranked » servent à se déplacer vite.
 
+## Le mode infini (ta parcelle)
+
+- Des vagues sans fin arrivent sur ta parcelle. **Impossible de perdre** : si ta base tombe, tu redescends
+  d'une vague et tu réessaies. Vague réussie → vague suivante.
+- Les PV et les gains grandissent de ×1,15 par vague (réglages dans `IdleConfig.luau`) : les pièces passent
+  de quelques unités à des trillions.
+- 5 types de vagues : **Mixte**, **Horde** (masse de petits ennemis → tours de zone), **Rush** (rapides →
+  ralentissement), **Géants** (lents et énormes → gros dégâts), **Boss** toutes les 10 vagues.
+- Les ennemis tués lâchent des **pièces à ramasser** (les pièces proches s'empilent). Le bonus de pièces
+  s'additionne : ennemi à 3 pièces, +100 % → 6, +200 % → 9.
+- 5 tours (`IdleTowers.luau`) : Mitrailleur, Givre, Bombe, Électrique, Lance-roquettes. Clique sur un
+  emplacement pour poser une tour ; poser sur une tour existante la remplace (50 % remboursés), vendre rend 50 %.
+- Clique sur le cadenas suivant pour débloquer un emplacement.
+- Côté technique, les ennemis n'existent que sous forme de données sur le serveur ; chaque client reçoit leurs
+  positions 6 fois par seconde dans un paquet binaire et les affiche lui-même (`PlotGame.luau`, `PlotRenderer.luau`).
+
 ## Le match ranked
 
 - Chaque joueur défend **sa propre base** sur son terrain. Les deux reçoivent exactement les mêmes vagues.
@@ -97,9 +113,9 @@ vagues dans `Enemies.luau`, les envois dans `Sends.luau`, le tracé du chemin da
 
 ```
 src/
-  shared/   (ReplicatedStorage.Shared)   Config, Elo, Ranks, Towers, Enemies, Sends, MapLayout, PlotLayout, Placement, Remotes
-  server/   (ServerScriptService.Server) Main, PlayerData, Leaderboard, Matchmaking, Hub/{init, HubMap, Plots}, Match/{init, Game, MapBuilder}
-  client/   (StarterPlayerScripts.Client) Main, LobbyUI, MatchUI, TowerCard, TowerPlacement, Effects, UI
+  shared/   (ReplicatedStorage.Shared)   Config, IdleConfig, IdleTowers, NumberFormat, Elo, Ranks, Towers, Enemies, Sends, MapLayout, PlotLayout, Placement, Remotes
+  server/   (ServerScriptService.Server) Main, PlayerData, Leaderboard, Matchmaking, Hub/{init, HubMap, Plots, PlotGame, IdleTowerModel}, Match/{init, Game, MapBuilder}
+  client/   (StarterPlayerScripts.Client) Main, LobbyUI, PlotUI, PlotRenderer, MatchUI, TowerCard, TowerPlacement, Effects, UI
 ```
 
 ## Limites connues / pistes d'amélioration

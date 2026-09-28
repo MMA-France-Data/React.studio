@@ -22,4 +22,6 @@ if mode == "Match" then
 	require(script.Parent.Effects).start()
 else
 	require(script.Parent.LobbyUI).start()
+	require(script.Parent.PlotRenderer).start()
+	require(script.Parent.PlotUI).start()
 end

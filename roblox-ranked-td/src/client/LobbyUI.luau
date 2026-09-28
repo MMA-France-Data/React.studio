@@ -80,22 +80,24 @@ function LobbyUI.start()
 		end)
 	end
 
-	-- Statut de la recherche ranked (en bas au centre). On lance une recherche en entrant dans
+	-- Statut de la recherche ranked (en bas à droite). On lance une recherche en entrant dans
 	-- le cercle au centre de la map ; le bouton sert seulement à annuler.
 	local statusLabel = UI.label({
-		AnchorPoint = Vector2.new(0.5, 1),
-		Position = UDim2.new(0.5, 0, 1, -100),
-		Size = UDim2.new(0, 400, 0, 28),
-		MaxTextSize = 22,
+		AnchorPoint = Vector2.new(1, 1),
+		Position = UDim2.new(1, -16, 1, -84),
+		Size = UDim2.new(0, 380, 0, 26),
+		TextXAlignment = Enum.TextXAlignment.Right,
+		TextStrokeTransparency = 0.5,
+		MaxTextSize = 18,
 		Text = "",
 		Parent = gui,
 	})
 	local button = UI.button({
-		AnchorPoint = Vector2.new(0.5, 1),
-		Position = UDim2.new(0.5, 0, 1, -30),
-		Size = UDim2.new(0, 300, 0, 60),
+		AnchorPoint = Vector2.new(1, 1),
+		Position = UDim2.new(1, -16, 1, -20),
+		Size = UDim2.new(0, 220, 0, 56),
 		Text = "ANNULER",
-		MaxTextSize = 28,
+		MaxTextSize = 24,
 		Visible = false,
 		Parent = gui,
 	})

@@ -26,6 +26,28 @@ PlotLayout.PATH = {
 	Vector3.new(0, 0, -34),
 }
 
+-- Longueurs cumulées du chemin, pour placer un ennemi selon la distance parcourue.
+local cumulative = { 0 }
+for i = 2, #PlotLayout.PATH do
+	cumulative[i] = cumulative[i - 1] + (PlotLayout.PATH[i] - PlotLayout.PATH[i - 1]).Magnitude
+end
+PlotLayout.PATH_LENGTH = cumulative[#cumulative]
+
+-- Position locale et direction sur le chemin après `distance` studs.
+function PlotLayout.pointAt(distance: number): (Vector3, Vector3)
+	local path = PlotLayout.PATH
+	if distance <= 0 then
+		return path[1], (path[2] - path[1]).Unit
+	end
+	for i = 2, #path do
+		if distance <= cumulative[i] then
+			local direction = (path[i] - path[i - 1]).Unit
+			return path[i - 1] + direction * (distance - cumulative[i - 1]), direction
+		end
+	end
+	return path[#path], (path[#path] - path[#path - 1]).Unit
+end
+
 PlotLayout.BASE_POSITION = Vector3.new(0, 0, -39)
 PlotLayout.PLAYER_SPAWN = Vector3.new(-20, 3, -40)
 

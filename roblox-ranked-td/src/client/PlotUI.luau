@@ -1,0 +1,410 @@
+-- Interface de ta parcelle : pièces, vague en cours, et panneau des emplacements / tours.
+-- Clique sur un emplacement libre pour poser une tour, sur une tour pour la remplacer ou la
+-- vendre (50 % remboursés), sur un cadenas pour débloquer l'emplacement suivant.
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local UserInputService = game:GetService("UserInputService")
+
+local Shared = ReplicatedStorage:WaitForChild("Shared")
+local IdleConfig = require(Shared.IdleConfig)
+local IdleTowers = require(Shared.IdleTowers)
+local NumberFormat = require(Shared.NumberFormat)
+local PlotLayout = require(Shared.PlotLayout)
+local Remotes = require(Shared.Remotes)
+local UI = require(script.Parent.UI)
+
+local PlotUI = {}
+
+local KIND_LABELS = {
+	Single = "Cible unique",
+	Splash = "Zone",
+	Aura = "Zone autour",
+}
+
+local CARD_WIDTH = 116
+
+local function kindLabel(def): string
+	if def.kind == "Single" and def.slow then
+		return "Ralentit 1 cible"
+	end
+	return KIND_LABELS[def.kind] or ""
+end
+
+function PlotUI.start()
+	local player = Players.LocalPlayer
+	local plotAction = Remotes.get("PlotAction")
+	local plotsFolder = workspace:WaitForChild("Hub"):WaitForChild("Plots")
+	local gui = UI.screen("Plot")
+
+	local function myPlotIndex(): number?
+		return player:GetAttribute("Plot")
+	end
+	local function myPlotFolder(): Instance?
+		local index = myPlotIndex()
+		return index and plotsFolder:FindFirstChild("Plot" .. index)
+	end
+	local function coins(): number
+		return player:GetAttribute("Coins") or 0
+	end
+
+	------------------------------------------------------------------
+	-- HUD : pièces + vague
+	------------------------------------------------------------------
+	local coinsLabel = UI.label({
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.new(0.5, 0, 0, 8),
+		Size = UDim2.new(0, 360, 0, 46),
+		Font = Enum.Font.GothamBlack,
+		TextColor3 = UI.Colors.Gold,
+		TextStrokeTransparency = 0.3,
+		MaxTextSize = 42,
+		Parent = gui,
+	})
+
+	local wavePanel = UI.new("Frame", {
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.new(0.5, 0, 0, 58),
+		Size = UDim2.new(0, 340, 0, 78),
+		BackgroundColor3 = UI.Colors.Panel,
+		BackgroundTransparency = 0.15,
+		Parent = gui,
+	}, { UI.corner(12), UI.padding(8) })
+	local waveLabel = UI.label({
+		Size = UDim2.new(1, 0, 0, 22),
+		Font = Enum.Font.GothamBlack,
+		MaxTextSize = 20,
+		Parent = wavePanel,
+	})
+	local hintLabel = UI.label({
+		Position = UDim2.new(0, 0, 0, 22),
+		Size = UDim2.new(1, 0, 0, 14),
+		TextColor3 = UI.Colors.Muted,
+		MaxTextSize = 13,
+		Parent = wavePanel,
+	})
+	local _, setBaseHealth = UI.bar({
+		Position = UDim2.new(0, 0, 0, 40),
+		Size = UDim2.new(1, 0, 0, 10),
+		Parent = wavePanel,
+	}, UI.Colors.Success)
+	local waveInfo = UI.label({
+		Position = UDim2.new(0, 0, 0, 52),
+		Size = UDim2.new(1, 0, 0, 14),
+		TextColor3 = UI.Colors.Muted,
+		MaxTextSize = 13,
+		Parent = wavePanel,
+	})
+
+	------------------------------------------------------------------
+	-- Panneau emplacement / tour (en bas au centre)
+	------------------------------------------------------------------
+	local count = #IdleTowers.ORDER
+	local panel = UI.new("Frame", {
+		AnchorPoint = Vector2.new(0.5, 1),
+		Position = UDim2.new(0.5, 0, 1, -16),
+		Size = UDim2.fromOffset(count * (CARD_WIDTH + 8) + 12, 232),
+		BackgroundColor3 = UI.Colors.Panel,
+		BackgroundTransparency = 0.05,
+		Visible = false,
+		Parent = gui,
+	}, { UI.corner(14), UI.padding(10), UI.stroke() })
+	local panelTitle = UI.label({
+		Size = UDim2.new(1, -40, 0, 26),
+		Font = Enum.Font.GothamBlack,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		MaxTextSize = 22,
+		Parent = panel,
+	})
+	local panelSubtitle = UI.label({
+		Position = UDim2.new(0, 0, 0, 28),
+		Size = UDim2.new(1, 0, 0, 18),
+		TextXAlignment = Enum.TextXAlignment.Left,
+		TextColor3 = UI.Colors.Muted,
+		MaxTextSize = 15,
+		Parent = panel,
+	})
+	local closeButton = UI.button({
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.new(1, 0, 0, 0),
+		Size = UDim2.fromOffset(30, 30),
+		BackgroundColor3 = UI.Colors.PanelLight,
+		Text = "✕",
+		MaxTextSize = 18,
+		Parent = panel,
+	})
+
+	local cardRow = UI.new("Frame", {
+		Position = UDim2.new(0, 0, 0, 52),
+		Size = UDim2.new(1, 0, 0, 120),
+		BackgroundTransparency = 1,
+		Parent = panel,
+	}, {
+		UI.new("UIListLayout", {
+			FillDirection = Enum.FillDirection.Horizontal,
+			Padding = UDim.new(0, 8),
+			SortOrder = Enum.SortOrder.LayoutOrder,
+		}),
+	})
+	local cards = {}
+	for index, towerType in IdleTowers.ORDER do
+		local def = IdleTowers.Defs[towerType]
+		local card = UI.new("TextButton", {
+			Size = UDim2.fromOffset(CARD_WIDTH, 120),
+			LayoutOrder = index,
+			BackgroundColor3 = def.color:Lerp(UI.Colors.Panel, 0.55),
+			AutoButtonColor = true,
+			Text = "",
+			Parent = cardRow,
+		}, { UI.corner(10), UI.padding(6) })
+		local stroke = UI.stroke(def.color, 2)
+		stroke.Transparency = 0
+		stroke.Parent = card
+		UI.label({
+			Size = UDim2.new(1, 0, 0, 20),
+			Font = Enum.Font.GothamBlack,
+			Text = def.displayName,
+			MaxTextSize = 15,
+			Parent = card,
+		})
+		UI.label({
+			Position = UDim2.new(0, 0, 0, 22),
+			Size = UDim2.new(1, 0, 0, 14),
+			TextColor3 = UI.Colors.Muted,
+			Text = kindLabel(def),
+			MaxTextSize = 12,
+			Parent = card,
+		})
+		UI.label({
+			Position = UDim2.new(0, 0, 0, 40),
+			Size = UDim2.new(1, 0, 0, 40),
+			Text = `DPS {NumberFormat.short(IdleTowers.dps(towerType, 1))}\nPortée {def.range}`,
+			MaxTextSize = 13,
+			Parent = card,
+		})
+		local price = UI.label({
+			AnchorPoint = Vector2.new(0, 1),
+			Position = UDim2.new(0, 0, 1, 0),
+			Size = UDim2.new(1, 0, 0, 22),
+			Font = Enum.Font.GothamBlack,
+			MaxTextSize = 17,
+			Parent = card,
+		})
+		cards[towerType] = { button = card, price = price }
+	end
+
+	local actionButton = UI.button({
+		AnchorPoint = Vector2.new(0, 1),
+		Position = UDim2.new(0, 0, 1, 0),
+		Size = UDim2.new(1, 0, 0, 44),
+		BackgroundColor3 = UI.Colors.Error,
+		MaxTextSize = 20,
+		Parent = panel,
+	})
+
+	------------------------------------------------------------------
+	-- Sélection
+	------------------------------------------------------------------
+	local selectedSpot: number? = nil
+	local highlight = Instance.new("Highlight")
+	highlight.FillTransparency = 0.8
+	highlight.OutlineColor = Color3.new(1, 1, 1)
+	highlight.DepthMode = Enum.HighlightDepthMode.Occluded
+
+	local function spotPad(spotIndex: number): Instance?
+		local plot = myPlotFolder()
+		return plot and plot:FindFirstChild("Spots") and plot.Spots:FindFirstChild("Spot" .. spotIndex)
+	end
+	local function towerOn(spotIndex: number): Model?
+		local plot = myPlotFolder()
+		local towers = plot and plot:FindFirstChild("Towers")
+		if towers then
+			for _, model in towers:GetChildren() do
+				if model:GetAttribute("SpotIndex") == spotIndex then
+					return model
+				end
+			end
+		end
+		return nil
+	end
+
+	local function select(spotIndex: number?)
+		selectedSpot = spotIndex
+		panel.Visible = spotIndex ~= nil
+		local target = spotIndex and (towerOn(spotIndex) or spotPad(spotIndex))
+		highlight.Adornee = target
+		highlight.Parent = target
+	end
+
+	closeButton.Activated:Connect(function()
+		select(nil)
+	end)
+
+	for towerType, card in cards do
+		card.button.Activated:Connect(function()
+			if selectedSpot then
+				plotAction:FireServer("Place", selectedSpot, towerType)
+			end
+		end)
+	end
+
+	actionButton.Activated:Connect(function()
+		if not selectedSpot then
+			return
+		end
+		local plot = myPlotFolder()
+		local unlocked = plot and plot:GetAttribute("UnlockedSpots") or PlotLayout.STARTING_SPOTS
+		if selectedSpot > unlocked then
+			plotAction:FireServer("BuySpot")
+		elseif towerOn(selectedSpot) then
+			plotAction:FireServer("Sell", selectedSpot)
+		end
+	end)
+
+	local function refreshPanel()
+		local spotIndex = selectedSpot
+		if not spotIndex then
+			return
+		end
+		local plot = myPlotFolder()
+		local unlocked = plot and plot:GetAttribute("UnlockedSpots") or PlotLayout.STARTING_SPOTS
+		local tower = towerOn(spotIndex)
+		highlight.Adornee = tower or spotPad(spotIndex)
+		highlight.Parent = highlight.Adornee
+
+		if spotIndex > unlocked then
+			-- Emplacement verrouillé
+			cardRow.Visible = false
+			local nextSpot = unlocked + 1
+			local cost = PlotLayout.spotCost(nextSpot)
+			panelTitle.Text = `🔒 Emplacement {spotIndex}`
+			if spotIndex == nextSpot then
+				panelSubtitle.Text = "Débloque-le pour y poser une tour."
+				actionButton.Visible = true
+				actionButton.Text = `Débloquer • {NumberFormat.short(cost)} pièces`
+				actionButton.BackgroundColor3 = UI.Colors.Success
+				actionButton.BackgroundTransparency = if coins() >= cost then 0 else 0.6
+			else
+				panelSubtitle.Text = `Débloque d'abord l'emplacement {nextSpot} ({NumberFormat.short(cost)} pièces).`
+				actionButton.Visible = false
+			end
+			return
+		end
+
+		cardRow.Visible = true
+		local refund = 0
+		local currentType = tower and tower:GetAttribute("TowerType")
+		if tower then
+			local def = IdleTowers.Defs[currentType]
+			refund = math.floor((tower:GetAttribute("Spent") or 0) * IdleConfig.SELL_REFUND)
+			panelTitle.Text = `{def.displayName} • emplacement {spotIndex}`
+			panelSubtitle.Text = `Remplacer par une autre tour (l'ancienne est revendue +{NumberFormat.short(refund)}) :`
+			actionButton.Visible = true
+			actionButton.Text = `Vendre • +{NumberFormat.short(refund)} pièces`
+			actionButton.BackgroundColor3 = UI.Colors.Error
+			actionButton.BackgroundTransparency = 0
+		else
+			panelTitle.Text = `Emplacement {spotIndex}`
+			panelSubtitle.Text = "Choisis une tour à poser :"
+			actionButton.Visible = false
+		end
+
+		for towerType, card in cards do
+			local cost = IdleTowers.Defs[towerType].placeCost
+			if towerType == currentType then
+				card.price.Text = "POSÉE"
+				card.price.TextColor3 = UI.Colors.Success
+				card.button.BackgroundTransparency = 0.5
+			else
+				local affordable = coins() + refund >= cost
+				card.price.Text = NumberFormat.short(cost)
+				card.price.TextColor3 = if affordable then UI.Colors.Gold else UI.Colors.Error
+				card.button.BackgroundTransparency = if affordable then 0 else 0.5
+			end
+		end
+	end
+
+	-- Clic dans le monde : emplacement ou tour de TA parcelle.
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Include
+
+	UserInputService.InputBegan:Connect(function(input, processed)
+		if processed then
+			return
+		end
+		if input.KeyCode == Enum.KeyCode.Q then
+			select(nil)
+			return
+		end
+		local isClick = input.UserInputType == Enum.UserInputType.MouseButton1
+		local isTouch = input.UserInputType == Enum.UserInputType.Touch
+		if not isClick and not isTouch then
+			return
+		end
+		local plot = myPlotFolder()
+		if not plot then
+			return
+		end
+		params.FilterDescendantsInstances = { plot }
+
+		local camera = workspace.CurrentCamera
+		local ray
+		if isTouch then
+			ray = camera:ScreenPointToRay(input.Position.X, input.Position.Y)
+		else
+			local mouse = UserInputService:GetMouseLocation()
+			ray = camera:ViewportPointToRay(mouse.X, mouse.Y)
+		end
+		local hit = workspace:Raycast(ray.Origin, ray.Direction * 500, params)
+		if not hit then
+			return
+		end
+		local spotIndex = hit.Instance:GetAttribute("SpotIndex")
+		if not spotIndex then
+			local model = hit.Instance:FindFirstAncestorOfClass("Model")
+			spotIndex = model and model:GetAttribute("SpotIndex")
+		end
+		if spotIndex then
+			select(spotIndex)
+			refreshPanel()
+		end
+	end)
+
+	------------------------------------------------------------------
+	-- Mise à jour
+	------------------------------------------------------------------
+	local function update()
+		coinsLabel.Text = "🪙 " .. NumberFormat.short(coins())
+
+		local plot = myPlotFolder()
+		local wave = plot and plot:GetAttribute("Wave")
+		wavePanel.Visible = wave ~= nil
+		if wave then
+			local waveType = IdleConfig.WAVE_TYPES[plot:GetAttribute("WaveType")] or IdleConfig.WAVE_TYPES.Mixed
+			local maxHealth = plot:GetAttribute("MaxBaseHealth") or IdleConfig.BASE_HEALTH
+			local health = plot:GetAttribute("BaseHealth") or maxHealth
+			waveLabel.Text = `Vague {wave} • {waveType.displayName}`
+			waveLabel.TextColor3 = if waveType.displayName == "BOSS" then UI.Colors.Error else UI.Colors.Text
+			hintLabel.Text = waveType.hint
+			setBaseHealth(health / maxHealth)
+			local state = plot:GetAttribute("State")
+			if state == "Intermission" then
+				local nextAt = plot:GetAttribute("NextWaveAt") or 0
+				local remaining = math.max(0, math.ceil(nextAt - workspace:GetServerTimeNow()))
+				waveInfo.Text = `Prochaine vague dans {remaining}s  •  Record : vague {plot:GetAttribute("HighestWave") or 1}`
+			else
+				waveInfo.Text = `Ennemis restants : {plot:GetAttribute("EnemiesLeft") or 0}  •  Record : vague {plot:GetAttribute("HighestWave") or 1}`
+			end
+		end
+
+		refreshPanel()
+	end
+
+	task.spawn(function()
+		while gui.Parent do
+			update()
+			task.wait(0.1)
+		end
+	end)
+end
+
+return PlotUI

@@ -8,6 +8,9 @@ local RunService = game:GetService("RunService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.Config)
+local IdleConfig = require(Shared.IdleConfig)
+local NumberFormat = require(Shared.NumberFormat)
+local PlotLayout = require(Shared.PlotLayout)
 local Ranks = require(Shared.Ranks)
 local MockDataStore = require(script.Parent.MockDataStore)
 
@@ -21,6 +24,20 @@ local loadedCallbacks = {}
 local beforeReleaseCallbacks = {}
 local pendingWrites = 0
 
+local function defaultIdle()
+	return {
+		wave = 1, -- vague en cours
+		bestWave = 1, -- meilleure vague de la run actuelle (depuis la dernière renaissance)
+		highestWave = 1, -- meilleure vague de tous les temps
+		unlockedSpots = PlotLayout.STARTING_SPOTS,
+		towers = {}, -- [tostring(spotIndex)] = { type, level, spent }
+		-- Bonus de pièces en % (renaissances, étape 4). S'additionne : gain = base x (1 + bonus/100).
+		-- Ex : ennemi à 3 pièces -> +100 % = 6, +200 % = 9.
+		coinBonus = 0,
+		rebirths = 0,
+	}
+end
+
 local function defaultData()
 	local start = Config.Ranked.START_MMR
 	return {
@@ -33,6 +50,9 @@ local function defaultData()
 		gamesPlayed = 0,
 		lastMatchId = nil,
 		history = {}, -- résultats des saisons passées
+		-- Mode infini (parcelle). Les pièces ne sont jamais remises à zéro par les saisons.
+		coins = IdleConfig.STARTING_COINS,
+		idle = defaultIdle(),
 	}
 end
 
@@ -41,6 +61,11 @@ local function reconcile(data)
 	for key, value in defaultData() do
 		if data[key] == nil then
 			data[key] = value
+		end
+	end
+	for key, value in defaultIdle() do
+		if data.idle[key] == nil then
+			data.idle[key] = value
 		end
 	end
 	return data
@@ -154,6 +179,10 @@ local function setupLeaderstats(player: Player)
 	mmr.Name = "MMR"
 	mmr.Parent = leaderstats
 
+	local coins = Instance.new("StringValue")
+	coins.Name = "Pièces"
+	coins.Parent = leaderstats
+
 	leaderstats.Parent = player
 end
 
@@ -171,12 +200,14 @@ function PlayerData.refresh(player: Player)
 	player:SetAttribute("Draws", data.draws)
 	player:SetAttribute("GamesPlayed", data.gamesPlayed)
 	player:SetAttribute("RankName", Ranks.label(data.mmr, data.gamesPlayed))
+	player:SetAttribute("Coins", data.coins)
 	player:SetAttribute("DataLoaded", true)
 
 	local leaderstats = player:FindFirstChild("leaderstats")
 	if leaderstats then
 		leaderstats.Rang.Value = Ranks.label(data.mmr, data.gamesPlayed)
 		leaderstats.MMR.Value = data.mmr
+		leaderstats["Pièces"].Value = NumberFormat.short(data.coins)
 	end
 end
 
@@ -219,6 +250,20 @@ local function release(player: Player, isShutdown: boolean)
 	end
 	profiles[player] = nil
 	write(player.UserId, profile.data, true)
+end
+
+-- Ajoute (ou retire, si négatif) des pièces et met l'affichage à jour.
+function PlayerData.addCoins(player: Player, amount: number)
+	local profile = profiles[player]
+	if not profile then
+		return
+	end
+	profile.data.coins = math.max(0, profile.data.coins + amount)
+	player:SetAttribute("Coins", profile.data.coins)
+	local leaderstats = player:FindFirstChild("leaderstats")
+	if leaderstats then
+		leaderstats["Pièces"].Value = NumberFormat.short(profile.data.coins)
+	end
 end
 
 function PlayerData.get(player: Player)

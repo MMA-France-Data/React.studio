@@ -11,6 +11,7 @@ local Effects = {}
 
 local effectsFolder = Instance.new("Folder")
 effectsFolder.Name = "Effects"
+effectsFolder.Parent = workspace
 
 local function basePart(): Part
 	local part = Instance.new("Part")
@@ -23,7 +24,7 @@ local function basePart(): Part
 	return part
 end
 
-local function tracer(from: Vector3, to: Vector3, color: Color3, width: number)
+function Effects.tracer(from: Vector3, to: Vector3, color: Color3, width: number)
 	local length = (to - from).Magnitude
 	if length < 0.1 then
 		return
@@ -37,7 +38,7 @@ local function tracer(from: Vector3, to: Vector3, color: Color3, width: number)
 	Debris:AddItem(part, 0.2)
 end
 
-local function burst(position: Vector3, radius: number, color: Color3, duration: number)
+function Effects.burst(position: Vector3, radius: number, color: Color3, duration: number)
 	local part = basePart()
 	part.Shape = Enum.PartType.Ball
 	part.Size = Vector3.one
@@ -49,26 +50,31 @@ local function burst(position: Vector3, radius: number, color: Color3, duration:
 	Debris:AddItem(part, duration + 0.05)
 end
 
+-- Onde circulaire au sol (tours de zone).
+function Effects.pulse(position: Vector3, radius: number, color: Color3)
+	local ring = basePart()
+	ring.Shape = Enum.PartType.Cylinder
+	ring.Size = Vector3.new(0.2, 1, 1)
+	ring.CFrame = CFrame.new(position.X, position.Y + 0.4, position.Z) * CFrame.Angles(0, 0, math.rad(90))
+	ring.Color = color
+	ring.Transparency = 0.4
+	ring.Parent = effectsFolder
+	TweenService:Create(ring, TweenInfo.new(0.35), { Size = Vector3.new(0.2, radius * 2, radius * 2), Transparency = 1 }):Play()
+	Debris:AddItem(ring, 0.4)
+end
+
 local function onTowerFired(from: Vector3, to: Vector3, towerType: string, radius: number)
 	local def = Towers.Defs[towerType]
 	if not def then
 		return
 	end
 	if def.kind == "Aura" then
-		local ring = basePart()
-		ring.Shape = Enum.PartType.Cylinder
-		ring.Size = Vector3.new(0.2, 1, 1)
-		ring.CFrame = CFrame.new(to.X, 0.4, to.Z) * CFrame.Angles(0, 0, math.rad(90))
-		ring.Color = def.color
-		ring.Transparency = 0.4
-		ring.Parent = effectsFolder
-		TweenService:Create(ring, TweenInfo.new(0.35), { Size = Vector3.new(0.2, radius * 2, radius * 2), Transparency = 1 }):Play()
-		Debris:AddItem(ring, 0.4)
+		Effects.pulse(to, radius, def.color)
 	elseif def.kind == "Splash" then
-		tracer(from, to, def.color, 0.5)
-		burst(to, radius, def.color, 0.3)
+		Effects.tracer(from, to, def.color, 0.5)
+		Effects.burst(to, radius, def.color, 0.3)
 	else
-		tracer(from, to, def.color, if towerType == "Sniper" then 0.35 else 0.2)
+		Effects.tracer(from, to, def.color, if towerType == "Sniper" then 0.35 else 0.2)
 	end
 end
 
@@ -173,7 +179,6 @@ local function addTowerBadge(model: Instance)
 end
 
 function Effects.start()
-	effectsFolder.Parent = workspace
 	Remotes.get("TowerFired").OnClientEvent:Connect(onTowerFired)
 
 	local towers = workspace:WaitForChild("Towers")

@@ -1,18 +1,78 @@
 -- Map principale (serveur public) : 6 parcelles, cercle ranked au centre, classement.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.Config)
+local IdleConfig = require(Shared.IdleConfig)
 local PlotLayout = require(Shared.PlotLayout)
 local Ranks = require(Shared.Ranks)
 local Remotes = require(Shared.Remotes)
 local Leaderboard = require(script.Parent.Leaderboard)
 local Matchmaking = require(script.Parent.Matchmaking)
+local PlayerData = require(script.Parent.PlayerData)
+local PlotGame = require(script.PlotGame)
 local HubMap = require(script.HubMap)
 local Plots = require(script.Plots)
 
 local Hub = {}
+
+local games = {} -- [Player] = PlotGame
+
+local function startPlotGame(player: Player, data)
+	if games[player] then
+		return
+	end
+	local plotIndex = Plots.get(player)
+	if not plotIndex or not player.Parent then
+		return
+	end
+	games[player] = PlotGame.new(Plots.plot(plotIndex), player, data)
+end
+
+-- Boucle du mode infini : simulation à chaque frame, envois réseau quelques fois par seconde.
+local function runPlotGames()
+	local syncRemote = Remotes.get("PlotSync")
+	local shotsRemote = Remotes.get("PlotShots")
+	local syncTimer, shotsTimer, collectTimer = 0, 0, 0
+
+	RunService.Heartbeat:Connect(function(dt)
+		for _, plotGame in games do
+			plotGame:step(dt)
+		end
+
+		syncTimer += dt
+		if syncTimer >= 1 / IdleConfig.SYNC_RATE then
+			syncTimer = 0
+			for _, plotGame in games do
+				local packet, count = plotGame:buildSyncPacket()
+				if packet then
+					syncRemote:FireAllClients(plotGame.index, packet, count)
+				end
+			end
+		end
+
+		shotsTimer += dt
+		if shotsTimer >= 1 / IdleConfig.SHOTS_RATE then
+			shotsTimer = 0
+			for _, plotGame in games do
+				local packet, count = plotGame:takeShotsPacket()
+				if packet then
+					shotsRemote:FireAllClients(plotGame.index, packet, count)
+				end
+			end
+		end
+
+		collectTimer += dt
+		if collectTimer >= 0.2 then
+			collectTimer = 0
+			for _, plotGame in games do
+				plotGame:collectDrops()
+			end
+		end
+	end)
+end
 
 local function buildBoardGui(board: BasePart)
 	local gui = Instance.new("SurfaceGui")
@@ -98,6 +158,43 @@ function Hub.start()
 
 	local rows = buildBoardGui(map.board)
 	Matchmaking.start()
+
+	-- Une partie infinie par joueur, dès que ses données sont chargées.
+	PlayerData.onLoaded(startPlotGame)
+	for _, player in Players:GetPlayers() do
+		local data = PlayerData.get(player)
+		if data then
+			startPlotGame(player, data)
+		end
+	end
+	PlayerData.onBeforeRelease(function(player)
+		local plotGame = games[player]
+		if plotGame then
+			games[player] = nil
+			plotGame:destroy()
+		end
+	end)
+	runPlotGames()
+
+	local lastPlotAction = {}
+	Players.PlayerRemoving:Connect(function(player)
+		lastPlotAction[player] = nil
+	end)
+	Remotes.get("PlotAction").OnServerEvent:Connect(function(player, action, spotIndex, towerType)
+		local plotGame = games[player]
+		local now = os.clock()
+		if not plotGame or now - (lastPlotAction[player] or 0) < 0.15 then
+			return
+		end
+		lastPlotAction[player] = now
+		if action == "Place" then
+			plotGame:placeTower(spotIndex, towerType)
+		elseif action == "Sell" then
+			plotGame:sellTower(spotIndex)
+		elseif action == "BuySpot" then
+			plotGame:buySpot()
+		end
+	end)
 
 	Remotes.get("QueueAction").OnServerEvent:Connect(function(player, action)
 		if action == "Join" then
