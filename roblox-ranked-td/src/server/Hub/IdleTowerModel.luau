@@ -3,6 +3,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local IdleTowers = require(ReplicatedStorage:WaitForChild("Shared").IdleTowers)
+local MedievalModels = require(ReplicatedStorage.Shared.MedievalModels)
 
 local IdleTowerModel = {}
 
@@ -12,6 +13,7 @@ local function newPart(model: Model, className: string, name: string, props)
 	objectPart.Name = name
 	objectPart.Anchored = true
 	objectPart.CanCollide = false
+	objectPart.CanTouch = false
 	objectPart.CastShadow = true
 	objectPart.TopSurface = Enum.SurfaceType.Smooth
 	objectPart.BottomSurface = Enum.SurfaceType.Smooth
@@ -40,12 +42,12 @@ function IdleTowerModel.create(towerType: string, cframe: CFrame, parent: Instan
 	local model = Instance.new("Model")
 	model.Name = towerType
 
-	local stone = Color3.fromRGB(104, 101, 91)
-	local paleStone = Color3.fromRGB(137, 132, 117)
-	local darkStone = Color3.fromRGB(61, 60, 57)
-	local wood = Color3.fromRGB(101, 65, 37)
+	local stone = Color3.fromRGB(142, 148, 145)
+	local paleStone = Color3.fromRGB(188, 184, 165)
+	local darkStone = Color3.fromRGB(69, 81, 85)
+	local wood = Color3.fromRGB(135, 86, 47)
 	local darkWood = Color3.fromRGB(66, 42, 27)
-	local iron = Color3.fromRGB(100, 106, 111)
+	local iron = Color3.fromRGB(149, 161, 169)
 	local darkIron = Color3.fromRGB(53, 58, 62)
 	local gold = Color3.fromRGB(218, 164, 54)
 	local skin = Color3.fromRGB(207, 158, 113)
@@ -87,6 +89,7 @@ function IdleTowerModel.create(towerType: string, cframe: CFrame, parent: Instan
 	local base = cylinder("Base", Vector3.new(0.55, 3.8, 3.8), Vector3.new(0, 0.28, 0), darkStone, Enum.Material.Cobblestone, VERTICAL_CYLINDER)
 	base.CanCollide = true
 	cylinder("Plinth", Vector3.new(0.32, 3.25, 3.25), Vector3.new(0, 0.7, 0), paleStone, Enum.Material.Slate, VERTICAL_CYLINDER)
+	cylinder("FoundationTrim", Vector3.new(0.12, 3.88, 3.88), Vector3.new(0, 0.49, 0), iron, Enum.Material.Metal, VERTICAL_CYLINDER)
 
 	if towerType == "MachineGun" then
 		-- Archer sur une petite tour crénelée.
@@ -102,7 +105,11 @@ function IdleTowerModel.create(towerType: string, cframe: CFrame, parent: Instan
 		block("LegR", Vector3.new(0.32, 0.9, 0.35), Vector3.new(0.28, 3.75, 0), darkWood, Enum.Material.Fabric)
 		block("ArcherTorso", Vector3.new(1.05, 1.35, 0.72), Vector3.new(0, 4.72, 0), accent, Enum.Material.Fabric)
 		ball("Head", 0.7, Vector3.new(0, 5.72, 0), skin, Enum.Material.SmoothPlastic)
-		block("Helmet", Vector3.new(0.8, 0.35, 0.78), Vector3.new(0, 6.02, 0), iron, Enum.Material.Metal)
+		local helmet = block("Helmet", Vector3.new(0.84, 0.55, 0.82), Vector3.new(0, 5.98, 0), iron, Enum.Material.Metal)
+		local helmetMesh = Instance.new("SpecialMesh")
+		helmetMesh.MeshType = Enum.MeshType.Sphere
+		helmetMesh.Parent = helmet
+		block("HelmetRim", Vector3.new(0.9, 0.1, 0.86), Vector3.new(0, 5.82, 0), darkIron, Enum.Material.Metal)
 		block("ArmL", Vector3.new(0.3, 1.25, 0.3), Vector3.new(-0.62, 4.85, -0.25), skin, Enum.Material.SmoothPlastic, CFrame.Angles(0, 0, math.rad(-25)))
 		block("ArmR", Vector3.new(0.3, 1.25, 0.3), Vector3.new(0.62, 4.85, -0.25), skin, Enum.Material.SmoothPlastic, CFrame.Angles(0, 0, math.rad(25)))
 		block("BowUpper", Vector3.new(1.3, 0.12, 0.12), Vector3.new(0.45, 5.25, -0.7), wood, Enum.Material.Wood, CFrame.Angles(0, 0, math.rad(55)))
@@ -165,8 +172,8 @@ function IdleTowerModel.create(towerType: string, cframe: CFrame, parent: Instan
 			shard.Transparency = 0.12
 		end
 		for index, data in {
-			{ Vector3.new(-0.65, 5.95, 0.45), 45 }, { Vector3.new(0.65, 5.95, 0.45), -45 },
-			{ Vector3.new(-0.65, 7.25, 0.45), -45 }, { Vector3.new(0.65, 7.25, 0.45), 45 },
+			{ Vector3.new(-0.65, 5.95, 0.45), -45 }, { Vector3.new(0.65, 5.95, 0.45), 45 },
+			{ Vector3.new(-0.65, 7.25, 0.45), 45 }, { Vector3.new(0.65, 7.25, 0.45), -45 },
 		} do
 			block("ArcaneFrame" .. index, Vector3.new(1.75, 0.12, 0.12), data[1], gold, Enum.Material.Metal, CFrame.Angles(0, 0, math.rad(data[2])))
 		end
@@ -215,6 +222,78 @@ function IdleTowerModel.create(towerType: string, cframe: CFrame, parent: Instan
 			Material = Enum.Material.Metal,
 		})
 		cylinder("Crank", Vector3.new(2.5, 0.28, 0.28), Vector3.new(0, 2.7, 1.05), iron, Enum.Material.Metal)
+	end
+
+	-- Détails structurels : un budget fixe par tour, sans lumières ni émetteurs permanents.
+	if towerType == "MachineGun" then
+		for _, x in { -1.22, 1.22 } do
+			block("CornerButtress", Vector3.new(0.4, 2.1, 0.48), Vector3.new(x, 1.9, -1.3), paleStone, Enum.Material.Limestone)
+			block("CanopyPost", Vector3.new(0.16, 3.65, 0.16), Vector3.new(x, 5.05, 1.1), darkWood, Enum.Material.Wood)
+		end
+		block("ArrowSlit", Vector3.new(0.28, 1.15, 0.08), Vector3.new(0, 2.05, -1.35), darkStone, Enum.Material.Slate)
+		block("WaistBelt", Vector3.new(1.1, 0.15, 0.78), Vector3.new(0, 4.3, 0), darkWood, Enum.Material.Fabric)
+		block("Buckle", Vector3.new(0.22, 0.22, 0.08), Vector3.new(0, 4.3, -0.44), gold, Enum.Material.Metal)
+		block("Cape", Vector3.new(1.1, 1.8, 0.14), Vector3.new(0, 4.62, 0.48), accent:Lerp(darkStone, 0.35), Enum.Material.Fabric, CFrame.Angles(math.rad(-10), 0, 0))
+		for _, x in { -0.51, 0.51 } do
+			ball("ShoulderGuard", 0.42, Vector3.new(x, 5.24, 0), iron, Enum.Material.Metal)
+		end
+		MedievalModels.roof(model, cf(Vector3.new(0, 6.9, 1)), 3.5, 1.9, 1.1, accent:Lerp(Color3.fromRGB(32, 57, 64), 0.5))
+		MedievalModels.banner(model, cf(Vector3.new(1.75, 0.8, 0.5)), accent, 0.55)
+	elseif towerType == "Bomb" or towerType == "Orbital" then
+		local wheelX = if towerType == "Bomb" then 1.62 else 1.7
+		local diameter = if towerType == "Bomb" then 1.85 else 2.05
+		for _, side in { -1, 1 } do
+			-- Faces métalliques et rayons contrastés sur l'extérieur de chaque roue.
+			cylinder("WheelTyre", Vector3.new(0.12, diameter + 0.12, diameter + 0.12), Vector3.new(side * (wheelX + 0.23), 1.05, 0.3), darkIron, Enum.Material.Metal)
+			cylinder("WheelFace", Vector3.new(0.14, diameter - 0.22, diameter - 0.22), Vector3.new(side * (wheelX + 0.25), 1.05, 0.3), wood, Enum.Material.Wood)
+			for i = 0, 2 do
+				block("WheelSpoke", Vector3.new(0.17, diameter - 0.15, 0.1), Vector3.new(side * (wheelX + 0.34), 1.05, 0.3), paleStone, Enum.Material.Wood, CFrame.Angles(i * math.pi / 3, 0, 0))
+			end
+			cylinder("AxlePin", Vector3.new(0.26, 0.4, 0.4), Vector3.new(side * (wheelX + 0.4), 1.05, 0.3), iron, Enum.Material.Metal)
+			block("IronBrace", Vector3.new(0.48, 0.22, 2.7), Vector3.new(side * 1.2, 1.28, 0.25), darkIron, Enum.Material.Metal)
+		end
+		ball("ReserveStone", 0.65, Vector3.new(0.85, 1.62, -0.8), darkStone, Enum.Material.Rock)
+		MedievalModels.banner(model, cf(Vector3.new(-1.1, 1.2, 1.3)), accent, if towerType == "Orbital" then 0.68 else 0.45)
+	elseif towerType == "Rocket" then
+		for _, side in { -1, 1 } do
+			block("Trestle", Vector3.new(0.38, 2.1, 0.42), Vector3.new(side * 0.8, 1.92, 0.25), wood, Enum.Material.Wood, CFrame.Angles(0, 0, side * 0.25))
+			block("TrestleBinding", Vector3.new(0.45, 0.3, 0.5), Vector3.new(side * 0.85, 1.65, 0.25), iron, Enum.Material.Metal)
+			block("StockRail", Vector3.new(0.12, 0.15, 3.5), Vector3.new(side * 0.34, 3.35, -0.2), gold, Enum.Material.Metal, CFrame.Angles(math.rad(-7), 0, 0))
+		end
+		for i = 1, 3 do
+			block("ReserveBolt", Vector3.new(0.12, 0.12, 2.4), Vector3.new(-1.1 + i * 0.2, 1.36, 0.1), iron, Enum.Material.Metal)
+		end
+	elseif towerType == "Tesla" or towerType == "Chain" then
+		local oracle = towerType == "Chain"
+		local torsoY = if oracle then 3.15 else 2.45
+		local hoodY = if oracle then 4.72 else 4.35
+		block("MageStole", Vector3.new(0.35, 2.1, 0.12), Vector3.new(0, torsoY, -0.67), accent, Enum.Material.Fabric)
+		block("StoleClasp", Vector3.new(0.32, 0.32, 0.13), Vector3.new(0, torsoY + 0.65, -0.74), gold, Enum.Material.Metal, CFrame.Angles(0, 0, math.pi / 4))
+		for _, side in { -1, 1 } do
+			block("RobePleat", Vector3.new(0.7, 2.1, 0.9), Vector3.new(side * 0.55, torsoY - 0.1, 0.2), Color3.fromRGB(48, 49, 74), Enum.Material.Fabric, CFrame.Angles(0, 0, side * 0.16))
+			block("Sleeve", Vector3.new(0.48, 1.4, 0.55), Vector3.new(side * 0.88, torsoY + 0.4, -0.15), accent:Lerp(darkStone, 0.65), Enum.Material.Fabric, CFrame.Angles(math.rad(-25), 0, side * -0.25))
+			ball("Hand", 0.32, Vector3.new(side * 1.02, torsoY - 0.15, -0.48), skin, Enum.Material.SmoothPlastic)
+		end
+		block("HoodShadow", Vector3.new(0.53, 0.38, 0.08), Vector3.new(0, hoodY + 0.02, -0.68), darkStone, Enum.Material.Fabric)
+		for _, x in { -0.13, 0.13 } do
+			block("MageEye", Vector3.new(0.11, 0.07, 0.04), Vector3.new(x, hoodY + 0.08, -0.73), accent, Enum.Material.Neon)
+		end
+		for i = 1, 6 do
+			local a = i * math.pi / 3
+			block("AltarRune", Vector3.new(0.45, 0.06, 0.12), Vector3.new(math.cos(a) * 1.4, 0.89, math.sin(a) * 1.4), gold, Enum.Material.Metal, CFrame.Angles(0, -a, 0))
+		end
+	elseif towerType == "Frost" then
+		for i = 1, 5 do
+			local a = i / 5 * math.pi * 2
+			wedge(model, "IceOutcrop", { Size = Vector3.new(0.55, 1.1, 0.7), CFrame = cf(Vector3.new(math.cos(a) * 1.45, 1.05, math.sin(a) * 1.45), CFrame.Angles(0, -a, 0)), Color = accent:Lerp(Color3.new(1, 1, 1), 0.4), Material = Enum.Material.Ice })
+		end
+	elseif towerType == "Laser" then
+		for _, y in { 1.55, 4.9 } do
+			block("ObeliskBand", Vector3.new(1.48, 0.18, 1.48), Vector3.new(0, y, 0), gold, Enum.Material.Metal, CFrame.Angles(0, math.pi / 4, 0))
+		end
+		for _, side in { -1, 1 } do
+			wedge(model, "ObeliskFoot", { Size = Vector3.new(0.6, 1.8, 1.2), CFrame = cf(Vector3.new(side * 0.9, 1.7, 0), CFrame.Angles(0, side * math.pi / 2, 0)), Color = paleStone, Material = Enum.Material.Limestone })
+		end
 	end
 
 	model.PrimaryPart = base

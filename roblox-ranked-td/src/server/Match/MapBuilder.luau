@@ -5,6 +5,8 @@ local Lighting = game:GetService("Lighting")
 local Config = require(ReplicatedStorage:WaitForChild("Shared").Config)
 local MapLayout = require(ReplicatedStorage:WaitForChild("Shared").MapLayout)
 local ProximityLabel = require(ReplicatedStorage:WaitForChild("Shared").ProximityLabel)
+local MedievalModels = require(ReplicatedStorage.Shared.MedievalModels)
+local scenery = MedievalModels.sceneryPart
 
 local MapBuilder = {}
 
@@ -46,7 +48,7 @@ local function buildLane(laneIndex: number, parent: Instance)
 		Name = "Floor",
 		Size = Vector3.new(MapLayout.LANE_WIDTH, 1, MapLayout.LANE_LENGTH),
 		Position = origin + Vector3.new(0, -0.5, 0),
-		Color = Color3.fromRGB(64, 91, 51),
+		Color = Color3.fromRGB(96, 126, 76),
 		Material = Enum.Material.Grass,
 		Parent = folder,
 	}):SetAttribute("Lane", laneIndex)
@@ -98,6 +100,21 @@ local function buildLane(laneIndex: number, parent: Instance)
 	end
 	part({ Name = "BannerPole", Size = Vector3.new(0.22, 8, 0.22), Position = origin + MapLayout.BASE_POSITION + Vector3.new(0, 10, 0), Color = Color3.fromRGB(74, 49, 30), Material = Enum.Material.Wood, CanCollide = false, Parent = folder })
 	part({ Name = "Banner", Size = Vector3.new(0.14, 3, 3.8), Position = origin + MapLayout.BASE_POSITION + Vector3.new(0, 11.5, -1.8), Color = LANE_COLORS[laneIndex], Material = Enum.Material.Fabric, CanCollide = false, Parent = folder })
+	local decor = Instance.new("Folder")
+	decor.Name = "BattleDecor"
+	decor.Parent = folder
+	MedievalModels.keepDetails(decor, CFrame.new(origin + MapLayout.BASE_POSITION), LANE_COLORS[laneIndex], 4.6)
+	-- Les murs décoratifs sont à l'extérieur de la surface constructible.
+	for _, side in { -1, 1 } do
+		local x = side * (MapLayout.LANE_WIDTH / 2 + 1.5)
+		scenery(decor, "Rampart", Vector3.new(1.5, 2.2, MapLayout.LANE_LENGTH), CFrame.new(origin + Vector3.new(x, 1.1, 0)), Color3.fromRGB(143, 148, 134), Enum.Material.Cobblestone)
+		for z = -60, 60, 20 do
+			scenery(decor, "RampartPost", Vector3.new(2.5, 3.8, 2.5), CFrame.new(origin + Vector3.new(x, 1.9, z)), Color3.fromRGB(170, 164, 143), Enum.Material.Limestone)
+		end
+	end
+	for _, x in { -MapLayout.PATH_WIDTH / 2 - 1, MapLayout.PATH_WIDTH / 2 + 1 } do
+		MedievalModels.roof(decor, CFrame.new(origin + path[1] + Vector3.new(x, 7.8, 2)), 3.4, 3.4, 2.5, Color3.fromRGB(43, 82, 94))
+	end
 	for _, x in { -MapLayout.LANE_WIDTH / 2 + 5, MapLayout.LANE_WIDTH / 2 - 5 } do
 		torch(folder, origin + Vector3.new(x, 1.6, -MapLayout.LANE_LENGTH / 2 + 9))
 	end
@@ -143,20 +160,29 @@ end
 
 -- Retourne la table des parts "Base" par lane (pour afficher le nom des joueurs dessus).
 function MapBuilder.build()
-	Lighting.ClockTime = 18.15
-	Lighting.Brightness = 2
-	Lighting.Ambient = Color3.fromRGB(91, 80, 77)
-	Lighting.OutdoorAmbient = Color3.fromRGB(119, 106, 96)
+	Lighting.ClockTime = 15.4
+	Lighting.Brightness = 2.7
+	Lighting.Ambient = Color3.fromRGB(111, 119, 132)
+	Lighting.OutdoorAmbient = Color3.fromRGB(149, 155, 155)
+	Lighting.EnvironmentDiffuseScale = 0.65
+	Lighting.EnvironmentSpecularScale = 0.35
 	local atmosphere = Lighting:FindFirstChild("BattleAtmosphere") or Instance.new("Atmosphere")
 	atmosphere.Name = "BattleAtmosphere"
-	atmosphere.Color = Color3.fromRGB(209, 185, 157)
-	atmosphere.Decay = Color3.fromRGB(93, 70, 67)
-	atmosphere.Density = 0.28
-	atmosphere.Haze = 1.8
+	atmosphere.Color = Color3.fromRGB(207, 224, 226)
+	atmosphere.Decay = Color3.fromRGB(118, 143, 151)
+	atmosphere.Density = 0.27
+	atmosphere.Haze = 1.3
 	atmosphere.Parent = Lighting
 
 	local map = Instance.new("Folder")
 	map.Name = "Map"
+	scenery(map, "ValleyGround", Vector3.new(850, 1, 850), CFrame.new(0, -0.75, 0), Color3.fromRGB(88, 116, 69), Enum.Material.Grass)
+	MedievalModels.landscape(map, 155, 419)
+	for _, side in { -1, 1 } do
+		for i = 1, 7 do
+			MedievalModels.tree(map, CFrame.new(side * (107 + i % 2 * 8), 0, -90 + i * 22), 1.2 + i % 3 * 0.25, i % 4 == 0)
+		end
+	end
 
 	local bases = {}
 	for laneIndex = 1, 2 do

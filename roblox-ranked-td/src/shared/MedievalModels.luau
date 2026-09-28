@@ -122,4 +122,124 @@ function MedievalModels.decorateEnemy(root: BasePart, def)
 	end
 end
 
+-- Décor statique partagé : aucun script, collision, événement tactile ou boucle par objet.
+-- Les cartes conservent leurs sols et leurs zones de jeu ; cet habillage est purement visuel.
+function MedievalModels.sceneryPart(parent: Instance, name: string, size: Vector3, cf: CFrame, color: Color3, material: Enum.Material?, className: string?): BasePart
+	local p = Instance.new(className or "Part") :: BasePart
+	p.Name = name
+	p.Size = size
+	p.CFrame = cf
+	p.Color = color
+	p.Material = material or Enum.Material.SmoothPlastic
+	p.Anchored = true
+	p.CanCollide = false
+	p.CanTouch = false
+	p.CanQuery = false
+	p.TopSurface = Enum.SurfaceType.Smooth
+	p.BottomSurface = Enum.SurfaceType.Smooth
+	p.Parent = parent
+	return p
+end
+
+local scenery = MedievalModels.sceneryPart
+local STONE = Color3.fromRGB(151, 151, 139)
+local TRIM = Color3.fromRGB(194, 184, 157)
+local ROOF = Color3.fromRGB(43, 82, 94)
+
+function MedievalModels.roof(parent: Instance, cf: CFrame, width: number, depth: number, height: number, color: Color3)
+	for _, side in { -1, 1 } do
+		scenery(parent, "RoofSlope", Vector3.new(width, height, depth / 2), cf * CFrame.new(0, height / 2, side * depth / 4) * CFrame.Angles(0, if side < 0 then 0 else math.pi, 0), color, Enum.Material.Slate, "WedgePart")
+	end
+	scenery(parent, "RidgeCap", Vector3.new(width + 0.15, 0.2, 0.28), cf * CFrame.new(0, height + 0.05, 0), color:Lerp(TRIM, 0.25), Enum.Material.Metal)
+end
+
+function MedievalModels.banner(parent: Instance, cf: CFrame, color: Color3, scale: number)
+	scenery(parent, "StandardPole", Vector3.new(0.16, 6, 0.16) * scale, cf * CFrame.new(0, 3 * scale, 0), WOOD, Enum.Material.Wood)
+	scenery(parent, "StandardCrossbar", Vector3.new(2, 0.14, 0.14) * scale, cf * CFrame.new(0, 5.6 * scale, 0), GOLD, Enum.Material.Metal)
+	scenery(parent, "StandardCloth", Vector3.new(1.65, 2.65, 0.1) * scale, cf * CFrame.new(0, 4.15 * scale, 0), color, Enum.Material.Fabric)
+	scenery(parent, "StandardSigil", Vector3.new(0.54, 0.54, 0.12) * scale, cf * CFrame.new(0, 4.55 * scale, -0.09 * scale) * CFrame.Angles(0, 0, math.pi / 4), GOLD, Enum.Material.Metal)
+	for _, side in { -1, 1 } do
+		scenery(parent, "StandardHem", Vector3.new(0.08, 2.65, 0.12) * scale, cf * CFrame.new(side * 0.78 * scale, 4.15 * scale, -0.04 * scale), GOLD, Enum.Material.Fabric)
+	end
+end
+
+function MedievalModels.tree(parent: Instance, cf: CFrame, scale: number, autumn: boolean?)
+	local bark = scenery(parent, "TreeTrunk", Vector3.new(1.1, 6, 1.1) * scale, cf * CFrame.new(0, 3 * scale, 0), WOOD, Enum.Material.Wood)
+	bark.CastShadow = false
+	local leaf = if autumn then Color3.fromRGB(170, 112, 47) else Color3.fromRGB(58, 100, 69)
+	for i, data in {
+		{ Vector3.new(-1.8, 7, 0), Vector3.new(6.5, 6, 6) },
+		{ Vector3.new(1.8, 8.5, 0.7), Vector3.new(6, 7, 6) },
+		{ Vector3.new(0, 11, -0.3), Vector3.new(5.5, 6, 5.5) },
+	} do
+		local crown = scenery(parent, "TreeCrown", data[2] * scale, cf * CFrame.new(data[1] * scale) * CFrame.Angles(0, i * 0.7, 0.13), leaf:Lerp(TRIM, (i - 1) * 0.07), Enum.Material.Grass)
+		local mesh = Instance.new("SpecialMesh")
+		mesh.MeshType = Enum.MeshType.Sphere
+		mesh.Parent = crown
+	end
+end
+
+function MedievalModels.cottage(parent: Instance, cf: CFrame, color: Color3)
+	scenery(parent, "Cottage", Vector3.new(11, 7, 9), cf * CFrame.new(0, 3.5, 0), Color3.fromRGB(200, 184, 147), Enum.Material.Plaster)
+	scenery(parent, "CottageFooting", Vector3.new(11.4, 1.1, 9.4), cf * CFrame.new(0, 0.55, 0), STONE, Enum.Material.Cobblestone)
+	for _, x in { -5.3, 0, 5.3 } do
+		scenery(parent, "Timber", Vector3.new(0.4, 7, 0.3), cf * CFrame.new(x, 3.5, -4.55), WOOD, Enum.Material.Wood)
+	end
+	scenery(parent, "TimberBeam", Vector3.new(11, 0.35, 0.3), cf * CFrame.new(0, 5.8, -4.55), WOOD, Enum.Material.Wood)
+	scenery(parent, "Door", Vector3.new(2.1, 3.5, 0.18), cf * CFrame.new(0, 1.8, -4.7), LEATHER, Enum.Material.WoodPlanks)
+	for _, x in { -3.3, 3.3 } do
+		scenery(parent, "WindowFrame", Vector3.new(2, 2.2, 0.2), cf * CFrame.new(x, 4, -4.65), WOOD, Enum.Material.Wood)
+		scenery(parent, "Window", Vector3.new(1.45, 1.65, 0.22), cf * CFrame.new(x, 4, -4.75), Color3.fromRGB(231, 177, 94), Enum.Material.SmoothPlastic)
+		scenery(parent, "RearWindowFrame", Vector3.new(2, 2.2, 0.2), cf * CFrame.new(x, 4, 4.65), WOOD, Enum.Material.Wood)
+		scenery(parent, "RearWindow", Vector3.new(1.45, 1.65, 0.22), cf * CFrame.new(x, 4, 4.75), Color3.fromRGB(231, 177, 94), Enum.Material.SmoothPlastic)
+	end
+	MedievalModels.roof(parent, cf * CFrame.new(0, 7, 0), 13, 11, 4, color)
+	scenery(parent, "Chimney", Vector3.new(1.6, 5.5, 1.6), cf * CFrame.new(3.2, 8, 1.5), STONE, Enum.Material.Brick)
+end
+
+function MedievalModels.keepDetails(parent: Instance, cf: CFrame, color: Color3, halfWidth: number)
+	-- Habillage des donjons existants, sans toucher à leur racine de gameplay.
+	scenery(parent, "KeepCornice", Vector3.new(halfWidth * 2 + 0.9, 0.65, halfWidth * 2 + 0.9), cf * CFrame.new(0, 7.1, 0), TRIM, Enum.Material.Limestone)
+	MedievalModels.roof(parent, cf * CFrame.new(0, 7.4, 0), halfWidth * 2 + 1, halfWidth * 2 + 1, 3.4, ROOF)
+	for _, x in { -halfWidth, halfWidth } do
+		for _, z in { -halfWidth, halfWidth } do
+			scenery(parent, "TurretCoping", Vector3.new(3.1, 0.55, 3.1), cf * CFrame.new(x, 8.7, z), TRIM, Enum.Material.Limestone)
+			MedievalModels.roof(parent, cf * CFrame.new(x, 9, z), 3.5, 3.5, 2.4, ROOF)
+		end
+	end
+	for _, z in { -halfWidth - 0.04, halfWidth + 0.04 } do
+		for _, x in { -2.4, 2.4 } do
+			scenery(parent, "ArrowSlit", Vector3.new(0.45, 1.8, 0.12), cf * CFrame.new(x, 4.8, z), DARK_IRON, Enum.Material.Slate)
+		end
+	end
+	scenery(parent, "KeepDoorFrame", Vector3.new(3.9, 5.1, 0.3), cf * CFrame.new(0, 2.55, halfWidth + 0.1), TRIM, Enum.Material.Limestone)
+	scenery(parent, "KeepDoor", Vector3.new(3.1, 4.4, 0.35), cf * CFrame.new(0, 2.2, halfWidth + 0.25), WOOD, Enum.Material.WoodPlanks)
+	MedievalModels.banner(parent, cf * CFrame.new(halfWidth + 2.5, 0, 0), color, 1.4)
+end
+
+function MedievalModels.landscape(parent: Instance, radius: number, seed: number)
+	local random = Random.new(seed)
+	local sceneryFolder = Instance.new("Folder")
+	sceneryFolder.Name = "Landscape"
+	sceneryFolder.Parent = parent
+	-- Deux couronnes fixes ; toute la géométrie reste hors du terrain constructible.
+	for i = 1, 52 do
+		local angle = i / 52 * math.pi * 2
+		local r = radius + random:NextNumber(0, 34)
+		local cf = CFrame.new(math.sin(angle) * r, -0.2, math.cos(angle) * r) * CFrame.Angles(0, angle, 0)
+		MedievalModels.tree(sceneryFolder, cf, random:NextNumber(1.1, 2.2), i % 7 == 0)
+	end
+	for i = 1, 22 do
+		local angle = i / 22 * math.pi * 2
+		local height = random:NextNumber(40, 78)
+		local r = radius + 100
+		local cf = CFrame.new(math.sin(angle) * r, 0, math.cos(angle) * r) * CFrame.Angles(0, angle, 0)
+		local rockColor = Color3.fromRGB(91, 119, 113):Lerp(STONE, random:NextNumber(0, 0.2))
+		local rock = scenery(sceneryFolder, "DistantMountain", Vector3.new(random:NextNumber(95, 130), height * 1.6, 105), cf * CFrame.new(0, 3, 0) * CFrame.Angles(0.12, 0, -0.12), rockColor, Enum.Material.Rock) :: Part
+		rock.Shape = Enum.PartType.Ball
+		local foothill = scenery(sceneryFolder, "Foothill", Vector3.new(100, height * 0.65, 75), cf * CFrame.new(28, 0, -32), Color3.fromRGB(101, 130, 82), Enum.Material.Grass) :: Part
+		foothill.Shape = Enum.PartType.Ball
+	end
+end
+
 return MedievalModels

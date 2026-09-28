@@ -7,6 +7,8 @@ local Config = require(Shared.Config)
 local NumberFormat = require(Shared.NumberFormat)
 local PlotLayout = require(Shared.PlotLayout)
 local ProximityLabel = require(Shared.ProximityLabel)
+local MedievalModels = require(Shared.MedievalModels)
+local scenery = MedievalModels.sceneryPart
 
 local HubMap = {}
 
@@ -55,7 +57,7 @@ local function torch(parent: Instance, cframe: CFrame)
 	light.Color = Color3.fromRGB(255, 161, 72)
 	light.Brightness = 2
 	light.Range = 18
-	light.Shadows = true
+	light.Shadows = false
 	light.Parent = flame
 end
 
@@ -68,12 +70,15 @@ local function buildPlot(index: number, parent: Instance)
 	local color = HubMap.PLOT_COLORS[index]
 	local origin = PlotLayout.cframe(index)
 	local w, l = PlotLayout.WIDTH, PlotLayout.LENGTH
+	local decor = Instance.new("Folder")
+	decor.Name = "Decor"
+	decor.Parent = folder
 
 	part({
 		Name = "Floor",
 		Size = Vector3.new(w, 1, l),
 		CFrame = origin * CFrame.new(0, -0.5, 0),
-		Color = Color3.fromRGB(67, 94, 53),
+		Color = Color3.fromRGB(96, 126, 76),
 		Material = Enum.Material.Grass,
 		Parent = folder,
 	})
@@ -126,6 +131,22 @@ local function buildPlot(index: number, parent: Instance)
 		part({ Name = "GateTower", Size = Vector3.new(2.4, 7, 2.4), CFrame = PlotLayout.worldCFrame(index, path[1] + Vector3.new(x, 3.5, 2)), Color = Color3.fromRGB(78, 75, 69), Material = Enum.Material.Brick, Parent = folder })
 	end
 	part({ Name = "GateLintel", Size = Vector3.new(PlotLayout.PATH_WIDTH + 4.5, 1.5, 2.2), CFrame = PlotLayout.worldCFrame(index, path[1] + Vector3.new(0, 7, 2)), Color = Color3.fromRGB(70, 67, 62), Material = Enum.Material.Brick, Parent = folder })
+	for _, x in { -PlotLayout.PATH_WIDTH / 2 - 1, PlotLayout.PATH_WIDTH / 2 + 1 } do
+		local gate = origin * CFrame.new(path[1] + Vector3.new(x, 0, 2))
+		scenery(decor, "GateCoping", Vector3.new(3.1, 0.5, 3.1), gate * CFrame.new(0, 7.9, 0), Color3.fromRGB(185, 177, 153), Enum.Material.Limestone)
+		MedievalModels.roof(decor, gate * CFrame.new(0, 8.15, 0), 3.5, 3.5, 2.6, Color3.fromRGB(43, 82, 94))
+	end
+	-- Bordures basses : placées en marge, hors des emplacements et du chemin.
+	for _, side in { -1, 1 } do
+		for z = -42, 58, 20 do
+			local at = origin * CFrame.new(side * (w / 2 - 1), 0, z)
+			scenery(decor, "BoundaryPillar", Vector3.new(1.8, 3.4, 1.8), at * CFrame.new(0, 1.7, 0), Color3.fromRGB(139, 144, 128), Enum.Material.Cobblestone)
+			scenery(decor, "PillarCap", Vector3.new(2.2, 0.35, 2.2), at * CFrame.new(0, 3.55, 0), Color3.fromRGB(191, 181, 150), Enum.Material.Limestone)
+		end
+		for z = -32, 48, 20 do
+			scenery(decor, "BoundaryWall", Vector3.new(0.9, 1.3, 18.2), origin * CFrame.new(side * (w / 2 - 1), 0.65, z), Color3.fromRGB(135, 140, 124), Enum.Material.Cobblestone)
+		end
+	end
 
 	part({
 		Name = "Base",
@@ -142,6 +163,7 @@ local function buildPlot(index: number, parent: Instance)
 	end
 	part({ Name = "BannerPole", Size = Vector3.new(0.25, 8, 0.25), CFrame = PlotLayout.worldCFrame(index, PlotLayout.BASE_POSITION + Vector3.new(0, 10, 0)), Color = Color3.fromRGB(73, 50, 31), Material = Enum.Material.Wood, CanCollide = false, Parent = folder })
 	part({ Name = "Banner", Size = Vector3.new(0.16, 3.2, 3.8), CFrame = PlotLayout.worldCFrame(index, PlotLayout.BASE_POSITION + Vector3.new(0, 11.5, -1.8)), Color = color, Material = Enum.Material.Fabric, CanCollide = false, Parent = folder })
+	MedievalModels.keepDetails(decor, origin * CFrame.new(PlotLayout.BASE_POSITION), color, 4.2)
 
 	-- Emplacements de tours
 	local spots = Instance.new("Folder")
@@ -191,10 +213,17 @@ local function buildPlot(index: number, parent: Instance)
 			Size = Vector3.new(3.8, 2.6, 0.2),
 			CFrame = cabinet.CFrame * CFrame.new(0, 1.2, -1.55),
 			Color = info.color,
-			Material = Enum.Material.Neon,
+			Material = Enum.Material.SmoothPlastic,
 			CanCollide = false,
 			Parent = folder,
 		})
+		local facade = cabinet.CFrame
+		MedievalModels.roof(decor, facade * CFrame.new(0, 3.5, 0), 6.4, 4.6, 2.4, info.color:Lerp(Color3.fromRGB(35, 48, 57), 0.65))
+		for _, x in { -2.35, 2.35 } do
+			scenery(decor, "MachinePillar", Vector3.new(0.55, 7.4, 0.55), facade * CFrame.new(x, 0, -1.6), Color3.fromRGB(175, 165, 136), Enum.Material.Limestone)
+		end
+		scenery(decor, "MachineLintel", Vector3.new(5.6, 0.45, 0.65), facade * CFrame.new(0, 3.2, -1.6), Color3.fromRGB(208, 172, 90), Enum.Material.Metal)
+		scenery(decor, "MachineSigil", Vector3.new(1, 1, 0.22), facade * CFrame.new(0, 1.2, -1.75) * CFrame.Angles(0, 0, math.pi / 4), Color3.fromRGB(242, 211, 132), Enum.Material.Metal)
 		billboard(cabinet, info.title, Vector3.new(0, 4.8, 0), UDim2.fromOffset(130, 20), info.color, Config.LabelDistance.Close)
 		local prompt = Instance.new("ProximityPrompt")
 		prompt.ActionText = "Ouvrir"
@@ -261,18 +290,19 @@ function HubMap.resetSpots(plot)
 end
 
 function HubMap.build()
-	Lighting.ClockTime = 17.35
-	Lighting.Brightness = 2.2
-	Lighting.Ambient = Color3.fromRGB(104, 91, 82)
-	Lighting.OutdoorAmbient = Color3.fromRGB(132, 119, 102)
-	Lighting.EnvironmentDiffuseScale = 0.35
-	Lighting.EnvironmentSpecularScale = 0.45
+	Lighting.ClockTime = 15.4
+	Lighting.Brightness = 2.7
+	Lighting.Ambient = Color3.fromRGB(111, 119, 132)
+	Lighting.OutdoorAmbient = Color3.fromRGB(149, 155, 155)
+	Lighting.EnvironmentDiffuseScale = 0.65
+	Lighting.EnvironmentSpecularScale = 0.35
+	Lighting.ShadowSoftness = 0.35
 	local atmosphere = Lighting:FindFirstChild("KingdomAtmosphere") or Instance.new("Atmosphere")
 	atmosphere.Name = "KingdomAtmosphere"
-	atmosphere.Color = Color3.fromRGB(219, 196, 164)
-	atmosphere.Decay = Color3.fromRGB(104, 86, 77)
-	atmosphere.Density = 0.22
-	atmosphere.Haze = 1.25
+	atmosphere.Color = Color3.fromRGB(207, 224, 226)
+	atmosphere.Decay = Color3.fromRGB(118, 143, 151)
+	atmosphere.Density = 0.27
+	atmosphere.Haze = 1.3
 	atmosphere.Parent = Lighting
 
 	local hub = Instance.new("Folder")
@@ -280,12 +310,37 @@ function HubMap.build()
 
 	part({
 		Name = "Ground",
-		Size = Vector3.new(480, 1, 480),
+		Size = Vector3.new(950, 1, 950),
 		Position = Vector3.new(0, -0.7, 0),
-		Color = Color3.fromRGB(57, 74, 47),
+		Color = Color3.fromRGB(88, 116, 69),
 		Material = Enum.Material.Grass,
 		Parent = hub,
 	})
+	local decor = Instance.new("Folder")
+	decor.Name = "KingdomDecor"
+	decor.Parent = hub
+	MedievalModels.landscape(decor, 228, 417)
+	for i = 1, PlotLayout.COUNT do
+		local angle = (i - 1) / PlotLayout.COUNT * math.pi * 2
+		local road = CFrame.Angles(0, angle, 0)
+		scenery(decor, "FiefRoad", Vector3.new(12, 0.16, 43), road * CFrame.new(0, 0.03, 53), Color3.fromRGB(160, 148, 119), Enum.Material.Cobblestone)
+		for _, x in { -7, 7 } do
+			scenery(decor, "RoadBorder", Vector3.new(0.7, 0.22, 43), road * CFrame.new(x, 0.06, 53), Color3.fromRGB(188, 179, 151), Enum.Material.Limestone)
+		end
+		local village = CFrame.Angles(0, angle + math.pi / 6, 0)
+		local garden = village * CFrame.new(0, 0, 53)
+		scenery(decor, "GardenBed", Vector3.new(11, 0.35, 10), garden * CFrame.new(0, 0.05, 0), Color3.fromRGB(90, 81, 60), Enum.Material.Ground)
+		MedievalModels.tree(decor, garden, 1.05, i % 3 == 0)
+		for _, side in { -1, 1 } do
+			scenery(decor, "GardenKerb", Vector3.new(0.5, 0.65, 10.5), garden * CFrame.new(side * 5.5, 0.22, 0), Color3.fromRGB(188, 179, 151), Enum.Material.Limestone)
+		end
+		MedievalModels.cottage(decor, village * CFrame.new(-8, 0, 97), Color3.fromRGB(50, 87, 91))
+		MedievalModels.cottage(decor, village * CFrame.new(8, 0, 115) * CFrame.Angles(0, -0.3, 0), Color3.fromRGB(122, 67, 48))
+		for j = 1, 5 do
+			MedievalModels.tree(decor, village * CFrame.new((if j % 2 == 0 then -1 else 1) * 14, 0, 127 + j * 15), 1.1 + j * 0.12, j == 2)
+		end
+		MedievalModels.banner(decor, village * CFrame.new(0, 0, 39), HubMap.PLOT_COLORS[i], 1.7)
+	end
 
 	-- Place centrale
 	part({
@@ -293,10 +348,23 @@ function HubMap.build()
 		Shape = Enum.PartType.Cylinder,
 		Size = Vector3.new(0.4, 70, 70),
 		CFrame = CFrame.new(0, -0.1, 0) * CFrame.Angles(0, 0, math.rad(90)),
-		Color = Color3.fromRGB(104, 99, 89),
+		Color = Color3.fromRGB(169, 160, 137),
 		Material = Enum.Material.Cobblestone,
 		Parent = hub,
 	})
+	-- Rosace de pierre et bancs autour de la cour ; le sceau de duel reste libre.
+	for i = 1, 24 do
+		local cf = CFrame.Angles(0, i / 24 * math.pi * 2, 0)
+		scenery(decor, "CourtyardKerb", Vector3.new(8.8, 0.45, 1.3), cf * CFrame.new(0, 0.15, 35), Color3.fromRGB(202, 190, 156), Enum.Material.Limestone)
+	end
+	for _, x in { -23, 23 } do
+		for _, z in { -8, 8 } do
+			scenery(decor, "Bench", Vector3.new(2.2, 0.4, 7), CFrame.new(x, 1.6, z), Color3.fromRGB(117, 77, 45), Enum.Material.WoodPlanks)
+			for _, dz in { -2.4, 2.4 } do
+				scenery(decor, "BenchSupport", Vector3.new(1.5, 1.4, 0.6), CFrame.new(x, 0.7, z + dz), Color3.fromRGB(137, 139, 125), Enum.Material.Limestone)
+			end
+		end
+	end
 
 	local radius = PlotLayout.RANKED_CIRCLE_RADIUS
 	local circleCenter = PlotLayout.RANKED_CIRCLE_POSITION
@@ -336,6 +404,11 @@ function HubMap.build()
 		Material = Enum.Material.WoodPlanks,
 		Parent = hub,
 	})
+	for _, x in { -14.8, 14.8 } do
+		scenery(decor, "HallColumn", Vector3.new(1.6, 22, 2.5), CFrame.new(x, 11, -12.3), Color3.fromRGB(159, 154, 136), Enum.Material.Limestone)
+	end
+	MedievalModels.roof(decor, CFrame.new(0, 22, -12.3), 33, 6, 5, Color3.fromRGB(43, 82, 94))
+	scenery(decor, "HallPediment", Vector3.new(32, 0.6, 3), CFrame.new(0, 21.8, -12.3), Color3.fromRGB(199, 172, 114), Enum.Material.Metal)
 
 	local spawn = Instance.new("SpawnLocation")
 	spawn.Anchored = true
