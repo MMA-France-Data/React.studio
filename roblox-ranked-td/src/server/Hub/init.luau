@@ -242,7 +242,7 @@ function Hub.start()
 				if Plots.get(player) == plotIndex then
 					Remotes.get("OpenMachine"):FireClient(player, machine)
 				else
-					Remotes.get("Notify"):FireClient(player, "Ce n'est pas ta machine : va sur ta parcelle !", "Warning")
+					Remotes.get("Notify"):FireClient(player, "Cet autel appartient à un autre fief !", "Warning")
 				end
 			end)
 		end

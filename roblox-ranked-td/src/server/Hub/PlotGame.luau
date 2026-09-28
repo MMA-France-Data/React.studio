@@ -555,7 +555,7 @@ function PlotGame:placeTower(spotIndex: any, towerType: any)
 	end
 	local def = IdleTowers.Defs[towerType]
 	if not self.idle.unlockedTowers[towerType] then
-		self:notify(`{def.displayName} n'est pas encore débloquée : gagne-la à la machine à tours !`, "Error")
+		self:notify(`{def.displayName} n'est pas encore débloquée : invoque-la à l'autel des héros !`, "Error")
 		return
 	end
 	local existing = self.towers[spotIndex]

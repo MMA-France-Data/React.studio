@@ -305,7 +305,7 @@ function PlotUI.start()
 				return
 			end
 			if not isUnlocked(towerType) then
-				UI.toast(`{IdleTowers.Defs[towerType].displayName} : gagne-la à la machine à tours !`, "Warning")
+				UI.toast(`{IdleTowers.Defs[towerType].displayName} : invoque-la à l'autel des héros !`, "Warning")
 				return
 			end
 			plotAction:FireServer("Place", selectedSpot, towerType)
@@ -375,7 +375,7 @@ function PlotUI.start()
 				LayoutOrder = 99,
 				TextXAlignment = Enum.TextXAlignment.Left,
 				TextColor3 = UI.Colors.Muted,
-				Text = "Gagne des bonus à la machine à bonus 🎰",
+				Text = "Forge des runes pour obtenir des bonus",
 				MaxTextSize = 13,
 				Parent = bonusRow,
 			})
@@ -471,7 +471,7 @@ function PlotUI.start()
 		for towerType, card in cards do
 			local cost = IdleTowers.Defs[towerType].placeCost
 			if not isUnlocked(towerType) then
-				card.price.Text = "🔒 Machine"
+				card.price.Text = "🔒 Autel"
 				card.price.TextColor3 = UI.Colors.Muted
 				card.button.BackgroundTransparency = 0.7
 			elseif towerType == currentType then
@@ -550,7 +550,7 @@ function PlotUI.start()
 			local maxHealth = plot:GetAttribute("MaxBaseHealth") or IdleConfig.BASE_HEALTH
 			local health = plot:GetAttribute("BaseHealth") or maxHealth
 			waveLabel.Text = `Vague {wave} • {waveType.displayName}`
-			waveLabel.TextColor3 = if waveType.displayName == "BOSS" then UI.Colors.Error else UI.Colors.Text
+			waveLabel.TextColor3 = if waveType.displayName == "SEIGNEUR DE GUERRE" then UI.Colors.Error else UI.Colors.Text
 			hintLabel.Text = waveType.hint
 			setBaseHealth(health / maxHealth)
 			local state = plot:GetAttribute("State")

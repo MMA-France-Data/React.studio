@@ -1,17 +1,18 @@
-# Ranked Tower Defense 1v1 (Roblox)
+# Royaumes en guerre — Tower Defense 1v1 (Roblox)
 
-Un tower defense avec une map principale à 6 parcelles (une par joueur) et un vrai système **ranked** 1v1 : MMR (Elo), rangs, matchs de placement,
+Un tower defense médiéval fantastique avec une map principale à 6 fiefs (un par joueur) et un vrai système **ranked** 1v1 : MMR (Elo), rangs, matchs de placement,
 saisons, classement global et matchmaking entre serveurs.
 
-Tout est construit par code (carte, interface, tours, ennemis) : pas besoin de modèles dans Studio.
+Tout est construit par code (forteresses, arènes, interfaces, tours et armées) : pas besoin de modèles dans Studio.
+Les assauts opposent fantassins, écuyers, cavaliers rapides, chevaliers lourds et immenses seigneurs de guerre.
 
 ## La map principale
 
 Chaque serveur accueille 6 joueurs (à régler dans *Game Settings > Places > Server Size*).
 Chacun reçoit sa parcelle : un chemin, une base et 22 emplacements de tours (4 débloqués au départ, les autres de 500 pièces
 jusqu'à ~1,1 Qa pour le dernier, voir `PlotLayout.spotCost`).
-Au centre, un **cercle rouge** : entrer dedans lance la recherche d'une partie ranked.
-Les boutons « Ma base » et « Cercle ranked » servent à se déplacer vite.
+Au centre, le **sceau de l'Arène royale** lance la recherche d'une partie ranked.
+Les boutons « Mon fief » et « Arène royale » servent à se déplacer vite.
 
 ## Le mode infini (ta parcelle)
 
@@ -19,12 +20,14 @@ Les boutons « Ma base » et « Cercle ranked » servent à se déplacer vite.
   d'une vague et tu réessaies. Vague réussie → vague suivante.
 - Les PV grandissent de ×1,22 et les gains de ×1,18 par vague (réglages dans `IdleConfig.luau`) : les pièces
   passent de quelques unités à des trillions.
-- 5 types de vagues : **Mixte**, **Horde** (masse de petits ennemis → tours de zone), **Rush** (rapides →
-  ralentissement), **Géants** (lents et énormes → gros dégâts), **Boss** toutes les 10 vagues.
+- 5 types de vagues : **Escarmouche**, **Levée des écuyers** (masse de petits soldats → tours de zone),
+  **Charge de cavalerie** (rapides → ralentissement), **Garde colossale** (lente et blindée → gros dégâts),
+  **Seigneur de guerre** toutes les 10 vagues.
 - Les ennemis tués lâchent des **pièces à ramasser** (les pièces proches s'empilent). Le bonus de pièces
   s'additionne : ennemi à 3 pièces, +100 % → 6, +200 % → 9.
-- 8 tours (`IdleTowers.luau`) : Mitrailleur, Givre, Bombe, Électrique, Lance-roquettes, Laser, Foudre en chaîne,
-  Frappe orbitale. Clique sur un emplacement pour poser une tour ; poser sur une tour existante la remplace (50 % remboursés), vendre rend 50 %.
+- 8 défenses (`IdleTowers.luau`) : Archer du rempart, Totem de givre, Catapulte, Mage des tempêtes,
+  Baliste lourde, Sorcier des arcanes, Oracle de la foudre et Trébuchet royal. Clique sur un emplacement
+  pour poser une défense ; poser sur une tour existante la remplace (50 % remboursés), vendre rend 50 %.
 - Clique sur le cadenas suivant pour débloquer un emplacement.
 - **Améliorations** : clique sur une tour → « Améliorer » (ou touche E). Niveaux illimités, dégâts ×1,35 par
   niveau, prix ×1,5 par niveau. Les PV des vagues montent un peu plus vite que les gains (×1,22 contre ×1,18) :
@@ -44,14 +47,14 @@ Les boutons « Ma base » et « Cercle ranked » servent à se déplacer vite.
   sur le dossier de la parcelle ; la fenêtre de confirmation montre le gain et le bonus avant → après (`RebirthUI.luau`).
 - Rien de tout ça ne compte en ranked : mêmes tours et même or pour tout le monde.
 
-### Les deux machines à sous (devant chaque parcelle, ou boutons de la colonne de gauche)
+### L'Autel des héros et la Forge runique
 
-- **Machine à tours** : 1 lancer gratuit à chaque vague réussie, sans cumul (le lancer garde le meilleur
-  palier). Au départ seul le Mitrailleur est débloqué. 8 tours en 4 raretés (Commune, Rare, Épique,
+- **Autel des héros** : 1 invocation gratuite à chaque vague réussie, sans cumul (l'invocation garde le meilleur
+  palier). Au départ seul l'Archer du rempart est débloqué. 8 tours en 4 raretés (Commune, Rare, Épique,
   Légendaire) ; plus la vague réussie est haute, meilleures sont les chances (`IdleConfig.TOWER_SPIN_TIERS`).
   Un doublon donne +5 % de dégâts permanents à cette tour.
-- **Machine à bonus** : x2 dégâts, x2 vitesse d'attaque, x3, x5, x10, x20, x50, x100 dégâts (chances affichées
-  dans la machine). 1 lancer en pièces toutes les 30 minutes, lancers en Robux à volonté. Le bonus va dans
+- **Forge runique** : x2 dégâts, x2 vitesse d'attaque, x3, x5, x10, x20, x50, x100 dégâts (chances affichées
+  dans la forge). 1 rune en pièces toutes les 30 minutes, forges en Robux à volonté. Le bonus va dans
   l'inventaire et se pose sur une tour (1 par tour ; en poser un nouveau remplace l'ancien, vendre la tour
   rend le bonus).
 - **Robux** : crée un Developer Product dans le Creator Dashboard et mets son ID dans
@@ -62,8 +65,8 @@ Les boutons « Ma base » et « Cercle ranked » servent à se déplacer vite.
 ## Le match ranked
 
 - Chaque joueur défend **sa propre base** sur son terrain. Les deux reçoivent exactement les mêmes vagues.
-- 4 tours (Mitrailleur, Sniper, Mortier, Givreur), chacune avec 3 niveaux : le modèle évolue (anneau au niv. 2,
-  couronne au niv. 3), un badge ●●○ au-dessus de chaque tour et une fiche qui compare les 3 niveaux.
+- 4 tours (Archer, Arbalétrier, Catapulte, Mage de givre), chacune avec 3 niveaux : le modèle évolue
+  (bandeau doré au niv. 2, bannière au niv. 3), un badge ●●○ au-dessus de chaque tour et une fiche qui compare les 3 niveaux.
 - **Envois** : tu paies pour envoyer des ennemis en plus chez l'adversaire, et ça augmente ton revenu
   par vague. C'est le cœur du 1v1 : économiser ou attaquer ?
 - Le premier dont la base tombe perd. Après 20 minutes, la base avec le plus de vie gagne.

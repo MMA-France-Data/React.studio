@@ -15,7 +15,7 @@ local UI = require(script.Parent.UI)
 local RebirthUI = {}
 
 -- Couleur de la renaissance (bouton, fenêtre, flash).
-local REBIRTH_COLOR = Color3.fromRGB(225, 55, 185)
+local REBIRTH_COLOR = Color3.fromRGB(132, 42, 48)
 local EXAMPLE_REWARD = 10 -- l'ennemi « qui vaut 10 pièces » de l'exemple
 local GOLD_HEX = "#" .. UI.Colors.Gold:ToHex()
 local MUTED_HEX = "#" .. UI.Colors.Muted:ToHex()
@@ -63,7 +63,7 @@ function RebirthUI.start()
 		Parent = buttonGui,
 	})
 	-- Contour qui pulse quand la renaissance est disponible.
-	local buttonStroke = UI.stroke(Color3.fromRGB(255, 150, 230), 2)
+	local buttonStroke = UI.stroke(UI.Colors.Gold, 2)
 	buttonStroke.Enabled = false
 	buttonStroke.Parent = button
 	TweenService:Create(

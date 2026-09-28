@@ -5,16 +5,16 @@ local TweenService = game:GetService("TweenService")
 local UI = {}
 
 UI.Colors = {
-	Background = Color3.fromRGB(22, 24, 34),
-	Panel = Color3.fromRGB(34, 37, 52),
-	PanelLight = Color3.fromRGB(48, 52, 72),
-	Text = Color3.fromRGB(235, 237, 245),
-	Muted = Color3.fromRGB(150, 155, 175),
-	Accent = Color3.fromRGB(90, 140, 255),
-	Success = Color3.fromRGB(70, 200, 110),
-	Warning = Color3.fromRGB(245, 190, 60),
-	Error = Color3.fromRGB(235, 80, 80),
-	Gold = Color3.fromRGB(255, 205, 80),
+	Background = Color3.fromRGB(27, 21, 16),
+	Panel = Color3.fromRGB(45, 34, 25),
+	PanelLight = Color3.fromRGB(69, 50, 35),
+	Text = Color3.fromRGB(244, 234, 215),
+	Muted = Color3.fromRGB(184, 166, 142),
+	Accent = Color3.fromRGB(68, 103, 78),
+	Success = Color3.fromRGB(76, 126, 83),
+	Warning = Color3.fromRGB(190, 130, 45),
+	Error = Color3.fromRGB(151, 48, 46),
+	Gold = Color3.fromRGB(216, 170, 76),
 }
 
 -- Colonne de boutons à gauche de la map principale (sous le panneau de rang de 130 px).
@@ -89,7 +89,7 @@ function UI.button(props: { [string]: any })
 	local defaults = {
 		BackgroundColor3 = UI.Colors.Accent,
 		AutoButtonColor = true,
-		Font = Enum.Font.GothamBold,
+		Font = Enum.Font.Antique,
 		TextColor3 = Color3.new(1, 1, 1),
 		TextScaled = true,
 	}
@@ -100,8 +100,16 @@ function UI.button(props: { [string]: any })
 		end
 	end
 	return UI.new("TextButton", defaults, {
-		UI.corner(8),
+		UI.corner(6),
 		UI.padding(6),
+		UI.stroke(UI.Colors.Gold, 1),
+		UI.new("UIGradient", {
+			Color = ColorSequence.new({
+				ColorSequenceKeypoint.new(0, Color3.new(1, 1, 1)),
+				ColorSequenceKeypoint.new(1, Color3.fromRGB(178, 155, 126)),
+			}),
+			Rotation = 90,
+		}),
 		UI.new("UITextSizeConstraint", { MaxTextSize = maxTextSize }),
 	})
 end

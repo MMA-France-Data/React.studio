@@ -4,13 +4,13 @@ local Enemies = {}
 Enemies.ORDER = { "Normal", "Fast", "Tank", "Boss", "Swarm", "Giant" }
 
 Enemies.Defs = {
-	Normal = { displayName = "Soldat", health = 90, speed = 8, damage = 1, reward = 4, size = 2, color = Color3.fromRGB(220, 70, 70) },
-	Fast = { displayName = "Éclaireur", health = 55, speed = 14, damage = 1, reward = 5, size = 1.6, color = Color3.fromRGB(250, 220, 70) },
-	Tank = { displayName = "Blindé", health = 420, speed = 5, damage = 3, reward = 14, size = 3, color = Color3.fromRGB(110, 110, 120) },
-	Boss = { displayName = "Titan", health = 3500, speed = 3.5, damage = 20, reward = 120, size = 5, color = Color3.fromRGB(150, 40, 200) },
+	Normal = { displayName = "Fantassin", visual = "Infantry", health = 90, speed = 8, damage = 1, reward = 4, size = 2, color = Color3.fromRGB(170, 48, 42) },
+	Fast = { displayName = "Cavalier", visual = "Cavalry", health = 55, speed = 14, damage = 1, reward = 5, size = 1.8, color = Color3.fromRGB(196, 142, 62) },
+	Tank = { displayName = "Chevalier lourd", visual = "Heavy", health = 420, speed = 5, damage = 3, reward = 14, size = 3, color = Color3.fromRGB(92, 101, 112) },
+	Boss = { displayName = "Seigneur de guerre", visual = "Warlord", health = 3500, speed = 3.5, damage = 20, reward = 120, size = 5, color = Color3.fromRGB(92, 30, 34) },
 	-- Utilisés par les vagues du mode infini
-	Swarm = { displayName = "Nuée", health = 30, speed = 12, damage = 1, reward = 1, size = 1.2, color = Color3.fromRGB(120, 230, 90) },
-	Giant = { displayName = "Géant", health = 2000, speed = 3, damage = 8, reward = 40, size = 4.5, color = Color3.fromRGB(140, 95, 60) },
+	Swarm = { displayName = "Écuyer", visual = "Infantry", health = 30, speed = 12, damage = 1, reward = 1, size = 1.25, color = Color3.fromRGB(126, 139, 68) },
+	Giant = { displayName = "Chevalier colossal", visual = "Heavy", health = 2000, speed = 3, damage = 8, reward = 40, size = 4.5, color = Color3.fromRGB(70, 75, 84) },
 }
 
 -- Les ennemis deviennent plus résistants à chaque vague, puis très vite après la vague 20

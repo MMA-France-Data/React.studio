@@ -49,7 +49,7 @@ function MachineUI.start()
 		Position = UDim2.new(0, 16, 0, UI.LEFT_COLUMN_TOP + 2 * UI.LEFT_COLUMN_STEP),
 		Size = UDim2.fromOffset(180, 46),
 		BackgroundColor3 = IdleConfig.RARITIES.Epic.color,
-		Text = "🎰 Machine à tours",
+		Text = "AUTEL DES HÉROS",
 		MaxTextSize = 18,
 		Parent = gui,
 	})
@@ -57,7 +57,7 @@ function MachineUI.start()
 		Position = UDim2.new(0, 16, 0, UI.LEFT_COLUMN_TOP + 3 * UI.LEFT_COLUMN_STEP),
 		Size = UDim2.fromOffset(180, 46),
 		BackgroundColor3 = IdleConfig.RARITIES.Legendary.color,
-		Text = "🎰 Machine à bonus",
+		Text = "FORGE RUNIQUE",
 		MaxTextSize = 18,
 		Parent = gui,
 	})
@@ -232,7 +232,7 @@ function MachineUI.start()
 			for _, towerType in listAttribute(player, "UnlockedTowers") do
 				unlocked[towerType] = true
 			end
-			title.Text = "🎰 Machine à tours"
+			title.Text = "AUTEL DES HÉROS"
 			windowStroke.Color = IdleConfig.RARITIES.Epic.color
 			subtitle.Text = `1 lancer gratuit à chaque vague réussie (sans cumul) • palier : vague {tierInfo.minWave}+`
 
@@ -263,7 +263,7 @@ function MachineUI.start()
 			local bonuses = listAttribute(player, "Bonuses")
 			local cost = IdleConfig.bonusSpinCost(highestWave())
 			local waitLeft = (player:GetAttribute("LastBonusSpinAt") or 0) + IdleConfig.BONUS_SPIN_COOLDOWN - workspace:GetServerTimeNow()
-			title.Text = "🎰 Machine à bonus"
+			title.Text = "FORGE RUNIQUE"
 			windowStroke.Color = IdleConfig.RARITIES.Legendary.color
 			subtitle.Text = "Le bonus va dans ton inventaire : clique sur une tour pour le poser (1 bonus par tour)"
 
@@ -394,7 +394,7 @@ function MachineUI.start()
 	task.spawn(function()
 		while gui.Parent do
 			local ready = (player:GetAttribute("TowerSpinTier") or 0) > 0
-			towerShortcut.Text = if ready then "🎰 1 lancer gratuit !" else "🎰 Machine à tours"
+			towerShortcut.Text = if ready then "1 INVOCATION GRATUITE !" else "AUTEL DES HÉROS"
 			towerShortcut.BackgroundTransparency = if ready then 0 else 0.3
 			if current then
 				refresh()

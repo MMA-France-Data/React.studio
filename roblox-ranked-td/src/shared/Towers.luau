@@ -5,11 +5,11 @@ Towers.ORDER = { "Gunner", "Sniper", "Mortar", "Freezer" }
 
 Towers.Defs = {
 	Gunner = {
-		displayName = "Mitrailleur",
-		description = "Tir rapide sur l'ennemi le plus avancé.",
+		displayName = "Archer",
+		description = "Une pluie de flèches sur l'ennemi le plus avancé.",
 		kind = "Single",
 		targeting = "First",
-		color = Color3.fromRGB(90, 140, 255),
+		color = Color3.fromRGB(70, 126, 72),
 		levels = {
 			{ cost = 150, damage = 18, range = 18, cooldown = 0.5 },
 			{ cost = 125, damage = 28, range = 20, cooldown = 0.45 },
@@ -17,11 +17,11 @@ Towers.Defs = {
 		},
 	},
 	Sniper = {
-		displayName = "Sniper",
-		description = "Très longue portée, vise l'ennemi le plus résistant.",
+		displayName = "Arbalétrier",
+		description = "Très longue portée, vise l'armure la plus résistante.",
 		kind = "Single",
 		targeting = "Strongest",
-		color = Color3.fromRGB(70, 200, 110),
+		color = Color3.fromRGB(128, 72, 46),
 		levels = {
 			{ cost = 300, damage = 100, range = 45, cooldown = 2.2 },
 			{ cost = 250, damage = 180, range = 50, cooldown = 2.0 },
@@ -29,11 +29,11 @@ Towers.Defs = {
 		},
 	},
 	Mortar = {
-		displayName = "Mortier",
-		description = "Dégâts de zone autour de la cible.",
+		displayName = "Catapulte",
+		description = "Projette des rochers qui frappent toute une zone.",
 		kind = "Splash",
 		targeting = "First",
-		color = Color3.fromRGB(235, 130, 50),
+		color = Color3.fromRGB(172, 105, 48),
 		levels = {
 			{ cost = 400, damage = 45, range = 26, cooldown = 2.5, splash = 7 },
 			{ cost = 300, damage = 70, range = 28, cooldown = 2.3, splash = 8 },
@@ -41,10 +41,10 @@ Towers.Defs = {
 		},
 	},
 	Freezer = {
-		displayName = "Givreur",
-		description = "Ralentit et blesse tous les ennemis à portée.",
+		displayName = "Mage de givre",
+		description = "Un mage ancien ralentit et blesse les assaillants à portée.",
 		kind = "Aura",
-		color = Color3.fromRGB(120, 220, 255),
+		color = Color3.fromRGB(94, 182, 210),
 		levels = {
 			{ cost = 250, damage = 6, range = 16, cooldown = 1.0, slow = 0.35, slowDuration = 1.5 },
 			{ cost = 200, damage = 10, range = 18, cooldown = 0.9, slow = 0.45, slowDuration = 2.0 },

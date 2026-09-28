@@ -9,6 +9,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Enemies = require(Shared.Enemies)
 local IdleConfig = require(Shared.IdleConfig)
 local IdleTowers = require(Shared.IdleTowers)
+local MedievalModels = require(Shared.MedievalModels)
 local NumberFormat = require(Shared.NumberFormat)
 local PlotLayout = require(Shared.PlotLayout)
 local Remotes = require(Shared.Remotes)
@@ -47,6 +48,7 @@ local function createEnemy(def)
 	part.CanQuery = false
 	part.CanTouch = false
 	part.CastShadow = false
+	MedievalModels.decorateEnemy(part, def)
 
 	local billboard = Instance.new("BillboardGui")
 	billboard.Size = UDim2.fromOffset(math.max(30, def.size * 12), 5)
@@ -107,24 +109,40 @@ local function onSync(plotIndex: number, packet: buffer, count: number)
 	end
 end
 
-local function onShots(_plotIndex: number, packet: buffer, count: number)
+local function nearestTower(plotIndex: number, towerType: string, from: Vector3): Model?
+	local hub = workspace:FindFirstChild("Hub")
+	local plotFolder = hub and hub:FindFirstChild("Plots") and hub.Plots:FindFirstChild("Plot" .. plotIndex)
+	if not plotFolder then
+		return nil
+	end
+	local nearest, nearestDistance = nil, math.huge
+	for _, candidate in plotFolder:GetDescendants() do
+		if candidate:IsA("Model") and candidate:GetAttribute("TowerType") == towerType then
+			local anchor = candidate.PrimaryPart or candidate:FindFirstChild("Base")
+			if anchor and anchor:IsA("BasePart") then
+				local distance = (anchor.Position - from).Magnitude
+				if distance < nearestDistance then
+					nearest = candidate
+					nearestDistance = distance
+				end
+			end
+		end
+	end
+	return nearest
+end
+
+local function onShots(plotIndex: number, packet: buffer, count: number)
 	for i = 0, count - 1 do
 		local offset = i * SHOT_BYTES
 		local from = Vector3.new(buffer.readf32(packet, offset), buffer.readf32(packet, offset + 4), buffer.readf32(packet, offset + 8))
 		local to = Vector3.new(buffer.readf32(packet, offset + 12), buffer.readf32(packet, offset + 16), buffer.readf32(packet, offset + 20))
-		local def = IdleTowers.Defs[IdleTowers.ORDER[buffer.readu8(packet, offset + 24)]]
+		local towerType = IdleTowers.ORDER[buffer.readu8(packet, offset + 24)]
+		local def = IdleTowers.Defs[towerType]
 		local radius = buffer.readu8(packet, offset + 25)
 		if not def then
 			continue
 		end
-		if def.kind == "Aura" then
-			Effects.pulse(Vector3.new(from.X, from.Y - 0.3, from.Z), radius, def.color)
-		elseif def.kind == "Splash" then
-			Effects.tracer(from, to, def.color, 0.5)
-			Effects.burst(to, radius, def.color, 0.3)
-		else
-			Effects.tracer(from, to, def.color, if def.slow then 0.3 else 0.15)
-		end
+		Effects.playTowerShot(from, to, towerType, radius, def.color, def.kind, nearestTower(plotIndex, towerType, from))
 	end
 end
 

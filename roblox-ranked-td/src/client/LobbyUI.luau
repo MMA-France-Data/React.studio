@@ -56,7 +56,7 @@ function LobbyUI.start()
 		TextXAlignment = Enum.TextXAlignment.Left,
 		TextColor3 = UI.Colors.Muted,
 		MaxTextSize = 16,
-		Text = `Saison {Config.SEASON} • Tower Defense 1v1`,
+		Text = `Saison {Config.SEASON} • ROYAUMES EN GUERRE`,
 		Parent = card,
 	})
 
@@ -64,8 +64,8 @@ function LobbyUI.start()
 	-- machines suivent, voir MachineUI). Le chat est placé en bas à gauche (Main.client).
 	local hubAction = Remotes.get("HubAction")
 	for index, shortcut in {
-		{ text = "🏠  Ma base", action = "GoHome", color = UI.Colors.Accent },
-		{ text = "⚔  Cercle ranked", action = "GoRanked", color = UI.Colors.Error },
+		{ text = "MON FIEF", action = "GoHome", color = UI.Colors.Accent },
+		{ text = "ARÈNE ROYALE", action = "GoRanked", color = UI.Colors.Error },
 	} do
 		local shortcutButton = UI.button({
 			Position = UDim2.new(0, 16, 0, UI.LEFT_COLUMN_TOP + (index - 1) * UI.LEFT_COLUMN_STEP),
@@ -134,7 +134,7 @@ function LobbyUI.start()
 			statusLabel.Text = "Adversaire trouvé ! Téléportation vers le match..."
 		else
 			button.Visible = false
-			statusLabel.Text = "⚔ Entre dans le cercle rouge au centre pour lancer une ranked"
+			statusLabel.Text = "Entre dans le sceau rouge pour défier un autre royaume"
 		end
 	end
 

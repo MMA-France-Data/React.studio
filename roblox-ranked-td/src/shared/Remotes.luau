@@ -24,7 +24,7 @@ local DEFINITIONS = {
 	SellTower = "RemoteEvent", -- client -> serveur : (towerId)
 	SendEnemies = "RemoteEvent", -- client -> serveur : (sendId)
 	MatchResult = "RemoteEvent", -- serveur -> client : (result)
-	TowerFired = "UnreliableRemoteEvent", -- serveur -> clients : (from, to, towerType, radius)
+	TowerFired = "UnreliableRemoteEvent", -- serveur -> clients : (from, to, towerType, radius, towerId)
 }
 
 local FOLDER_NAME = "Remotes"

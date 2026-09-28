@@ -152,8 +152,8 @@ end
 -- Types de vagues. share = part du budget, count = nombre d'ennemis, gap = secondes entre deux.
 IdleConfig.WAVE_TYPES = {
 	Mixed = {
-		displayName = "Mixte",
-		hint = "Un peu de tout",
+		displayName = "Escarmouche",
+		hint = "Fantassins, cavaliers et garde lourde",
 		groups = function(wave)
 			return {
 				{ enemy = "Normal", share = 0.5, count = 6 + math.min(wave // 8, 8), gap = 0.6 },
@@ -163,29 +163,29 @@ IdleConfig.WAVE_TYPES = {
 		end,
 	},
 	Horde = {
-		displayName = "Horde",
-		hint = "Une masse d'ennemis fragiles : les tours de zone brillent",
+		displayName = "Levée des écuyers",
+		hint = "Une foule de jeunes soldats : les attaques de zone brillent",
 		groups = function(wave)
 			return { { enemy = "Swarm", share = 1, count = 25 + math.min(wave // 4, 20), gap = 0.18 } }
 		end,
 	},
 	Rush = {
-		displayName = "Rush",
-		hint = "Très rapides : ralentis-les !",
+		displayName = "Charge de cavalerie",
+		hint = "Les cavaliers sont très rapides : ralentis-les !",
 		groups = function(wave)
 			return { { enemy = "Fast", share = 1, count = 12 + math.min(wave // 6, 12), gap = 0.3 } }
 		end,
 	},
 	Giants = {
-		displayName = "Géants",
-		hint = "Lents mais énormes : il faut des gros dégâts",
+		displayName = "Garde colossale",
+		hint = "De gigantesques chevaliers : concentre tes dégâts",
 		groups = function(wave)
 			return { { enemy = "Giant", share = 1.2, count = 2 + math.min(wave // 25, 2), gap = 3 } }
 		end,
 	},
 	Boss = {
-		displayName = "BOSS",
-		hint = "Un boss unique : c'est ton DPS qui fera la différence",
+		displayName = "SEIGNEUR DE GUERRE",
+		hint = "Un immense chevalier mène l'assaut : concentre toute ta puissance",
 		groups = function(wave)
 			return {
 				{ enemy = "Normal", share = 0.3, count = 6, gap = 0.5 },
