@@ -16,6 +16,11 @@ Remotes.get("Notify").OnClientEvent:Connect(function(message: string, kind: stri
 end)
 
 if mode == "Match" then
+	-- La liste des joueurs de Roblox cacherait le panneau de l'adversaire (en haut à droite),
+	-- qui affiche déjà les mêmes infos.
+	pcall(function()
+		game:GetService("StarterGui"):SetCoreGuiEnabled(Enum.CoreGuiType.PlayerList, false)
+	end)
 	local TowerPlacement = require(script.Parent.TowerPlacement)
 	TowerPlacement.start()
 	require(script.Parent.MatchUI).start(TowerPlacement)

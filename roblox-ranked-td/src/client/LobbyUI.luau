@@ -60,15 +60,15 @@ function LobbyUI.start()
 		Parent = card,
 	})
 
-	-- Raccourcis de déplacement (à gauche)
+	-- Raccourcis de déplacement (colonne de gauche, sous le panneau de rang ; les boutons des
+	-- machines suivent, voir MachineUI). Le chat est placé en bas à gauche (Main.client).
 	local hubAction = Remotes.get("HubAction")
 	for index, shortcut in {
 		{ text = "🏠  Ma base", action = "GoHome", color = UI.Colors.Accent },
 		{ text = "⚔  Cercle ranked", action = "GoRanked", color = UI.Colors.Error },
 	} do
 		local shortcutButton = UI.button({
-			AnchorPoint = Vector2.new(0, 0.5),
-			Position = UDim2.new(0, 16, 0.5, (index - 1) * 54 - 27),
+			Position = UDim2.new(0, 16, 0, UI.LEFT_COLUMN_TOP + (index - 1) * UI.LEFT_COLUMN_STEP),
 			Size = UDim2.new(0, 180, 0, 46),
 			BackgroundColor3 = shortcut.color,
 			Text = shortcut.text,

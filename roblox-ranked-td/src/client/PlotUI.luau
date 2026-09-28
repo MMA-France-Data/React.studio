@@ -156,7 +156,7 @@ function PlotUI.start()
 		Position = UDim2.new(1, 0, 0, 0),
 		Size = UDim2.fromOffset(30, 30),
 		BackgroundColor3 = UI.Colors.PanelLight,
-		Text = "✕",
+		Text = "X",
 		MaxTextSize = 18,
 		Parent = panel,
 	})
@@ -540,7 +540,7 @@ function PlotUI.start()
 	-- Mise à jour
 	------------------------------------------------------------------
 	local function update()
-		coinsLabel.Text = "🪙 " .. NumberFormat.short(coins())
+		coinsLabel.Text = "💰 " .. NumberFormat.short(coins())
 
 		local plot = myPlotFolder()
 		local wave = plot and plot:GetAttribute("Wave")

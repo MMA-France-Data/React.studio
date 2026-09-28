@@ -17,6 +17,10 @@ UI.Colors = {
 	Gold = Color3.fromRGB(255, 205, 80),
 }
 
+-- Colonne de boutons à gauche de la map principale (sous le panneau de rang de 130 px).
+UI.LEFT_COLUMN_TOP = 162
+UI.LEFT_COLUMN_STEP = 54
+
 -- UI.new("Frame", { Size = ..., Parent = ... }, { enfants })
 function UI.new(className: string, props: { [string]: any }?, children: { Instance }?)
 	local instance = Instance.new(className)

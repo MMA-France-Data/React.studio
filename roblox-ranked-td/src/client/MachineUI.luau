@@ -42,21 +42,20 @@ function MachineUI.start()
 	end
 
 	------------------------------------------------------------------
-	-- Boutons en haut à droite
+	-- Boutons dans la colonne de gauche, sous « Ma base » et « Cercle ranked » (LobbyUI).
+	-- En haut à droite, ils seraient cachés par la liste des joueurs de Roblox.
 	------------------------------------------------------------------
 	local towerShortcut = UI.button({
-		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, -16, 0, 16),
-		Size = UDim2.fromOffset(200, 46),
+		Position = UDim2.new(0, 16, 0, UI.LEFT_COLUMN_TOP + 2 * UI.LEFT_COLUMN_STEP),
+		Size = UDim2.fromOffset(180, 46),
 		BackgroundColor3 = IdleConfig.RARITIES.Epic.color,
 		Text = "🎰 Machine à tours",
 		MaxTextSize = 18,
 		Parent = gui,
 	})
 	local bonusShortcut = UI.button({
-		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, -16, 0, 68),
-		Size = UDim2.fromOffset(200, 46),
+		Position = UDim2.new(0, 16, 0, UI.LEFT_COLUMN_TOP + 3 * UI.LEFT_COLUMN_STEP),
+		Size = UDim2.fromOffset(180, 46),
 		BackgroundColor3 = IdleConfig.RARITIES.Legendary.color,
 		Text = "🎰 Machine à bonus",
 		MaxTextSize = 18,
@@ -106,7 +105,7 @@ function MachineUI.start()
 		Position = UDim2.new(1, 0, 0, 0),
 		Size = UDim2.fromOffset(32, 32),
 		BackgroundColor3 = UI.Colors.PanelLight,
-		Text = "✕",
+		Text = "X",
 		MaxTextSize = 18,
 		Parent = window,
 	})

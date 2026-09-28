@@ -124,6 +124,37 @@ local function refreshBoard(rows)
 	end
 end
 
+-- Outil de test, uniquement dans Studio : ServerStorage.StudioDebug (BindableFunction), utilisable
+-- depuis la barre de commande ou un plugin.
+--   Invoke(player, "Coins", 1e6)                -> ajoute des pièces
+--   Invoke(player, "Call", "placeTower", 1, "MachineGun") -> appelle une méthode de PlotGame
+--   Invoke(player, "Set", "wave", 30)           -> change un champ de data.idle
+--   Invoke(player, "Data")                      -> renvoie les données du joueur
+local function setupStudioDebug()
+	if not RunService:IsStudio() then
+		return
+	end
+	local debug = Instance.new("BindableFunction")
+	debug.Name = "StudioDebug"
+	debug.OnInvoke = function(player: Player, command: string, ...)
+		local plotGame = games[player]
+		local data = PlayerData.get(player)
+		if command == "Coins" then
+			PlayerData.addCoins(player, ...)
+		elseif command == "Call" and plotGame then
+			local method, rest = ..., table.pack(select(2, ...))
+			return plotGame[method](plotGame, table.unpack(rest, 1, rest.n))
+		elseif command == "Set" and data then
+			local key, value = ...
+			data.idle[key] = value
+		elseif command == "Data" then
+			return data
+		end
+		return nil
+	end
+	debug.Parent = game:GetService("ServerStorage")
+end
+
 -- Entrer dans le cercle lance la recherche (une seule fois par entrée).
 local function watchRankedCircle()
 	local center = PlotLayout.RANKED_CIRCLE_POSITION
@@ -176,6 +207,7 @@ function Hub.start()
 		end
 	end)
 	runPlotGames()
+	setupStudioDebug()
 
 	local lastPlotAction = {}
 	Players.PlayerRemoving:Connect(function(player)
