@@ -1,4 +1,4 @@
--- Interface du lobby : carte de rang + bouton de recherche ranked.
+-- Interface de la map principale : carte de rang, raccourcis et statut de la recherche ranked.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -60,7 +60,28 @@ function LobbyUI.start()
 		Parent = card,
 	})
 
-	-- Bouton de recherche (en bas au centre)
+	-- Raccourcis de déplacement (à gauche)
+	local hubAction = Remotes.get("HubAction")
+	for index, shortcut in {
+		{ text = "🏠  Ma base", action = "GoHome", color = UI.Colors.Accent },
+		{ text = "⚔  Cercle ranked", action = "GoRanked", color = UI.Colors.Error },
+	} do
+		local shortcutButton = UI.button({
+			AnchorPoint = Vector2.new(0, 0.5),
+			Position = UDim2.new(0, 16, 0.5, (index - 1) * 54 - 27),
+			Size = UDim2.new(0, 180, 0, 46),
+			BackgroundColor3 = shortcut.color,
+			Text = shortcut.text,
+			MaxTextSize = 20,
+			Parent = gui,
+		})
+		shortcutButton.Activated:Connect(function()
+			hubAction:FireServer(shortcut.action)
+		end)
+	end
+
+	-- Statut de la recherche ranked (en bas au centre). On lance une recherche en entrant dans
+	-- le cercle au centre de la map ; le bouton sert seulement à annuler.
 	local statusLabel = UI.label({
 		AnchorPoint = Vector2.new(0.5, 1),
 		Position = UDim2.new(0.5, 0, 1, -100),
@@ -73,16 +94,15 @@ function LobbyUI.start()
 		AnchorPoint = Vector2.new(0.5, 1),
 		Position = UDim2.new(0.5, 0, 1, -30),
 		Size = UDim2.new(0, 300, 0, 60),
-		Text = "JOUER EN RANKED",
+		Text = "ANNULER",
 		MaxTextSize = 28,
+		Visible = false,
 		Parent = gui,
 	})
 
 	button.Activated:Connect(function()
 		local state = player:GetAttribute("QueueState") or "Idle"
-		if state == "Idle" then
-			queueAction:FireServer("Join")
-		elseif state == "Searching" or state == "Joining" then
+		if state == "Searching" or state == "Joining" then
 			queueAction:FireServer("Leave")
 		end
 	end)
@@ -103,17 +123,16 @@ function LobbyUI.start()
 		if state == "Searching" or state == "Joining" then
 			local since = player:GetAttribute("QueueStartedAt")
 			local elapsed = if since then workspace:GetServerTimeNow() - since else 0
+			button.Visible = true
 			button.Text = "ANNULER"
 			button.BackgroundColor3 = UI.Colors.Error
 			statusLabel.Text = `Recherche d'un adversaire...  {UI.formatTime(elapsed)}`
 		elseif state == "Found" then
-			button.Text = "ADVERSAIRE TROUVÉ"
-			button.BackgroundColor3 = UI.Colors.Success
-			statusLabel.Text = "Téléportation vers le match..."
+			button.Visible = false
+			statusLabel.Text = "Adversaire trouvé ! Téléportation vers le match..."
 		else
-			button.Text = "JOUER EN RANKED"
-			button.BackgroundColor3 = UI.Colors.Accent
-			statusLabel.Text = ""
+			button.Visible = false
+			statusLabel.Text = "⚔ Entre dans le cercle rouge au centre pour lancer une ranked"
 		end
 	end
 

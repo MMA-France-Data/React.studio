@@ -5,7 +5,7 @@ local Config = {}
 Config.SEASON = 1
 
 -- Dans Studio, TeleportService ne marche pas : on ne peut pas tester le vrai matchmaking.
---   "Auto"  -> Lobby (comportement normal)
+--   "Auto"  -> Lobby : map principale (parcelles + cercle ranked)
 --   "Match" -> lance directement un match pour tester le gameplay
 --              (Test > Clients and Servers > 2 joueurs, ou 1 joueur contre un bot)
 Config.STUDIO_FORCE_MODE = "Auto"

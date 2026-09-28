@@ -4,8 +4,9 @@ local RunService = game:GetService("RunService")
 local Remotes = {}
 
 local DEFINITIONS = {
-	-- Lobby
+	-- Map principale (hub)
 	QueueAction = "RemoteEvent", -- client -> serveur : "Join" | "Leave"
+	HubAction = "RemoteEvent", -- client -> serveur : "GoHome" | "GoRanked"
 	-- Commun
 	Notify = "RemoteEvent", -- serveur -> client : (message, kind)
 	-- Match

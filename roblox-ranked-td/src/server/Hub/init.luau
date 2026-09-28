@@ -1,63 +1,22 @@
--- Serveur lobby : décor minimal, tableau des meilleurs joueurs et file ranked.
+-- Map principale (serveur public) : 6 parcelles, cercle ranked au centre, classement.
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.Config)
+local PlotLayout = require(Shared.PlotLayout)
 local Ranks = require(Shared.Ranks)
 local Remotes = require(Shared.Remotes)
 local Leaderboard = require(script.Parent.Leaderboard)
 local Matchmaking = require(script.Parent.Matchmaking)
+local HubMap = require(script.HubMap)
+local Plots = require(script.Plots)
 
-local Lobby = {}
-
-local function part(props)
-	local p = Instance.new("Part")
-	p.Anchored = true
-	p.TopSurface = Enum.SurfaceType.Smooth
-	p.BottomSurface = Enum.SurfaceType.Smooth
-	for key, value in props do
-		p[key] = value
-	end
-	return p
-end
-
-local function buildEnvironment()
-	local folder = Instance.new("Folder")
-	folder.Name = "Lobby"
-	folder.Parent = workspace
-
-	part({
-		Name = "Floor",
-		Size = Vector3.new(200, 1, 200),
-		Position = Vector3.new(0, -0.5, 0),
-		Color = Color3.fromRGB(60, 64, 80),
-		Material = Enum.Material.SmoothPlastic,
-		Parent = folder,
-	})
-
-	local spawn = Instance.new("SpawnLocation")
-	spawn.Anchored = true
-	spawn.Size = Vector3.new(12, 1, 12)
-	spawn.Position = Vector3.new(0, 0.5, 20)
-	spawn.Color = Color3.fromRGB(90, 140, 255)
-	spawn.Material = Enum.Material.Neon
-	spawn.Neutral = true
-	spawn.Duration = 0
-	spawn.Parent = folder
-
-	local board = part({
-		Name = "LeaderboardBoard",
-		Size = Vector3.new(28, 20, 1),
-		CFrame = CFrame.new(0, 11, -20),
-		Color = Color3.fromRGB(25, 27, 38),
-		Parent = folder,
-	})
-	return board
-end
+local Hub = {}
 
 local function buildBoardGui(board: BasePart)
 	local gui = Instance.new("SurfaceGui")
-	gui.Face = Enum.NormalId.Back -- face tournée vers le spawn (+Z)
+	gui.Face = Enum.NormalId.Back -- face tournée vers le cercle ranked (+Z)
 	gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
 	gui.PixelsPerStud = 40
 	gui.Parent = board
@@ -68,7 +27,7 @@ local function buildBoardGui(board: BasePart)
 	title.Font = Enum.Font.GothamBlack
 	title.TextScaled = true
 	title.TextColor3 = Color3.fromRGB(255, 215, 90)
-	title.Text = `CLASSEMENT — SAISON {Config.SEASON}`
+	title.Text = `CLASSEMENT RANKED — SAISON {Config.SEASON}`
 	title.Parent = gui
 
 	local rows = {}
@@ -104,10 +63,40 @@ local function refreshBoard(rows)
 	end
 end
 
-function Lobby.start()
-	local board = buildEnvironment()
-	local rows = buildBoardGui(board)
+-- Entrer dans le cercle lance la recherche (une seule fois par entrée).
+local function watchRankedCircle()
+	local center = PlotLayout.RANKED_CIRCLE_POSITION
+	local radius = PlotLayout.RANKED_CIRCLE_RADIUS
+	local inside = {}
 
+	Players.PlayerRemoving:Connect(function(player)
+		inside[player] = nil
+	end)
+
+	while true do
+		task.wait(0.25)
+		for _, player in Players:GetPlayers() do
+			local character = player.Character
+			local root = character and character:FindFirstChild("HumanoidRootPart")
+			local isInside = false
+			if root then
+				local offset = root.Position - center
+				isInside = Vector3.new(offset.X, 0, offset.Z).Magnitude <= radius and math.abs(offset.Y) < 8
+			end
+			if isInside and not inside[player] then
+				task.spawn(Matchmaking.join, player)
+			end
+			inside[player] = isInside
+		end
+	end
+end
+
+function Hub.start()
+	local map = HubMap.build()
+	Plots.init(map.plots)
+	Plots.start()
+
+	local rows = buildBoardGui(map.board)
 	Matchmaking.start()
 
 	Remotes.get("QueueAction").OnServerEvent:Connect(function(player, action)
@@ -118,6 +107,20 @@ function Lobby.start()
 		end
 	end)
 
+	Remotes.get("HubAction").OnServerEvent:Connect(function(player, action)
+		local character = player.Character
+		if not character then
+			return
+		end
+		if action == "GoHome" then
+			Plots.sendHome(player)
+		elseif action == "GoRanked" then
+			local position = PlotLayout.RANKED_CIRCLE_POSITION + Vector3.new(0, 3, 0)
+			character:PivotTo(CFrame.new(position))
+		end
+	end)
+
+	task.spawn(watchRankedCircle)
 	task.spawn(function()
 		while true do
 			refreshBoard(rows)
@@ -126,4 +129,4 @@ function Lobby.start()
 	end)
 end
 
-return Lobby
+return Hub

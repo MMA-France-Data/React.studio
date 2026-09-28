@@ -1,5 +1,5 @@
 -- Point d'entrée serveur. Une seule place Roblox sert à la fois de lobby et de serveur de match :
---   serveur public   -> Lobby (file ranked, classement)
+--   serveur public   -> Lobby : map principale avec les parcelles et le cercle ranked (module Hub)
 --   serveur réservé  -> Match (créé par le matchmaking via TeleportService:ReserveServer)
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -32,7 +32,7 @@ local ok, err = xpcall(function()
 	if mode == "Match" then
 		require(script.Parent.Match).start()
 	else
-		require(script.Parent.Lobby).start()
+		require(script.Parent.Hub).start()
 	end
 end, debug.traceback)
 if not ok then

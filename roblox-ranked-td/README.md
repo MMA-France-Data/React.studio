@@ -1,11 +1,18 @@
 # Ranked Tower Defense 1v1 (Roblox)
 
-Un tower defense 1v1 avec un vrai système **ranked** : MMR (Elo), rangs, matchs de placement,
+Un tower defense avec une map principale à 6 parcelles (une par joueur) et un vrai système **ranked** 1v1 : MMR (Elo), rangs, matchs de placement,
 saisons, classement global et matchmaking entre serveurs.
 
 Tout est construit par code (carte, interface, tours, ennemis) : pas besoin de modèles dans Studio.
 
-## Le jeu
+## La map principale
+
+Chaque serveur accueille 6 joueurs (à régler dans *Game Settings > Places > Server Size*).
+Chacun reçoit sa parcelle : un chemin, une base et 16 emplacements de tours (4 débloqués au départ).
+Au centre, un **cercle rouge** : entrer dedans lance la recherche d'une partie ranked.
+Les boutons « Ma base » et « Cercle ranked » servent à se déplacer vite.
+
+## Le match ranked
 
 - Chaque joueur défend **sa propre base** sur son terrain. Les deux reçoivent exactement les mêmes vagues.
 - 4 tours (Mitrailleur, Sniper, Mortier, Givreur), chacune avec 3 niveaux : le modèle évolue (anneau au niv. 2,
@@ -47,7 +54,7 @@ Contrôles : `1`-`4` choisir une tour • clic pour poser • clic sur une de te
 ```
 
 - La fourchette de MMR acceptée commence à ±75 et s'élargit de 8 par seconde d'attente (max ±600).
-- Une seule place Roblox sert aux deux : serveur public = lobby, serveur réservé = match
+- Une seule place Roblox sert aux deux : serveur public = map principale (« lobby »), serveur réservé = match
   (`src/server/Main.server.luau`).
 - Toute la logique est côté serveur : le client ne fait que demander (poser une tour, envoyer...)
   et le serveur vérifie l'or, la position, le propriétaire de la tour, etc.
@@ -89,9 +96,9 @@ vagues dans `Enemies.luau`, les envois dans `Sends.luau`, le tracé du chemin da
 
 ```
 src/
-  shared/   (ReplicatedStorage.Shared)   Config, Elo, Ranks, Towers, Enemies, Sends, MapLayout, Placement, Remotes
-  server/   (ServerScriptService.Server) Main, PlayerData, Leaderboard, Matchmaking, Lobby, Match/{init, Game, MapBuilder}
-  client/   (StarterPlayerScripts.Client) Main, LobbyUI, MatchUI, TowerPlacement, Effects, UI
+  shared/   (ReplicatedStorage.Shared)   Config, Elo, Ranks, Towers, Enemies, Sends, MapLayout, PlotLayout, Placement, Remotes
+  server/   (ServerScriptService.Server) Main, PlayerData, Leaderboard, Matchmaking, Hub/{init, HubMap, Plots}, Match/{init, Game, MapBuilder}
+  client/   (StarterPlayerScripts.Client) Main, LobbyUI, MatchUI, TowerCard, TowerPlacement, Effects, UI
 ```
 
 ## Limites connues / pistes d'amélioration
