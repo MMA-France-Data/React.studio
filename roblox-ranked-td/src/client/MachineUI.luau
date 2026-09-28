@@ -258,7 +258,7 @@ function MachineUI.start()
 				primaryButton.Text = "Passe une vague pour gagner un lancer"
 				primaryButton.BackgroundTransparency = 0.6
 			end
-			footer.Text = "Doublon = +5 % de dégâts permanents pour cette tour  •  ✓ = déjà débloquée"
+			footer.Text = `Doublon = +{math.floor(IdleConfig.DUPLICATE_DAMAGE_BONUS * 100 + 0.5)} % de dégâts permanents pour cette tour  •  ✓ = déjà débloquée`
 		else
 			local bonuses = listAttribute(player, "Bonuses")
 			local cost = IdleConfig.bonusSpinCost(highestWave())

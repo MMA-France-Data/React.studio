@@ -1,0 +1,7 @@
+# Copies des modules de src/shared générées par run.ps1
+gen/
+# Journal détaillé du joueur simulé (run.ps1 -Journal) : gros fichier, recréé à la demande
+out/journal.txt
+# Grosses sorties régénérées à chaque lancement (le résumé est dans RESULTS.md et out/rapport.txt)
+out/timeline.csv
+out/heures.csv

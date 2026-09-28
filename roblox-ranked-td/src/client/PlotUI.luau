@@ -138,23 +138,26 @@ function PlotUI.start()
 	})
 
 	------------------------------------------------------------------
-	-- Panneau emplacement / tour (en bas au centre)
+	-- Panneau emplacement / tour (en bas à droite : le chat de Roblox occupe le bas à gauche et
+	-- intercepterait les clics sur les cartes)
 	------------------------------------------------------------------
 	local count = #IdleTowers.ORDER
 	local panel = UI.new("Frame", {
-		AnchorPoint = Vector2.new(0.5, 1),
-		Position = UDim2.new(0.5, 0, 1, -16),
+		AnchorPoint = Vector2.new(1, 1),
+		Position = UDim2.new(1, -16, 1, -16),
 		Size = UDim2.fromOffset(count * (CARD_WIDTH + 8) + 12, PANEL_HEIGHT),
 		BackgroundColor3 = UI.Colors.Panel,
 		BackgroundTransparency = 0.05,
 		Visible = false,
 		Parent = gui,
 	}, { UI.corner(14), UI.padding(10), UI.stroke() })
-	-- Réduit le panneau sur les petits écrans (téléphones).
+	-- Réduit le panneau quand il n'a pas la place à côté du chat (petits écrans, téléphones).
+	local CHAT_WIDTH = 500 -- largeur laissée au chat sur ordinateur
 	local panelScale = UI.new("UIScale", { Parent = panel })
 	local function fitPanel()
 		local viewport = workspace.CurrentCamera.ViewportSize
-		panelScale.Scale = math.min(1, (viewport.X - 24) / panel.Size.X.Offset, (viewport.Y * 0.55) / PANEL_HEIGHT)
+		local reserved = if viewport.X >= 1000 then CHAT_WIDTH else 0
+		panelScale.Scale = math.min(1, (viewport.X - reserved - 32) / panel.Size.X.Offset, (viewport.Y * 0.55) / PANEL_HEIGHT)
 	end
 	fitPanel()
 	workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(fitPanel)

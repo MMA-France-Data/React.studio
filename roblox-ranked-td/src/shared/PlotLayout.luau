@@ -101,13 +101,16 @@ function PlotLayout.startingSpots(): { [string]: boolean }
 	return owned
 end
 
--- Prix des emplacements à débloquer : de plus en plus cher, et la hausse elle-même accélère.
+-- Prix des emplacements à débloquer : de plus en plus cher.
 -- Le prix ne dépend PAS de l'emplacement choisi, seulement du nombre d'emplacements déjà possédés :
 -- spotCost(n) = prix pour posséder son n-ième emplacement (n = possédés + 1).
--- 5e emplacement : 500 pièces … 22e : ~1,1 Qa (un quadrillion).
-PlotLayout.SPOT_BASE_COST = 500
-PlotLayout.SPOT_COST_GROWTH = 3.8
-PlotLayout.SPOT_COST_ACCELERATION = 1.02
+-- 5e emplacement : 100 pièces, puis x2,6 par emplacement … 22e : ~1,1 B (1,1 milliard).
+-- x2,6, c'est la hausse des gains en ~4,3 vagues (x1,25 par vague) : le joueur simulé achète un
+-- emplacement toutes les 4-5 vagues environ, le 5e vers la vague 15 et le 22e vers la vague 95-100
+-- (la tour à y poser et ses améliorations coûtent bien plus que l'emplacement lui-même).
+PlotLayout.SPOT_BASE_COST = 100
+PlotLayout.SPOT_COST_GROWTH = 2.6
+PlotLayout.SPOT_COST_ACCELERATION = 1 -- 1 = pas d'accélération (x2,6 à chaque emplacement)
 
 function PlotLayout.spotCost(nth: number): number
 	local k = nth - PlotLayout.STARTING_SPOTS - 1

@@ -10,8 +10,8 @@ Les assauts opposent fantassins, écuyers, cavaliers rapides, chevaliers lourds 
 
 Chaque serveur accueille 6 joueurs (à régler dans *Game Settings > Places > Server Size*).
 Chacun reçoit sa parcelle : un chemin, une base et 22 emplacements de tours (4 débloqués au départ, les 18 autres
-s'achètent **dans n'importe quel ordre**). Le prix ne dépend que du nombre d'emplacements déjà possédés : 500 pièces
-pour le 5e, jusqu'à ~1,1 Qa pour le 22e (voir `PlotLayout.spotCost`).
+s'achètent **dans n'importe quel ordre**). Le prix ne dépend que du nombre d'emplacements déjà possédés : 100 pièces
+pour le 5e, puis ×2,6 à chaque fois, jusqu'à ~1,1 B pour le 22e (voir `PlotLayout.spotCost`).
 Au centre, le **sceau de l'Arène royale** lance la recherche d'une partie ranked.
 Les boutons « Mon fief » et « Arène royale » servent à se déplacer vite.
 
@@ -19,8 +19,9 @@ Les boutons « Mon fief » et « Arène royale » servent à se déplacer vite.
 
 - Des vagues sans fin arrivent sur ta parcelle. **Impossible de perdre** : si ta base tombe, tu redescends
   d'une vague et tu réessaies. Vague réussie → vague suivante.
-- Les PV grandissent de ×1,22 et les gains de ×1,18 par vague (réglages dans `IdleConfig.luau`) : les pièces
-  passent de quelques unités à des trillions.
+- Les gains grandissent de ×1,25 par vague et les PV un peu plus vite (×1,45 vers la vague 10, ×1,30 à la 50,
+  ×1,28 à la 100 ; réglages dans `IdleConfig.luau`) : les pièces passent de quelques unités à des trillions,
+  puis des quadrillions, des quintillions… (réglé avec `tools/balance`, voir `tools/balance/RESULTS.md`).
 - 5 types de vagues : **Escarmouche**, **Levée des écuyers** (masse de petits soldats → tours de zone),
   **Charge de cavalerie** (rapides → ralentissement), **Garde colossale** (lente et blindée → gros dégâts),
   **Seigneur de guerre** toutes les 10 vagues.
@@ -34,7 +35,8 @@ Les boutons « Mon fief » et « Arène royale » servent à se déplacer vite.
   dans `data.idle.ownedSpots` (`unlockedSpots` = leur nombre) ; les anciennes sauvegardes sont converties
   automatiquement (`PlayerData.luau`).
 - **Améliorations** : clique sur une tour → « Améliorer » (ou touche E). Niveaux illimités, dégâts ×1,35 par
-  niveau, prix ×1,5 par niveau. Les PV des vagues montent un peu plus vite que les gains (×1,22 contre ×1,18) :
+  niveau, prix ×1,35 par niveau (20 pièces pour le niveau 2, le même prix pour toutes les tours). Les PV des
+  vagues montent un peu plus vite que les gains (×1,28 à ×1,45 contre ×1,25) :
   on bloque souvent, on farme un peu, une amélioration débloque les vagues suivantes.
 - Chemin de ~360 studs (6 allers-retours) et ennemis 1,6× plus rapides qu'en ranked.
 
@@ -56,7 +58,7 @@ Les boutons « Mon fief » et « Arène royale » servent à se déplacer vite.
 - **Autel des héros** : 1 invocation gratuite à chaque vague réussie, sans cumul (l'invocation garde le meilleur
   palier). Au départ seul l'Archer du rempart est débloqué. 8 tours en 4 raretés (Commune, Rare, Épique,
   Légendaire) ; plus la vague réussie est haute, meilleures sont les chances (`IdleConfig.TOWER_SPIN_TIERS`).
-  Un doublon donne +5 % de dégâts permanents à cette tour.
+  Un doublon donne +2 % de dégâts permanents à cette tour.
 - **Forge runique** : x2 dégâts, x2 vitesse d'attaque, x3, x5, x10, x20, x50, x100 dégâts (chances affichées
   dans la forge). 1 rune en pièces toutes les 30 minutes, forges en Robux à volonté. Le bonus va dans
   l'inventaire et se pose sur une tour (1 par tour ; en poser un nouveau remplace l'ancien, vendre la tour

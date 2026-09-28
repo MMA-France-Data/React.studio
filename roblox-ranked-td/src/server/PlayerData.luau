@@ -47,7 +47,7 @@ local function defaultIdle()
 		rebirths = 0, -- nombre de renaissances (seules la vague et bestWave repartent à 1)
 		-- Machines à sous
 		unlockedTowers = startingTowers(), -- [type] = true
-		towerDupes = {}, -- [type] = nombre de doublons (+5 % de dégâts chacun)
+		towerDupes = {}, -- [type] = nombre de doublons (IdleConfig.DUPLICATE_DAMAGE_BONUS de dégâts chacun)
 		pendingSpinTier = 0, -- lancer gratuit de la machine à tours (0 = aucun, sinon palier)
 		bonuses = {}, -- inventaire de bonus (ids de IdleConfig.BONUSES)
 		lastBonusSpinAt = 0, -- os.time() du dernier lancer payé en pièces

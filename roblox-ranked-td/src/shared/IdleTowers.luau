@@ -1,6 +1,20 @@
 -- Tours du mode infini (ta parcelle). Indépendantes des tours du ranked.
--- Au départ seul le Mitrailleur est débloqué ; les autres se gagnent à la machine à tours
+-- Au départ seul l'Archer du rempart est débloqué ; les autres se gagnent à la machine à tours
 -- (rareté = chance de l'obtenir). Doublons et bonus de la machine à bonus s'appliquent en plus.
+--
+-- Équilibrage (réglé avec le banc d'essai de tools/balance) : toutes les tours ont le même prix
+-- d'amélioration à un niveau donné, donc à niveau égal on compare directement leurs stats.
+-- Plus une tour est rare, plus elle est forte, et chaque type de vague a sa meilleure tour (banc d'essai) :
+--   Escarmouche et Charge de cavalerie -> l'Archer au début, puis l'Oracle de la foudre (éclairs sur 4 ennemis)
+--   Levée des écuyers                  -> Totem de givre et Catapulte au début, puis Trébuchet et Oracle
+--   Garde colossale                    -> l'Archer au début, puis le Sorcier des arcanes (vise le plus résistant)
+--   Seigneur de guerre                 -> le Mage des tempêtes (son ralentissement garde le boss sous le feu),
+--                                         puis le Trébuchet royal ; la Baliste lourde aide beaucoup en soutien
+-- Le joueur simulé change de tours au fil du jeu : Archer, Totem, Mage et Baliste au début, Trébuchet et
+-- Oracle vers les vagues 26-50, Catapulte et Trébuchet vers 51-100, Sorcier et Baliste après la vague 100.
+-- Les tours communes reçoivent beaucoup plus de doublons que les légendaires, ce qui les garde utiles.
+-- La portée compte énormément : 30 pour la Baliste couvre ~3 fois plus de chemin que 15 pour l'Archer,
+-- 70 pour le Trébuchet couvre tout le chemin ; ces tours ont donc moins de dégâts par seconde.
 local IdleConfig = require(script.Parent.IdleConfig)
 
 local IdleTowers = {}
@@ -27,7 +41,7 @@ IdleTowers.Defs = {
 		kind = "Aura",
 		color = Color3.fromRGB(150, 230, 255),
 		placeCost = 25,
-		damage = 2,
+		damage = 4.2, -- touche tous les ennemis proches à chaque seconde : bon contre les hordes
 		range = 12,
 		cooldown = 1,
 		slow = 0.25,
@@ -41,7 +55,7 @@ IdleTowers.Defs = {
 		targeting = "First",
 		color = Color3.fromRGB(240, 130, 50),
 		placeCost = 40,
-		damage = 12,
+		damage = 17, -- ses rochers écrasent les foules : bonne contre les Levées d'écuyers dès le début
 		range = 14,
 		cooldown = 1.8,
 		splash = 7,
@@ -54,7 +68,7 @@ IdleTowers.Defs = {
 		targeting = "First",
 		color = Color3.fromRGB(250, 230, 80),
 		placeCost = 50,
-		damage = 8,
+		damage = 14, -- assez de dégâts pour compter contre les boss, en plus de son ralentissement
 		range = 16,
 		cooldown = 0.8,
 		slow = 0.6,
@@ -68,22 +82,22 @@ IdleTowers.Defs = {
 		targeting = "Strongest",
 		color = Color3.fromRGB(200, 60, 60),
 		placeCost = 80,
-		damage = 45,
+		damage = 40,
 		range = 30,
-		cooldown = 3,
-		splash = 4,
+		cooldown = 4, -- tire rarement : excellente contre les gros, faible contre les foules
+		splash = 2,
 	},
 	Laser = {
 		rarity = "Epic",
 		displayName = "Sorcier des arcanes",
-		description = "Canalise un rayon magique qui consume une cible.",
+		description = "Canalise un rayon magique qui consume l'ennemi le plus résistant.",
 		kind = "Single",
-		targeting = "First",
+		targeting = "Strongest",
 		color = Color3.fromRGB(255, 70, 200),
 		placeCost = 120,
-		damage = 6,
+		damage = 9,
 		range = 18,
-		cooldown = 0.1,
+		cooldown = 0.25,
 	},
 	Chain = {
 		rarity = "Legendary",
@@ -93,7 +107,7 @@ IdleTowers.Defs = {
 		targeting = "First",
 		color = Color3.fromRGB(150, 110, 255),
 		placeCost = 250,
-		damage = 30,
+		damage = 15, -- par ennemi touché (4 ennemis par éclair)
 		range = 20,
 		cooldown = 1.2,
 		chains = 4,
@@ -106,15 +120,17 @@ IdleTowers.Defs = {
 		targeting = "Strongest",
 		color = Color3.fromRGB(120, 240, 255),
 		placeCost = 400,
-		damage = 220,
+		damage = 40, -- peu par coup, mais il touche tout le chemin (portée 70)
 		range = 70,
 		cooldown = 5,
-		splash = 10,
+		splash = 5,
 	},
 }
 
 -- Améliorations : niveaux illimités. Chaque niveau multiplie les dégâts, et chaque
 -- amélioration coûte plus cher que la précédente (réglages dans IdleConfig).
+-- Le prix est le même pour toutes les tours : avant, il suivait le prix de pose, et à dépense égale
+-- l'Archer (10 pièces) finissait 5 fois plus fort qu'un Trébuchet (400 pièces).
 local statsCache = {}
 
 -- Stats effectives d'une tour à un niveau donné (dégâts multipliés par le niveau).
@@ -131,14 +147,22 @@ function IdleTowers.stats(towerType: string, level: number)
 	return stats
 end
 
--- Prix pour passer du niveau `level` au niveau `level + 1`.
-function IdleTowers.upgradeCost(towerType: string, level: number): number
-	local raw = IdleTowers.Defs[towerType].placeCost * IdleConfig.UPGRADE_COST_BASE * IdleConfig.UPGRADE_COST_GROWTH ^ (level - 1)
+-- Prix pour passer du niveau `level` au niveau `level + 1` : 20, 27, 36... (x1,35 par niveau), le même
+-- pour toutes les tours. towerType est gardé pour les appels existants (PlotGame, PlotUI).
+-- Niveau 100 -> 160 T, niveau 1000 -> 3,2e131 : toujours un nombre fini.
+function IdleTowers.upgradeCost(_towerType: string, level: number): number
+	local raw = IdleConfig.UPGRADE_COST_BASE * IdleConfig.UPGRADE_COST_GROWTH ^ (level - 1)
+	if raw >= math.huge then
+		-- Au-delà du niveau ~2 350 le prix devient infini : « MAX », jamais payable (sans ce test, l'arrondi
+		-- ci-dessous donnerait NaN : « pièces < NaN » est faux, l'achat passerait et les pièces deviendraient NaN).
+		return math.huge
+	end
 	local magnitude = 10 ^ math.max(0, math.floor(math.log10(raw)) - 1)
 	return math.floor(raw / magnitude + 0.5) * magnitude
 end
 
--- Stats finales d'une tour posée : niveau + doublons (+5 % chacun) + bonus de la machine à bonus.
+-- Stats finales d'une tour posée : niveau + doublons (+2 % chacun, IdleConfig.DUPLICATE_DAMAGE_BONUS)
+-- + bonus de la machine à bonus.
 function IdleTowers.effectiveStats(towerType: string, level: number, dupes: number?, bonusId: string?)
 	local base = IdleTowers.stats(towerType, level)
 	local bonus = bonusId and IdleConfig.BONUS_BY_ID[bonusId]
