@@ -130,6 +130,9 @@ Rien d'autre à configurer : les téléportations vers un serveur réservé de l
 **Le matchmaking** ne peut pas marcher dans Studio (pas de `TeleportService`). Publie le jeu et
 rejoins-le avec deux comptes (ou avec un ami) : cliquez tous les deux sur « Jouer en ranked ».
 
+**Tests automatiques** : `tools/studio-test/` ouvre le jeu dans Studio, joue un scénario, prend des captures
+et récupère la fenêtre Sortie (voir son README).
+
 Dans Studio, les DataStores sont simulés en mémoire (`Config.Data.MOCK_IN_STUDIO`). Pour utiliser les
 vrais depuis Studio, passe-le à `false` et active *Game Settings > Security > Enable Studio Access to API Services*.
 
