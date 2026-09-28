@@ -51,6 +51,13 @@ local function defaultIdle()
 		-- (plus de lancer gratuit par vague : les lancers de l'autel se paient en pièces, voir migrateFreeSpin)
 		bonuses = {}, -- inventaire de bonus (ids de IdleConfig.BONUSES)
 		lastBonusSpinAt = 0, -- os.time() du dernier lancer payé en pièces
+		-- Gains d'absence (Hub/init.luau, réglages dans IdleConfig) :
+		lastSeenAt = 0, -- os.time() de la dernière sauvegarde, map principale ou match (0 = jamais vu)
+		matchDepartureAt = 0, -- os.time() du départ vers un match ranked (Matchmaking ; 0 = aucun)
+		offlineDay = 0, -- jour UTC (AAAAMMJJ) du compteur ci-dessous
+		offlineGainedToday = 0, -- pièces gagnées hors ligne ce jour-là (plafond : IdleConfig.offlineDailyCap)
+		-- Pass Vitesse x2 : interrupteur choisi par le joueur (vrai = x2 allumé quand il possède le pass).
+		speedX2 = true,
 	}
 end
 
@@ -159,6 +166,16 @@ local function applySeasonReset(data)
 	data.peakMmr = data.mmr
 	data.wins, data.losses, data.draws, data.gamesPlayed = 0, 0, 0, 0
 	data.season = Config.SEASON
+end
+
+-- Gains d'absence : heure (os.time()) de la dernière visite, notée à chaque sauvegarde et au départ, sur la
+-- map principale comme sur un serveur de match (sa dernière sauvegarde = la fin du match). Au retour sur la
+-- map principale, Hub/init.luau paie le temps écoulé depuis. Pas au chargement : un joueur parti pendant le
+-- chargement garde son absence à payer.
+local function stampLastSeen(data)
+	if typeof(data) == "table" and typeof(data.idle) == "table" then
+		data.idle.lastSeenAt = os.time()
+	end
 end
 
 local function keyFor(userId: number): string
@@ -316,6 +333,7 @@ local function release(player: Player, isShutdown: boolean)
 		end
 	end
 	profiles[player] = nil
+	stampLastSeen(profile.data)
 	write(player.UserId, profile.data, true)
 end
 
@@ -353,6 +371,7 @@ function PlayerData.save(player: Player): boolean
 	if not profile then
 		return false
 	end
+	stampLastSeen(profile.data)
 	local ok = write(player.UserId, profile.data, false)
 	return ok
 end
@@ -382,6 +401,7 @@ function PlayerData.start()
 			task.wait(Config.Data.AUTOSAVE_INTERVAL)
 			for player, profile in profiles do
 				task.spawn(function()
+					stampLastSeen(profile.data)
 					local _, lostLock = write(player.UserId, profile.data, false)
 					if lostLock and profiles[player] == profile then
 						player:Kick("Ta session a été ouverte sur un autre serveur.")

@@ -16,6 +16,17 @@ Config.Products = {
 	BONUS_SPIN = 0, -- un lancer de la machine à bonus
 }
 
+-- Passes de jeu (Game Passes) : achetés une seule fois en Robux, gardés pour toujours. Mode solo
+-- (ta parcelle) uniquement : rien ne change en ranked (mêmes tours, même or pour tout le monde).
+-- Pour les créer : Creator Dashboard > ton expérience > Monétisation > Passes > « Créer un pass »
+-- (image, nom, description) > Enregistrer. Ouvre le pass > Ventes : active « Article en vente » et
+-- choisis le prix en Robux. Copie son ID (le nombre dans l'adresse de la page du pass) et colle-le ici.
+-- 0 = pas encore créé : la boutique affiche « Bientôt disponible » (Monetization.luau).
+Config.GamePasses = {
+	AUTO_COLLECT = 0, -- Ramassage auto : les pièces tombées sur ta parcelle sont ramassées sans marcher
+	SPEED_X2 = 0, -- Vitesse x2 : vagues et tirs deux fois plus rapides sur ta parcelle (bouton pour l'éteindre)
+}
+
 -- Distance (en studs) entre ton personnage et un objet sous laquelle son texte flottant s'affiche :
 -- l'écran reste lisible, chaque étiquette n'apparaît que quand on s'approche (ProximityLabel.luau).
 Config.LabelDistance = {

@@ -392,4 +392,87 @@ function IdleConfig.buildWave(wave: number)
 	return list
 end
 
+----------------------------------------------------------------------
+-- Gains d'absence : ta parcelle continue de rapporter un peu quand tu n'es pas là. Versés quand tu
+-- reviens sur la map principale, avec le message « Pendant ton absence : +X » (Hub/init.luau).
+--   revenu normal (pièces / s) = pièces de ta meilleure vague de la run (rewardBudget(idle.bestWave))
+--                                x (1 + bonus de pièces / 100) / ABSENCE_WAVE_SECONDS
+--   hors ligne (pas dans le jeu) : revenu normal x OFFLINE_RATE, au plus OFFLINE_MAX_SECONDS par absence,
+--       et au plus OFFLINE_DAILY_RUNS runs complètes par jour (jour UTC, compteur remis à 0 à 00:00 UTC ;
+--       les gains déjà reçus dans la journée comptent)
+--   pendant un match ranked : revenu normal, hors plafond (au plus Config.Match.MAX_DURATION
+--       + ABSENCE_MATCH_EXTRA_SECONDS)
+--   run complète = pièces des vagues 1 à idle.bestWave (la vague où tu bloques) x (1 + bonus / 100)
+-- Ordres de grandeur : une run vaut ~5 vagues de gains de ta meilleure vague (les gains font x1,25 par
+-- vague), le plafond ~15 vagues, atteint après ~2 h d'absence (vague 15 et plus ; ~25 min à la vague 1).
+-- Rien de tout ça ne compte en ranked.
+----------------------------------------------------------------------
+-- Durée « typique » d'une vague de gains : dans le simulateur (tools/balance, joueur actif, scénario
+-- « base »), un joueur gagne ~1 vague de gains de son record toutes les 60 à 250 s (murs, vagues ratées
+-- et entractes compris), ~100 s en médiane.
+IdleConfig.ABSENCE_WAVE_SECONDS = 100
+IdleConfig.OFFLINE_RATE = 0.2 -- hors ligne : 20 % du revenu normal
+IdleConfig.OFFLINE_MAX_SECONDS = 24 * 3600 -- une absence compte au plus 24 h
+IdleConfig.OFFLINE_DAILY_RUNS = 3 -- plafond des gains hors ligne par jour, en runs complètes
+IdleConfig.ABSENCE_MATCH_EXTRA_SECONDS = 5 * 60 -- attente et téléportations, en plus de la durée max d'un match
+-- Plus grand nombre de pièces renvoyé par ces calculs : toujours fini (un DataStore ne sait pas sauver l'infini).
+local ABSENCE_MAX_COINS = 1e300
+
+local function finiteCoins(value: number): number
+	if value ~= value or value < 0 then
+		return 0
+	end
+	return math.min(value, ABSENCE_MAX_COINS)
+end
+
+-- Vague de référence propre : entière, au moins 1 (une valeur abîmée compte comme la vague 1).
+local function absenceWave(bestWave: any): number
+	if typeof(bestWave) ~= "number" or bestWave ~= bestWave then
+		return 1
+	end
+	return math.clamp(math.floor(bestWave), 1, 1e9)
+end
+
+-- Multiplicateur du bonus de pièces : 1 + bonus / 100 (bonus abîmé ou négatif = 0).
+local function absenceBonus(coinBonus: any): number
+	if typeof(coinBonus) ~= "number" or coinBonus ~= coinBonus or coinBonus < 0 then
+		return 1
+	end
+	return 1 + math.min(coinBonus, 1e9) / 100
+end
+
+-- Revenu normal estimé, en pièces par seconde (voir plus haut).
+function IdleConfig.normalCoinRate(bestWave: any, coinBonus: any): number
+	local wave = absenceWave(bestWave)
+	return finiteCoins(IdleConfig.rewardBudget(wave) * absenceBonus(coinBonus) / IdleConfig.ABSENCE_WAVE_SECONDS)
+end
+
+-- Pièces d'une run complète : vagues 1 à bestWave (au-delà de MAX_SCALING_WAVE, chaque vague rapporte
+-- autant que MAX_SCALING_WAVE), bonus compris.
+function IdleConfig.runCoins(bestWave: any, coinBonus: any): number
+	local wave = absenceWave(bestWave)
+	local total = 0
+	for w = 1, math.min(wave, IdleConfig.MAX_SCALING_WAVE) do
+		total += IdleConfig.rewardBudget(w)
+	end
+	if wave > IdleConfig.MAX_SCALING_WAVE then
+		total += (wave - IdleConfig.MAX_SCALING_WAVE) * IdleConfig.rewardBudget(IdleConfig.MAX_SCALING_WAVE)
+	end
+	return finiteCoins(total * absenceBonus(coinBonus))
+end
+
+-- Plafond des gains hors ligne sur une journée UTC (arrondi à la pièce).
+function IdleConfig.offlineDailyCap(bestWave: any, coinBonus: any): number
+	return math.floor(finiteCoins(IdleConfig.runCoins(bestWave, coinBonus) * IdleConfig.OFFLINE_DAILY_RUNS))
+end
+
+----------------------------------------------------------------------
+-- Passes de jeu (Config.GamePasses), mode solo uniquement
+----------------------------------------------------------------------
+-- Ramassage auto : une pile de pièces est ramassée toute seule après ce délai (secondes), le temps de la voir.
+IdleConfig.AUTO_COLLECT_DELAY = 0.5
+-- Vitesse x2 : toute la simulation de la parcelle tourne ce nombre de fois plus vite (ennemis, apparitions,
+-- tirs, entractes). Nombre ENTIER : le serveur fait ce nombre de pas de simulation par image (PlotGame:step).
+IdleConfig.SPEED_PASS_FACTOR = 2
+
 return IdleConfig

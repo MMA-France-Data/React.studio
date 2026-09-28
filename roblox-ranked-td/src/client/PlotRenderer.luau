@@ -1,6 +1,10 @@
 -- Affichage du mode infini côté client : ennemis des 6 parcelles, tirs des tours, pièces à ramasser.
 -- Le serveur envoie la position des ennemis quelques fois par seconde ; entre deux paquets,
 -- le client les fait avancer lui-même pour que le mouvement reste fluide.
+-- Vitesse x2 (pass de jeu) : le serveur publie l'attribut « SimSpeed » (1 ou 2) sur le dossier de la
+-- parcelle et toute sa simulation va SimSpeed fois plus vite. Le facteur de vitesse du paquet ne
+-- contient PAS ce x2 : c'est ici qu'on le multiplie (voir simSpeedOf).
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
@@ -21,15 +25,23 @@ local PlotRenderer = {}
 
 local ENEMY_BYTES = 11
 local SHOT_BYTES = 26
-local SNAP_DISTANCE = 4 -- au-delà, on replace l'ennemi directement à la position du serveur
+local SNAP_DISTANCE = 4 -- au-delà, on replace l'ennemi directement à la position du serveur (x SimSpeed)
+local MAX_SIM_SPEED = 4 -- garde-fou : une valeur abîmée ne fait pas s'envoler les ennemis
+-- Pièces ramassées à distance (pass Ramassage auto) : plus loin que ça du joueur, la pile s'envole vers lui.
+local REMOTE_PICKUP_DISTANCE = IdleConfig.PICKUP_RADIUS + 4
+local REMOTE_GAIN_DELAY = 0.6 -- les gains des piles arrivées ensemble s'affichent en un seul « +X »
 
 local folder = Instance.new("Folder")
 folder.Name = "PlotEnemies"
 local coinFolder = Instance.new("Folder")
 coinFolder.Name = "Coins"
 
-local plots = {} -- [plotIndex] = { cframe, enemies = { [id] = enemy } }
+local plotsFolder: Instance? = nil -- workspace.Hub.Plots (trouvé dans start)
+local plots = {} -- [plotIndex] = { cframe, folder, enemies = { [id] = enemy } }
 local coins = {} -- [id] = { part, label }
+local flyingCoins = {} -- piles ramassées à distance, en vol vers le joueur : { part, from, size, started, duration }
+local remoteGain = 0
+local remoteGainPending = false
 
 local function plotState(plotIndex: number)
 	local state = plots[plotIndex]
@@ -38,6 +50,27 @@ local function plotState(plotIndex: number)
 		plots[plotIndex] = state
 	end
 	return state
+end
+
+-- Vitesse de la simulation de cette parcelle : 1 (normal) ou 2 (pass Vitesse x2 activé), lue sur
+-- l'attribut « SimSpeed » du dossier de la parcelle (publié par le serveur, PlotGame).
+local function simSpeedOf(plotIndex: number, state): number
+	local plotFolder = state.folder
+	if not plotFolder or not plotFolder.Parent then
+		plotFolder = plotsFolder and plotsFolder:FindFirstChild("Plot" .. plotIndex)
+		state.folder = plotFolder
+	end
+	local speed = plotFolder and plotFolder:GetAttribute("SimSpeed")
+	if typeof(speed) ~= "number" or speed ~= speed then
+		return 1
+	end
+	return math.clamp(speed, 1, MAX_SIM_SPEED)
+end
+
+local function characterRoot(): BasePart?
+	local character = Players.LocalPlayer.Character
+	local root = character and character:FindFirstChild("HumanoidRootPart")
+	return if root and root:IsA("BasePart") then root else nil
 end
 
 local function createEnemy(def)
@@ -75,6 +108,8 @@ end
 
 local function onSync(plotIndex: number, packet: buffer, count: number)
 	local state = plotState(plotIndex)
+	-- En x2, les ennemis font 2 fois plus de chemin entre deux paquets : même tolérance en temps.
+	local snapDistance = SNAP_DISTANCE * simSpeedOf(plotIndex, state)
 	local seen = {}
 	for i = 0, count - 1 do
 		local offset = i * ENEMY_BYTES
@@ -93,7 +128,7 @@ local function onSync(plotIndex: number, packet: buffer, count: number)
 			local part, fill = createEnemy(def)
 			enemy = { def = def, part = part, fill = fill, distance = distance }
 			state.enemies[id] = enemy
-		elseif math.abs(enemy.distance - distance) > SNAP_DISTANCE then
+		elseif math.abs(enemy.distance - distance) > snapDistance then
 			enemy.distance = distance
 		else
 			enemy.distance += (distance - enemy.distance) * 0.5
@@ -183,14 +218,55 @@ local function floatingText(position: Vector3, text: string)
 	end)
 end
 
+-- Gains des piles ramassées à distance : additionnés, puis un seul « +X » au-dessus du joueur quand
+-- les pièces arrivent (sinon, en x2 avec beaucoup d'ennemis, l'écran serait couvert de « +X »).
+local function addRemoteGain(amount: number)
+	remoteGain += amount
+	if remoteGainPending then
+		return
+	end
+	remoteGainPending = true
+	task.delay(REMOTE_GAIN_DELAY, function()
+		remoteGainPending = false
+		local total = remoteGain
+		remoteGain = 0
+		local root = characterRoot()
+		if root and total > 0 then
+			floatingText(root.Position + Vector3.new(0, 3.5, 0), "+" .. NumberFormat.short(total))
+		end
+	end)
+end
+
 local function onCoinDrop(action: string, id: number, position: Vector3, amount: number)
 	local coin = coins[id]
 	if action == "Collect" then
-		if coin then
-			coin.part:Destroy()
-			coins[id] = nil
+		local root = characterRoot()
+		local offset = if root then position - root.Position else Vector3.zero
+		if not root or Vector3.new(offset.X, 0, offset.Z).Magnitude <= REMOTE_PICKUP_DISTANCE then
+			-- Ramassée en marchant dessus : « +X » sur place.
+			if coin then
+				coin.part:Destroy()
+				coins[id] = nil
+			end
+			floatingText(position, "+" .. NumberFormat.short(amount))
+			return
 		end
-		floatingText(position, "+" .. NumberFormat.short(amount))
+		-- Ramassée à distance (pass Ramassage auto) : la pile s'envole vers le joueur et rétrécit.
+		if coin then
+			coins[id] = nil
+			local billboard = coin.part:FindFirstChildOfClass("BillboardGui")
+			if billboard then
+				billboard:Destroy() -- son montant ne vole pas avec elle
+			end
+			table.insert(flyingCoins, {
+				part = coin.part,
+				from = coin.part.Position,
+				size = coin.part.Size,
+				started = os.clock(),
+				duration = math.clamp(offset.Magnitude / 90, 0.35, 0.8),
+			})
+		end
+		addRemoteGain(amount)
 		return
 	end
 
@@ -276,13 +352,14 @@ local function addLevelTag(model: Instance)
 end
 
 function PlotRenderer.start()
-	local plotsFolder = workspace:WaitForChild("Hub"):WaitForChild("Plots")
-	plotsFolder.DescendantAdded:Connect(function(instance)
+	local plotsRoot = workspace:WaitForChild("Hub"):WaitForChild("Plots")
+	plotsFolder = plotsRoot
+	plotsRoot.DescendantAdded:Connect(function(instance)
 		if instance:IsA("Model") then
 			task.defer(addLevelTag, instance)
 		end
 	end)
-	for _, instance in plotsFolder:GetDescendants() do
+	for _, instance in plotsRoot:GetDescendants() do
 		if instance:IsA("Model") then
 			task.spawn(addLevelTag, instance)
 		end
@@ -297,9 +374,11 @@ function PlotRenderer.start()
 
 	RunService.RenderStepped:Connect(function(dt)
 		local parts, cframes = {}, {}
-		for _, state in plots do
+		for plotIndex, state in plots do
+			-- Même vitesse que la simulation du serveur : x2 si le pass Vitesse x2 est activé sur cette parcelle.
+			local simDt = dt * simSpeedOf(plotIndex, state)
 			for _, enemy in state.enemies do
-				enemy.distance = math.min(PlotLayout.PATH_LENGTH, enemy.distance + enemy.def.speed * IdleConfig.ENEMY_SPEED_MULTIPLIER * (enemy.speedFactor or 1) * dt)
+				enemy.distance = math.min(PlotLayout.PATH_LENGTH, enemy.distance + enemy.def.speed * IdleConfig.ENEMY_SPEED_MULTIPLIER * (enemy.speedFactor or 1) * simDt)
 				local localPosition, direction = PlotLayout.pointAt(enemy.distance)
 				local position = state.cframe:PointToWorldSpace(localPosition) + Vector3.new(0, enemy.def.size / 2, 0)
 				local worldDirection = state.cframe:VectorToWorldSpace(direction)
@@ -316,6 +395,25 @@ function PlotRenderer.start()
 		for id, coin in coins do
 			local bob = math.sin(t * 3 + id) * 0.3
 			coin.part.CFrame = CFrame.new(coin.base + Vector3.new(0, bob, 0)) * CFrame.Angles(0, t * 2 + id, 0)
+		end
+
+		-- Piles ramassées à distance : elles volent en arc vers le joueur (qui peut bouger), de plus en
+		-- plus vite, en rétrécissant, puis disparaissent.
+		if #flyingCoins > 0 then
+			local root = characterRoot()
+			for i = #flyingCoins, 1, -1 do
+				local flying = flyingCoins[i]
+				local alpha = (t - flying.started) / flying.duration
+				if alpha >= 1 or not root then
+					flying.part:Destroy()
+					table.remove(flyingCoins, i)
+					continue
+				end
+				local target = root.Position + Vector3.new(0, 1.5, 0)
+				local arc = Vector3.new(0, math.sin(alpha * math.pi) * 5, 0)
+				flying.part.Size = flying.size * (1 - 0.6 * alpha)
+				flying.part.CFrame = CFrame.new(flying.from:Lerp(target, alpha * alpha) + arc) * CFrame.Angles(0, t * 12, 0)
+			end
 		end
 	end)
 end

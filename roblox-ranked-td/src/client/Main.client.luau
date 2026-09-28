@@ -34,4 +34,8 @@ else
 	require(script.Parent.PlotUI).start()
 	require(script.Parent.MachineUI).start()
 	require(script.Parent.RebirthUI).start()
+	-- Boutique (passes de jeu du mode infini) et message « Pendant ton absence : +X » au retour.
+	local ShopUI = require(script.Parent.ShopUI)
+	ShopUI.start()
+	Remotes.get("OfflineGains").OnClientEvent:Connect(ShopUI.showOfflineGains)
 end

@@ -7,6 +7,12 @@
 -- Les ennemis n'existent que sous forme de données côté serveur. Les clients reçoivent leur
 -- position quelques fois par seconde (paquet binaire compact) et les affichent eux-mêmes :
 -- 6 parcelles pleines d'ennemis ne font pas ramer le serveur.
+--
+-- Pass Vitesse x2 (Config.GamePasses.SPEED_X2, allumé par Hub/init.luau) : toute la simulation de la
+-- parcelle tourne deux fois plus vite (PlotGame:step fait 2 pas de dt par image). Les temps (apparitions,
+-- ralentissements, entractes) se comptent sur l'horloge de la simulation, self.clock, pas sur os.clock().
+-- L'attribut « SimSpeed » du dossier de la parcelle (1 ou 2) dit aux clients d'avancer les ennemis 2 fois
+-- plus vite entre deux paquets ; « NextWaveAt » reste une heure réelle (compte à rebours juste).
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
@@ -31,7 +37,8 @@ end
 
 -- Taille d'un ennemi dans le paquet : id u32, type u8, distance f32, PV % u8, vitesse % u8.
 -- « vitesse % » = facteur de son type (IdleConfig.ENEMY_SPEED_FACTORS) x ralentissement, en % :
--- le client avance l'ennemi à vitesse de Enemies.luau x ENEMY_SPEED_MULTIPLIER x ce facteur.
+-- le client avance l'ennemi à vitesse de Enemies.luau x ENEMY_SPEED_MULTIPLIER x ce facteur
+-- x l'attribut « SimSpeed » de la parcelle. Le paquet ne contient PAS le x2 du pass : le client multiplie.
 local ENEMY_BYTES = 11
 -- Taille d'un tir : départ 3xf32, arrivée 3xf32, type u8, rayon u8
 local SHOT_BYTES = 26
@@ -58,9 +65,13 @@ function PlotGame.new(plot, player: Player, data)
 	self.nextId = 0
 	self.attributeCache = {}
 	self.lastSyncEmpty = false
+	-- Horloge de la simulation, en secondes : avance de dt à chaque pas (voir PlotGame:step).
+	self.clock = 0
+	self.simSpeed = 1 -- 1, ou IdleConfig.SPEED_PASS_FACTOR avec le pass Vitesse x2 allumé
+	self.autoCollect = false -- pass Ramassage auto
 
 	self.state = "Intermission"
-	self.nextWaveAt = os.clock() + IdleConfig.FIRST_WAVE_DELAY
+	self.nextWaveAt = self.clock + IdleConfig.FIRST_WAVE_DELAY
 
 	self.towerFolder = Instance.new("Folder")
 	self.towerFolder.Name = "Towers"
@@ -76,7 +87,8 @@ function PlotGame.new(plot, player: Player, data)
 
 	self:refreshSpots()
 	self:setAttr("OwnerUserId", player.UserId)
-	self:setAttr("NextWaveAt", workspace:GetServerTimeNow() + IdleConfig.FIRST_WAVE_DELAY)
+	self:setAttr("SimSpeed", self.simSpeed)
+	self:publishNextWave()
 	self:syncAttributes()
 	return self
 end
@@ -120,12 +132,42 @@ function PlotGame:syncAttributes()
 	self:setAttr("EnemiesLeft", alive + (#self.spawnQueue - self.spawnIndex + 1))
 end
 
+-- Heure réelle (du serveur) du début de la prochaine vague, pour le compte à rebours des clients :
+-- l'entracte restant (en secondes de simulation) passe simSpeed fois plus vite.
+function PlotGame:publishNextWave()
+	local left = math.max(0, self.nextWaveAt - self.clock)
+	self:setAttr("NextWaveAt", workspace:GetServerTimeNow() + left / self.simSpeed)
+end
+
+----------------------------------------------------------------------
+-- Passes de jeu (appliqués par Hub/init.luau, qui vérifie la possession)
+----------------------------------------------------------------------
+
+-- Pass Vitesse x2 : 1 = vitesse normale, IdleConfig.SPEED_PASS_FACTOR = x2. Toute autre valeur = 1.
+-- Publié dans l'attribut « SimSpeed » du dossier de la parcelle (lu par PlotRenderer).
+function PlotGame:setSimSpeed(speed: any)
+	local value = if speed == IdleConfig.SPEED_PASS_FACTOR then IdleConfig.SPEED_PASS_FACTOR else 1
+	if value == self.simSpeed then
+		return
+	end
+	self.simSpeed = value
+	self:setAttr("SimSpeed", value)
+	if self.state == "Intermission" then
+		self:publishNextWave()
+	end
+end
+
+-- Pass Ramassage auto : les piles de pièces de la parcelle sont ramassées sans marcher (collectDrops).
+function PlotGame:setAutoCollect(enabled: boolean)
+	self.autoCollect = enabled == true
+end
+
 ----------------------------------------------------------------------
 -- Vagues
 ----------------------------------------------------------------------
 
 function PlotGame:startWave()
-	local now = os.clock()
+	local now = self.clock
 	local at = now
 	self.spawnQueue = {}
 	self.spawnIndex = 1
@@ -158,8 +200,8 @@ function PlotGame:endWave(success: boolean, leakedName: string?)
 		delay = IdleConfig.WAVE_FAIL_DELAY
 		self:notify(`Vague {wave} ratée : un {leakedName or "ennemi"} a atteint ta base ! Retour à la vague {self.idle.wave}`, "Warning")
 	end
-	self.nextWaveAt = os.clock() + delay
-	self:setAttr("NextWaveAt", workspace:GetServerTimeNow() + delay)
+	self.nextWaveAt = self.clock + delay
+	self:publishNextWave()
 end
 
 -- Renaissance : seule la vague repart à 1 (nouvelle run), contre un bonus de pièces permanent
@@ -180,8 +222,8 @@ function PlotGame:rebirth()
 	-- La vague en cours s'arrête : ennemis et file d'apparition vidés, entracte avant la vague 1.
 	self:clearEnemies()
 	self.state = "Intermission"
-	self.nextWaveAt = os.clock() + IdleConfig.FIRST_WAVE_DELAY
-	self:setAttr("NextWaveAt", workspace:GetServerTimeNow() + IdleConfig.FIRST_WAVE_DELAY)
+	self.nextWaveAt = self.clock + IdleConfig.FIRST_WAVE_DELAY
+	self:publishNextWave()
 	self:syncAttributes()
 
 	self:notify(
@@ -222,7 +264,7 @@ function PlotGame:sendDrop(action: string, drop)
 	end
 end
 
--- Les pièces tombent au sol ; une nouvelle pièce proche d'une pile s'y ajoute.
+-- Les pièces tombent au sol ; une nouvelle pièce proche d'une pile s'y ajoute. Renvoie la pile.
 function PlotGame:addDrop(position: Vector3, amount: number)
 	local nearest, nearestDistance = nil, math.huge
 	for _, drop in self.drops do
@@ -234,7 +276,7 @@ function PlotGame:addDrop(position: Vector3, amount: number)
 	if nearest and (nearestDistance <= IdleConfig.MERGE_RADIUS or self.dropCount >= IdleConfig.MAX_DROPS) then
 		nearest.amount += amount
 		self:sendDrop("Set", nearest)
-		return
+		return nearest
 	end
 
 	local ground = self.cframe:PointToObjectSpace(position)
@@ -242,26 +284,46 @@ function PlotGame:addDrop(position: Vector3, amount: number)
 		id = self:newId(),
 		position = self.cframe:PointToWorldSpace(Vector3.new(ground.X, 1, ground.Z)),
 		amount = amount,
+		createdAt = os.clock(), -- temps réel : le ramassage auto attend IdleConfig.AUTO_COLLECT_DELAY
 	}
 	self.drops[drop.id] = drop
 	self.dropCount += 1
 	self:sendDrop("Set", drop)
+	return drop
 end
 
--- Ramasse les piles proches du joueur (appelé quelques fois par seconde).
+function PlotGame:collectDrop(id: number, drop)
+	self.drops[id] = nil
+	self.dropCount -= 1
+	PlayerData.addCoins(self.player, drop.amount)
+	self:sendDrop("Collect", drop)
+end
+
+-- Ramasse les piles proches du joueur (appelé quelques fois par seconde). Avec le pass Ramassage auto :
+-- toutes les piles de la parcelle, où que soit le joueur, dès qu'elles sont au sol depuis
+-- IdleConfig.AUTO_COLLECT_DELAY secondes (le temps de les voir tomber).
 function PlotGame:collectDrops()
+	if self.dropCount == 0 then
+		return
+	end
+	if self.autoCollect then
+		local now = os.clock()
+		for id, drop in self.drops do
+			if now - drop.createdAt >= IdleConfig.AUTO_COLLECT_DELAY then
+				self:collectDrop(id, drop)
+			end
+		end
+		return
+	end
 	local character = self.player.Character
 	local root = character and character:FindFirstChild("HumanoidRootPart")
-	if not root or self.dropCount == 0 then
+	if not root then
 		return
 	end
 	for id, drop in self.drops do
 		local offset = drop.position - root.Position
 		if Vector3.new(offset.X, 0, offset.Z).Magnitude <= IdleConfig.PICKUP_RADIUS and math.abs(offset.Y) < 10 then
-			self.drops[id] = nil
-			self.dropCount -= 1
-			PlayerData.addCoins(self.player, drop.amount)
-			self:sendDrop("Collect", drop)
+			self:collectDrop(id, drop)
 		end
 	end
 end
@@ -393,13 +455,14 @@ function PlotGame:towerAttack(tower, now: number): boolean
 	return true
 end
 
-function PlotGame:step(dt: number)
-	local now = os.clock()
+-- Un pas de simulation de dt secondes (horloge de la simulation).
+function PlotGame:simulate(dt: number)
+	self.clock += dt
+	local now = self.clock
 	if self.state == "Intermission" then
 		if now >= self.nextWaveAt then
 			self:startWave()
 		end
-		self:syncAttributes()
 		return
 	end
 
@@ -422,7 +485,6 @@ function PlotGame:step(dt: number)
 		enemy.distance += speed * dt
 		if enemy.distance >= PlotLayout.PATH_LENGTH then
 			self:endWave(false, enemy.def.displayName)
-			self:syncAttributes()
 			return
 		end
 		enemy.position = self.cframe:PointToWorldSpace((PlotLayout.pointAt(enemy.distance)))
@@ -446,6 +508,15 @@ function PlotGame:step(dt: number)
 	if self.spawnIndex > #self.spawnQueue and #self.enemies == 0 then
 		self:endWave(true)
 	end
+end
+
+-- Appelé à chaque image. Pass Vitesse x2 : simSpeed pas de dt au lieu d'un. C'est exactement la même
+-- partie qu'à vitesse normale (mêmes écarts entre les tirs, mêmes ralentissements, mêmes entractes),
+-- jouée deux fois plus vite.
+function PlotGame:step(dt: number)
+	for _ = 1, self.simSpeed do
+		self:simulate(dt)
+	end
 	self:syncAttributes()
 end
 
@@ -465,7 +536,7 @@ function PlotGame:buildSyncPacket(): (buffer?, number)
 		self.lastSyncEmpty = false
 	end
 
-	local now = os.clock()
+	local now = self.clock
 	local packet = buffer.create(count * ENEMY_BYTES)
 	for i, enemy in self.enemies do
 		local offset = (i - 1) * ENEMY_BYTES

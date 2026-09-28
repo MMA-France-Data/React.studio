@@ -6,6 +6,7 @@ local RunService = game:GetService("RunService")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.Config)
 local IdleConfig = require(Shared.IdleConfig)
+local NumberFormat = require(Shared.NumberFormat)
 local PlotLayout = require(Shared.PlotLayout)
 local Ranks = require(Shared.Ranks)
 local Remotes = require(Shared.Remotes)
@@ -21,6 +22,42 @@ local Hub = {}
 
 local games = {} -- [Player] = PlotGame
 
+----------------------------------------------------------------------
+-- Passes de jeu (possession : Monetization.luau). Mode solo uniquement.
+----------------------------------------------------------------------
+
+-- Applique les passes du joueur à sa parcelle et publie SpeedX2Enabled (vrai = x2 en marche :
+-- pass Vitesse x2 possédé ET interrupteur allumé, data.idle.speedX2, allumé par défaut).
+local function refreshPasses(player: Player)
+	local data = PlayerData.get(player)
+	local speedOn = Monetization.ownsPass(player, "SpeedX2") and data ~= nil and data.idle.speedX2 ~= false
+	if player.Parent then
+		player:SetAttribute("SpeedX2Enabled", speedOn)
+	end
+	local plotGame = games[player]
+	if plotGame then
+		plotGame:setAutoCollect(Monetization.ownsPass(player, "AutoCollect"))
+		plotGame:setSimSpeed(if speedOn then IdleConfig.SPEED_PASS_FACTOR else 1)
+	end
+end
+
+-- Bouton x2 du propriétaire du pass : allume / éteint (choix sauvegardé). Renvoie le nouvel état, nil si refusé.
+local function toggleSpeed(player: Player): boolean?
+	local data = PlayerData.get(player)
+	if not data then
+		return nil
+	end
+	if not Monetization.ownsPass(player, "SpeedX2") then
+		Remotes.get("Notify"):FireClient(player, "Il te faut le pass Vitesse x2 (bouton « Boutique »)", "Error")
+		return nil
+	end
+	data.idle.speedX2 = data.idle.speedX2 == false -- vrai par défaut : le premier clic l'éteint
+	refreshPasses(player)
+	local message = if data.idle.speedX2 then "Vitesse x2 allumée" else "Vitesse normale"
+	Remotes.get("Notify"):FireClient(player, message, "Info")
+	return data.idle.speedX2
+end
+
 local function startPlotGame(player: Player, data)
 	if games[player] then
 		return
@@ -30,6 +67,106 @@ local function startPlotGame(player: Player, data)
 		return
 	end
 	games[player] = PlotGame.new(Plots.plot(plotIndex), player, data)
+	refreshPasses(player)
+end
+
+----------------------------------------------------------------------
+-- Gains d'absence (formules et réglages : IdleConfig, « Gains d'absence »)
+----------------------------------------------------------------------
+-- Écart toléré entre les horloges (os.time()) de deux serveurs Roblox, en secondes.
+local CLOCK_TOLERANCE = 120
+local lastAbsence = {} -- [Player] = dernier résumé calculé (lu par les tests Studio)
+
+-- Heure valable (nombre fini, après 1970, pas dans le futur), sinon nil : une valeur abîmée ne donne rien.
+local function validTime(value: any, now: number): number?
+	if typeof(value) ~= "number" or value ~= value or value <= 0 or value > now + CLOCK_TOLERANCE then
+		return nil
+	end
+	return value
+end
+
+-- Jour UTC de cette heure, ex. 20260929 : le compteur du plafond repart à 0 chaque jour à 00:00 UTC.
+local function utcDay(time: number): number
+	local date = os.date("!*t", time)
+	return date.year * 10000 + date.month * 100 + date.day
+end
+
+-- Verse les gains d'absence du joueur qui arrive sur la map principale (avant toute sauvegarde) :
+--   match ranked : de idle.matchDepartureAt (noté par Matchmaking avant la téléportation) à idle.lastSeenAt
+--     (dernière sauvegarde, faite par le serveur de match à la fin) : revenu normal, hors plafond,
+--     au plus Config.Match.MAX_DURATION + IdleConfig.ABSENCE_MATCH_EXTRA_SECONDS ;
+--   hors ligne : de idle.lastSeenAt à maintenant (au plus IdleConfig.OFFLINE_MAX_SECONDS) :
+--     revenu normal x IdleConfig.OFFLINE_RATE, dans la limite du plafond du jour (IdleConfig.offlineDailyCap).
+-- Les deux heures sont consommées (lastSeenAt = maintenant, matchDepartureAt = 0) : jamais payé deux fois.
+-- Première visite (lastSeenAt = 0) ou heure abîmée : rien. `now` = os.time() (remplacé dans les tests
+-- Studio), silent = pas de message au client. Renvoie le résumé (voir Remotes.luau, OfflineGains).
+local function takeAbsenceGains(player: Player, data, now: number, silent: boolean?)
+	local idle = data.idle
+	local lastSeen = validTime(idle.lastSeenAt, now)
+	local departure = validTime(idle.matchDepartureAt, now)
+	idle.lastSeenAt = now
+	idle.matchDepartureAt = 0
+
+	local result = {
+		amount = 0,
+		seconds = 0,
+		kind = "Offline",
+		capped = false,
+		offlineAmount = 0,
+		offlineSeconds = 0,
+		matchAmount = 0,
+		matchSeconds = 0,
+	}
+	lastAbsence[player] = result
+	if not lastSeen then
+		return result
+	end
+	local rate = IdleConfig.normalCoinRate(idle.bestWave, idle.coinBonus)
+
+	-- Temps passé en match ranked : revenu normal, ne compte pas dans le plafond du jour.
+	if departure and departure <= lastSeen then
+		local maxSeconds = Config.Match.MAX_DURATION + IdleConfig.ABSENCE_MATCH_EXTRA_SECONDS
+		result.kind = "Match"
+		result.matchSeconds = math.min(lastSeen - departure, maxSeconds)
+		result.matchAmount = math.floor(rate * result.matchSeconds)
+	end
+
+	-- Temps hors ligne : revenu réduit, plafonné par jour UTC.
+	local away = math.min(now - lastSeen, IdleConfig.OFFLINE_MAX_SECONDS)
+	if away > 0 then
+		local day = utcDay(now)
+		local gainedToday = idle.offlineGainedToday
+		if idle.offlineDay ~= day or typeof(gainedToday) ~= "number" or not (gainedToday >= 0 and gainedToday < math.huge) then
+			gainedToday = 0 -- nouveau jour (ou compteur abîmé)
+		end
+		local room = math.max(0, IdleConfig.offlineDailyCap(idle.bestWave, idle.coinBonus) - gainedToday)
+		local raw = math.floor(rate * IdleConfig.OFFLINE_RATE * away)
+		result.offlineSeconds = away
+		result.offlineAmount = math.min(raw, room)
+		result.capped = raw > room
+		idle.offlineDay = day
+		idle.offlineGainedToday = gainedToday + result.offlineAmount
+	end
+
+	result.amount = result.offlineAmount + result.matchAmount
+	result.seconds = result.offlineSeconds + result.matchSeconds
+	if result.amount > 0 then
+		PlayerData.addCoins(player, result.amount)
+		print(
+			`[Hub] Gains d'absence de {player.Name} : +{NumberFormat.short(result.amount)} (hors ligne {math.floor(result.offlineSeconds)} s`
+				.. ` +{NumberFormat.short(result.offlineAmount)}{if result.capped then ", plafond du jour" else ""},`
+				.. ` match {math.floor(result.matchSeconds)} s +{NumberFormat.short(result.matchAmount)})`
+		)
+	end
+	if not silent and (result.amount > 0 or result.capped) then
+		-- Petit délai : l'interface du client a le temps de démarrer et d'afficher le message.
+		task.delay(2, function()
+			if player.Parent then
+				Remotes.get("OfflineGains"):FireClient(player, result)
+			end
+		end)
+	end
+	return result
 end
 
 -- Boucle du mode infini : simulation à chaque frame, envois réseau quelques fois par seconde.
@@ -136,6 +273,19 @@ end
 --   Invoke(player, "Leak")                      -> pousse le premier ennemi vivant au bout du chemin
 --                                                  (test de la règle « une fuite = vague ratée »)
 --   Invoke(player, "Data")                      -> renvoie les données du joueur
+-- Gains d'absence et passes de jeu :
+--   Invoke(player, "Absence", now?, silent?, { lastSeenAt = os.time() - 7200 })
+--                                               -> change ces champs de data.idle (fausse absence de 2 h ; aussi
+--                                                  matchDepartureAt, offlineDay, offlineGainedToday), puis verse les
+--                                                  gains comme à l'arrivée (now = os.time() si absent) et renvoie le
+--                                                  résumé (silent = pas de message au client)
+--   Invoke(player, "LastAbsence")               -> résumé du dernier calcul (celui de l'arrivée au départ)
+--   Invoke(player, "Pass", "SpeedX2", true)     -> donne (true) ou retire (false) un pass : "AutoCollect", "SpeedX2"
+--   Invoke(player, "ToggleSpeed")               -> bouton x2 (comme le remote PassAction), renvoie le nouvel état
+--   Invoke(player, "Drop", 100)                 -> pile de 100 pièces au point du chemin le plus loin du
+--                                                  personnage, renvoie (id, distance au personnage)
+--   Invoke(player, "HasDrop", id)               -> vrai si la pile est encore au sol
+--   Invoke(player, "Progress")                  -> { clock, simSpeed, spawned, alive, lead } de la vague en cours
 local function setupStudioDebug()
 	if not RunService:IsStudio() then
 		return
@@ -145,7 +295,54 @@ local function setupStudioDebug()
 	debug.OnInvoke = function(player: Player, command: string, ...)
 		local plotGame = games[player]
 		local data = PlayerData.get(player)
-		if command == "Coins" then
+		if command == "Absence" and data then
+			local now, silent, fields = ...
+			for key, value in fields or {} do
+				data.idle[key] = value
+			end
+			return takeAbsenceGains(player, data, now or os.time(), silent)
+		elseif command == "LastAbsence" then
+			return lastAbsence[player]
+		elseif command == "Pass" then
+			local name, owned = ...
+			return Monetization.setStudioPass(player, name, owned)
+		elseif command == "ToggleSpeed" then
+			return toggleSpeed(player)
+		elseif command == "Drop" and plotGame then
+			local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+			local farthest, farthestDistance = nil, -1
+			for distance = 0, PlotLayout.PATH_LENGTH, 10 do
+				local point = plotGame.cframe:PointToWorldSpace((PlotLayout.pointAt(distance)))
+				local away = 0
+				if root then
+					local offset = point - root.Position
+					away = Vector3.new(offset.X, 0, offset.Z).Magnitude
+				end
+				if away > farthestDistance then
+					farthest, farthestDistance = point, away
+				end
+			end
+			local amount = ...
+			local drop = plotGame:addDrop(farthest, amount or 1)
+			return drop.id, farthestDistance
+		elseif command == "HasDrop" and plotGame then
+			return plotGame.drops[...] ~= nil
+		elseif command == "Progress" and plotGame then
+			local alive, lead = 0, 0
+			for _, enemy in plotGame.enemies do
+				if not enemy.dead then
+					alive += 1
+					lead = math.max(lead, enemy.distance)
+				end
+			end
+			return {
+				clock = plotGame.clock,
+				simSpeed = plotGame.simSpeed,
+				spawned = plotGame.spawnIndex - 1,
+				alive = alive,
+				lead = lead,
+			}
+		elseif command == "Coins" then
 			PlayerData.addCoins(player, ...)
 		elseif command == "Call" and plotGame then
 			local method, rest = ..., table.pack(select(2, ...))
@@ -209,12 +406,20 @@ function Hub.start()
 	local rows = buildBoardGui(map.board)
 	Matchmaking.start()
 
-	-- Une partie infinie par joueur, dès que ses données sont chargées.
-	PlayerData.onLoaded(startPlotGame)
+	-- Une partie infinie par joueur, dès que ses données sont chargées. D'abord les gains d'absence, tout de
+	-- suite (sans attendre) : une sauvegarde changerait l'heure de sa dernière visite.
+	local function onDataLoaded(player: Player, data)
+		local ok, err = pcall(takeAbsenceGains, player, data, os.time())
+		if not ok then
+			warn("[Hub] Gains d'absence impossibles :", err) -- la parcelle démarre quand même
+		end
+		startPlotGame(player, data)
+	end
+	PlayerData.onLoaded(onDataLoaded)
 	for _, player in Players:GetPlayers() do
 		local data = PlayerData.get(player)
 		if data then
-			startPlotGame(player, data)
+			onDataLoaded(player, data)
 		end
 	end
 	PlayerData.onBeforeRelease(function(player)
@@ -228,8 +433,11 @@ function Hub.start()
 	setupStudioDebug()
 
 	local lastPlotAction = {}
+	local lastPassAction = {}
 	Players.PlayerRemoving:Connect(function(player)
 		lastPlotAction[player] = nil
+		lastPassAction[player] = nil
+		lastAbsence[player] = nil
 	end)
 	Remotes.get("PlotAction").OnServerEvent:Connect(function(player, action, spotIndex, towerType, replaceType)
 		local plotGame = games[player]
@@ -294,7 +502,19 @@ function Hub.start()
 		plotGame:grantBonusSpin("Robux")
 		return true
 	end)
+	-- Passes de jeu : effet immédiat dès que la possession est connue (arrivée, achat, test Studio).
+	Monetization.onPassChanged(refreshPasses)
 	Monetization.start()
+	Remotes.get("PassAction").OnServerEvent:Connect(function(player, action)
+		local now = os.clock()
+		if now - (lastPassAction[player] or 0) < 0.3 then
+			return
+		end
+		lastPassAction[player] = now
+		if action == "ToggleSpeed" then
+			toggleSpeed(player)
+		end
+	end)
 
 	Remotes.get("QueueAction").OnServerEvent:Connect(function(player, action)
 		if action == "Join" then

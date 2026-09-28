@@ -26,6 +26,25 @@ return function(log)
 	check(data.coins == IdleConfig.STARTING_COINS, `pièces de départ = {IdleConfig.STARTING_COINS} (obtenu {data.coins})`)
 	check(data.idle.pendingSpinTier == nil, "plus de champ pendingSpinTier dans les données")
 
+	-- Gains d'absence : première connexion = rien (pas encore d'heure de dernière visite), puis l'heure est notée.
+	local firstAbsence = dbg:Invoke(player, "LastAbsence")
+	check(
+		firstAbsence ~= nil and firstAbsence.amount == 0 and firstAbsence.seconds == 0,
+		`première connexion : aucun gain d'absence (obtenu {firstAbsence and firstAbsence.amount})`
+	)
+	local firstSeen = dbg:Invoke(player, "Data").idle.lastSeenAt
+	check(typeof(firstSeen) == "number" and math.abs(firstSeen - os.time()) < 120, `heure de dernière visite notée à l'arrivée ({firstSeen})`)
+	-- Passes de jeu : pas encore créés (IDs à 0) -> non possédés, vitesse normale.
+	local startPlot = workspace.Hub.Plots:FindFirstChild("Plot" .. tostring(player:GetAttribute("Plot")))
+	check(
+		player:GetAttribute("PassAutoCollect") == false
+			and player:GetAttribute("PassSpeedX2") == false
+			and player:GetAttribute("SpeedX2Enabled") == false
+			and startPlot ~= nil
+			and startPlot:GetAttribute("SimSpeed") == 1,
+		`sans pass : PassAutoCollect={player:GetAttribute("PassAutoCollect")} PassSpeedX2={player:GetAttribute("PassSpeedX2")} SpeedX2Enabled={player:GetAttribute("SpeedX2Enabled")} SimSpeed={startPlot and startPlot:GetAttribute("SimSpeed")}`
+	)
+
 	local function owns(d, spotIndex)
 		return d.idle.ownedSpots[tostring(spotIndex)] == true
 	end
@@ -422,6 +441,206 @@ return function(log)
 		end
 	end
 	check(clean and d.coins == d.coins and d.coins < math.huge, "doublons entiers et finis, pièces finies")
+
+	----------------------------------------------------------------------
+	-- Gains d'absence : hors ligne (revenu réduit, plafond du jour UTC) et match ranked (revenu normal)
+	----------------------------------------------------------------------
+	task.wait(2) -- le scénario client a fini ses achats à l'autel
+	local Config = require(ReplicatedStorage.Shared.Config)
+	local function finite(x)
+		return typeof(x) == "number" and x == x and x < math.huge and x > -math.huge
+	end
+	local function coinsNow()
+		return dbg:Invoke(player, "Data").coins
+	end
+	-- Fausse une absence (champs de data.idle), verse les gains au « retour » à l'heure `now`, vérifie le
+	-- versement et renvoie (résumé, données après).
+	local function absence(fields, now, label, silent)
+		local before = coinsNow()
+		local result = dbg:Invoke(player, "Absence", now, silent, fields)
+		local after = dbg:Invoke(player, "Data")
+		local ok = result ~= nil and finite(result.amount) and finite(result.seconds) and finite(after.coins)
+		check(
+			ok and near(after.coins - before, result.amount) and typeof(result.kind) == "string" and typeof(result.capped) == "boolean",
+			`{label} : +{ok and NumberFormat.short(result.amount) or "?"} versé (pièces +{NumberFormat.short(after.coins - before)})`
+		)
+		return result or { amount = -1, seconds = -1, offlineAmount = -1, matchAmount = -1, matchSeconds = -1, offlineSeconds = -1 }, after
+	end
+
+	local savedBest = dbg:Invoke(player, "Data").idle.bestWave
+	local absenceWave = 40
+	dbg:Invoke(player, "Set", "bestWave", absenceWave)
+	setCoins(0) -- montants exacts (les grands nombres de l'autel perdraient les petites unités)
+	local bonus = dbg:Invoke(player, "Data").idle.coinBonus
+	local rate = IdleConfig.normalCoinRate(absenceWave, bonus)
+	local cap = IdleConfig.offlineDailyCap(absenceWave, bonus)
+	local twoHours = math.floor(rate * IdleConfig.OFFLINE_RATE * 7200)
+	say(`gains d'absence à la vague {absenceWave}, bonus {bonus} % : revenu normal {NumberFormat.short(rate)}/s, 2 h hors ligne {NumberFormat.short(twoHours)}, plafond du jour {NumberFormat.short(cap)}`)
+	check(finite(rate) and rate > 0 and finite(cap) and twoHours < cap, "réglages : 2 h hors ligne restent sous le plafond du jour à la vague 40")
+	local dayStart = os.time() // 86400 * 86400 -- 00:00 UTC aujourd'hui
+	local noon = dayStart + 12 * 3600
+
+	-- 1. Absence de 2 h : revenu normal x OFFLINE_RATE x 7 200 s (le seul message envoyé au client pendant les tests).
+	local r1, d1 = absence({ lastSeenAt = noon - 7200, matchDepartureAt = 0, offlineDay = 0, offlineGainedToday = 0 }, noon, "absence de 2 h", false)
+	check(
+		r1.kind == "Offline" and not r1.capped and r1.offlineSeconds == 7200 and r1.seconds == 7200
+			and near(r1.amount, twoHours) and math.abs(r1.amount - rate * IdleConfig.OFFLINE_RATE * 7200) <= 1,
+		`2 h hors ligne = {NumberFormat.short(rate)}/s x {IdleConfig.OFFLINE_RATE} x 7 200 s = {NumberFormat.short(twoHours)} (obtenu {NumberFormat.short(r1.amount)}, {r1.kind})`
+	)
+	check(
+		near(d1.idle.offlineGainedToday, r1.amount) and d1.idle.lastSeenAt == noon and d1.idle.matchDepartureAt == 0,
+		`compteur du jour = {NumberFormat.short(d1.idle.offlineGainedToday)}, heure de visite et départ consommés`
+	)
+	-- 2. Deuxième absence de 2 h le même jour : on ne dépasse pas le plafond.
+	local r2, d2 = absence({ lastSeenAt = noon + 3 * 3600 - 7200 }, noon + 3 * 3600, "2e absence de 2 h le même jour", true)
+	check(
+		r2.capped and r2.amount < r1.amount and near(r1.amount + r2.amount, cap) and near(d2.idle.offlineGainedToday, cap),
+		`plafond du jour : {NumberFormat.short(r1.amount)} + {NumberFormat.short(r2.amount)} = {NumberFormat.short(r1.amount + r2.amount)} (plafond {NumberFormat.short(cap)})`
+	)
+	-- 3. Plafond atteint : plus rien le même jour.
+	local r3 = absence({ lastSeenAt = noon + 6 * 3600 - 3600 }, noon + 6 * 3600, "3e absence le même jour", true)
+	check(r3.amount == 0 and r3.capped == true, `plafond atteint : rien de plus le même jour (obtenu {r3.amount})`)
+	-- 4. Le lendemain (compteur remis à 0 à 00:00 UTC) : de nouveau 2 h complètes.
+	local tomorrow = noon + 86400
+	local r4, d4 = absence({ lastSeenAt = tomorrow - 7200 }, tomorrow, "absence de 2 h le lendemain", true)
+	check(
+		not r4.capped and near(r4.amount, twoHours) and near(d4.idle.offlineGainedToday, twoHours) and d4.idle.offlineDay ~= d2.idle.offlineDay,
+		`nouveau jour : compteur remis à zéro (jour {d2.idle.offlineDay} -> {d4.idle.offlineDay}, +{NumberFormat.short(r4.amount)})`
+	)
+	-- 5. Retour d'un match ranked de 10 min, plafond du jour déjà atteint : le match paie au revenu NORMAL,
+	--    hors plafond ; seules les 30 s après le match comptent comme hors ligne (et le plafond les bloque).
+	local back = tomorrow + 3600
+	local r5, d5 = absence({ offlineGainedToday = cap, lastSeenAt = back - 30, matchDepartureAt = back - 30 - 600 }, back, "retour d'un match de 10 min", true)
+	check(
+		r5.kind == "Match" and r5.matchSeconds == 600 and near(r5.matchAmount, math.floor(rate * 600)),
+		`match ranked : revenu normal {NumberFormat.short(rate)}/s x 600 s = {NumberFormat.short(math.floor(rate * 600))} (obtenu {NumberFormat.short(r5.matchAmount)}, {r5.kind})`
+	)
+	check(
+		r5.offlineAmount == 0 and r5.capped and near(r5.amount, r5.matchAmount) and near(d5.idle.offlineGainedToday, cap) and d5.idle.matchDepartureAt == 0,
+		"match : payé même plafond atteint, pas compté dans le plafond du jour, départ consommé"
+	)
+	-- 6. Match impossible (5 h) : au plus la durée max d'un match + la marge.
+	local maxMatch = Config.Match.MAX_DURATION + IdleConfig.ABSENCE_MATCH_EXTRA_SECONDS
+	local back2 = back + 3600
+	local r6 = absence({ lastSeenAt = back2 - 10, matchDepartureAt = back2 - 10 - 5 * 3600 }, back2, "match de 5 h", true)
+	check(r6.matchSeconds == maxMatch and near(r6.matchAmount, math.floor(rate * maxMatch)), `match de 5 h : {r6.matchSeconds} s comptées (max {maxMatch})`)
+	-- 7. Absence de 3 jours : 24 h comptées au plus (puis le plafond du jour).
+	local back3 = back2 + 3 * 86400
+	local r7 = absence({ lastSeenAt = back3 - 3 * 86400, matchDepartureAt = 0 }, back3, "absence de 3 jours", true)
+	check(r7.offlineSeconds == IdleConfig.OFFLINE_MAX_SECONDS and r7.capped and near(r7.amount, cap), `3 jours d'absence : {r7.offlineSeconds} s comptées, plafonné à {NumberFormat.short(r7.amount)}`)
+	-- 8. Heures abîmées : rien du tout.
+	local back4 = back3 + 86400
+	local garbage = {
+		{ "en texte", "abc" },
+		{ "négative", -3600 },
+		{ "zéro (jamais vu)", 0 },
+		{ "dans le futur", back4 + 1e6 },
+		{ "NaN", 0 / 0 },
+		{ "infinie", math.huge },
+		{ "table", {} },
+	}
+	for _, case in garbage do
+		local r = absence({ lastSeenAt = case[2], matchDepartureAt = back4 - 600 }, back4, `dernière visite {case[1]}`, true)
+		check(r.amount == 0 and r.seconds == 0, `dernière visite {case[1]} : aucun gain (obtenu {r.amount})`)
+	end
+	dbg:Invoke(player, "Set", "lastSeenAt", nil)
+	local rNil = absence({ matchDepartureAt = back4 - 600 }, back4, "dernière visite absente", true)
+	check(rNil.amount == 0 and rNil.seconds == 0, `dernière visite absente : aucun gain (obtenu {rNil.amount})`)
+	for _, case in { { "en texte", "x" }, { "dans le futur", back4 + 1e6 }, { "après la dernière visite", back4 - 30 } } do
+		local r = absence({ lastSeenAt = back4 - 60, matchDepartureAt = case[2] }, back4, `départ en match {case[1]}`, true)
+		check(r.kind == "Offline" and r.matchSeconds == 0 and r.offlineSeconds == 60, `départ en match {case[1]} : pas de gains de match ({r.matchSeconds} s)`)
+	end
+	-- 9. Tout reste fini, même à une vague et un bonus absurdes.
+	dbg:Invoke(player, "Set", "bestWave", 1e9)
+	dbg:Invoke(player, "Set", "coinBonus", 1e6)
+	local r9, d9 = absence({ lastSeenAt = back4, offlineDay = 0 }, back4 + 86400, "absence de 24 h à la vague 1e9", true)
+	check(
+		finite(r9.amount) and r9.amount > 0 and finite(d9.coins) and finite(d9.idle.offlineGainedToday),
+		`vague 1e9, bonus 1e6 % : montants finis (+{NumberFormat.short(r9.amount)}, pièces {NumberFormat.short(d9.coins)})`
+	)
+	check(
+		finite(IdleConfig.normalCoinRate(0 / 0, "x")) and finite(IdleConfig.offlineDailyCap(math.huge, math.huge)) and finite(IdleConfig.runCoins(-5, -5)),
+		"formules finies avec des valeurs abîmées"
+	)
+	-- Remise en état : vraie heure de visite, compteur vide, vague et bonus d'avant.
+	dbg:Invoke(player, "Set", "coinBonus", bonus)
+	dbg:Invoke(player, "Set", "bestWave", savedBest)
+	dbg:Invoke(player, "Absence", os.time(), true, { lastSeenAt = os.time(), offlineDay = 0, offlineGainedToday = 0, matchDepartureAt = 0 })
+	setCoins(0)
+
+	----------------------------------------------------------------------
+	-- Pass Ramassage auto : les pièces de la parcelle sont ramassées sans marcher
+	----------------------------------------------------------------------
+	local dropId, dropDistance = dbg:Invoke(player, "Drop", 1234)
+	task.wait(1.5)
+	check(
+		dropDistance > IdleConfig.PICKUP_RADIUS + 10 and dbg:Invoke(player, "HasDrop", dropId) == true,
+		`sans pass : pile à {math.floor(dropDistance)} studs du personnage toujours au sol`
+	)
+	dbg:Invoke(player, "Pass", "AutoCollect", true)
+	check(player:GetAttribute("PassAutoCollect") == true, "pass Ramassage auto donné (test Studio) : attribut PassAutoCollect")
+	task.wait(1.5)
+	local collected = coinsNow()
+	check(dbg:Invoke(player, "HasDrop", dropId) == false and collected >= 1234, `avec le pass : pile ramassée sans marcher (pièces {NumberFormat.short(collected)})`)
+	local dropId2 = dbg:Invoke(player, "Drop", 10)
+	check(dbg:Invoke(player, "HasDrop", dropId2) == true, "nouvelle pile visible un instant avant d'être ramassée")
+	task.wait(1.5)
+	check(dbg:Invoke(player, "HasDrop", dropId2) == false and coinsNow() >= collected + 10, "avec le pass : nouvelle pile ramassée toute seule")
+	dbg:Invoke(player, "Pass", "AutoCollect", false)
+	check(player:GetAttribute("PassAutoCollect") == false, "pass Ramassage auto retiré")
+
+	----------------------------------------------------------------------
+	-- Pass Vitesse x2 : toute la parcelle va deux fois plus vite
+	----------------------------------------------------------------------
+	check(dbg:Invoke(player, "ToggleSpeed") == nil and plotFolder:GetAttribute("SimSpeed") == 1, "bouton x2 refusé sans le pass (SimSpeed = 1)")
+	-- Vague 303 : Charge de cavalerie (un cavalier toutes les 0,3 s), PV astronomiques : personne ne meurt.
+	local function measure()
+		dbg:Invoke(player, "StartWave", 303)
+		local p0 = dbg:Invoke(player, "Progress")
+		local t0 = os.clock()
+		task.wait(3)
+		local p1 = dbg:Invoke(player, "Progress")
+		local real = os.clock() - t0
+		return { rate = (p1.clock - p0.clock) / real, spawned = p1.spawned, lead = p1.lead, speed = p1.simSpeed }
+	end
+	local normal = measure()
+	dbg:Invoke(player, "Pass", "SpeedX2", true)
+	check(
+		player:GetAttribute("PassSpeedX2") == true and player:GetAttribute("SpeedX2Enabled") == true and plotFolder:GetAttribute("SimSpeed") == 2,
+		`pass Vitesse x2 donné : allumé par défaut (SimSpeed = {plotFolder:GetAttribute("SimSpeed")})`
+	)
+	local fast = measure()
+	say(`x1 : horloge x{string.format("%.2f", normal.rate)}, {normal.spawned} apparus, tête à {string.format("%.1f", normal.lead)} studs • x2 : horloge x{string.format("%.2f", fast.rate)}, {fast.spawned} apparus, tête à {string.format("%.1f", fast.lead)} studs`)
+	check(math.abs(normal.rate - 1) < 0.15 and math.abs(fast.rate - 2) < 0.3, `horloge de la parcelle : x{string.format("%.2f", normal.rate)} sans pass, x{string.format("%.2f", fast.rate)} avec`)
+	local spawnRatio = fast.spawned / math.max(1, normal.spawned)
+	check(spawnRatio > 1.6 and spawnRatio < 2.4, `apparitions en 3 s : {normal.spawned} -> {fast.spawned} (x{string.format("%.2f", spawnRatio)})`)
+	local leadRatio = fast.lead / math.max(0.001, normal.lead)
+	check(leadRatio > 1.6 and leadRatio < 2.4, `ennemi de tête après 3 s : {string.format("%.1f", normal.lead)} -> {string.format("%.1f", fast.lead)} studs (x{string.format("%.2f", leadRatio)})`)
+	-- Entracte aussi deux fois plus court (compte à rebours NextWaveAt en temps réel).
+	dbg:Invoke(player, "Leak")
+	task.wait(0.2)
+	local waitLeft = (plotFolder:GetAttribute("NextWaveAt") or 0) - workspace:GetServerTimeNow()
+	check(
+		plotFolder:GetAttribute("State") == "Intermission" and waitLeft > 0 and waitLeft <= IdleConfig.WAVE_FAIL_DELAY / 2 + 0.1,
+		`x2 : entracte de {string.format("%.1f", waitLeft)} s (au lieu de {IdleConfig.WAVE_FAIL_DELAY} s)`
+	)
+	-- Bouton x2 : éteint puis rallumé, choix gardé dans les données.
+	local off = dbg:Invoke(player, "ToggleSpeed")
+	check(
+		off == false and player:GetAttribute("SpeedX2Enabled") == false and plotFolder:GetAttribute("SimSpeed") == 1 and dbg:Invoke(player, "Data").idle.speedX2 == false,
+		"bouton x2 : éteint -> vitesse normale (SimSpeed = 1), choix sauvegardé"
+	)
+	local on = dbg:Invoke(player, "ToggleSpeed")
+	check(
+		on == true and player:GetAttribute("SpeedX2Enabled") == true and plotFolder:GetAttribute("SimSpeed") == 2 and dbg:Invoke(player, "Data").idle.speedX2 == true,
+		"bouton x2 : rallumé -> SimSpeed = 2"
+	)
+	dbg:Invoke(player, "Pass", "SpeedX2", false)
+	check(
+		player:GetAttribute("PassSpeedX2") == false and player:GetAttribute("SpeedX2Enabled") == false and plotFolder:GetAttribute("SimSpeed") == 1,
+		"pass Vitesse x2 retiré : vitesse normale"
+	)
+
 	-- Retour à une vague normale pour la fin
 	dbg:Invoke(player, "StartWave", 1)
 

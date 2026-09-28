@@ -120,6 +120,17 @@ function Matchmaking.leave(player: Player)
 	end)
 end
 
+-- Gains d'absence du mode solo : heure (os.time()) du départ vers le match, dans les données du joueur.
+-- Elle part avec la sauvegarde faite quand il quitte ce serveur ; à son retour sur la map principale,
+-- le temps passé en match rapporte des pièces au revenu normal (Hub/init.luau). 0 = pas de départ
+-- (téléportation ratée). Rien ne change dans le match lui-même.
+local function setMatchDeparture(player: Player, time: number)
+	local data = PlayerData.get(player)
+	if data and typeof(data.idle) == "table" then
+		data.idle.matchDepartureAt = time
+	end
+end
+
 local function teleportToMatch(player: Player, assignment)
 	local entry = localQueue[player]
 	if not entry or entry.state ~= "Searching" then
@@ -128,6 +139,7 @@ local function teleportToMatch(player: Player, assignment)
 	entry.state = "Teleporting"
 	setQueueState(player, "Found")
 	notify:FireClient(player, `Adversaire trouvé ! ({assignment.opponentMmr} MMR)`, "Success")
+	setMatchDeparture(player, os.time())
 
 	pcall(function()
 		assignments:RemoveAsync(queueKey(player.UserId))
@@ -151,6 +163,7 @@ local function teleportToMatch(player: Player, assignment)
 	end
 
 	localQueue[player] = nil
+	setMatchDeparture(player, 0)
 	setQueueState(player, "Idle")
 	notify:FireClient(player, "La téléportation a échoué. Relance une recherche.", "Error")
 end
@@ -377,6 +390,7 @@ function Matchmaking.start()
 		if entry and entry.state == "Teleporting" then
 			warn("[Matchmaking] TeleportInitFailed :", message)
 			localQueue[player] = nil
+			setMatchDeparture(player, 0)
 			setQueueState(player, "Idle")
 			notify:FireClient(player, "La téléportation a échoué. Relance une recherche.", "Error")
 		end

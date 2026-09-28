@@ -11,7 +11,10 @@ local DEFINITIONS = {
 	-- client -> serveur : ("Place", spot, type, typeRemplacé?) | ("Upgrade", spot) | ("Sell", spot) | ("BuySpot", spot) | "Rebirth"
 	-- (typeRemplacé : seulement pour un remplacement confirmé ; sans lui, poser sur une tour est refusé)
 	PlotAction = "RemoteEvent",
-	PlotSync = "RemoteEvent", -- serveur -> clients : (plotIndex, buffer, count) positions des ennemis
+	-- serveur -> clients : (plotIndex, buffer, count) positions des ennemis (format : PlotGame:buildSyncPacket).
+	-- La vitesse de chaque ennemi dans le paquet ne compte PAS le pass Vitesse x2 : le client la multiplie
+	-- par l'attribut « SimSpeed » du dossier de la parcelle (1, ou 2 quand le pass est allumé).
+	PlotSync = "RemoteEvent",
 	PlotShots = "UnreliableRemoteEvent", -- serveur -> clients : (plotIndex, buffer, count) tirs
 	CoinDrop = "RemoteEvent", -- serveur -> propriétaire : ("Set" | "Collect", id, position, montant)
 	-- Machines à sous
@@ -23,6 +26,14 @@ local DEFINITIONS = {
 	-- isNew, dupes, results = { { tower, rarity, count, isNew } } } (voir PlotGame:spinTower).
 	-- Forge runique : { machine = "Bonus", bonus, source }.
 	MachineResult = "RemoteEvent",
+	-- Gains d'absence, serveur -> client, une fois en arrivant sur la map principale (Hub/init.luau) :
+	-- (payload) = { amount, seconds, kind = "Offline" | "Match", capped, offlineAmount, offlineSeconds,
+	-- matchAmount, matchSeconds }. amount = total versé, seconds = temps compté, kind = "Match" si tu
+	-- reviens d'un match ranked, capped = plafond du jour atteint (gains hors ligne, voir IdleConfig).
+	OfflineGains = "RemoteEvent",
+	-- Passes de jeu, client -> serveur : "ToggleSpeed" (allume / éteint la vitesse x2, pass Vitesse x2 requis).
+	-- Possession publiée en attributs du joueur : PassAutoCollect, PassSpeedX2, SpeedX2Enabled (x2 actif).
+	PassAction = "RemoteEvent",
 	-- Commun
 	Notify = "RemoteEvent", -- serveur -> client : (message, kind)
 	-- Match
