@@ -92,6 +92,50 @@ local function hideBriefly(model: Model?, names: { [string]: boolean }, duration
 end
 
 local animating: { [BasePart]: boolean } = setmetatable({}, { __mode = "k" }) :: any
+local bowAnimating: { [Model]: boolean } = setmetatable({}, { __mode = "k" }) :: any
+
+local function aimTower(model: Model?, target: Vector3)
+	if not model then return end
+	local current = model:GetAttribute("AimFrame")
+	if typeof(current) ~= "CFrame" then return end -- modèles du mode infini uniquement
+	-- Ne pas déplacer une pièce dont un ancien tween conserve la position absolue.
+	for _, descendant in model:GetDescendants() do
+		if descendant:IsA("BasePart") and animating[descendant] then return end
+	end
+	local flatTarget = Vector3.new(target.X, current.Position.Y, target.Z)
+	if (flatTarget - current.Position).Magnitude < 0.1 then return end
+	local aimed = CFrame.lookAt(current.Position, flatTarget)
+	model:PivotTo(aimed * current:Inverse() * model:GetPivot())
+	model:SetAttribute("AimFrame", aimed)
+end
+
+-- Deux segments de corde reliés aux extrémités de l'arc : détente puis réarmement.
+-- Une boucle courte par arme active, pas de connexion permanente par tour.
+local function releaseBow(model: Model)
+	if bowAnimating[model] then return end
+	bowAnimating[model] = true
+	local strings = partsNamed(model, { BowString = true })
+	hideBriefly(model, { Arrow = true, ArrowHead = true, ArrowFeather = true,
+		Bolt = true, BoltHead = true, BoltFeather = true }, 0.2)
+	task.spawn(function()
+		local elapsed = 0
+		repeat
+			elapsed += RunService.RenderStepped:Wait()
+			local alpha = if elapsed < 0.06 then elapsed / 0.06 else 1 - math.clamp((elapsed - 0.06) / 0.2, 0, 1)
+			local frame = model:GetAttribute("AimFrame")
+			if not model.Parent or typeof(frame) ~= "CFrame" then break end
+			for _, stringPart in strings do
+				if stringPart.Parent then
+					local tip = stringPart:GetAttribute("StringTip")
+					local nock = stringPart:GetAttribute("StringNock"):Lerp(stringPart:GetAttribute("StringReleased"), alpha)
+					stringPart.Size = Vector3.new(stringPart.Size.X, stringPart.Size.Y, (nock - tip).Magnitude)
+					stringPart.CFrame = frame * CFrame.lookAt((tip + nock) / 2, nock)
+				end
+			end
+		until elapsed >= 0.26
+		bowAnimating[model] = nil
+	end)
+end
 
 local function recoil(model: Model?, names: { [string]: boolean }, goalOffset: CFrame, outTime: number, returnTime: number)
 	for _, visual in partsNamed(model, names) do
@@ -213,7 +257,10 @@ end
 
 -- Animation mécanique locale : elle est légère, immédiate et ne modifie jamais les dégâts serveur.
 local function animateTower(model: Model?, towerType: string): number
-	if towerType == "Sniper" or towerType == "Rocket" then
+	if model and model:GetAttribute("WorkingBow") then
+		releaseBow(model)
+		return 0.035
+	elseif towerType == "Sniper" or towerType == "Rocket" then
 		recoil(model, { CrossbowArm = true, CrossbowString = true, BowArm = true, String = true }, CFrame.new(0, 0, 0.32), 0.1, 0.12)
 		hideBriefly(model, { Bolt = true }, 0.28)
 		return 0.09
@@ -241,6 +288,7 @@ local function animateTower(model: Model?, towerType: string): number
 end
 
 function Effects.playTowerShot(from: Vector3, to: Vector3, towerType: string, radius: number, color: Color3, kind: string, towerModel: Model?)
+	aimTower(towerModel, to)
 	from = muzzlePosition(towerModel, towerType, from)
 	local delay = animateTower(towerModel, towerType)
 	task.delay(delay, function()

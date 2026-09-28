@@ -37,6 +37,8 @@ local VERTICAL_CYLINDER = CFrame.Angles(0, 0, math.rad(90))
 
 -- cframe : position au sol de l'emplacement, orientée comme la parcelle.
 function IdleTowerModel.create(towerType: string, cframe: CFrame, parent: Instance, attributes: { [string]: any }): Model
+	-- Les armes regardent -Z ; les ennemis arrivent du fond (+Z) de la parcelle.
+	cframe = cframe * CFrame.Angles(0, math.pi, 0)
 	local def = IdleTowers.Defs[towerType]
 	local accent = def.color
 	local model = Instance.new("Model")
@@ -85,6 +87,19 @@ function IdleTowerModel.create(towerType: string, cframe: CFrame, parent: Instan
 		})
 	end
 
+	local function beam(name: string, a: Vector3, b: Vector3, width: number, color: Color3, material)
+		return part(model, name, { Size = Vector3.new(width, width, (b - a).Magnitude),
+			CFrame = cframe * CFrame.lookAt((a + b) / 2, b), Color = color, Material = material })
+	end
+
+	local function bowString(tip: Vector3, nock: Vector3, released: Vector3, width: number)
+		local stringPart = beam("BowString", tip, nock, width, paleStone, Enum.Material.Fabric)
+		stringPart:SetAttribute("StringTip", tip)
+		stringPart:SetAttribute("StringNock", nock)
+		stringPart:SetAttribute("StringReleased", released)
+		model:SetAttribute("WorkingBow", true)
+	end
+
 	-- Socle commun, volontairement bas pour laisser l'arme ou le héros dominer.
 	local base = cylinder("Base", Vector3.new(0.55, 3.8, 3.8), Vector3.new(0, 0.28, 0), darkStone, Enum.Material.Cobblestone, VERTICAL_CYLINDER)
 	base.CanCollide = true
@@ -101,21 +116,50 @@ function IdleTowerModel.create(towerType: string, cframe: CFrame, parent: Instan
 		} do
 			block("Crenel", Vector3.new(0.55, 0.7, 0.55), offset, stone, Enum.Material.Brick)
 		end
-		block("LegL", Vector3.new(0.32, 0.9, 0.35), Vector3.new(-0.28, 3.75, 0), darkWood, Enum.Material.Fabric)
-		block("LegR", Vector3.new(0.32, 0.9, 0.35), Vector3.new(0.28, 3.75, 0), darkWood, Enum.Material.Fabric)
-		block("ArcherTorso", Vector3.new(1.05, 1.35, 0.72), Vector3.new(0, 4.72, 0), accent, Enum.Material.Fabric)
-		ball("Head", 0.7, Vector3.new(0, 5.72, 0), skin, Enum.Material.SmoothPlastic)
-		local helmet = block("Helmet", Vector3.new(0.84, 0.55, 0.82), Vector3.new(0, 5.98, 0), iron, Enum.Material.Metal)
-		local helmetMesh = Instance.new("SpecialMesh")
-		helmetMesh.MeshType = Enum.MeshType.Sphere
-		helmetMesh.Parent = helmet
-		block("HelmetRim", Vector3.new(0.9, 0.1, 0.86), Vector3.new(0, 5.82, 0), darkIron, Enum.Material.Metal)
-		block("ArmL", Vector3.new(0.3, 1.25, 0.3), Vector3.new(-0.62, 4.85, -0.25), skin, Enum.Material.SmoothPlastic, CFrame.Angles(0, 0, math.rad(-25)))
-		block("ArmR", Vector3.new(0.3, 1.25, 0.3), Vector3.new(0.62, 4.85, -0.25), skin, Enum.Material.SmoothPlastic, CFrame.Angles(0, 0, math.rad(25)))
-		block("BowUpper", Vector3.new(1.3, 0.12, 0.12), Vector3.new(0.45, 5.25, -0.7), wood, Enum.Material.Wood, CFrame.Angles(0, 0, math.rad(55)))
-		block("BowLower", Vector3.new(1.3, 0.12, 0.12), Vector3.new(-0.45, 4.55, -0.7), wood, Enum.Material.Wood, CFrame.Angles(0, 0, math.rad(55)))
-		block("Arrow", Vector3.new(0.1, 0.1, 2.25), Vector3.new(0, 5, -1.25), gold, Enum.Material.Metal)
-		block("Quiver", Vector3.new(0.55, 1.35, 0.55), Vector3.new(0.58, 4.7, 0.55), darkWood, Enum.Material.Wood, CFrame.Angles(0, 0, math.rad(-15)))
+		-- Silhouette dégagée, jambes décalées et bras réellement en position de tir.
+		for _, side in { -1, 1 } do
+			local z = side * 0.2
+			block("Boot", Vector3.new(0.44, 0.46, 0.7), Vector3.new(side * 0.35, 3.51, z - 0.12), darkWood, Enum.Material.Fabric)
+			beam("Leg", Vector3.new(side * 0.35, 3.65, z), Vector3.new(side * 0.25, 4.35, 0), 0.36, darkStone, Enum.Material.Fabric)
+			block("BootCuff", Vector3.new(0.46, 0.13, 0.48), Vector3.new(side * 0.35, 3.78, z), wood, Enum.Material.Fabric)
+		end
+		block("TunicSkirt", Vector3.new(1.15, 0.5, 0.83), Vector3.new(0, 4.25, 0), accent, Enum.Material.Fabric)
+		block("ArcherTorso", Vector3.new(1.05, 1.18, 0.72), Vector3.new(0, 4.95, 0), accent, Enum.Material.Fabric)
+		block("LeatherJerkin", Vector3.new(0.83, 0.82, 0.12), Vector3.new(0, 5.02, -0.4), wood, Enum.Material.Fabric)
+		beam("ChestStrap", Vector3.new(-0.4, 5.49, -0.49), Vector3.new(0.37, 4.51, -0.49), 0.13, darkWood, Enum.Material.Fabric)
+		ball("Hood", 1.02, Vector3.new(0, 5.94, 0.08), accent:Lerp(darkStone, 0.4), Enum.Material.Fabric)
+		block("Face", Vector3.new(0.63, 0.68, 0.36), Vector3.new(0, 5.9, -0.32), skin, Enum.Material.SmoothPlastic)
+		block("HoodBrow", Vector3.new(0.83, 0.16, 0.48), Vector3.new(0, 6.25, -0.28), accent:Lerp(darkStone, 0.5), Enum.Material.Fabric)
+		for _, side in { -1, 1 } do
+			block("Eye", Vector3.new(0.1, 0.09, 0.025), Vector3.new(side * 0.17, 5.99, -0.515), darkWood, Enum.Material.SmoothPlastic)
+			block("Eyebrow", Vector3.new(0.17, 0.045, 0.03), Vector3.new(side * 0.17, 6.08, -0.52), darkWood, Enum.Material.SmoothPlastic)
+		end
+		block("Nose", Vector3.new(0.12, 0.18, 0.12), Vector3.new(0, 5.87, -0.53), skin, Enum.Material.SmoothPlastic)
+		block("Mouth", Vector3.new(0.2, 0.035, 0.03), Vector3.new(0, 5.71, -0.515), darkWood, Enum.Material.SmoothPlastic)
+		beam("BowSleeve", Vector3.new(-0.54, 5.3, 0), Vector3.new(-0.65, 5.27, -0.75), 0.4, accent, Enum.Material.Fabric)
+		beam("BowBracer", Vector3.new(-0.65, 5.27, -0.75), Vector3.new(-0.3, 5.34, -1.5), 0.28, darkWood, Enum.Material.Fabric)
+		ball("BowHand", 0.3, Vector3.new(-0.3, 5.34, -1.55), skin, Enum.Material.SmoothPlastic)
+		beam("DrawSleeve", Vector3.new(0.52, 5.3, 0), Vector3.new(0.9, 5.45, 0.25), 0.38, accent, Enum.Material.Fabric)
+		beam("DrawForearm", Vector3.new(0.9, 5.45, 0.25), Vector3.new(-0.2, 5.45, -0.46), 0.26, skin, Enum.Material.SmoothPlastic)
+		ball("DrawHand", 0.27, Vector3.new(-0.25, 5.45, -0.48), skin, Enum.Material.SmoothPlastic)
+		local bow = { Vector3.new(-0.3, 6.85, -1.13), Vector3.new(-0.3, 6.5, -1.52), Vector3.new(-0.3, 5.91, -1.76), Vector3.new(-0.3, 5.4, -1.62), Vector3.new(-0.3, 4.89, -1.76), Vector3.new(-0.3, 4.3, -1.52), Vector3.new(-0.3, 3.95, -1.13) }
+		for i = 2, #bow do
+			beam("LongbowLimb", bow[i - 1], bow[i], 0.14, wood, Enum.Material.Wood)
+		end
+		beam("BowGrip", Vector3.new(-0.3, 5.16, -1.63), Vector3.new(-0.3, 5.62, -1.63), 0.21, darkWood, Enum.Material.Fabric)
+		local nock = Vector3.new(-0.3, 5.45, -0.5)
+		for _, tip in { bow[1], bow[#bow] } do
+			bowString(tip, nock, Vector3.new(-0.3, 5.45, -1.13), 0.035)
+		end
+		block("Arrow", Vector3.new(0.07, 0.07, 2.25), Vector3.new(-0.3, 5.45, -1.625), wood, Enum.Material.Wood)
+		wedge(model, "ArrowHead", { Size = Vector3.new(0.24, 0.12, 0.36), CFrame = cf(Vector3.new(-0.3, 5.45, -2.83), CFrame.Angles(0, math.pi, 0)), Color = iron, Material = Enum.Material.Metal })
+		block("ArrowFeather", Vector3.new(0.24, 0.045, 0.32), Vector3.new(-0.3, 5.45, -0.7), paleStone, Enum.Material.Fabric)
+		block("Quiver", Vector3.new(0.5, 1.18, 0.5), Vector3.new(0.54, 5, 0.49), darkWood, Enum.Material.Fabric, CFrame.Angles(0, 0, -0.2))
+		for i = 1, 3 do
+			local x = 0.35 + i * 0.14
+			beam("SpareArrow", Vector3.new(x, 5.35, 0.5), Vector3.new(x + 0.13, 6.02 + i * 0.06, 0.5), 0.055, wood, Enum.Material.Wood)
+			block("QuiverFeather", Vector3.new(0.17, 0.28, 0.06), Vector3.new(x + 0.11, 5.92 + i * 0.06, 0.5), paleStone, Enum.Material.Fabric)
+		end
 
 	elseif towerType == "Frost" then
 		-- Totem glacé : cercle de menhirs et cristaux effilés.
@@ -207,37 +251,52 @@ function IdleTowerModel.create(towerType: string, cframe: CFrame, parent: Instan
 		ball("RunicStone", 1.15, Vector3.new(0, 9.45, -3), accent:Lerp(Color3.fromRGB(90, 86, 80), 0.72), Enum.Material.Rock)
 
 	else -- Rocket : baliste lourde
-		block("Turntable", Vector3.new(3.2, 0.38, 3.2), Vector3.new(0, 1.05, 0), darkWood, Enum.Material.WoodPlanks)
-		block("PivotPost", Vector3.new(0.75, 1.65, 0.75), Vector3.new(0, 1.95, 0.25), iron, Enum.Material.Metal)
-		block("Stock", Vector3.new(0.62, 0.62, 4.8), Vector3.new(0, 3.15, -0.35), wood, Enum.Material.Wood, CFrame.Angles(math.rad(-7), 0, 0))
-		for _, x in { -1, 1 } do
-			block("BowArm", Vector3.new(2.35, 0.28, 0.34), Vector3.new(x * 0.95, 3.5, -1.58), darkIron, Enum.Material.Metal, CFrame.Angles(0, 0, math.rad(x * 18)))
-			block("String", Vector3.new(0.08, 0.08, 2.4), Vector3.new(x * 1.75, 3.22, -0.48), paleStone, Enum.Material.Fabric, CFrame.Angles(0, math.rad(x * 34), 0))
+		for _, side in { -1, 1 } do
+			block("TimberSkid", Vector3.new(0.5, 0.42, 4), Vector3.new(side * 1.1, 1.05, 0.1), darkWood, Enum.Material.Wood)
+			beam("Trestle", Vector3.new(side * 1.1, 1.25, 0.8), Vector3.new(side * 0.55, 2.83, -0.2), 0.42, wood, Enum.Material.Wood)
+			beam("FrontBrace", Vector3.new(side * 1.1, 1.25, -1.4), Vector3.new(side * 0.55, 2.8, -0.2), 0.28, darkWood, Enum.Material.Wood)
+			block("StockRail", Vector3.new(0.24, 0.35, 4.6), Vector3.new(side * 0.28, 3.04, -0.3), wood, Enum.Material.Wood)
+			block("TorsionPost", Vector3.new(0.38, 1.15, 0.5), Vector3.new(side * 0.65, 3.1, -1.65), darkWood, Enum.Material.Wood)
+			cylinder("RopeBundle", Vector3.new(0.73, 0.3, 0.3), Vector3.new(side * 0.65, 3.16, -1.65), paleStone, Enum.Material.Fabric, VERTICAL_CYLINDER)
+			local bow = { Vector3.new(side * 0.7, 3.31, -1.64), Vector3.new(side * 1.45, 3.31, -1.8), Vector3.new(side * 2.3, 3.31, -1.62), Vector3.new(side * 2.95, 3.31, -1.05) }
+			for i = 2, #bow do
+				beam("WoodenBowLimb", bow[i - 1], bow[i], 0.26 - i * 0.025, wood, Enum.Material.Wood)
+			end
+			bowString(bow[#bow], Vector3.new(0, 3.31, 1.1), Vector3.new(0, 3.31, -1.05), 0.065)
+			for _, z in { -1.25, 0.95 } do
+				block("RailBinding", Vector3.new(0.27, 0.39, 0.14), Vector3.new(side * 0.28, 3.04, z), darkIron, Enum.Material.Metal)
+			end
 		end
-		block("Bolt", Vector3.new(0.18, 0.18, 5.2), Vector3.new(0, 3.58, -1.05), gold, Enum.Material.Metal, CFrame.Angles(math.rad(-7), 0, 0))
-		wedge(model, "BoltHead", {
-			Size = Vector3.new(0.55, 0.55, 0.7),
-			CFrame = cf(Vector3.new(0, 3.95, -3.65), CFrame.Angles(math.rad(-7), math.rad(90), 0)),
-			Color = iron,
-			Material = Enum.Material.Metal,
-		})
-		cylinder("Crank", Vector3.new(2.5, 0.28, 0.28), Vector3.new(0, 2.7, 1.05), iron, Enum.Material.Metal)
+		for _, z in { -1.25, 1.3 } do
+			block("CrossBrace", Vector3.new(2.7, 0.35, 0.38), Vector3.new(0, 1.25, z), wood, Enum.Material.Wood)
+		end
+		block("StockBed", Vector3.new(0.8, 0.22, 4.8), Vector3.new(0, 2.8, -0.3), darkWood, Enum.Material.Wood)
+		block("TorsionLintel", Vector3.new(1.9, 0.24, 0.65), Vector3.new(0, 3.75, -1.65), wood, Enum.Material.Wood)
+		block("Bolt", Vector3.new(0.14, 0.14, 4.2), Vector3.new(0, 3.31, -1), wood, Enum.Material.Wood)
+		wedge(model, "BoltHead", { Size = Vector3.new(0.45, 0.24, 0.65), CFrame = cf(Vector3.new(0, 3.31, -3.33), CFrame.Angles(0, math.pi, 0)), Color = iron, Material = Enum.Material.Metal })
+		for _, angle in { 0, math.pi / 2 } do
+			block("BoltFeather", Vector3.new(0.5, 0.05, 0.6), Vector3.new(0, 3.31, 0.72), paleStone, Enum.Material.Wood, CFrame.Angles(0, 0, angle))
+		end
+		cylinder("WinchDrum", Vector3.new(0.95, 0.48, 0.48), Vector3.new(0, 2.96, 1.8), darkWood, Enum.Material.Wood)
+		for i = -2, 2 do
+			cylinder("WinchRope", Vector3.new(0.07, 0.53, 0.53), Vector3.new(i * 0.13, 2.96, 1.8), paleStone, Enum.Material.Fabric)
+		end
+		block("Crank", Vector3.new(0.13, 0.78, 0.13), Vector3.new(0.65, 2.7, 1.8), darkIron, Enum.Material.Metal)
+		cylinder("CrankHandle", Vector3.new(0.5, 0.18, 0.18), Vector3.new(0.86, 2.32, 1.8), wood, Enum.Material.Wood)
 	end
 
 	-- Détails structurels : un budget fixe par tour, sans lumières ni émetteurs permanents.
 	if towerType == "MachineGun" then
 		for _, x in { -1.22, 1.22 } do
 			block("CornerButtress", Vector3.new(0.4, 2.1, 0.48), Vector3.new(x, 1.9, -1.3), paleStone, Enum.Material.Limestone)
-			block("CanopyPost", Vector3.new(0.16, 3.65, 0.16), Vector3.new(x, 5.05, 1.1), darkWood, Enum.Material.Wood)
 		end
 		block("ArrowSlit", Vector3.new(0.28, 1.15, 0.08), Vector3.new(0, 2.05, -1.35), darkStone, Enum.Material.Slate)
-		block("WaistBelt", Vector3.new(1.1, 0.15, 0.78), Vector3.new(0, 4.3, 0), darkWood, Enum.Material.Fabric)
-		block("Buckle", Vector3.new(0.22, 0.22, 0.08), Vector3.new(0, 4.3, -0.44), gold, Enum.Material.Metal)
+		block("WaistBelt", Vector3.new(1.16, 0.17, 0.86), Vector3.new(0, 4.48, 0), darkWood, Enum.Material.Fabric)
+		block("Buckle", Vector3.new(0.22, 0.22, 0.08), Vector3.new(0, 4.48, -0.47), gold, Enum.Material.Metal)
 		block("Cape", Vector3.new(1.1, 1.8, 0.14), Vector3.new(0, 4.62, 0.48), accent:Lerp(darkStone, 0.35), Enum.Material.Fabric, CFrame.Angles(math.rad(-10), 0, 0))
 		for _, x in { -0.51, 0.51 } do
 			ball("ShoulderGuard", 0.42, Vector3.new(x, 5.24, 0), iron, Enum.Material.Metal)
 		end
-		MedievalModels.roof(model, cf(Vector3.new(0, 6.9, 1)), 3.5, 1.9, 1.1, accent:Lerp(Color3.fromRGB(32, 57, 64), 0.5))
 		MedievalModels.banner(model, cf(Vector3.new(1.75, 0.8, 0.5)), accent, 0.55)
 	elseif towerType == "Bomb" or towerType == "Orbital" then
 		local wheelX = if towerType == "Bomb" then 1.62 else 1.7
@@ -255,13 +314,8 @@ function IdleTowerModel.create(towerType: string, cframe: CFrame, parent: Instan
 		ball("ReserveStone", 0.65, Vector3.new(0.85, 1.62, -0.8), darkStone, Enum.Material.Rock)
 		MedievalModels.banner(model, cf(Vector3.new(-1.1, 1.2, 1.3)), accent, if towerType == "Orbital" then 0.68 else 0.45)
 	elseif towerType == "Rocket" then
-		for _, side in { -1, 1 } do
-			block("Trestle", Vector3.new(0.38, 2.1, 0.42), Vector3.new(side * 0.8, 1.92, 0.25), wood, Enum.Material.Wood, CFrame.Angles(0, 0, side * 0.25))
-			block("TrestleBinding", Vector3.new(0.45, 0.3, 0.5), Vector3.new(side * 0.85, 1.65, 0.25), iron, Enum.Material.Metal)
-			block("StockRail", Vector3.new(0.12, 0.15, 3.5), Vector3.new(side * 0.34, 3.35, -0.2), gold, Enum.Material.Metal, CFrame.Angles(math.rad(-7), 0, 0))
-		end
 		for i = 1, 3 do
-			block("ReserveBolt", Vector3.new(0.12, 0.12, 2.4), Vector3.new(-1.1 + i * 0.2, 1.36, 0.1), iron, Enum.Material.Metal)
+			block("ReserveBolt", Vector3.new(0.12, 0.12, 2.4), Vector3.new(-1.1 + i * 0.2, 1.5, 0.1), wood, Enum.Material.Wood)
 		end
 	elseif towerType == "Tesla" or towerType == "Chain" then
 		local oracle = towerType == "Chain"
@@ -299,6 +353,7 @@ function IdleTowerModel.create(towerType: string, cframe: CFrame, parent: Instan
 	model.PrimaryPart = base
 	model:SetAttribute("TowerType", towerType)
 	model:SetAttribute("RestCFrame", cframe)
+	model:SetAttribute("AimFrame", cframe)
 	for key, value in attributes do
 		model:SetAttribute(key, value)
 	end
