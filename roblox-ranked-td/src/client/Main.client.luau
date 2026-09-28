@@ -30,4 +30,5 @@ else
 	require(script.Parent.PlotRenderer).start()
 	require(script.Parent.PlotUI).start()
 	require(script.Parent.MachineUI).start()
+	require(script.Parent.RebirthUI).start()
 end

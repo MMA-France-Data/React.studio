@@ -39,10 +39,10 @@ local function defaultIdle()
 		highestWave = 1, -- meilleure vague de tous les temps
 		unlockedSpots = PlotLayout.STARTING_SPOTS,
 		towers = {}, -- [tostring(spotIndex)] = { type, level, spent }
-		-- Bonus de pièces en % (renaissances, étape 4). S'additionne : gain = base x (1 + bonus/100).
-		-- Ex : ennemi à 3 pièces -> +100 % = 6, +200 % = 9.
+		-- Bonus de pièces en %, gagné par les renaissances (IdleConfig.rebirthGain, PlotGame:rebirth).
+		-- S'additionne : gain = base x (1 + bonus/100). Ex : ennemi à 3 pièces -> +100 % = 6, +200 % = 9.
 		coinBonus = 0,
-		rebirths = 0,
+		rebirths = 0, -- nombre de renaissances (seules la vague et bestWave repartent à 1)
 		-- Machines à sous
 		unlockedTowers = startingTowers(), -- [type] = true
 		towerDupes = {}, -- [type] = nombre de doublons (+5 % de dégâts chacun)

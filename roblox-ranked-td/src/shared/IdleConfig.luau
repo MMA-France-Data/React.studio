@@ -94,6 +94,47 @@ function IdleConfig.bonusSpinCost(highestWave: number): number
 	return math.floor(raw / magnitude + 0.5) * magnitude
 end
 
+----------------------------------------------------------------------
+-- Renaissance : possible dès que la meilleure vague de la run (idle.bestWave, remise à 1 à
+-- chaque renaissance) atteint REBIRTH_MIN_WAVE. Seule la vague repart à 1 ; tout le reste est
+-- gardé (pièces, tours, améliorations, emplacements, machines, record de tous les temps).
+-- En échange, un bonus de pièces permanent qui s'ajoute à idle.coinBonus :
+--   gain(w) = 1 + 6 x ((w - 15) / 85) ^ 0,8   (en %, arrondi à 0,1 %)
+--   vague 15 -> +1 %, vague 50 -> +4 %, vague 100 -> +7 %, et ça continue de monter ensuite
+--   (vague 200 -> +12,2 %, vague 500 -> +25,2 %).
+-- Mode infini uniquement : le ranked n'en profite jamais.
+----------------------------------------------------------------------
+IdleConfig.REBIRTH_MIN_WAVE = 15
+IdleConfig.REBIRTH_BASE_GAIN = 1 -- % gagnés à la vague minimale
+IdleConfig.REBIRTH_GAIN_SCALE = 6 -- % en plus à la vague de référence (15 + 85 = vague 100 -> +7 %)
+IdleConfig.REBIRTH_REFERENCE_WAVES = 85
+IdleConfig.REBIRTH_GAIN_EXPONENT = 0.8 -- < 1 : les premières vagues au-dessus du minimum rapportent le plus
+
+-- Arrondi à 0,1 % (évite les 12.300000001 % quand on additionne les gains).
+function IdleConfig.roundPercent(value: number): number
+	return math.floor(value * 10 + 0.5) / 10
+end
+
+-- Bonus de pièces (en %) gagné en renaissant avec cette meilleure vague ; 0 sous le minimum.
+function IdleConfig.rebirthGain(bestWave: number): number
+	if typeof(bestWave) ~= "number" or bestWave ~= bestWave or bestWave < IdleConfig.REBIRTH_MIN_WAVE then
+		return 0
+	end
+	local progress = (bestWave - IdleConfig.REBIRTH_MIN_WAVE) / IdleConfig.REBIRTH_REFERENCE_WAVES
+	return IdleConfig.roundPercent(
+		IdleConfig.REBIRTH_BASE_GAIN + IdleConfig.REBIRTH_GAIN_SCALE * progress ^ IdleConfig.REBIRTH_GAIN_EXPONENT
+	)
+end
+
+-- Affichage d'un pourcentage de bonus : 4 -> "4", 12.3 -> "12.3" (même séparateur que NumberFormat).
+function IdleConfig.formatPercent(value: number): string
+	local rounded = IdleConfig.roundPercent(value)
+	if rounded == math.floor(rounded) then
+		return string.format("%d", rounded)
+	end
+	return string.format("%.1f", rounded)
+end
+
 -- Chaque vague a un budget de PV total et un budget de pièces, qui grandissent à chaque vague.
 -- Le type de vague décide comment ce budget est réparti : 40 petites nuées ou 3 géants énormes.
 -- La difficulté reste donc comparable, mais ce ne sont pas les mêmes tours qui brillent.

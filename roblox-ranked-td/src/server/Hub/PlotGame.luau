@@ -106,6 +106,10 @@ function PlotGame:syncAttributes()
 			alive += 1
 		end
 	end
+	-- Renaissance : bonus de pièces en % et nombre de renaissances (lus par RebirthUI).
+	-- Publiés avant Wave : un client qui voit la vague retomber à 1 peut vérifier si Rebirths a changé.
+	self:setAttr("CoinBonus", self.idle.coinBonus)
+	self:setAttr("Rebirths", self.idle.rebirths)
 	self:setAttr("Wave", self.idle.wave)
 	self:setAttr("WaveType", IdleConfig.waveType(self.idle.wave))
 	self:setAttr("BestWave", self.idle.bestWave)
@@ -162,6 +166,37 @@ function PlotGame:endWave(success: boolean)
 	end
 	self.nextWaveAt = os.clock() + delay
 	self:setAttr("NextWaveAt", workspace:GetServerTimeNow() + delay)
+end
+
+-- Renaissance : seule la vague repart à 1 (nouvelle run), contre un bonus de pièces permanent
+-- (IdleConfig.rebirthGain, selon la meilleure vague de la run). Tout le reste est gardé : pièces,
+-- tours, améliorations, emplacements, tours débloquées, doublons, bonus, lancer en attente, record.
+-- Les piles de pièces déjà au sol restent à ramasser.
+function PlotGame:rebirth()
+	local gain = IdleConfig.rebirthGain(self.idle.bestWave)
+	if gain <= 0 then
+		self:notify(`Réussis la vague {IdleConfig.REBIRTH_MIN_WAVE} pour renaître (meilleure vague de la run : {self.idle.bestWave})`, "Error")
+		return
+	end
+	self.idle.coinBonus = IdleConfig.roundPercent(self.idle.coinBonus + gain)
+	self.idle.rebirths += 1
+	self.idle.wave = 1
+	self.idle.bestWave = 1
+
+	-- La vague en cours s'arrête : ennemis et file d'apparition vidés, entracte avant la vague 1.
+	self:clearEnemies()
+	self.state = "Intermission"
+	self.baseHealth = IdleConfig.BASE_HEALTH
+	self.nextWaveAt = os.clock() + IdleConfig.FIRST_WAVE_DELAY
+	self:setAttr("NextWaveAt", workspace:GetServerTimeNow() + IdleConfig.FIRST_WAVE_DELAY)
+	self:syncAttributes()
+
+	self:notify(
+		`Renaissance ! +{IdleConfig.formatPercent(gain)} % de pièces • bonus total : +{IdleConfig.formatPercent(self.idle.coinBonus)} %`,
+		"Success"
+	)
+	-- Sauvegarde tout de suite (sans bloquer la simulation).
+	task.spawn(PlayerData.save, self.player)
 end
 
 function PlotGame:spawnEnemy(item)

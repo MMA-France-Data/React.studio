@@ -31,7 +31,20 @@ Les boutons « Ma base » et « Cercle ranked » servent à se déplacer vite.
   on bloque souvent, on farme un peu, une amélioration débloque les vagues suivantes.
 - Chemin de ~360 studs (6 allers-retours) et ennemis 1,6× plus rapides qu'en ranked.
 
-### Les deux machines à sous (devant chaque parcelle, ou boutons en haut à droite)
+### Renaissance (bouton « Renaissance » dans la colonne de gauche)
+
+- Possible dès que tu as réussi la **vague 15** dans ta run actuelle. Seule la vague repart à 1 : tu gardes
+  tes pièces, tes tours, leurs améliorations, tes emplacements, les machines (tours débloquées, doublons,
+  bonus, lancer en attente) et ton record de tous les temps.
+- En échange, un **bonus de pièces permanent** qui dépend de ta meilleure vague de la run :
+  `gain = 1 + 6 × ((vague − 15) / 85) ^ 0,8` → +1 % à la vague 15, +4 % à la 50, +7 % à la 100, et ça continue
+  de monter ensuite (+12,2 % à la 200). Arrondi à 0,1 % (`IdleConfig.rebirthGain`).
+- Les gains s'additionnent au bonus de pièces (voir plus haut) : avec +12 %, un ennemi à 10 pièces en donne 11,2.
+- Le serveur vérifie la vague (`PlotGame:rebirth`), sauvegarde tout de suite et publie `CoinBonus` et `Rebirths`
+  sur le dossier de la parcelle ; la fenêtre de confirmation montre le gain et le bonus avant → après (`RebirthUI.luau`).
+- Rien de tout ça ne compte en ranked : mêmes tours et même or pour tout le monde.
+
+### Les deux machines à sous (devant chaque parcelle, ou boutons de la colonne de gauche)
 
 - **Machine à tours** : 1 lancer gratuit à chaque vague réussie, sans cumul (le lancer garde le meilleur
   palier). Au départ seul le Mitrailleur est débloqué. 8 tours en 4 raretés (Commune, Rare, Épique,
@@ -132,7 +145,7 @@ vagues dans `Enemies.luau`, les envois dans `Sends.luau`, le tracé du chemin da
 src/
   shared/   (ReplicatedStorage.Shared)   Config, IdleConfig, IdleTowers, NumberFormat, Elo, Ranks, Towers, Enemies, Sends, MapLayout, PlotLayout, Placement, Remotes
   server/   (ServerScriptService.Server) Main, PlayerData, Leaderboard, Matchmaking, Monetization, Hub/{init, HubMap, Plots, PlotGame, IdleTowerModel}, Match/{init, Game, MapBuilder}
-  client/   (StarterPlayerScripts.Client) Main, LobbyUI, PlotUI, PlotRenderer, MachineUI, MatchUI, TowerCard, TowerPlacement, Effects, UI
+  client/   (StarterPlayerScripts.Client) Main, LobbyUI, PlotUI, PlotRenderer, MachineUI, RebirthUI, MatchUI, TowerCard, TowerPlacement, Effects, UI
 ```
 
 ## Limites connues / pistes d'amélioration
