@@ -27,6 +27,14 @@ Config.GamePasses = {
 	SPEED_X2 = 0, -- Vitesse x2 : vagues et tirs deux fois plus rapides sur ta parcelle (bouton pour l'éteindre)
 }
 
+-- Tes parties de test dans Studio : ces passes sont donnés automatiquement à tous les joueurs quand tu
+-- joues dans Studio (jamais dans le jeu publié, ni pendant les tests automatiques de tools/studio-test).
+-- Mets false pour tester comme un joueur qui ne les a pas.
+Config.STUDIO_TEST_PASSES = {
+	AUTO_COLLECT = true,
+	SPEED_X2 = true,
+}
+
 -- Distance (en studs) entre ton personnage et un objet sous laquelle son texte flottant s'affiche :
 -- l'écran reste lisible, chaque étiquette n'apparaît que quand on s'approche (ProximityLabel.luau).
 Config.LabelDistance = {

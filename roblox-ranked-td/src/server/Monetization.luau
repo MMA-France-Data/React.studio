@@ -136,6 +136,17 @@ local function checkPass(player: Player, name: string)
 end
 
 local function onPlayerAdded(player: Player)
+	-- Parties de test dans Studio : passes offerts selon Config.STUDIO_TEST_PASSES (pas dans le jeu publié,
+	-- ni pendant les tests automatiques, qui partent d'un joueur sans pass).
+	local isAutoTest = game:GetService("ReplicatedStorage"):FindFirstChild("__AutoPlayTest") ~= nil
+	if RunService:IsStudio() and not isAutoTest then
+		for name, pass in PASSES do
+			if Config.STUDIO_TEST_PASSES and Config.STUDIO_TEST_PASSES[pass.configKey] == true then
+				studioPasses[player] = studioPasses[player] or {}
+				studioPasses[player][name] = true
+			end
+		end
+	end
 	for name in PASSES do
 		publishPass(player, name) -- false tant que Roblox n'a pas répondu
 		task.spawn(checkPass, player, name)
