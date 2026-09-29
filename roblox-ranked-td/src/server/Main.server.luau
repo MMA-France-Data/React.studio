@@ -22,6 +22,12 @@ end
 
 Remotes.init()
 
+-- Modèles perso des ennemis (ReplicatedStorage.EnemyModels) : aucun script n'y a sa place (sécurité, voir
+-- CustomModels.sanitizeSources). Juste un filet : les scripts doivent être supprimés dans Studio.
+pcall(function()
+	require(Shared.CustomModels).sanitizeSources()
+end)
+
 local mode = detectMode()
 ReplicatedStorage:SetAttribute("ServerMode", mode)
 print("[RankedTD] Mode serveur :", mode)

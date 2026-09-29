@@ -21,9 +21,10 @@ Depuis le dossier `roblox-ranked-td` :
 powershell -ExecutionPolicy Bypass -File tools\balance\idle\run.ps1
 ```
 
-Environ 1 h 30 : 5 scénarios x 3 parties x 100 h de jeu (les projectiles, le feu et le rayon du Sorcier
-demandent plus de calcul qu'avant). Pour un essai rapide (environ 10 minutes : 3 parties x 40 h, scénario
-`base` seulement) :
+5 scénarios x 3 parties x 100 h de jeu. Les 15 parties sont jouées **en même temps** (une par cœur du
+processeur) : environ 15 min sur un PC à 12 cœurs logiques (plus d'1 h 30 une par une : la visée du
+Trébuchet, les projectiles, le feu et le rayon du Sorcier demandent beaucoup de calcul). Pour un essai rapide
+(environ 5 minutes : 3 parties x 40 h, scénario `base` seulement) :
 
 ```bat
 powershell -ExecutionPolicy Bypass -File tools\balance\idle\run.ps1 -Rapide
@@ -38,7 +39,14 @@ Autres options (à ajouter après `run.ps1`) :
 -Pas 0.0166667                         pas de 1/60 s comme le jeu (plus lent ; résultats à 10 % près)
 -Regler "IdleConfig.UPGRADE_COST_GROWTH=1.3;PlotLayout.SPOT_COST_GROWTH=2.5"   essai de réglages (voir plus bas)
 -Verifier                              vérifie que le moteur joue comme le vrai PlotGame.luau (quelques secondes)
+-Paralleles 4                          au plus 4 parties en même temps (1 = une après l'autre, comme avant)
 ```
+
+En parallèle, chaque partie (scénario, graine) est jouée par son propre processus `luau`, qui écrit la partie
+terminée dans `idle\gen\runs\` ; un dernier processus relit toutes les parties et écrit le rapport. Le rapport
+est exactement le même qu'en jouant les parties une par une (`idle\Dump.luau`). Si tu arrêtes `run.ps1` en
+cours de route (Ctrl+C), les parties déjà lancées continuent : ferme les processus `luau` (Gestionnaire des
+tâches) avant de relancer.
 
 ## Vérifier le moteur (`-Verifier`)
 
@@ -47,14 +55,16 @@ powershell -ExecutionPolicy Bypass -File tools\balance\idle\run.ps1 -Verifier
 ```
 
 Charge le **vrai** `src/server/Hub/PlotGame.luau` hors de Studio (avec des imitations de Roblox :
-`idle/verif/extra.luau` et `idle/verif/stubs/`), puis fait jouer les mêmes vagues (vagues 8 à 60, 4 équipes :
-toutes les tours avec des runes, que des Archers, Sorciers + Totem + Mage, zones et projectiles) au jeu et au
-moteur du simulateur (`idle/verif/parity.luau`). Il affiche `OK` si toutes les vagues ont le même résultat
-(réussie ou ratée), presque la même durée (2 s d'écart au plus) et les mêmes pièces. Pour une comparaison
-exacte, le pas de temps vaut 1/32 s dans les deux (un nombre exact en binaire), la parcelle est au centre du
-monde et le moteur n'a pas sa petite marge d'arrondi (`Engine.EPS = 0`). Dernier résultat : 108 vagues sur 108
-identiques, 0,00 s d'écart. **À relancer après chaque changement de combat dans `PlotGame.luau`** : s'il
-affiche `DIFFÉRENCES`, fais le même changement dans `idle/Engine.luau`.
+`idle/verif/extra.luau` et `idle/verif/stubs/`), puis fait jouer les mêmes vagues (vagues 8 à 60, 5 équipes :
+toutes les tours avec des runes, que des Archers, Sorciers + Totem + Mage, zones et projectiles, et
+« contrôles » : 2 Totems, 2 Mages, 2 Trébuchets, 2 Balistes, 2 Archers) au jeu et au moteur du simulateur
+(`idle/verif/parity.luau`). Il affiche `OK` si toutes les vagues ont le même résultat (réussie ou ratée),
+presque la même durée (2 s d'écart au plus) et les mêmes pièces. Pour une comparaison exacte, le pas de temps
+vaut 1/32 s dans les deux (un nombre exact en binaire), la parcelle est au centre du monde et le moteur n'a pas
+sa petite marge d'arrondi (`Engine.EPS = 0`). Dernier résultat : 135 vagues sur 135 identiques, 0,06 s d'écart
+au plus (avec la règle « un seul contrôle à la fois », la fragilité, le carreau perçant, la visée du Trébuchet,
+l'étourdissement, la sortie à chaque mort et la vague écrasée). **À relancer après chaque changement de combat dans `PlotGame.luau`** :
+s'il affiche `DIFFÉRENCES`, fais le même changement dans `idle/Engine.luau`.
 
 ## Les résultats (`tools\balance\idle\out\`)
 
@@ -77,11 +87,16 @@ affiche `DIFFÉRENCES`, fais le même changement dans `idle/Engine.luau`.
      1 M, 1 B, 1 T, 1 Qa… par minute, puis les **limites des nombres** : la vague et le niveau
      d'amélioration où un montant deviendrait infini (au-delà de ~1,8e308 ; un DataStore ne sait pas
      le sauver), et la vague où NumberFormat passe en notation scientifique (après 10^96).
-  6. **Banc d'essai des tours**, puis les **duels** : UNE tour contre UN seul ennemi (immortel) qui traverse
-     tout le chemin, même niveau pour toutes, seule puis avec un Totem de givre voisin ; résultat en fois les
-     dégâts de la Baliste lourde (c'est là qu'on voit le rayon du Sorcier battre la Baliste contre les ennemis
-     lents et perdre contre les rapides).
-  7. **Renaissance en boucle**.
+  6. **Banc d'essai des tours**, puis l'**anti-méta** (compositions extrêmes contre la défense mélangée du
+     joueur simulé, même budget : tout Trébuchet, tout givre, Trébuchet + givre, tout Sorcier, tout Catapulte,
+     givre + Mage… ; dernière vague réussie en jouant les vagues 1, 2, 3… avec une défense fixe, à 5, 10, 20,
+     40 et 80 h), puis les **duels** : UNE tour contre UN seul ennemi (immortel) qui traverse tout le chemin,
+     même niveau pour toutes, seule puis avec un Totem de givre voisin ; résultat en fois les dégâts de la
+     Baliste lourde (c'est là qu'on voit le rayon du Sorcier battre la Baliste contre les ennemis lents et
+     perdre contre les rapides) ; et la **foule** : une tour contre 30 écuyers, en fois la Catapulte (le Totem
+     doit rester sous 1).
+  7. **Renaissance en boucle**. Le scénario « renaissance » dit aussi combien de temps il faut pour remonter à
+     80 % du record de la run après une renaissance (sortie à chaque mort et vague écrasée comprises).
 - `timeline.csv` : une ligne par vague passée pour la première fois (scénario, graine, temps, pièces,
   revenu, emplacements, tours, doublons, lancers, bonus de pièces, murs, composition).
 - `heures.csv` : une ligne par heure de jeu (record, pièces, revenu, total gagné, emplacements…), pour
@@ -141,10 +156,17 @@ réglage dans `src/shared`, le simulateur l'utilise au prochain lancement.
 (apparitions, déplacements, projectiles qui arrivent, tours, zones de feu, retrait des morts) :
 
 - vagues de `IdleConfig.buildWave` (écarts entre ennemis, `MAX_ENEMIES`), chemin `PlotLayout.PATH`,
-  vitesse des ennemis x `ENEMY_SPEED_MULTIPLIER` x facteur de leur type (`ENEMY_SPEED_FACTORS`),
-  ralentissements (Totem de givre, Mage des tempêtes : le plus fort gagne, ils ne s'additionnent pas) ;
+  vitesse des ennemis x `ENEMY_SPEED_MULTIPLIER` x facteur de leur type (`ENEMY_SPEED_FACTORS`) ;
+  **sortie à chaque mort** (`SPAWN_NEXT_ON_KILL`) : chaque ennemi tué fait sortir le suivant de la file tout de
+  suite, même si d'autres sont en vie ; **vague écrasée** (`COMPRESS_EMPTY_SPAWNS`) : plus aucun ennemi en vie
+  -> le suivant sort tout de suite ;
+- **contrôles : un seul à la fois** par ennemi (ralentissement du Totem de givre, du Mage des tempêtes,
+  étourdissement du Trébuchet royal) : la même sorte de tour prolonge le sien, une autre est refusée tant qu'il
+  dure ; **fragilité** du Totem (+X % de dégâts reçus, sauf Mage et Totems ; le plus fort Totem gagne) ;
 - tirs des tours dans l'ordre des emplacements : simple (le plus avancé), `Strongest` (le plus de PV),
-  zone, aura, chaîne ; recharges ; stats de `IdleTowers.effectiveStats` (niveau, doublons, bonus de la forge) ;
+  `Crowd` (Trébuchet : le point où sa zone touche le plus d'ennemis), zone, aura, chaîne, carreau perçant
+  (Baliste : toute la ligne tour -> impact) ; recharges ; stats de `IdleTowers.effectiveStats` (niveau,
+  doublons, bonus de la forge) ;
 - **projectiles** (Archer, Catapulte, Baliste, Trébuchet) : visée à l'endroit où sera l'ennemi (sa vitesse, la
   fin de son ralentissement, le chemin, 2 itérations), temps de vol `IdleTowers.flightTime` (distance en 3D
   depuis le haut de la tour), dégâts à l'impact ; une zone touche autour du point d'impact, une flèche touche sa
@@ -162,8 +184,9 @@ réglage dans `src/shared`, le simulateur l'utilise au prochain lancement.
 - autel des héros : lancers payés en pièces par lots (`TOWER_SPIN_BULKS`, prix `towerSpinCost` avec le
   nombre de lancers déjà achetés : +0,05 % par lancer, jamais remis à zéro ; un prix « MAX » n'est pas achetable), chances du
   palier du **record** (`TOWER_SPIN_TIERS`), déblocage ou doublon, tirage des gros lots comme le serveur
-  (nombre de tours par rareté puis par tour), forge runique (`bonusSpinCost`, 1 lancer / 30 min, le bonus
-  remplacé est perdu),
+  (nombre de tours par rareté puis par tour), forge runique (prix `forgeCoinPrice` : 100 K, x5 sous 1 T, puis
+  x2, compteur jamais remis à zéro, plus de délai ; seulement les runes qui améliorent une tour posée,
+  `forgeDrawableRunes` ; le bonus remplacé est perdu),
   emplacements (le n-ième acheté coûte `PlotLayout.spotCost(n)` ; achetés dans n'importe quel ordre si le
   jeu le permet, c'est-à-dire si `PlotLayout.startingSpots` existe, sinon dans l'ordre 5, 6, 7…), prix des
   tours et des améliorations, remplacement remboursé à 50 % (le bonus de l'ancienne tour revient dans
@@ -203,7 +226,10 @@ Un joueur **actif** (réglages dans `Run.POLICY`, en haut de `idle/Run.luau`) :
   (la montée repart de x1 à chaque nouvelle cible) ; il est jugé dans la vraie disposition, avec les
   ralentissements des autres tours (plus un ennemi reste longtemps, plus le rayon chauffe) (`Run.valueOf`).
   Une seule fuite fait rater la vague : chaque groupe d'ennemis compte d'autant plus que ses tours en
-  viennent mal à bout (PV à infliger / puissance utile, au carré) ;
+  viennent mal à bout (PV à infliger / puissance utile, au carré). Fragilité du Totem de givre : les coups sur
+  un ennemi fragile sont comptés à part et valent x (1 + fragilité des Totems du joueur) ; améliorer un Totem
+  est jugé avec la fragilité qu'il ajoute à TOUTES les autres tours ; une tour neuve est jugée avec les tours
+  de contrôle déjà posées (ralentissements, étourdissements, fragilité) ;
 - une tour neuve est jugée avec ses améliorations suivantes (au niveau où elle devient la plus rentable) ;
 - si le meilleur achat est trop cher mais payable en moins de 5 min de farm (30 min pour un lot x1 000 ou
   x1 000 000 de l'autel), il économise ; sinon il prend le meilleur achat abordable (s'il vaut au moins 25 %
@@ -222,7 +248,7 @@ Scénarios (`-Scenarios`) :
 | Scénario | Joueur |
 |---|---|
 | `base` | le joueur ci-dessus, sans forge ni renaissance (la référence des objectifs) |
-| `forge` | + la forge runique en pièces dès qu'elle est prête (1 lancer / 30 min) : il met le prix de côté si ça vaut moins de 30 min de revenu ; le bonus va sur la tour où il rapporte le plus |
+| `forge` | + la forge runique en pièces (plus de délai) : dès que le prix du prochain lancer vaut moins de 30 min de revenu, il le met de côté puis lance ; seulement des runes utiles ; la rune va sur la tour où elle rapporte le plus. Le rapport donne les lancers achetés à 2, 6, 10, 25, 50 et 100 h |
 | `renaissance` | forge + renaissance dès qu'il est bloqué depuis 15 min à son record (vague 15 ou plus) |
 | `renaissance-seule` | base + la même renaissance, sans forge (pour voir l'effet de la renaissance seule) |
 | `sans-sorcier` | base, mais il ne pose jamais de Sorcier des arcanes : le rapport compare les murs des Seigneurs de guerre et des Gardes colossales avec et sans lui |
@@ -240,11 +266,13 @@ Pas de Robux dans aucun scénario.
 | `verif/` | Vérification du moteur (`run.ps1 -Verifier`) : `parity.luau` fait jouer les mêmes vagues au vrai `PlotGame.luau` et au moteur ; `extra.luau` et `stubs/` imitent Roblox |
 | `Run.luau` | Une partie : le joueur simulé, les machines, la renaissance, les statistiques, le journal |
 | `Report.luau` | Mise en forme du rapport et des CSV |
+| `Dump.luau` | Calcul en parallèle : écrit une partie terminée en texte Luau, relu pour le rapport |
 | `main.luau` | Lance les scénarios, le banc d'essai, la renaissance en boucle et la comparaison aux objectifs |
 | `Rng.luau` | Tirages aléatoires reproductibles (même graine = même partie) |
 
-`gen\` (copies des modules) est recréé à chaque lancement et les fichiers de `out\` sont remplacés
-(`journal.txt` seulement avec `-Journal`). `gen\` et `journal.txt` ne vont pas dans git (`idle/.gitignore`).
+`gen\` (copies des modules, parties du calcul en parallèle) est recréé à chaque lancement et les fichiers de
+`out\` sont remplacés (`journal.txt` seulement avec `-Journal`). `gen\` et `journal.txt` ne vont pas dans git
+(`idle/.gitignore`).
 
 ## Limites
 

@@ -5,6 +5,10 @@
     "ReplicatedStorage": {
       "Shared": {
         "$path": "src/shared"
+      },
+      "EnemyModels": {
+        "$path": "assets/EnemyModels",
+        "$ignoreUnknownInstances": true
       }
     },
     "ServerScriptService": {

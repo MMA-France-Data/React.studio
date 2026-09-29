@@ -87,7 +87,7 @@ Run.SCENARIOS = {
 	},
 	forge = {
 		id = "forge",
-		label = "base + la forge runique en pièces dès qu'elle est prête (1 lancer / 30 min, prix mis de côté), bonus sur la meilleure tour",
+		label = "base + la forge runique en pièces dès que son prix vaut moins de 30 min de revenu (100 K, x5 sous 1 T, puis x2 ; prix mis de côté), rune sur la meilleure tour",
 		forge = true,
 		rebirth = false,
 	},
@@ -180,13 +180,44 @@ local function layoutHits(typesBySpot, layoutKey: string, comp)
 	return bySpot
 end
 
-local function soloHits(spot: number, towerType: string, comp)
-	local key = spot .. towerType .. "|" .. comp.key
+-- Tours de contrôle : elles ralentissent, étourdissent ou fragilisent, donc changent les coups des autres.
+local CONTROL_TOWERS = {}
+for _, towerType in IdleTowers.ORDER do
+	local def = IdleTowers.Defs[towerType]
+	if def.slow or def.stunDuration or def.fragilityBase then
+		CONTROL_TOWERS[towerType] = true
+	end
+end
+Run.CONTROL_TOWERS = CONTROL_TOWERS
+
+-- Coups d'une tour seule (niveau 1), avec les tours de contrôle `context` ({ { spot, type } }, clé contextKey)
+-- déjà posées : leurs ralentissements, étourdissements et leur fragilité comptent (row.frag).
+local function soloHits(spot: number, towerType: string, comp, context, contextKey: string?)
+	local key = spot .. towerType .. "|" .. (contextKey or "") .. "|" .. comp.key
 	local cached = SOLO_HITS[key]
 	if cached then
 		return cached
 	end
-	local hits = Engine.hits(comp, { Engine.compileTower(spot, towerType, 1, 0, nil) })[1]
+	local towers = {}
+	local index = 1
+	if context then
+		for _, entry in context do
+			table.insert(towers, Engine.compileTower(entry.spot, entry.type, 1, 0, nil))
+		end
+		-- Même ordre que le jeu (ordre des emplacements)
+		table.insert(towers, Engine.compileTower(spot, towerType, 1, 0, nil))
+		table.sort(towers, function(a, b)
+			return a.spot < b.spot
+		end)
+		for i, tower in towers do
+			if tower.spot == spot then
+				index = i
+			end
+		end
+	else
+		towers[1] = Engine.compileTower(spot, towerType, 1, 0, nil)
+	end
+	local hits = Engine.hits(comp, towers)[index]
 	SOLO_HITS[key] = hits
 	return hits
 end
@@ -226,7 +257,6 @@ function Run.new(scenarioId: string, seed: number)
 	end
 	self.dupes = {}
 	self.bonuses = {}
-	self.lastBonusSpinAt = -math.huge
 	self.coinBonus = 0
 	self.rebirths = 0
 
@@ -323,6 +353,22 @@ function Run:typesBySpot()
 	return self.typesCache, self.layoutKeyCache
 end
 
+-- Tours de contrôle posées (sauf sur `except`) : liste { { spot, type } } et clé (pour le cache de soloHits).
+function Run:controlContext(except: number?)
+	local list, parts = {}, {}
+	for spot = 1, SPOT_COUNT do
+		local tower = self.towers[spot]
+		if tower and spot ~= except and CONTROL_TOWERS[tower.type] then
+			table.insert(list, { spot = spot, type = tower.type })
+			table.insert(parts, spot .. tower.type)
+		end
+	end
+	if #list == 0 then
+		return nil, ""
+	end
+	return list, table.concat(parts, ",")
+end
+
 -- Dégâts effectifs et multiplicateur de cadence (bonus x2 vitesse) d'une tour. Rayon du Sorcier : pas de
 -- cadence (la rune de vitesse fait monter le rayon plus vite, ce que les estimations ignorent) : 1.
 function Run:power(towerType: string, level: number, bonus: string?)
@@ -353,23 +399,44 @@ end
 --   ses cibles l'une après l'autre (la montée repart de x1 à chaque nouvelle cible : contre des petits
 --   ennemis, il ne chauffe jamais).
 --   Flèches enflammées : + coups de feu x (fireDamageRatio x fireTick x dégâts), plafonnés aux PV.
-function Run.valueOf(row, g: number, group, damage: number, speed: number): number
+--   fragility (Totem de givre, 0 si absent) : les coups tombés sur un ennemi fragile (row.frag, row.fireFrag)
+--   font x (1 + fragility). Les coups sont comptés avec des tours niveau 1 ; `fragility` est celle des
+--   Totems du joueur à leur niveau actuel (Run:evaluate : la plus forte).
+function Run.valueOf(row, g: number, group, damage: number, speed: number, fragility: number?): number
+	local F = fragility or 0
 	local hp = group.hp
 	local value = 0
 	local contact = row.contact
+	local frag = row.frag
 	if contact then
 		local ramped = row[g]
 		if ramped > 0 and damage > 0 then
-			local killRate = hp / beamKillTime(hp / damage, row.beamRampRate, row.beamRampMax)
-			value = math.min(damage * ramped, contact[g] * killRate)
+			-- Part de la montée sur un ennemi fragile : dégâts moyens x (1 + F x cette part)
+			local effective = damage
+			if F > 0 and frag then
+				effective = damage * (1 + F * frag[g] / ramped)
+			end
+			local killRate = hp / beamKillTime(hp / effective, row.beamRampRate, row.beamRampMax)
+			value = math.min(effective * ramped, contact[g] * killRate)
 		end
 	else
-		value = row[g] * speed * (if damage < hp then damage else hp)
+		local hits = row[g]
+		local fragileHits = if F > 0 and frag then frag[g] else 0
+		value = (hits - fragileHits) * speed * (if damage < hp then damage else hp)
+		if fragileHits > 0 then
+			local boosted = damage * (1 + F)
+			value += fragileHits * speed * (if boosted < hp then boosted else hp)
+		end
 	end
 	local fire = row.fire
 	if fire then
 		local burn = damage * row.fireHit
-		value += fire[g] * (if burn < hp then burn else hp)
+		local fragileBurns = if F > 0 and row.fireFrag then row.fireFrag[g] else 0
+		value += (fire[g] - fragileBurns) * (if burn < hp then burn else hp)
+		if fragileBurns > 0 then
+			local boosted = burn * (1 + F)
+			value += fragileBurns * (if boosted < hp then boosted else hp)
+		end
 	end
 	return value
 end
@@ -434,6 +501,21 @@ function Run:buildFocus(long: boolean?)
 	return focus
 end
 
+-- Fragilité des Totems de givre posés (la plus forte : deux Totems ne s'additionnent pas), sans compter
+-- l'emplacement `except` (tour remplacée), avec, si donnée, une tour de ce type et de ce niveau en plus.
+function Run:fragilityOf(except: number?, extraType: string?, extraLevel: number?): number
+	local best = 0
+	for spot, tower in self.towers do
+		if spot ~= except then
+			best = math.max(best, IdleTowers.fragilityAt(IdleTowers.Defs[tower.type], tower.level))
+		end
+	end
+	if extraType then
+		best = math.max(best, IdleTowers.fragilityAt(IdleTowers.Defs[extraType], extraLevel or 1))
+	end
+	return best
+end
+
 -- Puissance utile actuelle U[g] contre chaque vague visée, et part de chaque tour.
 function Run:evaluate(focus)
 	local typesBySpot, layoutKey = self:typesBySpot()
@@ -442,6 +524,8 @@ function Run:evaluate(focus)
 		local damage, speed = self:power(tower.type, tower.level, tower.bonus)
 		powers[spot] = { damage = damage, speed = speed }
 	end
+	local F = self:fragilityOf()
+	self.fragility = F
 	for _, f in focus do
 		local groups = f.comp.groups
 		f.hits = layoutHits(typesBySpot, layoutKey, f.comp)
@@ -451,7 +535,7 @@ function Run:evaluate(focus)
 			local row = f.hits[spot]
 			local contrib = table.create(#groups, 0)
 			for g, group in groups do
-				local value = valueOf(row, g, group, power.damage, power.speed)
+				local value = valueOf(row, g, group, power.damage, power.speed, F)
 				contrib[g] = value
 				U[g] += value
 			end
@@ -499,15 +583,24 @@ local function logGain(U: number, eps: number, delta: number): number
 end
 
 -- Gain (en score) si la contribution de `spot` devient : valueOf(hits, g, dégâts, cadence).
-local function gainReplacingSpot(focus, spot: number, hitsFor, damage: number, speed: number): number
+-- F = fragilité des Totems (Run:evaluate). newF (Totem amélioré) : la fragilité change aussi pour TOUTES les
+-- autres tours (leurs coups sur des ennemis fragiles), ajoutée au gain.
+local function gainReplacingSpot(focus, spot: number, hitsFor, damage: number, speed: number, F: number, newF: number?, powers): number
 	local gain = 0
 	for fi, f in focus do
 		local groups = f.comp.groups
 		local old = f.contrib[spot]
 		local hits = hitsFor(fi, f)
 		for g, group in groups do
-			local new = valueOf(hits, g, group, damage, speed)
+			local new = valueOf(hits, g, group, damage, speed, newF or F)
 			local delta = new - (if old then old[g] else 0)
+			if newF and powers then
+				for s, power in powers do
+					if s ~= spot then
+						delta += valueOf(f.hits[s], g, group, power.damage, power.speed, newF) - f.contrib[s][g]
+					end
+				end
+			end
 			gain += f.weight * f.lambda[g] * logGain(f.U[g], f.eps[g], delta)
 		end
 	end
@@ -521,9 +614,17 @@ function Run:upgradeOptions(focus, options)
 		end
 		local cost = IdleTowers.upgradeCost(tower.type, tower.level)
 		local damage, speed = self:power(tower.type, tower.level + 1, tower.bonus)
+		-- Totem de givre : son niveau fait monter la fragilité, qui renforce les autres tours.
+		local newF = nil
+		if IdleTowers.Defs[tower.type].fragilityBase then
+			local nextF = self:fragilityOf(spot, tower.type, tower.level + 1)
+			if nextF > self.fragility then
+				newF = nextF
+			end
+		end
 		local gain = gainReplacingSpot(focus, spot, function(_, f)
 			return f.hits[spot]
-		end, damage, speed)
+		end, damage, speed, self.fragility, newF, self.powers)
 		if gain > 0 then
 			table.insert(options, { kind = "upgrade", spot = spot, cost = cost, ratio = gain / cost, gain = gain })
 		end
@@ -543,9 +644,12 @@ function Run:packageOption(focus, spot: number, towerType: string, newSpot: bool
 	-- baseDelta[fi][g] : de combien U change sans la contribution de la nouvelle tour (ancienne tour retirée,
 	-- ralentissements changés) ; gardé en écart plutôt qu'en total pour ne pas perdre les petits gains (logGain).
 	local newHits, baseDelta = {}, {}
+	-- Fragilité après ce changement (ancienne tour retirée, nouveau Totem jugé à son niveau 1).
+	local F = self:fragilityOf(spot, if def.fragilityBase then towerType else nil, 1)
 	-- Rayon du Sorcier : ses dégâts montent avec le temps passé sur la cible, donc avec les ralentissements
-	-- des autres tours (Totem, Mage) : on le juge aussi dans la vraie disposition, pas tout seul.
-	if def.slow or def.kind == "Beam" or (existing and IdleTowers.Defs[existing.type].slow) then
+	-- des autres tours (Totem, Mage) : on le juge aussi dans la vraie disposition, pas tout seul. Pareil pour
+	-- une tour de contrôle (ralentit, étourdit ou fragilise : elle change les coups des autres tours).
+	if CONTROL_TOWERS[towerType] or def.kind == "Beam" or (existing and CONTROL_TOWERS[existing.type]) then
 		local types = table.clone((self:typesBySpot()))
 		types[spot] = towerType
 		local parts = {}
@@ -561,7 +665,7 @@ function Run:packageOption(focus, spot: number, towerType: string, newSpot: bool
 				if s ~= spot then
 					local row = hits[s]
 					for g, group in f.comp.groups do
-						u[g] += valueOf(row, g, group, power.damage, power.speed)
+						u[g] += valueOf(row, g, group, power.damage, power.speed, F)
 					end
 				end
 			end
@@ -571,8 +675,11 @@ function Run:packageOption(focus, spot: number, towerType: string, newSpot: bool
 			baseDelta[fi] = u
 		end
 	else
+		-- Les autres tours : jugées seules, mais avec les tours de contrôle déjà posées (ralentissements,
+		-- étourdissements et fragilité comptent pour elles aussi).
+		local contextSpots, contextKey = self:controlContext(spot)
 		for fi, f in focus do
-			newHits[fi] = soloHits(spot, towerType, f.comp)
+			newHits[fi] = soloHits(spot, towerType, f.comp, contextSpots, contextKey)
 			local d = table.create(#f.comp.groups, 0)
 			local old = f.contrib[spot]
 			if old then
@@ -605,7 +712,7 @@ function Run:packageOption(focus, spot: number, towerType: string, newSpot: bool
 		for fi, f in focus do
 			local hits, d = newHits[fi], baseDelta[fi]
 			for g, group in f.comp.groups do
-				local delta = d[g] + valueOf(hits, g, group, damage, 1)
+				local delta = d[g] + valueOf(hits, g, group, damage, 1, F)
 				gain += f.weight * f.lambda[g] * logGain(f.U[g], f.eps[g], delta)
 			end
 		end
@@ -790,22 +897,37 @@ function Run:execute(option)
 	self:log(`achat : pose {Run.shortName(option.type)} sur l'empl. {spot} pour {Modules.NumberFormat.short(def.placeCost)}`)
 end
 
--- Scénarios avec forge : le joueur lance la forge en pièces dès qu'elle est disponible. Pour ça il
--- met son prix de côté (il passe avant les autres achats), si ce prix vaut moins de FORGE_SAVE_SECONDS
--- de revenu (sinon il attend d'avoir un meilleur revenu). Jugée seulement sur son gain immédiat, la forge
--- (~15 vagues de gains) ne serait presque jamais achetée ; ce scénario mesure ce qu'elle apporte.
+-- Runes que la forge peut tirer (PlotGame:forgeDrawable) : celles qui améliorent au moins une tour POSÉE
+-- (IdleConfig.forgeDrawableRunes avec la plus petite valeur de rune posée ; l'inventaire ne compte pas).
+function Run:forgeDrawable()
+	local weakest = nil
+	for _, tower in self.towers do
+		local value = IdleConfig.runeValue(tower.bonus)
+		if weakest == nil or value < weakest then
+			weakest = value
+		end
+	end
+	return IdleConfig.forgeDrawableRunes(weakest)
+end
+
+-- Scénarios avec forge : le joueur lance la forge en pièces dès que c'est possible (plus de délai). Pour ça
+-- il met son prix de côté (il passe avant les autres achats), si ce prix vaut moins de FORGE_SAVE_SECONDS
+-- de revenu (sinon il attend d'avoir un meilleur revenu). Prix IdleConfig.forgeCoinPrice(lancers en pièces
+-- déjà achetés, self.forgeSpins, jamais remis à zéro : 100 K, x5 sous 1 T, puis x2). Forge bloquée (aucune
+-- rune n'améliorerait une tour posée) : rien. Jugée seulement sur son gain immédiat, la forge ne serait
+-- presque jamais achetée ; ce scénario mesure ce qu'elle apporte.
 function Run:forgeReserve(): number
 	if not self.scenario.forge then
-		return 0
-	end
-	if self.t - self.lastBonusSpinAt < IdleConfig.BONUS_SPIN_COOLDOWN then
 		return 0
 	end
 	if #self.bonuses >= IdleConfig.MAX_BONUS_INVENTORY or next(self.towers) == nil then
 		return 0
 	end
-	local cost = IdleConfig.bonusSpinCost(self.highestWave)
-	if cost > self.income * P.FORGE_SAVE_SECONDS then
+	if #(self:forgeDrawable()) == 0 then
+		return 0
+	end
+	local cost = IdleConfig.forgeCoinPrice(self.forgeSpins)
+	if cost >= math.huge or cost > self.income * P.FORGE_SAVE_SECONDS then
 		return 0
 	end
 	return cost
@@ -1165,8 +1287,8 @@ function Run:spinOptions(focus, options, bestRatio: number)
 						local power = self.powers[spot]
 						local row = f.hits[spot]
 						if row[g] > 0 or (row.fire and row.fire[g] > 0) then
-							local old = valueOf(row, g, group, power.damage, power.speed)
-							local new = valueOf(row, g, group, power.damage * factor[tower.type], power.speed)
+							local old = valueOf(row, g, group, power.damage, power.speed, self.fragility)
+							local new = valueOf(row, g, group, power.damage * factor[tower.type], power.speed, self.fragility)
 							delta += new - old
 						end
 					end
@@ -1185,22 +1307,23 @@ end
 
 -- Forge runique, lancer en pièces (PlotGame:spinBonusWithCoins)
 function Run:spinForge()
-	if self.t - self.lastBonusSpinAt < IdleConfig.BONUS_SPIN_COOLDOWN then
-		return
-	end
 	if #self.bonuses >= IdleConfig.MAX_BONUS_INVENTORY then
 		return
 	end
-	local cost = IdleConfig.bonusSpinCost(self.highestWave)
-	if self.coins < cost then
+	local drawable = self:forgeDrawable()
+	if #drawable == 0 then
+		return
+	end
+	local cost = IdleConfig.forgeCoinPrice(self.forgeSpins)
+	if cost >= math.huge or self.coins < cost then
 		return
 	end
 	self.coins -= cost
-	self.lastBonusSpinAt = self.t
 	self.forgeSpins += 1
 	self.forgeSpent += cost
 	self:addSpent("forge", cost)
-	local bonus = self.rng:weighted(IdleConfig.BONUSES, function(entry)
+	-- Seulement les runes tirables, chances remises sur 100 % (tirage pondéré, comme rollWeighted du jeu)
+	local bonus = self.rng:weighted(drawable, function(entry)
 		return entry.chance
 	end)
 	table.insert(self.bonuses, bonus.id)
@@ -1224,7 +1347,7 @@ function Run:applyBonuses()
 				local damage, speed = self:power(tower.type, tower.level, bonusId)
 				local gain = gainReplacingSpot(focus, spot, function(_, f)
 					return f.hits[spot]
-				end, damage, speed)
+				end, damage, speed, self.fragility)
 				if gain > bestGain then
 					bestSpot, bestGain = spot, gain
 				end
@@ -1254,7 +1377,13 @@ function Run:rebirth(): boolean
 		return false
 	end
 	table.insert(self.rebirthLog, { t = self.t, fromWave = self.bestWave, gain = gain })
-	self.pendingCycle = { t = self.t, target = self.bestWave, entry = self.rebirthLog[#self.rebirthLog] }
+	-- cycle = temps pour revenir à la meilleure vague de la run ; cycle80 = pour revenir à 80 % de celle-ci
+	self.pendingCycle = {
+		t = self.t,
+		target = self.bestWave,
+		target80 = math.ceil(0.8 * self.bestWave),
+		entry = self.rebirthLog[#self.rebirthLog],
+	}
 	self.coinBonus = IdleConfig.roundPercent(self.coinBonus + gain)
 	self.rebirths += 1
 	self.wave = 1
@@ -1372,6 +1501,9 @@ function Run:endWave(wave: number, comp, result): number
 			end
 			self.firstClear[wave] = self:snapshot(wave, wall)
 			self.runWallSince = nil
+		end
+		if self.pendingCycle and not self.pendingCycle.entry.cycle80 and self.bestWave >= self.pendingCycle.target80 then
+			self.pendingCycle.entry.cycle80 = self.t - self.pendingCycle.t
 		end
 		if self.pendingCycle and self.bestWave >= self.pendingCycle.target then
 			self.pendingCycle.entry.cycle = self.t - self.pendingCycle.t

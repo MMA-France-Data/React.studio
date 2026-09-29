@@ -53,7 +53,10 @@ local function defaultIdle()
 		-- chaque jour : chaque lancer acheté rend le suivant 0,05 % plus cher (IdleConfig.towerSpinCost).
 		towerSpinsBought = 0,
 		bonuses = {}, -- inventaire de bonus (ids de IdleConfig.BONUSES)
-		lastBonusSpinAt = 0, -- os.time() du dernier lancer payé en pièces
+		-- Forge runique : lancers payés en PIÈCES depuis toujours (les lancers Robux ne comptent pas). Jamais
+		-- remis à zéro, ni à la renaissance : le prix du prochain lancer en dépend (IdleConfig.forgeCoinPrice).
+		-- Plus de délai entre deux lancers (l'ancien champ lastBonusSpinAt est supprimé, voir reconcile).
+		forgeSpinsBought = 0,
 		-- Gains d'absence (Hub/init.luau, réglages dans IdleConfig) :
 		lastSeenAt = 0, -- os.time() de la dernière sauvegarde, map principale ou match (0 = jamais vu)
 		matchDepartureAt = 0, -- os.time() du départ vers un match ranked (Matchmaking ; 0 = aucun)
@@ -147,6 +150,10 @@ local function reconcile(data)
 	-- Compteur des lancers de l'autel : absent dans les anciennes sauvegardes (-> 0 juste au-dessus),
 	-- toujours un nombre entier, fini et positif (une valeur abîmée compte comme 0).
 	data.idle.towerSpinsBought = IdleConfig.cleanSpinsBought(data.idle.towerSpinsBought)
+	-- Forge runique : plus de délai de 30 minutes (lastBonusSpinAt ne sert plus, supprimé). Le compteur des
+	-- lancers en pièces démarre à 0 dans les anciennes sauvegardes (-> 0 juste au-dessus), toujours propre.
+	data.idle.lastBonusSpinAt = nil
+	data.idle.forgeSpinsBought = IdleConfig.cleanSpinsBought(data.idle.forgeSpinsBought)
 	migrateFreeSpin(data)
 	return data
 end

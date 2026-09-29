@@ -46,7 +46,7 @@ powershell -ExecutionPolicy Bypass -File tools\studio-test\check.ps1
 | `shot.ps1` | Capture de la fenêtre de Studio |
 | `scenarios\HubServer.luau` | Scénario côté serveur de la map principale (pilote la partie avec `ServerStorage.StudioDebug`) |
 | `scenarios\MatchServer.luau` | Scénario côté serveur du match (`-Place match`) : lit `ReplicatedStorage.MatchState` et compte les ennemis de chaque terrain |
-| `scenarios\Client.luau` | Scénario côté client (caméra, fenêtres, HUD du match, captures `SHOT:nom`) |
+| `scenarios\Client.luau` | Scénario côté client (caméra, fenêtres, HUD du match, captures `SHOT:nom`). À la fin, sur la map principale : un modèle « Swarm » posé dans `ReplicatedStorage.EnemyModels` pendant la partie remplace les blocs des écuyers (module, galerie, parcelles), sans ses scripts et avec ses pièces soudées restées ensemble après la mise à l'échelle, et les autres types gardent leurs blocs |
 
 **Le plugin ne fait rien dans tes places** : sa première vérification est
 `if not marker then return end`. Il ne s'active que si la place contient `ReplicatedStorage.__AutoPlayTest`,

@@ -15,16 +15,28 @@ local Modules = require("./Modules")
 ----------------------------------------------------------------------
 local options = {
 	seeds = 3,
+	firstSeed = 1, -- debut=4 : joue les graines 4, 5, 6... (pour lancer plusieurs calculs en parallèle)
 	hours = 100,
 	scenarios = { "base", "forge", "renaissance", "renaissance-seule", "sans-sorcier" },
 	dt = 0.05,
 	overrides = {},
 	journal = false,
+	-- Calcul en parallèle (run.ps1 -Paralleles, voir Dump.luau) : travail=1 -> joue les parties demandées et
+	-- écrit chacune sur une ligne "PARTIE|..." (pas de rapport) ; assembler=gen/runs/a,gen/runs/b -> relit ces
+	-- parties (modules Luau écrits par run.ps1) au lieu de les jouer, puis écrit le rapport.
+	worker = false,
+	assemble = nil :: { string }?,
 }
 for _, arg in { ... } do
 	local key, value = string.match(arg, "^([%w_]+)=(.*)$")
 	if key == "graines" then
 		options.seeds = assert(tonumber(value), "graines : nombre attendu")
+	elseif key == "debut" then
+		options.firstSeed = assert(tonumber(value), "debut : nombre attendu")
+	elseif key == "travail" then
+		options.worker = value == "1" or value == "true"
+	elseif key == "assembler" then
+		options.assemble = string.split(value, ",")
 	elseif key == "heures" then
 		options.hours = assert(tonumber(value), "heures : nombre attendu")
 	elseif key == "scenarios" then
@@ -79,6 +91,7 @@ end
 local Engine = require("./Engine")
 local Run = require("./Run")
 local Report = require("./Report")
+local Dump = require("./Dump")
 
 for _, item in playerOverrides do
 	if not applyOverride(item, { Joueur = Run.POLICY }) then
@@ -147,23 +160,42 @@ end
 local CHECKPOINTS = { 2, 5, 10, 20, 30, 40, 60, 80 }
 local runsByScenario = {}
 local started = os.clock()
-Report.csvHeader()
-for scenarioIndex, scenarioId in options.scenarios do
+if not options.worker then
+	Report.csvHeader()
+end
+-- Assembleur (calcul en parallèle) : les parties sont relues, pas jouées (même ordre : scénario puis graine).
+if options.assemble then
+	for _, path in options.assemble do
+		local data = require(path) :: any
+		local run = setmetatable(data, Run)
+		run.scenario = assert(Run.SCENARIOS[data.scenarioId], `partie illisible : {path}`)
+		runsByScenario[data.scenarioId] = runsByScenario[data.scenarioId] or {}
+		table.insert(runsByScenario[data.scenarioId], run)
+	end
+	for _, scenarioId in options.scenarios do
+		table.sort(runsByScenario[scenarioId] or {}, function(a, b)
+			return a.seed < b.seed
+		end)
+	end
+end
+for scenarioIndex, scenarioId in (if options.assemble then {} else options.scenarios) do
 	local runs = {}
-	for seed = 1, options.seeds do
+	for seed = options.firstSeed, options.firstSeed + options.seeds - 1 do
 		local run = Run.new(scenarioId, seed)
 		run.hourly = {} -- [heure] = record
 		run.hourlySpins = {} -- [heure] = lancers de la machine à tours depuis le début
 		run.hourlyHighest = {} -- [heure] = record de tous les temps (idle.highestWave : prix et chances de l'autel)
 		run.hourlyMoney = {} -- [heure] = { coins, income (par seconde), total gagné, record }
 		run.checkpoints = {}
-		if options.journal and scenarioIndex == 1 and seed == 1 then
+		if options.journal and scenarioIndex == 1 and seed == options.firstSeed then
 			run.journal = {}
 		end
 		local cpu = os.clock()
 		run:play(options.hours * 3600, function(r, hour)
 			r.hourly[hour] = r.frontier
 			r.hourlySpins[hour] = r.spins
+			r.hourlyForge = r.hourlyForge or {}
+			r.hourlyForge[hour] = r.forgeSpins
 			r.hourlyHighest[hour] = r.highestWave
 			r.hourlyMoney[hour] = { coins = r.coins, income = r.income, total = r.totalEarned, frontier = r.frontier }
 			Report.csvHour(r, hour)
@@ -173,7 +205,12 @@ for scenarioIndex, scenarioId in options.scenarios do
 				for _, tower in r:compiled() do
 					table.insert(towers, table.clone(tower))
 				end
-				r.checkpoints[hour] = { towers = towers, frontier = r.frontier, coinBonus = r.coinBonus }
+				-- layout : types, emplacements, niveaux et pièces dépensées (tableau « anti-méta »)
+				local layout = {}
+				for spot, tower in r.towers do
+					table.insert(layout, { spot = spot, type = tower.type, level = tower.level, spent = tower.spent })
+				end
+				r.checkpoints[hour] = { towers = towers, frontier = r.frontier, coinBonus = r.coinBonus, layout = layout }
 			end
 		end)
 		table.insert(runs, run)
@@ -188,17 +225,23 @@ for scenarioIndex, scenarioId in options.scenarios do
 		end
 		print(
 			string.format(
-				"PROGRES|%-18s graine %d/%d : vague %d en %s (%.1f s de calcul)",
+				"PROGRES|%-18s graine %d%s : vague %d en %s (%.1f s de calcul)",
 				scenarioId,
 				seed,
-				options.seeds,
+				if options.worker then "" else `/{options.seeds}`,
 				run.frontier,
 				duration(run.endTime),
 				os.clock() - cpu
 			)
 		)
+		if options.worker then
+			print("PARTIE|" .. Dump.run(run, scenarioId))
+		end
 	end
 	runsByScenario[scenarioId] = runs
+end
+if options.worker then
+	return -- travail=1 : pas de rapport, l'assembleur l'écrira
 end
 
 local reference = runsByScenario.base or runsByScenario[options.scenarios[1]]
@@ -581,18 +624,61 @@ for _, scenarioId in options.scenarios do
 		out(
 			`Forge runique : {string.format("%.0f", mean(forgeSpins))} lancers en moyenne, {coins(mean(spent))} pièces dépensées ; meilleur bonus de dégâts posé à la fin : x{string.format("%.0f", mean(placed))} en moyenne.`
 		)
+		-- Lancers en pièces achetés au fil du temps (prix 100 K, x5 sous 1 T, puis x2) et record à ces heures
+		local parts = {}
+		for _, hour in { 2, 6, 10, 25, 50, 100 } do
+			if hour <= options.hours then
+				local spins, records = {}, {}
+				for _, run in runs do
+					if run.hourlyForge and run.hourlyForge[hour] then
+						table.insert(spins, run.hourlyForge[hour])
+						table.insert(records, run.hourly[hour])
+					end
+				end
+				if #spins > 0 then
+					local s = medianOf(spins)
+					table.insert(
+						parts,
+						string.format("%d h : %d lancers (record %d, prochain prix %s)", hour, s, medianOf(records), coins(IdleConfig.forgeCoinPrice(s)))
+					)
+				end
+			end
+		end
+		out(`  Lancers de la forge au fil du temps (médiane) : {table.concat(parts, " ; ")}.`)
 		out()
 	end
 
 	if scenario.rebirth then
-		out("Renaissances (vague d'origine, gain, temps pour revenir au record) :")
+		-- Remonter après une renaissance : temps pour revenir à 80 % de la meilleure vague de la run (médiane, par
+		-- tranche de la vague d'origine). Sortie à chaque mort : IdleConfig.SPAWN_NEXT_ON_KILL ; vague écrasée :
+		-- IdleConfig.COMPRESS_EMPTY_SPAWNS.
+		local climb = {}
+		for _, run in runs do
+			for _, entry in run.rebirthLog do
+				if entry.cycle80 then
+					local bucket = if entry.fromWave < 40 then "vagues 15-39" elseif entry.fromWave < 80 then "vagues 40-79" elseif entry.fromWave < 150 then "vagues 80-149" else "vagues 150+"
+					climb[bucket] = climb[bucket] or {}
+					table.insert(climb[bucket], entry.cycle80)
+				end
+			end
+		end
+		local climbParts = {}
+		for _, bucket in { "vagues 15-39", "vagues 40-79", "vagues 80-149", "vagues 150+" } do
+			if climb[bucket] then
+				table.insert(climbParts, `{bucket} : {duration(medianOf(climb[bucket]))} ({#climb[bucket]} renaissances)`)
+			end
+		end
+		out(
+			`Remonter à 80 % du record de la run après une renaissance (médiane ; sortie à chaque mort {if IdleConfig.SPAWN_NEXT_ON_KILL then "activée" else "désactivée"} ; vague écrasée {if IdleConfig.COMPRESS_EMPTY_SPAWNS then "activée" else "désactivée"}) : {table.concat(climbParts, " ; ")}.`
+		)
+		out("Renaissances (vague d'origine, gain, temps pour revenir à 80 % puis à 100 % du record de la run) :")
 		for _, run in runs do
 			local parts = {}
 			for i, entry in run.rebirthLog do
 				if i <= 10 then
 					table.insert(
 						parts,
-						`v{entry.fromWave} +{IdleConfig.formatPercent(entry.gain)} % ({if entry.cycle then duration(entry.cycle) else "…"})`
+						`v{entry.fromWave} +{IdleConfig.formatPercent(entry.gain)} % ({if entry.cycle80 then duration(entry.cycle80) else "…"} / {if entry.cycle then duration(entry.cycle) else "…"})`
 					)
 				end
 			end
@@ -704,7 +790,6 @@ do
 		if
 			not isFinite(IdleConfig.healthBudget(wave))
 			or not isFinite(IdleConfig.rewardBudget(wave))
-			or not isFinite(IdleConfig.bonusSpinCost(wave))
 		then
 			return false
 		end
@@ -1068,6 +1153,180 @@ for _, wave in BENCH_WAVES do
 end
 out()
 
+----------------------------------------------------------------------
+-- 6 bis. Anti-méta : compositions extrêmes contre une défense mélangée, même budget.
+-- À plusieurs moments d'une vraie partie (scénario de référence, chaque graine) : on prend le nombre de tours
+-- du joueur simulé et ses pièces dépensées dans ses tours (sans doublons ni runes), et on construit :
+--   « mélange du joueur »  = ses tours à ses emplacements, avec ses vrais niveaux ;
+--   « mélange, budget égal » = les mêmes types et emplacements, le budget réparti également ;
+--   extrêmes = N tours d'un seul type (ou moitié / moitié) sur leurs meilleurs emplacements, budget réparti
+--              également.
+-- Épreuve : jouer les vagues 1, 2, 3... dans l'ordre avec cette défense FIXE (vraies règles : une seule fuite =
+-- vague ratée). Résultat = dernière vague réussie avant le premier échec (médiane des graines). Le mélange doit
+-- aller plus loin que chaque composition extrême (règle du propriétaire : pas de partie « tout X »).
+----------------------------------------------------------------------
+local ANTI_META_HOURS = { 5, 10, 20, 40, 80 }
+local EXTREMES = {
+	{ name = "Tout Trébuchet", types = { "Orbital" } },
+	{ name = "Tout givre", types = { "Frost" } },
+	{ name = "Trébuchet + givre", types = { "Orbital", "Frost" } },
+	{ name = "Tout Sorcier", types = { "Laser" } },
+	{ name = "Tout Catapulte", types = { "Bomb" } },
+	{ name = "Givre + Mage", types = { "Frost", "Tesla" } },
+	{ name = "Tout Mage", types = { "Tesla" } },
+	{ name = "Tout Archer", types = { "MachineGun" } },
+	{ name = "Tout Baliste", types = { "Rocket" } },
+}
+local antiMeta = {} -- [heure] = { mixed, mixedEqual, [nom extrême] = vague }
+do
+	-- Dernière vague réussie avant le premier échec, défense fixe (limite : `limit`).
+	local function reachedWave(team, limit: number): number
+		local towers = {}
+		for _, member in team do
+			table.insert(towers, Engine.compileTower(member.spot, member.type, member.level, 0, nil))
+		end
+		table.sort(towers, function(a, b)
+			return a.spot < b.spot
+		end)
+		for wave = 1, limit do
+			if not Engine.runWave(Engine.composition(wave), towers, "strict").success then
+				return wave - 1
+			end
+		end
+		return limit
+	end
+	-- count tours des types donnés (à tour de rôle) sur leurs meilleurs emplacements, sans doublon d'emplacement.
+	local function extremeTeam(types, count: number, budget: number)
+		local team, used, nextIndex = {}, {}, {}
+		for _, towerType in types do
+			nextIndex[towerType] = 1
+		end
+		local i = 0
+		while #team < count and i < count * 10 do
+			i += 1
+			local towerType = types[(i - 1) % #types + 1]
+			local list = BEST_SPOTS[towerType]
+			while nextIndex[towerType] <= #list and used[list[nextIndex[towerType]]] do
+				nextIndex[towerType] += 1
+			end
+			local spot = list[nextIndex[towerType]]
+			if spot then
+				used[spot] = true
+				table.insert(team, { type = towerType, spot = spot, level = levelForBudget(towerType, budget) })
+			end
+		end
+		return team
+	end
+	local anyRow = false
+	local rows = {}
+	for _, hour in ANTI_META_HOURS do
+		if hour > options.hours then
+			break
+		end
+		local perSeed = {}
+		for _, run in reference do
+			local checkpoint = run.checkpoints[hour]
+			if checkpoint and checkpoint.layout and #checkpoint.layout > 0 then
+				local total, count = 0, #checkpoint.layout
+				for _, member in checkpoint.layout do
+					total += member.spent
+				end
+				local budget = total / count
+				local limit = math.max(60, checkpoint.frontier * 2 + 30)
+				local result = { frontier = checkpoint.frontier }
+				result.mixed = reachedWave(checkpoint.layout, limit)
+				local equal = {}
+				for _, member in checkpoint.layout do
+					table.insert(equal, { type = member.type, spot = member.spot, level = levelForBudget(member.type, budget) })
+				end
+				result.mixedEqual = reachedWave(equal, limit)
+				for _, extreme in EXTREMES do
+					result[extreme.name] = reachedWave(extremeTeam(extreme.types, count, budget), limit)
+				end
+				result.count, result.budget = count, budget
+				local types = {}
+				for _, member in checkpoint.layout do
+					types[member.type] = (types[member.type] or 0) + 1
+				end
+				local parts = {}
+				for _, towerType in IdleTowers.ORDER do
+					if types[towerType] then
+						table.insert(parts, `{types[towerType]} {Run.shortName(towerType)}`)
+					end
+				end
+				result.composition = table.concat(parts, ", ")
+				table.insert(perSeed, result)
+			end
+		end
+		if #perSeed > 0 then
+			anyRow = true
+			local summary = { hour = hour, composition = perSeed[1].composition }
+			local function med(key)
+				local list = {}
+				for _, result in perSeed do
+					table.insert(list, result[key])
+				end
+				return medianOf(list)
+			end
+			summary.frontier = med("frontier")
+			summary.count = med("count")
+			summary.budget = med("budget")
+			summary.mixed = med("mixed")
+			summary.mixedEqual = med("mixedEqual")
+			local row = { `{hour} h (record {summary.frontier}, {summary.count} tours)`, tostring(summary.mixed), tostring(summary.mixedEqual) }
+			local bestExtreme, bestExtremeName = -1, ""
+			for _, extreme in EXTREMES do
+				local value = med(extreme.name)
+				summary[extreme.name] = value
+				table.insert(row, tostring(value))
+				if value > bestExtreme then
+					bestExtreme, bestExtremeName = value, extreme.name
+				end
+			end
+			summary.bestExtreme, summary.bestExtremeName = bestExtreme, bestExtremeName
+			-- Nombre de graines où le mélange (vrais niveaux) va plus loin que TOUS les extrêmes
+			local wins = 0
+			for _, result in perSeed do
+				local best = -1
+				for _, extreme in EXTREMES do
+					best = math.max(best, result[extreme.name])
+				end
+				if result.mixed > best then
+					wins += 1
+				end
+			end
+			summary.wins, summary.seeds = wins, #perSeed
+			table.insert(row, `{wins}/{#perSeed}`)
+			table.insert(rows, row)
+			antiMeta[hour] = summary
+		end
+	end
+	out(string.rep("=", 100))
+	out("ANTI-MÉTA : compositions extrêmes contre la défense mélangée du joueur simulé, même budget (sans doublons ni runes)")
+	out(string.rep("=", 100))
+	out("Dernière vague réussie en jouant les vagues 1, 2, 3... avec une défense FIXE (médiane des graines). « Mélange » = les")
+	out("tours du joueur simulé à ce moment (vrais niveaux) ; « égal » = mêmes tours, budget réparti également ; les extrêmes")
+	out("ont le même nombre de tours et le même budget par tour, sur leurs meilleurs emplacements. Dernière colonne : graines")
+	out("où le mélange va plus loin que TOUTES les compositions extrêmes.")
+	if anyRow then
+		local headers = { "Moment", "Mélange", "Égal" }
+		for _, extreme in EXTREMES do
+			table.insert(headers, extreme.name)
+		end
+		table.insert(headers, "Mélange devant")
+		Report.table(headers, rows, { "l" })
+		for _, hour in ANTI_META_HOURS do
+			local summary = antiMeta[hour]
+			if summary then
+				out(`  {hour} h : tours du joueur (graine 1) : {summary.composition} ; budget {coins(summary.budget)} par tour.`)
+			end
+		end
+	else
+		out("  (aucun moment disponible : parties trop courtes)")
+	end
+	out()
+end
+
 -- Duels : UNE tour contre UN ennemi (immortel) qui traverse tout le chemin, même niveau pour toutes les tours
 -- (même prix d'amélioration : même investissement, à la pose près). Chaque tour sur ses 3 emplacements qui
 -- couvrent le plus de chemin (valeur du milieu). « Avec Totem » : un Totem de givre sans dégâts sur
@@ -1134,6 +1393,34 @@ do
 	end
 	out("  (Chaque tour sur ses 3 meilleurs emplacements, valeur du milieu. Le rayon du Sorcier monte tant qu'il garde sa cible :")
 	out("   il bat la Baliste contre les ennemis lents et perd contre les rapides.)")
+	out("   Avec le Totem voisin, les tours profitent aussi de sa fragilité (niveau 1 : +" .. string.format("%.0f", IdleTowers.fragilityAt(IdleTowers.Defs.Frost, 1) * 100) .. " %), sauf le Mage.")
+
+	-- Foules : UNE tour (même niveau) contre une Levée de 30 écuyers immortels ; dégâts / ceux de la Catapulte.
+	-- Le Totem de givre est une tour de contrôle : il ne doit jamais faire plus de dégâts que la Catapulte ici.
+	local crowd = {}
+	for _ = 1, 30 do
+		table.insert(crowd, { enemy = "Swarm", health = 1e300, gap = 0.18 })
+	end
+	local crowdComp = Engine.customComposition(crowd)
+	local function crowdDamage(towerType: string): number
+		local list = {}
+		for i = 1, 3 do
+			local towers = { Engine.compileTower(BEST_SPOTS[towerType][i], towerType, 1, 0, nil) }
+			table.insert(list, Engine.runWave(crowdComp, towers, "ignore").useful[1])
+		end
+		table.sort(list)
+		return list[2]
+	end
+	local catapult = crowdDamage("Bomb")
+	local parts = {}
+	duelResults.crowd = {}
+	for _, towerType in IdleTowers.ORDER do
+		local ratio = crowdDamage(towerType) / catapult
+		duelResults.crowd[towerType] = ratio
+		table.insert(parts, string.format("%s %.2f", Run.shortName(towerType), ratio))
+	end
+	out("FOULE : une tour contre 30 écuyers qui traversent tout le chemin, même niveau (1 = autant que la Catapulte) :")
+	out("  " .. table.concat(parts, ", ") .. ".")
 	out()
 end
 
@@ -1544,14 +1831,17 @@ do
 	local parts, unused = {}, 0
 	for _, towerType in IdleTowers.ORDER do
 		local share = maxShare[towerType] or 0
-		table.insert(parts, `{Run.shortName(towerType)} {Report.pct(share)}`)
-		if share < 0.1 then
+		-- Totem de givre : tour de CONTRÔLE, ses dégâts sont faibles exprès (décision du propriétaire) ; il est
+		-- jugé par l'objectif « Totem de givre : tour de contrôle » (posé, amélioré, fragilité), pas ici.
+		local control = IdleTowers.Defs[towerType].fragilityBase ~= nil
+		table.insert(parts, `{Run.shortName(towerType)} {Report.pct(share)}{if control then " (contrôle, jugé plus bas)" else ""}`)
+		if share < 0.1 and not control then
 			unused += 1
 		end
 	end
 	row(
 		"Les 8 tours utiles à un moment",
-		"chacune >= 10 % des dégâts quelque part",
+		"chacune >= 10 % des dégâts quelque part (sauf le Totem de givre, tour de contrôle)",
 		"meilleure part des dégâts utiles (tranche x type de vague) : " .. table.concat(parts, ", "),
 		if unused > 0 then `NON ({unused} tours jamais utiles)` else "OK"
 	)
@@ -1734,21 +2024,86 @@ do
 			table.insert(benchParts, `v{wave} {math.floor(powerMax + 0.5)} ({powerType}) / soutien {math.floor(supportMax + 0.5)}`)
 		end
 	end
-	local useful = bestShare >= 0.1 or bestPower >= 60
+	-- Tour de CONTRÔLE : posée et améliorée (la fragilité monte avec son niveau), utile en soutien, et ses
+	-- propres dégâts ne dépassent jamais ceux de la Catapulte contre une foule (même niveau).
+	local levels = {}
+	for _, wave in { 25, 50, 75, 100, 150 } do
+		local list = {}
+		for _, run in reference do
+			local snap = run.firstClear[wave]
+			if snap and snap.byType.Frost then
+				table.insert(list, snap.byType.Frost.max)
+			end
+		end
+		if #list > 0 then
+			local level = medianOf(list)
+			table.insert(levels, string.format("v%d niv %d (+%.0f %%)", wave, level, IdleTowers.fragilityAt(frost, level) * 100))
+		end
+	end
+	local crowdRatio = duelResults.crowd and duelResults.crowd.Frost or 0
 	row(
-		"Totem de givre : ralentit vraiment, vrais dégâts",
-		"posé par le joueur, >= 10 % des dégâts quelque part ou >= 60 au banc d'essai",
+		"Totem de givre : tour de contrôle",
+		"posé et amélioré (fragilité), utile en soutien (> 100), dégâts contre une foule < Catapulte (même niveau)",
 		string.format(
-			"-%d %% de vitesse pendant %.1f s, %s dégâts/s en zone ; meilleure part des dégâts %s (%s) ; Totems posés %s ; banc d'essai (seul / soutien) : %s",
+			"-%d %% de vitesse pendant %.1f s, %s dégâts/s en zone, fragilité +%.0f %% +%.1f %%/niveau (max +%.0f %%) ; Totems posés %s ; plus haut niveau %s ; foule : %.2f x la Catapulte ; meilleure part des dégâts %s (%s) ; banc d'essai (seul / soutien) : %s",
 			math.floor(frost.slow * 100 + 0.5),
 			frost.slowDuration,
 			shortNumber(frost.damage / frost.cooldown),
+			frost.fragilityBase * 100,
+			frost.fragilityPerLevel * 100,
+			frost.fragilityMax * 100,
+			table.concat(placed, ", "),
+			table.concat(levels, ", "),
+			crowdRatio,
 			Report.pct(bestShare),
 			bestKey,
-			table.concat(placed, ", "),
 			table.concat(benchParts, " ; ")
 		),
-		if useful and bestSupport > 100 then "OK" elseif useful then "OK (seul)" else "PAS ASSEZ FORT"
+		if bestSupport > 100 and crowdRatio < 1 and #levels > 0 then "OK" elseif crowdRatio >= 1 then "TROP DE DÉGÂTS" else "PAS ASSEZ UTILE"
+	)
+end
+
+-- Baliste lourde et Trébuchet royal : utiles à partir du milieu de partie (part des dégâts et niveaux).
+-- Appelé plus bas, après la définition de towerShare (passée en paramètre).
+local function midGameRow(towerShare)
+	local parts, ok = {}, true
+	for _, towerType in { "Rocket", "Orbital" } do
+		local shares = {}
+		for _, bucket in { "26-50", "51-100", "101+" } do
+			local best = 0
+			for _, waveType in Report.WAVE_TYPE_ORDER do
+				local share = towerShare(reference, bucket, waveType, towerType)
+				if share and share == share and share > best then
+					best = share
+				end
+			end
+			table.insert(shares, `{bucket} : {Report.pct(best)}`)
+			if bucket == "51-100" and best < 0.1 then
+				ok = false
+			end
+		end
+		local levels = {}
+		for _, wave in { 50, 75, 100, 150 } do
+			local counts, maxLevels = {}, {}
+			for _, run in reference do
+				local snap = run.firstClear[wave]
+				if snap then
+					local entry = snap.byType[towerType]
+					table.insert(counts, if entry then entry.n else 0)
+					table.insert(maxLevels, if entry then entry.max else 0)
+				end
+			end
+			if #counts > 0 then
+				table.insert(levels, string.format("v%d : %.1f posé(s), niv %d", wave, mean(counts), medianOf(maxLevels)))
+			end
+		end
+		table.insert(parts, `{Run.shortName(towerType)} : meilleure part des dégâts {table.concat(shares, ", ")} ; {table.concat(levels, ", ")}`)
+	end
+	row(
+		"Baliste et Trébuchet utiles au milieu de partie",
+		">= 10 % des dégâts contre un type de vague (vagues 51-100)",
+		table.concat(parts, " || "),
+		if ok then "OK" else "NON"
 	)
 end
 
@@ -1769,6 +2124,7 @@ local function towerShare(runs, bucket: string, waveType: string, towerType: str
 	end
 	return mean(shares)
 end
+midGameRow(towerShare)
 
 -- Puissance relative (banc d'essai) : k de la Baliste / k du Sorcier (> 1 = le Sorcier est plus fort).
 local function benchRatio(bench, towerType: string, other: string, waveType: string): number?
@@ -1971,6 +2327,29 @@ do
 		archerText .. " || " .. mageText,
 		if archerOk and mageOk then "OK" elseif not archerOk and not mageOk then "NON (Archer, Mage)" elseif not archerOk then "NON (Archer)" else "NON (Mage)"
 	)
+end
+
+-- Anti-méta : le mélange du joueur va plus loin que chaque composition extrême (tableau « ANTI-MÉTA »).
+do
+	local parts, allOk, any = {}, true, false
+	for _, hour in ANTI_META_HOURS do
+		local summary = antiMeta[hour]
+		if summary then
+			any = true
+			if summary.mixed <= summary.bestExtreme then
+				allOk = false
+			end
+			table.insert(parts, `{hour} h : mélange {summary.mixed}, meilleur extrême {summary.bestExtremeName} {summary.bestExtreme}`)
+		end
+	end
+	if any then
+		row(
+			"Anti-méta : le mélange bat les extrêmes",
+			"le mélange va plus loin que tout Trébuchet, tout givre, Trébuchet + givre, tout Sorcier, tout Catapulte, givre + Mage...",
+			table.concat(parts, " ; "),
+			if allOk then "OK" else "NON"
+		)
+	end
 end
 
 -- Tours légendaires (dorées) rares : la première vers les vagues 60-90 (plusieurs heures de jeu), pas avant ~50 ;
@@ -2205,7 +2584,7 @@ if runsByScenario.forge and runsByScenario.base then
 		return mean(list)
 	end
 	row(
-		"Forge runique (1 lancer / 30 min)",
+		"Forge runique (100 K, x5 puis x2, sans délai)",
 		"option (pas d'objectif chiffré)",
 		string.format("record à %d h : %.0f avec la forge contre %.0f sans", options.hours, finalWave(runsByScenario.forge), finalWave(runsByScenario.base)),
 		"info"

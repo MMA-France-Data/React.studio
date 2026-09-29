@@ -37,6 +37,12 @@ Config.STUDIO_TEST_PASSES = {
 	COINS_X2 = true,
 }
 
+-- Galerie des ennemis (Studio seulement) : quand tu joues dans Studio, un bouton « GALERIE (Studio) »
+-- t'emmène voir tous les ennemis du mode solo (6 types x 10 styles, un style par tranche de 10 vagues),
+-- construits exactement comme en jeu (src/client/EnemyGallery.luau). Jamais dans le jeu publié.
+-- Mets false pour ne plus la construire.
+Config.STUDIO_ENEMY_GALLERY = true
+
 -- Distance (en studs) entre ton personnage et un objet sous laquelle son texte flottant s'affiche :
 -- l'écran reste lisible, chaque étiquette n'apparaît que quand on s'approche (ProximityLabel.luau).
 Config.LabelDistance = {

@@ -30,6 +30,20 @@ return function(log)
 		data.idle.towerSpinsBought == 0 and player:GetAttribute("TowerSpinsBought") == 0,
 		`compteur de lancers de l'autel à 0 (données {data.idle.towerSpinsBought}, attribut {player:GetAttribute("TowerSpinsBought")})`
 	)
+	-- Forge runique : plus de délai (plus de champ lastBonusSpinAt), compteur des lancers en pièces à 0, 1er prix
+	-- 100 K ; sans tour posée, la forge est bloquée (« Pose d'abord une tour »).
+	check(
+		data.idle.forgeSpinsBought == 0
+			and data.idle.lastBonusSpinAt == nil
+			and player:GetAttribute("ForgeSpinsBought") == 0
+			and player:GetAttribute("ForgeCoinPrice") == IdleConfig.FORGE_FIRST_PRICE
+			and player:GetAttribute("LastBonusSpinAt") == nil,
+		`forge : compteur à 0 (données {data.idle.forgeSpinsBought}, attribut {player:GetAttribute("ForgeSpinsBought")}), prix {player:GetAttribute("ForgeCoinPrice")}, plus de délai`
+	)
+	check(
+		player:GetAttribute("ForgeBlocked") == IdleConfig.FORGE_NO_TOWER and player:GetAttribute("ForgeDrawable") == "",
+		`forge sans tour posée : bloquée (« {player:GetAttribute("ForgeBlocked")} »)`
+	)
 
 	-- Gains d'absence : première connexion = rien (pas encore d'heure de dernière visite), puis l'heure est notée.
 	local firstAbsence = dbg:Invoke(player, "LastAbsence")
@@ -1056,6 +1070,227 @@ return function(log)
 	check(plotFolder:GetAttribute("SimSpeed") == 1, "fin des tests de combat : vitesse normale, arène fermée")
 
 	----------------------------------------------------------------------
+	-- Contrôles (un seul à la fois par ennemi), fragilité du Totem de givre, Mage des tempêtes, Baliste
+	-- perçante, Trébuchet royal (plus gros groupe + étourdissement), puis vague écrasée. Arènes où aucune tour ne
+	-- tire d'elle-même : chaque tour tire avec debugFire. Ennemis immobiles (frozen) : les contrôles
+	-- s'appliquent quand même. Totem 2 = emplacement 2 (5, -13), niveau 6 et rune x2 vitesse ; 2e Totem posé
+	-- sur l'emplacement 10 (5, 5).
+	-- Dans sa propre fonction : la fonction principale du scénario est à la limite des 200 variables locales
+	-- de Luau (« Out of local registers »).
+	----------------------------------------------------------------------
+	local function testControlsAndSpawns()
+		dbg:Invoke(player, "Set", "unlockedTowers", { MachineGun = true, Frost = true, Bomb = true, Tesla = true, Rocket = true, Laser = true, Chain = true, Orbital = true })
+		setCoins(1e15)
+		if not dbg:Invoke(player, "Data").idle.ownedSpots["10"] then
+			call("buySpot", 10)
+		end
+		call("placeTower", 10, "Frost")
+		check(dbg:Invoke(player, "Data").idle.towers["10"] ~= nil, "2e Totem de givre posé sur l'emplacement 10")
+		setCoins(0)
+		local frostDef, mageDef = defs.Frost, defs.Tesla
+		local pct = function(x)
+			return math.floor(x * 100 + 0.5)
+		end
+		-- Rangée z = -4 : distance 215 = (5, -4), dans les deux auras (9 studs de chaque Totem) et à 12,7 de l'Archer.
+		-- Rangée z = -22 : distance 287 = (5, -22), dans l'aura du Totem 2 et à portée du Mage (9 studs).
+		local bothAuras, frostAndMage = 215, 287
+		local frostMain, frostSecond = call("debugTower", 2), call("debugTower", 10)
+		check(
+			defs.Frost.damage < defs.Bomb.damage and frostMain.fragility > frostSecond.fragility and frostSecond.fragility > 0,
+			`Totem de givre : {frostDef.damage} dégâts de base (Catapulte {defs.Bomb.damage}), fragilité +{pct(frostSecond.fragility)} % au niveau {frostSecond.level}, +{pct(frostMain.fragility)} % au niveau {frostMain.level}`
+		)
+
+		-- Règle 1 : deux Totems = UN SEUL ralentissement de 60 %, la même source prolonge sans renforcer.
+		call("debugArena", {})
+		local iced = call("debugSpawn", "Tank", bothAuras, 1e9, true)
+		call("debugFire", 2)
+		call("debugFire", 10)
+		local s1 = call("debugEnemy", iced)
+		check(
+			s1.controlSource == "Frost" and s1.slowFactor == frostDef.slow,
+			`deux Totems de givre : un seul ralentissement de {pct(s1.slowFactor)} % (source {s1.controlSource}), jamais cumulé`
+		)
+		check(
+			close(s1.fragility, frostMain.fragility, 1e-9),
+			`deux Totems : fragilité = la plus forte seulement (+{pct(s1.fragility)} %, Totems à +{pct(frostMain.fragility)} % et +{pct(frostSecond.fragility)} %)`
+		)
+		waitClock(s1.clock + 0.6)
+		local s2 = call("debugEnemy", iced)
+		call("debugFire", 10)
+		local s3 = call("debugEnemy", iced)
+		check(
+			s2.controlLeft < s1.controlLeft - 0.4 and s3.controlLeft > s2.controlLeft + 0.4 and s3.slowFactor == frostDef.slow and close(s3.fragility, frostMain.fragility, 1e-9),
+			`même type de tour : durée prolongée ({fmt(s2.controlLeft)} -> {fmt(s3.controlLeft)} s), force inchangée ({pct(s3.slowFactor)} %), fragilité gardée`
+		)
+		-- Fragilité : une flèche de l'Archer fait +X % sur un ennemi dans l'aura.
+		local archerNow = call("debugTower", 1)
+		local healthBefore = call("debugEnemy", iced).health
+		local fragileArrow = call("debugFire", 1)
+		waitClock(fragileArrow.clock + fragileArrow.flight + 0.05)
+		local arrowLoss = healthBefore - call("debugEnemy", iced).health
+		check(
+			fragileArrow.fired and close(arrowLoss, archerNow.damage * (1 + frostMain.fragility), 1e-6),
+			`fragilité : flèche de l'Archer {NumberFormat.short(arrowLoss)} dégâts = {NumberFormat.short(archerNow.damage)} x {fmt(1 + frostMain.fragility)}`
+		)
+
+		-- Givre puis Mage : le ralentissement du Mage est refusé tant que le Totem gèle l'ennemi ; ses dégâts, sans
+		-- bonus de fragilité, tombent quand même.
+		call("debugArena", {})
+		local frozenFirst = call("debugSpawn", "Tank", frostAndMage, 1e9, true)
+		call("debugFire", 2)
+		local beforeZap = call("debugEnemy", frozenFirst)
+		local mageNow = call("debugTower", 4)
+		call("debugFire", 4)
+		local afterZap = call("debugEnemy", frozenFirst)
+		check(
+			afterZap.controlSource == "Frost" and afterZap.slowFactor == frostDef.slow,
+			`Totem puis Mage : ralentissement du Mage refusé (toujours {pct(afterZap.slowFactor)} % du Totem)`
+		)
+		check(
+			beforeZap.fragility > 0 and close(beforeZap.health - afterZap.health, mageNow.damage, 1e-6),
+			`Mage sur un ennemi fragile : {NumberFormat.short(beforeZap.health - afterZap.health)} dégâts = ses dégâts normaux ({NumberFormat.short(mageNow.damage)}), pas de fragilité`
+		)
+
+		-- Mage puis Givre : le Totem ne remplace pas le ralentissement du Mage tant qu'il dure (fragilité, oui).
+		-- Le Mage : bien plus fort (-85 %) mais bien plus court que le Totem.
+		call("debugArena", {})
+		local zappedFirst = call("debugSpawn", "Tank", frostAndMage, 1e9, true)
+		local zapFirst = call("debugFire", 4)
+		local z1 = call("debugEnemy", zappedFirst)
+		check(
+			z1.controlSource == "Tesla" and z1.slowFactor == mageDef.slow and mageDef.slow > frostDef.slow
+				and mageDef.slowDuration < frostDef.slowDuration and z1.controlLeft <= mageDef.slowDuration + 1e-6,
+			`Mage des tempêtes : -{pct(z1.slowFactor)} % pendant {mageDef.slowDuration} s (Totem : -{pct(frostDef.slow)} % pendant {frostDef.slowDuration} s)`
+		)
+		call("debugFire", 2)
+		local z2 = call("debugEnemy", zappedFirst)
+		check(
+			z2.controlSource == "Tesla" and z2.slowFactor == mageDef.slow and z2.fragility > 0,
+			`Mage puis Totem : le Totem ne remplace pas le ralentissement du Mage (source {z2.controlSource}), fragilité quand même (+{pct(z2.fragility)} %)`
+		)
+		waitClock(zapFirst.clock + mageDef.slowDuration + 0.05)
+		local z3 = call("debugEnemy", zappedFirst)
+		call("debugFire", 2)
+		local z4 = call("debugEnemy", zappedFirst)
+		check(
+			not z3.slowed and z4.controlSource == "Frost" and z4.slowFactor == frostDef.slow,
+			`fin du ralentissement du Mage (ralenti : {z3.slowed}), puis le Totem prend le relais ({z4.controlSource}, {pct(z4.slowFactor)} %)`
+		)
+
+		-- Baliste lourde (emplacement 5, (-13, -13)) : carreau perçant. Cible = la plus résistante, A (-13, 14) sur
+		-- la rangée z = 14 ; le trait vertical x = -13 traverse la rangée z = -4 : B (-13, -4) dessus, C (-14, -4) à
+		-- 1 stud, D (-18, -4) à 5 studs (hors du trait).
+		call("debugArena", {})
+		local boltA = call("debugSpawn", "Tank", 145, 1e12, true)
+		local boltB = call("debugSpawn", "Normal", 233, 1e9, true)
+		local boltC = call("debugSpawn", "Normal", 234, 1e9, true)
+		local boltD = call("debugSpawn", "Normal", 238, 1e9, true)
+		local bolt = call("debugFire", 5)
+		check(bolt ~= nil and bolt.fired and bolt.targetId == boltA, `Baliste : vise le plus résistant (cible {bolt and bolt.targetId}, A = {boltA})`)
+		if bolt and bolt.fired then
+			waitClock(bolt.clock + bolt.flight + 0.05)
+			local lossA = 1e12 - call("debugEnemy", boltA).health
+			local lossB = 1e9 - call("debugEnemy", boltB).health
+			local lossC = 1e9 - call("debugEnemy", boltC).health
+			local lossD = 1e9 - call("debugEnemy", boltD).health
+			check(
+				close(lossA, bolt.damage, 1e-6) and close(lossB, bolt.damage, 1e-6) and close(lossC, bolt.damage, 1e-6),
+				`Baliste perçante : 3 ennemis alignés touchés ({NumberFormat.short(lossA)}, {NumberFormat.short(lossB)}, {NumberFormat.short(lossC)} ; {NumberFormat.short(bolt.damage)} attendus)`
+			)
+			check(lossD == 0, `Baliste perçante : ennemi à 5 studs du trait pas touché ({lossD})`)
+		end
+
+		-- Trébuchet royal (emplacement 8, (14, -31)) : une foule de 4 fantassins (distances 262 à 265, x = -20 à -17)
+		-- contre un Seigneur de guerre seul et bien plus résistant (330, (14, -40)) -> il vise la foule, la blesse
+		-- et l'étourdit ; le boss n'est pas touché.
+		call("debugArena", {})
+		local crowd = {}
+		for i = 0, 3 do
+			table.insert(crowd, call("debugSpawn", "Normal", 262 + i, 1e9, true))
+		end
+		local loneBoss = call("debugSpawn", "Boss", 330, 1e15, true)
+		local stone = call("debugFire", 8)
+		check(
+			stone ~= nil and stone.fired and table.find(crowd, stone.targetId) ~= nil,
+			`Trébuchet : vise la foule plutôt que le boss seul (cible {stone and stone.targetId}, boss {loneBoss})`
+		)
+		if stone and stone.fired then
+			waitClock(stone.clock + stone.flight + 0.05)
+			local hit, stunned = 0, 0
+			for _, id in crowd do
+				local st = call("debugEnemy", id)
+				hit += if close(1e9 - st.health, stone.damage, 1e-6) then 1 else 0
+				stunned += if st.stunned and st.controlSource == "Orbital" then 1 else 0
+			end
+			check(
+				hit == #crowd and stunned == #crowd and call("debugEnemy", loneBoss).health == 1e15,
+				`Trébuchet : {hit}/{#crowd} touchés, {stunned}/{#crowd} étourdis ({defs.Orbital.stunDuration} s, zone {defs.Orbital.splash}), boss intact`
+			)
+		end
+		-- Étourdissement soumis à la règle 1 : des ennemis déjà gelés par le Totem prennent les dégâts, pas l'étourdissement.
+		call("debugArena", {})
+		local frostCrowd = {}
+		for i = 0, 2 do
+			table.insert(frostCrowd, call("debugSpawn", "Normal", 286 + i, 1e9, true))
+		end
+		call("debugFire", 2)
+		local stone2 = call("debugFire", 8)
+		if stone2 and stone2.fired then
+			waitClock(stone2.clock + stone2.flight + 0.05)
+			local damaged, stayedFrost = 0, 0
+			for _, id in frostCrowd do
+				local st = call("debugEnemy", id)
+				damaged += if 1e9 - st.health >= stone2.damage * (1 - 1e-9) then 1 else 0
+				stayedFrost += if st.controlSource == "Frost" and not st.stunned then 1 else 0
+			end
+			check(
+				damaged == #frostCrowd and stayedFrost == #frostCrowd,
+				`Trébuchet sur des ennemis gelés : {damaged}/{#frostCrowd} blessés, {stayedFrost}/{#frostCrowd} restent au ralentissement du Totem (pas d'étourdissement)`
+			)
+		else
+			check(false, "Trébuchet : pas de tir sur la foule gelée")
+		end
+		call("debugEndArena")
+
+		-- Vague écrasée : quand personne n'est en vie, l'ennemi suivant sort tout de suite
+		-- (IdleConfig.COMPRESS_EMPTY_SPAWNS). La vague 1 (Escarmouche, 10 ennemis sur ~5 s) est jouée d'un coup
+		-- par debugRunWave, sans aucune tour.
+		local waveBeforeRuns = dbg:Invoke(player, "Data").idle.wave
+		local crushed = call("debugRunWave", 1, "OneShot", 1 / 60, 600)
+		check(
+			crushed.ended and crushed.steps <= crushed.count + 2,
+			`vague de {crushed.count} ennemis tués dès leur sortie : finie en {crushed.steps} pas ({fmt(crushed.seconds)} s de jeu au lieu de {fmt(crushed.expectedTimes[crushed.count])} s d'apparitions)`
+		)
+		-- Sortie à chaque mort (IdleConfig.SPAWN_NEXT_ON_KILL) : le plus ancien ennemi meurt dès qu'un autre est
+		-- en vie ; chaque mort fait sortir le suivant au pas d'après (0,05 s), sans attendre son heure normale.
+		local chained = call("debugRunWave", 1, "KillOldest", 0.05, 60)
+		local instant = #chained.spawnTimes == chained.count
+		for i = 3, #chained.spawnTimes do
+			instant = instant and chained.spawnTimes[i] - chained.spawnTimes[i - 1] <= 0.05 + 1e-6
+		end
+		local lastChained = chained.spawnTimes[#chained.spawnTimes] or math.huge
+		check(
+			IdleConfig.SPAWN_NEXT_ON_KILL and instant and lastChained < chained.expectedTimes[chained.count] - 1,
+			`une mort fait sortir le suivant tout de suite (d'autres ennemis en vie) : {#chained.spawnTimes}/{chained.count} sortis, le dernier à {fmt(lastChained)} s au lieu de {fmt(chained.expectedTimes[chained.count])} s`
+		)
+		local survived = call("debugRunWave", 1, "Survive", 0.05, 110)
+		local onTime = #survived.spawnTimes == survived.count
+		for i, t in survived.spawnTimes do
+			onTime = onTime and t >= survived.expectedTimes[i] - 1e-6 and t <= survived.expectedTimes[i] + 0.05 + 1e-6
+		end
+		check(
+			onTime and not survived.ended,
+			`vague où les ennemis survivent : {#survived.spawnTimes}/{survived.count} apparitions aux heures normales (dernier à {fmt(survived.spawnTimes[#survived.spawnTimes])} s, prévu {fmt(survived.expectedTimes[survived.count])} s)`
+		)
+		local waveAfterRuns = dbg:Invoke(player, "Data").idle.wave
+		check(
+			waveAfterRuns == waveBeforeRuns and plotFolder:GetAttribute("State") == "Intermission",
+			`après les vagues de test : vague remise ({waveBeforeRuns} -> {waveAfterRuns}), parcelle en entracte`
+		)
+	end
+	testControlsAndSpawns()
+
+	----------------------------------------------------------------------
 	-- Pass Pièces x2 : toutes les pièces gagnées sur la parcelle sont doublées (ennemis tués, gains d'absence)
 	----------------------------------------------------------------------
 	-- Arène où aucune tour ne tire. Le Ramassage auto vide d'abord le sol : chaque ennemi tué ci-dessous
@@ -1140,6 +1375,171 @@ return function(log)
 	dbg:Invoke(player, "Absence", os.time(), true, { lastSeenAt = os.time(), offlineDay = 0, offlineGainedToday = 0, matchDepartureAt = 0 })
 	setCoins(0)
 	call("debugEndArena")
+
+	----------------------------------------------------------------------
+	-- Forge runique : prix qui monte à chaque lancer en pièces (x5 jusqu'à 1 T, puis x2), plus de délai, runes
+	-- tirées seulement si elles améliorent une tour posée, forge bloquée sinon, lancers Robux hors compteur.
+	-- Dans sa propre fonction (limite des 200 variables locales de Luau, voir plus haut).
+	----------------------------------------------------------------------
+	local function testForge()
+		local FIRST = IdleConfig.FORGE_FIRST_PRICE
+		check(
+			IdleConfig.forgeCoinPrice(0) == 100e3 and IdleConfig.forgeCoinPrice(1) == 500e3 and FIRST == 100e3,
+			`forge : 1er lancer {NumberFormat.price(IdleConfig.forgeCoinPrice(0))}, 2e {NumberFormat.price(IdleConfig.forgeCoinPrice(1))}`
+		)
+		local p11, p12, p13, p14 = IdleConfig.forgeCoinPrice(10), IdleConfig.forgeCoinPrice(11), IdleConfig.forgeCoinPrice(12), IdleConfig.forgeCoinPrice(13)
+		check(
+			p11 == FIRST * 5 ^ 10 and p11 < 1e12 and p12 == p11 * 5 and p12 >= 1e12 and p13 == p12 * 2 and p14 == p13 * 2,
+			`forge : 11e lancer {NumberFormat.price(p11)} (sous 1 T, x5), 12e {NumberFormat.price(p12)}, puis x2 : {NumberFormat.price(p13)}, {NumberFormat.price(p14)}`
+		)
+		check(
+			IdleConfig.forgeCoinPrice(5000) == math.huge and IdleConfig.forgeCoinPrice(0 / 0) == FIRST and IdleConfig.forgeCoinPrice(-3) == FIRST,
+			"forge : prix MAX (math.huge) après des milliers de lancers, compteur abîmé = 0"
+		)
+		local function forgeState()
+			return call("forgeState")
+		end
+		-- Lancer en pièces sur le serveur : renvoie (résultat, données avant, données après).
+		local function forgeSpin()
+			local f0 = dbg:Invoke(player, "Data")
+			local result = call("spinBonusWithCoins")
+			return result, f0, dbg:Invoke(player, "Data")
+		end
+		dbg:Invoke(player, "Set", "forgeSpinsBought", 0)
+		dbg:Invoke(player, "Set", "bonuses", {})
+		-- Au moins une tour sans rune (le 2e Totem) : la forge marche.
+		call("publishInventory")
+		check(player:GetAttribute("ForgeBlocked") == "" and player:GetAttribute("ForgeCoinPrice") == FIRST, `forge ouverte, prochain prix publié {player:GetAttribute("ForgeCoinPrice")}`)
+		setCoins(FIRST)
+		local r1, f0, f1 = forgeSpin()
+		check(
+			r1 ~= nil and f0.coins - f1.coins == FIRST and f1.idle.forgeSpinsBought == 1 and #f1.idle.bonuses == 1 and r1.price == FIRST,
+			`forge : 1er lancer payé {NumberFormat.price(f0.coins - f1.coins)}, compteur {f1.idle.forgeSpinsBought}, rune {r1 and r1.bonus}`
+		)
+		check(
+			player:GetAttribute("ForgeSpinsBought") == 1 and player:GetAttribute("ForgeCoinPrice") == IdleConfig.forgeCoinPrice(1),
+			`forge : attributs ForgeSpinsBought = {player:GetAttribute("ForgeSpinsBought")}, ForgeCoinPrice = {player:GetAttribute("ForgeCoinPrice")}`
+		)
+		-- Plus de délai : un 2e lancer tout de suite.
+		setCoins(IdleConfig.forgeCoinPrice(1))
+		local r2, g0, g1 = forgeSpin()
+		check(
+			r2 ~= nil and g0.coins - g1.coins == IdleConfig.forgeCoinPrice(1) and g1.idle.forgeSpinsBought == 2,
+			`forge : 2e lancer tout de suite (plus de délai), payé {NumberFormat.price(g0.coins - g1.coins)}`
+		)
+		-- Pas assez de pièces : refusé, rien ne change.
+		setCoins(IdleConfig.forgeCoinPrice(2) - 1)
+		local r3, h0, h1 = forgeSpin()
+		check(
+			r3 == nil and h1.coins == h0.coins and h1.idle.forgeSpinsBought == 2 and #h1.idle.bonuses == #h0.idle.bonuses,
+			"forge : refusée sans assez de pièces (pièces, compteur et inventaire inchangés)"
+		)
+		-- Autour de 1 T : 11e, 12e et 13e lancers.
+		dbg:Invoke(player, "Set", "forgeSpinsBought", 10)
+		for _, expected in { p11, p12, p13 } do
+			setCoins(expected)
+			local r, k0, k1 = forgeSpin()
+			check(
+				r ~= nil and k0.coins - k1.coins == expected and k1.idle.forgeSpinsBought == k0.idle.forgeSpinsBought + 1,
+				`forge : lancer n° {k0.idle.forgeSpinsBought + 1} payé {NumberFormat.price(k0.coins - k1.coins)} (attendu {NumberFormat.price(expected)})`
+			)
+		end
+		-- Un achat Robux ne compte pas et ne fait pas monter le prix.
+		local beforeRobux = forgeState()
+		local robuxBefore = #dbg:Invoke(player, "Data").idle.bonuses
+		local robux = call("grantBonusSpin", "Robux")
+		local afterRobux = forgeState()
+		check(
+			robux ~= nil and robux.source == "Robux" and afterRobux.bought == beforeRobux.bought and afterRobux.price == beforeRobux.price
+				and #dbg:Invoke(player, "Data").idle.bonuses == robuxBefore + 1,
+			`forge : lancer Robux ({robux and robux.bonus}) sans changer le compteur ({beforeRobux.bought} -> {afterRobux.bought}) ni le prix`
+		)
+
+		-- Toutes les tours posées ont au moins x2 : x2 dégâts et x2 vitesse ne sont plus tirés (40 lancers).
+		local function applyToAll(runeId, onlyWeaker)
+			local towersNow = dbg:Invoke(player, "Data").idle.towers
+			local list = {}
+			for key, tower in towersNow do
+				if not onlyWeaker or IdleConfig.runeValue(tower.bonus) < IdleConfig.runeValue(runeId) then
+					table.insert(list, tonumber(key))
+				end
+			end
+			local inventory = {}
+			for _ in list do
+				table.insert(inventory, runeId)
+			end
+			dbg:Invoke(player, "Set", "bonuses", inventory)
+			for _, spot in list do
+				call("applyBonus", spot, runeId)
+			end
+			dbg:Invoke(player, "Set", "bonuses", {})
+			call("publishInventory")
+		end
+		applyToAll("Damage2", true)
+		local stateX2 = forgeState()
+		local offersX2 = table.find(stateX2.drawable, "Damage2") ~= nil or table.find(stateX2.drawable, "Speed2") ~= nil
+		check(
+			not offersX2 and stateX2.blocked == nil and #stateX2.drawable > 0 and not string.find(player:GetAttribute("ForgeDrawable"), "2,", 1, true),
+			`toutes les tours à x2 ou mieux : runes tirables {table.concat(stateX2.drawable, ",")} (attribut ForgeDrawable = {player:GetAttribute("ForgeDrawable")})`
+		)
+		dbg:Invoke(player, "Set", "forgeSpinsBought", 0) -- prix modestes pour 40 lancers
+		setCoins(1e300)
+		local drawnX2, drawn, draws = 0, {}, 0
+		for _ = 1, 40 do
+			local r = call("spinBonusWithCoins")
+			if r then
+				draws += 1
+				drawn[r.bonus] = (drawn[r.bonus] or 0) + 1
+				if r.bonus == "Damage2" or r.bonus == "Speed2" then
+					drawnX2 += 1
+				end
+			end
+		end
+		local drawnList = {}
+		for id, n in drawn do
+			table.insert(drawnList, `{id}:{n}`)
+		end
+		table.sort(drawnList)
+		check(draws == 40 and drawnX2 == 0, `40 lancers : aucune rune x2 tirée ({table.concat(drawnList, " ")})`)
+		check(dbg:Invoke(player, "Data").idle.forgeSpinsBought == 40, "40 lancers en pièces comptés")
+
+		-- Toutes les tours à x100 : plus rien ne les améliore -> forge bloquée (pièces), un reçu Robux donne x100.
+		applyToAll("Damage100", false)
+		local stateBest = forgeState()
+		check(
+			stateBest.blocked == IdleConfig.FORGE_ALL_BEST and #stateBest.drawable == 0
+				and player:GetAttribute("ForgeBlocked") == IdleConfig.FORGE_ALL_BEST and player:GetAttribute("ForgeDrawable") == "",
+			`toutes les tours à x100 : forge bloquée (« {player:GetAttribute("ForgeBlocked")} »)`
+		)
+		local blockedResult, b0, b1 = forgeSpin()
+		check(
+			blockedResult == nil and b1.coins == b0.coins and b1.idle.forgeSpinsBought == b0.idle.forgeSpinsBought and #b1.idle.bonuses == #b0.idle.bonuses,
+			"forge bloquée : lancer en pièces refusé (pièces, compteur, inventaire inchangés)"
+		)
+		local lateReceipt = call("grantBonusSpin", "Robux")
+		check(
+			lateReceipt ~= nil and lateReceipt.bonus == IdleConfig.bestRune().id and dbg:Invoke(player, "Data").idle.forgeSpinsBought == b1.idle.forgeSpinsBought,
+			`forge bloquée : un achat Robux arrivé quand même donne la meilleure rune ({lateReceipt and lateReceipt.bonus}), compteur inchangé`
+		)
+		-- Inventaire plein : une rune payée en Robux entre quand même (un achat n'est jamais perdu).
+		local fullInventory = table.create(IdleConfig.MAX_BONUS_INVENTORY, "Damage2")
+		dbg:Invoke(player, "Set", "bonuses", fullInventory)
+		call("grantBonusSpin", "Robux")
+		local afterFull = #dbg:Invoke(player, "Data").idle.bonuses
+		check(
+			afterFull == IdleConfig.MAX_BONUS_INVENTORY + 1,
+			`inventaire plein ({IdleConfig.MAX_BONUS_INVENTORY}) : la rune Robux entre quand même ({afterFull} runes)`
+		)
+		local forgeEnd = dbg:Invoke(player, "Data")
+		check(
+			cleanCounter(forgeEnd.idle.forgeSpinsBought) and forgeEnd.idle.lastBonusSpinAt == nil,
+			`compteur de la forge entier et fini ({forgeEnd.idle.forgeSpinsBought}), plus de lastBonusSpinAt`
+		)
+		dbg:Invoke(player, "Set", "bonuses", {})
+		call("publishInventory")
+		setCoins(0)
+	end
+	testForge()
 
 	-- Retour à une vague normale pour la fin
 	dbg:Invoke(player, "StartWave", 1)

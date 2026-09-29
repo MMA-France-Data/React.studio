@@ -9,6 +9,18 @@
 -- vol / SimSpeed secondes, et l'impact (explosion, zone de feu des flèches) apparaît quand les dégâts tombent.
 -- Rayon du Sorcier des arcanes : lu sur les attributs « BeamTarget » / « BeamRamp » de sa tour, dessiné à
 -- chaque image jusqu'à l'ennemi affiché ici (voir updateBeams).
+-- Styles des ennemis : un par tranche de 10 vagues (MedievalModels.decorateEnemy avec le palier, voir palierOf).
+-- Contrôles et fragilité : après les positions, le paquet PlotSync contient un octet « contrôle » par ennemi
+-- (format dans PlotGame.luau). Un disque sous ses pieds montre le contrôle en cours : bleu glacé = ralenti par
+-- un Totem de givre, jaune = gros coup de frein du Mage des tempêtes, doré = étourdi par le Trébuchet royal ;
+-- violet = seulement fragile. Fragile (aura du Totem : il prend plus de dégâts) = contour violet de sa barre
+-- de vie. Disque créé la 1re fois qu'il sert, soudé à l'ennemi, puis juste montré ou caché.
+-- Baliste lourde : à l'impact de son carreau perçant, une traînée montre la ligne touchée (largeur du serveur).
+-- Modèles perso (CustomModels.luau) : si le propriétaire a mis un modèle pour ce type (et ce palier) dans
+-- ReplicatedStorage.EnemyModels, l'ennemi est une copie de ce modèle soudée à la même racine invisible que les
+-- blocs (déplacée pareil). Sa marche (Animation « Marche ») n'est jouée que près de la caméra, avec un nombre
+-- maximal de pistes, à la vitesse de l'ennemi (ralenti = plus lent, étourdi = figé, Vitesse x2 = 2 fois plus
+-- vite) : voir updateAnimations. Tué, il joue son animation de mort s'il en a une (startDeath, updateDying).
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -16,6 +28,7 @@ local TweenService = game:GetService("TweenService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.Config)
+local CustomModels = require(Shared.CustomModels)
 local Enemies = require(Shared.Enemies)
 local IdleConfig = require(Shared.IdleConfig)
 local IdleTowers = require(Shared.IdleTowers)
@@ -29,6 +42,15 @@ local Effects = require(script.Parent.Effects)
 local PlotRenderer = {}
 
 local ENEMY_BYTES = 11
+-- Octet « contrôle » (un par ennemi, après les count x ENEMY_BYTES octets, même ordre) : bits 0-3 = numéro
+-- (IdleTowers.ORDER) de la tour dont le contrôle est en cours (0 = aucun), bit 7 = fragile.
+local CONTROL_SOURCE_MASK = 16 -- control % 16 = bits 0-3
+local CONTROL_FRAGILE_FLAG = 128
+local STATUS_RING_TRANSPARENCY = 0.4
+local STUN_COLOR = Color3.fromRGB(255, 212, 90) -- étourdi (Trébuchet royal)
+local FRAGILE_COLOR = Color3.fromRGB(196, 130, 255) -- fragile (aura du Totem de givre)
+-- Couleur du disque par tour qui contrôle (sinon la couleur de la tour).
+local STATUS_COLORS = { Orbital = STUN_COLOR }
 local SHOT_BYTES = 27 -- départ 3xf32, arrivée 3xf32, type u8, rayon u8, vol restant u8 (centièmes de s)
 local SNAP_DISTANCE = 4 -- au-delà, on replace l'ennemi directement à la position du serveur (x SimSpeed)
 local MAX_FIRE_VISUALS = 10 -- zones de feu affichées au plus par parcelle (la plus vieille disparaît)
@@ -38,6 +60,22 @@ local MAX_SIM_SPEED = 4 -- garde-fou : une valeur abîmée ne fait pas s'envoler
 -- Pièces ramassées à distance (pass Ramassage auto) : plus loin que ça du joueur, la pile s'envole vers lui.
 local REMOTE_PICKUP_DISTANCE = IdleConfig.PICKUP_RADIUS + 4
 local REMOTE_GAIN_DELAY = 0.6 -- les gains des piles arrivées ensemble s'affichent en un seul « +X »
+-- Marche des modèles perso : jouée seulement à moins de ANIM_DISTANCE studs de la caméra, ANIM_MAX_TRACKS
+-- pistes à la fois au plus (au-delà, le modèle avance figé), vérifié toutes les ANIM_CHECK_INTERVAL s.
+local ANIM_DISTANCE = 150
+local ANIM_MAX_TRACKS = 120
+local ANIM_CHECK_INTERVAL = 0.25
+local ANIM_RATE_STEP = 0.02 -- écart de vitesse sous lequel on ne touche pas à la piste
+-- Mort des modèles perso qui ont une animation de mort (CustomModels : « Mort », « Dead »...) : jouée une fois
+-- là où l'ennemi est tombé (tué pendant la vague, pas quand la vague est ratée ou arrêtée), seulement à moins
+-- de ANIM_DISTANCE studs de la caméra et DEATH_MAX_ACTIVE corps à la fois (boss et colosses toujours). La
+-- dernière pose est gardée, puis le corps s'efface en DEATH_FADE_TIME s (au plus DEATH_MAX_TIME s d'animation).
+local DEATH_MAX_ACTIVE = 12
+local DEATH_MAX_TIME = 3
+local DEATH_DEFAULT_TIME = 1.2 -- animation pas encore chargée : durée inconnue
+local DEATH_FADE_TIME = 0.6
+local DEATH_HOLD_MARGIN = 0.05 -- figée juste avant sa fin (sinon Roblox remet la pose de départ)
+local DEATH_ALWAYS = { Boss = true, Giant = true }
 
 local folder = Instance.new("Folder")
 folder.Name = "PlotEnemies"
@@ -51,6 +89,12 @@ local coins = {} -- [id] = { part, label }
 local flyingCoins = {} -- piles ramassées à distance, en vol vers le joueur : { part, from, size, started, duration }
 local remoteGain = 0
 local remoteGainPending = false
+local playingTracks = 0 -- pistes de marche en cours (modèles perso)
+local animClock = 0
+local dying = {} -- corps qui jouent leur animation de mort : { part, track, rate, started, fadeAt }
+-- Réutilisées à chaque image (pas de nouvelles tables) : racines à déplacer et leurs CFrames.
+local movedParts: { BasePart } = {}
+local movedCFrames: { CFrame } = {}
 
 local function plotState(plotIndex: number)
 	local state = plots[plotIndex]
@@ -82,21 +126,60 @@ local function characterRoot(): BasePart?
 	return if root and root:IsA("BasePart") then root else nil
 end
 
-local function createEnemy(def)
-	local part = Instance.new("Part")
-	part.Size = Vector3.one * def.size
-	part.Color = def.color
-	part.Material = Enum.Material.SmoothPlastic
-	part.Anchored = true
-	part.CanCollide = false
-	part.CanQuery = false
-	part.CanTouch = false
-	part.CastShadow = false
-	MedievalModels.decorateEnemy(part, def)
+-- Style des ennemis : un par tranche de 10 vagues (palier 0 = vagues 1-10, 1 = 11-20 ... 9 = 91-100, puis
+-- MedievalModels recommence), lu sur l'attribut « Wave » du dossier de la parcelle quand l'ennemi apparaît.
+local WAVES_PER_STYLE = 10
+
+local function palierOf(plotIndex: number, state): number
+	simSpeedOf(plotIndex, state) -- retrouve le dossier de la parcelle si besoin
+	local wave = state.folder and state.folder:GetAttribute("Wave")
+	if typeof(wave) ~= "number" or wave ~= wave or wave < 1 or wave == math.huge then
+		return 0
+	end
+	return math.floor((wave - 1) / WAVES_PER_STYLE)
+end
+
+-- Hauteur du haut du modèle au-dessus du centre de sa racine (couronne, cornes...) : la barre de vie
+-- se pose juste au-dessus. Calculé une fois, à la création.
+local function modelTop(root: BasePart): number
+	local top = root.Size.Y / 2
+	local rootY = root.Position.Y
+	for _, child in root:GetChildren() do
+		if child:IsA("BasePart") then
+			local cf, size = child.CFrame, child.Size
+			local halfY = math.abs(cf.RightVector.Y) * size.X / 2 + math.abs(cf.UpVector.Y) * size.Y / 2 + math.abs(cf.LookVector.Y) * size.Z / 2
+			top = math.max(top, cf.Position.Y - rootY + halfY)
+		end
+	end
+	return top
+end
+
+-- palier : style du mode solo (voir palierOf). Les ennemis du ranked gardent leur appel sans palier (Match).
+-- Renvoie la racine (déplacée à chaque image), la barre de vie, son contour et le modèle perso (nil = blocs).
+local function createEnemy(enemyType: string, def, palier: number)
+	-- Modèle perso du propriétaire pour ce type et ce palier (ReplicatedStorage.EnemyModels), sinon les blocs.
+	local part, custom = CustomModels.spawn(enemyType, def, palier)
+	local top
+	if part and custom then
+		top = custom.top
+	else
+		part = Instance.new("Part")
+		part.Size = Vector3.one * def.size
+		part.Color = def.color
+		part.Material = Enum.Material.SmoothPlastic
+		part.Anchored = true
+		part.CanCollide = false
+		part.CanQuery = false
+		part.CanTouch = false
+		part.CastShadow = false
+		MedievalModels.decorateEnemy(part, def, palier)
+		top = modelTop(part)
+	end
+	part:SetAttribute("EnemyType", enemyType)
 
 	local billboard = Instance.new("BillboardGui")
 	billboard.Size = UDim2.fromOffset(math.max(30, def.size * 12), 5)
-	billboard.StudsOffset = Vector3.new(0, def.size / 2 + 0.8, 0)
+	billboard.StudsOffset = Vector3.new(0, math.max(def.size / 2, top) + 0.8, 0)
 	ProximityLabel.register(billboard, Config.LabelDistance.Medium)
 	billboard.AlwaysOnTop = true
 	billboard.Parent = part
@@ -110,20 +193,161 @@ local function createEnemy(def)
 	fill.BackgroundColor3 = Color3.fromRGB(90, 220, 90)
 	fill.BorderSizePixel = 0
 	fill.Parent = background
+	-- Contour violet quand l'ennemi est fragile (voir setStatus).
+	local stroke = Instance.new("UIStroke")
+	stroke.Color = FRAGILE_COLOR
+	stroke.Thickness = 1.5
+	stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	stroke.Transparency = 1
+	stroke.Parent = background
 
 	part.Parent = folder
-	return part, fill
+	return part, fill, stroke, custom
+end
+
+-- Animation de mort d'un modèle perso tué (voir DEATH_MAX_ACTIVE) : le corps reste à sa place (il n'est plus
+-- déplacé), sans barre de vie ni disque ; updateDying le fige à la fin puis l'efface. Faux = pas d'animation
+-- (pas de modèle perso, pas d'animation de mort, trop loin, trop de corps) : l'appelant le retire.
+local function startDeath(enemy): boolean
+	local custom = enemy.custom
+	if not custom or not custom.deathAnimation then
+		return false
+	end
+	if #dying >= DEATH_MAX_ACTIVE and not DEATH_ALWAYS[enemy.part:GetAttribute("EnemyType")] then
+		return false
+	end
+	local camera = workspace.CurrentCamera
+	if not camera or (enemy.part.Position - camera.CFrame.Position).Magnitude > ANIM_DISTANCE then
+		return false
+	end
+	local track = CustomModels.loadDeath(enemy.part, custom)
+	if not track then
+		return false
+	end
+	for _, child in enemy.part:GetChildren() do
+		if child:IsA("BillboardGui") or child.Name == "StatusRing" then
+			child:Destroy()
+		end
+	end
+	enemy.part:SetAttribute("Dying", true)
+	local rate = enemy.simSpeed or 1
+	track:Play(0.1, 1, rate)
+	table.insert(dying, { part = enemy.part, track = track, rate = rate, started = os.clock(), fadeAt = nil })
+	return true
+end
+
+-- Retire un ennemi (mort ou arrivé à la base) : sa piste de marche d'abord, puis la racine et tout le modèle.
+-- died = tué pendant la vague : son animation de mort s'il en a une (startDeath).
+local function removeEnemy(enemy, died: boolean?)
+	if enemy.track then
+		if enemy.walking then
+			playingTracks -= 1
+		end
+		enemy.walking = false
+		enemy.track:Stop(0)
+		enemy.track:Destroy()
+		enemy.track = nil
+	end
+	if died and startDeath(enemy) then
+		return
+	end
+	enemy.part:Destroy()
+end
+
+-- Corps des animations de mort : figés juste avant la fin de leur animation (dernière pose), puis effacés.
+local function updateDying(now: number)
+	for i = #dying, 1, -1 do
+		local body = dying[i]
+		if not body.part.Parent then
+			body.track:Destroy()
+			table.remove(dying, i)
+		elseif not body.fadeAt then
+			local track = body.track
+			-- Mort publiée en boucle : Roblox peut remettre Looped à vrai quand elle finit de se charger.
+			if track.Looped then
+				track.Looped = false
+			end
+			local length = track.Length
+			local duration = if length > 0 then length / body.rate else DEATH_DEFAULT_TIME
+			if now - body.started >= math.min(duration - DEATH_HOLD_MARGIN, DEATH_MAX_TIME) then
+				track:AdjustSpeed(0)
+				body.fadeAt = now
+				for _, piece in body.part:GetDescendants() do
+					if piece:IsA("BasePart") and piece.Transparency < 1 then
+						TweenService:Create(piece, TweenInfo.new(DEATH_FADE_TIME), { Transparency = 1 }):Play()
+					end
+				end
+			end
+		elseif now - body.fadeAt >= DEATH_FADE_TIME then
+			body.track:Destroy()
+			body.part:Destroy()
+			table.remove(dying, i)
+		end
+	end
+end
+
+-- Disque sous les pieds d'un ennemi (contrôle ou fragilité), soudé à sa racine : il suit l'ennemi sans calcul.
+local function createStatusRing(enemy): Part
+	local root = enemy.part
+	local diameter = enemy.def.size * 0.9 + 1
+	local ring = Instance.new("Part")
+	ring.Name = "StatusRing"
+	ring.Shape = Enum.PartType.Cylinder
+	ring.Size = Vector3.new(0.12, diameter, diameter)
+	ring.CFrame = root.CFrame * CFrame.new(0, -enemy.def.size / 2 + 0.15, 0) * CFrame.Angles(0, 0, math.rad(90))
+	ring.Material = Enum.Material.Neon
+	ring.Transparency = 1
+	ring.Anchored = false
+	ring.Massless = true
+	ring.CanCollide = false
+	ring.CanQuery = false
+	ring.CanTouch = false
+	ring.CastShadow = false
+	local weld = Instance.new("WeldConstraint")
+	weld.Part0 = root
+	weld.Part1 = ring
+	weld.Parent = ring
+	ring.Parent = root
+	return ring
+end
+
+-- Contrôle en cours (type de tour, nil = aucun) et fragilité, lus dans l'octet « contrôle » du paquet.
+-- Ne touche aux pièces que si quelque chose change.
+local function setStatus(enemy, source: string?, fragile: boolean)
+	if enemy.statusSource == source and enemy.statusFragile == fragile then
+		return
+	end
+	enemy.statusSource = source
+	enemy.statusFragile = fragile
+	local towerDef = source and IdleTowers.Defs[source]
+	local color = if source and STATUS_COLORS[source]
+		then STATUS_COLORS[source]
+		elseif towerDef then towerDef.color
+		elseif fragile then FRAGILE_COLOR
+		else nil
+	if color then
+		enemy.ring = enemy.ring or createStatusRing(enemy)
+		enemy.ring.Color = color
+		enemy.ring.Transparency = STATUS_RING_TRANSPARENCY
+	elseif enemy.ring then
+		enemy.ring.Transparency = 1
+	end
+	enemy.stroke.Transparency = if fragile then 0 else 1
 end
 
 local function onSync(plotIndex: number, packet: buffer, count: number)
 	local state = plotState(plotIndex)
 	-- En x2, les ennemis font 2 fois plus de chemin entre deux paquets : même tolérance en temps.
 	local snapDistance = SNAP_DISTANCE * simSpeedOf(plotIndex, state)
+	-- Octets « contrôle » après les positions (absents d'un ancien paquet : aucun contrôle).
+	local controlStart = count * ENEMY_BYTES
+	local hasControl = buffer.len(packet) >= controlStart + count
 	local seen = {}
 	for i = 0, count - 1 do
 		local offset = i * ENEMY_BYTES
 		local id = buffer.readu32(packet, offset)
-		local def = Enemies.Defs[Enemies.ORDER[buffer.readu8(packet, offset + 4)]]
+		local enemyType = Enemies.ORDER[buffer.readu8(packet, offset + 4)]
+		local def = Enemies.Defs[enemyType]
 		local distance = buffer.readf32(packet, offset + 5)
 		local health = buffer.readu8(packet, offset + 9) / 255
 		local speedFactor = buffer.readu8(packet, offset + 10) / 100
@@ -134,8 +358,19 @@ local function onSync(plotIndex: number, packet: buffer, count: number)
 
 		local enemy = state.enemies[id]
 		if not enemy then
-			local part, fill = createEnemy(def)
-			enemy = { def = def, part = part, fill = fill, distance = distance }
+			local part, fill, stroke, custom = createEnemy(enemyType, def, palierOf(plotIndex, state))
+			enemy = { def = def, part = part, fill = fill, stroke = stroke, distance = distance, statusFragile = false }
+			-- Vague où il est apparu : à sa disparition, dit s'il a été tué ou retiré (vague ratée, voir plus bas).
+			local wave = state.folder and state.folder:GetAttribute("Wave")
+			enemy.wave = if typeof(wave) == "number" then wave else nil
+			enemy.custom = custom -- modèle perso (marche, mort), nil = blocs
+			if custom and custom.animation then
+				-- Modèle perso qui sait marcher (updateAnimations) : vitesse de lecture à sa vitesse normale,
+				-- et son facteur de type (le facteur du paquet = type x contrôle).
+				local typeFactor = IdleConfig.enemySpeedFactor(enemyType)
+				enemy.typeFactor = math.max(typeFactor, 0.01)
+				enemy.walkBase = CustomModels.walkRate(custom, def.speed * IdleConfig.ENEMY_SPEED_MULTIPLIER * typeFactor)
+			end
 			state.enemies[id] = enemy
 		elseif math.abs(enemy.distance - distance) > snapDistance then
 			enemy.distance = distance
@@ -144,13 +379,94 @@ local function onSync(plotIndex: number, packet: buffer, count: number)
 		end
 		enemy.speedFactor = speedFactor
 		enemy.fill.Size = UDim2.fromScale(health, 1)
+		local control = if hasControl then buffer.readu8(packet, controlStart + i) else 0
+		setStatus(enemy, IdleTowers.ORDER[control % CONTROL_SOURCE_MASK], control >= CONTROL_FRAGILE_FLAG)
 	end
 
-	-- Absents du paquet = morts ou arrivés à la base.
+	-- Absents du paquet = tués, ou retirés (vague ratée, renaissance, départ du joueur). Tué = la vague continue
+	-- (« Running ») ou vient d'être gagnée (entracte avec une vague plus haute que la sienne) : animation de mort
+	-- des modèles perso qui en ont une.
+	local runState = state.folder and state.folder:GetAttribute("State")
+	local plotWave = state.folder and state.folder:GetAttribute("Wave")
+	local simSpeed = simSpeedOf(plotIndex, state)
 	for id, enemy in state.enemies do
 		if not seen[id] then
-			enemy.part:Destroy()
+			local died = runState == "Running"
+				or (runState == "Intermission" and typeof(plotWave) == "number" and enemy.wave ~= nil and plotWave > enemy.wave)
+			enemy.simSpeed = simSpeed
+			removeEnemy(enemy, died)
 			state.enemies[id] = nil
+		end
+	end
+end
+
+----------------------------------------------------------------------
+-- Marche des modèles perso (CustomModels) : seulement près de la caméra, ANIM_MAX_TRACKS pistes au plus
+----------------------------------------------------------------------
+
+-- Vitesse de lecture du moment : vitesse normale du modèle x (vitesse de l'ennemi / vitesse normale de son
+-- type) x Vitesse x2 ; 0 quand il est étourdi (la marche se fige).
+local function walkRate(enemy, simSpeed: number): number
+	return enemy.walkBase * (enemy.speedFactor or 1) / enemy.typeFactor * simSpeed
+end
+
+local function updateAnimations()
+	local camera = workspace.CurrentCamera
+	if not camera then
+		return
+	end
+	local eye = camera.CFrame.Position
+	-- 1) Pistes en cours : arrêtées loin de la caméra (place libérée), sinon vitesse mise à jour.
+	for plotIndex, state in plots do
+		local simSpeed = simSpeedOf(plotIndex, state)
+		for _, enemy in state.enemies do
+			if not enemy.walking then
+				continue
+			end
+			if (enemy.part.Position - eye).Magnitude > ANIM_DISTANCE then
+				enemy.walking = false
+				playingTracks -= 1
+				enemy.track:Stop(0.2)
+			else
+				local track = enemy.track
+				local rate = walkRate(enemy, simSpeed)
+				-- Marche publiée sans boucle : Roblox peut remettre Looped à faux quand l'animation finit de se
+				-- charger (après notre Play), et la piste s'arrête au bout d'un pas. On la remet en boucle.
+				if not track.Looped then
+					track.Looped = true
+				end
+				if not track.IsPlaying then
+					track:Play(0.1, 1, rate)
+					enemy.walkRateNow = rate
+				elseif math.abs(rate - enemy.walkRateNow) > ANIM_RATE_STEP then
+					enemy.walkRateNow = rate
+					track:AdjustSpeed(rate)
+				end
+			end
+		end
+	end
+	-- 2) Modèles près de la caméra pas encore animés : on lance leur marche tant qu'il reste de la place.
+	for plotIndex, state in plots do
+		local simSpeed = simSpeedOf(plotIndex, state)
+		for _, enemy in state.enemies do
+			if playingTracks >= ANIM_MAX_TRACKS then
+				return
+			end
+			if not enemy.walkBase or enemy.walking or enemy.walkFailed or (enemy.part.Position - eye).Magnitude > ANIM_DISTANCE then
+				continue
+			end
+			if not enemy.track then
+				enemy.track = CustomModels.loadWalk(enemy.part, enemy.custom)
+				if not enemy.track then
+					enemy.walkFailed = true -- pas d'Animator ou animation refusée : il avance figé
+					continue
+				end
+			end
+			local rate = walkRate(enemy, simSpeed)
+			enemy.track:Play(0.2, 1, rate)
+			enemy.walkRateNow = rate
+			enemy.walking = true
+			playingTracks += 1
 		end
 	end
 end
@@ -237,6 +553,11 @@ local function onShots(plotIndex: number, packet: buffer, count: number)
 		Effects.playTowerShot(from, to, towerType, radius, def.color, def.kind, nearestTower(plotIndex, towerType, from), flight)
 		if def.fireRadius then
 			task.delay(flight, addFire, plotIndex, to, def)
+		end
+		if def.kind == "Pierce" and def.pierceWidth then
+			-- Carreau perçant (Baliste lourde) : à l'impact, la ligne touchée par le serveur, de la tour (sous
+			-- le départ du tir) au point d'impact, sur toute sa largeur (2 x pierceWidth).
+			task.delay(flight, Effects.pierceTrail, from, to, def.pierceWidth, def.color)
 		end
 	end
 end
@@ -495,7 +816,8 @@ function PlotRenderer.start()
 	Remotes.get("CoinDrop").OnClientEvent:Connect(onCoinDrop)
 
 	RunService.RenderStepped:Connect(function(dt)
-		local parts, cframes = {}, {}
+		table.clear(movedParts)
+		table.clear(movedCFrames)
 		for plotIndex, state in plots do
 			-- Même vitesse que la simulation du serveur : x2 si le pass Vitesse x2 est activé sur cette parcelle.
 			local simDt = dt * simSpeedOf(plotIndex, state)
@@ -504,15 +826,26 @@ function PlotRenderer.start()
 				local localPosition, direction = PlotLayout.pointAt(enemy.distance)
 				local position = state.cframe:PointToWorldSpace(localPosition) + Vector3.new(0, enemy.def.size / 2, 0)
 				local worldDirection = state.cframe:VectorToWorldSpace(direction)
-				table.insert(parts, enemy.part)
-				table.insert(cframes, CFrame.lookAt(position, position + worldDirection))
+				table.insert(movedParts, enemy.part)
+				table.insert(movedCFrames, CFrame.lookAt(position, position + worldDirection))
 			end
 		end
-		if #parts > 0 then
-			workspace:BulkMoveTo(parts, cframes, Enum.BulkMoveMode.FireCFrameChanged)
+		if #movedParts > 0 then
+			workspace:BulkMoveTo(movedParts, movedCFrames, Enum.BulkMoveMode.FireCFrameChanged)
+		end
+
+		-- Marche des modèles perso : quelques fois par seconde suffit (distance, vitesse).
+		animClock += dt
+		if animClock >= ANIM_CHECK_INTERVAL then
+			animClock = 0
+			updateAnimations()
 		end
 
 		local t = os.clock()
+		-- Corps des animations de mort (modèles perso)
+		if #dying > 0 then
+			updateDying(t)
+		end
 		-- Rayons des Sorciers (jusqu'aux ennemis qu'on vient de déplacer) et zones de feu.
 		updateBeams(dt, t)
 		for plotIndex, state in plots do

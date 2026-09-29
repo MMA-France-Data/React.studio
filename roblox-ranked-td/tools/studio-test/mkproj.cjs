@@ -16,6 +16,12 @@ const tree = project.tree;
 tree.ReplicatedStorage.Shared.$path = norm(mode === 'match' ? path.join(out, 'shared_match') : path.join(repo, 'src', 'shared'));
 tree.ServerScriptService.Server.$path = norm(path.join(repo, 'src', 'server'));
 tree.StarterPlayer.StarterPlayerScripts.Client.$path = norm(path.join(repo, 'src', 'client'));
+// Modèles perso des ennemis (assets/EnemyModels) : chemin relatif au dépôt, à rendre absolu lui aussi
+// (le projet de test est écrit dans out/).
+const enemyModels = tree.ReplicatedStorage.EnemyModels;
+if (enemyModels && enemyModels.$path && !path.isAbsolute(enemyModels.$path)) {
+	enemyModels.$path = norm(path.join(repo, enemyModels.$path));
+}
 tree.ReplicatedStorage.__AutoPlayTest = { $className: 'NumberValue', $properties: { Value: Number(duration) } };
 // Scénario côté serveur : map principale (HubServer) ou match ranked contre le bot (MatchServer).
 const serverScenario = mode === 'match' ? 'MatchServer.luau' : 'HubServer.luau';

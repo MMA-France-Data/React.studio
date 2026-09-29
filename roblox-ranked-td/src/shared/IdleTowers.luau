@@ -9,23 +9,42 @@
 --   Archer du rempart   -> tireur rapide à longue portée (21) et flèches enflammées : fort contre les files
 --                          d'ennemis et sur les vagues de boss (il tue aussi l'escorte) ; garde un vrai rôle
 --                          toute la partie (le joueur simulé l'améliore encore après la vague 100)
---   Totem de givre      -> ralentit tout (-60 %) : le meilleur soutien, surtout contre Levées et Charges
+--   Totem de givre      -> tour de CONTRÔLE : ralentit tout (-60 %) et rend les ennemis de son aura
+--                          FRAGILES (+X % de dégâts reçus des autres tours, sauf le Mage des tempêtes, X
+--                          monte avec son niveau) ; ses propres dégâts restent faibles (pas de « tout givre »)
 --   Catapulte           -> grosse zone contre les foules tassées
---   Mage des tempêtes   -> contrôle : petite zone (2,5) + ralentissement pour les ennemis collés
---   Baliste lourde      -> gros carreaux à longue portée (30), la tour « à tout faire » du joueur simulé
+--   Mage des tempêtes   -> contrôle : petite zone (2,5) + ralentissement TRÈS fort (-85 %) mais court
+--   Baliste lourde      -> gros carreaux PERÇANTS à longue portée (30) : vise le plus résistant, et le
+--                          carreau touche tous les ennemis sur sa ligne
 --   Sorcier des arcanes -> rayon qui monte : bat la Baliste contre les lents (boss, colosse, chevaliers
 --                          lourds), perd contre les rapides ; très fort avec un Totem de givre
---   Oracle / Trébuchet  -> légendaires, rares : bien plus fortes à niveau égal (elles ont peu de doublons)
+--   Oracle / Trébuchet  -> légendaires, rares : bien plus fortes à niveau égal (elles ont peu de doublons) ;
+--                          le Trébuchet écrase le plus gros groupe du chemin et l'étourdit (faible contre
+--                          un boss seul, exprès)
 -- Les tours communes reçoivent beaucoup plus de doublons que les légendaires, ce qui les garde utiles.
 -- La portée compte énormément : 30 pour la Baliste couvre ~2 fois plus de chemin que 21 pour l'Archer,
 -- 70 pour le Trébuchet couvre tout le chemin ; ces tours ont donc moins de dégâts par seconde.
 -- Projectiles (flèches, rochers, carreaux, pierres) : la tour vise l'endroit où sera l'ennemi, et les dégâts
 -- tombent à l'impact, pas au moment du tir (voir PlotGame.luau).
+--
+-- CONTRÔLES (règle du propriétaire : « aucun cumul de ralentissement ») : un ennemi ne subit qu'UN SEUL effet
+-- de contrôle à la fois (ralentissement du Totem de givre, ralentissement du Mage des tempêtes,
+-- étourdissement du Trébuchet royal), et sa force ne se multiplie jamais. Le même TYPE de tour peut prolonger
+-- son propre effet ; un autre type ne peut rien tant que l'effet en cours dure (premier arrivé, premier
+-- servi). Totem de givre et Mage des tempêtes ne se cumulent donc pas : le joueur choisit. Détails :
+-- applyControl dans PlotGame.luau. La fragilité du Totem n'est PAS un contrôle (elle s'applique toujours).
+--
 -- Façons de toucher (kind) :
 --   "Single" : une cible ; "Splash" : une zone autour du point d'impact (rayon `splash`) ;
+--   "Pierce" : un carreau qui transperce tout sur la ligne tour -> point d'impact (demi-largeur `pierceWidth`) ;
 --   "Aura" : tous les ennemis à portée ; "Chain" : un éclair qui rebondit ; "Beam" : rayon continu.
+-- Façons de viser (targeting) : "First" = le plus avancé, "Strongest" = le plus résistant, "Crowd" = le point
+-- du chemin où la zone touchera le plus d'ennemis (Trébuchet, voir PlotGame:pickCrowdTarget).
 -- Avec projectileSpeed (studs par seconde), la tour lance un projectile (temps de vol : flightTime) ;
 -- sans, elle touche tout de suite.
+-- Effets : slow + slowDuration = ralentissement (contrôle) ; stunDuration = étourdissement (contrôle, vitesse
+-- 0) ; fragilityBase/PerLevel/Max = fragilité du Totem ; ignoresFragility = ses dégâts ne profitent pas de la
+-- fragilité. idealAgainst = ligne « Idéale contre : ... » de la fiche de la tour.
 local IdleConfig = require(script.Parent.IdleConfig)
 
 local IdleTowers = {}
@@ -70,27 +89,47 @@ IdleTowers.Defs = {
 		fireDamageRatio = 0.4,
 		fireTick = 0.5,
 		fireMaxPatches = 5,
+		idealAgainst = "les files d'ennemis et l'escorte des boss (le feu brûle ceux qui suivent)",
 	},
 	Frost = {
 		rarity = "Common",
 		displayName = "Totem de givre",
-		description = "Une rune glaciale blesse et ralentit fortement les troupes proches.",
+		description = "", -- écrite plus bas (elle cite la fragilité)
 		kind = "Aura",
 		color = Color3.fromRGB(150, 230, 255),
 		placeCost = 25,
-		-- Touche tous les ennemis proches à chaque seconde : la meilleure tour contre les Levées d'écuyers et
-		-- les Charges de cavalerie, et la plus forte de toutes au début (simulateur). 6 dégâts (4,2 avant,
-		-- « il ne fait presque pas de dégâts ») : comme les ennemis restent 2 fois plus longtemps dans son
-		-- aura, chaque passage fait ~2 fois plus de dégâts qu'avant. Plus (8 dégâts, portée 12, -65 %), il
-		-- était la meilleure tour contre presque tout jusqu'à la vague 100 : les autres ne servaient plus.
-		damage = 6,
+		-- Tour de CONTRÔLE d'abord (demande du propriétaire : à niveau égal, il faisait plus de dégâts que la
+		-- Catapulte). Touche tous les ennemis proches à chaque impulsion, mais ses dégâts restent faibles :
+		-- 2 (6 avant). Réglé avec tools/balance : à 3, une tour seule faisait encore 1,2 fois les dégâts de la
+		-- Catapulte contre une foule de 30 écuyers (même niveau) ; à 2, 0,8 fois. Il ne doit JAMAIS permettre une
+		-- partie « tout givre » : sa force vient de la fragilité, qui renforce les AUTRES tours.
+		damage = 2,
 		range = 11,
 		cooldown = 1,
-		-- -60 % de vitesse (25 % avant, presque invisible). Dure 2,5 s : plus que le temps entre deux
-		-- impulsions (1 s), donc un ennemi dans l'aura reste ralenti tout le temps, et encore un peu après.
-		-- Les ralentissements ne s'additionnent pas : le plus fort gagne (applySlow dans PlotGame.luau).
+		-- -60 % de vitesse. Dure 2,5 s : plus que le temps entre deux impulsions (1 s), donc un ennemi dans
+		-- l'aura reste ralenti tout le temps, et encore un peu après. C'est un CONTRÔLE : un seul à la fois par
+		-- ennemi (voir plus haut) ; deux Totems = un seul -60 %, jamais plus.
 		slow = 0.6,
 		slowDuration = 2.5,
+		-- FRAGILITÉ : les ennemis dans l'aura prennent +X % de dégâts de TOUTES les AUTRES tours sauf le Mage des
+		-- tempêtes (pas de synergie Givre + Mage, demande du propriétaire). X monte avec le niveau du Totem,
+		-- pour que l'améliorer vaille toujours le coup :
+		--   X = min(fragilityMax, fragilityBase + fragilityPerLevel x (niveau - 1))
+		--   niveau 1 : +10 %, niveau 11 : +30 %, niveau 46 : +100 %, +300 % au plus (niveau 146).
+		-- Gardé après l'équilibrage (tools/balance/RESULTS.md) : le joueur simulé pose 3 à 5 Totems et continue
+		-- d'en améliorer un (niveau ~68 et +144 % vers la vague 100) ; à +1,5 %/niveau et +200 % au plus, rien de
+		-- mieux. Deux Totems ne s'additionnent pas : le plus fort
+		-- gagne. Elle suit l'aura : elle dure encore fragilityDuration s après la sortie (comme le ralentissement).
+		-- Doublons et runes ne la changent pas (seulement le niveau).
+		fragilityBase = 0.1,
+		fragilityPerLevel = 0.02,
+		fragilityMax = 3,
+		fragilityDuration = 2.5,
+		-- Les dégâts des Totems ne profitent pas de la fragilité (ni la sienne, ni celle d'un autre Totem) : sinon,
+		-- avec +300 % au plus, un Totem ferait jusqu'à 4 fois ses dégâts et une partie « tout givre » redeviendrait
+		-- la meilleure (ses dégâts doivent rester faibles). Mettre false pour qu'ils en profitent.
+		ignoresFragility = true,
+		idealAgainst = "les Charges de cavalerie et les Levées ; rend tes autres tours plus fortes",
 	},
 	Bomb = {
 		rarity = "Rare",
@@ -107,13 +146,15 @@ IdleTowers.Defs = {
 		-- Tir en cloche : vol = distance / 24 studs par seconde, 0,45 s au moins (~0,45 à 0,65 s).
 		projectileSpeed = 24,
 		projectileMinFlight = 0.45,
+		idealAgainst = "les foules tassées (Levées d'écuyers)",
 	},
 	Tesla = {
 		rarity = "Rare",
 		displayName = "Mage des tempêtes",
-		description = "Foudroie une petite zone : blesse et ralentit les ennemis collés les uns aux autres.",
+		description = "", -- écrite plus bas (elle cite le ralentissement)
 		-- La foudre tombe tout de suite (pas de projectile) sur l'ennemi de tête, et touche aussi ceux
-		-- qui sont collés à lui : tous prennent les dégâts ET le ralentissement (le plus fort gagne).
+		-- qui sont collés à lui : tous prennent les dégâts ET le ralentissement (s'ils ne subissent pas déjà
+		-- le contrôle d'une autre tour, voir « CONTRÔLES » plus haut).
 		kind = "Splash",
 		targeting = "First",
 		color = Color3.fromRGB(250, 230, 80),
@@ -121,20 +162,35 @@ IdleTowers.Defs = {
 		-- Réglé avec tools/balance : avec sa zone, le ralentissement touche plusieurs ennemis à chaque éclair.
 		-- À 14 dégâts, -60 % pendant 1,2 s et rayon 3, plusieurs Mages ralentissaient TOUTE la vague : il était
 		-- 4 à 10 fois meilleur que les autres tours contre les Escarmouches, Levées et Charges (banc d'essai) et
-		-- remplaçait tout, Catapulte comprise. Maintenant : parmi les 2-3 meilleures contre les Levées et les
-		-- Charges, un vrai soutien (ralentissement), sans écraser le Totem ni la Catapulte.
-		damage = 10,
+		-- remplaçait tout, Catapulte comprise. Avec -85 % pendant 0,4 s (plus bas), une équipe de Mages seuls
+		-- reste la meilleure tour non légendaire contre ces 3 vagues au banc d'essai (vagues 50+), mais le joueur
+		-- simulé n'en pose que 2 à 8, et « tout Mage » finit 3 à 5 vagues derrière son mélange à partir de 10 h
+		-- de jeu (1 vague devant à 5 h ; tools/balance/RESULTS.md).
+		damage = 10, -- inchangé (demande du propriétaire)
 		range = 16,
 		cooldown = 0.8,
 		splash = 2.5, -- vraiment petite : un tiers de la Catapulte (7) ; touche les ennemis collés à sa cible
-		slow = 0.3, -- -30 % (le Totem : -60 %) ; les ralentissements ne s'additionnent pas, le plus fort gagne
-		slowDuration = 0.8,
+		-- Ralentissement COURT mais bien plus fort que celui du Totem (-85 % contre -60 %) : le joueur choisit
+		-- entre le Totem et le Mage, ils ne se cumulent pas (un seul contrôle à la fois). 0,4 s : moins que le
+		-- temps entre deux éclairs (0,8 s), l'ennemi repart entre deux. -30 % pendant 0,8 s avant.
+		-- Réglé avec tools/balance : à 0,5 s, une défense « tout Mage » (plusieurs Mages se relaient et
+		-- gardent la tête de la vague presque à l'arrêt) allait aussi loin que le mélange du joueur ; à 0,3 s,
+		-- le joueur simulé ne posait presque plus de Mage.
+		slow = 0.85,
+		slowDuration = 0.4,
+		-- Ses dégâts ne profitent pas de la fragilité du Totem de givre (pas de synergie Givre + Mage).
+		ignoresFragility = true,
+		idealAgainst = "les petits groupes rapides (cavaliers) : coups de frein très forts",
 	},
 	Rocket = {
 		rarity = "Epic",
 		displayName = "Baliste lourde",
-		description = "Un trait dévastateur à longue portée contre chevaliers lourds et boss.",
-		kind = "Splash",
+		description = "Un carreau perçant à longue portée : il vise le plus résistant et transperce tous les ennemis sur sa ligne.",
+		-- Carreau PERÇANT : la Baliste vise toujours l'ennemi le plus résistant, mais à l'impact, TOUS les
+		-- ennemis à moins de pierceWidth studs du segment tour -> point d'impact prennent les dégâts (sa
+		-- cible comprise, touchée même si un ralentissement l'a fait dévier). Remplace sa toute petite zone
+		-- (rayon 2) : elle doit servir au milieu de partie, pas seulement contre les boss.
+		kind = "Pierce",
 		targeting = "Strongest",
 		color = Color3.fromRGB(200, 60, 60),
 		placeCost = 80,
@@ -142,9 +198,14 @@ IdleTowers.Defs = {
 		-- vague (banc d'essai) ; maintenant elle le bat contre les Levées d'écuyers au début.
 		damage = 50,
 		range = 30,
-		cooldown = 4, -- tire rarement : excellente contre les gros, faible contre les foules
-		splash = 2,
+		cooldown = 4, -- tire rarement : excellente contre les gros
+		-- Demi-largeur du carreau perçant, en studs. 1,25 (1,5 au premier essai : la Baliste faisait jusqu'à 90 %
+		-- des dégâts des vagues 26-50 ; tools/balance). Pas moins : le test Studio place un ennemi à 1 stud du
+		-- trait, qui doit être touché. Ses dégâts (50) ne bougent pas : les duels Sorcier / Baliste contre un
+		-- seul ennemi restent les mêmes.
+		pierceWidth = 1.25,
 		projectileSpeed = 75, -- carreau lourd, tir tendu : ~0,15 à 0,45 s de vol
+		idealAgainst = "les chevaliers lourds, les boss et les ennemis alignés",
 	},
 	Laser = {
 		rarity = "Epic",
@@ -177,6 +238,7 @@ IdleTowers.Defs = {
 		range = 14, -- 18 avant : les ennemis rapides la traversent plus vite
 		beamRampRate = 2, -- +2 par seconde sur la même cible
 		beamRampMax = 25, -- x25 au plus (175/s au niveau 1), atteint après 12 s sur la même cible
+		idealAgainst = "les boss, les colosses et les ennemis lents",
 	},
 	Chain = {
 		rarity = "Legendary",
@@ -196,24 +258,35 @@ IdleTowers.Defs = {
 		range = 20,
 		cooldown = 1.2,
 		chains = 4,
+		idealAgainst = "les vagues nombreuses (4 ennemis par éclair)",
 	},
 	Orbital = {
 		rarity = "Legendary",
 		displayName = "Trébuchet royal",
-		description = "Une pierre runique frappe l'ennemi le plus résistant, où qu'il soit.",
+		description = "Une pierre runique écrase le plus gros groupe d'ennemis à portée et les étourdit un instant.",
+		-- Vise le point du chemin où sa GRANDE zone touchera le plus d'ennemis (positions prévues à l'arrivée
+		-- de la pierre ; à égalité, le groupe le plus avancé), partout à portée (70 : tout le chemin). Une
+		-- légendaire doit être puissante contre les foules au milieu de partie ; contre un boss seul, elle est
+		-- faible, exprès (avant : elle visait le plus résistant avec une zone de 5).
 		kind = "Splash",
-		targeting = "Strongest",
+		targeting = "Crowd",
 		color = Color3.fromRGB(120, 240, 255),
 		placeCost = 400,
-		-- 70 (40 avant) : légendaire rare, peu de doublons (voir l'Oracle). Il touche tout le chemin (portée 70) :
-		-- le meilleur contre la Garde colossale à niveau égal, le Sorcier reste devant avec ses doublons.
-		damage = 70,
+		-- 35 (70 au premier essai de la visée « foule ») : légendaire rare, peu de doublons (voir l'Oracle).
+		-- Réglé avec tools/balance : à 70, avec sa portée qui couvre tout le chemin, il était AUSSI le meilleur
+		-- contre un colosse ou un boss seul (2 fois la Baliste en duel) et faisait 90 à 100 % des dégâts
+		-- après la vague 60 (le joueur simulé en posait 10) ; à 20-25, le joueur ne le posait presque plus.
+		damage = 35,
 		range = 70,
 		cooldown = 5,
-		splash = 5,
+		splash = 10, -- grande zone (5 avant ; la Catapulte : 7)
+		-- Étourdit (vitesse 0) tous les ennemis de la zone pendant stunDuration s. C'est un CONTRÔLE : refusé
+		-- sur un ennemi déjà ralenti par une autre tour (les dégâts, eux, tombent toujours).
+		stunDuration = 0.5,
 		-- Grande cloche : vol = distance / 45 studs par seconde, 0,8 s au moins (~0,8 à 1,6 s).
 		projectileSpeed = 45,
 		projectileMinFlight = 0.8,
+		idealAgainst = "les grosses foules, n'importe où sur le chemin (faible contre un boss seul)",
 	},
 }
 
@@ -228,6 +301,10 @@ do
 	archer.description = `Flèches enflammées : chaque flèche laisse une petite zone de feu qui brûle les ennemis ({frenchNumber(archer.fireDamageRatio * 100)} % de ses dégâts par seconde).`
 	local sorcerer = IdleTowers.Defs.Laser
 	sorcerer.description = `Rayon continu : ses dégâts montent tant qu'il reste sur la même cible (jusqu'à x{frenchNumber(sorcerer.beamRampMax)}). Terrible contre les boss et les colosses, faible contre les ennemis rapides.`
+	local frost = IdleTowers.Defs.Frost
+	frost.description = `Ralentit de {frenchNumber(frost.slow * 100)} % tout ce qui passe dans son aura et rend ces ennemis fragiles : +{frenchNumber(frost.fragilityBase * 100)} % de dégâts reçus de tes autres tours (sauf le Mage des tempêtes), +{frenchNumber(frost.fragilityPerLevel * 100)} % par niveau.`
+	local mage = IdleTowers.Defs.Tesla
+	mage.description = `Foudroie une petite zone et ralentit très fort (-{frenchNumber(mage.slow * 100)} %) mais brièvement les ennemis touchés. Ne se cumule pas avec le Totem de givre.`
 end
 
 -- Améliorations : niveaux illimités. Chaque niveau multiplie les dégâts, et chaque
@@ -236,7 +313,19 @@ end
 -- l'Archer (10 pièces) finissait 5 fois plus fort qu'un Trébuchet (400 pièces).
 local statsCache = {}
 
--- Stats effectives d'une tour à un niveau donné (dégâts multipliés par le niveau).
+-- Fragilité donnée par une tour à ce niveau (0 si elle n'en donne pas) : +0,1 = +10 % de dégâts reçus.
+--   min(fragilityMax, fragilityBase + fragilityPerLevel x (niveau - 1)), toujours un nombre fini.
+function IdleTowers.fragilityAt(def, level: number): number
+	if not def.fragilityBase then
+		return 0
+	end
+	local steps = math.max(0, (tonumber(level) or 1) - 1)
+	return math.clamp(def.fragilityBase + def.fragilityPerLevel * steps, 0, def.fragilityMax)
+end
+
+-- Stats effectives d'une tour à un niveau donné (dégâts multipliés par le niveau). En plus des champs de sa
+-- définition : towerType (sa clé, ex. "Frost" : la règle des contrôles compare les types de tours), level,
+-- et fragility (Totem de givre, voir fragilityAt).
 function IdleTowers.stats(towerType: string, level: number)
 	local key = towerType .. ":" .. level
 	local cached = statsCache[key]
@@ -245,7 +334,12 @@ function IdleTowers.stats(towerType: string, level: number)
 	end
 	local def = IdleTowers.Defs[towerType]
 	local stats = table.clone(def)
+	stats.towerType = towerType
+	stats.level = level
 	stats.damage = def.damage * IdleConfig.UPGRADE_DAMAGE ^ (level - 1)
+	if def.fragilityBase then
+		stats.fragility = IdleTowers.fragilityAt(def, level)
+	end
 	statsCache[key] = stats
 	return stats
 end
@@ -288,13 +382,36 @@ function IdleTowers.effectiveStats(towerType: string, level: number, dupes: numb
 	return stats
 end
 
--- Dégâts par seconde (une Foudre en chaîne compte toutes ses cibles). Rayon continu : au début (x1),
--- voir beamMaxDps pour le maximum. Le feu des flèches n'est pas compté (voir fireDps).
+-- Dégâts par seconde sur UNE cible (une Foudre en chaîne compte ses 4 cibles). Les tours de zone (Catapulte,
+-- Mage, Trébuchet), la Baliste perçante et le Totem (aura) touchent souvent plusieurs ennemis à chaque coup :
+-- ce n'est pas compté ici (les fiches affichent plutôt dégâts par coup, attaques par seconde et zone).
+-- Rayon continu : au début (x1), voir beamMaxDps pour le maximum. Le feu des flèches n'est pas compté (voir
+-- fireDps), la fragilité du Totem non plus (elle renforce les autres tours). Sert au panneau du fief
+-- (PlotBoard.luau) : toujours un nombre fini pour toutes les tours.
 function IdleTowers.dpsOf(stats): number
 	if stats.kind == "Beam" then
 		return stats.damage
 	end
 	return stats.damage * (stats.chains or 1) / stats.cooldown
+end
+
+-- Attaques par seconde (nil pour le rayon continu : afficher « continu »).
+function IdleTowers.attacksPerSecond(stats): number?
+	if stats.kind == "Beam" then
+		return nil
+	end
+	return 1 / stats.cooldown
+end
+
+-- Effet de contrôle de la tour pour sa fiche : { kind = "Slow" | "Stun", strength (0,6 = -60 % ; 1 pour un
+-- étourdissement), duration (s) }, ou nil. Un seul contrôle à la fois par ennemi (voir « CONTRÔLES »).
+function IdleTowers.controlOf(stats)
+	if stats.stunDuration then
+		return { kind = "Stun", strength = 1, duration = stats.stunDuration }
+	elseif stats.slow then
+		return { kind = "Slow", strength = stats.slow, duration = stats.slowDuration }
+	end
+	return nil
 end
 
 ----------------------------------------------------------------------

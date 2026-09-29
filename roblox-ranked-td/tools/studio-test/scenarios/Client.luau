@@ -146,4 +146,392 @@ return function(log)
 	ReplicatedStorage.Remotes.MachineAction:FireServer("SpinTower", 10)
 	task.wait(3)
 	shot("altar_x10")
+
+	----------------------------------------------------------------------
+	-- Modèles perso des ennemis (ReplicatedStorage.EnemyModels, CustomModels.luau) : un modèle « Swarm »
+	-- posé pendant la partie sert aux nouveaux écuyers, sans ses scripts ; les autres types gardent leurs
+	-- blocs. Vérifié par le module (tous les cas), par la galerie Studio (construite avec) et par les
+	-- ennemis des parcelles qui apparaissent pendant le test (PlotRenderer).
+	----------------------------------------------------------------------
+	local function check(ok, message)
+		log(if ok then "Info" else "Error", `[{if ok then "PASS" else "FAIL"}] {message}`)
+	end
+	local Enemies = require(ReplicatedStorage.Shared.Enemies)
+	local CustomModels = require(ReplicatedStorage.Shared.CustomModels)
+	local modelsFolder = ReplicatedStorage:FindFirstChild("EnemyModels")
+	check(modelsFolder ~= nil, "dossier ReplicatedStorage.EnemyModels présent (assets/EnemyModels via Rojo)")
+	if not modelsFolder then
+		modelsFolder = Instance.new("Folder")
+		modelsFolder.Name = "EnemyModels"
+		modelsFolder.Parent = ReplicatedStorage
+	end
+	-- Vrais modèles du projet (assets/EnemyModels, ex. le Roi carmin « Boss_0 ») : leur type les garde, les
+	-- vérifications « blocs » ci-dessous en tiennent compte.
+	local realModels = {}
+	for _, child in modelsFolder:GetChildren() do
+		if child:IsA("Model") or child:IsA("BasePart") then
+			realModels[string.lower(child.Name)] = child.Name
+		end
+	end
+	-- Nom du vrai modèle attendu pour ce type et ce palier (nil = blocs).
+	local function realModelFor(enemyType, palier)
+		return realModels[string.lower(`{enemyType}_{palier % 10}`)] or realModels[string.lower(enemyType)]
+	end
+	local function scriptsIn(instance)
+		local count = 0
+		for _, descendant in instance:GetDescendants() do
+			if descendant:IsA("LuaSourceContainer") then
+				count += 1
+			end
+		end
+		return count
+	end
+	-- Modèle de test façon Toolbox : pièces ancrées et avec collision, soudées entre elles (WeldConstraint),
+	-- 3 scripts (désactivés) dedans. Pièces de 2 studs empilées : 2 * partCount studs de haut.
+	local function testModel(name, partCount)
+		local model = Instance.new("Model")
+		model.Name = name
+		for i = 1, partCount do
+			local part = Instance.new("Part")
+			part.Name = "Piece" .. i
+			part.Anchored = true
+			part.Size = Vector3.new(2, 2, 2)
+			part.Position = Vector3.new(0, 1 + (i - 1) * 2, 0)
+			part.Color = Color3.fromRGB(80, 200, 90)
+			part.Parent = model
+			if i > 1 then
+				local weld = Instance.new("WeldConstraint")
+				weld.Part0 = model:FindFirstChild("Piece1")
+				weld.Part1 = part
+				weld.Parent = part
+			end
+		end
+		model.PrimaryPart = model:FindFirstChild("Piece1")
+		for _, className in { "Script", "LocalScript", "ModuleScript" } do
+			local code = Instance.new(className)
+			if code:IsA("BaseScript") then
+				code.Enabled = false
+			end
+			code.Parent = model.PrimaryPart
+		end
+		return model
+	end
+	-- Modèle utilisé pour ce type et ce palier (nil = blocs), d'après une copie faite par le module.
+	local function usedModel(enemyType, palier)
+		local root = CustomModels.spawn(enemyType, Enemies.Defs[enemyType], palier)
+		local name = root and root:GetAttribute("CustomModel")
+		if root then
+			root:Destroy()
+		end
+		return name
+	end
+
+	-- 1) Module : modèle « Swarm » (2 pièces) posé pendant la partie.
+	-- (task.wait après chaque changement du dossier : les événements peuvent arriver un peu après.)
+	local swarmModel = testModel("Swarm", 2)
+	swarmModel.Parent = modelsFolder
+	task.wait(0.1)
+	local swarmDef = Enemies.Defs.Swarm
+	local root, entry = CustomModels.spawn("Swarm", swarmDef, 0)
+	check(root ~= nil and root:GetAttribute("CustomModel") == "Swarm", "écuyer (Swarm) : le modèle perso « Swarm » remplace les blocs")
+	if root and entry then
+		local parts, anchored, solid = 0, 0, 0
+		for _, descendant in root:GetDescendants() do
+			if descendant:IsA("BasePart") then
+				parts += 1
+				anchored += if descendant.Anchored then 1 else 0
+				solid += if descendant.CanCollide or descendant.CanQuery or descendant.CanTouch then 1 else 0
+			end
+		end
+		check(
+			scriptsIn(root) == 0 and scriptsIn(swarmModel) == 3,
+			`scripts retirés de la copie ({scriptsIn(root)} restant ; l'original en garde {scriptsIn(swarmModel)})`
+		)
+		check(
+			parts == 2 and anchored == 0 and solid == 0 and root.Anchored and root:FindFirstChildWhichIsA("WeldConstraint") ~= nil,
+			`2 pièces non ancrées, sans collision, soudées à la racine ancrée ({parts} pièces, {anchored} ancrées, {solid} solides)`
+		)
+		local expected = CustomModels.targetHeight("Swarm", swarmDef)
+		check(math.abs(entry.height - expected) < 0.05, `mis à l'échelle : {string.format("%.2f", entry.height)} studs de haut (attendu {string.format("%.2f", expected)}, 4 avant)`)
+		root:Destroy()
+	end
+	-- Paliers : « Swarm_3 » passe avant « Swarm » aux vagues 31-40 (et 131-140), pas ailleurs.
+	local swarm3 = testModel("Swarm_3", 3)
+	swarm3.Parent = modelsFolder
+	task.wait(0.1)
+	local at3, at13, at2 = usedModel("Swarm", 3), usedModel("Swarm", 13), usedModel("Swarm", 2)
+	check(at3 == "Swarm_3" and at13 == "Swarm_3" and at2 == "Swarm", `Swarm_3 avant Swarm (palier 3 : {at3}, palier 13 : {at13}, palier 2 : {at2})`)
+	swarm3:Destroy()
+	task.wait(0.1)
+	local after = usedModel("Swarm", 3)
+	check(after == "Swarm", `Swarm_3 retiré pendant la partie : retour à « Swarm » (obtenu {after})`)
+	-- Les autres types gardent leurs blocs (ou leur vrai modèle du projet).
+	local wrong = {}
+	for _, enemyType in Enemies.ORDER do
+		if enemyType ~= "Swarm" and usedModel(enemyType, 0) ~= realModelFor(enemyType, 0) then
+			table.insert(wrong, enemyType)
+		end
+	end
+	check(#wrong == 0, `autres types : blocs, ou leur vrai modèle du projet ({if #wrong == 0 then "tous" else table.concat(wrong, ", ") .. " avec un autre modèle"})`)
+
+	-- Animations de marche et de mort : numéros écrits dans le code (CustomModels.SETTINGS) ou objets Animation
+	-- du modèle (« Walking » / « Dead », les noms des exports Meshy). Animations de Roblox (marche et chute R15)
+	-- pour le test : la mort doit se charger et se jouer.
+	local WALK_TEST_ID, DEATH_TEST_ID = 507777826, 507767968
+	CustomModels.SETTINGS.swarm_5 = { walk = WALK_TEST_ID, death = DEATH_TEST_ID }
+	local swarm5 = testModel("Swarm_5", 2)
+	swarm5.Parent = modelsFolder
+	task.wait(0.1)
+	local root5, entry5 = CustomModels.spawn("Swarm", swarmDef, 5)
+	check(
+		entry5 ~= nil
+			and entry5.animation ~= nil
+			and entry5.animation.AnimationId == `rbxassetid://{WALK_TEST_ID}`
+			and entry5.deathAnimation ~= nil
+			and entry5.deathAnimation.AnimationId == `rbxassetid://{DEATH_TEST_ID}`,
+		"réglages du code (CustomModels.SETTINGS) : marche et mort de « Swarm_5 » lues"
+	)
+	if root5 and entry5 then
+		root5.Parent = workspace
+		local death = CustomModels.loadDeath(root5, entry5)
+		local length = 0
+		if death then
+			death:Play()
+			for _ = 1, 50 do
+				length = death.Length
+				if length > 0 then
+					break
+				end
+				task.wait(0.1)
+			end
+			death:Stop(0)
+			death:Destroy()
+		end
+		check(death ~= nil and length > 0, `animation de mort chargée et jouée (durée {string.format("%.2f", length)} s)`)
+		root5:Destroy()
+	end
+	CustomModels.SETTINGS.swarm_5 = nil
+	swarm5:Destroy()
+	local swarm6 = testModel("Swarm_6", 2)
+	for name, id in { Walking = WALK_TEST_ID, Dead = DEATH_TEST_ID } do
+		local animation = Instance.new("Animation")
+		animation.Name = name
+		animation.AnimationId = `rbxassetid://{id}`
+		animation.Parent = swarm6
+	end
+	swarm6.Parent = modelsFolder
+	task.wait(0.1)
+	local root6, entry6 = CustomModels.spawn("Swarm", swarmDef, 6)
+	check(
+		entry6 ~= nil
+			and entry6.animation ~= nil
+			and entry6.animation.AnimationId == `rbxassetid://{WALK_TEST_ID}`
+			and entry6.deathAnimation ~= nil
+			and entry6.deathAnimation.AnimationId == `rbxassetid://{DEATH_TEST_ID}`,
+		"objets Animation « Walking » et « Dead » du modèle reconnus (marche et mort)"
+	)
+	if root6 then
+		root6:Destroy()
+	end
+	swarm6:Destroy()
+	task.wait(0.1)
+
+	-- Roi carmin (assets/EnemyModels/Boss_0.rbxm, importé depuis le .glb de ChatGPT) : boss des vagues 1-10 ;
+	-- à la bonne hauteur, tourné dans le sens de la marche (ses orteils vers -Z de la racine), ses animations
+	-- publiées (CustomModels.SETTINGS.boss_0) se chargent.
+	if modelsFolder:FindFirstChild("Boss_0") then
+		local bossDef = Enemies.Defs.Boss
+		local bossRoot, bossEntry = CustomModels.spawn("Boss", bossDef, 0, CFrame.new(0, 200, 0))
+		check(bossRoot ~= nil and bossRoot:GetAttribute("CustomModel") == "Boss_0", "Roi carmin : modèle perso « Boss_0 » pour le boss des vagues 1-10")
+		if bossRoot and bossEntry then
+			local expected = CustomModels.targetHeight("Boss", bossDef)
+			check(math.abs(bossEntry.height - expected) < 0.1, `Roi carmin : {string.format("%.2f", bossEntry.height)} studs de haut (attendu {string.format("%.2f", expected)})`)
+			bossRoot.Parent = workspace
+			local sum = Vector3.zero
+			for _, bone in bossRoot:GetDescendants() do
+				if bone:IsA("Bone") and string.find(string.lower(bone.Name), "toe", 1, true) and bone.Parent and bone.Parent:IsA("Bone") then
+					sum += bossRoot.CFrame:VectorToObjectSpace(bone.WorldPosition - (bone.Parent :: Bone).WorldPosition)
+				end
+			end
+			local flat = Vector3.new(sum.X, 0, sum.Z)
+			local forward = if flat.Magnitude > 1e-4 then -flat.Unit.Z else 0
+			check(forward > 0.9, `Roi carmin tourné dans le sens de la marche (orteils vers l'avant : {string.format("%.2f", forward)}, 1 = parfait)`)
+			local lengths = {}
+			for label, loader in { marche = CustomModels.loadWalk, mort = CustomModels.loadDeath } do
+				local track = loader(bossRoot, bossEntry)
+				local length = 0
+				if track then
+					track:Play()
+					for _ = 1, 80 do
+						length = track.Length
+						if length > 0 then
+							break
+						end
+						task.wait(0.1)
+					end
+					track:Stop(0)
+					track:Destroy()
+				end
+				lengths[label] = length
+			end
+			check(
+				lengths.marche > 0 and lengths.mort > 0,
+				`Roi carmin : animations publiées chargées (marche {string.format("%.2f", lengths.marche)} s, mort {string.format("%.2f", lengths.mort)} s)`
+			)
+			bossRoot:Destroy()
+		end
+	else
+		log("Info", "[TEST] Roi carmin : pas de Boss_0 dans EnemyModels, vérification sautée")
+	end
+
+	-- 2) En jeu : les ennemis qui apparaissent sur les parcelles à partir de maintenant (PlotRenderer).
+	local live = { swarm = 0, swarmBad = 0, other = 0, otherBad = 0 }
+	local liveConnection = nil
+	local enemiesFolder = workspace:FindFirstChild("PlotEnemies")
+	if enemiesFolder then
+		liveConnection = enemiesFolder.ChildAdded:Connect(function(child)
+			local enemyType = child:GetAttribute("EnemyType")
+			if enemyType == "Swarm" then
+				live.swarm += 1
+				if child:GetAttribute("CustomModel") ~= "Swarm" or scriptsIn(child) > 0 then
+					live.swarmBad += 1
+				end
+			elseif enemyType then
+				local blocks = 0
+				for _, piece in child:GetChildren() do
+					blocks += if piece:IsA("BasePart") then 1 else 0
+				end
+				live.other += 1
+				if child:GetAttribute("CustomModel") ~= nil or blocks == 0 then
+					live.otherBad += 1
+				end
+			end
+		end)
+	end
+	local liveStart = os.clock()
+
+	-- 3) Galerie Studio construite avec le modèle : 10 écuyers « modèle perso », les 50 autres en blocs (sauf
+	-- les cases des vrais modèles du projet, ex. le boss des vagues 1-10 avec « Boss_0 »).
+	if not ReplicatedStorage:FindFirstChild("__AutoTestGallery") then
+		local request = Instance.new("BoolValue")
+		request.Name = "__AutoTestGallery"
+		request.Parent = ReplicatedStorage
+	end
+	for _ = 1, 100 do
+		if ReplicatedStorage:GetAttribute("GalleryReady") then
+			break
+		end
+		task.wait(0.2)
+	end
+	local gallery = workspace:FindFirstChild("EnemyGallery (Studio)")
+	check(gallery ~= nil and ReplicatedStorage:GetAttribute("GalleryReady") == true, "galerie des ennemis construite")
+	if gallery then
+		local customSwarm, swarmTotal, customOther, otherTotal, galleryScripts = 0, 0, 0, 0, 0
+		local plaques = { perso = 0, blocs = 0 }
+		-- Cases des autres types qui doivent montrer un vrai modèle du projet (10 paliers dans la galerie).
+		local expectedOther, unexpectedOther = 0, 0
+		for _, enemyType in Enemies.ORDER do
+			if enemyType ~= "Swarm" then
+				for palier = 0, 9 do
+					expectedOther += if realModelFor(enemyType, palier) then 1 else 0
+				end
+			end
+		end
+		-- Dans le Workspace : Piece1 juste sous le centre de la racine (le modèle suit sa racine) et Piece2
+		-- toujours soudée au-dessus, à l'écart mis à l'échelle (hauteur visée / 2 pour 2 pièces).
+		local expectedGap = CustomModels.targetHeight("Swarm", swarmDef) / 2
+		local worstGap, worstOffset = 0, 0
+		for _, child in gallery:GetChildren() do
+			local enemyType = child:GetAttribute("EnemyType")
+			if enemyType == "Swarm" then
+				swarmTotal += 1
+				customSwarm += if child:GetAttribute("CustomModel") == "Swarm" then 1 else 0
+				galleryScripts += scriptsIn(child)
+				local piece1, piece2 = child:FindFirstChild("Piece1", true), child:FindFirstChild("Piece2", true)
+				if child:IsA("BasePart") and piece1 and piece2 then
+					worstGap = math.max(worstGap, math.abs((piece2.Position - piece1.Position).Magnitude - expectedGap))
+					local offset = child.CFrame:PointToObjectSpace(piece1.Position)
+					worstOffset = math.max(worstOffset, Vector3.new(offset.X, 0, offset.Z).Magnitude)
+				else
+					worstGap = math.huge
+				end
+			elseif enemyType then
+				otherTotal += 1
+				local custom = child:GetAttribute("CustomModel")
+				customOther += if custom ~= nil then 1 else 0
+				unexpectedOther += if custom ~= nil and realModels[string.lower(custom)] == nil then 1 else 0
+			elseif child.Name == "Plaque" then
+				local label = child:FindFirstChildWhichIsA("TextLabel", true)
+				local text = label and label.Text or ""
+				if text:find("modèle perso") then
+					plaques.perso += 1
+				elseif text == "blocs" then
+					plaques.blocs += 1
+				end
+			end
+		end
+		check(
+			swarmTotal > 0
+				and customSwarm == swarmTotal
+				and galleryScripts == 0
+				and otherTotal > 0
+				and customOther == expectedOther
+				and unexpectedOther == 0,
+			`galerie : écuyers avec le modèle perso {customSwarm}/{swarmTotal} (scripts {galleryScripts}), autres : {customOther} avec leur vrai modèle (attendu {expectedOther}), {otherTotal - customOther} en blocs`
+		)
+		check(
+			plaques.perso == swarmTotal + expectedOther and plaques.blocs == otherTotal - expectedOther,
+			`galerie : plaques « modèle perso » {plaques.perso} (attendu {swarmTotal + expectedOther}) et « blocs » {plaques.blocs} (attendu {otherTotal - expectedOther})`
+		)
+		check(
+			swarmTotal > 0 and worstGap < 0.05 and worstOffset < 0.05,
+			`galerie : modèle perso porté par sa racine, pièces soudées restées ensemble après la mise à l'échelle (écart {string.format("%.3f", worstGap)}, décalage {string.format("%.3f", worstOffset)} studs)`
+		)
+		local row = ReplicatedStorage:GetAttribute("GalleryRow1")
+		local lookDirection = ReplicatedStorage:GetAttribute("GalleryLook")
+		if typeof(row) == "Vector3" and typeof(lookDirection) == "Vector3" then
+			-- Captures sans les fenêtres du jeu (les autres tests en ouvrent pendant ce temps).
+			local hidden = {}
+			for _, gui in player.PlayerGui:GetChildren() do
+				if gui:IsA("ScreenGui") and gui.Enabled then
+					gui.Enabled = false
+					table.insert(hidden, gui)
+				end
+			end
+			look(row - lookDirection * 16 + Vector3.new(0, 9, 0), row)
+			shot("gallery_custom_model")
+			-- Le Roi carmin de près, de face (s'il est dans le projet).
+			for _, child in gallery:GetChildren() do
+				if child:IsA("BasePart") and child:GetAttribute("CustomModel") == "Boss_0" then
+					look(child.Position - lookDirection * 13 + Vector3.new(0, 3, 0), child.Position + Vector3.new(0, 1, 0))
+					shot("gallery_boss_0")
+					break
+				end
+			end
+			for _, gui in hidden do
+				gui.Enabled = true
+			end
+			restoreCamera()
+		end
+	end
+
+	-- Fin de l'observation des parcelles : au plus 30 s après la pose du modèle, moins si des ennemis d'autres
+	-- types sont déjà apparus (les vagues du test n'ont pas forcément d'écuyers).
+	while os.clock() - liveStart < 30 and live.other < 3 do
+		task.wait(0.5)
+	end
+	if liveConnection then
+		liveConnection:Disconnect()
+	end
+	if live.swarm > 0 then
+		check(live.swarmBad == 0, `parcelles : nouveaux écuyers avec le modèle perso {live.swarm - live.swarmBad}/{live.swarm}`)
+	else
+		say("parcelles : aucun écuyer apparu pendant le test (pas de Levée) : modèle vérifié par le module et la galerie")
+	end
+	if live.other > 0 then
+		check(live.otherBad == 0, `parcelles : nouveaux ennemis des autres types en blocs {live.other - live.otherBad}/{live.other}`)
+	else
+		say("parcelles : aucun nouvel ennemi d'un autre type pendant le test")
+	end
+	swarmModel:Destroy() -- le reste de la partie retrouve les blocs
 end

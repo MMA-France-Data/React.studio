@@ -1,14 +1,27 @@
 --!native
 --!optimize 2
 -- Moteur de combat du simulateur : reproduit PlotGame:simulate (src/server/Hub/PlotGame.luau) à pas fixe.
---   apparitions (écarts de la vague, MAX_ENEMIES) -> déplacements (vitesse x ENEMY_SPEED_MULTIPLIER x facteur
---   du type d'ennemi, ralentissements) -> projectiles qui arrivent (dégâts à l'impact) -> tirs des tours (dans
---   l'ordre des emplacements ; rayon du Sorcier à chaque pas) -> zones de feu des flèches -> retrait des morts
---   -> fin de vague (UN SEUL ennemi au bout du chemin = vague ratée, pas de PV de base ; plus rien à faire
---   apparaître et plus d'ennemi = vague réussie).
+--   apparitions (écarts de la vague, MAX_ENEMIES, sortie à chaque mort, vague écrasée) -> déplacements (vitesse x
+--   ENEMY_SPEED_MULTIPLIER x facteur du type d'ennemi, contrôle en cours) -> projectiles qui arrivent (dégâts à
+--   l'impact) -> tirs des tours (dans l'ordre des emplacements ; rayon du Sorcier à chaque pas) -> zones de feu
+--   des flèches -> retrait des morts -> fin de vague (UN SEUL ennemi au bout du chemin = vague ratée, pas de PV
+--   de base ; plus rien à faire apparaître et plus d'ennemi = vague réussie).
 -- Comme PlotGame :
---   * ralentissements (applySlow) : ils ne s'additionnent pas, le plus fort gagne, un égal prolonge, un plus
---     faible est ignoré tant que l'actuel dure ;
+--   * une mort fait sortir le prochain ennemi tout de suite (IdleConfig.SPAWN_NEXT_ON_KILL) : chaque ennemi tué
+--     fait sortir UN ennemi de la file au pas suivant, même si d'autres sont en vie (toute la suite de la file
+--     avance d'autant) ; une fuite ne fait rien sortir ;
+--   * vague écrasée (IdleConfig.COMPRESS_EMPTY_SPAWNS) : plus AUCUN ennemi en vie, encore des ennemis à faire
+--     sortir et aucune mort qui attend son ennemi -> l'attente est sautée, le suivant sort à ce pas (toute la
+--     suite de la file avance d'autant) ;
+--   * CONTRÔLES (applyControl) : UN SEUL à la fois par ennemi (ralentissement du Totem de givre, du Mage des
+--     tempêtes, étourdissement du Trébuchet royal). Le même type de tour prolonge son effet (force inchangée),
+--     un autre type est refusé tant que l'effet dure (premier arrivé, premier servi) ;
+--   * fragilité du Totem de givre (applyFragility) : +X % de dégâts reçus des tours qui n'ont pas
+--     ignoresFragility (pas le Mage, pas les Totems) ; le plus fort des Totems gagne, un égal prolonge ;
+--   * carreau perçant (Baliste, kind « Pierce ») : à l'impact, tous les ennemis à moins de pierceWidth du segment
+--     tour -> point d'impact, et sa cible (hitLine) ;
+--   * Trébuchet royal (targeting « Crowd ») : vise le point où sa zone touchera le plus d'ennemis
+--     (pickCrowdTarget, mêmes positions prévues arrondies à CROWD_FLIGHT_STEP que le jeu) et étourdit ;
 --   * projectiles (Archer, Catapulte, Baliste, Trébuchet : projectileSpeed) : la tour vise l'endroit où SERA
 --     l'ennemi (predictImpact : sa vitesse, la fin de son ralentissement, le chemin), les dégâts tombent à
 --     l'impact (IdleTowers.flightTime) ; une zone touche autour du point d'impact, une flèche touche sa cible
@@ -17,7 +30,8 @@
 --     projectiles déjà en vol vont tuer ; les autres le prennent seulement s'il n'y a personne d'autre ;
 --   * flèches enflammées : zones de feu au sol (addFirePatch, burnFires : ravivées par la même tour,
 --     fireMaxPatches par tour, FIRE_MAX_PER_PLOT en tout) ;
---   * Mage des tempêtes : foudre instantanée sur une petite zone, dégâts ET ralentissement pour tous ;
+--   * Mage des tempêtes : foudre instantanée sur une petite zone, dégâts ET ralentissement (sauf s'il est
+--     refusé : un seul contrôle à la fois) pour tous ;
 --   * rayon du Sorcier (beamStep) : garde sa cible tant qu'elle vit et reste à portée, montée IdleTowers.beamRamp
 --     au milieu du pas, repart de x1 sur une nouvelle cible.
 -- Deux usages :
@@ -25,10 +39,10 @@
 --   Engine.hits(comp, tours)     : vague « immortelle » : les ennemis ne meurent jamais et on compte les coups
 --                                  que chaque tour peut porter à chaque groupe d'ennemis (plus, pour le rayon,
 --                                  la montée et le temps passé sur chaque groupe, et pour les flèches, les coups
---                                  de leurs zones de feu). Le joueur simulé s'en sert pour estimer ce que
---                                  rapporte un achat (Run.valueOf).
+--                                  de leurs zones de feu ; et, à part, ceux qui tombent sur un ennemi fragile).
+--                                  Le joueur simulé s'en sert pour estimer ce que rapporte un achat (Run.valueOf).
 -- Différences voulues avec le jeu : pas de temps fixe (Engine.DT, 0,05 s) au lieu de ~1/60 s variable, petite
--- marge (1e-9) sur les temps de recharge et d'apparition pour éviter les erreurs d'arrondi, recharge des tours
+-- marge (1e-9) sur les temps de recharge pour éviter les erreurs d'arrondi (apparitions : 1e-6, comme le jeu), recharge des tours
 -- remise à 0 au début de chaque vague (dans le jeu, une tour garde sa recharge d'une vague à l'autre : au pire
 -- quelques secondes de retard sur son premier tir). Les temps de recharge des tours (0,2 / 0,8 / 1 / 1,2 / 1,8 /
 -- 4 / 5 s, et leur moitié avec le bonus x2 vitesse) sont des multiples de 0,05 s. Les tours tirent dans l'ordre
@@ -45,7 +59,7 @@ local Engine = {}
 Engine.DT = 0.05 -- pas de la vraie simulation (s)
 Engine.HITS_DT = 0.1 -- pas des vagues « immortelles » (estimations seulement)
 
--- Petite marge sur les temps de recharge et d'apparition (erreurs d'arrondi). run.ps1 -Verifier la met à 0
+-- Petite marge sur les temps de recharge (erreurs d'arrondi ; les apparitions ont celle du jeu, TIME_EPSILON). run.ps1 -Verifier la met à 0
 -- (Engine.EPS) pour comparer au vrai PlotGame pas à pas, sans aucune différence.
 Engine.EPS = 1e-9
 local EPS = Engine.EPS
@@ -200,7 +214,7 @@ end
 ----------------------------------------------------------------------
 -- Tours
 ----------------------------------------------------------------------
-local KIND = { Single = 1, Splash = 2, Aura = 3, Chain = 4, Beam = 5 }
+local KIND = { Single = 1, Splash = 2, Aura = 3, Chain = 4, Beam = 5, Pierce = 6 }
 Engine.KIND = KIND
 
 -- Une tour posée, avec ses stats finales (IdleTowers.effectiveStats : niveau, doublons, bonus).
@@ -218,12 +232,19 @@ function Engine.compileTower(spot: number, towerType: string, level: number, dup
 		z = position.Z,
 		kind = kind,
 		strongest = stats.targeting == "Strongest",
+		crowd = stats.targeting == "Crowd", -- Trébuchet : le plus gros groupe (pickCrowdTarget)
 		damage = stats.damage,
 		cooldown = stats.cooldown or 0,
 		range = stats.range,
 		splash = stats.splash or 0,
+		pierceWidth = stats.pierceWidth or 0,
 		slow = stats.slow,
 		slowDuration = stats.slowDuration or 0,
+		stun = stats.stunDuration, -- étourdissement (contrôle de force 1), nil = aucun
+		-- Fragilité donnée (Totem de givre), sa durée, et « ses dégâts ne profitent pas de la fragilité »
+		fragility = stats.fragility or 0,
+		fragilityDuration = stats.fragilityDuration or stats.slowDuration or 0,
+		fragile = not stats.ignoresFragility,
 		chains = stats.chains or 1,
 		-- Projectile (nil = tir instantané)
 		projectileSpeed = stats.projectileSpeed,
@@ -255,32 +276,67 @@ local function byDistanceDesc(a, b)
 	return a.dist > b.dist
 end
 
--- Même règle que applySlow (PlotGame.luau) : le plus fort gagne, un égal prolonge, un plus faible est
--- ignoré tant que l'actuel dure.
-local function applySlow(enemy, slow: number, duration: number, now: number)
-	if now >= enemy.slowUntil or slow > enemy.slowFactor then
-		enemy.slowFactor = slow
-		enemy.slowUntil = now + duration
-	elseif slow == enemy.slowFactor then
+-- Même règle que applyControl (PlotGame.luau) : UN SEUL contrôle à la fois. Aucun en cours -> le nouveau
+-- s'applique ; en cours du MÊME type de tour -> prolongé (force inchangée) ; d'un AUTRE type -> refusé tant
+-- qu'il dure. source = type de tour (ex. "Frost"), strength = 0 à 1 (1 = étourdi).
+local function applyControl(enemy, source: string, strength: number, duration: number, now: number)
+	if now < enemy.controlUntil then
+		if enemy.controlSource ~= source then
+			return
+		end
 		local untilTime = now + duration
-		if untilTime > enemy.slowUntil then
-			enemy.slowUntil = untilTime
+		if untilTime > enemy.controlUntil then
+			enemy.controlUntil = untilTime
+		end
+		return
+	end
+	enemy.controlSource = source
+	enemy.controlFactor = math.clamp(strength, 0, 1)
+	enemy.controlUntil = now + duration
+end
+
+-- Même règle que applyFragility (PlotGame.luau) : une plus forte remplace, une égale prolonge, une plus
+-- faible est ignorée tant que l'actuelle dure.
+local function applyFragility(enemy, fragility: number, duration: number, now: number)
+	if fragility <= 0 then
+		return
+	end
+	if now >= enemy.fragileUntil or fragility > enemy.fragility then
+		enemy.fragility = fragility
+		enemy.fragileUntil = now + duration
+	elseif fragility == enemy.fragility then
+		local untilTime = now + duration
+		if untilTime > enemy.fragileUntil then
+			enemy.fragileUntil = untilTime
 		end
 	end
 end
 
--- Distance parcourue par l'ennemi en `seconds` (PlotGame travelDistance) : ralenti tant que son
--- ralentissement actuel dure, puis à sa vitesse normale.
+-- Distance parcourue par l'ennemi en `seconds` (PlotGame travelDistance) : ralenti (ou arrêté s'il est
+-- étourdi) tant que son contrôle actuel dure, puis à sa vitesse normale.
 local function travelDistance(enemy, now: number, seconds: number): number
 	local slowed = 0
-	if now < enemy.slowUntil then
-		slowed = enemy.slowUntil - now
+	if now < enemy.controlUntil then
+		slowed = enemy.controlUntil - now
 		if slowed > seconds then
 			slowed = seconds
 		end
 	end
-	return enemy.speed * (slowed * (1 - enemy.slowFactor) + (seconds - slowed))
+	return enemy.speed * (slowed * (1 - enemy.controlFactor) + (seconds - slowed))
 end
+
+-- Distance (à plat) entre un point et le segment [a, b] (PlotGame segmentDistance).
+local function segmentDistance(px: number, pz: number, ax: number, az: number, bx: number, bz: number): number
+	local abx, abz = bx - ax, bz - az
+	local apx, apz = px - ax, pz - az
+	local lengthSquared = abx * abx + abz * abz
+	local t = if lengthSquared > 0 then math.clamp((apx * abx + apz * abz) / lengthSquared, 0, 1) else 0
+	local dx, dz = apx - abx * t, apz - abz * t
+	return math.sqrt(dx * dx + dz * dz)
+end
+
+-- Trébuchet : positions prévues des ennemis rangées par temps de vol arrondi (PlotGame CROWD_FLIGHT_STEP).
+local CROWD_FLIGHT_STEP = 0.05
 
 -- immortal = true : les ennemis ne perdent pas de PV, hitsOut[i][g] compte les coups de la tour i (rayon :
 -- la montée x secondes, voir beamHit ; feu : hitsOut[i].fire[g]). Sinon usefulOut[i] cumule les dégâts utiles
@@ -307,7 +363,16 @@ local function simulate(comp, towers, immortal: boolean, dt: number, hitsOut, us
 	local leakScore = 0
 	local impacts = {} -- projectiles en vol : { at, ti, target, x, z }
 	local nImpacts = 0
-	local fires = {} -- zones de feu : { ti, x, z, radius, dps, tick, expiresAt, nextTick }
+	local fires = {} -- zones de feu : { ti, x, z, fragile, radius, dps, tick, expiresAt, nextTick }
+	-- Vague écrasée : secondes d'attente sautées dans la file (un ennemi sort à item.at - skipped). Lu à chaque
+	-- vague : -Regler "IdleConfig.COMPRESS_EMPTY_SPAWNS=false" compare avec l'ancien rythme.
+	local COMPRESS = IdleConfig.COMPRESS_EMPTY_SPAWNS == true
+	local skipped = 0
+	-- Une mort fait sortir le prochain ennemi de la file tout de suite (IdleConfig.SPAWN_NEXT_ON_KILL) :
+	-- releases = morts qui n'ont pas encore fait sortir leur ennemi (PlotGame.spawnReleases). Pas dans une vague
+	-- immortelle (personne ne meurt). -Regler "IdleConfig.SPAWN_NEXT_ON_KILL=false" compare sans la règle.
+	local SPAWN_ON_KILL = IdleConfig.SPAWN_NEXT_ON_KILL == true
+	local releases = 0
 
 	for i = 1, nTowers do
 		local tower = towers[i]
@@ -316,14 +381,23 @@ local function simulate(comp, towers, immortal: boolean, dt: number, hitsOut, us
 		tower.beamTime = 0
 	end
 
-	local function hitEnemy(enemy, amount: number, towerIndex: number)
+	-- fragile = ces dégâts profitent de la fragilité du Totem (PlotGame:damageEnemy) : x (1 + fragilité) tant
+	-- qu'elle dure. Vague immortelle : le coup compte aussi dans row.frag s'il tombe sur un ennemi fragile
+	-- (Run.valueOf le multiplie ensuite par la fragilité des Totems du joueur).
+	local function hitEnemy(enemy, amount: number, towerIndex: number, fragile: boolean, now: number)
 		if immortal then
 			local row = hitsOut[towerIndex]
 			row[enemy.g] += 1
+			if fragile and now < enemy.fragileUntil then
+				row.frag[enemy.g] += 1
+			end
 			return
 		end
 		if enemy.dead then
 			return
+		end
+		if fragile and now < enemy.fragileUntil then
+			amount *= 1 + enemy.fragility
 		end
 		local hp = enemy.hp
 		usefulOut[towerIndex] += if amount < hp then amount else hp
@@ -333,16 +407,36 @@ local function simulate(comp, towers, immortal: boolean, dt: number, hitsOut, us
 			enemy.dead = true
 			removed += 1
 			coins += enemy.reward
+			if SPAWN_ON_KILL then
+				releases += 1
+			end
 		end
 	end
 
-	-- Un coup de la tour : son ralentissement éventuel puis ses dégâts (PlotGame:hitEnemy).
+	-- Un coup de la tour : son contrôle éventuel (ralentissement, étourdissement), puis ses dégâts
+	-- (PlotGame:hitEnemy). Les dégâts tombent même si le contrôle est refusé.
 	local function hitWith(enemy, tower, towerIndex: number, now: number)
 		local slow = tower.slow
 		if slow then
-			applySlow(enemy, slow, tower.slowDuration, now)
+			applyControl(enemy, tower.type, slow, tower.slowDuration, now)
 		end
-		hitEnemy(enemy, tower.damage, towerIndex)
+		local stun = tower.stun
+		if stun then
+			applyControl(enemy, tower.type, 1, stun, now)
+		end
+		hitEnemy(enemy, tower.damage, towerIndex, tower.fragile, now)
+	end
+
+	-- Carreau perçant : tous les ennemis vivants à moins de pierceWidth du segment [origine, impact], et sa
+	-- cible où qu'elle soit (PlotGame:hitLine). Chacun une seule fois.
+	local function hitLine(ox: number, oz: number, ix: number, iz: number, tower, target, towerIndex: number, now: number)
+		local width = tower.pierceWidth
+		for i = 1, n do
+			local enemy = enemies[i]
+			if not enemy.dead and (enemy == target or segmentDistance(enemy.x, enemy.z, ox, oz, ix, iz) <= width) then
+				hitWith(enemy, tower, towerIndex, now)
+			end
+		end
 	end
 
 	-- Coup de zone : tous les ennemis vivants à moins de splash studs du point (PlotGame:hitArea).
@@ -401,8 +495,8 @@ local function simulate(comp, towers, immortal: boolean, dt: number, hitsOut, us
 		return nearest
 	end
 
-	-- Lance un projectile (PlotGame:predictImpact + fireProjectile) : visée anticipée, 2 itérations.
-	local function fireProjectile(tower, towerIndex: number, target, now: number)
+	-- Visée anticipée (PlotGame:predictImpact), 2 itérations : point visé (x, z) et temps de vol.
+	local function predictImpact(tower, target, now: number): (number, number, number)
 		local fx, fz = tower.x, tower.z
 		local dx, dz = target.x - fx, target.z - fz
 		local flight = flightTime(tower, math.sqrt(dx * dx + MUZZLE_DY * MUZZLE_DY + dz * dz))
@@ -412,12 +506,77 @@ local function simulate(comp, towers, immortal: boolean, dt: number, hitsOut, us
 			flight = flightTime(tower, math.sqrt(dx * dx + MUZZLE_DY * MUZZLE_DY + dz * dz))
 		end
 		local ax, az = pathPoint(target.dist + travelDistance(target, now, flight))
+		return ax, az, flight
+	end
+
+	-- Lance un projectile (PlotGame:fireProjectile) ; ax, az, flight déjà calculés (Trébuchet) ou visée anticipée.
+	local function fireProjectile(tower, towerIndex: number, target, now: number, ax: number?, az: number?, flight: number?)
+		if not ax or not az or not flight then
+			ax, az, flight = predictImpact(tower, target, now)
+		end
 		if not immortal then
 			target.pending += tower.damage
 		end
 		target.inFlight += 1
 		nImpacts += 1
-		impacts[nImpacts] = { at = now + flight, ti = towerIndex, target = target, x = ax, z = az }
+		impacts[nImpacts] = { at = now + (flight :: number), ti = towerIndex, target = target, x = ax, z = az }
+	end
+
+	-- Trébuchet (PlotGame:pickCrowdTarget) : chaque ennemi à portée est un point d'impact possible (visée
+	-- anticipée) ; on compte les ennemis NON condamnés qui seront à moins de splash studs de ce point à l'arrivée
+	-- (positions prévues avec le temps de vol arrondi à CROWD_FLIGHT_STEP, comme le jeu). Le plus grand nombre
+	-- gagne ; à égalité, le plus avancé. Renvoie (cible, x, z, vol) ou nil.
+	local function pickCrowdTarget(tower, now: number)
+		local tx, tz, range, splash = tower.x, tower.z, tower.range, tower.splash
+		local candidates, counted = {}, {}
+		for i = 1, n do
+			local enemy = enemies[i]
+			if not enemy.dead then
+				local dx, dz = enemy.x - tx, enemy.z - tz
+				if math.sqrt(dx * dx + dz * dz) <= range then
+					table.insert(candidates, enemy)
+				end
+				if enemy.pending < enemy.hp then
+					table.insert(counted, enemy)
+				end
+			end
+		end
+		if #candidates == 0 or #counted == 0 then
+			return nil, 0, 0, 0
+		end
+		local predicted = {}
+		local best, bestX, bestZ, bestFlight, bestCount, bestAhead = nil, 0, 0, 0, 0, -math.huge
+		for _, candidate in candidates do
+			local ax, az, flight = predictImpact(tower, candidate, now)
+			local candidateMove = candidate.speed * flight
+			local step = math.floor(flight / CROWD_FLIGHT_STEP + 0.5)
+			local positions = predicted[step]
+			if not positions then
+				positions = {}
+				predicted[step] = positions
+			end
+			local count = 0
+			for _, other in counted do
+				local dx, dz = candidate.x - other.x, candidate.z - other.z
+				if math.sqrt(dx * dx + dz * dz) - candidateMove - other.speed * flight <= splash then
+					local at = positions[other]
+					if not at then
+						local px, pz = pathPoint(other.dist + travelDistance(other, now, step * CROWD_FLIGHT_STEP))
+						at = { px, pz }
+						positions[other] = at
+					end
+					local ex, ez = ax - at[1], az - at[2]
+					if math.sqrt(ex * ex + ez * ez) <= splash then
+						count += 1
+					end
+				end
+			end
+			local ahead = candidate.dist + travelDistance(candidate, now, flight)
+			if count > bestCount or (count == bestCount and count > 0 and ahead > bestAhead) then
+				best, bestX, bestZ, bestFlight, bestCount, bestAhead = candidate, ax, az, flight, count, ahead
+			end
+		end
+		return best, bestX, bestZ, bestFlight
 	end
 
 	-- Une flèche enflammée touche le sol (PlotGame:addFirePatch).
@@ -454,6 +613,7 @@ local function simulate(comp, towers, immortal: boolean, dt: number, hitsOut, us
 			ti = towerIndex,
 			x = x,
 			z = z,
+			fragile = tower.fragile, -- le feu de l'Archer profite de la fragilité du Totem
 			radius = tower.fireRadius,
 			dps = dps,
 			tick = tower.fireTick,
@@ -477,6 +637,8 @@ local function simulate(comp, towers, immortal: boolean, dt: number, hitsOut, us
 		end
 		if tower.kind == 2 then
 			hitArea(impact.x, impact.z, tower, impact.ti, now)
+		elseif tower.kind == 6 then
+			hitLine(tower.x, tower.z, impact.x, impact.z, tower, target, impact.ti, now)
 		else
 			local victim = if target.dead then enemyNear(impact.x, impact.z, CATCH_RADIUS) else target
 			if victim then
@@ -501,10 +663,13 @@ local function simulate(comp, towers, immortal: boolean, dt: number, hitsOut, us
 						local dx, dz = enemy.x - px, enemy.z - pz
 						if math.sqrt(dx * dx + dz * dz) <= radius then
 							if immortal then
-								local fire = hitsOut[ti].fire
-								fire[enemy.g] += 1
+								local row = hitsOut[ti]
+								row.fire[enemy.g] += 1
+								if patch.fragile and now < enemy.fragileUntil then
+									row.fireFrag[enemy.g] += 1
+								end
 							else
-								hitEnemy(enemy, amount, ti)
+								hitEnemy(enemy, amount, ti, patch.fragile, now)
 							end
 						end
 					end
@@ -518,7 +683,7 @@ local function simulate(comp, towers, immortal: boolean, dt: number, hitsOut, us
 	end
 
 	-- Un pas du rayon (PlotGame:beamStep).
-	local function beamStep(tower, towerIndex: number)
+	local function beamStep(tower, towerIndex: number, now: number)
 		local target = tower.beamTarget
 		if target then
 			if target.dead then
@@ -551,13 +716,17 @@ local function simulate(comp, towers, immortal: boolean, dt: number, hitsOut, us
 		tower.beamTime = startTime + dt
 		local ramp = beamRamp(tower, startTime + dt / 2)
 		if immortal then
-			-- Coups « en dégâts de base » : montée x secondes, et temps passé sur ce groupe (Run.valueOf).
+			-- Coups « en dégâts de base » : montée x secondes, et temps passé sur ce groupe (Run.valueOf) ;
+			-- row.frag : la part de montée x secondes sur un ennemi fragile.
 			local row = hitsOut[towerIndex]
 			local g = target.g
 			row[g] += ramp * dt
 			row.contact[g] += dt
+			if tower.fragile and now < target.fragileUntil then
+				row.frag[g] += ramp * dt
+			end
 		else
-			hitEnemy(target, tower.damage * ramp * dt, towerIndex)
+			hitEnemy(target, tower.damage * ramp * dt, towerIndex, tower.fragile, now)
 		end
 	end
 
@@ -568,11 +737,25 @@ local function simulate(comp, towers, immortal: boolean, dt: number, hitsOut, us
 		end
 		local now = step * dt
 
-		-- Apparitions
+		-- Apparitions (PlotGame:simulate). Chaque mort des pas d'avant (releases) fait sortir UN ennemi en avance
+		-- (la suite de la file avance d'autant). Vague écrasée : plus aucun ennemi en vie (les morts sont retirés
+		-- à la fin de chaque pas, donc n = vivants), encore des ennemis à faire sortir et aucune mort qui attend
+		-- son ennemi -> l'attente est sautée.
+		if COMPRESS and releases == 0 and spawnIndex <= nItems and n == 0 then
+			local waitLeft = items[spawnIndex].at - skipped - now
+			if waitLeft > 0 then
+				skipped += waitLeft
+			end
+		end
 		while spawnIndex <= nItems and n < MAX_ENEMIES do
 			local item = items[spawnIndex]
-			if item.at > now + EPS then
-				break
+			if item.at - skipped > now + TIME_EPSILON then
+				if releases <= 0 then
+					break
+				end
+				-- Pas encore son heure, mais un ennemi est mort : il sort maintenant.
+				releases -= 1
+				skipped += item.at - skipped - now
 			end
 			spawnIndex += 1
 			n += 1
@@ -588,8 +771,12 @@ local function simulate(comp, towers, immortal: boolean, dt: number, hitsOut, us
 				seg = 2,
 				x = PX[1],
 				z = PZ[1],
-				slowUntil = 0,
-				slowFactor = 0,
+				-- Contrôle en cours (un seul, applyControl) et fragilité du Totem (applyFragility)
+				controlSource = nil,
+				controlFactor = 0,
+				controlUntil = 0,
+				fragility = 0,
+				fragileUntil = 0,
 				pending = 0,
 				inFlight = 0,
 				dead = false,
@@ -600,10 +787,10 @@ local function simulate(comp, towers, immortal: boolean, dt: number, hitsOut, us
 		for i = 1, n do
 			local enemy = enemies[i]
 			if not enemy.dead then
-				-- Même calcul (et même ordre des multiplications) que PlotGame : vitesse x (facteur du type x ralenti).
+				-- Même calcul (et même ordre des multiplications) que PlotGame : vitesse x (facteur du type x contrôle).
 				local factor = enemy.scale
-				if now < enemy.slowUntil then
-					factor = enemy.scale * (1 - enemy.slowFactor)
+				if now < enemy.controlUntil then
+					factor = enemy.scale * (1 - enemy.controlFactor)
 				end
 				local speed = enemy.baseSpeed * factor
 				local distance = enemy.dist + speed * dt
@@ -665,7 +852,7 @@ local function simulate(comp, towers, immortal: boolean, dt: number, hitsOut, us
 			local tower = towers[ti]
 			local kind = tower.kind
 			if kind == 5 then
-				beamStep(tower, ti)
+				beamStep(tower, ti, now)
 				continue
 			end
 			local cd = tower.cd - dt
@@ -673,16 +860,21 @@ local function simulate(comp, towers, immortal: boolean, dt: number, hitsOut, us
 				local attacked = false
 				local tx, tz, range = tower.x, tower.z, tower.range
 				if kind == 3 then
-					-- Aura : ralentit et blesse tout ce qui est à portée
+					-- Aura (Totem de givre) : ralentit (contrôle, refusé si une autre tour contrôle déjà l'ennemi),
+					-- rend fragile (toujours), puis de petits dégâts (qui ne profitent pas de la fragilité).
 					local slow, slowDuration, damage = tower.slow, tower.slowDuration, tower.damage
+					local fragility, fragilityDuration, fragile, source = tower.fragility, tower.fragilityDuration, tower.fragile, tower.type
 					for i = 1, n do
 						local enemy = enemies[i]
 						if not enemy.dead then
 							local dx, dz = enemy.x - tx, enemy.z - tz
 							if math.sqrt(dx * dx + dz * dz) <= range then
 								attacked = true
-								applySlow(enemy, slow, slowDuration, now)
-								hitEnemy(enemy, damage, ti)
+								if slow then
+									applyControl(enemy, source, slow, slowDuration, now)
+								end
+								applyFragility(enemy, fragility, fragilityDuration, now)
+								hitEnemy(enemy, damage, ti, fragile, now)
 							end
 						end
 					end
@@ -703,12 +895,19 @@ local function simulate(comp, towers, immortal: boolean, dt: number, hitsOut, us
 						attacked = true
 						table.sort(inRange, byDistanceDesc)
 						for i = 1, math.min(tower.chains, #inRange) do
-							hitEnemy(inRange[i], tower.damage, ti)
+							hitEnemy(inRange[i], tower.damage, ti, tower.fragile, now)
 						end
 					end
+				elseif tower.crowd then
+					-- Trébuchet royal : le plus gros groupe à portée (positions prévues à l'impact)
+					local target, ax, az, flight = pickCrowdTarget(tower, now)
+					if target then
+						attacked = true
+						fireProjectile(tower, ti, target, now, ax, az, flight)
+					end
 				else
-					-- Une cible, ou une zone autour d'elle. Les tours à projectile ne visent jamais un ennemi
-					-- condamné ; les tirs instantanés (Mage) le prennent s'il n'y a personne d'autre.
+					-- Une cible, une zone autour d'elle ou un carreau perçant. Les tours à projectile ne visent
+					-- jamais un ennemi condamné ; les tirs instantanés (Mage) le prennent s'il n'y a personne d'autre.
 					local projectile = tower.projectileSpeed ~= nil
 					local target = pickTarget(tower, not projectile)
 					if target then
@@ -717,6 +916,8 @@ local function simulate(comp, towers, immortal: boolean, dt: number, hitsOut, us
 							fireProjectile(tower, ti, target, now)
 						elseif kind == 2 then
 							hitArea(target.x, target.z, tower, ti, now)
+						elseif kind == 6 then
+							hitLine(tx, tz, target.x, target.z, tower, target, ti, now)
 						else
 							hitWith(target, tower, ti, now)
 						end
@@ -792,6 +993,7 @@ function Engine.hits(comp, towers)
 	local groups = #comp.groups
 	for i, tower in towers do
 		local row = table.create(groups, 0)
+		row.frag = table.create(groups, 0) -- coups (rayon : montée x secondes) sur un ennemi fragile
 		if tower.kind == 5 then
 			row.contact = table.create(groups, 0)
 			row.beamRampRate = tower.beamRampRate
@@ -799,6 +1001,7 @@ function Engine.hits(comp, towers)
 		end
 		if tower.fireRadius then
 			row.fire = table.create(groups, 0)
+			row.fireFrag = table.create(groups, 0)
 			row.fireHit = tower.fireDamageRatio * tower.fireTick
 		end
 		hits[i] = row

@@ -38,4 +38,6 @@ else
 	local ShopUI = require(script.Parent.ShopUI)
 	ShopUI.start()
 	Remotes.get("OfflineGains").OnClientEvent:Connect(ShopUI.showOfflineGains)
+	-- Galerie des ennemis : seulement dans Studio (Config.STUDIO_ENEMY_GALLERY), jamais dans le jeu publié.
+	require(script.Parent.EnemyGallery).start()
 end

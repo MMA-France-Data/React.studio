@@ -32,7 +32,7 @@ local function newGame()
 			bestWave = 1,
 			highestWave = 1,
 			unlockedSpots = 22,
-			lastBonusSpinAt = 0,
+			forgeSpinsBought = 0,
 			towerSpinsBought = 0,
 		},
 	}
@@ -88,7 +88,9 @@ local function engineWave(team, wave: number)
 end
 
 -- Équipes : toutes les tours (avec deux runes), que des Archers (feu), des Sorciers avec Totem et Mage
--- (rayon, ralentissements), Mages + Catapultes + Baliste + Trébuchet (zones, projectiles lents).
+-- (rayon, ralentissements), Mages + Catapultes + Baliste + Trébuchet (zones, projectiles lents), et
+-- « contrôles » : 2 Totems, 2 Mages, 2 Trébuchets, 2 Balistes et 2 Archers (un seul contrôle à la fois,
+-- fragilité, carreau perçant, visée des foules, étourdissement).
 local TEAMS = {
 	{ name = "toutes les tours", members = {
 		{ spot = 1, type = "MachineGun", bonus = "Speed2" }, { spot = 2, type = "Frost" }, { spot = 3, type = "Bomb" },
@@ -106,6 +108,12 @@ local TEAMS = {
 	{ name = "zones et projectiles", members = {
 		{ spot = 1, type = "Tesla" }, { spot = 2, type = "Tesla" }, { spot = 3, type = "Bomb" },
 		{ spot = 4, type = "Bomb" }, { spot = 9, type = "Rocket" }, { spot = 10, type = "Orbital" },
+	} },
+	{ name = "contrôles", members = {
+		{ spot = 1, type = "Frost" }, { spot = 2, type = "Tesla" }, { spot = 3, type = "Frost" },
+		{ spot = 4, type = "Tesla" }, { spot = 5, type = "Orbital" }, { spot = 6, type = "Rocket" },
+		{ spot = 9, type = "MachineGun" }, { spot = 10, type = "Orbital" }, { spot = 11, type = "Rocket", bonus = "Speed2" },
+		{ spot = 12, type = "MachineGun" },
 	} },
 }
 

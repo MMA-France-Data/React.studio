@@ -4,6 +4,10 @@
 -- jamais perdre une grosse tour par accident (vendre aussi : 2 clics).
 -- Clique sur n'importe quel cadenas pour débloquer CET emplacement (le prix ne dépend que du nombre
 -- d'emplacements déjà possédés, il monte après chaque achat).
+-- Cartes et fiche : dégâts PAR COUP (plus de DPS par cible, trompeur pour les tours de zone), attaques par
+-- seconde (« continu » pour le rayon), portée, zone / nombre de cibles / carreau perçant / aura, contrôle
+-- (ralentissement, étourdissement), effets (feu, fragilité, montée du rayon) et « Idéale contre : ... »
+-- (dans la fiche, et en survolant une carte). Tout vient de IdleTowers (stats, controlOf, idealAgainst).
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
@@ -24,6 +28,7 @@ local KIND_LABELS = {
 	Aura = "Zone autour",
 	Chain = "Chaîne (4 cibles)",
 	Beam = "Rayon continu",
+	Pierce = "Carreau perçant",
 }
 
 local function listAttribute(player: Player, name: string): { string }
@@ -45,7 +50,8 @@ local function dupesOf(player: Player, towerType: string): number
 end
 
 local CARD_WIDTH = 100
-local PANEL_HEIGHT = 272
+local CARD_HEIGHT = 148 -- 6 petites lignes de stats (dégâts, vitesse, zone, portée, effets)
+local PANEL_HEIGHT = 300
 -- Un bouton de confirmation ignore les clics juste après son apparition : un double clic ne valide jamais rien.
 local CONFIRM_ARM_DELAY = 0.4
 -- Après une pose, pas de nouvelle pose sur cet emplacement tant que la tour n'est pas arrivée (sinon un
@@ -56,22 +62,117 @@ local SELL_CONFIRM_TIME = 3 -- secondes pour confirmer une vente (2e clic)
 local function kindLabel(def): string
 	if def.fireRadius then
 		return "Flèches de feu"
+	elseif def.fragilityBase then
+		return "Contrôle + fragilité"
+	elseif def.stunDuration then
+		return "Vise la foule + étourdit"
 	elseif def.kind == "Splash" and def.slow then
-		return "Zone + ralentit"
+		return "Zone + gros frein"
 	elseif def.kind == "Single" and def.slow then
 		return "Ralentit 1 cible"
 	end
 	return KIND_LABELS[def.kind] or ""
 end
 
--- Stats d'une carte (niveau 1, doublons compris) : dégâts par seconde, vitesse, portée.
--- Rayon continu : dégâts par seconde au début → au maximum, « continu » à la place de la vitesse.
-local function cardStatsText(stats): string
-	local range = `Portée {UI.decimal(stats.range)}`
-	if stats.kind == "Beam" then
-		return `Rayon {NumberFormat.short(IdleTowers.dpsOf(stats))}→{NumberFormat.short(IdleTowers.beamMaxDps(stats))}/s\n{UI.towerSpeed(stats)}\n{range}`
+-- Montant lisible : sous 100, arrondi à 0,1 (« 4,1 ») ; au-delà, NumberFormat.short (« 1.5K »).
+local function amount(value: number): string
+	if value == value and value >= 0 and value < 100 then
+		return UI.decimal(math.floor(value * 10 + 0.5) / 10)
 	end
-	return `DPS {NumberFormat.short(IdleTowers.dpsOf(stats))}\n{UI.towerSpeed(stats)}\n{range}`
+	return NumberFormat.short(value)
+end
+
+-- Pourcentage d'une fraction : 0.6 -> « 60 », 0.125 -> « 12,5 ».
+local function percent(fraction: number): string
+	return UI.decimal(math.floor(fraction * 1000 + 0.5) / 10)
+end
+
+-- Qui la tour touche, en court (cartes) : « Zone rayon 7 », « Ligne perçante », « 4 cibles »...
+-- Les fiches (DPS par cible) trompaient pour les tours de zone : on montre plutôt dégâts par coup,
+-- attaques par seconde et combien d'ennemis chaque coup peut toucher.
+local function reachShort(stats): string
+	if stats.kind == "Splash" and stats.splash then
+		return `Zone rayon {UI.decimal(stats.splash)}`
+	elseif stats.kind == "Pierce" then
+		return "Ligne perçante"
+	elseif stats.kind == "Aura" then
+		return `Aura rayon {UI.decimal(stats.range)}`
+	elseif stats.kind == "Chain" then
+		return `{stats.chains or 1} cibles`
+	end
+	return "1 cible"
+end
+
+-- Qui la tour touche et comment elle vise, en entier (fiche d'une tour posée).
+local function reachLong(stats): string
+	local text
+	if stats.kind == "Splash" and stats.splash then
+		text = `Zone : rayon <b>{UI.decimal(stats.splash)}</b> studs autour de l'impact`
+	elseif stats.kind == "Pierce" then
+		text = `Carreau perçant : touche tous les ennemis sur sa ligne (largeur <b>{UI.decimal((stats.pierceWidth or 0) * 2)}</b> studs)`
+	elseif stats.kind == "Aura" then
+		text = `Aura : tous les ennemis à <b>{UI.decimal(stats.range)}</b> studs`
+	elseif stats.kind == "Chain" then
+		text = `Éclair sur <b>{stats.chains or 1}</b> ennemis (les plus avancés)`
+	elseif stats.kind == "Beam" then
+		text = "Rayon sur 1 cible, gardée tant qu'elle est à portée (idéal dans un virage)"
+	else
+		text = "1 cible"
+	end
+	if stats.targeting == "Crowd" then
+		text ..= " • vise le plus gros groupe du chemin"
+	elseif stats.targeting == "Strongest" then
+		text ..= if stats.kind == "Beam" then " • choisit le plus résistant" else " • vise le plus résistant"
+	elseif stats.targeting == "First" and stats.kind ~= "Chain" then
+		text ..= " • vise le plus avancé"
+	end
+	return text
+end
+
+-- Effets en court (cartes) : contrôle, feu, fragilité, montée du rayon.
+local function effectsShort(stats): { string }
+	local list = {}
+	local control = IdleTowers.controlOf(stats)
+	if control and control.kind == "Stun" then
+		table.insert(list, `Étourdit {UI.decimal(control.duration)} s`)
+	elseif control then
+		table.insert(list, `Ralentit {percent(control.strength)} %`) -- sa durée : dans la fiche
+	end
+	if stats.fragility and stats.fragility > 0 then
+		table.insert(list, `Fragilité +{percent(stats.fragility)} %`)
+	end
+	if stats.fireRadius then
+		table.insert(list, `Feu {amount(IdleTowers.fireDps(stats))}/s`)
+	end
+	if stats.kind == "Beam" then
+		table.insert(list, `x{UI.decimal(stats.beamRampMax)} en {UI.decimal(math.floor(IdleTowers.beamRampSeconds(stats) * 10 + 0.5) / 10)} s`)
+	end
+	return list
+end
+
+-- Stats d'une carte (niveau 1, doublons compris) : dégâts par coup, attaques par seconde, zone, portée,
+-- effets. Rayon continu : dégâts par seconde au début → au maximum, « continu » à la place de la vitesse.
+local function cardStatsText(stats): string
+	local lines = {}
+	if stats.kind == "Beam" then
+		table.insert(lines, `{amount(IdleTowers.dpsOf(stats))}→{amount(IdleTowers.beamMaxDps(stats))} dégâts/s`)
+	else
+		table.insert(lines, `{amount(stats.damage)} dégâts/coup`)
+	end
+	table.insert(lines, UI.towerSpeed(stats))
+	table.insert(lines, reachShort(stats))
+	if stats.kind ~= "Aura" then -- aura : sa portée est déjà sur la ligne « Aura rayon X »
+		table.insert(lines, `Portée {UI.decimal(stats.range)}`)
+	end
+	for _, effect in effectsShort(stats) do
+		table.insert(lines, effect)
+	end
+	return table.concat(lines, "\n")
+end
+
+-- Ligne « Idéale contre : ... » d'une tour (IdleTowers : idealAgainst).
+local function idealText(def): string
+	return if def.idealAgainst then `{def.displayName} • idéale contre : {def.idealAgainst}` else def.displayName
 end
 
 local function refundPercent(): number
@@ -221,7 +322,7 @@ function PlotUI.start()
 	-- Cartes des tours : sur un emplacement libre (pose directe) ou après « Remplacer… ».
 	local cardRow = UI.new("Frame", {
 		Position = UDim2.new(0, 0, 0, 52),
-		Size = UDim2.new(1, 0, 0, 120),
+		Size = UDim2.new(1, 0, 0, CARD_HEIGHT),
 		BackgroundTransparency = 1,
 		Parent = panel,
 	}, {
@@ -232,10 +333,12 @@ function PlotUI.start()
 		}),
 	})
 	local cards = {}
+	-- Carte survolée par la souris : le sous-titre du panneau dit contre quoi cette tour est idéale.
+	local hoveredType: string? = nil
 	for index, towerType in IdleTowers.ORDER do
 		local def = IdleTowers.Defs[towerType]
 		local card = UI.new("TextButton", {
-			Size = UDim2.fromOffset(CARD_WIDTH, 120),
+			Size = UDim2.fromOffset(CARD_WIDTH, CARD_HEIGHT),
 			LayoutOrder = index,
 			BackgroundColor3 = def.color:Lerp(UI.Colors.Panel, 0.55),
 			AutoButtonColor = true,
@@ -262,10 +365,11 @@ function PlotUI.start()
 			MaxTextSize = 12,
 			Parent = card,
 		})
-		-- DPS, vitesse d'attaque et portée au niveau 1 (doublons compris) : mis à jour dans refreshCards.
+		-- Dégâts par coup, vitesse d'attaque, zone, portée et effets au niveau 1 (doublons compris) : mis à
+		-- jour dans refreshCards.
 		local stats = UI.label({
 			Position = UDim2.new(0, 0, 0, 38),
-			Size = UDim2.new(1, 0, 0, 46),
+			Size = UDim2.new(1, 0, 1, -64),
 			MaxTextSize = 13,
 			Parent = card,
 		})
@@ -278,12 +382,20 @@ function PlotUI.start()
 			Parent = card,
 		})
 		cards[towerType] = { button = card, price = price, stats = stats }
+		card.MouseEnter:Connect(function()
+			hoveredType = towerType
+		end)
+		card.MouseLeave:Connect(function()
+			if hoveredType == towerType then
+				hoveredType = nil
+			end
+		end)
 	end
 
 	-- Fiche de la tour posée (à la place des cartes) : ses stats et le bouton « Remplacer… », à part.
 	local towerInfo = UI.new("Frame", {
 		Position = UDim2.new(0, 0, 0, 52),
-		Size = UDim2.new(1, 0, 0, 120),
+		Size = UDim2.new(1, 0, 0, CARD_HEIGHT),
 		BackgroundColor3 = UI.Colors.Background,
 		BackgroundTransparency = 0.4,
 		Visible = false,
@@ -320,7 +432,7 @@ function PlotUI.start()
 
 	-- Bonus de l'inventaire à poser sur la tour sélectionnée.
 	local bonusRow = UI.new("Frame", {
-		Position = UDim2.new(0, 0, 0, 178),
+		Position = UDim2.new(0, 0, 0, 58 + CARD_HEIGHT),
 		Size = UDim2.new(1, 0, 0, 30),
 		BackgroundTransparency = 1,
 		Visible = false,
@@ -428,6 +540,9 @@ function PlotUI.start()
 		if mode ~= panelMode then
 			panelMode = mode
 			modeChangedAt = os.clock()
+			-- Les cartes viennent d'être cachées ou montrées : une carte cachée sous la souris ne reçoit pas
+			-- toujours MouseLeave (sinon le sous-titre garderait « idéale contre » d'une ancienne carte).
+			hoveredType = nil
 		end
 	end
 	local function justChanged(): boolean
@@ -699,7 +814,9 @@ function PlotUI.start()
 		end
 	end
 
-	-- Lignes de la fiche d'une tour posée (niveau, doublons et bonus compris).
+	-- Lignes de la fiche d'une tour posée (niveau, doublons et bonus compris) : dégâts par coup (pas de DPS :
+	-- il trompait pour les tours de zone), attaques par seconde, portée, qui elle touche, ses effets
+	-- (contrôle, feu, fragilité, montée du rayon) et contre quoi elle est idéale.
 	local function towerSheet(towerType: string, level: number, dupes: number, bonusId: string?): string
 		local def = IdleTowers.Defs[towerType]
 		local stats = IdleTowers.effectiveStats(towerType, level, dupes, bonusId)
@@ -707,43 +824,49 @@ function PlotUI.start()
 		local range = `Portée <b>{UI.decimal(stats.range)}</b>`
 		local lines
 		if def.kind == "Beam" then
-			-- Rayon continu : dégâts par seconde au début (x1) → au maximum, et le temps pour y arriver.
+			-- Rayon continu : dégâts par seconde au début (x1) → au maximum.
 			lines = {
-				`Rayon <b>{NumberFormat.short(IdleTowers.dpsOf(stats))} → {NumberFormat.short(IdleTowers.beamMaxDps(stats))}</b> dégâts/s  →  {NumberFormat.short(IdleTowers.dpsOf(nextStats))} → {NumberFormat.short(IdleTowers.beamMaxDps(nextStats))} au niveau {level + 1}`,
-				`Vitesse <b>{UI.towerSpeed(stats)}</b>  •  x{UI.decimal(stats.beamRampMax)} en {UI.decimal(math.floor(IdleTowers.beamRampSeconds(stats) * 10 + 0.5) / 10)} s sur la même cible  •  {range}`,
+				`Rayon <b>{amount(IdleTowers.dpsOf(stats))} → {amount(IdleTowers.beamMaxDps(stats))}</b> dégâts/s  →  {amount(IdleTowers.dpsOf(nextStats))} → {amount(IdleTowers.beamMaxDps(nextStats))} au niveau {level + 1}  •  <b>continu</b>  •  {range}`,
 			}
 		else
 			lines = {
-				`DPS <b>{NumberFormat.short(IdleTowers.dpsOf(stats))}</b>  →  {NumberFormat.short(IdleTowers.dpsOf(nextStats))} au niveau {level + 1}`,
-				`Dégâts <b>{NumberFormat.short(stats.damage)}</b> par coup  •  Vitesse <b>{UI.towerSpeed(stats)}</b>  •  {range}`,
+				`Dégâts <b>{amount(stats.damage)}</b> par coup  →  {amount(nextStats.damage)} au niveau {level + 1}  •  <b>{UI.towerSpeed(stats)}</b>  •  {range}`,
 			}
 		end
-		-- Façon d'attaquer : cible, zone, chaîne, rayon, feu, ralentissement.
-		local special = {}
-		if stats.chains then
-			table.insert(special, `Éclair sur {stats.chains} ennemis`)
-		elseif def.kind == "Splash" and stats.splash then
-			table.insert(special, `Zone (rayon {UI.decimal(stats.splash)})`)
-		elseif def.kind == "Aura" then
-			table.insert(special, "Frappe tous les ennemis à portée")
-		elseif def.kind == "Beam" then
-			table.insert(special, "Garde sa cible tant qu'elle est à portée (idéal dans un virage)")
-		else
-			table.insert(special, KIND_LABELS[def.kind] or "")
+		table.insert(lines, reachLong(stats))
+
+		-- Effets : contrôle (un seul à la fois par ennemi, règle de PlotGame), feu, fragilité, montée du rayon.
+		local effects = {}
+		local control = IdleTowers.controlOf(stats)
+		if control and control.kind == "Stun" then
+			table.insert(effects, `Étourdit <b>{UI.decimal(control.duration)} s</b> (pas de cumul avec les ralentissements)`)
+		elseif control then
+			table.insert(effects, `Ralentit de <b>{percent(control.strength)} %</b> pendant {UI.decimal(control.duration)} s (pas de cumul)`)
 		end
-		if def.targeting == "Strongest" then
-			table.insert(special, if def.kind == "Beam" then "choisit le plus résistant" else "vise le plus résistant")
+		if stats.fragility and stats.fragility > 0 then
+			local nextFragility = nextStats.fragility or stats.fragility
+			local upgrade = if nextFragility > stats.fragility then `  →  +{percent(nextFragility)} % au niveau {level + 1}` else " (maximum)"
+			table.insert(effects, `Fragilité : <b>+{percent(stats.fragility)} %</b> de dégâts reçus de tes autres tours (sauf Mage){upgrade}`)
 		end
 		if stats.fireRadius then
 			table.insert(
-				special,
-				`feu au sol : {NumberFormat.short(IdleTowers.fireDps(stats))} dégâts/s pendant {UI.decimal(stats.fireDuration)} s (rayon {UI.decimal(stats.fireRadius)})`
+				effects,
+				`Feu au sol : <b>{amount(IdleTowers.fireDps(stats))}</b> dégâts/s pendant {UI.decimal(stats.fireDuration)} s (rayon {UI.decimal(stats.fireRadius)})`
 			)
 		end
-		if stats.slow and stats.slowDuration then
-			table.insert(special, `ralentit de {math.floor(stats.slow * 100 + 0.5)} % pendant {UI.decimal(stats.slowDuration)} s`)
+		if def.kind == "Beam" then
+			table.insert(effects, `Montée : x{UI.decimal(stats.beamRampMax)} en {UI.decimal(math.floor(IdleTowers.beamRampSeconds(stats) * 10 + 0.5) / 10)} s sur la même cible`)
 		end
-		table.insert(lines, table.concat(special, "  •  "))
+		-- Le Totem lui-même le dit déjà (« tes autres tours ») : ligne seulement pour le Mage des tempêtes.
+		if stats.ignoresFragility and not (stats.fragility and stats.fragility > 0) then
+			table.insert(effects, "ne profite pas de la fragilité du Totem")
+		end
+		if #effects > 0 then
+			table.insert(lines, table.concat(effects, "  •  "))
+		end
+		if def.idealAgainst then
+			table.insert(lines, `<font color="#D8AA4C">Idéale contre :</font> {def.idealAgainst}`)
+		end
 		if dupes > 0 then
 			-- Arrondi : sans lui, 29 doublons affichaient +57 % au lieu de +58 % (virgules des calculs).
 			local percent = math.floor(dupes * IdleConfig.DUPLICATE_DAMAGE_BONUS * 100 + 0.5)
@@ -807,7 +930,11 @@ function PlotUI.start()
 			-- Emplacement libre : les cartes posent directement.
 			setMode("empty")
 			panelTitle.Text = `Emplacement {spotIndex}`
-			panelSubtitle.Text = if pending then "Pose en cours…" else "Choisis une tour à poser :"
+			local hovered = hoveredType and IdleTowers.Defs[hoveredType]
+			panelSubtitle.Text = if pending
+				then "Pose en cours…"
+				elseif hovered then idealText(hovered)
+				else "Choisis une tour à poser (survole une carte : contre quoi elle est idéale) :"
 			cardRow.Visible = true
 			refreshCards(nil, 0, pending ~= nil)
 			return
@@ -846,7 +973,10 @@ function PlotUI.start()
 		if replacing then
 			setMode("replace")
 			panelTitle.Text = `Remplacer : {def.displayName} • Niv. {level}`
-			panelSubtitle.Text = `Choisis la nouvelle tour (elle repart au niveau 1 ; tu récupères {refundPercent()} % : +{NumberFormat.short(refund)}) :`
+			local hovered = hoveredType and IdleTowers.Defs[hoveredType]
+			panelSubtitle.Text = if hovered
+				then idealText(hovered)
+				else `Choisis la nouvelle tour (elle repart au niveau 1 ; tu récupères {refundPercent()} % : +{NumberFormat.short(refund)}) :`
 			cardRow.Visible = true
 			refreshCards(currentType, refund, pending ~= nil)
 			backButton.Visible = true

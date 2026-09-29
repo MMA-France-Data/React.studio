@@ -14,17 +14,28 @@ local DEFINITIONS = {
 	-- serveur -> clients : (plotIndex, buffer, count) positions des ennemis (format : PlotGame:buildSyncPacket).
 	-- La vitesse de chaque ennemi dans le paquet ne compte PAS le pass Vitesse x2 : le client la multiplie
 	-- par l'attribut « SimSpeed » du dossier de la parcelle (1, ou 2 quand le pass est allumé).
+	-- Après les count x 11 octets des ennemis : count octets « contrôle », un par ennemi dans le même ordre :
+	-- bits 0-3 = numéro dans IdleTowers.ORDER de la tour dont le contrôle est en cours (0 = aucun ; Frost =
+	-- ralenti par un Totem de givre, Tesla = ralenti par un Mage des tempêtes, Orbital = étourdi par le
+	-- Trébuchet royal), bit 7 (128) = fragile (aura d'un Totem de givre). Voir le haut de PlotGame.luau.
 	PlotSync = "RemoteEvent",
-	PlotShots = "UnreliableRemoteEvent", -- serveur -> clients : (plotIndex, buffer, count) tirs
+	-- serveur -> clients : (plotIndex, buffer, count) tirs, count x 27 octets (format : PlotGame:takeShotsPacket).
+	-- Baliste lourde (type Rocket) : carreau perçant du départ au point d'arrivée, rayon 0 ; Trébuchet royal
+	-- (type Orbital) : rayon = sa grande zone.
+	PlotShots = "UnreliableRemoteEvent",
 	CoinDrop = "RemoteEvent", -- serveur -> propriétaire : ("Set" | "Collect", id, position, montant)
 	-- Machines à sous
 	OpenMachine = "RemoteEvent", -- serveur -> client : ("Tower" | "Bonus") quand on active une machine
 	-- client -> serveur : ("SpinTower", nombre de lancers : 1 si absent, voir IdleConfig.TOWER_SPIN_BULKS)
-	--                    | "SpinBonusCoins" | ("ApplyBonus", spot, bonusId)
+	--                    | "SpinBonusCoins" (forge en pièces, sans délai) | ("ApplyBonus", spot, bonusId)
+	-- Forge : état publié en attributs du joueur (ForgeSpinsBought, ForgeCoinPrice (-1 = MAX), ForgeDrawable,
+	-- ForgeBlocked), voir PlotGame:publishForge. Quand ForgeBlocked n'est pas vide, le client bloque aussi le
+	-- bouton Robux (un reçu qui arrive quand même donne la meilleure rune).
 	MachineAction = "RemoteEvent",
 	-- serveur -> client : résultat d'un lancer. Autel des héros : { machine = "Tower", count, tower, rarity,
 	-- isNew, dupes, results = { { tower, rarity, count, isNew } } } (voir PlotGame:spinTower).
-	-- Forge runique : { machine = "Bonus", bonus, source }.
+	-- Forge runique : { machine = "Bonus", bonus, source = "Coins" | "Robux", price (pièces payées, 0 en Robux),
+	-- forgeSpinsBought } (voir PlotGame:grantBonusSpin).
 	MachineResult = "RemoteEvent",
 	-- Gains d'absence, serveur -> client, une fois en arrivant sur la map principale (Hub/init.luau) :
 	-- (payload) = { amount, seconds, kind = "Offline" | "Match", capped, offlineAmount, offlineSeconds,

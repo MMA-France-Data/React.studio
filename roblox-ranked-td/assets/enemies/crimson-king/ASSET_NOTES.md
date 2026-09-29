@@ -6,4 +6,4 @@
 
 Ce fichier est une **source pour l'importateur Roblox Studio**. Le projet Rojo n'importe pas directement les GLB depuis `assets/` ; il faut encore importer le modèle, obtenir les identifiants des assets Roblox, puis le brancher au rendu client du mode infini. L'appel `decorateEnemy(root, def, palier)` doit être conservé. Le roi carmin correspond au palier 0, vague 10, puis 110, 210, etc. La mort ne nécessite pas d'animation d'attaque : les ennemis atteignent la zone ou meurent sous les tirs des tours.
 
-Provenance : modèle généré par le propriétaire avec Meshy à partir d'un concept créé pour ce projet. Vérifier la licence du compte Meshy utilisé avant une publication publique ; le forfait gratuit peut imposer une attribution.
+Provenance : modèle généré par le propriétaire avec Meshy à partir d'un concept créé pour ce projet. Le propriétaire a confirmé le 29/09/2026 l'avoir fait avec un forfait **payant** de Meshy (pas le forfait gratuit, qui peut imposer une attribution).

@@ -189,10 +189,14 @@ local function linearProjectile(from: Vector3, to: Vector3, color: Color3, heavy
 	end
 end
 
+-- Étourdissement du Trébuchet royal (mode infini) : même doré que le disque des ennemis étourdis (PlotRenderer).
+local STUN_COLOR = Color3.fromRGB(255, 212, 90)
+
 -- Pierre de siège avec une vraie trajectoire parabolique.
 -- travel = durée du vol imposée (mode infini), sinon calculée avec la distance (ranked).
-local function arcingProjectile(from: Vector3, to: Vector3, color: Color3, radius: number, travel: number?)
-	local projectile = projectilePart(color, Vector3.one * 0.9, Enum.Material.Rock)
+-- size / material / onImpact : grosse pierre du Trébuchet royal (sinon rocher de 0,9 et petite explosion).
+local function arcingProjectile(from: Vector3, to: Vector3, color: Color3, radius: number, travel: number?, size: number?, material: Enum.Material?, onImpact: ((Vector3) -> ())?)
+	local projectile = projectilePart(color, Vector3.one * (size or 0.9), material or Enum.Material.Rock)
 	projectile.Shape = Enum.PartType.Ball
 	local distance = (to - from).Magnitude
 	local duration = travel or math.clamp(distance / 55, 0.42, 0.9)
@@ -210,9 +214,44 @@ local function arcingProjectile(from: Vector3, to: Vector3, color: Color3, radiu
 		end
 		if projectile.Parent then
 			projectile:Destroy()
-			Effects.burst(to, math.max(1.8, radius), color, 0.24)
+			if onImpact then
+				onImpact(to)
+			else
+				Effects.burst(to, math.max(1.8, radius), color, 0.24)
+			end
 		end
 	end)
+end
+
+-- Impact de la pierre runique du Trébuchet royal : un éclat, puis une onde dorée au sol exactement de la
+-- taille de sa zone (radius, envoyé par le serveur) : les ennemis dedans prennent les dégâts et sont étourdis
+-- (sauf ceux déjà contrôlés par une autre tour, règle des contrôles de PlotGame).
+local function trebuchetImpact(to: Vector3, radius: number, color: Color3)
+	Effects.burst(to + Vector3.new(0, 0.5, 0), math.max(2, radius * 0.45), color:Lerp(Color3.new(1, 1, 1), 0.3), 0.28)
+	Effects.pulse(to, math.max(1, radius), STUN_COLOR)
+end
+
+-- Carreau perçant de la Baliste lourde (mode infini, appelé par PlotRenderer à l'impact) : une traînée au ras
+-- du chemin, de la tour (sous `from`) au point d'impact, aussi large que la zone touchée par le serveur
+-- (2 x halfWidth) : tous les ennemis dessous ont pris les dégâts.
+function Effects.pierceTrail(from: Vector3, to: Vector3, halfWidth: number, color: Color3)
+	local y = to.Y + 0.8
+	local a = Vector3.new(from.X, y, from.Z)
+	local b = Vector3.new(to.X, y, to.Z)
+	local length = (b - a).Magnitude
+	if length < 0.1 then
+		return
+	end
+	local trail = basePart()
+	trail.Size = Vector3.new(halfWidth * 2, 0.2, length)
+	trail.CFrame = CFrame.lookAt((a + b) / 2, b)
+	trail.Color = color
+	trail.Transparency = 0.45
+	trail.Parent = effectsFolder
+	TweenService:Create(trail, TweenInfo.new(0.35), { Transparency = 1, Size = Vector3.new(halfWidth * 0.5, 0.2, length) }):Play()
+	Debris:AddItem(trail, 0.4)
+	Effects.tracer(a, b, color:Lerp(Color3.new(1, 1, 1), 0.5), 0.18)
+	Effects.burst(b, 1.4, color, 0.2)
 end
 
 local function magicProjectile(from: Vector3, to: Vector3, color: Color3)
@@ -330,6 +369,11 @@ function Effects.playTowerShot(from: Vector3, to: Vector3, towerType: string, ra
 	task.delay(delay, function()
 		if kind == "Aura" then
 			Effects.pulse(to, radius, color)
+		elseif towerType == "Orbital" and flightTime then
+			-- Trébuchet royal : grosse pierre runique, onde dorée (étourdissement) de la taille de sa zone.
+			arcingProjectile(from, to, Color3.fromRGB(96, 92, 86):Lerp(color, 0.3), radius, travel, 1.7, Enum.Material.Slate, function(at)
+				trebuchetImpact(at, radius, color)
+			end)
 		elseif SIEGE_TYPES[towerType] then
 			arcingProjectile(from, to, Color3.fromRGB(79, 76, 69):Lerp(color, 0.18), radius, travel)
 		elseif ARROW_TYPES[towerType] then

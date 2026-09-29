@@ -333,6 +333,15 @@ end
 --                                                  personnage, renvoie (id, distance au personnage)
 --   Invoke(player, "HasDrop", id)               -> vrai si la pile est encore au sol
 --   Invoke(player, "Progress")                  -> { clock, simSpeed, spawned, alive, lead } de la vague en cours
+-- Forge runique :
+--   Invoke(player, "Call", "spinBonusWithCoins") -> un lancer en pièces (renvoie le résultat, nil si refusé)
+--   Invoke(player, "Call", "grantBonusSpin", "Robux") -> comme un achat Robux (ne change pas le prix)
+--   Invoke(player, "Call", "forgeState")        -> { bought, price, drawable = { ids }, blocked }
+--   Invoke(player, "Set", "forgeSpinsBought", 0) -> change le compteur des lancers en pièces (prix)
+-- Combat (arène de test, voir PlotGame « Outils de test ») :
+--   Invoke(player, "Call", "debugArena", { 6 }) puis "debugSpawn", "debugFire", "debugEnemy"...
+--   Invoke(player, "Call", "debugRunWave", 1, "OneShot", 1 / 60, 600) -> vague écrasée (compression)
+--   Invoke(player, "Call", "debugRunWave", 1, "KillOldest", 0.05, 60) -> sortie à chaque mort
 local function setupStudioDebug()
 	if not RunService:IsStudio() then
 		return
@@ -535,6 +544,8 @@ function Hub.start()
 			-- vérifie les pièces.
 			plotGame:spinTower(arg1)
 		elseif action == "SpinBonusCoins" then
+			-- Forge runique en pièces (plus de délai) : spinBonusWithCoins vérifie qu'une rune peut améliorer une
+			-- tour posée, calcule le prix avec le compteur du serveur (idle.forgeSpinsBought) et vérifie les pièces.
 			plotGame:spinBonusWithCoins()
 		elseif action == "ApplyBonus" then
 			-- arg1 = emplacement, arg2 = id du bonus
@@ -542,7 +553,10 @@ function Hub.start()
 		end
 	end)
 
-	-- Achat Robux : un lancer de la machine à bonus.
+	-- Achat Robux : un lancer de la forge runique. Il ne compte pas dans le prix des lancers en pièces. Si la
+	-- forge est bloquée (aucune rune n'améliorerait une tour : le client bloque alors le bouton Robux), un reçu
+	-- qui arrive quand même donne la meilleure rune : un achat payé n'est jamais perdu (PlotGame:grantBonusSpin).
+	-- Pas encore de parcelle (joueur en train d'arriver) : false, Roblox redonnera le reçu plus tard.
 	Monetization.onProduct(Config.Products.BONUS_SPIN, function(player)
 		local plotGame = games[player]
 		if not plotGame then

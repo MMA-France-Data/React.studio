@@ -5,6 +5,14 @@
 -- Chaque lancer acheté rend le suivant 0,05 % plus cher, pour toujours : les prix des boutons viennent de
 -- IdleConfig.towerSpinCost avec le compteur publié par le serveur (attribut TowerSpinsBought du joueur).
 -- Un prix trop grand pour être compté affiche « MAX » (bouton grisé) ; le serveur refuse cet achat.
+-- Forge runique : plus de délai d'attente. Prix du prochain lancer en pièces = IdleConfig.forgeCoinPrice avec
+-- le compteur publié par le serveur (attribut ForgeSpinsBought du joueur : 100 K, puis x5, puis x2 dès 1 T,
+-- jamais remis à zéro). Seules les runes qui améliorent une tour posée peuvent tomber (attribut ForgeDrawable,
+-- chances remises sur 100 % avec IdleConfig.forgeOdds) : les autres sont barrées (« toutes tes tours l'ont
+-- déjà »). Forge bloquée (attribut ForgeBlocked : « Pose d'abord une tour » / « Toutes tes tours ont le
+-- meilleur bonus ») : les boutons pièces ET Robux affichent le message et n'achètent rien (pas de fenêtre
+-- d'achat Robux). Si un reçu Robux arrive quand même (ex. tour vendue pendant l'achat), le serveur donne la
+-- meilleure rune : un achat payé n'est jamais perdu (PlotGame:grantBonusSpin).
 -- S'ouvrent via les machines de ta parcelle ou les boutons de la colonne de gauche.
 local MarketplaceService = game:GetService("MarketplaceService")
 local Players = game:GetService("Players")
@@ -74,6 +82,30 @@ function MachineUI.start()
 	-- Lancers de l'autel déjà achetés (publiés par le serveur) : ils décident du prix des prochains.
 	local function spinsBought(): number
 		return IdleConfig.cleanSpinsBought(player:GetAttribute("TowerSpinsBought"))
+	end
+	-- Forge : lancers en pièces déjà achetés (attribut ForgeSpinsBought) et prix du prochain (math.huge = MAX).
+	local function forgeBought(): number
+		return IdleConfig.cleanSpinsBought(player:GetAttribute("ForgeSpinsBought"))
+	end
+	local function forgePrice(): number
+		return IdleConfig.forgeCoinPrice(forgeBought())
+	end
+	-- Forge : runes tirables maintenant (attribut ForgeDrawable, ids séparés par des virgules ; nil = pas encore
+	-- publié) et raison du blocage (attribut ForgeBlocked, nil = la forge marche).
+	local function forgeState(): ({ any }?, string?)
+		local blocked = player:GetAttribute("ForgeBlocked")
+		local raw = player:GetAttribute("ForgeDrawable")
+		local drawable = nil
+		if typeof(raw) == "string" then
+			drawable = {}
+			for _, id in string.split(raw, ",") do
+				local bonus = IdleConfig.BONUS_BY_ID[id]
+				if bonus then
+					table.insert(drawable, bonus)
+				end
+			end
+		end
+		return drawable, if typeof(blocked) == "string" and blocked ~= "" then blocked else nil
 	end
 
 	------------------------------------------------------------------
@@ -256,15 +288,17 @@ function MachineUI.start()
 	end
 
 	-- Placement du rouleau : sous les 4 raretés et la ligne des prix pour l'autel (plus haut, pour le
-	-- résumé), sous les 8 bonus pour la forge.
+	-- résumé), sous les 8 runes et la ligne des prix pour la forge.
 	local function layoutReel(machine: string?)
-		spinInfo.Visible = machine == "Tower"
+		spinInfo.Visible = machine ~= nil
 		if machine == "Tower" then
+			spinInfo.Position = UDim2.new(0, 0, 0, 148)
 			reel.Position = UDim2.new(0, 0, 0, 172)
 			reel.Size = UDim2.new(1, 0, 1, -264)
 		else
-			reel.Position = UDim2.new(0, 0, 0, 244)
-			reel.Size = UDim2.new(1, 0, 0, 96)
+			spinInfo.Position = UDim2.new(0, 0, 0, 236)
+			reel.Position = UDim2.new(0, 0, 0, 258)
+			reel.Size = UDim2.new(1, 0, 0, 90)
 		end
 	end
 
@@ -373,19 +407,20 @@ function MachineUI.start()
 		reelDetail.Text = `{NumberFormat.short(totalDupes)} doublons au total • chacun = +{math.floor(IdleConfig.DUPLICATE_DAMAGE_BONUS * 100 + 0.5)} % de dégâts pour sa tour`
 	end
 
-	local function oddsRow(order: number, color: Color3, left: string, right: string)
+	-- dimmed = ligne grisée (rune qui ne peut pas tomber dans la forge).
+	local function oddsRow(order: number, color: Color3, left: string, right: string, dimmed: boolean?)
 		local row = UI.new("Frame", {
 			Size = UDim2.new(1, 0, 0, 20),
 			LayoutOrder = order,
 			BackgroundColor3 = color,
-			BackgroundTransparency = 0.8,
+			BackgroundTransparency = if dimmed then 0.94 else 0.8,
 			Parent = oddsList,
 		}, { UI.corner(4) })
 		UI.label({
 			Position = UDim2.new(0, 8, 0, 0),
 			Size = UDim2.new(0.8, -8, 1, 0),
 			TextXAlignment = Enum.TextXAlignment.Left,
-			TextColor3 = color:Lerp(Color3.new(1, 1, 1), 0.3),
+			TextColor3 = if dimmed then UI.Colors.Muted else color:Lerp(Color3.new(1, 1, 1), 0.3),
 			RichText = true,
 			Text = left,
 			MaxTextSize = 14,
@@ -397,6 +432,7 @@ function MachineUI.start()
 			Size = UDim2.new(0.2, 0, 1, 0),
 			TextXAlignment = Enum.TextXAlignment.Right,
 			Font = Enum.Font.GothamBold,
+			TextColor3 = if dimmed then UI.Colors.Muted else UI.Colors.Text,
 			Text = right,
 			MaxTextSize = 14,
 			Parent = row,
@@ -539,13 +575,18 @@ function MachineUI.start()
 			footer.Text = `Doublon = +{math.floor(IdleConfig.DUPLICATE_DAMAGE_BONUS * 100 + 0.5)} % de dégâts permanents pour cette tour  •  ✓ = déjà débloquée`
 		else
 			local bonuses = listAttribute(player, "Bonuses")
-			local cost = IdleConfig.bonusSpinCost(highestWave())
-			local waitLeft = (player:GetAttribute("LastBonusSpinAt") or 0) + IdleConfig.BONUS_SPIN_COOLDOWN - workspace:GetServerTimeNow()
+			local price = forgePrice()
+			local bought = forgeBought()
+			local drawable, blocked = forgeState()
 			title.Text = "FORGE RUNIQUE"
 			windowStroke.Color = IdleConfig.RARITIES.Legendary.color
-			subtitle.Text = "Le bonus va dans ton inventaire : clique sur une tour pour le poser (1 bonus par tour)"
+			subtitle.Text = "Ne tombent que les runes qui améliorent une de tes tours posées • 1 rune par tour"
 
-			rebuildOdds("Bonus", function()
+			-- Chances : celles des runes tirables, remises sur 100 % ; les autres barrées. Pas encore publié
+			-- ou aucune tour posée : les chances de base.
+			local drawableKey = player:GetAttribute("ForgeDrawable")
+			rebuildOdds(`Bonus:{drawableKey}:{blocked}`, function()
+				local odds = if drawable and #drawable > 0 then IdleConfig.forgeOdds(drawable) else nil
 				for order, bonus in IdleConfig.BONUSES do
 					local color = if bonus.chance >= 10
 						then IdleConfig.RARITIES.Common.color
@@ -554,23 +595,41 @@ function MachineUI.start()
 						else IdleConfig.RARITIES.Legendary.color
 					-- Le Sorcier des arcanes n'a pas de coups : la rune de vitesse fait chauffer son rayon plus vite.
 					local note = if bonus.kind == "Speed" then `  (rayon du Sorcier : chauffe {bonus.mult}x plus vite)` else ""
-					oddsRow(order, color, `<b>{bonus.displayName}</b>{note}`, formatChance(bonus.chance))
+					if odds and not odds[bonus.id] then
+						-- Toutes les tours posées ont déjà une rune au moins aussi forte (x2 vitesse = x2).
+						oddsRow(order, color, `<s>{bonus.displayName}</s>  toutes tes tours l'ont déjà`, "—", true)
+					elseif odds then
+						oddsRow(order, color, `<b>{bonus.displayName}</b>{note}`, formatChance(odds[bonus.id]))
+					else
+						oddsRow(order, color, `<b>{bonus.displayName}</b>{note}`, formatChance(bonus.chance), blocked ~= nil)
+					end
 				end
 			end)
+
+			local boughtText = if bought == 0
+				then "aucun lancer en pièces"
+				elseif bought == 1 then "déjà 1 lancer en pièces"
+				else `déjà {NumberFormat.short(bought)} lancers en pièces`
+			spinInfo.Text = `Chaque lancer en pièces : x{IdleConfig.FORGE_FAST_GROWTH} (x{IdleConfig.FORGE_SLOW_GROWTH} dès {NumberFormat.short(IdleConfig.FORGE_GROWTH_SWITCH)})  •  {boughtText}`
 
 			bulkRow.Visible = false
 			primaryButton.Visible = true
 			robuxButton.Visible = true
 			primaryButton.Size = UDim2.new(0.6, -4, 0, 50)
-			if waitLeft > 0 then
-				primaryButton.Text = `En pièces dans {UI.formatTime(waitLeft)}`
+			local full = #bonuses >= IdleConfig.MAX_BONUS_INVENTORY
+			if blocked then
+				-- Aucune rune n'améliorerait une tour : pièces ET Robux bloqués.
+				primaryButton.Text = blocked
+				primaryButton.BackgroundTransparency = 0.6
+			elseif full then
+				primaryButton.Text = `Inventaire plein ({IdleConfig.MAX_BONUS_INVENTORY} runes)`
 				primaryButton.BackgroundTransparency = 0.6
 			else
-				primaryButton.Text = `Lancer • {NumberFormat.short(cost)} pièces`
-				local affordable = coins() >= cost
-				primaryButton.BackgroundTransparency = if affordable and not busy() then 0 else 0.6
+				primaryButton.Text = `Lancer • 💰 {NumberFormat.price(price)}`
+				primaryButton.BackgroundTransparency = if price < math.huge and coins() >= price and not busy() then 0 else 0.6
 			end
-			footer.Text = `Inventaire : {#bonuses} bonus  •  1 lancer en pièces toutes les 30 min, en Robux à volonté`
+			robuxButton.BackgroundTransparency = if blocked then 0.6 else 0
+			footer.Text = `Inventaire : {#bonuses} rune{if #bonuses > 1 then "s" else ""}  •  en Robux à volonté, sans hausse de prix`
 		end
 	end
 
@@ -611,11 +670,37 @@ function MachineUI.start()
 			return
 		end
 		if current == "Bonus" then
+			-- Mêmes vérifications que le serveur (qui recalcule tout avec ses propres données).
+			local _, blocked = forgeState()
+			if blocked then
+				UI.toast(blocked, "Warning")
+				return
+			end
+			if #listAttribute(player, "Bonuses") >= IdleConfig.MAX_BONUS_INVENTORY then
+				UI.toast("Ton inventaire de runes est plein : pose-en sur tes tours", "Error")
+				return
+			end
+			local price = forgePrice()
+			if price >= math.huge then
+				UI.toast("Prix trop élevé (MAX) : la forge en pièces n'est plus possible", "Error")
+				return
+			end
+			if coins() < price then
+				UI.toast(`Il te faut {NumberFormat.price(price)} pièces`, "Error")
+				return
+			end
 			awaitingUntil = os.clock() + RESULT_TIMEOUT
 			machineAction:FireServer("SpinBonusCoins")
 		end
 	end)
 	robuxButton.Activated:Connect(function()
+		-- Forge bloquée (aucune rune n'améliorerait une tour) : pas de fenêtre d'achat. Si un reçu arrive quand
+		-- même, le serveur donne la meilleure rune (un achat payé n'est jamais perdu).
+		local _, blocked = forgeState()
+		if blocked then
+			UI.toast(blocked, "Warning")
+			return
+		end
 		if Config.Products.BONUS_SPIN == 0 then
 			UI.toast("L'achat en Robux n'est pas encore configuré (Config.Products.BONUS_SPIN)", "Warning")
 			return
@@ -646,7 +731,9 @@ function MachineUI.start()
 				table.insert(colors, IdleConfig.RARITIES[def.rarity].color)
 			end
 		else
-			for _, bonus in IdleConfig.BONUSES do
+			-- Le rouleau ne fait défiler que les runes qui pouvaient tomber.
+			local drawable = forgeState()
+			for _, bonus in (if drawable and #drawable > 0 then drawable else IdleConfig.BONUSES) do
 				table.insert(names, bonus.displayName)
 				table.insert(colors, UI.Colors.Gold)
 			end
@@ -677,10 +764,10 @@ function MachineUI.start()
 			end
 		else
 			local bonus = IdleConfig.BONUS_BY_ID[result.bonus]
-			reelText.Text = bonus.displayName
+			reelText.Text = if bonus then bonus.displayName else "?"
 			reelText.TextColor3 = UI.Colors.Gold
 			reelStroke.Color = UI.Colors.Gold
-			reelDetail.Text = "Ajouté à ton inventaire : clique sur une tour pour le poser."
+			reelDetail.Text = "Ajoutée à ton inventaire : clique sur une tour pour la poser."
 		end
 		spinning = false
 		refresh()
