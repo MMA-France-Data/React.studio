@@ -153,6 +153,20 @@ function UI.attackSpeed(cooldown: number): string
 	return text .. " atq/s"
 end
 
+-- Vitesse d'une tour du mode infini : « continu » pour le rayon du Sorcier des arcanes (pas de coups,
+-- des dégâts à chaque instant), sinon ses attaques par seconde (« 5 atq/s »).
+function UI.towerSpeed(stats): string
+	if stats.kind == "Beam" then
+		return "continu"
+	end
+	return UI.attackSpeed(stats.cooldown)
+end
+
+-- Nombre écrit à la française, sans zéros inutiles : 2.25 -> « 2,25 », 13 -> « 13 », 1.2 -> « 1,2 ».
+function UI.decimal(value: number): string
+	return (string.gsub(string.format("%g", value), "%.", ","))
+end
+
 local toastGui = nil
 local toastList = nil
 local toastCount = 0

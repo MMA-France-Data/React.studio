@@ -1,11 +1,10 @@
--- HUD du match : vies des deux bases, or, vagues, boutiques de tours et d'envois, résultat.
+-- HUD du match : vies des deux bases, or, vagues, boutique de tours, résultat.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.Config)
 local Remotes = require(Shared.Remotes)
-local Sends = require(Shared.Sends)
 local Towers = require(Shared.Towers)
 local TowerCard = require(script.Parent.TowerCard)
 local UI = require(script.Parent.UI)
@@ -142,36 +141,7 @@ function MatchUI.start(TowerPlacement)
 		towerButtons[towerType] = button
 	end
 
-	-- Envois chez l'adversaire (à droite)
-	local sendPanel = UI.new("Frame", {
-		AnchorPoint = Vector2.new(1, 0.5),
-		Position = UDim2.new(1, -16, 0.5, 0),
-		Size = UDim2.new(0, 190, 0, 40 + #Sends.ORDER * 58),
-		BackgroundColor3 = UI.Colors.Panel,
-		BackgroundTransparency = 0.1,
-		Parent = gui,
-	}, { UI.corner(12), UI.padding(8) })
-	UI.label({
-		Size = UDim2.new(1, 0, 0, 24),
-		Font = Enum.Font.GothamBold,
-		Text = "Envoyer à l'adversaire",
-		MaxTextSize = 16,
-		Parent = sendPanel,
-	})
-	local sendButtons = {}
-	for index, sendId in Sends.ORDER do
-		local button = UI.button({
-			Position = UDim2.new(0, 0, 0, 28 + (index - 1) * 58),
-			Size = UDim2.new(1, 0, 0, 52),
-			BackgroundColor3 = UI.Colors.PanelLight,
-			MaxTextSize = 15,
-			Parent = sendPanel,
-		})
-		button.Activated:Connect(function()
-			Remotes.get("SendEnemies"):FireServer(sendId)
-		end)
-		sendButtons[sendId] = button
-	end
+	-- Le milieu du bord droit est libre : place pour le panneau d'une future mécanique.
 
 	-- Fiche de tour (au-dessus de la boutique) : les 3 niveaux côte à côte.
 	-- Tour sélectionnée -> niveaux + boutons ; survol / pose -> aperçu boutique.
@@ -317,16 +287,6 @@ function MatchUI.start(TowerPlacement)
 				UI.new("UIStroke", { Name = "Selected", Color = Color3.new(1, 1, 1), Thickness = 3, Parent = button })
 			elseif placing ~= towerType and stroke then
 				stroke:Destroy()
-			end
-		end
-		for sendId, button in sendButtons do
-			local def = Sends.Defs[sendId]
-			if wave < def.minWave then
-				button.Text = `{def.displayName} — vague {def.minWave}`
-				button.BackgroundTransparency = 0.6
-			else
-				button.Text = `{def.displayName} x{def.count}\n{def.cost} or • +{def.income}/vague`
-				button.BackgroundTransparency = if gold >= def.cost then 0 else 0.6
 			end
 		end
 

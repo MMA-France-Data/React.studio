@@ -21,8 +21,9 @@ Depuis le dossier `roblox-ranked-td` :
 powershell -ExecutionPolicy Bypass -File tools\balance\idle\run.ps1
 ```
 
-Environ 30 minutes : 4 scénarios x 3 parties x 100 h de jeu. Pour un essai rapide (environ 3 à 5 minutes :
-3 parties x 40 h, scénario `base` seulement) :
+Environ 1 h 30 : 5 scénarios x 3 parties x 100 h de jeu (les projectiles, le feu et le rayon du Sorcier
+demandent plus de calcul qu'avant). Pour un essai rapide (environ 10 minutes : 3 parties x 40 h, scénario
+`base` seulement) :
 
 ```bat
 powershell -ExecutionPolicy Bypass -File tools\balance\idle\run.ps1 -Rapide
@@ -32,11 +33,28 @@ Autres options (à ajouter après `run.ps1`) :
 
 ```bat
 -Graines 5 -Heures 50                  plus ou moins de parties, plus ou moins longues
--Scenarios base,forge                  seulement certains scénarios
+-Scenarios base,sans-sorcier           seulement certains scénarios
 -Journal                               écrit aussi out\journal.txt : tout ce que fait le joueur simulé (1re partie)
 -Pas 0.0166667                         pas de 1/60 s comme le jeu (plus lent ; résultats à 10 % près)
 -Regler "IdleConfig.UPGRADE_COST_GROWTH=1.3;PlotLayout.SPOT_COST_GROWTH=2.5"   essai de réglages (voir plus bas)
+-Verifier                              vérifie que le moteur joue comme le vrai PlotGame.luau (quelques secondes)
 ```
+
+## Vérifier le moteur (`-Verifier`)
+
+```bat
+powershell -ExecutionPolicy Bypass -File tools\balance\idle\run.ps1 -Verifier
+```
+
+Charge le **vrai** `src/server/Hub/PlotGame.luau` hors de Studio (avec des imitations de Roblox :
+`idle/verif/extra.luau` et `idle/verif/stubs/`), puis fait jouer les mêmes vagues (vagues 8 à 60, 4 équipes :
+toutes les tours avec des runes, que des Archers, Sorciers + Totem + Mage, zones et projectiles) au jeu et au
+moteur du simulateur (`idle/verif/parity.luau`). Il affiche `OK` si toutes les vagues ont le même résultat
+(réussie ou ratée), presque la même durée (2 s d'écart au plus) et les mêmes pièces. Pour une comparaison
+exacte, le pas de temps vaut 1/32 s dans les deux (un nombre exact en binaire), la parcelle est au centre du
+monde et le moteur n'a pas sa petite marge d'arrondi (`Engine.EPS = 0`). Dernier résultat : 108 vagues sur 108
+identiques, 0,00 s d'écart. **À relancer après chaque changement de combat dans `PlotGame.luau`** : s'il
+affiche `DIFFÉRENCES`, fais le même changement dans `idle/Engine.luau`.
 
 ## Les résultats (`tools\balance\idle\out\`)
 
@@ -49,15 +67,20 @@ Autres options (à ajouter après `run.ps1`) :
      la puissance des tours à budget égal. Tout est lu dans les fonctions du jeu (`healthBudget`,
      `upgradeCost`…) : si tu changes une formule, cette partie suit.
   3. **Un bloc par scénario** : lancers achetés à l'autel (combien, quels lots, à partir de quel record, part
-     des dépenses), jalons (vagues 5, 10, 15, 20, 25, 30, 40, 50…), murs, emplacements achetés (5e, 6e… :
-     quand, à quel prix, lequel), tours obtenues à l'autel, part des dégâts de chaque tour.
+     des dépenses), **compteur de lancers et prix du prochain x1 / x100 / x10 000 à 1, 10, 25, 50 et 100 h**
+     (en pièces et en vagues de gains), **première tour légendaire** (quand, à quelle vague), jalons (vagues 5,
+     10, 15, 20, 25, 30, 40, 50…), murs, emplacements achetés (5e, 6e… : quand, à quel prix, lequel), tours
+     obtenues à l'autel, part des dégâts de chaque tour.
   4. **Comparaison des scénarios** : temps pour atteindre chaque vague.
   5. **Grands nombres** : pour chaque scénario, record, pièces en poche, revenu par minute et total gagné
      à 1, 5, 10, 25, 50, 80, 90 et 100 h (valeur du milieu des graines), l'heure où le revenu atteint
      1 M, 1 B, 1 T, 1 Qa… par minute, puis les **limites des nombres** : la vague et le niveau
      d'amélioration où un montant deviendrait infini (au-delà de ~1,8e308 ; un DataStore ne sait pas
      le sauver), et la vague où NumberFormat passe en notation scientifique (après 10^96).
-  6. **Banc d'essai des tours**.
+  6. **Banc d'essai des tours**, puis les **duels** : UNE tour contre UN seul ennemi (immortel) qui traverse
+     tout le chemin, même niveau pour toutes, seule puis avec un Totem de givre voisin ; résultat en fois les
+     dégâts de la Baliste lourde (c'est là qu'on voit le rayon du Sorcier battre la Baliste contre les ennemis
+     lents et perdre contre les rapides).
   7. **Renaissance en boucle**.
 - `timeline.csv` : une ligne par vague passée pour la première fois (scénario, graine, temps, pièces,
   revenu, emplacements, tours, doublons, lancers, bonus de pièces, murs, composition).
@@ -114,17 +137,30 @@ changer `PlotLayout.PATH` ne marche pas (la longueur du chemin est calculée au 
 `Color3`, `CFrame` et `script` (`shim.luau`). Aucun chiffre n'est recopié à la main : si tu changes un
 réglage dans `src/shared`, le simulateur l'utilise au prochain lancement.
 
-`Engine.luau` refait pas à pas `PlotGame:step` (`src/server/Hub/PlotGame.luau`) :
+`Engine.luau` refait pas à pas `PlotGame:simulate` (`src/server/Hub/PlotGame.luau`), dans le même ordre
+(apparitions, déplacements, projectiles qui arrivent, tours, zones de feu, retrait des morts) :
 
 - vagues de `IdleConfig.buildWave` (écarts entre ennemis, `MAX_ENEMIES`), chemin `PlotLayout.PATH`,
   vitesse des ennemis x `ENEMY_SPEED_MULTIPLIER` x facteur de leur type (`ENEMY_SPEED_FACTORS`),
   ralentissements (Totem de givre, Mage des tempêtes : le plus fort gagne, ils ne s'additionnent pas) ;
 - tirs des tours dans l'ordre des emplacements : simple (le plus avancé), `Strongest` (le plus de PV),
   zone, aura, chaîne ; recharges ; stats de `IdleTowers.effectiveStats` (niveau, doublons, bonus de la forge) ;
+- **projectiles** (Archer, Catapulte, Baliste, Trébuchet) : visée à l'endroit où sera l'ennemi (sa vitesse, la
+  fin de son ralentissement, le chemin, 2 itérations), temps de vol `IdleTowers.flightTime` (distance en 3D
+  depuis le haut de la tour), dégâts à l'impact ; une zone touche autour du point d'impact, une flèche touche sa
+  cible (ou l'ennemi le plus proche à `PROJECTILE_CATCH_RADIUS` studs si elle est morte) ; dégâts « en attente »
+  : une tour à projectile ne vise pas un ennemi que les projectiles déjà en vol vont tuer ;
+- **flèches enflammées** : zones de feu au point d'impact (ravivées par la même tour, `fireMaxPatches` par
+  tour, `FIRE_MAX_PER_PLOT` en tout), un coup toutes les `fireTick` s à tous les ennemis dedans ; les dégâts du
+  feu comptent pour l'Archer qui l'a allumé ;
+- **Mage des tempêtes** : foudre instantanée sur une petite zone, dégâts et ralentissement pour tous ;
+- **rayon du Sorcier** : garde sa cible tant qu'elle vit et reste à portée, montée `IdleTowers.beamRamp` au
+  milieu du pas, repart de x1 sur une nouvelle cible ;
 - pas de PV de base : **un seul ennemi au bout du chemin = vague ratée** (arrêtée tout de suite), une vague
   plus bas ; réussie = vague suivante ; délais `FIRST_WAVE_DELAY`, `WAVE_CLEAR_DELAY`, `WAVE_FAIL_DELAY` ;
 - pièces des ennemis tués x (1 + bonus de pièces), y compris ceux tués avant la fuite d'une vague ratée ;
-- autel des héros : lancers payés en pièces par lots (`TOWER_SPIN_BULKS`, prix `towerSpinCost`), chances du
+- autel des héros : lancers payés en pièces par lots (`TOWER_SPIN_BULKS`, prix `towerSpinCost` avec le
+  nombre de lancers déjà achetés : +0,05 % par lancer, jamais remis à zéro ; un prix « MAX » n'est pas achetable), chances du
   palier du **record** (`TOWER_SPIN_TIERS`), déblocage ou doublon, tirage des gros lots comme le serveur
   (nombre de tours par rareté puis par tour), forge runique (`bonusSpinCost`, 1 lancer / 30 min, le bonus
   remplacé est perdu),
@@ -134,11 +170,13 @@ réglage dans `src/shared`, le simulateur l'utilise au prochain lancement.
   l'inventaire), renaissance (`rebirthGain`, seule la vague repart à 1).
 
 Différences voulues avec le jeu : pas de temps fixe de 0,05 s au lieu de ~1/60 s (les résultats changent
-de moins de 10 % entre 0,1 s, 0,05 s et 1/60 s) ; la recharge des tours repart à 0 à chaque vague ; le
-joueur n'achète qu'entre les vagues ; les pièces sont ramassées tout de suite.
+de moins de 10 % entre 0,1 s, 0,05 s et 1/60 s) ; une petite marge sur les recharges (dans le jeu, à 60 images
+par seconde, une recharge de 0,2 s dure en fait 12 ou 13 images : les tours tirent jusqu'à ~5 % moins souvent) ;
+la recharge des tours repart à 0 à chaque vague ; le joueur n'achète qu'entre les vagues ; les pièces sont
+ramassées tout de suite.
 
 Si tu changes `PlotGame.luau` (nouvelle règle de combat, nouveau type de tour…), fais le même changement
-dans `Engine.luau` ou `Run.luau`, sinon le simulateur ne correspond plus au jeu.
+dans `Engine.luau` ou `Run.luau`, puis lance `run.ps1 -Verifier` : sinon le simulateur ne correspond plus au jeu.
 
 ## Le joueur simulé
 
@@ -152,12 +190,18 @@ Un joueur **actif** (réglages dans `Run.POLICY`, en haut de `idle/Run.luau`) :
   au moins 2 h, une seule par entracte, et seulement si c'est nettement mieux : sans ces limites, au mur,
   il revendait en boucle des tours de haut niveau et perdait la moitié de leur prix à chaque fois), ou
   **acheter des lancers à l'autel** : un lot vaut les doublons attendus sur ses tours posées (+2 % de dégâts
-  chacun) plus la chance de débloquer une tour qui ferait mieux que ses achats actuels ; à rapport presque
-  égal, il prend le plus gros lot qu'il peut payer (x10 plutôt que 10 fois x1) ;
+  chacun) plus la chance de débloquer une tour qui ferait mieux que ses achats actuels ; le prix suit le vrai
+  compteur de lancers (+0,05 % par lancer, jamais remis à zéro) ; à rapport presque égal (90 %, 75 % à partir
+  de x1 000), il prend le plus gros lot qu'il peut payer (x10 plutôt que 10 fois x1), ou attend quelques
+  minutes pour l'avoir (5 min de revenu pour x100, 30 min pour x1 000 et plus) ;
 - le « gain » est mesuré contre les **prochaines vagues** (et, s'il est bloqué, contre la vague qui bloque,
   en visant les ennemis qui l'ont vraiment traversée) : le moteur rejoue ces vagues avec des ennemis
   immortels pour compter combien de coups chaque tour peut porter (portée, zone, chaîne, ralentissements),
   puis multiplie par les dégâts, plafonnés aux PV de l'ennemi (un gros tir sur un petit écuyer est gâché).
+  Flèches enflammées : les coups de leurs zones de feu comptent en plus. Rayon du Sorcier : la montée x le temps
+  passé sur chaque groupe, mais pas plus que ce qu'il peut infliger en tuant ses cibles l'une après l'autre
+  (la montée repart de x1 à chaque nouvelle cible) ; il est jugé dans la vraie disposition, avec les
+  ralentissements des autres tours (plus un ennemi reste longtemps, plus le rayon chauffe) (`Run.valueOf`).
   Une seule fuite fait rater la vague : chaque groupe d'ennemis compte d'autant plus que ses tours en
   viennent mal à bout (PV à infliger / puissance utile, au carré) ;
 - une tour neuve est jugée avec ses améliorations suivantes (au niveau où elle devient la plus rentable) ;
@@ -181,6 +225,7 @@ Scénarios (`-Scenarios`) :
 | `forge` | + la forge runique en pièces dès qu'elle est prête (1 lancer / 30 min) : il met le prix de côté si ça vaut moins de 30 min de revenu ; le bonus va sur la tour où il rapporte le plus |
 | `renaissance` | forge + renaissance dès qu'il est bloqué depuis 15 min à son record (vague 15 ou plus) |
 | `renaissance-seule` | base + la même renaissance, sans forge (pour voir l'effet de la renaissance seule) |
+| `sans-sorcier` | base, mais il ne pose jamais de Sorcier des arcanes : le rapport compare les murs des Seigneurs de guerre et des Gardes colossales avec et sans lui |
 
 Pas de Robux dans aucun scénario.
 
@@ -191,7 +236,8 @@ Pas de Robux dans aucun scénario.
 | `run.ps1` | Copie les modules, lance la simulation, écrit les fichiers de `out\` |
 | `shim.luau` | Imitations de `Vector3`, `Color3`, `CFrame`, `script` pour charger les modules hors de Roblox |
 | `Modules.luau` | Charge les vrais modules copiés dans `gen\shared` |
-| `Engine.luau` | Le combat, pas à pas (copie fidèle de `PlotGame:step`) |
+| `Engine.luau` | Le combat, pas à pas (copie fidèle de `PlotGame:simulate` : projectiles, feu, rayon compris) |
+| `verif/` | Vérification du moteur (`run.ps1 -Verifier`) : `parity.luau` fait jouer les mêmes vagues au vrai `PlotGame.luau` et au moteur ; `extra.luau` et `stubs/` imitent Roblox |
 | `Run.luau` | Une partie : le joueur simulé, les machines, la renaissance, les statistiques, le journal |
 | `Report.luau` | Mise en forme du rapport et des CSV |
 | `main.luau` | Lance les scénarios, le banc d'essai, la renaissance en boucle et la comparaison aux objectifs |

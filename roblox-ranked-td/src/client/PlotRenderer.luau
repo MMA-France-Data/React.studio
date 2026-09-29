@@ -4,6 +4,11 @@
 -- Vitesse x2 (pass de jeu) : le serveur publie l'attribut « SimSpeed » (1 ou 2) sur le dossier de la
 -- parcelle et toute sa simulation va SimSpeed fois plus vite. Le facteur de vitesse du paquet ne
 -- contient PAS ce x2 : c'est ici qu'on le multiplie (voir simSpeedOf).
+-- Projectiles : chaque tir du paquet dit combien de temps il lui reste à voler (en secondes de simulation,
+-- format dans PlotGame.luau) ; le projectile est animé jusqu'au point d'impact prévu par le serveur en
+-- vol / SimSpeed secondes, et l'impact (explosion, zone de feu des flèches) apparaît quand les dégâts tombent.
+-- Rayon du Sorcier des arcanes : lu sur les attributs « BeamTarget » / « BeamRamp » de sa tour, dessiné à
+-- chaque image jusqu'à l'ennemi affiché ici (voir updateBeams).
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -24,8 +29,11 @@ local Effects = require(script.Parent.Effects)
 local PlotRenderer = {}
 
 local ENEMY_BYTES = 11
-local SHOT_BYTES = 26
+local SHOT_BYTES = 27 -- départ 3xf32, arrivée 3xf32, type u8, rayon u8, vol restant u8 (centièmes de s)
 local SNAP_DISTANCE = 4 -- au-delà, on replace l'ennemi directement à la position du serveur (x SimSpeed)
+local MAX_FIRE_VISUALS = 10 -- zones de feu affichées au plus par parcelle (la plus vieille disparaît)
+local FIRE_FADE_TIME = 0.25
+local BEAM_HEAT_SPEED = 8 -- vitesse à laquelle l'épaisseur du rayon suit sa montée
 local MAX_SIM_SPEED = 4 -- garde-fou : une valeur abîmée ne fait pas s'envoler les ennemis
 -- Pièces ramassées à distance (pass Ramassage auto) : plus loin que ça du joueur, la pile s'envole vers lui.
 local REMOTE_PICKUP_DISTANCE = IdleConfig.PICKUP_RADIUS + 4
@@ -37,7 +45,8 @@ local coinFolder = Instance.new("Folder")
 coinFolder.Name = "Coins"
 
 local plotsFolder: Instance? = nil -- workspace.Hub.Plots (trouvé dans start)
-local plots = {} -- [plotIndex] = { cframe, folder, enemies = { [id] = enemy } }
+local plots = {} -- [plotIndex] = { cframe, folder, enemies = { [id] = enemy }, fires = { zone de feu } }
+local beams = {} -- [modèle de tour à rayon] = { plotIndex, def, muzzle, targetId, ramp, heat, handle }
 local coins = {} -- [id] = { part, label }
 local flyingCoins = {} -- piles ramassées à distance, en vol vers le joueur : { part, from, size, started, duration }
 local remoteGain = 0
@@ -46,7 +55,7 @@ local remoteGainPending = false
 local function plotState(plotIndex: number)
 	local state = plots[plotIndex]
 	if not state then
-		state = { cframe = PlotLayout.cframe(plotIndex), enemies = {} }
+		state = { cframe = PlotLayout.cframe(plotIndex), enemies = {}, fires = {} }
 		plots[plotIndex] = state
 	end
 	return state
@@ -168,7 +177,51 @@ local function nearestTower(plotIndex: number, towerType: string, from: Vector3)
 	return nearest
 end
 
+----------------------------------------------------------------------
+-- Zones de feu des flèches enflammées (seulement l'affichage : les dégâts sont calculés par le serveur)
+----------------------------------------------------------------------
+
+local function horizontalDistance(a: Vector3, b: Vector3): number
+	local dx, dz = a.X - b.X, a.Z - b.Z
+	return math.sqrt(dx * dx + dz * dz)
+end
+
+-- Une flèche enflammée touche le sol : même règle que le serveur (PlotGame:addFirePatch), une flèche qui
+-- tombe dans une zone la ravive au lieu d'en créer une autre. Durée en secondes réelles (/ SimSpeed).
+local function addFire(plotIndex: number, position: Vector3, def)
+	local state = plotState(plotIndex)
+	local now = os.clock()
+	local expiresAt = now + def.fireDuration / simSpeedOf(plotIndex, state)
+	for _, fire in state.fires do
+		if horizontalDistance(fire.position, position) <= def.fireRadius then
+			fire.expiresAt = math.max(fire.expiresAt, expiresAt)
+			return
+		end
+	end
+	if #state.fires >= MAX_FIRE_VISUALS then
+		Effects.fadeOut(table.remove(state.fires, 1).part, FIRE_FADE_TIME)
+	end
+	table.insert(state.fires, { part = Effects.firePatch(position, def.fireRadius), position = position, expiresAt = expiresAt })
+end
+
+-- Éteint les zones de feu arrivées au bout (toutes, si la vague est finie : le serveur les a effacées).
+local function updateFires(plotIndex: number, state, now: number)
+	if #state.fires == 0 then
+		return
+	end
+	simSpeedOf(plotIndex, state) -- retrouve le dossier de la parcelle si besoin
+	local running = state.folder ~= nil and state.folder:GetAttribute("State") == "Running"
+	for i = #state.fires, 1, -1 do
+		local fire = state.fires[i]
+		if not running or now >= fire.expiresAt then
+			Effects.fadeOut(fire.part, FIRE_FADE_TIME)
+			table.remove(state.fires, i)
+		end
+	end
+end
+
 local function onShots(plotIndex: number, packet: buffer, count: number)
+	local simSpeed = simSpeedOf(plotIndex, plotState(plotIndex))
 	for i = 0, count - 1 do
 		local offset = i * SHOT_BYTES
 		local from = Vector3.new(buffer.readf32(packet, offset), buffer.readf32(packet, offset + 4), buffer.readf32(packet, offset + 8))
@@ -176,10 +229,77 @@ local function onShots(plotIndex: number, packet: buffer, count: number)
 		local towerType = IdleTowers.ORDER[buffer.readu8(packet, offset + 24)]
 		local def = IdleTowers.Defs[towerType]
 		local radius = buffer.readu8(packet, offset + 25)
+		-- Vol restant en secondes réelles : le projectile arrive quand le serveur applique les dégâts.
+		local flight = buffer.readu8(packet, offset + 26) / 100 / simSpeed
 		if not def then
 			continue
 		end
-		Effects.playTowerShot(from, to, towerType, radius, def.color, def.kind, nearestTower(plotIndex, towerType, from))
+		Effects.playTowerShot(from, to, towerType, radius, def.color, def.kind, nearestTower(plotIndex, towerType, from), flight)
+		if def.fireRadius then
+			task.delay(flight, addFire, plotIndex, to, def)
+		end
+	end
+end
+
+----------------------------------------------------------------------
+-- Rayon continu du Sorcier des arcanes (visible par tout le monde)
+----------------------------------------------------------------------
+
+-- Suit une tour à rayon : ses attributs BeamTarget (id de l'ennemi, 0 = éteint) et BeamRamp (montée).
+local function watchBeamTower(model: Instance)
+	-- Déjà suivie, ou déjà retirée avant cet appel (task.defer) : AncestryChanged ne viendrait plus l'effacer.
+	if beams[model] or not model:IsA("Model") or not model:IsDescendantOf(workspace) then
+		return
+	end
+	local def = IdleTowers.Defs[model:GetAttribute("TowerType")]
+	local plotIndex = model:GetAttribute("PlotIndex")
+	if not def or def.kind ~= "Beam" or typeof(plotIndex) ~= "number" then
+		return
+	end
+	local entry = { plotIndex = plotIndex, def = def, heat = 0, targetId = 0, ramp = 0, handle = nil, muzzle = nil }
+	beams[model] = entry
+	local function read()
+		local targetId = model:GetAttribute("BeamTarget")
+		local ramp = model:GetAttribute("BeamRamp")
+		entry.targetId = if typeof(targetId) == "number" then targetId else 0
+		entry.ramp = if typeof(ramp) == "number" and ramp == ramp then ramp else 0
+	end
+	read()
+	model:GetAttributeChangedSignal("BeamTarget"):Connect(read)
+	model:GetAttributeChangedSignal("BeamRamp"):Connect(read)
+	model.AncestryChanged:Connect(function()
+		if not model:IsDescendantOf(workspace) then
+			if entry.handle then
+				Effects.destroyBeam(entry.handle)
+				entry.handle = nil
+			end
+			beams[model] = nil
+		end
+	end)
+end
+
+-- Dessine les rayons (après le déplacement des ennemis de cette image, pour les suivre sans retard).
+local function updateBeams(dt: number, t: number)
+	for model, entry in beams do
+		local state = plots[entry.plotIndex]
+		local enemy = if state and entry.targetId ~= 0 then state.enemies[entry.targetId] else nil
+		if not enemy then
+			if entry.handle then
+				Effects.hideBeam(entry.handle)
+			end
+			entry.heat = 0
+			continue
+		end
+		-- 0 = rayon qui démarre (x1), 1 = rayon au maximum (beamRampMax de la tour, sans rune).
+		local goal = math.clamp((entry.ramp - 1) / math.max(0.001, entry.def.beamRampMax - 1), 0, 1)
+		entry.heat += (goal - entry.heat) * math.min(1, dt * BEAM_HEAT_SPEED)
+		if not entry.muzzle or not entry.muzzle.Parent then
+			local shard = model:FindFirstChild("ArcaneShard2", true)
+			entry.muzzle = if shard and shard:IsA("BasePart") then shard else nil
+		end
+		local from = if entry.muzzle then entry.muzzle.Position else model:GetPivot().Position + Vector3.new(0, 6, 0)
+		entry.handle = entry.handle or Effects.createBeam(entry.def.color)
+		Effects.updateBeam(entry.handle, from, enemy.part.Position, entry.heat, t)
 	end
 end
 
@@ -357,11 +477,13 @@ function PlotRenderer.start()
 	plotsRoot.DescendantAdded:Connect(function(instance)
 		if instance:IsA("Model") then
 			task.defer(addLevelTag, instance)
+			task.defer(watchBeamTower, instance)
 		end
 	end)
 	for _, instance in plotsRoot:GetDescendants() do
 		if instance:IsA("Model") then
 			task.spawn(addLevelTag, instance)
+			watchBeamTower(instance)
 		end
 	end
 
@@ -390,8 +512,14 @@ function PlotRenderer.start()
 			workspace:BulkMoveTo(parts, cframes, Enum.BulkMoveMode.FireCFrameChanged)
 		end
 
-		-- Pièces qui tournent et flottent.
 		local t = os.clock()
+		-- Rayons des Sorciers (jusqu'aux ennemis qu'on vient de déplacer) et zones de feu.
+		updateBeams(dt, t)
+		for plotIndex, state in plots do
+			updateFires(plotIndex, state, t)
+		end
+
+		-- Pièces qui tournent et flottent.
 		for id, coin in coins do
 			local bob = math.sin(t * 3 + id) * 0.3
 			coin.part.CFrame = CFrame.new(coin.base + Vector3.new(0, bob, 0)) * CFrame.Angles(0, t * 2 + id, 0)

@@ -25,6 +25,11 @@ return function(log)
 	-- Nouveau joueur : pièces de départ, plus de lancer gratuit en attente (lancers payés en pièces).
 	check(data.coins == IdleConfig.STARTING_COINS, `pièces de départ = {IdleConfig.STARTING_COINS} (obtenu {data.coins})`)
 	check(data.idle.pendingSpinTier == nil, "plus de champ pendingSpinTier dans les données")
+	-- Nouveau joueur : aucun lancer de l'autel acheté (compteur des prix à 0, publié pour l'autel du client).
+	check(
+		data.idle.towerSpinsBought == 0 and player:GetAttribute("TowerSpinsBought") == 0,
+		`compteur de lancers de l'autel à 0 (données {data.idle.towerSpinsBought}, attribut {player:GetAttribute("TowerSpinsBought")})`
+	)
 
 	-- Gains d'absence : première connexion = rien (pas encore d'heure de dernière visite), puis l'heure est notée.
 	local firstAbsence = dbg:Invoke(player, "LastAbsence")
@@ -43,6 +48,10 @@ return function(log)
 			and startPlot ~= nil
 			and startPlot:GetAttribute("SimSpeed") == 1,
 		`sans pass : PassAutoCollect={player:GetAttribute("PassAutoCollect")} PassSpeedX2={player:GetAttribute("PassSpeedX2")} SpeedX2Enabled={player:GetAttribute("SpeedX2Enabled")} SimSpeed={startPlot and startPlot:GetAttribute("SimSpeed")}`
+	)
+	check(
+		player:GetAttribute("PassCoinsX2") == false and startPlot ~= nil and startPlot:GetAttribute("CoinMultiplier") == 1,
+		`sans pass Pièces x2 : PassCoinsX2={player:GetAttribute("PassCoinsX2")} CoinMultiplier={startPlot and startPlot:GetAttribute("CoinMultiplier")}`
 	)
 
 	local function owns(d, spotIndex)
@@ -293,22 +302,44 @@ return function(log)
 	end
 	local function setCoins(amount)
 		dbg:Invoke(player, "Coins", -1e308) -- remet à 0
-		dbg:Invoke(player, "Coins", amount)
+		-- Jamais l'infini (prix « MAX ») : les pièces doivent rester sauvegardables.
+		dbg:Invoke(player, "Coins", math.min(amount, 1e300))
 	end
+	-- Compteur des lancers déjà achetés : entier, fini, jamais négatif ni NaN (sauvegardable).
+	local function cleanCounter(n)
+		return typeof(n) == "number" and n == n and n >= 0 and n < math.huge and n == math.floor(n)
+	end
+	local GROWTH = IdleConfig.TOWER_SPIN_PRICE_GROWTH
+	-- Prix attendu de `count` lancers après `bought` lancers : la somme des prochains prix, un par un
+	-- (prix du n-ième lancer = prix de base x 1,0005^n), sans passer par la formule de IdleConfig.
+	local function sumOfPrices(record, count, bought)
+		local unit, total = IdleConfig.towerSpinUnitCost(record), 0
+		for i = 0, count - 1 do
+			total += unit * GROWTH ^ (bought + i)
+		end
+		return total
+	end
+	-- Renvoie (résultat, données avant, données après, pièces payées).
 	local function spin(count)
 		local n = count or 1
 		local d0 = dbg:Invoke(player, "Data")
 		local record = d0.idle.highestWave
-		local cost = IdleConfig.towerSpinCost(record, n)
+		local bought = d0.idle.towerSpinsBought
+		local cost = IdleConfig.towerSpinCost(record, n, bought)
 		local result = dbg:Invoke(player, "Call", "spinTower", count)
 		local d1 = dbg:Invoke(player, "Data")
 		local paid = d0.coins - d1.coins
 		check(
 			result ~= nil and near(paid, cost),
-			`x{n} au record {record} : payé {NumberFormat.short(paid)}, towerSpinCost = {NumberFormat.short(cost)}`
+			`x{n} au record {record}, {NumberFormat.short(bought)} lancers déjà achetés : payé {NumberFormat.price(paid)}, towerSpinCost = {NumberFormat.price(cost)}`
+		)
+		local attribute = player:GetAttribute("TowerSpinsBought")
+		check(
+			d1.idle.towerSpinsBought == bought + n and attribute == bought + n and cleanCounter(d1.idle.towerSpinsBought),
+			`x{n} : compteur {bought} -> {d1.idle.towerSpinsBought} (+{n}), attribut TowerSpinsBought = {attribute}`
 		)
 		if not result then
-			return nil, d0, d1
+			return nil, d0, d1, paid
 		end
 		local total, sorted, consistent = 0, true, true
 		for i, entry in result.results do
@@ -335,16 +366,22 @@ return function(log)
 			first and result.rarity == first.rarity and result.dupes == (d1.idle.towerDupes[result.tower] or 0),
 			`x{n} : tour mise en avant = la plus rare ({result.tower}, {result.rarity}, doublons {result.dupes})`
 		)
-		return result, d0, d1
+		return result, d0, d1, paid
 	end
 	local function refusedSpin(count, label)
 		local d0 = dbg:Invoke(player, "Data")
 		local result = dbg:Invoke(player, "Call", "spinTower", count)
 		local d1 = dbg:Invoke(player, "Data")
 		check(
-			result == nil and d1.coins == d0.coins and inventoryTotal(d1) == inventoryTotal(d0),
-			`lancer refusé : {label} (pièces et tours inchangées)`
+			result == nil
+				and d1.coins == d0.coins
+				and inventoryTotal(d1) == inventoryTotal(d0)
+				and d1.idle.towerSpinsBought == d0.idle.towerSpinsBought,
+			`lancer refusé : {label} (pièces, tours et compteur de lancers inchangés)`
 		)
+	end
+	local function spinsBoughtNow()
+		return dbg:Invoke(player, "Data").idle.towerSpinsBought
 	end
 	local function rarityCounts(result)
 		local counts = { Common = 0, Rare = 0, Epic = 0, Legendary = 0 }
@@ -371,16 +408,55 @@ return function(log)
 	refusedSpin("10", "\"10\" en texte")
 	refusedSpin(math.huge, "x infini")
 	-- Pas assez de pièces : 1 de moins que le prix, refusé ; le prix exact, accepté (reste 0).
-	local cost10 = IdleConfig.towerSpinCost(5, 10)
+	local cost10 = IdleConfig.towerSpinCost(5, 10, spinsBoughtNow())
 	setCoins(cost10 - 1)
 	refusedSpin(10, `pas assez de pièces ({cost10 - 1} pour un prix de {cost10})`)
-	dbg:Invoke(player, "Coins", 1)
+	setCoins(cost10)
 	local _, _, afterExact = spin(10)
 	check(afterExact.coins == 0, `x10 payé avec exactement le prix : il reste {afterExact.coins} pièce(s)`)
 	-- Sans nombre = 1 lancer
 	setCoins(1e6)
 	spin(nil)
+
+	-- Chaque lancer acheté rend le suivant 0,05 % plus cher : deux x1 d'affilée.
+	local price1 = IdleConfig.towerSpinPrice(5, spinsBoughtNow())
+	setCoins(price1 * 3) -- petits montants : pièces payées exactes à ~1e-15 près
+	local _, _, _, paid1 = spin(1)
+	local _, _, _, paid2 = spin(1)
+	check(
+		paid1 > 0 and near(paid2 / paid1, GROWTH),
+		`x1 puis x1 : {string.format("%.6f", paid1)} puis {string.format("%.6f", paid2)} pièces (x{string.format("%.6f", paid2 / paid1)}, attendu x{GROWTH})`
+	)
+	-- x10 = exactement la somme des 10 prochains prix, et le compteur avance de 10.
+	local boughtBefore10 = spinsBoughtNow()
+	local expected10 = sumOfPrices(5, 10, boughtBefore10)
+	setCoins(expected10 * 2)
+	local _, _, after10, paid10 = spin(10)
+	check(
+		near(paid10, expected10) and after10.idle.towerSpinsBought == boughtBefore10 + 10,
+		`x10 après {boughtBefore10} lancers = somme des 10 prochains prix = {string.format("%.6f", expected10)} (payé {string.format("%.6f", paid10)}), compteur {boughtBefore10} -> {after10.idle.towerSpinsBought}`
+	)
+	-- Compteur abîmé (NaN, négatif, texte, à virgule) : compté comme un nombre propre, jamais NaN ni négatif.
+	local savedCounter = spinsBoughtNow()
+	for _, case in { { "NaN", 0 / 0 }, { "négatif", -50 }, { "en texte", "abc" }, { "à virgule", 12.5 } } do
+		dbg:Invoke(player, "Set", "towerSpinsBought", case[2])
+		local counted = IdleConfig.cleanSpinsBought(case[2])
+		setCoins(1e6)
+		local d0 = dbg:Invoke(player, "Data")
+		local result = dbg:Invoke(player, "Call", "spinTower", 1)
+		local d1 = dbg:Invoke(player, "Data")
+		check(
+			result ~= nil
+				and near(d0.coins - d1.coins, IdleConfig.towerSpinPrice(5, counted))
+				and d1.idle.towerSpinsBought == counted + 1
+				and cleanCounter(d1.idle.towerSpinsBought)
+				and player:GetAttribute("TowerSpinsBought") == counted + 1,
+			`compteur abîmé ({case[1]}) : compté comme {counted}, puis {d1.idle.towerSpinsBought} après x1`
+		)
+	end
+	dbg:Invoke(player, "Set", "towerSpinsBought", savedCounter)
 	-- Palier 1 (record 5) : 0 % d'Épiques et de Légendaires, même en 60 lancers.
+	setCoins(1e6)
 	local epic, legendary = 0, 0
 	for _ = 1, 6 do
 		local result = spin(10)
@@ -402,15 +478,50 @@ return function(log)
 		if bulk.minWave > 1 then
 			-- Juste sous le record demandé : refusé, même avec assez de pièces.
 			dbg:Invoke(player, "Set", "highestWave", bulk.minWave - 1)
-			setCoins(IdleConfig.towerSpinCost(bulk.minWave, bulk.count) * 10)
+			setCoins(IdleConfig.towerSpinCost(bulk.minWave, bulk.count, spinsBoughtNow()) * 10)
 			refusedSpin(bulk.count, `x{bulk.count} au record {bulk.minWave - 1} (il faut la vague {bulk.minWave})`)
 		end
 	end
+
+	-- x10 000 (joueurs avancés) : proposé dès son record, prix = somme des 10 000 prochains prix.
+	local bulk10k = nil
+	for _, bulk in IdleConfig.TOWER_SPIN_BULKS do
+		if bulk.count == 10000 then
+			bulk10k = bulk
+		end
+	end
+	check(bulk10k ~= nil, `lot x10000 proposé par l'autel (record {bulk10k and bulk10k.minWave})`)
+	if bulk10k then
+		dbg:Invoke(player, "Set", "highestWave", bulk10k.minWave)
+		local bought = spinsBoughtNow()
+		local expected = sumOfPrices(bulk10k.minWave, 10000, bought)
+		local formula = IdleConfig.towerSpinCost(bulk10k.minWave, 10000, bought)
+		check(
+			IdleConfig.towerSpinBulkAvailable(bulk10k.minWave, 10000) and formula < math.huge and near(formula, expected),
+			`x10000 au record {bulk10k.minWave} après {bought} lancers : towerSpinCost {NumberFormat.price(formula)} = somme des prix {NumberFormat.price(expected)}`
+		)
+		setCoins(expected * 2)
+		local result, _, after, paid = spin(10000)
+		check(
+			result ~= nil and near(paid, expected) and after.idle.towerSpinsBought == bought + 10000,
+			`x10000 acheté au record {bulk10k.minWave} : payé {NumberFormat.price(paid)}, compteur {bought} -> {after.idle.towerSpinsBought}`
+		)
+	end
+
 	dbg:Invoke(player, "Set", "highestWave", topRecord)
 	dbg:Invoke(player, "Set", "wave", 1)
 	check(IdleConfig.towerSpinTier(topRecord) == #IdleConfig.TOWER_SPIN_TIERS, `record {topRecord} : meilleur palier de chances`)
 	for _, bulk in IdleConfig.TOWER_SPIN_BULKS do
-		setCoins(IdleConfig.towerSpinCost(topRecord, bulk.count) * 3)
+		local cost = IdleConfig.towerSpinCost(topRecord, bulk.count, spinsBoughtNow())
+		if cost >= math.huge then
+			-- Prix trop grand pour être compté (x1 000 000 : ~2,5e220 prix d'un lancer) : « MAX », refusé
+			-- sans rien dépenser, même avec énormément de pièces.
+			check(NumberFormat.price(cost) == "MAX", `x{NumberFormat.short(bulk.count)} au record {topRecord} : prix affiché « {NumberFormat.price(cost)} »`)
+			setCoins(1e300)
+			refusedSpin(bulk.count, `x{NumberFormat.short(bulk.count)} au record {topRecord} : prix MAX`)
+			continue
+		end
+		setCoins(cost * 3)
 		local result = spin(bulk.count)
 		if result and bulk.count >= 1000 then
 			local counts = rarityCounts(result)
@@ -419,20 +530,41 @@ return function(log)
 				`x{bulk.count} au record {topRecord} (vague en cours 1) : Épiques {NumberFormat.short(counts.Epic)}, Légendaires {NumberFormat.short(counts.Legendary)}`
 			)
 		end
-		if result and bulk.count >= 100000 then
-			-- Tirage statistique des gros lots : chaque rareté à 1 point de % près des chances affichées
-			-- (l'écart normal est ~0,05 point sur un million de lancers).
+		if result and bulk.count >= 10000 then
+			-- Tirage statistique des gros lots : chaque rareté à 5 écarts-types près des chances affichées
+			-- (~2 points de % sur 10 000 lancers, ~0,2 point sur un million).
 			local odds = IdleConfig.TOWER_SPIN_TIERS[IdleConfig.towerSpinTier(topRecord)].odds
+			local totalOdds = 0
+			for _, rarity in IdleConfig.RARITY_ORDER do
+				totalOdds += odds[rarity] or 0
+			end
 			local counts, parts, close = rarityCounts(result), {}, true
 			for _, rarity in IdleConfig.RARITY_ORDER do
-				local share = counts[rarity] / bulk.count * 100
-				close = close and math.abs(share - (odds[rarity] or 0)) < 1
-				table.insert(parts, `{rarity} {string.format("%.2f", share)} % (attendu {odds[rarity] or 0})`)
+				local chance = (odds[rarity] or 0) / totalOdds
+				local share = counts[rarity] / bulk.count
+				close = close and math.abs(share - chance) <= 5 * math.sqrt(chance * (1 - chance) / bulk.count) + 1e-9
+				table.insert(parts, `{rarity} {string.format("%.2f", share * 100)} % (attendu {odds[rarity] or 0})`)
 			end
 			check(close, `x{NumberFormat.short(bulk.count)} : raretés conformes aux chances — {table.concat(parts, ", ")}`)
 		end
 	end
-	-- Données toujours sauvegardables : doublons entiers et finis.
+
+	-- Prix qui dépasserait les plus grands nombres (2 millions de lancers déjà achetés) : « MAX », refusé
+	-- sans rien dépenser, compteur inchangé.
+	local savedBought = spinsBoughtNow()
+	dbg:Invoke(player, "Set", "towerSpinsBought", 2e6)
+	check(IdleConfig.towerSpinCost(topRecord, 1, 2e6) == math.huge, "x1 après 2 millions de lancers : prix trop grand (math.huge)")
+	setCoins(1e300)
+	refusedSpin(1, "x1 après 2 millions de lancers (prix MAX)")
+	local shownBought = player:GetAttribute("TowerSpinsBought")
+	check(
+		shownBought == 2e6 and NumberFormat.price(IdleConfig.towerSpinCost(topRecord, 1, shownBought)) == "MAX",
+		`l'autel du client affiche « MAX » (attribut TowerSpinsBought = {shownBought})`
+	)
+	dbg:Invoke(player, "Set", "towerSpinsBought", savedBought)
+	dbg:Invoke(player, "Call", "publishInventory") -- l'attribut du client suit le compteur remis en place
+
+	-- Données toujours sauvegardables : doublons entiers et finis, compteur de lancers propre.
 	d = dbg:Invoke(player, "Data")
 	local clean = true
 	for _, n in d.idle.towerDupes do
@@ -441,6 +573,10 @@ return function(log)
 		end
 	end
 	check(clean and d.coins == d.coins and d.coins < math.huge, "doublons entiers et finis, pièces finies")
+	check(
+		cleanCounter(d.idle.towerSpinsBought) and player:GetAttribute("TowerSpinsBought") == d.idle.towerSpinsBought,
+		`compteur de lancers entier, fini, jamais négatif ni NaN ({d.idle.towerSpinsBought}), publié au client`
+	)
 
 	----------------------------------------------------------------------
 	-- Gains d'absence : hors ligne (revenu réduit, plafond du jour UTC) et match ranked (revenu normal)
@@ -640,6 +776,370 @@ return function(log)
 		player:GetAttribute("PassSpeedX2") == false and player:GetAttribute("SpeedX2Enabled") == false and plotFolder:GetAttribute("SimSpeed") == 1,
 		"pass Vitesse x2 retiré : vitesse normale"
 	)
+
+	----------------------------------------------------------------------
+	-- Autel : le compteur des lancers achetés n'est jamais remis à zéro, même par une renaissance
+	-- (ici, à la fin : le scénario client a fini depuis longtemps, sa capture de l'autel reste propre).
+	----------------------------------------------------------------------
+	d = dbg:Invoke(player, "Data")
+	local spinRecord = d.idle.highestWave
+	local priceBefore = IdleConfig.towerSpinPrice(spinRecord, d.idle.towerSpinsBought)
+	dbg:Invoke(player, "Set", "bestWave", IdleConfig.REBIRTH_MIN_WAVE)
+	dbg:Invoke(player, "Call", "rebirth")
+	local reborn = dbg:Invoke(player, "Data")
+	check(
+		reborn.idle.rebirths == d.idle.rebirths + 1
+			and d.idle.towerSpinsBought > 0
+			and reborn.idle.towerSpinsBought == d.idle.towerSpinsBought
+			and player:GetAttribute("TowerSpinsBought") == d.idle.towerSpinsBought
+			and IdleConfig.towerSpinPrice(spinRecord, reborn.idle.towerSpinsBought) == priceBefore,
+		`renaissance : compteur de l'autel gardé ({NumberFormat.short(d.idle.towerSpinsBought)} -> {NumberFormat.short(reborn.idle.towerSpinsBought)} lancers), prix d'un lancer inchangé ({NumberFormat.price(priceBefore)})`
+	)
+	-- Remise en état : bonus et renaissances d'avant.
+	dbg:Invoke(player, "Set", "coinBonus", d.idle.coinBonus)
+	dbg:Invoke(player, "Set", "rebirths", d.idle.rebirths)
+
+	----------------------------------------------------------------------
+	-- Combat : projectiles (visée anticipée, dégâts à l'impact), flèches enflammées, petite zone du Mage des
+	-- tempêtes, rayon continu du Sorcier des arcanes. Dans une « arène » (PlotGame:debugArena) : vague vidée,
+	-- ennemis posés à la main (immobiles ou non), seules les tours choisies tirent d'elles-mêmes.
+	-- Tours posées plus haut : 1 Archer (rune x10 dégâts), 3 Catapulte, 4 Mage des tempêtes, 6 Sorcier,
+	-- 8 Trébuchet.
+	----------------------------------------------------------------------
+	local IdleTowers = require(ReplicatedStorage.Shared.IdleTowers)
+	local function call(method, ...)
+		return dbg:Invoke(player, "Call", method, ...)
+	end
+	local function clockNow()
+		return call("debugEnemy", -1).clock
+	end
+	-- Attend que l'horloge de la simulation atteigne `target` (au plus `timeout` secondes réelles).
+	local function waitClock(target, timeout)
+		local started = os.clock()
+		while clockNow() < target and os.clock() - started < (timeout or 20) do
+			task.wait(0.03)
+		end
+	end
+	-- Égalité à `tolerance` près, en proportion (0.01 = 1 %).
+	local function close(a, b, tolerance)
+		return typeof(a) == "number" and typeof(b) == "number" and math.abs(a - b) <= tolerance * math.max(math.abs(b), 1e-9)
+	end
+	local function flat(a, b)
+		return Vector3.new(a.X - b.X, 0, a.Z - b.Z).Magnitude
+	end
+	local function fmt(x)
+		return string.format("%.2f", x or -1)
+	end
+	-- Distance sur le chemin (entre from et to) du point le plus proche d'un emplacement.
+	local function pathNear(spotIndex, from, to)
+		local spot = PlotLayout.SPOTS[spotIndex]
+		local best, bestGap = from, math.huge
+		for distance = from, to, 0.5 do
+			local gap = flat(PlotLayout.pointAt(distance), spot)
+			if gap < bestGap then
+				best, bestGap = distance, gap
+			end
+		end
+		return best
+	end
+	-- Rangée z = -4 (de x = 22 à -22) : distances 198 à 242 ; rangée z = -22 (de x = -22 à 22) : 260 à 304.
+	local archerDistance = pathNear(1, 198, 242) -- devant l'Archer (emplacement 1)
+	local beamDistance = pathNear(6, 198, 242) -- devant le Sorcier (emplacement 6)
+	local catapultDistance = pathNear(3, 260, 304) -- devant la Catapulte (emplacement 3)
+	local stormDistance = pathNear(4, 260, 304) -- devant le Mage des tempêtes (emplacement 4)
+
+	-- Réglages demandés : Archer plus loin, Sorcier plus court, Mage des tempêtes en toute petite zone.
+	local defs = IdleTowers.Defs
+	check(defs.MachineGun.range > 15 and defs.Laser.range < 18, `portées : Archer {defs.MachineGun.range} (15 avant), Sorcier {defs.Laser.range} (18 avant)`)
+	check(
+		defs.Tesla.kind == "Splash" and defs.Tesla.splash < defs.Bomb.splash and defs.Tesla.slow ~= nil,
+		`Mage des tempêtes : petite zone de rayon {defs.Tesla.splash} (Catapulte {defs.Bomb.splash}) qui ralentit`
+	)
+	check(
+		defs.Laser.kind == "Beam" and defs.Laser.beamRampMax > 1 and defs.Laser.beamRampRate > 0,
+		`Sorcier : rayon continu x1 -> x{defs.Laser.beamRampMax} en {fmt(IdleTowers.beamRampSeconds(defs.Laser))} s`
+	)
+
+	-- Projectile tiré sur un ennemi qui marche tout droit : PV inchangés au départ, dégâts à l'arrivée,
+	-- au bout du temps de vol (/ SimSpeed en temps réel), et point visé ~ position de l'ennemi à l'impact.
+	local function projectileCheck(spot, enemyName, distance, label)
+		call("debugArena", {})
+		local speed = plotFolder:GetAttribute("SimSpeed") or 1
+		local id = call("debugSpawn", enemyName, distance, 1e9, false)
+		local shot = call("debugFire", spot)
+		local right = call("debugEnemy", id)
+		check(
+			shot ~= nil and shot.fired and shot.targetId == id and shot.flight > 0 and right.health == 1e9,
+			`{label} : tir parti, PV de la cible inchangés juste après le tir (vol prévu {fmt(shot and shot.flight)} s)`
+		)
+		if not (shot and shot.fired) then
+			return
+		end
+		local started, landedAfter = os.clock(), nil
+		while os.clock() - started < 5 do
+			local now = call("debugEnemy", id)
+			if not now.alive or now.health < 1e9 then
+				landedAfter = os.clock() - started
+				break
+			end
+			task.wait(0.02)
+		end
+		local after = call("debugEnemy", id)
+		local expected = shot.flight / speed
+		check(
+			landedAfter ~= nil and after.alive and close(1e9 - after.health, shot.damage, 1e-4) and math.abs(landedAfter - expected) <= 0.15,
+			`{label} : {NumberFormat.short(shot.damage)} dégâts à l'impact, après {fmt(landedAfter)} s réelles (vol {fmt(shot.flight)} s / SimSpeed {speed} = {fmt(expected)} s)`
+		)
+		local impact = call("debugLastImpact")
+		local miss = if impact then flat(impact.aim, impact.targetPosition) else math.huge
+		check(
+			impact ~= nil and impact.targetId == id and impact.targetAlive and miss <= 2,
+			`{label} : point visé à {fmt(miss)} studs de la cible au moment de l'impact (2 au plus)`
+		)
+	end
+	projectileCheck(3, "Normal", catapultDistance - 8, "Catapulte")
+	projectileCheck(8, "Fast", 262, "Trébuchet (cavalier)")
+
+	-- Flèche en vol qui suffit à tuer : l'ennemi est « condamné », l'Archer ne tire pas une 2e fois dessus.
+	call("debugArena", {})
+	local archer = call("debugTower", 1)
+	local weak = call("debugSpawn", "Normal", archerDistance, archer.damage * 0.5, true)
+	local firstArrow = call("debugFire", 1)
+	local secondArrow = call("debugFire", 1)
+	check(
+		firstArrow.fired and not secondArrow.fired,
+		`flèche mortelle en vol : pas de 2e flèche sur la même cible (1er tir {firstArrow.fired}, 2e {secondArrow.fired})`
+	)
+	waitClock(firstArrow.clock + firstArrow.flight + 0.1)
+	check(not call("debugEnemy", weak).alive, "l'ennemi condamné meurt à l'arrivée de la flèche")
+
+	-- Flèches enflammées : la flèche, puis 4 coups de feu de 0,5 s (2 s) = fireDamageRatio x dégâts par seconde.
+	-- L'ennemi posé à 4 studs de l'impact (hors de la zone) ne brûle pas.
+	call("debugArena", {})
+	local fireDef = defs.MachineGun
+	local burning = call("debugSpawn", "Tank", archerDistance, 1e9, true)
+	local aside = call("debugSpawn", "Tank", archerDistance - 4, 1e9, true)
+	local arrow = call("debugFire", 1)
+	check(arrow.fired and arrow.targetId == burning, "Archer : flèche tirée sur l'ennemi de tête")
+	waitClock(arrow.clock + arrow.flight + 0.05)
+	local fires = call("debugFires")
+	local patch = fires.patches[1]
+	check(
+		fires.count == 1 and patch ~= nil and close(patch.dps, archer.damage * fireDef.fireDamageRatio, 1e-6) and patch.radius == fireDef.fireRadius,
+		`flèche enflammée : 1 zone de feu de rayon {patch and patch.radius}, {NumberFormat.short(patch and patch.dps or 0)} dégâts/s = {fireDef.fireDamageRatio} x {NumberFormat.short(archer.damage)}`
+	)
+	waitClock(arrow.clock + arrow.flight + fireDef.fireDuration + 0.3)
+	local burnt = call("debugEnemy", burning)
+	local fireLoss = (1e9 - burnt.health) - archer.damage
+	local burnPerSecond = fireLoss / fireDef.fireDuration
+	check(
+		close(burnPerSecond, archer.damage * fireDef.fireDamageRatio, 0.01),
+		`ennemi dans le feu : {NumberFormat.short(burnPerSecond)} dégâts/s pendant {fireDef.fireDuration} s (attendu {NumberFormat.short(archer.damage * fireDef.fireDamageRatio)}), en plus de la flèche`
+	)
+	check(call("debugEnemy", aside).health == 1e9, "ennemi à 4 studs de l'impact : pas brûlé")
+	check(call("debugFires").count == 0, `zone de feu éteinte après {fireDef.fireDuration} s`)
+
+	-- Mage des tempêtes : 2 ennemis collés (1 stud) foudroyés ET ralentis, un 3e à 6 studs ni l'un ni l'autre.
+	call("debugArena", {})
+	local storm = call("debugTower", 4)
+	local stuckA = call("debugSpawn", "Tank", stormDistance, 1e9, true)
+	local stuckB = call("debugSpawn", "Tank", stormDistance + 1, 1e9, true) -- le plus avancé : la cible
+	local alone = call("debugSpawn", "Tank", stormDistance - 6, 1e9, true)
+	local zap = call("debugFire", 4)
+	local a, b, c = call("debugEnemy", stuckA), call("debugEnemy", stuckB), call("debugEnemy", alone)
+	check(
+		zap.fired and zap.flight == 0 and close(1e9 - a.health, storm.damage, 1e-4) and close(1e9 - b.health, storm.damage, 1e-4),
+		`Mage des tempêtes : 2 ennemis collés foudroyés tout de suite ({NumberFormat.short(storm.damage)} dégâts chacun)`
+	)
+	check(
+		a.slowed and b.slowed and a.slowFactor == defs.Tesla.slow and b.slowFactor == defs.Tesla.slow,
+		`Mage des tempêtes : les 2 ennemis collés ralentis de {math.floor(defs.Tesla.slow * 100 + 0.5)} %`
+	)
+	check(c.health == 1e9 and not c.slowed, "Mage des tempêtes : ennemi à 6 studs ni blessé ni ralenti")
+
+	-- Sorcier des arcanes (emplacement 6) : rayon continu dont les dégâts montent sur la même cible.
+	local beamModel = nil
+	for _, model in plotFolder.Towers:GetChildren() do
+		if model:GetAttribute("SpotIndex") == 6 then
+			beamModel = model
+		end
+	end
+	-- Dégâts du rayon attendus entre deux relevés de debugTower (même cible), avec la formule de IdleTowers.
+	local function beamExpected(s0, s1)
+		local stats = { damage = s1.damage, beamRampRate = s1.beamRampRate, beamRampMax = s1.beamRampMax }
+		return IdleTowers.beamDamage(stats, s1.beamTime) - IdleTowers.beamDamage(stats, s0.beamTime)
+	end
+	local function waitBeamOn(id)
+		local started = os.clock()
+		local s = call("debugTower", 6)
+		while s.beamTargetId ~= id and os.clock() - started < 5 do
+			task.wait(0.03)
+			s = call("debugTower", 6)
+		end
+		return s
+	end
+	call("debugArena", { 6 })
+	local first = call("debugSpawn", "Giant", beamDistance, 1e15, true)
+	local s0 = waitBeamOn(first)
+	check(s0.beamTargetId == first and s0.beamTime < 0.5, `Sorcier : rayon accroché à la cible (depuis {fmt(s0.beamTime)} s)`)
+	task.wait(1)
+	local s1 = call("debugTower", 6)
+	local firstSecond = (s0.targetHealth - s1.targetHealth) / (s1.beamTime - s0.beamTime)
+	check(
+		s1.beamTargetId == first and close(s0.targetHealth - s1.targetHealth, beamExpected(s0, s1), 0.02),
+		`Sorcier : dégâts de la 1re seconde = formule (dégâts x montée) : {NumberFormat.short(s0.targetHealth - s1.targetHealth)} / {NumberFormat.short(beamExpected(s0, s1))}`
+	)
+	check(
+		beamModel ~= nil and beamModel:GetAttribute("BeamTarget") == first and (beamModel:GetAttribute("BeamRamp") or 0) >= 1,
+		`Sorcier : rayon publié aux clients (BeamTarget = {beamModel and beamModel:GetAttribute("BeamTarget")}, BeamRamp = {beamModel and beamModel:GetAttribute("BeamRamp")})`
+	)
+	waitClock(s0.clock + (3 - s0.beamTime))
+	local s2 = call("debugTower", 6)
+	task.wait(1)
+	local s3 = call("debugTower", 6)
+	local laterSecond = (s2.targetHealth - s3.targetHealth) / (s3.beamTime - s2.beamTime)
+	check(
+		s3.beamTargetId == first and laterSecond > firstSecond * 1.5,
+		`Sorcier : après 3 s sur la même cible, {NumberFormat.short(laterSecond)} dégâts/s contre {NumberFormat.short(firstSecond)} la 1re seconde (montée x{fmt(s3.beamRamp)})`
+	)
+	-- Un ennemi BEAUCOUP plus résistant arrive à portée : le rayon garde sa cible (sa montée continue).
+	local stronger = call("debugSpawn", "Boss", beamDistance - 2, 1e16, true)
+	task.wait(0.5)
+	local s4 = call("debugTower", 6)
+	check(
+		s4.beamTargetId == first and s4.beamTime > s3.beamTime and call("debugEnemy", stronger).health == 1e16,
+		`Sorcier : garde sa cible quand un ennemi plus résistant arrive (cible {s4.beamTargetId}, {fmt(s4.beamTime)} s dessus, montée x{fmt(s4.beamRamp)})`
+	)
+	-- Sa cible meurt : il passe à l'autre, et la montée repart de x1.
+	call("debugKill", first)
+	local s5 = waitBeamOn(stronger)
+	check(
+		s5.beamTargetId == stronger and s5.beamTime < 0.5 and s5.beamRamp < 1 + s5.beamRampRate * 0.5 + 1e-6,
+		`Sorcier : nouvelle cible -> montée remise à zéro ({fmt(s5.beamTime)} s dessus, montée x{fmt(s5.beamRamp)})`
+	)
+	-- Un niveau de plus : dégâts x UPGRADE_DAMAGE, et le rayon suit la formule avec les nouveaux dégâts.
+	setCoins(1e15)
+	call("upgradeTower", 6)
+	local s6 = call("debugTower", 6)
+	task.wait(0.8)
+	local s7 = call("debugTower", 6)
+	check(
+		close(s6.damage, s5.damage * IdleConfig.UPGRADE_DAMAGE, 1e-9) and s7.beamTargetId == stronger
+			and close(s6.targetHealth - s7.targetHealth, beamExpected(s6, s7), 0.02),
+		`Sorcier : niveau {s5.level} -> {s6.level}, rayon {NumberFormat.short(s5.damage)} -> {NumberFormat.short(s6.damage)} dégâts/s à x1, dégâts mesurés = formule`
+	)
+	setCoins(0)
+	-- Au maximum de la montée : x1 puis Vitesse x2 -> deux fois plus de dégâts par seconde RÉELLE.
+	waitClock(s7.clock + IdleTowers.beamRampSeconds(s7) - s7.beamTime + 0.3)
+	local function realRate()
+		local before, t0 = call("debugTower", 6), os.clock()
+		task.wait(1)
+		local after, t1 = call("debugTower", 6), os.clock()
+		return (before.targetHealth - after.targetHealth) / (t1 - t0), (before.targetHealth - after.targetHealth) / (after.clock - before.clock), after
+	end
+	local rateX1, simRateX1, sMax = realRate()
+	check(
+		close(sMax.beamRamp, sMax.beamRampMax, 1e-9) and close(simRateX1, sMax.damage * sMax.beamRampMax, 0.03),
+		`Sorcier au maximum (x{fmt(sMax.beamRamp)}) : {NumberFormat.short(simRateX1)} dégâts par seconde de jeu (attendu {NumberFormat.short(sMax.damage * sMax.beamRampMax)})`
+	)
+	dbg:Invoke(player, "Pass", "SpeedX2", true)
+	task.wait(0.2)
+	local rateX2, simRateX2 = realRate()
+	check(
+		rateX2 / rateX1 > 1.7 and rateX2 / rateX1 < 2.3 and close(simRateX2, simRateX1, 0.03),
+		`Sorcier en Vitesse x2 : {NumberFormat.short(rateX2)} dégâts par seconde réelle contre {NumberFormat.short(rateX1)} (x{fmt(rateX2 / rateX1)}), les mêmes par seconde de jeu`
+	)
+	-- Les projectiles aussi en x2 : impact au bout de vol / 2 secondes réelles, toujours bien visé.
+	projectileCheck(3, "Normal", catapultDistance - 8, "Catapulte en Vitesse x2")
+	dbg:Invoke(player, "Pass", "SpeedX2", false)
+	call("debugEndArena")
+	check(plotFolder:GetAttribute("SimSpeed") == 1, "fin des tests de combat : vitesse normale, arène fermée")
+
+	----------------------------------------------------------------------
+	-- Pass Pièces x2 : toutes les pièces gagnées sur la parcelle sont doublées (ennemis tués, gains d'absence)
+	----------------------------------------------------------------------
+	-- Arène où aucune tour ne tire. Le Ramassage auto vide d'abord le sol : chaque ennemi tué ci-dessous
+	-- fait une nouvelle pile (16 studs entre elles, sur la rangée droite z = -4), montants exacts.
+	call("debugArena", {})
+	dbg:Invoke(player, "Pass", "AutoCollect", true)
+	task.wait(IdleConfig.AUTO_COLLECT_DELAY + 1)
+	dbg:Invoke(player, "Pass", "AutoCollect", false)
+	setCoins(0)
+	local coinsBonus = dbg:Invoke(player, "Data").idle.coinBonus
+	local ENEMY_REWARD = 1000
+	-- Pièces posées au sol par la mort d'un ennemi à ENEMY_REWARD pièces, tué à `distance` sur le chemin.
+	local function killedDrop(distance)
+		local id = call("debugSpawn", "Normal", distance, 10, true, ENEMY_REWARD)
+		return call("debugKill", id)
+	end
+	local expectedX1 = ENEMY_REWARD * (1 + coinsBonus / 100)
+	local dropX1 = killedDrop(204)
+	check(
+		dropX1 == expectedX1,
+		`Pièces x2 — sans pass : ennemi à {ENEMY_REWARD} pièces, bonus +{coinsBonus} % -> {dropX1} au sol (attendu {expectedX1})`
+	)
+	dbg:Invoke(player, "Pass", "CoinsX2", true)
+	check(
+		player:GetAttribute("PassCoinsX2") == true and plotFolder:GetAttribute("CoinMultiplier") == 2,
+		`pass Pièces x2 donné (test Studio) : PassCoinsX2={player:GetAttribute("PassCoinsX2")} CoinMultiplier={plotFolder:GetAttribute("CoinMultiplier")}`
+	)
+	local dropX2 = killedDrop(220)
+	check(dropX1 > 0 and dropX2 == 2 * dropX1, `avec le pass : le même ennemi lâche {dropX2} pièces = 2 x {dropX1} (bonus de renaissance compris)`)
+	dbg:Invoke(player, "Pass", "CoinsX2", false)
+	check(
+		player:GetAttribute("PassCoinsX2") == false and plotFolder:GetAttribute("CoinMultiplier") == 1,
+		`pass Pièces x2 retiré : PassCoinsX2={player:GetAttribute("PassCoinsX2")} CoinMultiplier={plotFolder:GetAttribute("CoinMultiplier")}`
+	)
+	local dropBack = killedDrop(236)
+	check(dropBack == dropX1, `pass retiré : de nouveau x1 ({dropBack} au sol, {dropX1} avant le pass)`)
+	-- Ramassage : chaque pile est versée telle quelle (pas doublée une 2e fois).
+	dbg:Invoke(player, "Pass", "AutoCollect", true)
+	task.wait(IdleConfig.AUTO_COLLECT_DELAY + 1)
+	dbg:Invoke(player, "Pass", "AutoCollect", false)
+	local pickedUp = coinsNow()
+	check(
+		near(pickedUp, dropX1 + dropX2 + dropBack),
+		`piles ramassées : +{NumberFormat.short(pickedUp)} pièces = {dropX1} + {dropX2} + {dropBack}`
+	)
+
+	-- Gains d'absence : les mêmes absences sans le pass, avec, puis de nouveau sans (vague 40, compteur du jour vide).
+	local savedBestX2 = dbg:Invoke(player, "Data").idle.bestWave
+	dbg:Invoke(player, "Set", "bestWave", 40)
+	local passNoon = os.time() // 86400 * 86400 + 12 * 3600
+	local offlineFields = { lastSeenAt = passNoon - 7200, matchDepartureAt = 0, offlineDay = 0, offlineGainedToday = 0 }
+	local matchFields = { lastSeenAt = passNoon - 30, matchDepartureAt = passNoon - 30 - 600, offlineDay = 0, offlineGainedToday = 0 }
+	local offlineX1 = absence(offlineFields, passNoon, "Pièces x2 — sans pass : absence de 2 h", true)
+	local matchX1 = absence(matchFields, passNoon, "Pièces x2 — sans pass : match de 10 min", true)
+	check(
+		offlineX1.amount > 0 and matchX1.matchAmount > 0 and offlineX1.coinFactor == 1 and matchX1.coinFactor == 1,
+		`sans pass : 2 h hors ligne +{NumberFormat.short(offlineX1.amount)}, match +{NumberFormat.short(matchX1.amount)} (coinFactor {offlineX1.coinFactor})`
+	)
+	dbg:Invoke(player, "Pass", "CoinsX2", true)
+	local offlineX2, dOffline = absence(offlineFields, passNoon, "avec le pass Pièces x2 : absence de 2 h", true)
+	check(
+		offlineX2.amount == 2 * offlineX1.amount and offlineX2.offlineAmount == 2 * offlineX1.offlineAmount and offlineX2.coinFactor == 2,
+		`avec le pass : 2 h hors ligne +{NumberFormat.short(offlineX2.amount)} = 2 x {NumberFormat.short(offlineX1.amount)} (coinFactor {offlineX2.coinFactor})`
+	)
+	check(
+		dOffline.idle.offlineGainedToday == offlineX1.offlineAmount,
+		`avec le pass : plafond du jour compté en pièces x1 (compteur {NumberFormat.short(dOffline.idle.offlineGainedToday)}, x1 = {NumberFormat.short(offlineX1.offlineAmount)})`
+	)
+	local matchX2 = absence(matchFields, passNoon, "avec le pass Pièces x2 : match de 10 min", true)
+	check(
+		matchX2.matchAmount == 2 * matchX1.matchAmount and matchX2.amount == 2 * matchX1.amount and matchX2.coinFactor == 2,
+		`avec le pass : match ranked +{NumberFormat.short(matchX2.matchAmount)} = 2 x {NumberFormat.short(matchX1.matchAmount)} (total {NumberFormat.short(matchX2.amount)})`
+	)
+	dbg:Invoke(player, "Pass", "CoinsX2", false)
+	local offlineBack = absence(offlineFields, passNoon, "pass Pièces x2 retiré : absence de 2 h", true)
+	check(
+		offlineBack.amount == offlineX1.amount and offlineBack.coinFactor == 1,
+		`pass retiré : gains d'absence de nouveau x1 (+{NumberFormat.short(offlineBack.amount)})`
+	)
+	-- Remise en état : vague d'avant, vraie heure de visite, compteur vide, pièces à 0, arène fermée.
+	dbg:Invoke(player, "Set", "bestWave", savedBestX2)
+	dbg:Invoke(player, "Absence", os.time(), true, { lastSeenAt = os.time(), offlineDay = 0, offlineGainedToday = 0, matchDepartureAt = 0 })
+	setCoins(0)
+	call("debugEndArena")
 
 	-- Retour à une vague normale pour la fin
 	dbg:Invoke(player, "StartWave", 1)

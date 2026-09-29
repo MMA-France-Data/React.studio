@@ -16,7 +16,7 @@ local Modules = require("./Modules")
 local options = {
 	seeds = 3,
 	hours = 100,
-	scenarios = { "base", "forge", "renaissance", "renaissance-seule" },
+	scenarios = { "base", "forge", "renaissance", "renaissance-seule", "sans-sorcier" },
 	dt = 0.05,
 	overrides = {},
 	journal = false,
@@ -86,7 +86,7 @@ for _, item in playerOverrides do
 	end
 end
 for _, id in options.scenarios do
-	assert(Run.SCENARIOS[id], `scénario inconnu : {id} (base, forge, renaissance, renaissance-seule)`)
+	assert(Run.SCENARIOS[id], `scénario inconnu : {id} (base, forge, renaissance, renaissance-seule, sans-sorcier)`)
 end
 
 Engine.DT = options.dt
@@ -95,6 +95,51 @@ local IdleTowers = Modules.IdleTowers
 local PlotLayout = Modules.PlotLayout
 local out, duration, mean, coins = Report.out, Report.duration, Report.mean, Report.coins
 local shortNumber = Report.shortNumber
+
+-- Valeur du milieu d'une liste (plus parlante qu'une moyenne pour des nombres qui changent d'échelle).
+local function medianOf(list)
+	if #list == 0 then
+		return nil
+	end
+	local sorted = table.clone(list)
+	table.sort(sorted)
+	return sorted[math.floor((#sorted + 1) / 2)]
+end
+
+-- Heures où le rapport montre le compteur de lancers de l'autel et le prix du prochain achat.
+local SPIN_HOURS = { 1, 10, 25, 50, 100 }
+
+-- Prix d'un lot de l'autel (IdleConfig.towerSpinCost) avec son équivalent en vagues de gains au record, ou
+-- la vague qui le débloque, ou « MAX ».
+local function spinPriceText(record: number, count: number, bought: number): string
+	if not IdleConfig.towerSpinBulkAvailable(record, count) then
+		for _, bulk in IdleConfig.TOWER_SPIN_BULKS do
+			if bulk.count == count then
+				return `(vague {bulk.minWave})`
+			end
+		end
+		return "-"
+	end
+	local cost = IdleConfig.towerSpinCost(record, count, bought)
+	if cost >= math.huge then
+		return "MAX"
+	end
+	local waves = Report.wavesOfRewards(cost, record)
+	local wavesText = if waves >= 100 then shortNumber(waves) else string.format("%.3g", waves)
+	return `{Modules.NumberFormat.price(cost)} ({wavesText})`
+end
+
+-- Première tour légendaire obtenue à l'autel : { t, wave } (nil si aucune).
+local function firstLegendary(run)
+	local first = nil
+	for _, towerType in IdleTowers.ofRarity("Legendary") do
+		local at = run.unlockedAt[towerType]
+		if at and (not first or at.t < first.t) then
+			first = at
+		end
+	end
+	return first
+end
 
 ----------------------------------------------------------------------
 -- 1. Les parties
@@ -109,6 +154,7 @@ for scenarioIndex, scenarioId in options.scenarios do
 		local run = Run.new(scenarioId, seed)
 		run.hourly = {} -- [heure] = record
 		run.hourlySpins = {} -- [heure] = lancers de la machine à tours depuis le début
+		run.hourlyHighest = {} -- [heure] = record de tous les temps (idle.highestWave : prix et chances de l'autel)
 		run.hourlyMoney = {} -- [heure] = { coins, income (par seconde), total gagné, record }
 		run.checkpoints = {}
 		if options.journal and scenarioIndex == 1 and seed == 1 then
@@ -118,6 +164,7 @@ for scenarioIndex, scenarioId in options.scenarios do
 		run:play(options.hours * 3600, function(r, hour)
 			r.hourly[hour] = r.frontier
 			r.hourlySpins[hour] = r.spins
+			r.hourlyHighest[hour] = r.highestWave
 			r.hourlyMoney[hour] = { coins = r.coins, income = r.income, total = r.totalEarned, frontier = r.frontier }
 			Report.csvHour(r, hour)
 			if table.find(CHECKPOINTS, hour) then
@@ -291,7 +338,21 @@ do
 			end
 			table.insert(bulks, `x{Modules.NumberFormat.short(bulk.count)} (dès la v{bulk.minWave}) = {table.concat(texts, ", ")}`)
 		end
-		out("  Lots, en vagues de gains : " .. table.concat(bulks, " ; ") .. ".")
+		out("  Lots, en vagues de gains (aucun lancer encore acheté) : " .. table.concat(bulks, " ; ") .. ".")
+		-- Hausse de +0,05 % par lancer acheté, jamais remise à zéro (IdleConfig.TOWER_SPIN_PRICE_GROWTH).
+		local growth = IdleConfig.TOWER_SPIN_PRICE_GROWTH
+		local multipliers = {}
+		for _, bought in { 1000, 10000, 20000, 50000 } do
+			table.insert(multipliers, `{shortNumber(bought)} -> x{waves3(growth ^ bought)}`)
+		end
+		out(
+			string.format(
+				"  Chaque lancer acheté rend le suivant x%s plus cher, pour toujours. Prix d'un lancer après n lancers achetés : %s ; « MAX » vers %s lancers.",
+				tostring(growth),
+				table.concat(multipliers, ", "),
+				shortNumber(math.log(1.7976931348623157e308) / math.log(growth))
+			)
+		)
 		out(
 			string.format(
 				"  Chaque doublon = +%s %% de dégâts sans limite. Au palier 1, %d %% de chances de tomber sur une Commune (2 tours).",
@@ -310,14 +371,17 @@ do
 			level += 1
 		end
 		local stats = IdleTowers.stats(towerType, level)
-		values[towerType] = { dps = stats.damage / stats.cooldown, level = level }
+		-- Rayon du Sorcier : au maximum de sa montée (IdleTowers.beamMaxDps).
+		local dps = if stats.kind == "Beam" then IdleTowers.beamMaxDps(stats) else stats.damage / stats.cooldown
+		values[towerType] = { dps = dps, level = level }
 		best = math.max(best, values[towerType].dps)
 	end
 	for _, towerType in IdleTowers.ORDER do
 		table.insert(texts, `{Run.shortName(towerType)} {math.floor(values[towerType].dps / best * 100 + 0.5)} (niv {values[towerType].level})`)
 	end
 	out(`- À budget égal ({coins(budget)} par tour = 12 vagues de gains de la vague 50), dégâts par seconde sur UNE cible (100 = la meilleure ;`)
-	out("  ignore la portée, la zone, la chaîne et le ralentissement, voir le banc d'essai) : " .. table.concat(texts, ", "))
+	out("  ignore la portée, la zone, la chaîne, le ralentissement et le feu des flèches ; Sorcier : rayon au maximum de sa")
+	out("  montée ; voir le banc d'essai et les duels) : " .. table.concat(texts, ", "))
 	out()
 end
 
@@ -399,6 +463,45 @@ for _, scenarioId in options.scenarios do
 			)
 		end
 		out("  Lots achetés : " .. table.concat(parts, " ; ") .. ".")
+	end
+	do
+		-- Compteur de lancers (jamais remis à zéro) et prix du prochain achat, au fil des heures (médiane des graines).
+		local rows = {}
+		for _, hour in SPIN_HOURS do
+			local spinsList, records = {}, {}
+			for _, run in runs do
+				if run.hourlySpins[hour] then
+					table.insert(spinsList, run.hourlySpins[hour])
+					table.insert(records, run.hourlyHighest[hour])
+				end
+			end
+			if #spinsList > 0 then
+				local bought, record = medianOf(spinsList), medianOf(records)
+				local row = { `{hour} h`, tostring(record), shortNumber(bought) }
+				for _, count in { 1, 100, 10000 } do
+					table.insert(row, spinPriceText(record, count, bought))
+				end
+				table.insert(rows, row)
+			end
+		end
+		if #rows > 0 then
+			out("  Lancers achetés depuis le début et prix du prochain achat (médiane des graines ; entre parenthèses, en vagues de gains au record) :")
+			Report.table({ "Temps", "Record", "Lancers achetés", "Prochain x1", "Prochain x100", "Prochain x10 000" }, rows)
+		end
+		-- Première tour légendaire (dorée) : quand et à quelle vague (médiane des graines qui en ont eu une).
+		local times, waves = {}, {}
+		for _, run in runs do
+			local first = firstLegendary(run)
+			if first then
+				table.insert(times, first.t)
+				table.insert(waves, first.wave)
+			end
+		end
+		out(
+			if #times > 0
+				then `  Première tour légendaire : vers {duration(medianOf(times))}, vague {medianOf(waves)} (médiane de {#times}/{#runs} graines ; vagues {table.concat(waves, ", ")}).`
+				else `  Première tour légendaire : jamais en {options.hours} h.`
+		)
 	end
 	out(string.format("Vagues jouées : %.0f dont %.0f ratées.", mean(played), mean(failed)))
 	local totalSpent = 0
@@ -544,16 +647,6 @@ end
 -- 5 bis. Grands nombres : pièces en poche, revenu et total gagné au fil des heures, puis les limites
 -- des nombres (au-delà de ~1,8e308, un nombre devient « infini » et les DataStores refusent de le sauver).
 ----------------------------------------------------------------------
--- Valeur du milieu d'une liste (plus parlante qu'une moyenne pour des nombres qui changent d'échelle).
-local function medianOf(list)
-	if #list == 0 then
-		return nil
-	end
-	local sorted = table.clone(list)
-	table.sort(sorted)
-	return sorted[math.floor((#sorted + 1) / 2)]
-end
-
 local function isFinite(value: number): boolean
 	return value == value and value < math.huge and value > -math.huge
 end
@@ -974,6 +1067,75 @@ for _, wave in BENCH_WAVES do
 	benchResults[wave] = { cells = cells, bestK = bestK, main = main }
 end
 out()
+
+-- Duels : UNE tour contre UN ennemi (immortel) qui traverse tout le chemin, même niveau pour toutes les tours
+-- (même prix d'amélioration : même investissement, à la pose près). Chaque tour sur ses 3 emplacements qui
+-- couvrent le plus de chemin (valeur du milieu). « Avec Totem » : un Totem de givre sans dégâts sur
+-- l'emplacement le plus proche (seulement son ralentissement). Résultat : dégâts / dégâts de la Baliste lourde.
+local DUEL_ENEMIES = { "Boss", "Giant", "Tank", "Normal", "Fast", "Swarm" }
+local duelResults = { alone = {}, frost = {} }
+do
+	local SPOTS = PlotLayout.SPOTS
+	local function nearestSpot(spot: number): number
+		local best, bestDistance = spot, math.huge
+		for other, position in SPOTS do
+			local distance = (position - SPOTS[spot]).Magnitude
+			if other ~= spot and distance < bestDistance then
+				best, bestDistance = other, distance
+			end
+		end
+		return best
+	end
+	local function duelDamage(towerType: string, enemy: string, frost: boolean): number
+		local list = {}
+		for i = 1, 3 do
+			local spot = BEST_SPOTS[towerType][i]
+			local towers = { Engine.compileTower(spot, towerType, 1, 0, nil) }
+			if frost then
+				local totem = Engine.compileTower(nearestSpot(spot), "Frost", 1, 0, nil)
+				totem.damage = 0
+				table.insert(towers, totem)
+			end
+			local comp = Engine.customComposition({ { enemy = enemy, health = 1e300 } })
+			table.insert(list, Engine.runWave(comp, towers, "ignore").useful[1])
+		end
+		table.sort(list)
+		return list[2]
+	end
+	local ballista = { alone = {}, frost = {} }
+	for _, enemy in DUEL_ENEMIES do
+		ballista.alone[enemy] = duelDamage("Rocket", enemy, false)
+		ballista.frost[enemy] = duelDamage("Rocket", enemy, true)
+	end
+	local headers = { "Tour" }
+	for _, enemy in DUEL_ENEMIES do
+		table.insert(headers, Modules.Enemies.Defs[enemy].displayName)
+	end
+	for _, mode in { "alone", "frost" } do
+		local rows = {}
+		for _, towerType in IdleTowers.ORDER do
+			if towerType ~= "Frost" then
+				local row = { Run.shortName(towerType) }
+				duelResults[mode][towerType] = {}
+				for _, enemy in DUEL_ENEMIES do
+					local ratio = duelDamage(towerType, enemy, mode == "frost") / ballista[mode][enemy]
+					duelResults[mode][towerType][enemy] = ratio
+					table.insert(row, string.format("%.2f", ratio))
+				end
+				table.insert(rows, row)
+			end
+		end
+		out(
+			if mode == "alone"
+				then "DUELS : une tour contre un seul ennemi qui traverse tout le chemin, même niveau (1 = autant que la Baliste lourde) :"
+				else "  ... avec un Totem de givre voisin (son ralentissement seulement) :"
+		)
+		Report.table(headers, rows, { "l" })
+	end
+	out("  (Chaque tour sur ses 3 meilleurs emplacements, valeur du milieu. Le rayon du Sorcier monte tant qu'il garde sa cible :")
+	out("   il bat la Baliste contre les ennemis lents et perd contre les rapides.)")
+	out()
+end
 
 ----------------------------------------------------------------------
 -- 7. Renaissance en boucle : combien de temps pour rejouer 1..N avec les tours d'un moment donné ?
@@ -1398,9 +1560,10 @@ end
 -- Banc d'essai : tours différentes selon le type de vague, tours dominées, légendaires
 do
 	local winners, winnerParts = {}, {}
-	local dominatedEverywhere = {}
+	local dominatedEverywhere = { k = {}, kDupes = {} }
 	for _, towerType in IdleTowers.ORDER do
-		dominatedEverywhere[towerType] = true
+		dominatedEverywhere.k[towerType] = true
+		dominatedEverywhere.kDupes[towerType] = true
 	end
 	local legendaryRatios = {}
 	local benchCount = 0
@@ -1420,39 +1583,43 @@ do
 				end
 			end
 			table.insert(winnerParts, `v{wave} {table.concat(names, " ")}`)
-			-- Tour dominée : une autre tour fait mieux contre tous les types de vague (sans doublons)
-			for _, towerType in IdleTowers.ORDER do
-				local mine = bench.cells[towerType]
-				local dominated = false
-				if mine[Report.WAVE_TYPE_ORDER[1]].tooExpensive then
-					dominated = true
-				else
-					for _, other in IdleTowers.ORDER do
-						if other ~= towerType and not bench.cells[other][Report.WAVE_TYPE_ORDER[1]].tooExpensive then
-							local better = true
-							for _, waveType in Report.WAVE_TYPE_ORDER do
-								if bench.cells[other][waveType].k >= mine[waveType].k then
-									better = false
+			-- Tour dominée : une autre tour fait mieux contre tous les types de vague, sans doublons (k) et avec
+			-- les doublons moyens du joueur simulé à ce moment (kDupes : les communes en ont des centaines, les
+			-- légendaires, rares, presque aucun).
+			for _, key in { "k", "kDupes" } do
+				for _, towerType in IdleTowers.ORDER do
+					local mine = bench.cells[towerType]
+					local dominated = false
+					if mine[Report.WAVE_TYPE_ORDER[1]].tooExpensive then
+						dominated = true
+					else
+						for _, other in IdleTowers.ORDER do
+							if other ~= towerType and not bench.cells[other][Report.WAVE_TYPE_ORDER[1]].tooExpensive then
+								local better = true
+								for _, waveType in Report.WAVE_TYPE_ORDER do
+									if bench.cells[other][waveType][key] >= mine[waveType][key] then
+										better = false
+										break
+									end
+								end
+								if better then
+									dominated = true
 									break
 								end
 							end
-							if better then
-								dominated = true
-								break
+						end
+					end
+					-- Utile en soutien (3 tours principales + celle-ci font mieux que 4 principales) : pas dominée
+					if not mine[Report.WAVE_TYPE_ORDER[1]].tooExpensive then
+						for _, waveType in Report.WAVE_TYPE_ORDER do
+							if (mine[waveType].support or 0) > 100 then
+								dominated = false
 							end
 						end
 					end
-				end
-				-- Utile en soutien (3 tours principales + celle-ci font mieux que 4 principales) : pas dominée
-				if not mine[Report.WAVE_TYPE_ORDER[1]].tooExpensive then
-					for _, waveType in Report.WAVE_TYPE_ORDER do
-						if (mine[waveType].support or 0) > 100 then
-							dominated = false
-						end
+					if not dominated then
+						dominatedEverywhere[key][towerType] = false
 					end
-				end
-				if not dominated then
-					dominatedEverywhere[towerType] = false
 				end
 			end
 			-- Légendaires contre les autres
@@ -1487,19 +1654,23 @@ do
 			`meilleure tour au banc d'essai (M/H/R/G/B = Escarmouche/Horde/Rush/Géants/Boss) : {table.concat(winnerParts, " ; ")}`,
 			if count >= 3 then `OK ({count} tours différentes)` else `PEU VARIÉ ({count} tour(s))`
 		)
-		local dominatedNames = {}
-		for _, towerType in IdleTowers.ORDER do
-			if dominatedEverywhere[towerType] then
-				table.insert(dominatedNames, Run.shortName(towerType))
+		local function dominatedList(key: string)
+			local names = {}
+			for _, towerType in IdleTowers.ORDER do
+				if dominatedEverywhere[key][towerType] then
+					table.insert(names, Run.shortName(towerType))
+				end
 			end
+			return names
 		end
+		local withoutDupes, withDupes = dominatedList("k"), dominatedList("kDupes")
 		row(
 			"Aucune tour dominée pour toujours",
-			"pas de tour moins bonne partout, tout le temps",
-			if #dominatedNames > 0
-				then `moins bonnes qu'une autre tour contre tous les types de vague, et inutiles en soutien, à chaque vague du banc d'essai : {table.concat(dominatedNames, ", ")}`
-				else "aucune",
-			if #dominatedNames > 0 then "NON" else "OK"
+			"pas de tour moins bonne partout, tout le temps (avec les doublons du joueur : ce qu'il a vraiment en main)",
+			`moins bonnes qu'une autre tour contre tous les types de vague, et inutiles en soutien, à chaque vague du banc d'essai : `
+				.. `avec les doublons du joueur : {if #withDupes > 0 then table.concat(withDupes, ", ") else "aucune"} ; `
+				.. `sans doublons : {if #withoutDupes > 0 then table.concat(withoutDupes, ", ") else "aucune"}`,
+			if #withDupes > 0 then "NON" elseif #withoutDupes > 0 then "OK (avec doublons)" else "OK"
 		)
 		if #legendaryRatios > 0 then
 			local lo, hi = Report.minMax(legendaryRatios)
@@ -1581,8 +1752,268 @@ do
 	)
 end
 
+-- Part moyenne des dégâts utiles d'une tour sur un type de vague, dans une tranche (chaque partie compte autant).
+local function towerShare(runs, bucket: string, waveType: string, towerType: string): number?
+	local shares = {}
+	for _, run in runs do
+		local damageRow = run.damage[bucket .. "|" .. waveType]
+		if damageRow then
+			local total = 0
+			for _, v in damageRow do
+				total += v
+			end
+			if total > 0 then
+				table.insert(shares, (damageRow[towerType] or 0) / total)
+			end
+		end
+	end
+	return mean(shares)
+end
+
+-- Puissance relative (banc d'essai) : k de la Baliste / k du Sorcier (> 1 = le Sorcier est plus fort).
+local function benchRatio(bench, towerType: string, other: string, waveType: string): number?
+	local mine, theirs = bench.cells[towerType][waveType], bench.cells[other][waveType]
+	if mine.tooExpensive or theirs.tooExpensive then
+		return nil
+	elseif mine.k == math.huge then
+		return 0
+	elseif theirs.k == math.huge then
+		return math.huge
+	end
+	return theirs.k / mine.k
+end
+
+local BUCKETS_ORDER = { "1-25", "26-50", "51-100", "101+" }
+
+-- Sorcier des arcanes (rayon) : à niveau égal, plus fort que la Baliste lourde contre les ennemis lents (boss,
+-- colosse, chevaliers lourds), bien moins bon contre les rapides (demande du propriétaire).
+do
+	local alone, frost = duelResults.alone.Laser, duelResults.frost.Laser
+	local parts, rushWorst, giantsWorst = {}, 0, math.huge
+	for _, wave in BENCH_WAVES do
+		local bench = benchResults[wave]
+		if bench and wave >= 25 then
+			local giants, boss, rush = benchRatio(bench, "Laser", "Rocket", "Giants"), benchRatio(bench, "Laser", "Rocket", "Boss"), benchRatio(bench, "Laser", "Rocket", "Rush")
+			if giants and boss and rush then
+				table.insert(parts, string.format("v%d : colosse x%.2f, boss x%.2f, cavalerie x%.2f", wave, giants, boss, rush))
+				rushWorst = math.max(rushWorst, rush)
+				giantsWorst = math.min(giantsWorst, giants)
+			end
+		end
+	end
+	local slowMin = math.min(alone.Boss, alone.Giant, alone.Tank)
+	row(
+		"Sorcier : bat la Baliste contre les lents",
+		"duel à niveau égal : boss, colosse et chevalier lourd >= x1,2 la Baliste ; cavalier <= x0,8 ; banc d'essai : Charge <= x0,8, colosse > x1",
+		string.format(
+			"duel : boss x%.2f, colosse x%.2f, chevalier lourd x%.2f, fantassin x%.2f, cavalier x%.2f, écuyer x%.2f ; avec un Totem : boss x%.2f, colosse x%.2f, cavalier x%.2f ; banc d'essai (Sorcier / Baliste) : %s",
+			alone.Boss, alone.Giant, alone.Tank, alone.Normal, alone.Fast, alone.Swarm, frost.Boss, frost.Giant, frost.Fast,
+			if #parts > 0 then table.concat(parts, " ; ") else "-"
+		),
+		if slowMin < 1.2 then "PAS ASSEZ FORT CONTRE LES LENTS"
+			elseif alone.Fast > 0.8 or rushWorst > 0.8 then "TROP FORT CONTRE LES RAPIDES"
+			elseif giantsWorst <= 1 then "PAS MIEUX QUE LA BALISTE (colosse)"
+			else "OK"
+	)
+end
+
+-- Sorcier : pas de victoire automatique contre les boss. Sur les vagues de boss, il ne doit pas faire la majorité
+-- des dégâts dans toutes les tranches ; les murs de boss et de colosses restent de vrais murs (comparés au
+-- scénario « sans-sorcier » quand il a tourné).
+do
+	local shareParts, majority, reached = {}, 0, 0
+	for _, bucket in BUCKETS_ORDER do
+		local boss = towerShare(reference, bucket, "Boss", "Laser")
+		local giants = towerShare(reference, bucket, "Giants", "Laser")
+		if boss then
+			reached += 1
+			if boss > 0.5 then
+				majority += 1
+			end
+			table.insert(shareParts, `{bucket} : boss {Report.pct(boss)}, colosse {if giants then Report.pct(giants) else "-"}`)
+		end
+	end
+	-- Murs d'au moins 30 s par type (vagues 11 à 150) : nombre de vagues de ce type qui ont bloqué et médiane.
+	local function wallsOf(runs, waveType: string)
+		local list, reachedWaves = {}, 0
+		for _, run in runs do
+			for wave = 11, math.min(150, run.frontier) do
+				if IdleConfig.waveType(wave) == waveType then
+					reachedWaves += 1
+				end
+			end
+			for _, wall in run.walls do
+				if wall.wave >= 11 and wall.wave <= 150 and wall.seconds >= 30 and IdleConfig.waveType(wall.wave) == waveType then
+					table.insert(list, wall.seconds)
+				end
+			end
+		end
+		return median(list), #list, reachedWaves
+	end
+	local wallParts, collapsed = {}, false
+	local without = runsByScenario["sans-sorcier"]
+	for _, waveType in { "Boss", "Giants" } do
+		local med, count, waves = wallsOf(reference, waveType)
+		local text = `{Report.waveTypeName(waveType)} : {count}/{waves} vagues bloquent, médiane {duration(med)}`
+		if without then
+			local medWithout, countWithout, wavesWithout = wallsOf(without, waveType)
+			text ..= ` (sans Sorcier : {countWithout}/{wavesWithout}, médiane {duration(medWithout)})`
+			if medWithout and (not med or med < 0.3 * medWithout) then
+				collapsed = true
+			end
+		end
+		table.insert(wallParts, text)
+	end
+	row(
+		"Sorcier : pas d'autowin contre les boss",
+		"sur les vagues de boss, pas la majorité des dégâts dans toutes les tranches ; murs de boss et de colosses pas écrasés (>= 30 % de ceux sans Sorcier)",
+		`part du Sorcier (dégâts utiles) : {table.concat(shareParts, " ; ")} ; murs (vagues 11-150) : {table.concat(wallParts, " ; ")}`
+			.. (if without then "" else " ; (lance aussi le scénario « sans-sorcier » pour comparer)"),
+		if reached >= 2 and majority == reached then "TROP FORT (majorité partout)" elseif collapsed then "MURS ÉCRASÉS" else "OK"
+	)
+end
+
+-- Archer du rempart et Mage des tempêtes : ni l'un ni l'autre ne doit être la tour la plus faible, chacun a un
+-- domaine où il fait partie des meilleurs choix, et le joueur simulé les garde (améliorés) après la vague 40.
+do
+	local function describe(towerType: string)
+		-- Banc d'essai (vagues 50+) : types de vague où elle est dans les 3 meilleures (puissance >= 60),
+		-- et vagues où elle est la plus faible en moyenne (moyenne géométrique des 5 types).
+		local niches, weakestAt = {}, {}
+		for _, wave in BENCH_WAVES do
+			local bench = benchResults[wave]
+			if bench and wave >= 50 then
+				local means = {}
+				for _, tt in IdleTowers.ORDER do
+					local cells = bench.cells[tt]
+					if not cells.Mixed.tooExpensive then
+						local total = 0
+						for _, waveType in Report.WAVE_TYPE_ORDER do
+							total += math.log(math.max(cells[waveType].power or 0, 0.1))
+						end
+						means[tt] = total / #Report.WAVE_TYPE_ORDER
+					end
+				end
+				local lowest, lowestValue = nil, math.huge
+				for tt, value in means do
+					if value < lowestValue then
+						lowest, lowestValue = tt, value
+					end
+				end
+				if lowest == towerType then
+					table.insert(weakestAt, `v{wave}`)
+				end
+				-- Rang parmi les tours non légendaires (celles que le joueur a presque tout le temps : la première
+				-- légendaire arrive vers la vague 60-90), puissance >= 60 % de la meilleure de ces tours.
+				for _, waveType in Report.WAVE_TYPE_ORDER do
+					local cell = bench.cells[towerType][waveType]
+					if not cell.tooExpensive then
+						local rank, bestK = 1, cell.k
+						for _, tt in IdleTowers.ORDER do
+							local other = bench.cells[tt][waveType]
+							if tt ~= towerType and not other.tooExpensive and IdleTowers.Defs[tt].rarity ~= "Legendary" then
+								if other.k < cell.k then
+									rank += 1
+								end
+								bestK = math.min(bestK, other.k)
+							end
+						end
+						if rank <= 3 and bestK / cell.k >= 0.6 then
+							table.insert(niches, `v{wave} {Report.waveTypeName(waveType)} ({rank}e)`)
+						end
+					end
+				end
+			end
+		end
+		-- Joueur simulé : meilleure part des dégâts après la vague 40 (tranches 51-100 et 101+ ; 26-50 à part)
+		-- et nombre posé / niveau moyen aux vagues 50, 75, 100.
+		local bestLate, bestLateKey = 0, "-"
+		for _, bucket in { "51-100", "101+" } do
+			for _, waveType in Report.WAVE_TYPE_ORDER do
+				local share = towerShare(reference, bucket, waveType, towerType)
+				if share and share > bestLate then
+					bestLate, bestLateKey = share, `{bucket} {Report.waveTypeName(waveType)}`
+				end
+			end
+		end
+		local mid = 0
+		for _, waveType in Report.WAVE_TYPE_ORDER do
+			mid = math.max(mid, towerShare(reference, "26-50", waveType, towerType) or 0)
+		end
+		local placed = {}
+		for _, wave in { 50, 75, 100, 150 } do
+			local counts, levels = {}, {}
+			for _, run in reference do
+				local snap = run.firstClear[wave]
+				if snap then
+					local entry = snap.byType[towerType]
+					table.insert(counts, if entry then entry.n else 0)
+					if entry then
+						table.insert(levels, (entry.min + entry.max) / 2)
+					end
+				end
+			end
+			if #counts > 0 then
+				table.insert(placed, string.format("v%d : %.1f posé(s)%s", wave, mean(counts), if #levels > 0 then string.format(" niv %.0f", mean(levels)) else ""))
+			end
+		end
+		local text = `{Run.shortName(towerType)} : banc d'essai, dans les 3 meilleures (hors légendaires) : {if #niches > 0 then table.concat(niches, ", ") else "nulle part"}`
+			.. (if #weakestAt > 0 then ` ; LA PLUS FAIBLE en moyenne à {table.concat(weakestAt, ", ")}` else " ; jamais la plus faible en moyenne")
+			.. ` ; part des dégâts : {Report.pct(mid)} (26-50), {Report.pct(bestLate)} après la vague 50 ({bestLateKey}) ; {table.concat(placed, ", ")}`
+		local ok = #niches > 0 and #weakestAt == 0 and math.max(bestLate, mid) >= 0.1
+		return text, ok
+	end
+	local archerText, archerOk = describe("MachineGun")
+	local mageText, mageOk = describe("Tesla")
+	row(
+		"Archer et Mage : pas les plus faibles",
+		"jamais la tour la plus faible (banc d'essai, vagues 50+), dans les 3 meilleures (hors légendaires) contre un type de vague, >= 10 % des dégâts du joueur après la vague 40",
+		archerText .. " || " .. mageText,
+		if archerOk and mageOk then "OK" elseif not archerOk and not mageOk then "NON (Archer, Mage)" elseif not archerOk then "NON (Archer)" else "NON (Mage)"
+	)
+end
+
+-- Tours légendaires (dorées) rares : la première vers les vagues 60-90 (plusieurs heures de jeu), pas avant ~50 ;
+-- ensuite, peu de chances même aux records hauts.
+do
+	local times, waves = {}, {}
+	for _, run in reference do
+		local first = firstLegendary(run)
+		if first then
+			table.insert(times, first.t)
+			table.insert(waves, first.wave)
+		end
+	end
+	local topOdds = 0
+	local oddsParts = {}
+	for _, tier in IdleConfig.TOWER_SPIN_TIERS do
+		local total = 0
+		for _, rarity in IdleConfig.RARITY_ORDER do
+			total += tier.odds[rarity] or 0
+		end
+		local legendary = (tier.odds.Legendary or 0) / total * 100
+		topOdds = math.max(topOdds, legendary)
+		table.insert(oddsParts, `v{tier.minWave} : {IdleConfig.formatPercent(legendary)} %`)
+	end
+	local medianWave = medianOf(waves)
+	local lowest = if #waves > 0 then math.min(table.unpack(waves)) else nil
+	row(
+		"Légendaires rares",
+		"1re légendaire vers les vagues 60-90 (plusieurs heures), pas avant ~50 ; ensuite <= 6 % de chances",
+		(if #times > 0
+				then `1re légendaire vers {duration(medianOf(times))}, vague {medianWave} (médiane ; vagues {table.concat(waves, ", ")})`
+				else "aucune légendaire")
+			.. ` ; chances de Légendaire par palier : {table.concat(oddsParts, ", ")}`,
+		if topOdds > 6 then "TROP DE CHANCES"
+			elseif not medianWave then "JAMAIS"
+			elseif medianWave < 55 or (lowest and lowest < 40) then "TROP TÔT"
+			elseif medianWave > 95 then "TROP TARD"
+			else "OK"
+	)
+end
+
 -- Autel des héros : acheté régulièrement (déblocages au début, doublons ensuite) sans être le seul achat ;
--- les gros lots (x1 000, x1 M) doivent servir aux joueurs avancés.
+-- les gros lots (x100, x1 000, x10 000) doivent servir aux joueurs avancés ; x1 000 000 reste presque impossible.
 do
 	-- Par tranche de vagues : part des pièces dépensées à l'autel et nombre d'achats pour 10 vagues
 	-- (« régulièrement » = au moins 2 achats toutes les 10 vagues, dans chaque tranche atteinte).
@@ -1613,22 +2044,30 @@ do
 			table.insert(parts, `{bucket} : {Report.pct(shares[bucket])} des pièces, {string.format("%.1f", rates[bucket])} achats / 10 vagues`)
 		end
 	end
-	local bulkParts, bigUsed = {}, 0
+	-- Gros lots : combien de parties les achètent (tous scénarios), à quel record le premier achat, combien de
+	-- fois. x100, x1 000 et x10 000 doivent servir aux joueurs avancés (le scénario de référence ou un autre) ;
+	-- x1 000 000 peut rester presque impossible (chaque lancer coûte +0,05 % de plus que le précédent).
+	local bulkParts, bigUnused = {}, {}
 	for _, bulk in IdleConfig.TOWER_SPIN_BULKS do
-		local buyers, firstWaves = 0, {}
-		for _, run in reference do
-			local buys = run.spinBuys[bulk.count]
-			if buys then
-				buyers += 1
-				table.insert(firstWaves, buys.firstWave)
+		local buyers, total, firstWaves, buys = 0, 0, {}, 0
+		for _, id in options.scenarios do
+			for _, run in runsByScenario[id] do
+				total += 1
+				local info = run.spinBuys[bulk.count]
+				if info then
+					buyers += 1
+					buys += info.n
+					table.insert(firstWaves, info.firstWave)
+				end
 			end
 		end
 		table.insert(
 			bulkParts,
-			`x{Modules.NumberFormat.short(bulk.count)} ({buyers}/{#reference}{if #firstWaves > 0 then `, dès la v{math.floor(mean(firstWaves) + 0.5)}` else ""})`
+			`x{Modules.NumberFormat.short(bulk.count)} : {buyers}/{total} parties`
+				.. (if buyers > 0 then `, {shortNumber(buys / buyers)} achats chacune, 1er au record {medianOf(firstWaves)}` else "")
 		)
-		if bulk.count >= 1000 and buyers > 0 then
-			bigUsed += 1
+		if bulk.count >= 100 and bulk.count <= 10000 and buyers == 0 then
+			table.insert(bigUnused, `x{Modules.NumberFormat.short(bulk.count)}`)
 		end
 	end
 	local regular, dominant = true, false
@@ -1642,12 +2081,11 @@ do
 	end
 	row(
 		"Autel des héros acheté régulièrement",
-		"acheté à chaque étape (>= 2 achats / 10 vagues), pas le seul achat (<= 70 % des pièces), x1 000 / x1 M utilisés",
-		`par tranche : {table.concat(parts, " ; ")} ; lots achetés (graines, record du 1er achat) : {table.concat(bulkParts, ", ")}`,
+		"acheté à chaque étape (>= 2 achats / 10 vagues), pas le seul achat (<= 70 % des pièces), x100 / x1 000 / x10 000 achetés par les joueurs avancés (x1 M : défi presque impossible)",
+		`par tranche (référence) : {table.concat(parts, " ; ")} ; lots (tous scénarios) : {table.concat(bulkParts, " ; ")}`,
 		if not regular then "PAS ASSEZ ACHETÉ"
 			elseif dominant then "TROP DOMINANT"
-			elseif bigUsed == 0 then "GROS LOTS JAMAIS ACHETÉS"
-			elseif bigUsed == 1 then "OK (x1 M pas utilisé)"
+			elseif #bigUnused > 0 then `GROS LOTS JAMAIS ACHETÉS ({table.concat(bigUnused, ", ")})`
 			else "OK"
 	)
 end

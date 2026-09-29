@@ -1,21 +1,22 @@
 -- Boutique (passes de jeu du mode infini) et message « Pendant ton absence : +X » au retour.
 --
 -- Boutique : bouton « BOUTIQUE » dans la colonne de gauche (index 5, sous « Renaissance »). La fenêtre
--- montre les deux passes de jeu (Config.GamePasses) :
+-- montre les trois passes de jeu (Config.GamePasses : Ramassage auto, Vitesse x2, Pièces x2) :
 --   ID à 0 (pas encore créé) -> « Bientôt disponible », aucun achat proposé
 --   déjà possédé             -> « Possédé » (et, pour la Vitesse x2, le bouton activée / désactivée)
 --   sinon                    -> « Acheter » : fenêtre d'achat de Roblox (PromptGamePassPurchase)
 -- Le client ne décide rien : le serveur vérifie la possession (UserOwnsGamePassAsync) et la publie dans
--- les attributs du joueur PassAutoCollect, PassSpeedX2 et SpeedX2Enabled. Ces passes ne servent qu'au
--- mode infini : le match ranked reste identique pour tout le monde (mêmes tours, même or).
+-- les attributs du joueur PassAutoCollect, PassSpeedX2, PassCoinsX2 et SpeedX2Enabled. Ces passes ne
+-- servent qu'au mode infini : le match ranked reste identique pour tout le monde (mêmes tours, même or).
 --
 -- Vitesse x2 : un petit bouton à droite du panneau de la vague l'active ou la coupe (PassAction
 -- "ToggleSpeed" ; le serveur revérifie que le pass est possédé). Il n'apparaît qu'avec le pass.
 --
 -- Gains hors ligne : au retour (après une absence ou un match classé), le serveur envoie OfflineGains
 -- { amount, seconds, kind = "Offline" | "Match", capped, matchAmount, matchSeconds, offlineAmount,
--- offlineSeconds } (Remotes.luau, Hub/init.luau). Les pièces sont déjà ajoutées par le serveur : cette
--- fenêtre ne fait que l'annoncer (ShopUI.showOfflineGains, branchée dans Main.client).
+-- offlineSeconds, coinFactor } (Remotes.luau, Hub/init.luau). Les pièces sont déjà ajoutées par le
+-- serveur (doublées avec le pass Pièces x2, coinFactor = 2) : cette fenêtre ne fait que l'annoncer
+-- (ShopUI.showOfflineGains, branchée dans Main.client).
 local MarketplaceService = game:GetService("MarketplaceService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -33,8 +34,10 @@ local ShopUI = {}
 
 local ROBUX_GREEN = Color3.fromRGB(0, 176, 111) -- même vert que le bouton Robux de la forge (MachineUI)
 local SPEED_COLOR = Color3.fromRGB(70, 130, 210)
+local COINS_COLOR = Color3.fromRGB(235, 140, 45)
 local DARK_TEXT = Color3.fromRGB(30, 25, 10)
-local WINDOW_SIZE = Vector2.new(580, 380)
+-- 3 cartes côte à côte (~256 px chacune). Réduite sur les petits écrans (fitWindow).
+local WINDOW_SIZE = Vector2.new(820, 400)
 local PROMPT_COOLDOWN = 1 -- secondes entre deux fenêtres d'achat (un double clic n'en ouvre qu'une)
 local TOGGLE_COOLDOWN = 0.5 -- secondes entre deux changements de vitesse
 -- Limite par défaut des gains hors ligne (en runs complètes par jour), si IdleConfig n'en donne pas.
@@ -46,13 +49,13 @@ local SPLIT_OFFLINE_SECONDS = 5 * 60
 -- l'écran au lieu de la grande fenêtre.
 local MIN_PANEL_SECONDS = 60
 
--- Les deux passes de jeu. key = nom dans Config.GamePasses, attribute = attribut du joueur publié par le
+-- Les trois passes de jeu. key = nom dans Config.GamePasses, attribute = attribut du joueur publié par le
 -- serveur (true quand le pass est possédé).
 local PASSES = {
 	{
 		key = "AUTO_COLLECT",
 		attribute = "PassAutoCollect",
-		icon = "💰",
+		icon = "→",
 		name = "Ramassage auto",
 		description = "Les pièces tombées sur ta parcelle arrivent toutes seules dans ta bourse, même quand tu es loin.",
 		color = UI.Colors.Gold,
@@ -64,6 +67,14 @@ local PASSES = {
 		name = "Vitesse x2",
 		description = "Ta parcelle joue 2 fois plus vite : ennemis, apparitions, tirs des tours et pauses entre les vagues. Tu peux la couper à tout moment.",
 		color = SPEED_COLOR,
+	},
+	{
+		key = "COINS_X2",
+		attribute = "PassCoinsX2",
+		icon = "💰",
+		name = "Pièces x2",
+		description = "Toutes les pièces gagnées sur ta parcelle sont doublées, même hors ligne.",
+		color = COINS_COLOR,
 	},
 }
 
@@ -235,8 +246,9 @@ function ShopUI.start()
 	end
 
 	for order, pass in PASSES do
+		-- Un tiers de la rangée chacune, moins sa part des 2 espaces de 12 px.
 		local card = UI.new("Frame", {
-			Size = UDim2.new(0.5, -6, 1, 0),
+			Size = UDim2.new(1 / #PASSES, -12 * (#PASSES - 1) / #PASSES, 1, 0),
 			LayoutOrder = order,
 			BackgroundColor3 = pass.color:Lerp(UI.Colors.Background, 0.75),
 			Parent = cardRow,
@@ -256,7 +268,7 @@ function ShopUI.start()
 		})
 		UI.label({
 			Position = UDim2.new(0, 0, 0, 36),
-			Size = UDim2.new(1, 0, 0, 74),
+			Size = UDim2.new(1, 0, 0, 96),
 			TextXAlignment = Enum.TextXAlignment.Left,
 			TextYAlignment = Enum.TextYAlignment.Top,
 			TextWrapped = true,
@@ -265,7 +277,7 @@ function ShopUI.start()
 			Parent = card,
 		})
 		UI.label({
-			Position = UDim2.new(0, 0, 0, 114),
+			Position = UDim2.new(0, 0, 0, 136),
 			Size = UDim2.new(1, 0, 0, 16),
 			TextXAlignment = Enum.TextXAlignment.Left,
 			TextColor3 = UI.Colors.Muted,
@@ -274,7 +286,7 @@ function ShopUI.start()
 			Parent = card,
 		})
 		local priceLabel = UI.label({
-			Position = UDim2.new(0, 0, 0, 134),
+			Position = UDim2.new(0, 0, 0, 156),
 			Size = UDim2.new(1, 0, 0, 22),
 			TextXAlignment = Enum.TextXAlignment.Left,
 			Font = Enum.Font.GothamBold,
@@ -526,7 +538,7 @@ local function buildOfflinePanel()
 	stroke.Parent = window
 	local scale = UI.new("UIScale", { Parent = window })
 
-	UI.label({
+	local title = UI.label({
 		Size = UDim2.new(1, 0, 0, 28),
 		Font = Enum.Font.GothamBlack,
 		Text = "Pendant ton absence :",
@@ -572,6 +584,7 @@ local function buildOfflinePanel()
 	local panel = {
 		overlay = overlay,
 		scale = scale,
+		title = title,
 		amount = amount,
 		detail = detail,
 		capLabel = capLabel,
@@ -611,6 +624,8 @@ local function displayOffline(entry)
 	end
 	local panel = offlinePanel
 
+	-- Pass Pièces x2 : les montants reçus sont déjà doublés, on le dit dans le titre.
+	panel.title.Text = if entry.doubled then "Pendant ton absence (pièces x2) :" else "Pendant ton absence :"
 	if entry.matchAmount > 0 and entry.offlineAmount > 0 and entry.offlineSeconds >= SPLIT_OFFLINE_SECONDS then
 		-- Retour d'un match classé après un vrai passage hors ligne : les deux parts, chacune avec sa durée.
 		panel.detail.Text = `⚔ Match classé ({formatDuration(entry.matchSeconds)}) : <b>+{NumberFormat.short(entry.matchAmount)}</b> au rythme normal`
@@ -682,6 +697,7 @@ function ShopUI.showOfflineGains(payload: any)
 		matchSeconds = cleanNumber(payload.matchSeconds),
 		offlineAmount = cleanNumber(payload.offlineAmount),
 		offlineSeconds = cleanNumber(payload.offlineSeconds),
+		doubled = cleanNumber(payload.coinFactor) > 1, -- pass Pièces x2
 	}
 	if amount <= 0 then
 		-- Rien gagné : seulement un petit message si c'est à cause de la limite du jour.
@@ -691,7 +707,7 @@ function ShopUI.showOfflineGains(payload: any)
 		return
 	end
 	if entry.kind == "Offline" and entry.seconds < MIN_PANEL_SECONDS then
-		UI.toast(`Pendant ton absence : +{NumberFormat.short(amount)}`, "Success")
+		UI.toast(`Pendant ton absence : +{NumberFormat.short(amount)}{if entry.doubled then " (pièces x2)" else ""}`, "Success")
 		return
 	end
 	table.insert(offlineQueue, entry)

@@ -4,15 +4,17 @@
 #   powershell -ExecutionPolicy Bypass -File tools\balance\idle\run.ps1 -Rapide
 #   powershell -ExecutionPolicy Bypass -File tools\balance\idle\run.ps1 -Graines 3 -Heures 20 -Scenarios base
 #   powershell -ExecutionPolicy Bypass -File tools\balance\idle\run.ps1 -Regler "IdleConfig.HEALTH_GROWTH=1.2;IdleConfig.UPGRADE_DAMAGE=1.45"
+#   powershell -ExecutionPolicy Bypass -File tools\balance\idle\run.ps1 -Verifier   (le moteur joue-t-il comme PlotGame.luau ?)
 # Résultats dans tools\balance\idle\out\ : rapport.txt, timeline.csv, heures.csv (et journal.txt avec -Journal)
 param(
 	[int]$Graines = 3,            # nombre de parties simulées par scénario (tirages de la machine à tours différents)
 	[double]$Heures = 100,        # durée de jeu simulée par partie
-	[string]$Scenarios = "base,forge,renaissance,renaissance-seule",
+	[string]$Scenarios = "base,forge,renaissance,renaissance-seule,sans-sorcier",
 	[double]$Pas = 0.05,          # pas de temps de la simulation (secondes)
 	[string]$Regler = "",         # essais de réglages sans toucher à src : "Module.CHAMP=valeur;Module.Autre.champ=valeur"
 	[switch]$Journal,             # écrit aussi out\journal.txt : tout ce que fait le joueur simulé (1re partie)
-	[switch]$Rapide               # essai rapide : 3 graines, 40 h, scénario base seulement
+	[switch]$Rapide,              # essai rapide : 3 graines, 40 h, scénario base seulement
+	[switch]$Verifier             # compare le moteur au vrai PlotGame.luau (quelques secondes), sans simulation
 )
 $ErrorActionPreference = "Stop"
 if ($Rapide) {
@@ -41,6 +43,40 @@ Get-ChildItem $gen -Filter *.luau | Remove-Item
 foreach ($file in Get-ChildItem $shared -Filter *.luau) {
 	$source = [IO.File]::ReadAllText($file.FullName, $utf8)
 	[IO.File]::WriteAllText((Join-Path $gen $file.Name), $prelude + $source, $utf8)
+}
+
+# -Verifier : le vrai PlotGame.luau (serveur) et ses modules dans gen\verif\, avec des imitations de Roblox
+# (verif\extra.luau, verif\stubs\), puis verif\parity.luau fait jouer les mêmes vagues au jeu et au moteur.
+if ($Verifier) {
+	$verifGen = Join-Path $here "gen\verif"
+	$verifShared = Join-Path $verifGen "shared"
+	$verifHub = Join-Path $verifGen "server\Hub"
+	New-Item -ItemType Directory -Force $verifShared | Out-Null
+	New-Item -ItemType Directory -Force $verifHub | Out-Null
+	$preludeShared = 'local __shim = require("../../../shim"); local Vector3, Color3, CFrame, script = __shim.Vector3, __shim.Color3, __shim.CFrame, __shim.script; '
+	foreach ($file in Get-ChildItem $shared -Filter *.luau) {
+		if ($file.Name -ne "Remotes.luau") {
+			$source = [IO.File]::ReadAllText($file.FullName, $utf8)
+			[IO.File]::WriteAllText((Join-Path $verifShared $file.Name), $preludeShared + $source, $utf8)
+		}
+	}
+	$stubs = Join-Path $here "verif\stubs"
+	Copy-Item (Join-Path $stubs "Remotes.luau") (Join-Path $verifShared "Remotes.luau") -Force
+	Copy-Item (Join-Path $stubs "PlayerData.luau") (Join-Path $verifGen "server\PlayerData.luau") -Force
+	Copy-Item (Join-Path $stubs "HubMap.luau") (Join-Path $verifHub "HubMap.luau") -Force
+	Copy-Item (Join-Path $stubs "IdleTowerModel.luau") (Join-Path $verifHub "IdleTowerModel.luau") -Force
+	$preludeServer = 'local __shim = require("../../../../shim"); local __extra = require("../../../../verif/extra"); local Vector3, Color3, CFrame, script, game, workspace, Random, Instance, task = __shim.Vector3, __shim.Color3, __shim.CFrame, __extra.serverScript, __extra.game, __extra.workspace, __extra.Random, __extra.Instance, __extra.task; '
+	$plotGame = [IO.File]::ReadAllText((Join-Path $repo "src\server\Hub\PlotGame.luau"), $utf8)
+	[IO.File]::WriteAllText((Join-Path $verifHub "PlotGame.luau"), $preludeServer + $plotGame, $utf8)
+	[Console]::OutputEncoding = $utf8
+	Push-Location (Join-Path $here "verif")
+	try {
+		& luau --codegen -O2 parity.luau
+		$code = $LASTEXITCODE
+	} finally {
+		Pop-Location
+	}
+	exit $code
 }
 
 # 2. Simulation. Chaque ligne commence par un préfixe qui dit où elle va :

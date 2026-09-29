@@ -171,7 +171,9 @@ local function projectilePart(color: Color3, size: Vector3, material): Part
 end
 
 -- Flèche ou carreau réellement visible pendant tout le trajet.
-local function linearProjectile(from: Vector3, to: Vector3, color: Color3, heavy: boolean)
+-- travel = durée du vol imposée (mode infini : le serveur applique les dégâts à l'arrivée) ;
+-- impactRadius > 0 = petite explosion à l'arrivée (carreau de la Baliste).
+local function linearProjectile(from: Vector3, to: Vector3, color: Color3, heavy: boolean, travel: number?, impactRadius: number?)
 	local delta = to - from
 	if delta.Magnitude < 0.1 then
 		return
@@ -179,17 +181,21 @@ local function linearProjectile(from: Vector3, to: Vector3, color: Color3, heavy
 	local projectile = projectilePart(color, if heavy then Vector3.new(0.22, 0.22, 2.8) else Vector3.new(0.12, 0.12, 1.8), Enum.Material.Metal)
 	local direction = delta.Unit
 	projectile.CFrame = CFrame.lookAt(from, from + direction)
-	local duration = math.clamp(delta.Magnitude / (if heavy then 90 else 125), 0.12, 0.55)
+	local duration = travel or math.clamp(delta.Magnitude / (if heavy then 90 else 125), 0.12, 0.55)
 	TweenService:Create(projectile, TweenInfo.new(duration, Enum.EasingStyle.Linear), { CFrame = CFrame.lookAt(to, to + direction) }):Play()
 	Debris:AddItem(projectile, duration + 0.03)
+	if impactRadius and impactRadius > 0 then
+		task.delay(duration, Effects.burst, to, math.max(1.2, impactRadius), color, 0.2)
+	end
 end
 
 -- Pierre de siège avec une vraie trajectoire parabolique.
-local function arcingProjectile(from: Vector3, to: Vector3, color: Color3, radius: number)
+-- travel = durée du vol imposée (mode infini), sinon calculée avec la distance (ranked).
+local function arcingProjectile(from: Vector3, to: Vector3, color: Color3, radius: number, travel: number?)
 	local projectile = projectilePart(color, Vector3.one * 0.9, Enum.Material.Rock)
 	projectile.Shape = Enum.PartType.Ball
 	local distance = (to - from).Magnitude
-	local duration = math.clamp(distance / 55, 0.42, 0.9)
+	local duration = travel or math.clamp(distance / 55, 0.42, 0.9)
 	local arc = math.clamp(distance * 0.22, 5, 15)
 	task.spawn(function()
 		local elapsed = 0
@@ -221,6 +227,27 @@ local function magicProjectile(from: Vector3, to: Vector3, color: Color3)
 			Effects.burst(to, 1.4, color, 0.18)
 		end
 	end)
+end
+
+-- Éclair en zigzag (Mage des tempêtes du mode infini) : 4 segments qui s'effacent vite, puis une petite
+-- décharge de la taille de sa zone là où la foudre tombe.
+local function stormStrike(from: Vector3, to: Vector3, color: Color3, radius: number)
+	local segments = 4
+	local previous = from
+	local delta = to - from
+	local side = if delta.Magnitude > 0.1 then delta.Unit:Cross(Vector3.yAxis) else Vector3.xAxis
+	if side.Magnitude < 0.1 then
+		side = Vector3.xAxis
+	end
+	for i = 1, segments do
+		local point = from + delta * (i / segments)
+		if i < segments then
+			point += side.Unit * (math.random() - 0.5) * 1.6 + Vector3.new(0, (math.random() - 0.5) * 0.8, 0)
+		end
+		Effects.tracer(previous, point, color:Lerp(Color3.new(1, 1, 1), 0.35), 0.16)
+		previous = point
+	end
+	Effects.burst(to + Vector3.new(0, 0.6, 0), math.max(1.2, radius), color, 0.22)
 end
 
 local ARROW_TYPES = { Gunner = true, MachineGun = true, Sniper = true, Rocket = true }
@@ -287,23 +314,134 @@ local function animateTower(model: Model?, towerType: string): number
 	return 0
 end
 
-function Effects.playTowerShot(from: Vector3, to: Vector3, towerType: string, radius: number, color: Color3, kind: string, towerModel: Model?)
+-- flightTime (mode infini seulement) : secondes réelles avant l'impact, envoyées par le serveur. Le
+-- projectile part après l'animation de la tour et arrive pile à ce moment-là (quand les dégâts tombent).
+-- Sans flightTime (ranked), les durées de toujours.
+function Effects.playTowerShot(from: Vector3, to: Vector3, towerType: string, radius: number, color: Color3, kind: string, towerModel: Model?, flightTime: number?)
 	aimTower(towerModel, to)
 	from = muzzlePosition(towerModel, towerType, from)
 	local delay = animateTower(towerModel, towerType)
+	local travel = nil
+	if flightTime then
+		-- L'animation de la tour mange le début du vol : le projectile part un peu après, arrive à l'heure.
+		delay = math.min(delay, flightTime * 0.5)
+		travel = math.max(0.05, flightTime - delay)
+	end
 	task.delay(delay, function()
 		if kind == "Aura" then
 			Effects.pulse(to, radius, color)
 		elseif SIEGE_TYPES[towerType] then
-			arcingProjectile(from, to, Color3.fromRGB(79, 76, 69):Lerp(color, 0.18), radius)
+			arcingProjectile(from, to, Color3.fromRGB(79, 76, 69):Lerp(color, 0.18), radius, travel)
 		elseif ARROW_TYPES[towerType] then
-			linearProjectile(from, to, if towerType == "Rocket" then color else Color3.fromRGB(218, 171, 71), towerType == "Sniper" or towerType == "Rocket")
+			linearProjectile(
+				from,
+				to,
+				if towerType == "Rocket" then color else Color3.fromRGB(218, 171, 71),
+				towerType == "Sniper" or towerType == "Rocket",
+				travel,
+				if flightTime and towerType == "Rocket" then radius else nil
+			)
+		elseif towerType == "Tesla" and flightTime then
+			stormStrike(from, to, color, radius)
 		elseif towerType == "Laser" or towerType == "Chain" then
 			Effects.tracer(from, to, color, if towerType == "Laser" then 0.28 else 0.18)
 		else
 			magicProjectile(from, to, color)
 		end
 	end)
+end
+
+----------------------------------------------------------------------
+-- Mode infini : zones de feu et rayon continu (appelés par PlotRenderer)
+----------------------------------------------------------------------
+
+-- Fait disparaître une part en douceur, puis la détruit.
+function Effects.fadeOut(part: BasePart, duration: number)
+	if not part.Parent then
+		return
+	end
+	TweenService:Create(part, TweenInfo.new(duration), { Transparency = 1 }):Play()
+	for _, child in part:GetChildren() do
+		if child:IsA("ParticleEmitter") then
+			child.Enabled = false
+		end
+	end
+	Debris:AddItem(part, duration + 0.05)
+end
+
+-- Petite zone de feu au sol (flèches enflammées) : un disque orange et quelques flammes (peu de
+-- particules). PlotRenderer la garde le temps qu'elle brûle, puis l'efface avec fadeOut.
+function Effects.firePatch(position: Vector3, radius: number): BasePart
+	local disc = basePart()
+	disc.Shape = Enum.PartType.Cylinder
+	disc.Size = Vector3.new(0.12, radius * 2, radius * 2)
+	-- Juste au-dessus du chemin (dessus des pavés à +0,15 stud).
+	disc.CFrame = CFrame.new(position.X, position.Y + 0.22, position.Z) * CFrame.Angles(0, 0, math.rad(90))
+	disc.Color = Color3.fromRGB(255, 120, 30)
+	disc.Transparency = 0.45
+	disc.Parent = effectsFolder
+
+	local flames = Instance.new("ParticleEmitter")
+	flames.Texture = "rbxasset://textures/particles/fire_main.dds"
+	flames.Color = ColorSequence.new(Color3.fromRGB(255, 190, 70), Color3.fromRGB(255, 70, 20))
+	flames.LightEmission = 0.8
+	flames.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.9), NumberSequenceKeypoint.new(1, 0.1) })
+	flames.Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.3), NumberSequenceKeypoint.new(1, 1) })
+	flames.Lifetime = NumberRange.new(0.35, 0.6)
+	flames.Rate = 7 -- peu de particules : il peut y avoir plusieurs zones en même temps
+	flames.Speed = NumberRange.new(2, 4)
+	flames.EmissionDirection = Enum.NormalId.Right -- le haut du disque couché
+	flames.SpreadAngle = Vector2.new(10, 10)
+	flames.Shape = Enum.ParticleEmitterShape.Disc
+	flames.ShapeStyle = Enum.ParticleEmitterShapeStyle.Volume
+	flames.Parent = disc
+	return disc
+end
+
+-- Rayon continu du Sorcier des arcanes : une part longue (le rayon) et une boule au bout (l'impact).
+-- Une seule paire par tour, déplacée à chaque image par PlotRenderer (updateBeam), cachée quand le rayon
+-- s'éteint (hideBeam) : pas de création ni de destruction à chaque tir, pas de clignotement.
+function Effects.createBeam(color: Color3)
+	local beam = basePart()
+	beam.Color = color
+	beam.Transparency = 1
+	beam.Parent = effectsFolder
+	local glow = basePart()
+	glow.Shape = Enum.PartType.Ball
+	glow.Color = color
+	glow.Transparency = 1
+	glow.Parent = effectsFolder
+	return { beam = beam, glow = glow, color = color }
+end
+
+-- heat : 0 = rayon qui démarre (x1, fin et pâle), 1 = rayon au maximum (épais, presque blanc).
+function Effects.updateBeam(handle, from: Vector3, to: Vector3, heat: number, t: number)
+	local length = (to - from).Magnitude
+	if length < 0.1 then
+		Effects.hideBeam(handle)
+		return
+	end
+	local flicker = math.sin(t * 40) * 0.04
+	local width = 0.14 + 0.5 * heat + flicker * heat
+	local color = handle.color:Lerp(Color3.new(1, 1, 1), 0.15 + 0.45 * heat)
+	handle.beam.Size = Vector3.new(width, width, length)
+	handle.beam.CFrame = CFrame.lookAt((from + to) / 2, to)
+	handle.beam.Color = color
+	handle.beam.Transparency = math.clamp(0.45 - 0.35 * heat + flicker, 0.05, 0.9)
+	handle.glow.Size = Vector3.one * (0.5 + 1.3 * heat + flicker * 2)
+	handle.glow.Position = to
+	handle.glow.Color = color
+	handle.glow.Transparency = math.clamp(0.5 - 0.3 * heat, 0.1, 0.9)
+end
+
+function Effects.hideBeam(handle)
+	handle.beam.Transparency = 1
+	handle.glow.Transparency = 1
+end
+
+function Effects.destroyBeam(handle)
+	handle.beam:Destroy()
+	handle.glow:Destroy()
 end
 
 local function towerById(towerId: number?): Model?

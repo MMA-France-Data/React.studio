@@ -28,6 +28,8 @@ local games = {} -- [Player] = PlotGame
 
 -- Applique les passes du joueur à sa parcelle et publie SpeedX2Enabled (vrai = x2 en marche :
 -- pass Vitesse x2 possédé ET interrupteur allumé, data.idle.speedX2, allumé par défaut).
+-- Pass Pièces x2 : pièces des ennemis tués doublées (PlotGame:setCoinMultiplier) ; les gains d'absence
+-- le sont dans takeAbsenceGains.
 local function refreshPasses(player: Player)
 	local data = PlayerData.get(player)
 	local speedOn = Monetization.ownsPass(player, "SpeedX2") and data ~= nil and data.idle.speedX2 ~= false
@@ -38,6 +40,7 @@ local function refreshPasses(player: Player)
 	if plotGame then
 		plotGame:setAutoCollect(Monetization.ownsPass(player, "AutoCollect"))
 		plotGame:setSimSpeed(if speedOn then IdleConfig.SPEED_PASS_FACTOR else 1)
+		plotGame:setCoinMultiplier(if Monetization.ownsPass(player, "CoinsX2") then PlotGame.COINS_PASS_FACTOR else 1)
 	end
 end
 
@@ -91,6 +94,45 @@ local function utcDay(time: number): number
 	return date.year * 10000 + date.month * 100 + date.day
 end
 
+-- Petit délai avant le message « Pendant ton absence » : l'interface du client a le temps de démarrer.
+local ANNOUNCE_DELAY = 2
+-- À l'arrivée, attente maximale (secondes) de la réponse de Roblox pour le pass Pièces x2 (3 essais en cas de panne).
+local COINS_PASS_WAIT = 30
+
+-- Pass Pièces x2 : double les montants du résumé et verse ce qui manque (les pièces x1 sont déjà versées).
+-- Une seule fois par résumé. Le plafond du jour reste compté en pièces x1 (idle.offlineGainedToday) :
+-- avec le pass, on reçoit donc aussi 2 fois le plafond.
+local function doubleAbsenceGains(player: Player, result)
+	if result.coinFactor ~= 1 or result.amount <= 0 or not Monetization.ownsPass(player, "CoinsX2") then
+		return
+	end
+	local factor = PlotGame.COINS_PASS_FACTOR
+	PlayerData.addCoins(player, result.amount * (factor - 1))
+	result.coinFactor = factor
+	result.offlineAmount *= factor
+	result.matchAmount *= factor
+	result.amount *= factor
+end
+
+-- Journal du serveur et message au client (sauf silent) après `delay` secondes.
+local function announceAbsenceGains(player: Player, result, silent: boolean?, delay: number)
+	if result.amount > 0 then
+		local passText = if result.coinFactor > 1 then ", pass Pièces x" .. tostring(result.coinFactor) else ""
+		print(
+			`[Hub] Gains d'absence de {player.Name} : +{NumberFormat.short(result.amount)} (hors ligne {math.floor(result.offlineSeconds)} s`
+				.. ` +{NumberFormat.short(result.offlineAmount)}{if result.capped then ", plafond du jour" else ""},`
+				.. ` match {math.floor(result.matchSeconds)} s +{NumberFormat.short(result.matchAmount)}{passText})`
+		)
+	end
+	if not silent and (result.amount > 0 or result.capped) then
+		task.delay(delay, function()
+			if player.Parent then
+				Remotes.get("OfflineGains"):FireClient(player, result)
+			end
+		end)
+	end
+end
+
 -- Verse les gains d'absence du joueur qui arrive sur la map principale (avant toute sauvegarde) :
 --   match ranked : de idle.matchDepartureAt (noté par Matchmaking avant la téléportation) à idle.lastSeenAt
 --     (dernière sauvegarde, faite par le serveur de match à la fin) : revenu normal, hors plafond,
@@ -100,6 +142,9 @@ end
 -- Les deux heures sont consommées (lastSeenAt = maintenant, matchDepartureAt = 0) : jamais payé deux fois.
 -- Première visite (lastSeenAt = 0) ou heure abîmée : rien. `now` = os.time() (remplacé dans les tests
 -- Studio), silent = pas de message au client. Renvoie le résumé (voir Remotes.luau, OfflineGains).
+-- Pass Pièces x2 : tout le résumé est doublé (doubleAbsenceGains). Juste à l'arrivée, Roblox n'a parfois pas
+-- encore dit si le joueur possède le pass : les pièces x1 sont versées tout de suite, le reste (et le
+-- message) dès que la réponse arrive (au plus COINS_PASS_WAIT secondes).
 local function takeAbsenceGains(player: Player, data, now: number, silent: boolean?)
 	local idle = data.idle
 	local lastSeen = validTime(idle.lastSeenAt, now)
@@ -116,6 +161,7 @@ local function takeAbsenceGains(player: Player, data, now: number, silent: boole
 		offlineSeconds = 0,
 		matchAmount = 0,
 		matchSeconds = 0,
+		coinFactor = 1, -- 2 = montants doublés par le pass Pièces x2
 	}
 	lastAbsence[player] = result
 	if not lastSeen then
@@ -150,20 +196,19 @@ local function takeAbsenceGains(player: Player, data, now: number, silent: boole
 
 	result.amount = result.offlineAmount + result.matchAmount
 	result.seconds = result.offlineSeconds + result.matchSeconds
+	-- Pièces x1 versées tout de suite : rien n'est perdu si le joueur repart aussitôt.
 	if result.amount > 0 then
 		PlayerData.addCoins(player, result.amount)
-		print(
-			`[Hub] Gains d'absence de {player.Name} : +{NumberFormat.short(result.amount)} (hors ligne {math.floor(result.offlineSeconds)} s`
-				.. ` +{NumberFormat.short(result.offlineAmount)}{if result.capped then ", plafond du jour" else ""},`
-				.. ` match {math.floor(result.matchSeconds)} s +{NumberFormat.short(result.matchAmount)})`
-		)
 	end
-	if not silent and (result.amount > 0 or result.capped) then
-		-- Petit délai : l'interface du client a le temps de démarrer et d'afficher le message.
-		task.delay(2, function()
-			if player.Parent then
-				Remotes.get("OfflineGains"):FireClient(player, result)
-			end
+	if Monetization.passKnown(player, "CoinsX2") then
+		doubleAbsenceGains(player, result)
+		announceAbsenceGains(player, result, silent, ANNOUNCE_DELAY)
+	else
+		task.spawn(function()
+			local started = os.clock()
+			Monetization.waitForPass(player, "CoinsX2", COINS_PASS_WAIT)
+			doubleAbsenceGains(player, result)
+			announceAbsenceGains(player, result, silent, math.max(0, ANNOUNCE_DELAY - (os.clock() - started)))
 		end)
 	end
 	return result
@@ -269,6 +314,7 @@ end
 --   Invoke(player, "Set", "wave", 30)           -> change un champ de data.idle
 --   Invoke(player, "Set", "bestWave", 50)       -> puis "Call", "rebirth" pour tester la renaissance
 --   Invoke(player, "Call", "spinTower", 100)    -> 100 lancers de l'autel (renvoie le résultat)
+--   Invoke(player, "Set", "towerSpinsBought", 0) -> change le compteur des lancers déjà achetés (prix de l'autel)
 --   Invoke(player, "StartWave", 40)             -> lance tout de suite la vague 40 (vague en cours effacée)
 --   Invoke(player, "Leak")                      -> pousse le premier ennemi vivant au bout du chemin
 --                                                  (test de la règle « une fuite = vague ratée »)
@@ -280,7 +326,8 @@ end
 --                                                  gains comme à l'arrivée (now = os.time() si absent) et renvoie le
 --                                                  résumé (silent = pas de message au client)
 --   Invoke(player, "LastAbsence")               -> résumé du dernier calcul (celui de l'arrivée au départ)
---   Invoke(player, "Pass", "SpeedX2", true)     -> donne (true) ou retire (false) un pass : "AutoCollect", "SpeedX2"
+--   Invoke(player, "Pass", "SpeedX2", true)     -> donne (true) ou retire (false) un pass : "AutoCollect", "SpeedX2",
+--                                                  "CoinsX2"
 --   Invoke(player, "ToggleSpeed")               -> bouton x2 (comme le remote PassAction), renvoie le nouvel état
 --   Invoke(player, "Drop", 100)                 -> pile de 100 pièces au point du chemin le plus loin du
 --                                                  personnage, renvoie (id, distance au personnage)
@@ -483,7 +530,9 @@ function Hub.start()
 		end
 		lastPlotAction[player] = now
 		if action == "SpinTower" then
-			-- arg1 = nombre de lancers (rien = 1) : spinTower vérifie qu'il est proposé à ce record, et les pièces.
+			-- arg1 = nombre de lancers (rien = 1) : spinTower vérifie qu'il est proposé à ce record, calcule le
+			-- prix avec les données du serveur (compteur des lancers déjà achetés, jamais celui du client) et
+			-- vérifie les pièces.
 			plotGame:spinTower(arg1)
 		elseif action == "SpinBonusCoins" then
 			plotGame:spinBonusWithCoins()

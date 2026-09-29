@@ -17,9 +17,9 @@ tree.ReplicatedStorage.Shared.$path = norm(mode === 'match' ? path.join(out, 'sh
 tree.ServerScriptService.Server.$path = norm(path.join(repo, 'src', 'server'));
 tree.StarterPlayer.StarterPlayerScripts.Client.$path = norm(path.join(repo, 'src', 'client'));
 tree.ReplicatedStorage.__AutoPlayTest = { $className: 'NumberValue', $properties: { Value: Number(duration) } };
-if (mode !== 'match') {
-  tree.ReplicatedStorage.__AutoTestScript = { $path: norm(path.join(here, 'scenarios', 'HubServer.luau')) };
-}
+// Scénario côté serveur : map principale (HubServer) ou match ranked contre le bot (MatchServer).
+const serverScenario = mode === 'match' ? 'MatchServer.luau' : 'HubServer.luau';
+tree.ReplicatedStorage.__AutoTestScript = { $path: norm(path.join(here, 'scenarios', serverScenario)) };
 tree.ReplicatedStorage.__AutoTestClient = { $path: norm(path.join(here, 'scenarios', 'Client.luau')) };
 
 fs.writeFileSync(path.join(out, `${mode}.project.json`), JSON.stringify(project, null, 1));

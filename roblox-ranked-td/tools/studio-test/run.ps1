@@ -9,7 +9,7 @@
 # (ajoute -CloseStudio pour le fermer quand même). À la fin, il ferme le Studio qu'il a ouvert.
 param(
 	[ValidateSet("hub", "match")][string]$Place = "hub",
-	[int]$Seconds = 90, # durée du Play
+	[int]$Seconds = 150, # durée du Play (le scénario de la map principale dure ~75 s)
 	[switch]$CloseStudio,
 	[switch]$KeepOpen,
 	[int]$Timeout = 300

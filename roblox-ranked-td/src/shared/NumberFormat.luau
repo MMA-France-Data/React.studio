@@ -41,4 +41,13 @@ function NumberFormat.short(value: number): string
 	return sign .. text .. SUFFIXES[tier + 1]
 end
 
+-- Un prix : comme short, mais arrondi AU-DESSUS sous 1 000. Un lancer de l'autel peut coûter 7,0035 pièces
+-- (+0,05 % par lancer) : il affiche 8, pas 7 (avec 7 pièces, on ne peut pas le payer). math.huge -> "MAX".
+function NumberFormat.price(value: number): string
+	if value == value and value >= 0 and value < 1000 then
+		return NumberFormat.short(math.ceil(value))
+	end
+	return NumberFormat.short(value)
+end
+
 return NumberFormat

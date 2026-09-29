@@ -13,15 +13,17 @@
 --       - acheter un emplacement + y poser une tour (il choisit l'emplacement le mieux placé pour cette tour),
 --       - remplacer une des tours les plus faibles (50 % remboursés),
 --       - acheter des lancers à l'autel des héros (Run:spinOptions : doublons des tours posées + chance de
---         débloquer une tour qui vaut mieux que les achats actuels) ; à rapport presque égal, il prend le
---         plus gros lot qu'il peut payer (x10 plutôt que 10 fois x1).
+--         débloquer une tour qui vaut mieux que les achats actuels ; prix avec le compteur de lancers, +0,05 %
+--         par lancer) ; à rapport presque égal, il prend le plus gros lot qu'il peut payer (x10 plutôt que
+--         10 fois x1), ou attend quelques minutes pour l'avoir.
 --     (scénarios avec forge : le prix du lancer de la forge est mis de côté avant tout, voir forgeReserve)
 --     Le « gain » d'une tour neuve compte aussi ses améliorations suivantes (on la juge au niveau où elle
 --     devient rentable). Le gain est mesuré contre les prochaines vagues (ou contre la vague qui bloque, en
 --     visant les ennemis qui l'ont vraiment traversée) grâce aux vagues « immortelles » d'Engine.hits :
 --     coups que chaque tour peut porter, x dégâts (plafonnés aux PV de l'ennemi, un gros tir sur un petit
---     écuyer est gâché). Une seule fuite fait rater la vague : chaque groupe d'ennemis compte d'autant plus
---     que les tours en viennent mal à bout (voir Run:evaluate).
+--     écuyer est gâché) ; feu des flèches et rayon du Sorcier : voir Run.valueOf. Une seule fuite fait rater
+--     la vague : chaque groupe d'ennemis compte d'autant plus que les tours en viennent mal à bout (voir
+--     Run:evaluate).
 --   * si le meilleur achat est trop cher mais payable en moins de SAVE_SECONDS de farm (BIG_SPIN_SAVE_SECONDS
 --     pour un lot x1 000 ou plus de l'autel), il économise ; sinon il achète le meilleur achat abordable ;
 --   * au mur, il essaie avec le vrai moteur une tour qui ralentit à la place d'une autre (Run:wallSolver).
@@ -66,8 +68,11 @@ Run.POLICY = {
 	-- Autel des héros : à rapport gain / prix presque égal (au moins 90 % du meilleur lot), il prend le plus
 	-- gros lot qu'il peut payer.
 	SPIN_BULK_TOLERANCE = 0.9,
+	-- ... 75 % pour x1 000 et plus : chaque lancer coûtant +0,05 % de plus que le précédent, 1 000 lancers d'un
+	-- coup coûtent 1 297 fois le prix du prochain (30 % de plus que 1 000 fois ce prix)
+	SPIN_BIG_BULK_TOLERANCE = 0.75,
 	BIG_SPIN_SAVE_SECONDS = 1800, -- ... et il économise jusqu'à 30 min de revenu pour un lot x1 000 ou plus
-	-- s'il a le meilleur rapport
+	-- (5 min, SAVE_SECONDS, pour un x100)
 	BLOCKED_LEAK_WEIGHT = 0.7, -- au mur : part des ennemis qui ont vraiment fui dans le poids des groupes
 	REBIRTH_STUCK = 15 * 60, -- scénario « renaissance » : renaît après 15 min bloqué au record
 	MAX_WAVE = 3000,
@@ -97,6 +102,15 @@ Run.SCENARIOS = {
 		label = "base + renaissance dès que bloqué 15 min au record, sans forge (effet de la renaissance seule)",
 		forge = false,
 		rebirth = true,
+	},
+	-- Pour mesurer ce qu'apporte le Sorcier des arcanes (rayon) : même joueur que « base », mais il ne pose
+	-- jamais de Sorcier. Les murs des Seigneurs de guerre et des Gardes colossales se comparent à « base ».
+	["sans-sorcier"] = {
+		id = "sans-sorcier",
+		label = "base, mais le joueur ne pose jamais de Sorcier des arcanes (pour comparer les murs des boss et des colosses)",
+		forge = false,
+		rebirth = false,
+		banned = { Laser = true },
 	},
 }
 
@@ -309,11 +323,57 @@ function Run:typesBySpot()
 	return self.typesCache, self.layoutKeyCache
 end
 
--- Dégâts effectifs et multiplicateur de cadence (bonus x2 vitesse) d'une tour.
+-- Dégâts effectifs et multiplicateur de cadence (bonus x2 vitesse) d'une tour. Rayon du Sorcier : pas de
+-- cadence (la rune de vitesse fait monter le rayon plus vite, ce que les estimations ignorent) : 1.
 function Run:power(towerType: string, level: number, bonus: string?)
 	local stats = IdleTowers.effectiveStats(towerType, level, self.dupes[towerType] or 0, bonus)
-	return stats.damage, IdleTowers.Defs[towerType].cooldown / stats.cooldown
+	local cooldown = IdleTowers.Defs[towerType].cooldown
+	return stats.damage, if cooldown then cooldown / stats.cooldown else 1
 end
+
+-- Vrai si le scénario interdit cette tour (scénario « sans-sorcier »).
+function Run:banned(towerType: string): boolean
+	return self.scenario.banned ~= nil and self.scenario.banned[towerType] == true
+end
+
+-- Rayon : secondes pour infliger `x` fois ses dégâts de base (IdleTowers.beamDamage à l'envers).
+local function beamKillTime(x: number, rate: number, max: number): number
+	local rampTime = (max - 1) / rate
+	local rising = rampTime + rate * rampTime * rampTime / 2
+	if x <= rising then
+		-- racine de x = t + rate t² / 2, écrite sans soustraction (précise même pour un x minuscule)
+		return 2 * x / (1 + math.sqrt(1 + 2 * rate * x))
+	end
+	return rampTime + (x - rising) / max
+end
+
+-- Dégâts utiles estimés d'une tour contre le groupe g (vagues immortelles d'Engine.hits) : coups x dégâts
+-- (plafonnés aux PV de l'ennemi : un gros tir sur un petit écuyer est gâché) x cadence.
+--   Rayon : dégâts de base x montée x secondes (row[g]), mais pas plus que ce qu'il peut infliger en tuant
+--   ses cibles l'une après l'autre (la montée repart de x1 à chaque nouvelle cible : contre des petits
+--   ennemis, il ne chauffe jamais).
+--   Flèches enflammées : + coups de feu x (fireDamageRatio x fireTick x dégâts), plafonnés aux PV.
+function Run.valueOf(row, g: number, group, damage: number, speed: number): number
+	local hp = group.hp
+	local value = 0
+	local contact = row.contact
+	if contact then
+		local ramped = row[g]
+		if ramped > 0 and damage > 0 then
+			local killRate = hp / beamKillTime(hp / damage, row.beamRampRate, row.beamRampMax)
+			value = math.min(damage * ramped, contact[g] * killRate)
+		end
+	else
+		value = row[g] * speed * (if damage < hp then damage else hp)
+	end
+	local fire = row.fire
+	if fire then
+		local burn = damage * row.fireHit
+		value += fire[g] * (if burn < hp then burn else hp)
+	end
+	return value
+end
+local valueOf = Run.valueOf
 
 ----------------------------------------------------------------------
 -- Valeur des achats
@@ -391,7 +451,7 @@ function Run:evaluate(focus)
 			local row = f.hits[spot]
 			local contrib = table.create(#groups, 0)
 			for g, group in groups do
-				local value = row[g] * power.speed * math.min(power.damage, group.hp)
+				local value = valueOf(row, g, group, power.damage, power.speed)
 				contrib[g] = value
 				U[g] += value
 			end
@@ -438,7 +498,7 @@ local function logGain(U: number, eps: number, delta: number): number
 	return log1p(delta / base)
 end
 
--- Gain (en score) si la contribution de `spot` devient : hits[g] x speed x min(damage, PV).
+-- Gain (en score) si la contribution de `spot` devient : valueOf(hits, g, dégâts, cadence).
 local function gainReplacingSpot(focus, spot: number, hitsFor, damage: number, speed: number): number
 	local gain = 0
 	for fi, f in focus do
@@ -446,7 +506,7 @@ local function gainReplacingSpot(focus, spot: number, hitsFor, damage: number, s
 		local old = f.contrib[spot]
 		local hits = hitsFor(fi, f)
 		for g, group in groups do
-			local new = hits[g] * speed * math.min(damage, group.hp)
+			local new = valueOf(hits, g, group, damage, speed)
 			local delta = new - (if old then old[g] else 0)
 			gain += f.weight * f.lambda[g] * logGain(f.U[g], f.eps[g], delta)
 		end
@@ -483,7 +543,9 @@ function Run:packageOption(focus, spot: number, towerType: string, newSpot: bool
 	-- baseDelta[fi][g] : de combien U change sans la contribution de la nouvelle tour (ancienne tour retirée,
 	-- ralentissements changés) ; gardé en écart plutôt qu'en total pour ne pas perdre les petits gains (logGain).
 	local newHits, baseDelta = {}, {}
-	if def.slow or (existing and IdleTowers.Defs[existing.type].slow) then
+	-- Rayon du Sorcier : ses dégâts montent avec le temps passé sur la cible, donc avec les ralentissements
+	-- des autres tours (Totem, Mage) : on le juge aussi dans la vraie disposition, pas tout seul.
+	if def.slow or def.kind == "Beam" or (existing and IdleTowers.Defs[existing.type].slow) then
 		local types = table.clone((self:typesBySpot()))
 		types[spot] = towerType
 		local parts = {}
@@ -499,7 +561,7 @@ function Run:packageOption(focus, spot: number, towerType: string, newSpot: bool
 				if s ~= spot then
 					local row = hits[s]
 					for g, group in f.comp.groups do
-						u[g] += row[g] * power.speed * math.min(power.damage, group.hp)
+						u[g] += valueOf(row, g, group, power.damage, power.speed)
 					end
 				end
 			end
@@ -543,7 +605,7 @@ function Run:packageOption(focus, spot: number, towerType: string, newSpot: bool
 		for fi, f in focus do
 			local hits, d = newHits[fi], baseDelta[fi]
 			for g, group in f.comp.groups do
-				local delta = d[g] + hits[g] * math.min(damage, group.hp)
+				local delta = d[g] + valueOf(hits, g, group, damage, 1)
 				gain += f.weight * f.lambda[g] * logGain(f.U[g], f.eps[g], delta)
 			end
 		end
@@ -580,7 +642,7 @@ function Run:packageOptions(focus, options, replacements: boolean)
 		-- prix pour tous) pour chaque tour les SPOT_CHOICES emplacements libres qui couvrent le plus de chemin.
 		if P.SPOTS_ANY_ORDER then
 			for _, towerType in IdleTowers.ORDER do
-				if self.unlocked[towerType] then
+				if self.unlocked[towerType] and not self:banned(towerType) then
 					local found = 0
 					for _, spot in SPOTS_BY_COVERAGE[towerType] do
 						if not self.owned[spot] then
@@ -632,6 +694,7 @@ function Run:packageOptions(focus, options, replacements: boolean)
 		for _, towerType in IdleTowers.ORDER do
 			if
 				self.unlocked[towerType]
+				and not self:banned(towerType)
 				and not (existing and existing.type == towerType)
 				and (candidate.onlyType == nil or candidate.onlyType == towerType)
 			then
@@ -821,15 +884,31 @@ function Run:spend()
 		end
 		if choice.kind == "spin" then
 			-- À rapport presque égal, le plus gros lot payable (comme un vrai joueur : x100 plutôt que 100 x1).
+			-- Un lot pas encore payable mais presque aussi bon : il attend quelques minutes pour l'avoir (5 min de
+			-- revenu pour x100, BIG_SPIN_SAVE_SECONDS pour x1 000 et plus) plutôt que de cliquer x1 en boucle.
+			-- Avec +0,05 % par lancer, 1 000 lancers coûtent 1 297 fois le prix du prochain : à partir de x1 000,
+			-- il accepte un rapport un peu moins bon (SPIN_BIG_BULK_TOLERANCE), le prix de la commodité.
+			local waitFor = nil
+			local bestCount = choice.count
 			for _, option in options do
-				if
-					option.kind == "spin"
-					and option.count > choice.count
-					and option.cost <= available
-					and option.ratio >= P.SPIN_BULK_TOLERANCE * choice.ratio
-				then
-					choice = option
+				local tolerance = if option.kind == "spin" and option.count >= 1000 then P.SPIN_BIG_BULK_TOLERANCE else P.SPIN_BULK_TOLERANCE
+				if option.kind == "spin" and option.count > bestCount and option.ratio >= tolerance * choice.ratio then
+					if option.cost <= available then
+						choice = option
+						bestCount = option.count
+						waitFor = nil
+					else
+						local patience = if option.count >= 1000 then P.BIG_SPIN_SAVE_SECONDS else P.SAVE_SECONDS
+						local wait = if self.income > 0 then (option.cost - available) / self.income else math.huge
+						if wait <= patience then
+							waitFor = option
+							bestCount = option.count
+						end
+					end
 				end
+			end
+			if waitFor then
+				return -- économise pour le plus gros lot
 			end
 		end
 		if choice.kind == "replace" then
@@ -929,10 +1008,11 @@ function Run:spinChances(): { [string]: number }
 end
 
 -- Autel des héros : `count` lancers payés en pièces (PlotGame:spinTower : nombre proposé ET débloqué au
--- record, prix IdleConfig.towerSpinCost, chances du record, tirage par rareté puis par tour).
+-- record, prix IdleConfig.towerSpinCost avec le compteur des lancers déjà achetés (self.spins, comme
+-- idle.towerSpinsBought : jamais remis à zéro), chances du record, tirage par rareté puis par tour).
 function Run:buySpins(count: number)
-	local cost = IdleConfig.towerSpinCost(self.highestWave, count)
-	assert(IdleConfig.towerSpinBulkAvailable(self.highestWave, count) and self.coins >= cost)
+	local cost = IdleConfig.towerSpinCost(self.highestWave, count, self.spins)
+	assert(IdleConfig.towerSpinBulkAvailable(self.highestWave, count) and cost < math.huge and self.coins >= cost)
 	self.coins -= cost
 	self.spins += count
 	self:addSpent("spin", cost)
@@ -998,7 +1078,9 @@ function Run:computeUnlockValues(focus, bestRatio: number)
 		end
 	end
 	for _, towerType in IdleTowers.ORDER do
-		if not self.unlocked[towerType] then
+		if not self.unlocked[towerType] and self:banned(towerType) then
+			values[towerType] = 0 -- scénario « sans-sorcier » : il ne la posera jamais
+		elseif not self.unlocked[towerType] then
 			local candidates = {}
 			for spot = 1, SPOT_COUNT do
 				if self.owned[spot] and not self.towers[spot] then
@@ -1059,8 +1141,9 @@ function Run:spinOptions(focus, options, bestRatio: number)
 	local bonus = IdleConfig.DUPLICATE_DAMAGE_BONUS
 	for _, bulk in IdleConfig.TOWER_SPIN_BULKS do
 		local n = bulk.count
-		if IdleConfig.towerSpinBulkAvailable(self.highestWave, n) then
-			local cost = IdleConfig.towerSpinCost(self.highestWave, n)
+		-- Prix « MAX » (trop grand pour être compté) : achat impossible, comme dans le jeu.
+		local cost = IdleConfig.towerSpinCost(self.highestWave, n, self.spins)
+		if IdleConfig.towerSpinBulkAvailable(self.highestWave, n) and cost < math.huge then
 			-- Débloquer : espérance de la meilleure tour obtenue (on ne pose que la meilleure d'abord)
 			local unlockGain, noneYet = 0, 1
 			for _, entry in locked do
@@ -1080,11 +1163,11 @@ function Run:spinOptions(focus, options, bestRatio: number)
 					local delta = 0
 					for spot, tower in self.towers do
 						local power = self.powers[spot]
-						local hits = f.hits[spot][g]
-						if hits > 0 then
-							local old = math.min(power.damage, group.hp)
-							local new = math.min(power.damage * factor[tower.type], group.hp)
-							delta += hits * power.speed * (new - old)
+						local row = f.hits[spot]
+						if row[g] > 0 or (row.fire and row.fire[g] > 0) then
+							local old = valueOf(row, g, group, power.damage, power.speed)
+							local new = valueOf(row, g, group, power.damage * factor[tower.type], power.speed)
+							delta += new - old
 						end
 					end
 					if delta > 0 then
@@ -1351,7 +1434,7 @@ function Run:wallSolver()
 	end
 	local best, bestScore = nil, current * P.SOLVER_MIN_GAIN
 	for _, towerType in SLOW_TOWERS do
-		if self.unlocked[towerType] then
+		if self.unlocked[towerType] and not self:banned(towerType) then
 			local placeCost = IdleTowers.Defs[towerType].placeCost
 			for spot = 1, SPOT_COUNT do
 				local existing = self.towers[spot]

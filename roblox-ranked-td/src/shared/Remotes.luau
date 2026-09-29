@@ -28,11 +28,13 @@ local DEFINITIONS = {
 	MachineResult = "RemoteEvent",
 	-- Gains d'absence, serveur -> client, une fois en arrivant sur la map principale (Hub/init.luau) :
 	-- (payload) = { amount, seconds, kind = "Offline" | "Match", capped, offlineAmount, offlineSeconds,
-	-- matchAmount, matchSeconds }. amount = total versé, seconds = temps compté, kind = "Match" si tu
-	-- reviens d'un match ranked, capped = plafond du jour atteint (gains hors ligne, voir IdleConfig).
+	-- matchAmount, matchSeconds, coinFactor }. amount = total versé, seconds = temps compté, kind = "Match" si tu
+	-- reviens d'un match ranked, capped = plafond du jour atteint (gains hors ligne, voir IdleConfig),
+	-- coinFactor = 2 si les montants (déjà multipliés) ont été doublés par le pass Pièces x2, sinon 1.
 	OfflineGains = "RemoteEvent",
 	-- Passes de jeu, client -> serveur : "ToggleSpeed" (allume / éteint la vitesse x2, pass Vitesse x2 requis).
-	-- Possession publiée en attributs du joueur : PassAutoCollect, PassSpeedX2, SpeedX2Enabled (x2 actif).
+	-- Possession publiée en attributs du joueur : PassAutoCollect, PassSpeedX2, PassCoinsX2, SpeedX2Enabled
+	-- (x2 actif).
 	PassAction = "RemoteEvent",
 	-- Commun
 	Notify = "RemoteEvent", -- serveur -> client : (message, kind)
@@ -40,7 +42,6 @@ local DEFINITIONS = {
 	PlaceTower = "RemoteEvent", -- client -> serveur : (towerType, position)
 	UpgradeTower = "RemoteEvent", -- client -> serveur : (towerId)
 	SellTower = "RemoteEvent", -- client -> serveur : (towerId)
-	SendEnemies = "RemoteEvent", -- client -> serveur : (sendId)
 	MatchResult = "RemoteEvent", -- serveur -> client : (result)
 	TowerFired = "UnreliableRemoteEvent", -- serveur -> clients : (from, to, towerType, radius, towerId)
 }

@@ -2,6 +2,9 @@
 -- Autel des héros : invocations payées en pièces, par 1, 10, 100... (IdleConfig.TOWER_SPIN_BULKS, les gros
 -- lots se débloquent avec ton record), aux chances du palier de ton RECORD (IdleConfig.towerSpinTier) :
 -- exactement celles affichées. x1 = petite animation de rouleau, les gros lots = résumé par tour.
+-- Chaque lancer acheté rend le suivant 0,05 % plus cher, pour toujours : les prix des boutons viennent de
+-- IdleConfig.towerSpinCost avec le compteur publié par le serveur (attribut TowerSpinsBought du joueur).
+-- Un prix trop grand pour être compté affiche « MAX » (bouton grisé) ; le serveur refuse cet achat.
 -- S'ouvrent via les machines de ta parcelle ou les boutons de la colonne de gauche.
 local MarketplaceService = game:GetService("MarketplaceService")
 local Players = game:GetService("Players")
@@ -42,10 +45,15 @@ local function dupesPercent(dupes: number): string
 	return NumberFormat.short(math.floor(dupes * IdleConfig.DUPLICATE_DAMAGE_BONUS * 100 + 0.5))
 end
 
--- Quantité d'un bouton d'invocation : 10 -> "x10", 1000 -> "x1000", 1000000 -> "x1M".
+-- Quantité d'un bouton d'invocation : 10 -> "x10", 10000 -> "x10000", 1000000 -> "x1M".
 local function countLabel(count: number): string
-	return "x" .. (if count < 10000 then string.format("%d", count) else NumberFormat.short(count))
+	return "x" .. (if count < 100000 then string.format("%d", count) else NumberFormat.short(count))
 end
+
+-- Hausse du prix à chaque lancer acheté, en % : 1,0005 -> "0,05".
+local GROWTH_PERCENT = (
+	string.gsub(string.format("%g", math.floor((IdleConfig.TOWER_SPIN_PRICE_GROWTH - 1) * 1e5 + 0.5) / 1e3), "%.", ",")
+)
 
 function MachineUI.start()
 	local player = Players.LocalPlayer
@@ -62,6 +70,10 @@ function MachineUI.start()
 	end
 	local function coins(): number
 		return player:GetAttribute("Coins") or 0
+	end
+	-- Lancers de l'autel déjà achetés (publiés par le serveur) : ils décident du prix des prochains.
+	local function spinsBought(): number
+		return IdleConfig.cleanSpinsBought(player:GetAttribute("TowerSpinsBought"))
 	end
 
 	------------------------------------------------------------------
@@ -101,10 +113,10 @@ function MachineUI.start()
 	local window = UI.new("Frame", {
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.5),
-		Size = UDim2.fromOffset(540, 470),
+		Size = UDim2.fromOffset(540, 490),
 		BackgroundColor3 = UI.Colors.Panel,
 		Parent = overlay,
-	}, { UI.corner(16), UI.padding(14), UI.new("UISizeConstraint", { MaxSize = Vector2.new(540, 470) }) })
+	}, { UI.corner(16), UI.padding(14), UI.new("UISizeConstraint", { MaxSize = Vector2.new(540, 490) }) })
 	local windowStroke = UI.stroke(Color3.new(1, 1, 1), 3)
 	windowStroke.Transparency = 0
 	windowStroke.Parent = window
@@ -142,6 +154,17 @@ function MachineUI.start()
 		Parent = window,
 	}, {
 		UI.new("UIListLayout", { Padding = UDim.new(0, 2), SortOrder = Enum.SortOrder.LayoutOrder }),
+	})
+
+	-- Autel des héros : hausse des prix et nombre de lancers déjà achetés, sous les 4 raretés.
+	local spinInfo = UI.label({
+		Position = UDim2.new(0, 0, 0, 148),
+		Size = UDim2.new(1, 0, 0, 18),
+		TextXAlignment = Enum.TextXAlignment.Left,
+		TextColor3 = UI.Colors.Muted,
+		MaxTextSize = 14,
+		Visible = false,
+		Parent = window,
 	})
 
 	-- Rouleau (résultat d'un lancer) ou résumé (gros lot d'invocations)
@@ -232,12 +255,13 @@ function MachineUI.start()
 		return spinning or os.clock() < awaitingUntil
 	end
 
-	-- Placement du rouleau : sous les 4 raretés pour l'autel (plus haut, pour le résumé), sous les
-	-- 8 bonus pour la forge.
+	-- Placement du rouleau : sous les 4 raretés et la ligne des prix pour l'autel (plus haut, pour le
+	-- résumé), sous les 8 bonus pour la forge.
 	local function layoutReel(machine: string?)
+		spinInfo.Visible = machine == "Tower"
 		if machine == "Tower" then
-			reel.Position = UDim2.new(0, 0, 0, 152)
-			reel.Size = UDim2.new(1, 0, 1, -244)
+			reel.Position = UDim2.new(0, 0, 0, 172)
+			reel.Size = UDim2.new(1, 0, 1, -264)
 		else
 			reel.Position = UDim2.new(0, 0, 0, 244)
 			reel.Size = UDim2.new(1, 0, 0, 96)
@@ -399,9 +423,14 @@ function MachineUI.start()
 		if busy() then
 			return
 		end
-		local cost = IdleConfig.towerSpinCost(highestWave(), count)
+		-- Même calcul que le serveur (qui recalcule tout avec ses propres données avant d'accepter).
+		local cost = IdleConfig.towerSpinCost(highestWave(), count, spinsBought())
+		if cost >= math.huge then
+			UI.toast(`Prix trop élevé (MAX) : impossible de lancer {countLabel(count)} d'un coup`, "Error")
+			return
+		end
 		if coins() < cost then
-			UI.toast(`Il te faut {NumberFormat.short(cost)} pièces pour {countLabel(count)}`, "Error")
+			UI.toast(`Il te faut {NumberFormat.price(cost)} pièces pour {countLabel(count)}`, "Error")
 			return
 		end
 		awaitingUntil = os.clock() + RESULT_TIMEOUT
@@ -495,11 +524,18 @@ function MachineUI.start()
 			bulkRow.Visible = true
 			rebuildBulkRow(highest)
 			local wallet = coins()
+			local bought = spinsBought()
 			for _, entry in bulkButtons do
-				local cost = IdleConfig.towerSpinCost(highest, entry.count)
-				entry.button.Text = `{countLabel(entry.count)}\n💰 {NumberFormat.short(cost)}`
-				entry.button.BackgroundTransparency = if wallet >= cost and not busy() then 0 else 0.6
+				-- Prix exact : somme des prochains prix (« MAX » = trop grand, jamais payable).
+				local cost = IdleConfig.towerSpinCost(highest, entry.count, bought)
+				entry.button.Text = `{countLabel(entry.count)}\n💰 {NumberFormat.price(cost)}`
+				entry.button.BackgroundTransparency = if cost < math.huge and wallet >= cost and not busy() then 0 else 0.6
 			end
+			local boughtText = if bought == 0
+				then "aucun lancer acheté"
+				elseif bought == 1 then "déjà 1 lancer"
+				else `déjà {NumberFormat.short(bought)} lancers`
+			spinInfo.Text = `Prochain lancer : +{GROWTH_PERCENT} % à chaque achat  •  {boughtText}`
 			footer.Text = `Doublon = +{math.floor(IdleConfig.DUPLICATE_DAMAGE_BONUS * 100 + 0.5)} % de dégâts permanents pour cette tour  •  ✓ = déjà débloquée`
 		else
 			local bonuses = listAttribute(player, "Bonuses")
@@ -516,7 +552,9 @@ function MachineUI.start()
 						elseif bonus.chance >= 5 then IdleConfig.RARITIES.Rare.color
 						elseif bonus.chance >= 1 then IdleConfig.RARITIES.Epic.color
 						else IdleConfig.RARITIES.Legendary.color
-					oddsRow(order, color, `<b>{bonus.displayName}</b>`, formatChance(bonus.chance))
+					-- Le Sorcier des arcanes n'a pas de coups : la rune de vitesse fait chauffer son rayon plus vite.
+					local note = if bonus.kind == "Speed" then `  (rayon du Sorcier : chauffe {bonus.mult}x plus vite)` else ""
+					oddsRow(order, color, `<b>{bonus.displayName}</b>{note}`, formatChance(bonus.chance))
 				end
 			end)
 
@@ -631,7 +669,8 @@ function MachineUI.start()
 			reelText.TextColor3 = rarity.color
 			reelStroke.Color = rarity.color
 			if result.isNew then
-				reelDetail.Text = `NOUVELLE TOUR {string.upper(rarity.displayName)} ! Tu peux la poser sur tes emplacements.`
+				-- Ce que fait la tour (feu, rayon, petite zone... voir IdleTowers.luau).
+				reelDetail.Text = `NOUVELLE TOUR {string.upper(rarity.displayName)} ! {def.description}`
 				UI.toast(`Nouvelle tour : {def.displayName} !`, "Success")
 			else
 				reelDetail.Text = `Doublon : +{dupesPercent(tonumber(result.dupes) or 0)} % de dégâts pour tes {def.displayName}`

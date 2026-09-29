@@ -23,6 +23,7 @@ local KIND_LABELS = {
 	Splash = "Zone",
 	Aura = "Zone autour",
 	Chain = "Chaîne (4 cibles)",
+	Beam = "Rayon continu",
 }
 
 local function listAttribute(player: Player, name: string): { string }
@@ -53,10 +54,24 @@ local PLACE_LOCK_TIME = 2
 local SELL_CONFIRM_TIME = 3 -- secondes pour confirmer une vente (2e clic)
 
 local function kindLabel(def): string
-	if def.kind == "Single" and def.slow then
+	if def.fireRadius then
+		return "Flèches de feu"
+	elseif def.kind == "Splash" and def.slow then
+		return "Zone + ralentit"
+	elseif def.kind == "Single" and def.slow then
 		return "Ralentit 1 cible"
 	end
 	return KIND_LABELS[def.kind] or ""
+end
+
+-- Stats d'une carte (niveau 1, doublons compris) : dégâts par seconde, vitesse, portée.
+-- Rayon continu : dégâts par seconde au début → au maximum, « continu » à la place de la vitesse.
+local function cardStatsText(stats): string
+	local range = `Portée {UI.decimal(stats.range)}`
+	if stats.kind == "Beam" then
+		return `Rayon {NumberFormat.short(IdleTowers.dpsOf(stats))}→{NumberFormat.short(IdleTowers.beamMaxDps(stats))}/s\n{UI.towerSpeed(stats)}\n{range}`
+	end
+	return `DPS {NumberFormat.short(IdleTowers.dpsOf(stats))}\n{UI.towerSpeed(stats)}\n{range}`
 end
 
 local function refundPercent(): number
@@ -664,7 +679,7 @@ function PlotUI.start()
 	local function refreshCards(currentType: string?, refund: number, locked: boolean)
 		for towerType, card in cards do
 			local stats = IdleTowers.effectiveStats(towerType, 1, dupesOf(player, towerType))
-			card.stats.Text = `DPS {NumberFormat.short(IdleTowers.dpsOf(stats))}\n{UI.attackSpeed(stats.cooldown)}\nPortée {string.format("%g", stats.range)}`
+			card.stats.Text = cardStatsText(stats)
 
 			local cost = IdleTowers.Defs[towerType].placeCost
 			if not isUnlocked(towerType) then
@@ -689,26 +704,44 @@ function PlotUI.start()
 		local def = IdleTowers.Defs[towerType]
 		local stats = IdleTowers.effectiveStats(towerType, level, dupes, bonusId)
 		local nextStats = IdleTowers.effectiveStats(towerType, level + 1, dupes, bonusId)
-		local lines = {
-			`DPS <b>{NumberFormat.short(IdleTowers.dpsOf(stats))}</b>  →  {NumberFormat.short(IdleTowers.dpsOf(nextStats))} au niveau {level + 1}`,
-			`Dégâts <b>{NumberFormat.short(stats.damage)}</b> par coup  •  Vitesse <b>{UI.attackSpeed(stats.cooldown)}</b>  •  Portée <b>{string.format("%g", stats.range)}</b>`,
-		}
-		-- Façon d'attaquer : cible, zone, chaîne, ralentissement.
+		local range = `Portée <b>{UI.decimal(stats.range)}</b>`
+		local lines
+		if def.kind == "Beam" then
+			-- Rayon continu : dégâts par seconde au début (x1) → au maximum, et le temps pour y arriver.
+			lines = {
+				`Rayon <b>{NumberFormat.short(IdleTowers.dpsOf(stats))} → {NumberFormat.short(IdleTowers.beamMaxDps(stats))}</b> dégâts/s  →  {NumberFormat.short(IdleTowers.dpsOf(nextStats))} → {NumberFormat.short(IdleTowers.beamMaxDps(nextStats))} au niveau {level + 1}`,
+				`Vitesse <b>{UI.towerSpeed(stats)}</b>  •  x{UI.decimal(stats.beamRampMax)} en {UI.decimal(math.floor(IdleTowers.beamRampSeconds(stats) * 10 + 0.5) / 10)} s sur la même cible  •  {range}`,
+			}
+		else
+			lines = {
+				`DPS <b>{NumberFormat.short(IdleTowers.dpsOf(stats))}</b>  →  {NumberFormat.short(IdleTowers.dpsOf(nextStats))} au niveau {level + 1}`,
+				`Dégâts <b>{NumberFormat.short(stats.damage)}</b> par coup  •  Vitesse <b>{UI.towerSpeed(stats)}</b>  •  {range}`,
+			}
+		end
+		-- Façon d'attaquer : cible, zone, chaîne, rayon, feu, ralentissement.
 		local special = {}
 		if stats.chains then
 			table.insert(special, `Éclair sur {stats.chains} ennemis`)
 		elseif def.kind == "Splash" and stats.splash then
-			table.insert(special, `Zone (rayon {string.format("%g", stats.splash)})`)
+			table.insert(special, `Zone (rayon {UI.decimal(stats.splash)})`)
 		elseif def.kind == "Aura" then
 			table.insert(special, "Frappe tous les ennemis à portée")
+		elseif def.kind == "Beam" then
+			table.insert(special, "Garde sa cible tant qu'elle est à portée (idéal dans un virage)")
 		else
 			table.insert(special, KIND_LABELS[def.kind] or "")
 		end
 		if def.targeting == "Strongest" then
-			table.insert(special, "vise le plus résistant")
+			table.insert(special, if def.kind == "Beam" then "choisit le plus résistant" else "vise le plus résistant")
+		end
+		if stats.fireRadius then
+			table.insert(
+				special,
+				`feu au sol : {NumberFormat.short(IdleTowers.fireDps(stats))} dégâts/s pendant {UI.decimal(stats.fireDuration)} s (rayon {UI.decimal(stats.fireRadius)})`
+			)
 		end
 		if stats.slow and stats.slowDuration then
-			table.insert(special, `ralentit de {math.floor(stats.slow * 100 + 0.5)} % pendant {string.format("%g", stats.slowDuration)} s`)
+			table.insert(special, `ralentit de {math.floor(stats.slow * 100 + 0.5)} % pendant {UI.decimal(stats.slowDuration)} s`)
 		end
 		table.insert(lines, table.concat(special, "  •  "))
 		if dupes > 0 then

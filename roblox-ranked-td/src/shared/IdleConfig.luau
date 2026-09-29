@@ -64,7 +64,8 @@ IdleConfig.MAX_DROPS = 40
 IdleConfig.SELL_REFUND = 0.5 -- part du prix rendue à la vente (prix des tours : IdleTowers.luau)
 
 ----------------------------------------------------------------------
--- Machine à tours (Autel des héros) : les lancers se paient en pièces, par 1, 10, 100, 1 000 ou 1 000 000.
+-- Machine à tours (Autel des héros) : les lancers se paient en pièces, par 1, 10, 100, 1 000, 10 000
+-- ou 1 000 000. Chaque lancer acheté rend le suivant 0,05 % plus cher, pour toujours (voir towerSpinCost).
 -- Les chances dépendent de ton RECORD (idle.highestWave), exactement celles affichées par l'autel.
 ----------------------------------------------------------------------
 IdleConfig.STARTING_TOWERS = { "MachineGun" }
@@ -82,14 +83,20 @@ IdleConfig.RARITIES = {
 
 -- Chances (en %) de chaque rareté selon ton record. Aux paliers hauts, les Épiques et les
 -- Légendaires tombent plus souvent : les doublons se répartissent mieux entre les 8 tours.
--- Épiques 10 % dès la vague 10 et Légendaires 5 % dès la vague 25 (8 % et 3 % avant) : avec des lancers
--- payants, le joueur simulé ne débloquait les légendaires que vers la vague 50 (vers 35-45 maintenant).
+-- Les tours légendaires (dorées) sont RARES (demande du propriétaire : « les dorées doivent être plus rares ») :
+-- aucune avant le record 60, puis 1 %, 2,5 % au record 100 et 4 % au record 200 (avant : 5 % dès la vague 25,
+-- 12 % à la 50, 20 % à la 100 ; le joueur simulé avait sa 1re légendaire vers la vague 33-40). Maintenant
+-- (tools/balance/RESULTS.md) : la 1re vers la vague 65-70, après ~7 h de jeu. Les Épiques sont un peu plus
+-- rares aussi (8 % dès la vague 10, 26 % au plus). Les nombres peuvent avoir une virgule (2,5) : ce sont
+-- des poids, l'autel affiche « 2.5 % ».
 IdleConfig.TOWER_SPIN_TIERS = {
 	{ minWave = 1, odds = { Common = 80, Rare = 20, Epic = 0, Legendary = 0 } },
-	{ minWave = 10, odds = { Common = 58, Rare = 32, Epic = 10, Legendary = 0 } },
-	{ minWave = 25, odds = { Common = 43, Rare = 35, Epic = 17, Legendary = 5 } },
-	{ minWave = 50, odds = { Common = 25, Rare = 35, Epic = 28, Legendary = 12 } },
-	{ minWave = 100, odds = { Common = 15, Rare = 30, Epic = 35, Legendary = 20 } },
+	{ minWave = 10, odds = { Common = 62, Rare = 30, Epic = 8, Legendary = 0 } },
+	{ minWave = 25, odds = { Common = 52, Rare = 34, Epic = 14, Legendary = 0 } },
+	{ minWave = 45, odds = { Common = 46, Rare = 35, Epic = 19, Legendary = 0 } },
+	{ minWave = 60, odds = { Common = 44, Rare = 35, Epic = 20, Legendary = 1 } },
+	{ minWave = 100, odds = { Common = 39, Rare = 35, Epic = 23.5, Legendary = 2.5 } },
+	{ minWave = 200, odds = { Common = 35, Rare = 35, Epic = 26, Legendary = 4 } },
 }
 
 -- Palier de chances pour ce record (à appeler avec idle.highestWave, jamais avec la vague en cours).
@@ -104,34 +111,45 @@ function IdleConfig.towerSpinTier(wave: number): number
 end
 
 -- Lancers proposés par l'autel, dans l'ordre des boutons : count = nombre de lancers d'un coup,
--- minWave = record nécessaire pour voir le bouton, price = prix du lot en nombre de lancers x1.
--- Chaque bouton apparaît quand son prix devient raisonnable (en vagues de gains à ton record) :
---   x100 (record 40) : ~7 vagues de gains ; x1 000 (record 150) : ~22 vagues, ~17 au record 200.
---   x1 000 000 (record 1 000) : ~4 000 vagues de gains. Il reste un objectif lointain, exprès.
--- ATTENTION, ne pas mettre de remise de gros (price plus petit que count), surtout sur x1 000 000.
+-- minWave = record nécessaire pour voir le bouton.
+-- Un lot coûte EXACTEMENT la somme des prix des lancers qu'il contient (voir towerSpinCost) : x100 coûte
+-- autant que 100 x1 achetés un par un. Les gros boutons évitent juste de cliquer 100 000 fois.
+-- ATTENTION, ne pas remettre de remise de gros, surtout sur x1 000 000.
 -- Ici PV et pièces grandissent au même rythme (x1,25 par vague) : multiplier tous ses dégâts par M
 -- fait avancer le record d'un facteur ~M^(1/2,4). Un million de lancers, c'est x1 500 à x3 500 de dégâts :
 -- essayé à 5 000 lancers x1 le lot, le joueur simulé est passé de la vague 377 à la vague 600-1 000
 -- en 6 h. Même x1 000 à moitié prix faisait arriver la vague 100 ~1 h 20 plus tôt.
+-- Avec +0,05 % par lancer, un lot coûte toujours le même nombre de fois le prix du PROCHAIN lancer :
+-- x10 = 10,02 ; x100 = 102,5 ; x1 000 = 1 297 ; x10 000 = 294 456 ; x1 000 000 = ~2,5e220 (« MAX » : ce total
+-- dépasse les plus grands nombres possibles). Un joueur qui achète régulièrement garde le prix d'un lancer
+-- vers 0,03 vague de gains (simulateur) : x100 ≈ 3 vagues de gains (un achat courant, dès le record 40 ;
+-- le joueur simulé en achète dès le record ~60), x1 000 ≈ 40 vagues (~1 h de farm : un gros achat pour
+-- joueur avancé, dès le record 150), x10 000 ≈ 9 000 vagues (un objectif à très long terme, dès le record
+-- 300), x1 000 000 : presque mythique (record 1 000, toujours « MAX »).
 IdleConfig.TOWER_SPIN_BULKS = {
-	{ count = 1, minWave = 1, price = 1 },
-	{ count = 10, minWave = 1, price = 10 },
-	{ count = 100, minWave = 40, price = 100 },
-	{ count = 1000, minWave = 150, price = 1000 },
-	{ count = 1000000, minWave = 1000, price = 1000000 },
+	{ count = 1, minWave = 1 },
+	{ count = 10, minWave = 1 },
+	{ count = 100, minWave = 40 },
+	{ count = 1000, minWave = 150 },
+	{ count = 10000, minWave = 300 },
+	{ count = 1000000, minWave = 1000 },
 }
 
--- Prix d'UN lancer : TOWER_SPIN_COST_WAVES vague de gains à ton record jusqu'à la vague
--- TOWER_SPIN_DISCOUNT_WAVE, puis divisé par (record / 10)^0,9 : le prix suit les pièces, mais de moins
--- en moins vite. En vagues de gains à ton record (simulateur, tools/balance/RESULTS.md) :
---   record 1-10 : 1 lancer = 0,25 vague (x10 = 2,5)     record 40 : 0,07 (x100 = 7)
---   record 100  : 0,03 (x100 = 3)                        record 300 : 0,012     record 1 000 : 0,004
--- Attention en réglant : chaque doublon donne +2 % de dégâts (DUPLICATE_DAMAGE_BONUS). Avec des lancers
--- bien moins chers loin dans le jeu (avant : divisé par (record / 10)^2), les doublons (jusqu'à x2 300 de
--- dégâts sur une tour) écrasaient tout : vague 1 066 en 100 h au lieu de 376, des murs de plus en plus courts.
+-- Prix de base d'UN lancer (towerSpinUnitCost, avant la hausse de +0,05 % par lancer déjà acheté) :
+-- TOWER_SPIN_COST_WAVES vague de gains à ton record jusqu'à la vague TOWER_SPIN_DISCOUNT_WAVE, puis divisé
+-- par (record / 10)^1,05 : le prix suit les pièces, mais de moins en moins vite. Il monte avec ton record,
+-- pour que l'autel reste intéressant. En vagues de gains à ton record, avant la hausse (x1,0005 par lancer
+-- acheté : x1,65 après 1 000 lancers, x3 après 2 200) :
+--   record 1-10 : 1 lancer = 0,25 vague (x10 = 2,5)     record 40 : 0,059 (x100 = 6)
+--   record 100  : 0,022 (x100 = 2,3)                     record 300 : 0,007     record 1 000 : 0,002
+-- Réglé avec tools/balance (voir RESULTS.md) : c'est le réglage qui décide combien de lancers le joueur
+-- achète, donc combien de doublons il a (chaque doublon donne +2 % de dégâts, DUPLICATE_DAMAGE_BONUS), donc
+-- la vitesse de la partie. Puissance 0,9 : vague 100 vers 22 h mais des murs d'1 h vers les vagues 71-100 ;
+-- 1,05 : vague 100 vers 15 h ; 1,3 : vers 12 h (trop tôt) ; 1,5 : vers 11 h. La hausse de +0,05 % par
+-- lancer limite déjà les doublons (voir le rapport : lancers achetés à 1, 10, 25, 50 et 100 h).
 IdleConfig.TOWER_SPIN_COST_WAVES = 0.25
 IdleConfig.TOWER_SPIN_DISCOUNT_WAVE = 10
-IdleConfig.TOWER_SPIN_DISCOUNT_POWER = 0.9
+IdleConfig.TOWER_SPIN_DISCOUNT_POWER = 1.05
 
 -- Record « propre » pour les prix et les chances (une valeur abîmée compte comme la vague 1).
 local function cleanRecord(highestWave: any): number
@@ -141,7 +159,8 @@ local function cleanRecord(highestWave: any): number
 	return math.clamp(math.floor(highestWave), 1, IdleConfig.MAX_SCALING_WAVE)
 end
 
--- Prix d'un seul lancer à ce record (arrondi à 2 chiffres, au moins 1 pièce).
+-- Prix de base d'un lancer à ce record (arrondi à 2 chiffres, au moins 1 pièce). Toujours fini : les
+-- pièces arrêtent de grandir à MAX_SCALING_WAVE.
 function IdleConfig.towerSpinUnitCost(highestWave: number): number
 	local record = cleanRecord(highestWave)
 	local discount = math.max(1, record / IdleConfig.TOWER_SPIN_DISCOUNT_WAVE) ^ IdleConfig.TOWER_SPIN_DISCOUNT_POWER
@@ -153,17 +172,48 @@ function IdleConfig.towerSpinUnitCost(highestWave: number): number
 	return math.max(1, math.floor(raw / magnitude + 0.5) * magnitude)
 end
 
--- Prix total de `count` lancers d'un coup à ce record : prix d'un lancer x `price` du lot
--- (TOWER_SPIN_BULKS ; count si le lot n'a pas de prix à lui). Toujours fini : les pièces arrêtent de
--- grandir à MAX_SCALING_WAVE.
-function IdleConfig.towerSpinCost(highestWave: number, count: number): number
-	local price = count
-	for _, bulk in IdleConfig.TOWER_SPIN_BULKS do
-		if bulk.count == count and bulk.price then
-			price = bulk.price
-		end
+-- Hausse des prix : chaque lancer acheté rend le suivant 0,05 % plus cher (x1,0005), POUR TOUJOURS.
+-- Le compteur (idle.towerSpinsBought, lancers achetés depuis toujours) ne repart jamais à zéro : ni à la
+-- renaissance, ni chaque jour. Les lots marchent pareil : x10 = les 10 prochains prix additionnés.
+--   prix du n-ième lancer acheté (n = 0, 1, 2...) = prix de base (towerSpinUnitCost) x 1,0005^n
+-- Exemples : après 1 000 lancers, un lancer coûte x1,65 ; après 10 000, x148 ; après 20 000, x22 000.
+IdleConfig.TOWER_SPIN_PRICE_GROWTH = 1.0005
+-- Plus grand compteur gardé (un nombre entier exact, sauvegardable). Bien avant, le prix est « MAX » :
+-- 1,0005^n dépasse ~1,8e308 vers n = 1,4 million.
+IdleConfig.TOWER_SPINS_BOUGHT_MAX = 1e15
+
+-- Compteur « propre » : entier, entre 0 et TOWER_SPINS_BOUGHT_MAX (une valeur abîmée, NaN, négative ou
+-- pas un nombre, compte comme 0).
+function IdleConfig.cleanSpinsBought(bought: any): number
+	if typeof(bought) ~= "number" or bought ~= bought or bought < 0 then
+		return 0
 	end
-	return IdleConfig.towerSpinUnitCost(highestWave) * price
+	return math.min(math.floor(bought), IdleConfig.TOWER_SPINS_BOUGHT_MAX)
+end
+
+-- Prix total de `count` lancers d'un coup à ce record, quand `bought` lancers ont déjà été achetés
+-- (rien = 0) : la somme des `count` prochains prix.
+--   prix = prix de base x 1,0005^bought x (1,0005^count - 1) / (1,0005 - 1)
+-- Ex. prix de base 100, 0 lancer acheté : x1 = 100, puis x1 = 100,05 ; x10 = 1 002,25.
+-- Renvoie math.huge si le total dépasse les plus grands nombres possibles (ou si count n'est pas un
+-- nombre entier de lancers) : cet achat est impossible (le serveur refuse, l'autel affiche « MAX »).
+function IdleConfig.towerSpinCost(highestWave: number, count: number, bought: number?): number
+	if typeof(count) ~= "number" or count ~= count or count < 1 or count ~= math.floor(count) or count == math.huge then
+		return math.huge
+	end
+	local growth = IdleConfig.TOWER_SPIN_PRICE_GROWTH
+	-- Somme de 1 + g + g^2 + ... + g^(count - 1). Divisé par (growth - 1) tel que calculé : x1 = 1 tout juste.
+	local sum = if growth == 1 then count else (growth ^ count - 1) / (growth - 1)
+	local cost = IdleConfig.towerSpinUnitCost(highestWave) * growth ^ IdleConfig.cleanSpinsBought(bought) * sum
+	if cost ~= cost or cost >= math.huge then
+		return math.huge
+	end
+	return cost
+end
+
+-- Prix du prochain lancer (x1) quand `bought` lancers ont déjà été achetés.
+function IdleConfig.towerSpinPrice(highestWave: number, bought: number?): number
+	return IdleConfig.towerSpinCost(highestWave, 1, bought)
 end
 
 -- Vrai si ce nombre de lancers est proposé (TOWER_SPIN_BULKS) et débloqué à ce record.

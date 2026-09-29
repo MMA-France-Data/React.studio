@@ -44,6 +44,22 @@ return function(log)
 
 	if mode == "Match" then
 		task.wait(8)
+		-- Envois retirés : le HUD du match a sa boutique de tours mais aucun texte d'envoi.
+		local function findText(pattern)
+			for _, gui in player.PlayerGui:GetDescendants() do
+				if (gui:IsA("TextButton") or gui:IsA("TextLabel")) and gui.Text:find(pattern) then
+					return gui
+				end
+			end
+			return nil
+		end
+		local hud = player.PlayerGui:FindFirstChild("Match")
+		local shop, sends = findText("Archer"), findText("[Ee]nvo[iy]")
+		local hudOk = hud ~= nil and shop ~= nil and sends == nil
+		log(
+			if hudOk then "Info" else "Error",
+			`[{if hudOk then "PASS" else "FAIL"}] HUD du match sans panneau d'envois (HUD {hud ~= nil}, boutique {shop ~= nil}, texte d'envoi : {if sends then sends.Text else "aucun"})`
+		)
 		shot("match_player")
 		look(Vector3.new(0, 140, 160), Vector3.new(0, 0, 0))
 		shot("match_aerial")

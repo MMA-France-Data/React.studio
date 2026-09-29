@@ -25,6 +25,7 @@ Config.Products = {
 Config.GamePasses = {
 	AUTO_COLLECT = 0, -- Ramassage auto : les pièces tombées sur ta parcelle sont ramassées sans marcher
 	SPEED_X2 = 0, -- Vitesse x2 : vagues et tirs deux fois plus rapides sur ta parcelle (bouton pour l'éteindre)
+	COINS_X2 = 0, -- Pièces x2 : toutes les pièces gagnées sur ta parcelle sont doublées (ennemis tués, gains d'absence)
 }
 
 -- Tes parties de test dans Studio : ces passes sont donnés automatiquement à tous les joueurs quand tu
@@ -33,6 +34,7 @@ Config.GamePasses = {
 Config.STUDIO_TEST_PASSES = {
 	AUTO_COLLECT = true,
 	SPEED_X2 = true,
+	COINS_X2 = true,
 }
 
 -- Distance (en studs) entre ton personnage et un objet sous laquelle son texte flottant s'affiche :

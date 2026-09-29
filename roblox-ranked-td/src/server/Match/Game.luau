@@ -9,7 +9,6 @@ local MapLayout = require(Shared.MapLayout)
 local MedievalModels = require(Shared.MedievalModels)
 local Placement = require(Shared.Placement)
 local Remotes = require(Shared.Remotes)
-local Sends = require(Shared.Sends)
 local Towers = require(Shared.Towers)
 
 local C = Config.Match
@@ -23,12 +22,11 @@ type Lane = {
 	name: string,
 	baseHealth: number,
 	gold: number,
-	income: number,
+	income: number, -- or reçu au début de chaque vague
 	towers: { any },
 	enemies: { any },
 	spawnQueue: { any },
 	lastActionAt: number,
-	lastSendAt: number,
 }
 
 -- slots : { { player: Player?, name: string } } (index = numéro de lane)
@@ -54,12 +52,11 @@ function Game.new(slots, matchState: Instance, onEnd: (number?, string) -> ())
 			name = slot.name,
 			baseHealth = C.BASE_HEALTH,
 			gold = C.STARTING_GOLD,
-			income = 0,
+			income = C.BASE_INCOME,
 			towers = {},
 			enemies = {},
 			spawnQueue = {},
 			lastActionAt = 0,
-			lastSendAt = 0,
 		}
 		self.lanes[index] = lane
 		if slot.player then
@@ -72,10 +69,6 @@ end
 function Game:newId(): number
 	self.nextId += 1
 	return self.nextId
-end
-
-function Game:opponentOf(lane: Lane): Lane
-	return self.lanes[if lane.index == 1 then 2 else 1]
 end
 
 function Game:notify(lane: Lane, message: string, kind: string?)
@@ -98,7 +91,7 @@ function Game:syncState()
 		local prefix = "Lane" .. lane.index
 		self:setState(prefix .. "Health", lane.baseHealth)
 		self:setState(prefix .. "Gold", math.floor(lane.gold))
-		self:setState(prefix .. "Income", C.BASE_INCOME + lane.income)
+		self:setState(prefix .. "Income", lane.income)
 	end
 end
 
@@ -548,39 +541,9 @@ function Game:onSellTower(player: Player, towerId: any)
 	lane.gold += math.floor(tower.spent * C.SELL_REFUND)
 end
 
-function Game:onSendEnemies(player: Player, sendId: any)
-	if typeof(sendId) ~= "string" or not Sends.Defs[sendId] then
-		return
-	end
-	local lane = self:laneForAction(player)
-	if not lane then
-		return
-	end
-	local def = Sends.Defs[sendId]
-	local now = workspace:GetServerTimeNow()
-	if self.wave < def.minWave then
-		self:notify(lane, `Disponible à partir de la vague {def.minWave}`, "Error")
-		return
-	end
-	if now - lane.lastSendAt < Sends.COOLDOWN then
-		return
-	end
-	if lane.gold < def.cost then
-		self:notify(lane, "Pas assez d'or", "Error")
-		return
-	end
-
-	lane.gold -= def.cost
-	lane.income += def.income
-	lane.lastSendAt = now
-
-	local opponent = self:opponentOf(lane)
-	local multiplier = Enemies.healthMultiplier(math.max(1, self.wave))
-	for i = 1, def.count do
-		self:queueEnemy(opponent, def.enemy, now + (i - 1) * Sends.SPAWN_GAP, multiplier)
-	end
-	self:notify(opponent, `{lane.name} t'envoie : {def.displayName} x{def.count} !`, "Warning")
-end
+-- Nouvelle mécanique (par ex. une action contre l'adversaire) : un remote dans Remotes.luau, un
+-- handler Game:onXxx ici (validé avec laneForAction) et son connect(...) dans Game:start.
+-- Des ennemis en plus sur un terrain : self:queueEnemy(lane, type, instant, multiplicateur de PV).
 
 ----------------------------------------------------------------------
 -- Vagues, bot, fin de partie
@@ -594,7 +557,7 @@ function Game:startWave(now: number)
 	local composition = Enemies.buildWave(self.wave)
 	local multiplier = Enemies.healthMultiplier(self.wave)
 	for _, lane in self.lanes do
-		lane.gold += C.BASE_INCOME + lane.income
+		lane.gold += lane.income
 		local at = now
 		for _, item in composition do
 			self:queueEnemy(lane, item.enemy, at, multiplier)
@@ -698,7 +661,6 @@ function Game:start()
 	connect("PlaceTower", Game.onPlaceTower)
 	connect("UpgradeTower", Game.onUpgradeTower)
 	connect("SellTower", Game.onSellTower)
-	connect("SendEnemies", Game.onSendEnemies)
 
 	table.insert(self.connections, RunService.Heartbeat:Connect(function(dt)
 		self:step(dt)

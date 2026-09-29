@@ -49,6 +49,9 @@ local function defaultIdle()
 		unlockedTowers = startingTowers(), -- [type] = true
 		towerDupes = {}, -- [type] = nombre de doublons (IdleConfig.DUPLICATE_DAMAGE_BONUS de dégâts chacun)
 		-- (plus de lancer gratuit par vague : les lancers de l'autel se paient en pièces, voir migrateFreeSpin)
+		-- Lancers de l'autel achetés depuis toujours (x10 = 10). Jamais remis à zéro, ni à la renaissance ni
+		-- chaque jour : chaque lancer acheté rend le suivant 0,05 % plus cher (IdleConfig.towerSpinCost).
+		towerSpinsBought = 0,
 		bonuses = {}, -- inventaire de bonus (ids de IdleConfig.BONUSES)
 		lastBonusSpinAt = 0, -- os.time() du dernier lancer payé en pièces
 		-- Gains d'absence (Hub/init.luau, réglages dans IdleConfig) :
@@ -116,13 +119,13 @@ end
 
 -- Avant, chaque vague réussie donnait 1 lancer gratuit de l'autel (idle.pendingSpinTier > 0 = un lancer
 -- en attente). Les lancers se paient maintenant en pièces : un lancer en attente dans une ancienne
--- sauvegarde est remboursé au prix d'un lancer à ton record (IdleConfig.towerSpinCost), puis le champ
--- est supprimé. Une seule fois : sans le champ, il ne se passe plus rien.
+-- sauvegarde est remboursé au prix de base d'un lancer à ton record (IdleConfig.towerSpinUnitCost,
+-- toujours fini), puis le champ est supprimé. Une seule fois : sans le champ, il ne se passe plus rien.
 local function migrateFreeSpin(data)
 	local pending = data.idle.pendingSpinTier
 	data.idle.pendingSpinTier = nil
 	if typeof(pending) == "number" and pending > 0 and typeof(data.coins) == "number" then
-		data.coins += IdleConfig.towerSpinCost(data.idle.highestWave, 1)
+		data.coins += IdleConfig.towerSpinUnitCost(data.idle.highestWave)
 	end
 end
 
@@ -141,6 +144,9 @@ local function reconcile(data)
 			data.idle[key] = value
 		end
 	end
+	-- Compteur des lancers de l'autel : absent dans les anciennes sauvegardes (-> 0 juste au-dessus),
+	-- toujours un nombre entier, fini et positif (une valeur abîmée compte comme 0).
+	data.idle.towerSpinsBought = IdleConfig.cleanSpinsBought(data.idle.towerSpinsBought)
 	migrateFreeSpin(data)
 	return data
 end

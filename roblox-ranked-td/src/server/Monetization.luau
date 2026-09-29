@@ -53,15 +53,19 @@ end
 -- Passes de jeu (Config.GamePasses). Mode solo uniquement : le ranked ne les lit jamais.
 -- La possession est demandée à Roblox à l'arrivée du joueur (UserOwnsGamePassAsync, gardée en mémoire),
 -- puis mise à jour tout de suite après un achat (PromptGamePassPurchaseFinished). Elle est publiée en
--- attributs du joueur (PassAutoCollect, PassSpeedX2) pour l'interface ; Hub/init.luau applique les effets.
+-- attributs du joueur (PassAutoCollect, PassSpeedX2, PassCoinsX2) pour l'interface ; Hub/init.luau
+-- applique les effets.
 ----------------------------------------------------------------------
 -- nom du pass -> clé dans Config.GamePasses, attribut du joueur, nom affiché
 local PASSES = {
 	AutoCollect = { configKey = "AUTO_COLLECT", attribute = "PassAutoCollect", displayName = "Ramassage auto" },
 	SpeedX2 = { configKey = "SPEED_X2", attribute = "PassSpeedX2", displayName = "Vitesse x2" },
+	CoinsX2 = { configKey = "COINS_X2", attribute = "PassCoinsX2", displayName = "Pièces x2" },
 }
 local ownedPasses = {} -- [Player] = { [nom] = true } : réponse de Roblox (un pass n'est jamais retiré)
 local studioPasses = {} -- [Player] = { [nom] = bool } : passes donnés ou retirés pour les tests, Studio uniquement
+-- [Player] = { [nom] = true tant que la réponse de Roblox à l'arrivée est attendue } (voir Monetization.passKnown).
+local arrivalChecks = {}
 local passCallbacks = {}
 
 -- ID du pass (0 = pas encore créé). Même lecture que la boutique (ShopUI.luau) : un ID collé entre
@@ -81,6 +85,27 @@ function Monetization.ownsPass(player: Player, name: string): boolean
 		return override
 	end
 	return ownedPasses[player] ~= nil and ownedPasses[player][name] == true
+end
+
+-- Vrai quand on sait si le joueur possède ce pass : la vérification de son arrivée est finie (réponse de
+-- Roblox, pass pas encore créé, ou 3 essais ratés) ou un test Studio l'a donné / retiré. Juste à l'arrivée,
+-- c'est faux quelques instants : ownsPass dirait « non » même à un acheteur.
+function Monetization.passKnown(player: Player, name: string): boolean
+	if studioPasses[player] and studioPasses[player][name] ~= nil then
+		return true
+	end
+	local checks = arrivalChecks[player]
+	return checks ~= nil and checks[name] == nil
+end
+
+-- Attend (au plus `timeout` secondes) que la possession du pass soit connue, puis renvoie ownsPass.
+-- Faux si le joueur part avant.
+function Monetization.waitForPass(player: Player, name: string, timeout: number): boolean
+	local deadline = os.clock() + timeout
+	while not Monetization.passKnown(player, name) and player.Parent and os.clock() < deadline do
+		task.wait(0.1)
+	end
+	return player.Parent ~= nil and Monetization.ownsPass(player, name)
 end
 
 -- callback(player, nom, possédé) : appelé quand la possession d'un pass est connue ou change.
@@ -147,9 +172,18 @@ local function onPlayerAdded(player: Player)
 			end
 		end
 	end
+	local checks = {}
+	arrivalChecks[player] = checks
 	for name in PASSES do
 		publishPass(player, name) -- false tant que Roblox n'a pas répondu
-		task.spawn(checkPass, player, name)
+		checks[name] = true
+		task.spawn(function()
+			local ok, err = pcall(checkPass, player, name)
+			if not ok then
+				warn(`[Monetization] Erreur pendant la vérification du pass {name} :`, err)
+			end
+			checks[name] = nil -- possession connue (Monetization.passKnown)
+		end)
 	end
 end
 
@@ -183,6 +217,7 @@ function Monetization.start()
 	Players.PlayerRemoving:Connect(function(player)
 		ownedPasses[player] = nil
 		studioPasses[player] = nil
+		arrivalChecks[player] = nil
 	end)
 
 	-- Achat depuis la boutique : effet immédiat. wasPurchased vient de Roblox (le client ne peut pas
