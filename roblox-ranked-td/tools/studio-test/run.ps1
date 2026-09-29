@@ -9,10 +9,10 @@
 # (ajoute -CloseStudio pour le fermer quand même). À la fin, il ferme le Studio qu'il a ouvert.
 param(
 	[ValidateSet("hub", "match")][string]$Place = "hub",
-	[int]$Seconds = 150, # durée du Play (le scénario de la map principale dure ~75 s)
+	[int]$Seconds = 180, # durée du Play (le scénario de la map principale dure ~2 min 20 avec les tests du classé)
 	[switch]$CloseStudio,
 	[switch]$KeepOpen,
-	[int]$Timeout = 300
+	[int]$Timeout = 330 # ouverture de Studio + Play ($Seconds) + fermeture
 )
 $ErrorActionPreference = "Stop"
 $root = $PSScriptRoot

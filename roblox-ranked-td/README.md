@@ -12,8 +12,9 @@ Chaque serveur accueille 6 joueurs (à régler dans *Game Settings > Places > Se
 Chacun reçoit sa parcelle : un chemin, une base et 22 emplacements de tours (4 débloqués au départ, les 18 autres
 s'achètent **dans n'importe quel ordre**). Le prix ne dépend que du nombre d'emplacements déjà possédés : 100 pièces
 pour le 5e, puis ×2,6 à chaque fois, jusqu'à ~1,1 B pour le 22e (voir `PlotLayout.spotCost`).
-Au centre, le **sceau de l'Arène royale** lance la recherche d'une partie ranked.
-Les boutons « Mon fief » et « Arène royale » servent à se déplacer vite.
+Au centre, le **sceau de l'Arène royale** : entre dedans et clique « ⚔ S'INSCRIRE AU CLASSÉ », puis retourne
+jouer : le match te sera proposé dès qu'un adversaire est trouvé (voir « S'inscrire et accepter un match
+classé »). On va à pied à sa parcelle et au sceau (plus de boutons de raccourci).
 
 ## Le mode infini (ta parcelle)
 
@@ -277,7 +278,7 @@ Contrôles : `1`-`4` choisir une tour • clic pour poser • clic sur une de te
 | MMR / Elo | `src/shared/Elo.luau` | K = 32, K = 48 pendant les 5 matchs de placement |
 | Rangs | `src/shared/Ranks.luau` | Bronze → Argent → Or → Platine → Diamant → Maître → Légende |
 | Sauvegarde | `src/server/PlayerData.luau` | DataStore + **verrou de session** (un seul serveur écrit à la fois) |
-| File d'attente | `src/server/Matchmaking.luau` | MemoryStore SortedMap triée par MMR, partagée par tous les serveurs |
+| File d'attente | `src/server/Matchmaking.luau` | Inscription dans le cercle, MemoryStore SortedMap triée par MMR partagée par tous les serveurs, match à accepter (`MatchmakingBackend.luau` : en mémoire dans Studio) |
 | Match | `src/server/Match/` | Serveur réservé, attend les 2 joueurs, applique l'Elo, renvoie au lobby |
 | Classement | `src/server/Leaderboard.luau` | OrderedDataStore par saison, affiché sur un panneau dans le lobby |
 | Saisons | `Config.SEASON` | Nouvelle saison = soft reset du MMR (moitié de l'écart à 1000) + nouveau classement |
@@ -287,16 +288,55 @@ Contrôles : `1`-`4` choisir une tour • clic pour poser • clic sur une de te
 ```
  Lobby (serveur public)                MemoryStore                   Serveur de match (réservé)
  ─────────────────────                 ───────────                   ──────────────────────────
- Joueur clique "Ranked"  ──────────►  File (triée par MMR)
-                                           │
+ « S'INSCRIRE » dans le cercle ────►  File (triée par MMR)
+   (le joueur repart jouer)                │
  Serveur "leader" (1 seul, élu) ◄──────────┘
-   apparie les MMR proches
+   forme les paires ────────────────►  Proposition + invitations
+ Chaque lobby : « MATCH TROUVÉ ! »
+   ACCEPTER / REFUSER ──────────────►  Réponses (UpdateAsync)
+ Le lobby du 2e qui accepte :
    ReserveServer() ─────────────────►  Infos du match  ─────────────►  lit les infos, attend les 2 joueurs
-   écrit les assignations ──────────►  Assignations
+   proposition « Started » ─────────►  code d'accès
  Chaque lobby téléporte ses joueurs ─────────────────────────────────►  compte à rebours, partie
                                                                         Elo appliqué + sauvegarde
  Retour au lobby  ◄──────────────────────────────────────────────────  téléportation retour
 ```
+
+### S'inscrire et accepter un match classé
+
+- **S'inscrire** : entre dans le sceau rouge au centre de la map. Un gros bouton « ⚔ S'INSCRIRE AU CLASSÉ »
+  apparaît, seulement tant que tu es dans le cercle (au-dessus de ton personnage : il ne cache ni le chat ni le
+  panneau des tours). Le serveur vérifie que tu es vraiment dans le cercle (sa position à lui, attribut
+  `InRankedCircle`), que tu n'es pas déjà inscrit, et au plus une inscription toutes les 2 s
+  (`Config.Matchmaking.SIGNUP_COOLDOWN`). Message : « Tu es inscrit au classé ! Tu peux partir jouer : on te propose
+  le match dès qu'un adversaire est trouvé. »
+- **Tu restes inscrit en partant** : retourne sur ta parcelle et joue. En bas à droite, partout sur la map :
+  « ⚔ Recherche d'un adversaire… 1:23 » et « ANNULER » (quand le panneau des tours est ouvert, ce statut passe
+  juste au-dessus).
+- **Match trouvé** : fenêtre « ⚔ MATCH TROUVÉ ! » au centre de l'écran : le nom de l'adversaire, son rang et son
+  MMR (ou « Placement 2/5 », MMR caché, comme sur la carte de rang), une barre de **15 s**
+  (`Config.Matchmaking.ACCEPT_SECONDS`), « ACCEPTER » et « REFUSER ». Après ACCEPTER : « En attente de
+  l'adversaire… » (plus d'annulation possible : on attend l'autre).
+- **Les deux acceptent** : le match est créé (serveur réservé) et chacun est téléporté, comme avant.
+- **Refus** (REFUSER, ANNULER ou quitter le jeu) : « Tu as refusé le match », tu quittes la file. **Pas de réponse
+  à temps** : « Match non accepté à temps : tu es retiré de la file ». L'autre joueur retourne tout seul dans la
+  file avec son heure d'inscription (« Ton adversaire n'a pas accepté : retour dans la file ») : il garde son
+  attente, donc sa grande fourchette de MMR et sa priorité. Pareil si l'un des deux quitte le jeu après avoir
+  accepté, tant que le match n'est pas encore créé (l'autre ne part pas attendre seul sur le serveur de match).
+- **Priorité** : le leader forme les paires en commençant par ceux qui attendent depuis le plus longtemps, chacun
+  avec le joueur de MMR le plus proche dans la fourchette.
+- **Jamais bloqué** : chaque étape a une limite de temps. Le serveur laisse 3 s de plus que la barre
+  (`ACCEPT_GRACE` : le temps que la proposition arrive et un petit écart d'horloge entre serveurs), la création
+  du match a 30 s (`START_TIMEOUT`, sinon les deux retournent dans la file, attente gardée), la téléportation 60 s
+  (`TELEPORT_TIMEOUT`, sinon message et il faut se réinscrire), et tout expire tout seul dans MemoryStore. Si
+  MemoryStore ne répond plus, chaque serveur libère ses joueurs tout seul (heure limite + `START_TIMEOUT`).
+- **Entre serveurs** (détails et schéma des états en haut de `Matchmaking.luau`) : le leader écrit une
+  **proposition** et une invitation pour chacun des deux joueurs ; chaque réponse est écrite avec `UpdateAsync`
+  (une seule décision possible) ; le serveur du 2e qui accepte crée le match (serveur réservé, infos dans
+  `RankedTD_Matches`, lues par `Match/init.luau` comme avant) ; puis chaque lobby téléporte SES joueurs, une seule
+  fois. États du joueur (attribut `QueueState`, lu par `LobbyUI.luau`) : Idle, Joining, Searching, Pending (match
+  proposé), Accepted, Found (les deux ont accepté), Teleporting.
+- Rien ne change dans le match lui-même : mêmes règles, même Elo, mêmes défis classés.
 
 - La fourchette de MMR acceptée commence à ±75 et s'élargit de 8 par seconde d'attente (max ±600).
 - Une seule place Roblox sert aux deux : serveur public = map principale (« lobby »), serveur réservé = match
@@ -356,8 +396,15 @@ Rien d'autre à configurer : les téléportations vers un serveur réservé de l
 - `Test > Clients and Servers` avec 2 joueurs → vrai match (MMR appliqué sur des données en mémoire).
 - `Play` en solo → après 10 s, l'autre terrain est joué par un bot simple (match non classé).
 
-**Le matchmaking** ne peut pas marcher dans Studio (pas de `TeleportService`). Publie le jeu et
-rejoins-le avec deux comptes (ou avec un ami) : cliquez tous les deux sur « Jouer en ranked ».
+**Le matchmaking dans Studio** : la file tourne en mémoire (`MatchmakingBackend.luau`, un seul serveur) et
+personne n'est téléporté (quand les deux ont accepté, un message dit que la téléportation partirait). Entre dans
+le cercle, clique « S'INSCRIRE », puis dans la barre de commande (vue Serveur) :
+`game.ServerStorage.StudioDebug:Invoke(game.Players:GetPlayers()[1], "Ranked", "FakeOpponent")` : un adversaire
+factice s'inscrit et la fenêtre « MATCH TROUVÉ ! » s'ouvre. `"OpponentAccept"`, `"OpponentRefuse"` ou `"Expire"`
+le font accepter, refuser ou laisser passer le temps, `"State"` montre l'état (liste complète en haut de
+`setupStudioDebug`, `Hub/init.luau`). Avec *Test > Clients et serveurs* et 2 joueurs, les deux peuvent s'inscrire
+et accepter pour de vrai. **Le vrai test** (plusieurs serveurs, téléportation) : publie le jeu et rejoins-le avec
+deux comptes (ou avec un ami) : inscrivez-vous tous les deux dans le cercle, puis acceptez le match.
 
 **Tests automatiques** : `tools/studio-test/` ouvre le jeu dans Studio, joue un scénario, prend des captures
 et récupère la fenêtre Sortie (voir son README).
@@ -424,7 +471,7 @@ vagues dans `Enemies.luau`, le tracé du chemin dans `MapLayout.luau`.
 ```
 src/
   shared/   (ReplicatedStorage.Shared)   Config, IdleConfig, IdleTowers, NumberFormat, Elo, Ranks, Towers, Enemies, MapLayout, PlotLayout, Placement, Remotes, Challenges
-  server/   (ServerScriptService.Server) Main, PlayerData, Leaderboard, Matchmaking, Monetization, Hub/{init, HubMap, Plots, PlotGame, IdleTowerModel, ChallengeRewards}, Match/{init, Game, MapBuilder}
+  server/   (ServerScriptService.Server) Main, PlayerData, Leaderboard, Matchmaking, MatchmakingBackend, MockMemoryStore, Monetization, Hub/{init, HubMap, Plots, PlotGame, IdleTowerModel, ChallengeRewards}, Match/{init, Game, MapBuilder}
   client/   (StarterPlayerScripts.Client) Main, LobbyUI, PlotUI, PlotRenderer, MachineUI, RebirthUI, ShopUI, ChallengeUI, MatchUI, TowerCard, TowerPlacement, Effects, UI, EnemyGallery
 ```
 
@@ -432,6 +479,8 @@ src/
 
 - Les ennemis sont des parts déplacées par le serveur : très bien pour un 1v1, mais au-delà de
   quelques centaines d'ennemis, il vaudrait mieux ne répliquer que leur progression et les afficher côté client.
-- Aucune pénalité si un joueur ne se connecte pas au match (il peut « esquiver » un adversaire).
-- L'appariement est glouton (voisins de MMR) : suffisant pour une petite population de joueurs.
+- Aucune pénalité si un joueur ne se connecte pas au match (il peut « esquiver » un adversaire), ni s'il refuse un
+  match proposé (à part sa sortie de la file).
+- L'appariement est simple (les plus anciens d'abord, chacun avec le MMR le plus proche) : suffisant pour une petite
+  population de joueurs.
 - Pas de protection contre deux comptes du même joueur qui s'affrontent (boost de MMR).

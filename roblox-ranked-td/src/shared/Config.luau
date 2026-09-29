@@ -77,6 +77,7 @@ Config.Ranked = {
 	LEADERBOARD_REFRESH = 60,
 }
 
+-- Matchmaking ranked (fonctionnement et états : en haut de src/server/Matchmaking.luau). Temps en secondes.
 Config.Matchmaking = {
 	-- Écart de MMR accepté : BASE_RANGE + RANGE_GROWTH_PER_SECOND * secondes d'attente (plafonné).
 	BASE_RANGE = 75,
@@ -84,11 +85,20 @@ Config.Matchmaking = {
 	MAX_RANGE = 600,
 	QUEUE_ENTRY_TTL = 60,
 	QUEUE_REFRESH_INTERVAL = 15,
-	ASSIGNMENT_POLL_INTERVAL = 2,
+	INVITE_POLL_INTERVAL = 2, -- un joueur inscrit : son serveur regarde toutes les 2 s si un match lui est proposé
 	MATCHER_INTERVAL = 2,
 	LEADER_TTL = 10,
-	ASSIGNMENT_TTL = 120,
 	MATCH_INFO_TTL = 3600,
+	-- Match trouvé : les deux joueurs doivent ACCEPTER avant la téléportation.
+	ACCEPT_SECONDS = 15, -- temps pour accepter (barre de la fenêtre « MATCH TROUVÉ ! »)
+	-- En plus, côté serveur seulement : le temps que la proposition arrive au serveur de chaque joueur (et un
+	-- petit écart d'horloge entre deux serveurs). Personne ne voit ces secondes : la barre dure ACCEPT_SECONDS.
+	ACCEPT_GRACE = 3,
+	PROPOSAL_POLL_INTERVAL = 1, -- match proposé : on relit les réponses toutes les secondes
+	PROPOSAL_TTL = 300, -- durée de vie d'une proposition dans MemoryStore (tout est fini bien avant)
+	START_TIMEOUT = 30, -- les deux ont accepté mais le match n'est toujours pas créé : retour dans la file
+	TELEPORT_TIMEOUT = 60, -- toujours sur ce serveur après ça : téléportation ratée, le joueur est libéré
+	SIGNUP_COOLDOWN = 2, -- anti-spam : secondes entre deux inscriptions d'un même joueur
 }
 
 Config.Match = {

@@ -33,6 +33,20 @@ powershell -ExecutionPolicy Bypass -File tools\studio-test\run.ps1 -Place match
   défis décalée), anciennes sauvegardes. Le scénario client ouvre la fenêtre des défis (capture
   `challenges_panel`) et vérifie qu'elle ne couvre ni le chat ni la liste des joueurs, si la vue du jeu fait au
   moins 1 000 px de large (plus étroite, comme sur un téléphone, la fenêtre est seulement centrée et réduite).
+  Tout à la fin, le **classé** (inscription dans le cercle, match à ACCEPTER ; file en mémoire dans Studio, jamais
+  de téléportation). Le scénario serveur donne la main au client (attribut `AutoTestRanked` de ReplicatedStorage =
+  « Client ») : le client déplace son personnage hors du cercle / dans le cercle (le bouton « ⚔ S'INSCRIRE AU
+  CLASSÉ » n'apparaît que dedans, sans couvrir la colonne de gauche, le chat ni le panneau des tours : capture
+  `ranked_signup`), s'inscrit par le vrai remote, vérifie « Recherche d'un adversaire… » + ANNULER (capture `ranked_searching`,
+  statut au-dessus du panneau des tours quand il est ouvert), repart, puis le serveur fait s'inscrire un
+  adversaire factice : fenêtre « MATCH TROUVÉ ! » (nom, barre, ACCEPTER / REFUSER : capture `ranked_accept`), le
+  client ACCEPTE, voit « En attente de l'adversaire… », l'adversaire accepte et tout se ferme. Ensuite, le serveur
+  seul : inscription refusée hors du cercle, 2e inscription et anti-spam refusés, ANNULER, les deux acceptent (le
+  match partirait avec les 2 joueurs), je refuse et temps écoulé (je sors, l'adversaire retourne dans la file avec
+  son attente), l'adversaire refuse / part / ne répond pas (je retourne dans la file, chrono gardé), ANNULER
+  pendant le match proposé, réservation ratée et créateur du match disparu (retour dans la file), l'adversaire
+  qui quitte le jeu après avoir accepté (retour dans la file), priorité à ceux qui attendent depuis longtemps, et
+  personne ne reste bloqué.
 - `match` : match ranked en solo (le bot joue l'autre terrain après 10 s). Le joueur de test ne pose
   aucune tour. Le scénario vérifie qu'il n'y a plus d'envois (ni remote `SendEnemies`, ni module
   `Sends`, ni panneau d'envoi dans le HUD), que l'or du joueur vaut 500 + 100 x vague, que les deux
@@ -71,4 +85,8 @@ un objet que seul `mkproj.cjs` ajoute aux places de test. Pour le désinstaller,
 
 `ServerStorage.StudioDebug` (dans `src/server/Hub/init.luau`, et une petite version pour le serveur de match
 dans `src/server/Match/init.luau`) n'est créé que dans Studio (`RunService:IsStudio()`) : il n'existe pas dans le
-jeu publié.
+jeu publié. Ses commandes « Ranked » (adversaires factices, temps écoulé...) sont dans `Matchmaking.debug`
+(`src/server/Matchmaking.luau`).
+
+Le test de la map principale dure maintenant ~2 min 20 (Play de 180 s par défaut, `-Seconds`) : les tests du classé
+attendent la fin des autres tests du client.

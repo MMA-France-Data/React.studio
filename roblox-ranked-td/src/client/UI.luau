@@ -213,13 +213,16 @@ function UI.toast(message: string, kind: string?)
 
 	local color = UI.Colors[kind or "Info"] or UI.Colors.PanelLight
 	toastCount += 1
+	-- Un long message (ex. l'inscription au classé) passe sur 2 lignes au lieu d'être écrit tout petit.
+	local long = (utf8.len(message) or #message) > 70
 	local toast = UI.new("TextLabel", {
-		Size = UDim2.new(1, 0, 0, 28),
+		Size = UDim2.new(1, 0, 0, if long then 46 else 28),
 		BackgroundColor3 = color,
 		BackgroundTransparency = 0.1,
 		Font = Enum.Font.GothamBold,
 		TextColor3 = Color3.new(1, 1, 1),
 		TextScaled = true,
+		TextWrapped = long,
 		Text = message,
 		LayoutOrder = toastCount,
 		Parent = toastList,

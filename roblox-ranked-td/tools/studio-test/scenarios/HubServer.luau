@@ -2011,6 +2011,339 @@ return function(log)
 	end
 	testChallenges()
 
+	----------------------------------------------------------------------
+	-- Classé : inscription dans le cercle et match à ACCEPTER (Matchmaking.luau). Dans Studio, la file tourne en
+	-- mémoire (un seul serveur, adversaires factices) et personne n'est téléporté : le départ vers le match est
+	-- seulement noté (State : lastStart, teleports).
+	-- 1) Avec le scénario client : l'attribut AutoTestRanked de ReplicatedStorage (« Client ») lui donne la main. Il
+	--    vérifie le bouton « S'INSCRIRE » (seulement dans le cercle), s'inscrit par le vrai remote, repart, voit la
+	--    fenêtre « MATCH TROUVÉ ! » et ACCEPTE ; ici, un adversaire factice s'inscrit, puis accepte à son tour.
+	-- 2) Seul (le client a fini) : refus hors du cercle, anti-spam, les deux acceptent, je refuse, temps écoulé,
+	--    l'adversaire refuse / part / ne répond pas, ANNULER pendant le match proposé, création du match ratée
+	--    ou trop longue, priorité à ceux qui attendent depuis longtemps ; personne ne reste bloqué.
+	-- Dans sa propre fonction (limite des 200 variables locales de Luau, voir plus haut).
+	----------------------------------------------------------------------
+	local function testRanked()
+		local MM = require(ReplicatedStorage.Shared.Config).Matchmaking
+		local function ranked(...)
+			return dbg:Invoke(player, "Ranked", ...)
+		end
+		local function queueState()
+			return player:GetAttribute("QueueState") or "Idle"
+		end
+		local function waitFor(condition, timeout)
+			local deadline = os.clock() + timeout
+			while os.clock() < deadline do
+				if condition() then
+					return true
+				end
+				task.wait(0.1)
+			end
+			return condition() == true
+		end
+		local me = tostring(player.UserId)
+		-- Fin d'un cas : le joueur et les adversaires factices sont « Idle » ou « Searching », jamais bloqués au
+		-- milieu (Pending, Accepted, Found, Teleporting).
+		local stuck = {}
+		local function settle(label)
+			local s = ranked("State")
+			local wrong = {}
+			if s.state ~= "Idle" and s.state ~= "Searching" then
+				table.insert(wrong, "joueur " .. s.state)
+			end
+			for userId, opponent in s.opponents do
+				if opponent.state ~= "Searching" then
+					table.insert(wrong, `adversaire {userId} {opponent.state}`)
+				end
+			end
+			if #wrong > 0 then
+				table.insert(stuck, `{label} : {table.concat(wrong, ", ")}`)
+			end
+			return s
+		end
+		-- Nouveau cas : tout vidé, personnage dans le cercle, inscrit par le même chemin que le bouton.
+		local function freshSignUp(label)
+			ranked("Reset")
+			dbg:Invoke(player, "RankedMove", true)
+			waitFor(function()
+				return player:GetAttribute("InRankedCircle") == true
+			end, 3)
+			local ok, reason = dbg:Invoke(player, "RankedSignUp")
+			if not ok or queueState() ~= "Searching" then
+				check(false, `classé ({label}) : inscription impossible (« {reason} », {queueState()})`)
+				return false
+			end
+			return true
+		end
+
+		-- 1) Avec le scénario client (vrais remotes, captures ranked_signup, ranked_searching et ranked_accept).
+		ranked("Reset")
+		dbg:Invoke(player, "RankedMove", false) -- sur sa parcelle : le client entre lui-même dans le cercle
+		ReplicatedStorage:SetAttribute("AutoTestRanked", "Client")
+		local signedUp = waitFor(function()
+			return queueState() == "Searching"
+		end, 90)
+		check(signedUp, `classé (client) : bouton « S'INSCRIRE » dans le cercle (remote QueueAction « Join ») -> inscrit ({queueState()})`)
+		local walkedAway = signedUp and waitFor(function()
+			return player:GetAttribute("InRankedCircle") == false
+		end, 20)
+		check(walkedAway and queueState() == "Searching", `classé (client) : sorti du cercle, toujours inscrit ({queueState()})`)
+		local clientProposal = nil
+		if walkedAway then
+			clientProposal = ranked("FakeOpponent", { name = "Chevalier factice", games = 12 })
+		end
+		check(
+			clientProposal ~= nil and queueState() == "Pending" and player:GetAttribute("MatchOpponent") == "Chevalier factice",
+			`classé : un adversaire factice s'inscrit -> match proposé (Pending, adversaire « {player:GetAttribute("MatchOpponent")} »)`
+		)
+		local clientAccepted = clientProposal ~= nil and waitFor(function()
+			return queueState() == "Accepted"
+		end, MM.ACCEPT_SECONDS)
+		check(clientAccepted, `classé (client) : ACCEPTER (remote QueueAction « Accept ») -> en attente de l'adversaire ({queueState()})`)
+		if clientAccepted then
+			task.wait(2) -- le client vérifie « En attente de l'adversaire… »
+			ranked("OpponentAccept")
+			local s1 = ranked("State")
+			local start = s1.lastStart
+			check(
+				start ~= nil and start.proposalId == clientProposal and table.find(start.players, player.UserId) ~= nil
+					and s1.teleports[me] == start.accessCode and queueState() == "Idle",
+				`classé : l'adversaire accepte aussi -> le match partirait (Studio : pas de téléportation), joueur libéré ({queueState()})`
+			)
+		end
+		task.wait(2) -- le client vérifie que la fenêtre et le statut se ferment
+		ReplicatedStorage:SetAttribute("AutoTestRanked", "Server")
+
+		-- 2) Inscription : seulement dans le cercle (position vue par le serveur), une seule place, anti-spam.
+		ranked("Reset")
+		dbg:Invoke(player, "RankedMove", false)
+		local outside = waitFor(function()
+			return player:GetAttribute("InRankedCircle") == false
+		end, 3)
+		local okOut, reasonOut = dbg:Invoke(player, "RankedSignUp")
+		local sOut = ranked("State")
+		check(
+			outside and not okOut and queueState() == "Idle" and sOut.queue[me] == nil,
+			`classé : inscription refusée hors du cercle (« {reasonOut} »), pas dans la file`
+		)
+		dbg:Invoke(player, "RankedMove", true)
+		local inside = waitFor(function()
+			return player:GetAttribute("InRankedCircle") == true
+		end, 3)
+		local okIn = dbg:Invoke(player, "RankedSignUp")
+		local sIn = ranked("State")
+		check(
+			inside and okIn and queueState() == "Searching" and sIn.queue[me] ~= nil and typeof(player:GetAttribute("QueueStartedAt")) == "number",
+			`classé : dans le cercle (InRankedCircle), inscription acceptée -> dans la file ({queueState()})`
+		)
+		local okTwice, reasonTwice = dbg:Invoke(player, "RankedSignUp")
+		check(not okTwice and queueState() == "Searching", `classé : 2e inscription refusée (« {reasonTwice} »)`)
+		ranked("Leave")
+		local sLeave = ranked("State")
+		check(
+			queueState() == "Idle" and sLeave.queue[me] == nil and player:GetAttribute("QueueStartedAt") == nil,
+			"classé : ANNULER pendant la recherche -> plus inscrit, retiré de la file"
+		)
+		local okSpam, reasonSpam = dbg:Invoke(player, "RankedSignUp")
+		check(not okSpam and queueState() == "Idle", `classé : réinscription tout de suite refusée (anti-spam : « {reasonSpam} »)`)
+
+		-- Les deux acceptent (l'adversaire d'abord) : le match partirait avec les 2 joueurs. (Il attend depuis 40 s :
+		-- sa fourchette de MMR, 75 + 8 x 40 = 395, couvre l'écart avec le joueur.)
+		if freshSignUp("les deux acceptent") then
+			local idA, fakeA = ranked("FakeOpponent", { name = "Adversaire A", mmr = 1234, games = 12, wait = 40 })
+			local sA0 = ranked("State")
+			local endsIn = (player:GetAttribute("MatchAcceptEndsAt") or 0) - workspace:GetServerTimeNow()
+			check(
+				idA ~= nil and queueState() == "Pending" and player:GetAttribute("MatchOpponent") == "Adversaire A"
+					and player:GetAttribute("MatchOpponentMmr") == 1234 and player:GetAttribute("MatchOpponentGames") == 12
+					and endsIn > MM.ACCEPT_SECONDS - 1 and endsIn <= MM.ACCEPT_SECONDS + 0.05
+					and sA0.proposal and math.abs(sA0.proposal.deadline - sA0.proposal.createdAt - (MM.ACCEPT_SECONDS + MM.ACCEPT_GRACE)) < 0.01
+					and sA0.queue[me] == nil and sA0.queue[tostring(fakeA)] == nil,
+				`classé : match proposé -> adversaire publié pour la fenêtre (nom, 1234 MMR, 12 matchs), barre de {string.format("%.1f", endsIn)} s (ACCEPT_SECONDS {MM.ACCEPT_SECONDS}), les deux retirés de la file`
+			)
+			ranked("OpponentAccept")
+			check(queueState() == "Pending", `classé : l'adversaire accepte en premier -> le joueur doit encore répondre ({queueState()})`)
+			ranked("Accept")
+			local sA = settle("les deux acceptent")
+			local start = sA.lastStart
+			check(
+				start ~= nil and start.proposalId == idA and table.find(start.players, player.UserId) ~= nil
+					and table.find(start.players, fakeA) ~= nil and sA.teleports[me] == start.accessCode
+					and queueState() == "Idle" and next(sA.queue) == nil and next(sA.opponents) == nil,
+				`classé : les deux acceptent -> le match partirait avec les 2 joueurs ({if start then table.concat(start.players, " et ") else "aucun"}, code {start and start.accessCode}), Studio : pas de téléportation`
+			)
+		end
+
+		-- J'accepte en premier : ANNULER et REFUSER ne font plus rien (on attend l'adversaire), puis il accepte.
+		if freshSignUp("j'accepte en premier") then
+			local idK = ranked("FakeOpponent")
+			ranked("Accept")
+			ranked("Leave")
+			ranked("Refuse")
+			check(queueState() == "Accepted", `classé : après ACCEPTER, ANNULER et REFUSER sont ignorés ({queueState()})`)
+			ranked("OpponentAccept")
+			local sK = settle("j'accepte en premier")
+			check(
+				queueState() == "Idle" and sK.lastStart ~= nil and sK.lastStart.proposalId == idK,
+				`classé : j'accepte, puis l'adversaire -> le match partirait ({queueState()})`
+			)
+		end
+
+		-- Je REFUSE : je quitte la file ; l'adversaire (qui avait accepté) y retourne avec son attente.
+		if freshSignUp("je refuse") then
+			local _, fakeE = ranked("FakeOpponent", { wait = 40 })
+			local fakeKey = tostring(fakeE)
+			local joinedE = ranked("State").opponents[fakeKey].joinedAt
+			ranked("OpponentAccept")
+			ranked("Refuse")
+			local sE = settle("je refuse")
+			local back = sE.opponents[fakeKey]
+			check(
+				queueState() == "Idle" and sE.queue[me] == nil and back ~= nil and back.state == "Searching"
+					and sE.queue[fakeKey] ~= nil and sE.queue[fakeKey].joinedAt == joinedE and sE.now - joinedE >= 40,
+				`classé : je REFUSE -> je quitte la file ; l'adversaire y retourne avec son attente ({if back then back.state else "?"}, inscrit depuis {math.floor(sE.now - joinedE)} s)`
+			)
+		end
+
+		-- Temps écoulé sans accepter (la boucle normale du serveur s'en occupe seule) : pareil.
+		if freshSignUp("temps écoulé") then
+			local _, fakeF = ranked("FakeOpponent", { wait = 25 })
+			local fakeKey = tostring(fakeF)
+			local joinedF = ranked("State").opponents[fakeKey].joinedAt
+			ranked("OpponentAccept")
+			ranked("Expire", true)
+			-- (chaque place a son propre passage : on attend les deux)
+			local expired = waitFor(function()
+				local opponent = ranked("State").opponents[fakeKey]
+				return queueState() == "Idle" and opponent ~= nil and opponent.state == "Searching"
+			end, MM.PROPOSAL_POLL_INTERVAL + 3)
+			local sF = settle("temps écoulé")
+			check(
+				expired and sF.queue[me] == nil and sF.opponents[fakeKey] ~= nil and sF.opponents[fakeKey].state == "Searching"
+					and sF.queue[fakeKey] ~= nil and sF.queue[fakeKey].joinedAt == joinedF,
+				`classé : temps écoulé sans accepter (vu par la boucle du serveur) -> je quitte la file ; l'adversaire y retourne avec son attente ({queueState()})`
+			)
+		end
+
+		-- L'adversaire REFUSE (j'avais accepté) : je retourne dans la file avec mon heure d'inscription.
+		if freshSignUp("l'adversaire refuse") then
+			local sG0 = ranked("State")
+			local myJoined, myStarted = sG0.joinedAt, player:GetAttribute("QueueStartedAt")
+			local _, fakeG = ranked("FakeOpponent")
+			ranked("Accept")
+			ranked("OpponentRefuse")
+			local sG = settle("l'adversaire refuse")
+			local fakeKey = tostring(fakeG)
+			check(
+				queueState() == "Searching" and sG.joinedAt == myJoined and sG.queue[me] ~= nil and sG.queue[me].joinedAt == myJoined
+					and player:GetAttribute("QueueStartedAt") == myStarted and sG.opponents[fakeKey] == nil and sG.queue[fakeKey] == nil
+					and player:GetAttribute("MatchOpponent") == nil,
+				`classé : l'adversaire REFUSE -> je retourne dans la file avec mon heure d'inscription (chrono gardé), fenêtre fermée ({queueState()})`
+			)
+
+			-- L'adversaire ne répond pas à temps (j'avais accepté) : je retourne dans la file, il est retiré.
+			local _, fakeH = ranked("FakeOpponent")
+			ranked("Accept")
+			ranked("Expire")
+			local sH = settle("l'adversaire ne répond pas")
+			check(
+				queueState() == "Searching" and sH.joinedAt == myJoined and sH.opponents[tostring(fakeH)] == nil,
+				`classé : l'adversaire ne répond pas à temps -> je retourne dans la file, lui est retiré ({queueState()})`
+			)
+
+			-- L'adversaire quitte le jeu pendant le match proposé : pareil, tout de suite.
+			ranked("FakeOpponent")
+			ranked("OpponentLeave")
+			local sI = settle("l'adversaire part")
+			check(queueState() == "Searching" and sI.joinedAt == myJoined, `classé : l'adversaire quitte le jeu -> je retourne dans la file ({queueState()})`)
+
+			-- ANNULER pendant le match proposé = refus : je quitte la file, l'adversaire y retourne.
+			local idJ, fakeJ = ranked("FakeOpponent", { wait = 10 })
+			local pendingJ = queueState() == "Pending" and idJ ~= nil
+			ranked("Leave")
+			local sJ = settle("ANNULER pendant le match proposé")
+			local fakeKeyJ = tostring(fakeJ)
+			check(
+				pendingJ and queueState() == "Idle" and sJ.queue[me] == nil and sJ.opponents[fakeKeyJ] ~= nil
+					and sJ.opponents[fakeKeyJ].state == "Searching" and sJ.queue[fakeKeyJ] ~= nil,
+				`classé : ANNULER pendant le match proposé -> je quitte la file, l'adversaire y retourne ({queueState()})`
+			)
+		end
+
+		-- Réservation du serveur de match ratée : les deux retournent dans la file (attente gardée), personne
+		-- n'est téléporté. Puis serveur qui crée le match disparu : « Found », puis retour après START_TIMEOUT.
+		if freshSignUp("création ratée") then
+			local myJoinedL = ranked("State").joinedAt
+			local _, fakeL = ranked("FakeOpponent")
+			local fakeKey = tostring(fakeL)
+			ranked("BreakReserve", true)
+			ranked("Accept")
+			ranked("OpponentAccept")
+			local sL = settle("création ratée")
+			ranked("BreakReserve", false)
+			check(
+				queueState() == "Searching" and sL.joinedAt == myJoinedL and sL.opponents[fakeKey] ~= nil
+					and sL.opponents[fakeKey].state == "Searching" and sL.queue[me] ~= nil and sL.queue[fakeKey] ~= nil
+					and sL.teleports[me] == nil and sL.lastStart == nil,
+				`classé : réservation du serveur de match ratée -> les deux retournent dans la file, personne n'est téléporté ({queueState()})`
+			)
+			ranked("Tick") -- les deux sont encore dans la file : nouvelle paire
+			local pendingM = queueState() == "Pending"
+			ranked("StuckStart", 0)
+			local foundM = queueState() == "Found"
+			ranked("StuckStart", MM.START_TIMEOUT + 1)
+			local sM = settle("création trop longue")
+			check(
+				pendingM and foundM and queueState() == "Searching" and sM.joinedAt == myJoinedL
+					and sM.opponents[fakeKey] ~= nil and sM.opponents[fakeKey].state == "Searching",
+				`classé : les deux ont accepté mais le serveur qui crée le match a disparu -> « Found », puis retour dans la file après START_TIMEOUT ({MM.START_TIMEOUT} s)`
+			)
+		end
+
+		-- L'adversaire quitte le jeu alors que les deux ont accepté, avant la création du match (« Found ») : je
+		-- retourne dans la file au lieu de partir l'attendre seul sur le serveur de match.
+		if freshSignUp("l'adversaire part avant la création") then
+			local myJoinedN = ranked("State").joinedAt
+			local _, fakeN = ranked("FakeOpponent")
+			ranked("StuckStart", 0) -- les deux ont accepté, le match est en cours de création
+			local foundN = queueState() == "Found"
+			ranked("OpponentLeave")
+			local sN = settle("l'adversaire part avant la création")
+			check(
+				foundN and queueState() == "Searching" and sN.joinedAt == myJoinedN and sN.queue[me] ~= nil
+					and sN.opponents[tostring(fakeN)] == nil and sN.teleports[me] == nil and sN.lastStart == nil,
+				`classé : l'adversaire quitte le jeu après avoir accepté, match pas encore créé -> je retourne dans la file ({queueState()})`
+			)
+		end
+
+		-- Priorité à ceux qui attendent depuis longtemps : A (1000) et B (1030) viennent d'arriver, C (1060) attend
+		-- depuis 60 s. Avant, les voisins A et B étaient mis ensemble ; maintenant C choisit d'abord (B, le plus
+		-- proche de lui) et A attend.
+		ranked("Reset")
+		local _, fakeP1 = ranked("FakeOpponent", { mmr = 1000, pair = false })
+		local _, fakeP2 = ranked("FakeOpponent", { mmr = 1030, pair = false })
+		local _, fakeP3 = ranked("FakeOpponent", { mmr = 1060, wait = 60, pair = false })
+		ranked("Tick")
+		local sP = ranked("State")
+		local p1, p2, p3 = sP.opponents[tostring(fakeP1)], sP.opponents[tostring(fakeP2)], sP.opponents[tostring(fakeP3)]
+		check(
+			p1 ~= nil and p2 ~= nil and p3 ~= nil and p1.state == "Searching" and p2.state == "Pending" and p3.state == "Pending"
+				and p2.proposalId == p3.proposalId,
+			`classé : priorité à l'attente -> celui qui attend depuis 60 s est mis en paire d'abord, avec le plus proche en MMR (A {p1 and p1.state}, B {p2 and p2.state}, C {p3 and p3.state})`
+		)
+
+		-- Personne n'est resté bloqué au milieu, et tout est vidé à la fin.
+		check(#stuck == 0, `classé : personne n'est resté bloqué (Pending, Accepted, Found) à la fin d'un cas{if #stuck > 0 then " : " .. table.concat(stuck, " | ") else ""}`)
+		ranked("Reset")
+		local sEnd = ranked("State")
+		check(
+			queueState() == "Idle" and next(sEnd.queue) == nil and next(sEnd.opponents) == nil and player:GetAttribute("MatchOpponent") == nil,
+			"classé : tout vidé à la fin des tests (file, adversaires factices, fenêtre)"
+		)
+		dbg:Invoke(player, "RankedMove", false)
+	end
+	testRanked()
+
 	-- Retour à une vague normale pour la fin
 	dbg:Invoke(player, "StartWave", 1)
 

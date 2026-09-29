@@ -241,6 +241,7 @@ function PlotUI.start()
 	------------------------------------------------------------------
 	local count = #IdleTowers.ORDER
 	local panel = UI.new("Frame", {
+		Name = "TowerPanel", -- (LobbyUI met le statut de la recherche classée juste au-dessus quand il est ouvert)
 		AnchorPoint = Vector2.new(1, 1),
 		Position = UDim2.new(1, -16, 1, -16),
 		Size = UDim2.fromOffset(count * (CARD_WIDTH + 8) + 12, PANEL_HEIGHT),

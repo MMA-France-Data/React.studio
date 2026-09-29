@@ -5,7 +5,12 @@ local Remotes = {}
 
 local DEFINITIONS = {
 	-- Map principale (hub)
-	QueueAction = "RemoteEvent", -- client -> serveur : "Join" | "Leave"
+	-- Classé, client -> serveur : "Join" (bouton « ⚔ S'INSCRIRE AU CLASSÉ », dans le cercle de l'arène : revérifié
+	-- par le serveur) | "Leave" (ANNULER) | "Accept" | "Refuse" (fenêtre « MATCH TROUVÉ ! »). Voir Matchmaking.luau.
+	-- État publié en attributs du joueur : QueueState (Idle, Joining, Searching, Pending, Accepted, Found,
+	-- Teleporting), QueueStartedAt (heure du serveur de l'inscription), InRankedCircle, et pendant un match
+	-- proposé : MatchOpponent (nom), MatchOpponentMmr, MatchOpponentGames, MatchAcceptEndsAt (fin de la barre).
+	QueueAction = "RemoteEvent",
 	HubAction = "RemoteEvent", -- client -> serveur : "GoHome" | "GoRanked"
 	-- Mode infini (parcelles)
 	-- client -> serveur : ("Place", spot, type, typeRemplacé?) | ("Upgrade", spot) | ("Sell", spot) | ("BuySpot", spot) | "Rebirth"

@@ -307,6 +307,48 @@ local function refreshBoard(rows)
 	end
 end
 
+----------------------------------------------------------------------
+-- Cercle ranked (au centre de la map) : on s'y inscrit au classé avec un bouton, puis on peut partir
+----------------------------------------------------------------------
+
+-- Personnage vivant dans le cercle (même règle que le cercle dessiné : son rayon, et pas trop haut ni trop bas).
+local function isInRankedCircle(player: Player): boolean
+	local character = player.Character
+	local root = character and character:FindFirstChild("HumanoidRootPart")
+	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+	if not root or (humanoid and humanoid.Health <= 0) then
+		return false
+	end
+	local offset = root.Position - PlotLayout.RANKED_CIRCLE_POSITION
+	return Vector3.new(offset.X, 0, offset.Z).Magnitude <= PlotLayout.RANKED_CIRCLE_RADIUS and math.abs(offset.Y) < 8
+end
+
+-- Entrer dans le cercle n'inscrit plus tout seul : le serveur publie l'attribut InRankedCircle du joueur, et
+-- LobbyUI affiche le bouton « ⚔ S'INSCRIRE AU CLASSÉ » tant qu'il est vrai.
+local function watchRankedCircle()
+	while true do
+		task.wait(0.25)
+		for _, player in Players:GetPlayers() do
+			local inside = isInRankedCircle(player)
+			if player:GetAttribute("InRankedCircle") ~= inside then
+				player:SetAttribute("InRankedCircle", inside)
+			end
+		end
+	end
+end
+
+-- Bouton « S'INSCRIRE » (remote QueueAction « Join ») : le serveur revérifie que le joueur est VRAIMENT dans le
+-- cercle (sa position à lui, pas ce que dit le client) ; Matchmaking.join vérifie le reste (pas déjà inscrit,
+-- anti-spam, données chargées). Une fois inscrit, il peut partir : il reste dans la file.
+-- Renvoie (réussi, raison) pour les tests Studio.
+local function signUp(player: Player): (boolean, string)
+	if not isInRankedCircle(player) then
+		Remotes.get("Notify"):FireClient(player, "Entre dans le cercle de l'arène pour t'inscrire au classé", "Warning")
+		return false, "hors du cercle"
+	end
+	return Matchmaking.join(player)
+end
+
 -- Outil de test, uniquement dans Studio : ServerStorage.StudioDebug (BindableFunction), utilisable
 -- depuis la barre de commande ou un plugin.
 --   Invoke(player, "Coins", 1e6)                -> ajoute des pièces
@@ -358,6 +400,27 @@ end
 --   Invoke(player, "ChallengeClaim", "d1", jour?) -> bouton « Récupérer » (sans l'anti-spam ; jour absent = jour
 --                                                en cours, ou semaine en cours pour "w1") ; renvoie (réussi, message, détails)
 --   Invoke(player, "ChallengeMigrate", ancienneSauvegarde) -> la sauvegarde complétée comme au chargement
+-- Classé : inscription dans le cercle et match à ACCEPTER (Matchmaking.luau). Dans Studio, la file tourne en
+-- mémoire (un seul serveur, adversaires factices) et personne n'est jamais téléporté :
+--   Invoke(player, "RankedSignUp")             -> bouton « S'INSCRIRE AU CLASSÉ » (mêmes vérifications que le remote :
+--                                                dans le cercle, pas déjà inscrit, anti-spam) ; renvoie (réussi, raison)
+--   Invoke(player, "RankedMove", true)         -> personnage au centre du cercle (false : renvoyé sur sa parcelle)
+--   Invoke(player, "Ranked", "FakeOpponent", { name = "Bot", mmr = 1000, games = 12, wait = 30 })
+--                                             -> un adversaire factice s'inscrit (depuis `wait` secondes) et les paires
+--                                                sont formées tout de suite (pair = false : il attend seulement dans la
+--                                                file) ; renvoie (id du match proposé au joueur, UserId de l'adversaire)
+--   Invoke(player, "Ranked", "OpponentAccept") -> l'adversaire factice du match proposé accepte ("OpponentRefuse" : il
+--                                                refuse, "OpponentLeave" : il quitte le jeu)
+--   Invoke(player, "Ranked", "Accept")         -> ACCEPTER du joueur ("Refuse" : REFUSER, "Leave" : ANNULER)
+--   Invoke(player, "Ranked", "Expire")         -> le temps pour accepter est écoulé (comme après ACCEPT_SECONDS ; avec
+--                                                true, rien n'est forcé : la boucle du serveur doit le voir seule)
+--   Invoke(player, "Ranked", "StuckStart", 40) -> les deux ont accepté, mais le serveur qui crée le match a disparu
+--                                                depuis 40 s (0 = à l'instant : le joueur passe à « Found »)
+--   Invoke(player, "Ranked", "BreakReserve", true) -> la réservation du serveur de match échoue (false : remarche)
+--   Invoke(player, "Ranked", "Tick")           -> un passage du leader et du suivi, sans attendre
+--   Invoke(player, "Ranked", "State")          -> { state, joinedAt, proposal, queue, opponents, lastStart, teleports }
+--                                                (lastStart = le match qui partirait, teleports = qui serait téléporté)
+--   Invoke(player, "Ranked", "Reset")          -> tout vidé (file, propositions, adversaires factices), joueur « Idle »
 local function setupStudioDebug()
 	if not RunService:IsStudio() then
 		return
@@ -454,38 +517,26 @@ local function setupStudioDebug()
 		elseif command == "ChallengeMigrate" then
 			local old = ...
 			return PlayerData.reconcile(if typeof(old) == "table" then old else {})
+		elseif command == "RankedSignUp" then
+			return signUp(player)
+		elseif command == "RankedMove" then
+			local character = player.Character
+			local toCircle = ...
+			if not character then
+				return false
+			end
+			if toCircle then
+				character:PivotTo(CFrame.new(PlotLayout.RANKED_CIRCLE_POSITION + Vector3.new(0, 3, 0)))
+			else
+				Plots.sendHome(player)
+			end
+			return true
+		elseif command == "Ranked" then
+			return Matchmaking.debug(player, ...)
 		end
 		return nil
 	end
 	debug.Parent = game:GetService("ServerStorage")
-end
-
--- Entrer dans le cercle lance la recherche (une seule fois par entrée).
-local function watchRankedCircle()
-	local center = PlotLayout.RANKED_CIRCLE_POSITION
-	local radius = PlotLayout.RANKED_CIRCLE_RADIUS
-	local inside = {}
-
-	Players.PlayerRemoving:Connect(function(player)
-		inside[player] = nil
-	end)
-
-	while true do
-		task.wait(0.25)
-		for _, player in Players:GetPlayers() do
-			local character = player.Character
-			local root = character and character:FindFirstChild("HumanoidRootPart")
-			local isInside = false
-			if root then
-				local offset = root.Position - center
-				isInside = Vector3.new(offset.X, 0, offset.Z).Magnitude <= radius and math.abs(offset.Y) < 8
-			end
-			if isInside and not inside[player] then
-				task.spawn(Matchmaking.join, player)
-			end
-			inside[player] = isInside
-		end
-	end
 end
 
 function Hub.start()
@@ -625,11 +676,26 @@ function Hub.start()
 		end
 	end)
 
+	-- Classé : « S'INSCRIRE » (dans le cercle), « ANNULER », et la fenêtre « MATCH TROUVÉ ! » (ACCEPTER / REFUSER).
+	-- Le serveur vérifie tout (Matchmaking.luau) ; un clic toutes les 0,25 s au plus.
+	local lastQueueAction = {}
+	Players.PlayerRemoving:Connect(function(player)
+		lastQueueAction[player] = nil
+	end)
 	Remotes.get("QueueAction").OnServerEvent:Connect(function(player, action)
+		local now = os.clock()
+		if typeof(action) ~= "string" or now - (lastQueueAction[player] or 0) < 0.25 then
+			return
+		end
+		lastQueueAction[player] = now
 		if action == "Join" then
-			Matchmaking.join(player)
+			signUp(player)
 		elseif action == "Leave" then
-			Matchmaking.leave(player)
+			Matchmaking.leave(player, "Cancel")
+		elseif action == "Accept" then
+			Matchmaking.answer(player, true)
+		elseif action == "Refuse" then
+			Matchmaking.answer(player, false)
 		end
 	end)
 

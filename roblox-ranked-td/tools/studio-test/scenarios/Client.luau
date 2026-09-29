@@ -711,4 +711,176 @@ return function(log)
 		say("parcelles : aucun nouvel ennemi d'un autre type pendant le test")
 	end
 	swarmModel:Destroy() -- le reste de la partie retrouve les blocs
+
+	----------------------------------------------------------------------
+	-- Classé : bouton « ⚔ S'INSCRIRE AU CLASSÉ » seulement dans le cercle de l'arène, statut de la recherche (en
+	-- bas à droite, au-dessus du panneau des tours s'il est ouvert) et fenêtre « MATCH TROUVÉ ! ». Le scénario
+	-- serveur joue un adversaire factice (file en mémoire dans Studio, pas de téléportation) : il donne la main
+	-- au client avec l'attribut AutoTestRanked de ReplicatedStorage (« Client »), puis attend son inscription
+	-- et son ACCEPTER, envoyés par les vrais remotes (comme les boutons : un plugin ne peut pas cliquer).
+	-- Dans sa propre fonction (limite des 200 variables locales de Luau).
+	----------------------------------------------------------------------
+	local function testRanked()
+		local function waitFor(condition, timeout)
+			local deadline = os.clock() + timeout
+			while os.clock() < deadline do
+				if condition() then
+					return true
+				end
+				task.wait(0.1)
+			end
+			return condition() == true
+		end
+		-- Vraiment à l'écran : lui et tous ses parents visibles, dans un ScreenGui allumé.
+		local function shown(object)
+			local current = object
+			while current and not current:IsA("ScreenGui") do
+				if current:IsA("GuiObject") and not current.Visible then
+					return false
+				end
+				current = current.Parent
+			end
+			return current ~= nil and current.Enabled
+		end
+		local function queueState()
+			return player:GetAttribute("QueueState") or "Idle"
+		end
+		local function inCircle(value)
+			return player:GetAttribute("InRankedCircle") == value
+		end
+		local lobby = player.PlayerGui:FindFirstChild("Lobby")
+		local signUpButton = lobby and lobby:FindFirstChild("SignUpButton", true)
+		local status = lobby and lobby:FindFirstChild("QueueStatus", true)
+		local statusText = status and status:FindFirstChild("StatusText")
+		local cancelButton = status and status:FindFirstChild("CancelButton")
+		local acceptGui = player.PlayerGui:FindFirstChild("RankedAccept")
+		local window = acceptGui and acceptGui:FindFirstChild("Window", true)
+		local found = signUpButton ~= nil and statusText ~= nil and cancelButton ~= nil and window ~= nil
+		check(found, "classé : bouton « S'INSCRIRE », statut de la recherche et fenêtre « MATCH TROUVÉ ! » présents")
+		local turn = waitFor(function()
+			return ReplicatedStorage:GetAttribute("AutoTestRanked") == "Client"
+		end, 120)
+		local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+		if not (found and turn and root) then
+			check(false, `classé : test du client impossible (main donnée par le serveur : {turn}, personnage : {root ~= nil})`)
+			return
+		end
+		restoreCamera()
+		local home = root.CFrame
+		local circle = PlotLayout.RANKED_CIRCLE_POSITION
+		local inside = CFrame.new(circle + Vector3.new(0, 3, 0))
+		local outside = CFrame.new(circle + Vector3.new(0, 3, PlotLayout.RANKED_CIRCLE_RADIUS + 12))
+
+		-- Hors du cercle : pas de bouton. Dans le cercle : le bouton apparaît. Ressorti : il disparaît.
+		root.CFrame = outside
+		local outOk = waitFor(function()
+			return inCircle(false)
+		end, 3)
+		check(outOk and not shown(signUpButton), `classé : hors du cercle, pas de bouton « S'INSCRIRE » (InRankedCircle = {player:GetAttribute("InRankedCircle")})`)
+		root.CFrame = inside
+		local inOk = waitFor(function()
+			return inCircle(true) and shown(signUpButton)
+		end, 3)
+		check(
+			inOk and string.find(signUpButton.Text, "S'INSCRIRE AU CLASSÉ", 1, true) ~= nil,
+			`classé : dans le cercle, bouton « {signUpButton.Text} » affiché`
+		)
+		-- Ni sur la carte de rang et la colonne de gauche (x < 276), ni sur le panneau des tours (en bas à droite,
+		-- ~316 px de haut), ni sur le chat (en bas à gauche, moins haut que le panneau des tours).
+		local screen = lobby.AbsoluteSize
+		if screen.X >= 1000 then
+			local left, top = signUpButton.AbsolutePosition.X, signUpButton.AbsolutePosition.Y
+			local bottom = top + signUpButton.AbsoluteSize.Y
+			local placed = left >= 276 and bottom <= screen.Y - 316
+			check(
+				placed,
+				`classé : bouton « S'INSCRIRE » sans couvrir la colonne de gauche, le chat ni le panneau des tours (x {math.floor(left)}, y de {math.floor(top)} à {math.floor(bottom)}, écran {math.floor(screen.X)} x {math.floor(screen.Y)})`
+			)
+		end
+		shot("ranked_signup")
+		root.CFrame = outside
+		check(
+			waitFor(function()
+				return inCircle(false) and not shown(signUpButton)
+			end, 3),
+			"classé : ressorti du cercle, le bouton disparaît"
+		)
+
+		-- Inscription dans le cercle (vrai remote, comme le bouton) : statut « Recherche d'un adversaire… » + ANNULER.
+		root.CFrame = inside
+		waitFor(function()
+			return inCircle(true)
+		end, 3)
+		ReplicatedStorage.Remotes.QueueAction:FireServer("Join")
+		local searching = waitFor(function()
+			return queueState() == "Searching" and shown(status)
+		end, 5)
+		task.wait(0.3)
+		check(
+			searching
+				and string.find(statusText.Text, "Recherche d'un adversaire", 1, true) ~= nil
+				and shown(cancelButton)
+				and cancelButton.Text == "ANNULER"
+				and not shown(signUpButton),
+			`classé : inscrit -> « {statusText.Text} » et ANNULER en bas à droite, plus de bouton « S'INSCRIRE »`
+		)
+		shot("ranked_searching")
+		-- Panneau des tours ouvert (PlotUI, en bas à droite) : le statut monte juste au-dessus.
+		local plotGui = player.PlayerGui:FindFirstChild("Plot")
+		local towerPanel = plotGui and plotGui:FindFirstChild("TowerPanel")
+		if towerPanel then
+			local wasVisible = towerPanel.Visible
+			towerPanel.Visible = true
+			task.wait(0.4)
+			local statusBottom = status.AbsolutePosition.Y + status.AbsoluteSize.Y
+			local panelTop = towerPanel.AbsolutePosition.Y
+			check(
+				statusBottom <= panelTop + 1,
+				`classé : panneau des tours ouvert -> le statut passe au-dessus (bas du statut {math.floor(statusBottom)}, haut du panneau {math.floor(panelTop)})`
+			)
+			towerPanel.Visible = wasVisible
+		else
+			check(false, "classé : panneau des tours (PlotUI « TowerPanel ») introuvable")
+		end
+
+		-- Il repart jouer, toujours inscrit : le serveur fait s'inscrire un adversaire -> « MATCH TROUVÉ ! ».
+		root.CFrame = home
+		local pending = waitFor(function()
+			return queueState() == "Pending" and shown(window)
+		end, 20)
+		task.wait(0.3)
+		local title = window:FindFirstChild("Title")
+		local opponent = window:FindFirstChild("Opponent")
+		local acceptButton = window:FindFirstChild("AcceptButton")
+		local refuseButton = window:FindFirstChild("RefuseButton")
+		local timer = window:FindFirstChild("Timer")
+		local waiting = window:FindFirstChild("Waiting")
+		local opponentName = player:GetAttribute("MatchOpponent")
+		check(
+			pending
+				and title and string.find(title.Text, "MATCH TROUVÉ", 1, true) ~= nil
+				and typeof(opponentName) == "string" and opponent and string.find(opponent.Text, opponentName, 1, true) ~= nil
+				and acceptButton and shown(acceptButton) and acceptButton.Text == "ACCEPTER"
+				and refuseButton and shown(refuseButton) and refuseButton.Text == "REFUSER"
+				and timer and shown(timer),
+			`classé : fenêtre « {title and title.Text} » : « {opponent and opponent.Text} », barre du temps, ACCEPTER et REFUSER`
+		)
+		shot("ranked_accept")
+		ReplicatedStorage.Remotes.QueueAction:FireServer("Accept")
+		local waitingOk = waitFor(function()
+			return queueState() == "Accepted" and waiting ~= nil and shown(waiting)
+				and string.find(waiting.Text, "En attente de l'adversaire", 1, true) ~= nil
+		end, 5)
+		check(
+			waitingOk and not shown(acceptButton) and not shown(refuseButton),
+			`classé : ACCEPTER -> « {waiting and waiting.Text} », plus de boutons`
+		)
+
+		-- L'adversaire accepte : le match partirait (Studio : pas de téléportation), fenêtre et statut se ferment.
+		local closed = waitFor(function()
+			return queueState() == "Idle" and not shown(window) and not shown(status)
+		end, 15)
+		check(closed, `classé : les deux ont accepté -> fenêtre et statut fermés, plus inscrit ({queueState()})`)
+	end
+	testRanked()
 end
