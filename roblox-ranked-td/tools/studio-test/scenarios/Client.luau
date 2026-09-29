@@ -336,29 +336,41 @@ return function(log)
 	swarm6:Destroy()
 	task.wait(0.1)
 
-	-- Roi carmin (assets/EnemyModels/Boss_0.rbxm, importé depuis le .glb de ChatGPT) : boss des vagues 1-10 ;
-	-- à la bonne hauteur, tourné dans le sens de la marche (ses orteils vers -Z de la racine), ses animations
-	-- publiées (CustomModels.SETTINGS.boss_0) se chargent.
-	if modelsFolder:FindFirstChild("Boss_0") then
-		local bossDef = Enemies.Defs.Boss
-		local bossRoot, bossEntry = CustomModels.spawn("Boss", bossDef, 0, CFrame.new(0, 200, 0))
-		check(bossRoot ~= nil and bossRoot:GetAttribute("CustomModel") == "Boss_0", "Roi carmin : modèle perso « Boss_0 » pour le boss des vagues 1-10")
-		if bossRoot and bossEntry then
-			local expected = CustomModels.targetHeight("Boss", bossDef)
-			check(math.abs(bossEntry.height - expected) < 0.1, `Roi carmin : {string.format("%.2f", bossEntry.height)} studs de haut (attendu {string.format("%.2f", expected)})`)
-			bossRoot.Parent = workspace
-			local sum = Vector3.zero
-			for _, bone in bossRoot:GetDescendants() do
-				if bone:IsA("Bone") and string.find(string.lower(bone.Name), "toe", 1, true) and bone.Parent and bone.Parent:IsA("Bone") then
-					sum += bossRoot.CFrame:VectorToObjectSpace(bone.WorldPosition - (bone.Parent :: Bone).WorldPosition)
-				end
+	-- Vrais modèles du projet (assets/EnemyModels : Roi carmin « Boss_0 », troupes carmin...) : nom valable
+	-- (<Type> ou <Type>_<palier>), à la bonne hauteur, tournés dans le sens de la marche (orteils, ou tête d'un
+	-- cheval, vers -Z de la racine : CustomModels.frontDirection), leurs animations publiées
+	-- (CustomModels.SETTINGS) se chargent.
+	local realCount = 0
+	for lowerName, realName in realModels do
+		realCount += 1
+		local enemyType, palierText = string.match(realName, "^(%a+)_?(%d*)$")
+		local def = enemyType and Enemies.Defs[enemyType]
+		if not def then
+			check(false, `vrai modèle « {realName} » : nom inconnu (attendu <Type> ou <Type>_<palier>, ex. Boss_0)`)
+			continue
+		end
+		local palier = tonumber(palierText) or 0
+		local root, entry = CustomModels.spawn(enemyType, def, palier, CFrame.new(0, 200, 0))
+		check(root ~= nil and entry ~= nil and root:GetAttribute("CustomModel") == realName, `« {realName} » : modèle perso utilisé ({enemyType}, palier {palier})`)
+		if root and entry then
+			local settings = CustomModels.SETTINGS[lowerName]
+			local expected = CustomModels.targetHeight(enemyType, def) * (if settings and settings.height then settings.height else 1)
+			check(math.abs(entry.height - expected) < 0.1, `« {realName} » : {string.format("%.2f", entry.height)} studs de haut (attendu {string.format("%.2f", expected)})`)
+			root.Parent = workspace
+			local front = CustomModels.frontDirection(root)
+			if front then
+				local forward = -root.CFrame:VectorToObjectSpace(front).Z
+				check(forward > 0.9, `« {realName} » tourné dans le sens de la marche ({string.format("%.2f", forward)}, 1 = parfait)`)
+			else
+				say(`« {realName} » : pas d'os pour vérifier son sens de marche`)
 			end
-			local flat = Vector3.new(sum.X, 0, sum.Z)
-			local forward = if flat.Magnitude > 1e-4 then -flat.Unit.Z else 0
-			check(forward > 0.9, `Roi carmin tourné dans le sens de la marche (orteils vers l'avant : {string.format("%.2f", forward)}, 1 = parfait)`)
-			local lengths = {}
-			for label, loader in { marche = CustomModels.loadWalk, mort = CustomModels.loadDeath } do
-				local track = loader(bossRoot, bossEntry)
+			local lengths, expectedTracks = {}, {}
+			for label, pair in { marche = { CustomModels.loadWalk, entry.animation }, mort = { CustomModels.loadDeath, entry.deathAnimation } } do
+				if not pair[2] then
+					continue
+				end
+				table.insert(expectedTracks, label)
+				local track = pair[1](root, entry)
 				local length = 0
 				if track then
 					track:Play()
@@ -374,14 +386,102 @@ return function(log)
 				end
 				lengths[label] = length
 			end
+			local loaded = 0
+			for _, label in expectedTracks do
+				loaded += if lengths[label] > 0 then 1 else 0
+			end
 			check(
-				lengths.marche > 0 and lengths.mort > 0,
-				`Roi carmin : animations publiées chargées (marche {string.format("%.2f", lengths.marche)} s, mort {string.format("%.2f", lengths.mort)} s)`
+				loaded == #expectedTracks,
+				`« {realName} » : animations chargées {loaded}/{#expectedTracks} (marche {string.format("%.2f", lengths.marche or 0)} s, mort {string.format("%.2f", lengths.mort or 0)} s)`
 			)
-			bossRoot:Destroy()
+			root:Destroy()
 		end
-	else
-		log("Info", "[TEST] Roi carmin : pas de Boss_0 dans EnemyModels, vérification sautée")
+	end
+	say(`vrais modèles du projet vérifiés : {realCount}`)
+
+	-- Photos « walk_<modèle> » : chaque vrai modèle joue sa marche sur place (comme sur la parcelle), vu de
+	-- côté, avec une flèche rouge au sol dans son sens de déplacement (-Z de sa racine, comme PlotRenderer) :
+	-- son visage doit regarder vers la pointe de la flèche. Et le sens mesuré par ses os pendant l'animation
+	-- (orteils vers l'avant), en chiffres.
+	do
+		local IdleConfig = require(ReplicatedStorage.Shared.IdleConfig)
+		local hidden = {}
+		for _, gui in player.PlayerGui:GetChildren() do
+			if gui:IsA("ScreenGui") and gui.Enabled then
+				gui.Enabled = false
+				table.insert(hidden, gui)
+			end
+		end
+		for _, realName in realModels do
+			local enemyType, palierText = string.match(realName, "^(%a+)_?(%d*)$")
+			local def = enemyType and Enemies.Defs[enemyType]
+			if not def then
+				continue
+			end
+			local origin = CFrame.new(40, 300, 40)
+			local root, entry = CustomModels.spawn(enemyType, def, tonumber(palierText) or 0, origin)
+			if not (root and entry and entry.animation) then
+				if root then
+					root:Destroy()
+				end
+				continue
+			end
+			root.Parent = workspace
+			local arrow = Instance.new("Part")
+			arrow.Anchored = true
+			arrow.CanCollide = false
+			arrow.Material = Enum.Material.Neon
+			arrow.Color = Color3.fromRGB(230, 40, 40)
+			arrow.Size = Vector3.new(0.25, 0.25, def.size * 2)
+			arrow.CFrame = origin * CFrame.new(0, -def.size / 2 + 0.15, -def.size * 1.5)
+			arrow.Parent = workspace
+			local tip = Instance.new("Part")
+			tip.Shape = Enum.PartType.Ball
+			tip.Anchored = true
+			tip.CanCollide = false
+			tip.Material = Enum.Material.Neon
+			tip.Color = arrow.Color
+			tip.Size = Vector3.one * 0.8
+			tip.CFrame = origin * CFrame.new(0, -def.size / 2 + 0.15, -def.size * 2.5)
+			tip.Parent = workspace
+			local speed = def.speed * IdleConfig.ENEMY_SPEED_MULTIPLIER * IdleConfig.enemySpeedFactor(enemyType)
+			local track = CustomModels.loadWalk(root, entry)
+			local forwardRaw, forwardFixed = nil, nil
+			if track then
+				track:Play(0, 1, CustomModels.walkRate(entry, speed))
+				task.wait(0.6)
+				local front = CustomModels.frontDirection(root)
+				forwardRaw = front and -origin:VectorToObjectSpace(front).Z
+				-- Comme PlotRenderer : si l'animation retourne ce modèle (measureFlip), sa racine fait un demi-tour.
+				if CustomModels.measureFlip(root, entry) then
+					root.CFrame = origin * CFrame.Angles(0, math.pi, 0)
+					task.wait(0.2)
+				end
+				local fixed = CustomModels.frontDirection(root)
+				forwardFixed = fixed and -origin:VectorToObjectSpace(fixed).Z
+			end
+			local function two(x)
+				return if x then string.format("%.2f", x) else "?"
+			end
+			check(
+				forwardFixed ~= nil and forwardFixed > 0.9,
+				`« {realName} » marche vers l'avant, animation jouée ({two(forwardRaw)} sans correction, {two(forwardFixed)} avec ; 1 = vers l'avant, -1 = à reculons)`
+			)
+			local side = def.size * 2.2 + 3
+			look(origin.Position + origin.RightVector * side + Vector3.new(0, def.size * 0.3, 0), origin.Position + Vector3.new(0, 0, -def.size * 0.5))
+			shot("walk_" .. realName)
+			if track then
+				track:Stop(0)
+				track:Destroy()
+			end
+			root:Destroy()
+			arrow:Destroy()
+			tip:Destroy()
+		end
+		for _, gui in hidden do
+			gui.Enabled = true
+		end
+		restoreCamera()
 	end
 
 	-- 2) En jeu : les ennemis qui apparaissent sur les parcelles à partir de maintenant (PlotRenderer).
@@ -402,7 +502,12 @@ return function(log)
 					blocks += if piece:IsA("BasePart") then 1 else 0
 				end
 				live.other += 1
-				if child:GetAttribute("CustomModel") ~= nil or blocks == 0 then
+				-- Blocs, ou un vrai modèle du projet (ex. Normal_0 aux vagues 1-10) ; jamais un modèle de test.
+				local custom = child:GetAttribute("CustomModel")
+				if custom ~= nil then
+					live.otherReal = (live.otherReal or 0) + 1
+				end
+				if (custom ~= nil and realModels[string.lower(custom)] == nil) or (custom == nil and blocks == 0) then
 					live.otherBad += 1
 				end
 			end
@@ -529,7 +634,10 @@ return function(log)
 		say("parcelles : aucun écuyer apparu pendant le test (pas de Levée) : modèle vérifié par le module et la galerie")
 	end
 	if live.other > 0 then
-		check(live.otherBad == 0, `parcelles : nouveaux ennemis des autres types en blocs {live.other - live.otherBad}/{live.other}`)
+		check(
+			live.otherBad == 0,
+			`parcelles : nouveaux ennemis des autres types en blocs ou avec leur vrai modèle {live.other - live.otherBad}/{live.other} (dont {live.otherReal or 0} vrais modèles)`
+		)
 	else
 		say("parcelles : aucun nouvel ennemi d'un autre type pendant le test")
 	end

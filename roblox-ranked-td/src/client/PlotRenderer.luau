@@ -230,8 +230,13 @@ local function startDeath(enemy): boolean
 		end
 	end
 	enemy.part:SetAttribute("Dying", true)
+	-- Modèle que ses animations retournent (CustomModels.measureFlip) : racine d'un demi-tour pendant sa mort
+	-- aussi (elle l'est déjà s'il marchait).
+	if custom.flipWhenAnimated and not enemy.rootFlipped then
+		enemy.part.CFrame = enemy.part.CFrame * CFrame.Angles(0, math.pi, 0)
+	end
 	local rate = enemy.simSpeed or 1
-	track:Play(0.1, 1, rate)
+	track:Play(if custom.flipWhenAnimated then 0 else 0.1, 1, rate)
 	table.insert(dying, { part = enemy.part, track = track, rate = rate, started = os.clock(), fadeAt = nil })
 	return true
 end
@@ -423,10 +428,12 @@ local function updateAnimations()
 			if not enemy.walking then
 				continue
 			end
+			-- Modèle que son animation retourne : pas de fondu (sinon il pivoterait d'un demi-tour à vue).
+			local fade = if enemy.custom.flipWhenAnimated then 0 else 0.2
 			if (enemy.part.Position - eye).Magnitude > ANIM_DISTANCE then
 				enemy.walking = false
 				playingTracks -= 1
-				enemy.track:Stop(0.2)
+				enemy.track:Stop(fade)
 			else
 				local track = enemy.track
 				local rate = walkRate(enemy, simSpeed)
@@ -436,11 +443,15 @@ local function updateAnimations()
 					track.Looped = true
 				end
 				if not track.IsPlaying then
-					track:Play(0.1, 1, rate)
+					track:Play(fade / 2, 1, rate)
 					enemy.walkRateNow = rate
 				elseif math.abs(rate - enemy.walkRateNow) > ANIM_RATE_STEP then
 					enemy.walkRateNow = rate
 					track:AdjustSpeed(rate)
+				end
+				-- Son animation le retourne-t-elle ? Mesuré une fois par modèle, racine encore dans le sens normal.
+				if enemy.custom.flipWhenAnimated == nil and not enemy.rootFlipped and track.IsPlaying and track.Length > 0 and track.TimePosition > 0.1 then
+					CustomModels.measureFlip(enemy.part, enemy.custom)
 				end
 			end
 		end
@@ -463,7 +474,7 @@ local function updateAnimations()
 				end
 			end
 			local rate = walkRate(enemy, simSpeed)
-			enemy.track:Play(0.2, 1, rate)
+			enemy.track:Play(if enemy.custom.flipWhenAnimated then 0 else 0.2, 1, rate)
 			enemy.walkRateNow = rate
 			enemy.walking = true
 			playingTracks += 1
@@ -826,8 +837,12 @@ function PlotRenderer.start()
 				local localPosition, direction = PlotLayout.pointAt(enemy.distance)
 				local position = state.cframe:PointToWorldSpace(localPosition) + Vector3.new(0, enemy.def.size / 2, 0)
 				local worldDirection = state.cframe:VectorToWorldSpace(direction)
+				-- Modèle perso que son animation retourne (CustomModels.measureFlip) : racine tournée d'un demi-tour
+				-- tant que sa marche joue, pour qu'il regarde quand même devant lui.
+				local flipped = enemy.walking == true and enemy.custom ~= nil and enemy.custom.flipWhenAnimated == true
+				enemy.rootFlipped = flipped
 				table.insert(movedParts, enemy.part)
-				table.insert(movedCFrames, CFrame.lookAt(position, position + worldDirection))
+				table.insert(movedCFrames, CFrame.lookAt(position, position + (if flipped then -worldDirection else worldDirection)))
 			end
 		end
 		if #movedParts > 0 then

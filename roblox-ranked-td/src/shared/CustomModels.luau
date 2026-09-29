@@ -19,8 +19,9 @@
 --   Boss = Seigneur de guerre, Swarm = Écuyer, Giant = Chevalier colossal.
 -- Attributs facultatifs, à mettre sur le modèle dans Studio (Propriétés > Attributs > +, type Number) :
 --   FacingOffset (degrés) : le devant attendu est -Z du pivot du modèle (son LookVector, comme partout dans
---       Roblox) ; s'il marche à reculons, mets 180 ; de côté : 90 ou -90. Personnage à os (Mixamo, Meshy...)
---       sans FacingOffset : le devant est trouvé tout seul, du côté de ses orteils (toeDirection).
+--       Roblox) ; s'il marche à reculons, mets 180 ; de côté : 90 ou -90. Personnage à os (Mixamo, Meshy,
+--       KayKit, cheval...) sans FacingOffset : le devant est trouvé tout seul (frontDirection : du côté de ses
+--       orteils, sinon de sa tête plutôt que de sa queue).
 --   HeightScale (1 par défaut) : plus grand (1.3) ou plus petit (0.8) que la hauteur prévue pour ce type.
 --   AnimSpeed (1 par défaut) : animation de marche plus rapide ou plus lente (si les pieds glissent).
 --
@@ -63,6 +64,13 @@ CustomModels.SETTINGS = {
 	-- « Walking » et « Dead » publiées par le propriétaire. animSpeed : sa marche est une vraie marche (Meshy),
 	-- bien plus ample qu'une marche Roblox (WALK_REFERENCE) : ~3,8 fois plus vite pour que ses pieds suivent.
 	boss_0 = { walk = 87099435097618, death = 90573475248434, animSpeed = 3.8 },
+	-- Troupes carmin (ChatGPT, assets/enemies/crimson-ranks, vagues 1-10) : les 3 chevaliers ont le même
+	-- squelette (KayKit), donc les mêmes animations (publiées une fois depuis le fantassin). Fantassin et
+	-- chevalier lourd vont vite pour leur taille : la course (Running_A) ; le colosse, lent : la marche
+	-- (Walking_A). animSpeed : estimé d'après leur taille et leur vitesse (à revoir à l'œil si les pieds glissent).
+	normal_0 = { walk = 123757346012656, death = 85477305596501, animSpeed = 2.4 },
+	tank_0 = { walk = 123757346012656, death = 85477305596501, animSpeed = 2.4 },
+	giant_0 = { walk = 96179510952913, death = 85477305596501, animSpeed = 5.3 },
 }
 
 -- Paliers : même découpage que les styles de MedievalModels (10 tranches de 10 vagues, puis ça recommence).
@@ -284,20 +292,68 @@ local function findAnimation(model: Instance, names: { string }, words: { string
 	return nil
 end
 
--- Devant d'un personnage à os : ses orteils sont devant ses chevilles. Direction horizontale moyenne
--- cheville -> orteils (os dont le nom contient « toe » et leur os parent), ou nil sans tels os.
-local function toeDirection(model: Instance): Vector3?
+-- Devant d'un personnage à os : ses orteils sont devant ses chevilles (os dont le nom contient « toe » et
+-- dont l'os parent contient « foot » : Mixamo, Meshy, KayKit... ; pas les os de contrôle « toe-roll »). Sans
+-- orteils (quadrupède : cheval...), sa tête est devant sa queue. Direction horizontale, ou nil sans tels os.
+local function frontDirection(model: Instance): Vector3?
 	local sum = Vector3.zero
+	local head: Bone?, tail: Bone? = nil, nil
 	for _, bone in model:GetDescendants() do
-		if bone:IsA("Bone") and string.find(string.lower(bone.Name), "toe", 1, true) then
-			local foot = bone.Parent
-			if foot and foot:IsA("Bone") then
-				local step = bone.WorldPosition - foot.WorldPosition
+		if bone:IsA("Bone") then
+			local name = string.lower(bone.Name)
+			local parent = bone.Parent
+			if
+				string.find(name, "toe", 1, true)
+				and parent
+				and parent:IsA("Bone")
+				and string.find(string.lower(parent.Name), "foot", 1, true)
+			then
+				local step = bone.WorldPosition - parent.WorldPosition
 				sum += Vector3.new(step.X, 0, step.Z)
+			elseif not head and string.sub(name, -4) == "head" then
+				head = bone
+			elseif not tail and string.find(name, "tail", 1, true) then
+				tail = bone
 			end
 		end
 	end
-	return if sum.Magnitude > 1e-4 then sum.Unit else nil
+	if sum.Magnitude > 1e-4 then
+		return sum.Unit
+	end
+	if head and tail then
+		local step = head.WorldPosition - tail.WorldPosition
+		local flat = Vector3.new(step.X, 0, step.Z)
+		if flat.Magnitude > 1e-4 then
+			return flat.Unit
+		end
+	end
+	return nil
+end
+-- (pour les tests Studio : sens d'un modèle perso déjà posé)
+CustomModels.frontDirection = frontDirection
+
+-- Animation qui retourne le modèle : certains modèles importés (os rangés dans un seul MeshPart : Roi carmin,
+-- fantassin carmin) se retrouvent tournés d'un demi-tour dès qu'une animation joue (l'import de Studio tourne
+-- leur os de départ d'un demi-tour au repos, et leurs animations le défont). Mesuré une fois par modèle, sur un
+-- ennemi dont l'animation joue et dont la racine est encore dans le sens normal : entry.flipWhenAnimated =
+-- vrai (retourné) ou faux ; nil tant que ce n'est pas mesurable (pas d'os, ou de côté). Ceux qui l'affichent
+-- (PlotRenderer, EnemyGallery) tournent alors la racine d'un demi-tour pendant les animations.
+function CustomModels.measureFlip(root: BasePart, entry): boolean?
+	if entry.flipWhenAnimated ~= nil then
+		return entry.flipWhenAnimated
+	end
+	local front = frontDirection(root)
+	if not front then
+		entry.flipWhenAnimated = false -- pas d'os pour le savoir : on ne touche à rien
+		return false
+	end
+	local forward = -root.CFrame:VectorToObjectSpace(front).Z
+	if forward < -0.5 then
+		entry.flipWhenAnimated = true
+	elseif forward > 0.5 then
+		entry.flipWhenAnimated = false
+	end
+	return entry.flipWhenAnimated
 end
 
 -- Soudures internes du modèle, une fois mis à l'échelle et placé : chaque WeldConstraint est refaite (une
@@ -481,19 +537,19 @@ local function prepare(source: Instance, enemyType: string, def)
 	end
 
 	-- 4) Repère « devant » : pivot du modèle, debout, tourné de FacingOffset degrés ; son -Z = le devant.
-	-- Personnage à os (Mixamo, Meshy...) sans réglage « facing » ni attribut FacingOffset : le devant est le
-	-- côté de ses orteils (toeDirection), quel que soit le sens de son pivot.
+	-- Personnage à os (Mixamo, Meshy, KayKit, cheval...) sans réglage « facing » ni attribut FacingOffset : le
+	-- devant est trouvé par ses os (frontDirection : orteils, sinon tête et queue), quel que soit son pivot.
 	local facing = math.rad(numberSetting(source, "facing", "FacingOffset", 0, -360, 360))
 	local explicitFacing = (settings ~= nil and typeof(settings.facing) == "number")
 		or typeof(source:GetAttribute("FacingOffset")) == "number"
-	local toeLocal: Vector3? = nil
+	local frontLocal: Vector3? = nil
 	if not explicitFacing then
-		local toes = toeDirection(model)
-		toeLocal = toes and model:GetPivot():VectorToObjectSpace(toes)
+		local front = frontDirection(model)
+		frontLocal = front and model:GetPivot():VectorToObjectSpace(front)
 	end
 	local function frontFrame(): CFrame
 		local pivot = model:GetPivot()
-		local look = if toeLocal then pivot:VectorToWorldSpace(toeLocal) else pivot.LookVector
+		local look = if frontLocal then pivot:VectorToWorldSpace(frontLocal) else pivot.LookVector
 		local flat = Vector3.new(look.X, 0, look.Z)
 		if flat.Magnitude < 0.1 then
 			flat = Vector3.new(0, 0, -1) -- pivot qui regarde en l'air : -Z du monde

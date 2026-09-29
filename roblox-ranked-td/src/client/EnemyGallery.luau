@@ -409,6 +409,25 @@ local function build()
 				end
 			end
 		end
+		-- Modèles que leur animation retourne (CustomModels.measureFlip) : mesurés quand leur marche joue, puis
+		-- tournés d'un demi-tour pour rester de face.
+		task.delay(1.5, function()
+			for i, root in roots do
+				local entry = nil
+				for _, row in rows do
+					for _, candidate in row.models do
+						if candidate.root == root then
+							entry = candidate
+						end
+					end
+				end
+				if entry and entry.custom and entry.custom.animation and CustomModels.measureFlip(root, entry.custom) then
+					bases[i] = bases[i] * CFrame.Angles(0, math.pi, 0)
+					cframes[i] = bases[i]
+					root.CFrame = bases[i]
+				end
+			end
+		end)
 		if #deathDemos > 0 then
 			task.spawn(function()
 				while true do

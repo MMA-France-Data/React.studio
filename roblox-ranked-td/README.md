@@ -337,8 +337,17 @@ Le **Roi carmin** de ChatGPT (`assets/enemies/crimson-king/RoiCarmin_Studio.glb`
 type de rig « Custom »), enregistrer le modèle dans `assets/EnemyModels/Boss_0.rbxm`, puis publier ses deux
 animations `Walking` et `Dead` depuis l'Animation Editor et donner leurs numéros à Claude.
 
-S'il marche à reculons ou de côté : attribut `FacingOffset` = 180 (ou 90 / -90) sur le modèle ; trop petit ou
-trop grand : `HeightScale` (1.3, 0.8…). Détails dans `assets/EnemyModels/README.txt` et `src/shared/CustomModels.luau`.
+Le sens de marche est trouvé tout seul pour un personnage à os (ses orteils, ou la tête d'un cheval), et si son
+animation le retourne d'un demi-tour (défaut de l'import de Studio sur les modèles d'un seul morceau, ex. le Roi
+carmin et le fantassin), le jeu le mesure et le corrige tout seul. Sinon : attribut `FacingOffset` = 180 (ou 90 /
+-90) sur le modèle ; trop petit ou trop grand : `HeightScale` (1.3, 0.8…). Détails dans
+`assets/EnemyModels/README.txt` et `src/shared/CustomModels.luau`.
+
+Import d'un `.glb` avec animations (ex. ceux de ChatGPT) : **Fichier > Importer** du fichier qui contient le modèle
+ET l'animation (rig « Custom »), puis Éditeur d'animation > **⋯ > Charger** l'animation > **Publier sur Roblox**.
+L'import d'un clip seul dans l'Éditeur d'animation (⋯ > Importer > depuis un fichier) ne marche pas bien avec ces
+fichiers (seule la tête bouge, ou le modèle s'étire). L'os racine du squelette doit être sans rotation (sinon le
+modèle bascule quand l'animation joue).
 
 ## Réglages
 

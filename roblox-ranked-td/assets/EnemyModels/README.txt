@@ -58,6 +58,21 @@ ANIMATIONS DE MARCHE ET DE MORT (facultatif)
   pour la communauté. Elle est jouée plus lentement quand il est ralenti, figée quand il est
   étourdi, 2 fois plus vite avec la Vitesse x2.
 
+SENS DE MARCHE
+  Trouvé tout seul pour un personnage à os (orteils, ou tête d'un cheval). Si son animation le
+  retourne d'un demi-tour (défaut de l'import de Studio : Roi carmin, fantassin), le jeu le mesure
+  et le corrige tout seul.
+
+IMPORTER UN .GLB AVEC SES ANIMATIONS
+  Fichier > Importer le fichier qui contient le modèle ET l'animation (rig « Custom »), puis
+  Éditeur d'animation > ⋯ > Charger > Publier sur Roblox. L'import d'un clip seul dans l'Éditeur
+  d'animation (⋯ > Importer > depuis un fichier) marche mal avec ces fichiers. Enregistre toujours
+  le « Scene » qui est sous Workspace (pas celui de ServerStorage > RBX_ANIMSAVES).
+
+MODÈLES EN PLACE (vagues 1-10) : Boss_0 (Roi carmin), Normal_0, Tank_0, Giant_0 (troupes carmin).
+  Le cavalier (Fast_0) et le Chef pillard de cuivre (Boss_1, vague 20) attendent des animations
+  corrigées (le modèle du chef est déjà prêt : assets/enemies/copper-chieftain/Boss_1_sans_animation.rbxm).
+
 ROI CARMIN (ChatGPT : assets/enemies/crimson-king/RoiCarmin_Studio.glb)
   Boss des vagues 10, 110, 210... Un .glb ne passe pas par Rojo : importe-le une fois dans Studio
   (Importer, type de rig « Custom »), enregistre le modèle ici sous le nom Boss_0.rbxm, puis publie
