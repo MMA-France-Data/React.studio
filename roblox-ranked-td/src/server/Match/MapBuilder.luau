@@ -6,6 +6,7 @@ local Config = require(ReplicatedStorage:WaitForChild("Shared").Config)
 local MapLayout = require(ReplicatedStorage:WaitForChild("Shared").MapLayout)
 local ProximityLabel = require(ReplicatedStorage:WaitForChild("Shared").ProximityLabel)
 local MedievalModels = require(ReplicatedStorage.Shared.MedievalModels)
+local RoadGeometry = require(ReplicatedStorage.Shared.RoadGeometry)
 local scenery = MedievalModels.sceneryPart
 
 local MapBuilder = {}
@@ -55,15 +56,13 @@ local function buildLane(laneIndex: number, parent: Instance)
 
 	-- Chemin
 	local path = MapLayout.PATH
-	for i = 2, #path do
-		local a, b = origin + path[i - 1], origin + path[i]
-		local length = (b - a).Magnitude + MapLayout.PATH_WIDTH
+	for _, slab in RoadGeometry.rectangles(path, MapLayout.PATH_WIDTH) do
 		part({
 			Name = "Path",
-			Size = Vector3.new(MapLayout.PATH_WIDTH, 0.2, length),
-			CFrame = CFrame.lookAt((a + b) / 2, b) + Vector3.new(0, 0.05, 0),
+			Size = slab.size,
+			CFrame = CFrame.new(origin + slab.center + Vector3.new(0, 0.05, 0)),
 			Color = Color3.fromRGB(117, 107, 89),
-			Material = Enum.Material.Cobblestone,
+			Material = Enum.Material.SmoothPlastic,
 			Parent = folder,
 		}):SetAttribute("Lane", laneIndex)
 	end

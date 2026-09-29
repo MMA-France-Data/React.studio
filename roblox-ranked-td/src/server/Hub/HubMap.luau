@@ -8,6 +8,8 @@ local NumberFormat = require(Shared.NumberFormat)
 local PlotLayout = require(Shared.PlotLayout)
 local ProximityLabel = require(Shared.ProximityLabel)
 local MedievalModels = require(Shared.MedievalModels)
+local RoadGeometry = require(Shared.RoadGeometry)
+local PlotBoard = require(script.Parent.PlotBoard)
 local scenery = MedievalModels.sceneryPart
 
 local HubMap = {}
@@ -102,18 +104,33 @@ local function buildPlot(index: number, parent: Instance)
 
 	-- Chemin des ennemis
 	local path = PlotLayout.PATH
-	for i = 2, #path do
-		local a = PlotLayout.toWorld(index, path[i - 1])
-		local b = PlotLayout.toWorld(index, path[i])
+	for _, slab in RoadGeometry.rectangles(path, PlotLayout.PATH_WIDTH) do
 		part({
 			Name = "Path",
-			Size = Vector3.new(PlotLayout.PATH_WIDTH, 0.2, (b - a).Magnitude + PlotLayout.PATH_WIDTH),
-			CFrame = CFrame.lookAt((a + b) / 2, b) + Vector3.new(0, 0.05, 0),
+			Size = slab.size,
+			CFrame = origin * CFrame.new(slab.center + Vector3.new(0, 0.05, 0)),
 			Color = Color3.fromRGB(119, 109, 91),
-			Material = Enum.Material.Cobblestone,
+			Material = Enum.Material.SmoothPlastic, -- mat, sans petits pavés qui scintillent à distance
 			Parent = folder,
 		})
 	end
+
+	-- Panneau du propriétaire au fond du fief, à droite de la porte d'invasion.
+	-- Hors du chemin (z=50) et des emplacements (dernier rang z=41).
+	local boardFrame = origin * CFrame.new(5, 10, 62)
+	local board = part({ Name = "FiefBoard", Size = Vector3.new(28, 15, 0.7), CFrame = boardFrame,
+		Color = Color3.fromRGB(43, 53, 48), Material = Enum.Material.Wood,
+		CanCollide = false, CanTouch = false, CanQuery = false, Parent = decor })
+	for _, side in { -1, 1 } do
+		scenery(decor, "BoardPost", Vector3.new(1.25, 18, 1.4), origin * CFrame.new(5 + side * 14.7, 9, 62.3), Color3.fromRGB(98, 67, 41), Enum.Material.Wood)
+		scenery(decor, "BoardFoot", Vector3.new(2.2, 1.2, 2.2), origin * CFrame.new(5 + side * 14.7, 0.6, 62.3), Color3.fromRGB(154, 151, 131), Enum.Material.Limestone)
+		scenery(decor, "BoardSideTrim", Vector3.new(0.22, 15.5, 0.35), boardFrame * CFrame.new(side * 14.12, 0, -0.3), Color3.fromRGB(205, 170, 99), Enum.Material.Metal)
+	end
+	for _, y in { -7.7, 7.7 } do
+		scenery(decor, "BoardHorizontalTrim", Vector3.new(28.5, 0.3, 0.4), boardFrame * CFrame.new(0, y, -0.3), Color3.fromRGB(205, 170, 99), Enum.Material.Metal)
+	end
+	MedievalModels.roof(decor, origin * CFrame.new(5, 18, 62.3), 32, 4, 2.5, Color3.fromRGB(43, 82, 94))
+	PlotBoard.attach(folder, board)
 
 	part({
 		Name = "EnemySpawn",
@@ -323,9 +340,10 @@ function HubMap.build()
 	for i = 1, PlotLayout.COUNT do
 		local angle = (i - 1) / PlotLayout.COUNT * math.pi * 2
 		local road = CFrame.Angles(0, angle, 0)
-		scenery(decor, "FiefRoad", Vector3.new(12, 0.16, 43), road * CFrame.new(0, 0.03, 53), Color3.fromRGB(160, 148, 119), Enum.Material.Cobblestone)
+		-- Départ après le bord de la place : plus de surfaces presque coplanaires à l'entrée.
+		scenery(decor, "FiefRoad", Vector3.new(12, 0.2, 39), road * CFrame.new(0, 0.05, 55.5), Color3.fromRGB(160, 148, 119), Enum.Material.SmoothPlastic)
 		for _, x in { -7, 7 } do
-			scenery(decor, "RoadBorder", Vector3.new(0.7, 0.22, 43), road * CFrame.new(x, 0.06, 53), Color3.fromRGB(188, 179, 151), Enum.Material.Limestone)
+			scenery(decor, "RoadBorder", Vector3.new(0.7, 0.22, 39), road * CFrame.new(x, 0.06, 55.5), Color3.fromRGB(188, 179, 151), Enum.Material.Limestone)
 		end
 		local village = CFrame.Angles(0, angle + math.pi / 6, 0)
 		local garden = village * CFrame.new(0, 0, 53)
