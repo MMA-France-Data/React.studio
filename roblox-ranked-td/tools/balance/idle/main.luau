@@ -608,21 +608,27 @@ for _, scenarioId in options.scenarios do
 	out()
 
 	if scenario.forge then
-		local forgeSpins, spent, placed = {}, {}, {}
+		-- Runes posées à la fin : 2 emplacements par tour (dégâts, vitesse), qui se cumulent.
+		local forgeSpins, spent, placed, speedShare = {}, {}, {}, {}
 		for _, run in runs do
 			table.insert(forgeSpins, run.forgeSpins)
 			table.insert(spent, run.forgeSpent)
-			local best = 0
+			local best, towers, withSpeed = 0, 0, 0
 			for _, tower in run.towers do
-				local bonus = tower.bonus and IdleConfig.BONUS_BY_ID[tower.bonus]
-				if bonus and bonus.kind == "Damage" then
-					best = math.max(best, bonus.mult)
+				local runes = IdleConfig.parseRunes(tower.runes)
+				towers += 1
+				if runes.Damage then
+					best = math.max(best, runes.Damage.mult)
+				end
+				if runes.Speed then
+					withSpeed += 1
 				end
 			end
 			table.insert(placed, best)
+			table.insert(speedShare, if towers > 0 then 100 * withSpeed / towers else 0)
 		end
 		out(
-			`Forge runique : {string.format("%.0f", mean(forgeSpins))} lancers en moyenne, {coins(mean(spent))} pièces dépensées ; meilleur bonus de dégâts posé à la fin : x{string.format("%.0f", mean(placed))} en moyenne.`
+			`Forge runique : {string.format("%.0f", mean(forgeSpins))} lancers en moyenne, {coins(mean(spent))} pièces dépensées ; meilleure rune de dégâts posée à la fin : x{string.format("%.0f", mean(placed))} en moyenne ; rune de vitesse sur {string.format("%.0f", mean(speedShare))} % des tours posées.`
 		)
 		-- Lancers en pièces achetés au fil du temps (prix 100 K, x5 sous 1 T, puis x2) et record à ces heures
 		local parts = {}
@@ -806,8 +812,8 @@ do
 			if not isFinite(IdleTowers.upgradeCost(towerType, level)) then
 				return false
 			end
-			-- Pire cas : bonus x100 de la forge et 10 000 doublons
-			local stats = IdleTowers.effectiveStats(towerType, level, 10000, "Damage100")
+			-- Pire cas : runes x100 dégâts ET x2 vitesse de la forge (elles se cumulent) et 10 000 doublons
+			local stats = IdleTowers.effectiveStats(towerType, level, 10000, "Damage100,Speed2")
 			if not isFinite(IdleTowers.dpsOf(stats)) then
 				return false
 			end
@@ -1166,6 +1172,7 @@ out()
 -- aller plus loin que chaque composition extrême (règle du propriétaire : pas de partie « tout X »).
 ----------------------------------------------------------------------
 local ANTI_META_HOURS = { 5, 10, 20, 40, 80 }
+-- runes (facultatif) = runes de la forge posées sur chaque tour de ce type (texte de l'attribut « Bonus »).
 local EXTREMES = {
 	{ name = "Tout Trébuchet", types = { "Orbital" } },
 	{ name = "Tout givre", types = { "Frost" } },
@@ -1174,6 +1181,9 @@ local EXTREMES = {
 	{ name = "Tout Catapulte", types = { "Bomb" } },
 	{ name = "Givre + Mage", types = { "Frost", "Tesla" } },
 	{ name = "Tout Mage", types = { "Tesla" } },
+	-- La composition du propriétaire à la vague 148 : plein de Mages avec la rune x2 vitesse (comme lui) et des
+	-- Catapultes. Seule composition AVEC des runes : elle a donc un avantage sur le mélange (sans runes).
+	{ name = "Mages x2 + Catapultes", types = { "Tesla", "Bomb" }, runes = { Tesla = "Speed2" } },
 	{ name = "Tout Archer", types = { "MachineGun" } },
 	{ name = "Tout Baliste", types = { "Rocket" } },
 }
@@ -1183,7 +1193,7 @@ do
 	local function reachedWave(team, limit: number): number
 		local towers = {}
 		for _, member in team do
-			table.insert(towers, Engine.compileTower(member.spot, member.type, member.level, 0, nil))
+			table.insert(towers, Engine.compileTower(member.spot, member.type, member.level, 0, member.runes))
 		end
 		table.sort(towers, function(a, b)
 			return a.spot < b.spot
@@ -1196,7 +1206,8 @@ do
 		return limit
 	end
 	-- count tours des types donnés (à tour de rôle) sur leurs meilleurs emplacements, sans doublon d'emplacement.
-	local function extremeTeam(types, count: number, budget: number)
+	-- runes = { [type de tour] = runes } ou nil.
+	local function extremeTeam(types, count: number, budget: number, runes)
 		local team, used, nextIndex = {}, {}, {}
 		for _, towerType in types do
 			nextIndex[towerType] = 1
@@ -1212,7 +1223,7 @@ do
 			local spot = list[nextIndex[towerType]]
 			if spot then
 				used[spot] = true
-				table.insert(team, { type = towerType, spot = spot, level = levelForBudget(towerType, budget) })
+				table.insert(team, { type = towerType, spot = spot, level = levelForBudget(towerType, budget), runes = runes and runes[towerType] })
 			end
 		end
 		return team
@@ -1241,7 +1252,7 @@ do
 				end
 				result.mixedEqual = reachedWave(equal, limit)
 				for _, extreme in EXTREMES do
-					result[extreme.name] = reachedWave(extremeTeam(extreme.types, count, budget), limit)
+					result[extreme.name] = reachedWave(extremeTeam(extreme.types, count, budget, extreme.runes), limit)
 				end
 				result.count, result.budget = count, budget
 				local types = {}
@@ -1302,7 +1313,8 @@ do
 		end
 	end
 	out(string.rep("=", 100))
-	out("ANTI-MÉTA : compositions extrêmes contre la défense mélangée du joueur simulé, même budget (sans doublons ni runes)")
+	out("ANTI-MÉTA : compositions extrêmes contre la défense mélangée du joueur simulé, même budget (sans doublons ni runes,")
+	out("sauf « Mages x2 + Catapultes » : la composition du propriétaire, ses Mages ont la rune x2 vitesse)")
 	out(string.rep("=", 100))
 	out("Dernière vague réussie en jouant les vagues 1, 2, 3... avec une défense FIXE (médiane des graines). « Mélange » = les")
 	out("tours du joueur simulé à ce moment (vrais niveaux) ; « égal » = mêmes tours, budget réparti également ; les extrêmes")

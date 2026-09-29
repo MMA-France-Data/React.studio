@@ -7,12 +7,13 @@
 -- Un prix trop grand pour être compté affiche « MAX » (bouton grisé) ; le serveur refuse cet achat.
 -- Forge runique : plus de délai d'attente. Prix du prochain lancer en pièces = IdleConfig.forgeCoinPrice avec
 -- le compteur publié par le serveur (attribut ForgeSpinsBought du joueur : 100 K, puis x5, puis x2 dès 1 T,
--- jamais remis à zéro). Seules les runes qui améliorent une tour posée peuvent tomber (attribut ForgeDrawable,
+-- jamais remis à zéro). Chaque tour a 2 emplacements de rune qui se cumulent : dégâts et vitesse. Seules les
+-- runes qui améliorent une tour posée DANS L'EMPLACEMENT DE LEUR SORTE peuvent tomber (attribut ForgeDrawable,
 -- chances remises sur 100 % avec IdleConfig.forgeOdds) : les autres sont barrées (« toutes tes tours l'ont
--- déjà »). Forge bloquée (attribut ForgeBlocked : « Pose d'abord une tour » / « Toutes tes tours ont le
--- meilleur bonus ») : les boutons pièces ET Robux affichent le message et n'achètent rien (pas de fenêtre
--- d'achat Robux). Si un reçu Robux arrive quand même (ex. tour vendue pendant l'achat), le serveur donne la
--- meilleure rune : un achat payé n'est jamais perdu (PlotGame:grantBonusSpin).
+-- déjà »). Forge bloquée (attribut ForgeBlocked : « Pose d'abord une tour » / « Toutes tes tours ont les
+-- meilleures runes », x100 dégâts ET x2 vitesse partout) : les boutons pièces ET Robux affichent le message et
+-- n'achètent rien (pas de fenêtre d'achat Robux). Si un reçu Robux arrive quand même (ex. tour vendue pendant
+-- l'achat), le serveur donne la meilleure rune : un achat payé n'est jamais perdu (PlotGame:grantBonusSpin).
 -- S'ouvrent via les machines de ta parcelle ou les boutons de la colonne de gauche.
 local MarketplaceService = game:GetService("MarketplaceService")
 local Players = game:GetService("Players")
@@ -109,11 +110,11 @@ function MachineUI.start()
 	end
 
 	------------------------------------------------------------------
-	-- Boutons dans la colonne de gauche, sous « Ma base » et « Cercle ranked » (LobbyUI).
+	-- Boutons en haut de la colonne de gauche, sous le panneau de rang (LobbyUI).
 	-- En haut à droite, ils seraient cachés par la liste des joueurs de Roblox.
 	------------------------------------------------------------------
 	local towerShortcut = UI.button({
-		Position = UDim2.new(0, 16, 0, UI.LEFT_COLUMN_TOP + 2 * UI.LEFT_COLUMN_STEP),
+		Position = UDim2.new(0, 16, 0, UI.LEFT_COLUMN_TOP + 0 * UI.LEFT_COLUMN_STEP),
 		Size = UDim2.fromOffset(180, 46),
 		BackgroundColor3 = IdleConfig.RARITIES.Epic.color,
 		BackgroundTransparency = 0.3,
@@ -122,7 +123,7 @@ function MachineUI.start()
 		Parent = gui,
 	})
 	local bonusShortcut = UI.button({
-		Position = UDim2.new(0, 16, 0, UI.LEFT_COLUMN_TOP + 3 * UI.LEFT_COLUMN_STEP),
+		Position = UDim2.new(0, 16, 0, UI.LEFT_COLUMN_TOP + 1 * UI.LEFT_COLUMN_STEP),
 		Size = UDim2.fromOffset(180, 46),
 		BackgroundColor3 = IdleConfig.RARITIES.Legendary.color,
 		Text = "FORGE RUNIQUE",
@@ -397,6 +398,9 @@ function MachineUI.start()
 		end
 
 		local quantity = countLabel(tonumber(result.count) or 0)
+		if result.source == "Challenge" then
+			quantity ..= " offerts" -- lancers gratuits d'un défi classé (Hub/ChallengeRewards.luau)
+		end
 		reelTextSize.MaxTextSize = 26
 		reelText.TextColor3 = bestColor
 		reelStroke.Color = bestColor
@@ -580,7 +584,7 @@ function MachineUI.start()
 			local drawable, blocked = forgeState()
 			title.Text = "FORGE RUNIQUE"
 			windowStroke.Color = IdleConfig.RARITIES.Legendary.color
-			subtitle.Text = "Ne tombent que les runes qui améliorent une de tes tours posées • 1 rune par tour"
+			subtitle.Text = "Ne tombent que les runes utiles à une tour posée • 2 runes par tour : dégâts + vitesse"
 
 			-- Chances : celles des runes tirables, remises sur 100 % ; les autres barrées. Pas encore publié
 			-- ou aucune tour posée : les chances de base.
@@ -596,8 +600,9 @@ function MachineUI.start()
 					-- Le Sorcier des arcanes n'a pas de coups : la rune de vitesse fait chauffer son rayon plus vite.
 					local note = if bonus.kind == "Speed" then `  (rayon du Sorcier : chauffe {bonus.mult}x plus vite)` else ""
 					if odds and not odds[bonus.id] then
-						-- Toutes les tours posées ont déjà une rune au moins aussi forte (x2 vitesse = x2).
-						oddsRow(order, color, `<s>{bonus.displayName}</s>  toutes tes tours l'ont déjà`, "—", true)
+						-- Toutes les tours posées ont déjà, dans l'emplacement de cette sorte, une rune au moins aussi
+						-- forte (les runes de dégâts et de vitesse ne se comparent jamais entre elles).
+						oddsRow(order, color, `<s>{bonus.displayName}</s>  toutes tes tours l'ont déjà (ou mieux)`, "—", true)
 					elseif odds then
 						oddsRow(order, color, `<b>{bonus.displayName}</b>{note}`, formatChance(odds[bonus.id]))
 					else
@@ -767,7 +772,9 @@ function MachineUI.start()
 			reelText.Text = if bonus then bonus.displayName else "?"
 			reelText.TextColor3 = UI.Colors.Gold
 			reelStroke.Color = UI.Colors.Gold
-			reelDetail.Text = "Ajoutée à ton inventaire : clique sur une tour pour la poser."
+			reelDetail.Text = if result.source == "Challenge"
+				then "Offerte par un défi classé : ajoutée à ton inventaire, clique sur une tour pour la poser."
+				else "Ajoutée à ton inventaire : clique sur une tour pour la poser."
 		end
 		spinning = false
 		refresh()

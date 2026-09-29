@@ -64,6 +64,9 @@ CustomModels.SETTINGS = {
 	-- « Walking » et « Dead » publiées par le propriétaire. animSpeed : sa marche est une vraie marche (Meshy),
 	-- bien plus ample qu'une marche Roblox (WALK_REFERENCE) : ~3,8 fois plus vite pour que ses pieds suivent.
 	boss_0 = { walk = 87099435097618, death = 90573475248434, animSpeed = 3.8 },
+	-- Chef pillard de cuivre (ChatGPT, assets/enemies/copper-chieftain) : boss des vagues 20, 120, 220...
+	-- Importé en FBX (les GLB retournaient sa tête). Même genre de marche que le Roi carmin.
+	boss_1 = { walk = 71788744458869, death = 101510645677440, animSpeed = 3.8 },
 	-- Troupes carmin (ChatGPT, assets/enemies/crimson-ranks, vagues 1-10) : les 3 chevaliers ont le même
 	-- squelette (KayKit), donc les mêmes animations (publiées une fois depuis le fantassin). Fantassin et
 	-- chevalier lourd vont vite pour leur taille : la course (Running_A) ; le colosse, lent : la marche

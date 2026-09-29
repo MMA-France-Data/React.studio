@@ -21,9 +21,12 @@ return function(log)
 	end
 
 	local Shared = ReplicatedStorage:WaitForChild("Shared")
+	local Challenges = require(Shared.Challenges)
 	local Config = require(Shared.Config)
 	local Enemies = require(Shared.Enemies)
 	local C = Config.Match
+	-- Outil de test du serveur de match (Match/init.luau, Studio seulement) : défis classés.
+	local dbg = game:GetService("ServerStorage"):WaitForChild("StudioDebug", 30)
 
 	local matchState = ReplicatedStorage:WaitForChild("MatchState", 30)
 	assert(matchState, "MatchState introuvable : la place n'est pas en mode match")
@@ -147,6 +150,35 @@ return function(log)
 	check(towerCount(bot) > 0, `le bot pose des tours ({towerCount(bot)} tours)`)
 	check(matchState:GetAttribute("Phase") == "Playing", `la partie continue après {CHECK_WAVES} vagues (phase {matchState:GetAttribute("Phase")})`)
 
+	-- Défis classés : chiffres comptés sur chaque terrain pendant le match (Game:challengeStats), lus à la fin
+	-- du match. Le bot ne vend jamais : tours posées = ses tours, améliorations = niveaux en plus.
+	local stats = dbg and dbg:Invoke(player, "ChallengeStats")
+	if stats then
+		local botTowers, botTypes, botUpgrades, typeCount = 0, {}, 0, 0
+		for _, model in workspace.Towers:GetChildren() do
+			if model:GetAttribute("Lane") == bot then
+				botTowers += 1
+				botUpgrades += (model:GetAttribute("Level") or 1) - 1
+				local towerType = model:GetAttribute("TowerType")
+				if towerType and not botTypes[towerType] then
+					botTypes[towerType] = true
+					typeCount += 1
+				end
+			end
+		end
+		local botStats, myStats = stats.lanes[bot], stats.lanes[me]
+		check(
+			botStats.towersPlaced == botTowers and botStats.towerTypes == typeCount and botStats.upgrades == botUpgrades,
+			`défis : terrain du bot compté ({botStats.towersPlaced} tours posées, {botStats.towerTypes} types, {botStats.upgrades} améliorations ; attendu {botTowers}, {typeCount}, {botUpgrades})`
+		)
+		check(
+			myStats.towersPlaced == 0 and myStats.upgrades == 0 and myStats.towerTypes == 0 and stats.seconds > 60 and stats.seconds < C.MAX_DURATION,
+			`défis : terrain du joueur sans tour (0 posée), durée de la partie {math.floor(stats.seconds)} s`
+		)
+	else
+		check(false, "défis : StudioDebug du serveur de match introuvable")
+	end
+
 	-- Fin du match : sans tour, la base du joueur tombe pendant la vague 8, ~2 min 57 après le début de
 	-- la partie (~3 min 15 après le début du test). Vérifiée seulement si le test dure assez (-Seconds 260).
 	local ended = waitFor(function()
@@ -157,6 +189,26 @@ return function(log)
 			matchState:GetAttribute("EndReason") == "BaseDestroyed" and matchState:GetAttribute("Winner") == bot and lane(me, "Health") == 0,
 			`fin du match : base du joueur détruite, le bot gagne (raison {matchState:GetAttribute("EndReason")}, gagnant {matchState:GetAttribute("Winner")}, base du joueur {lane(me, "Health")}, vague {matchState:GetAttribute("Wave")})`
 		)
+		-- Défis classés : un match contre le bot (non classé) ne compte jamais, et le joueur sait pourquoi.
+		if dbg then
+			local results = dbg:Invoke(player, "LastChallenges")
+			local mine = results and results["lane" .. me]
+			check(
+				mine ~= nil and mine.counted == false and mine.reason == Challenges.REASON_UNRANKED,
+				`défis : match contre le bot pas compté (« {mine and mine.text} »)`
+			)
+			local challengeData = dbg:Invoke(player, "ChallengeData")
+			local progressed = 0
+			for _, list in { challengeData and challengeData.daily or {}, challengeData and challengeData.weekly or {} } do
+				for _, slot in list do
+					progressed += slot.p
+				end
+			end
+			check(
+				challengeData ~= nil and progressed == 0 and next(challengeData.opp) == nil,
+				"défis : aucune progression enregistrée après le match contre le bot"
+			)
+		end
 	else
 		say(`match pas fini à la vague {matchState:GetAttribute("Wave")} (base du joueur {lane(me, "Health")}) : relance avec -Seconds 260 -Timeout 420 pour vérifier aussi la fin`)
 	end

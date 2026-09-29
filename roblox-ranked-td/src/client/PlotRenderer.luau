@@ -7,6 +7,9 @@
 -- Projectiles : chaque tir du paquet dit combien de temps il lui reste à voler (en secondes de simulation,
 -- format dans PlotGame.luau) ; le projectile est animé jusqu'au point d'impact prévu par le serveur en
 -- vol / SimSpeed secondes, et l'impact (explosion, zone de feu des flèches) apparaît quand les dégâts tombent.
+-- Flèches, rochers de la Catapulte et carreaux de la Baliste SUIVENT leur cible (id envoyé après les tirs) :
+-- pendant le vol, ils vont vers l'ennemi affiché (même règle que le serveur, voir followTarget), et l'impact
+-- tombe sur lui ; s'il disparaît (tué par une autre tour), ils retombent sur le point prévu.
 -- Rayon du Sorcier des arcanes : lu sur les attributs « BeamTarget » / « BeamRamp » de sa tour, dessiné à
 -- chaque image jusqu'à l'ennemi affiché ici (voir updateBeams).
 -- Styles des ennemis : un par tranche de 10 vagues (MedievalModels.decorateEnemy avec le palier, voir palierOf).
@@ -52,6 +55,8 @@ local FRAGILE_COLOR = Color3.fromRGB(196, 130, 255) -- fragile (aura du Totem de
 -- Couleur du disque par tour qui contrôle (sinon la couleur de la tour).
 local STATUS_COLORS = { Orbital = STUN_COLOR }
 local SHOT_BYTES = 27 -- départ 3xf32, arrivée 3xf32, type u8, rayon u8, vol restant u8 (centièmes de s)
+-- Après les count x SHOT_BYTES octets : l'id u32 de la cible suivie par chaque tir (0 = aucune), même ordre.
+local SHOT_TARGET_BYTES = 4
 local SNAP_DISTANCE = 4 -- au-delà, on replace l'ennemi directement à la position du serveur (x SimSpeed)
 local MAX_FIRE_VISUALS = 10 -- zones de feu affichées au plus par parcelle (la plus vieille disparaît)
 local FIRE_FADE_TIME = 0.25
@@ -547,8 +552,42 @@ local function updateFires(plotIndex: number, state, now: number)
 	end
 end
 
+-- Projectile qui suit sa cible : renvoie la fonction que Effects appelle à chaque image pour savoir où il doit
+-- tomber. Même règle que le serveur (PlotGame impactCenter) : l'ennemi visé tel qu'il est affiché ici (au sol)
+-- tant qu'il est là et à moins de maxDistance studs (IdleTowers.followDistance) du point prévu par le serveur ;
+-- sinon (tué, disparu, trop loin) le point prévu. Une fonction par tir ; aucune table ni fonction créée image
+-- par image.
+local function followTarget(state, targetId: number, predicted: Vector3, maxDistance: number): () -> Vector3
+	return function(): Vector3
+		local enemy = state.enemies[targetId]
+		if enemy then
+			local center = enemy.part.Position
+			local ground = Vector3.new(center.X, predicted.Y, center.Z)
+			if horizontalDistance(ground, predicted) <= maxDistance then
+				return ground
+			end
+		end
+		return predicted
+	end
+end
+
+-- Arrivée d'une flèche enflammée : sa zone de feu là où elle tombe (sur sa cible si elle la suit).
+local function landFire(plotIndex: number, predicted: Vector3, def, follow: (() -> Vector3)?)
+	addFire(plotIndex, if follow then follow() else predicted, def)
+end
+
+-- Arrivée d'un carreau perçant (Baliste lourde) : la ligne touchée par le serveur, de la tour (sous le départ du
+-- tir) au point d'impact (sa cible si elle la suit), sur toute sa largeur (2 x pierceWidth).
+local function landPierce(from: Vector3, predicted: Vector3, def, follow: (() -> Vector3)?)
+	Effects.pierceTrail(from, if follow then follow() else predicted, def.pierceWidth, def.color)
+end
+
 local function onShots(plotIndex: number, packet: buffer, count: number)
-	local simSpeed = simSpeedOf(plotIndex, plotState(plotIndex))
+	local state = plotState(plotIndex)
+	local simSpeed = simSpeedOf(plotIndex, state)
+	-- Ids des cibles suivies, après les tirs (absents d'un ancien paquet : aucun projectile ne suit sa cible).
+	local targetStart = count * SHOT_BYTES
+	local hasTargets = buffer.len(packet) >= targetStart + count * SHOT_TARGET_BYTES
 	for i = 0, count - 1 do
 		local offset = i * SHOT_BYTES
 		local from = Vector3.new(buffer.readf32(packet, offset), buffer.readf32(packet, offset + 4), buffer.readf32(packet, offset + 8))
@@ -561,14 +600,14 @@ local function onShots(plotIndex: number, packet: buffer, count: number)
 		if not def then
 			continue
 		end
-		Effects.playTowerShot(from, to, towerType, radius, def.color, def.kind, nearestTower(plotIndex, towerType, from), flight)
+		local targetId = if hasTargets then buffer.readu32(packet, targetStart + i * SHOT_TARGET_BYTES) else 0
+		local follow = if targetId ~= 0 and flight > 0 then followTarget(state, targetId, to, IdleTowers.followDistance(def)) else nil
+		Effects.playTowerShot(from, to, towerType, radius, def.color, def.kind, nearestTower(plotIndex, towerType, from), flight, follow)
 		if def.fireRadius then
-			task.delay(flight, addFire, plotIndex, to, def)
+			task.delay(flight, landFire, plotIndex, to, def, follow)
 		end
 		if def.kind == "Pierce" and def.pierceWidth then
-			-- Carreau perçant (Baliste lourde) : à l'impact, la ligne touchée par le serveur, de la tour (sous
-			-- le départ du tir) au point d'impact, sur toute sa largeur (2 x pierceWidth).
-			task.delay(flight, Effects.pierceTrail, from, to, def.pierceWidth, def.color)
+			task.delay(flight, landPierce, from, to, def, follow)
 		end
 	end
 end

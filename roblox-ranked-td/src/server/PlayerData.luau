@@ -7,6 +7,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
+local Challenges = require(Shared.Challenges)
 local Config = require(Shared.Config)
 local IdleConfig = require(Shared.IdleConfig)
 local NumberFormat = require(Shared.NumberFormat)
@@ -40,7 +41,9 @@ local function defaultIdle()
 		-- Emplacements possédés, achetés dans n'importe quel ordre : [tostring(spotIndex)] = true.
 		ownedSpots = PlotLayout.startingSpots(),
 		unlockedSpots = PlotLayout.STARTING_SPOTS, -- NOMBRE d'emplacements possédés (recalculé depuis ownedSpots)
-		towers = {}, -- [tostring(spotIndex)] = { type, level, spent }
+		-- [tostring(spotIndex)] = { type, level, spent, runes = { Damage = id, Speed = id } } : une rune de la forge
+		-- par emplacement (dégâts, vitesse), sorte absente = pas de rune (voir migrateRunes).
+		towers = {},
 		-- Bonus de pièces en %, gagné par les renaissances (IdleConfig.rebirthGain, PlotGame:rebirth).
 		-- S'additionne : gain = base x (1 + bonus/100). Ex : ennemi à 3 pièces -> +100 % = 6, +200 % = 9.
 		coinBonus = 0,
@@ -83,6 +86,9 @@ local function defaultData()
 		coins = IdleConfig.STARTING_COINS,
 		idle = defaultIdle(),
 		processedReceipts = {}, -- achats Robux déjà livrés (évite de donner deux fois)
+		-- Défis classés : progression comptée par le serveur de match, récompenses récupérées sur la map
+		-- principale (format : Shared/Challenges.luau). Jamais remis à zéro par les saisons.
+		challenges = Challenges.defaultData(),
 	}
 end
 
@@ -132,6 +138,31 @@ local function migrateFreeSpin(data)
 	end
 end
 
+-- Runes de la forge posées sur les tours. Avant : UNE seule rune par tour (champ bonus = son id, ex. "Speed2").
+-- Maintenant : un emplacement par sorte, qui se cumulent (champ runes = { Damage = id, Speed = id }). L'ancienne
+-- rune va dans l'emplacement de SA sorte, puis le champ bonus est supprimé : une seule fois (sans bonus, il ne
+-- se passe plus rien). Toujours propre : ids inconnus retirés, que des textes (IdleConfig.runeIds).
+local function migrateRunes(idle)
+	if typeof(idle.towers) ~= "table" then
+		return
+	end
+	for _, tower in idle.towers do
+		if typeof(tower) == "table" then
+			local ids = {}
+			if typeof(tower.runes) == "table" then
+				for _, id in tower.runes do
+					table.insert(ids, id)
+				end
+			end
+			if tower.bonus ~= nil then
+				table.insert(ids, tower.bonus)
+			end
+			tower.runes = IdleConfig.runeIds(ids)
+			tower.bonus = nil
+		end
+	end
+end
+
 -- Complète les champs manquants (utile quand tu ajoutes des champs plus tard).
 local function reconcile(data)
 	for key, value in defaultData() do
@@ -154,9 +185,18 @@ local function reconcile(data)
 	-- lancers en pièces démarre à 0 dans les anciennes sauvegardes (-> 0 juste au-dessus), toujours propre.
 	data.idle.lastBonusSpinAt = nil
 	data.idle.forgeSpinsBought = IdleConfig.cleanSpinsBought(data.idle.forgeSpinsBought)
+	-- Runes : 2 emplacements par tour (dégâts, vitesse) ; l'ancienne rune unique va dans celui de sa sorte.
+	migrateRunes(data.idle)
 	migrateFreeSpin(data)
+	-- Défis classés : absents des anciennes sauvegardes (-> valeurs par défaut juste au-dessus), toujours
+	-- propres (nombres entiers finis, défis connus). Les défis du jour sont tirés à la 1re utilisation.
+	data.challenges = Challenges.cleanData(data.challenges)
 	return data
 end
+
+-- Tests Studio (StudioDebug « ChallengeMigrate ») : complète et nettoie une copie d'ancienne sauvegarde,
+-- exactement comme au chargement d'un joueur.
+PlayerData.reconcile = reconcile
 
 local function applySeasonReset(data)
 	if data.season == Config.SEASON then

@@ -87,7 +87,9 @@ return function(log)
 		local towers, count = {}, 0
 		for k, t in d.idle.towers do
 			count += 1
-			table.insert(towers, `{k}:{t.type}@{t.level}{t.bonus and ("+" .. t.bonus) or ""}`)
+			-- Runes posées (2 emplacements : dégâts, vitesse), ex. 1:MachineGun@6+Damage10+Speed2
+			local runes = IdleConfig.runeList(t.runes)
+			table.insert(towers, `{k}:{t.type}@{t.level}{if runes ~= "" then "+" .. string.gsub(runes, ",", "+") else ""}`)
 		end
 		table.sort(towers)
 		local dupes = {}
@@ -1152,7 +1154,7 @@ return function(log)
 		)
 
 		-- Mage puis Givre : le Totem ne remplace pas le ralentissement du Mage tant qu'il dure (fragilité, oui).
-		-- Le Mage : bien plus fort (-85 %) mais bien plus court que le Totem.
+		-- Le Mage : bien plus fort (-90 % contre -60 %) mais bien plus court que le Totem.
 		call("debugArena", {})
 		local zappedFirst = call("debugSpawn", "Tank", frostAndMage, 1e9, true)
 		local zapFirst = call("debugFire", 4)
@@ -1250,6 +1252,119 @@ return function(log)
 		else
 			check(false, "Trébuchet : pas de tir sur la foule gelée")
 		end
+
+		-- FATIGUE des contrôles courts (retour du propriétaire à la vague 148 : plein de Mages avec x2 vitesse
+		-- gelaient toute la vague) et projectiles qui SUIVENT leur cible (sa Catapulte tirait trop loin quand
+		-- l'ennemi était ralenti pendant le vol). Dans sa propre fonction (limite des registres de Luau).
+		local function testFatigueAndFollow()
+			local mage, trebuchet = defs.Tesla, defs.Orbital
+			-- 1) « Plein de Mages » : le Mage (emplacement 4) foudroie le même ennemi à CHAQUE image pendant 4 s de
+			-- jeu, bien plus souvent que 20 Mages avec la rune x2 vitesse. Chaque relevé donne la fin exacte du
+			-- ralentissement en cours (heure + temps restant) : on retrouve chaque ralentissement, l'écart avec le
+			-- suivant, et la part du temps passée ralenti.
+			call("debugArena", {})
+			local victim = call("debugSpawn", "Tank", frostAndMage, 1e12, true)
+			local mageNow = call("debugTower", 4)
+			local strikes, ends, extended = 0, {}, false
+			local startClock = clockNow()
+			local lastClock, lastSeen = startClock, nil
+			while lastClock - startClock < 4 do
+				if call("debugFire", 4).fired then
+					strikes += 1
+				end
+				local st = call("debugEnemy", victim)
+				lastClock, lastSeen = st.clock, st
+				if st.controlSource == "Tesla" then
+					local endAt = st.clock + st.controlLeft
+					-- Une nouvelle fin moins de (durée + immunité) après la précédente = ralentissement prolongé, ou
+					-- repris pendant l'immunité : interdit.
+					if #ends > 0 and endAt > ends[#ends] + 1e-6 and endAt < ends[#ends] + mage.slowDuration + mage.slowImmunity - 1e-6 then
+						extended = true
+					end
+					if #ends == 0 or math.abs(endAt - ends[#ends]) > 1e-6 then
+						table.insert(ends, endAt)
+					end
+				end
+				task.wait()
+			end
+			local window = lastClock - startClock
+			-- Part du temps ralenti sur des cycles COMPLETS (du début du 1er ralentissement au début du dernier : à
+			-- chaque fois un ralentissement, l'immunité, puis l'éclair suivant). Le bord de la fenêtre de 4 s ne compte
+			-- pas : il peut couper un cycle juste après un ralentissement (l'ancienne mesure affichait « 45 % (au plus
+			-- 43 %) »). Avec la fatigue, elle ne peut pas dépasser durée / (durée + immunité).
+			local cycles = #ends - 1
+			local fraction = if cycles > 0 then cycles * mage.slowDuration / math.max(ends[#ends] - ends[1], 1e-9) else 0
+			local maxFraction = mage.slowDuration / (mage.slowDuration + mage.slowImmunity)
+			check(
+				#ends >= 2 and not extended and fraction <= maxFraction + 0.001 and fraction >= maxFraction * 0.5,
+				`fatigue du Mage : {strikes} éclairs en {fmt(window)} s sur le même ennemi, {#ends} ralentissements de {mage.slowDuration} s jamais prolongés, ralenti {math.floor(fraction * 100 + 0.5)} % du temps sur {cycles} cycles complets (au plus {math.floor(maxFraction * 100 + 0.5)} % ; 100 % avant la fatigue)`
+			)
+			check(
+				lastSeen ~= nil and close(1e12 - lastSeen.health, strikes * mageNow.damage, 1e-6),
+				`fatigue du Mage : les dégâts tombent à chaque éclair ({NumberFormat.short(1e12 - (lastSeen and lastSeen.health or 1e12))} = {strikes} x {NumberFormat.short(mageNow.damage)})`
+			)
+
+			-- 2) Trébuchet (emplacement 8) : pas d'enchaînement d'étourdissements. La 2e pierre, tirée dès l'arrivée
+			-- de la 1re, tombe après la fin de l'étourdissement, pendant l'immunité : dégâts, pas d'étourdissement.
+			-- Après l'immunité, une 3e pierre étourdit de nouveau (et garde son point prévu : pas de suivi).
+			call("debugArena", {})
+			for i = 0, 3 do
+				call("debugSpawn", "Normal", 262 + i, 1e9, true)
+			end
+			local firstStone = call("debugFire", 8)
+			if not (firstStone and firstStone.fired) then
+				check(false, "fatigue du Trébuchet : pas de tir")
+				return
+			end
+			local stunnedId = firstStone.targetId
+			waitClock(firstStone.clock + firstStone.flight + 0.02)
+			local afterFirst = call("debugEnemy", stunnedId)
+			local secondStone = call("debugFire", 8)
+			waitClock(secondStone.clock + secondStone.flight + 0.02)
+			local afterSecond = call("debugEnemy", stunnedId)
+			local stunEnd = afterFirst.clock + afterFirst.controlLeft
+			local immuneLeft = afterSecond.immuneLeft and afterSecond.immuneLeft.Orbital or 0
+			check(
+				afterFirst.stunned and afterFirst.controlLeft <= trebuchet.stunDuration + 1e-6
+					and secondStone.clock + secondStone.flight > stunEnd
+					and not afterSecond.stunned and immuneLeft > 0
+					and close(afterFirst.health - afterSecond.health, secondStone.damage, 1e-6),
+				`fatigue du Trébuchet : 1re pierre -> étourdi {trebuchet.stunDuration} s ; 2e pierre ({fmt(secondStone.clock + secondStone.flight - stunEnd)} s après la fin) -> {NumberFormat.short(afterFirst.health - afterSecond.health)} dégâts mais pas d'étourdissement (immunisé encore {fmt(immuneLeft)} s sur {trebuchet.stunImmunity})`
+			)
+			waitClock(afterSecond.clock + immuneLeft + 0.02)
+			local thirdStone = call("debugFire", 8)
+			waitClock(thirdStone.clock + thirdStone.flight + 0.02)
+			local afterThird = call("debugEnemy", stunnedId)
+			local stoneImpact = call("debugLastImpact")
+			check(
+				afterThird.stunned and afterThird.controlSource == "Orbital" and stoneImpact ~= nil and flat(stoneImpact.center, stoneImpact.aim) < 1e-6,
+				`fatigue du Trébuchet : après l'immunité, la 3e pierre étourdit de nouveau ({afterThird.controlSource}) ; elle tombe sur son point prévu (pas de suivi)`
+			)
+
+			-- 3) Rocher de la Catapulte (emplacement 3) qui suit sa cible : un cavalier qui court (rangée z = -22,
+			-- distance 284) est visé, puis s'arrête net juste après le tir (debugFreeze : comme un étourdissement que
+			-- la visée ne pouvait pas deviner). Le point prévu est alors plus loin que la zone du rocher : avant, le
+			-- rocher tombait devant lui. Maintenant, les dégâts tombent sur lui.
+			call("debugArena", {})
+			local rider = call("debugSpawn", "Fast", 284, 1e9, false)
+			local rock = call("debugFire", 3)
+			call("debugFreeze", rider)
+			if not (rock and rock.fired) then
+				check(false, "Catapulte qui suit sa cible : pas de tir")
+				return
+			end
+			waitClock(rock.clock + rock.flight + 0.05)
+			local hitRider = call("debugEnemy", rider)
+			local rockImpact = call("debugLastImpact")
+			local lag = if rockImpact then flat(rockImpact.aim, rockImpact.targetPosition) else 0
+			check(
+				rock.targetId == rider and rockImpact ~= nil and lag > defs.Bomb.splash
+					and flat(rockImpact.center, rockImpact.targetPosition) < 1e-3
+					and close(1e9 - hitRider.health, rock.damage, 1e-6),
+				`Catapulte : cavalier arrêté pendant le vol, point prévu à {fmt(lag)} studs de lui (zone {defs.Bomb.splash}) : le rocher le suit et le touche ({NumberFormat.short(1e9 - hitRider.health)} dégâts, {NumberFormat.short(rock.damage)} attendus)`
+			)
+		end
+		testFatigueAndFollow()
 		call("debugEndArena")
 
 		-- Vague écrasée : quand personne n'est en vie, l'ennemi suivant sort tout de suite
@@ -1377,8 +1492,9 @@ return function(log)
 	call("debugEndArena")
 
 	----------------------------------------------------------------------
-	-- Forge runique : prix qui monte à chaque lancer en pièces (x5 jusqu'à 1 T, puis x2), plus de délai, runes
-	-- tirées seulement si elles améliorent une tour posée, forge bloquée sinon, lancers Robux hors compteur.
+	-- Forge runique : prix qui monte à chaque lancer en pièces (x5 jusqu'à 1 T, puis x2), plus de délai, 2 runes
+	-- par tour qui se cumulent (dégâts + vitesse), runes tirées seulement si elles améliorent une tour posée dans
+	-- l'emplacement de leur sorte, forge bloquée sinon, lancers Robux hors compteur, anciennes sauvegardes.
 	-- Dans sa propre fonction (limite des 200 variables locales de Luau, voir plus haut).
 	----------------------------------------------------------------------
 	local function testForge()
@@ -1455,43 +1571,106 @@ return function(log)
 			`forge : lancer Robux ({robux and robux.bonus}) sans changer le compteur ({beforeRobux.bought} -> {afterRobux.bought}) ni le prix`
 		)
 
-		-- Toutes les tours posées ont au moins x2 : x2 dégâts et x2 vitesse ne sont plus tirés (40 lancers).
-		local function applyToAll(runeId, onlyWeaker)
-			local towersNow = dbg:Invoke(player, "Data").idle.towers
-			local list = {}
-			for key, tower in towersNow do
-				if not onlyWeaker or IdleConfig.runeValue(tower.bonus) < IdleConfig.runeValue(runeId) then
-					table.insert(list, tonumber(key))
-				end
-			end
+		-- DEUX emplacements de rune par tour, qui se cumulent : dégâts et vitesse. Runes de chaque tour dans la
+		-- sauvegarde : idle.towers[emplacement].runes = { Damage = id, Speed = id }. Au départ du test : Archer
+		-- (emplacement 1) x10 dégâts, Totem (2) x2 vitesse, les autres tours sans rune.
+		-- Pose `runeId` sur ces emplacements (inventaire rempli juste pour ça, puis vidé).
+		local function applyTo(spots, runeId)
 			local inventory = {}
-			for _ in list do
+			for _ in spots do
 				table.insert(inventory, runeId)
 			end
 			dbg:Invoke(player, "Set", "bonuses", inventory)
-			for _, spot in list do
+			for _, spot in spots do
 				call("applyBonus", spot, runeId)
 			end
 			dbg:Invoke(player, "Set", "bonuses", {})
 			call("publishInventory")
 		end
+		-- Pose `runeId` sur toutes les tours posées (onlyWeaker : seulement celles dont la rune de la MÊME sorte
+		-- est plus faible).
+		local function applyToAll(runeId, onlyWeaker)
+			local kind = IdleConfig.BONUS_BY_ID[runeId].kind
+			local list = {}
+			for key, tower in dbg:Invoke(player, "Data").idle.towers do
+				if not onlyWeaker or IdleConfig.runeValue(tower.runes[kind]) < IdleConfig.runeValue(runeId) then
+					table.insert(list, tonumber(key))
+				end
+			end
+			applyTo(list, runeId)
+		end
+		-- Vrai si toutes les tours posées ont ces runes (nil = peu importe cette sorte).
+		local function allTowersHave(damageId, speedId)
+			for _, tower in dbg:Invoke(player, "Data").idle.towers do
+				if (damageId and tower.runes.Damage ~= damageId) or (speedId and tower.runes.Speed ~= speedId) then
+					return false
+				end
+			end
+			return true
+		end
+
+		-- Runes cumulées sur UNE tour (Archer, emplacement 1) : dégâts x la rune de dégâts, attaques par seconde
+		-- x la rune de vitesse. Chiffres exacts : dégâts du niveau x doublons x rune, temps entre deux flèches / 2.
+		local archerDef = IdleTowers.Defs.MachineGun
+		local archerModel = nil
+		for _, model in plotFolder.Towers:GetChildren() do
+			if model:GetAttribute("SpotIndex") == 1 then
+				archerModel = model
+			end
+		end
+		local a0 = call("debugTower", 1)
+		local archerDupes = dbg:Invoke(player, "Data").idle.towerDupes.MachineGun or 0
+		local plain = IdleTowers.stats("MachineGun", a0.level).damage * (1 + archerDupes * IdleConfig.DUPLICATE_DAMAGE_BONUS)
+		check(
+			a0.runes == "Damage10" and close(a0.damage, plain * 10, 1e-9) and close(a0.cooldown, archerDef.cooldown, 1e-9),
+			`Archer avec x10 dégâts seulement : {NumberFormat.short(a0.damage)} dégâts (= 10 x {NumberFormat.short(plain)}), {fmt(1 / a0.cooldown)} atq/s`
+		)
+		applyTo({ 1 }, "Speed2")
+		local a1 = call("debugTower", 1)
+		local a1Saved = dbg:Invoke(player, "Data").idle.towers["1"].runes
+		check(
+			a1.runes == "Damage10,Speed2" and a1Saved.Damage == "Damage10" and a1Saved.Speed == "Speed2"
+				and close(a1.damage, plain * 10, 1e-9) and close(a1.cooldown, archerDef.cooldown / 2, 1e-9),
+			`x2 vitesse posée sur l'Archer qui a x10 dégâts : les deux se cumulent ({NumberFormat.short(a1.damage)} dégâts, {fmt(1 / a1.cooldown)} atq/s = 2 x {fmt(1 / archerDef.cooldown)})`
+		)
+		local sharedStats = IdleTowers.effectiveStats("MachineGun", a1.level, archerDupes, "Damage10,Speed2")
+		check(
+			close(sharedStats.damage, a1.damage, 1e-12) and close(sharedStats.cooldown, a1.cooldown, 1e-12)
+				and close(IdleTowers.dpsOf(sharedStats), plain * 10 * 2 / archerDef.cooldown, 1e-9)
+				and archerModel ~= nil and archerModel:GetAttribute("Bonus") == "Damage10,Speed2",
+			`fiche et tableau du fief : mêmes stats avec l'attribut Bonus = « {archerModel and archerModel:GetAttribute("Bonus")} » (DPS x20)`
+		)
+		-- Une rune de dégâts ne remplace que la rune de dégâts (l'ancienne est perdue, pas rendue) : la vitesse reste.
+		dbg:Invoke(player, "Set", "bonuses", { "Damage20" })
+		call("applyBonus", 1, "Damage20")
+		local a2 = call("debugTower", 1)
+		local a2Data = dbg:Invoke(player, "Data")
+		check(
+			a2.runes == "Damage20,Speed2" and a2Data.idle.towers["1"].runes.Speed == "Speed2" and #a2Data.idle.bonuses == 0
+				and close(a2.damage, plain * 20, 1e-9) and close(a2.cooldown, archerDef.cooldown / 2, 1e-9),
+			`x20 dégâts posée : remplace x10 dégâts (perdue, inventaire {#a2Data.idle.bonuses}), x2 vitesse gardée ({a2.runes})`
+		)
+
+		-- Forge, emplacement par emplacement : toutes les tours à x2 dégâts ou mieux -> x2 dégâts n'est plus tirée,
+		-- mais x2 vitesse l'est encore (des tours n'ont pas de rune de vitesse). 40 lancers : jamais x2 dégâts.
 		applyToAll("Damage2", true)
 		local stateX2 = forgeState()
-		local offersX2 = table.find(stateX2.drawable, "Damage2") ~= nil or table.find(stateX2.drawable, "Speed2") ~= nil
+		local publishedX2 = string.split(player:GetAttribute("ForgeDrawable") or "", ",") -- (« Damage2 » est dans « Damage20 »)
 		check(
-			not offersX2 and stateX2.blocked == nil and #stateX2.drawable > 0 and not string.find(player:GetAttribute("ForgeDrawable"), "2,", 1, true),
-			`toutes les tours à x2 ou mieux : runes tirables {table.concat(stateX2.drawable, ",")} (attribut ForgeDrawable = {player:GetAttribute("ForgeDrawable")})`
+			table.find(stateX2.drawable, "Damage2") == nil and table.find(stateX2.drawable, "Speed2") ~= nil and stateX2.blocked == nil
+				and table.find(publishedX2, "Damage2") == nil and table.find(publishedX2, "Speed2") ~= nil,
+			`toutes les tours à x2 dégâts ou mieux : x2 dégâts exclue, x2 vitesse encore tirable ({table.concat(stateX2.drawable, ",")})`
 		)
 		dbg:Invoke(player, "Set", "forgeSpinsBought", 0) -- prix modestes pour 40 lancers
 		setCoins(1e300)
-		local drawnX2, drawn, draws = 0, {}, 0
+		local drawnDamageX2, drawn, draws = 0, {}, 0
 		for _ = 1, 40 do
 			local r = call("spinBonusWithCoins")
 			if r then
 				draws += 1
 				drawn[r.bonus] = (drawn[r.bonus] or 0) + 1
-				if r.bonus == "Damage2" or r.bonus == "Speed2" then
-					drawnX2 += 1
+				if r.bonus == "Damage2" then
+					drawnDamageX2 += 1
 				end
 			end
 		end
@@ -1500,16 +1679,34 @@ return function(log)
 			table.insert(drawnList, `{id}:{n}`)
 		end
 		table.sort(drawnList)
-		check(draws == 40 and drawnX2 == 0, `40 lancers : aucune rune x2 tirée ({table.concat(drawnList, " ")})`)
+		check(draws == 40 and drawnDamageX2 == 0, `40 lancers : aucune rune x2 dégâts tirée ({table.concat(drawnList, " ")})`)
 		check(dbg:Invoke(player, "Data").idle.forgeSpinsBought == 40, "40 lancers en pièces comptés")
 
-		-- Toutes les tours à x100 : plus rien ne les améliore -> forge bloquée (pièces), un reçu Robux donne x100.
-		applyToAll("Damage100", false)
+		-- Toutes les tours à x100 dégâts : la forge marche encore, avec la seule rune qui améliore une tour (x2
+		-- vitesse, 100 %). Un lancer en pièces et un lancer offert (défi classé) donnent donc x2 vitesse.
+		applyToAll("Damage100", true)
+		local stateSpeed = forgeState()
+		local speedOdds = IdleConfig.forgeOdds({ IdleConfig.BONUS_BY_ID.Speed2 })
+		check(
+			allTowersHave("Damage100", nil) and stateSpeed.blocked == nil and #stateSpeed.drawable == 1 and stateSpeed.drawable[1] == "Speed2"
+				and player:GetAttribute("ForgeDrawable") == "Speed2" and player:GetAttribute("ForgeBlocked") == "" and speedOdds.Speed2 == 100,
+			`x100 dégâts partout : seule x2 vitesse reste tirable ({table.concat(stateSpeed.drawable, ",")}, {speedOdds.Speed2} %), forge ouverte`
+		)
+		local speedSpin = call("spinBonusWithCoins")
+		local freeSpeedSpin = call("grantBonusSpin", "Challenge")
+		check(
+			speedSpin ~= nil and speedSpin.bonus == "Speed2" and freeSpeedSpin ~= nil and freeSpeedSpin.bonus == "Speed2",
+			`lancer en pièces ({speedSpin and speedSpin.bonus}) et lancer offert d'un défi ({freeSpeedSpin and freeSpeedSpin.bonus}) : x2 vitesse`
+		)
+
+		-- x2 vitesse posée partout : les runes de dégâts restent, et plus rien n'améliore une tour -> forge bloquée
+		-- (pièces), un reçu Robux donne la meilleure rune (x100 dégâts).
+		applyToAll("Speed2", true)
 		local stateBest = forgeState()
 		check(
-			stateBest.blocked == IdleConfig.FORGE_ALL_BEST and #stateBest.drawable == 0
+			allTowersHave("Damage100", "Speed2") and stateBest.blocked == IdleConfig.FORGE_ALL_BEST and #stateBest.drawable == 0
 				and player:GetAttribute("ForgeBlocked") == IdleConfig.FORGE_ALL_BEST and player:GetAttribute("ForgeDrawable") == "",
-			`toutes les tours à x100 : forge bloquée (« {player:GetAttribute("ForgeBlocked")} »)`
+			`x100 dégâts ET x2 vitesse sur toutes les tours (vitesse posée sans toucher aux dégâts) : forge bloquée (« {player:GetAttribute("ForgeBlocked")} »)`
 		)
 		local blockedResult, b0, b1 = forgeSpin()
 		check(
@@ -1535,11 +1732,284 @@ return function(log)
 			cleanCounter(forgeEnd.idle.forgeSpinsBought) and forgeEnd.idle.lastBonusSpinAt == nil,
 			`compteur de la forge entier et fini ({forgeEnd.idle.forgeSpinsBought}), plus de lastBonusSpinAt`
 		)
+
+		-- Anciennes sauvegardes : UNE rune par tour (champ bonus) -> elle va dans l'emplacement de sa sorte, le
+		-- champ bonus disparaît, un id inconnu est retiré ; le nouveau format ne bouge pas (une rune rangée sous la
+		-- mauvaise clé retourne dans le bon emplacement). Complétées comme au chargement d'un joueur (StudioDebug
+		-- « ChallengeMigrate » = PlayerData.reconcile).
+		local migrated = dbg:Invoke(player, "ChallengeMigrate", {
+			coins = 7,
+			idle = {
+				towers = {
+					["1"] = { type = "MachineGun", level = 4, spent = 70, bonus = "Speed2" },
+					["2"] = { type = "Frost", level = 2, spent = 45, bonus = "Damage20" },
+					["3"] = { type = "Bomb", level = 1, spent = 40, bonus = "RuneInconnue" },
+					["4"] = { type = "Tesla", level = 1, spent = 50 },
+					["5"] = { type = "Rocket", level = 3, spent = 90, runes = { Damage = "Damage5", Speed = "Speed2" } },
+					["6"] = { type = "Laser", level = 1, spent = 120, runes = { Damage = "Speed2" } },
+				},
+			},
+		})
+		local mt = migrated and migrated.idle and migrated.idle.towers
+		local migrationOk = mt ~= nil
+		if mt then
+			for key, tower in mt do
+				migrationOk = migrationOk and tower.bonus == nil and typeof(tower.runes) == "table"
+					and (key ~= "1" or (tower.runes.Speed == "Speed2" and tower.runes.Damage == nil and tower.level == 4))
+					and (key ~= "2" or (tower.runes.Damage == "Damage20" and tower.runes.Speed == nil))
+					and ((key ~= "3" and key ~= "4") or next(tower.runes) == nil)
+					and (key ~= "5" or (tower.runes.Damage == "Damage5" and tower.runes.Speed == "Speed2"))
+					and (key ~= "6" or (tower.runes.Speed == "Speed2" and tower.runes.Damage == nil))
+			end
+		end
+		check(
+			migrationOk and migrated.coins == 7,
+			"ancienne sauvegarde (1 rune par tour) : x2 vitesse -> emplacement vitesse, x20 dégâts -> emplacement dégâts, rune inconnue retirée, nouveau format gardé"
+		)
 		dbg:Invoke(player, "Set", "bonuses", {})
 		call("publishInventory")
 		setCoins(0)
 	end
 	testForge()
+
+	----------------------------------------------------------------------
+	-- Défis classés (Shared/Challenges.luau, Hub/ChallengeRewards.luau) : progression comptée par le même code
+	-- que le serveur de match (StudioDebug « ChallengeMatch »), règle des 3 minutes, même adversaire 2 fois par
+	-- jour au plus, récompense donnée une seule fois, lancers offerts sans hausse des prix, nouveau jour et
+	-- nouvelle semaine (horloge décalée), anciennes sauvegardes. À la fin du test de la forge, toutes les tours
+	-- ont x100 dégâts et x2 vitesse : la forge est bloquée (le lancer offert donne la meilleure rune, comme un
+	-- reçu Robux ; le test de la forge vérifie aussi qu'un lancer offert suit les emplacements de rune).
+	----------------------------------------------------------------------
+	local function testChallenges()
+		local HttpService = game:GetService("HttpService")
+		local Challenges = require(ReplicatedStorage.Shared.Challenges)
+		local function challengeState()
+			return dbg:Invoke(player, "Challenges")
+		end
+		local function match(args)
+			return dbg:Invoke(player, "ChallengeMatch", args)
+		end
+		local function claim(key, period)
+			return dbg:Invoke(player, "ChallengeClaim", key, period)
+		end
+		local function ids(list)
+			local out = {}
+			for _, entry in list do
+				table.insert(out, entry.id)
+			end
+			return table.concat(out, ",")
+		end
+		-- Doublons + tours débloquées : chaque lancer de l'autel en ajoute exactement 1.
+		local function altarItems(d)
+			local total = 0
+			for _, n in d.idle.towerDupes do
+				total += n
+			end
+			for _, unlocked in d.idle.unlockedTowers do
+				total += if unlocked then 1 else 0
+			end
+			return total
+		end
+		local function allFinite(t)
+			for _, value in t do
+				if typeof(value) == "number" and (value ~= value or value == math.huge or value == -math.huge) then
+					return false
+				elseif typeof(value) == "table" and not allFinite(value) then
+					return false
+				end
+			end
+			return true
+		end
+
+		dbg:Invoke(player, "ChallengeClock", 0)
+		local now = os.time()
+		local s0 = challengeState()
+		check(
+			#s0.daily == Challenges.DAILY_COUNT and #s0.weekly == Challenges.WEEKLY_COUNT
+				and s0.day == Challenges.dayNumber(now) and s0.week == Challenges.weekNumber(now),
+			`défis classés : {#s0.daily} du jour (jour {s0.day}), {#s0.weekly} de la semaine (semaine {s0.week})`
+		)
+		check(
+			ids(s0.daily) == table.concat(Challenges.dailyPicks(s0.day), ",") and ids(s0.weekly) == table.concat(Challenges.weeklyPicks(s0.week), ","),
+			`défis tirés avec le numéro du jour et de la semaine, les mêmes pour tous ({ids(s0.daily)} | {ids(s0.weekly)})`
+		)
+
+		-- Défis connus pour la suite (progression à 0).
+		local forced = dbg:Invoke(player, "ChallengeForce", { "play2", "win1", "towers15" }, { "play10", "minutes45" })
+		check(ids(forced.daily) == "play2,win1,towers15" and ids(forced.weekly) == "play10,minutes45" and forced.ready == 0, "défis forcés pour le test, rien à récupérer")
+
+		-- Progression : un match classé de 4 min gagné, 6 tours posées, 3 types, 4 améliorations.
+		local r1 = match({ seconds = 240, won = true, opponentId = 1001, towersPlaced = 6, upgrades = 4, towerTypes = 3 })
+		local s1 = challengeState()
+		check(
+			r1.counted and s1.daily[1].p == 1 and s1.daily[2].p == 1 and s1.daily[2].done and s1.daily[3].p == 6
+				and s1.weekly[1].p == 1 and s1.weekly[2].p == 240,
+			`match compté (« {r1.text} ») : matchs 1/2, victoire 1/1, tours 6/15, semaine 1/10 et 240 s`
+		)
+		check(s1.ready == 1 and player:GetAttribute("ChallengesReady") == 1, `pastille du bouton DÉFIS : {player:GetAttribute("ChallengesReady")} récompense prête`)
+
+		-- Règle des 3 minutes : 179 s ne compte pas, 180 s compte.
+		local short = match({ seconds = Challenges.MIN_MATCH_SECONDS - 1, won = true, opponentId = 1002, towersPlaced = 5 })
+		local s2 = challengeState()
+		check(
+			not short.counted and short.reason == Challenges.REASON_SHORT and s2.daily[1].p == 1 and s2.daily[3].p == 6,
+			`match de {Challenges.MIN_MATCH_SECONDS - 1} s : ne compte pas (« {short.text} »), progression inchangée`
+		)
+		local exact = match({ seconds = Challenges.MIN_MATCH_SECONDS, opponentId = 1002 })
+		check(exact.counted and challengeState().daily[1].p == 2, `match de {Challenges.MIN_MATCH_SECONDS} s tout juste : compte (Joue 2 matchs : terminé)`)
+
+		-- Même adversaire : 2 matchs comptés par jour au plus ; un autre adversaire compte toujours.
+		local o1 = match({ seconds = 300, opponentId = 2002 })
+		local o2 = match({ seconds = 300, opponentId = 2002 })
+		local o3 = match({ seconds = 300, opponentId = 2002 })
+		local o4 = match({ seconds = 300, opponentId = 3003 })
+		check(
+			o1.counted and o2.counted and not o3.counted and o3.reason == Challenges.REASON_OPPONENT and o4.counted,
+			`même adversaire : 2 matchs comptés, le 3e refusé (« {o3.text} »), un autre adversaire compte`
+		)
+		local bot = match({ seconds = 600, won = true, opponentId = 4004, ranked = false })
+		check(not bot.counted and bot.reason == Challenges.REASON_UNRANKED, `match non classé (bot) : ne compte jamais (« {bot.text} »)`)
+		local twice1 = match({ seconds = 300, opponentId = 5005, matchId = "studio-double" })
+		local twice2 = match({ seconds = 300, opponentId = 6006, matchId = "studio-double" })
+		check(twice1.counted and not twice2.counted and twice2.reason == Challenges.REASON_ALREADY, "le même match n'est jamais compté deux fois")
+
+		-- « Récupérer » : la récompense exacte, une seule fois.
+		local d0 = dbg:Invoke(player, "Data")
+		setCoins(0)
+		local expected = Challenges.rewardFor(Challenges.BY_ID.play2, d0.idle.highestWave, d0.idle.coinBonus)
+		local ok1, message1 = claim("d1")
+		local coins1 = dbg:Invoke(player, "Data").coins
+		check(
+			ok1 and coins1 == expected.coins and expected.coins > 0,
+			`« Récupérer » (Joue 2 matchs) : {NumberFormat.short(coins1)} pièces (attendu {NumberFormat.short(expected.coins)} = {Challenges.DAILY_COIN_WAVES} vagues au record {d0.idle.highestWave}) « {message1} »`
+		)
+		local ok2, message2 = claim("d1")
+		check(not ok2 and dbg:Invoke(player, "Data").coins == coins1, `2e « Récupérer » refusé (« {message2} »), pièces inchangées`)
+		local okTodo, messageTodo = claim("d3")
+		check(not okTodo and challengeState().daily[3].c == false, `défi pas terminé : refusé (« {messageTodo} »)`)
+		local okOld, messageOld = claim("d2", s0.day - 1)
+		check(not okOld and challengeState().daily[2].c == false, `mauvais jour : refusé (« {messageOld} »)`)
+		local okBad = claim("zz")
+		check(not okBad, "clé de défi inconnue : refusée")
+
+		-- Lancers d'autel offerts (Gagne 1 match) : +10 lancers, le prix de l'autel ne bouge pas.
+		local a0 = dbg:Invoke(player, "Data")
+		local priceBefore = IdleConfig.towerSpinPrice(a0.idle.highestWave, a0.idle.towerSpinsBought)
+		local okSpin, messageSpin, spinDetails = claim("d2")
+		local a1 = dbg:Invoke(player, "Data")
+		check(
+			okSpin and spinDetails and spinDetails.altar and spinDetails.altar.count == Challenges.ALTAR_SPINS
+				and altarItems(a1) - altarItems(a0) == Challenges.ALTAR_SPINS,
+			`« Récupérer » (Gagne 1 match) : {altarItems(a1) - altarItems(a0)} tours / doublons de l'autel (attendu {Challenges.ALTAR_SPINS}) « {messageSpin} »`
+		)
+		check(
+			a1.idle.towerSpinsBought == a0.idle.towerSpinsBought
+				and player:GetAttribute("TowerSpinsBought") == a0.idle.towerSpinsBought
+				and IdleConfig.towerSpinPrice(a1.idle.highestWave, a1.idle.towerSpinsBought) == priceBefore,
+			`lancers offerts : compteur de l'autel inchangé ({a0.idle.towerSpinsBought} -> {a1.idle.towerSpinsBought}), prix du prochain lancer inchangé`
+		)
+
+		-- Défi de la semaine (Joue 10 matchs) : terminé avec de nouveaux adversaires, puis pièces + 1 lancer de forge.
+		for i = 1, 4 do
+			match({ seconds = 300, opponentId = 7000 + i })
+		end
+		local sw = challengeState()
+		check(sw.weekly[1].p == 10 and sw.weekly[1].done, `défi de la semaine : {sw.weekly[1].p}/10 matchs, terminé`)
+		setCoins(0)
+		local f0 = dbg:Invoke(player, "Data")
+		local forge0 = call("forgeState")
+		local okWeek, messageWeek, weekDetails = claim("w1")
+		local f1 = dbg:Invoke(player, "Data")
+		local forge1 = call("forgeState")
+		local expectedWeek = Challenges.rewardFor(Challenges.BY_ID.play10, f0.idle.highestWave, f0.idle.coinBonus)
+		check(
+			okWeek and f1.coins == expectedWeek.coins and #f1.idle.bonuses == #f0.idle.bonuses + 1,
+			`« Récupérer » (semaine) : {NumberFormat.short(f1.coins)} pièces (attendu {NumberFormat.short(expectedWeek.coins)}) + 1 rune « {messageWeek} »`
+		)
+		check(
+			forge1.bought == forge0.bought and forge1.price == forge0.price and player:GetAttribute("ForgeSpinsBought") == forge0.bought,
+			`lancer de forge offert : compteur ({forge0.bought} -> {forge1.bought}) et prix de la forge inchangés`
+		)
+		if forge0.blocked == IdleConfig.FORGE_ALL_BEST then
+			check(
+				weekDetails and weekDetails.forge and weekDetails.forge.bonus == IdleConfig.bestRune().id,
+				`forge bloquée (x100 dégâts et x2 vitesse sur toutes les tours) : le lancer offert donne la meilleure rune, comme un reçu Robux ({weekDetails and weekDetails.forge and weekDetails.forge.bonus})`
+			)
+		end
+		local okWeek2 = claim("w1")
+		check(not okWeek2, "2e « Récupérer » du défi de la semaine refusé")
+
+		-- Nouveau jour (horloge + 24 h) : défis du jour, progression, récompenses et adversaires remis à zéro.
+		local before = challengeState()
+		dbg:Invoke(player, "ChallengeClock", Challenges.DAY_SECONDS)
+		local day2 = challengeState()
+		local fresh = true
+		for _, entry in day2.daily do
+			fresh = fresh and entry.p == 0 and not entry.c
+		end
+		check(
+			day2.day == before.day + 1 and fresh and next(day2.opp) == nil and ids(day2.daily) == table.concat(Challenges.dailyPicks(day2.day), ","),
+			`nouveau jour : nouveaux défis ({ids(day2.daily)}), progression et récompenses remises à zéro`
+		)
+		if day2.week == before.week then
+			check(
+				day2.weekly[1].c == true and day2.weekly[2].p == before.weekly[2].p,
+				"nouveau jour de la même semaine : les défis de la semaine sont gardés"
+			)
+		else
+			say("le jour suivant est un lundi : la semaine change aussi (vérifiée juste après)")
+		end
+		local again = match({ seconds = 300, opponentId = 2002 })
+		check(again.counted, "nouveau jour : l'adversaire déjà affronté 2 fois compte de nouveau")
+
+		-- Nouvelle semaine (le lundi 00:00 UTC qui suit la semaine du « nouveau jour ») : défis de la semaine
+		-- remis à zéro.
+		dbg:Invoke(player, "ChallengeClock", Challenges.weekEndsAt(day2.week) - os.time() + 60)
+		local week2 = challengeState()
+		check(
+			week2.week == day2.week + 1 and week2.weekly[1].p == 0 and not week2.weekly[1].c and week2.weekly[2].p == 0
+				and ids(week2.weekly) == table.concat(Challenges.weeklyPicks(week2.week), ","),
+			`nouvelle semaine : nouveaux défis ({ids(week2.weekly)}), progression remise à zéro`
+		)
+		dbg:Invoke(player, "ChallengeClock", 0)
+		local back = challengeState()
+		check(back.day == Challenges.dayNumber(os.time()) and back.offset == 0, "horloge des défis remise à l'heure réelle")
+
+		-- État publié pour l'interface (attribut ChallengeState, en JSON).
+		local okJson, published = pcall(HttpService.JSONDecode, HttpService, player:GetAttribute("ChallengeState") or "")
+		check(
+			okJson and typeof(published) == "table" and published.day == back.day and #published.daily == Challenges.DAILY_COUNT
+				and published.daily[1].key == "d1" and #published.weekly == Challenges.WEEKLY_COUNT and typeof(published.dayEndsAt) == "number",
+			"état des défis publié pour l'interface (ChallengeState)"
+		)
+
+		-- Anciennes sauvegardes : sans défis -> valeurs par défaut ; défis abîmés -> nettoyés (sauvegardables).
+		local migrated = dbg:Invoke(player, "ChallengeMigrate", { coins = 123, mmr = 1100, idle = { wave = 3, bestWave = 3, highestWave = 3 } })
+		local mc = migrated and migrated.challenges
+		check(
+			mc ~= nil and mc.day == 0 and mc.week == 0 and #mc.daily == 0 and #mc.weekly == 0 and next(mc.opp) == nil and mc.last == "" and migrated.coins == 123,
+			"ancienne sauvegarde sans défis : défis ajoutés avec les valeurs par défaut, pièces gardées"
+		)
+		local broken = dbg:Invoke(player, "ChallengeMigrate", {
+			coins = 5,
+			idle = {},
+			challenges = {
+				day = 0 / 0,
+				week = "x",
+				daily = { { id = "play2", p = math.huge, c = "oui" }, { id = "inconnu", p = 3 } },
+				opp = { ["2002"] = 0 / 0, ["77"] = 1 },
+				last = 12,
+			},
+		})
+		local bc = broken and broken.challenges
+		check(
+			bc ~= nil and bc.day == 0 and bc.week == 0 and #bc.daily == 1 and bc.daily[1].p == 0 and bc.daily[1].c == false
+				and bc.opp["77"] == 1 and bc.opp["2002"] == nil and bc.last == "" and allFinite(broken),
+			"défis abîmés dans une sauvegarde : nettoyés (nombres finis, défis inconnus retirés)"
+		)
+		setCoins(0)
+	end
+	testChallenges()
 
 	-- Retour à une vague normale pour la fin
 	dbg:Invoke(player, "StartWave", 1)

@@ -55,15 +55,22 @@ powershell -ExecutionPolicy Bypass -File tools\balance\idle\run.ps1 -Verifier
 ```
 
 Charge le **vrai** `src/server/Hub/PlotGame.luau` hors de Studio (avec des imitations de Roblox :
-`idle/verif/extra.luau` et `idle/verif/stubs/`), puis fait jouer les mêmes vagues (vagues 8 à 60, 5 équipes :
-toutes les tours avec des runes, que des Archers, Sorciers + Totem + Mage, zones et projectiles, et
-« contrôles » : 2 Totems, 2 Mages, 2 Trébuchets, 2 Balistes, 2 Archers) au jeu et au moteur du simulateur
+`idle/verif/extra.luau` et `idle/verif/stubs/`), puis fait jouer les mêmes vagues (vagues 8 à 60, 6 équipes :
+toutes les tours avec des runes (dont x3 dégâts + x2 vitesse cumulées sur l'Archer), que des Archers,
+Sorciers + Totem + Mage, zones et projectiles,
+« contrôles » : 2 Totems, 2 Mages, 2 Trébuchets, 2 Balistes, 2 Archers, et la composition du propriétaire à la
+vague 148 : 4 Mages avec x2 vitesse et des Catapultes) au jeu et au moteur du simulateur
 (`idle/verif/parity.luau`). Il affiche `OK` si toutes les vagues ont le même résultat (réussie ou ratée),
-presque la même durée (2 s d'écart au plus) et les mêmes pièces. Pour une comparaison exacte, le pas de temps
+presque la même durée (2 s d'écart au plus) et les mêmes pièces. Puis 2 essais « dégâts comptés » : une vague
+faite à la main (cavaliers ou fantassins presque immortels, sous les étourdissements des Trébuchets et les
+éclairs des Mages) où les dégâts de chaque type de tour (feu des flèches compris) doivent être les mêmes dans
+le jeu et dans le moteur : ils voient tout de suite un moteur dont les projectiles ne suivraient pas leur cible
+(les vagues du dessus y sont peu sensibles). Pour une comparaison exacte, le pas de temps
 vaut 1/32 s dans les deux (un nombre exact en binaire), la parcelle est au centre du monde et le moteur n'a pas
-sa petite marge d'arrondi (`Engine.EPS = 0`). Dernier résultat : 135 vagues sur 135 identiques, 0,06 s d'écart
-au plus (avec la règle « un seul contrôle à la fois », la fragilité, le carreau perçant, la visée du Trébuchet,
-l'étourdissement, la sortie à chaque mort et la vague écrasée). **À relancer après chaque changement de combat dans `PlotGame.luau`** :
+sa petite marge d'arrondi (`Engine.EPS = 0`). Dernier résultat : 162 vagues sur 162 identiques, 0,06 s d'écart
+au plus, et 2 essais sur 2 avec les mêmes dégâts (avec la règle « un seul contrôle à la fois », la fatigue des
+contrôles courts, les projectiles qui suivent leur cible, la fragilité, le carreau perçant, la visée du
+Trébuchet, l'étourdissement, la sortie à chaque mort et la vague écrasée). **À relancer après chaque changement de combat dans `PlotGame.luau`** :
 s'il affiche `DIFFÉRENCES`, fais le même changement dans `idle/Engine.luau`.
 
 ## Les résultats (`tools\balance\idle\out\`)
@@ -89,7 +96,9 @@ s'il affiche `DIFFÉRENCES`, fais le même changement dans `idle/Engine.luau`.
      le sauver), et la vague où NumberFormat passe en notation scientifique (après 10^96).
   6. **Banc d'essai des tours**, puis l'**anti-méta** (compositions extrêmes contre la défense mélangée du
      joueur simulé, même budget : tout Trébuchet, tout givre, Trébuchet + givre, tout Sorcier, tout Catapulte,
-     givre + Mage… ; dernière vague réussie en jouant les vagues 1, 2, 3… avec une défense fixe, à 5, 10, 20,
+     givre + Mage, tout Mage, et la composition du propriétaire « Mages x2 + Catapultes » : moitié Mages avec
+     la rune x2 vitesse, moitié Catapultes, seule composition avec des runes… ; dernière vague réussie en jouant
+     les vagues 1, 2, 3… avec une défense fixe, à 5, 10, 20,
      40 et 80 h), puis les **duels** : UNE tour contre UN seul ennemi (immortel) qui traverse tout le chemin,
      même niveau pour toutes, seule puis avec un Totem de givre voisin ; résultat en fois les dégâts de la
      Baliste lourde (c'est là qu'on voit le rayon du Sorcier battre la Baliste contre les ennemis lents et
@@ -161,8 +170,10 @@ réglage dans `src/shared`, le simulateur l'utilise au prochain lancement.
   suite, même si d'autres sont en vie ; **vague écrasée** (`COMPRESS_EMPTY_SPAWNS`) : plus aucun ennemi en vie
   -> le suivant sort tout de suite ;
 - **contrôles : un seul à la fois** par ennemi (ralentissement du Totem de givre, du Mage des tempêtes,
-  étourdissement du Trébuchet royal) : la même sorte de tour prolonge le sien, une autre est refusée tant qu'il
-  dure ; **fragilité** du Totem (+X % de dégâts reçus, sauf Mage et Totems ; le plus fort Totem gagne) ;
+  étourdissement du Trébuchet royal) : un Totem prolonge le sien, une autre sorte de tour est refusée tant qu'il
+  dure ; **fatigue** des contrôles courts (Mage, Trébuchet) : jamais prolongés, puis immunité contre ce type de
+  tour (`slowImmunity`, `stunImmunity`) ; **fragilité** du Totem (+X % de dégâts reçus, sauf Mage et Totems ;
+  le plus fort Totem gagne) ;
 - tirs des tours dans l'ordre des emplacements : simple (le plus avancé), `Strongest` (le plus de PV),
   `Crowd` (Trébuchet : le point où sa zone touche le plus d'ennemis), zone, aura, chaîne, carreau perçant
   (Baliste : toute la ligne tour -> impact) ; recharges ; stats de `IdleTowers.effectiveStats` (niveau,
@@ -170,7 +181,9 @@ réglage dans `src/shared`, le simulateur l'utilise au prochain lancement.
 - **projectiles** (Archer, Catapulte, Baliste, Trébuchet) : visée à l'endroit où sera l'ennemi (sa vitesse, la
   fin de son ralentissement, le chemin, 2 itérations), temps de vol `IdleTowers.flightTime` (distance en 3D
   depuis le haut de la tour), dégâts à l'impact ; une zone touche autour du point d'impact, une flèche touche sa
-  cible (ou l'ennemi le plus proche à `PROJECTILE_CATCH_RADIUS` studs si elle est morte) ; dégâts « en attente »
+  cible (ou l'ennemi le plus proche à `PROJECTILE_CATCH_RADIUS` studs si elle est morte) ; Archer, Catapulte et
+  Baliste **suivent leur cible** (zone, feu et ligne centrés sur elle si elle vit et reste à
+  `IdleTowers.followDistance` du point prévu), le Trébuchet garde son point prévu ; dégâts « en attente »
   : une tour à projectile ne vise pas un ennemi que les projectiles déjà en vol vont tuer ;
 - **flèches enflammées** : zones de feu au point d'impact (ravivées par la même tour, `fireMaxPatches` par
   tour, `FIRE_MAX_PER_PLOT` en tout), un coup toutes les `fireTick` s à tous les ennemis dedans ; les dégâts du
@@ -185,11 +198,12 @@ réglage dans `src/shared`, le simulateur l'utilise au prochain lancement.
   nombre de lancers déjà achetés : +0,05 % par lancer, jamais remis à zéro ; un prix « MAX » n'est pas achetable), chances du
   palier du **record** (`TOWER_SPIN_TIERS`), déblocage ou doublon, tirage des gros lots comme le serveur
   (nombre de tours par rareté puis par tour), forge runique (prix `forgeCoinPrice` : 100 K, x5 sous 1 T, puis
-  x2, compteur jamais remis à zéro, plus de délai ; seulement les runes qui améliorent une tour posée,
-  `forgeDrawableRunes` ; le bonus remplacé est perdu),
+  x2, compteur jamais remis à zéro, plus de délai ; 2 emplacements de rune par tour qui se cumulent, dégâts et
+  vitesse ; seulement les runes qui améliorent une tour posée dans l'emplacement de leur sorte,
+  `weakestRunes` + `forgeDrawableRunes` ; une rune ne remplace que celle de la même sorte, qui est perdue),
   emplacements (le n-ième acheté coûte `PlotLayout.spotCost(n)` ; achetés dans n'importe quel ordre si le
   jeu le permet, c'est-à-dire si `PlotLayout.startingSpots` existe, sinon dans l'ordre 5, 6, 7…), prix des
-  tours et des améliorations, remplacement remboursé à 50 % (le bonus de l'ancienne tour revient dans
+  tours et des améliorations, remplacement remboursé à 50 % (les runes de l'ancienne tour reviennent dans
   l'inventaire), renaissance (`rebirthGain`, seule la vague repart à 1).
 
 Différences voulues avec le jeu : pas de temps fixe de 0,05 s au lieu de ~1/60 s (les résultats changent
@@ -248,7 +262,7 @@ Scénarios (`-Scenarios`) :
 | Scénario | Joueur |
 |---|---|
 | `base` | le joueur ci-dessus, sans forge ni renaissance (la référence des objectifs) |
-| `forge` | + la forge runique en pièces (plus de délai) : dès que le prix du prochain lancer vaut moins de 30 min de revenu, il le met de côté puis lance ; seulement des runes utiles ; la rune va sur la tour où elle rapporte le plus. Le rapport donne les lancers achetés à 2, 6, 10, 25, 50 et 100 h |
+| `forge` | + la forge runique en pièces (plus de délai) : dès que le prix du prochain lancer vaut moins de 30 min de revenu, il le met de côté puis lance ; seulement des runes utiles ; la rune va sur la tour où elle rapporte le plus, dans l'emplacement de sa sorte (dégâts ou vitesse, les deux se cumulent). Le rapport donne les lancers achetés à 2, 6, 10, 25, 50 et 100 h, la meilleure rune de dégâts posée et la part des tours avec la rune de vitesse |
 | `renaissance` | forge + renaissance dès qu'il est bloqué depuis 15 min à son record (vague 15 ou plus) |
 | `renaissance-seule` | base + la même renaissance, sans forge (pour voir l'effet de la renaissance seule) |
 | `sans-sorcier` | base, mais il ne pose jamais de Sorcier des arcanes : le rapport compare les murs des Seigneurs de guerre et des Gardes colossales avec et sans lui |

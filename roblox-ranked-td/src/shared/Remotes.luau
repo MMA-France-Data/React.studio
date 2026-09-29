@@ -19,7 +19,8 @@ local DEFINITIONS = {
 	-- ralenti par un Totem de givre, Tesla = ralenti par un Mage des tempêtes, Orbital = étourdi par le
 	-- Trébuchet royal), bit 7 (128) = fragile (aura d'un Totem de givre). Voir le haut de PlotGame.luau.
 	PlotSync = "RemoteEvent",
-	-- serveur -> clients : (plotIndex, buffer, count) tirs, count x 27 octets (format : PlotGame:takeShotsPacket).
+	-- serveur -> clients : (plotIndex, buffer, count) tirs, count x 27 octets, puis count x 4 octets : l'id u32 de
+	-- la cible que suit chaque projectile (0 = aucune ; format : PlotGame:takeShotsPacket et le haut de PlotGame).
 	-- Baliste lourde (type Rocket) : carreau perçant du départ au point d'arrivée, rayon 0 ; Trébuchet royal
 	-- (type Orbital) : rayon = sa grande zone.
 	PlotShots = "UnreliableRemoteEvent",
@@ -27,15 +28,17 @@ local DEFINITIONS = {
 	-- Machines à sous
 	OpenMachine = "RemoteEvent", -- serveur -> client : ("Tower" | "Bonus") quand on active une machine
 	-- client -> serveur : ("SpinTower", nombre de lancers : 1 si absent, voir IdleConfig.TOWER_SPIN_BULKS)
-	--                    | "SpinBonusCoins" (forge en pièces, sans délai) | ("ApplyBonus", spot, bonusId)
+	--                    | "SpinBonusCoins" (forge en pièces, sans délai)
+	--                    | ("ApplyBonus", spot, bonusId) (rune posée dans l'emplacement de sa sorte : dégâts ou vitesse)
 	-- Forge : état publié en attributs du joueur (ForgeSpinsBought, ForgeCoinPrice (-1 = MAX), ForgeDrawable,
 	-- ForgeBlocked), voir PlotGame:publishForge. Quand ForgeBlocked n'est pas vide, le client bloque aussi le
 	-- bouton Robux (un reçu qui arrive quand même donne la meilleure rune).
 	MachineAction = "RemoteEvent",
 	-- serveur -> client : résultat d'un lancer. Autel des héros : { machine = "Tower", count, tower, rarity,
-	-- isNew, dupes, results = { { tower, rarity, count, isNew } } } (voir PlotGame:spinTower).
-	-- Forge runique : { machine = "Bonus", bonus, source = "Coins" | "Robux", price (pièces payées, 0 en Robux),
-	-- forgeSpinsBought } (voir PlotGame:grantBonusSpin).
+	-- isNew, dupes, results = { { tower, rarity, count, isNew } }, source = "Coins" | "Challenge" } (voir
+	-- PlotGame:spinTower ; "Challenge" = lancers offerts par un défi classé).
+	-- Forge runique : { machine = "Bonus", bonus, source = "Coins" | "Robux" | "Challenge", price (pièces payées,
+	-- 0 en Robux ou offert), forgeSpinsBought } (voir PlotGame:grantBonusSpin).
 	MachineResult = "RemoteEvent",
 	-- Gains d'absence, serveur -> client, une fois en arrivant sur la map principale (Hub/init.luau) :
 	-- (payload) = { amount, seconds, kind = "Offline" | "Match", capped, offlineAmount, offlineSeconds,
@@ -47,13 +50,20 @@ local DEFINITIONS = {
 	-- Possession publiée en attributs du joueur : PassAutoCollect, PassSpeedX2, PassCoinsX2, SpeedX2Enabled
 	-- (x2 actif).
 	PassAction = "RemoteEvent",
+	-- Défis classés, client -> serveur : ("Claim", clé du défi "d1".."d3" | "w1" | "w2", numéro du jour ou de la
+	-- semaine affiché) = bouton « Récupérer ». Le serveur revérifie tout (Hub/ChallengeRewards.luau). État publié
+	-- en attributs du joueur : ChallengeState (JSON, voir Challenges.clientState) et ChallengesReady (nombre de
+	-- récompenses à récupérer).
+	ChallengeAction = "RemoteEvent",
 	-- Commun
 	Notify = "RemoteEvent", -- serveur -> client : (message, kind)
 	-- Match
 	PlaceTower = "RemoteEvent", -- client -> serveur : (towerType, position)
 	UpgradeTower = "RemoteEvent", -- client -> serveur : (towerId)
 	SellTower = "RemoteEvent", -- client -> serveur : (towerId)
-	MatchResult = "RemoteEvent", -- serveur -> client : (result)
+	-- serveur -> client : (result). result.challenges = ligne des défis classés (« Défis : +1 match joué », ou
+	-- pourquoi le match ne compte pas), absente pour un match annulé.
+	MatchResult = "RemoteEvent",
 	TowerFired = "UnreliableRemoteEvent", -- serveur -> clients : (from, to, towerType, radius, towerId)
 }
 

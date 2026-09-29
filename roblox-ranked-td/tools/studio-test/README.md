@@ -18,12 +18,28 @@ powershell -ExecutionPolicy Bypass -File tools\studio-test\run.ps1 -Place match
 - `hub` (par défaut) : map principale. Le scénario achète des emplacements dans le désordre (prix,
   cadenas, refus), pose les 8 tours, les améliore, pose des bonus,
   puis vérifie la renaissance (vagues 10, 15, 50 et 100) et écrit `[PASS]` / `[FAIL]`.
+  Forge runique : 2 runes par tour qui se cumulent (x10 puis x20 dégâts + x2 vitesse sur l'Archer, stats exactes,
+  une rune de dégâts garde la rune de vitesse et inversement), runes tirables emplacement par emplacement (x100
+  dégâts partout : seule x2 vitesse reste ; les deux partout : forge bloquée), anciennes sauvegardes (1 rune par
+  tour -> emplacement de sa sorte). Le scénario client vérifie que le HUD de la parcelle n'a plus de panneau de
+  vague (la vague est sur le tableau « CHRONIQUES DU FIEF ») mais garde le compteur de pièces.
+  Contrôles : un seul à la fois par ennemi, et **fatigue** des contrôles courts : le Mage foudroie le même ennemi
+  à chaque image pendant 4 s (jamais prolongé, ralenti au plus durée / (durée + immunité) du temps), une 2e pierre
+  du Trébuchet blesse sans étourdir pendant l'immunité ; puis un rocher de la Catapulte **suit sa cible**, un
+  cavalier arrêté net juste après le tir (`debugFreeze`) : les dégâts tombent sur lui.
+  À la fin, les **défis classés** : progression comptée par le même code que le serveur de match, règle des
+  3 minutes, même adversaire 2 fois par jour au plus, bot jamais compté, récompense exacte donnée une seule fois,
+  lancers offerts de l'autel et de la forge sans hausse des prix, nouveau jour et nouvelle semaine (horloge des
+  défis décalée), anciennes sauvegardes. Le scénario client ouvre la fenêtre des défis (capture
+  `challenges_panel`) et vérifie qu'elle ne couvre ni le chat ni la liste des joueurs, si la vue du jeu fait au
+  moins 1 000 px de large (plus étroite, comme sur un téléphone, la fenêtre est seulement centrée et réduite).
 - `match` : match ranked en solo (le bot joue l'autre terrain après 10 s). Le joueur de test ne pose
   aucune tour. Le scénario vérifie qu'il n'y a plus d'envois (ni remote `SendEnemies`, ni module
   `Sends`, ni panneau d'envoi dans le HUD), que l'or du joueur vaut 500 + 100 x vague, que les deux
-  terrains reçoivent exactement les mêmes ennemis pendant 5 vagues et que le bot pose des tours
+  terrains reçoivent exactement les mêmes ennemis pendant 5 vagues, que le bot pose des tours
+  et que les chiffres des défis classés de chaque terrain (tours posées, types, améliorations) sont justes
   (~2 min 10). Avec `-Seconds 260 -Timeout 420`, il vérifie aussi la fin : la base du joueur
-  tombe vers la vague 8 (~3 min 15) et le bot gagne.
+  tombe vers la vague 8 (~3 min 15), le bot gagne, et ce match contre le bot ne compte pas pour les défis.
 - Résultats dans `tools\studio-test\out\` : `studio-output.log` (la Sortie du serveur et du client)
   et les captures `.png`. À la fin, le script affiche le nombre d'erreurs.
 - Si Studio est déjà ouvert, le script s'arrête pour ne pas te faire perdre ton travail
@@ -53,5 +69,6 @@ powershell -ExecutionPolicy Bypass -File tools\studio-test\check.ps1
 un objet que seul `mkproj.cjs` ajoute aux places de test. Pour le désinstaller, supprime
 `%LOCALAPPDATA%\Roblox\Plugins\AutoPlayTest.lua`.
 
-`ServerStorage.StudioDebug` (dans `src/server/Hub/init.luau`) n'est créé que dans Studio
-(`RunService:IsStudio()`) : il n'existe pas dans le jeu publié.
+`ServerStorage.StudioDebug` (dans `src/server/Hub/init.luau`, et une petite version pour le serveur de match
+dans `src/server/Match/init.luau`) n'est créé que dans Studio (`RunService:IsStudio()`) : il n'existe pas dans le
+jeu publié.

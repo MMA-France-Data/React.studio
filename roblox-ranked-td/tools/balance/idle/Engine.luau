@@ -14,8 +14,10 @@
 --     sortir et aucune mort qui attend son ennemi -> l'attente est sautée, le suivant sort à ce pas (toute la
 --     suite de la file avance d'autant) ;
 --   * CONTRÔLES (applyControl) : UN SEUL à la fois par ennemi (ralentissement du Totem de givre, du Mage des
---     tempêtes, étourdissement du Trébuchet royal). Le même type de tour prolonge son effet (force inchangée),
---     un autre type est refusé tant que l'effet dure (premier arrivé, premier servi) ;
+--     tempêtes, étourdissement du Trébuchet royal). Le Totem prolonge son effet (force inchangée) ; un autre
+--     type est refusé tant que l'effet dure (premier arrivé, premier servi) ; FATIGUE des contrôles courts
+--     (Mage, Trébuchet : slowImmunity / stunImmunity) : jamais prolongés, puis l'ennemi est immunisé contre ce
+--     type de tour pendant ces secondes ;
 --   * fragilité du Totem de givre (applyFragility) : +X % de dégâts reçus des tours qui n'ont pas
 --     ignoresFragility (pas le Mage, pas les Totems) ; le plus fort des Totems gagne, un égal prolonge ;
 --   * carreau perçant (Baliste, kind « Pierce ») : à l'impact, tous les ennemis à moins de pierceWidth du segment
@@ -25,7 +27,9 @@
 --   * projectiles (Archer, Catapulte, Baliste, Trébuchet : projectileSpeed) : la tour vise l'endroit où SERA
 --     l'ennemi (predictImpact : sa vitesse, la fin de son ralentissement, le chemin), les dégâts tombent à
 --     l'impact (IdleTowers.flightTime) ; une zone touche autour du point d'impact, une flèche touche sa cible
---     (ou, si elle est morte, l'ennemi le plus proche à PROJECTILE_CATCH_RADIUS studs au plus) ;
+--     (ou, si elle est morte, l'ennemi le plus proche à PROJECTILE_CATCH_RADIUS studs au plus) ; Archer,
+--     Catapulte et Baliste SUIVENT leur cible (PlotGame impactCenter) : l'effet (zone, ligne, feu) tombe sur sa
+--     position réelle si elle vit et reste à IdleTowers.followDistance du point prévu, le Trébuchet non ;
 --   * dégâts « en attente » (pending, inFlight) : une tour à projectile ne vise pas un ennemi que les
 --     projectiles déjà en vol vont tuer ; les autres le prennent seulement s'il n'y a personne d'autre ;
 --   * flèches enflammées : zones de feu au sol (addFirePatch, burnFires : ravivées par la même tour,
@@ -217,11 +221,13 @@ end
 local KIND = { Single = 1, Splash = 2, Aura = 3, Chain = 4, Beam = 5, Pierce = 6 }
 Engine.KIND = KIND
 
--- Une tour posée, avec ses stats finales (IdleTowers.effectiveStats : niveau, doublons, bonus).
+-- Une tour posée, avec ses stats finales (IdleTowers.effectiveStats : niveau, doublons, runes de la forge :
+-- dégâts ET vitesse, qui se cumulent). runes = format de IdleConfig.parseRunes ({ Damage = id, Speed = id },
+-- "Damage20,Speed2", nil = aucune).
 -- Les champs projectile*, fire* et beam* gardent les noms de IdleTowers : la tour compilée se passe
 -- directement aux vraies fonctions du jeu (IdleTowers.flightTime, fireDps, beamRamp).
-function Engine.compileTower(spot: number, towerType: string, level: number, dupes: number?, bonus: string?)
-	local stats = IdleTowers.effectiveStats(towerType, level, dupes, bonus)
+function Engine.compileTower(spot: number, towerType: string, level: number, dupes: number?, runes: any?)
+	local stats = IdleTowers.effectiveStats(towerType, level, dupes, runes)
 	local position = PlotLayout.SPOTS[spot]
 	local kind = KIND[stats.kind]
 	assert(kind, `type de tour inconnu pour le simulateur : {stats.kind}`)
@@ -241,14 +247,20 @@ function Engine.compileTower(spot: number, towerType: string, level: number, dup
 		slow = stats.slow,
 		slowDuration = stats.slowDuration or 0,
 		stun = stats.stunDuration, -- étourdissement (contrôle de force 1), nil = aucun
+		-- Fatigue des contrôles courts (secondes d'immunité après la fin ; nil = contrôle qui dure, comme le Totem)
+		slowImmunity = stats.slowImmunity,
+		stunImmunity = stats.stunImmunity,
 		-- Fragilité donnée (Totem de givre), sa durée, et « ses dégâts ne profitent pas de la fragilité »
 		fragility = stats.fragility or 0,
 		fragilityDuration = stats.fragilityDuration or stats.slowDuration or 0,
 		fragile = not stats.ignoresFragility,
 		chains = stats.chains or 1,
-		-- Projectile (nil = tir instantané)
+		-- Projectile (nil = tir instantané). follows = il suit sa cible jusqu'à followDistance studs du point
+		-- prévu (IdleTowers.followsTarget / followDistance, comme PlotGame impactCenter).
 		projectileSpeed = stats.projectileSpeed,
 		projectileMinFlight = stats.projectileMinFlight,
+		follows = IdleTowers.followsTarget(stats),
+		followDistance = IdleTowers.followDistance(stats),
 		-- Flèches enflammées (nil = pas de feu)
 		fireRadius = stats.fireRadius,
 		fireDuration = stats.fireDuration,
@@ -277,11 +289,14 @@ local function byDistanceDesc(a, b)
 end
 
 -- Même règle que applyControl (PlotGame.luau) : UN SEUL contrôle à la fois. Aucun en cours -> le nouveau
--- s'applique ; en cours du MÊME type de tour -> prolongé (force inchangée) ; d'un AUTRE type -> refusé tant
--- qu'il dure. source = type de tour (ex. "Frost"), strength = 0 à 1 (1 = étourdi).
-local function applyControl(enemy, source: string, strength: number, duration: number, now: number)
+-- s'applique, sauf pendant la fatigue de ce type ; en cours du MÊME type de tour -> prolongé (force inchangée)
+-- s'il n'a pas d'immunité (Totem), refusé sinon (contrôle court : Mage, Trébuchet) ; d'un AUTRE type ->
+-- refusé tant qu'il dure. Contrôle court appliqué -> immunisé contre ce type jusqu'à sa fin + immunity.
+-- source = type de tour (ex. "Frost"), strength = 0 à 1 (1 = étourdi), immunity = secondes (nil = aucune).
+local function applyControl(enemy, source: string, strength: number, duration: number, immunity: number?, now: number)
+	local short = immunity ~= nil and immunity > 0
 	if now < enemy.controlUntil then
-		if enemy.controlSource ~= source then
+		if enemy.controlSource ~= source or short then
 			return
 		end
 		local untilTime = now + duration
@@ -290,9 +305,23 @@ local function applyControl(enemy, source: string, strength: number, duration: n
 		end
 		return
 	end
+	local fatigue = enemy.fatigue
+	if fatigue then
+		local immuneUntil = fatigue[source]
+		if immuneUntil and now < immuneUntil then
+			return
+		end
+	end
 	enemy.controlSource = source
 	enemy.controlFactor = math.clamp(strength, 0, 1)
 	enemy.controlUntil = now + duration
+	if short then
+		if not fatigue then
+			fatigue = {}
+			enemy.fatigue = fatigue
+		end
+		fatigue[source] = enemy.controlUntil + immunity
+	end
 end
 
 -- Même règle que applyFragility (PlotGame.luau) : une plus forte remplace, une égale prolonge, une plus
@@ -414,15 +443,15 @@ local function simulate(comp, towers, immortal: boolean, dt: number, hitsOut, us
 	end
 
 	-- Un coup de la tour : son contrôle éventuel (ralentissement, étourdissement), puis ses dégâts
-	-- (PlotGame:hitEnemy). Les dégâts tombent même si le contrôle est refusé.
+	-- (PlotGame:hitEnemy). Les dégâts tombent même si le contrôle est refusé (règle ou fatigue).
 	local function hitWith(enemy, tower, towerIndex: number, now: number)
 		local slow = tower.slow
 		if slow then
-			applyControl(enemy, tower.type, slow, tower.slowDuration, now)
+			applyControl(enemy, tower.type, slow, tower.slowDuration, tower.slowImmunity, now)
 		end
 		local stun = tower.stun
 		if stun then
-			applyControl(enemy, tower.type, 1, stun, now)
+			applyControl(enemy, tower.type, 1, stun, tower.stunImmunity, now)
 		end
 		hitEnemy(enemy, tower.damage, towerIndex, tower.fragile, now)
 	end
@@ -622,7 +651,9 @@ local function simulate(comp, towers, immortal: boolean, dt: number, hitsOut, us
 		})
 	end
 
-	-- Arrivée d'un projectile (PlotGame:landImpact).
+	-- Arrivée d'un projectile (PlotGame:landImpact). Centre de l'effet (cx, cz) : la position réelle de sa cible
+	-- s'il la suit (Archer, Catapulte, Baliste), qu'elle vit et qu'elle est à followDistance studs au plus du
+	-- point prévu ; sinon le point prévu (PlotGame impactCenter).
 	local function landImpact(impact, now: number)
 		local tower = towers[impact.ti]
 		local target = impact.target
@@ -635,10 +666,17 @@ local function simulate(comp, towers, immortal: boolean, dt: number, hitsOut, us
 				target.pending = if left > 0 then left else 0
 			end
 		end
+		local cx, cz = impact.x, impact.z
+		if tower.follows and not target.dead then
+			local dx, dz = target.x - cx, target.z - cz
+			if math.sqrt(dx * dx + dz * dz) <= tower.followDistance then
+				cx, cz = target.x, target.z
+			end
+		end
 		if tower.kind == 2 then
-			hitArea(impact.x, impact.z, tower, impact.ti, now)
+			hitArea(cx, cz, tower, impact.ti, now)
 		elseif tower.kind == 6 then
-			hitLine(tower.x, tower.z, impact.x, impact.z, tower, target, impact.ti, now)
+			hitLine(tower.x, tower.z, cx, cz, tower, target, impact.ti, now)
 		else
 			local victim = if target.dead then enemyNear(impact.x, impact.z, CATCH_RADIUS) else target
 			if victim then
@@ -646,7 +684,7 @@ local function simulate(comp, towers, immortal: boolean, dt: number, hitsOut, us
 			end
 		end
 		if tower.fireRadius then
-			addFirePatch(tower, impact.ti, impact.x, impact.z, now)
+			addFirePatch(tower, impact.ti, cx, cz, now)
 		end
 	end
 
@@ -771,10 +809,12 @@ local function simulate(comp, towers, immortal: boolean, dt: number, hitsOut, us
 				seg = 2,
 				x = PX[1],
 				z = PZ[1],
-				-- Contrôle en cours (un seul, applyControl) et fragilité du Totem (applyFragility)
+				-- Contrôle en cours (un seul, applyControl), fatigue des contrôles courts (fatigue[type de tour] =
+				-- fin de l'immunité, table créée au premier contrôle court) et fragilité du Totem (applyFragility)
 				controlSource = nil,
 				controlFactor = 0,
 				controlUntil = 0,
+				fatigue = nil,
 				fragility = 0,
 				fragileUntil = 0,
 				pending = 0,
@@ -862,7 +902,7 @@ local function simulate(comp, towers, immortal: boolean, dt: number, hitsOut, us
 				if kind == 3 then
 					-- Aura (Totem de givre) : ralentit (contrôle, refusé si une autre tour contrôle déjà l'ennemi),
 					-- rend fragile (toujours), puis de petits dégâts (qui ne profitent pas de la fragilité).
-					local slow, slowDuration, damage = tower.slow, tower.slowDuration, tower.damage
+					local slow, slowDuration, slowImmunity, damage = tower.slow, tower.slowDuration, tower.slowImmunity, tower.damage
 					local fragility, fragilityDuration, fragile, source = tower.fragility, tower.fragilityDuration, tower.fragile, tower.type
 					for i = 1, n do
 						local enemy = enemies[i]
@@ -871,7 +911,7 @@ local function simulate(comp, towers, immortal: boolean, dt: number, hitsOut, us
 							if math.sqrt(dx * dx + dz * dz) <= range then
 								attacked = true
 								if slow then
-									applyControl(enemy, source, slow, slowDuration, now)
+									applyControl(enemy, source, slow, slowDuration, slowImmunity, now)
 								end
 								applyFragility(enemy, fragility, fragilityDuration, now)
 								hitEnemy(enemy, damage, ti, fragile, now)

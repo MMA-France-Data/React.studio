@@ -27,6 +27,10 @@ type Lane = {
 	enemies: { any },
 	spawnQueue: { any },
 	lastActionAt: number,
+	-- Défis classés (Shared/Challenges.luau), lus à la fin du match : ils ne changent rien à la partie.
+	towersPlaced: number, -- tours posées (même revendues ensuite)
+	upgrades: number, -- améliorations faites
+	towerTypes: { [string]: boolean }, -- types de tours posés au moins une fois
 }
 
 -- slots : { { player: Player?, name: string } } (index = numéro de lane)
@@ -57,6 +61,9 @@ function Game.new(slots, matchState: Instance, onEnd: (number?, string) -> ())
 			enemies = {},
 			spawnQueue = {},
 			lastActionAt = 0,
+			towersPlaced = 0,
+			upgrades = 0,
+			towerTypes = {},
 		}
 		self.lanes[index] = lane
 		if slot.player then
@@ -454,6 +461,8 @@ function Game:placeTower(lane: Lane, towerType: string, position: Vector3): (boo
 	}
 	table.insert(lane.towers, tower)
 	self:buildTowerModel(lane, tower)
+	lane.towersPlaced += 1
+	lane.towerTypes[towerType] = true
 	return true, nil
 end
 
@@ -521,6 +530,7 @@ function Game:onUpgradeTower(player: Player, towerId: any)
 	lane.gold -= cost
 	tower.spent += cost
 	tower.level += 1
+	lane.upgrades += 1
 	self:refreshTowerModel(tower)
 end
 
@@ -583,6 +593,7 @@ function Game:botTurn(lane: Lane)
 				lane.gold -= cost
 				upgradable.spent += cost
 				upgradable.level += 1
+				lane.upgrades += 1 -- compté comme pour un joueur (vérifié par le test du match)
 				self:refreshTowerModel(upgradable)
 			end
 		else
@@ -673,7 +684,33 @@ function Game:start()
 	end
 end
 
+-- Durée de la partie en secondes (depuis Game:start, arrêtée à la fin du match) : les défis classés ne
+-- comptent qu'un match assez long (Challenges.MIN_MATCH_SECONDS).
+function Game:elapsed(): number
+	if not self.startedAt then
+		return 0
+	end
+	return math.max(0, (self.endedAt or workspace:GetServerTimeNow()) - self.startedAt)
+end
+
+-- Chiffres d'un terrain pour les défis classés (Challenges.recordMatch) : tours posées, améliorations et
+-- nombre de types de tours différents posés pendant le match.
+function Game:challengeStats(index: number)
+	local lane = self.lanes[index]
+	if not lane then
+		return { towersPlaced = 0, upgrades = 0, towerTypes = 0 }
+	end
+	local types = 0
+	for _ in lane.towerTypes do
+		types += 1
+	end
+	return { towersPlaced = lane.towersPlaced, upgrades = lane.upgrades, towerTypes = types }
+end
+
 function Game:stop()
+	if self.startedAt and not self.endedAt then
+		self.endedAt = workspace:GetServerTimeNow()
+	end
 	self.running = false
 	for _, connection in self.connections do
 		connection:Disconnect()

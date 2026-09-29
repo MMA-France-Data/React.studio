@@ -52,11 +52,11 @@ function RebirthUI.start()
 	end
 
 	------------------------------------------------------------------
-	-- Bouton de la colonne de gauche (index 4, sous « Machine à bonus ») : 2 lignes,
+	-- Bouton de la colonne de gauche (index 2, sous « Forge runique ») : 2 lignes,
 	-- « Renaissance » et le bonus de pièces actuel.
 	------------------------------------------------------------------
 	local button = UI.button({
-		Position = UDim2.new(0, 16, 0, UI.LEFT_COLUMN_TOP + 4 * UI.LEFT_COLUMN_STEP),
+		Position = UDim2.new(0, 16, 0, UI.LEFT_COLUMN_TOP + 2 * UI.LEFT_COLUMN_STEP),
 		Size = UDim2.fromOffset(180, 46),
 		BackgroundColor3 = UI.Colors.PanelLight,
 		Text = "",

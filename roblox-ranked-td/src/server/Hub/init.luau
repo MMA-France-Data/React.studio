@@ -15,6 +15,7 @@ local Matchmaking = require(script.Parent.Matchmaking)
 local Monetization = require(script.Parent.Monetization)
 local PlayerData = require(script.Parent.PlayerData)
 local PlotGame = require(script.PlotGame)
+local ChallengeRewards = require(script.ChallengeRewards)
 local HubMap = require(script.HubMap)
 local Plots = require(script.Plots)
 
@@ -338,10 +339,25 @@ end
 --   Invoke(player, "Call", "grantBonusSpin", "Robux") -> comme un achat Robux (ne change pas le prix)
 --   Invoke(player, "Call", "forgeState")        -> { bought, price, drawable = { ids }, blocked }
 --   Invoke(player, "Set", "forgeSpinsBought", 0) -> change le compteur des lancers en pièces (prix)
+--   Invoke(player, "Set", "bonuses", { "Speed2" }) puis Invoke(player, "Call", "applyBonus", 1, "Speed2")
+--                                               -> pose la rune sur la tour de l'emplacement 1 (dans son
+--                                                  emplacement : dégâts ou vitesse) ; "debugTower", 1 -> ses stats
 -- Combat (arène de test, voir PlotGame « Outils de test ») :
---   Invoke(player, "Call", "debugArena", { 6 }) puis "debugSpawn", "debugFire", "debugEnemy"...
+--   Invoke(player, "Call", "debugArena", { 6 }) puis "debugSpawn", "debugFire", "debugEnemy", "debugFreeze"...
 --   Invoke(player, "Call", "debugRunWave", 1, "OneShot", 1 / 60, 600) -> vague écrasée (compression)
 --   Invoke(player, "Call", "debugRunWave", 1, "KillOldest", 0.05, 60) -> sortie à chaque mort
+-- Défis classés (Hub/ChallengeRewards.luau, règles dans Shared/Challenges.luau) :
+--   Invoke(player, "ChallengeMatch", { seconds = 240, won = true, opponentId = 42, towersPlaced = 6,
+--          towerTypes = 3, upgrades = 4 })   -> un match classé terminé, compté comme par le serveur de match
+--                                                (aussi ranked = false, matchId) ; renvoie { counted, reason, completed, text }
+--   Invoke(player, "ChallengeClock", 86400)    -> décale l'horloge des défis (86400 = demain, 7 * 86400 = semaine
+--                                                prochaine, 0 = heure réelle) ; renvoie { day, week, offset }
+--   Invoke(player, "Challenges")               -> état complet des défis (progression, récompenses calculées)
+--   Invoke(player, "ChallengeForce", { "play2", "win1", "towers15" }, { "play10", "minutes45" })
+--                                             -> ces défis-là à la place de ceux du jour / de la semaine (progression 0)
+--   Invoke(player, "ChallengeClaim", "d1", jour?) -> bouton « Récupérer » (sans l'anti-spam ; jour absent = jour
+--                                                en cours, ou semaine en cours pour "w1") ; renvoie (réussi, message, détails)
+--   Invoke(player, "ChallengeMigrate", ancienneSauvegarde) -> la sauvegarde complétée comme au chargement
 local function setupStudioDebug()
 	if not RunService:IsStudio() then
 		return
@@ -420,6 +436,24 @@ local function setupStudioDebug()
 			return false
 		elseif command == "Data" then
 			return data
+		elseif command == "ChallengeMatch" and data then
+			return ChallengeRewards.debugMatch(player, data, ...)
+		elseif command == "ChallengeClock" then
+			return ChallengeRewards.debugSetClock(...)
+		elseif command == "Challenges" and data then
+			return ChallengeRewards.debugState(player, data)
+		elseif command == "ChallengeForce" and data then
+			return ChallengeRewards.debugForce(player, data, ...)
+		elseif command == "ChallengeClaim" and data then
+			local key, period = ...
+			if period == nil then
+				local state = ChallengeRewards.debugState(player, data)
+				period = if typeof(key) == "string" and string.sub(key, 1, 1) == "w" then state.week else state.day
+			end
+			return ChallengeRewards.claim(player, key, period)
+		elseif command == "ChallengeMigrate" then
+			local old = ...
+			return PlayerData.reconcile(if typeof(old) == "table" then old else {})
 		end
 		return nil
 	end
@@ -470,6 +504,11 @@ function Hub.start()
 			warn("[Hub] Gains d'absence impossibles :", err) -- la parcelle démarre quand même
 		end
 		startPlotGame(player, data)
+		-- Défis classés : état publié pour le bouton « DÉFIS », message si des récompenses attendent.
+		local challengesOk, challengesErr = pcall(ChallengeRewards.onPlayerLoaded, player, data)
+		if not challengesOk then
+			warn("[Hub] Défis classés indisponibles :", challengesErr)
+		end
 	end
 	PlayerData.onLoaded(onDataLoaded)
 	for _, player in Players:GetPlayers() do
@@ -487,6 +526,11 @@ function Hub.start()
 	end)
 	runPlotGames()
 	setupStudioDebug()
+	-- Défis classés : bouton « Récupérer » (remote ChallengeAction) et nouveaux défis à minuit UTC. Les lancers
+	-- offerts passent par la parcelle du joueur.
+	ChallengeRewards.start(function(player: Player)
+		return games[player]
+	end)
 
 	local lastPlotAction = {}
 	local lastPassAction = {}
@@ -545,17 +589,19 @@ function Hub.start()
 			plotGame:spinTower(arg1)
 		elseif action == "SpinBonusCoins" then
 			-- Forge runique en pièces (plus de délai) : spinBonusWithCoins vérifie qu'une rune peut améliorer une
-			-- tour posée, calcule le prix avec le compteur du serveur (idle.forgeSpinsBought) et vérifie les pièces.
+			-- tour posée (dans l'emplacement de sa sorte), calcule le prix avec le compteur du serveur
+			-- (idle.forgeSpinsBought) et vérifie les pièces.
 			plotGame:spinBonusWithCoins()
 		elseif action == "ApplyBonus" then
-			-- arg1 = emplacement, arg2 = id du bonus
+			-- arg1 = emplacement, arg2 = id de la rune (posée dans l'emplacement de sa sorte : dégâts ou vitesse)
 			plotGame:applyBonus(arg1, arg2)
 		end
 	end)
 
 	-- Achat Robux : un lancer de la forge runique. Il ne compte pas dans le prix des lancers en pièces. Si la
-	-- forge est bloquée (aucune rune n'améliorerait une tour : le client bloque alors le bouton Robux), un reçu
-	-- qui arrive quand même donne la meilleure rune : un achat payé n'est jamais perdu (PlotGame:grantBonusSpin).
+	-- forge est bloquée (aucune rune n'améliorerait une tour : x100 dégâts et x2 vitesse partout ; le client
+	-- bloque alors le bouton Robux), un reçu qui arrive quand même donne la meilleure rune : un achat payé n'est
+	-- jamais perdu (PlotGame:grantBonusSpin).
 	-- Pas encore de parcelle (joueur en train d'arriver) : false, Roblox redonnera le reçu plus tard.
 	Monetization.onProduct(Config.Products.BONUS_SPIN, function(player)
 		local plotGame = games[player]

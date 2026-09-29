@@ -1,6 +1,6 @@
 -- Boutique (passes de jeu du mode infini) et message « Pendant ton absence : +X » au retour.
 --
--- Boutique : bouton « BOUTIQUE » dans la colonne de gauche (index 5, sous « Renaissance »). La fenêtre
+-- Boutique : bouton « BOUTIQUE » dans la colonne de gauche (index 3, sous « Renaissance »). La fenêtre
 -- montre les trois passes de jeu (Config.GamePasses : Ramassage auto, Vitesse x2, Pièces x2) :
 --   ID à 0 (pas encore créé) -> « Bientôt disponible », aucun achat proposé
 --   déjà possédé             -> « Possédé » (et, pour la Vitesse x2, le bouton activée / désactivée)
@@ -9,8 +9,8 @@
 -- les attributs du joueur PassAutoCollect, PassSpeedX2, PassCoinsX2 et SpeedX2Enabled. Ces passes ne
 -- servent qu'au mode infini : le match ranked reste identique pour tout le monde (mêmes tours, même or).
 --
--- Vitesse x2 : un petit bouton à droite du panneau de la vague l'active ou la coupe (PassAction
--- "ToggleSpeed" ; le serveur revérifie que le pass est possédé). Il n'apparaît qu'avec le pass.
+-- Vitesse x2 : un petit bouton à droite du compteur de pièces (en haut de l'écran) l'active ou la coupe
+-- (PassAction "ToggleSpeed" ; le serveur revérifie que le pass est possédé). Il n'apparaît qu'avec le pass.
 --
 -- Gains hors ligne : au retour (après une absence ou un match classé), le serveur envoie OfflineGains
 -- { amount, seconds, kind = "Offline" | "Match", capped, matchAmount, matchSeconds, offlineAmount,
@@ -123,10 +123,10 @@ function ShopUI.start()
 	end
 
 	------------------------------------------------------------------
-	-- Bouton de la colonne de gauche (index 5, sous « Renaissance »)
+	-- Bouton de la colonne de gauche (index 3, sous « Renaissance »)
 	------------------------------------------------------------------
 	local shopButton = UI.button({
-		Position = UDim2.new(0, 16, 0, UI.LEFT_COLUMN_TOP + 5 * UI.LEFT_COLUMN_STEP),
+		Position = UDim2.new(0, 16, 0, UI.LEFT_COLUMN_TOP + 3 * UI.LEFT_COLUMN_STEP),
 		Size = UDim2.fromOffset(180, 46),
 		BackgroundColor3 = UI.Colors.Gold,
 		TextColor3 = DARK_TEXT,
@@ -136,10 +136,12 @@ function ShopUI.start()
 	})
 
 	------------------------------------------------------------------
-	-- Bouton Vitesse x2 (à droite du panneau de la vague de PlotUI, visible seulement avec le pass)
+	-- Bouton Vitesse x2 (visible seulement avec le pass) : sur la ligne du compteur de pièces de PlotUI, juste
+	-- à sa droite (compteur centré, 360 px de large). Avant, il était sous ce compteur, à droite du panneau de
+	-- la vague, retiré depuis (la vague est sur le tableau « CHRONIQUES DU FIEF »).
 	------------------------------------------------------------------
 	local speedButton = UI.button({
-		Position = UDim2.new(0.5, 178, 0, 58),
+		Position = UDim2.new(0.5, 188, 0, 9),
 		Size = UDim2.fromOffset(84, 44),
 		BackgroundColor3 = SPEED_COLOR,
 		Text = "",
@@ -425,7 +427,7 @@ function ShopUI.start()
 	local function refreshSpeedButton()
 		local index = player:GetAttribute("Plot")
 		local plot = index and plotsFolder:FindFirstChild("Plot" .. index)
-		-- Comme le panneau de la vague (PlotUI) : seulement quand ma parcelle tourne.
+		-- Seulement quand ma parcelle tourne (attribut Wave de son dossier, publié par le serveur).
 		speedButton.Visible = player:GetAttribute("PassSpeedX2") == true and plot ~= nil and plot:GetAttribute("Wave") ~= nil
 		local enabled = speedEnabled()
 		speedTitle.Text = if enabled then "x2" else "x1"

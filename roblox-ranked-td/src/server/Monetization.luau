@@ -1,8 +1,9 @@
 -- Achats Robux (Developer Products). Chaque achat n'est livré qu'une seule fois : son PurchaseId
 -- est enregistré dans les données du joueur et sauvegardé avant de confirmer l'achat à Roblox.
 -- Forge runique (Config.Products.BONUS_SPIN, livrée par Hub/init.luau -> PlotGame:grantBonusSpin) : un achat
--- payé est toujours livré, même si la forge est bloquée entre-temps (la meilleure rune est alors donnée) ; il ne
--- compte pas dans le prix des lancers en pièces.
+-- payé est toujours livré, même si la forge est bloquée entre-temps (les 2 emplacements de rune, dégâts et
+-- vitesse, de toutes les tours posées ont déjà la meilleure rune : la meilleure rune, x100 dégâts, est alors
+-- donnée) ; il ne compte pas dans le prix des lancers en pièces.
 -- Plus bas : les passes de jeu (Game Passes), achetés une fois et gardés pour toujours (mode solo).
 local MarketplaceService = game:GetService("MarketplaceService")
 local Players = game:GetService("Players")

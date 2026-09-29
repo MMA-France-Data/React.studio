@@ -479,7 +479,7 @@ local function createButton()
 	local player = Players.LocalPlayer
 	local gui = UI.screen("EnemyGallery")
 	local button = UI.button({
-		Position = UDim2.new(0, 16, 0, UI.LEFT_COLUMN_TOP + 6 * UI.LEFT_COLUMN_STEP),
+		Position = UDim2.new(0, 16, 0, UI.LEFT_COLUMN_TOP + 5 * UI.LEFT_COLUMN_STEP),
 		Size = UDim2.fromOffset(180, 46),
 		BackgroundColor3 = UI.Colors.PanelLight,
 		Text = "GALERIE (Studio)",

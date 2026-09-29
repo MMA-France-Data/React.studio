@@ -205,7 +205,7 @@ function MatchUI.start(TowerPlacement)
 	local overlaySubtitle = UI.label({
 		AnchorPoint = Vector2.new(0.5, 0),
 		Position = UDim2.new(0.5, 0, 0.4, 55),
-		Size = UDim2.new(0.8, 0, 0, 90),
+		Size = UDim2.new(0.8, 0, 0, 115), -- 5 lignes (raison, MMR, rang, défis, retour au lobby)
 		TextWrapped = true,
 		MaxTextSize = 26,
 		ZIndex = 11,
@@ -241,6 +241,10 @@ function MatchUI.start(TowerPlacement)
 				end
 			else
 				table.insert(lines, "Match non classé")
+			end
+			-- Défis classés : « Défis : +1 match joué », ou pourquoi le match ne compte pas (serveur de match).
+			if typeof(result.challenges) == "string" and result.challenges ~= "" then
+				table.insert(lines, result.challenges)
 			end
 		end
 		table.insert(lines, "Retour au lobby dans quelques secondes...")

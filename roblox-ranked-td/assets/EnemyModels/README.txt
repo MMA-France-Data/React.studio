@@ -69,9 +69,10 @@ IMPORTER UN .GLB AVEC SES ANIMATIONS
   d'animation (⋯ > Importer > depuis un fichier) marche mal avec ces fichiers. Enregistre toujours
   le « Scene » qui est sous Workspace (pas celui de ServerStorage > RBX_ANIMSAVES).
 
-MODÈLES EN PLACE (vagues 1-10) : Boss_0 (Roi carmin), Normal_0, Tank_0, Giant_0 (troupes carmin).
-  Le cavalier (Fast_0) et le Chef pillard de cuivre (Boss_1, vague 20) attendent des animations
-  corrigées (le modèle du chef est déjà prêt : assets/enemies/copper-chieftain/Boss_1_sans_animation.rbxm).
+MODÈLES EN PLACE : vagues 1-10 : Boss_0 (Roi carmin), Normal_0, Tank_0, Giant_0 (troupes carmin) ;
+  vague 20 : Boss_1 (Chef pillard de cuivre, importé en FBX : ses GLB lui retournaient la tête).
+  Le cavalier (Fast_0) attend un squelette corrigé.
+  Si un GLB s'anime mal dans Studio, essayer le même modèle en FBX (ça a marché pour le chef).
 
 ROI CARMIN (ChatGPT : assets/enemies/crimson-king/RoiCarmin_Studio.glb)
   Boss des vagues 10, 110, 210... Un .glb ne passe pas par Rojo : importe-le une fois dans Studio

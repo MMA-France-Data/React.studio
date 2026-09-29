@@ -244,16 +244,20 @@ function IdleConfig.towerSpinBulkAvailable(highestWave: number, count: any): boo
 end
 
 ----------------------------------------------------------------------
--- Forge runique (machine à bonus) : la rune obtenue va dans ton inventaire, puis se pose sur une tour
--- (une seule rune par tour ; en poser une nouvelle remplace l'ancienne).
+-- Forge runique (machine à bonus) : la rune obtenue va dans ton inventaire, puis se pose sur une tour.
+-- Chaque tour a DEUX emplacements de rune (demande du propriétaire : « mettre un bonus de vitesse et
+-- d'attaque en même temps ») : un pour une rune de DÉGÂTS, un pour une rune de VITESSE d'attaque (RUNE_SLOTS).
+-- Les deux se cumulent : dégâts x la rune de dégâts, attaques par seconde x la rune de vitesse. Poser une rune
+-- ne remplace que la rune de la MÊME sorte (l'ancienne est perdue) ; l'autre reste.
 -- Lancers en pièces : PLUS de délai d'attente (avant : 1 toutes les 30 minutes). Le prix monte à chaque
 -- lancer en pièces, POUR TOUJOURS (compteur idle.forgeSpinsBought, jamais remis à zéro, ni à la renaissance) :
 --   1er lancer : FORGE_FIRST_PRICE (100 K), puis x5 à chaque lancer tant que le prix est sous 1 T, puis x2 :
 --   100 K, 500 K, 2,5 M, 12,5 M, 62,5 M, 312 M, 1,56 B, 7,81 B, 39 B, 195 B, 976 B (11e), 4,88 T (12e),
 --   9,76 T, 19,5 T, 39 T... (voir forgeCoinPrice).
 -- Lancers en Robux (Config.Products.BONUS_SPIN) : à volonté ; ils ne comptent pas et ne font pas monter le prix.
--- Tirage : une rune n'est tirée que si elle AMÉLIORE au moins une tour posée (voir forgeDrawableRunes), avec
--- les chances des runes restantes remises sur 100 %. Les runes de l'inventaire ne comptent pas.
+-- Tirage : une rune n'est tirée que si elle AMÉLIORE au moins une tour posée DANS L'EMPLACEMENT DE SA SORTE
+-- (voir forgeDrawableRunes), avec les chances des runes restantes remises sur 100 %. Les runes de
+-- l'inventaire ne comptent pas.
 ----------------------------------------------------------------------
 IdleConfig.MAX_BONUS_INVENTORY = 50
 IdleConfig.FORGE_FIRST_PRICE = 100e3 -- prix du tout premier lancer en pièces
@@ -262,7 +266,13 @@ IdleConfig.FORGE_SLOW_GROWTH = 2 -- puis x2 par lancer
 IdleConfig.FORGE_GROWTH_SWITCH = 1e12 -- 1 T
 -- Messages quand aucune rune ne peut améliorer une tour : la forge est bloquée (pièces ET Robux).
 IdleConfig.FORGE_NO_TOWER = "Pose d'abord une tour"
-IdleConfig.FORGE_ALL_BEST = "Toutes tes tours ont le meilleur bonus"
+IdleConfig.FORGE_ALL_BEST = "Toutes tes tours ont les meilleures runes"
+-- Les deux emplacements de rune d'une tour, dans l'ordre d'affichage : kind = sorte des runes qui y vont
+-- (champ kind de BONUSES), label = nom court (« x20 dégâts », « x2 vitesse »).
+IdleConfig.RUNE_SLOTS = {
+	{ kind = "Damage", label = "dégâts" },
+	{ kind = "Speed", label = "vitesse" },
+}
 IdleConfig.BONUSES = {
 	{ id = "Damage2", displayName = "x2 dégâts", kind = "Damage", mult = 2, chance = 35 },
 	{ id = "Speed2", displayName = "x2 vitesse d'attaque", kind = "Speed", mult = 2, chance = 30 },
@@ -301,25 +311,91 @@ function IdleConfig.forgeCoinPrice(bought: any): number
 	return price
 end
 
--- Valeur de la rune posée sur une tour (bonusId = son id, nil = pas de rune) : son multiplicateur, 1 sans
--- rune. La rune x2 vitesse d'attaque compte comme x2 dégâts (palier 2).
+-- Valeur d'une rune posée (bonusId = son id, nil = emplacement vide) : son multiplicateur, 1 sans rune. On ne
+-- la compare qu'aux runes de la MÊME sorte (x2 vitesse ne compte pas contre une rune de dégâts).
 function IdleConfig.runeValue(bonusId: any): number
 	local bonus = typeof(bonusId) == "string" and IdleConfig.BONUS_BY_ID[bonusId]
 	return if bonus then bonus.mult else 1
 end
 
--- Runes que la forge peut tirer. weakestRune = la plus petite valeur de rune (runeValue) parmi les tours
--- POSÉES, nil s'il n'y a aucune tour. Une rune n'est tirable que si elle améliore au moins une tour : sa
--- valeur doit dépasser weakestRune (une rune de valeur m est exclue quand toutes les tours posées ont déjà
--- une rune de valeur >= m). Renvoie (liste des runes tirables, dans l'ordre de BONUSES ; raison du blocage,
--- nil si la liste n'est pas vide : FORGE_NO_TOWER ou FORGE_ALL_BEST).
-function IdleConfig.forgeDrawableRunes(weakestRune: number?)
+-- Runes posées sur une tour, dans l'un de ces formats :
+--   texte de l'attribut « Bonus » du modèle de la tour : ids séparés par des virgules, ex. "Damage20,Speed2"
+--     (un seul id marche aussi, "" = aucune) ;
+--   table de ces ids : { Damage = "Damage20", Speed = "Speed2" } (sauvegarde, PlotGame) ou { "Damage20" }.
+-- Renvoie la définition (ligne de BONUSES) de la rune de chaque sorte : { Damage = rune ou nil, Speed = rune ou
+-- nil }. Un id inconnu est ignoré ; chaque rune va dans l'emplacement de SA sorte (champ kind), quelle que soit
+-- sa clé ; deux runes de la même sorte (impossible en jeu) : la plus forte compte.
+function IdleConfig.parseRunes(runes: any): { [string]: any }
+	local found = {}
+	local function add(id)
+		local bonus = typeof(id) == "string" and IdleConfig.BONUS_BY_ID[id]
+		if bonus and (found[bonus.kind] == nil or bonus.mult > found[bonus.kind].mult) then
+			found[bonus.kind] = bonus
+		end
+	end
+	if typeof(runes) == "string" then
+		for _, id in string.split(runes, ",") do
+			add(id)
+		end
+	elseif typeof(runes) == "table" then
+		for _, id in runes do
+			add(id)
+		end
+	end
+	return found
+end
+
+-- Runes posées, propres, en table d'ids par sorte : { Damage = "Damage20", Speed = "Speed2" } (sorte absente
+-- = emplacement vide). Mêmes formats acceptés que parseRunes. C'est le format sauvegardé (champ runes de
+-- chaque tour, PlayerData) : que des textes, sauvegardable.
+function IdleConfig.runeIds(runes: any): { [string]: string }
+	local ids = {}
+	for kind, bonus in IdleConfig.parseRunes(runes) do
+		ids[kind] = bonus.id
+	end
+	return ids
+end
+
+-- Texte de l'attribut « Bonus » du modèle d'une tour : ids des runes posées dans l'ordre de RUNE_SLOTS (dégâts
+-- puis vitesse), séparés par des virgules. { Damage = "Damage20", Speed = "Speed2" } -> "Damage20,Speed2",
+-- aucune rune -> "". Mêmes formats acceptés que parseRunes. (Lu par PlotUI et par le tableau du fief,
+-- PlotBoard, qui le passe tel quel à IdleTowers.effectiveStats.)
+function IdleConfig.runeList(runes: any): string
+	local found = IdleConfig.parseRunes(runes)
+	local ids = {}
+	for _, slot in IdleConfig.RUNE_SLOTS do
+		if found[slot.kind] then
+			table.insert(ids, found[slot.kind].id)
+		end
+	end
+	return table.concat(ids, ",")
+end
+
+-- Nom court d'une rune pour les fiches : « x20 dégâts », « x2 vitesse » (displayName est plus long :
+-- « x2 vitesse d'attaque »).
+function IdleConfig.runeShortName(bonus): string
+	for _, slot in IdleConfig.RUNE_SLOTS do
+		if slot.kind == bonus.kind then
+			return `x{bonus.mult} {slot.label}`
+		end
+	end
+	return bonus.displayName
+end
+
+-- Runes que la forge peut tirer. weakest = pour chaque sorte de rune, la plus petite valeur (runeValue) parmi
+-- les tours POSÉES, ex. { Damage = 20, Speed = 1 } (1 = au moins une tour sans rune de cette sorte) ; nil s'il
+-- n'y a aucune tour. Chaque tour a un emplacement par sorte : une rune n'est tirable que si elle améliore au
+-- moins une tour DANS SON EMPLACEMENT (une rune de dégâts de valeur m est exclue quand toutes les tours posées
+-- ont déjà une rune de dégâts >= m ; pareil pour la vitesse, sans mélanger les sortes). Renvoie (liste des runes
+-- tirables, dans l'ordre de BONUSES ; raison du blocage, nil si la liste n'est pas vide : FORGE_NO_TOWER, ou
+-- FORGE_ALL_BEST quand les deux emplacements de toutes les tours posées ont déjà la meilleure rune).
+function IdleConfig.forgeDrawableRunes(weakest: { [string]: number }?)
 	local list = {}
-	if weakestRune == nil then
+	if weakest == nil then
 		return list, IdleConfig.FORGE_NO_TOWER
 	end
 	for _, bonus in IdleConfig.BONUSES do
-		if bonus.mult > weakestRune then
+		if bonus.mult > (weakest[bonus.kind] or 1) then
 			table.insert(list, bonus)
 		end
 	end
@@ -327,6 +403,23 @@ function IdleConfig.forgeDrawableRunes(weakestRune: number?)
 		return list, IdleConfig.FORGE_ALL_BEST
 	end
 	return list, nil
+end
+
+-- Plus petite valeur de rune de chaque sorte parmi des tours POSÉES (forgeDrawableRunes) : runesOfTowers =
+-- une entrée par tour, ses runes dans un format de parseRunes. { Damage = ..., Speed = ... } ; nil sans tour.
+function IdleConfig.weakestRunes(runesOfTowers: { any }): { [string]: number }?
+	local weakest = nil
+	for _, runes in runesOfTowers do
+		local found = IdleConfig.parseRunes(runes)
+		weakest = weakest or {}
+		for _, slot in IdleConfig.RUNE_SLOTS do
+			local value = if found[slot.kind] then found[slot.kind].mult else 1
+			if weakest[slot.kind] == nil or value < weakest[slot.kind] then
+				weakest[slot.kind] = value
+			end
+		end
+	end
+	return weakest
 end
 
 -- Chances affichées par la forge, en %, pour une liste de runes tirables (chances remises sur 100 %) :
@@ -343,8 +436,9 @@ function IdleConfig.forgeOdds(drawable): { [string]: number }
 	return odds
 end
 
--- La meilleure rune (plus grand multiplicateur) : donnée par un achat Robux qui arrive quand la forge est
--- bloquée (le bouton Robux est bloqué côté client, mais un achat payé n'est jamais perdu).
+-- La meilleure rune (plus grand multiplicateur, toutes sortes confondues : x100 dégâts) : donnée par un achat
+-- Robux qui arrive quand la forge est bloquée (le bouton Robux est bloqué côté client, mais un achat payé
+-- n'est jamais perdu).
 function IdleConfig.bestRune()
 	local best = IdleConfig.BONUSES[1]
 	for _, bonus in IdleConfig.BONUSES do
@@ -502,8 +596,9 @@ IdleConfig.WAVE_TYPES = {
 			-- UN SEUL Seigneur de guerre, escorté de 6 fantassins.
 			-- Il grossit avec les vagues : BOSS_SHARE_MIN du budget à la vague 10 (premier boss facile), puis
 			-- wave / 40, jusqu'à BOSS_SHARE_MAX (plus bas). Avant, 0,8 : seul, il bloquait 20 à 30 min dès la vague 30.
+			-- Escorte : BOSS_ESCORT_SHARE pour les 6 à eux tous (plus bas).
 			return {
-				{ enemy = "Normal", share = 0.4, count = 6, gap = 0.5 },
+				{ enemy = "Normal", share = IdleConfig.BOSS_ESCORT_SHARE, count = 6, gap = 0.5 },
 				{ enemy = "Boss", share = math.clamp(wave / 40, IdleConfig.BOSS_SHARE_MIN, IdleConfig.BOSS_SHARE_MAX), count = 1, gap = 0 },
 			}
 		end,
@@ -515,8 +610,14 @@ IdleConfig.WAVE_TYPES = {
 -- contre un ennemi seul, leurs murs duraient 40 min à plus d'1 h vers les vagues 60-100.
 IdleConfig.MIXED_TANK_SHARE = 0.37
 IdleConfig.GIANT_SHARE = 0.33
+-- Seigneur de guerre et son escorte (demande du propriétaire, 29/09/2026, après ses parties : « il faut plus
+-- de vie au boss et moins aux unités qui l'accompagnent », avec une défense de zone il détruisait le boss plus
+-- facilement que les fantassins groupés, qui avaient à eux 6 plus de vie que lui : 0,4 contre 0,33). Le boss
+-- devient le vrai défi de sa vague ; ses murs sont plus longs, ce qui va au propriétaire (il en profite pour
+-- ses renaissances). Premier boss (vague 10) toujours doux : BOSS_SHARE_MIN.
 IdleConfig.BOSS_SHARE_MIN = 0.3
-IdleConfig.BOSS_SHARE_MAX = 0.33
+IdleConfig.BOSS_SHARE_MAX = 0.5 -- 0,33 avant
+IdleConfig.BOSS_ESCORT_SHARE = 0.2 -- les 6 fantassins de l'escorte à eux tous (0,4 avant)
 
 local ROTATION = { "Mixed", "Horde", "Mixed", "Rush" }
 

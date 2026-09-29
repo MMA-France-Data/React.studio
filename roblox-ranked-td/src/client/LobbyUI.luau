@@ -61,25 +61,9 @@ function LobbyUI.start()
 		Parent = card,
 	})
 
-	-- Raccourcis de déplacement (colonne de gauche, sous le panneau de rang ; les boutons des
-	-- machines suivent, voir MachineUI). Le chat est placé en bas à gauche (Main.client).
-	local hubAction = Remotes.get("HubAction")
-	for index, shortcut in {
-		{ text = "MON FIEF", action = "GoHome", color = UI.Colors.Accent },
-		{ text = "ARÈNE ROYALE", action = "GoRanked", color = UI.Colors.Error },
-	} do
-		local shortcutButton = UI.button({
-			Position = UDim2.new(0, 16, 0, UI.LEFT_COLUMN_TOP + (index - 1) * UI.LEFT_COLUMN_STEP),
-			Size = UDim2.new(0, 180, 0, 46),
-			BackgroundColor3 = shortcut.color,
-			Text = shortcut.text,
-			MaxTextSize = 20,
-			Parent = gui,
-		})
-		shortcutButton.Activated:Connect(function()
-			hubAction:FireServer(shortcut.action)
-		end)
-	end
+	-- Plus de raccourcis « MON FIEF » / « ARÈNE ROYALE » (demande du propriétaire, 29/09/2026) : on va à pied à
+	-- sa parcelle et dans le cercle de l'arène. La colonne de gauche, sous le panneau de rang, commence par les
+	-- boutons des machines (MachineUI), puis Renaissance, Boutique et Défis. Le chat est en bas à gauche.
 
 	-- Statut de la recherche ranked (en bas à droite). On lance une recherche en entrant dans
 	-- le cercle au centre de la map ; le bouton sert seulement à annuler.

@@ -72,6 +72,27 @@ return function(log)
 	-- Map principale : vue du joueur, vue aérienne, centre, ma parcelle
 	task.wait(3)
 	shot("hub_player")
+	-- HUD de la parcelle (PlotUI) : la vague, le record et les ennemis restants sont sur le tableau « CHRONIQUES DU
+	-- FIEF » de la parcelle : plus de panneau de vague en haut de l'écran, seulement le compteur de pièces.
+	do
+		local plotGui = player.PlayerGui:FindFirstChild("Plot")
+		local waveTexts, coinsLabel = {}, nil
+		for _, gui in (if plotGui then plotGui:GetDescendants() else {}) do
+			if gui:IsA("TextLabel") then
+				local text = gui.Text
+				if string.find(text, "^💰") then
+					coinsLabel = gui
+				elseif string.find(text, "^Vague %d") or string.find(text, "vague ratée") or string.find(text, "Ennemis restants") or string.find(text, "Prochaine vague") then
+					table.insert(waveTexts, text)
+				end
+			end
+		end
+		local hudOk = plotGui ~= nil and coinsLabel ~= nil and coinsLabel.Visible and #waveTexts == 0
+		log(
+			if hudOk then "Info" else "Error",
+			`[{if hudOk then "PASS" else "FAIL"}] HUD de la parcelle : compteur de pièces ({coinsLabel and coinsLabel.Text}), plus de panneau de vague ({#waveTexts} texte(s) de vague : {table.concat(waveTexts, " | ")})`
+		)
+	end
 	look(Vector3.new(0, 230, 290), Vector3.new(0, 0, 0))
 	shot("hub_aerial")
 	look(Vector3.new(0, 25, 70), Vector3.new(0, 4, 0))
@@ -146,6 +167,54 @@ return function(log)
 	ReplicatedStorage.Remotes.MachineAction:FireServer("SpinTower", 10)
 	task.wait(3)
 	shot("altar_x10")
+
+	-- Défis classés : bouton « ⚔ DÉFIS » (colonne de gauche) et fenêtre (3 + 2 défis, bouton « X »), qui
+	-- ne couvre ni le chat (en bas à gauche) ni la liste des joueurs (en haut à droite) sur un écran d'ordinateur.
+	do
+		-- L'autel est encore ouvert : son voile (plein écran) passerait par-dessus. (Les boutons de la colonne de
+		-- gauche sont dans le même ScreenGui : on ne cache que le voile.)
+		local machines = player.PlayerGui:FindFirstChild("Machines")
+		for _, child in (if machines then machines:GetChildren() else {}) do
+			if child:IsA("TextButton") and child.Size == UDim2.fromScale(1, 1) then
+				child.Visible = false
+			end
+		end
+		local challengesButton = findButton("DÉFIS")
+		local challengesGui = player.PlayerGui:FindFirstChild("Challenges")
+		local overlay = challengesGui and challengesGui:FindFirstChild("Overlay")
+		local window = overlay and overlay:FindFirstChild("Window")
+		local found = challengesButton ~= nil and window ~= nil
+		log(if found then "Info" else "Error", `[{if found then "PASS" else "FAIL"}] bouton « DÉFIS » et fenêtre des défis présents`)
+		if found then
+			overlay.Visible = true
+			task.wait(1)
+			local claimButtons, closeFound = 0, false
+			for _, descendant in window:GetDescendants() do
+				if descendant:IsA("TextButton") then
+					claimButtons += if descendant.Text == "Récupérer" then 1 else 0
+					closeFound = closeFound or descendant.Text == "X"
+				end
+			end
+			local rowsOk = claimButtons == 5 and closeFound
+			log(if rowsOk then "Info" else "Error", `[{if rowsOk then "PASS" else "FAIL"}] fenêtre des défis : {claimButtons} lignes (attendu 5), bouton X {closeFound}`)
+			local screen = challengesGui.AbsoluteSize
+			if screen.X >= 1000 then
+				local left, right = window.AbsolutePosition.X, window.AbsolutePosition.X + window.AbsoluteSize.X
+				local top, bottom = window.AbsolutePosition.Y, window.AbsolutePosition.Y + window.AbsoluteSize.Y
+				-- À droite du chat (500 px), et à gauche de la liste des joueurs (420 px de large) ou sous elle
+				-- (310 px de haut) : réglages de ChallengeUI.luau.
+				local placed = left >= 499 and (right <= screen.X - 419 or top >= 309) and bottom <= screen.Y + 1
+				log(
+					if placed then "Info" else "Error",
+					`[{if placed then "PASS" else "FAIL"}] fenêtre des défis sans couvrir le chat ni la liste des joueurs (x de {math.floor(left)} à {math.floor(right)}, y de {math.floor(top)} à {math.floor(bottom)}, écran {math.floor(screen.X)} x {math.floor(screen.Y)})`
+				)
+			else
+				say(`écran étroit ({math.floor(screen.X)} px) : fenêtre des défis seulement réduite`)
+			end
+			shot("challenges_panel")
+			overlay.Visible = false
+		end
+	end
 
 	----------------------------------------------------------------------
 	-- Modèles perso des ennemis (ReplicatedStorage.EnemyModels, CustomModels.luau) : un modèle « Swarm »

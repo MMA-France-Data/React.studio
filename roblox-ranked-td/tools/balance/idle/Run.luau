@@ -250,7 +250,9 @@ function Run.new(scenarioId: string, seed: number)
 	for spot = 1, PlotLayout.STARTING_SPOTS do
 		self.owned[spot] = true
 	end
-	self.towers = {} -- [spot] = { type, level, spent, bonus, placedAt }
+	-- [spot] = { type, level, spent, runes = { Damage = id, Speed = id }, placedAt } : une rune de la forge par
+	-- emplacement (dégâts, vitesse), qui se cumulent, comme dans le jeu (PlotGame).
+	self.towers = {}
 	self.unlocked = {}
 	for _, towerType in IdleConfig.STARTING_TOWERS do
 		self.unlocked[towerType] = true
@@ -326,8 +328,8 @@ function Run:compiled()
 			local tower = self.towers[spot]
 			if tower then
 				local dupes = self.dupes[tower.type] or 0
-				table.insert(list, Engine.compileTower(spot, tower.type, tower.level, dupes, tower.bonus))
-				table.insert(parts, `{spot}:{tower.type}:{tower.level}:{tower.bonus or ""}:{dupes}`)
+				table.insert(list, Engine.compileTower(spot, tower.type, tower.level, dupes, tower.runes))
+				table.insert(parts, `{spot}:{tower.type}:{tower.level}:{IdleConfig.runeList(tower.runes)}:{dupes}`)
 			end
 		end
 		self.compiledList = list
@@ -369,10 +371,11 @@ function Run:controlContext(except: number?)
 	return list, table.concat(parts, ",")
 end
 
--- Dégâts effectifs et multiplicateur de cadence (bonus x2 vitesse) d'une tour. Rayon du Sorcier : pas de
--- cadence (la rune de vitesse fait monter le rayon plus vite, ce que les estimations ignorent) : 1.
-function Run:power(towerType: string, level: number, bonus: string?)
-	local stats = IdleTowers.effectiveStats(towerType, level, self.dupes[towerType] or 0, bonus)
+-- Dégâts effectifs et multiplicateur de cadence (rune x2 vitesse) d'une tour, avec ces runes (format de
+-- IdleConfig.parseRunes ; les runes de dégâts et de vitesse se cumulent). Rayon du Sorcier : pas de cadence
+-- (la rune de vitesse fait monter le rayon plus vite, ce que les estimations ignorent) : 1.
+function Run:power(towerType: string, level: number, runes: any?)
+	local stats = IdleTowers.effectiveStats(towerType, level, self.dupes[towerType] or 0, runes)
 	local cooldown = IdleTowers.Defs[towerType].cooldown
 	return stats.damage, if cooldown then cooldown / stats.cooldown else 1
 end
@@ -521,7 +524,7 @@ function Run:evaluate(focus)
 	local typesBySpot, layoutKey = self:typesBySpot()
 	local powers = {}
 	for spot, tower in self.towers do
-		local damage, speed = self:power(tower.type, tower.level, tower.bonus)
+		local damage, speed = self:power(tower.type, tower.level, tower.runes)
 		powers[spot] = { damage = damage, speed = speed }
 	end
 	local F = self:fragilityOf()
@@ -613,7 +616,7 @@ function Run:upgradeOptions(focus, options)
 			continue -- une tour de soutien sert à ralentir : ses dégâts comptent peu
 		end
 		local cost = IdleTowers.upgradeCost(tower.type, tower.level)
-		local damage, speed = self:power(tower.type, tower.level + 1, tower.bonus)
+		local damage, speed = self:power(tower.type, tower.level + 1, tower.runes)
 		-- Totem de givre : son niveau fait monter la fragilité, qui renforce les autres tours.
 		local newF = nil
 		if IdleTowers.Defs[tower.type].fragilityBase then
@@ -838,10 +841,17 @@ function Run:purchased(kind: string)
 	self.lastPurchaseAt = self.t
 end
 
+-- Comme PlotGame:removeTower : les runes de la tour retournent dans l'inventaire (dégâts d'abord) tant qu'il
+-- y a de la place.
 function Run:removeTower(spot: number)
 	local tower = self.towers[spot]
-	if tower and tower.bonus and #self.bonuses < IdleConfig.MAX_BONUS_INVENTORY then
-		table.insert(self.bonuses, tower.bonus)
+	if tower then
+		for _, slot in IdleConfig.RUNE_SLOTS do
+			local runeId = tower.runes[slot.kind]
+			if runeId and #self.bonuses < IdleConfig.MAX_BONUS_INVENTORY then
+				table.insert(self.bonuses, runeId)
+			end
+		end
 	end
 	self.towers[spot] = nil
 end
@@ -890,24 +900,22 @@ function Run:execute(option)
 		self:log(`revente : {Run.shortName(existing.type)} niv {existing.level} (empl. {spot}) +{Modules.NumberFormat.short(refund)}`)
 	end
 	self.coins = math.max(0, self.coins - def.placeCost)
-	self.towers[spot] = { type = option.type, level = 1, spent = def.placeCost, bonus = nil, placedAt = self.t }
+	self.towers[spot] = { type = option.type, level = 1, spent = def.placeCost, runes = {}, placedAt = self.t }
 	self:addSpent(if existing then "replace" else "place", def.placeCost)
 	self:changed(true)
 	self:purchased(if existing then "replace" else "place")
 	self:log(`achat : pose {Run.shortName(option.type)} sur l'empl. {spot} pour {Modules.NumberFormat.short(def.placeCost)}`)
 end
 
--- Runes que la forge peut tirer (PlotGame:forgeDrawable) : celles qui améliorent au moins une tour POSÉE
--- (IdleConfig.forgeDrawableRunes avec la plus petite valeur de rune posée ; l'inventaire ne compte pas).
+-- Runes que la forge peut tirer (PlotGame:forgeDrawable) : celles qui améliorent au moins une tour POSÉE dans
+-- l'emplacement de leur sorte (dégâts ou vitesse : IdleConfig.weakestRunes puis forgeDrawableRunes ;
+-- l'inventaire ne compte pas).
 function Run:forgeDrawable()
-	local weakest = nil
+	local placed = {}
 	for _, tower in self.towers do
-		local value = IdleConfig.runeValue(tower.bonus)
-		if weakest == nil or value < weakest then
-			weakest = value
-		end
+		table.insert(placed, tower.runes)
 	end
-	return IdleConfig.forgeDrawableRunes(weakest)
+	return IdleConfig.forgeDrawableRunes(IdleConfig.weakestRunes(placed))
 end
 
 -- Scénarios avec forge : le joueur lance la forge en pièces dès que c'est possible (plus de délai). Pour ça
@@ -1331,7 +1339,9 @@ function Run:spinForge()
 	self:log(`forge runique pour {Modules.NumberFormat.short(cost)} : {bonus.displayName}`)
 end
 
--- Pose les bonus de l'inventaire là où ils rapportent le plus (le bonus remplacé est perdu, comme en jeu).
+-- Pose les runes de l'inventaire là où elles rapportent le plus. Comme en jeu (PlotGame:applyBonus), une rune
+-- va dans l'emplacement de SA sorte (dégâts ou vitesse) : elle ne remplace que la rune de la même sorte (qui
+-- est perdue), l'autre rune de la tour reste et se cumule.
 function Run:applyBonuses()
 	if #self.bonuses == 0 or next(self.towers) == nil then
 		return
@@ -1341,10 +1351,13 @@ function Run:applyBonuses()
 	while index <= #self.bonuses do
 		self:evaluate(focus)
 		local bonusId = self.bonuses[index]
+		local rune = IdleConfig.BONUS_BY_ID[bonusId]
 		local bestSpot, bestGain = nil, 0
 		for spot, tower in self.towers do
-			if tower.bonus ~= bonusId then
-				local damage, speed = self:power(tower.type, tower.level, bonusId)
+			if tower.runes[rune.kind] ~= bonusId then
+				local candidate = table.clone(tower.runes)
+				candidate[rune.kind] = bonusId
+				local damage, speed = self:power(tower.type, tower.level, candidate)
 				local gain = gainReplacingSpot(focus, spot, function(_, f)
 					return f.hits[spot]
 				end, damage, speed, self.fragility)
@@ -1353,14 +1366,30 @@ function Run:applyBonuses()
 				end
 			end
 		end
+		if not bestSpot then
+			-- Aucun gain estimé, mais la rune améliore l'emplacement de sa sorte sur une tour : un vrai joueur la
+			-- pose quand même (ex. x2 vitesse sur le Sorcier des arcanes : son rayon chauffe 2 fois plus vite, ce
+			-- que l'estimation ne voit pas). Sinon elle dormirait dans l'inventaire et la forge continuerait de la
+			-- tirer (elle compte comme utile tant qu'une tour ne l'a pas). Sur la tour de plus haut niveau.
+			local bestLevel = -1
+			for spot, tower in self.towers do
+				if
+					IdleConfig.runeValue(tower.runes[rune.kind]) < rune.mult
+					and (tower.level > bestLevel or (tower.level == bestLevel and spot < bestSpot))
+				then
+					bestSpot, bestLevel = spot, tower.level
+				end
+			end
+		end
 		if bestSpot then
 			table.remove(self.bonuses, index)
 			local tower = self.towers[bestSpot]
+			local old = tower.runes[rune.kind]
 			self:log(
-				`bonus {IdleConfig.BONUS_BY_ID[bonusId].displayName} posé sur {Run.shortName(tower.type)} (empl. {bestSpot})`
-					.. (if tower.bonus then ` à la place de {IdleConfig.BONUS_BY_ID[tower.bonus].displayName}` else "")
+				`bonus {rune.displayName} posé sur {Run.shortName(tower.type)} (empl. {bestSpot})`
+					.. (if old then ` à la place de {IdleConfig.BONUS_BY_ID[old].displayName}` else "")
 			)
-			tower.bonus = bonusId
+			tower.runes[rune.kind] = bonusId
 			self:changed(false)
 		else
 			index += 1
@@ -1430,9 +1459,9 @@ function Run:snapshot(wave: number, wall: number)
 	for _, n in self.dupes do
 		dupes += n
 	end
-	local bonuses = 0
+	local bonuses = 0 -- runes posées (0 à 2 par tour : dégâts, vitesse)
 	for _, tower in self.towers do
-		if tower.bonus then
+		for _ in tower.runes do
 			bonuses += 1
 		end
 	end
@@ -1555,7 +1584,7 @@ function Run:wallSolver()
 		for spot = 1, SPOT_COUNT do
 			local tower = towersBySpot[spot]
 			if tower then
-				table.insert(list, Engine.compileTower(spot, tower.type, tower.level, self.dupes[tower.type] or 0, tower.bonus))
+				table.insert(list, Engine.compileTower(spot, tower.type, tower.level, self.dupes[tower.type] or 0, tower.runes))
 			end
 		end
 		return Engine.runWave(comp, list, "ignore").leakScore

@@ -1,7 +1,11 @@
--- Interface de ta parcelle : pièces, vague en cours, et panneau des emplacements / tours.
+-- Interface de ta parcelle : pièces, et panneau des emplacements / tours. La vague en cours, le record, le DPS
+-- total et les ennemis restants sont sur le tableau « CHRONIQUES DU FIEF » de la parcelle (Hub/PlotBoard.luau) :
+-- plus de panneau de vague en haut de l'écran.
 -- Emplacement libre : clique sur une carte pour poser la tour. Tour posée : sa fiche (Améliorer, Vendre,
--- bonus) et un bouton « Remplacer… » à part ; remplacer demande toujours une confirmation, pour ne
+-- runes) et un bouton « Remplacer… » à part ; remplacer demande toujours une confirmation, pour ne
 -- jamais perdre une grosse tour par accident (vendre aussi : 2 clics).
+-- Runes de la forge : 2 emplacements par tour, dégâts et vitesse, qui se cumulent (IdleConfig.RUNE_SLOTS). Une
+-- rune posée ne remplace que celle de la même sorte (2 clics si la tour en a déjà une : l'ancienne est perdue).
 -- Clique sur n'importe quel cadenas pour débloquer CET emplacement (le prix ne dépend que du nombre
 -- d'emplacements déjà possédés, il monte après chaque achat).
 -- Cartes et fiche : dégâts PAR COUP (plus de DPS par cible, trompeur pour les tours de zone), attaques par
@@ -218,7 +222,7 @@ function PlotUI.start()
 	end
 
 	------------------------------------------------------------------
-	-- HUD : pièces + vague
+	-- HUD : pièces (la vague est sur le tableau du fief, voir en haut du fichier)
 	------------------------------------------------------------------
 	local coinsLabel = UI.label({
 		AnchorPoint = Vector2.new(0.5, 0),
@@ -229,45 +233,6 @@ function PlotUI.start()
 		TextStrokeTransparency = 0.3,
 		MaxTextSize = 42,
 		Parent = gui,
-	})
-
-	local wavePanel = UI.new("Frame", {
-		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.new(0.5, 0, 0, 58),
-		Size = UDim2.new(0, 340, 0, 82),
-		BackgroundColor3 = UI.Colors.Panel,
-		BackgroundTransparency = 0.15,
-		Parent = gui,
-	}, { UI.corner(12), UI.padding(8) })
-	local waveLabel = UI.label({
-		Size = UDim2.new(1, 0, 0, 22),
-		Font = Enum.Font.GothamBlack,
-		MaxTextSize = 20,
-		Parent = wavePanel,
-	})
-	local hintLabel = UI.label({
-		Position = UDim2.new(0, 0, 0, 22),
-		Size = UDim2.new(1, 0, 0, 14),
-		TextColor3 = UI.Colors.Muted,
-		MaxTextSize = 13,
-		Parent = wavePanel,
-	})
-	-- Pas de PV de base : un seul ennemi qui atteint la base fait rater la vague.
-	UI.label({
-		Position = UDim2.new(0, 0, 0, 38),
-		Size = UDim2.new(1, 0, 0, 13),
-		Font = Enum.Font.GothamBold,
-		TextColor3 = Color3.fromRGB(235, 160, 110),
-		Text = "⚠ 1 ennemi qui passe = vague ratée",
-		MaxTextSize = 12,
-		Parent = wavePanel,
-	})
-	local waveInfo = UI.label({
-		Position = UDim2.new(0, 0, 0, 52),
-		Size = UDim2.new(1, 0, 0, 14),
-		TextColor3 = UI.Colors.Muted,
-		MaxTextSize = 13,
-		Parent = wavePanel,
 	})
 
 	------------------------------------------------------------------
@@ -430,7 +395,7 @@ function PlotUI.start()
 		Parent = towerInfo,
 	})
 
-	-- Bonus de l'inventaire à poser sur la tour sélectionnée.
+	-- Runes de l'inventaire à poser sur la tour sélectionnée (rebuildBonusRow).
 	local bonusRow = UI.new("Frame", {
 		Position = UDim2.new(0, 0, 0, 58 + CARD_HEIGHT),
 		Size = UDim2.new(1, 0, 0, 30),
@@ -684,7 +649,9 @@ function PlotUI.start()
 		refreshPanel()
 	end)
 
-	-- Pose d'un bonus : si la tour en a déjà un, il faut cliquer deux fois (l'ancien est perdu).
+	-- Pose d'une rune de l'inventaire : elle va dans l'emplacement de SA sorte (dégâts ou vitesse). Si la tour a
+	-- déjà une rune de cette sorte, il faut cliquer deux fois (l'ancienne est perdue ; l'autre rune reste).
+	-- Les runes posées sont écrites dans la fiche (towerSheet).
 	local bonusRowKey = nil
 	local function rebuildBonusRow(tower: Model?)
 		local inventory = player:GetAttribute("Bonuses") or ""
@@ -700,39 +667,53 @@ function PlotUI.start()
 			end
 		end
 
-		local currentBonus = IdleConfig.BONUS_BY_ID[current]
-		UI.label({
-			Size = UDim2.fromOffset(150, 28),
-			LayoutOrder = 0,
-			TextXAlignment = Enum.TextXAlignment.Left,
-			Font = Enum.Font.GothamBold,
-			TextColor3 = if currentBonus then UI.Colors.Gold else UI.Colors.Muted,
-			Text = if currentBonus then `★ {currentBonus.displayName}` else "Aucun bonus",
-			MaxTextSize = 14,
-			Parent = bonusRow,
-		})
-
 		local counts = {}
 		for _, id in listAttribute(player, "Bonuses") do
 			counts[id] = (counts[id] or 0) + 1
 		end
+		if next(counts) == nil then
+			UI.label({
+				Size = UDim2.fromOffset(300, 28),
+				TextXAlignment = Enum.TextXAlignment.Left,
+				TextColor3 = UI.Colors.Muted,
+				Text = "Forge des runes pour obtenir des bonus",
+				MaxTextSize = 13,
+				Parent = bonusRow,
+			})
+			return
+		end
+		UI.label({
+			Size = UDim2.fromOffset(110, 28),
+			LayoutOrder = 0,
+			TextXAlignment = Enum.TextXAlignment.Left,
+			Font = Enum.Font.GothamBold,
+			TextColor3 = UI.Colors.Muted,
+			Text = "Poser une rune :",
+			MaxTextSize = 14,
+			Parent = bonusRow,
+		})
+
+		local placed = IdleConfig.parseRunes(current) -- runes déjà posées, par sorte
 		for order, bonus in IdleConfig.BONUSES do
 			local amount = counts[bonus.id]
 			if not amount then
 				continue
 			end
-			local confirming = confirmBonus == bonus.id
+			local old = placed[bonus.kind] -- rune de la même sorte déjà posée : c'est elle qui serait remplacée
+			local confirming = old ~= nil and confirmBonus == bonus.id
 			local button = UI.button({
 				Size = UDim2.fromOffset(if confirming then 150 else 96, 28),
 				LayoutOrder = order,
 				BackgroundColor3 = if confirming then UI.Colors.Error else UI.Colors.Gold,
 				TextColor3 = Color3.fromRGB(30, 25, 10),
-				Text = if confirming then `Remplacer ? {bonus.displayName}` else `{bonus.displayName} ({amount})`,
+				Text = if confirming
+					then `Remplacer {IdleConfig.runeShortName(old)} ?`
+					else `{IdleConfig.runeShortName(bonus)} ({amount})`,
 				MaxTextSize = 13,
 				Parent = bonusRow,
 			})
 			button.Activated:Connect(function()
-				if currentBonus and confirmBonus ~= bonus.id then
+				if old and confirmBonus ~= bonus.id then
 					confirmBonus = bonus.id
 					confirmBonusAt = os.clock()
 					return
@@ -743,17 +724,6 @@ function PlotUI.start()
 				confirmBonus = nil
 				Remotes.get("MachineAction"):FireServer("ApplyBonus", selectedSpot, bonus.id)
 			end)
-		end
-		if next(counts) == nil then
-			UI.label({
-				Size = UDim2.fromOffset(300, 28),
-				LayoutOrder = 99,
-				TextXAlignment = Enum.TextXAlignment.Left,
-				TextColor3 = UI.Colors.Muted,
-				Text = "Forge des runes pour obtenir des bonus",
-				MaxTextSize = 13,
-				Parent = bonusRow,
-			})
 		end
 	end
 
@@ -814,13 +784,14 @@ function PlotUI.start()
 		end
 	end
 
-	-- Lignes de la fiche d'une tour posée (niveau, doublons et bonus compris) : dégâts par coup (pas de DPS :
+	-- Lignes de la fiche d'une tour posée (niveau, doublons et runes compris) : dégâts par coup (pas de DPS :
 	-- il trompait pour les tours de zone), attaques par seconde, portée, qui elle touche, ses effets
-	-- (contrôle, feu, fragilité, montée du rayon) et contre quoi elle est idéale.
-	local function towerSheet(towerType: string, level: number, dupes: number, bonusId: string?): string
+	-- (contrôle, feu, fragilité, montée du rayon), contre quoi elle est idéale, et ses runes.
+	-- runes = attribut « Bonus » de la tour (ex. "Damage20,Speed2", voir IdleConfig.runeList).
+	local function towerSheet(towerType: string, level: number, dupes: number, runes: string?): string
 		local def = IdleTowers.Defs[towerType]
-		local stats = IdleTowers.effectiveStats(towerType, level, dupes, bonusId)
-		local nextStats = IdleTowers.effectiveStats(towerType, level + 1, dupes, bonusId)
+		local stats = IdleTowers.effectiveStats(towerType, level, dupes, runes)
+		local nextStats = IdleTowers.effectiveStats(towerType, level + 1, dupes, runes)
 		local range = `Portée <b>{UI.decimal(stats.range)}</b>`
 		local lines
 		if def.kind == "Beam" then
@@ -835,13 +806,15 @@ function PlotUI.start()
 		end
 		table.insert(lines, reachLong(stats))
 
-		-- Effets : contrôle (un seul à la fois par ennemi, règle de PlotGame), feu, fragilité, montée du rayon.
+		-- Effets : contrôle (un seul à la fois par ennemi, règle de PlotGame ; fatigue : immunité après un contrôle
+		-- court du Mage ou du Trébuchet), feu, fragilité, montée du rayon.
 		local effects = {}
 		local control = IdleTowers.controlOf(stats)
+		local immunity = if control and control.immunity > 0 then `, puis {UI.decimal(control.immunity)} s d'immunité` else ""
 		if control and control.kind == "Stun" then
-			table.insert(effects, `Étourdit <b>{UI.decimal(control.duration)} s</b> (pas de cumul avec les ralentissements)`)
+			table.insert(effects, `Étourdit <b>{UI.decimal(control.duration)} s</b>{immunity} (pas de cumul avec les ralentissements)`)
 		elseif control then
-			table.insert(effects, `Ralentit de <b>{percent(control.strength)} %</b> pendant {UI.decimal(control.duration)} s (pas de cumul)`)
+			table.insert(effects, `Ralentit de <b>{percent(control.strength)} %</b> pendant {UI.decimal(control.duration)} s{immunity} (pas de cumul)`)
 		end
 		if stats.fragility and stats.fragility > 0 then
 			local nextFragility = nextStats.fragility or stats.fragility
@@ -866,6 +839,18 @@ function PlotUI.start()
 		end
 		if def.idealAgainst then
 			table.insert(lines, `<font color="#D8AA4C">Idéale contre :</font> {def.idealAgainst}`)
+		end
+		-- Runes de la forge : une par emplacement (dégâts, vitesse), déjà comptées dans les chiffres ci-dessus.
+		local placed = IdleConfig.parseRunes(runes)
+		if next(placed) == nil then
+			table.insert(lines, `<font color="#D8AA4C">Runes :</font> aucune (1 de dégâts + 1 de vitesse possibles)`)
+		else
+			local parts = {}
+			for _, slot in IdleConfig.RUNE_SLOTS do
+				local rune = placed[slot.kind]
+				table.insert(parts, if rune then `<b>{IdleConfig.runeShortName(rune)}</b>` else `pas de rune de {slot.label}`)
+			end
+			table.insert(lines, `<font color="#D8AA4C">Runes :</font> {table.concat(parts, "  •  ")}`)
 		end
 		if dupes > 0 then
 			-- Arrondi : sans lui, 29 doublons affichaient +57 % au lieu de +58 % (virgules des calculs).
@@ -954,17 +939,31 @@ function PlotUI.start()
 		if confirmReplace then
 			setMode("confirm")
 			local newDef = IdleTowers.Defs[confirmReplace.towerType]
-			local bonus = IdleConfig.BONUS_BY_ID[tower:GetAttribute("Bonus") or ""]
-			-- Inventaire plein : le serveur ne peut pas rendre le bonus (PlotGame:removeTower), on le dit.
-			local inventoryFull = #listAttribute(player, "Bonuses") >= IdleConfig.MAX_BONUS_INVENTORY
-			local bonusLine = if not bonus
-				then ""
-				elseif inventoryFull then `\n<font color="#F06464">Son bonus ({bonus.displayName}) sera PERDU : ton inventaire est plein.</font>`
-				else `\nSon bonus ({bonus.displayName}) retourne dans ton inventaire.`
+			-- Ses runes retournent dans l'inventaire (dégâts d'abord) tant qu'il y a de la place ; les autres sont
+			-- perdues (PlotGame:removeTower) : on le dit.
+			local placed = IdleConfig.parseRunes(tower:GetAttribute("Bonus"))
+			local room = IdleConfig.MAX_BONUS_INVENTORY - #listAttribute(player, "Bonuses")
+			local back, lost = {}, {}
+			for _, slot in IdleConfig.RUNE_SLOTS do
+				local rune = placed[slot.kind]
+				if rune and room > 0 then
+					table.insert(back, IdleConfig.runeShortName(rune))
+					room -= 1
+				elseif rune then
+					table.insert(lost, IdleConfig.runeShortName(rune))
+				end
+			end
+			local runeLines = ""
+			if #back > 0 then
+				runeLines ..= `\n{if #back > 1 then "Ses runes retournent" else "Sa rune retourne"} dans ton inventaire : {table.concat(back, ", ")}.`
+			end
+			if #lost > 0 then
+				runeLines ..= `\n<font color="#F06464">Ton inventaire est plein : {table.concat(lost, ", ")} {if #lost > 1 then "seront PERDUES" else "sera PERDUE"}.</font>`
+			end
 			confirmTitle.Text = `Remplacer ton <font color="#{def.color:Lerp(Color3.new(1, 1, 1), 0.4):ToHex()}">{def.displayName} niv. {level}</font> par <font color="#{newDef.color:Lerp(Color3.new(1, 1, 1), 0.4):ToHex()}">{newDef.displayName}</font> ?`
 			confirmDetail.Text = `Tu récupères {refundPercent()} % : <b>{NumberFormat.short(refund)} pièces</b>.`
 				.. `\n{newDef.displayName} coûte {NumberFormat.short(newDef.placeCost)} pièces et repart au <b>niveau 1</b>.`
-				.. bonusLine
+				.. runeLines
 			confirmReplaceButton.BackgroundTransparency = if os.clock() - confirmReplace.openedAt < CONFIRM_ARM_DELAY then 0.5 else 0
 			confirmFrame.Visible = true
 			return
@@ -1064,25 +1063,6 @@ function PlotUI.start()
 	------------------------------------------------------------------
 	local function update()
 		coinsLabel.Text = "💰 " .. NumberFormat.short(coins())
-
-		local plot = myPlotFolder()
-		local wave = plot and plot:GetAttribute("Wave")
-		wavePanel.Visible = wave ~= nil
-		if wave then
-			local waveType = IdleConfig.WAVE_TYPES[plot:GetAttribute("WaveType")] or IdleConfig.WAVE_TYPES.Mixed
-			waveLabel.Text = `Vague {wave} • {waveType.displayName}`
-			waveLabel.TextColor3 = if waveType.displayName == "SEIGNEUR DE GUERRE" then UI.Colors.Error else UI.Colors.Text
-			hintLabel.Text = waveType.hint
-			local state = plot:GetAttribute("State")
-			if state == "Intermission" then
-				local nextAt = plot:GetAttribute("NextWaveAt") or 0
-				local remaining = math.max(0, math.ceil(nextAt - workspace:GetServerTimeNow()))
-				waveInfo.Text = `Prochaine vague dans {remaining}s  •  Record : vague {plot:GetAttribute("HighestWave") or 1}`
-			else
-				waveInfo.Text = `Ennemis restants : {plot:GetAttribute("EnemiesLeft") or 0}  •  Record : vague {plot:GetAttribute("HighestWave") or 1}`
-			end
-		end
-
 		refreshPanel()
 	end
 

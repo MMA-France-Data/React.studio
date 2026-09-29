@@ -8,6 +8,7 @@ local RunService = game:GetService("RunService")
 local TeleportService = game:GetService("TeleportService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
+local Challenges = require(Shared.Challenges)
 local Config = require(Shared.Config)
 local Elo = require(Shared.Elo)
 local MapLayout = require(Shared.MapLayout)
@@ -31,6 +32,7 @@ local info = nil
 local ranked = false
 local matchId = ""
 local currentGame = nil
+local lastChallenges = {} -- [numéro de terrain] = résultat des défis classés du match (tests Studio)
 
 local function setPhase(newPhase: string)
 	phase = newPhase
@@ -147,6 +149,41 @@ local function applyRatings(winner: number?)
 	return results
 end
 
+-- Défis classés (Shared/Challenges.luau) : compte ce match pour chaque joueur qui a encore ses données,
+-- avec les chiffres de son terrain (tours posées, améliorations, types de tours) et la durée de la partie.
+-- Challenges.recordMatch vérifie tout : vrai match classé (jamais contre un bot), au moins 3 min, au plus
+-- 2 matchs comptés par jour contre le même adversaire, jamais deux fois le même match. Ne change rien à la
+-- partie (déjà finie) ni au MMR. Synchrone (pas de yield), comme applyRatings.
+-- Renvoie { [numéro de terrain] = { counted, reason, completed, text } }.
+local function recordChallenges(winner: number?)
+	local results = {}
+	local seconds = if currentGame then currentGame:elapsed() else 0
+	local now = os.time()
+	for index, slot in slots do
+		local data = slot.player and PlayerData.get(slot.player)
+		if data then
+			local stats = if currentGame then currentGame:challengeStats(index) else {}
+			local ok, result = pcall(Challenges.recordMatch, data, {
+				ranked = ranked,
+				matchId = matchId,
+				seconds = seconds,
+				won = winner == index,
+				opponentId = slots[otherIndex(index)].userId,
+				towersPlaced = stats.towersPlaced,
+				upgrades = stats.upgrades,
+				towerTypes = stats.towerTypes,
+			}, now)
+			if ok then
+				results[index] = result
+			else
+				warn("[Match] Défis classés non comptés :", result) -- le match se termine quand même
+			end
+		end
+	end
+	lastChallenges = results
+	return results
+end
+
 local function finish(winner: number?, reason: string)
 	if phase == "Ended" or phase == "Cancelled" then
 		return
@@ -159,11 +196,13 @@ local function finish(winner: number?, reason: string)
 	matchState:SetAttribute("EndReason", reason)
 
 	local results = applyRatings(winner)
+	local challengeResults = recordChallenges(winner)
 	for index, slot in slots do
 		local player = slot.player
 		if player and player.Parent then
 			local outcome = if winner == nil then "Draw" elseif winner == index then "Win" else "Loss"
 			local result = results and results[index]
+			local challenge = challengeResults[index]
 			pcall(function()
 				Remotes.get("MatchResult"):FireClient(player, {
 					outcome = outcome,
@@ -174,7 +213,12 @@ local function finish(winner: number?, reason: string)
 					oldRank = result and result.oldRank,
 					newRank = result and result.newRank,
 					opponentName = slots[otherIndex(index)].name,
+					challenges = challenge and challenge.text,
 				})
+				-- Un match qui ne compte pas pour les défis : on dit pourquoi.
+				if challenge and not challenge.counted then
+					Remotes.get("Notify"):FireClient(player, `Défis classés : {challenge.reason}`, "Warning")
+				end
 			end)
 		end
 	end
@@ -353,7 +397,37 @@ local function run()
 	currentGame:start()
 end
 
+-- Outil de test, uniquement dans Studio : ServerStorage.StudioDebug (BindableFunction), comme sur la map
+-- principale (tools/studio-test/scenarios/MatchServer.luau) :
+--   Invoke(player, "ChallengeStats")   -> { seconds, lanes = { chiffres des terrains 1 et 2 pour les défis } }
+--   Invoke(player, "LastChallenges")   -> résultats des défis classés de la fin du match : { lane1, lane2 }
+--   Invoke(player, "ChallengeData")    -> data.challenges du joueur
+local function setupStudioDebug()
+	if not isStudio then
+		return
+	end
+	local debug = Instance.new("BindableFunction")
+	debug.Name = "StudioDebug"
+	debug.OnInvoke = function(player: Player, command: string)
+		if command == "ChallengeStats" then
+			if not currentGame then
+				return nil
+			end
+			return { seconds = currentGame:elapsed(), lanes = { currentGame:challengeStats(1), currentGame:challengeStats(2) } }
+		elseif command == "LastChallenges" then
+			-- (Clés en texte : un tableau avec un trou, ex. seul le terrain 2, ne passerait pas entier.)
+			return { lane1 = lastChallenges[1], lane2 = lastChallenges[2] }
+		elseif command == "ChallengeData" then
+			local data = player and PlayerData.get(player)
+			return data and data.challenges
+		end
+		return nil
+	end
+	debug.Parent = game:GetService("ServerStorage")
+end
+
 function Match.start()
+	setupStudioDebug()
 	matchState = Instance.new("Folder")
 	matchState.Name = "MatchState"
 	matchState:SetAttribute("MaxDuration", C.MAX_DURATION)

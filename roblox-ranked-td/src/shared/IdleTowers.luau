@@ -13,7 +13,7 @@
 --                          FRAGILES (+X % de dégâts reçus des autres tours, sauf le Mage des tempêtes, X
 --                          monte avec son niveau) ; ses propres dégâts restent faibles (pas de « tout givre »)
 --   Catapulte           -> grosse zone contre les foules tassées
---   Mage des tempêtes   -> contrôle : petite zone (2,5) + ralentissement TRÈS fort (-85 %) mais court
+--   Mage des tempêtes   -> contrôle : petite zone (3) + ralentissement TRÈS fort (-90 %) mais court
 --   Baliste lourde      -> gros carreaux PERÇANTS à longue portée (30) : vise le plus résistant, et le
 --                          carreau touche tous les ennemis sur sa ligne
 --   Sorcier des arcanes -> rayon qui monte : bat la Baliste contre les lents (boss, colosse, chevaliers
@@ -25,14 +25,21 @@
 -- La portée compte énormément : 30 pour la Baliste couvre ~2 fois plus de chemin que 21 pour l'Archer,
 -- 70 pour le Trébuchet couvre tout le chemin ; ces tours ont donc moins de dégâts par seconde.
 -- Projectiles (flèches, rochers, carreaux, pierres) : la tour vise l'endroit où sera l'ennemi, et les dégâts
--- tombent à l'impact, pas au moment du tir (voir PlotGame.luau).
+-- tombent à l'impact, pas au moment du tir (voir PlotGame.luau). Archer, Catapulte et Baliste SUIVENT leur
+-- cible : à l'impact, l'effet tombe là où elle est vraiment (si elle vit encore et n'est pas trop loin du
+-- point prévu, voir followDistance), même si un ralentissement arrivé pendant le vol l'a retardée. Le
+-- Trébuchet royal garde son point prévu (il vise une foule, pas un ennemi).
 --
 -- CONTRÔLES (règle du propriétaire : « aucun cumul de ralentissement ») : un ennemi ne subit qu'UN SEUL effet
 -- de contrôle à la fois (ralentissement du Totem de givre, ralentissement du Mage des tempêtes,
--- étourdissement du Trébuchet royal), et sa force ne se multiplie jamais. Le même TYPE de tour peut prolonger
--- son propre effet ; un autre type ne peut rien tant que l'effet en cours dure (premier arrivé, premier
--- servi). Totem de givre et Mage des tempêtes ne se cumulent donc pas : le joueur choisit. Détails :
--- applyControl dans PlotGame.luau. La fragilité du Totem n'est PAS un contrôle (elle s'applique toujours).
+-- étourdissement du Trébuchet royal), et sa force ne se multiplie jamais. Un autre type de tour ne peut rien
+-- tant que l'effet en cours dure (premier arrivé, premier servi). Totem de givre et Mage des tempêtes ne se
+-- cumulent donc pas : le joueur choisit. La fragilité du Totem n'est PAS un contrôle (elle s'applique toujours).
+-- FATIGUE des contrôles courts (retour du propriétaire à la vague 148 : plein de Mages avec la rune x2 vitesse
+-- gelaient tout, « un peu de la triche ») : le Mage et le Trébuchet ne prolongent JAMAIS leur effet en cours,
+-- et quand il se termine, l'ennemi est immunisé contre ce type de tour pendant slowImmunity / stunImmunity
+-- secondes. Le Totem de givre (aura faite pour durer) n'a pas d'immunité : un autre Totem prolonge son effet.
+-- Détails : applyControl dans PlotGame.luau.
 --
 -- Façons de toucher (kind) :
 --   "Single" : une cible ; "Splash" : une zone autour du point d'impact (rayon `splash`) ;
@@ -43,7 +50,8 @@
 -- Avec projectileSpeed (studs par seconde), la tour lance un projectile (temps de vol : flightTime) ;
 -- sans, elle touche tout de suite.
 -- Effets : slow + slowDuration = ralentissement (contrôle) ; stunDuration = étourdissement (contrôle, vitesse
--- 0) ; fragilityBase/PerLevel/Max = fragilité du Totem ; ignoresFragility = ses dégâts ne profitent pas de la
+-- 0) ; slowImmunity / stunImmunity = contrôle COURT : jamais prolongé, puis immunité (fatigue, voir plus haut) ;
+-- fragilityBase/PerLevel/Max = fragilité du Totem ; ignoresFragility = ses dégâts ne profitent pas de la
 -- fragilité. idealAgainst = ligne « Idéale contre : ... » de la fiche de la tour.
 local IdleConfig = require(script.Parent.IdleConfig)
 
@@ -57,6 +65,12 @@ IdleTowers.MAX_FLIGHT_TIME = 2.5
 -- Flèche dont la cible est morte pendant le vol : elle touche l'ennemi vivant le plus proche du point
 -- d'impact s'il est à moins de ce rayon (en studs), sinon elle est perdue (mais enflamme quand même le sol).
 IdleTowers.PROJECTILE_CATCH_RADIUS = 1.5
+-- Projectiles qui SUIVENT leur cible (Archer, Catapulte, Baliste ; bug vu par le propriétaire : la Catapulte
+-- tirait trop loin quand l'ennemi était ralenti pendant le vol). À l'impact, l'effet tombe sur la position
+-- réelle de la cible si elle vit encore et qu'elle est à moins de (sa zone + cette marge) studs du point prévu
+-- au tir (voir followDistance) ; sinon au point prévu. 6 : l'ennemi le plus rapide (13 studs/s) arrêté juste
+-- après le tir perd au plus ~13 studs sur le plus long vol de la Catapulte (~1 s) : zone 7 + 6 = 13.
+IdleTowers.PROJECTILE_FOLLOW_MARGIN = 6
 -- Zones de feu actives au plus sur une parcelle (toutes tours confondues) : au-delà, la plus vieille s'éteint.
 IdleTowers.FIRE_MAX_PER_PLOT = 30
 
@@ -162,22 +176,36 @@ IdleTowers.Defs = {
 		-- Réglé avec tools/balance : avec sa zone, le ralentissement touche plusieurs ennemis à chaque éclair.
 		-- À 14 dégâts, -60 % pendant 1,2 s et rayon 3, plusieurs Mages ralentissaient TOUTE la vague : il était
 		-- 4 à 10 fois meilleur que les autres tours contre les Escarmouches, Levées et Charges (banc d'essai) et
-		-- remplaçait tout, Catapulte comprise. Avec -85 % pendant 0,4 s (plus bas), une équipe de Mages seuls
-		-- reste la meilleure tour non légendaire contre ces 3 vagues au banc d'essai (vagues 50+), mais le joueur
-		-- simulé n'en pose que 2 à 8, et « tout Mage » finit 3 à 5 vagues derrière son mélange à partir de 10 h
-		-- de jeu (1 vague devant à 5 h ; tools/balance/RESULTS.md).
+		-- remplaçait tout, Catapulte comprise. Avec les réglages plus bas (et la fatigue), une équipe de Mages
+		-- seuls reste la meilleure tour non légendaire contre ces 3 vagues au banc d'essai (vagues 50+), mais le
+		-- joueur simulé n'en pose que 1 à 3, et « tout Mage » finit 4 à 7 vagues derrière son mélange
+		-- (tools/balance/RESULTS.md).
 		damage = 10, -- inchangé (demande du propriétaire)
 		range = 16,
 		cooldown = 0.8,
-		splash = 2.5, -- vraiment petite : un tiers de la Catapulte (7) ; touche les ennemis collés à sa cible
-		-- Ralentissement COURT mais bien plus fort que celui du Totem (-85 % contre -60 %) : le joueur choisit
-		-- entre le Totem et le Mage, ils ne se cumulent pas (un seul contrôle à la fois). 0,4 s : moins que le
-		-- temps entre deux éclairs (0,8 s), l'ennemi repart entre deux. -30 % pendant 0,8 s avant.
-		-- Réglé avec tools/balance : à 0,5 s, une défense « tout Mage » (plusieurs Mages se relaient et
-		-- gardent la tête de la vague presque à l'arrêt) allait aussi loin que le mélange du joueur ; à 0,3 s,
-		-- le joueur simulé ne posait presque plus de Mage.
-		slow = 0.85,
-		slowDuration = 0.4,
+		-- Petite zone : moins de la moitié de la Catapulte (7) ; touche les ennemis collés à sa cible. 3 (2,5
+		-- avant la fatigue, voir plus bas) : chaque éclair ralentit un peu plus d'ennemis du groupe.
+		splash = 3,
+		-- Ralentissement COURT mais bien plus fort que celui du Totem (-90 % contre -60 %) : le joueur choisit
+		-- entre le Totem et le Mage, ils ne se cumulent pas (un seul contrôle à la fois). Anciens réglages :
+		-- -30 % pendant 0,8 s au tout début, puis -85 % pendant 0,4 s (à 0,5 s, « tout Mage » allait aussi loin
+		-- que le mélange du joueur : les Mages se relayaient sans fin ; la fatigue plus bas l'empêche maintenant).
+		slow = 0.9, -- 0,9 au plus (demande du propriétaire)
+		slowDuration = 0.6,
+		-- FATIGUE (retour du propriétaire à la vague 148 : « mes Mages avec vitesse x2, j'en mets un max : full
+		-- freeze », avec des Catapultes derrière) : un éclair ne prolonge jamais un ralentissement du Mage en
+		-- cours, et quand il se termine, l'ennemi est immunisé contre les ralentissements du Mage pendant
+		-- slowImmunity secondes (les dégâts tombent toujours). Donc 0,6 s ralenti sur 1,4 s au plus (43 % du
+		-- temps), quel que soit le nombre de Mages et leurs runes (100 % avant). Le Totem de givre, lui, peut
+		-- prendre le relais. Un Mage seul (un éclair toutes les 0,8 s) ralentit sa cible 0,6 s sur 1,6 s.
+		-- Réglé avec tools/balance (RESULTS.md) : avec la fatigue et les anciens chiffres (-85 %, 0,4 s, 1 s
+		-- d'immunité, zone 2,5), le joueur simulé posait encore le Mage mais ne l'améliorait plus (« sinon le
+		-- Mage était un peu obsolète », disait le propriétaire). Chaque éclair vaut maintenant ~1,6 fois plus
+		-- (0,54 s de marche perdue au lieu de 0,34), et « tout Mage » comme « Mages x2 vitesse + Catapultes »
+		-- restent derrière le mélange du joueur. Durée + immunité = 1,4 s, exprès pas un multiple de 0,8 s (le
+		-- temps entre deux éclairs) : sinon un éclair tomberait pile à la fin de l'immunité, et selon les images
+		-- il ralentirait ou non.
+		slowImmunity = 0.8,
 		-- Ses dégâts ne profitent pas de la fragilité du Totem de givre (pas de synergie Givre + Mage).
 		ignoresFragility = true,
 		idealAgainst = "les petits groupes rapides (cavaliers) : coups de frein très forts",
@@ -283,6 +311,10 @@ IdleTowers.Defs = {
 		-- Étourdit (vitesse 0) tous les ennemis de la zone pendant stunDuration s. C'est un CONTRÔLE : refusé
 		-- sur un ennemi déjà ralenti par une autre tour (les dégâts, eux, tombent toujours).
 		stunDuration = 0.5,
+		-- FATIGUE (comme le Mage) : une pierre ne prolonge jamais un étourdissement en cours, et quand il se
+		-- termine, l'ennemi est immunisé contre les étourdissements pendant stunImmunity secondes : plusieurs
+		-- Trébuchets ne peuvent pas enchaîner les étourdissements (0,5 s sur 2 s au plus).
+		stunImmunity = 1.5,
 		-- Grande cloche : vol = distance / 45 studs par seconde, 0,8 s au moins (~0,8 à 1,6 s).
 		projectileSpeed = 45,
 		projectileMinFlight = 0.8,
@@ -358,25 +390,36 @@ function IdleTowers.upgradeCost(_towerType: string, level: number): number
 	return math.floor(raw / magnitude + 0.5) * magnitude
 end
 
+-- Pas de rune (effectiveStats) : toujours la même table vide, jamais modifiée.
+local NO_RUNES = table.freeze({})
+
 -- Stats finales d'une tour posée : niveau + doublons (+2 % chacun, IdleConfig.DUPLICATE_DAMAGE_BONUS)
--- + bonus de la machine à bonus. Le tableau renvoyé ne doit jamais être modifié (il peut être partagé).
-function IdleTowers.effectiveStats(towerType: string, level: number, dupes: number?, bonusId: string?)
+-- + runes de la forge. Une tour a 2 emplacements de rune qui se CUMULENT (IdleConfig.RUNE_SLOTS) : la rune de
+-- dégâts multiplie les dégâts (le feu des flèches suit), la rune de vitesse d'attaque divise le temps entre
+-- deux attaques (x2 vitesse = 2 fois plus d'attaques par seconde). Ex. Archer niveau 1 (3 dégâts, 5 atq/s)
+-- avec x20 dégâts et x2 vitesse : 60 dégâts par coup, 10 atq/s.
+-- runes = les runes posées, dans un format de IdleConfig.parseRunes : texte de l'attribut « Bonus » du modèle
+-- ("Damage20,Speed2", un seul id marche aussi), ou table d'ids ({ Damage = "Damage20", Speed = "Speed2" }) ;
+-- nil ou "" = aucune. Le tableau renvoyé ne doit jamais être modifié (il peut être partagé).
+function IdleTowers.effectiveStats(towerType: string, level: number, dupes: number?, runes: any?)
 	local base = IdleTowers.stats(towerType, level)
-	local bonus = bonusId and IdleConfig.BONUS_BY_ID[bonusId]
-	if (dupes or 0) == 0 and not bonus then
+	local found = if runes == nil or runes == "" then NO_RUNES else IdleConfig.parseRunes(runes)
+	local damageRune, speedRune = found.Damage, found.Speed
+	if (dupes or 0) == 0 and not damageRune and not speedRune then
 		return base
 	end
 	local stats = table.clone(base)
 	stats.damage *= 1 + (dupes or 0) * IdleConfig.DUPLICATE_DAMAGE_BONUS
-	if bonus and bonus.kind == "Damage" then
-		stats.damage *= bonus.mult
-	elseif bonus and bonus.kind == "Speed" then
+	if damageRune then
+		stats.damage *= damageRune.mult
+	end
+	if speedRune then
 		if stats.kind == "Beam" then
 			-- Rayon continu : pas de coups à accélérer, la rune fait chauffer le rayon plus vite
 			-- (x2 vitesse : la montée va 2 fois plus vite, le maximum ne change pas).
-			stats.beamRampRate *= bonus.mult
+			stats.beamRampRate *= speedRune.mult
 		else
-			stats.cooldown /= bonus.mult
+			stats.cooldown /= speedRune.mult
 		end
 	end
 	return stats
@@ -404,12 +447,13 @@ function IdleTowers.attacksPerSecond(stats): number?
 end
 
 -- Effet de contrôle de la tour pour sa fiche : { kind = "Slow" | "Stun", strength (0,6 = -60 % ; 1 pour un
--- étourdissement), duration (s) }, ou nil. Un seul contrôle à la fois par ennemi (voir « CONTRÔLES »).
+-- étourdissement), duration (s), immunity (s d'immunité après la fin, 0 = aucune : voir « FATIGUE ») }, ou
+-- nil. Un seul contrôle à la fois par ennemi (voir « CONTRÔLES »).
 function IdleTowers.controlOf(stats)
 	if stats.stunDuration then
-		return { kind = "Stun", strength = 1, duration = stats.stunDuration }
+		return { kind = "Stun", strength = 1, duration = stats.stunDuration, immunity = stats.stunImmunity or 0 }
 	elseif stats.slow then
-		return { kind = "Slow", strength = stats.slow, duration = stats.slowDuration }
+		return { kind = "Slow", strength = stats.slow, duration = stats.slowDuration, immunity = stats.slowImmunity or 0 }
 	end
 	return nil
 end
@@ -459,6 +503,21 @@ end
 function IdleTowers.flightTime(stats, distance: number): number
 	local flight = math.max(stats.projectileMinFlight or 0, distance / stats.projectileSpeed)
 	return math.clamp(flight, 0.05, IdleTowers.MAX_FLIGHT_TIME)
+end
+
+-- Vrai si le projectile de la tour SUIT sa cible (Archer, Catapulte, Baliste) : à l'impact, l'effet tombe là où
+-- la cible est vraiment (voir followDistance). Faux pour les tirs instantanés et pour le Trébuchet royal
+-- (« Crowd » : il vise le point de la foule, pas un ennemi).
+function IdleTowers.followsTarget(stats): boolean
+	return stats.projectileSpeed ~= nil and stats.targeting ~= "Crowd"
+end
+
+-- Distance (en studs, à plat) jusqu'à laquelle un projectile suit sa cible : si, à l'impact, elle est plus loin
+-- que ça du point prévu au tir, l'effet tombe au point prévu. = sa zone (rayon de la Catapulte, rayon du feu de
+-- l'Archer, demi-largeur du carreau de la Baliste) + PROJECTILE_FOLLOW_MARGIN. Même règle pour le serveur
+-- (impactCenter dans PlotGame.luau), le simulateur (Engine.luau) et l'affichage (PlotRenderer).
+function IdleTowers.followDistance(stats): number
+	return math.max(stats.splash or 0, stats.fireRadius or 0, stats.pierceWidth or 0) + IdleTowers.PROJECTILE_FOLLOW_MARGIN
 end
 
 -- Dégâts par seconde d'une zone de feu (0 si la tour n'a pas de flèches enflammées).

@@ -172,8 +172,10 @@ end
 
 -- Flèche ou carreau réellement visible pendant tout le trajet.
 -- travel = durée du vol imposée (mode infini : le serveur applique les dégâts à l'arrivée) ;
--- impactRadius > 0 = petite explosion à l'arrivée (carreau de la Baliste).
-local function linearProjectile(from: Vector3, to: Vector3, color: Color3, heavy: boolean, travel: number?, impactRadius: number?)
+-- impactRadius > 0 = petite explosion à l'arrivée (carreau de la Baliste) ;
+-- follow = projectile qui suit sa cible (mode infini, voir playTowerShot) : à chaque image, il vole vers le
+-- point que renvoie follow() au lieu de `to`, et l'explosion a lieu là où il arrive.
+local function linearProjectile(from: Vector3, to: Vector3, color: Color3, heavy: boolean, travel: number?, impactRadius: number?, follow: (() -> Vector3)?)
 	local delta = to - from
 	if delta.Magnitude < 0.1 then
 		return
@@ -182,6 +184,30 @@ local function linearProjectile(from: Vector3, to: Vector3, color: Color3, heavy
 	local direction = delta.Unit
 	projectile.CFrame = CFrame.lookAt(from, from + direction)
 	local duration = travel or math.clamp(delta.Magnitude / (if heavy then 90 else 125), 0.12, 0.55)
+	if follow then
+		-- Une boucle par projectile, comme la pierre en cloche (arcingProjectile) : aucune table ni fonction créée
+		-- image par image.
+		task.spawn(function()
+			local elapsed, landing = 0, to
+			while elapsed < duration and projectile.Parent do
+				elapsed += RunService.RenderStepped:Wait()
+				landing = follow()
+				local heading = landing - from
+				if heading.Magnitude > 0.1 then
+					direction = heading.Unit
+				end
+				local position = from:Lerp(landing, math.min(1, elapsed / duration))
+				projectile.CFrame = CFrame.lookAt(position, position + direction)
+			end
+			if projectile.Parent then
+				projectile:Destroy()
+				if impactRadius and impactRadius > 0 then
+					Effects.burst(landing, math.max(1.2, impactRadius), color, 0.2)
+				end
+			end
+		end)
+		return
+	end
 	TweenService:Create(projectile, TweenInfo.new(duration, Enum.EasingStyle.Linear), { CFrame = CFrame.lookAt(to, to + direction) }):Play()
 	Debris:AddItem(projectile, duration + 0.03)
 	if impactRadius and impactRadius > 0 then
@@ -195,29 +221,34 @@ local STUN_COLOR = Color3.fromRGB(255, 212, 90)
 -- Pierre de siège avec une vraie trajectoire parabolique.
 -- travel = durée du vol imposée (mode infini), sinon calculée avec la distance (ranked).
 -- size / material / onImpact : grosse pierre du Trébuchet royal (sinon rocher de 0,9 et petite explosion).
-local function arcingProjectile(from: Vector3, to: Vector3, color: Color3, radius: number, travel: number?, size: number?, material: Enum.Material?, onImpact: ((Vector3) -> ())?)
+-- follow = rocher qui suit sa cible (Catapulte du mode infini, voir playTowerShot) : à chaque image, la cloche
+-- (même hauteur) retombe sur le point que renvoie follow() au lieu de `to`, et l'explosion a lieu là.
+local function arcingProjectile(from: Vector3, to: Vector3, color: Color3, radius: number, travel: number?, size: number?, material: Enum.Material?, onImpact: ((Vector3) -> ())?, follow: (() -> Vector3)?)
 	local projectile = projectilePart(color, Vector3.one * (size or 0.9), material or Enum.Material.Rock)
 	projectile.Shape = Enum.PartType.Ball
 	local distance = (to - from).Magnitude
 	local duration = travel or math.clamp(distance / 55, 0.42, 0.9)
 	local arc = math.clamp(distance * 0.22, 5, 15)
 	task.spawn(function()
-		local elapsed = 0
+		local elapsed, landing = 0, to
 		while elapsed < duration and projectile.Parent do
 			local dt = RunService.RenderStepped:Wait()
 			elapsed += dt
+			if follow then
+				landing = follow()
+			end
 			local alpha = math.clamp(elapsed / duration, 0, 1)
 			local nextAlpha = math.min(1, alpha + 0.025)
-			local position = from:Lerp(to, alpha) + Vector3.new(0, math.sin(alpha * math.pi) * arc, 0)
-			local nextPosition = from:Lerp(to, nextAlpha) + Vector3.new(0, math.sin(nextAlpha * math.pi) * arc, 0)
+			local position = from:Lerp(landing, alpha) + Vector3.new(0, math.sin(alpha * math.pi) * arc, 0)
+			local nextPosition = from:Lerp(landing, nextAlpha) + Vector3.new(0, math.sin(nextAlpha * math.pi) * arc, 0)
 			projectile.CFrame = CFrame.lookAt(position, nextPosition)
 		end
 		if projectile.Parent then
 			projectile:Destroy()
 			if onImpact then
-				onImpact(to)
+				onImpact(landing)
 			else
-				Effects.burst(to, math.max(1.8, radius), color, 0.24)
+				Effects.burst(landing, math.max(1.8, radius), color, 0.24)
 			end
 		end
 	end)
@@ -356,7 +387,11 @@ end
 -- flightTime (mode infini seulement) : secondes réelles avant l'impact, envoyées par le serveur. Le
 -- projectile part après l'animation de la tour et arrive pile à ce moment-là (quand les dégâts tombent).
 -- Sans flightTime (ranked), les durées de toujours.
-function Effects.playTowerShot(from: Vector3, to: Vector3, towerType: string, radius: number, color: Color3, kind: string, towerModel: Model?, flightTime: number?)
+-- follow (mode infini seulement : flèche, rocher de la Catapulte, carreau de la Baliste) : fonction qui renvoie,
+-- à chaque image, le point où le projectile doit tomber (l'ennemi visé tel qu'il est affiché, ou le point prévu
+-- s'il a disparu, voir PlotRenderer) : il arrive là où le serveur fait tomber les dégâts. La tour vise quand
+-- même le point prévu au départ. Sans follow, le projectile va tout droit à `to`.
+function Effects.playTowerShot(from: Vector3, to: Vector3, towerType: string, radius: number, color: Color3, kind: string, towerModel: Model?, flightTime: number?, follow: (() -> Vector3)?)
 	aimTower(towerModel, to)
 	from = muzzlePosition(towerModel, towerType, from)
 	local delay = animateTower(towerModel, towerType)
@@ -375,7 +410,7 @@ function Effects.playTowerShot(from: Vector3, to: Vector3, towerType: string, ra
 				trebuchetImpact(at, radius, color)
 			end)
 		elseif SIEGE_TYPES[towerType] then
-			arcingProjectile(from, to, Color3.fromRGB(79, 76, 69):Lerp(color, 0.18), radius, travel)
+			arcingProjectile(from, to, Color3.fromRGB(79, 76, 69):Lerp(color, 0.18), radius, travel, nil, nil, nil, follow)
 		elseif ARROW_TYPES[towerType] then
 			linearProjectile(
 				from,
@@ -383,7 +418,8 @@ function Effects.playTowerShot(from: Vector3, to: Vector3, towerType: string, ra
 				if towerType == "Rocket" then color else Color3.fromRGB(218, 171, 71),
 				towerType == "Sniper" or towerType == "Rocket",
 				travel,
-				if flightTime and towerType == "Rocket" then radius else nil
+				if flightTime and towerType == "Rocket" then radius else nil,
+				follow
 			)
 		elseif towerType == "Tesla" and flightTime then
 			stormStrike(from, to, color, radius)

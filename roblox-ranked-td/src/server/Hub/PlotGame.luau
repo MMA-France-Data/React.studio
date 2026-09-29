@@ -22,12 +22,15 @@
 --   tirs instantanés : Totem de givre, Mage des tempêtes, Oracle de la foudre ;
 --   projectiles (Archer, Catapulte, Baliste, Trébuchet) : la tour vise l'endroit où SERA l'ennemi quand le
 --     projectile arrivera, et les dégâts tombent à l'impact (self.impacts, sur l'horloge de la simulation) ;
+--     Archer, Catapulte et Baliste SUIVENT leur cible : l'effet tombe là où elle est vraiment à l'impact
+--     (impactCenter), le Trébuchet garde son point prévu ;
 --   carreau perçant (Baliste lourde) : à l'impact, tous les ennemis sur la ligne tour -> point d'impact ;
 --   Trébuchet royal : vise le plus gros groupe (pickCrowdTarget) et étourdit la zone ;
 --   flèches enflammées : zones de feu au sol (self.firePatches) ;
 --   rayon continu : Sorcier des arcanes (beamStep), publié aux clients par les attributs « BeamTarget »
 --     (id de l'ennemi visé, 0 = éteint) et « BeamRamp » (montée actuelle, arrondie à 0,5) de sa tour ;
---   CONTRÔLES (ralentissements, étourdissement) : un seul à la fois par ennemi (applyControl) ;
+--   CONTRÔLES (ralentissements, étourdissement) : un seul à la fois par ennemi, et fatigue des contrôles courts
+--     du Mage et du Trébuchet : jamais prolongés, puis une immunité (applyControl) ;
 --   fragilité du Totem de givre : +X % de dégâts reçus (applyFragility, damageEnemy).
 -- Apparitions : un ennemi meurt -> le suivant de la file sort tout de suite (IdleConfig.SPAWN_NEXT_ON_KILL) ;
 -- vague écrasée = plus personne en vie -> l'ennemi suivant sort tout de suite (IdleConfig.COMPRESS_EMPTY_SPAWNS,
@@ -39,10 +42,14 @@
 --     Frost = ralenti par un Totem, Tesla = ralenti par un Mage, Orbital = étourdi par le Trébuchet), bit 7
 --     (valeur 128) = fragile (dans l'aura d'un Totem de givre : prend plus de dégâts). Un client qui ne lit que
 --     les count x ENEMY_BYTES premiers octets marche toujours (ces octets sont à la fin).
---   PlotShots (tirs)      = count x SHOT_BYTES octets, format inchangé. Baliste (type Rocket) : le trait va du
---     départ au point d'arrivée et touche tout sur sa ligne (demi-largeur IdleTowers.Defs.Rocket.pierceWidth,
---     rayon envoyé = 0). Trébuchet (type Orbital) : rayon = sa grande zone ; les ennemis étourdis ont le
---     contrôle Orbital dans PlotSync (et une vitesse 0).
+--   PlotShots (tirs)      = count x SHOT_BYTES octets (voir SHOT_BYTES), PUIS count x SHOT_TARGET_BYTES octets :
+--     l'id u32 de la cible de chaque tir, même ordre (0 = aucune : tir instantané, aura, Trébuchet). Un id =
+--     projectile qui suit sa cible (Archer, Catapulte, Baliste : IdleTowers.followsTarget) : le client le fait
+--     voler vers l'ennemi affiché avec cet id, comme le serveur fait tomber l'effet sur lui (impactCenter). Un
+--     client qui ne lit que les count x SHOT_BYTES premiers octets marche toujours (ces octets sont à la fin).
+--     Baliste (type Rocket) : le trait va du départ au point d'arrivée et touche tout sur sa ligne
+--     (demi-largeur IdleTowers.Defs.Rocket.pierceWidth, rayon envoyé = 0). Trébuchet (type Orbital) : rayon =
+--     sa grande zone ; les ennemis étourdis ont le contrôle Orbital dans PlotSync (et une vitesse 0).
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
@@ -80,6 +87,9 @@ local CONTROL_FRAGILE_FLAG = 128
 -- son vol, un autre lancé juste après le paquet précédent en a déjà fait une partie. Le client anime le
 -- projectile jusqu'au point d'impact en vol / SimSpeed secondes réelles : il arrive quand les dégâts tombent.
 local SHOT_BYTES = 27
+-- Après les count x SHOT_BYTES octets : l'id u32 de la cible de chaque tir (0 = aucune). Paquet plein :
+-- MAX_SHOTS_PER_PACKET (24) x 31 = 744 octets, sous la limite d'un UnreliableRemoteEvent (~900 octets).
+local SHOT_TARGET_BYTES = 4
 -- Petite marge pour comparer des heures de la simulation (additions de 0,5 s répétées).
 local TIME_EPSILON = 1e-6
 
@@ -128,7 +138,7 @@ function PlotGame.new(plot, player: Player, data)
 	for key, saved in self.idle.towers do
 		local spotIndex = tonumber(key)
 		if IdleTowers.Defs[saved.type] and self:ownsSpot(spotIndex) then
-			self:createTower(spotIndex, saved.type, saved.level or 1, saved.spent or 0, saved.bonus)
+			self:createTower(spotIndex, saved.type, saved.level or 1, saved.spent or 0, saved.runes)
 		end
 	end
 	self:publishInventory()
@@ -331,6 +341,9 @@ function PlotGame:spawnEnemy(item)
 		controlSource = nil,
 		controlFactor = 0,
 		controlUntil = 0,
+		-- Fatigue des contrôles courts (Mage, Trébuchet) : [type de tour] = heure jusqu'à laquelle il est immunisé
+		-- contre le contrôle de ce type de tour. Créée au premier contrôle court (nil avant).
+		fatigue = nil,
 		-- Fragilité du Totem de givre : +fragility x 100 % de dégâts reçus jusqu'à fragileUntil.
 		fragility = 0,
 		fragileUntil = 0,
@@ -440,24 +453,48 @@ end
 -- seule multipliée ») : UN SEUL effet de contrôle à la fois par ennemi, quelle que soit la tour
 -- (ralentissement du Totem de givre, ralentissement du Mage des tempêtes, étourdissement du Trébuchet royal),
 -- et sa force ne se multiplie jamais.
---   aucun contrôle en cours             -> le nouveau s'applique (source = type de tour, force, fin) ;
---   contrôle en cours du MÊME type      -> il est prolongé (fin la plus tardive), sa force ne change pas :
---                                          deux Totems de givre = un seul -60 %, jamais plus ;
+--   aucun contrôle en cours             -> le nouveau s'applique (source = type de tour, force, fin),
+--                                          sauf pendant la fatigue de ce type (voir plus bas) ;
+--   contrôle en cours du MÊME type      -> Totem de givre (sans immunité) : prolongé (fin la plus tardive), sa
+--                                          force ne change pas : deux Totems = un seul -60 %, jamais plus ;
+--                                          contrôle COURT (Mage, Trébuchet : avec une immunité) : refusé, il
+--                                          n'est JAMAIS prolongé (il dure exactement sa durée) ;
 --   contrôle en cours d'un AUTRE type   -> refusé tant qu'il dure (le premier arrivé garde la priorité) :
 --                                          le Mage ne ralentit pas un ennemi gelé par un Totem, et inversement.
--- source = clé de la tour (stats.towerType), strength = 0 à 1 (1 = étourdi : vitesse 0).
--- Renvoie vrai si l'effet s'applique (ou prolonge le sien), faux s'il est refusé.
-local function applyControl(enemy, source: string, strength: number, duration: number, now: number): boolean
+-- FATIGUE (retour du propriétaire à la vague 148 : plein de Mages avec x2 vitesse gelaient toute la vague) :
+-- quand un contrôle court se termine, l'ennemi est IMMUNISÉ contre ce type de tour pendant `immunity` secondes
+-- (IdleTowers : slowImmunity du Mage, stunImmunity du Trébuchet). Les Mages ne peuvent donc ralentir un ennemi
+-- que slowDuration s sur (slowDuration + slowImmunity) s au plus (0,6 s sur 1,4 s avec les réglages actuels),
+-- les Trébuchets l'étourdir que 0,5 s sur 2 s, quel que soit le nombre de ces tours et leurs runes.
+-- L'immunité ne bloque que ce type de tour : le Totem peut geler un ennemi immunisé contre le Mage.
+-- source = clé de la tour (stats.towerType), strength = 0 à 1 (1 = étourdi : vitesse 0), immunity = secondes
+-- (nil ou 0 = contrôle qui dure, comme le Totem).
+-- Renvoie vrai si l'effet s'applique (ou prolonge le sien), faux s'il est refusé. Les dégâts, eux, tombent
+-- toujours (voir hitEnemy).
+local function applyControl(enemy, source: string, strength: number, duration: number, immunity: number?, now: number): boolean
+	local short = immunity ~= nil and immunity > 0
 	if now < enemy.controlUntil then
-		if enemy.controlSource ~= source then
+		if enemy.controlSource ~= source or short then
 			return false
 		end
 		enemy.controlUntil = math.max(enemy.controlUntil, now + duration)
 		return true
 	end
+	local fatigue = enemy.fatigue
+	if fatigue and fatigue[source] and now < fatigue[source] then
+		return false
+	end
 	enemy.controlSource = source
 	enemy.controlFactor = math.clamp(strength, 0, 1)
 	enemy.controlUntil = now + duration
+	if short then
+		-- Jamais prolongé : la fin est connue dès maintenant, l'immunité part de là.
+		if not fatigue then
+			fatigue = {}
+			enemy.fatigue = fatigue
+		end
+		fatigue[source] = enemy.controlUntil + immunity
+	end
 	return true
 end
 
@@ -511,21 +548,23 @@ end
 
 -- Effet visuel d'un tir, envoyé aux clients avec le prochain paquet (takeShotsPacket).
 -- landsAt = heure (de la simulation) de l'impact : maintenant pour un tir instantané.
-function PlotGame:addShot(from: Vector3, to: Vector3, towerType: string, radius: number, landsAt: number)
+-- targetId = id de l'ennemi que le projectile suit (IdleTowers.followsTarget), rien ou 0 = aucun.
+function PlotGame:addShot(from: Vector3, to: Vector3, towerType: string, radius: number, landsAt: number, targetId: number?)
 	if #self.shots < IdleConfig.MAX_SHOTS_PER_PACKET then
-		table.insert(self.shots, { from = from, to = to, type = TOWER_INDEX[towerType], radius = radius, landsAt = landsAt })
+		table.insert(self.shots, { from = from, to = to, type = TOWER_INDEX[towerType], radius = radius, landsAt = landsAt, targetId = targetId or 0 })
 	end
 end
 
--- Stats d'une tour posée : niveau, doublons et bonus compris. Gardées sur la tour tant que rien ne change
--- (le rayon du Sorcier en a besoin à chaque pas de simulation).
+-- Stats d'une tour posée : niveau, doublons et runes (dégâts ET vitesse) compris. Gardées sur la tour tant
+-- que rien ne change (le rayon du Sorcier en a besoin à chaque pas de simulation). tower.runeKey = texte de
+-- ses runes (IdleConfig.runeList), mis à jour à chaque pose (setRunes).
 function PlotGame:statsOf(tower)
 	local dupes = self.idle.towerDupes[tower.type] or 0
-	if not tower.stats or tower.statsLevel ~= tower.level or tower.statsDupes ~= dupes or tower.statsBonus ~= tower.bonus then
-		tower.stats = IdleTowers.effectiveStats(tower.type, tower.level, dupes, tower.bonus)
+	if not tower.stats or tower.statsLevel ~= tower.level or tower.statsDupes ~= dupes or tower.statsRunes ~= tower.runeKey then
+		tower.stats = IdleTowers.effectiveStats(tower.type, tower.level, dupes, tower.runeKey)
 		tower.statsLevel = tower.level
 		tower.statsDupes = dupes
-		tower.statsBonus = tower.bonus
+		tower.statsRunes = tower.runeKey
 	end
 	return tower.stats
 end
@@ -559,13 +598,14 @@ function PlotGame:pickTarget(tower, stats, allowDoomed: boolean): any
 end
 
 -- Un coup sur un ennemi : dégâts de la tour, et son contrôle si elle en a un (ralentissement du Mage,
--- étourdissement du Trébuchet), s'il n'est pas refusé par la règle des contrôles. Les dégâts tombent toujours.
+-- étourdissement du Trébuchet), s'il n'est pas refusé par la règle des contrôles (ou par la fatigue). Les
+-- dégâts tombent toujours.
 function PlotGame:hitEnemy(enemy, stats, now: number)
 	if stats.slow then
-		applyControl(enemy, stats.towerType, stats.slow, stats.slowDuration, now)
+		applyControl(enemy, stats.towerType, stats.slow, stats.slowDuration, stats.slowImmunity, now)
 	end
 	if stats.stunDuration then
-		applyControl(enemy, stats.towerType, 1, stats.stunDuration, now)
+		applyControl(enemy, stats.towerType, 1, stats.stunDuration, stats.stunImmunity, now)
 	end
 	self:damageEnemy(enemy, stats.damage, not stats.ignoresFragility)
 end
@@ -728,15 +768,35 @@ function PlotGame:fireProjectile(tower, stats, target, muzzle: Vector3, now: num
 		stats = stats,
 	})
 	-- Rayon envoyé au client : la zone (Catapulte, Trébuchet) ; 0 pour une flèche ou le carreau perçant.
-	self:addShot(muzzle, aim, tower.type, stats.splash or 0, now + flight)
+	-- Projectile qui suit sa cible : son id, pour que le client le fasse voler vers elle (voir impactCenter).
+	local followId = if IdleTowers.followsTarget(stats) then target.id else 0
+	self:addShot(muzzle, aim, tower.type, stats.splash or 0, now + flight, followId)
 end
 
--- Arrivée d'un projectile.
---   Zone (Catapulte, Trébuchet) : tous les ennemis autour du POINT D'IMPACT à cet instant.
---   Carreau perçant (Baliste) : tous les ennemis sur la ligne tour -> point d'impact, et sa cible (hitLine).
+-- Où tombe l'effet d'un projectile à l'impact. Archer, Catapulte, Baliste (IdleTowers.followsTarget) : il SUIT
+-- sa cible (bug vu par le propriétaire : la Catapulte visait avant de savoir le ralentissement que l'ennemi
+-- allait prendre pendant le vol, et tirait trop loin) : sa position RÉELLE si elle vit encore et n'est pas à
+-- plus de IdleTowers.followDistance studs du point prévu au tir ; sinon le point prévu. Le Trébuchet royal
+-- (« Crowd ») garde toujours son point prévu (il vise une foule).
+local function impactCenter(impact): Vector3
+	local target, stats = impact.target, impact.stats
+	if
+		not target.dead
+		and IdleTowers.followsTarget(stats)
+		and horizontalDistance(target.position, impact.position) <= IdleTowers.followDistance(stats)
+	then
+		return target.position
+	end
+	return impact.position
+end
+
+-- Arrivée d'un projectile. « Centre » = là où tombe son effet (impactCenter : sa cible s'il la suit, sinon le
+-- point prévu au tir).
+--   Zone (Catapulte, Trébuchet) : tous les ennemis autour du centre à cet instant.
+--   Carreau perçant (Baliste) : tous les ennemis sur la ligne tour -> centre, et sa cible (hitLine).
 --   Flèche : sa cible si elle vit encore (où qu'elle soit) ; si elle est morte pendant le vol, l'ennemi
---   vivant le plus proche du point d'impact à moins de PROJECTILE_CATCH_RADIUS studs, sinon rien.
---   Flèche enflammée : une zone de feu au point d'impact, touchée ou non.
+--   vivant le plus proche du point prévu à moins de PROJECTILE_CATCH_RADIUS studs, sinon rien.
+--   Flèche enflammée : une zone de feu au centre, touchée ou non.
 function PlotGame:landImpact(impact, now: number)
 	local stats, target = impact.stats, impact.target
 	target.inFlight -= 1
@@ -744,10 +804,11 @@ function PlotGame:landImpact(impact, now: number)
 	-- différents (1e20 et 7) laisse un petit reste qui pourrait le faire croire « condamné » à tort
 	-- (ou l'infini, avec des dégâts énormes) : les tours à projectile l'ignoreraient pour toujours.
 	target.pending = if target.inFlight <= 0 then 0 else math.max(0, target.pending - stats.damage)
+	local center = impactCenter(impact)
 	if stats.kind == "Splash" then
-		self:hitArea(impact.position, stats, now)
+		self:hitArea(center, stats, now)
 	elseif stats.kind == "Pierce" then
-		self:hitLine(impact.origin, impact.position, stats, target, now)
+		self:hitLine(impact.origin, center, stats, target, now)
 	else
 		local victim = if target.dead then self:enemyNear(impact.position, IdleTowers.PROJECTILE_CATCH_RADIUS) else target
 		if victim then
@@ -755,14 +816,16 @@ function PlotGame:landImpact(impact, now: number)
 		end
 	end
 	if stats.fireRadius then
-		self:addFirePatch(impact.spot, impact.position, stats, now)
+		self:addFirePatch(impact.spot, center, stats, now)
 	end
 	if self.debugHold then
-		-- Tests Studio : où était la cible au moment de l'impact, comparé au point visé.
+		-- Tests Studio : où était la cible au moment de l'impact, comparé au point visé (aim) et au centre de
+		-- l'effet (center : sa position si le projectile la suit).
 		self.debugImpactInfo = {
 			at = impact.at,
 			landedAt = now,
 			aim = impact.position,
+			center = center,
 			targetId = target.id,
 			targetAlive = not target.dead,
 			targetPosition = target.position,
@@ -911,7 +974,7 @@ function PlotGame:towerAttack(tower, stats, now: number): boolean
 				-- autre tour contrôle déjà l'ennemi) et le rend fragile (toujours), puis de petits dégâts (qui, eux,
 				-- ne profitent pas de la fragilité : ignoresFragility, voir IdleTowers.luau).
 				if stats.slow then
-					applyControl(enemy, stats.towerType, stats.slow, stats.slowDuration, now)
+					applyControl(enemy, stats.towerType, stats.slow, stats.slowDuration, stats.slowImmunity, now)
 				end
 				applyFragility(enemy, stats.fragility or 0, stats.fragilityDuration or stats.slowDuration or 0, now)
 				self:damageEnemy(enemy, stats.damage, not stats.ignoresFragility)
@@ -1131,12 +1194,15 @@ function PlotGame:buildSyncPacket(): (buffer?, number)
 	return packet, count
 end
 
+-- Tirs depuis le dernier paquet. count x SHOT_BYTES octets, puis count x SHOT_TARGET_BYTES octets (id de la
+-- cible suivie, même ordre ; voir en haut du fichier).
 function PlotGame:takeShotsPacket(): (buffer?, number)
 	local count = #self.shots
 	if count == 0 then
 		return nil, 0
 	end
-	local packet = buffer.create(count * SHOT_BYTES)
+	local targetStart = count * SHOT_BYTES
+	local packet = buffer.create(targetStart + count * SHOT_TARGET_BYTES)
 	local now = self.clock
 	for i, shot in self.shots do
 		local offset = (i - 1) * SHOT_BYTES
@@ -1151,6 +1217,8 @@ function PlotGame:takeShotsPacket(): (buffer?, number)
 		-- Vol restant, en centièmes de seconde de simulation (0 = instantané ou déjà arrivé).
 		local flightLeft = math.max(0, (shot.landsAt or now) - now)
 		buffer.writeu8(packet, offset + 26, math.clamp(math.floor(flightLeft * 100 + 0.5), 0, 255))
+		-- Cible suivie (0 = aucune).
+		buffer.writeu32(packet, targetStart + (i - 1) * SHOT_TARGET_BYTES, shot.targetId or 0)
 	end
 	table.clear(self.shots)
 	return packet, count
@@ -1160,17 +1228,19 @@ end
 -- Tours et emplacements (actions du joueur)
 ----------------------------------------------------------------------
 
-function PlotGame:createTower(spotIndex: number, towerType: string, level: number, spent: number, bonus: string?)
-	if bonus and not IdleConfig.BONUS_BY_ID[bonus] then
-		bonus = nil
-	end
+-- runes = runes déjà posées (sauvegarde : { Damage = id, Speed = id }, voir IdleConfig.runeIds), rien = aucune.
+-- Un id inconnu est ignoré, chaque rune va dans l'emplacement de sa sorte.
+function PlotGame:createTower(spotIndex: number, towerType: string, level: number, spent: number, runes: any?)
+	local runeIds = IdleConfig.runeIds(runes)
+	local runeKey = IdleConfig.runeList(runeIds)
 	local cframe = PlotLayout.worldCFrame(self.index, PlotLayout.SPOTS[spotIndex] + Vector3.new(0, 0.3, 0))
 	local model = IdleTowerModel.create(towerType, cframe, self.towerFolder, {
 		SpotIndex = spotIndex,
 		PlotIndex = self.index,
 		Level = level,
 		Spent = spent,
-		Bonus = bonus or "",
+		-- Runes posées, ex. "Damage20,Speed2" (IdleConfig.runeList) : lues par PlotUI et par le tableau du fief.
+		Bonus = runeKey,
 	})
 	self.towers[spotIndex] = {
 		spotIndex = spotIndex,
@@ -1180,29 +1250,46 @@ function PlotGame:createTower(spotIndex: number, towerType: string, level: numbe
 		position = cframe.Position,
 		cooldown = 0,
 		model = model,
-		bonus = bonus,
+		runes = runeIds, -- { Damage = id, Speed = id } : une rune par emplacement
+		runeKey = runeKey, -- même chose en texte (attribut « Bonus », cache de statsOf)
 	}
 	self:saveTower(self.towers[spotIndex])
 	self:publishForge() -- les runes tirables dépendent des tours posées
 end
 
 function PlotGame:saveTower(tower)
-	self.idle.towers[tostring(tower.spotIndex)] = { type = tower.type, level = tower.level, spent = tower.spent, bonus = tower.bonus }
+	self.idle.towers[tostring(tower.spotIndex)] = {
+		type = tower.type,
+		level = tower.level,
+		spent = tower.spent,
+		runes = table.clone(tower.runes),
+	}
 end
 
--- Retire la tour. Son bonus éventuel retourne dans l'inventaire.
+-- Runes d'une tour changées : texte republié (attribut « Bonus » du modèle, cache de statsOf) et sauvegarde.
+function PlotGame:setRunes(tower)
+	tower.runeKey = IdleConfig.runeList(tower.runes)
+	tower.model:SetAttribute("Bonus", tower.runeKey)
+	self:saveTower(tower)
+end
+
+-- Retire la tour. Ses runes retournent dans l'inventaire (dégâts d'abord, puis vitesse), tant qu'il y a de la
+-- place ; celles qui n'ont pas de place sont perdues (la confirmation de remplacement le dit, PlotUI).
 function PlotGame:removeTower(spotIndex: number)
 	local tower = self.towers[spotIndex]
-	if tower and tower.bonus and #self.idle.bonuses < IdleConfig.MAX_BONUS_INVENTORY then
-		table.insert(self.idle.bonuses, tower.bonus)
-		self:publishInventory()
+	if not tower then
+		return
 	end
-	if tower then
-		tower.model:Destroy()
-		self.towers[spotIndex] = nil
-		self.idle.towers[tostring(spotIndex)] = nil
-		self:publishForge()
+	for _, slot in IdleConfig.RUNE_SLOTS do
+		local runeId = tower.runes[slot.kind]
+		if runeId and #self.idle.bonuses < IdleConfig.MAX_BONUS_INVENTORY then
+			table.insert(self.idle.bonuses, runeId)
+		end
 	end
+	tower.model:Destroy()
+	self.towers[spotIndex] = nil
+	self.idle.towers[tostring(spotIndex)] = nil
+	self:publishInventory() -- runes rendues, et runes tirables par la forge sans cette tour
 end
 
 -- Vrai si le joueur possède cet emplacement (numéro valide ET acheté ou de départ).
@@ -1458,32 +1545,28 @@ end
 -- Forge runique (réglages et formules : IdleConfig, « Forge runique »)
 ----------------------------------------------------------------------
 
--- Plus petite valeur de rune parmi les tours POSÉES (IdleConfig.runeValue : 1 sans rune), nil sans tour.
-function PlotGame:weakestPlacedRune(): number?
-	local weakest = nil
-	for _, tower in self.towers do
-		local value = IdleConfig.runeValue(tower.bonus)
-		if weakest == nil or value < weakest then
-			weakest = value
-		end
-	end
-	return weakest
-end
-
--- Runes que la forge peut tirer maintenant (celles qui améliorent au moins une tour posée), et la raison du
--- blocage (nil si au moins une rune est tirable). Voir IdleConfig.forgeDrawableRunes.
+-- Runes que la forge peut tirer maintenant, et la raison du blocage (nil si au moins une rune est tirable).
+-- Chaque tour posée a 2 emplacements (dégâts, vitesse) : une rune est tirable si elle améliore au moins une
+-- tour posée DANS L'EMPLACEMENT DE SA SORTE (plus petite valeur de chaque sorte : IdleConfig.weakestRunes ;
+-- l'inventaire ne compte pas). Voir IdleConfig.forgeDrawableRunes.
 function PlotGame:forgeDrawable()
-	return IdleConfig.forgeDrawableRunes(self:weakestPlacedRune())
+	local placed = {}
+	for _, tower in self.towers do
+		table.insert(placed, tower.runes)
+	end
+	return IdleConfig.forgeDrawableRunes(IdleConfig.weakestRunes(placed))
 end
 
 -- État de la forge publié en attributs du joueur (lus par la forge du client, MachineUI) :
 --   ForgeSpinsBought : lancers en pièces achetés depuis toujours (jamais remis à zéro) ;
 --   ForgeCoinPrice   : prix du prochain lancer en pièces (IdleConfig.forgeCoinPrice), -1 = « MAX » ;
 --   ForgeDrawable    : ids des runes tirables maintenant, séparés par des virgules, dans l'ordre de
---                      IdleConfig.BONUSES (ex. "Damage3,Damage5,Damage10,Damage20,Damage50,Damage100") ;
---                      chances affichées = IdleConfig.forgeOdds (remises sur 100 %) ;
---   ForgeBlocked     : "" si la forge marche, sinon le message à afficher (IdleConfig.FORGE_NO_TOWER ou
---                      FORGE_ALL_BEST) : boutons pièces ET Robux bloqués.
+--                      IdleConfig.BONUSES (ex. "Speed2,Damage3,Damage5,Damage10,Damage20,Damage50,Damage100"
+--                      quand toutes les tours ont déjà x2 dégâts ou mieux) ; chances affichées =
+--                      IdleConfig.forgeOdds (remises sur 100 %) ;
+--   ForgeBlocked     : "" si la forge marche, sinon le message à afficher (IdleConfig.FORGE_NO_TOWER, ou
+--                      FORGE_ALL_BEST : x100 dégâts ET x2 vitesse sur toutes les tours posées) : boutons
+--                      pièces ET Robux bloqués.
 -- Seulement pour l'affichage : le serveur revérifie tout à chaque lancer (spinBonusWithCoins).
 function PlotGame:publishForge()
 	local player = self.player
@@ -1524,9 +1607,10 @@ end
 -- Les chances sont celles du palier de ton RECORD (idle.highestWave), celles affichées par l'autel.
 -- La 1re fois qu'une tour tombe, elle est débloquée ; ensuite chaque exemplaire est un doublon.
 -- Envoie (et renvoie, pour les tests) le résultat :
---   { machine = "Tower", count, tower, rarity, isNew, dupes, results = { { tower, rarity, count, isNew } } }
+--   { machine = "Tower", count, tower, rarity, isNew, dupes, results = { { tower, rarity, count, isNew } }, source }
 -- tower/rarity/isNew/dupes = la tour la plus marquante (la plus rare ; à rareté égale, une nouvelle) ;
--- results = une ligne par tour obtenue, de la plus rare à la plus commune. nil si l'achat est refusé.
+-- results = une ligne par tour obtenue, de la plus rare à la plus commune ; source = "Coins" (lancers payés)
+-- ou "Challenge" (offerts par un défi classé, grantFreeTowerSpins). nil si l'achat est refusé.
 function PlotGame:spinTower(count: any)
 	if count == nil then
 		count = 1
@@ -1559,7 +1643,28 @@ function PlotGame:spinTower(count: any)
 	PlayerData.addCoins(self.player, -cost)
 	-- Chaque lancer acheté rend le suivant plus cher (bought + count reste un entier fini, bien sous 2^53).
 	self.idle.towerSpinsBought = bought + count
+	return self:rollTowerSpins(count, "Coins")
+end
 
+-- Lancers de l'autel OFFERTS (récompense d'un défi classé, Hub/ChallengeRewards.luau) : gratuits, aux mêmes
+-- chances que des lancers payés (palier de ton record), et le compteur des lancers achetés
+-- (idle.towerSpinsBought) ne bouge pas : le prochain lancer payé coûte exactement pareil.
+-- count = nombre entier de lancers (au plus PlotGame.MAX_FREE_TOWER_SPINS). Renvoie le résultat (format :
+-- spinTower, avec source = "Challenge"), nil si count est invalide.
+PlotGame.MAX_FREE_TOWER_SPINS = 1000
+function PlotGame:grantFreeTowerSpins(count: any)
+	if typeof(count) ~= "number" or count ~= count or count < 1 or count ~= math.floor(count) or count > PlotGame.MAX_FREE_TOWER_SPINS then
+		return nil
+	end
+	return self:rollTowerSpins(count, "Challenge")
+end
+
+-- Tire `count` lancers de l'autel (déjà payés ou offerts) aux chances du palier de ton RECORD et les ajoute :
+-- tours débloquées, doublons. Ne touche ni aux pièces ni au compteur des lancers achetés (spinTower s'en
+-- occupe pour les lancers payés). source = "Coins" (payés) ou "Challenge" (offerts par un défi classé).
+-- Envoie et renvoie le résultat (voir spinTower).
+function PlotGame:rollTowerSpins(count: number, source: string)
+	local record = self.idle.highestWave
 	-- Combien de lancers par rareté, puis par tour (voir splitRolls).
 	local odds = IdleConfig.TOWER_SPIN_TIERS[IdleConfig.towerSpinTier(record)].odds
 	local rarityWeights = {}
@@ -1606,31 +1711,40 @@ function PlotGame:spinTower(count: any)
 		isNew = notable.isNew,
 		dupes = self.idle.towerDupes[notable.tower] or 0,
 		results = results,
+		source = source,
 	}
 	self:sendResult(result)
 	return result
 end
 
--- Tire une rune parmi celles qui améliorent au moins une tour posée (chances remises sur 100 %) et la met
--- dans l'inventaire. source = "Coins" (lancer payé en pièces, déjà vérifié par spinBonusWithCoins) ou
--- "Robux" (achat livré par Monetization.luau).
+-- Tire une rune parmi celles qui améliorent au moins une tour posée dans l'emplacement de leur sorte (dégâts
+-- ou vitesse, voir forgeDrawable ; chances remises sur 100 %) et la met dans l'inventaire. source = "Coins"
+-- (lancer payé en pièces, déjà vérifié par spinBonusWithCoins), "Robux" (achat livré par Monetization.luau)
+-- ou "Challenge" (lancer offert par un défi classé, Hub/ChallengeRewards.luau : il marche comme un lancer Robux).
 -- Achat Robux quand la forge est bloquée (aucune rune n'améliorerait une tour : le client bloque le bouton,
 -- mais un reçu peut quand même arriver, ex. tour vendue pendant l'achat) : la MEILLEURE rune
--- (IdleConfig.bestRune) est donnée, pour que l'achat ne soit jamais perdu. Une rune achetée en Robux entre
--- toujours dans l'inventaire, même plein. Les lancers Robux ne comptent pas dans forgeSpinsBought (prix).
+-- (IdleConfig.bestRune, x100 dégâts) est donnée, pour que l'achat ne soit jamais perdu. Pareil pour un lancer
+-- offert quand les 2 emplacements de toutes les tours posées ont déjà la meilleure rune de leur sorte (x100
+-- dégâts, x2 vitesse). Mais un lancer offert sans AUCUNE tour posée tire aux chances de base (toutes les
+-- runes) : sinon, vendre ses tours avant de récupérer un défi donnerait la rune x100 à coup sûr. Une rune
+-- Robux ou offerte entre toujours dans l'inventaire, même plein. Ces lancers ne comptent pas dans
+-- forgeSpinsBought (prix des lancers en pièces).
 -- Envoie (et renvoie) le résultat : { machine = "Bonus", bonus = id, source, price (pièces payées, 0 en
--- Robux), forgeSpinsBought }.
+-- Robux ou offert), forgeSpinsBought }.
 function PlotGame:grantBonusSpin(source: string, price: number?)
-	local drawable = self:forgeDrawable()
+	local drawable, blocked = self:forgeDrawable()
+	local function chanceOf(entry)
+		return entry.chance
+	end
 	local bonus
-	if #drawable == 0 then
+	if #drawable == 0 and source == "Challenge" and blocked == IdleConfig.FORGE_NO_TOWER then
+		bonus = rollWeighted(IdleConfig.BONUSES, chanceOf)
+	elseif #drawable == 0 then
 		bonus = IdleConfig.bestRune()
 	else
-		bonus = rollWeighted(drawable, function(entry)
-			return entry.chance
-		end)
+		bonus = rollWeighted(drawable, chanceOf)
 	end
-	if source == "Robux" or #self.idle.bonuses < IdleConfig.MAX_BONUS_INVENTORY then
+	if source ~= "Coins" or #self.idle.bonuses < IdleConfig.MAX_BONUS_INVENTORY then
 		table.insert(self.idle.bonuses, bonus.id)
 	end
 	self:publishInventory()
@@ -1646,7 +1760,7 @@ function PlotGame:grantBonusSpin(source: string, price: number?)
 end
 
 -- Forge runique, lancer payé en pièces : plus de délai d'attente. Le serveur vérifie tout : au moins une rune
--- tirable (sinon « Pose d'abord une tour » / « Toutes tes tours ont le meilleur bonus »), place dans
+-- tirable (sinon « Pose d'abord une tour » / « Toutes tes tours ont les meilleures runes »), place dans
 -- l'inventaire, prix possible (pas « MAX »), pièces suffisantes. Prix = IdleConfig.forgeCoinPrice(compteur des
 -- lancers en pièces déjà achetés, idle.forgeSpinsBought, jamais remis à zéro), qui augmente ensuite de 1.
 -- Renvoie le résultat (voir grantBonusSpin), nil si le lancer est refusé.
@@ -1679,10 +1793,12 @@ function PlotGame:spinBonusWithCoins()
 	return self:grantBonusSpin("Coins", price)
 end
 
--- Pose un bonus de l'inventaire sur une tour (remplace le bonus déjà posé, qui est perdu).
+-- Pose une rune de l'inventaire sur une tour, dans l'emplacement de SA sorte (dégâts ou vitesse) : elle ne
+-- remplace que la rune de la même sorte déjà posée, qui est perdue ; l'autre rune de la tour reste.
 function PlotGame:applyBonus(spotIndex: any, bonusId: any)
 	local tower = self:ownsSpot(spotIndex) and self.towers[spotIndex]
-	if not tower or typeof(bonusId) ~= "string" or not IdleConfig.BONUS_BY_ID[bonusId] then
+	local bonus = typeof(bonusId) == "string" and IdleConfig.BONUS_BY_ID[bonusId]
+	if not tower or not bonus then
 		return
 	end
 	local inventoryIndex = table.find(self.idle.bonuses, bonusId)
@@ -1690,11 +1806,10 @@ function PlotGame:applyBonus(spotIndex: any, bonusId: any)
 		return
 	end
 	table.remove(self.idle.bonuses, inventoryIndex)
-	tower.bonus = bonusId
-	tower.model:SetAttribute("Bonus", bonusId)
-	self:saveTower(tower)
+	tower.runes[bonus.kind] = bonus.id
+	self:setRunes(tower)
 	self:publishInventory()
-	self:notify(`Bonus {IdleConfig.BONUS_BY_ID[bonusId].displayName} posé !`, "Success")
+	self:notify(`Bonus {bonus.displayName} posé !`, "Success")
 end
 
 ----------------------------------------------------------------------
@@ -1768,7 +1883,8 @@ end
 -- État d'un ennemi (alive = faux s'il est mort ou n'existe plus), avec l'heure de la simulation.
 -- slowed = un contrôle est en cours (ralenti OU étourdi), slowFactor = sa force (1 = étourdi),
 -- controlSource = type de tour qui le contrôle ("Frost", "Tesla", "Orbital"), controlLeft = secondes restantes,
--- stunned = étourdi ; fragility = fragilité en cours (0,2 = +20 % de dégâts reçus), fragileLeft.
+-- stunned = étourdi ; immuneLeft = { [type de tour] = secondes d'immunité restantes } (fatigue des contrôles
+-- courts, seulement celles en cours) ; fragility = fragilité en cours (0,2 = +20 % de dégâts reçus), fragileLeft.
 function PlotGame:debugEnemy(id: number)
 	local enemy = findEnemy(self, id)
 	if not enemy or enemy.dead then
@@ -1777,6 +1893,12 @@ function PlotGame:debugEnemy(id: number)
 	local now = self.clock
 	local controlled = now < enemy.controlUntil
 	local fragile = now < enemy.fragileUntil
+	local immuneLeft = {}
+	for source, untilTime in enemy.fatigue or {} do
+		if now < untilTime then
+			immuneLeft[source] = untilTime - now
+		end
+	end
 	return {
 		alive = true,
 		health = enemy.health,
@@ -1787,11 +1909,23 @@ function PlotGame:debugEnemy(id: number)
 		controlSource = if controlled then enemy.controlSource else nil,
 		controlLeft = if controlled then enemy.controlUntil - now else 0,
 		stunned = controlled and enemy.controlFactor >= 1,
+		immuneLeft = immuneLeft,
 		fragility = if fragile then enemy.fragility else 0,
 		fragileLeft = if fragile then enemy.fragileUntil - now else 0,
 		pending = enemy.pending,
 		clock = now,
 	}
+end
+
+-- Arrête net cet ennemi (facteur de vitesse de son type à 0, comme debugSpawn « frozen »), par exemple juste
+-- après un tir : comme un étourdissement que la visée anticipée ne pouvait pas deviner. Renvoie vrai s'il vit.
+function PlotGame:debugFreeze(id: number): boolean
+	local enemy = findEnemy(self, id)
+	if not enemy or enemy.dead then
+		return false
+	end
+	enemy.speedScale = 0
+	return true
 end
 
 -- Tue cet ennemi. Renvoie les pièces que sa mort a posées au sol (ajoutées aux piles, 0 s'il ne rapporte rien).
@@ -1836,7 +1970,8 @@ function PlotGame:debugFire(spotIndex: number)
 	}
 end
 
--- Stats et rayon d'une tour : dégâts, portée, cible du rayon, secondes sur elle, montée, PV de la cible.
+-- Stats et rayon d'une tour : dégâts, temps entre deux attaques (cooldown, nil pour le rayon), runes posées
+-- (texte de IdleConfig.runeList), portée, cible du rayon, secondes sur elle, montée, PV de la cible.
 function PlotGame:debugTower(spotIndex: number)
 	local tower = self.towers[spotIndex]
 	if not tower then
@@ -1849,6 +1984,8 @@ function PlotGame:debugTower(spotIndex: number)
 		type = tower.type,
 		level = tower.level,
 		damage = stats.damage,
+		cooldown = stats.cooldown,
+		runes = tower.runeKey,
 		range = stats.range,
 		fragility = stats.fragility or 0,
 		fireDps = IdleTowers.fireDps(stats),
