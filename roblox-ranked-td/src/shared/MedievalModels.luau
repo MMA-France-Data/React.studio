@@ -102,7 +102,163 @@ local function cavalry(root: BasePart, def)
 	shield(root, s * 0.72, def.color, false)
 end
 
-function MedievalModels.decorateEnemy(root: BasePart, def)
+-- Styles du mode infini : palier 0 = vagues 1–10, palier 9 = 91–100.
+-- L'appel sans palier conserve les modèles historiques du ranked.
+-- Aucun accès à Wave ici : le branchement dans PlotRenderer reste indépendant.
+local ENEMY_STYLES = {
+	{ name = "Chevaliers carmin", cloth = Color3.fromRGB(155, 42, 46), armor = IRON, skin = SKIN, mount = HORSE, boss = "king" },
+	{ name = "Pillards de cuivre", cloth = Color3.fromRGB(168, 96, 38), armor = Color3.fromRGB(123, 80, 49), skin = SKIN, mount = Color3.fromRGB(62, 44, 35), boss = "raider" },
+	{ name = "Gardiens des ronces", cloth = Color3.fromRGB(52, 104, 57), armor = Color3.fromRGB(92, 113, 67), skin = Color3.fromRGB(143, 169, 97), mount = Color3.fromRGB(128, 108, 68), boss = "forest" },
+	{ name = "Legion du givre", cloth = Color3.fromRGB(72, 162, 190), armor = Color3.fromRGB(164, 203, 214), skin = Color3.fromRGB(188, 222, 231), mount = Color3.fromRGB(168, 188, 200), boss = "ice" },
+	{ name = "Gardes des dunes", cloth = Color3.fromRGB(213, 168, 78), armor = Color3.fromRGB(166, 128, 57), skin = Color3.fromRGB(174, 119, 78), mount = Color3.fromRGB(171, 131, 84), boss = "desert" },
+	{ name = "Legion des os", cloth = Color3.fromRGB(106, 83, 134), armor = Color3.fromRGB(110, 109, 118), skin = Color3.fromRGB(224, 214, 177), mount = Color3.fromRGB(183, 180, 158), boss = "undead" },
+	{ name = "Garde de la tempete", cloth = Color3.fromRGB(75, 91, 179), armor = Color3.fromRGB(107, 126, 172), skin = SKIN, mount = Color3.fromRGB(75, 78, 104), boss = "storm" },
+	{ name = "Chevaliers d'obsidienne", cloth = Color3.fromRGB(209, 75, 40), armor = Color3.fromRGB(48, 44, 53), skin = Color3.fromRGB(137, 119, 112), mount = Color3.fromRGB(47, 43, 48), boss = "obsidian" },
+	{ name = "Couvee du dragon", cloth = Color3.fromRGB(153, 46, 42), armor = Color3.fromRGB(117, 51, 43), skin = Color3.fromRGB(174, 116, 63), mount = Color3.fromRGB(103, 59, 43), boss = "dragon" },
+	{ name = "Horde gobeline", cloth = Color3.fromRGB(130, 71, 41), armor = Color3.fromRGB(94, 101, 66), skin = Color3.fromRGB(111, 156, 62), mount = Color3.fromRGB(72, 83, 48), boss = "goblin" },
+}
+
+MedievalModels.ENEMY_STYLE_COUNT = #ENEMY_STYLES
+
+local function styleIndex(palier: number): number
+	if palier ~= palier or math.abs(palier) == math.huge then return 1 end
+	return math.max(0, math.floor(palier)) % #ENEMY_STYLES + 1
+end
+
+local function tierEnemy(root: BasePart, def, index: number)
+	local style = ENEMY_STYLES[index]
+	local s = def.size / 2
+	local heavy = def.visual == "Heavy"
+	local boss = def.visual == "Warlord"
+	-- Giant et Tank partagent Heavy : la taille distingue uniquement leur habillage.
+	local giant = heavy and def.size >= 4
+	local bone = Color3.fromRGB(229, 216, 174)
+	local dark = Color3.fromRGB(31, 34, 38)
+	local function p(name, size, position, color, material, rotation, shape)
+		return piece(root, name, size * s, CFrame.new(position * s) * (rotation or CFrame.identity), color, material, shape)
+	end
+	local function beam(name, a, b, width, color, material)
+		return piece(root, name, Vector3.new(width, width, (b - a).Magnitude) * s,
+			CFrame.lookAt((a + b) * s / 2, b * s), color, material)
+	end
+	local function spike(name, size, position, color, rotation)
+		local part = p(name, size, position, color, Enum.Material.SmoothPlastic, rotation)
+		local mesh = Instance.new("SpecialMesh")
+		mesh.MeshType = Enum.MeshType.Wedge
+		mesh.Parent = part
+		return part
+	end
+	local function eyes(y, z, spacing, color)
+		for _, side in { -1, 1 } do
+			p("Eye", Vector3.new(0.12, 0.11, 0.07), Vector3.new(side * spacing, y, z), color, Enum.Material.SmoothPlastic)
+		end
+	end
+
+	if boss and style.boss == "dragon" then
+		-- Dragon terrestre : ailes repliées, pas de vol ni de modification du chemin.
+		p("DragonBody", Vector3.new(1.65, 1.35, 2.3), Vector3.new(0, 0, 0.15), style.armor, Enum.Material.Slate, nil, Enum.PartType.Ball)
+		p("BreastScales", Vector3.new(0.95, 0.85, 0.85), Vector3.new(0, -0.1, -0.77), style.skin, Enum.Material.SmoothPlastic, nil, Enum.PartType.Ball)
+		beam("DragonNeck", Vector3.new(0, 0.35, -0.7), Vector3.new(0, 1.05, -1.3), 0.7, style.armor, Enum.Material.Slate)
+		p("DragonSkull", Vector3.new(0.98, 0.65, 1.12), Vector3.new(0, 1.1, -1.53), style.armor, Enum.Material.Slate)
+		p("DragonMuzzle", Vector3.new(0.72, 0.34, 0.7), Vector3.new(0, 0.97, -2.18), style.skin, Enum.Material.SmoothPlastic)
+		p("Jaw", Vector3.new(0.68, 0.14, 0.85), Vector3.new(0, 0.73, -2.08), style.armor, Enum.Material.Slate)
+		eyes(1.22, -2.11, 0.34, GOLD)
+		for _, side in { -1, 1 } do
+			spike("DragonHorn", Vector3.new(0.24, 0.7, 0.28), Vector3.new(side * 0.4, 1.62, -1.2), bone, CFrame.Angles(0.3, 0, side * -0.3))
+			spike("Fang", Vector3.new(0.1, 0.23, 0.13), Vector3.new(side * 0.26, 0.77, -2.37), bone, CFrame.Angles(0, 0, math.pi))
+			for _, z in { -0.65, 0.85 } do
+				beam("DragonLeg", Vector3.new(side * 0.65, -0.25, z), Vector3.new(side * 0.92, -0.78, z - 0.16), 0.34, style.armor, Enum.Material.Slate)
+				p("ClawedFoot", Vector3.new(0.45, 0.22, 0.63), Vector3.new(side * 0.92, -0.86, z - 0.3), bone, Enum.Material.SmoothPlastic)
+			end
+			beam("WingBone", Vector3.new(side * 0.6, 0.5, 0.1), Vector3.new(side * 1.75, 1.5, 0.25), 0.16, style.skin, Enum.Material.SmoothPlastic)
+			spike("WingMembrane", Vector3.new(0.12, 1.65, 1.95), Vector3.new(side * 1.18, 0.74, 0.68), style.cloth, CFrame.Angles(0.18, 0, side * -0.5))
+		end
+		beam("TailBase", Vector3.new(0, 0.1, 1), Vector3.new(0.25, 0.05, 2.02), 0.46, style.armor, Enum.Material.Slate)
+		beam("TailTip", Vector3.new(0.25, 0.05, 2.02), Vector3.new(0.72, 0.3, 2.75), 0.22, style.armor, Enum.Material.Slate)
+		for i = 1, 3 do
+			spike("DorsalSpine", Vector3.new(0.18, 0.42, 0.38), Vector3.new(0, 0.83, -0.35 + i * 0.5), GOLD)
+		end
+		return
+	end
+
+	if boss or giant then
+		local goblin = style.boss == "goblin" or style.boss == "forest"
+		local bodyColor = if goblin then style.skin else style.armor
+		p("ColossusTorso", Vector3.new(1.5, 1.45, 0.92), Vector3.new(0, 0.22, 0), bodyColor, if goblin then Enum.Material.SmoothPlastic else Enum.Material.Metal)
+		p("Belt", Vector3.new(1.58, 0.2, 1), Vector3.new(0, -0.25, 0), LEATHER, Enum.Material.Fabric)
+		p("Buckle", Vector3.new(0.3, 0.27, 0.12), Vector3.new(0, -0.24, -0.56), GOLD, Enum.Material.Metal)
+		p("Head", Vector3.new(0.92, 0.86, 0.8), Vector3.new(0, 1.26, -0.06), style.skin, Enum.Material.SmoothPlastic)
+		eyes(1.4, -0.49, 0.22, dark)
+		for _, side in { -1, 1 } do
+			p("Boot", Vector3.new(0.52, 0.72, 0.62), Vector3.new(side * 0.4, -0.65, -0.02), LEATHER, Enum.Material.Fabric)
+			p("Arm", Vector3.new(0.48, 1.12, 0.52), Vector3.new(side * 0.98, 0.15, 0), bodyColor, Enum.Material.SmoothPlastic, CFrame.Angles(0, 0, side * 0.13))
+			p("Pauldron", Vector3.new(0.68, 0.38, 0.78), Vector3.new(side * 0.92, 0.72, 0), style.armor, Enum.Material.Metal)
+		end
+		p("ClubHandle", Vector3.new(0.18, 1.75, 0.18), Vector3.new(1.18, 0.4, -0.35), WOOD, Enum.Material.Wood)
+		p("MaceHead", Vector3.new(0.62, 0.68, 0.62), Vector3.new(1.18, 1.26, -0.35), style.armor, Enum.Material.Metal)
+		if not boss then return end -- colosse : 15 pièces, racine comprise
+		p("RoyalCape", Vector3.new(1.35, 1.9, 0.14), Vector3.new(0, 0.1, 0.55), style.cloth, Enum.Material.Fabric, CFrame.Angles(-0.13, 0, 0))
+		p("CrownBand", Vector3.new(1.03, 0.16, 0.88), Vector3.new(0, 1.73, -0.04), GOLD, Enum.Material.Metal)
+		for _, x in { -0.36, 0, 0.36 } do
+			spike("CrownPoint", Vector3.new(0.17, if x == 0 then 0.55 else 0.38, 0.18), Vector3.new(x, 1.98, -0.28), GOLD)
+		end
+		if goblin then
+			p("GoblinMuzzle", Vector3.new(0.65, 0.3, 0.35), Vector3.new(0, 1.07, -0.55), style.skin, Enum.Material.SmoothPlastic)
+			for _, side in { -1, 1 } do
+				spike("PointedEar", Vector3.new(0.64, 0.36, 0.18), Vector3.new(side * 0.64, 1.4, -0.02), style.skin, CFrame.Angles(0, 0, side * -0.3))
+				spike("GoblinTusk", Vector3.new(0.14, 0.34, 0.13), Vector3.new(side * 0.26, 1.17, -0.76), bone)
+			end
+		elseif style.boss == "ice" or style.boss == "obsidian" or style.boss == "storm" then
+			for _, side in { -1, 1 } do
+				spike("ShoulderCrystal", Vector3.new(0.4, 1, 0.42), Vector3.new(side * 1.05, 1.15, 0), style.cloth, CFrame.Angles(0, 0, side * -0.4))
+			end
+			p("CoreGem", Vector3.new(0.44, 0.44, 0.18), Vector3.new(0, 0.48, -0.52), style.cloth, Enum.Material.Neon, CFrame.Angles(0, 0, math.pi / 4))
+		elseif style.boss == "undead" then
+			p("SkullJaw", Vector3.new(0.62, 0.23, 0.2), Vector3.new(0, 0.92, -0.49), bone, Enum.Material.SmoothPlastic)
+			for _, side in { -1, 1 } do
+				p("EyeSocket", Vector3.new(0.22, 0.22, 0.09), Vector3.new(side * 0.23, 1.4, -0.52), dark, Enum.Material.SmoothPlastic)
+			end
+		else
+			p("TowerShield", Vector3.new(0.2, 1.6, 1.1), Vector3.new(-1.18, 0.18, -0.24), style.cloth, Enum.Material.Metal)
+			p("ShieldCrest", Vector3.new(0.08, 0.58, 0.58), Vector3.new(-1.3, 0.22, -0.24), GOLD, Enum.Material.Metal, CFrame.Angles(math.pi / 4, 0, 0))
+		end
+		return
+	end
+
+	-- La racine sert aussi de torse/corps : 6 pièces TOTALES pour les troupes,
+	-- 10 pour les lourds. Pas d'émetteur, lumière, texture distante ou boucle par ennemi.
+	root.Transparency = 0
+	root.Color = if heavy then style.armor else style.cloth
+	root.Material = if heavy then Enum.Material.Metal else Enum.Material.Fabric
+	root.Size = Vector3.new(1.05, 1.15, 0.72) * s
+	if def.visual == "Cavalry" then
+		root.Size = Vector3.new(0.95, 0.8, 2.1) * s
+		root.Color = style.mount
+		root.Material = Enum.Material.SmoothPlastic
+		p("HorseNeckHead", Vector3.new(0.54, 1.05, 0.85), Vector3.new(0, 0.55, -1), style.mount, Enum.Material.SmoothPlastic, CFrame.Angles(-0.35, 0, 0))
+		for _, z in { -0.65, 0.7 } do
+			p("PairedHorseLegs", Vector3.new(0.73, 0.65, 0.22), Vector3.new(0, -0.66, z), style.mount:Lerp(dark, 0.3), Enum.Material.SmoothPlastic)
+		end
+		p("Rider", Vector3.new(0.64, 0.78, 0.52), Vector3.new(0, 0.77, 0.12), style.cloth, Enum.Material.Fabric)
+		p("RiderHelm", Vector3.new(0.53, 0.55, 0.55), Vector3.new(0, 1.43, 0.07), if index == 10 then style.skin else style.armor, Enum.Material.SmoothPlastic)
+		return
+	end
+	p("Helm", Vector3.new(0.7, if index % 3 == 0 then 0.88 else 0.68, 0.7), Vector3.new(0, 0.91, 0), if index == 6 or index == 10 then style.skin else style.armor, Enum.Material.SmoothPlastic, nil, if index % 3 == 1 then Enum.PartType.Ball else Enum.PartType.Block)
+	for _, side in { -1, 1 } do
+		p("Boot", Vector3.new(0.34, 0.6, 0.42), Vector3.new(side * 0.3, -0.76, 0), LEATHER, Enum.Material.Fabric)
+	end
+	p("Shield", Vector3.new(0.16, if index % 2 == 0 then 1.2 else 0.9, 0.85), Vector3.new(-0.67, 0.1, -0.18), style.cloth, Enum.Material.Metal, nil, if index % 2 == 0 then Enum.PartType.Block else Enum.PartType.Cylinder)
+	p("Weapon", Vector3.new(0.12, if index % 3 == 0 then 2.2 else 1.45, 0.19), Vector3.new(0.68, 0.38, -0.23), style.armor:Lerp(bone, 0.4), Enum.Material.Metal, CFrame.Angles(-0.2, 0, 0))
+	if heavy then
+		for _, side in { -1, 1 } do
+			p("Pauldron", Vector3.new(0.46, 0.42, 0.82), Vector3.new(side * 0.65, 0.38, 0), style.armor, Enum.Material.Metal)
+		end
+		p("Visor", Vector3.new(0.73, 0.12, 0.1), Vector3.new(0, 0.91, -0.36), dark, Enum.Material.Metal)
+		p("Cape", Vector3.new(0.92, 1.28, 0.12), Vector3.new(0, 0, 0.42), style.cloth, Enum.Material.Fabric)
+	end
+end
+
+function MedievalModels.decorateEnemy(root: BasePart, def, palier: number?)
 	root.Transparency = 1
 	root.Color = def.color
 	root.Material = Enum.Material.SmoothPlastic
@@ -110,6 +266,13 @@ function MedievalModels.decorateEnemy(root: BasePart, def)
 	root.CanCollide = false
 	root.CanTouch = false
 	root.CanQuery = false
+	if palier ~= nil then
+		local index = styleIndex(palier)
+		root:SetAttribute("EnemyStyle", index - 1)
+		root:SetAttribute("EnemyStyleName", ENEMY_STYLES[index].name)
+		tierEnemy(root, def, index)
+		return
+	end
 
 	if def.visual == "Cavalry" then
 		cavalry(root, def)
