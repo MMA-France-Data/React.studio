@@ -17,10 +17,9 @@
 -- chaque image jusqu'à l'ennemi affiché ici (voir updateBeams).
 -- Styles des ennemis : un par tranche de 10 vagues (MedievalModels.decorateEnemy avec le palier, voir palierOf).
 -- Contrôles et fragilité : après les positions, le paquet PlotSync contient un octet « contrôle » par ennemi
--- (format dans PlotGame.luau). Un disque sous ses pieds montre le contrôle en cours : bleu glacé = ralenti par
--- un Totem de givre, jaune = gros coup de frein du Mage des tempêtes, doré = étourdi par le Trébuchet royal ;
--- violet = seulement fragile. Fragile (aura du Totem : il prend plus de dégâts) = contour violet de sa barre
--- de vie. Disque créé la 1re fois qu'il sert, soudé à l'ennemi, puis juste montré ou caché.
+-- (format dans PlotGame.luau). Effets distincts : brume et éclats de givre aux pieds, étincelles de foudre,
+-- étoiles dorées au-dessus d'un ennemi étourdi, motes violettes quand il est fragile. Le contour violet de
+-- la barre de vie est conservé. Les ancres sont créées une fois, soudées, et nettoyées avec l'ennemi.
 -- Baliste lourde : à l'impact de son carreau perçant, une traînée montre la ligne touchée (largeur du serveur).
 -- Modèles perso (CustomModels.luau) : si le propriétaire a mis un modèle pour ce type (et ce palier) dans
 -- ReplicatedStorage.EnemyModels, l'ennemi est une copie de ce modèle soudée à la même racine invisible que les
@@ -73,11 +72,7 @@ local ENEMY_BYTES = 11
 -- (IdleTowers.ORDER) de la tour dont le contrôle est en cours (0 = aucun), bit 7 = fragile.
 local CONTROL_SOURCE_MASK = 16 -- control % 16 = bits 0-3
 local CONTROL_FRAGILE_FLAG = 128
-local STATUS_RING_TRANSPARENCY = 0.4
-local STUN_COLOR = Color3.fromRGB(255, 212, 90) -- étourdi (Trébuchet royal)
 local FRAGILE_COLOR = Color3.fromRGB(196, 130, 255) -- fragile (aura du Totem de givre)
--- Couleur du disque par tour qui contrôle (sinon la couleur de la tour).
-local STATUS_COLORS = { Orbital = STUN_COLOR }
 local SHOT_BYTES = 27 -- départ 3xf32, arrivée 3xf32, type u8, rayon u8, vol restant u8 (centièmes de s)
 -- Après les count x SHOT_BYTES octets : l'id u32 de la cible suivie par chaque tir (0 = aucune), même ordre.
 local SHOT_TARGET_BYTES = 4
@@ -327,29 +322,9 @@ local function updateDying(now: number)
 	end
 end
 
--- Disque sous les pieds d'un ennemi (contrôle ou fragilité), soudé à sa racine : il suit l'ennemi sans calcul.
-local function createStatusRing(enemy): Part
-	local root = enemy.part
-	local diameter = enemy.def.size * 0.9 + 1
-	local ring = Instance.new("Part")
-	ring.Name = "StatusRing"
-	ring.Shape = Enum.PartType.Cylinder
-	ring.Size = Vector3.new(0.12, diameter, diameter)
-	ring.CFrame = root.CFrame * CFrame.new(0, -enemy.def.size / 2 + 0.15, 0) * CFrame.Angles(0, 0, math.rad(90))
-	ring.Material = Enum.Material.Neon
-	ring.Transparency = 1
-	ring.Anchored = false
-	ring.Massless = true
-	ring.CanCollide = false
-	ring.CanQuery = false
-	ring.CanTouch = false
-	ring.CastShadow = false
-	local weld = Instance.new("WeldConstraint")
-	weld.Part0 = root
-	weld.Part1 = ring
-	weld.Parent = ring
-	ring.Parent = root
-	return ring
+-- Ancre invisible, nom conservé pour le nettoyage des morts ; plus de disque plein provisoire.
+local function createStatusRing(enemy): BasePart
+	return Effects.createStatusVisual(enemy.part, enemy.def.size, if enemy.custom then enemy.custom.top else nil)
 end
 
 -- Contrôle en cours (type de tour, nil = aucun) et fragilité, lus dans l'octet « contrôle » du paquet.
@@ -360,18 +335,11 @@ local function setStatus(enemy, source: string?, fragile: boolean)
 	end
 	enemy.statusSource = source
 	enemy.statusFragile = fragile
-	local towerDef = source and IdleTowers.Defs[source]
-	local color = if source and STATUS_COLORS[source]
-		then STATUS_COLORS[source]
-		elseif towerDef then towerDef.color
-		elseif fragile then FRAGILE_COLOR
-		else nil
-	if color then
+	if source or fragile then
 		enemy.ring = enemy.ring or createStatusRing(enemy)
-		enemy.ring.Color = color
-		enemy.ring.Transparency = STATUS_RING_TRANSPARENCY
+		Effects.setStatusVisual(enemy.ring, source, fragile)
 	elseif enemy.ring then
-		enemy.ring.Transparency = 1
+		Effects.setStatusVisual(enemy.ring, nil, false)
 	end
 	enemy.stroke.Transparency = if fragile then 0 else 1
 end
