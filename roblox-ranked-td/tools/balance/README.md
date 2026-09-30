@@ -296,6 +296,11 @@ Scénarios (`-Scenarios`) :
 | `renaissance` | forge + renaissance dès qu'il est bloqué depuis 15 min à son record (vague 15 ou plus) |
 | `renaissance-seule` | base + la même renaissance, sans forge (pour voir l'effet de la renaissance seule) |
 | `sans-sorcier` | base, mais il ne pose jamais de Sorcier des arcanes : le rapport compare les murs des Seigneurs de guerre et des Gardes colossales avec et sans lui |
+| `archer-x20` | « tout sur l'Archer » : un seul Archer (emplacement 1) et un Totem de givre niveau 1 à côté (emplacement 5), toutes les pièces dans l'Archer, l'autel seulement jusqu'au Totem ; 1er lancer de forge (100 K) forcé = x20 dégâts sur l'Archer. Partie « TOUT SUR L'ARCHER » du rapport : record à 1 / 4 / 12 / 40 h et vagues qui le bloquent |
+| `archer-x20-x2` | archer-x20 + 2e lancer de forge (500 K) forcé = x2 vitesse sur l'Archer |
+| `archer-x20-x2-givre` | archer-x20-x2, mais le Totem de givre est aussi amélioré (meilleur rapport gain / prix entre l'Archer et le Totem : sa fragilité monte vite à son maximum, +300 %) |
+| `archer-x20-renaissance`, `archer-x20-x2-renaissance` | les mêmes + renaissance après 15 min bloqué |
+| `archer-sans-rune` | le même joueur « tout sur l'Archer », sans rune (pour comparer) |
 
 Pas de Robux dans aucun scénario.
 

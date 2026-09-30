@@ -99,7 +99,10 @@ for _, item in playerOverrides do
 	end
 end
 for _, id in options.scenarios do
-	assert(Run.SCENARIOS[id], `scénario inconnu : {id} (base, forge, renaissance, renaissance-seule, sans-sorcier)`)
+	assert(
+		Run.SCENARIOS[id],
+		`scénario inconnu : {id} (base, forge, renaissance, renaissance-seule, sans-sorcier ; tout sur l'Archer : archer-x20, archer-x20-x2, archer-x20-x2-givre, archer-x20-renaissance, archer-x20-x2-renaissance, archer-sans-rune)`
+	)
 end
 
 Engine.DT = options.dt
@@ -158,6 +161,8 @@ end
 -- 1. Les parties
 ----------------------------------------------------------------------
 local CHECKPOINTS = { 2, 5, 10, 20, 30, 40, 60, 80 }
+-- Heures où le rapport explique pourquoi le joueur « tout sur l'Archer » bloque (en plus de la fin de la partie).
+local ARCHER_DIAG_HOURS = { 1, 4, 12, 40 }
 local runsByScenario = {}
 local started = os.clock()
 if not options.worker then
@@ -212,7 +217,22 @@ for scenarioIndex, scenarioId in (if options.assemble then {} else options.scena
 				end
 				r.checkpoints[hour] = { towers = towers, frontier = r.frontier, coinBonus = r.coinBonus, layout = layout }
 			end
+			-- Joueur « tout sur l'Archer » : niveaux de l'Archer et du Totem à chaque heure, et pourquoi il bloque
+			-- à quelques heures (Run:archerDiagnosis), pour la partie « TOUT SUR L'ARCHER » du rapport.
+			if r.scenario.archer then
+				local archerLevel, frostLevel = r:archerLevels()
+				r.hourlyArcher = r.hourlyArcher or {}
+				r.hourlyArcher[hour] = { archer = archerLevel, frost = frostLevel }
+				if table.find(ARCHER_DIAG_HOURS, hour) then
+					r.archerDiag = r.archerDiag or {}
+					r.archerDiag[hour] = r:archerDiagnosis()
+				end
+			end
 		end)
+		if run.scenario.archer then
+			run.archerDiag = run.archerDiag or {}
+			run.archerDiag.fin = run:archerDiagnosis()
+		end
 		table.insert(runs, run)
 		Report.csvRun(run)
 		if run.journal then
@@ -733,6 +753,239 @@ if #options.scenarios > 1 then
 	table.insert(rows, row)
 	Report.table(headers, rows)
 	out()
+end
+
+----------------------------------------------------------------------
+-- 5 ter. TOUT SUR L'ARCHER (scénarios avec `archer`, question du propriétaire du 01/10/2026 : la rune x20 dégâts
+-- sur un Archer, un Totem de givre à côté, toutes les pièces dans l'Archer). Affiché juste après l'en-tête :
+-- record au fil des heures et temps pour atteindre les vagues (avec les autres scénarios du même calcul, pour
+-- comparer), runes, niveaux de l'Archer et du Totem, murs par type de vague, et pourquoi il bloque
+-- (Run:archerDiagnosis).
+----------------------------------------------------------------------
+do
+	local archerIds = {}
+	for _, id in options.scenarios do
+		if Run.SCENARIOS[id].archer then
+			table.insert(archerIds, id)
+		end
+	end
+	if #archerIds > 0 then
+		Report.section("archer")
+		table.insert(order, 2, "archer") -- juste après l'en-tête : c'est la question posée
+		local enemyName = function(name: string): string
+			return Modules.Enemies.Defs[name].displayName
+		end
+		-- k (multiplicateur de dégâts de l'Archer qu'il faudrait) en texte
+		local function kText(k: number): string
+			if k == math.huge then
+				return "impossible même avec des dégâts infinis"
+			elseif k <= 1 then
+				return "déjà réussie"
+			end
+			return "x" .. (if k < 10 then string.format("%.2f", k) else shortNumber(k))
+		end
+		out(string.rep("=", 100))
+		out("TOUT SUR L'ARCHER : que l'Archer du rempart (emplacement 1) et un Totem de givre juste à côté (emplacement 5), toutes")
+		out("les pièces dans l'Archer. Runes forcées selon le scénario : x20 dégâts au 1er lancer de la forge (100 K), x2 vitesse au")
+		out("2e (500 K), prix mis de côté dès qu'il vaut moins de 30 min de revenu ; ensuite plus de forge ni d'autel (voir Run.luau).")
+		out("Comparé aux autres scénarios de ce calcul (base = le joueur normal, toutes les tours, sans forge).")
+		out(string.rep("=", 100))
+		-- Record au fil des heures (moyenne des graines [min - max])
+		local hours = {}
+		for _, hour in ARCHER_DIAG_HOURS do
+			if hour <= options.hours then
+				table.insert(hours, hour)
+			end
+		end
+		if not table.find(hours, math.floor(options.hours)) and options.hours >= 1 then
+			table.insert(hours, math.floor(options.hours))
+		end
+		local headers = { "Scénario" }
+		for _, hour in hours do
+			table.insert(headers, `record à {hour} h`)
+		end
+		local rows = {}
+		for _, id in options.scenarios do
+			local row = { id }
+			for _, hour in hours do
+				local list = {}
+				for _, run in runsByScenario[id] do
+					if run.hourly[hour] then
+						table.insert(list, run.hourly[hour])
+					end
+				end
+				if #list == 0 then
+					table.insert(row, "-")
+				else
+					local lo, hi = Report.minMax(list)
+					table.insert(row, string.format("%.0f", mean(list)) .. (if lo ~= hi then ` [{lo}-{hi}]` else ""))
+				end
+			end
+			table.insert(rows, row)
+		end
+		out("Record (dernière vague réussie) au fil des heures de jeu (moyenne des graines [min - max]) :")
+		Report.table(headers, rows, { "l" })
+		out()
+		-- Temps pour atteindre les vagues
+		local targets = { 30, 50, 100, 150, 200, 300 }
+		headers = { "Scénario" }
+		for _, wave in targets do
+			table.insert(headers, `vague {wave}`)
+		end
+		rows = {}
+		for _, id in options.scenarios do
+			local row = { id }
+			for _, wave in targets do
+				local t, n = Report.reachTime(runsByScenario[id], wave)
+				local count = #runsByScenario[id]
+				table.insert(row, if n == 0 then "jamais" elseif n < count then `{n}/{count} {duration(t)}` else duration(t))
+			end
+			table.insert(rows, row)
+		end
+		out(`Temps de jeu pour atteindre la vague (moyenne ; « jamais » = pas en {options.hours} h ; « 2/3 » = graines qui l'ont atteinte) :`)
+		Report.table(headers, rows, { "l" })
+		out()
+		for _, id in archerIds do
+			local runs = runsByScenario[id]
+			local plan = Run.SCENARIOS[id].archer
+			out(`« {id} » : {Run.SCENARIOS[id].label}`)
+			-- Runes (lancers de forge forcés) et Totem débloqué à l'autel
+			local runeParts = {}
+			for index, runeId in plan.runes do
+				local times, waves = {}, {}
+				for _, run in runs do
+					local entry = run.bonusLog[index]
+					if entry then
+						table.insert(times, entry.t)
+						table.insert(waves, entry.wave)
+					end
+				end
+				table.insert(
+					runeParts,
+					`{IdleConfig.BONUS_BY_ID[runeId].displayName} ({coins(IdleConfig.forgeCoinPrice(index - 1))}) `
+						.. (if #times > 0 then `à {duration(mean(times))}, record {math.floor(mean(waves) + 0.5)}` else "jamais")
+						.. (if #times > 0 and #times < #runs then ` ({#times}/{#runs})` else "")
+				)
+			end
+			local spins, frostTimes = {}, {}
+			for _, run in runs do
+				table.insert(spins, run.spins)
+				if run.unlockedAt.Frost then
+					table.insert(frostTimes, run.unlockedAt.Frost.t)
+				end
+			end
+			out(
+				`  Forge : {if #runeParts > 0 then table.concat(runeParts, " ; ") else "aucun lancer"}. Autel : {string.format("%.1f", mean(spins))} lancers x1 pour débloquer le Totem`
+					.. (if #frostTimes > 0 then ` (à {duration(mean(frostTimes))})` else " (jamais débloqué)")
+					.. "."
+			)
+			-- Niveaux de l'Archer et du Totem au fil des heures (moyenne des graines)
+			local levelParts = {}
+			for _, hour in hours do
+				local archers, frosts = {}, {}
+				for _, run in runs do
+					local levels = run.hourlyArcher and run.hourlyArcher[hour]
+					if levels then
+						table.insert(archers, levels.archer)
+						table.insert(frosts, levels.frost)
+					end
+				end
+				if #archers > 0 then
+					table.insert(levelParts, string.format("%d h : Archer niv %.0f, Totem niv %.0f", hour, mean(archers), mean(frosts)))
+				end
+			end
+			out(`  Niveaux : {table.concat(levelParts, " ; ")}.`)
+			-- Murs d'au moins 1 min (vagues 11 et plus) par type de vague, mur en cours à la fin compris
+			local byType, total = {}, 0
+			for _, run in runs do
+				local function add(wave: number, seconds: number)
+					if wave >= 11 and seconds >= 60 then
+						local waveType = IdleConfig.waveType(wave)
+						byType[waveType] = byType[waveType] or {}
+						table.insert(byType[waveType], seconds)
+						total += 1
+					end
+				end
+				for _, wall in run.walls do
+					add(wall.wave, wall.seconds)
+				end
+				add(run.frontier + 1, run.openWall)
+			end
+			local wallParts = {}
+			for _, waveType in Report.WAVE_TYPE_ORDER do
+				local list = byType[waveType]
+				if list then
+					local _, hi = Report.minMax(list)
+					table.insert(
+						wallParts,
+						`{Report.waveTypeName(waveType)} {string.format("%.1f", #list / #runs)} (médiane {duration(medianOf(list))}, max {duration(hi)})`
+					)
+				end
+			end
+			out(
+				`  Murs d'au moins 1 min (vagues 11+, par partie, mur en cours à la fin compris) : {if total > 0 then table.concat(wallParts, " ; ") else "aucun"}.`
+			)
+			-- Pourquoi il bloque : graine 1 à quelques heures, puis chaque graine à la fin
+			local function describe(label: string, diag)
+				if not diag then
+					return
+				end
+				local climb = if diag.climbing
+					then ` (en train de remonter après sa renaissance n° {diag.rebirths} : vague {diag.currentWave} ; bonus de pièces +{IdleConfig.formatPercent(diag.coinBonus)} %)`
+					else ""
+				out(
+					`  {label} : bloqué à la vague {diag.blocked} ({Report.waveTypeName(diag.blockedType)}){climb}. Archer niv {diag.archerLevel}`
+						.. `{if diag.runes ~= "" then ` ({diag.runes})` else ""}, {diag.dupes} doublon(s) : {coins(diag.damage)} dégâts par flèche,`
+						.. ` {string.format("%.0f", diag.attacksPerSecond)} flèches/s (DPS {coins(diag.dps)} ; feu {coins(diag.fireDps)}/s par zone) ;`
+						.. ` Totem niv {diag.frostLevel} (+{string.format("%.0f", diag.fragility * 100)} % de dégâts reçus) ; revenu à son record {coins(diag.income * 60)}/min.`
+				)
+				local leakParts = {}
+				for _, leak in diag.leaks do
+					if leak.leaked > 0 then
+						table.insert(leakParts, `{leak.leaked} {enemyName(leak.name)} sur {leak.count}`)
+					end
+				end
+				local toughest, toughestName = 0, "-"
+				for _, leak in diag.leaks do
+					if leak.hp > toughest then
+						toughest, toughestName = leak.hp, enemyName(leak.name)
+					end
+				end
+				out(
+					"      Un essai de cette vague avec ses tours : "
+						.. (if diag.success
+							then "réussie (il vient de s'améliorer)"
+							else `passent : {table.concat(leakParts, ", ")} (le 1er après {duration(diag.leakSeconds)})`)
+						.. ` ; le plus résistant ({toughestName}, {coins(toughest)} PV) = {shortNumber(diag.toughestArrows)} flèches ;`
+						.. ` toute la vague = {shortNumber(diag.waveArrows)} flèches ({duration(diag.waveArrows / diag.attacksPerSecond)} de tir sans pause, sans fragilité ni feu).`
+				)
+				local needParts = {}
+				for _, entry in diag.waves do
+					local text = `{Report.waveTypeName(entry.type)}{if entry.actual then " (la vraie)" else ""} {kText(entry.k)}`
+					if entry.k > 1 and entry.k < math.huge then
+						text ..= ` = {entry.levels} niv. ({coins(entry.cost)}, {duration(entry.hours * 3600)} de revenu)`
+					end
+					table.insert(needParts, text)
+				end
+				out(`      Vague {diag.blocked} construite comme chaque type, dégâts de l'Archer qu'il faudrait (x k, à 3 % près) : ` .. table.concat(needParts, " ; ") .. ".")
+			end
+			for _, hour in hours do
+				local first = runs[1]
+				if hour < options.hours and first.archerDiag and first.archerDiag[hour] then
+					describe(`À {hour} h (graine {first.seed})`, first.archerDiag[hour])
+				end
+			end
+			for _, run in runs do
+				describe(`Fin ({options.hours} h, graine {run.seed})`, run.archerDiag and run.archerDiag.fin)
+			end
+			out()
+		end
+		out("  (k = de combien il faudrait multiplier les dégâts de l'Archer pour réussir la vague avec ses tours actuelles ; la vague")
+		out("   qui bloque est construite comme chaque type (même numéro, mêmes PV au total), « la vraie » = son vrai type ;")
+		out("   « niv. » = améliorations de l'Archer qui donnent ce x k, leur prix et le temps pour le gagner à son revenu à son record ;")
+		out("   « impossible » = un ennemi passe même avec des dégâts infinis : il manque des tirs ou du temps, pas des dégâts.)")
+		out()
+	end
 end
 
 ----------------------------------------------------------------------

@@ -112,7 +112,67 @@ Run.SCENARIOS = {
 		rebirth = false,
 		banned = { Laser = true },
 	},
+	-- « TOUT SUR L'ARCHER » (question du propriétaire, 01/10/2026 : sa copine a eu la rune x20 dégâts au tout
+	-- premier lancer de la forge et l'a mise sur un Archer). Un joueur qui ne joue QUE l'Archer du rempart et un
+	-- Totem de givre posé juste à côté, et qui met toutes ses pièces dans l'Archer (voir Run:archerIntermission).
+	-- Pas de forge « normale » ni d'autre tour. archer = son plan :
+	--   runes = les runes que donnent ses premiers lancers de forge en pièces, dans l'ordre (FORCÉES : le 1er lancer,
+	--           100 K, donne toujours x20 dégâts ; le 2e, 500 K, x2 vitesse), toutes posées sur l'Archer ; ensuite il
+	--           ne relance plus la forge. {} = jamais de forge (pour comparer : le même joueur sans rune) ;
+	--   upgradeFrost = le Totem est aussi amélioré (il choisit entre l'Archer et le Totem au meilleur rapport gain /
+	--                  prix, comme le joueur « base ») ; false = le Totem reste niveau 1 (juste posé).
+	-- Ces scénarios ne sont pas dans la liste par défaut de run.ps1 : -Scenarios base,forge,archer-x20-x2,...
+	["archer-x20"] = {
+		id = "archer-x20",
+		label = "que l'Archer + un Totem de givre à côté (niveau 1), 1er lancer de forge = x20 dégâts sur l'Archer, tout le reste dans l'Archer",
+		forge = false,
+		rebirth = false,
+		archer = { runes = { "Damage20" }, upgradeFrost = false },
+	},
+	["archer-x20-x2"] = {
+		id = "archer-x20-x2",
+		label = "comme archer-x20, + 2e lancer de forge = x2 vitesse d'attaque sur l'Archer",
+		forge = false,
+		rebirth = false,
+		archer = { runes = { "Damage20", "Speed2" }, upgradeFrost = false },
+	},
+	["archer-x20-x2-givre"] = {
+		id = "archer-x20-x2-givre",
+		label = "comme archer-x20-x2, mais le Totem de givre est aussi amélioré (meilleur rapport gain / prix entre l'Archer et le Totem)",
+		forge = false,
+		rebirth = false,
+		archer = { runes = { "Damage20", "Speed2" }, upgradeFrost = true },
+	},
+	["archer-x20-renaissance"] = {
+		id = "archer-x20-renaissance",
+		label = "archer-x20 + renaissance dès que bloqué 15 min au record (vague >= 15)",
+		forge = false,
+		rebirth = true,
+		archer = { runes = { "Damage20" }, upgradeFrost = false },
+	},
+	["archer-x20-x2-renaissance"] = {
+		id = "archer-x20-x2-renaissance",
+		label = "archer-x20-x2 + renaissance dès que bloqué 15 min au record (vague >= 15)",
+		forge = false,
+		rebirth = true,
+		archer = { runes = { "Damage20", "Speed2" }, upgradeFrost = false },
+	},
+	["archer-sans-rune"] = {
+		id = "archer-sans-rune",
+		label = "le même joueur (que l'Archer + un Totem de givre niveau 1, tout dans l'Archer) mais SANS aucune rune : pour voir ce qu'apporte le x20",
+		forge = false,
+		rebirth = false,
+		archer = { runes = {}, upgradeFrost = false },
+	},
 }
+
+-- Emplacements du joueur « tout sur l'Archer » (scénarios avec `archer`). Choisis au vrai moteur (analyse du
+-- 01/10/2026) parmi toutes les paires : Archer sur l'emplacement 1 (gratuit, au milieu de deux allers du chemin)
+-- et Totem sur l'emplacement 5, juste à sa gauche, au coin du chemin : son aura couvre deux allers ET le virage,
+-- tous dans la portée de l'Archer. Un ennemi à 10 studs/s y reste ~18 s à portée de l'Archer au lieu de ~9 s sans
+-- Totem (15 s avec le Totem sur l'emplacement 2, gratuit : cette paire demande ~25 % de dégâts en plus). Le 5e
+-- emplacement coûte 100 pièces.
+Run.ARCHER_SPOTS = { archer = 1, frost = 5 }
 
 local P = Run.POLICY
 local SPOT_COUNT = #PlotLayout.SPOTS
@@ -1645,8 +1705,282 @@ function Run:wallSolver()
 	end
 end
 
+----------------------------------------------------------------------
+-- Joueur « tout sur l'Archer » (scénarios avec `archer`, voir Run.SCENARIOS)
+----------------------------------------------------------------------
+
+-- Lancer de forge en pièces qui donne la rune `runeId` (forcée), posée tout de suite sur l'Archer, dans
+-- l'emplacement de sa sorte (dégâts ou vitesse : les deux se cumulent, comme dans le jeu). Même prix et même
+-- compteur que le jeu (IdleConfig.forgeCoinPrice : 100 K, puis x5...).
+function Run:archerForge(runeId: string, cost: number)
+	local archer = self.towers[Run.ARCHER_SPOTS.archer]
+	local rune = IdleConfig.BONUS_BY_ID[runeId]
+	self.coins -= cost
+	self.forgeSpins += 1
+	self.forgeSpent += cost
+	self:addSpent("forge", cost)
+	self:purchased("forge")
+	archer.runes[rune.kind] = runeId
+	table.insert(self.bonusLog, { t = self.t, id = runeId, cost = cost, wave = self.frontier })
+	self:changed(false)
+	self:log(`forge runique pour {Modules.NumberFormat.short(cost)} : {rune.displayName} (forcée), posée sur l'Archer`)
+end
+
+-- Achats de l'entracte, dans cet ordre (il s'arrête dès qu'il lui manque des pièces : il économise) :
+--   1. l'Archer sur son emplacement (Run.ARCHER_SPOTS) ;
+--   2. des lancers x1 à l'autel jusqu'à débloquer le Totem de givre (il faut l'avoir pour le poser ; seuls ces
+--      quelques lancers sont achetés, leurs doublons comptent), puis plus jamais l'autel ;
+--   3. le Totem de givre juste à côté (il achète cet emplacement : le 5e, 100 pièces) ;
+--   4. la forge : comme le scénario « forge », il met de côté le prix du prochain lancer dès qu'il vaut moins de
+--      FORGE_SAVE_SECONDS (30 min) de revenu, puis lance ; les lancers donnent les runes du plan (forcées) ;
+--   5. tout le reste dans l'Archer : une amélioration dès qu'il peut la payer. Avec upgradeFrost, il choisit
+--      entre l'Archer et le Totem au meilleur rapport gain / prix (mêmes calculs que le joueur « base »).
+function Run:archerSpend()
+	local plan = self.scenario.archer
+	local spots = Run.ARCHER_SPOTS
+	-- 1. L'Archer
+	if not self.towers[spots.archer] then
+		if self.coins < IdleTowers.Defs.MachineGun.placeCost then
+			return
+		end
+		self:execute({ kind = "place", spot = spots.archer, type = "MachineGun" })
+	end
+	-- 2. L'autel, seulement pour débloquer le Totem de givre
+	while not self.unlocked.Frost do
+		local cost = IdleConfig.towerSpinCost(self.highestWave, 1, self.spins)
+		if cost >= math.huge or self.coins < cost then
+			return
+		end
+		self:buySpins(1)
+		self:purchased("spin")
+	end
+	-- 3. Le Totem, juste à côté de l'Archer
+	if not self.towers[spots.frost] then
+		local owned = self.owned[spots.frost] == true
+		local cost = IdleTowers.Defs.Frost.placeCost + (if owned then 0 else PlotLayout.spotCost(self.unlockedSpots + 1))
+		if self.coins < cost then
+			return
+		end
+		self:execute({ kind = if owned then "place" else "spot", spot = spots.frost, type = "Frost" })
+	end
+	-- 4. La forge : les lancers du plan, prix mis de côté quand il vaut moins de 30 min de revenu
+	local reserve = 0
+	while self.forgeSpins < #plan.runes do
+		local cost = IdleConfig.forgeCoinPrice(self.forgeSpins)
+		if cost >= math.huge or cost > self.income * P.FORGE_SAVE_SECONDS then
+			break -- trop cher pour l'instant : il n'économise pas encore
+		end
+		if self.coins < cost then
+			reserve = cost -- il met ce prix de côté (pas d'amélioration avec ces pièces)
+			break
+		end
+		self:archerForge(plan.runes[self.forgeSpins + 1], cost)
+	end
+	-- 5. Tout le reste dans l'Archer
+	local archer = self.towers[spots.archer]
+	if not plan.upgradeFrost then
+		while true do
+			local cost = IdleTowers.upgradeCost(archer.type, archer.level)
+			if cost >= math.huge or self.coins - reserve < cost then
+				return
+			end
+			self:execute({ kind = "upgrade", spot = spots.archer })
+		end
+	end
+	-- upgradeFrost : Archer ou Totem, au meilleur rapport gain / prix (même règle que Run:spend : il économise
+	-- pour le meilleur achat s'il peut le payer en moins de SAVE_SECONDS, sinon il prend l'autre s'il vaut au moins
+	-- FALLBACK_MIN_RATIO fois le meilleur).
+	local focus = self:buildFocus(false)
+	for _ = 1, 400 do
+		local available = self.coins - reserve
+		if available <= 0 then
+			return
+		end
+		self:evaluate(focus)
+		local options = {}
+		self:upgradeOptions(focus, options)
+		local best, bestAffordable = nil, nil
+		for _, option in options do
+			if option.cost < math.huge then
+				if not best or option.ratio > best.ratio then
+					best = option
+				end
+				if option.cost <= available and (not bestAffordable or option.ratio > bestAffordable.ratio) then
+					bestAffordable = option
+				end
+			end
+		end
+		if not best then
+			return
+		end
+		local choice = best
+		if best.cost > available then
+			local wait = if self.income > 0 then (best.cost - available) / self.income else math.huge
+			if wait <= P.SAVE_SECONDS or not bestAffordable or bestAffordable.ratio < P.FALLBACK_MIN_RATIO * best.ratio then
+				return
+			end
+			choice = bestAffordable
+		end
+		self:execute(choice)
+	end
+end
+
+-- Entracte du joueur « tout sur l'Archer » : renaissance (scénarios « …-renaissance », même règle que le
+-- scénario « renaissance » : bloqué 15 min à son record, vague >= 15), puis ses achats (Run:archerSpend).
+function Run:archerIntermission(): boolean
+	-- Revenu quand il joue à son record (pas en train de remonter après une renaissance) : sert au rapport
+	-- (Run:archerDiagnosis) pour dire combien de temps de farm il faudrait.
+	if self.bestWave >= self.frontier then
+		self.archerRecordIncome = self.income
+	end
+	local rebirthed = false
+	if
+		self.scenario.rebirth
+		and self.bestWave >= IdleConfig.REBIRTH_MIN_WAVE
+		and self.bestWave >= self.frontier
+		and self.runWallSince
+		and self.t - self.runWallSince >= P.REBIRTH_STUCK
+	then
+		rebirthed = self:rebirth()
+	end
+	self:archerSpend()
+	return rebirthed
+end
+
+-- Niveaux de l'Archer et du Totem en ce moment (0 = pas posé), pour le rapport.
+function Run:archerLevels(): (number, number)
+	local archer = self.towers[Run.ARCHER_SPOTS.archer]
+	local frost = self.towers[Run.ARCHER_SPOTS.frost]
+	return if archer then archer.level else 0, if frost then frost.level else 0
+end
+
+-- Pourquoi il bloque (scénarios « archer » ; main.luau l'appelle à quelques heures et à la fin de la partie).
+-- La vague qui bloque (record + 1) est construite comme chacun des 5 types de vague (même numéro, donc mêmes PV
+-- au total, comme le banc d'essai) : de combien il faudrait multiplier les dégâts de l'Archer (k) pour la
+-- réussir avec ses tours actuelles (vraies règles : une seule fuite = ratée ; à 3 % près), et ce que ça fait en
+-- niveaux d'Archer, en pièces et en heures de son revenu à son record. k = math.huge : même avec des dégâts
+-- infinis un ennemi passe (plus une question de dégâts, mais de tirs et de temps) ; k <= 1 : il la réussit déjà.
+-- Plus : ce qui fuit à la vague qui bloque (un essai avec ses tours, joué jusqu'au bout), après combien de
+-- secondes le premier ennemi passe, et les PV de l'ennemi le plus résistant et de toute la vague en flèches.
+local WAVE_TYPES_ORDER = { "Mixed", "Horde", "Rush", "Giants", "Boss" }
+function Run:archerDiagnosis()
+	local archer = self.towers[Run.ARCHER_SPOTS.archer]
+	if not archer then
+		return nil
+	end
+	local function towersWith(mult: number)
+		local list = {}
+		for spot = 1, SPOT_COUNT do
+			local tower = self.towers[spot]
+			if tower then
+				local compiled = Engine.compileTower(spot, tower.type, tower.level, self.dupes[tower.type] or 0, tower.runes)
+				if tower.type == "MachineGun" then
+					compiled.damage *= mult
+				end
+				table.insert(list, compiled)
+			end
+		end
+		return list
+	end
+	local function passes(comp, mult: number): boolean
+		return Engine.runWave(comp, towersWith(mult), "strict").success
+	end
+	-- Plus petit multiplicateur (à 3 % près) qui fait réussir la vague (comme requiredMultiplier dans main.luau)
+	local function needed(comp): number
+		local lo, hi
+		if passes(comp, 1) then
+			lo, hi = 0.5, 1
+			while passes(comp, lo) do
+				hi = lo
+				lo /= 2
+				if lo < 1e-9 then
+					return lo
+				end
+			end
+		else
+			lo, hi = 1, 2
+			while not passes(comp, hi) do
+				lo = hi
+				hi *= 2
+				if hi > 1e30 then
+					return math.huge
+				end
+			end
+		end
+		while hi / lo > 1.03 do
+			local mid = math.sqrt(lo * hi)
+			if passes(comp, mid) then
+				hi = mid
+			else
+				lo = mid
+			end
+		end
+		return hi
+	end
+	local blocked = self.frontier + 1
+	-- Revenu à son record (après une renaissance, il remonte : son revenu du moment est plus petit)
+	local climbing = self.bestWave < self.frontier
+	local income = if climbing then (self.archerRecordIncome or self.income) else self.income
+	local waves = {}
+	for _, waveType in WAVE_TYPES_ORDER do
+		local k = needed(Engine.composition(blocked, waveType))
+		local levels = if k == math.huge then math.huge elseif k <= 1 then 0 else math.ceil(math.log(k) / math.log(IdleConfig.UPGRADE_DAMAGE) - 1e-9)
+		local cost = if levels == math.huge then math.huge else 0
+		for i = 0, (if levels == math.huge then 0 else levels) - 1 do
+			cost += IdleTowers.upgradeCost(archer.type, archer.level + i)
+		end
+		table.insert(waves, {
+			type = waveType,
+			actual = waveType == IdleConfig.waveType(blocked), -- le vrai type de la vague qui bloque
+			k = k,
+			levels = levels,
+			cost = cost,
+			hours = if cost == 0 then 0 elseif income > 0 then cost / income / 3600 else math.huge,
+		})
+	end
+	-- Ce qui fuit à la vague qui bloque
+	local comp = Engine.composition(blocked)
+	local result = Engine.runWave(comp, towersWith(1))
+	local stats = IdleTowers.effectiveStats(archer.type, archer.level, self.dupes[archer.type] or 0, archer.runes)
+	local leaks, toughest = {}, 0
+	for g, group in comp.groups do
+		table.insert(leaks, { name = group.name, count = group.count, leaked = result.leak[g], hp = group.hp })
+		toughest = math.max(toughest, group.hp)
+	end
+	local _, frostLevel = self:archerLevels()
+	return {
+		hour = self.t / 3600,
+		blocked = blocked,
+		blockedType = IdleConfig.waveType(blocked),
+		climbing = climbing, -- en train de remonter après une renaissance
+		currentWave = self.wave,
+		rebirths = self.rebirths,
+		coinBonus = self.coinBonus,
+		success = result.success,
+		leakSeconds = result.seconds,
+		leaks = leaks,
+		toughestArrows = toughest / stats.damage,
+		waveArrows = comp.totalHp / stats.damage, -- flèches pour toute la vague (sans fragilité ni feu)
+		waves = waves,
+		archerLevel = archer.level,
+		damage = stats.damage,
+		attacksPerSecond = 1 / stats.cooldown,
+		dps = IdleTowers.dpsOf(stats),
+		fireDps = IdleTowers.fireDps(stats),
+		dupes = self.dupes[archer.type] or 0,
+		runes = IdleConfig.runeList(archer.runes),
+		frostLevel = frostLevel,
+		fragility = if frostLevel > 0 then IdleTowers.fragilityAt(IdleTowers.Defs.Frost, frostLevel) else 0,
+		income = income,
+	}
+end
+
 -- Entracte : machines, bonus, renaissance, achats. Renvoie true si le joueur est reparti de la vague 1.
 function Run:intermission(): boolean
+	-- Joueur « tout sur l'Archer » : ses propres règles (Run:archerIntermission)
+	if self.scenario.archer then
+		return self:archerIntermission()
+	end
 	self:useForge()
 	self:applyBonuses()
 	local rebirthed = false
