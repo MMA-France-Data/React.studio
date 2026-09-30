@@ -9,8 +9,8 @@ local UI = require(script.Parent.UI)
 local TowerCard = {}
 TowerCard.__index = TowerCard
 
-TowerCard.WIDTH = 480
-TowerCard.HEIGHT = 212 -- jusqu'à 6 lignes de stats (dont la vitesse d'attaque)
+TowerCard.WIDTH = 520
+TowerCard.HEIGHT = 264
 
 local GREEN = "#5AE08C"
 local RED = "#F06464"
@@ -30,7 +30,6 @@ local function statRows(def, stats)
 		{ "Cadence", stats.cooldown, "s", true },
 		-- Vitesse d'attaque : attaques par seconde (1 / cadence), arrondie à 0,01
 		{ "Vitesse", math.floor(1 / stats.cooldown * 100 + 0.5) / 100, " atq/s", false },
-		{ "DPS", math.floor(stats.damage / stats.cooldown * 10 + 0.5) / 10, "", false },
 	}
 	if def.kind == "Splash" then
 		table.insert(rows, { "Zone", stats.splash, "", false })
@@ -68,7 +67,7 @@ function TowerCard.new(parent: Instance)
 	self.renderKey = nil
 
 	self.frame = UI.new("Frame", {
-		Size = UDim2.fromOffset(TowerCard.WIDTH, TowerCard.HEIGHT),
+		Size = UDim2.new(1, 0, 0, TowerCard.HEIGHT),
 		BackgroundColor3 = UI.Colors.Panel,
 		BackgroundTransparency = 0.05,
 		Parent = parent,
@@ -76,6 +75,7 @@ function TowerCard.new(parent: Instance)
 	self.stroke = UI.stroke(Color3.new(1, 1, 1), 2)
 	self.stroke.Transparency = 0.2
 	self.stroke.Parent = self.frame
+	UI.chrome(self.frame)
 
 	self.title = UI.label({
 		Size = UDim2.new(0.62, 0, 0, 26),
@@ -102,10 +102,14 @@ function TowerCard.new(parent: Instance)
 		Parent = self.frame,
 	})
 
-	local row = UI.new("Frame", {
+	local row = UI.new("ScrollingFrame", {
+		Name = "Levels",
 		Position = UDim2.new(0, 0, 0, 48),
 		Size = UDim2.new(1, 0, 1, -48),
 		BackgroundTransparency = 1,
+		BorderSizePixel = 0, ScrollBarThickness = 3, ScrollBarImageColor3 = UI.Colors.Gold,
+		CanvasSize = UDim2.new(), AutomaticCanvasSize = Enum.AutomaticSize.X,
+		ScrollingDirection = Enum.ScrollingDirection.X,
 		Parent = self.frame,
 	}, {
 		UI.new("UIListLayout", {
@@ -118,7 +122,7 @@ function TowerCard.new(parent: Instance)
 	self.cards = {}
 	for index = 1, 3 do
 		local card = UI.new("Frame", {
-			Size = UDim2.new(1 / 3, -6, 1, 0),
+			Size = UDim2.new(0, 160, 1, -5),
 			LayoutOrder = index,
 			BackgroundColor3 = UI.Colors.PanelLight,
 			Parent = row,
@@ -126,7 +130,7 @@ function TowerCard.new(parent: Instance)
 		local stroke = UI.stroke(Color3.new(1, 1, 1), 2)
 		stroke.Parent = card
 		local header = UI.label({
-			Size = UDim2.new(1, 0, 0, 18),
+			Size = UDim2.new(0.4, 0, 0, 18),
 			Font = Enum.Font.GothamBlack,
 			TextXAlignment = Enum.TextXAlignment.Left,
 			MaxTextSize = 15,
@@ -141,13 +145,19 @@ function TowerCard.new(parent: Instance)
 			MaxTextSize = 12,
 			Parent = card,
 		})
+		UI.label({ Position = UDim2.fromOffset(0, 25), Size = UDim2.new(1, 0, 0, 14),
+			Text = "DPS PAR CIBLE", TextColor3 = UI.Colors.Muted, TextXAlignment = Enum.TextXAlignment.Left,
+			MaxTextSize = 11, Parent = card })
+		local dps = UI.label({ Position = UDim2.fromOffset(0, 41), Size = UDim2.new(1, 0, 0, 27),
+			Font = Enum.Font.GothamBlack, TextXAlignment = Enum.TextXAlignment.Left,
+			TextColor3 = UI.Colors.Gold, MaxTextSize = 25, Parent = card })
 		local stats = UI.label({
-			Position = UDim2.new(0, 0, 0, 21),
-			Size = UDim2.new(1, 0, 1, -41),
+			Position = UDim2.new(0, 0, 0, 76),
+			Size = UDim2.new(1, 0, 1, -98),
 			TextXAlignment = Enum.TextXAlignment.Left,
 			TextYAlignment = Enum.TextYAlignment.Top,
 			RichText = true,
-			MaxTextSize = 13,
+			MaxTextSize = 14,
 			Parent = card,
 		})
 		local cost = UI.label({
@@ -159,7 +169,7 @@ function TowerCard.new(parent: Instance)
 			MaxTextSize = 14,
 			Parent = card,
 		})
-		self.cards[index] = { frame = card, stroke = stroke, header = header, status = status, stats = stats, cost = cost }
+		self.cards[index] = { frame = card, stroke = stroke, header = header, status = status, stats = stats, cost = cost, dps = dps }
 	end
 
 	return self
@@ -188,7 +198,7 @@ function TowerCard:render(towerType: string, currentLevel: number, gold: number)
 	self.description.Text = def.description
 	if currentLevel == 0 then
 		self.levelLabel.Text = `Pose : {def.levels[1].cost} or`
-		self.levelLabel.TextColor3 = if affordable then UI.Colors.Gold else UI.Colors.Error
+		self.levelLabel.TextColor3 = if affordable then UI.Colors.Gold else UI.Colors.DangerText
 	else
 		self.levelLabel.Text = `{pips(currentLevel, maxLevel)}  Niv. {currentLevel}/{maxLevel}`
 		self.levelLabel.TextColor3 = if currentLevel >= maxLevel then UI.Colors.Gold else UI.Colors.Text
@@ -198,13 +208,14 @@ function TowerCard:render(towerType: string, currentLevel: number, gold: number)
 		local stats = def.levels[index]
 		local isNext = index == currentLevel + 1
 		card.header.Text = `NIV. {index}`
+		card.dps.Text = UI.decimal(math.floor(stats.damage / stats.cooldown * 10 + 0.5) / 10)
 		card.stats.Text = statsText(def, stats, if isNext and currentLevel > 0 then def.levels[currentLevel] else nil)
 
 		if index < currentLevel then
 			card.frame.BackgroundColor3 = UI.Colors.Panel
 			card.stroke.Transparency = 1
 			card.status.Text = "✓ ACQUIS"
-			card.status.TextColor3 = UI.Colors.Success
+			card.status.TextColor3 = UI.Colors.PositiveText
 			card.stats.TextTransparency = 0.45
 			card.cost.Text = ""
 		elseif index == currentLevel then
@@ -220,10 +231,10 @@ function TowerCard:render(towerType: string, currentLevel: number, gold: number)
 			card.stroke.Color = if affordable then UI.Colors.Success else UI.Colors.Error
 			card.stroke.Transparency = 0.2
 			card.status.Text = if currentLevel == 0 then "POSE" else "PROCHAIN"
-			card.status.TextColor3 = if affordable then UI.Colors.Success else UI.Colors.Error
+			card.status.TextColor3 = if affordable then UI.Colors.PositiveText else UI.Colors.DangerText
 			card.stats.TextTransparency = 0
 			card.cost.Text = `{stats.cost} or`
-			card.cost.TextColor3 = if affordable then UI.Colors.Gold else UI.Colors.Error
+			card.cost.TextColor3 = if affordable then UI.Colors.Gold else UI.Colors.DangerText
 		else
 			card.frame.BackgroundColor3 = UI.Colors.Panel
 			card.stroke.Transparency = 1

@@ -42,11 +42,12 @@ local function playerPanel(parent: Instance, anchorRight: boolean, accent: Color
 	local panel = UI.new("Frame", {
 		AnchorPoint = Vector2.new(if anchorRight then 1 else 0, 0),
 		Position = if anchorRight then UDim2.new(1, -16, 0, 16) else UDim2.new(0, 16, 0, 16),
-		Size = UDim2.new(0, 250, 0, 96),
+		Size = UDim2.new(0, 250, 0, 116),
 		BackgroundColor3 = UI.Colors.Panel,
 		BackgroundTransparency = 0.1,
 		Parent = parent,
 	}, { UI.corner(12), UI.padding(10), UI.stroke(accent, 2) })
+	UI.chrome(panel, accent)
 
 	local alignment = if anchorRight then Enum.TextXAlignment.Right else Enum.TextXAlignment.Left
 	local name = UI.label({
@@ -71,13 +72,18 @@ local function playerPanel(parent: Instance, anchorRight: boolean, accent: Color
 	}, UI.Colors.Success)
 	local info = UI.label({
 		Position = UDim2.new(0, 0, 0, 58),
-		Size = UDim2.new(1, 0, 0, 18),
+		Size = UDim2.new(0.46, 0, 0, 20),
 		TextXAlignment = alignment,
 		TextColor3 = UI.Colors.Gold,
 		MaxTextSize = 16,
 		Parent = panel,
 	})
-	return { name = name, rank = rank, setHealth = setHealth, info = info }
+	local gold = UI.label({ Position = UDim2.new(0.46, 0, 0, 58), Size = UDim2.new(0.54, 0, 0, 20),
+		TextXAlignment = Enum.TextXAlignment.Right, TextColor3 = UI.Colors.Gold,
+		Font = Enum.Font.GothamBlack, MaxTextSize = 17, Parent = panel })
+	local income = UI.label({ Position = UDim2.fromOffset(0, 80), Size = UDim2.new(1, 0, 0, 12),
+		TextXAlignment = alignment, TextColor3 = UI.Colors.Muted, MaxTextSize = 11, Parent = panel })
+	return { frame = panel, name = name, rank = rank, setHealth = setHealth, info = info, gold = gold, income = income }
 end
 
 function MatchUI.start(TowerPlacement)
@@ -113,13 +119,28 @@ function MatchUI.start(TowerPlacement)
 		MaxTextSize = 18,
 		Parent = gui,
 	})
+	local function fitHUD()
+		local screen = UI.screenSize(gui)
+		if screen.X <= 0 then return end
+		local compact = screen.X < 900
+		local width = math.min(250, (screen.X - 40) / 2)
+		me.frame.Size, opponent.frame.Size = UDim2.fromOffset(width, 116), UDim2.fromOffset(width, 116)
+		waveLabel.Position = UDim2.new(0.5, 0, 0, if compact then 138 else 14)
+		timerLabel.Position = UDim2.new(0.5, 0, 0, if compact then 174 else 50)
+		waveLabel.Size, timerLabel.Size = UDim2.fromOffset(math.min(320, screen.X - 32), 34), UDim2.fromOffset(math.min(320, screen.X - 32), 20)
+	end
+	fitHUD()
+	gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(fitHUD)
 
 	-- Boutique de tours (en bas au centre)
-	local towerBar = UI.new("Frame", {
+	local towerBar = UI.new("ScrollingFrame", {
 		AnchorPoint = Vector2.new(0.5, 1),
 		Position = UDim2.new(0.5, 0, 1, -12),
-		Size = UDim2.new(0, 4 * 130 + 3 * 8, 0, 70),
+		Size = UDim2.new(1, -32, 0, 70),
 		BackgroundTransparency = 1,
+		BorderSizePixel = 0, ScrollBarThickness = 3, ScrollBarImageColor3 = UI.Colors.Gold,
+		CanvasSize = UDim2.new(), AutomaticCanvasSize = Enum.AutomaticSize.X,
+		ScrollingDirection = Enum.ScrollingDirection.X,
 		Parent = gui,
 	}, {
 		UI.new("UIListLayout", {
@@ -128,6 +149,11 @@ function MatchUI.start(TowerPlacement)
 			SortOrder = Enum.SortOrder.LayoutOrder,
 		}),
 	})
+	local function fitTowerBar()
+		towerBar.Size = UDim2.fromOffset(math.min(#Towers.ORDER * 138 - 8, UI.screenSize(gui).X - 32), 70)
+	end
+	fitTowerBar()
+	gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(fitTowerBar)
 	local towerButtons = {}
 	local hoveredType: string? = nil
 	for index, towerType in Towers.ORDER do
@@ -172,6 +198,7 @@ function MatchUI.start(TowerPlacement)
 	local function fitTowerPanel()
 		local screen = UI.screenSize(gui)
 		if screen.X > 0 and screen.Y > 0 then
+			towerPanel.Size = UDim2.fromOffset(math.min(TowerCard.WIDTH, screen.X - 32), TowerCard.HEIGHT + 48)
 			local size = towerPanel.Size
 			towerPanelScale.Scale = MatchUI.cardScale(screen, Vector2.new(size.X.Offset, size.Y.Offset))
 		end
@@ -282,7 +309,9 @@ function MatchUI.start(TowerPlacement)
 		panel.name.Text = lane(index, "Name") or "..."
 		panel.rank.Text = if lane(index, "Mmr") then `{lane(index, "Rank")} • {lane(index, "Mmr")} MMR` else ""
 		panel.setHealth(health / maxHealth)
-		panel.info.Text = `♥ {health}/{maxHealth}    Or {lane(index, "Gold") or 0}  (+{lane(index, "Income") or 0}/vague)`
+		panel.info.Text = `♥ {health}/{maxHealth}`
+		panel.gold.Text = `{lane(index, "Gold") or 0} or`
+		panel.income.Text = `+{lane(index, "Income") or 0} or à chaque vague`
 	end
 
 	local function update()

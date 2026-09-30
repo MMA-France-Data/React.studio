@@ -6,16 +6,18 @@ local TweenService = game:GetService("TweenService")
 local UI = {}
 
 UI.Colors = {
-	Background = Color3.fromRGB(27, 21, 16),
-	Panel = Color3.fromRGB(45, 34, 25),
-	PanelLight = Color3.fromRGB(69, 50, 35),
-	Text = Color3.fromRGB(244, 234, 215),
-	Muted = Color3.fromRGB(184, 166, 142),
-	Accent = Color3.fromRGB(68, 103, 78),
-	Success = Color3.fromRGB(76, 126, 83),
-	Warning = Color3.fromRGB(190, 130, 45),
-	Error = Color3.fromRGB(151, 48, 46),
-	Gold = Color3.fromRGB(216, 170, 76),
+	Background = Color3.fromRGB(15, 20, 28),
+	Panel = Color3.fromRGB(25, 32, 43),
+	PanelLight = Color3.fromRGB(39, 49, 64),
+	Text = Color3.fromRGB(245, 241, 230),
+	Muted = Color3.fromRGB(179, 190, 205),
+	Accent = Color3.fromRGB(43, 80, 104),
+	Success = Color3.fromRGB(38, 109, 82),
+	Warning = Color3.fromRGB(136, 90, 30),
+	Error = Color3.fromRGB(147, 45, 60),
+	Gold = Color3.fromRGB(236, 192, 105),
+	DangerText = Color3.fromRGB(255, 143, 151),
+	PositiveText = Color3.fromRGB(128, 226, 175),
 }
 
 -- Colonne de boutons à gauche de la map principale (sous le panneau de rang de 130 px).
@@ -26,6 +28,8 @@ UI.LEFT_COLUMN_STEP = 54
 UI.LEFT_COLUMN_X = 16
 UI.LEFT_BUTTON_SIZE = Vector2.new(180, 46)
 UI.LEFT_COLUMN_COUNT = 5
+local plotPanel: GuiObject? = nil
+local navigationFits = {}
 
 -- Fenêtres sur petits écrans (téléphones) : chaque fenêtre garde sa taille d'ordinateur (design) et un UIScale la
 -- réduit juste assez pour qu'elle tienne entière à l'écran, à WINDOW_MARGIN px des bords. L'écran, c'est la zone
@@ -38,6 +42,7 @@ UI.MIN_WINDOW_SCALE = 0.4
 -- UI.new("Frame", { Size = ..., Parent = ... }, { enfants })
 function UI.new(className: string, props: { [string]: any }?, children: { Instance }?)
 	local instance = Instance.new(className)
+	if instance:IsA("GuiObject") then instance.BorderSizePixel = 0 end
 	local parent = nil
 	for key, value in (props or {}) :: { [string]: any } do
 		if key == "Parent" then
@@ -66,7 +71,7 @@ end
 
 function UI.stroke(color: Color3?, thickness: number?)
 	return UI.new("UIStroke", {
-		Color = color or Color3.new(1, 1, 1),
+		Color = color or UI.Colors.Gold,
 		Thickness = thickness or 1,
 		Transparency = 0.7,
 		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
@@ -159,12 +164,67 @@ function UI.placeInLeftColumn(button: GuiObject, index: number)
 			local position, value = UI.leftColumnSlot(screen, index)
 			button.Position = UDim2.fromOffset(position.X, position.Y)
 			scale.Scale = value
+			local plotGui = plotPanel and plotPanel:FindFirstAncestorWhichIsA("ScreenGui")
+			-- Sur téléphone portrait, la fiche est un panneau au premier plan : fermer la fiche rend la navigation.
+			button.Visible = not (screen.X < 700 and screen.Y > screen.X and plotPanel
+				and plotPanel.Visible and plotGui and plotGui.Enabled)
 		end
 	end
 	place()
+	table.insert(navigationFits, { button = button, fit = place })
 	if gui then
 		gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(place)
 	end
+end
+
+function UI.registerPlotPanel(panel: GuiObject)
+	plotPanel = panel
+	local function refreshNavigation()
+		for _, entry in navigationFits do if entry.button.Parent then entry.fit() end end
+	end
+	panel:GetPropertyChangedSignal("Visible"):Connect(refreshNavigation)
+	local gui = panel:FindFirstAncestorWhichIsA("ScreenGui")
+	if gui then gui:GetPropertyChangedSignal("Enabled"):Connect(refreshNavigation) end
+	refreshNavigation()
+end
+
+-- Taille réelle des panneaux : le texte ne devient pas minuscule pour faire tenir huit cartes.
+function UI.plotPanelLayout(screen: Vector2): (Vector2, number)
+	local portrait = screen.X < 700 and screen.Y > screen.X
+	local reserved = if portrait then 0 elseif screen.X >= 1100 then 500 else 280
+	local width = math.max(160, math.min(760, screen.X - reserved - 32))
+	local height = math.max(160, math.min(460, screen.Y - 96, math.max(280, screen.Y * 0.72)))
+	return Vector2.new(width, height), if width >= 600 then 4 else 2
+end
+
+function UI.modalSize(screen: Vector2, design: Vector2): Vector2
+	return Vector2.new(math.min(design.X, math.max(160, screen.X - 16)), math.min(design.Y, math.max(160, screen.Y - 16)))
+end
+
+-- Bordure et bande dorée discrètes. Pas d'image, de lumière ou d'animation permanente.
+function UI.chrome(frame: GuiObject, accent: Color3?)
+	local edge = frame:FindFirstChildOfClass("UIStroke")
+	if not edge then edge = UI.stroke(accent or UI.Colors.Gold, 1); edge.Parent = frame end
+	edge.Color = accent or UI.Colors.Gold
+	edge.Transparency = 0.58
+	UI.new("Frame", { Name = "HeaderRule", Position = UDim2.fromOffset(0, 0), Size = UDim2.new(1, 0, 0, 2),
+		BackgroundColor3 = accent or UI.Colors.Gold, BackgroundTransparency = 0.3, BorderSizePixel = 0, Parent = frame })
+end
+
+function UI.metric(parent: Instance, title: string, index: number, total: number)
+	local frame = UI.new("Frame", {
+		Name = "Metric" .. index, Position = UDim2.new((index - 1) / total, 3, 0, 0),
+		Size = UDim2.new(1 / total, -6, 0, 76), BackgroundColor3 = UI.Colors.PanelLight,
+		BorderSizePixel = 0, Parent = parent,
+	}, { UI.corner(8), UI.padding(8) })
+	local caption = UI.label({ Name = "Caption", Size = UDim2.new(1, 0, 0, 14), Text = title,
+		TextXAlignment = Enum.TextXAlignment.Left, TextColor3 = UI.Colors.Muted, MaxTextSize = 12, Parent = frame })
+	local value = UI.label({ Name = "Value", Position = UDim2.fromOffset(0, 17), Size = UDim2.new(1, 0, 0, 24),
+		Font = Enum.Font.GothamBlack, TextXAlignment = Enum.TextXAlignment.Left,
+		TextColor3 = UI.Colors.Gold, MaxTextSize = 23, Parent = frame })
+	local detail = UI.label({ Name = "Detail", Position = UDim2.fromOffset(0, 44), Size = UDim2.new(1, 0, 0, 14),
+		TextXAlignment = Enum.TextXAlignment.Left, TextColor3 = UI.Colors.Muted, MaxTextSize = 12, Parent = frame })
+	return { frame = frame, caption = caption, value = value, detail = detail }
 end
 
 function UI.label(props: { [string]: any })
@@ -186,9 +246,10 @@ function UI.button(props: { [string]: any })
 	local defaults = {
 		BackgroundColor3 = UI.Colors.Accent,
 		AutoButtonColor = true,
-		Font = Enum.Font.Antique,
+		Font = Enum.Font.GothamBold,
 		TextColor3 = Color3.new(1, 1, 1),
 		TextScaled = true,
+		TextWrapped = true,
 	}
 	local maxTextSize = props.MaxTextSize or 24
 	for key, value in props do
@@ -197,13 +258,13 @@ function UI.button(props: { [string]: any })
 		end
 	end
 	return UI.new("TextButton", defaults, {
-		UI.corner(6),
+		UI.corner(8),
 		UI.padding(6),
 		UI.stroke(UI.Colors.Gold, 1),
 		UI.new("UIGradient", {
 			Color = ColorSequence.new({
 				ColorSequenceKeypoint.new(0, Color3.new(1, 1, 1)),
-				ColorSequenceKeypoint.new(1, Color3.fromRGB(178, 155, 126)),
+				ColorSequenceKeypoint.new(1, Color3.fromRGB(210, 217, 227)),
 			}),
 			Rotation = 90,
 		}),

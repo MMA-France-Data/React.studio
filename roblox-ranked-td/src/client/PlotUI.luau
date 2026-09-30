@@ -55,9 +55,9 @@ local function dupesOf(player: Player, towerType: string): number
 	return 0
 end
 
-local CARD_WIDTH = 100
-local CARD_HEIGHT = 148 -- 6 petites lignes de stats (dégâts, vitesse, zone, portée, effets)
-local PANEL_HEIGHT = 300
+local CARD_WIDTH = 172
+local CARD_HEIGHT = 216
+local PANEL_HEIGHT = 460
 -- Un bouton de confirmation ignore les clics juste après son apparition : un double clic ne valide jamais rien.
 local CONFIRM_ARM_DELAY = 0.4
 -- Après une pose, pas de nouvelle pose sur cet emplacement tant que la tour n'est pas arrivée (sinon un
@@ -160,19 +160,10 @@ end
 -- effets. Rayon continu : dégâts par seconde au début → au maximum, « continu » à la place de la vitesse.
 local function cardStatsText(stats): string
 	local lines = {}
-	if stats.kind == "Beam" then
-		table.insert(lines, `{amount(IdleTowers.dpsOf(stats))}→{amount(IdleTowers.beamMaxDps(stats))} dégâts/s`)
-	else
-		table.insert(lines, `{amount(stats.damage)} dégâts/coup`)
-	end
-	table.insert(lines, UI.towerSpeed(stats))
+	table.insert(lines, `{UI.towerSpeed(stats)} · portée {UI.decimal(stats.range)}`)
 	table.insert(lines, reachShort(stats))
-	if stats.kind ~= "Aura" then -- aura : sa portée est déjà sur la ligne « Aura rayon X »
-		table.insert(lines, `Portée {UI.decimal(stats.range)}`)
-	end
-	for _, effect in effectsShort(stats) do
-		table.insert(lines, effect)
-	end
+	local effects = effectsShort(stats)
+	if #effects > 0 then table.insert(lines, table.concat(effects, " · ")) end
 	return table.concat(lines, "\n")
 end
 
@@ -197,7 +188,7 @@ function PlotUI.start()
 		plotAction:FireServer(action, spotIndex, ...)
 	end
 	local plotsFolder = workspace:WaitForChild("Hub"):WaitForChild("Plots")
-	local gui = UI.screen("Plot")
+	local gui = UI.screen("Plot", 5)
 
 	local function myPlotIndex(): number?
 		return player:GetAttribute("Plot")
@@ -234,15 +225,21 @@ function PlotUI.start()
 	------------------------------------------------------------------
 	-- HUD : pièces (la vague est sur le tableau du fief, voir en haut du fichier)
 	------------------------------------------------------------------
+	local wallet = UI.new("Frame", {
+		Name = "Wallet", AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0, 8),
+		Size = UDim2.fromOffset(240, 64), BackgroundColor3 = UI.Colors.Background, BackgroundTransparency = 0.08,
+		BorderSizePixel = 0, Parent = gui,
+	}, { UI.corner(12), UI.stroke(UI.Colors.Gold) })
+	UI.label({ Size = UDim2.new(1, 0, 0, 18), Position = UDim2.fromOffset(0, 5), Text = "TRÉSOR DU FIEF",
+		TextColor3 = UI.Colors.Muted, MaxTextSize = 11, Parent = wallet })
 	local coinsLabel = UI.label({
 		AnchorPoint = Vector2.new(0.5, 0),
-		Position = UDim2.new(0.5, 0, 0, 8),
-		Size = UDim2.new(0, 360, 0, 46),
+		Position = UDim2.new(0.5, 0, 0, 24),
+		Size = UDim2.new(1, -20, 0, 34),
 		Font = Enum.Font.GothamBlack,
 		TextColor3 = UI.Colors.Gold,
-		TextStrokeTransparency = 0.3,
-		MaxTextSize = 42,
-		Parent = gui,
+		MaxTextSize = 30,
+		Parent = wallet,
 	})
 
 	------------------------------------------------------------------
@@ -254,24 +251,32 @@ function PlotUI.start()
 		Name = "TowerPanel", -- (LobbyUI met le statut de la recherche classée juste au-dessus quand il est ouvert)
 		AnchorPoint = Vector2.new(1, 1),
 		Position = UDim2.new(1, -16, 1, -16),
-		Size = UDim2.fromOffset(count * (CARD_WIDTH + 8) + 12, PANEL_HEIGHT),
+		Size = UDim2.fromOffset(760, PANEL_HEIGHT),
 		BackgroundColor3 = UI.Colors.Panel,
 		BackgroundTransparency = 0.05,
 		Visible = false,
 		Parent = gui,
 	}, { UI.corner(14), UI.padding(10), UI.stroke() })
+	UI.chrome(panel)
+	UI.registerPlotPanel(panel)
 	-- Réduit le panneau quand il n'a pas la place à côté du chat (ordinateur) ou de la colonne de boutons de
 	-- gauche (petits écrans, téléphones : sinon Autel, Forge... cacheraient ses premières cartes, dont l'Archer
 	-- que le tuto fait poser).
-	local CHAT_WIDTH = 500 -- largeur laissée au chat sur ordinateur
 	local panelScale = UI.new("UIScale", { Parent = panel })
+	local cardGrid: UIGridLayout? = nil
 	local function fitPanel()
-		local viewport = workspace.CurrentCamera.ViewportSize
-		local left = if viewport.X >= 1000 then CHAT_WIDTH + 16 else UI.leftColumnRight(UI.screenSize(gui)) + 8
-		panelScale.Scale = math.min(1, (viewport.X - left - 16) / panel.Size.X.Offset, (viewport.Y * 0.55) / PANEL_HEIGHT)
+		local screen = UI.screenSize(gui)
+		if screen.X <= 0 or screen.Y <= 0 then return end
+		local size, columns = UI.plotPanelLayout(screen)
+		panel.Size = UDim2.fromOffset(size.X, size.Y)
+		panelScale.Scale = 1
+		if cardGrid then cardGrid.CellSize = UDim2.new(1 / columns, -8 * (columns - 1) / columns - 3, 0, CARD_HEIGHT) end
+		wallet.Size = UDim2.fromOffset(if screen.X < 700 then math.min(190, (screen.X - 48) / 2) else 240, 64)
+		wallet.AnchorPoint = Vector2.new(if screen.X < 700 then 1 else 0.5, 0)
+		wallet.Position = if screen.X < 700 then UDim2.new(1, -12, 0, 8) else UDim2.new(0.5, 0, 0, 8)
 	end
 	fitPanel()
-	workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(fitPanel)
+	gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(fitPanel)
 	local panelTitle = UI.label({
 		Size = UDim2.new(1, -40, 0, 26),
 		Font = Enum.Font.GothamBlack,
@@ -298,18 +303,18 @@ function PlotUI.start()
 	})
 
 	-- Cartes des tours : sur un emplacement libre (pose directe) ou après « Remplacer… ».
-	local cardRow = UI.new("Frame", {
+	local cardRow = UI.new("ScrollingFrame", {
 		Position = UDim2.new(0, 0, 0, 52),
-		Size = UDim2.new(1, 0, 0, CARD_HEIGHT),
+		Size = UDim2.new(1, 0, 1, -114),
 		BackgroundTransparency = 1,
+		BorderSizePixel = 0, ScrollBarThickness = 4, ScrollBarImageColor3 = UI.Colors.Gold,
+		CanvasSize = UDim2.new(), AutomaticCanvasSize = Enum.AutomaticSize.Y,
+		ScrollingDirection = Enum.ScrollingDirection.Y,
 		Parent = panel,
-	}, {
-		UI.new("UIListLayout", {
-			FillDirection = Enum.FillDirection.Horizontal,
-			Padding = UDim.new(0, 8),
-			SortOrder = Enum.SortOrder.LayoutOrder,
-		}),
 	})
+	cardGrid = UI.new("UIGridLayout", { CellSize = UDim2.fromOffset(CARD_WIDTH, CARD_HEIGHT),
+		CellPadding = UDim2.fromOffset(8, 8), SortOrder = Enum.SortOrder.LayoutOrder, Parent = cardRow })
+	fitPanel()
 	local cards = {}
 	-- Carte survolée par la souris : le sous-titre du panneau dit contre quoi cette tour est idéale.
 	local hoveredType: string? = nil
@@ -319,17 +324,18 @@ function PlotUI.start()
 			Name = "Card_" .. towerType, -- (le tuto entoure d'or celle de l'Archer à l'étape « Pose une tour »)
 			Size = UDim2.fromOffset(CARD_WIDTH, CARD_HEIGHT),
 			LayoutOrder = index,
-			BackgroundColor3 = def.color:Lerp(UI.Colors.Panel, 0.55),
+			BackgroundColor3 = def.color:Lerp(UI.Colors.Panel, 0.88),
 			AutoButtonColor = true,
 			Text = "",
 			Parent = cardRow,
 		}, { UI.corner(10), UI.padding(6) })
 		local rarity = IdleConfig.RARITIES[def.rarity]
 		local stroke = UI.stroke(rarity.color, 2)
-		stroke.Transparency = 0
+		stroke.Transparency = 0.45
 		stroke.Parent = card
 		UI.label({
-			Size = UDim2.new(1, 0, 0, 20),
+			Size = UDim2.new(1, 0, 0, 32),
+			TextWrapped = true,
 			Font = Enum.Font.GothamBlack,
 			Text = def.displayName,
 			TextColor3 = rarity.color:Lerp(Color3.new(1, 1, 1), 0.4),
@@ -337,8 +343,9 @@ function PlotUI.start()
 			Parent = card,
 		})
 		UI.label({
-			Position = UDim2.new(0, 0, 0, 22),
-			Size = UDim2.new(1, 0, 0, 14),
+			Position = UDim2.new(0, 0, 0, 34),
+			Size = UDim2.new(1, 0, 0, 20),
+			TextWrapped = true,
 			TextColor3 = UI.Colors.Muted,
 			Text = kindLabel(def),
 			MaxTextSize = 12,
@@ -346,10 +353,16 @@ function PlotUI.start()
 		})
 		-- Dégâts par coup, vitesse d'attaque, zone, portée et effets au niveau 1 (doublons compris) : mis à
 		-- jour dans refreshCards.
+		local damage = UI.label({ Name = "DamageValue", Position = UDim2.fromOffset(0, 58),
+			Size = UDim2.new(1, 0, 0, 28), Font = Enum.Font.GothamBlack, TextColor3 = UI.Colors.Gold,
+			MaxTextSize = 25, Parent = card })
+		local damageCaption = UI.label({ Position = UDim2.fromOffset(0, 86), Size = UDim2.new(1, 0, 0, 14),
+			TextColor3 = UI.Colors.Muted, MaxTextSize = 11, Parent = card })
 		local stats = UI.label({
-			Position = UDim2.new(0, 0, 0, 38),
-			Size = UDim2.new(1, 0, 1, -77),
-			MaxTextSize = 13,
+			Position = UDim2.new(0, 0, 0, 102),
+			Size = UDim2.new(1, 0, 0, 54),
+			TextWrapped = true, TextColor3 = UI.Colors.Text,
+			MaxTextSize = 14,
 			Parent = card,
 		})
 		-- Limite de tours identiques (IdleTowers.MAX_COPIES) : « 2/5 posées », en rouge à la limite (refreshCards).
@@ -370,7 +383,7 @@ function PlotUI.start()
 			MaxTextSize = 17,
 			Parent = card,
 		})
-		cards[towerType] = { button = card, price = price, stats = stats, copies = copies }
+		cards[towerType] = { button = card, price = price, stats = stats, copies = copies, damage = damage, damageCaption = damageCaption }
 		card.MouseEnter:Connect(function()
 			hoveredType = towerType
 		end)
@@ -382,18 +395,26 @@ function PlotUI.start()
 	end
 
 	-- Fiche de la tour posée (à la place des cartes) : ses stats et le bouton « Remplacer… », à part.
-	local towerInfo = UI.new("Frame", {
+	local towerInfo = UI.new("ScrollingFrame", {
 		Position = UDim2.new(0, 0, 0, 52),
-		Size = UDim2.new(1, 0, 0, CARD_HEIGHT),
+		Size = UDim2.new(1, 0, 1, -150),
 		BackgroundColor3 = UI.Colors.Background,
 		BackgroundTransparency = 0.4,
 		Visible = false,
+		BorderSizePixel = 0, ScrollBarThickness = 4, ScrollBarImageColor3 = UI.Colors.Gold,
+		CanvasSize = UDim2.new(), AutomaticCanvasSize = Enum.AutomaticSize.Y,
+		ScrollingDirection = Enum.ScrollingDirection.Y,
 		Parent = panel,
 	}, { UI.corner(10), UI.padding(8) })
+	local metricRow = UI.new("Frame", { Size = UDim2.new(1, -6, 0, 76), BackgroundTransparency = 1, Parent = towerInfo })
+	local damageMetric = UI.metric(metricRow, "DÉGÂTS / COUP", 1, 3)
+	local speedMetric = UI.metric(metricRow, "CADENCE", 2, 3)
+	local rangeMetric = UI.metric(metricRow, "PORTÉE", 3, 3)
 	local towerStats = UI.label({
-		Size = UDim2.new(1, -250, 1, 0),
+		Position = UDim2.fromOffset(0, 124), Size = UDim2.new(1, -10, 0, 0),
+		AutomaticSize = Enum.AutomaticSize.Y, TextScaled = false, TextSize = 15,
 		TextXAlignment = Enum.TextXAlignment.Left,
-		TextYAlignment = Enum.TextYAlignment.Center,
+		TextYAlignment = Enum.TextYAlignment.Top,
 		TextWrapped = true,
 		RichText = true,
 		MaxTextSize = 16,
@@ -401,29 +422,31 @@ function PlotUI.start()
 	})
 	local replaceButton = UI.button({
 		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, 0, 0, 12),
-		Size = UDim2.fromOffset(230, 46),
-		BackgroundColor3 = UI.Colors.Warning,
+		Position = UDim2.new(1, -6, 0, 84),
+		Size = UDim2.fromOffset(156, 32),
+		BackgroundColor3 = UI.Colors.PanelLight,
 		Text = "Remplacer…",
-		MaxTextSize = 20,
+		MaxTextSize = 15,
 		Parent = towerInfo,
 	})
 	UI.label({
-		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, 0, 0, 64),
-		Size = UDim2.fromOffset(230, 36),
+		Position = UDim2.new(0, 0, 0, 84),
+		Size = UDim2.new(1, -176, 0, 32),
 		TextColor3 = UI.Colors.Muted,
 		TextWrapped = true,
-		Text = "Par une autre tour, qui repart au niveau 1 (avec confirmation)",
+		Text = "Remplacement : retour au niveau 1, avec confirmation",
 		MaxTextSize = 12,
 		Parent = towerInfo,
 	})
 
 	-- Runes de l'inventaire à poser sur la tour sélectionnée (rebuildBonusRow).
-	local bonusRow = UI.new("Frame", {
-		Position = UDim2.new(0, 0, 0, 58 + CARD_HEIGHT),
-		Size = UDim2.new(1, 0, 0, 30),
+	local bonusRow = UI.new("ScrollingFrame", {
+		AnchorPoint = Vector2.new(0, 1), Position = UDim2.new(0, 0, 1, -54),
+		Size = UDim2.new(1, 0, 0, 36),
 		BackgroundTransparency = 1,
+		BorderSizePixel = 0, ScrollBarThickness = 3, ScrollBarImageColor3 = UI.Colors.Gold,
+		CanvasSize = UDim2.new(), AutomaticCanvasSize = Enum.AutomaticSize.X,
+		ScrollingDirection = Enum.ScrollingDirection.X,
 		Visible = false,
 		Parent = panel,
 	}, {
@@ -818,10 +841,12 @@ function PlotUI.start()
 		local counts = placedCounts()
 		for towerType, card in cards do
 			local stats = IdleTowers.effectiveStats(towerType, 1, dupesOf(player, towerType))
+			card.damage.Text = if stats.kind == "Beam" then amount(IdleTowers.dpsOf(stats)) else amount(stats.damage)
+			card.damageCaption.Text = if stats.kind == "Beam" then `dégâts/s · max {amount(IdleTowers.beamMaxDps(stats))}` else "DÉGÂTS PAR COUP"
 			card.stats.Text = cardStatsText(stats)
 			local full = not IdleTowers.canPlaceCopy(counts, towerType, currentType)
 			card.copies.Text = IdleTowers.copiesText(counts[towerType] or 0, towerType)
-			card.copies.TextColor3 = if full and towerType ~= currentType then UI.Colors.Error else UI.Colors.Muted
+			card.copies.TextColor3 = if full and towerType ~= currentType then UI.Colors.DangerText else UI.Colors.Muted
 
 			local cost = IdleTowers.Defs[towerType].placeCost
 			if not isUnlocked(towerType) then
@@ -834,12 +859,12 @@ function PlotUI.start()
 				card.button.BackgroundTransparency = 0.5
 			elseif full then
 				card.price.Text = "COMPLET"
-				card.price.TextColor3 = UI.Colors.Error
+				card.price.TextColor3 = UI.Colors.DangerText
 				card.button.BackgroundTransparency = 0.6
 			else
 				local affordable = coins() + refund >= cost
 				card.price.Text = NumberFormat.short(cost)
-				card.price.TextColor3 = if affordable then UI.Colors.Gold else UI.Colors.Error
+				card.price.TextColor3 = if affordable then UI.Colors.Gold else UI.Colors.DangerText
 				card.button.BackgroundTransparency = if affordable and not locked then 0 else 0.5
 			end
 		end
@@ -1070,6 +1095,15 @@ function PlotUI.start()
 		panelTitle.Text = `{def.displayName} • Niv. {level}`
 		panelSubtitle.Text = if pending then "Remplacement en cours…" else def.description or ""
 		towerInfo.Visible = true
+		local currentStats = IdleTowers.effectiveStats(currentType, level, dupes, tower:GetAttribute("Bonus"))
+		local nextStats = IdleTowers.effectiveStats(currentType, level + 1, dupes, tower:GetAttribute("Bonus"))
+		damageMetric.caption.Text = if currentStats.kind == "Beam" then "DÉGÂTS / SECONDE" else "DÉGÂTS / COUP"
+		damageMetric.value.Text = if currentStats.kind == "Beam" then amount(IdleTowers.dpsOf(currentStats)) else amount(currentStats.damage)
+		damageMetric.detail.Text = if currentStats.kind == "Beam" then `max {amount(IdleTowers.beamMaxDps(currentStats))}` else `Niv. {level + 1} : {amount(nextStats.damage)}`
+		speedMetric.value.Text = UI.towerSpeed(currentStats)
+		speedMetric.detail.Text = if currentStats.kind == "Beam" then "Rayon continu" else "Attaques par seconde"
+		rangeMetric.value.Text = UI.decimal(currentStats.range)
+		rangeMetric.detail.Text = "studs"
 		towerStats.Text = towerSheet(currentType, level, dupes, tower:GetAttribute("Bonus"))
 		replaceButton.BackgroundTransparency = if pending then 0.6 else 0
 		bonusRow.Visible = true

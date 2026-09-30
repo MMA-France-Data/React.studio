@@ -50,6 +50,7 @@ function LobbyUI.start()
 		BackgroundTransparency = 0.1,
 		Parent = gui,
 	}, { UI.corner(12), UI.padding(12), UI.stroke() })
+	UI.chrome(card)
 
 	local rankLabel = UI.label({
 		Size = UDim2.new(1, 0, 0, 34),
@@ -77,7 +78,7 @@ function LobbyUI.start()
 		Text = "",
 		Parent = card,
 	})
-	UI.label({
+	local seasonLabel = UI.label({
 		Position = UDim2.new(0, 0, 0, 88),
 		Size = UDim2.new(1, 0, 0, 18),
 		TextXAlignment = Enum.TextXAlignment.Left,
@@ -293,9 +294,19 @@ function LobbyUI.start()
 		if screen.X <= 0 or screen.Y <= 0 then
 			return
 		end
-		local signUpScaleValue = math.clamp((screen.X - LEFT_SIDE - 16) / SIGNUP_SIZE.X, 0.5, 1)
+		local narrow = screen.X < 700
+		card.Size = UDim2.fromOffset(if narrow then math.min(260, (screen.X - 48) / 2) else 260, 130)
+		seasonLabel.TextWrapped = narrow
+		seasonLabel.Size = UDim2.new(1, 0, 0, if narrow then 22 else 18)
+		status.Size = UDim2.fromOffset(math.min(STATUS_SIZE.X, screen.X - 32), STATUS_SIZE.Y)
+		statusText.TextWrapped = true
+		circleHint.Size = UDim2.fromOffset(math.min(380, screen.X - 32), 40)
+		circleHint.TextWrapped = true
+		local signUpScaleValue = if narrow then math.min(1, (screen.X - 32) / SIGNUP_SIZE.X)
+			else math.clamp((screen.X - LEFT_SIDE - 16) / SIGNUP_SIZE.X, 0.5, 1)
 		signUpScale.Scale = signUpScaleValue
-		signUpFrame.Position = UDim2.new(0, math.max(screen.X / 2, LEFT_SIDE + SIGNUP_SIZE.X * signUpScaleValue / 2), 0.26, 0)
+		signUpFrame.Position = if narrow then UDim2.new(0.5, 0, 1, -130)
+			else UDim2.new(0, math.max(screen.X / 2, LEFT_SIDE + SIGNUP_SIZE.X * signUpScaleValue / 2), 0.26, 0)
 		windowScale.Scale = UI.windowScale(screen, WINDOW_SIZE) -- (même règle que les autres fenêtres, UI.luau)
 	end
 	fitToScreen()

@@ -10,6 +10,8 @@ local ProximityLabel = require(Shared.ProximityLabel)
 local MedievalModels = require(Shared.MedievalModels)
 local RoadGeometry = require(Shared.RoadGeometry)
 local PlotBoard = require(script.Parent.PlotBoard)
+local PlotIdentity = require(script.Parent.PlotIdentity)
+local RankedBoardDisplay = require(script.Parent.RankedBoardDisplay)
 local scenery = MedievalModels.sceneryPart
 
 local HubMap = {}
@@ -209,7 +211,18 @@ local function buildPlot(index: number, parent: Instance)
 		Material = Enum.Material.Wood,
 		Parent = folder,
 	})
-	local ownerLabel = billboard(post, "Fief libre", Vector3.new(0, 5, 0), UDim2.fromOffset(145, 26), color, Config.LabelDistance.Medium)
+	-- Le support Sign est réutilisé : vraie plaque en bois plutôt qu'un petit texte flottant.
+	local entranceFrame = post.CFrame * CFrame.new(0, 5.2, 0)
+	local plaque = part({ Name = "OwnerBoard", Size = Vector3.new(18, 7, 0.65), CFrame = entranceFrame,
+		Color = Color3.fromRGB(69, 49, 34), Material = Enum.Material.WoodPlanks,
+		CanCollide = false, CanTouch = false, CanQuery = false, Parent = decor })
+	for _, side in { -1, 1 } do
+		scenery(decor, "OwnerBoardTrim", Vector3.new(0.25, 7.35, 0.9), entranceFrame * CFrame.new(side * 9.12, 0, 0), Color3.fromRGB(205, 170, 99), Enum.Material.Metal)
+	end
+	for _, y in { -3.65, 3.65 } do
+		scenery(decor, "OwnerBoardTrim", Vector3.new(18.5, 0.25, 0.9), entranceFrame * CFrame.new(0, y, 0), Color3.fromRGB(205, 170, 99), Enum.Material.Metal)
+	end
+	local ownerLabel = PlotIdentity.attach(folder, plaque, index, color)
 
 	-- Deux machines à sous devant l'entrée
 	local machines = {}
@@ -348,7 +361,7 @@ function HubMap.build()
 		local village = CFrame.Angles(0, angle + math.pi / 6, 0)
 		local garden = village * CFrame.new(0, 0, 53)
 		scenery(decor, "GardenBed", Vector3.new(11, 0.35, 10), garden * CFrame.new(0, 0.05, 0), Color3.fromRGB(90, 81, 60), Enum.Material.Ground)
-		MedievalModels.tree(decor, garden, 1.05, i % 3 == 0)
+		MedievalModels.tree(decor, garden, 1.05, false) -- même silhouette pour chaque secteur
 		for _, side in { -1, 1 } do
 			scenery(decor, "GardenKerb", Vector3.new(0.5, 0.65, 10.5), garden * CFrame.new(side * 5.5, 0.22, 0), Color3.fromRGB(188, 179, 151), Enum.Material.Limestone)
 		end
@@ -422,6 +435,21 @@ function HubMap.build()
 		Material = Enum.Material.WoodPlanks,
 		Parent = hub,
 	})
+	RankedBoardDisplay.attach(board)
+	-- Repères identiques aux deux côtés du mur, lisibles depuis ses deux faces.
+	for _, side in { -1, 1 } do
+		local markerFrame = CFrame.new(side * 20, 6, -12)
+		local marker = part({ Name = "RankedSideMarker", Size = Vector3.new(6, 9, 0.7), CFrame = markerFrame,
+			Color = Color3.fromRGB(69, 49, 34), Material = Enum.Material.WoodPlanks,
+			CanCollide = false, CanTouch = false, CanQuery = false, Parent = decor })
+		RankedBoardDisplay.sidePlaque(marker)
+		for _, dx in { -3.2, 3.2 } do
+			scenery(decor, "RankedMarkerTrim", Vector3.new(0.25, 9.4, 0.9), markerFrame * CFrame.new(dx, 0, 0), Color3.fromRGB(205, 170, 99), Enum.Material.Metal)
+		end
+		for _, dy in { -4.65, 4.65 } do
+			scenery(decor, "RankedMarkerTrim", Vector3.new(6.65, 0.25, 0.9), markerFrame * CFrame.new(0, dy, 0), Color3.fromRGB(205, 170, 99), Enum.Material.Metal)
+		end
+	end
 	for _, x in { -14.8, 14.8 } do
 		scenery(decor, "HallColumn", Vector3.new(1.6, 22, 2.5), CFrame.new(x, 11, -12.3), Color3.fromRGB(159, 154, 136), Enum.Material.Limestone)
 	end

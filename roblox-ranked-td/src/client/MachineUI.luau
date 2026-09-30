@@ -38,9 +38,8 @@ local FANFARE_RUNE_MULT = 50
 -- temps (un double clic n'achète jamais deux fois).
 local RESULT_TIMEOUT = 3
 
--- Taille de la fenêtre sur un écran d'ordinateur. Sur un téléphone, elle est réduite pour tenir entière,
--- boutons x1, x10... compris (UI.fitWindow).
-local WINDOW_SIZE = Vector2.new(540, 490)
+-- Taille maximale : sur téléphone, le contenu défile sans réduire les boutons ni tous les textes.
+local WINDOW_SIZE = Vector2.new(660, 620)
 
 local function listAttribute(player: Player, name: string): { string }
 	local raw = player:GetAttribute(name)
@@ -167,21 +166,28 @@ function MachineUI.start()
 		Parent = overlay,
 	}, { UI.corner(16), UI.padding(14), UI.new("UISizeConstraint", { MaxSize = WINDOW_SIZE }) })
 	local windowStroke = UI.stroke(Color3.new(1, 1, 1), 3)
-	windowStroke.Transparency = 0
+	windowStroke.Transparency = 0.55
 	windowStroke.Parent = window
-	-- Petit écran (téléphone) : toute la fenêtre est réduite pour tenir sous la barre du haut de Roblox.
-	UI.fitWindow(window, WINDOW_SIZE)
+	-- Petit écran : taille réelle de la fenêtre, contenu défilant et commandes fixes.
+	UI.chrome(window)
+	local function fitMachine()
+		local size = UI.modalSize(UI.screenSize(gui), WINDOW_SIZE)
+		window.Size = UDim2.fromOffset(size.X, size.Y)
+	end
+	fitMachine()
+	gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(fitMachine)
 
 	local title = UI.label({
-		Size = UDim2.new(1, -40, 0, 30),
+		Size = UDim2.new(1, -48, 0, 38),
 		Font = Enum.Font.GothamBlack,
 		TextXAlignment = Enum.TextXAlignment.Left,
 		MaxTextSize = 26,
 		Parent = window,
 	})
 	local subtitle = UI.label({
-		Position = UDim2.new(0, 0, 0, 32),
-		Size = UDim2.new(1, 0, 0, 18),
+		Position = UDim2.new(0, 0, 0, 42),
+		Size = UDim2.new(1, 0, 0, 36),
+		TextWrapped = true,
 		TextXAlignment = Enum.TextXAlignment.Left,
 		TextColor3 = UI.Colors.Muted,
 		MaxTextSize = 14,
@@ -198,25 +204,33 @@ function MachineUI.start()
 		Parent = window,
 	})
 
+	-- Chances et résultat défilent, les achats et la fermeture restent toujours accessibles.
+	local body = UI.new("ScrollingFrame", {
+		Name = "MachineContent", Position = UDim2.fromOffset(0, 88), Size = UDim2.new(1, 0, 1, -222),
+		BackgroundTransparency = 1, BorderSizePixel = 0, ScrollBarThickness = 4,
+		ScrollBarImageColor3 = UI.Colors.Gold, ScrollingDirection = Enum.ScrollingDirection.Y,
+		CanvasSize = UDim2.new(), AutomaticCanvasSize = Enum.AutomaticSize.Y, Parent = window,
+	})
 	-- Tableau des chances
 	local oddsList = UI.new("Frame", {
-		Position = UDim2.new(0, 0, 0, 58),
-		Size = UDim2.new(1, 0, 0, 176),
+		Position = UDim2.fromOffset(0, 0),
+		Size = UDim2.new(1, -10, 0, 330),
 		BackgroundTransparency = 1,
-		Parent = window,
+		Parent = body,
 	}, {
-		UI.new("UIListLayout", { Padding = UDim.new(0, 2), SortOrder = Enum.SortOrder.LayoutOrder }),
+		UI.new("UIListLayout", { Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder }),
 	})
 
 	-- Autel des héros : hausse des prix et nombre de lancers déjà achetés, sous les 4 raretés.
 	local spinInfo = UI.label({
 		Position = UDim2.new(0, 0, 0, 148),
-		Size = UDim2.new(1, 0, 0, 18),
+		Size = UDim2.new(1, -10, 0, 36),
+		TextWrapped = true,
 		TextXAlignment = Enum.TextXAlignment.Left,
 		TextColor3 = UI.Colors.Muted,
 		MaxTextSize = 14,
 		Visible = false,
-		Parent = window,
+		Parent = body,
 	})
 
 	-- Rouleau (résultat d'un lancer) ou résumé (gros lot d'invocations)
@@ -224,7 +238,7 @@ function MachineUI.start()
 		Position = UDim2.new(0, 0, 0, 244),
 		Size = UDim2.new(1, 0, 0, 96),
 		BackgroundColor3 = UI.Colors.Background,
-		Parent = window,
+		Parent = body,
 	}, { UI.corner(12) })
 	local reelStroke = UI.stroke(Color3.new(1, 1, 1), 2)
 	reelStroke.Parent = reel
@@ -238,6 +252,7 @@ function MachineUI.start()
 	local reelDetail = UI.label({
 		TextColor3 = UI.Colors.Muted,
 		MaxTextSize = 16,
+		TextWrapped = true,
 		Text = "",
 		Parent = reel,
 	})
@@ -250,7 +265,7 @@ function MachineUI.start()
 		Parent = reel,
 	}, {
 		UI.new("UIGridLayout", {
-			CellSize = UDim2.new(0.5, -3, 0, 30),
+			CellSize = UDim2.new(0.5, -3, 0, 40),
 			CellPadding = UDim2.fromOffset(6, 4),
 			SortOrder = Enum.SortOrder.LayoutOrder,
 		}),
@@ -258,7 +273,7 @@ function MachineUI.start()
 
 	local primaryButton = UI.button({
 		AnchorPoint = Vector2.new(0, 1),
-		Position = UDim2.new(0, 0, 1, -34),
+		Position = UDim2.new(0, 0, 1, -62),
 		Size = UDim2.new(1, 0, 0, 50),
 		BackgroundColor3 = UI.Colors.Success,
 		MaxTextSize = 22,
@@ -266,7 +281,7 @@ function MachineUI.start()
 	})
 	local robuxButton = UI.button({
 		AnchorPoint = Vector2.new(1, 1),
-		Position = UDim2.new(1, 0, 1, -34),
+		Position = UDim2.new(1, 0, 1, -62),
 		Size = UDim2.new(0.4, -4, 0, 50),
 		BackgroundColor3 = Color3.fromRGB(0, 176, 111),
 		Text = "Lancer • Robux",
@@ -275,11 +290,14 @@ function MachineUI.start()
 		Parent = window,
 	})
 	-- Autel des héros : un bouton par quantité (x1, x10, x100...) débloquée par le record.
-	local bulkRow = UI.new("Frame", {
+	local bulkRow = UI.new("ScrollingFrame", {
 		AnchorPoint = Vector2.new(0, 1),
-		Position = UDim2.new(0, 0, 1, -34),
-		Size = UDim2.new(1, 0, 0, 50),
+		Position = UDim2.new(0, 0, 1, -62),
+		Size = UDim2.new(1, 0, 0, 56),
 		BackgroundTransparency = 1,
+		BorderSizePixel = 0, ScrollBarThickness = 3, ScrollBarImageColor3 = UI.Colors.Gold,
+		CanvasSize = UDim2.new(), AutomaticCanvasSize = Enum.AutomaticSize.X,
+		ScrollingDirection = Enum.ScrollingDirection.X,
 		Visible = false,
 		Parent = window,
 	}, {
@@ -292,7 +310,8 @@ function MachineUI.start()
 	local footer = UI.label({
 		AnchorPoint = Vector2.new(0, 1),
 		Position = UDim2.new(0, 0, 1, 0),
-		Size = UDim2.new(1, 0, 0, 26),
+		Size = UDim2.new(1, 0, 0, 48),
+		TextWrapped = true,
 		TextColor3 = UI.Colors.Muted,
 		MaxTextSize = 14,
 		Parent = window,
@@ -312,26 +331,36 @@ function MachineUI.start()
 	local function layoutReel(machine: string?)
 		spinInfo.Visible = machine ~= nil
 		if machine == "Tower" then
-			spinInfo.Position = UDim2.new(0, 0, 0, 148)
-			reel.Position = UDim2.new(0, 0, 0, 172)
-			reel.Size = UDim2.new(1, 0, 1, -264)
+			oddsList.Size = UDim2.new(1, -10, 0, 162)
+			spinInfo.Position = UDim2.fromOffset(0, 172)
+			reel.Position = UDim2.fromOffset(0, 218)
+			reel.Size = UDim2.new(1, -10, 0, 240)
 		else
-			spinInfo.Position = UDim2.new(0, 0, 0, 236)
-			reel.Position = UDim2.new(0, 0, 0, 258)
-			reel.Size = UDim2.new(1, 0, 0, 90)
+			oddsList.Size = UDim2.new(1, -10, 0, 330)
+			spinInfo.Position = UDim2.fromOffset(0, 340)
+			reel.Position = UDim2.fromOffset(0, 386)
+			reel.Size = UDim2.new(1, -10, 0, 120)
 		end
+		body.CanvasPosition = Vector2.zero
 	end
 
 	-- Rouleau classique : un nom au centre et une ligne de détail.
 	local function showSingle()
 		summaryGrid.Visible = false
 		reelText.Position = UDim2.new(0, 0, 0.5, -38)
-		reelText.Size = UDim2.new(1, 0, 0, 44)
+		reelText.Size = UDim2.new(1, -16, 0, 44)
 		reelTextSize.MaxTextSize = 36
 		reelDetail.Position = UDim2.new(0, 0, 0.5, 10)
-		reelDetail.Size = UDim2.new(1, 0, 0, 26)
+		reelDetail.Size = UDim2.new(1, -16, 0, 42)
 	end
 	showSingle()
+	local function revealResult()
+		task.defer(function()
+			if not body.Parent or not overlay.Visible then return end
+			local maximum = math.max(0, body.AbsoluteCanvasSize.Y - body.AbsoluteWindowSize.Y)
+			body.CanvasPosition = Vector2.new(0, math.clamp(reel.Position.Y.Offset - 12, 0, maximum))
+		end)
+	end
 
 	local function clearSummary()
 		for _, child in summaryGrid:GetChildren() do
@@ -403,8 +432,9 @@ function MachineUI.start()
 			})
 			local bonusText = `+{dupesPercent(dupes)} % de dégâts`
 			UI.label({
-				Position = UDim2.new(0, 6, 0, 16),
-				Size = UDim2.new(1, -12, 0, 13),
+				Position = UDim2.new(0, 6, 0, 18),
+				Size = UDim2.new(1, -12, 0, 20),
+				TextWrapped = true,
 				TextXAlignment = Enum.TextXAlignment.Left,
 				Font = if entry.isNew then Enum.Font.GothamBlack else Enum.Font.GothamMedium,
 				TextColor3 = if entry.isNew then UI.Colors.Gold else UI.Colors.Text,
@@ -433,18 +463,21 @@ function MachineUI.start()
 	-- dimmed = ligne grisée (rune qui ne peut pas tomber dans la forge).
 	local function oddsRow(order: number, color: Color3, left: string, right: string, dimmed: boolean?)
 		local row = UI.new("Frame", {
-			Size = UDim2.new(1, 0, 0, 20),
+			Size = UDim2.new(1, 0, 0, 36),
 			LayoutOrder = order,
 			BackgroundColor3 = color,
 			BackgroundTransparency = if dimmed then 0.94 else 0.8,
 			Parent = oddsList,
-		}, { UI.corner(4) })
+		}, { UI.corner(8) })
+		UI.new("Frame", { Size = UDim2.new(0, 3, 1, -8), Position = UDim2.fromOffset(0, 4),
+			BackgroundColor3 = color, BorderSizePixel = 0, Parent = row })
 		UI.label({
 			Position = UDim2.new(0, 8, 0, 0),
 			Size = UDim2.new(0.8, -8, 1, 0),
 			TextXAlignment = Enum.TextXAlignment.Left,
 			TextColor3 = if dimmed then UI.Colors.Muted else color:Lerp(Color3.new(1, 1, 1), 0.3),
 			RichText = true,
+			TextWrapped = true,
 			Text = left,
 			MaxTextSize = 14,
 			Parent = row,
@@ -516,8 +549,8 @@ function MachineUI.start()
 			end
 		end
 
-		local slots = #available + (if locked then 1 else 0)
-		local width = UDim2.new(1 / slots, -6 * (slots - 1) / slots, 1, 0)
+		-- À petite largeur, on fait défiler les quantités au lieu de réduire le prix à quelques pixels.
+		local width = UDim2.fromOffset(104, 50)
 		for order, bulk in available do
 			local button = UI.button({
 				Name = "Spin_" .. bulk.count, -- (le tuto entoure d'or « Spin_1 » à l'étape de l'autel)
@@ -755,11 +788,13 @@ function MachineUI.start()
 			end
 			showSummary(result)
 			refresh()
+			revealResult()
 			return
 		end
 
 		spinning = true
 		showSingle()
+		revealResult()
 		SoundManager.play(if result.machine == "Tower" then "AltarSpin" else "ForgeSpin")
 		local names, colors = {}, {}
 		if result.machine == "Tower" then
