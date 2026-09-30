@@ -114,6 +114,23 @@ CustomModels.SETTINGS = {
 	normal_5 = { walk = 123757346012656, death = 85477305596501, animSpeed = 2.4 },
 	tank_5 = { walk = 123757346012656, death = 85477305596501, animSpeed = 2.4 },
 	giant_5 = { walk = 96179510952913, death = 85477305596501, animSpeed = 5.3 },
+	-- Vagues 61-70 (tempête), 71-80 (obsidienne), 81-90 (orcs), 91-100 (soldats du dragon) : mêmes squelettes.
+	swarm_6 = { walk = 123757346012656, death = 85477305596501, animSpeed = 2.4 },
+	normal_6 = { walk = 123757346012656, death = 85477305596501, animSpeed = 2.4 },
+	tank_6 = { walk = 123757346012656, death = 85477305596501, animSpeed = 2.4 },
+	giant_6 = { walk = 96179510952913, death = 85477305596501, animSpeed = 5.3 },
+	swarm_7 = { walk = 123757346012656, death = 85477305596501, animSpeed = 2.4 },
+	normal_7 = { walk = 123757346012656, death = 85477305596501, animSpeed = 2.4 },
+	tank_7 = { walk = 123757346012656, death = 85477305596501, animSpeed = 2.4 },
+	giant_7 = { walk = 96179510952913, death = 85477305596501, animSpeed = 5.3 },
+	swarm_8 = { walk = 123757346012656, death = 85477305596501, animSpeed = 2.4 },
+	normal_8 = { walk = 123757346012656, death = 85477305596501, animSpeed = 2.4 },
+	tank_8 = { walk = 123757346012656, death = 85477305596501, animSpeed = 2.4 },
+	giant_8 = { walk = 96179510952913, death = 85477305596501, animSpeed = 5.3 },
+	swarm_9 = { walk = 123757346012656, death = 85477305596501, animSpeed = 2.4 },
+	normal_9 = { walk = 123757346012656, death = 85477305596501, animSpeed = 2.4 },
+	tank_9 = { walk = 123757346012656, death = 85477305596501, animSpeed = 2.4 },
+	giant_9 = { walk = 96179510952913, death = 85477305596501, animSpeed = 5.3 },
 	-- Cavaliers (nouveau squelette du cheval, à 48 os, commun à toutes leurs variantes) : galop et mort publiés
 	-- depuis le cavalier carmin. animSpeed : un galop couvre bien plus de terrain qu'une marche Roblox.
 	fast_0 = { walk = 109710149140915, death = 89761902672237, animSpeed = 0.75 },
@@ -122,6 +139,10 @@ CustomModels.SETTINGS = {
 	fast_3 = { walk = 109710149140915, death = 89761902672237, animSpeed = 0.75 },
 	fast_4 = { walk = 109710149140915, death = 89761902672237, animSpeed = 0.75 },
 	fast_5 = { walk = 109710149140915, death = 89761902672237, animSpeed = 0.75 },
+	fast_6 = { walk = 109710149140915, death = 89761902672237, animSpeed = 0.75 },
+	fast_7 = { walk = 109710149140915, death = 89761902672237, animSpeed = 0.75 },
+	fast_8 = { walk = 109710149140915, death = 89761902672237, animSpeed = 0.75 },
+	fast_9 = { walk = 109710149140915, death = 89761902672237, animSpeed = 0.75 },
 }
 
 -- Paliers : même découpage que les styles de MedievalModels (10 tranches de 10 vagues, puis ça recommence).

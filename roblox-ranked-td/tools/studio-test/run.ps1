@@ -16,7 +16,7 @@ param(
 	[switch]$KeepOpen,
 	[int]$Timeout = 0 # ouverture de Studio + Play ($Seconds) + fermeture (0 = $Seconds + 150 s)
 )
-if ($Seconds -le 0) { $Seconds = if ($Place -eq "match") { 240 } else { 320 } }
+if ($Seconds -le 0) { $Seconds = if ($Place -eq "match") { 240 } else { 420 } }
 if ($Timeout -le 0) { $Timeout = $Seconds + 150 }
 $ErrorActionPreference = "Stop"
 $root = $PSScriptRoot

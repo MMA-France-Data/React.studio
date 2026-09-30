@@ -482,6 +482,71 @@ return function(log)
 		end
 	end
 
+	-- Fenêtres qui changent de TAILLE (UI.modalSize : autel et forge depuis le HUD de ChatGPT) au lieu d'être réduites
+	-- par un UIScale : leur contenu défile, les boutons d'achat et de fermeture restent fixes. Sur l'écran du test :
+	-- la taille attendue, centrée sur sa Position, entière à 8 px des bords, et tous ses boutons affichés dans la
+	-- fenêtre. Sur téléphone (fausses tailles) : la taille calculée par UI.modalSize tient dans l'écran utile.
+	local function checkModalFit(label, window, design)
+		local clientFolder = player:WaitForChild("PlayerScripts"):WaitForChild("Client", 10)
+		local uiModule = clientFolder and clientFolder:FindFirstChild("UI")
+		local gui = window and window:FindFirstAncestorWhichIsA("ScreenGui")
+		if not (uiModule and gui) then
+			log("Error", `[FAIL] fenêtre « {label} » : fenêtre ou module UI introuvable`)
+			return
+		end
+		local UI = require(uiModule)
+		local function shown(object)
+			local current = object
+			while current and current ~= gui do
+				if current:IsA("GuiObject") and not current.Visible then
+					return false
+				end
+				current = current.Parent
+			end
+			return current == gui and gui.Enabled
+		end
+		local function px(value)
+			return math.floor(value + 0.5)
+		end
+		local screen = gui.AbsoluteSize
+		local at = window.AbsolutePosition - gui.AbsolutePosition
+		local size = window.AbsoluteSize
+		local expected = UI.modalSize(screen, design)
+		local center = Vector2.new(window.Position.X.Scale * screen.X, window.Position.Y.Scale * screen.Y)
+		local total, out = 0, {}
+		for _, descendant in window:GetDescendants() do
+			if descendant:IsA("GuiButton") and shown(descendant) then
+				total += 1
+				local topLeft = descendant.AbsolutePosition - gui.AbsolutePosition
+				local bottomRight = topLeft + descendant.AbsoluteSize
+				-- (dans une liste qui défile, un bouton peut être caché par le défilement : seul l'écran compte)
+				if topLeft.X < -1 or topLeft.Y < -1 or bottomRight.X > screen.X + 1 or bottomRight.Y > screen.Y + 1 then
+					table.insert(out, (string.gsub(if descendant:IsA("TextButton") then descendant.Text else descendant.Name, "\n", " ")))
+				end
+			end
+		end
+		local realOk = shown(window)
+			and total > 0
+			and #out == 0
+			and (size - expected).Magnitude < 3
+			and ((at + size / 2) - center).Magnitude < 3
+			and at.X >= 7 and at.Y >= 7 and at.X + size.X <= screen.X - 7 and at.Y + size.Y <= screen.Y - 7
+		log(
+			if realOk then "Info" else "Error",
+			`[{if realOk then "PASS" else "FAIL"}] fenêtre « {label} » sur l'écran du test ({px(screen.X)} x {px(screen.Y)}) : {px(size.X)} x {px(size.Y)} px (attendu {px(expected.X)} x {px(expected.Y)}), de ({px(at.X)}, {px(at.Y)}) à ({px(at.X + size.X)}, {px(at.Y + size.Y)}), {total - #out}/{total} boutons dans l'écran{if #out > 0 then " ; dehors : " .. table.concat(out, ", ") else ""}`
+		)
+		local topBar = math.max(58, (game:GetService("GuiService"):GetGuiInset()).Y)
+		for _, phone in { Vector2.new(844, 390), Vector2.new(667, 375) } do
+			local area = phone - Vector2.new(0, topBar)
+			local phoneSize = UI.modalSize(area, design)
+			local ok = phoneSize.X <= area.X - 16 + 0.5 and phoneSize.Y <= area.Y - 16 + 0.5 and phoneSize.X >= 160 and phoneSize.Y >= 160
+			log(
+				if ok then "Info" else "Error",
+				`[{if ok then "PASS" else "FAIL"}] fenêtre « {label} » sur téléphone {px(phone.X)} x {px(phone.Y)} (écran utile {px(area.X)} x {px(area.Y)}) : {px(phoneSize.X)} x {px(phoneSize.Y)} px, entière (contenu qui défile)`
+			)
+		end
+	end
+
 	-- Renaissance (run à la vague 50 préparée par le scénario serveur)
 	local rebirthButton = findButton("Renaissance")
 	if rebirthButton then
@@ -530,9 +595,9 @@ return function(log)
 			task.wait(0.3) -- (le temps que les boutons de la fenêtre soient placés)
 			return machinesGui ~= nil and machinesGui:GetAttribute("OpenMachine") == machine
 		end
-		checkPhoneFit("autel", machineWindow, Vector2.new(540, 490))
+		checkModalFit("autel", machineWindow, Vector2.new(660, 620))
 		if openMachine("Bonus") then
-			checkPhoneFit("forge", machineWindow, Vector2.new(540, 490))
+			checkModalFit("forge", machineWindow, Vector2.new(660, 620))
 		else
 			log("Error", "[FAIL] fenêtre « forge » sur téléphone : la forge ne s'est pas ouverte (CMD:OpenMachine:Bonus)")
 		end
@@ -710,10 +775,14 @@ return function(log)
 		end
 		require(shopModule).showOfflineGains({ amount = 123456, seconds = 2 * 3600, kind = "Offline", capped = true })
 		task.wait(1) -- (petite animation d'ouverture : 0,35 s)
+		-- (le jeu peut avoir créé son propre écran « OfflineGains » entre-temps : on prend celui qui est affiché)
 		local offlineGui = nil
 		for _, child in player.PlayerGui:GetChildren() do
 			if not before[child] and child.Name == "OfflineGains" then
-				offlineGui = child
+				local overlay = child:FindFirstChild("Overlay")
+				if not offlineGui or (overlay and overlay:IsA("GuiObject") and overlay.Visible) then
+					offlineGui = child
+				end
 			end
 		end
 		checkPhoneFit("pendant ton absence", offlineGui and offlineGui:FindFirstChild("Window", true), Vector2.new(460, 270))
