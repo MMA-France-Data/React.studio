@@ -1327,6 +1327,35 @@ return function(log)
 				`colonne de gauche sur téléphone {px(phone.X)} x {px(phone.Y)} (écran utile {px(area.X)} x {px(area.Y)}) : les {UI.LEFT_COLUMN_COUNT} boutons dans l'écran, sous la carte de rang et pas plus larges qu'elle, sans se chevaucher ({px(height)} px de haut){if #problems > 0 then " ; problèmes : " .. table.concat(problems, ", ") else ""}`
 			)
 		end
+		-- Téléphone (vraie fonction UI.phoneTopRight, fausses tailles) : compteur de pièces, SON et Vitesse x2 en haut à
+		-- droite, dans l'écran, sans se chevaucher, et loin du milieu de la vue (demande du propriétaire, 30/09/2026).
+		for _, phone in { Vector2.new(844, 390), Vector2.new(667, 375), Vector2.new(390, 844) } do
+			local area = phone - Vector2.new(0, topBar)
+			local problems, rects = {}, {}
+			for slot = 0, 2 do
+				local position, size = UI.phoneTopRight(area, slot)
+				local right = position.X.Scale * area.X + position.X.Offset
+				local corner = Vector2.new(right - size.X, position.Y.Offset)
+				local far = corner + size
+				if corner.X < 0 or corner.Y < 0 or far.X > area.X or far.Y > area.Y then
+					table.insert(problems, `élément {slot} hors de l'écran`)
+				end
+				if far.Y > area.Y * 0.45 or corner.X < area.X * 0.3 then
+					table.insert(problems, `élément {slot} trop près du milieu ({px(corner.X)}, {px(corner.Y)})`)
+				end
+				for _, other in rects do
+					if corner.X < other[2].X and other[1].X < far.X and corner.Y < other[2].Y and other[1].Y < far.Y then
+						table.insert(problems, `élément {slot} sur un autre`)
+					end
+				end
+				table.insert(rects, { corner, far })
+			end
+			report(
+				UI.isPhone(area) and #problems == 0,
+				`téléphone {px(phone.X)} x {px(phone.Y)} : pièces, SON et Vitesse x2 en haut à droite, dans l'écran, sans se chevaucher{if #problems > 0 then " ; problèmes : " .. table.concat(problems, ", ") else ""}`
+			)
+		end
+		report(not UI.isPhone(Vector2.new(1736, 735)) and not UI.isPhone(Vector2.new(1280, 620)), "ordinateur : pas de disposition téléphone (compteur de pièces au milieu, comme avant)")
 
 		-- Boutique (ShopUI) : ouverte comme par son bouton, puis refermée.
 		local shopGui = player.PlayerGui:FindFirstChild("Shop")
@@ -2195,23 +2224,16 @@ return function(log)
 			local closedSeen = waitFor(function()
 				return ReplicatedStorage:GetAttribute(RankedGate.STUDIO_ATTRIBUTE) == false
 			end, 5)
+			-- Carte de rang : cachée tant que le classé est fermé (demande du propriétaire, 30/09/2026 : le « bientôt
+			-- disponible » n'est que dans le cercle).
 			local rankCard = lobby and lobby:FindFirstChild("RankCard")
-			local rankLabel = rankCard and rankCard:FindFirstChild("RankLabel")
-			local mmrLabel = rankCard and rankCard:FindFirstChild("MmrLabel")
-			local cardOk = waitFor(function()
-				return rankLabel ~= nil and mmrLabel ~= nil and rankLabel.Text == "CLASSÉ 1v1" and mmrLabel.Text == RankedGate.SOON_TITLE
+			local cardHidden = waitFor(function()
+				return rankCard ~= nil and not rankCard.Visible
 			end, 3)
-			local cardTexts = {}
-			for _, descendant in (if rankCard then rankCard:GetDescendants() else {}) do
-				if descendant:IsA("TextLabel") and descendant.Text ~= "" then
-					table.insert(cardTexts, descendant.Text)
-				end
-			end
-			local mmrShown = string.find(table.concat(cardTexts, " | "), "MMR", 1, true) ~= nil
 			local challengesGui = player.PlayerGui:FindFirstChild("ChallengesButton")
 			check(
-				closedSeen and cardOk and not mmrShown and challengesGui ~= nil and not challengesGui.Enabled,
-				`classé fermé (client) : carte de rang « {table.concat(cardTexts, " | ")} » (pas de rang ni de MMR), bouton « ⚔ DÉFIS » caché ({challengesGui and tostring(not challengesGui.Enabled)})`
+				closedSeen and cardHidden and challengesGui ~= nil and not challengesGui.Enabled,
+				`classé fermé (client) : carte de rang cachée ({cardHidden}), bouton « ⚔ DÉFIS » caché ({challengesGui and tostring(not challengesGui.Enabled)})`
 			)
 
 			-- Dans le cercle : « BIENTÔT DISPONIBLE » à la place du bouton « S'INSCRIRE ».

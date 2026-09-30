@@ -281,9 +281,17 @@ function PlotUI.start()
 		panel.AnchorPoint = Vector2.new(0, 1)
 		panel.Position = UDim2.new(0, math.floor(left), 1, -16)
 		if cardGrid then cardGrid.CellSize = UDim2.new(1 / columns, -8 * (columns - 1) / columns - 3, 0, CARD_HEIGHT) end
-		wallet.Size = UDim2.fromOffset(if screen.X < 700 then math.min(190, (screen.X - 48) / 2) else 240, 64)
-		wallet.AnchorPoint = Vector2.new(if screen.X < 700 then 1 else 0.5, 0)
-		wallet.Position = if screen.X < 700 then UDim2.new(1, -12, 0, 8) else UDim2.new(0.5, 0, 0, 8)
+		if UI.isPhone(screen) then
+			-- Téléphone : en haut à droite, avec les boutons SON et Vitesse x2 (UI.phoneTopRight), pas au milieu.
+			local position, size = UI.phoneTopRight(screen, 0)
+			wallet.Size = UDim2.fromOffset(size.X, size.Y)
+			wallet.AnchorPoint = Vector2.new(1, 0)
+			wallet.Position = position
+		else
+			wallet.Size = UDim2.fromOffset(if screen.X < 700 then math.min(190, (screen.X - 48) / 2) else 240, 64)
+			wallet.AnchorPoint = Vector2.new(if screen.X < 700 then 1 else 0.5, 0)
+			wallet.Position = if screen.X < 700 then UDim2.new(1, -12, 0, 8) else UDim2.new(0.5, 0, 0, 8)
+		end
 	end
 	fitPanel()
 	gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(fitPanel)

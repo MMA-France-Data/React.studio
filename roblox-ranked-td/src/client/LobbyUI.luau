@@ -6,8 +6,8 @@
 -- MatchOpponent..., voir Remotes.luau) et envoie les clics (remote QueueAction) ; le serveur vérifie tout
 -- (Hub/init.luau, Matchmaking.luau).
 -- Classé FERMÉ (Config.RANKED_OPEN = false, Shared/RankedGate.luau) : dans le cercle, un panneau « BIENTÔT
--- DISPONIBLE » (« RankedSoon ») à la place du bouton ; jamais de statut de recherche ni de « MATCH TROUVÉ ! » ; la
--- carte de rang dit « CLASSÉ 1v1 • BIENTÔT DISPONIBLE » (pas de rang ni de MMR).
+-- DISPONIBLE » (« RankedSoon ») à la place du bouton ; jamais de statut de recherche ni de « MATCH TROUVÉ ! » ; pas
+-- de carte de rang à l'écran.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
@@ -419,8 +419,11 @@ function LobbyUI.start()
 	local function updateRankCard()
 		local mmr = player:GetAttribute("Mmr")
 		local games = player:GetAttribute("GamesPlayed") or 0
+		-- Classé fermé : pas de carte de rang à l'écran (demande du propriétaire, 30/09/2026 : sur téléphone, « CLASSÉ
+		-- 1v1 BIENTÔT DISPONIBLE » écrit en gros prenait la place ; le « bientôt disponible » n'est que dans le cercle).
+		card.Visible = RankedGate.isOpen()
 		if not RankedGate.isOpen() then
-			-- Classé fermé : ni rang ni MMR, seulement « bientôt disponible ».
+			-- (textes gardés si la carte réapparaît : ni rang ni MMR, seulement « bientôt disponible »)
 			rankLabel.Text = "CLASSÉ 1v1"
 			rankLabel.TextColor3 = UI.Colors.Text
 			mmrLabel.Text = RankedGate.SOON_TITLE

@@ -55,6 +55,11 @@ function Effects.pulse(position: Vector3, radius: number, color: Color3)
 	CombatVFX.pulse(effectsFolder, position, radius, color)
 end
 
+-- Cercle bleu simple du Totem de givre (et de la tour de givre du classé), comme à l'origine (CombatVFX.circle).
+function Effects.circle(position: Vector3, radius: number, color: Color3)
+	CombatVFX.circle(effectsFolder, position, radius, color)
+end
+
 local function partsNamed(model: Model?, names: { [string]: boolean }): { BasePart }
 	local found = {}
 	if not model then
@@ -402,7 +407,8 @@ function Effects.playTowerShot(from: Vector3, to: Vector3, towerType: string, ra
 	end
 	task.delay(delay, function()
 		if kind == "Aura" then
-			Effects.pulse(to, radius, color)
+			-- Totem de givre : le cercle bleu simple d'origine (demande du propriétaire, 30/09/2026).
+			Effects.circle(to, radius, color)
 		elseif towerType == "Orbital" and flightTime then
 			-- Trébuchet royal : grosse pierre runique, onde dorée (étourdissement) de la taille de sa zone.
 			arcingProjectile(from, to, Color3.fromRGB(96, 92, 86):Lerp(color, 0.3), radius, travel, 1.7, Enum.Material.Slate, function(at)

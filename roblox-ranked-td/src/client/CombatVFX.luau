@@ -279,6 +279,21 @@ function VFX.pulse(parent: Instance, position: Vector3, radius: number, color: C
 	Debris:AddItem(root, 0.6)
 end
 
+-- Cercle bleu simple qui s'agrandit et s'efface au sol : l'onde d'origine du Totem de givre, remise à la demande du
+-- propriétaire (30/09/2026 : « remets l'ancienne animation sur la tour de glace, le cercle bleu basique »), mais posée
+-- au sol (ground) et non plus sur le haut du Totem.
+function VFX.circle(parent: Instance, position: Vector3, radius: number, color: Color3)
+	if not VFX.isNear(position) or transient >= MAX_TRANSIENT then return end
+	radius = math.max(0.5, radius)
+	local origin = ground(position, parent)
+	local ring = part(parent, "FrostCircle", Vector3.new(0.2, 1, 1),
+		CFrame.new(origin + Vector3.new(0, 0.1, 0)) * CFrame.Angles(0, 0, math.rad(90)), color, 0.4)
+	ring.Shape = Enum.PartType.Cylinder
+	claim(ring)
+	TweenService:Create(ring, TweenInfo.new(0.35), { Size = Vector3.new(0.2, radius * 2, radius * 2), Transparency = 1 }):Play()
+	Debris:AddItem(ring, 0.4)
+end
+
 function VFX.stoneImpact(parent: Instance, position: Vector3, radius: number, color: Color3)
 	VFX.burst(parent, position, radius, color, 0.35)
 	if not VFX.isNear(position) or transient >= MAX_TRANSIENT then return end

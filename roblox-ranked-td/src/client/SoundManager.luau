@@ -486,6 +486,16 @@ local function createButton(serverMode: string)
 	})
 	if hub then
 		local function place()
+			local screen = UI.screenSize(gui)
+			if UI.isPhone(screen) then
+				-- Téléphone : en haut à droite, à côté du compteur de pièces (UI.phoneTopRight).
+				local position, size = UI.phoneTopRight(screen, 1)
+				button.AnchorPoint = Vector2.new(1, 0)
+				button.Position = position
+				button.Size = UDim2.fromOffset(size.X, size.Y)
+				return
+			end
+			button.Size = UDim2.fromOffset(BUTTON_WIDTH, 44)
 			local camera = workspace.CurrentCamera
 			local width = if camera then camera.ViewportSize.X else 0
 			-- Assez large : le bouton tient entre la carte de rang et le compteur (sinon il cacherait la carte).
@@ -497,6 +507,7 @@ local function createButton(serverMode: string)
 		if workspace.CurrentCamera then
 			workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(place)
 		end
+		gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(place)
 	end
 	UI.label({
 		Size = UDim2.new(1, 0, 0, 19),

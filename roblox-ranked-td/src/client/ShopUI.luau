@@ -153,6 +153,22 @@ function ShopUI.start()
 		Visible = false,
 		Parent = buttonGui,
 	})
+	-- Téléphone : en haut à droite, à côté du compteur de pièces et du bouton SON (UI.phoneTopRight).
+	local function placeSpeedButton()
+		local screen = UI.screenSize(buttonGui)
+		if UI.isPhone(screen) then
+			local position, size = UI.phoneTopRight(screen, 2)
+			speedButton.AnchorPoint = Vector2.new(1, 0)
+			speedButton.Position = position
+			speedButton.Size = UDim2.fromOffset(size.X, size.Y)
+		else
+			speedButton.AnchorPoint = Vector2.new(0, 0)
+			speedButton.Position = UDim2.new(0.5, 188, 0, 9)
+			speedButton.Size = UDim2.fromOffset(84, 44)
+		end
+	end
+	placeSpeedButton()
+	buttonGui:GetPropertyChangedSignal("AbsoluteSize"):Connect(placeSpeedButton)
 	local speedTitle = UI.label({
 		Size = UDim2.new(1, 0, 0, 19),
 		Font = Enum.Font.GothamBlack,

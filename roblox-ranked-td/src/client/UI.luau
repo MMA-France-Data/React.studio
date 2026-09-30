@@ -191,6 +191,34 @@ function UI.registerPlotPanel(panel: GuiObject)
 	refreshNavigation()
 end
 
+-- Téléphone = le petit côté de l'écran fait moins de 500 px (paysage 844 x 390, portrait 390 x 844...). Fonction pure.
+function UI.isPhone(screen: Vector2): boolean
+	return screen.X > 0 and screen.Y > 0 and math.min(screen.X, screen.Y) < 500
+end
+
+-- Sur téléphone (demande du propriétaire, 30/09/2026 : le compteur de pièces et le bouton SON étaient en plein
+-- milieu de la vue), le compteur de pièces (PlotUI), le bouton SON (SoundManager) et le bouton Vitesse x2 (ShopUI)
+-- sont regroupés en haut à droite. slot 0 = compteur, 1 = SON, 2 = Vitesse x2. Paysage : sur une ligne, le compteur
+-- au bord ; portrait (écran étroit) : SON et Vitesse x2 sous le compteur. Renvoie la position du coin EN HAUT À
+-- DROITE (AnchorPoint 1, 0) et la taille. Fonction pure (les tests l'appellent avec de fausses tailles).
+UI.PHONE_WALLET_SIZE = Vector2.new(160, 64)
+UI.PHONE_BUTTON_SIZE = Vector2.new(68, 44)
+local PHONE_MARGIN = 12
+local PHONE_GAP = 6
+function UI.phoneTopRight(screen: Vector2, slot: number): (UDim2, Vector2)
+	local wallet, button = UI.PHONE_WALLET_SIZE, UI.PHONE_BUTTON_SIZE
+	if slot == 0 then
+		return UDim2.new(1, -PHONE_MARGIN, 0, 8), wallet
+	end
+	if screen.Y > screen.X then
+		-- Portrait : SON puis Vitesse x2, sous le compteur, collés au bord droit.
+		return UDim2.new(1, -PHONE_MARGIN - (slot - 1) * (button.X + PHONE_GAP), 0, 8 + wallet.Y + PHONE_GAP), button
+	end
+	-- Paysage : à gauche du compteur, sur sa ligne (SON d'abord, puis Vitesse x2).
+	local right = PHONE_MARGIN + wallet.X + PHONE_GAP + (slot - 1) * (button.X + PHONE_GAP)
+	return UDim2.new(1, -right, 0, 8 + math.floor((wallet.Y - button.Y) / 2)), button
+end
+
 -- Taille réelle des panneaux : le texte ne devient pas minuscule pour faire tenir huit cartes.
 function UI.plotPanelLayout(screen: Vector2): (Vector2, number)
 	local portrait = screen.X < 700 and screen.Y > screen.X
