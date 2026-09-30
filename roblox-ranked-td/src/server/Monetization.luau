@@ -236,9 +236,14 @@ local function onPlayerAdded(player: Player)
 		publishPass(player, name) -- false tant que Roblox n'a pas répondu
 		checks[name] = true
 		task.spawn(function()
-			local ok, err = pcall(checkPass, player, name)
-			if not ok then
-				warn(`[Monetization] Erreur pendant la vérification du pass {name} :`, err)
+			-- Tests automatiques (place de test de tools/studio-test seulement) : on ne demande pas à Roblox. Le
+			-- joueur de test est le propriétaire du jeu, et le créateur d'un pass le possède toujours : les tests
+			-- « sans pass » échouaient dès que les vrais numéros ont été mis dans Config.GamePasses (30/09/2026).
+			if not isAutoTest then
+				local ok, err = pcall(checkPass, player, name)
+				if not ok then
+					warn(`[Monetization] Erreur pendant la vérification du pass {name} :`, err)
+				end
 			end
 			checks[name] = nil -- possession connue (Monetization.passKnown)
 		end)

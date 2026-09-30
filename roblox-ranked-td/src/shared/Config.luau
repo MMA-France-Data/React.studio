@@ -20,8 +20,9 @@ Config.STUDIO_FORCE_MODE = "Auto"
 
 -- Produits Robux (Developer Products), à créer dans le Creator Dashboard :
 -- Monétisation > Developer Products, puis colle l'ID ici. 0 = pas encore configuré.
+-- Créé le 30/09/2026 : « Forge Spin », 49 Robux.
 Config.Products = {
-	BONUS_SPIN = 0, -- un lancer de la machine à bonus
+	BONUS_SPIN = 3715672549, -- un lancer de la machine à bonus (Forge runique)
 }
 
 -- Passes de jeu (Game Passes) : achetés une seule fois en Robux, gardés pour toujours. Mode solo
@@ -30,10 +31,11 @@ Config.Products = {
 -- (image, nom, description) > Enregistrer. Ouvre le pass > Ventes : active « Article en vente » et
 -- choisis le prix en Robux. Copie son ID (le nombre dans l'adresse de la page du pass) et colle-le ici.
 -- 0 = pas encore créé : la boutique affiche « Bientôt disponible » (Monetization.luau).
+-- Créés le 30/09/2026 (« Auto Collect » 99 Robux, « Speed x2 » 199, « Coins x2 » 249).
 Config.GamePasses = {
-	AUTO_COLLECT = 0, -- Ramassage auto : les pièces tombées sur ta parcelle sont ramassées sans marcher
-	SPEED_X2 = 0, -- Vitesse x2 : vagues et tirs deux fois plus rapides sur ta parcelle (bouton pour l'éteindre)
-	COINS_X2 = 0, -- Pièces x2 : toutes les pièces gagnées sur ta parcelle sont doublées (ennemis tués, gains d'absence)
+	AUTO_COLLECT = 2003798275, -- Ramassage auto : les pièces tombées sur ta parcelle sont ramassées sans marcher
+	SPEED_X2 = 2003012479, -- Vitesse x2 : vagues et tirs deux fois plus rapides sur ta parcelle (bouton pour l'éteindre)
+	COINS_X2 = 1998429922, -- Pièces x2 : toutes les pièces gagnées sur ta parcelle sont doublées (ennemis tués, gains d'absence)
 }
 
 -- Tes parties de test dans Studio : ces passes sont donnés automatiquement à tous les joueurs quand tu
