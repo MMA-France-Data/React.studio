@@ -1,4 +1,4 @@
-# Mode tournage : images et vidéos du jeu pour la page Roblox (miniatures, vidéo de gameplay).
+﻿# Mode tournage : images et vidéos du jeu pour la page Roblox (miniatures, vidéo de gameplay).
 # Construit une place de test avec les scénarios TournageServer / TournageClient (vraies mécaniques du jeu, seule la
 # caméra est pilotée), ouvre Studio, lance Play et pilote OBS (obs.cjs) : repérage de la vue 3D, enregistrement,
 # images 1920 x 1080.
@@ -106,7 +106,7 @@ try {
 	$start = Get-Date
 	$ended = $false
 	while (-not $ended) {
-		Start-Sleep -Milliseconds 200
+		Start-Sleep -Milliseconds 100
 		if (((Get-Date) - $start).TotalSeconds -gt $Timeout) { Write-Host "Temps dépassé"; break }
 		$text = Read-Log $log
 		if ($null -eq $text) { continue }
@@ -120,9 +120,15 @@ try {
 				if (-not $SansObs) { Invoke-Obs @("calibrate") }
 			} elseif ($line -match "\] REC:START") {
 				if (-not $SansObs) { Invoke-Obs @("rec-start") }
+			} elseif ($line -match "\] REC:PAUSE") {
+				if (-not $SansObs) { Invoke-Obs @("rec-pause") }
+			} elseif ($line -match "\] REC:RESUME") {
+				if (-not $SansObs) { Invoke-Obs @("rec-resume") }
 			} elseif ($line -match "\] REC:STOP:(\w+)") {
 				$file = Join-Path $media "$($Matches[1]).mp4"
 				if (-not $SansObs) { Invoke-Obs @("rec-stop", $file); $made += $file }
+			} elseif ($line -match "\] CROP:(left|center)") {
+				if (-not $SansObs) { Invoke-Obs @("crop", $Matches[1]) }
 			} elseif ($line -match "\] IMG:(\w+)") {
 				$file = Join-Path $media "$($Matches[1]).png"
 				if ($SansObs) { & (Join-Path $root "shot.ps1") $file | Out-Null } else { Invoke-Obs @("shot", $file) }

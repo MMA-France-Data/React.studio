@@ -181,9 +181,17 @@ changer de profil pendant qu'OBS tourne : passer du profil du propriétaire (cha
 planter.
 - Le scénario client affiche d'abord un écran magenta (« CALIBRATE ») : OBS y repère la vue 3D dans la fenêtre de
   Studio et la recadre en 16:9 plein cadre.
-- Marqueurs dans la Sortie : `REC:START` / `REC:STOP:nom` (vidéo `out\tournage\nom.mp4`), `IMG:nom` (image
-  1920 x 1080 `out\tournage\nom.png`).
-- Scènes actuelles : vidéo du Titan du givre (boss de la vague 40, tours niveau 23 pour qu'il tienne ~40 s), images
-  du dragon (vague 100, tours niveau 78), d'une horde d'orcs (vague 81, niveau 59), du jeu avec son interface et de
-  la carte vue du ciel. Le classé y est fermé, comme dans le jeu publié.
+- Marqueurs (envoyés tout de suite par le serveur à `logserver.cjs`, ~0,3 s jusqu'à OBS) : `REC:START` /
+  `REC:STOP:nom` (vidéo `out\tournage\nom.mp4`, durée affichée), `REC:PAUSE` / `REC:RESUME` (coupes nettes),
+  `IMG:nom` (image 1920 x 1080 `out\tournage\nom.png`), `CROP:left` / `CROP:center` (image prise à gauche de la vue
+  3D, avec la colonne de boutons : la vue de Studio est plus large que 16:9).
+- Règles de Roblox pour les vidéos : **30 s au plus**, moins de 375 Mo, textes et son **en anglais** (le tournage
+  met le jeu en anglais), et un compte vérifié de 13 ans et plus pour les envoyer.
+- Tournage actuel (demande du propriétaire : plans courts et compilation) : 7 plans de 3 à 3,5 s (parcelle, horde
+  d'orcs vague 81, Titan du givre vague 40, dragon vague 100, carte vue du ciel) joués deux fois : une
+  compilation d'un seul fichier (`compilation.mp4`, ~28 s, en pause entre les plans), puis un fichier par plan
+  (`rush_1_parcelle.mp4`...) avec une image au milieu de chacun, et une image avec l'interface. Le classé y est
+  fermé, comme dans le jeu publié. Les vidéos et images finies sont copiées à la main dans `Vidéos\Tower 22`.
+- Studio doit rester au premier plan (caché, il ne dessine plus sa vue 3D) : ne pas toucher au PC pendant le
+  tournage (~5 min) ; l'écran reste allumé.
 - `-SansObs` : sans OBS, les images sont de simples captures de la fenêtre de Studio (pour régler les plans).

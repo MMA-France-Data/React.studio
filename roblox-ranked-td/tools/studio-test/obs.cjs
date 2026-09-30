@@ -4,7 +4,9 @@
 //                                          recadre en 16:9 sur toute l'image (1920 x 1080)
 //   node obs.cjs shot <fichier.png>     -> image 1920 x 1080 de la scène
 //   node obs.cjs rec-start              -> démarre l'enregistrement
-//   node obs.cjs rec-stop <fichier.mp4> -> l'arrête et range la vidéo sous ce nom
+//   node obs.cjs rec-pause / rec-resume -> pause / reprise (coupes nettes de la compilation)
+//   node obs.cjs rec-stop <fichier.mp4> -> l'arrête et range la vidéo sous ce nom (durée affichée : 30 s au plus
+//                                          pour Roblox)
 //   node obs.cjs finish                 -> arrête l'enregistrement s'il tourne encore (avant de fermer OBS)
 //   node obs.cjs restore                -> OBS fermé : remet le profil et les scènes du propriétaire (user.ini)
 // OBS garde ses propres réglages : ce script n'utilise que le profil « Tower 22 » (1920 x 1080, 60 images/s, sans
@@ -265,13 +267,27 @@ async function calibrate() {
 		else await sleep(700);
 	}
 	if (!box) throw new Error("Écran magenta introuvable dans l'image de Studio");
+	const state = readState();
+	state.viewport = { window: [size.width, size.height], box };
+	writeState(state);
+	await applyCrop(obs, 'center');
+	obs.close();
+}
+
+// Recadrage 16:9 de la vue 3D repérée par calibrate : au centre (plans de cinéma), ou collé à gauche (image avec
+// l'interface : la colonne de boutons est à gauche, et la vue de Studio est plus large que 16:9).
+async function applyCrop(obs, align) {
+	const { viewport } = readState();
+	if (!viewport) throw new Error('Pas encore de repérage (calibrate)');
+	const [width, height] = viewport.window;
+	const box = viewport.box;
 	const vw = box.x1 - box.x0 + 1;
 	const vh = box.y1 - box.y0 + 1;
 	let cw = vw;
 	let ch = vh;
 	if (vw / vh > WIDTH / HEIGHT) cw = Math.round((vh * WIDTH) / HEIGHT);
 	else ch = Math.round((vw * HEIGHT) / WIDTH);
-	const cx = box.x0 + Math.floor((vw - cw) / 2);
+	const cx = align === 'left' ? box.x0 : box.x0 + Math.floor((vw - cw) / 2);
 	const cy = box.y0 + Math.floor((vh - ch) / 2);
 	const { sceneItemId } = await obs.call('GetSceneItemId', { sceneName: SCENE, sourceName: WINDOW_INPUT });
 	await obs.call('SetSceneItemTransform', {
@@ -280,8 +296,8 @@ async function calibrate() {
 		sceneItemTransform: {
 			cropLeft: cx,
 			cropTop: cy,
-			cropRight: size.width - (cx + cw),
-			cropBottom: size.height - (cy + ch),
+			cropRight: width - (cx + cw),
+			cropBottom: height - (cy + ch),
 			positionX: 0,
 			positionY: 0,
 			alignment: 5,
@@ -291,11 +307,29 @@ async function calibrate() {
 			boundsAlignment: 0,
 		},
 	});
-	const state = readState();
-	state.viewport = { window: [size.width, size.height], box, crop: [cx, cy, cw, ch] };
-	writeState(state);
-	console.log(`Vue 3D de Studio : ${vw} x ${vh} (fenêtre ${size.width} x ${size.height}) ; image gardée ${cw} x ${ch} à (${cx}, ${cy}) -> ${WIDTH} x ${HEIGHT}`);
+	console.log(`Vue 3D de Studio : ${vw} x ${vh} (fenêtre ${width} x ${height}) ; image gardée ${cw} x ${ch} à (${cx}, ${cy}), ${align === 'left' ? 'à gauche' : 'au centre'} -> ${WIDTH} x ${HEIGHT}`);
+}
+
+async function crop(align) {
+	const obs = await connect();
+	await applyCrop(obs, align === 'left' ? 'left' : 'center');
 	obs.close();
+}
+
+// Durée d'une vidéo MP4 (boîte « mvhd »), en secondes : Roblox refuse les vidéos de plus de 30 s.
+function mp4Duration(file) {
+	const data = fs.readFileSync(file);
+	const index = data.indexOf(Buffer.from('mvhd'));
+	if (index < 0) return null;
+	const version = data[index + 4];
+	if (version === 1) {
+		const timescale = data.readUInt32BE(index + 4 + 4 + 16);
+		const duration = Number(data.readBigUInt64BE(index + 4 + 4 + 16 + 4));
+		return duration / timescale;
+	}
+	const timescale = data.readUInt32BE(index + 4 + 4 + 8);
+	const duration = data.readUInt32BE(index + 4 + 4 + 8 + 4);
+	return duration / timescale;
 }
 
 async function shot(file) {
@@ -319,6 +353,17 @@ async function recStart() {
 	obs.close();
 }
 
+// Pause / reprise de l'enregistrement : les moments en pause n'existent pas dans la vidéo (coupes nettes entre les
+// plans de la compilation, sans montage).
+async function recPause(paused) {
+	const obs = await connect();
+	const status = await obs.call('GetRecordStatus');
+	if (status.outputActive && status.outputPaused !== paused) {
+		await obs.call(paused ? 'PauseRecord' : 'ResumeRecord');
+	}
+	obs.close();
+}
+
 async function recStop(file) {
 	const obs = await connect();
 	const status = await obs.call('GetRecordStatus');
@@ -334,7 +379,10 @@ async function recStop(file) {
 	for (let attempt = 1; attempt <= 40; attempt++) {
 		try {
 			fs.renameSync(outputPath, target);
-			console.log(`Vidéo : ${target}`);
+			const seconds = mp4Duration(target);
+			const size = (fs.statSync(target).size / 1024 / 1024).toFixed(1);
+			const warning = seconds !== null && seconds > 30 ? ' ATTENTION : plus de 30 s, Roblox la refusera' : '';
+			console.log(`Vidéo : ${target} (${seconds === null ? '?' : seconds.toFixed(1)} s, ${size} Mo)${warning}`);
 			return;
 		} catch {
 			await sleep(500);
@@ -386,11 +434,15 @@ const commands = {
 	shot: () => shot(arg),
 	'rec-start': recStart,
 	'rec-stop': () => recStop(arg),
+	'rec-pause': () => recPause(true),
+	'rec-resume': () => recPause(false),
+	crop: () => crop(arg),
+	duration: async () => console.log(`${mp4Duration(arg)} s`),
 	finish,
 	restore,
 };
 if (!commands[command]) {
-	console.log('Commandes : start | calibrate | shot <fichier.png> | rec-start | rec-stop <fichier.mp4> | finish | restore');
+	console.log('Commandes : start | calibrate | crop <left|center> | shot <fichier.png> | rec-start | rec-pause | rec-resume | rec-stop <fichier.mp4> | duration <fichier.mp4> | finish | restore');
 	process.exit(1);
 }
 commands[command]().then(
