@@ -195,3 +195,6 @@ planter.
 - Studio doit rester au premier plan (caché, il ne dessine plus sa vue 3D) : ne pas toucher au PC pendant le
   tournage (~5 min) ; l'écran reste allumé.
 - `-SansObs` : sans OBS, les images sont de simples captures de la fenêtre de Studio (pour régler les plans).
+- Couper des morceaux d'une vidéo, avec le montage intégré à Windows (rien à installer) :
+  `powershell -ExecutionPolicy Bypass -File tools\studio-test\couper.ps1 -Entree a.mp4 -Sortie b.mp4 -Garder "0-8,10-19,23-fin"`
+  (morceaux gardés, en secondes ; image et son, 1080p 60 images/s).
