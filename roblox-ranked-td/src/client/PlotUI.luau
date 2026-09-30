@@ -316,6 +316,7 @@ function PlotUI.start()
 	for index, towerType in IdleTowers.ORDER do
 		local def = IdleTowers.Defs[towerType]
 		local card = UI.new("TextButton", {
+			Name = "Card_" .. towerType, -- (le tuto entoure d'or celle de l'Archer à l'étape « Pose une tour »)
 			Size = UDim2.fromOffset(CARD_WIDTH, CARD_HEIGHT),
 			LayoutOrder = index,
 			BackgroundColor3 = def.color:Lerp(UI.Colors.Panel, 0.55),
@@ -445,6 +446,7 @@ function PlotUI.start()
 		Parent = panel,
 	})
 	local upgradeButton = UI.button({
+		Name = "UpgradeButton", -- (le tuto l'entoure d'or à l'étape « Améliore-la »)
 		AnchorPoint = Vector2.new(0, 1),
 		Position = UDim2.new(0, 0, 1, 0),
 		Size = UDim2.new(0.6, -4, 0, 44),

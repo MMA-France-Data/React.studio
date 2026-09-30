@@ -121,8 +121,9 @@ dans `src/server/Match/init.luau`) n'est créé que dans Studio (`RunService:IsS
 jeu publié. Ses commandes « Ranked » (adversaires factices, temps écoulé...) sont dans `Matchmaking.debug`
 (`src/server/Matchmaking.luau`).
 
-Le test de la map principale dure maintenant ~3 min 50 (Play de 280 s par défaut, 240 s pour `-Place match` ;
+Le test de la map principale dure maintenant ~4 min 30 (Play de 320 s par défaut, 240 s pour `-Place match` ;
 `-Seconds` pour changer, le délai max suit : `-Seconds` + 150 s) : les tests du classé attendent la fin des autres
 tests du client (dont une photo par vrai modèle d'ennemi : ~3,5 s de plus pour chaque modèle ajouté dans
-`assets/EnemyModels`), puis ceux du tuto (~25 s) la fin du classé. S'il manque les lignes du tuto à la fin de la
+`assets/EnemyModels`), puis ceux du tuto (~60 s : chaque étape reste affichée le temps de lire son texte) la fin
+du classé. S'il manque les lignes du tuto à la fin de la
 Sortie, le Play s'est arrêté trop tôt : relance avec un `-Seconds` plus grand.

@@ -73,6 +73,14 @@ CustomModels.SETTINGS = {
 	boss_3 = { walk = 72114228775968, death = 108006752796153, animSpeed = 3.8 },
 	-- Seigneur des dunes (ChatGPT) : boss des vagues 50, 150, 250...
 	boss_4 = { walk = 106949813842936, death = 136502915373905, animSpeed = 3.8 },
+	-- Seigneur de la tempête (vague 70) : le Titan de glace repeint, même squelette : ses animations.
+	boss_6 = { walk = 72114228775968, death = 108006752796153, animSpeed = 3.8 },
+	-- Seigneur d'obsidienne (vague 80) : le Roi carmin retouché, mais son squelette est 100 fois plus petit (les
+	-- animations du roi le faisaient marcher à l'envers) : ses propres animations, publiées depuis ses FBX.
+	boss_7 = { walk = 81844791793411, death = 98247649438268, animSpeed = 3.8 },
+	-- Dragon (vague 100) : il vole (animation « fly » jouée à la place de la marche, à peu près à vitesse 1 ; pas
+	-- encore d'animation de mort).
+	boss_9 = { walk = 83377179082342, animSpeed = 4.3 },
 	-- Troupes carmin (ChatGPT, assets/enemies/crimson-ranks, vagues 1-10) : les 3 chevaliers ont le même
 	-- squelette (KayKit), donc les mêmes animations (publiées une fois depuis le fantassin). Fantassin et
 	-- chevalier lourd vont vite pour leur taille : la course (Running_A) ; le colosse, lent : la marche

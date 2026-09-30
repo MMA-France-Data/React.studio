@@ -307,13 +307,19 @@ IdleTowers.Defs = {
 		targeting = "First",
 		color = Color3.fromRGB(150, 110, 255),
 		placeCost = 250,
-		-- par ennemi touché (4 ennemis par éclair). 50 (18 avant) : les légendaires sont maintenant rares (la
-		-- première vers la vague 65-70, IdleConfig.TOWER_SPIN_TIERS) et ont très peu de doublons, alors que les
-		-- tours communes en ont des centaines à ce moment-là (+200 à +600 % de dégâts). À 18, 32 ou 40, le joueur
-		-- simulé ne la posait jamais (0 % des dégâts). À niveau égal et sans doublons, elle est la meilleure
-		-- contre les Escarmouches, les Levées, les Charges et les boss ; avec les doublons du joueur, à égalité
-		-- avec le Totem de givre.
-		damage = 50,
+		-- par ennemi touché (4 ennemis par éclair). Les légendaires sont rares (la première vers la vague 60-70,
+		-- IdleConfig.TOWER_SPIN_TIERS) et ont très peu de doublons, alors que les tours communes en ont des
+		-- centaines à ce moment-là (+200 à +600 % de dégâts). À 18, 32 ou 40, le joueur simulé ne la posait
+		-- jamais (0 % des dégâts). À niveau égal et sans doublons, elle est la meilleure tour du banc d'essai
+		-- contre tous les types de vague à partir de la vague 50 (avec 50 : tous sauf les Levées) ; en jeu, ce
+		-- sont ses rares doublons qui la retiennent.
+		-- 60 (50 avant, décision du propriétaire le 30/09/2026 : « renforce un peu, mais pas trop ») : depuis la
+		-- limite de 2 légendaires identiques, elle arrive souvent APRÈS le Trébuchet, quand presque tous les
+		-- emplacements sont pris, et le joueur simulé ne s'en servait presque plus. Avec 60 : 11-16 % des dégâts
+		-- des vagues 51-100 sur 12 parties (8-13 % avec 50), sans dépasser le Trébuchet ni changer la vitesse du jeu.
+		-- NE PAS MONTER PLUS HAUT sans relancer tools/balance : à 65, elle prend déjà 22-31 % (jusqu'à 81 % dans
+		-- une partie), à 70, 27-41 %. Voir tools/balance/RESULTS.md, « L'Oracle un peu plus fort ».
+		damage = 60,
 		range = 20,
 		cooldown = 1.2,
 		chains = 4,

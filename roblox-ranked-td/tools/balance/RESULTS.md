@@ -38,6 +38,7 @@ après ce réglage.
 | Garde colossale : part des PV | 0,5 | **0,33** | un colosse seul devenait un mur de 40 min à 1 h (le Trébuchet ne l'écrase plus) |
 | Seigneur de guerre : part max | 0,5 | **0,33** | même raison |
 | PV : `HEALTH_WAVE_POWER` | 2,4 | **2,55** | sans ça, la vague 100 arrivait vers 11 h (cible 15-30 h) |
+| Oracle : dégâts (30/09) | 50 | **60** | depuis la limite de 2 légendaires, il ne servait presque plus quand il sortait après le Trébuchet (« renforce un peu, mais pas trop » : voir « L'Oracle un peu plus fort » plus bas) |
 
 Inchangés : fragilité (+10 %, +2 %/niveau, +300 % au plus), Mage -85 % et 10 dégâts, étourdissement 0,5 s,
 prix de la forge (décision du propriétaire), autel, emplacements, renaissance. Nouveaux réglages nommés
@@ -429,6 +430,117 @@ Part des dégâts utiles (moyenne des 3 parties, « de - à » selon le type de 
   joueur simulé) ; la proposition à 2,62 aussi. Erreur faite exprès dans le joueur simulé (une tour de plus que la
   limite proposée) : `Run:execute` arrête la partie dès le 6e Totem. Le test Studio, rejoué hors de Studio avec le
   vrai `PlotGame.luau` : 15 sur 15, et il voit une limite décalée de 1 ou une vieille sauvegarde rognée au chargement.
+
+## L'Oracle un peu plus fort (décision du propriétaire, 30/09/2026)
+
+Constat de l'essai du dessus : l'Oracle ne faisait plus que 0-1 % des dégâts. Décision : « renforce un peu alors, mais
+pas trop », sans ralentir le jeu (vague 100 vers 16 h : bien). **Changé : ses dégâts, 50 -> 60 par ennemi touché**
+(`IdleTowers.Defs.Chain.damage`, +20 %). Rien d'autre (portée 20, 4 cibles, 1,2 s, `HEALTH_WAVE_POWER` inchangés).
+
+**Pourquoi il ne servait plus** (banc d'essai, duels, parties du simulateur) :
+
+- **Pas une tour faible** : à niveau égal et sans doublons, c'était déjà la meilleure tour du banc d'essai contre les
+  Escarmouches, les Charges et les boss (vagues 25 à 150) et contre les Gardes (vagues 50 à 150), 1,4 à 1,5 fois la
+  Baliste en duel, 4,1 fois la Catapulte contre une foule.
+- **Surtout le hasard de l'autel** : une légendaire tirée est un Oracle ou un Trébuchet (50/50). Dans les 3 parties de
+  l'essai rapide, le Trébuchet sort en premier (vagues 61-65) et prend les emplacements achetés à ce moment ; l'Oracle
+  arrive vers la vague 87 (79 à 95), quand presque tous les emplacements sont pris. Il est posé aux vagues 114, 98 et
+  96 : il ne joue presque pas les vagues 51-100. Le joueur simulé le monte tout de suite vers le niveau 60-70 et
+  continue ensuite (niveau ~95 à la vague 150), mais il reste 10 à 15 niveaux sous les Catapultes et les Balistes, qui
+  ont aussi 20 fois plus de doublons (graine 1 à 40 h : 18 pour l'Oracle, 407 pour la Catapulte) : 0-1 % des dégâts
+  après la vague 100.
+- **Avec 3 parties de plus** (`-Graines 6` : dans les graines 4 à 6, l'Oracle sort plus tôt et il est posé aux
+  vagues 70, 75 et 87, avant le Trébuchet dans la graine 4), il servait déjà : 8-13 % des dégâts des vagues 51-100 en
+  moyenne des 6 parties (8-13 % aussi sur 12 parties), jusqu'à 43 % d'une tranche dans une partie. Le « 0-1 % » venait
+  donc surtout de l'ordre de sortie dans les 3 parties de référence. Dans celles-ci, la limite de 2 ne le gênait pas
+  (1 ou 2 posés) ; quand il sort tôt, le joueur simulé en pose souvent 2, le maximum (avant la limite : jusqu'à 8).
+- **Le joueur simulé y est pour quelque chose, sans bug.** Il est prudent exprès (il ne remplace qu'une de ses 3 tours
+  les moins utiles, posée depuis 2 h, et compte le prix de tous les niveaux d'une tour neuve) et prend toujours l'achat
+  au meilleur rapport gain / prix. Dans les parties 1 et 3, il achète bien un nouvel emplacement après le déblocage de
+  l'Oracle, mais il y pose un Mage de niveau 1 (il ralentit tout de suite pour presque rien, alors qu'un Oracle doit
+  être monté d'une soixantaine de niveaux pour servir) : l'Oracle attend l'emplacement suivant, environ 7 h et 4 h
+  après son déblocage (partie 2 : il remplace l'Archer 3 vagues après). Un vrai joueur poserait sûrement sa légendaire
+  sur le nouvel emplacement. C'est la règle voulue du joueur simulé (la changer déplacerait tous les résultats de
+  référence) : pas changée.
+
+Essais (`run.ps1 -Rapide -Graines 6 -Regler "IdleTowers.Defs.Chain.damage=..."` : 6 parties x 40 h ; part des dégâts
+utiles, « de - à » selon le type de vague, moyenne des parties ; « 1 partie » = meilleure part d'une tranche dans une
+seule partie, objectif 15 du rapport) :
+
+| Dégâts de l'Oracle (6 parties) | Oracle 51-100 / 101+ | 1 partie | Trébuchet 51-100 / 101+ | Vague 100 | Record 40 h |
+|---|---|---|---|---|---|
+| 50 (avant) | 8-13 % / 1-2 % | 43 % | 20-45 % / 2-8 % | 16 h 35 | 160 (155 - 165) |
+| 55 | 13-20 % / 3-5 % | 70 % | 21-47 % / 4-9 % | 16 h 21 | 162 (155 - 173) |
+| **60 (gardé)** | **13-20 % / 1-2 %** | 48 % | 19-46 % / 3-6 % | 16 h 09 | 164 (155 - 179) |
+| 70 | 25-42 % / 3-6 % | 68 % | 15-45 % / 2-7 % | 16 h 29 | 161 (155 - 170) |
+| 75 | 27-46 % / 7-12 % | 75 % | 14-44 % / 3-7 % | 16 h 12 | 159 (145 - 167) |
+
+Aussi essayés sur les 3 parties de référence seulement (Oracle 51-100 / 101+, record à 40 h) : portée 24 : 1-8 % /
+1 %, 163 ; 5 cibles : 0-8 % / 2-4 %, 160 ; dégâts 65 : 3-8 % / 0-2 %, 164 ; dégâts 80 : 12-21 % / 2-5 %, 159 (jusqu'à
+41 % dans une partie). Les 5 cibles changeraient aussi le texte « 4 cibles » des fiches : pas gardé.
+
+Relecture sur **12 parties** (`-Graines 12`, plus sûr : les parties 1 à 6 sont les mêmes qu'au-dessus) :
+
+| Dégâts de l'Oracle (12 parties) | Oracle 51-100 / 101+ | 1 partie | Trébuchet 51-100 / 101+ | Vague 100 | Record 40 h | Objectifs |
+|---|---|---|---|---|---|---|
+| 50 (avant) | 8-13 % / 1-2 % | 45 % | 17-42 % / 3-9 % | 16 h 24 | 162 (149 - 175) | 18 sur 26 |
+| 55 | 11-16 % / 2-4 % | 70 % | 17-38 % / 3-8 % | 16 h 18 | 164 (155 - 175) | 18 sur 26 |
+| **60 (gardé)** | **11-16 % / 2-4 %** | 62 % | 15-37 % / 3-10 % | 15 h 59 | 163 (149 - 179) | 18 sur 26 |
+| 65 | 22-31 % / 3-5 % | 81 % | 13-37 % / 4-10 % | 15 h 59 | 163 (155 - 170) | 18 sur 26 |
+| 70 | 27-41 % / 4-7 % | 68 % | 13-39 % / 2-7 % | 16 h 23 | 161 (149 - 171) | 17 sur 26 |
+
+(Le Trébuchet, lui, va jusqu'à 74-77 % d'une tranche dans une partie, avec tous ces réglages.)
+
+Gardé : **60**. Il donne une vraie place à l'Oracle (11-16 % des dégâts des vagues 51-100 sur 12 parties, 13-20 % sur
+6 ; le Trébuchet garde 15-37 %) sans en faire la tour obligatoire, et la vitesse ne bouge pas. 55 donne la même part en
+moyenne : 60 est gardé pour que le renfort « un peu » se voie en jeu (+20 %, « 60 dégâts/coup » sur la fiche).
+**Ne pas monter plus haut** : dès 65, le joueur simulé en pose plus souvent 2 et les monte plus haut, et l'Oracle prend
+22-31 % des dégâts des vagues 51-100 (jusqu'à 81 % dans une partie) ; 27-41 % à 70.
+
+Essai rapide officiel (`run.ps1 -Rapide` : 3 parties x 40 h, mêmes graines que « Limite de tours identiques ») :
+
+| Scénario « base » | Avant (dégâts 50) | **Après (dégâts 60)** |
+|---|---|---|
+| Vague 50 / 100 | 4 h 17 / 16 h 00 | 4 h 17 / **16 h 11** |
+| Record à 40 h | 163 (159 - 165) | **162** (155 - 165) |
+| Oracle 51-100 / 101+ | 0-1 % / 0 % | 0-4 % / 0-1 % |
+| Trébuchet 51-100 / 101+ | 17-53 % / 3-7 % | 22-57 % / 2-7 % |
+| Oracle : posé à la vague (graines 1, 2, 3) ; posés à 40 h | 114, 98, 96 ; 1, 2, 1 | 111, 98, 96 ; 1, 2, 1 |
+| Meilleure part d'une tranche dans 1 partie : Oracle | 4 % | 11 % |
+| Murs 31-70 / 71-100 (80 % sous…) | 14 min / 33 min | 16 min / 33 min |
+| Duels (1 = la Baliste) / foule (1 = la Catapulte) : Oracle | 1,40-1,55 / 4,14 | 1,68-1,85 / 4,97 |
+| Anti-méta, mélange à 5 / 10 / 20 / 40 h | 53 / 78 / 106 / 157 | 53 / 75 / 107 / 157 |
+| Objectifs atteints | 18 sur 26 | 17 sur 26 (voir plus bas) |
+
+Tours du joueur simulé (graine 1) : **10 h** : 2 Archer, 5 Totem, 4 Catapulte, 1 Mage, 3 Baliste, 3 Sorcier,
+2 Trébuchet (avant et après) ; **20 h** : 2 Archer, 5 Totem, 4 Catapulte, 1 Mage (après : 2), 3 Baliste, 3 Sorcier,
+1 Oracle, 2 Trébuchet ; **40 h** : 2 Archer,
+5 Totem, 4 Catapulte, 2 Mage, 3 Baliste, 3 Sorcier, 1 Oracle, 2 Trébuchet (avant et après).
+
+- Dans les 3 parties de référence, l'Oracle sort toujours après le Trébuchet, quand presque tout est pris : +20 % de
+  dégâts n'y change presque rien (0-4 %). Il faudrait ~80 pour qu'il y serve vraiment (12-21 %), mais dès 65-75, sur
+  6 ou 12 parties, il prend 22 à 46 % des dégâts des vagues 51-100 : trop.
+- **Après la vague 100, les deux légendaires restent petites** (Oracle 1-2 %, Trébuchet 2-8 % sur 6 parties ; 2-4 % et
+  3-10 % sur 12) : les tours communes et rares y ont des centaines de doublons (+2 % chacun), les légendaires presque
+  pas. Pour 10 % après la vague 100, il faudrait ~75, qui ferait de l'Oracle la tour obligatoire des vagues 51-100.
+  Pas fait.
+- Objectifs : le 15 (« les 8 tours utiles ») ne manque plus que le Mage (tour de contrôle) ; le 16 passe à « PEU VARIÉ » :
+  au banc d'essai (équipes de N tours identiques, SANS doublons, impossibles en jeu), l'Oracle est maintenant le
+  meilleur contre tous les types de vague à partir de la vague 25 (avant : tous sauf les Levées et une Garde) ; dans
+  les vraies parties, il n'écrase rien (sur 12 parties, le 16 reste OK de justesse : 3 tours différentes). Le 14 : dans
+  une partie (record 155), le 22e emplacement n'est pas acheté en 40 h (hasard de la partie : 21,7 en moyenne, 22e à la
+  vague 105 dans les deux autres).
+- `run.ps1 -Verifier` : 162 vagues sur 162 identiques, 0,00 s d'écart, 106 sur 106 avec les mêmes carreaux, 2 essais
+  de dégâts sur 2, 4 vagues faites à la main sur 4 (le combat n'a pas changé, seul le chiffre de l'Oracle). Aucun
+  test Studio ne vérifie ses dégâts ; la fiche lit les vrais chiffres (60 par coup), le texte « rebondit entre quatre
+  ennemis » reste juste.
+- Relecture : l'essai rapide relancé redonne exactement ce rapport, et le tableau de 6 parties est retrouvé (lignes 50
+  et 60) ; `-Verifier` et `check.ps1` : OK. Tableau de 12 parties ajouté plus haut. Simulation complète (5 scénarios x
+  3 parties x 100 h) avec 60 puis 50 : l'Oracle ne dépasse 6 % des dégâts (moyenne des 3 parties) dans aucun scénario ;
+  « base » : vague 100 à 16 h 11 (16 h 00 avec 50), record à 100 h 256 (261) ; « forge » : identique. Dans
+  « renaissance », une partie finit à 765 au lieu de 1 729 à 100 h : ce scénario « explose » vers 70-80 h (record de
+  ~450 à plus de 1 000) à un moment qui change beaucoup d'une partie à l'autre. Sur 12 parties de 60 h, rien ne bouge
+  en moyenne (record 258 à 40 h et 392 à 60 h, contre 258 et 393 avec 50 ; 9 parties identiques).
 
 ## Ce qui reste (honnêtement)
 

@@ -1540,6 +1540,12 @@ return function(log)
 		-- posé à un endroit neutre (30 studs derrière le cercle, loin de sa parcelle) : les tests d'avant (classé...)
 		-- peuvent l'avoir laissé près du cercle ou chez lui, et une étape déjà faite se valide toute seule.
 		local circle = PlotLayout.RANKED_CIRCLE_POSITION
+		-- Les tests d'avant cachent les fenêtres des machines sans les fermer : aucune machine « ouverte » (sinon le
+		-- tuto cache ses boutons, voir TutorialUI.refreshButtons).
+		local machinesGui = player.PlayerGui:FindFirstChild("Machines")
+		if machinesGui then
+			machinesGui:SetAttribute("OpenMachine", nil)
+		end
 		local away = circle - PlotLayout.cframe(plotIndex).Position
 		away = Vector3.new(away.X, 0, away.Z)
 		away = if away.Magnitude > 1e-3 then away.Unit else Vector3.new(0, 0, 1)
@@ -1600,7 +1606,7 @@ return function(log)
 		end
 		local step2 = waitFor(function()
 			return titleHas("2/6") and guideOk() and guideTo(PlotLayout.toWorld(plotIndex, Vector3.new(0.5, 0, -22))) < 1
-		end, 8)
+		end, 15)
 		check(step2, `tuto : étape 1 validée dans le cercle -> « {title.Text} », rayon vers sa parcelle`)
 
 		-- 2) Ta parcelle : retour chez lui (son point d'apparition).
@@ -1610,7 +1616,7 @@ return function(log)
 		end
 		local step3 = waitFor(function()
 			return titleHas("3/6") and guideOk()
-		end, 8)
+		end, 15)
 		check(step3, `tuto : étape 2 validée sur sa parcelle -> « {title.Text} »`)
 
 		-- Mort et réapparition (comme « Réinitialiser ») : le tuto continue, le rayon repart du nouveau personnage.
@@ -1635,11 +1641,41 @@ return function(log)
 		end
 		local pad = spotIndex and plot.Spots:FindFirstChild("Spot" .. spotIndex)
 		check(pad ~= nil and pad:GetAttribute("Unlocked") == true, `tuto : étape 3, la flèche montre un emplacement libre (n° {spotIndex})`)
+		-- Panneau des tours ouvert (comme après un clic sur l'emplacement) : la carte de l'Archer est entourée d'or.
+		local IdleTowers = require(ReplicatedStorage.Shared.IdleTowers)
+		local body = panel:FindFirstChild("Text")
+		local cardsGui = player.PlayerGui:FindFirstChild("Plot")
+		local cardsPanel = cardsGui and cardsGui:FindFirstChild("TowerPanel")
+		local archerCard = cardsPanel and cardsPanel:FindFirstChild("Card_MachineGun", true)
+		if cardsPanel and archerCard then
+			local wasVisible = cardsPanel.Visible
+			cardsPanel.Visible = true
+			local ringed = waitFor(function()
+				local ring = archerCard:FindFirstChild("TutorialHighlight")
+				return ring ~= nil and ring:FindFirstChildWhichIsA("UIStroke") ~= nil
+			end, 3)
+			local elsewhere = 0
+			for _, descendant in cardsPanel:GetDescendants() do
+				if descendant.Name == "TutorialHighlight" and descendant.Parent ~= archerCard then
+					elsewhere += 1
+				end
+			end
+			cardsPanel.Visible = wasVisible
+			local cleared = waitFor(function()
+				return archerCard:FindFirstChild("TutorialHighlight") == nil
+			end, 3)
+			check(
+				ringed and elsewhere == 0 and cleared and body ~= nil and string.find(body.Text, IdleTowers.Defs.MachineGun.displayName, 1, true) ~= nil,
+				`tuto : étape 3, texte « {IdleTowers.Defs.MachineGun.displayName} » et sa carte entourée d'or quand le panneau des tours est ouvert ({ringed}, ailleurs : {elsewhere}), cadre retiré à sa fermeture ({cleared})`
+			)
+		else
+			check(false, "tuto : carte de l'Archer (PlotUI « Card_MachineGun ») introuvable")
+		end
 		spotIndex = spotIndex or 1
 		remotes.PlotAction:FireServer("Place", spotIndex, "MachineGun")
 		local step4 = waitFor(function()
 			return titleHas("4/6") and guideOk() and guideTo(PlotLayout.toWorld(plotIndex, PlotLayout.SPOTS[spotIndex])) < 1
-		end, 8)
+		end, 15)
 		check(step4, `tuto : tour posée -> « {title.Text} », flèche sur la tour`)
 
 		-- 4) L'améliorer (le serveur refuse 2 actions à moins de 0,15 s d'écart, 0,3 s pour les machines).
@@ -1648,18 +1684,47 @@ return function(log)
 		local altar = plot:FindFirstChild("TowerMachine")
 		local step5 = waitFor(function()
 			return titleHas("5/6") and guideOk() and altar ~= nil and guideTo(altar.Position) < 1
-		end, 8)
+		end, 15)
 		check(step5, `tuto : tour améliorée -> « {title.Text} », flèche sur l'autel`)
 
 		-- 5) Un lancer x1 de l'autel (3 pièces au record 1).
 		task.wait(0.5)
 		remotes.MachineAction:FireServer("SpinTower", 1)
 		local forge = plot:FindFirstChild("BonusMachine")
+		local body6 = panel:FindFirstChild("Text")
+		local machines6 = player.PlayerGui:FindFirstChild("Machines")
 		local step6 = waitFor(function()
-			return titleHas("6/6") and guideOk() and forge ~= nil and guideTo(forge.Position) < 1 and shown(nextButton)
-				and nextButton.Text == "Terminer"
-		end, 8)
-		check(step6, `tuto : lancer de l'autel -> « {title.Text} », flèche sur la forge, bouton « {nextButton.Text} »`)
+			return titleHas("6/6") and guideOk() and forge ~= nil and guideTo(forge.Position) < 1
+		end, 15)
+		-- Fenêtre de l'autel ouverte par le résultat du lancer : « ferme d'abord l'autel » (son X entouré d'or), pas de
+		-- « Terminer » ni de « Passer » tant qu'elle est ouverte ; fermée (comme MachineUI) : la forge et « Terminer ».
+		local altarShown = machines6 ~= nil and machines6:GetAttribute("OpenMachine") == "Tower"
+		local closeAsked = not altarShown
+			or waitFor(function()
+				local closeButton = machines6:FindFirstChild("CloseButton", true)
+				return body6 ~= nil
+					and string.find(body6.Text, "Ferme la fenêtre de l'autel", 1, true) ~= nil
+					and not shown(nextButton)
+					and not shown(skipButton)
+					and closeButton ~= nil
+					and closeButton:FindFirstChild("TutorialHighlight") ~= nil
+			end, 5)
+		if machines6 then
+			machines6:SetAttribute("OpenMachine", nil)
+			for _, child in machines6:GetChildren() do
+				if child:IsA("TextButton") and child.Size == UDim2.fromScale(1, 1) then
+					child.Visible = false
+				end
+			end
+		end
+		local forgeText = waitFor(function()
+			return shown(nextButton) and nextButton.Text == "Terminer" and shown(skipButton) and body6 ~= nil
+				and string.find(body6.Text, "Forge runique", 1, true) ~= nil
+		end, 5)
+		check(
+			step6 and closeAsked and forgeText,
+			`tuto : lancer de l'autel -> « {title.Text} », flèche sur la forge ; autel ouvert ({altarShown}) : « ferme l'autel », X entouré d'or, sans boutons ({closeAsked}) ; fermé : texte de la forge et « {nextButton.Text} » ({forgeText})`
+		)
 		-- Avec les parcelles des autres (PlotAccess.luau) : l'autel et la forge montrés par la flèche sont ceux de SA
 		-- parcelle, et leurs invites « Ouvrir » restent allumées (seules celles des autres parcelles sont éteintes).
 		local altarPrompt = altar and altar:FindFirstChildOfClass("ProximityPrompt")
@@ -1674,12 +1739,14 @@ return function(log)
 		say("CMD:OpenMachine:Bonus")
 		local finished = waitFor(function()
 			return not shown(panel) and guideGone() and player:GetAttribute("TutorialDone") == true
-		end, 8)
+		end, 15)
 		check(
 			finished,
 			`tuto : forge ouverte -> tuto fini, panneau caché, guide retiré, drapeau reçu (TutorialDone = {tostring(player:GetAttribute("TutorialDone"))})`
 		)
-		-- (fenêtre de la forge : seulement son voile caché, comme pour les défis plus haut)
+		-- Pendant que la forge est ouverte, le tuto n'a ni « Terminer » ni « Passer » (sinon le X d'une fenêtre réduite
+		-- pouvait tomber dessus). Ici le tuto est fini ; on vérifie la règle au 2e essai ci-dessous.
+		-- (fenêtre de la forge : son voile caché, comme pour les défis plus haut, et plus de machine ouverte)
 		local machines = player.PlayerGui:FindFirstChild("Machines")
 		for _, child in (if machines then machines:GetChildren() else {}) do
 			if child:IsA("TextButton") and child.Size == UDim2.fromScale(1, 1) then
@@ -1687,13 +1754,25 @@ return function(log)
 			end
 		end
 
-		-- « Passer » sur un 2e essai : fini tout de suite, à l'étape 1.
+		-- « Passer » sur un 2e essai : fini tout de suite, à l'étape 1. D'abord avec la forge encore « ouverte » :
+		-- pas de « Passer » (ni « Suivant ») tant qu'une machine est ouverte ; puis machine fermée : il revient.
 		task.wait(0.8) -- anti-spam du serveur (un message toutes les 0,5 s)
 		remotes.TutorialAction:FireServer("Replay")
+		local hiddenWhileOpen = machines ~= nil
+			and machines:GetAttribute("OpenMachine") == "Bonus"
+			and waitFor(function()
+				return titleHas("1/6") and not shown(skipButton) and not shown(nextButton)
+			end, 8)
+		if machines then
+			machines:SetAttribute("OpenMachine", nil) -- (comme MachineUI quand on ferme sa fenêtre)
+		end
 		local again = waitFor(function()
-			return titleHas("1/6") and guideOk() and shown(skipButton)
+			return titleHas("1/6") and guideOk() and shown(skipButton) and shown(nextButton)
 		end, 8)
-		check(again, `tuto : 2e essai -> « {title.Text} », bouton « {skipButton.Text} » affiché`)
+		check(
+			hiddenWhileOpen and again,
+			`tuto : 2e essai -> « {title.Text} » ; forge ouverte : ni « Passer » ni « Suivant » ({hiddenWhileOpen}) ; fermée : « {skipButton.Text} » et « {nextButton.Text} » affichés ({again})`
+		)
 		task.wait(0.8)
 		remotes.TutorialAction:FireServer("Skip", 1)
 		local skipped = waitFor(function()

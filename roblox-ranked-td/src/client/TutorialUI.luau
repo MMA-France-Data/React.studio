@@ -2,10 +2,14 @@
 -- 6 étapes, chacune validée par ce que le joueur fait vraiment :
 --   1. la zone classée : entrer dans le cercle rouge au centre de la map, ou tout près (ou « Suivant ») ;
 --   2. ta parcelle : y retourner ;
---   3. poser une tour : au moins une tour sur ta parcelle ;
---   4. l'améliorer : une tour au niveau 2 ou plus ;
---   5. l'Autel des héros : un lancer (résultat reçu, ou des lancers déjà achetés : attribut TowerSpinsBought) ;
---   6. la Forge runique : l'ouvrir (sa machine ou son bouton de gauche), ou « Terminer ».
+--   3. poser une tour : au moins une tour sur ta parcelle (le texte nomme l'Archer, sa carte est entourée d'or) ;
+--   4. l'améliorer : une tour au niveau 2 ou plus (« Améliorer » entouré d'or) ;
+--   5. l'Autel des héros : y aller à pied et lancer x1 (résultat reçu, ou des lancers déjà achetés : attribut
+--      TowerSpinsBought ; x1 entouré d'or) ;
+--   6. la Forge runique : fermer l'autel s'il est encore ouvert (X entouré d'or), puis l'ouvrir (sa machine ou son
+--      bouton de gauche), ou « Terminer ». Forge ouverte : une astuce montre les boutons de gauche (entourés d'or)
+--      qui ouvrent l'autel et la forge de n'importe où.
+-- Chaque étape reste affichée au moins le temps de lire son texte (READ_MIN à READ_MAX secondes).
 -- Une étape déjà faite avant d'y arriver (ex. une tour déjà posée) est validée tout de suite. Le tuto ne bloque
 -- rien : un petit panneau en haut de l'écran, un rayon doré du personnage vers la cible et une flèche ▼ au-dessus
 -- d'elle (créés seulement chez ce joueur, retirés à la fin ; le rayon repart du nouveau personnage après une mort).
@@ -24,6 +28,7 @@ local TweenService = game:GetService("TweenService")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.Config)
 local IdleConfig = require(Shared.IdleConfig)
+local IdleTowers = require(Shared.IdleTowers)
 local NumberFormat = require(Shared.NumberFormat)
 local PlotLayout = require(Shared.PlotLayout)
 local Remotes = require(Shared.Remotes)
@@ -43,6 +48,11 @@ local TOP_NARROW = 106
 local WIDE_SCREEN = 1140
 local CHECK_INTERVAL = 0.2 -- secondes entre deux vérifications de l'étape en cours
 local DONE_FLASH = 0.8 -- secondes de « ✓ BRAVO ! » avant l'étape suivante
+-- Temps de lecture : une étape faite très vite (ex. arrivé sur sa parcelle avant d'avoir fini de lire) garde son
+-- texte sous « ✓ BRAVO ! » jusqu'à ce temps-là depuis son apparition : 2 s + 1 s par 15 lettres, entre 3 et 8 s
+-- (retour du propriétaire : « j'ai pas eu le temps de lire le texte que j'étais déjà arrivé »).
+local READ_MIN, READ_MAX = 3, 8
+local READ_CHARS_PER_SECOND = 15
 local START_DELAY = 2 -- après le chargement des données : le temps que la map et l'interface arrivent
 local CIRCLE_MARGIN = 6 -- studs autour du cercle classé qui comptent comme « dans la zone »
 local GUIDE_COLOR = Color3.fromRGB(255, 205, 80) -- doré, comme l'anneau du cercle classé
@@ -64,6 +74,8 @@ function TutorialUI.start()
 	local step = 1
 	local startedAt = 0 -- os.clock() du départ du tuto
 	local flashUntil = 0 -- « ✓ BRAVO ! » affiché jusqu'à cette heure, puis étape suivante (0 = rien)
+	local stepShownAt = 0 -- os.clock() de l'apparition de l'étape en cours (temps de lecture)
+	local afterShown = false -- l'astuce de fin d'étape (afterText) est affichée sous « ✓ BRAVO ! »
 	local lastSpinAt = -math.huge -- dernier résultat de l'Autel des héros reçu (os.clock())
 	local lastForgeAt = -math.huge -- dernière ouverture de la Forge runique (os.clock())
 
@@ -125,11 +137,37 @@ function TutorialUI.start()
 		local machines = player.PlayerGui:FindFirstChild("Machines")
 		return machines ~= nil and machines:GetAttribute("OpenMachine") == "Bonus" -- (MachineUI)
 	end
+	local function altarOpen(): boolean
+		local machines = player.PlayerGui:FindFirstChild("Machines")
+		return machines ~= nil and machines:GetAttribute("OpenMachine") == "Tower" -- (MachineUI)
+	end
+	local function machineOpen(): boolean
+		local machines = player.PlayerGui:FindFirstChild("Machines")
+		return machines ~= nil and machines:GetAttribute("OpenMachine") ~= nil
+	end
+	-- Bouton ou carte vraiment à l'écran (lui et tous ses parents visibles, écran allumé), sinon nil : le tuto
+	-- l'entoure d'or (ex. la carte de l'Archer quand le panneau des tours est ouvert).
+	local function shownChild(guiName: string, childName: string): GuiObject?
+		local screen = player.PlayerGui:FindFirstChild(guiName)
+		local child = screen and screen:FindFirstChild(childName, true)
+		if not (child and child:IsA("GuiObject")) then
+			return nil
+		end
+		local current: Instance? = child
+		while current and current ~= screen do
+			if current:IsA("GuiObject") and not current.Visible then
+				return nil
+			end
+			current = current.Parent
+		end
+		return if screen:IsA("ScreenGui") and screen.Enabled then child else nil
+	end
 
 	------------------------------------------------------------------
-	-- Les 6 étapes : title et text (panneau), marker (au-dessus de la flèche ▼), button (« Suivant » / « Terminer »,
-	-- sinon aucun : l'action du joueur valide l'étape), target() = position visée et hauteur de la flèche (nil =
-	-- pas de guide), done() = vrai quand l'étape est faite.
+	-- Les 6 étapes : title et text (panneau ; text peut être une fonction, relue pendant l'étape), marker
+	-- (au-dessus de la flèche ▼), button (« Suivant » / « Terminer », sinon aucun : l'action du joueur valide
+	-- l'étape), target() = position visée et hauteur de la flèche (nil = pas de guide), highlight() = bouton ou
+	-- carte à entourer d'or quand il est à l'écran (facultatif), done() = vrai quand l'étape est faite.
 	------------------------------------------------------------------
 	local STEPS = {
 		{
@@ -174,8 +212,13 @@ function TutorialUI.start()
 		},
 		{
 			title = "POSE UNE TOUR",
-			text = "Clique sur un emplacement libre (sous la flèche), puis sur une tour : elle tire toute seule sur les ennemis.",
+			-- (Retour du propriétaire : avec « une tour », un débutant prend n'importe laquelle : on nomme l'Archer,
+			-- et sa carte est entourée d'or dans le panneau des tours.)
+			text = `Clique sur un emplacement libre (sous la flèche), puis sur la carte « {IdleTowers.Defs.MachineGun.displayName} » entourée d'or : ta tour tire toute seule.`,
 			marker = "ICI",
+			highlight = function()
+				return shownChild("Plot", "Card_MachineGun")
+			end,
 			target = function()
 				local pad = freeSpot()
 				return if pad then pad.Position + Vector3.new(0, 0.4, 0) else nil, 5
@@ -186,8 +229,11 @@ function TutorialUI.start()
 		},
 		{
 			title = "AMÉLIORE-LA",
-			text = "Clique sur ta tour, puis sur « Améliorer » : elle fera plus de dégâts.",
+			text = "Clique sur ta tour, puis sur « Améliorer » (entouré d'or) : elle fera plus de dégâts.",
 			marker = "TA TOUR",
+			highlight = function()
+				return shownChild("Plot", "UpgradeButton")
+			end,
 			target = function()
 				local tower, index = myTowers()[1], plotIndex()
 				local spot = tower and PlotLayout.SPOTS[tower:GetAttribute("SpotIndex")]
@@ -204,8 +250,13 @@ function TutorialUI.start()
 		},
 		{
 			title = "L'AUTEL DES HÉROS",
-			text = "Ouvre l'Autel des héros (ou son bouton à gauche) et lance x1 : il donne de nouvelles tours.",
+			-- (Retour du propriétaire : d'abord y aller à pied, pour savoir où il est ; le bouton de gauche est
+			-- montré à la fin du tuto.)
+			text = "Va à l'Autel des héros (suis le rayon doré), ouvre-le et lance x1 (entouré d'or) : il donne de nouvelles tours.",
 			marker = "AUTEL DES HÉROS",
+			highlight = function()
+				return if altarOpen() then shownChild("Machines", "Spin_1") else nil
+			end,
 			target = function()
 				return machinePosition("TowerMachine"), 8
 			end,
@@ -216,12 +267,24 @@ function TutorialUI.start()
 		{
 			title = "LA FORGE RUNIQUE",
 			text = function()
+				-- Fenêtre de l'autel encore ouverte (juste après le lancer) : d'abord la fermer (retour du propriétaire).
+				if altarOpen() then
+					return "Ferme la fenêtre de l'autel (X entouré d'or), puis va à la Forge runique, juste à côté, et ouvre-la."
+				end
 				-- Prix du prochain lancer en pièces (100K pour un nouveau joueur, voir IdleConfig.forgeCoinPrice).
 				local price = IdleConfig.forgeCoinPrice(IdleConfig.cleanSpinsBought(player:GetAttribute("ForgeSpinsBought")))
-				return `Ses runes multiplient les dégâts de tes tours. Elle coûte cher au début ({NumberFormat.short(price)} pièces) : reviens plus tard !`
+				return `Va à la Forge runique et ouvre-la : ses runes multiplient les dégâts de tes tours (chères au début : {NumberFormat.short(price)} pièces).`
 			end,
 			marker = "FORGE RUNIQUE",
 			button = "Terminer",
+			highlight = function()
+				return if altarOpen() then shownChild("Machines", "CloseButton") else nil
+			end,
+			-- Une fois la forge ouverte, avant la fin : le raccourci (les boutons de gauche), entouré d'or.
+			afterText = "Astuce : les boutons « Autel des héros » et « Forge runique », à gauche (entourés d'or), les ouvrent de n'importe où !",
+			afterHighlight = function()
+				return { shownChild("Machines", "TowerShortcut"), shownChild("Machines", "BonusShortcut") }
+			end,
 			target = function()
 				return machinePosition("BonusMachine"), 8
 			end,
@@ -441,17 +504,82 @@ function TutorialUI.start()
 	end
 
 	------------------------------------------------------------------
+	-- Cadre doré qui clignote autour du bouton ou de la carte à cliquer (highlight de l'étape : carte de l'Archer,
+	-- « Améliorer », x1 de l'autel, X de l'autel), seulement quand il est à l'écran.
+	------------------------------------------------------------------
+	local highlights: { [GuiObject]: Frame } = {} -- [bouton ou carte entouré] = son cadre
+	-- targets : un bouton, une liste de boutons (les nil sont ignorés), ou nil (plus aucun cadre).
+	local function setHighlight(targets: any)
+		local wanted: { [GuiObject]: boolean } = {}
+		if typeof(targets) == "Instance" then
+			wanted[targets] = true
+		elseif type(targets) == "table" then
+			for _, target in targets do
+				if typeof(target) == "Instance" then
+					wanted[target] = true
+				end
+			end
+		end
+		for target, frame in highlights do
+			if not wanted[target] or frame.Parent ~= target then
+				frame:Destroy()
+				highlights[target] = nil
+			end
+		end
+		for target in wanted do
+			if not highlights[target] then
+				local frame = UI.new("Frame", {
+					Name = "TutorialHighlight",
+					AnchorPoint = Vector2.new(0.5, 0.5),
+					Position = UDim2.fromScale(0.5, 0.5),
+					Size = UDim2.new(1, 8, 1, 8),
+					BackgroundTransparency = 1,
+					ZIndex = target.ZIndex + 5,
+					Parent = target,
+				}, { UI.corner(10) })
+				local stroke = UI.new("UIStroke", {
+					Color = GUIDE_COLOR,
+					Thickness = 3,
+					ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+					Parent = frame,
+				})
+				TweenService:Create(stroke, TweenInfo.new(0.45, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), { Transparency = 0.75 }):Play()
+				highlights[target] = frame
+			end
+		end
+	end
+
+	------------------------------------------------------------------
 	-- Déroulement
 	------------------------------------------------------------------
+	-- Boutons du panneau : « Suivant » / « Terminer » seulement si l'étape en a un et pas pendant « ✓ BRAVO ! ».
+	-- Aucun des deux (ni « Passer ») tant que l'autel ou la forge est ouvert : réduite (petit écran), leur fenêtre
+	-- passe sous le panneau et son X tombait sur « Terminer » (retour du propriétaire : le tuto se fermait quand il
+	-- fermait l'autel).
+	local function refreshButtons()
+		local free = not machineOpen()
+		local def = STEPS[step]
+		nextButton.Visible = free and flashUntil == 0 and def ~= nil and def.button ~= nil
+		skipButton.Visible = free
+	end
+
 	local function showStep(index: number)
 		step = index
 		flashUntil = 0
+		afterShown = false
+		stepShownAt = os.clock()
 		local def = STEPS[index]
 		title.Text = `TUTO {index}/{#STEPS} • {def.title}`
 		title.TextColor3 = UI.Colors.Gold
 		body.Text = if typeof(def.text) == "function" then def.text() else def.text
-		nextButton.Visible = def.button ~= nil
 		nextButton.Text = def.button or ""
+		refreshButtons()
+	end
+
+	-- Temps pour lire le texte de l'étape en cours (READ_MIN à READ_MAX secondes).
+	local function readTime(): number
+		local letters = utf8.len(body.Text) or #body.Text
+		return math.clamp(2 + letters / READ_CHARS_PER_SECOND, READ_MIN, READ_MAX)
 	end
 
 	-- Arrête le tuto chez ce joueur : panneau caché, guide retiré (rien n'est envoyé au serveur).
@@ -461,6 +589,7 @@ function TutorialUI.start()
 		flashUntil = 0
 		panel.Visible = false
 		destroyGuide()
+		setHighlight(nil)
 	end
 
 	-- Fin du tuto (« Done » : dernière étape faite ou « Terminer » ; « Skip » : « Passer ») : le serveur note le
@@ -480,29 +609,60 @@ function TutorialUI.start()
 		end
 	end
 
-	-- Étape faite : « ✓ BRAVO ! » un court instant, puis la suivante (la dernière termine le tuto).
-	local function validate()
-		if step >= #STEPS then
+	-- Étape faite : « ✓ BRAVO ! » (son texte reste affiché), puis la suivante (la dernière termine le tuto).
+	-- Faite par l'action du joueur : au moins le temps de lire le texte depuis son apparition (readTime). Par le
+	-- bouton « Suivant » / « Terminer » : le joueur a fini de lire, juste le court « BRAVO ».
+	-- Étape avec afterText (la forge : le raccourci des boutons de gauche) faite par l'action du joueur : ce texte
+	-- remplace le sien sous « ✓ BRAVO ! », le temps de le lire, avec afterHighlight entouré d'or.
+	local function validate(byButton: boolean)
+		if byButton and step >= #STEPS then
 			finish("Done")
 			return
 		end
-		flashUntil = os.clock() + DONE_FLASH
+		local def = STEPS[step]
+		local hold = if byButton then DONE_FLASH else math.max(DONE_FLASH, stepShownAt + readTime() - os.clock())
+		if not byButton and def.afterText then
+			body.Text = def.afterText
+			hold = readTime()
+			afterShown = true
+		end
+		flashUntil = os.clock() + hold
 		title.Text = "✓ BRAVO !"
 		title.TextColor3 = DONE_COLOR
-		nextButton.Visible = false
+		refreshButtons()
 	end
 
 	local function update()
 		layout()
 		if flashUntil > 0 then
 			if os.clock() >= flashUntil then
-				showStep(step + 1)
+				if step >= #STEPS then
+					finish("Done")
+				else
+					showStep(step + 1)
+				end
 			end
 		elseif STEPS[step].done() then
-			validate()
+			validate(false)
 		end
 		if running then
-			updateGuide(STEPS[step])
+			local def = STEPS[step]
+			refreshButtons()
+			-- Texte qui dépend de ce qui est ouvert (ex. la forge : « ferme d'abord l'autel »).
+			if flashUntil == 0 and typeof(def.text) == "function" then
+				local text = def.text()
+				if body.Text ~= text then
+					body.Text = text
+				end
+			end
+			local targets = nil
+			if flashUntil == 0 and def.highlight then
+				targets = def.highlight()
+			elseif afterShown and def.afterHighlight then
+				targets = def.afterHighlight()
+			end
+			setHighlight(targets)
+			updateGuide(def)
 		end
 	end
 
@@ -527,11 +687,7 @@ function TutorialUI.start()
 		if not running or flashUntil > 0 then
 			return
 		end
-		if step >= #STEPS then
-			finish("Done")
-		else
-			validate()
-		end
+		validate(true)
 	end)
 	skipButton.Activated:Connect(function()
 		finish("Skip")
@@ -557,6 +713,9 @@ function TutorialUI.start()
 			machines:GetAttributeChangedSignal("OpenMachine"):Connect(function()
 				if machines:GetAttribute("OpenMachine") == "Bonus" then
 					lastForgeAt = os.clock()
+				end
+				if running then
+					refreshButtons() -- tout de suite, pas au prochain tour de update
 				end
 			end)
 		end

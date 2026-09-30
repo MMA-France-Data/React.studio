@@ -123,6 +123,7 @@ function MachineUI.start()
 	-- En haut à droite, ils seraient cachés par la liste des joueurs de Roblox.
 	------------------------------------------------------------------
 	local towerShortcut = UI.button({
+		Name = "TowerShortcut", -- (le tuto l'entoure d'or à la fin : « ces boutons les ouvrent de n'importe où »)
 		Position = UDim2.new(0, 16, 0, UI.LEFT_COLUMN_TOP + 0 * UI.LEFT_COLUMN_STEP),
 		Size = UDim2.fromOffset(180, 46),
 		BackgroundColor3 = IdleConfig.RARITIES.Epic.color,
@@ -132,6 +133,7 @@ function MachineUI.start()
 		Parent = gui,
 	})
 	local bonusShortcut = UI.button({
+		Name = "BonusShortcut",
 		Position = UDim2.new(0, 16, 0, UI.LEFT_COLUMN_TOP + 1 * UI.LEFT_COLUMN_STEP),
 		Size = UDim2.fromOffset(180, 46),
 		BackgroundColor3 = IdleConfig.RARITIES.Legendary.color,
@@ -186,6 +188,7 @@ function MachineUI.start()
 		Parent = window,
 	})
 	local closeButton = UI.button({
+		Name = "CloseButton", -- (le tuto l'entoure d'or quand il faut fermer l'autel pour aller à la forge)
 		AnchorPoint = Vector2.new(1, 0),
 		Position = UDim2.new(1, 0, 0, 0),
 		Size = UDim2.fromOffset(32, 32),
@@ -517,6 +520,7 @@ function MachineUI.start()
 		local width = UDim2.new(1 / slots, -6 * (slots - 1) / slots, 1, 0)
 		for order, bulk in available do
 			local button = UI.button({
+				Name = "Spin_" .. bulk.count, -- (le tuto entoure d'or « Spin_1 » à l'étape de l'autel)
 				Size = width,
 				LayoutOrder = order,
 				BackgroundColor3 = UI.Colors.Success,

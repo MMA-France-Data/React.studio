@@ -146,8 +146,10 @@ classé »). On va à pied à sa parcelle et au sceau (plus de boutons de raccou
   plus vite (x25 en 6 s). Sa fiche affiche « Rayon 7 → 175 dégâts/s » au niveau 1 et « continu » à la place
   de la vitesse.
 - **Oracle de la foudre** et **Trébuchet royal** (légendaires) : rares (voir l'autel), donc bien plus forts
-  à niveau égal (Oracle : 50 dégâts par ennemi touché, Trébuchet : 35 à chaque ennemi de sa grande zone) ; les
-  tours communes compensent avec leurs centaines de doublons.
+  à niveau égal (Oracle : 60 dégâts par ennemi touché, Trébuchet : 35 à chaque ennemi de sa grande zone) ; les
+  tours communes compensent avec leurs centaines de doublons. L'Oracle est passé de 50 à 60 le 30/09 (« renforce
+  un peu, mais pas trop ») : depuis la limite de 2 légendaires, il ne servait presque plus quand il sortait
+  après le Trébuchet (voir `tools/balance/RESULTS.md`).
 - Clique sur **n'importe quel cadenas** pour débloquer cet emplacement. Tous les cadenas affichent le même prix
   (celui de ton prochain emplacement), qui monte après chaque achat. Les emplacements possédés sont sauvegardés
   dans `data.idle.ownedSpots` (`unlockedSpots` = leur nombre) ; les anciennes sauvegardes sont converties

@@ -5,7 +5,8 @@ Liste des choses à faire avant de rendre le jeu public. On coche au fur et à m
 ## Contenu du jeu
 
 - [ ] Monstres des vagues 51 à 100 : troupes et boss importés dans Studio, puis vérifiés par les tests
-      (vagues 51-60 : troupes faites, boss 60 à importer).
+      (vagues 51-60 : troupes faites, boss 60 à importer ; boss 70 et 80 faits ; troupes 61-100 et boss 90 / 100
+      pas encore livrés par ChatGPT ; le dragon est le boss de la vague 100).
 - [x] Tuto pour les nouveaux joueurs : arène classée, ta parcelle, poser une tour, l'améliorer, lancer
       l'autel une fois, la forge (à essayer toi-même dans Studio : il s'affiche à chaque Play).
 - [x] Monstres et tirs des autres parcelles affichés seulement quand on s'en approche ; interactions
