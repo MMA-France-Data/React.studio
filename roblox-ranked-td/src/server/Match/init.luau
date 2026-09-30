@@ -11,6 +11,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Challenges = require(Shared.Challenges)
 local Config = require(Shared.Config)
 local Elo = require(Shared.Elo)
+local Lang = require(Shared.Lang) -- (messages de player:Kick : l'écran du joueur ne peut pas les traduire)
 local MapLayout = require(Shared.MapLayout)
 local Ranks = require(Shared.Ranks)
 local Remotes = require(Shared.Remotes)
@@ -86,7 +87,7 @@ local function returnToLobby()
 	if not ok then
 		warn("[Match] Retour au lobby impossible :", err)
 		for _, player in players do
-			player:Kick("Match terminé ! Relance le jeu pour revenir au lobby.")
+			player:Kick(Lang.translate("Match terminé ! Relance le jeu pour revenir au lobby.", Lang.forPlayer(player)))
 		end
 	end
 end
@@ -289,7 +290,7 @@ local function onPlayerAdded(player: Player)
 	end
 	if not slot then
 		if not isStudio then
-			player:Kick("Ce serveur est réservé à un match ranked.")
+			player:Kick(Lang.translate("Ce serveur est réservé à un match ranked.", Lang.forPlayer(player)))
 		end
 		return
 	end

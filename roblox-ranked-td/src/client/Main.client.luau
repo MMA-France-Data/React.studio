@@ -15,6 +15,11 @@ Remotes.get("Notify").OnClientEvent:Connect(function(message: string, kind: stri
 	UI.toast(message, kind)
 end)
 
+-- Traduction : un joueur qui ne joue pas en français voit tous les textes en anglais, messages du serveur compris
+-- (AutoTranslate.luau, Shared/Lang.luau, dictionnaires Shared/LangEN). Avant les interfaces. Rien ne change pour un
+-- joueur francophone.
+require(script.Parent.AutoTranslate).start()
+
 -- Textes flottants (niveaux, prix, barres de vie...) visibles seulement quand on s'approche.
 require(Shared.ProximityLabel).start()
 

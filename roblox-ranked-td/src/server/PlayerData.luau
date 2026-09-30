@@ -10,6 +10,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Challenges = require(Shared.Challenges)
 local Config = require(Shared.Config)
 local IdleConfig = require(Shared.IdleConfig)
+local Lang = require(Shared.Lang) -- (messages de player:Kick : l'écran du joueur ne peut pas les traduire)
 local NumberFormat = require(Shared.NumberFormat)
 local PlotLayout = require(Shared.PlotLayout)
 local Ranks = require(Shared.Ranks)
@@ -395,7 +396,7 @@ local function onPlayerAdded(player: Player)
 		return
 	end
 	if not ok then
-		player:Kick("Impossible de charger tes données. Réessaie dans une minute.")
+		player:Kick(Lang.translate("Impossible de charger tes données. Réessaie dans une minute.", Lang.forPlayer(player)))
 		return
 	end
 
@@ -507,7 +508,7 @@ function PlayerData.start()
 					stampLastSeen(profile.data)
 					local _, lostLock = write(player.UserId, profile.data, false)
 					if lostLock and profiles[player] == profile then
-						player:Kick("Ta session a été ouverte sur un autre serveur.")
+						player:Kick(Lang.translate("Ta session a été ouverte sur un autre serveur.", Lang.forPlayer(player)))
 					end
 				end)
 			end

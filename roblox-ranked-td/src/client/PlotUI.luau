@@ -14,6 +14,7 @@
 -- (dans la fiche, et en survolant une carte). Tout vient de IdleTowers (stats, controlOf, idealAgainst).
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
@@ -270,6 +271,15 @@ function PlotUI.start()
 		local size, columns = UI.plotPanelLayout(screen)
 		panel.Size = UDim2.fromOffset(size.X, size.Y)
 		panelScale.Scale = 1
+		-- Centré en bas de l'écran (demande du propriétaire : tant pis s'il cache un peu la vue, on le ferme après
+		-- usage), mais jamais sur la zone du chat de Roblox (ordinateur, en bas à gauche : il prendrait les clics
+		-- des premières cartes, dont l'Archer du tuto) ni sur la colonne de boutons de gauche (téléphone).
+		local portrait = screen.X < 700 and screen.Y > screen.X
+		local leftLimit = if portrait then 16 elseif screen.X >= 1100 then 516 else UI.leftColumnRight(screen) + 8
+		local left = math.max((screen.X - size.X) / 2, leftLimit)
+		left = math.max(16, math.min(left, screen.X - size.X - 16))
+		panel.AnchorPoint = Vector2.new(0, 1)
+		panel.Position = UDim2.new(0, math.floor(left), 1, -16)
 		if cardGrid then cardGrid.CellSize = UDim2.new(1 / columns, -8 * (columns - 1) / columns - 3, 0, CARD_HEIGHT) end
 		wallet.Size = UDim2.fromOffset(if screen.X < 700 then math.min(190, (screen.X - 48) / 2) else 240, 64)
 		wallet.AnchorPoint = Vector2.new(if screen.X < 700 then 1 else 0.5, 0)
@@ -1172,6 +1182,21 @@ function PlotUI.start()
 			refreshPanel()
 		end
 	end)
+
+	-- Tests automatiques dans Studio (tools/studio-test, test « version anglaise ») : un plugin ne peut pas cliquer.
+	-- L'attribut « TestSelectSpot » de cet écran (numéro d'emplacement ; 0 = rien) le sélectionne comme un clic dessus.
+	-- Jamais dans le jeu publié.
+	if RunService:IsStudio() then
+		gui:GetAttributeChangedSignal("TestSelectSpot"):Connect(function()
+			local spotIndex = gui:GetAttribute("TestSelectSpot")
+			if typeof(spotIndex) == "number" and spotIndex > 0 then
+				select(spotIndex)
+				refreshPanel()
+			else
+				select(nil)
+			end
+		end)
+	end
 
 	------------------------------------------------------------------
 	-- Mise à jour

@@ -331,6 +331,13 @@ function TutorialUI.start()
 		MaxTextSize = 16,
 		Parent = panel,
 	})
+	-- Texte (français) du panneau, gardé ici : body.Text peut être sa traduction anglaise (AutoTranslate.luau), le tuto
+	-- ne le relit donc jamais pour décider (temps de lecture, texte à changer).
+	local bodyText = ""
+	local function setBody(text: string)
+		bodyText = text
+		body.Text = text
+	end
 	local nextButton = UI.button({
 		Name = "NextButton",
 		AnchorPoint = Vector2.new(1, 0),
@@ -494,7 +501,12 @@ function TutorialUI.start()
 		guide.beam.Attachment0 = rootAttachment
 		guide.beam.Enabled = rootAttachment ~= nil and position ~= nil
 		guide.marker.Enabled = position ~= nil
-		guide.label.Text = def.marker
+		-- Écrit seulement quand il change : traduit en anglais (AutoTranslate), il serait sinon réécrit en français puis
+		-- retraduit à chaque vérification.
+		if guide.markerText ~= def.marker then
+			guide.markerText = def.marker
+			guide.label.Text = def.marker
+		end
 		if position then
 			if (guide.anchor.Position - position).Magnitude > 0.05 then
 				guide.anchor.CFrame = CFrame.new(position)
@@ -571,14 +583,14 @@ function TutorialUI.start()
 		local def = STEPS[index]
 		title.Text = `TUTO {index}/{#STEPS} • {def.title}`
 		title.TextColor3 = UI.Colors.Gold
-		body.Text = if typeof(def.text) == "function" then def.text() else def.text
+		setBody(if typeof(def.text) == "function" then def.text() else def.text)
 		nextButton.Text = def.button or ""
 		refreshButtons()
 	end
 
 	-- Temps pour lire le texte de l'étape en cours (READ_MIN à READ_MAX secondes).
 	local function readTime(): number
-		local letters = utf8.len(body.Text) or #body.Text
+		local letters = utf8.len(bodyText) or #bodyText
 		return math.clamp(2 + letters / READ_CHARS_PER_SECOND, READ_MIN, READ_MAX)
 	end
 
@@ -622,7 +634,7 @@ function TutorialUI.start()
 		local def = STEPS[step]
 		local hold = if byButton then DONE_FLASH else math.max(DONE_FLASH, stepShownAt + readTime() - os.clock())
 		if not byButton and def.afterText then
-			body.Text = def.afterText
+			setBody(def.afterText)
 			hold = readTime()
 			afterShown = true
 		end
@@ -651,8 +663,8 @@ function TutorialUI.start()
 			-- Texte qui dépend de ce qui est ouvert (ex. la forge : « ferme d'abord l'autel »).
 			if flashUntil == 0 and typeof(def.text) == "function" then
 				local text = def.text()
-				if body.Text ~= text then
-					body.Text = text
+				if bodyText ~= text then
+					setBody(text)
 				end
 			end
 			local targets = nil

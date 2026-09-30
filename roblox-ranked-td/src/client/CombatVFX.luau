@@ -88,11 +88,31 @@ local function claim(root: BasePart): boolean
 	return true
 end
 
+-- Tours des parcelles (workspace.Hub.Plots.PlotN.Towers) : le sol est SOUS elles. Sans ça, l'onde du Totem
+-- de givre se posait sur le haut de la tour, en l'air (retour du propriétaire). Liste refaite toutes les 2 s.
+local towerFolders: { Instance } = {}
+local towerFoldersAt = -math.huge
+local function plotTowerFolders(): { Instance }
+	if os.clock() - towerFoldersAt < 2 then return towerFolders end
+	towerFoldersAt = os.clock()
+	table.clear(towerFolders)
+	local hub = workspace:FindFirstChild("Hub")
+	local plots = hub and hub:FindFirstChild("Plots")
+	for _, plot in (if plots then plots:GetChildren() else {}) do
+		local towers = plot:FindFirstChild("Towers")
+		if towers then table.insert(towerFolders, towers) end
+	end
+	return towerFolders
+end
+
 local function ground(position: Vector3, effects: Instance): Vector3
 	local exclusions = { effects }
 	for _, name in { "PlotEnemies", "Enemies", "Coins", "Towers" } do
 		local folder = workspace:FindFirstChild(name)
 		if folder then table.insert(exclusions, folder) end
+	end
+	for _, folder in plotTowerFolders() do
+		table.insert(exclusions, folder)
 	end
 	local character = Players.LocalPlayer and Players.LocalPlayer.Character
 	if character then table.insert(exclusions, character) end
@@ -197,9 +217,10 @@ function VFX.decorateArrow(root: BasePart, heavy: boolean, flaming: boolean)
 	trail(root, if flaming then WARM else Color3.fromRGB(213, 190, 135), if flaming then 0.36 else 0.1, if flaming then 0.2 else 0.09)
 	if flaming then
 		local tip = attachment(root, "BurningArrowTip", Vector3.new(0, 0, -length * 0.5))
-		local flame = emitter(tip, "ArrowFlame", FIRE, WARM, 18, 0.22)
+		local flame = emitter(tip, "ArrowFlame", FIRE, WARM, 22, 0.25)
 		flame.Color = ColorSequence.new(WHITE, Color3.fromRGB(255, 71, 16))
-		flame.Size = sequence(0.28, 0.55, 0)
+		flame.Size = sequence(0.4, 0.8, 0)
+		flame.Transparency = sequence(0, 0.1, 1) -- (bien visible, comme les flammes au sol)
 		flame.Speed = NumberRange.new(0.2, 0.8)
 		flame.Enabled = true
 		local sparks = emitter(tip, "ArrowEmbers", SPARK, WARM, 6, 0.28)
@@ -247,17 +268,8 @@ function VFX.pulse(parent: Instance, position: Vector3, radius: number, color: C
 	local origin = ground(position, parent)
 	local root = part(parent, "GroundShockwave", Vector3.one * 0.1, CFrame.new(origin), color, 1)
 	claim(root)
-	local segments = 12
-	local chord = 2 * math.sin(math.pi / segments)
-	for i = 0, segments - 1 do
-		local angle = i * math.pi * 2 / segments
-		local outward = Vector3.new(math.cos(angle), 0, math.sin(angle))
-		local frame = CFrame.lookAt(origin + outward * 0.2, origin + outward * 0.2 + Vector3.new(-outward.Z, 0, outward.X))
-		local line = part(root, "WaveArc", Vector3.new(0.1, 0.07, chord * 0.2), frame, color, 0.3)
-		TweenService:Create(line, TweenInfo.new(0.38, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-			CFrame = frame + outward * (radius - 0.2), Size = Vector3.new(0.045, 0.04, chord * radius), Transparency = 1,
-		}):Play()
-	end
+	-- Plus d'anneau de traits lumineux qui s'écartent : sur une grande zone (givre, Trébuchet), il dessinait un
+	-- énorme polygone (« losange ») que le propriétaire n'aime pas. Seulement une brume au sol.
 	local mist = emitter(root, "AuraMist", SMOKE, color, 0, 0.42)
 	mist.Size = sequence(0.3, 0.8, 1.1)
 	mist.Transparency = sequence(0.7, 0.85, 1)
@@ -300,16 +312,20 @@ function VFX.firePatch(parent: Instance, position: Vector3, radius: number): Bas
 	radius = math.max(0.2, radius)
 	local root = part(parent, "BurningGround", Vector3.new(radius * 2, 0.1, radius * 2), CFrame.new(ground(position, parent)), WARM, 1)
 	local list = {}
-	-- Cinq foyers irréguliers, pas une flamme unique ni une nappe orange opaque.
+	-- Cinq foyers irréguliers, assez hauts, serrés et peu transparents pour bien se voir de la caméra habituelle
+	-- (retour du propriétaire : « je veux vraiment que les flammes, mais plus visibles, moins transparentes » ;
+	-- pas de disque au sol).
 	for i = 0, 4 do
 		local angle = i * 2.4
 		local offset = if i == 0 then Vector3.zero else Vector3.new(math.cos(angle), 0, math.sin(angle)) * radius * 0.6
 		local a = attachment(root, "FlameBed" .. i, offset)
-		local flame = emitter(a, "GroundFlames", FIRE, WARM, if i == 0 then 8 else 5, 0.5)
+		local flame = emitter(a, "GroundFlames", FIRE, WARM, if i == 0 then 16 else 11, 0.75)
 		flame.Color = ColorSequence.new(WHITE, Color3.fromRGB(243, 63, 12))
-		flame.Size = sequence(0.25, math.clamp(radius * 0.7, 0.65, 1.25), 0.1)
-		flame.Speed = NumberRange.new(1.2, 2.8)
-		flame.Acceleration = Vector3.new(0, 1.5, 0)
+		flame.Size = sequence(0.6, math.clamp(radius * 1.0, 1.3, 2.5), 0.3)
+		flame.Transparency = sequence(0, 0.1, 1)
+		flame.Speed = NumberRange.new(2, 4)
+		flame.Acceleration = Vector3.new(0, 3, 0)
+		flame.LightEmission = 1
 		table.insert(list, settings(flame, nil))
 	end
 	local sparks = emitter(root, "GroundEmbers", SPARK, WARM, 5, 0.65)

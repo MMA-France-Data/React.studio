@@ -253,6 +253,7 @@ local function build()
 	building = true
 	local root = Instance.new("Folder")
 	root.Name = "EnemyGallery (Studio)"
+	root:SetAttribute("NoTranslate", true) -- outil Studio : ses panneaux ne sont jamais traduits (AutoTranslate.luau)
 	root.Parent = workspace
 
 	-- 1) Tous les ennemis, construits à l'écart, puis mesurés (la place qu'ils prennent en pivotant).
@@ -494,6 +495,7 @@ end
 local function createButton()
 	local player = Players.LocalPlayer
 	local gui = UI.screen("EnemyGallery")
+	gui:SetAttribute("NoTranslate", true) -- outil Studio : jamais traduit en anglais (AutoTranslate.luau)
 	local button = UI.button({
 		Position = UDim2.new(0, 16, 0, UI.LEFT_COLUMN_TOP + 5 * UI.LEFT_COLUMN_STEP),
 		Size = UDim2.fromOffset(180, 46),

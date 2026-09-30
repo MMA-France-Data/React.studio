@@ -55,6 +55,14 @@ Config.STUDIO_SOUND_PANEL = true
 -- Ne change rien au jeu publié : chaque nouveau joueur y voit le tuto une seule fois.
 Config.STUDIO_TUTORIAL = true
 
+-- Langue du jeu dans Studio (src/shared/Lang.luau). Dans le jeu publié, un joueur dont la langue Roblox est le
+-- français voit le jeu en français, tous les autres en anglais.
+--   "auto" -> comme dans le jeu publié (d'après la langue de ton Studio / de ton compte Roblox)
+--   "fr"   -> toujours en français
+--   "en"   -> toujours en anglais (pour vérifier la traduction)
+-- Ne change rien au jeu publié. Les tests automatiques (tools/studio-test) démarrent toujours en français.
+Config.STUDIO_LANGUAGE = "auto"
+
 -- Distance (en studs) entre ton personnage et un objet sous laquelle son texte flottant s'affiche :
 -- l'écran reste lisible, chaque étiquette n'apparaît que quand on s'approche (ProximityLabel.luau).
 Config.LabelDistance = {

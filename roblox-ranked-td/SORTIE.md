@@ -26,11 +26,12 @@ Liste des choses à faire avant de rendre le jeu public. On coche au fur et à m
 - [ ] Remplir le questionnaire sur le contenu (âge conseillé), obligatoire pour être public.
 - [ ] Créer les pass (Ramassage auto, Vitesse x2, Pièces x2) et le produit Robux, puis donner leurs
       numéros à Claude pour les mettre dans le jeu.
-- [ ] Traduction automatique : dans le Creator Dashboard, partie Localisation, choisir le français comme
-      langue d'origine, puis activer la capture des textes et la traduction automatique.
-      Avant ça, Claude prépare les phrases qui contiennent des chiffres (prix, vagues...), pour qu'elles se
-      traduisent proprement (une phrase avec un « trou » pour le nombre). Ensuite, vérifier au moins
-      l'anglais.
+- [ ] Version anglaise (décidé le 30/09 : pas de sortie sans elle) : les joueurs francophones gardent le
+      français, tous les autres voient l'anglais, phrases à chiffres comprises (src/shared/Lang.luau,
+      dictionnaires src/shared/LangEN, voir le README). Le test Studio « version anglaise » doit dire
+      0 texte encore en français ; puis jouer un peu avec Config.STUDIO_LANGUAGE = "en" pour relire l'anglais.
+      Ne PAS activer la traduction automatique de Roblox (Creator Dashboard, Localisation) : elle prendrait
+      les textes anglais pour du français.
 
 ## Derniers essais dans le jeu publié
 

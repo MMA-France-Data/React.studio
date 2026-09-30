@@ -80,6 +80,16 @@ powershell -ExecutionPolicy Bypass -File tools\studio-test\run.ps1 -Place match
   le serveur sur une parcelle libre, il la reçoit ; renvoyé chez lui, un « Clear » part et il ne reçoit plus que la
   sienne. Côté client : seules les invites de SON autel et de SA forge
   sont allumées, celles des 5 autres parcelles éteintes, et les prix de leurs cadenas cachés (`PlotAccess.luau`).
+  **Version anglaise** (tout à la fin, après le tuto : les autres vérifications lisent les textes français ; le test
+  démarre toujours en français, quelle que soit la langue de Studio) : le joueur passe en anglais en direct (son
+  attribut `Lang`), puis l'écran, la fiche d'une tour et les cartes (attribut Studio `TestSelectSpot` de PlotUI), un
+  cadenas, l'autel, la forge, la boutique, les défis, la renaissance, « Pendant ton absence », le tuto (« Replay » puis
+  « Passer ») et le classé (« S'INSCRIRE », recherche, « MATCH TROUVÉ ! », attente : attributs changés chez le client
+  seulement, remis après) : captures `english_*`. Chaque texte qui a encore l'air français (lettre accentuée ou mot
+  français courant, sans les noms des joueurs ni les nombres) est écrit `[CTEST] non traduit : …` : textes de l'écran,
+  panneaux du monde et invites, et ceux que le traducteur n'a pas trouvés (BindableFunction Studio
+  `AutoTranslateStudio`, `src/client/AutoTranslate.luau`). Puis `[PASS]` / `[FAIL]` « version anglaise : N textes
+  encore en français » (FAIL tant qu'il en reste), et le retour au français en direct (chaque texte traduit revient).
 - `match` : match ranked en solo (le bot joue l'autre terrain après 10 s). Le joueur de test ne pose
   aucune tour. Le scénario vérifie qu'il n'y a plus d'envois (ni remote `SendEnemies`, ni module
   `Sends`, ni panneau d'envoi dans le HUD), que l'or du joueur vaut 500 + 100 x vague, que les deux
@@ -87,6 +97,8 @@ powershell -ExecutionPolicy Bypass -File tools\studio-test\run.ps1 -Place match
   et que les chiffres des défis classés de chaque terrain (tours posées, types, améliorations) sont justes
   (~2 min 10). Avec la durée par défaut (240 s ; `-Seconds 260 -Timeout 420` pour plus de marge), il vérifie aussi la fin : la base du joueur
   tombe vers la vague 8 (~3 min 15), le bot gagne, et ce match contre le bot ne compte pas pour les défis.
+  À la fin du scénario client (~40 s), la version anglaise du HUD du match (capture `english_match`, mêmes lignes
+  « non traduit » et `[PASS]` / `[FAIL]` que sur la map principale).
 - Résultats dans `tools\studio-test\out\` : `studio-output.log` (la Sortie du serveur et du client)
   et les captures `.png`. À la fin, le script affiche le nombre d'erreurs.
 - Si Studio est déjà ouvert, le script s'arrête pour ne pas te faire perdre ton travail
@@ -125,5 +137,5 @@ Le test de la map principale dure maintenant ~6 min (Play de 420 s par défaut, 
 `-Seconds` pour changer, le délai max suit : `-Seconds` + 150 s) : les tests du classé attendent la fin des autres
 tests du client (dont une photo par vrai modèle d'ennemi : ~3,5 s de plus pour chaque modèle ajouté dans
 `assets/EnemyModels`), puis ceux du tuto (~60 s : chaque étape reste affichée le temps de lire son texte) la fin
-du classé. S'il manque les lignes du tuto à la fin de la
-Sortie, le Play s'est arrêté trop tôt : relance avec un `-Seconds` plus grand.
+du classé, puis la version anglaise (~40 s, finie vers 6 min 10 s de Play). S'il manque les lignes du tuto ou de la
+version anglaise à la fin de la Sortie, le Play s'est arrêté trop tôt : relance avec un `-Seconds` plus grand.

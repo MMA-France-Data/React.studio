@@ -1,7 +1,10 @@
 -- Petits utilitaires pour construire l'interface en code.
 local GuiService = game:GetService("GuiService")
 local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
+
+local Lang = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Lang"))
 
 local UI = {}
 
@@ -354,9 +357,10 @@ function UI.toast(message: string, kind: string?)
 	end
 
 	-- Peu de texte à l'écran : un message identique à un message affiché n'est pas répété, et
-	-- au-delà de MAX_TOASTS le plus ancien disparaît.
+	-- au-delà de MAX_TOASTS le plus ancien disparaît. (On compare le message d'origine, gardé dans l'attribut
+	-- « Message » : le texte affiché peut être sa traduction anglaise, AutoTranslate.luau.)
 	for _, existing in toastList:GetChildren() do
-		if existing:IsA("TextLabel") and existing.Text == message and existing.TextTransparency < 0.5 then
+		if existing:IsA("TextLabel") and existing:GetAttribute("Message") == message and existing.TextTransparency < 0.5 then
 			return
 		end
 	end
@@ -378,8 +382,10 @@ function UI.toast(message: string, kind: string?)
 
 	local color = UI.Colors[kind or "Info"] or UI.Colors.PanelLight
 	toastCount += 1
-	-- Un long message (ex. l'inscription au classé) passe sur 2 lignes au lieu d'être écrit tout petit.
-	local long = (utf8.len(message) or #message) > 70
+	-- Un long message (ex. l'inscription au classé) passe sur 2 lignes au lieu d'être écrit tout petit. Sa longueur
+	-- dans la langue du joueur : la traduction anglaise peut être plus longue ou plus courte que le français.
+	local shownText = Lang.translate(message, Lang.current())
+	local long = (utf8.len(shownText) or #shownText) > 70
 	local toast = UI.new("TextLabel", {
 		Size = UDim2.new(1, 0, 0, if long then 46 else 28),
 		BackgroundColor3 = color,
@@ -396,6 +402,7 @@ function UI.toast(message: string, kind: string?)
 		UI.padding(6),
 		UI.new("UITextSizeConstraint", { MaxTextSize = 16 }),
 	})
+	toast:SetAttribute("Message", message) -- message d'origine (voir plus haut : pas de message répété)
 
 	task.delay(2.5, function()
 		local tween = TweenService:Create(toast, TweenInfo.new(0.4), { BackgroundTransparency = 1, TextTransparency = 1 })

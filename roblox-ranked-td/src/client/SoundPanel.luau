@@ -215,6 +215,7 @@ function SoundPanel.start()
 		return -- tests automatiques : leurs captures ne changent pas
 	end
 	local gui = UI.screen("SoundPanel", 30)
+	gui:SetAttribute("NoTranslate", true) -- outil Studio : jamais traduit en anglais (AutoTranslate.luau)
 	-- Colonne de gauche, ligne 5 (celle de « GALERIE (Studio) »), juste à sa droite.
 	local button = UI.button({
 		Name = "SoundPanelButton",

@@ -22,6 +22,10 @@ end
 
 Remotes.init()
 
+-- Langue de chaque joueur (attribut « Lang » : "fr" s'il joue en français, sinon "en"), dès son arrivée, sur la map
+-- principale comme sur un serveur de match. Le client traduit tout ce qui s'affiche (AutoTranslate, Shared/Lang.luau).
+require(Shared.Lang).startServer()
+
 -- Modèles perso des ennemis (ReplicatedStorage.EnemyModels) : aucun script n'y a sa place (sécurité, voir
 -- CustomModels.sanitizeSources). Juste un filet : les scripts doivent être supprimés dans Studio.
 pcall(function()

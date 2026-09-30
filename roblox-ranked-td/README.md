@@ -563,6 +563,37 @@ que chez le joueur (`src/client/SoundManager.luau`) : aucun coût pour le serveu
 - **Test automatique** (`tools/studio-test`, map principale) : chaque son doit se charger (`[PASS]` / `[FAIL]` par
   son), et 200 tirs à la même image ne font jamais jouer plus que la limite.
 
+## Langues : français et anglais
+
+- Le jeu est écrit en français. Un joueur dont la **langue Roblox** commence par « fr » le voit en français ; **tous
+  les autres** le voient en anglais : fenêtres, boutons, fiches des tours, tuto, messages du serveur, panneaux et
+  textes du monde, invites « Ouvrir », HUD et fin du match classé, phrases avec des chiffres comprises.
+- **Comment** : le serveur met l'attribut `Lang` (« fr » ou « en ») sur chaque joueur qui arrive (d'après
+  `Player.LocaleId`, `Lang.startServer` dans `Main.server.luau`, map principale et match). Le code du jeu continue
+  d'écrire en français ; chez un joueur anglais, `src/client/AutoTranslate.luau` remplace chaque texte affiché par sa
+  traduction dès qu'il apparaît ou change, et garde le texte français d'origine (retour au français en direct). Un
+  joueur francophone ne paie rien. Le code du jeu ne relit donc jamais un `.Text` pour décider quelque chose.
+  Un nombre seul prend l'écriture anglaise (« 7,5 » → « 7.5 », « 2,5 % » → « 2.5% »). Seuls les messages
+  d'expulsion (`player:Kick`, qui ne passent pas par l'écran) sont traduits par le serveur :
+  `Lang.translate(texte, Lang.forPlayer(player))` (`PlayerData.luau`, `Match/init.luau`).
+- **Traductions** : `src/shared/LangEN/` (Glossary = les noms du jeu, Plot, Machines, Social, Server), une ligne par
+  texte : `["texte français exact"] = "English",`. Un texte qui change : `{1}`, `{2}`… (ex.
+  `["Il te faut {1} pièces pour {2}"] = "You need {1} coins for {2}"`). Mode d'emploi en haut de `src/shared/Lang.luau`.
+  Un texte sans traduction reste en français.
+- **Vérifier sans Studio** : `luau tools/lang/check.luau` (traductions chargées, doublons), `luau tools/lang/tests.luau`
+  (le traducteur), `node tools/lang/autotranslate-test.cjs` (la traduction de l'écran, avec un faux Roblox).
+- **Dans Studio** : `Config.STUDIO_LANGUAGE` = `"auto"` (comme le jeu publié), `"fr"` ou `"en"` pour voir le jeu dans
+  cette langue. Le test automatique (`tools/studio-test`) passe en anglais tout à la fin et écrit chaque texte encore
+  en français (« non traduit : … »), avec des captures `english_*`.
+- **Pas la traduction automatique de Roblox** : ne l'active pas dans le Creator Dashboard, et coupe-la si elle est
+  allumée (elle prendrait les textes anglais pour du français). Par sécurité, `AutoTranslate.luau` la coupe déjà sur
+  chaque texte qu'il traduit (`AutoLocalize = false`).
+- **Limite** : les colonnes de la liste des joueurs de Roblox (« Rang », « Pièces », `leaderstats`) ont le même nom
+  pour tout le monde : elles restent en français, comme le rang écrit dedans (« Or », « Placement 2/5 »).
+- **Hors du jeu** : le nom et la description du jeu, des pass et du produit Robux (fenêtres d'achat de Roblox) se
+  traduisent à la main dans le Creator Dashboard (partie Localisation, langue anglaise), sans activer la traduction
+  automatique.
+
 ## Réglages
 
 Tout est dans `src/shared/Config.luau` (MMR de départ, K, fourchettes du matchmaking, or de départ,
@@ -573,9 +604,9 @@ vagues dans `Enemies.luau`, le tracé du chemin dans `MapLayout.luau`.
 
 ```
 src/
-  shared/   (ReplicatedStorage.Shared)   Config, IdleConfig, IdleTowers, NumberFormat, Elo, Ranks, Towers, Enemies, MapLayout, PlotLayout, Placement, Remotes, Challenges, Sounds
+  shared/   (ReplicatedStorage.Shared)   Config, IdleConfig, IdleTowers, NumberFormat, Elo, Ranks, Towers, Enemies, MapLayout, PlotLayout, Placement, Remotes, Challenges, Sounds, Lang, LangEN/{Glossary, Plot, Machines, Social, Server}
   server/   (ServerScriptService.Server) Main, PlayerData, Leaderboard, Matchmaking, MatchmakingBackend, MockMemoryStore, Monetization, Hub/{init, HubMap, Plots, PlotGame, PlotInterest, IdleTowerModel, ChallengeRewards, Tutorial}, Match/{init, Game, MapBuilder}
-  client/   (StarterPlayerScripts.Client) Main, LobbyUI, PlotUI, PlotAccess, PlotRenderer, MachineUI, RebirthUI, ShopUI, ChallengeUI, MatchUI, TowerCard, TowerPlacement, Effects, UI, EnemyGallery, SoundManager, SoundPanel, TutorialUI
+  client/   (StarterPlayerScripts.Client) Main, AutoTranslate, LobbyUI, PlotUI, PlotAccess, PlotRenderer, MachineUI, RebirthUI, ShopUI, ChallengeUI, MatchUI, TowerCard, TowerPlacement, Effects, UI, EnemyGallery, SoundManager, SoundPanel, TutorialUI
 ```
 
 ## Limites connues / pistes d'amélioration

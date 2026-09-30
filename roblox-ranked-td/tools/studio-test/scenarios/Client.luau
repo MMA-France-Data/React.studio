@@ -42,6 +42,494 @@ return function(log)
 		return nil
 	end
 
+	----------------------------------------------------------------------
+	-- Version anglaise (src/shared/Lang.luau, src/client/AutoTranslate.luau, dictionnaires src/shared/LangEN). Appelée
+	-- TOUT À LA FIN du scénario (map principale : après le tuto ; match : après la dernière capture) : les autres
+	-- vérifications lisent les textes français. Le joueur passe en anglais en direct (son attribut « Lang », comme le
+	-- serveur le met pour un joueur non francophone), les fenêtres principales s'ouvrent l'une après l'autre (captures
+	-- english_*) et chaque texte qui a encore l'air français (lettre accentuée ou mot français courant, sans les noms des
+	-- joueurs ni les nombres) est écrit « [CTEST] non traduit : ... » : textes de l'écran, des panneaux du monde et des
+	-- invites, et ceux que le traducteur n'a pas trouvés (liste de Lang, lue par la BindableFunction
+	-- « AutoTranslateStudio » du jeu : le test a sa propre copie des modules). Puis une ligne [PASS] / [FAIL]
+	-- « version anglaise : N textes encore en français », le retour au français (chaque texte traduit doit revenir), et
+	-- tout est refermé. place = "hub" (map principale) ou "match".
+	-- Dans sa propre fonction (limite des 200 variables locales de Luau).
+	----------------------------------------------------------------------
+	local function englishAudit(place)
+		local function report(ok, message)
+			log(if ok then "Info" else "Error", `[{if ok then "PASS" else "FAIL"}] {message}`)
+		end
+		local function waitFor(condition, timeout)
+			local deadline = os.clock() + timeout
+			while os.clock() < deadline do
+				if condition() then
+					return true
+				end
+				task.wait(0.1)
+			end
+			return condition() == true
+		end
+		local studio = player:WaitForChild("AutoTranslateStudio", 10)
+		if not studio then
+			report(false, "version anglaise : BindableFunction « AutoTranslateStudio » introuvable dans le joueur (AutoTranslate.luau)")
+			return
+		end
+		local function ask(...)
+			local ok, result = pcall(studio.Invoke, studio, ...)
+			return if ok then result else nil
+		end
+		local playerGui = player:WaitForChild("PlayerGui")
+		local FAKE_OPPONENT = "TestBot"
+
+		-- A l'air français : lettre accentuée (é, è, à, ç, œ... mais pas « × »), ou un mot français courant qui n'existe
+		-- pas en anglais. Sans les balises RichText, les noms des joueurs et les nombres.
+		local FRENCH_WORDS = {}
+		for word in string.gmatch(
+			"de du des la le les et est sont une un au aux avec pour sur dans par pas ton ta tes tu te toi vous nous qui que "
+				.. "quand mais chaque tous toutes tout rien jamais aucun aucune vague vagues niveau niv lancer lancers "
+				.. "doublon doublons emplacement emplacements autel parcelle parcelles fief fiefs tuto suivant passer terminer "
+				.. "fermer ferme ouvrir ouvre acheter vendre remplacer poser annuler accepter refuser chargement adversaire "
+				.. "inscription recherche saison cible cibles vitesse gratuit gratuits ennemi ennemis joueur joueurs "
+				.. "classement boutique renaissance rang victoire partie effets effet muet seuls prochaine prochain temps "
+				.. "attente vie vies argent platine diamant complet invoque disponible hors ligne rythme ralenti ralentit "
+				.. "limite jour jours semaine aujourd hui cours nouveaux nouvelle nouvelles nouveau infini cercle sceau entre va "
+				.. "vas ici rayon suis fois moins sa son sons ses mon ma mes ce cette ces il elle ils elles leur leurs ou y en ne "
+				.. "se atq pv contre foule foules feu sol carreau perce gros groupe inventaire plein seulement pendant continuer "
+				.. "produire atteinte heures secondes quelques fin forteresse connexion choisir plusieurs maj fait faire peux "
+				.. "peut dois doit sera seront gagne gagner joue jouer tiens perdre retour offerts offert offerte offertes "
+				.. "retourne",
+			"%a+"
+		) do
+			FRENCH_WORDS[word] = true
+		end
+		local function hasAccent(text)
+			for lead, follow in string.gmatch(text, "([\195\197])([\128-\191])") do
+				if lead == "\195" and follow ~= "\151" and follow ~= "\183" then
+					return true
+				elseif lead == "\197" and (follow == "\146" or follow == "\147") then
+					return true
+				end
+			end
+			return false
+		end
+		local function escapePattern(text)
+			return (string.gsub(text, "([%^%$%(%)%%%.%[%]%*%+%-%?])", "%%%1"))
+		end
+		local names = {}
+		local function refreshNames()
+			table.clear(names)
+			for _, other in Players:GetPlayers() do
+				table.insert(names, other.DisplayName)
+				table.insert(names, other.Name)
+			end
+			local opponent = player:GetAttribute("MatchOpponent")
+			if typeof(opponent) == "string" then
+				table.insert(names, opponent)
+			end
+			table.insert(names, FAKE_OPPONENT)
+			table.sort(names, function(a, b)
+				return #a > #b
+			end)
+		end
+		refreshNames()
+		local function looksFrench(text)
+			if typeof(text) ~= "string" or text == "" then
+				return false
+			end
+			local clean = string.gsub(text, "<[^>]->", " ")
+			for _, name in names do
+				if #name >= 3 then -- (un nom de 1 ou 2 lettres effacerait des morceaux de mots)
+					clean = string.gsub(clean, escapePattern(name), " ")
+				end
+			end
+			if hasAccent(clean) then
+				return true
+			end
+			for word in string.gmatch(string.lower(clean), "%a+") do
+				if FRENCH_WORDS[word] then
+					return true
+				end
+			end
+			return false
+		end
+
+		-- Textes trouvés : encore en français (une fois chacun), et traduits (pour le retour au français).
+		local found, foundList = {}, {}
+		local counts = { screen = 0, world = 0, missed = 0 }
+		local translated, translatedSeen = {}, {}
+		local function note(text, source)
+			if typeof(text) == "string" and not found[text] and looksFrench(text) then
+				found[text] = true
+				table.insert(foundList, text)
+				counts[source] += 1
+			end
+		end
+		local function remember(object, property)
+			local text = object[property]
+			local original = ask("Original", object, property)
+			local seen = translatedSeen[object] or {}
+			translatedSeen[object] = seen
+			if typeof(original) == "string" and original ~= text and not seen[property] then
+				seen[property] = true
+				table.insert(translated, { object = object, property = property, english = text, french = original })
+			end
+		end
+		-- Outil Studio (attribut NoTranslate sur l'objet ou un parent) : ni traduit, ni compté.
+		local function skipped(object)
+			local current = object
+			while current and current ~= game do
+				if current:GetAttribute("NoTranslate") == true then
+					return true
+				end
+				current = current.Parent
+			end
+			return false
+		end
+		-- Vraiment à l'écran : lui et ses parents visibles, dans un écran allumé.
+		local function onScreen(object)
+			local current = object
+			while current and not current:IsA("LayerCollector") do
+				if current:IsA("GuiObject") and not current.Visible then
+					return false
+				end
+				current = current.Parent
+			end
+			return current ~= nil and current.Enabled
+		end
+		local function scanTexts(root, source, visibleOnly)
+			for _, object in root:GetDescendants() do
+				if object:IsA("TextLabel") or object:IsA("TextButton") then
+					if object:FindFirstAncestorWhichIsA("LayerCollector") and not skipped(object) and (not visibleOnly or onScreen(object)) then
+						note(object.Text, source)
+						remember(object, "Text")
+					end
+				elseif object:IsA("ProximityPrompt") and not skipped(object) then
+					note(object.ActionText, source)
+					note(object.ObjectText, source)
+					remember(object, "ActionText")
+					remember(object, "ObjectText")
+				end
+			end
+		end
+		local function scanScreen()
+			scanTexts(playerGui, "screen", true)
+		end
+		local function oneLine(text)
+			local line = string.gsub(text, "\n", " ⏎ ")
+			if (utf8.len(line) or 0) > 220 then
+				line = string.sub(line, 1, (utf8.offset(line, 221) or (#line + 1)) - 1) .. "…"
+			end
+			return line
+		end
+
+		-- Fenêtres (fermées à la fin comme par leur bouton X : les tests cachent le voile plein écran).
+		local function hideOverlay(guiName)
+			local gui = playerGui:FindFirstChild(guiName)
+			local overlay = gui and gui:FindFirstChild("Overlay")
+			if overlay and overlay:IsA("GuiObject") then
+				overlay.Visible = false
+			end
+		end
+		local function showOverlay(guiName)
+			local gui = playerGui:FindFirstChild(guiName)
+			local overlay = gui and gui:FindFirstChild("Overlay")
+			if overlay and overlay:IsA("GuiObject") then
+				overlay.Visible = true
+				return true
+			end
+			return false
+		end
+		local function closeMachines()
+			local machines = playerGui:FindFirstChild("Machines")
+			if machines then
+				machines:SetAttribute("OpenMachine", nil)
+			end
+			hideOverlay("Machines")
+		end
+		local function openMachine(machine)
+			say(`CMD:OpenMachine:{machine}`)
+			local machines = playerGui:FindFirstChild("Machines")
+			return waitFor(function()
+				return machines ~= nil and machines:GetAttribute("OpenMachine") == machine
+			end, 6)
+		end
+		local plotGui = playerGui:FindFirstChild("Plot")
+		local function selectSpot(spotIndex)
+			if plotGui then
+				plotGui:SetAttribute("TestSelectSpot", spotIndex)
+			end
+		end
+
+		-- Map principale : attendre la fin du tuto côté serveur (le test « version anglaise » relance le tuto).
+		local tutorialFree = true
+		if place == "hub" then
+			tutorialFree = waitFor(function()
+				return ReplicatedStorage:GetAttribute("AutoTestTutorial") == "Server"
+			end, 20)
+			task.wait(1)
+			closeMachines()
+			for _, guiName in { "Shop", "Challenges", "Rebirth" } do
+				hideOverlay(guiName)
+			end
+			selectSpot(0)
+		end
+
+		-- 1) Passage en anglais en direct.
+		ask("ClearMisses")
+		player:SetAttribute("Lang", "en")
+		local switched = waitFor(function()
+			return ask("Language") == "en"
+		end, 5)
+		task.wait(0.8)
+		local tracked = ask("Tracked") or 0
+		local archerOk, archerText = true, nil
+		if place == "hub" then
+			-- La carte de l'Archer (panneau des tours) : son nom vient du Glossaire.
+			local card = plotGui and plotGui:FindFirstChild("Card_MachineGun", true)
+			archerOk = false
+			for _, label in (if card then card:GetDescendants() else {}) do
+				if label:IsA("TextLabel") and ask("Original", label, "Text") == "Archer du rempart" then
+					archerText = label.Text
+					archerOk = label.Text == "Rampart Archer"
+				end
+			end
+		end
+		report(
+			switched and tracked > 0 and archerOk,
+			`version anglaise : passage en anglais en direct (langue affichée {tostring(ask("Language"))}, {tracked} textes suivis{if place == "hub" then `, carte de l'Archer : « {tostring(archerText)} »` else ""})`
+		)
+		local problems = ask("Problems") or {}
+		report(#problems == 0, `version anglaise : dictionnaires chargés, {tostring(ask("Entries"))} traductions, {#problems} problème(s)`)
+		for index, message in problems do
+			if index > 30 then
+				break
+			end
+			say("dictionnaire : " .. oneLine(message))
+		end
+
+		-- 2) L'écran, puis les fenêtres une par une.
+		shot(`english_{if place == "hub" then "hud" else "match"}`)
+		scanScreen()
+		if place == "hub" then
+			-- Panneau des tours : fiche de la tour posée par le tuto, cartes (emplacement libre), cadenas.
+			local PlotLayout = require(ReplicatedStorage.Shared.PlotLayout)
+			local plotIndex = player:GetAttribute("Plot")
+			local plot = plotIndex and workspace.Hub.Plots:FindFirstChild("Plot" .. plotIndex)
+			local towerSpot, freeSpot, lockedSpot = nil, nil, nil
+			if plot then
+				local owned, taken = {}, {}
+				local raw = plot:GetAttribute("OwnedSpots")
+				if typeof(raw) == "string" and raw ~= "" then
+					for _, text in string.split(raw, ",") do
+						if tonumber(text) then
+							owned[tonumber(text)] = true
+						end
+					end
+				else
+					for spotIndex = 1, PlotLayout.STARTING_SPOTS do
+						owned[spotIndex] = true
+					end
+				end
+				local towers = plot:FindFirstChild("Towers")
+				for _, model in (if towers then towers:GetChildren() else {}) do
+					local spotIndex = model:GetAttribute("SpotIndex")
+					if typeof(spotIndex) == "number" then
+						taken[spotIndex] = true
+						towerSpot = towerSpot or spotIndex
+					end
+				end
+				for spotIndex = 1, #PlotLayout.SPOTS do
+					freeSpot = freeSpot or (if owned[spotIndex] and not taken[spotIndex] then spotIndex else nil)
+					lockedSpot = lockedSpot or (if not owned[spotIndex] then spotIndex else nil)
+				end
+			end
+			if towerSpot then
+				selectSpot(towerSpot)
+				task.wait(0.6)
+				shot("english_tower")
+				scanScreen()
+			end
+			if freeSpot then
+				selectSpot(freeSpot)
+				task.wait(0.6)
+				shot("english_cards")
+				scanScreen()
+			end
+			if lockedSpot then
+				selectSpot(lockedSpot)
+				task.wait(0.4)
+				scanScreen()
+			end
+			selectSpot(0)
+			say(`version anglaise : panneau des tours vu (tour {tostring(towerSpot)}, libre {tostring(freeSpot)}, cadenas {tostring(lockedSpot)})`)
+
+			-- Autel des héros et Forge runique (ouverts comme par leur invite).
+			for _, machine in { "Tower", "Bonus" } do
+				if openMachine(machine) then
+					task.wait(0.6)
+					shot(if machine == "Tower" then "english_altar" else "english_forge")
+					scanScreen()
+				else
+					report(false, `version anglaise : la machine {machine} ne s'est pas ouverte (CMD:OpenMachine:{machine})`)
+				end
+			end
+			closeMachines()
+
+			-- Boutique, défis, renaissance (ouvertes comme par leur bouton de la colonne de gauche).
+			for _, window in { { "Shop", "english_shop", 0.6 }, { "Challenges", "english_challenges", 1 }, { "Rebirth", "english_rebirth", 0.6 } } do
+				if showOverlay(window[1]) then
+					task.wait(window[3])
+					shot(window[2])
+					scanScreen()
+					hideOverlay(window[1])
+				else
+					report(false, `version anglaise : fenêtre {window[1]} introuvable (PlayerGui.{window[1]}.Overlay)`)
+				end
+			end
+
+			-- « Pendant ton absence » : le vrai ShopUI.showOfflineGains (copie du module du test : sa fenêtre est retirée
+			-- juste après).
+			local clientFolder = player:WaitForChild("PlayerScripts"):WaitForChild("Client", 10)
+			local shopModule = clientFolder and clientFolder:FindFirstChild("ShopUI")
+			if shopModule then
+				local before = {}
+				for _, child in playerGui:GetChildren() do
+					before[child] = true
+				end
+				require(shopModule).showOfflineGains({ amount = 123456, seconds = 2 * 3600, kind = "Offline", capped = true })
+				task.wait(1)
+				shot("english_offline")
+				scanScreen()
+				for _, child in playerGui:GetChildren() do
+					if not before[child] and child.Name == "OfflineGains" then
+						local overlay = child:FindFirstChild("Overlay")
+						if overlay and overlay:IsA("GuiObject") then
+							overlay.Visible = false
+						end
+						child:Destroy()
+					end
+				end
+			end
+
+			-- Tuto (relancé comme « Replay », Studio seulement), avec sa flèche dans le monde, puis « Passer ».
+			local tutorialGui = playerGui:FindFirstChild("Tutorial")
+			local panel = tutorialGui and tutorialGui:FindFirstChild("Panel")
+			if tutorialFree and panel then
+				ReplicatedStorage.Remotes.TutorialAction:FireServer("Replay")
+				local started = waitFor(function()
+					return panel.Visible and tutorialGui.Enabled
+				end, 8)
+				task.wait(0.6)
+				shot("english_tutorial")
+				scanScreen()
+				local guide = workspace:FindFirstChild("TutorialGuide")
+				if guide then
+					scanTexts(guide, "world", false)
+				end
+				task.wait(0.6) -- (anti-spam du serveur : un message toutes les 0,5 s)
+				ReplicatedStorage.Remotes.TutorialAction:FireServer("Skip", 1)
+				local ended = waitFor(function()
+					return not panel.Visible and player:GetAttribute("TutorialDone") == true
+				end, 8)
+				if not (started and ended) then
+					report(false, `version anglaise : tuto relancé ({started}) puis passé ({ended})`)
+				end
+			else
+				say(`version anglaise : tuto pas relancé (main rendue par le serveur : {tutorialFree}, panneau {panel ~= nil})`)
+			end
+
+			-- Classé : bouton « S'INSCRIRE », recherche, « MATCH TROUVÉ ! », attente. Attributs changés chez ce client
+			-- seulement (le serveur ne voit rien), puis remis comme avant.
+			local ATTRIBUTES = { "InRankedCircle", "QueueState", "QueueStartedAt", "MatchOpponent", "MatchOpponentMmr", "MatchOpponentGames", "MatchAcceptEndsAt" }
+			local saved = {}
+			for _, name in ATTRIBUTES do
+				saved[name] = player:GetAttribute(name)
+			end
+			player:SetAttribute("InRankedCircle", true)
+			task.wait(0.5)
+			scanScreen()
+			player:SetAttribute("QueueStartedAt", workspace:GetServerTimeNow() - 42)
+			player:SetAttribute("QueueState", "Searching")
+			task.wait(0.5)
+			scanScreen()
+			player:SetAttribute("MatchOpponent", FAKE_OPPONENT)
+			player:SetAttribute("MatchOpponentMmr", 1234)
+			player:SetAttribute("MatchOpponentGames", 12)
+			player:SetAttribute("MatchAcceptEndsAt", workspace:GetServerTimeNow() + 15)
+			player:SetAttribute("QueueState", "Pending")
+			task.wait(0.6)
+			shot("english_ranked")
+			scanScreen()
+			player:SetAttribute("QueueState", "Accepted")
+			task.wait(0.4)
+			scanScreen()
+			for _, name in ATTRIBUTES do
+				player:SetAttribute(name, saved[name])
+			end
+
+			-- Le centre (classement, panneaux du classé) et ta parcelle, vus de près (textes flottants allumés).
+			local plotFrame = plotIndex and PlotLayout.cframe(plotIndex)
+			look(Vector3.new(0, 25, 70), Vector3.new(0, 4, 0))
+			shot("english_center")
+			if plotFrame then
+				look(plotFrame:PointToWorldSpace(Vector3.new(32, 26, -45)), plotFrame:PointToWorldSpace(Vector3.new(0, 2, -18)))
+				shot("english_plot")
+			end
+			restoreCamera()
+		end
+
+		-- 3) Panneaux du monde et invites (allumés ou non : chacun s'allume de près), puis ce que le traducteur n'a pas
+		-- trouvé pendant tout ce temps (textes cachés, messages...).
+		refreshNames()
+		scanTexts(workspace, "world", false)
+		for _, text in ask("Misses") or {} do
+			note(text, "missed")
+		end
+		local MAX_LINES = 200
+		for index, text in foundList do
+			if index > MAX_LINES then
+				say(`non traduit : … et {#foundList - MAX_LINES} autres`)
+				break
+			end
+			say("non traduit : " .. oneLine(text))
+			if index % 20 == 0 then
+				task.wait(0.6) -- (la Sortie part par paquets : pas trop de lignes à la fois)
+			end
+		end
+		report(
+			#foundList == 0,
+			`version anglaise : {#foundList} textes encore en français ({counts.screen} à l'écran, {counts.world} dans le monde et les invites, {counts.missed} autres vus par le traducteur)`
+		)
+
+		-- 4) Retour au français en direct : chaque texte traduit reprend son texte d'origine, plus rien n'est suivi.
+		player:SetAttribute("Lang", "fr")
+		local backOk = waitFor(function()
+			return ask("Language") == "fr" and ask("Tracked") == 0
+		end, 5)
+		task.wait(0.3)
+		local back, stuck, gone, stuckTexts = 0, 0, 0, {}
+		for _, entry in translated do
+			if not entry.object.Parent then
+				gone += 1
+			elseif entry.object[entry.property] == entry.english and entry.english ~= entry.french then
+				stuck += 1
+				if #stuckTexts < 5 then
+					table.insert(stuckTexts, oneLine(entry.english))
+				end
+			else
+				back += 1
+			end
+		end
+		report(
+			backOk and stuck == 0,
+			`version anglaise : retour au français en direct ({back} textes traduits revenus en français, {stuck} restés en anglais{if #stuckTexts > 0 then " : " .. table.concat(stuckTexts, " | ") else ""}, {gone} disparus entre-temps ; plus rien de suivi : {backOk})`
+		)
+		if place == "hub" then
+			closeMachines()
+			selectSpot(0)
+		end
+	end
+
 	if mode == "Match" then
 		task.wait(8)
 		-- Envois retirés : le HUD du match a sa boutique de tours mais aucun texte d'envoi.
@@ -99,6 +587,8 @@ return function(log)
 		restoreCamera()
 		task.wait(25)
 		shot("match_fight")
+		-- Tout à la fin : la version anglaise du HUD du match (voir englishAudit plus haut).
+		englishAudit("match")
 		return
 	end
 
@@ -1853,4 +2343,8 @@ return function(log)
 		)
 	end
 	testTutorial()
+
+	-- Tout à la fin (après tout le reste, pour ne rien changer aux autres vérifications) : la version anglaise
+	-- (voir englishAudit en haut du fichier).
+	englishAudit("hub")
 end
