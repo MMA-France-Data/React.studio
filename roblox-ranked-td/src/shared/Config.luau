@@ -56,6 +56,12 @@ Config.STUDIO_ENEMY_GALLERY = true
 -- (src/client/SoundPanel.luau). Jamais dans le jeu publié. Mets false pour ne plus l'afficher.
 Config.STUDIO_SOUND_PANEL = true
 
+-- Scènes toutes prêtes (Studio seulement) : quand tu joues dans Studio, un bouton « SCÈNES (Studio) » remplit ta
+-- parcelle de 22 tours et lance la vague du dragon (100) ou du boss de glace (40), avec ton personnage face à lui
+-- (src/server/Hub/StudioScenes.luau) : pour voir ou filmer un boss sans jouer des heures. Jamais dans le jeu publié,
+-- et tes données de Studio ne sont jamais sauvegardées. Mets false pour ne plus l'afficher.
+Config.STUDIO_SCENES = true
+
 -- Tuto des nouveaux joueurs (src/client/TutorialUI.luau) dans Studio : tes données y sont en mémoire, tu es donc un
 -- nouveau joueur à chaque Play et le tuto s'affiche à chaque fois. Mets false pour ne plus le voir dans Studio
 -- (rejouer quand même : barre de commande, vue Serveur,

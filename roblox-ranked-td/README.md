@@ -614,6 +614,12 @@ que chez le joueur (`src/client/SoundManager.luau`) : aucun coût pour le serveu
 - **Écouter les sons dans Studio** : en Play, bouton « SONS (Studio) » (colonne de gauche, à droite de
   « GALERIE (Studio) ») : la liste de tous les sons, avec « Jouer », leur nom et leur numéro. Tu peux dire
   « change le son de la Catapulte » en donnant son nom. `Config.STUDIO_SOUND_PANEL = false` pour cacher le bouton.
+- **Scènes pour t'enregistrer dans Studio** : en Play, bouton « SCÈNES (Studio) » (à droite de « SONS (Studio) ») :
+  « DRAGON — vague 100 » ou « BOSS DE GLACE — vague 40 » remplit ta parcelle de 22 tours, lance la vague du boss
+  et te pose face à son chemin (`src/server/Hub/StudioScenes.luau`, aussi `StudioDebug` « Scene ») ; « JEU EN
+  ANGLAIS » (Roblox n'accepte que des vidéos en anglais) ; « CACHER L'INTERFACE » (touche H pour la remettre).
+  Jamais dans le jeu publié ; tes données de Studio ne sont jamais sauvegardées. `Config.STUDIO_SCENES = false`
+  pour cacher le bouton.
 - **Changer un son** :
   1. Trouve un son **gratuit** : dans Studio, *Boîte à outils* (Toolbox) > onglet **Audio** (ou le Creator Store
      sur le site de Roblox, catégorie Audio). Écoute-le, vérifie qu'il est gratuit et public (les sons de

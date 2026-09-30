@@ -53,6 +53,10 @@ else
 	require(script.Parent.EnemyGallery).start()
 	-- Panneau « SONS (Studio) » pour écouter chaque son : seulement dans Studio (Config.STUDIO_SOUND_PANEL).
 	require(script.Parent.SoundPanel).start()
+	-- Bouton « SCÈNES (Studio) » (dragon ou boss de glace tout prêts) : seulement dans Studio (Config.STUDIO_SCENES).
+	task.spawn(function()
+		require(script.Parent.StudioScenes).start()
+	end)
 	-- Petit tuto des nouveaux joueurs (une seule fois, bouton « Passer ») : après les autres interfaces, qu'il montre.
 	require(script.Parent.TutorialUI).start()
 end

@@ -22,6 +22,7 @@ local HubMap = require(script.HubMap)
 local PlotInterest = require(script.PlotInterest)
 local Plots = require(script.Plots)
 local SoloBoard = require(script.SoloBoard)
+local StudioScenes = require(script.StudioScenes)
 local Tutorial = require(script.Tutorial)
 
 local Hub = {}
@@ -478,6 +479,9 @@ end
 --   Invoke(player, "Call", "spinTower", 100)    -> 100 lancers de l'autel (renvoie le résultat)
 --   Invoke(player, "Set", "towerSpinsBought", 0) -> change le compteur des lancers déjà achetés (prix de l'autel)
 --   Invoke(player, "StartWave", 40)             -> lance tout de suite la vague 40 (vague en cours effacée)
+--   Invoke(player, "Scene", "dragon")           -> scène toute prête (Hub/StudioScenes.luau, comme le bouton « SCÈNES
+--                                                  (Studio) ») : 22 tours, vague du dragon (100) ou "glace" (Titan du
+--                                                  givre, 40), personnage face à son chemin ; renvoie true si lancée
 --   Invoke(player, "Leak")                      -> pousse le premier ennemi vivant au bout du chemin
 --                                                  (test de la règle « une fuite = vague ratée »)
 --   Invoke(player, "Data")                      -> renvoie les données du joueur
@@ -564,6 +568,10 @@ local function setupStudioDebug()
 	if not RunService:IsStudio() then
 		return
 	end
+	-- Bouton « SCÈNES (Studio) » (Config.STUDIO_SCENES) : dragon ou boss de glace, tout prêt.
+	StudioScenes.start(function(player)
+		return games[player]
+	end)
 	local debug = Instance.new("BindableFunction")
 	debug.Name = "StudioDebug"
 	debug.OnInvoke = function(player: Player, command: string, ...)
@@ -628,6 +636,8 @@ local function setupStudioDebug()
 			plotGame.idle.wave = ...
 			plotGame:clearEnemies()
 			plotGame:startWave()
+		elseif command == "Scene" then
+			return StudioScenes.apply(player, plotGame, ...)
 		elseif command == "Leak" and plotGame then
 			for _, enemy in plotGame.enemies do
 				if not enemy.dead then
