@@ -1,0 +1,407 @@
+[
+  {
+    "model": "Swarm_5",
+    "status": "PASS",
+    "oneMeshOneMaterial": true,
+    "unitScale": true,
+    "noScaleAnimationChannels": true,
+    "normalizedWeights": true,
+    "samples": [
+      {
+        "clip": "Walking_A",
+        "frame": 0,
+        "height": 2.199
+      },
+      {
+        "clip": "Walking_A",
+        "frame": 5,
+        "height": 2.187
+      },
+      {
+        "clip": "Walking_A",
+        "frame": 13,
+        "height": 2.196
+      },
+      {
+        "clip": "Walking_A",
+        "frame": 20,
+        "height": 2.202
+      },
+      {
+        "clip": "Walking_A",
+        "frame": 26,
+        "height": 2.199
+      },
+      {
+        "clip": "Running_A",
+        "frame": 0,
+        "height": 2.106
+      },
+      {
+        "clip": "Running_A",
+        "frame": 4,
+        "height": 2.097
+      },
+      {
+        "clip": "Running_A",
+        "frame": 10,
+        "height": 2.115
+      },
+      {
+        "clip": "Running_A",
+        "frame": 15,
+        "height": 2.081
+      },
+      {
+        "clip": "Running_A",
+        "frame": 19,
+        "height": 2.106
+      },
+      {
+        "clip": "Death_A",
+        "frame": 0,
+        "height": 2.207
+      },
+      {
+        "clip": "Death_A",
+        "frame": 4,
+        "height": 2.12
+      },
+      {
+        "clip": "Death_A",
+        "frame": 10,
+        "height": 1.459
+      },
+      {
+        "clip": "Death_A",
+        "frame": 15,
+        "height": 1.042
+      },
+      {
+        "clip": "Death_A",
+        "frame": 19,
+        "height": 1.016
+      }
+    ],
+    "riderRigid": false
+  },
+  {
+    "model": "Normal_5",
+    "status": "PASS",
+    "oneMeshOneMaterial": true,
+    "unitScale": true,
+    "noScaleAnimationChannels": true,
+    "normalizedWeights": true,
+    "samples": [
+      {
+        "clip": "Walking_A",
+        "frame": 0,
+        "height": 2.446
+      },
+      {
+        "clip": "Walking_A",
+        "frame": 5,
+        "height": 2.433
+      },
+      {
+        "clip": "Walking_A",
+        "frame": 13,
+        "height": 2.443
+      },
+      {
+        "clip": "Walking_A",
+        "frame": 20,
+        "height": 2.449
+      },
+      {
+        "clip": "Walking_A",
+        "frame": 26,
+        "height": 2.446
+      },
+      {
+        "clip": "Running_A",
+        "frame": 0,
+        "height": 2.368
+      },
+      {
+        "clip": "Running_A",
+        "frame": 4,
+        "height": 2.359
+      },
+      {
+        "clip": "Running_A",
+        "frame": 10,
+        "height": 2.377
+      },
+      {
+        "clip": "Running_A",
+        "frame": 15,
+        "height": 2.343
+      },
+      {
+        "clip": "Running_A",
+        "frame": 19,
+        "height": 2.367
+      },
+      {
+        "clip": "Death_A",
+        "frame": 0,
+        "height": 2.454
+      },
+      {
+        "clip": "Death_A",
+        "frame": 4,
+        "height": 2.365
+      },
+      {
+        "clip": "Death_A",
+        "frame": 10,
+        "height": 1.797
+      },
+      {
+        "clip": "Death_A",
+        "frame": 15,
+        "height": 1.213
+      },
+      {
+        "clip": "Death_A",
+        "frame": 19,
+        "height": 1.201
+      }
+    ],
+    "riderRigid": false
+  },
+  {
+    "model": "Tank_5",
+    "status": "PASS",
+    "oneMeshOneMaterial": true,
+    "unitScale": true,
+    "noScaleAnimationChannels": true,
+    "normalizedWeights": true,
+    "samples": [
+      {
+        "clip": "Walking_A",
+        "frame": 0,
+        "height": 2.446
+      },
+      {
+        "clip": "Walking_A",
+        "frame": 5,
+        "height": 2.433
+      },
+      {
+        "clip": "Walking_A",
+        "frame": 13,
+        "height": 2.443
+      },
+      {
+        "clip": "Walking_A",
+        "frame": 20,
+        "height": 2.449
+      },
+      {
+        "clip": "Walking_A",
+        "frame": 26,
+        "height": 2.446
+      },
+      {
+        "clip": "Running_A",
+        "frame": 0,
+        "height": 2.368
+      },
+      {
+        "clip": "Running_A",
+        "frame": 4,
+        "height": 2.359
+      },
+      {
+        "clip": "Running_A",
+        "frame": 10,
+        "height": 2.377
+      },
+      {
+        "clip": "Running_A",
+        "frame": 15,
+        "height": 2.343
+      },
+      {
+        "clip": "Running_A",
+        "frame": 19,
+        "height": 2.367
+      },
+      {
+        "clip": "Death_A",
+        "frame": 0,
+        "height": 2.454
+      },
+      {
+        "clip": "Death_A",
+        "frame": 4,
+        "height": 2.42
+      },
+      {
+        "clip": "Death_A",
+        "frame": 10,
+        "height": 1.839
+      },
+      {
+        "clip": "Death_A",
+        "frame": 15,
+        "height": 1.365
+      },
+      {
+        "clip": "Death_A",
+        "frame": 19,
+        "height": 1.319
+      }
+    ],
+    "riderRigid": false
+  },
+  {
+    "model": "Giant_5",
+    "status": "PASS",
+    "oneMeshOneMaterial": true,
+    "unitScale": true,
+    "noScaleAnimationChannels": true,
+    "normalizedWeights": true,
+    "samples": [
+      {
+        "clip": "Walking_A",
+        "frame": 0,
+        "height": 2.446
+      },
+      {
+        "clip": "Walking_A",
+        "frame": 5,
+        "height": 2.433
+      },
+      {
+        "clip": "Walking_A",
+        "frame": 13,
+        "height": 2.443
+      },
+      {
+        "clip": "Walking_A",
+        "frame": 20,
+        "height": 2.449
+      },
+      {
+        "clip": "Walking_A",
+        "frame": 26,
+        "height": 2.446
+      },
+      {
+        "clip": "Running_A",
+        "frame": 0,
+        "height": 2.368
+      },
+      {
+        "clip": "Running_A",
+        "frame": 4,
+        "height": 2.359
+      },
+      {
+        "clip": "Running_A",
+        "frame": 10,
+        "height": 2.377
+      },
+      {
+        "clip": "Running_A",
+        "frame": 15,
+        "height": 2.343
+      },
+      {
+        "clip": "Running_A",
+        "frame": 19,
+        "height": 2.367
+      },
+      {
+        "clip": "Death_A",
+        "frame": 0,
+        "height": 2.454
+      },
+      {
+        "clip": "Death_A",
+        "frame": 4,
+        "height": 2.42
+      },
+      {
+        "clip": "Death_A",
+        "frame": 10,
+        "height": 1.839
+      },
+      {
+        "clip": "Death_A",
+        "frame": 15,
+        "height": 1.365
+      },
+      {
+        "clip": "Death_A",
+        "frame": 19,
+        "height": 1.319
+      }
+    ],
+    "riderRigid": false
+  },
+  {
+    "model": "Fast_5",
+    "status": "PASS",
+    "oneMeshOneMaterial": true,
+    "unitScale": true,
+    "noScaleAnimationChannels": true,
+    "normalizedWeights": true,
+    "samples": [
+      {
+        "clip": "Gallop",
+        "frame": 1,
+        "height": 2.741
+      },
+      {
+        "clip": "Gallop",
+        "frame": 4,
+        "height": 2.552
+      },
+      {
+        "clip": "Gallop",
+        "frame": 8,
+        "height": 2.586
+      },
+      {
+        "clip": "Gallop",
+        "frame": 12,
+        "height": 2.701
+      },
+      {
+        "clip": "Gallop",
+        "frame": 14,
+        "height": 2.717
+      },
+      {
+        "clip": "Death",
+        "frame": 1,
+        "height": 2.642
+      },
+      {
+        "clip": "Death",
+        "frame": 6,
+        "height": 2.339
+      },
+      {
+        "clip": "Death",
+        "frame": 13,
+        "height": 1.193
+      },
+      {
+        "clip": "Death",
+        "frame": 20,
+        "height": 1.264
+      },
+      {
+        "clip": "Death",
+        "frame": 25,
+        "height": 1.264
+      }
+    ],
+    "riderRigid": true
+  }
+]

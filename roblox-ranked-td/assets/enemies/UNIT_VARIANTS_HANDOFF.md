@@ -1,4 +1,4 @@
-# Bases visuelles cuivre, ronces, givre et dunes — transmission à Claude
+# Bases visuelles cuivre, ronces, givre, dunes et os — transmission à Claude
 
 Le propriétaire a validé le rendu des deux fantassins et demandé de décliner les autres unités, puis de transmettre ces assets sur GitHub pour créer des variantes. Ces fichiers sont des sources 3D, pas encore des modèles Roblox intégrés.
 
@@ -10,9 +10,16 @@ Le propriétaire a validé le rendu des deux fantassins et demandé de décliner
 | `bramble-ranks/` | 21–30 | `_2` | Gardiens des ronces : capuche verte, branches, bois et feuilles |
 | `frost-ranks/` | 31–40 | `_3` | Légion du givre : armure argentée, tissus bleu nuit, cristaux liés aux os, cheval gris |
 | `desert-ranks/` | 41–50 | `_4` | Gardes des dunes : armures sable/or, tissus turquoise, coiffes et ornements dorés, cheval dune |
+| `undead-ranks/` | 51–60 | `_5` | Légion des os : revenants en armure sombre, têtes remplacées par des crânes en volume, yeux verts, tissus violets, cheval gris sombre |
 
 Chaque dossier contient cinq unités : `Swarm` (écuyer), `Normal` (fantassin), `Fast` (cavalier), `Tank` (chevalier lourd), `Giant` (colosse).
 Tous les boss restent séparés de ces troupes : aucun boss n'est remplacé par cet envoi.
+
+## Ajout du 30 septembre : Légion des os
+
+Le propriétaire a validé le rendu des troupes accompagnant le Roi mort-vivant de la vague 60, puis demandé leur envoi sur GitHub le 30 septembre 2026. `undead-ranks/` contient cinq sources éditables, cinq GLB avec clips embarqués, dix FBX marche/galop et mort, et les textures couleur séparées. Les têtes humaines originales ont été remplacées par des crânes en volume sous les casques, y compris sur le cavalier ; les ornements sont liés aux os existants. Les corps, rigs et animations des bases existantes sont conservés. Voir `undead-ranks/ASSET_NOTES.md` pour les noms d'import et les limites de validation.
+
+Les cinq GLB et dix FBX ont été réimportés et contrôlés dans Blender. **L'import, les animations et les performances de ces nouvelles variantes restent à confirmer dans Studio.** Aucun crédit Meshy n'est consommé. Le boss 60 est livré séparément au propriétaire ; aucun boss, `.rbxm`, identifiant Roblox, chiffre de gameplay, interface ou outil n'est installé par cet envoi. Le projet de réutiliser le roi carmin pour le boss d'obsidienne de la vague 80 est seulement une proposition, pas un asset produit ici.
 
 ## Ajout du 30 septembre : dunes
 

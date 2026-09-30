@@ -1,0 +1,125 @@
+[
+  {
+    "model": "Swarm_5",
+    "triangles": 5258,
+    "bones": 41,
+    "meshes": 1,
+    "materials": 1,
+    "texture": "Swarm_5_Color.png",
+    "clips": [
+      "Idle",
+      "Walking_A",
+      "Running_A",
+      "Death_A"
+    ],
+    "bytes": 813568,
+    "fps": 30,
+    "studioValidation": "pending",
+    "paidServicesUsed": false,
+    "source": "outputs\\unites-11-30\\cuivre-11-20\\Swarm_1.blend",
+    "style": "Armored revenant with replacement closed skull head; body and animation rig reused",
+    "localCredits": 0,
+    "headReplacement": {
+      "removedOriginalHeadVertices": 757,
+      "removedOriginalHeadIslands": 8
+    }
+  },
+  {
+    "model": "Normal_5",
+    "triangles": 6168,
+    "bones": 41,
+    "meshes": 1,
+    "materials": 1,
+    "texture": "Normal_5_Color.png",
+    "clips": [
+      "Idle",
+      "Walking_A",
+      "Running_A",
+      "Death_A"
+    ],
+    "bytes": 978716,
+    "fps": 30,
+    "studioValidation": "pending",
+    "paidServicesUsed": false,
+    "source": "outputs\\unites-01-10\\Normal.blend",
+    "style": "Armored revenant with replacement closed skull head; body and animation rig reused",
+    "localCredits": 0,
+    "headReplacement": {
+      "removedOriginalHeadVertices": 727,
+      "removedOriginalHeadIslands": 8
+    }
+  },
+  {
+    "model": "Tank_5",
+    "triangles": 6750,
+    "bones": 41,
+    "meshes": 1,
+    "materials": 1,
+    "texture": "Tank_5_Color.png",
+    "clips": [
+      "Idle",
+      "Walking_A",
+      "Running_A",
+      "Death_A"
+    ],
+    "bytes": 1024644,
+    "fps": 30,
+    "studioValidation": "pending",
+    "paidServicesUsed": false,
+    "source": "outputs\\unites-01-10\\Tank.blend",
+    "style": "Armored revenant with replacement closed skull head; body and animation rig reused",
+    "localCredits": 0,
+    "headReplacement": {
+      "removedOriginalHeadVertices": 839,
+      "removedOriginalHeadIslands": 10
+    }
+  },
+  {
+    "model": "Giant_5",
+    "triangles": 7128,
+    "bones": 41,
+    "meshes": 1,
+    "materials": 1,
+    "texture": "Giant_5_Color.png",
+    "clips": [
+      "Idle",
+      "Walking_A",
+      "Running_A",
+      "Death_A"
+    ],
+    "bytes": 1075184,
+    "fps": 30,
+    "studioValidation": "pending",
+    "paidServicesUsed": false,
+    "source": "outputs\\unites-01-10\\Giant.blend",
+    "style": "Armored revenant with replacement closed skull head; body and animation rig reused",
+    "localCredits": 0,
+    "headReplacement": {
+      "removedOriginalHeadVertices": 839,
+      "removedOriginalHeadIslands": 10
+    }
+  },
+  {
+    "model": "Fast_5",
+    "triangles": 8464,
+    "bones": 48,
+    "meshes": 1,
+    "materials": 1,
+    "texture": "Fast_5_Color.png",
+    "clips": [
+      "Gallop",
+      "Death"
+    ],
+    "bytes": 1448548,
+    "fps": 30,
+    "studioValidation": "pending",
+    "paidServicesUsed": false,
+    "source": "outputs\\unites-01-10\\Cavalry_Studio.blend",
+    "style": "Armored revenant with replacement closed skull head; body and animation rig reused",
+    "localCredits": 0,
+    "headReplacement": {
+      "removedOriginalHeadVertices": 727,
+      "removedOriginalHeadIslands": 8
+    }
+  }
+]

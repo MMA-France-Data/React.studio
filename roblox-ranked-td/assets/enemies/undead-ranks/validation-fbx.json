@@ -1,0 +1,146 @@
+[
+  {
+    "file": "Swarm_5_Walking_Studio.fbx",
+    "fps": 30,
+    "bones": 41,
+    "singleMeshMaterial": true,
+    "matchedRestSkeleton": true,
+    "maxFourWeights": true,
+    "unitScaleEveryFrame": true,
+    "limbMotionAfterReimport": {
+      "lowerleg.l": 0.3122,
+      "lowerleg.r": 0.3595
+    },
+    "studioValidation": "pending"
+  },
+  {
+    "file": "Swarm_5_Death_Studio.fbx",
+    "fps": 30,
+    "bones": 41,
+    "singleMeshMaterial": true,
+    "matchedRestSkeleton": true,
+    "maxFourWeights": true,
+    "unitScaleEveryFrame": true,
+    "limbMotionAfterReimport": {
+      "lowerleg.l": 0.3679,
+      "lowerleg.r": 0.413
+    },
+    "studioValidation": "pending"
+  },
+  {
+    "file": "Normal_5_Walking_Studio.fbx",
+    "fps": 30,
+    "bones": 41,
+    "singleMeshMaterial": true,
+    "matchedRestSkeleton": true,
+    "maxFourWeights": true,
+    "unitScaleEveryFrame": true,
+    "limbMotionAfterReimport": {
+      "lowerleg.l": 0.3122,
+      "lowerleg.r": 0.3595
+    },
+    "studioValidation": "pending"
+  },
+  {
+    "file": "Normal_5_Death_Studio.fbx",
+    "fps": 30,
+    "bones": 41,
+    "singleMeshMaterial": true,
+    "matchedRestSkeleton": true,
+    "maxFourWeights": true,
+    "unitScaleEveryFrame": true,
+    "limbMotionAfterReimport": {
+      "lowerleg.l": 0.3679,
+      "lowerleg.r": 0.413
+    },
+    "studioValidation": "pending"
+  },
+  {
+    "file": "Tank_5_Walking_Studio.fbx",
+    "fps": 30,
+    "bones": 41,
+    "singleMeshMaterial": true,
+    "matchedRestSkeleton": true,
+    "maxFourWeights": true,
+    "unitScaleEveryFrame": true,
+    "limbMotionAfterReimport": {
+      "lowerleg.l": 0.3122,
+      "lowerleg.r": 0.3595
+    },
+    "studioValidation": "pending"
+  },
+  {
+    "file": "Tank_5_Death_Studio.fbx",
+    "fps": 30,
+    "bones": 41,
+    "singleMeshMaterial": true,
+    "matchedRestSkeleton": true,
+    "maxFourWeights": true,
+    "unitScaleEveryFrame": true,
+    "limbMotionAfterReimport": {
+      "lowerleg.l": 0.3679,
+      "lowerleg.r": 0.413
+    },
+    "studioValidation": "pending"
+  },
+  {
+    "file": "Giant_5_Walking_Studio.fbx",
+    "fps": 30,
+    "bones": 41,
+    "singleMeshMaterial": true,
+    "matchedRestSkeleton": true,
+    "maxFourWeights": true,
+    "unitScaleEveryFrame": true,
+    "limbMotionAfterReimport": {
+      "lowerleg.l": 0.3122,
+      "lowerleg.r": 0.3595
+    },
+    "studioValidation": "pending"
+  },
+  {
+    "file": "Giant_5_Death_Studio.fbx",
+    "fps": 30,
+    "bones": 41,
+    "singleMeshMaterial": true,
+    "matchedRestSkeleton": true,
+    "maxFourWeights": true,
+    "unitScaleEveryFrame": true,
+    "limbMotionAfterReimport": {
+      "lowerleg.l": 0.3679,
+      "lowerleg.r": 0.413
+    },
+    "studioValidation": "pending"
+  },
+  {
+    "file": "Fast_5_Gallop_Studio.fbx",
+    "fps": 30,
+    "bones": 48,
+    "singleMeshMaterial": true,
+    "matchedRestSkeleton": true,
+    "maxFourWeights": true,
+    "unitScaleEveryFrame": true,
+    "limbMotionAfterReimport": {
+      "BackLowerLeg.L": 0.9018,
+      "BackLowerLeg.R": 0.7568,
+      "FrontLowerLeg.L": 0.507,
+      "FrontLowerLeg.R": 0.5794
+    },
+    "studioValidation": "pending"
+  },
+  {
+    "file": "Fast_5_Death_Studio.fbx",
+    "fps": 30,
+    "bones": 48,
+    "singleMeshMaterial": true,
+    "matchedRestSkeleton": true,
+    "maxFourWeights": true,
+    "unitScaleEveryFrame": true,
+    "limbMotionAfterReimport": {
+      "BackLowerLeg.L": 0.7396,
+      "BackLowerLeg.R": 0.8748,
+      "FrontLowerLeg.L": 0.5271,
+      "FrontLowerLeg.R": 0.5428
+    },
+    "studioValidation": "pending"
+  }
+]
