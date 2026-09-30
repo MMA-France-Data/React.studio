@@ -95,6 +95,15 @@ return {
 	-- {2} = nom de l'ennemi (Glossaire) ; « un ennemi » a sa propre ligne (« an enemy », pas « a enemy »)
 	["Vague {1} ratée : un {2} a atteint ta base ! Retour à la vague {3}"] = "Wave {1} failed: a {2} reached your base! Back to wave {3}",
 	["Vague {1} ratée : un ennemi a atteint ta base ! Retour à la vague {2}"] = "Wave {1} failed: an enemy reached your base! Back to wave {2}",
+	-- Passes offerts par le propriétaire du jeu (Hub/AdminGifts.luau, panneau « 🎁 DONNER »)
+	["🎁 {1} t'offre le pass {2} !"] = "🎁 {1} gave you the {2} pass!",
+	["Pass {1} offert à {2}"] = "{1} pass given to {2}",
+	["Pass {1} repris à {2} (un pass acheté reste)"] = "{1} pass taken back from {2} (a bought pass stays)",
+	["Impossible : {1}"] = "Not possible: {1}",
+	["réservé au propriétaire du jeu"] = "only for the game owner",
+	["demande invalide"] = "invalid request",
+	["joueur ou pass introuvable"] = "player or pass not found",
+	["données du joueur pas encore chargées"] = "player data not loaded yet",
 	["Réussis la vague {1} pour renaître (meilleure vague de la run : {2})"] = "Clear wave {1} to rebirth (best wave this run: {2})",
 	["Renaissance ! +{1} % de pièces • bonus total : +{2} %"] = "Rebirth! +{1}% coins • total bonus: +{2}%",
 	-- {1} = nom de la tour (Glossaire)

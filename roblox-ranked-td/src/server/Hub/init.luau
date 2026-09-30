@@ -23,6 +23,7 @@ local PlotInterest = require(script.PlotInterest)
 local Plots = require(script.Plots)
 local SoloBoard = require(script.SoloBoard)
 local StudioScenes = require(script.StudioScenes)
+local AdminGifts = require(script.AdminGifts)
 local Tutorial = require(script.Tutorial)
 
 local Hub = {}
@@ -479,6 +480,9 @@ end
 --   Invoke(player, "Call", "spinTower", 100)    -> 100 lancers de l'autel (renvoie le résultat)
 --   Invoke(player, "Set", "towerSpinsBought", 0) -> change le compteur des lancers déjà achetés (prix de l'autel)
 --   Invoke(player, "StartWave", 40)             -> lance tout de suite la vague 40 (vague en cours effacée)
+--   Invoke(player, "GiftPass", userId, "SpeedX2", true) -> comme le panneau « 🎁 DONNER » du propriétaire (false =
+--                                                  reprendre) ; attribut StudioNotOwner de ReplicatedStorage = pas le
+--                                                  propriétaire (refusé) ; renvoie (réussi, raison)
 --   Invoke(player, "Scene", "dragon")           -> scène toute prête (Hub/StudioScenes.luau, comme le bouton « SCÈNES
 --                                                  (Studio) ») : 22 tours, vague du dragon (100) ou "glace" (Titan du
 --                                                  givre, 40), personnage face à son chemin ; renvoie true si lancée
@@ -638,6 +642,9 @@ local function setupStudioDebug()
 			plotGame:startWave()
 		elseif command == "Scene" then
 			return StudioScenes.apply(player, plotGame, ...)
+		elseif command == "GiftPass" then
+			-- Comme le panneau « 🎁 DONNER » : (UserId du joueur, nom du pass, true = offrir) -> (réussi, raison)
+			return AdminGifts.handle(player, ...)
 		elseif command == "Leak" and plotGame then
 			for _, enemy in plotGame.enemies do
 				if not enemy.dead then
@@ -788,6 +795,8 @@ function Hub.start()
 	end)
 	-- Tuto des nouveaux joueurs : fin ou « Passer » (remote TutorialAction), drapeau tutorialDone (Hub/Tutorial.luau).
 	Tutorial.start()
+	-- Panneau « 🎁 DONNER » du propriétaire du jeu : offrir un pass à un joueur du serveur (Hub/AdminGifts.luau).
+	AdminGifts.start()
 
 	local lastPlotAction = {}
 	local lastPassAction = {}

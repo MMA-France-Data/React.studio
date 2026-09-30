@@ -52,6 +52,8 @@ local function defaultIdle()
 		-- S'additionne : gain = base x (1 + bonus/100). Ex : ennemi à 3 pièces -> +100 % = 6, +200 % = 9.
 		coinBonus = 0,
 		rebirths = 0, -- nombre de renaissances (seules la vague et bestWave repartent à 1)
+		-- Astuce « Tu bloques ? Utilise la Renaissance » déjà montrée (une seule fois : PlotGame:endWave, RebirthUI).
+		rebirthHintShown = false,
 		-- Machines à sous
 		unlockedTowers = startingTowers(), -- [type] = true
 		towerDupes = {}, -- [type] = nombre de doublons (IdleConfig.DUPLICATE_DAMAGE_BONUS de dégâts chacun)
@@ -90,6 +92,9 @@ local function defaultData()
 		coins = IdleConfig.STARTING_COINS,
 		idle = defaultIdle(),
 		processedReceipts = {}, -- achats Robux déjà livrés (évite de donner deux fois)
+		-- Passes offerts par le propriétaire du jeu (panneau « 🎁 DONNER », Hub/AdminGifts.luau) : [nom du pass] = true.
+		-- Ils comptent comme achetés (Monetization.ownsPass), en mode solo seulement, comme tous les passes.
+		giftedPasses = {},
 		-- Défis classés : progression comptée par le serveur de match, récompenses récupérées sur la map
 		-- principale (format : Shared/Challenges.luau). Jamais remis à zéro par les saisons.
 		challenges = Challenges.defaultData(),

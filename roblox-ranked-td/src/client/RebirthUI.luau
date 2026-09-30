@@ -89,6 +89,67 @@ function RebirthUI.start()
 	UI.placeInLeftColumn(button, 2)
 
 	------------------------------------------------------------------
+	-- Astuce, une seule fois (demande du propriétaire, 30/09/2026) : au premier échec d'une vague quand la
+	-- renaissance est possible, le serveur envoie « RebirthHint » (PlotGame:endWave). Petit panneau à droite du
+	-- bouton, qui pulse déjà : « Tu bloques ? Utilise la Renaissance, sans perdre ta progression ».
+	------------------------------------------------------------------
+	local hint = UI.new("Frame", {
+		Name = "RebirthHint",
+		Size = UDim2.fromOffset(310, 128),
+		BackgroundColor3 = UI.Colors.Panel,
+		BackgroundTransparency = 0.04,
+		Visible = false,
+		Parent = buttonGui,
+	}, { UI.corner(12), UI.padding(10), UI.stroke(UI.Colors.Gold, 2) })
+	local hintScale = UI.new("UIScale", { Parent = hint })
+	local hintText = UI.label({
+		Name = "HintText",
+		Size = UDim2.new(1, 0, 1, -40),
+		RichText = true,
+		TextWrapped = true,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		TextYAlignment = Enum.TextYAlignment.Top,
+		MaxTextSize = 15,
+		Parent = hint,
+	})
+	local hintOk = UI.button({
+		Name = "HintOk",
+		AnchorPoint = Vector2.new(1, 1),
+		Position = UDim2.new(1, 0, 1, 0),
+		Size = UDim2.fromOffset(120, 34),
+		BackgroundColor3 = UI.Colors.Success,
+		Text = "Compris !",
+		MaxTextSize = 16,
+		Parent = hint,
+	})
+	local hintShownAt = 0
+	local function placeHint()
+		-- À droite du bouton Renaissance, à sa hauteur, sans sortir de l'écran (réduit sur un téléphone).
+		local screen = UI.screenSize(buttonGui)
+		local at = button.AbsolutePosition - buttonGui.AbsolutePosition
+		local right = at.X + button.AbsoluteSize.X + 10
+		hintScale.Scale = math.clamp((screen.X - right - 12) / 310, 0.6, 1)
+		local height = 128 * hintScale.Scale
+		hint.Position = UDim2.fromOffset(math.floor(right), math.floor(math.clamp(at.Y, 8, math.max(8, screen.Y - height - 8))))
+	end
+	hintOk.Activated:Connect(function()
+		hint.Visible = false
+	end)
+	Remotes.get("RebirthHint").OnClientEvent:Connect(function(gain)
+		local value = if typeof(gain) == "number" then gain else IdleConfig.REBIRTH_BASE_GAIN
+		hintText.Text = `💡 <b>Tu bloques sur une vague ?</b>\nUtilise la <b>Renaissance</b> sans perdre ta progression : tu gardes tes tours, tes améliorations et tes pièces, et tu gagnes +{percent(value)} % de pièces pour toujours.`
+		placeHint()
+		hint.Visible = true
+		local shownAt = os.clock()
+		hintShownAt = shownAt
+		task.delay(25, function()
+			if hintShownAt == shownAt then
+				hint.Visible = false
+			end
+		end)
+	end)
+
+	------------------------------------------------------------------
 	-- Fenêtre de confirmation (même style que les machines, MachineUI)
 	------------------------------------------------------------------
 	local overlay = UI.new("TextButton", {

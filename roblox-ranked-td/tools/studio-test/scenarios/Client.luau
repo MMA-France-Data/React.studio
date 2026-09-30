@@ -42,6 +42,32 @@ return function(log)
 		return nil
 	end
 
+	-- Astuce de la renaissance (RebirthUI) : le serveur l'envoie une seule fois (tests.testRebirthHint de HubServer) ; le
+	-- panneau doit apparaître à côté du bouton Renaissance, avec son texte, puis il est refermé tout de suite (les autres
+	-- tests et captures ne le voient pas). Tâche à part : aucune variable de plus ici (limite des 200 variables locales).
+	if mode ~= "Match" then
+		task.spawn(function()
+			local buttonGui = player:WaitForChild("PlayerGui"):WaitForChild("RebirthButton", 30)
+			local hintFrame = buttonGui and buttonGui:WaitForChild("RebirthHint", 30)
+			if not hintFrame then
+				log("Error", "[FAIL] astuce de la renaissance : panneau RebirthHint introuvable")
+				return
+			end
+			local deadline = os.clock() + 300
+			while not hintFrame.Visible and os.clock() < deadline do
+				task.wait(0.1)
+			end
+			task.wait(0.3)
+			local label = hintFrame:FindFirstChild("HintText")
+			local text = if label and label:IsA("TextLabel") then label.Text else ""
+			local ok = hintFrame.Visible
+				and string.find(text, "Renaissance", 1, true) ~= nil
+				and string.find(text, "sans perdre ta progression", 1, true) ~= nil
+			log(if ok then "Info" else "Error", `[{if ok then "PASS" else "FAIL"}] astuce de la renaissance affichée à côté du bouton : « {text} »`)
+			hintFrame.Visible = false
+		end)
+	end
+
 	----------------------------------------------------------------------
 	-- Version anglaise (src/shared/Lang.luau, src/client/AutoTranslate.luau, dictionnaires src/shared/LangEN). Appelée
 	-- TOUT À LA FIN du scénario (map principale : après le tuto ; match : après la dernière capture) : les autres

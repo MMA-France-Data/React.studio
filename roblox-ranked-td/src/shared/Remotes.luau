@@ -53,6 +53,13 @@ local DEFINITIONS = {
 	-- reviens d'un match ranked, capped = plafond du jour atteint (gains hors ligne, voir IdleConfig),
 	-- coinFactor = 2 si les montants (déjà multipliés) ont été doublés par le pass Pièces x2, sinon 1.
 	OfflineGains = "RemoteEvent",
+	-- Astuce de la renaissance, serveur -> propriétaire de la parcelle, une seule fois (PlotGame:endWave) : (gain en %
+	-- de la renaissance maintenant). Affichée à côté du bouton Renaissance (RebirthUI).
+	RebirthHint = "RemoteEvent",
+	-- Panneau « 🎁 DONNER » du propriétaire du jeu, client -> serveur : ("GivePass", UserId du joueur, nom du pass
+	-- "SpeedX2" | "CoinsX2" | "AutoCollect", true = offrir / false = reprendre). Le serveur vérifie que c'est bien le
+	-- propriétaire (Hub/AdminGifts.luau).
+	AdminAction = "RemoteEvent",
 	-- Passes de jeu, client -> serveur : "ToggleSpeed" (allume / éteint la vitesse x2, pass Vitesse x2 requis).
 	-- Possession publiée en attributs du joueur : PassAutoCollect, PassSpeedX2, PassCoinsX2, SpeedX2Enabled
 	-- (x2 actif).

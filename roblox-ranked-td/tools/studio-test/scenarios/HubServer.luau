@@ -22,6 +22,10 @@ return function(log)
 	end
 	assert(data, "données jamais chargées")
 	say(`données chargées : coins={data.coins} wave={data.idle.wave}`)
+	-- Astuce de la renaissance déjà « vue » : pas de panneau surprise au premier échec des autres tests (elle a son
+	-- propre test, tests.testRebirthHint).
+	check(data.idle.rebirthHintShown == false, "nouveau joueur : astuce de la renaissance pas encore vue")
+	dbg:Invoke(player, "Set", "rebirthHintShown", true)
 	task.wait(3)
 
 	local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -411,6 +415,68 @@ return function(log)
 		leaked == true and d.idle.wave == 300 and plotFolder:GetAttribute("State") == "Intermission",
 		`un seul ennemi au bout du chemin : vague ratée, retour à la 300 (wave={d.idle.wave} state={plotFolder:GetAttribute("State")})`
 	)
+
+	-- Astuce de la renaissance (PlotGame:endWave, RebirthUI ; demande du propriétaire, 30/09/2026) : une seule fois, au
+	-- premier échec quand la renaissance est possible (vague REBIRTH_MIN_WAVE réussie dans la run), jamais pour un joueur
+	-- qui a déjà fait une renaissance. Le client vérifie le panneau (Client.luau).
+	function tests.testRebirthHint()
+		local saved = dbg:Invoke(player, "Data").idle
+		local function failWave(bestWave: number, rebirths: number, shown: boolean): (boolean, any)
+			dbg:Invoke(player, "Set", "bestWave", bestWave)
+			dbg:Invoke(player, "Set", "rebirths", rebirths)
+			dbg:Invoke(player, "Set", "rebirthHintShown", shown)
+			dbg:Invoke(player, "StartWave", 301)
+			task.wait(0.5)
+			local leakedNow = dbg:Invoke(player, "Leak")
+			task.wait(0.3)
+			return leakedNow == true, dbg:Invoke(player, "Data").idle.rebirthHintShown
+		end
+		local leakedA, shownA = failWave(10, 0, false)
+		check(leakedA and shownA == false, `astuce de la renaissance : pas avant d'avoir réussi la vague {IdleConfig.REBIRTH_MIN_WAVE} (record de la run 10)`)
+		local leakedB, shownB = failWave(20, 0, false)
+		check(leakedB and shownB == true, "astuce de la renaissance : montrée au premier échec quand la renaissance est possible")
+		local leakedC, shownC = failWave(20, 0, true)
+		check(leakedC and shownC == true, "astuce de la renaissance : déjà vue, elle le reste (une seule fois)")
+		local leakedD, shownD = failWave(20, 2, false)
+		check(leakedD and shownD == false, "astuce de la renaissance : jamais pour un joueur qui a déjà fait une renaissance")
+		dbg:Invoke(player, "Set", "bestWave", saved.bestWave)
+		dbg:Invoke(player, "Set", "rebirths", saved.rebirths)
+		dbg:Invoke(player, "Set", "rebirthHintShown", true)
+	end
+	tests.testRebirthHint()
+
+	-- Panneau « 🎁 DONNER » du propriétaire (Hub/AdminGifts.luau, demande du 30/09/2026) : un pass offert est sauvegardé
+	-- (giftedPasses) et compte comme acheté, puis se reprend ; refusé si ce n'est pas le propriétaire ; pass inconnu refusé.
+	function tests.testGiftPass()
+		local name = "CoinsX2"
+		local before = player:GetAttribute("PassCoinsX2") == true
+		dbg:Invoke(player, "Pass", name, nil) -- plus rien de forcé par les tests : la vraie règle compte
+		local okGive = dbg:Invoke(player, "GiftPass", player.UserId, name, true)
+		task.wait(0.3)
+		local given = dbg:Invoke(player, "Data")
+		check(
+			okGive == true and typeof(given.giftedPasses) == "table" and given.giftedPasses[name] == true and player:GetAttribute("PassCoinsX2") == true,
+			`pass offert par le propriétaire : sauvegardé et compté comme acheté (attribut {player:GetAttribute("PassCoinsX2")})`
+		)
+		local okTake = dbg:Invoke(player, "GiftPass", player.UserId, name, false)
+		task.wait(0.3)
+		local taken = dbg:Invoke(player, "Data")
+		check(
+			okTake == true and not (taken.giftedPasses and taken.giftedPasses[name]) and player:GetAttribute("PassCoinsX2") == false,
+			`pass offert repris (attribut {player:GetAttribute("PassCoinsX2")})`
+		)
+		ReplicatedStorage:SetAttribute("StudioNotOwner", true)
+		local okStranger, reason = dbg:Invoke(player, "GiftPass", player.UserId, name, true)
+		ReplicatedStorage:SetAttribute("StudioNotOwner", nil)
+		local stranger = dbg:Invoke(player, "Data")
+		check(
+			okStranger == false and not (stranger.giftedPasses and stranger.giftedPasses[name]),
+			`« 🎁 DONNER » refusé à un joueur qui n'est pas le propriétaire du jeu ({reason})`
+		)
+		check(dbg:Invoke(player, "GiftPass", player.UserId, "Inconnu", true) == false, "« 🎁 DONNER » : pass inconnu refusé")
+		dbg:Invoke(player, "Pass", name, before)
+	end
+	tests.testGiftPass()
 
 	----------------------------------------------------------------------
 	-- Garde colossale = un seul colosse, Seigneur de guerre = un seul boss

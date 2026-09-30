@@ -53,6 +53,8 @@ else
 	require(script.Parent.EnemyGallery).start()
 	-- Panneau « SONS (Studio) » pour écouter chaque son : seulement dans Studio (Config.STUDIO_SOUND_PANEL).
 	require(script.Parent.SoundPanel).start()
+	-- Panneau « 🎁 DONNER » : seulement pour le propriétaire du jeu (offrir un pass à un joueur du serveur).
+	require(script.Parent.AdminUI).start()
 	-- Bouton « SCÈNES (Studio) » (dragon ou boss de glace tout prêts) : seulement dans Studio (Config.STUDIO_SCENES).
 	task.spawn(function()
 		require(script.Parent.StudioScenes).start()

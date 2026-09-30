@@ -84,13 +84,23 @@ local function passId(name: string): number
 	return math.floor(id)
 end
 
--- Vrai si le joueur possède ce pass (ou si un test Studio le lui a donné).
+-- Vrai si le joueur possède ce pass : acheté, offert par le propriétaire du jeu (data.giftedPasses, panneau
+-- « 🎁 DONNER »), ou donné par un test Studio.
 function Monetization.ownsPass(player: Player, name: string): boolean
 	local override = studioPasses[player] and studioPasses[player][name]
 	if override ~= nil then
 		return override
 	end
+	local data = PlayerData.get(player)
+	if data and typeof(data.giftedPasses) == "table" and data.giftedPasses[name] == true then
+		return true
+	end
 	return ownedPasses[player] ~= nil and ownedPasses[player][name] == true
+end
+
+-- Nom affiché d'un pass (« Vitesse x2 »...), nil si le nom n'existe pas.
+function Monetization.passDisplayName(name: string): string?
+	return if PASSES[name] then PASSES[name].displayName else nil
 end
 
 -- Vrai quand on sait si le joueur possède ce pass : la vérification de son arrivée est finie (réponse de
@@ -137,6 +147,23 @@ local function grantPass(player: Player, name: string)
 	ownedPasses[player] = ownedPasses[player] or {}
 	ownedPasses[player][name] = true
 	publishPass(player, name)
+end
+
+-- Pass offert (gifted = true) ou repris (false) par le propriétaire du jeu (Hub/AdminGifts.luau, qui vérifie qui
+-- demande). Sauvegardé dans les données du joueur : il le garde pour toujours, comme un achat. Reprendre ne retire
+-- qu'un pass OFFERT : un pass acheté reste. Renvoie true si c'est fait.
+function Monetization.setGiftedPass(player: Player, name: string, gifted: boolean): boolean
+	local data = PlayerData.get(player)
+	if not PASSES[name] or not data or not player.Parent then
+		return false
+	end
+	if typeof(data.giftedPasses) ~= "table" then
+		data.giftedPasses = {}
+	end
+	data.giftedPasses[name] = if gifted then true else nil
+	publishPass(player, name)
+	task.spawn(PlayerData.save, player)
+	return true
 end
 
 -- Demande à Roblox si le joueur possède le pass. En cas d'erreur, on réessaie un peu plus tard (3 essais) :
@@ -251,13 +278,14 @@ local function onPlayerAdded(player: Player)
 end
 
 -- Tests dans Studio uniquement (ServerStorage.StudioDebug, commande « Pass ») : donne (true) ou retire
--- (false) un pass sans l'acheter. Ne fait rien dans le jeu publié.
-function Monetization.setStudioPass(player: Player, name: string, owned: boolean): boolean
+-- (false) un pass sans l'acheter ; nil = plus rien de forcé. Ne fait rien dans le jeu publié.
+function Monetization.setStudioPass(player: Player, name: string, owned: boolean?): boolean
 	if not RunService:IsStudio() or not PASSES[name] then
 		return false
 	end
 	studioPasses[player] = studioPasses[player] or {}
-	studioPasses[player][name] = owned == true
+	-- nil : plus rien de forcé par un test, la vraie règle compte (achat, pass offert...).
+	studioPasses[player][name] = if owned == nil then nil else owned == true
 	publishPass(player, name)
 	return true
 end

@@ -136,6 +136,9 @@ return {
 	['+{1} %  →  <font color="{2}">+{3} %</font>'] = '+{1}%  →  <font color="{2}">+{3}%</font>',
 	['Exemple : un ennemi qui vaut {1} pièces en donnera <font color="{2}"><b>{3}</b></font> au lieu de {4}.'] = 'Example: an enemy worth {1} coins will give <font color="{2}"><b>{3}</b></font> instead of {4}.',
 	["Réussis la vague {1} pour renaître. Gain : +{2} % à la vague {3}, +{4} % à la 50, +{5} % à la 100, et plus au-delà."] = "Clear wave {1} to rebirth. Gain: +{2}% at wave {3}, +{4}% at wave 50, +{5}% at wave 100, and more beyond.",
+	-- Astuce montrée une seule fois, au premier échec quand la renaissance est possible (RebirthUI)
+	["💡 <b>Tu bloques sur une vague ?</b>\nUtilise la <b>Renaissance</b> sans perdre ta progression : tu gardes tes tours, tes améliorations et tes pièces, et tu gagnes +{1} % de pièces pour toujours."] = "💡 <b>Stuck on a wave?</b>\nUse <b>Rebirth</b> without losing your progress: you keep your towers, upgrades and coins, and gain +{1}% coins forever.",
+	["Compris !"] = "Got it!",
 	["Tu gardes tout le reste :"] = "You keep everything else:",
 	["✓ Pièces"] = "✓ Coins",
 	["✓ Tours posées"] = "✓ Placed towers",

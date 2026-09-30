@@ -321,6 +321,14 @@ function PlotGame:endWave(success: boolean, leakedName: string?)
 		self.idle.wave = math.max(1, wave - 1)
 		delay = IdleConfig.WAVE_FAIL_DELAY
 		self:notify(`Vague {wave} ratée : un {leakedName or "ennemi"} a atteint ta base ! Retour à la vague {self.idle.wave}`, "Warning")
+		-- Astuce, UNE seule fois (demande du propriétaire, 30/09/2026) : au premier échec quand la renaissance est
+		-- possible (vague REBIRTH_MIN_WAVE réussie dans la run) et que le joueur n'en a encore jamais fait :
+		-- « Tu bloques ? Utilise la Renaissance, sans perdre ta progression ». Affichée par RebirthUI.
+		local gain = IdleConfig.rebirthGain(self.idle.bestWave)
+		if not self.idle.rebirthHintShown and (self.idle.rebirths or 0) == 0 and gain > 0 then
+			self.idle.rebirthHintShown = true
+			Remotes.get("RebirthHint"):FireClient(self.player, gain)
+		end
 	end
 	self.nextWaveAt = self.clock + delay
 	self:publishNextWave()
