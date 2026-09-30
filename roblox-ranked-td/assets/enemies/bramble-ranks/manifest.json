@@ -1,0 +1,77 @@
+[
+  {
+    "model": "Swarm_2",
+    "triangles": 4177,
+    "bones": 41,
+    "meshes": 1,
+    "materials": 1,
+    "texture": "Swarm_2_Color.png",
+    "clips": [
+      "Idle",
+      "Walking_A",
+      "Running_A",
+      "Death_A"
+    ],
+    "bytes": 640452
+  },
+  {
+    "model": "Normal_2",
+    "triangles": 4561,
+    "bones": 41,
+    "meshes": 1,
+    "materials": 1,
+    "texture": "Normal_2_Color.png",
+    "clips": [
+      "Idle",
+      "Walking_A",
+      "Running_A",
+      "Death_A"
+    ],
+    "bytes": 716308
+  },
+  {
+    "model": "Tank_2",
+    "triangles": 4885,
+    "bones": 41,
+    "meshes": 1,
+    "materials": 1,
+    "texture": "Tank_2_Color.png",
+    "clips": [
+      "Idle",
+      "Walking_A",
+      "Running_A",
+      "Death_A"
+    ],
+    "bytes": 744792
+  },
+  {
+    "model": "Giant_2",
+    "triangles": 4973,
+    "bones": 41,
+    "meshes": 1,
+    "materials": 1,
+    "texture": "Giant_2_Color.png",
+    "clips": [
+      "Idle",
+      "Walking_A",
+      "Running_A",
+      "Death_A"
+    ],
+    "bytes": 743588
+  },
+  {
+    "model": "Fast_2",
+    "triangles": 6959,
+    "bones": 48,
+    "meshes": 1,
+    "materials": 1,
+    "texture": "Fast_2_Color.png",
+    "clips": [
+      "Gallop",
+      "Death"
+    ],
+    "bytes": 1221252,
+    "importStatus": "Studio test pending",
+    "fps": 30
+  }
+]

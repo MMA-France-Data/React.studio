@@ -1,0 +1,83 @@
+[
+  {
+    "model": "Swarm_1",
+    "triangles": 4499,
+    "bones": 41,
+    "meshes": 1,
+    "materials": 1,
+    "texture": "Swarm_1_Color.png",
+    "clips": [
+      "Idle",
+      "Walking_A",
+      "Running_A",
+      "Death_A"
+    ],
+    "bytes": 729420
+  },
+  {
+    "model": "Normal_1",
+    "triangles": 5283,
+    "bones": 41,
+    "meshes": 1,
+    "materials": 1,
+    "texture": "Normal_1_Color.png",
+    "clips": [
+      "Idle",
+      "Walking_A",
+      "Running_A",
+      "Death_A"
+    ],
+    "bytes": 840600
+  },
+  {
+    "model": "Tank_1",
+    "triangles": 5655,
+    "bones": 41,
+    "meshes": 1,
+    "materials": 1,
+    "texture": "Tank_1_Color.png",
+    "clips": [
+      "Idle",
+      "Walking_A",
+      "Running_A",
+      "Death_A"
+    ],
+    "bytes": 879744
+  },
+  {
+    "model": "Giant_1",
+    "triangles": 5621,
+    "bones": 41,
+    "meshes": 1,
+    "materials": 1,
+    "texture": "Giant_1_Color.png",
+    "clips": [
+      "Idle",
+      "Walking_A",
+      "Running_A",
+      "Death_A"
+    ],
+    "bytes": 867412
+  },
+  {
+    "model": "Fast_1",
+    "triangles": 7681,
+    "bones": 48,
+    "meshes": 1,
+    "materials": 1,
+    "texture": "Fast_1_Color.png",
+    "clips": [
+      "Gallop",
+      "Death"
+    ],
+    "bytes": 1351304,
+    "importStatus": "Copper Gallop FBX confirmed by owner; GLB and Death not confirmed",
+    "studioConfirmation": {
+      "file": "Fast_1_Gallop_Studio.fbx",
+      "date": "2026-09-30",
+      "source": "Owner confirmation in this conversation",
+      "scope": "Copper cavalry gallop in Animation Editor; does not validate Fast_0"
+    },
+    "fps": 30
+  }
+]

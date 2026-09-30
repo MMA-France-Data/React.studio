@@ -1,0 +1,58 @@
+[
+  {
+    "file": "Fast_1_Gallop_Studio.fbx",
+    "allFourLegsMoveAfterFBXReimport": true,
+    "bones": 48,
+    "scaleUnity": true,
+    "motion": {
+      "BackLowerLeg.L": 0.9018,
+      "BackLowerLeg.R": 0.7568,
+      "FrontLowerLeg.L": 0.507,
+      "FrontLowerLeg.R": 0.5794,
+      "Body": 0.1132,
+      "Head": 0.2363
+    }
+  },
+  {
+    "file": "Fast_1_Death_Studio.fbx",
+    "allFourLegsMoveAfterFBXReimport": true,
+    "bones": 48,
+    "scaleUnity": true,
+    "motion": {
+      "BackLowerLeg.L": 0.7396,
+      "BackLowerLeg.R": 0.8748,
+      "FrontLowerLeg.L": 0.5271,
+      "FrontLowerLeg.R": 0.5736,
+      "Body": 0.2231,
+      "Head": 2.2151
+    }
+  },
+  {
+    "file": "Fast_2_Gallop_Studio.fbx",
+    "allFourLegsMoveAfterFBXReimport": true,
+    "bones": 48,
+    "scaleUnity": true,
+    "motion": {
+      "BackLowerLeg.L": 0.9018,
+      "BackLowerLeg.R": 0.7568,
+      "FrontLowerLeg.L": 0.507,
+      "FrontLowerLeg.R": 0.5794,
+      "Body": 0.1132,
+      "Head": 0.2363
+    }
+  },
+  {
+    "file": "Fast_2_Death_Studio.fbx",
+    "allFourLegsMoveAfterFBXReimport": true,
+    "bones": 48,
+    "scaleUnity": true,
+    "motion": {
+      "BackLowerLeg.L": 0.7396,
+      "BackLowerLeg.R": 0.8748,
+      "FrontLowerLeg.L": 0.5271,
+      "FrontLowerLeg.R": 0.5736,
+      "Body": 0.2231,
+      "Head": 2.2151
+    }
+  }
+]
