@@ -1,0 +1,26 @@
+[
+  {
+    "clip": "Walking",
+    "source": "outputs\\boss-vague-40\\TitanGivre_Walking.blend",
+    "frames": [
+      1,
+      32
+    ],
+    "triangles": 16216,
+    "bones": 24,
+    "paidRequests": 0,
+    "unchangedRestRig": true
+  },
+  {
+    "clip": "Death",
+    "source": "outputs\\boss-vague-40\\TitanGivre_Death.blend",
+    "frames": [
+      1,
+      90
+    ],
+    "triangles": 16216,
+    "bones": 24,
+    "paidRequests": 0,
+    "unchangedRestRig": true
+  }
+]

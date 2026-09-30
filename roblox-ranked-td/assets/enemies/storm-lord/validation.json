@@ -1,0 +1,58 @@
+[
+  {
+    "file": "SeigneurTempete_Walking_Studio.fbx",
+    "fps": 30,
+    "frames": [
+      2,
+      33
+    ],
+    "bones": 24,
+    "openEdgesAfterReimport": 0,
+    "identicalRestSkeleton": true,
+    "restMatrixDifference": 0,
+    "boneScaleUnityEveryFrame": true,
+    "motion": {
+      "Hips": 0.09440583721810998,
+      "LeftFoot": 0.4466003645654235,
+      "RightFoot": 0.4560181103672462,
+      "LeftHand": 0.7199684497465545,
+      "RightHand": 0.5297956646369291
+    },
+    "robloxStudioTest": "pending",
+    "maxSkinInfluences": 4,
+    "colorTextureReimported": true,
+    "colorTexturePixels": [
+      2048,
+      2048
+    ],
+    "singleUV": true
+  },
+  {
+    "file": "SeigneurTempete_Death_Studio.fbx",
+    "fps": 30,
+    "frames": [
+      2,
+      91
+    ],
+    "bones": 24,
+    "openEdgesAfterReimport": 0,
+    "identicalRestSkeleton": true,
+    "restMatrixDifference": 0.0,
+    "boneScaleUnityEveryFrame": true,
+    "motion": {
+      "Hips": 0.8759186129076735,
+      "LeftFoot": 0.3348372852595416,
+      "RightFoot": 0.774274101453573,
+      "LeftHand": 1.2368364622385268,
+      "RightHand": 1.4163438458120323
+    },
+    "robloxStudioTest": "pending",
+    "maxSkinInfluences": 4,
+    "colorTextureReimported": true,
+    "colorTexturePixels": [
+      2048,
+      2048
+    ],
+    "singleUV": true
+  }
+]

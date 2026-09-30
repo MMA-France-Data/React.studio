@@ -1,0 +1,42 @@
+{
+  "bossWave": 70,
+  "name": "Seigneur de la temp\u00eate",
+  "mode": "local variant",
+  "newCreditsConsumed": 0,
+  "remoteTasksCreated": [],
+  "parentBossWave": 40,
+  "parentTasks": [
+    {
+      "id": "01a0f01e-3b50-71f5-90af-06dd1a773ebd",
+      "resource": "text-to-3d",
+      "stage": "preview",
+      "status": "SUCCEEDED",
+      "consumedCredits": 20
+    },
+    {
+      "id": "01a0f020-660c-703d-a20b-047468f01e05",
+      "resource": "text-to-3d",
+      "stage": "refine",
+      "status": "SUCCEEDED",
+      "consumedCredits": 10
+    },
+    {
+      "id": "01a0f025-7bed-72c0-ab70-3b6c9e24f81a",
+      "resource": "rigging",
+      "stage": "rigging",
+      "status": "SUCCEEDED",
+      "consumedCredits": 5
+    },
+    {
+      "id": "01a0f027-d81c-732f-a0f5-7fa8bd7626c5",
+      "resource": "animate",
+      "stage": "death",
+      "status": "SUCCEEDED",
+      "consumedCredits": 3
+    }
+  ],
+  "parentProject": "C:\\Users\\maelu\\Documents\\Codex\\2026-09-28\\referenced-chatgpt-conversation-this-is-an\\work\\meshy_output\\20260930_042202_titan-du-givre-boss-vague40_01a0f01e",
+  "processing": "Existing texture repainted locally; closed weighted lightning ornaments; shared 24-bone rig and original walking/death timings preserved",
+  "studioValidation": "Pending owner import test",
+  "visualApproval": "Approved by owner in chat on 2026-09-30; rendered appearance only, not Roblox import or animation"
+}
