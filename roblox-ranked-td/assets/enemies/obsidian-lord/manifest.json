@@ -1,0 +1,34 @@
+[
+  {
+    "clip": "Walking",
+    "originalClip": "Walking",
+    "fps": 30,
+    "frames": [
+      0,
+      32
+    ],
+    "bones": 23,
+    "triangles": 10806,
+    "unitScale": true,
+    "normalizationPoseMaxDifference": 1.5692164893610798e-05,
+    "source": "outputs\\unites-01-10\\RoiCarmin_Master.blend",
+    "localCredits": 0,
+    "studioValidation": "pending"
+  },
+  {
+    "clip": "Death",
+    "originalClip": "Dead",
+    "fps": 30,
+    "frames": [
+      0,
+      90
+    ],
+    "bones": 23,
+    "triangles": 10806,
+    "unitScale": true,
+    "normalizationPoseMaxDifference": 1.5692164893610798e-05,
+    "source": "outputs\\unites-01-10\\RoiCarmin_Master.blend",
+    "localCredits": 0,
+    "studioValidation": "pending"
+  }
+]

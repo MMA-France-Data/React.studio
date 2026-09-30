@@ -1,0 +1,68 @@
+[
+  {
+    "file": "SeigneurObsidienne_Walking_Studio.fbx",
+    "fps": 30,
+    "frames": [
+      1,
+      33
+    ],
+    "bones": 23,
+    "triangles": 10806,
+    "identicalNormalizedSourceRest": true,
+    "restDifference": 0.0,
+    "unitBoneScaleEveryFrame": true,
+    "singleMeshMaterialUV": true,
+    "normalizedWeights": true,
+    "maxSkinInfluences": 4,
+    "originalBoundaryEdgesAfterWeld": 68,
+    "finalBoundaryEdgesAfterWeld": 68,
+    "newBoundaryEdges": 0,
+    "embeddedTextureMatchesPNG": true,
+    "texturePixels": [
+      2048,
+      2048
+    ],
+    "motion": {
+      "mixamorig:Hips": 0.07413749860781321,
+      "mixamorig:Head": 0.10226394382283205,
+      "mixamorig:LeftFoot": 0.40386567366786097,
+      "mixamorig:RightFoot": 0.350751049091905,
+      "mixamorig:LeftHand": 0.3754588637715312,
+      "mixamorig:RightHand": 0.33468323229921637
+    },
+    "robloxStudioTest": "pending"
+  },
+  {
+    "file": "SeigneurObsidienne_Death_Studio.fbx",
+    "fps": 30,
+    "frames": [
+      1,
+      91
+    ],
+    "bones": 23,
+    "triangles": 10806,
+    "identicalNormalizedSourceRest": true,
+    "restDifference": 0.0,
+    "unitBoneScaleEveryFrame": true,
+    "singleMeshMaterialUV": true,
+    "normalizedWeights": true,
+    "maxSkinInfluences": 4,
+    "originalBoundaryEdgesAfterWeld": 68,
+    "finalBoundaryEdgesAfterWeld": 68,
+    "newBoundaryEdges": 0,
+    "embeddedTextureMatchesPNG": true,
+    "texturePixels": [
+      2048,
+      2048
+    ],
+    "motion": {
+      "mixamorig:Hips": 0.9876610747534671,
+      "mixamorig:Head": 1.6007137305754424,
+      "mixamorig:LeftFoot": 0.32704408826512005,
+      "mixamorig:RightFoot": 0.6264377180784367,
+      "mixamorig:LeftHand": 1.1095529265838702,
+      "mixamorig:RightHand": 1.3191980886124643
+    },
+    "robloxStudioTest": "pending"
+  }
+]

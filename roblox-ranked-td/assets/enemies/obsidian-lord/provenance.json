@@ -1,0 +1,12 @@
+{
+  "name": "Seigneur d\u2019obsidienne",
+  "bossWave": 80,
+  "parentBossWave": 10,
+  "mode": "local variant",
+  "source": "outputs\\unites-01-10\\RoiCarmin_Master.blend",
+  "originalAsset": "Owner supplied Meshy Crimson King Low Poly Rig and walking/dead exports, paid plan confirmed by owner 2026-09-29",
+  "remoteTasksCreated": [],
+  "newCreditsConsumed": 0,
+  "visualApproval": "Approved by owner in chat on 2026-09-30; rendered appearance only, not Roblox import or animation",
+  "studioValidation": "pending"
+}
