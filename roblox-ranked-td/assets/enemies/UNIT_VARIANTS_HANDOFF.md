@@ -1,4 +1,4 @@
-# Bases visuelles cuivre, ronces et givre — transmission à Claude
+# Bases visuelles cuivre, ronces, givre et dunes — transmission à Claude
 
 Le propriétaire a validé le rendu des deux fantassins et demandé de décliner les autres unités, puis de transmettre ces assets sur GitHub pour créer des variantes. Ces fichiers sont des sources 3D, pas encore des modèles Roblox intégrés.
 
@@ -9,9 +9,16 @@ Le propriétaire a validé le rendu des deux fantassins et demandé de décliner
 | `copper-ranks/` | 11–20 | `_1` | Pillards de cuivre : armure cuivre, cuir sombre, haches et masses |
 | `bramble-ranks/` | 21–30 | `_2` | Gardiens des ronces : capuche verte, branches, bois et feuilles |
 | `frost-ranks/` | 31–40 | `_3` | Légion du givre : armure argentée, tissus bleu nuit, cristaux liés aux os, cheval gris |
+| `desert-ranks/` | 41–50 | `_4` | Gardes des dunes : armures sable/or, tissus turquoise, coiffes et ornements dorés, cheval dune |
 
 Chaque dossier contient cinq unités : `Swarm` (écuyer), `Normal` (fantassin), `Fast` (cavalier), `Tank` (chevalier lourd), `Giant` (colosse).
 Tous les boss restent séparés de ces troupes : aucun boss n'est remplacé par cet envoi.
+
+## Ajout du 30 septembre : dunes
+
+Le propriétaire a demandé les troupes accompagnant le boss du désert de la vague 50. `desert-ranks/` contient les cinq sources éditables et leurs dix FBX marche/galop et mort, textures et aperçus inclus. Voir `desert-ranks/ASSET_NOTES.md` pour les noms cibles et les limites de validation. Les cinq GLB et dix FBX passent les contrôles Blender ; **l'import et les animations dunes restent à confirmer dans Studio**. Les squelettes existants et leurs animations sont conservés. Aucun crédit Meshy n'a été utilisé pour ces troupes.
+
+Le boss Souverain des dunes est livré séparément au propriétaire pour test, et n'est pas inclus ni installé par cet envoi de troupes. Aucun gameplay, interface, outil, `.rbxm` ni identifiant d'animation Roblox n'est modifié.
 
 ## Ajout du 30 septembre : givre et cavalier carmin corrigé
 

@@ -1,0 +1,90 @@
+[
+  {
+    "model": "Swarm_4",
+    "triangles": 4675,
+    "bones": 41,
+    "meshes": 1,
+    "materials": 1,
+    "texture": "Swarm_4_Color.png",
+    "clips": [
+      "Idle",
+      "Walking_A",
+      "Running_A",
+      "Death_A"
+    ],
+    "bytes": 770200,
+    "fps": 30,
+    "studioValidation": "pending",
+    "paidServicesUsed": false
+  },
+  {
+    "model": "Normal_4",
+    "triangles": 5500,
+    "bones": 41,
+    "meshes": 1,
+    "materials": 1,
+    "texture": "Normal_4_Color.png",
+    "clips": [
+      "Idle",
+      "Walking_A",
+      "Running_A",
+      "Death_A"
+    ],
+    "bytes": 884644,
+    "fps": 30,
+    "studioValidation": "pending",
+    "paidServicesUsed": false
+  },
+  {
+    "model": "Tank_4",
+    "triangles": 6346,
+    "bones": 41,
+    "meshes": 1,
+    "materials": 1,
+    "texture": "Tank_4_Color.png",
+    "clips": [
+      "Idle",
+      "Walking_A",
+      "Running_A",
+      "Death_A"
+    ],
+    "bytes": 946548,
+    "fps": 30,
+    "studioValidation": "pending",
+    "paidServicesUsed": false
+  },
+  {
+    "model": "Giant_4",
+    "triangles": 6684,
+    "bones": 41,
+    "meshes": 1,
+    "materials": 1,
+    "texture": "Giant_4_Color.png",
+    "clips": [
+      "Idle",
+      "Walking_A",
+      "Running_A",
+      "Death_A"
+    ],
+    "bytes": 991804,
+    "fps": 30,
+    "studioValidation": "pending",
+    "paidServicesUsed": false
+  },
+  {
+    "model": "Fast_4",
+    "triangles": 7872,
+    "bones": 48,
+    "meshes": 1,
+    "materials": 1,
+    "texture": "Fast_4_Color.png",
+    "clips": [
+      "Gallop",
+      "Death"
+    ],
+    "bytes": 1376388,
+    "fps": 30,
+    "studioValidation": "pending",
+    "paidServicesUsed": false
+  }
+]
