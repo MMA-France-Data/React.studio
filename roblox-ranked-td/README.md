@@ -166,8 +166,9 @@ classé »). On va à pied à sa parcelle et au sceau (plus de boutons de raccou
   et la fragilité suit l'aura (2,5 s après la sortie). Ses propres dégâts restent faibles (2 au niveau 1, 6
   avant) et ne profitent pas de la fragilité, ni de la sienne ni de celle d'un autre Totem (`ignoresFragility`) :
   pas de partie « tout givre » (réglé avec `tools/balance`, voir `tools/balance/RESULTS.md`).
-- **Styles des ennemis** : un style par tranche de 10 vagues (vagues 1-10, 11-20 … 91-100 : 10 styles, dont un
-  dragon en boss aux vagues 81-90 et une horde gobeline aux vagues 91-100), puis les styles recommencent.
+- **Styles des ennemis** : un style par tranche de 10 vagues (vagues 1-10, 11-20 … 91-100 : 10 styles, dont une
+  horde gobeline aux vagues 81-90 et un dragon en boss aux vagues 91-100 : le dragon est le boss de la vague 100),
+  puis les styles recommencent.
   Le client choisit le style avec l'attribut `Wave` de la parcelle quand l'ennemi apparaît
   (palier = (vague − 1) / 10 arrondi en dessous, `PlotRenderer.luau` ; modèles dans `MedievalModels.luau`).
   Le ranked garde ses modèles de toujours.

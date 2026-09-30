@@ -114,8 +114,9 @@ local ENEMY_STYLES = {
 	{ name = "Legion des os", cloth = Color3.fromRGB(106, 83, 134), armor = Color3.fromRGB(110, 109, 118), skin = Color3.fromRGB(224, 214, 177), mount = Color3.fromRGB(183, 180, 158), boss = "undead" },
 	{ name = "Garde de la tempete", cloth = Color3.fromRGB(75, 91, 179), armor = Color3.fromRGB(107, 126, 172), skin = SKIN, mount = Color3.fromRGB(75, 78, 104), boss = "storm" },
 	{ name = "Chevaliers d'obsidienne", cloth = Color3.fromRGB(209, 75, 40), armor = Color3.fromRGB(48, 44, 53), skin = Color3.fromRGB(137, 119, 112), mount = Color3.fromRGB(47, 43, 48), boss = "obsidian" },
-	{ name = "Couvee du dragon", cloth = Color3.fromRGB(153, 46, 42), armor = Color3.fromRGB(117, 51, 43), skin = Color3.fromRGB(174, 116, 63), mount = Color3.fromRGB(103, 59, 43), boss = "dragon" },
+	-- (Décision du propriétaire, 30/09/2026 : le dragon est le boss de la vague 100, la horde gobeline passe avant.)
 	{ name = "Horde gobeline", cloth = Color3.fromRGB(130, 71, 41), armor = Color3.fromRGB(94, 101, 66), skin = Color3.fromRGB(111, 156, 62), mount = Color3.fromRGB(72, 83, 48), boss = "goblin" },
+	{ name = "Couvee du dragon", cloth = Color3.fromRGB(153, 46, 42), armor = Color3.fromRGB(117, 51, 43), skin = Color3.fromRGB(174, 116, 63), mount = Color3.fromRGB(103, 59, 43), boss = "dragon" },
 }
 
 MedievalModels.ENEMY_STYLE_COUNT = #ENEMY_STYLES

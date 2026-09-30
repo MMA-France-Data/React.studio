@@ -13,6 +13,8 @@ Le propriétaire a validé le rendu des deux fantassins et demandé de décliner
 | `undead-ranks/` | 51–60 | `_5` | Légion des os : revenants en armure sombre, têtes remplacées par des crânes en volume, yeux verts, tissus violets, cheval gris sombre |
 
 Chaque dossier contient cinq unités : `Swarm` (écuyer), `Normal` (fantassin), `Fast` (cavalier), `Tank` (chevalier lourd), `Giant` (colosse).
+
+**Décision du propriétaire (30 septembre, note de Claude) : le dragon devient le boss de la vague 100.** Ordre des deux dernières tranches : vagues 81–90 = horde gobeline / orcs (suffixe `_8`, boss `Boss_8`), vagues 91–100 = couvée du dragon (suffixe `_9`, boss `Boss_9` = le dragon). Le jeu (styles de secours en blocs) suit déjà cet ordre.
 Tous les boss restent séparés de ces troupes : aucun boss n'est remplacé par cet envoi.
 
 ## Ajout du 30 septembre : Légion des os
