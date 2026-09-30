@@ -865,7 +865,7 @@ function Hub.start()
 	end)
 
 	-- Achat Robux : un lancer de la forge runique. Il ne compte pas dans le prix des lancers en pièces. Si la
-	-- forge est bloquée (aucune rune n'améliorerait une tour : x100 dégâts et x2 vitesse partout ; le client
+	-- forge est bloquée (aucune rune n'améliorerait une tour : x20 dégâts et x2 vitesse partout ; le client
 	-- bloque alors le bouton Robux), un reçu qui arrive quand même donne la meilleure rune : un achat payé n'est
 	-- jamais perdu (PlotGame:grantBonusSpin).
 	-- Pas encore de parcelle (joueur en train d'arriver) : false, Roblox redonnera le reçu plus tard.

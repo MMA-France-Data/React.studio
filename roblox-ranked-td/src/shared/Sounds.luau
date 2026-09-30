@@ -105,7 +105,7 @@ Sounds.SLOTS = {
 	-- « Anvil Hits Ringing Metal Clinks Blacksmith 1 (SFX) », Pro Sound Effects (1 s)
 	ForgeSpin = { name = "Forge runique", id = 9125361455, volume = 0.5, maxAtOnce = 1, minInterval = 0.3 },
 	-- « Heraldic Bugle », APM Music (Soho, 5 s)
-	RareFanfare = { name = "Fanfare : tour légendaire ou rune x50 / x100", id = 1845415163, volume = 0.5, maxAtOnce = 1, minInterval = 1 },
+	RareFanfare = { name = "Fanfare : tour légendaire ou rune x20", id = 1845415163, volume = 0.5, maxAtOnce = 1, minInterval = 1 },
 	-- « Orchestral Sting », APM Music (Gregor Narholz, 5 s)
 	Rebirth = { name = "Renaissance", id = 1846284687, volume = 0.5, maxAtOnce = 1, minInterval = 2 },
 	-- « Top Prize », APM Music (David John Arnold, 5 s)

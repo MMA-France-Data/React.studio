@@ -275,7 +275,7 @@ fermé** : voir juste en dessous.
   dégâts permanents à cette tour. Les gros lots ne lancent pas un million de fois : le serveur tire directement
   combien de tours tombent de chaque rareté (`PlotGame:spinTower`). Un lancer gratuit en attente dans une
   ancienne sauvegarde est remboursé en pièces (`PlayerData.luau`).
-- **Forge runique** : x2 dégâts, x2 vitesse d'attaque, x3, x5, x10, x20, x50, x100 dégâts. La rune va dans
+- **Forge runique** : x2 dégâts, x2 vitesse d'attaque, x3, x5, x10, x20 dégâts (chances : 37 / 31 / 20 / 10,9 / 1 / 0,1 % ; plus de x50 ni de x100 depuis le 01/10/2026, celles déjà obtenues gardent leur effet). La rune va dans
   l'inventaire et se pose sur une tour. **Chaque tour a 2 emplacements de rune qui se cumulent** : un pour une
   rune de **dégâts**, un pour la rune de **vitesse** (ex. Archer avec x20 dégâts et x2 vitesse : 20 fois plus
   de dégâts par flèche et 2 fois plus de flèches par seconde). Poser une rune ne remplace que la rune de la
@@ -294,9 +294,9 @@ fermé** : voir juste en dessous.
     dans **l'emplacement de sa sorte** (une rune de dégâts xM est exclue quand toutes les tours posées ont déjà
     une rune de dégâts xM ou mieux ; x2 vitesse est exclue quand toutes ont déjà x2 vitesse ; les runes de
     l'inventaire ne comptent pas). Les chances des runes restantes sont remises sur 100 %. Si plus rien
-    n'améliore une tour (x100 dégâts ET x2 vitesse sur toutes), la forge est bloquée (« Toutes tes tours ont les
+    n'améliore une tour (x20 dégâts ET x2 vitesse sur toutes), la forge est bloquée (« Toutes tes tours ont les
     meilleures runes », ou « Pose d'abord une tour ») : bouton pièces et bouton Robux. Si un achat Robux arrive
-    quand même (ex. tour vendue pendant l'achat), la meilleure rune (x100 dégâts) est donnée : un achat n'est
+    quand même (ex. tour vendue pendant l'achat), la meilleure rune (x20 dégâts) est donnée : un achat n'est
     jamais perdu.
   - Le serveur publie l'état de la forge en attributs du joueur : `ForgeSpinsBought`, `ForgeCoinPrice` (-1 =
     « MAX »), `ForgeDrawable` (runes tirables) et `ForgeBlocked` (message, vide si la forge marche)
@@ -602,7 +602,7 @@ que chez le joueur (`src/client/SoundManager.luau`) : aucun coût pour le serveu
   guerre quand un boss arrive sur ta parcelle (des pas lourds pour un colosse), les pièces ramassées (un son plus
   doux avec le ramassage auto), vague réussie / ratée, tour posée / améliorée / vendue (aussi en classé, pour tes
   tours), emplacement débloqué, rune posée, l'autel, la forge (fanfare pour une tour légendaire ou une rune
-  x50 / x100), la renaissance, une récompense de défi, « MATCH TROUVÉ ! », victoire / défaite en classé, les clics
+  x20), la renaissance, une récompense de défi, « MATCH TROUVÉ ! », victoire / défaite en classé, les clics
   et les refus (messages d'erreur), et une musique médiévale calme sur la map principale (une autre en match classé).
 - **Pas de brouhaha** : les sons des tours, impacts et morts sont en 3D (on n'entend que ce qui est près de la
   caméra, donc surtout sa parcelle) ; 10 au plus en même temps sur toute la map (les plus proches d'abord ; la mort

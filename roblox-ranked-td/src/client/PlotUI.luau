@@ -785,7 +785,8 @@ function PlotUI.start()
 		})
 
 		local placed = IdleConfig.parseRunes(current) -- runes déjà posées, par sorte
-		for order, bonus in IdleConfig.BONUSES do
+		-- (toutes les runes, retirées de la forge comprises : un joueur qui en a encore une peut la poser)
+		for order, bonus in IdleConfig.ALL_BONUSES do
 			local amount = counts[bonus.id]
 			if not amount then
 				continue

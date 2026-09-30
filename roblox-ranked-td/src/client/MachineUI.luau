@@ -11,7 +11,7 @@
 -- runes qui améliorent une tour posée DANS L'EMPLACEMENT DE LEUR SORTE peuvent tomber (attribut ForgeDrawable,
 -- chances remises sur 100 % avec IdleConfig.forgeOdds) : les autres sont barrées (« toutes tes tours l'ont
 -- déjà »). Forge bloquée (attribut ForgeBlocked : « Pose d'abord une tour » / « Toutes tes tours ont les
--- meilleures runes », x100 dégâts ET x2 vitesse partout) : les boutons pièces ET Robux affichent le message et
+-- meilleures runes », x20 dégâts ET x2 vitesse partout) : les boutons pièces ET Robux affichent le message et
 -- n'achètent rien (pas de fenêtre d'achat Robux). Si un reçu Robux arrive quand même (ex. tour vendue pendant
 -- l'achat), le serveur donne la meilleure rune : un achat payé n'est jamais perdu (PlotGame:grantBonusSpin).
 -- Objets aléatoires payants (règle de Roblox, PolicyService : Monetization.luau) : le bouton Robux de la forge n'existe
@@ -34,9 +34,9 @@ local UI = require(script.Parent.UI)
 
 local MachineUI = {}
 
--- Fanfare (son « RareFanfare ») : tour légendaire à l'autel, ou rune au moins x50 dégâts à la forge.
+-- Fanfare (son « RareFanfare ») : tour légendaire à l'autel, ou rune au moins x20 dégâts à la forge (0,1 %).
 local FANFARE_RARITY = "Legendary"
-local FANFARE_RUNE_MULT = 50
+local FANFARE_RUNE_MULT = 20
 
 -- Au plus ce temps sans réponse du serveur après un achat : les boutons restent bloqués pendant ce
 -- temps (un double clic n'achète jamais deux fois).

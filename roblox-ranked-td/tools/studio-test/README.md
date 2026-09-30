@@ -19,7 +19,7 @@ powershell -ExecutionPolicy Bypass -File tools\studio-test\run.ps1 -Place match
   cadenas, refus), pose les 8 tours, les améliore, pose des bonus,
   puis vérifie la renaissance (vagues 10, 15, 50 et 100) et écrit `[PASS]` / `[FAIL]`.
   Forge runique : 2 runes par tour qui se cumulent (x10 puis x20 dégâts + x2 vitesse sur l'Archer, stats exactes,
-  une rune de dégâts garde la rune de vitesse et inversement), runes tirables emplacement par emplacement (x100
+  une rune de dégâts garde la rune de vitesse et inversement), runes tirables emplacement par emplacement (x20
   dégâts partout : seule x2 vitesse reste ; les deux partout : forge bloquée), anciennes sauvegardes (1 rune par
   tour -> emplacement de sa sorte). Le scénario client vérifie que le HUD de la parcelle n'a plus de panneau de
   vague (la vague est sur le tableau « CHRONIQUES DU FIEF ») mais garde le compteur de pièces.

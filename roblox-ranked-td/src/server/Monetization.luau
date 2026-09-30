@@ -2,7 +2,7 @@
 -- est enregistré dans les données du joueur et sauvegardé avant de confirmer l'achat à Roblox.
 -- Forge runique (Config.Products.BONUS_SPIN, livrée par Hub/init.luau -> PlotGame:grantBonusSpin) : un achat
 -- payé est toujours livré, même si la forge est bloquée entre-temps (les 2 emplacements de rune, dégâts et
--- vitesse, de toutes les tours posées ont déjà la meilleure rune : la meilleure rune, x100 dégâts, est alors
+-- vitesse, de toutes les tours posées ont déjà la meilleure rune : la meilleure rune, x20 dégâts, est alors
 -- donnée) ; il ne compte pas dans le prix des lancers en pièces.
 -- Plus bas : les passes de jeu (Game Passes), achetés une fois et gardés pour toujours (mode solo), et la règle de
 -- Roblox sur les objets aléatoires payants (PolicyService).

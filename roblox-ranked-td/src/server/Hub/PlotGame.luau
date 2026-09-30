@@ -1730,11 +1730,11 @@ end
 --   ForgeSpinsBought : lancers en pièces achetés depuis toujours (jamais remis à zéro) ;
 --   ForgeCoinPrice   : prix du prochain lancer en pièces (IdleConfig.forgeCoinPrice), -1 = « MAX » ;
 --   ForgeDrawable    : ids des runes tirables maintenant, séparés par des virgules, dans l'ordre de
---                      IdleConfig.BONUSES (ex. "Speed2,Damage3,Damage5,Damage10,Damage20,Damage50,Damage100"
+--                      IdleConfig.BONUSES (ex. "Speed2,Damage3,Damage5,Damage10,Damage20"
 --                      quand toutes les tours ont déjà x2 dégâts ou mieux) ; chances affichées =
 --                      IdleConfig.forgeOdds (remises sur 100 %) ;
 --   ForgeBlocked     : "" si la forge marche, sinon le message à afficher (IdleConfig.FORGE_NO_TOWER, ou
---                      FORGE_ALL_BEST : x100 dégâts ET x2 vitesse sur toutes les tours posées) : boutons
+--                      FORGE_ALL_BEST : x20 dégâts ET x2 vitesse sur toutes les tours posées) : boutons
 --                      pièces ET Robux bloqués.
 -- Seulement pour l'affichage : le serveur revérifie tout à chaque lancer (spinBonusWithCoins).
 function PlotGame:publishForge()
@@ -1892,10 +1892,10 @@ end
 -- ou "Challenge" (lancer offert par un défi classé, Hub/ChallengeRewards.luau : il marche comme un lancer Robux).
 -- Achat Robux quand la forge est bloquée (aucune rune n'améliorerait une tour : le client bloque le bouton,
 -- mais un reçu peut quand même arriver, ex. tour vendue pendant l'achat) : la MEILLEURE rune
--- (IdleConfig.bestRune, x100 dégâts) est donnée, pour que l'achat ne soit jamais perdu. Pareil pour un lancer
--- offert quand les 2 emplacements de toutes les tours posées ont déjà la meilleure rune de leur sorte (x100
--- dégâts, x2 vitesse). Mais un lancer offert sans AUCUNE tour posée tire aux chances de base (toutes les
--- runes) : sinon, vendre ses tours avant de récupérer un défi donnerait la rune x100 à coup sûr. Une rune
+-- (IdleConfig.bestRune, x20 dégâts) est donnée, pour que l'achat ne soit jamais perdu. Pareil pour un lancer
+-- offert quand les 2 emplacements de toutes les tours posées ont déjà la meilleure rune de leur sorte (x20
+-- dégâts ou plus, x2 vitesse). Mais un lancer offert sans AUCUNE tour posée tire aux chances de base (toutes les
+-- runes) : sinon, vendre ses tours avant de récupérer un défi donnerait la rune x20 à coup sûr. Une rune
 -- Robux ou offerte entre toujours dans l'inventaire, même plein. Ces lancers ne comptent pas dans
 -- forgeSpinsBought (prix des lancers en pièces).
 -- Envoie (et renvoie) le résultat : { machine = "Bonus", bonus = id, source, price (pièces payées, 0 en

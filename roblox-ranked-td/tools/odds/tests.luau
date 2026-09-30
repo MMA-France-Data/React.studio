@@ -2,8 +2,8 @@
 -- aléatoires payants : le lancer Robux de la forge donne une rune au hasard). Voir IdleConfig.roundedOdds et
 -- IdleConfig.forgeOdds. Sans Studio, depuis le dossier roblox-ranked-td :
 --   luau.exe tools/odds/tests.luau
--- 1) Pour CHAQUE groupe possible de runes tirables (toutes les sous-listes non vides de IdleConfig.BONUSES : 255 pour
---    8 runes), les chances arrondies font 10000 centièmes de % tout juste (100,00 %), chacune est à 0,01 % au plus
+-- 1) Pour CHAQUE groupe possible de runes tirables (toutes les sous-listes non vides de IdleConfig.BONUSES : 63 pour
+--    6 runes), les chances arrondies font 10000 centièmes de % tout juste (100,00 %), chacune est à 0,01 % au plus
 --    de la vraie (chance / total), elle s'écrit avec 2 chiffres après la virgule au plus, et elle est exactement celle
 --    du même calcul refait en nombres entiers (aucune erreur de virgule : à égalité de reste, l'ordre d'affichage).
 -- 2) Quelques cas faits à la main (égalités : l'ordre d'affichage gagne), et les chances de base (sans arrondi).
@@ -162,7 +162,7 @@ check(same(thirds, { x = 33.34, y = 33.33, z = 33.33 }), `3 chances égales -> 3
 local thirdsOther = IdleConfig.roundedOdds({ "z", "y", "x" }, { x = 1, y = 1, z = 1 })
 check(same(thirdsOther, { z = 33.34, y = 33.33, x = 33.33 }), `ordre inverse : le centième va à « z », affichée en premier ({show(thirdsOther, { "z", "y", "x" })})`)
 
--- Chances DIFFÉRENTES avec le même reste (vrai groupe de la forge : x3, x5, x20, x50 et x100 dégâts, total 30) : 10,
+-- Chances DIFFÉRENTES avec le même reste (ancien groupe de la forge, avant le 01/10/2026 : x3, x5, x20, x50 et x100 dégâts, total 30) : 10,
 -- 0.4 et 0.1 sur 30 font 33.333… / 1.333… / 0.333… %, un tiers de centième de reste chacune, mais les calculs à
 -- virgule ne tombent pas pile pareil. Le centième qui manque va à la première affichée (x5 : 33.34), jamais à x50.
 local sameRestIds = { "Damage3", "Damage5", "Damage20", "Damage50", "Damage100" }
@@ -184,7 +184,7 @@ check(
 	`7 chances égales -> 14.29 x 4 puis 14.28 x 3 ({show(seven, sevenIds)})`
 )
 
--- Une seule rune tirable : 100 % (ex. x2 vitesse, quand toutes les tours ont x100 dégâts).
+-- Une seule rune tirable : 100 % (ex. x2 vitesse, quand toutes les tours ont x20 dégâts).
 local single = IdleConfig.forgeOdds({ IdleConfig.BONUS_BY_ID.Speed2 })
 check(same(single, { Speed2 = 100 }), `une seule rune -> 100 % ({show(single, { "Speed2" })})`)
 
@@ -192,6 +192,35 @@ check(same(single, { Speed2 = 100 }), `une seule rune -> 100 % ({show(single, { 
 check(next(IdleConfig.forgeOdds({})) == nil, "aucune rune tirable -> aucune chance")
 local zero = IdleConfig.roundedOdds({ "a", "b" }, { a = 0, b = 0 })
 check(same(zero, { a = 0, b = 0 }), `aucune chance positive -> 0 partout ({show(zero, { "a", "b" })})`)
+
+-- Runes retirées de la forge (x50 et x100, 01/10/2026) : plus jamais tirées, mais celles que des joueurs ont déjà
+-- gardent leur effet (BONUS_BY_ID, parseRunes) et comptent pour la forge (une tour avec x100 dégâts n'a plus besoin
+-- de rune de dégâts).
+local baseTotal = 0
+for _, bonus in IdleConfig.BONUSES do
+	baseTotal += bonus.chance
+	check(bonus.id ~= "Damage50" and bonus.id ~= "Damage100", `{bonus.id} ne doit plus être tirable`)
+end
+check(math.abs(baseTotal - 100) < 1e-9, `chances de base de la forge : total {baseTotal} %, attendu 100 %`)
+check(IdleConfig.bestRune().id == "Damage20", `meilleure rune (forge bloquée) : {IdleConfig.bestRune().id}, attendu Damage20`)
+for _, id in { "Damage50", "Damage100" } do
+	local bonus = IdleConfig.BONUS_BY_ID[id]
+	check(bonus ~= nil and IdleConfig.runeValue(id) == bonus.mult, `rune retirée {id} encore connue (effet gardé)`)
+end
+local oldRunes = IdleConfig.parseRunes("Damage100,Speed2")
+check(
+	oldRunes.Damage ~= nil and oldRunes.Damage.id == "Damage100" and oldRunes.Speed ~= nil and oldRunes.Speed.id == "Speed2",
+	"tour avec une ancienne x100 et x2 vitesse : ses 2 runes sont bien lues"
+)
+local onlySpeed, onlySpeedWhy = IdleConfig.forgeDrawableRunes({ Damage = 100, Speed = 1 })
+check(
+	#onlySpeed == 1 and onlySpeed[1].id == "Speed2" and onlySpeedWhy == nil,
+	`x100 dégâts partout, sans rune de vitesse : seule x2 vitesse est tirable ({#onlySpeed} rune(s))`
+)
+local blockedList, blockedWhy = IdleConfig.forgeDrawableRunes({ Damage = 50, Speed = 2 })
+check(#blockedList == 0 and blockedWhy == IdleConfig.FORGE_ALL_BEST, "x50 dégâts et x2 vitesse partout : forge bloquée")
+local onlyX20 = IdleConfig.forgeDrawableRunes({ Damage = 10, Speed = 2 })
+check(#onlyX20 == 1 and onlyX20[1].id == "Damage20", `x10 dégâts et x2 vitesse partout : seule x20 dégâts est tirable ({#onlyX20} rune(s))`)
 
 print(`{passed} tests réussis, {failed} ratés`)
 if failed > 0 then

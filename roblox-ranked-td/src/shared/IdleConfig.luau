@@ -276,18 +276,29 @@ IdleConfig.RUNE_SLOTS = {
 	{ kind = "Damage", label = "dégâts" },
 	{ kind = "Speed", label = "vitesse" },
 }
+-- Runes que la forge peut tirer, chances en % (total 100). Décidé par le propriétaire le 01/10/2026 : plus de x50 ni
+-- de x100 dégâts (RETIRED_BONUSES), x10 à 1 %, x20 à 0,1 % (avant : 35 / 30 / 18 / 10 / 5 / 1,5 / 0,4 / 0,1).
 IdleConfig.BONUSES = {
-	{ id = "Damage2", displayName = "x2 dégâts", kind = "Damage", mult = 2, chance = 35 },
-	{ id = "Speed2", displayName = "x2 vitesse d'attaque", kind = "Speed", mult = 2, chance = 30 },
-	{ id = "Damage3", displayName = "x3 dégâts", kind = "Damage", mult = 3, chance = 18 },
-	{ id = "Damage5", displayName = "x5 dégâts", kind = "Damage", mult = 5, chance = 10 },
-	{ id = "Damage10", displayName = "x10 dégâts", kind = "Damage", mult = 10, chance = 5 },
-	{ id = "Damage20", displayName = "x20 dégâts", kind = "Damage", mult = 20, chance = 1.5 },
-	{ id = "Damage50", displayName = "x50 dégâts", kind = "Damage", mult = 50, chance = 0.4 },
-	{ id = "Damage100", displayName = "x100 dégâts", kind = "Damage", mult = 100, chance = 0.1 },
+	{ id = "Damage2", displayName = "x2 dégâts", kind = "Damage", mult = 2, chance = 37 },
+	{ id = "Speed2", displayName = "x2 vitesse d'attaque", kind = "Speed", mult = 2, chance = 31 },
+	{ id = "Damage3", displayName = "x3 dégâts", kind = "Damage", mult = 3, chance = 20 },
+	{ id = "Damage5", displayName = "x5 dégâts", kind = "Damage", mult = 5, chance = 10.9 },
+	{ id = "Damage10", displayName = "x10 dégâts", kind = "Damage", mult = 10, chance = 1 },
+	{ id = "Damage20", displayName = "x20 dégâts", kind = "Damage", mult = 20, chance = 0.1 },
 }
+-- Runes retirées de la forge (01/10/2026) : plus jamais tirées, ni données, ni affichées dans les chances. Celles que
+-- des joueurs ont déjà (inventaire ou tours) gardent leur effet : BONUS_BY_ID les connaît encore.
+IdleConfig.RETIRED_BONUSES = {
+	{ id = "Damage50", displayName = "x50 dégâts", kind = "Damage", mult = 50, chance = 0 },
+	{ id = "Damage100", displayName = "x100 dégâts", kind = "Damage", mult = 100, chance = 0 },
+}
+-- Toutes les runes qu'un joueur peut avoir (tirables puis retirées), dans l'ordre d'affichage de l'inventaire.
+IdleConfig.ALL_BONUSES = table.clone(IdleConfig.BONUSES)
+for _, bonus in IdleConfig.RETIRED_BONUSES do
+	table.insert(IdleConfig.ALL_BONUSES, bonus)
+end
 IdleConfig.BONUS_BY_ID = {}
-for _, bonus in IdleConfig.BONUSES do
+for _, bonus in IdleConfig.ALL_BONUSES do
 	IdleConfig.BONUS_BY_ID[bonus.id] = bonus
 end
 
@@ -502,7 +513,7 @@ function IdleConfig.forgeOdds(drawable): { [string]: number }
 	return IdleConfig.roundedOdds(ids, chances)
 end
 
--- La meilleure rune (plus grand multiplicateur, toutes sortes confondues : x100 dégâts) : donnée par un achat
+-- La meilleure rune (plus grand multiplicateur, parmi les runes que la forge tire : x20 dégâts) : donnée par un achat
 -- Robux qui arrive quand la forge est bloquée (le bouton Robux est bloqué côté client, mais un achat payé
 -- n'est jamais perdu).
 function IdleConfig.bestRune()

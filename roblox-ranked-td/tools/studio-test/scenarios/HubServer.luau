@@ -2012,15 +2012,15 @@ return function(log)
 		check(draws == 40 and drawnDamageX2 == 0, `40 lancers : aucune rune x2 dégâts tirée ({table.concat(drawnList, " ")})`)
 		check(dbg:Invoke(player, "Data").idle.forgeSpinsBought == 40, "40 lancers en pièces comptés")
 
-		-- Toutes les tours à x100 dégâts : la forge marche encore, avec la seule rune qui améliore une tour (x2
+		-- Toutes les tours à x20 dégâts (la meilleure rune depuis le 01/10/2026) : la forge marche encore, avec la seule rune qui améliore une tour (x2
 		-- vitesse, 100 %). Un lancer en pièces et un lancer offert (défi classé) donnent donc x2 vitesse.
-		applyToAll("Damage100", true)
+		applyToAll("Damage20", true)
 		local stateSpeed = forgeState()
 		local speedOdds = IdleConfig.forgeOdds({ IdleConfig.BONUS_BY_ID.Speed2 })
 		check(
-			allTowersHave("Damage100", nil) and stateSpeed.blocked == nil and #stateSpeed.drawable == 1 and stateSpeed.drawable[1] == "Speed2"
+			allTowersHave("Damage20", nil) and stateSpeed.blocked == nil and #stateSpeed.drawable == 1 and stateSpeed.drawable[1] == "Speed2"
 				and player:GetAttribute("ForgeDrawable") == "Speed2" and player:GetAttribute("ForgeBlocked") == "" and speedOdds.Speed2 == 100,
-			`x100 dégâts partout : seule x2 vitesse reste tirable ({table.concat(stateSpeed.drawable, ",")}, {speedOdds.Speed2} %), forge ouverte`
+			`x20 dégâts partout : seule x2 vitesse reste tirable ({table.concat(stateSpeed.drawable, ",")}, {speedOdds.Speed2} %), forge ouverte`
 		)
 		local speedSpin = call("spinBonusWithCoins")
 		local freeSpeedSpin = call("grantBonusSpin", "Challenge")
@@ -2030,13 +2030,13 @@ return function(log)
 		)
 
 		-- x2 vitesse posée partout : les runes de dégâts restent, et plus rien n'améliore une tour -> forge bloquée
-		-- (pièces), un reçu Robux donne la meilleure rune (x100 dégâts).
+		-- (pièces), un reçu Robux donne la meilleure rune (x20 dégâts).
 		applyToAll("Speed2", true)
 		local stateBest = forgeState()
 		check(
-			allTowersHave("Damage100", "Speed2") and stateBest.blocked == IdleConfig.FORGE_ALL_BEST and #stateBest.drawable == 0
+			allTowersHave("Damage20", "Speed2") and stateBest.blocked == IdleConfig.FORGE_ALL_BEST and #stateBest.drawable == 0
 				and player:GetAttribute("ForgeBlocked") == IdleConfig.FORGE_ALL_BEST and player:GetAttribute("ForgeDrawable") == "",
-			`x100 dégâts ET x2 vitesse sur toutes les tours (vitesse posée sans toucher aux dégâts) : forge bloquée (« {player:GetAttribute("ForgeBlocked")} »)`
+			`x20 dégâts ET x2 vitesse sur toutes les tours (vitesse posée sans toucher aux dégâts) : forge bloquée (« {player:GetAttribute("ForgeBlocked")} »)`
 		)
 		local blockedResult, b0, b1 = forgeSpin()
 		check(
@@ -2107,7 +2107,7 @@ return function(log)
 	-- que le serveur de match (StudioDebug « ChallengeMatch »), règle des 3 minutes, même adversaire 2 fois par
 	-- jour au plus, récompense donnée une seule fois, lancers offerts sans hausse des prix, nouveau jour et
 	-- nouvelle semaine (horloge décalée), anciennes sauvegardes. À la fin du test de la forge, toutes les tours
-	-- ont x100 dégâts et x2 vitesse : la forge est bloquée (le lancer offert donne la meilleure rune, comme un
+	-- ont x20 dégâts et x2 vitesse : la forge est bloquée (le lancer offert donne la meilleure rune, comme un
 	-- reçu Robux ; le test de la forge vérifie aussi qu'un lancer offert suit les emplacements de rune).
 	----------------------------------------------------------------------
 	function tests.testChallenges()
@@ -2263,7 +2263,7 @@ return function(log)
 		if forge0.blocked == IdleConfig.FORGE_ALL_BEST then
 			check(
 				weekDetails and weekDetails.forge and weekDetails.forge.bonus == IdleConfig.bestRune().id,
-				`forge bloquée (x100 dégâts et x2 vitesse sur toutes les tours) : le lancer offert donne la meilleure rune, comme un reçu Robux ({weekDetails and weekDetails.forge and weekDetails.forge.bonus})`
+				`forge bloquée (x20 dégâts et x2 vitesse sur toutes les tours) : le lancer offert donne la meilleure rune, comme un reçu Robux ({weekDetails and weekDetails.forge and weekDetails.forge.bonus})`
 			)
 		end
 		local okWeek2 = claim("w1")

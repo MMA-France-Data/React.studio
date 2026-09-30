@@ -20,7 +20,7 @@
 --   PlotRenderer : tirs et impacts des tours (paquet PlotShots), morts des ennemis, arrivée d'un boss ou d'un
 --     colosse sur ta parcelle (PlotSync), pièces ramassées (CoinDrop), rayon du Sorcier ;
 --   Effects : tirs des tours en match classé (TowerFired) ;
---   MachineUI : autel, forge et fanfare (tour légendaire, rune x50 / x100) ; ChallengeUI : récompense récupérée ;
+--   MachineUI : autel, forge et fanfare (tour légendaire, rune x20) ; ChallengeUI : récompense récupérée ;
 --   ici : vague réussie / ratée et renaissance (attributs de ta parcelle), tour posée / améliorée / vendue,
 --     emplacement débloqué, rune posée (dossier « Towers » de ta parcelle, seulement après une demande de
 --     PlotUI : SoundManager.noteAction), « MATCH TROUVÉ ! » (attribut QueueState), fin du match (MatchResult),
