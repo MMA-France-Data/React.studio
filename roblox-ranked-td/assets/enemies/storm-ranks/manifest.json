@@ -1,0 +1,110 @@
+[
+  {
+    "model": "Swarm_6",
+    "triangles": 4567,
+    "bones": 41,
+    "meshes": 1,
+    "materials": 1,
+    "texture": "Swarm_6_Color.png",
+    "clips": [
+      "Idle",
+      "Walking_A",
+      "Running_A",
+      "Death_A"
+    ],
+    "bytes": 692408,
+    "fps": 30,
+    "studioValidation": "pending",
+    "paidServicesUsed": false,
+    "source": "outputs\\unites-11-30\\cuivre-11-20\\Swarm_1.blend",
+    "style": "Gold armor, indigo cloth, closed lightning ornaments; original anatomy and animation rig reused",
+    "localCredits": 0,
+    "unchangedRestRig": true
+  },
+  {
+    "model": "Normal_6",
+    "triangles": 5328,
+    "bones": 41,
+    "meshes": 1,
+    "materials": 1,
+    "texture": "Normal_6_Color.png",
+    "clips": [
+      "Idle",
+      "Walking_A",
+      "Running_A",
+      "Death_A"
+    ],
+    "bytes": 857576,
+    "fps": 30,
+    "studioValidation": "pending",
+    "paidServicesUsed": false,
+    "source": "outputs\\unites-01-10\\Normal.blend",
+    "style": "Gold armor, indigo cloth, closed lightning ornaments; original anatomy and animation rig reused",
+    "localCredits": 0,
+    "unchangedRestRig": true
+  },
+  {
+    "model": "Tank_6",
+    "triangles": 6134,
+    "bones": 41,
+    "meshes": 1,
+    "materials": 1,
+    "texture": "Tank_6_Color.png",
+    "clips": [
+      "Idle",
+      "Walking_A",
+      "Running_A",
+      "Death_A"
+    ],
+    "bytes": 927832,
+    "fps": 30,
+    "studioValidation": "pending",
+    "paidServicesUsed": false,
+    "source": "outputs\\unites-01-10\\Tank.blend",
+    "style": "Gold armor, indigo cloth, closed lightning ornaments; original anatomy and animation rig reused",
+    "localCredits": 0,
+    "unchangedRestRig": true
+  },
+  {
+    "model": "Giant_6",
+    "triangles": 6520,
+    "bones": 41,
+    "meshes": 1,
+    "materials": 1,
+    "texture": "Giant_6_Color.png",
+    "clips": [
+      "Idle",
+      "Walking_A",
+      "Running_A",
+      "Death_A"
+    ],
+    "bytes": 977732,
+    "fps": 30,
+    "studioValidation": "pending",
+    "paidServicesUsed": false,
+    "source": "outputs\\unites-01-10\\Giant.blend",
+    "style": "Gold armor, indigo cloth, closed lightning ornaments; original anatomy and animation rig reused",
+    "localCredits": 0,
+    "unchangedRestRig": true
+  },
+  {
+    "model": "Fast_6",
+    "triangles": 7720,
+    "bones": 48,
+    "meshes": 1,
+    "materials": 1,
+    "texture": "Fast_6_Color.png",
+    "clips": [
+      "Gallop",
+      "Death"
+    ],
+    "bytes": 1357368,
+    "fps": 30,
+    "studioValidation": "pending",
+    "paidServicesUsed": false,
+    "source": "outputs\\unites-01-10\\Cavalry_Studio.blend",
+    "style": "Gold armor, indigo cloth, closed lightning ornaments; original anatomy and animation rig reused",
+    "localCredits": 0,
+    "unchangedRestRig": true
+  }
+]

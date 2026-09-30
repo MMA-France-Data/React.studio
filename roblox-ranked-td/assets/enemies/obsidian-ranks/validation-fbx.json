@@ -1,0 +1,272 @@
+[
+  {
+    "file": "Swarm_7_Walking_Studio.fbx",
+    "fps": 30,
+    "frames": [
+      1,
+      34
+    ],
+    "bones": 41,
+    "singleMeshMaterialUV": true,
+    "matchedBaseRestSkeleton": true,
+    "restDifference": 0.0,
+    "maxFourNormalizedWeights": true,
+    "unitScaleEveryFrame": true,
+    "embeddedTextureMatchesPNG": true,
+    "textureSize": [
+      1024,
+      1024
+    ],
+    "limbMotionAfterReimport": {
+      "lowerleg.l": 0.3122,
+      "lowerleg.r": 0.3595,
+      "upperarm.l": 0.0666,
+      "upperarm.r": 0.0666
+    },
+    "riderRigid": false,
+    "studioValidation": "pending"
+  },
+  {
+    "file": "Swarm_7_Death_Studio.fbx",
+    "fps": 30,
+    "frames": [
+      1,
+      25
+    ],
+    "bones": 41,
+    "singleMeshMaterialUV": true,
+    "matchedBaseRestSkeleton": true,
+    "restDifference": 0.0,
+    "maxFourNormalizedWeights": true,
+    "unitScaleEveryFrame": true,
+    "embeddedTextureMatchesPNG": true,
+    "textureSize": [
+      1024,
+      1024
+    ],
+    "limbMotionAfterReimport": {
+      "lowerleg.l": 0.3679,
+      "lowerleg.r": 0.413,
+      "upperarm.l": 1.3349,
+      "upperarm.r": 1.4051
+    },
+    "riderRigid": false,
+    "studioValidation": "pending"
+  },
+  {
+    "file": "Normal_7_Walking_Studio.fbx",
+    "fps": 30,
+    "frames": [
+      1,
+      34
+    ],
+    "bones": 41,
+    "singleMeshMaterialUV": true,
+    "matchedBaseRestSkeleton": true,
+    "restDifference": 0.0,
+    "maxFourNormalizedWeights": true,
+    "unitScaleEveryFrame": true,
+    "embeddedTextureMatchesPNG": true,
+    "textureSize": [
+      1024,
+      1024
+    ],
+    "limbMotionAfterReimport": {
+      "lowerleg.l": 0.3122,
+      "lowerleg.r": 0.3595,
+      "upperarm.l": 0.0667,
+      "upperarm.r": 0.0667
+    },
+    "riderRigid": false,
+    "studioValidation": "pending"
+  },
+  {
+    "file": "Normal_7_Death_Studio.fbx",
+    "fps": 30,
+    "frames": [
+      1,
+      25
+    ],
+    "bones": 41,
+    "singleMeshMaterialUV": true,
+    "matchedBaseRestSkeleton": true,
+    "restDifference": 0.0,
+    "maxFourNormalizedWeights": true,
+    "unitScaleEveryFrame": true,
+    "embeddedTextureMatchesPNG": true,
+    "textureSize": [
+      1024,
+      1024
+    ],
+    "limbMotionAfterReimport": {
+      "lowerleg.l": 0.3679,
+      "lowerleg.r": 0.413,
+      "upperarm.l": 1.3349,
+      "upperarm.r": 1.4051
+    },
+    "riderRigid": false,
+    "studioValidation": "pending"
+  },
+  {
+    "file": "Tank_7_Walking_Studio.fbx",
+    "fps": 30,
+    "frames": [
+      1,
+      34
+    ],
+    "bones": 41,
+    "singleMeshMaterialUV": true,
+    "matchedBaseRestSkeleton": true,
+    "restDifference": 0.0,
+    "maxFourNormalizedWeights": true,
+    "unitScaleEveryFrame": true,
+    "embeddedTextureMatchesPNG": true,
+    "textureSize": [
+      1024,
+      1024
+    ],
+    "limbMotionAfterReimport": {
+      "lowerleg.l": 0.3122,
+      "lowerleg.r": 0.3595,
+      "upperarm.l": 0.0667,
+      "upperarm.r": 0.0667
+    },
+    "riderRigid": false,
+    "studioValidation": "pending"
+  },
+  {
+    "file": "Tank_7_Death_Studio.fbx",
+    "fps": 30,
+    "frames": [
+      1,
+      25
+    ],
+    "bones": 41,
+    "singleMeshMaterialUV": true,
+    "matchedBaseRestSkeleton": true,
+    "restDifference": 0.0,
+    "maxFourNormalizedWeights": true,
+    "unitScaleEveryFrame": true,
+    "embeddedTextureMatchesPNG": true,
+    "textureSize": [
+      1024,
+      1024
+    ],
+    "limbMotionAfterReimport": {
+      "lowerleg.l": 0.3679,
+      "lowerleg.r": 0.413,
+      "upperarm.l": 1.3349,
+      "upperarm.r": 1.4051
+    },
+    "riderRigid": false,
+    "studioValidation": "pending"
+  },
+  {
+    "file": "Giant_7_Walking_Studio.fbx",
+    "fps": 30,
+    "frames": [
+      1,
+      34
+    ],
+    "bones": 41,
+    "singleMeshMaterialUV": true,
+    "matchedBaseRestSkeleton": true,
+    "restDifference": 0.0,
+    "maxFourNormalizedWeights": true,
+    "unitScaleEveryFrame": true,
+    "embeddedTextureMatchesPNG": true,
+    "textureSize": [
+      1024,
+      1024
+    ],
+    "limbMotionAfterReimport": {
+      "lowerleg.l": 0.3122,
+      "lowerleg.r": 0.3595,
+      "upperarm.l": 0.0667,
+      "upperarm.r": 0.0667
+    },
+    "riderRigid": false,
+    "studioValidation": "pending"
+  },
+  {
+    "file": "Giant_7_Death_Studio.fbx",
+    "fps": 30,
+    "frames": [
+      1,
+      25
+    ],
+    "bones": 41,
+    "singleMeshMaterialUV": true,
+    "matchedBaseRestSkeleton": true,
+    "restDifference": 0.0,
+    "maxFourNormalizedWeights": true,
+    "unitScaleEveryFrame": true,
+    "embeddedTextureMatchesPNG": true,
+    "textureSize": [
+      1024,
+      1024
+    ],
+    "limbMotionAfterReimport": {
+      "lowerleg.l": 0.3679,
+      "lowerleg.r": 0.413,
+      "upperarm.l": 1.3349,
+      "upperarm.r": 1.4051
+    },
+    "riderRigid": false,
+    "studioValidation": "pending"
+  },
+  {
+    "file": "Fast_7_Gallop_Studio.fbx",
+    "fps": 30,
+    "frames": [
+      2,
+      20
+    ],
+    "bones": 48,
+    "singleMeshMaterialUV": true,
+    "matchedBaseRestSkeleton": true,
+    "restDifference": 0.0,
+    "maxFourNormalizedWeights": true,
+    "unitScaleEveryFrame": true,
+    "embeddedTextureMatchesPNG": true,
+    "textureSize": [
+      2048,
+      2048
+    ],
+    "limbMotionAfterReimport": {
+      "BackLowerLeg.L": 0.9018,
+      "BackLowerLeg.R": 0.7568,
+      "FrontLowerLeg.L": 0.507,
+      "FrontLowerLeg.R": 0.5794
+    },
+    "riderRigid": true,
+    "studioValidation": "pending"
+  },
+  {
+    "file": "Fast_7_Death_Studio.fbx",
+    "fps": 30,
+    "frames": [
+      2,
+      32
+    ],
+    "bones": 48,
+    "singleMeshMaterialUV": true,
+    "matchedBaseRestSkeleton": true,
+    "restDifference": 0.0,
+    "maxFourNormalizedWeights": true,
+    "unitScaleEveryFrame": true,
+    "embeddedTextureMatchesPNG": true,
+    "textureSize": [
+      2048,
+      2048
+    ],
+    "limbMotionAfterReimport": {
+      "BackLowerLeg.L": 0.7396,
+      "BackLowerLeg.R": 0.8748,
+      "FrontLowerLeg.L": 0.5271,
+      "FrontLowerLeg.R": 0.5428
+    },
+    "riderRigid": true,
+    "studioValidation": "pending"
+  }
+]

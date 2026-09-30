@@ -1,0 +1,206 @@
+{
+  "SourceSuffix": 8,
+  "SourceBinaryFilesUnchanged": true,
+  "StudioValidation": "pending",
+  "Waves": [
+    91,
+    100
+  ],
+  "CreditsConsumedThisDelivery": 0,
+  "HistoricalSourceNamesRetained": true,
+  "TargetSuffix": 9,
+  "Files": [
+    {
+      "File": "apercu-famille.png",
+      "Bytes": 2370734,
+      "SHA256": "088F5127211CB06A0CD37813BC63CE056F538E7EFCB47936CFF186B5C59BB0D6"
+    },
+    {
+      "File": "apercu-galop.gif",
+      "Bytes": 407017,
+      "SHA256": "083B9753FC0CEEADBF3A7F3214258F9AFDE00841DA5AA3989D0ED2896E886BB1"
+    },
+    {
+      "File": "ASSET_NOTES.md",
+      "Bytes": 2819,
+      "SHA256": "4E34E4ECECEF993925460BFB400368EE5A8FDE926B8A8E8FCBDD9595378DA8DE"
+    },
+    {
+      "File": "controle-animations.png",
+      "Bytes": 1214657,
+      "SHA256": "C9E6C6C873D9233C307CD0AB834D9D42DDEE048577A49F1DCC5B61F4592FCCF5"
+    },
+    {
+      "File": "Fast_8_Color.png",
+      "Bytes": 568771,
+      "SHA256": "3F8158511A136083037647D7B89FC48821BB3138C8B1E4A4A12454D65B109195"
+    },
+    {
+      "File": "Fast_8_Death_Studio.fbx",
+      "Bytes": 1498060,
+      "SHA256": "B8CD79D2A2685C72DDB9FE26E8BFEBD1C661577CFC4E294F78E0F5988AB45BB7"
+    },
+    {
+      "File": "Fast_8_Gallop_Studio.fbx",
+      "Bytes": 1443820,
+      "SHA256": "529181582FF9D2BB9970C454D667AEA3605E2EE2A9A07F6E98F27918E5C1BAB8"
+    },
+    {
+      "File": "Fast_8.blend",
+      "Bytes": 2076371,
+      "SHA256": "38B595517D9204E6F8AD1FA69CD29C3A0C5F9788DE8A941AE3ABFE4918D31883"
+    },
+    {
+      "File": "Fast_8.glb",
+      "Bytes": 1311236,
+      "SHA256": "1E3521A7638691F71E819D5B251535EA660E442D82A09FFB1600371A3084D249"
+    },
+    {
+      "File": "Giant_8_Color.png",
+      "Bytes": 341743,
+      "SHA256": "EAC74BE008147AA8FA28D60A29B3FA99F4E71BE1162B4F52039C94C2DA13F9D9"
+    },
+    {
+      "File": "Giant_8_Death_Studio.fbx",
+      "Bytes": 1037692,
+      "SHA256": "5643C2432A42F99C39F3E8FE43EB2F0CDAA67C78EA367FA3F68DE9F10CC35B9D"
+    },
+    {
+      "File": "Giant_8_Walking_Studio.fbx",
+      "Bytes": 1047228,
+      "SHA256": "809BF4958AD8DF965E032D8C8459AE0CBDFC0B063289952BB8D428CA5B75C3A6"
+    },
+    {
+      "File": "Giant_8.blend",
+      "Bytes": 934764,
+      "SHA256": "FA5F42B0D1C53FBB371AC5ACDFA4E4B24966FD93A695ADE1F3D053A1E06D78C0"
+    },
+    {
+      "File": "Giant_8.glb",
+      "Bytes": 921708,
+      "SHA256": "B0870291071A47E4B02F57A80BABCDF7D928544E8657C96EC67CF7A032BAF782"
+    },
+    {
+      "File": "manifest.json",
+      "Bytes": 2752,
+      "SHA256": "0955D01BC2990B287A003A06CED90555E9CA8478590F14D8B118C21A261AD0DF"
+    },
+    {
+      "File": "Normal_8_Color.png",
+      "Bytes": 353827,
+      "SHA256": "8DEBB8E4B5E7C94EEAF1F0424C28FEA4F20424E9A8BC4C4F9FC13B4385BA6DA2"
+    },
+    {
+      "File": "Normal_8_Death_Studio.fbx",
+      "Bytes": 1012732,
+      "SHA256": "5BCE767F9BD59A124C56D89436A0AAA3963A00D6C65986F1542ED3405118821D"
+    },
+    {
+      "File": "Normal_8_Walking_Studio.fbx",
+      "Bytes": 1022268,
+      "SHA256": "6E2061BB036EF357F19B90ED8C8BE23392E995BA3D5147B5AA81455C57C0B57B"
+    },
+    {
+      "File": "Normal_8.blend",
+      "Bytes": 917365,
+      "SHA256": "4E718A0DA2B5233E000D4D1BA7A7CEE0318F42F5714C1018A3C55CDC5A6C0768"
+    },
+    {
+      "File": "Normal_8.glb",
+      "Bytes": 805476,
+      "SHA256": "DAF1CDACBB37D52C89BE55AF23CBCDA6BA9EE1DA037D6C706C258CC687B45AD6"
+    },
+    {
+      "File": "provenance.json",
+      "Bytes": 883,
+      "SHA256": "0EBC3922E46CCAC7A1EE7FB2B2B308D3D35859CA29B466FAC70789F9AF76B068"
+    },
+    {
+      "File": "Swarm_8_Color.png",
+      "Bytes": 316386,
+      "SHA256": "7C123A76A4B2D839E61485D57C7ED661372AE1DCBA6F730229E92C7EBB14377B"
+    },
+    {
+      "File": "Swarm_8_Death_Studio.fbx",
+      "Bytes": 939372,
+      "SHA256": "DDF846DFF2BEA4A0F1B09DC08F8C07FF7144C99E154157885EF968D2846B016E"
+    },
+    {
+      "File": "Swarm_8_Walking_Studio.fbx",
+      "Bytes": 948940,
+      "SHA256": "06EEA4049DB5D949D8476CBE888AD6054453B28A2EE283CBF614E9A59C172F35"
+    },
+    {
+      "File": "Swarm_8.blend",
+      "Bytes": 1204436,
+      "SHA256": "33C19E1DC60C4E96A72035FCEE1129543841EC1FFA0D4FCB745117505E81234C"
+    },
+    {
+      "File": "Swarm_8.glb",
+      "Bytes": 714036,
+      "SHA256": "BEDD5B9CDCF56C74763ED94C73F9509D15783607362EAD67379BE1BE486A7A41"
+    },
+    {
+      "File": "Tank_8_Color.png",
+      "Bytes": 344828,
+      "SHA256": "AB4643CEBDB88EAFD4ABE8610358FD2640F17DC483FE8FBE3E194CA5C5C67DCA"
+    },
+    {
+      "File": "Tank_8_Death_Studio.fbx",
+      "Bytes": 1023820,
+      "SHA256": "AE2D7C3DD6AF6FB0188C1AC3297065CFF40C9D4558A4CE713A7B7F39E1DDBD38"
+    },
+    {
+      "File": "Tank_8_Walking_Studio.fbx",
+      "Bytes": 1033372,
+      "SHA256": "2CFC1A3DF74582E7C38E31FBF3436485CFBB1A96DC81595FDE4D0A6FAEBAC564"
+    },
+    {
+      "File": "Tank_8.blend",
+      "Bytes": 926507,
+      "SHA256": "1B7C18FFB52B62EE6185B383A5E493BCC120E2B043842783457E40BCD55EDC80"
+    },
+    {
+      "File": "Tank_8.glb",
+      "Bytes": 884664,
+      "SHA256": "8E52E8BF9EB4DFB26D0EB216D7C35019FA9F825F0EDD08AE75D0080496A9851F"
+    },
+    {
+      "File": "validation-fbx.json",
+      "Bytes": 6219,
+      "SHA256": "84FB0DD375A2F8E9D1E5A692C79A072DE8B10E076E6967B1F9EE5EE30DCF7E4E"
+    },
+    {
+      "File": "validation.json",
+      "Bytes": 7800,
+      "SHA256": "9BD5014BF38893273177C18E5A3B8FEAA4B5BD0469ED23B59A24107020EFF54A"
+    }
+  ],
+  "Units": [
+    {
+      "SourceModel": "Swarm_8",
+      "RobloxFile": "Swarm_9.rbxm",
+      "RobloxModel": "Swarm_9"
+    },
+    {
+      "SourceModel": "Normal_8",
+      "RobloxFile": "Normal_9.rbxm",
+      "RobloxModel": "Normal_9"
+    },
+    {
+      "SourceModel": "Fast_8",
+      "RobloxFile": "Fast_9.rbxm",
+      "RobloxModel": "Fast_9"
+    },
+    {
+      "SourceModel": "Tank_8",
+      "RobloxFile": "Tank_9.rbxm",
+      "RobloxModel": "Tank_9"
+    },
+    {
+      "SourceModel": "Giant_8",
+      "RobloxFile": "Giant_9.rbxm",
+      "RobloxModel": "Giant_9"
+    }
+  ]
+}

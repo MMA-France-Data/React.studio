@@ -1,4 +1,4 @@
-# Bases visuelles cuivre, ronces, givre, dunes et os — transmission à Claude
+# Bases visuelles des troupes 11–100 — transmission à Claude
 
 Le propriétaire a validé le rendu des deux fantassins et demandé de décliner les autres unités, puis de transmettre ces assets sur GitHub pour créer des variantes. Ces fichiers sont des sources 3D, pas encore des modèles Roblox intégrés.
 
@@ -11,11 +11,34 @@ Le propriétaire a validé le rendu des deux fantassins et demandé de décliner
 | `frost-ranks/` | 31–40 | `_3` | Légion du givre : armure argentée, tissus bleu nuit, cristaux liés aux os, cheval gris |
 | `desert-ranks/` | 41–50 | `_4` | Gardes des dunes : armures sable/or, tissus turquoise, coiffes et ornements dorés, cheval dune |
 | `undead-ranks/` | 51–60 | `_5` | Légion des os : revenants en armure sombre, têtes remplacées par des crânes en volume, yeux verts, tissus violets, cheval gris sombre |
+| `storm-ranks/` | 61–70 | `_6` | Garde de la tempête : armure or, tissus indigo, ornements d'éclair |
+| `obsidian-ranks/` | 71–80 | `_7` | Chevaliers d'obsidienne : armure sombre, visages remplacés par des masques en volume |
+| `orc-ranks/` | 81–90 | `_8` cible ; exports historiques `_9` | Horde orc/gobeline : vrais visages verts, défenses et oreilles pointues |
+| `dragon-ranks/` | 91–100 | `_9` cible ; exports historiques `_8` | Garde du dragon : soldats humains cramoisis, armures à écailles, pas de petits dragons |
 
 Chaque dossier contient cinq unités : `Swarm` (écuyer), `Normal` (fantassin), `Fast` (cavalier), `Tank` (chevalier lourd), `Giant` (colosse).
 
 **Décision du propriétaire (30 septembre, note de Claude) : le dragon devient le boss de la vague 100.** Ordre des deux dernières tranches : vagues 81–90 = horde gobeline / orcs (suffixe `_8`, boss `Boss_8`), vagues 91–100 = couvée du dragon (suffixe `_9`, boss `Boss_9` = le dragon). Le jeu (styles de secours en blocs) suit déjà cet ordre.
 Tous les boss restent séparés de ces troupes : aucun boss n'est remplacé par cet envoi.
+
+## Ajout du 30 septembre : les vingt unités manquantes 61–100
+
+Le propriétaire a demandé les unités manquantes sur GitHub puis confirmé leur publication. Les quatre dossiers ajoutés comprennent chacun cinq GLB, cinq sources `.blend`, dix FBX marche/galop et mort, cinq textures couleur, les aperçus et les rapports de contrôles locaux. Les copies des fichiers sources sont vérifiées par SHA-256. Les sauvegardes `.blend1` ne sont pas envoyées. Aucun nouveau crédit Meshy n'est consommé.
+
+**Attention à l'inversion des deux dernières familles :** les exports ont été créés avant le changement d'ordre. Leurs noms de fichiers, noms internes, matrices de repos et animations sont volontairement conservés intacts. **Importer les orcs `*_9` comme modèles Roblox `*_8.rbxm`, et les soldats dragon `*_8` comme `*_9.rbxm`.** Ne pas permuter les os, les clips ni les fichiers de gameplay pour corriger un simple nom d'import.
+
+| Famille | Source GLB/FBX/Blender | Modèle Roblox à enregistrer après test |
+| --- | --- | --- |
+| Tempête | `TYPE_6` | `TYPE_6.rbxm` |
+| Obsidienne | `TYPE_7` | `TYPE_7.rbxm` |
+| Orcs/gobelins | `TYPE_9` | `TYPE_8.rbxm` |
+| Soldats du dragon | `TYPE_8` | `TYPE_9.rbxm` |
+
+`TYPE` = `Swarm`, `Normal`, `Fast`, `Tank` ou `Giant`. Consulter d'abord **`IMPORT_ORDER.md` et `INTEGRATION_MAP.json`** dans chaque nouveau dossier : ils font autorité sur les anciennes indications de vagues dans `ASSET_NOTES.md`, `provenance.json` et les noms historiques. Les anciens rapports Blender restent conservés tels quels pour leur traçabilité.
+
+Le contenu des vingt GLB a été revérifié avant cette livraison : fichier valide, un mesh/matériau/skin, texture embarquée, clips présents, aucune piste d'échelle, échelles de nœuds unitaires. Les rapports existants des vingt GLB et quarante FBX sont présents et leurs contrôles de repos, poids et textures passent. **Cela ne remplace pas une validation de rendu, import et animations dans Studio.** La publication des sources est autorisée ; aucune nouvelle validation visuelle ou Studio n'est revendiquée par cet envoi.
+
+Les quatre familles réutilisent les rigs existants : humains à 41 os, cavaliers à 48 os avec `Rider` enfant de `Back`. Marches/morts et galops/morts sont inclus, mais ne pas leur attribuer automatiquement les numéros d'animation d'une autre famille sans vérifier la compatibilité dans Studio. Aucun `.rbxm`, ID d'animation, boss, chiffre de gameplay, interface, effet de combat ou outil n'est installé par ce commit.
 
 ## Ajout du 30 septembre : Légion des os
 

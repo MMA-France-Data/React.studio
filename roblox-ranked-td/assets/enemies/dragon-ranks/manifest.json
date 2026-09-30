@@ -1,0 +1,110 @@
+[
+  {
+    "model": "Swarm_8",
+    "triangles": 4591,
+    "bones": 41,
+    "meshes": 1,
+    "materials": 1,
+    "texture": "Swarm_8_Color.png",
+    "clips": [
+      "Idle",
+      "Walking_A",
+      "Running_A",
+      "Death_A"
+    ],
+    "bytes": 714036,
+    "fps": 30,
+    "studioValidation": "pending",
+    "paidServicesUsed": false,
+    "source": "outputs\\unites-11-30\\cuivre-11-20\\Swarm_1.blend",
+    "style": "Human knights with dragon-scale armor and swept horns, not small dragons",
+    "localCredits": 0,
+    "unchangedRestRig": true
+  },
+  {
+    "model": "Normal_8",
+    "triangles": 5400,
+    "bones": 41,
+    "meshes": 1,
+    "materials": 1,
+    "texture": "Normal_8_Color.png",
+    "clips": [
+      "Idle",
+      "Walking_A",
+      "Running_A",
+      "Death_A"
+    ],
+    "bytes": 805476,
+    "fps": 30,
+    "studioValidation": "pending",
+    "paidServicesUsed": false,
+    "source": "outputs\\unites-01-10\\Normal.blend",
+    "style": "Human knights with dragon-scale armor and swept horns, not small dragons",
+    "localCredits": 0,
+    "unchangedRestRig": true
+  },
+  {
+    "model": "Tank_8",
+    "triangles": 6198,
+    "bones": 41,
+    "meshes": 1,
+    "materials": 1,
+    "texture": "Tank_8_Color.png",
+    "clips": [
+      "Idle",
+      "Walking_A",
+      "Running_A",
+      "Death_A"
+    ],
+    "bytes": 884664,
+    "fps": 30,
+    "studioValidation": "pending",
+    "paidServicesUsed": false,
+    "source": "outputs\\unites-01-10\\Tank.blend",
+    "style": "Human knights with dragon-scale armor and swept horns, not small dragons",
+    "localCredits": 0,
+    "unchangedRestRig": true
+  },
+  {
+    "model": "Giant_8",
+    "triangles": 6576,
+    "bones": 41,
+    "meshes": 1,
+    "materials": 1,
+    "texture": "Giant_8_Color.png",
+    "clips": [
+      "Idle",
+      "Walking_A",
+      "Running_A",
+      "Death_A"
+    ],
+    "bytes": 921708,
+    "fps": 30,
+    "studioValidation": "pending",
+    "paidServicesUsed": false,
+    "source": "outputs\\unites-01-10\\Giant.blend",
+    "style": "Human knights with dragon-scale armor and swept horns, not small dragons",
+    "localCredits": 0,
+    "unchangedRestRig": true
+  },
+  {
+    "model": "Fast_8",
+    "triangles": 8280,
+    "bones": 48,
+    "meshes": 1,
+    "materials": 1,
+    "texture": "Fast_8_Color.png",
+    "clips": [
+      "Gallop",
+      "Death"
+    ],
+    "bytes": 1311236,
+    "fps": 30,
+    "studioValidation": "pending",
+    "paidServicesUsed": false,
+    "source": "outputs\\unites-01-10\\Cavalry_Studio.blend",
+    "style": "Human knights with dragon-scale armor and swept horns, not small dragons",
+    "localCredits": 0,
+    "unchangedRestRig": true
+  }
+]

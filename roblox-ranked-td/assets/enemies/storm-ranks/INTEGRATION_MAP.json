@@ -1,0 +1,206 @@
+{
+  "SourceSuffix": 6,
+  "SourceBinaryFilesUnchanged": true,
+  "StudioValidation": "pending",
+  "Waves": [
+    61,
+    70
+  ],
+  "CreditsConsumedThisDelivery": 0,
+  "HistoricalSourceNamesRetained": true,
+  "TargetSuffix": 6,
+  "Files": [
+    {
+      "File": "apercu-famille.png",
+      "Bytes": 2401514,
+      "SHA256": "0CB77B17AE75A445C9F4D5892452CD1F8C62D31D2C6E0CD47A340858BBE38373"
+    },
+    {
+      "File": "apercu-galop.gif",
+      "Bytes": 355842,
+      "SHA256": "1BC0820DE1D6803A284F97A09DC6F5CEFC26481318103799C9113201A23C505C"
+    },
+    {
+      "File": "ASSET_NOTES.md",
+      "Bytes": 4107,
+      "SHA256": "E9CC044F001E7A1E42C696DC39407B97C63DD716E4D75CDB18E04AC32AE2A9F3"
+    },
+    {
+      "File": "controle-animations.png",
+      "Bytes": 1263056,
+      "SHA256": "D12CBCA81984E7FDC5049C6B85E07AA3CA3517194757BB1E96D3B3FB0944F273"
+    },
+    {
+      "File": "Fast_6_Color.png",
+      "Bytes": 663035,
+      "SHA256": "BE5DE71E189874E094102F96024C5EFCF08FD26D4C4C83A1CD7FA89F9B604C31"
+    },
+    {
+      "File": "Fast_6_Death_Studio.fbx",
+      "Bytes": 1580780,
+      "SHA256": "C3FAC92A69F4DF3C21F243E4DFC8EA140E1EACDE7850B287931E7DD7F2A05400"
+    },
+    {
+      "File": "Fast_6_Gallop_Studio.fbx",
+      "Bytes": 1526540,
+      "SHA256": "2999FA91FDFC2B3971EE0FB5649B4468BDB5CE06A16601C7A95878B77FFE35EC"
+    },
+    {
+      "File": "Fast_6.blend",
+      "Bytes": 2154599,
+      "SHA256": "3BA980EF5AD45AF9C0226AC6661E2978CF761895DFF63D979FDEEE68E3083274"
+    },
+    {
+      "File": "Fast_6.glb",
+      "Bytes": 1357368,
+      "SHA256": "E4E5C07A22FF74037CCC4A4B91A7A3DCBF5F3139C0677283D5EFDD7560D2377C"
+    },
+    {
+      "File": "Giant_6_Color.png",
+      "Bytes": 404494,
+      "SHA256": "EC00109F599C40180F163D053D845A2FBE0240B1B2512208C2687700C886B995"
+    },
+    {
+      "File": "Giant_6_Death_Studio.fbx",
+      "Bytes": 1098668,
+      "SHA256": "5682F42BE67A81083A49B7071CF5C2FE92176059621112C2253B49422770FB2F"
+    },
+    {
+      "File": "Giant_6_Walking_Studio.fbx",
+      "Bytes": 1108204,
+      "SHA256": "6D89CF6F282404943DB628DF5B87C365A6C8685340923E08F3C949FE4FA38173"
+    },
+    {
+      "File": "Giant_6.blend",
+      "Bytes": 996374,
+      "SHA256": "82671ABB860FCD90FDB9464BB928A90CE56CF20070B7C4F425DD3FA9A7D6132F"
+    },
+    {
+      "File": "Giant_6.glb",
+      "Bytes": 977732,
+      "SHA256": "57C0CD8FC2785FDDD5C6ED316691E51567A69A5C325D76DCDEC63D796378A520"
+    },
+    {
+      "File": "manifest.json",
+      "Bytes": 2867,
+      "SHA256": "E2F47D5E53E3A9EAFEE297C70633215B519CE68DD441C0CCC45B137062D9F0F6"
+    },
+    {
+      "File": "Normal_6_Color.png",
+      "Bytes": 414471,
+      "SHA256": "3B741A7279BB9B96F4612F9700F24C03F5FF306294C32D5A9C4B8B442D0A5F71"
+    },
+    {
+      "File": "Normal_6_Death_Studio.fbx",
+      "Bytes": 1069884,
+      "SHA256": "2F78535060C238E7C5EBD0C3D2825F0513BB9E17733683C7E0407D3F04E58BF8"
+    },
+    {
+      "File": "Normal_6_Walking_Studio.fbx",
+      "Bytes": 1079420,
+      "SHA256": "4D67AE35DDE8C635927117BA4355E11B03A791FAAAAB424B0DF396CFC2ED471C"
+    },
+    {
+      "File": "Normal_6.blend",
+      "Bytes": 973859,
+      "SHA256": "00860CADC9275D3C7CD39537AC20438AB7C2AEFEA1881C28901755D7E70F2C04"
+    },
+    {
+      "File": "Normal_6.glb",
+      "Bytes": 857576,
+      "SHA256": "9CFF556A80B105512C65B1332AB15D1AA715749BB339BCBF6E91F7424C857AC5"
+    },
+    {
+      "File": "provenance.json",
+      "Bytes": 892,
+      "SHA256": "5D715793188631E60F353F61AB9AAC125C242E73144478D9B75BEE205D1D5D4F"
+    },
+    {
+      "File": "Swarm_6_Color.png",
+      "Bytes": 310192,
+      "SHA256": "31A15C0E23DFF9ED40B67ACE17A77B9D79014D1124B4A84382BC67C604D66C8C"
+    },
+    {
+      "File": "Swarm_6_Death_Studio.fbx",
+      "Bytes": 929436,
+      "SHA256": "FD478A250D0E152EE758CD64512013C3444048399A45B8F8D4792925910A8619"
+    },
+    {
+      "File": "Swarm_6_Walking_Studio.fbx",
+      "Bytes": 939020,
+      "SHA256": "09352C91B68BC8E8ADDE7C6353E8D6FB488983F979AE139F0BA2C82C5E1CE163"
+    },
+    {
+      "File": "Swarm_6.blend",
+      "Bytes": 1194378,
+      "SHA256": "EED221AF2D0AB6B7AE01C852E00A30F32420691EBEB0ACAE89E0FC639B98DAAB"
+    },
+    {
+      "File": "Swarm_6.glb",
+      "Bytes": 692408,
+      "SHA256": "E1C430833D376A98F4A27406B498213F4A9E2F3CFFCCA75CEE3E86275CCA6CC5"
+    },
+    {
+      "File": "Tank_6_Color.png",
+      "Bytes": 398829,
+      "SHA256": "EC1AB12A9BF056AE22166B1857478FCF5D7BA4FD5350D1354D8452326F311A00"
+    },
+    {
+      "File": "Tank_6_Death_Studio.fbx",
+      "Bytes": 1074412,
+      "SHA256": "9A29452DCC9E2E07AC8BA0193D4E62A86CB4DA3E0F1B6D2FE4F57E8AE42E292A"
+    },
+    {
+      "File": "Tank_6_Walking_Studio.fbx",
+      "Bytes": 1083948,
+      "SHA256": "5D09B209414CB1C183504DE1DA04E56C8383A58A09897639BD01EA8BB67C0AFB"
+    },
+    {
+      "File": "Tank_6.blend",
+      "Bytes": 978120,
+      "SHA256": "C457A05D0791DE66998C5F5EFE06BCFDF8DBE742B7E3869BC1B663A41AF894C9"
+    },
+    {
+      "File": "Tank_6.glb",
+      "Bytes": 927832,
+      "SHA256": "5BA89AA55F5765F3218E08888C983FDD8DDD1F4165A408410B0FE7495066BAB6"
+    },
+    {
+      "File": "validation-fbx.json",
+      "Bytes": 6219,
+      "SHA256": "12B43AFC08BA8864CE83B2AF98390F0F8B09E5B37BE9CA6E2A378308F6D51571"
+    },
+    {
+      "File": "validation.json",
+      "Bytes": 7795,
+      "SHA256": "7FEAF058489802D9CE5EE3633F711E26063BA15EE2EC21DBF35B7227832FC21A"
+    }
+  ],
+  "Units": [
+    {
+      "SourceModel": "Swarm_6",
+      "RobloxFile": "Swarm_6.rbxm",
+      "RobloxModel": "Swarm_6"
+    },
+    {
+      "SourceModel": "Normal_6",
+      "RobloxFile": "Normal_6.rbxm",
+      "RobloxModel": "Normal_6"
+    },
+    {
+      "SourceModel": "Fast_6",
+      "RobloxFile": "Fast_6.rbxm",
+      "RobloxModel": "Fast_6"
+    },
+    {
+      "SourceModel": "Tank_6",
+      "RobloxFile": "Tank_6.rbxm",
+      "RobloxModel": "Tank_6"
+    },
+    {
+      "SourceModel": "Giant_6",
+      "RobloxFile": "Giant_6.rbxm",
+      "RobloxModel": "Giant_6"
+    }
+  ]
+}

@@ -1,0 +1,206 @@
+{
+  "SourceSuffix": 9,
+  "SourceBinaryFilesUnchanged": true,
+  "StudioValidation": "pending",
+  "Waves": [
+    81,
+    90
+  ],
+  "CreditsConsumedThisDelivery": 0,
+  "HistoricalSourceNamesRetained": true,
+  "TargetSuffix": 8,
+  "Files": [
+    {
+      "File": "apercu-famille.png",
+      "Bytes": 2367303,
+      "SHA256": "76C926F37577439E2E1C8886036AEABA21AE9D9B8CD394647594915830307B07"
+    },
+    {
+      "File": "apercu-galop.gif",
+      "Bytes": 418552,
+      "SHA256": "E26ABB494EA8FF448BE7A8D93EFE44D19B68234AA088FE0B38005D71592C44EE"
+    },
+    {
+      "File": "ASSET_NOTES.md",
+      "Bytes": 3137,
+      "SHA256": "838194E390056436F293969771F682E805E0B95AA6D4BB567B8F46F6B8087D16"
+    },
+    {
+      "File": "controle-animations.png",
+      "Bytes": 1251064,
+      "SHA256": "37AB5B2BE6BE9BBCA0921ED51DAB10B61EDFF8647CA5BD400FC23D4A4B265076"
+    },
+    {
+      "File": "Fast_9_Color.png",
+      "Bytes": 592377,
+      "SHA256": "D105CD6C788331ADA1873CE32D5B21904C3E7780C751FBE2AEF49FA176BE062B"
+    },
+    {
+      "File": "Fast_9_Death_Studio.fbx",
+      "Bytes": 1511852,
+      "SHA256": "91583C9EA86AC8E2CC2AA05F737F66F48F8D0E20DC122A73F2CC3392A8D2B1DA"
+    },
+    {
+      "File": "Fast_9_Gallop_Studio.fbx",
+      "Bytes": 1457612,
+      "SHA256": "4B0DCF26CA5AA19101177E86148B4193E419B4E000C13396261B6807D75A70F7"
+    },
+    {
+      "File": "Fast_9.blend",
+      "Bytes": 2085991,
+      "SHA256": "C35CAF4490E401C2C1E06BE6517DC0B638C0523F27B7EFF51125AD74E9919EF9"
+    },
+    {
+      "File": "Fast_9.glb",
+      "Bytes": 1419608,
+      "SHA256": "17B7B1E5C0D46FCF8B3D30F6F9EDE7C33AE097C8BF1D864561425CC8EBBCC27C"
+    },
+    {
+      "File": "Giant_9_Color.png",
+      "Bytes": 329921,
+      "SHA256": "8E6AECFE0C6F8F169EBE069886376AD4C780DF03B0911651227A91220C740D16"
+    },
+    {
+      "File": "Giant_9_Death_Studio.fbx",
+      "Bytes": 1016220,
+      "SHA256": "418F1778730598C72B596BA6A4F08ED8545AC8E6356565508A8AD6D910C36722"
+    },
+    {
+      "File": "Giant_9_Walking_Studio.fbx",
+      "Bytes": 1025756,
+      "SHA256": "2B6AF69F73DAC6CBB6B95ADACB33BAC206BB1C74D5502B466D242B697B0653BD"
+    },
+    {
+      "File": "Giant_9.blend",
+      "Bytes": 914834,
+      "SHA256": "74E399CB72450C4987716DEFE09889EA7BA1796336FFDFBA4A8DAE25ACF35543"
+    },
+    {
+      "File": "Giant_9.glb",
+      "Bytes": 990648,
+      "SHA256": "1B774573011161B30F8F190D095C2D52EEEA2352146C7D319EA20E452CF8A1F3"
+    },
+    {
+      "File": "manifest.json",
+      "Bytes": 2647,
+      "SHA256": "CBD71A9D9F1B6BF55525A1F4B9B78EDDB6B1BEFA99755A25183DF90FDA08E501"
+    },
+    {
+      "File": "Normal_9_Color.png",
+      "Bytes": 327238,
+      "SHA256": "1DBA2F41D338D18C02457A2F41415D7F2FD6A575D53B601B0121A78C7F00D44A"
+    },
+    {
+      "File": "Normal_9_Death_Studio.fbx",
+      "Bytes": 980348,
+      "SHA256": "2A596FF9F0E168E34875624B1E906F2BBC1DF524AD385D35305E25CA60C39D6B"
+    },
+    {
+      "File": "Normal_9_Walking_Studio.fbx",
+      "Bytes": 989884,
+      "SHA256": "B143173A3DDC2F7E992A440553DDBC4EDD4A611A5AEF1B983DF03D6C209580DF"
+    },
+    {
+      "File": "Normal_9.blend",
+      "Bytes": 884341,
+      "SHA256": "0BC72DCA98EAFBA8AD98C97C9A236C2FDBBF26FD8ABC0573993B8D9C90D5FFAE"
+    },
+    {
+      "File": "Normal_9.glb",
+      "Bytes": 880384,
+      "SHA256": "B8078635663204B1942B875A83A38AE681C6DCBF8CFB69E370D2CD85AC53E2F0"
+    },
+    {
+      "File": "provenance.json",
+      "Bytes": 878,
+      "SHA256": "8CCEF9CB39AB1F833509A5DD5F34B543CB8328CD3A658FD2875E244DA4C0BD8F"
+    },
+    {
+      "File": "Swarm_9_Color.png",
+      "Bytes": 241471,
+      "SHA256": "BE53B716C7F5FFD51C1B7CCCA3D09BCD725F79BFBA2F6AE83EB87FDDE9702BB3"
+    },
+    {
+      "File": "Swarm_9_Death_Studio.fbx",
+      "Bytes": 857004,
+      "SHA256": "51D6EEB7CD316510587B73F20C5ECACE8622175ACBD21267A488724D040E6035"
+    },
+    {
+      "File": "Swarm_9_Walking_Studio.fbx",
+      "Bytes": 866572,
+      "SHA256": "7B9FBA4654AC6C39616FB60CF193BECE59C172E1C708E437B5645ED00BFD328D"
+    },
+    {
+      "File": "Swarm_9.blend",
+      "Bytes": 1121541,
+      "SHA256": "A0EE9FF7B590E75273C55F9CBF0CE649FA3205074E2643B642A8EFC7C49A280A"
+    },
+    {
+      "File": "Swarm_9.glb",
+      "Bytes": 731784,
+      "SHA256": "A7966A6375811D47D755659EECD79974315B3002F89722EB797190E12E743138"
+    },
+    {
+      "File": "Tank_9_Color.png",
+      "Bytes": 322414,
+      "SHA256": "B307115EFCDE8D877E6D3710972FA8DAE3FB9D960BBFB866D84CA7ABA576C692"
+    },
+    {
+      "File": "Tank_9_Death_Studio.fbx",
+      "Bytes": 990316,
+      "SHA256": "608DE1D1BD5FB53B6425E35DA278A1837B76F8D866A60DC6EC1A3ACA2511DA5A"
+    },
+    {
+      "File": "Tank_9_Walking_Studio.fbx",
+      "Bytes": 999868,
+      "SHA256": "EA4DF71161C118E55ADF119CDD5300E99F321BAF2B1F142A4F59A15EABCADF72"
+    },
+    {
+      "File": "Tank_9.blend",
+      "Bytes": 896385,
+      "SHA256": "7A77F2406144A81040F85FEB9DCF2ACD0CBC1BB5181C93BA925D42DB2AD3A668"
+    },
+    {
+      "File": "Tank_9.glb",
+      "Bytes": 938380,
+      "SHA256": "5ACA0FD3A11B94EE598AEC71C6CF22824885AC1BCB6FADE3110DE7966F329539"
+    },
+    {
+      "File": "validation-fbx.json",
+      "Bytes": 6219,
+      "SHA256": "78B1DF842203B3BCEF6E8ED66505B6BB16A54035BB59A451974A76DF7F0E5033"
+    },
+    {
+      "File": "validation.json",
+      "Bytes": 7797,
+      "SHA256": "1D20B0DB855FFEB9BD37825AE30FC1FA63C2971598DD0D83CA353297A5BD2F9C"
+    }
+  ],
+  "Units": [
+    {
+      "SourceModel": "Swarm_9",
+      "RobloxFile": "Swarm_8.rbxm",
+      "RobloxModel": "Swarm_8"
+    },
+    {
+      "SourceModel": "Normal_9",
+      "RobloxFile": "Normal_8.rbxm",
+      "RobloxModel": "Normal_8"
+    },
+    {
+      "SourceModel": "Fast_9",
+      "RobloxFile": "Fast_8.rbxm",
+      "RobloxModel": "Fast_8"
+    },
+    {
+      "SourceModel": "Tank_9",
+      "RobloxFile": "Tank_8.rbxm",
+      "RobloxModel": "Tank_8"
+    },
+    {
+      "SourceModel": "Giant_9",
+      "RobloxFile": "Giant_8.rbxm",
+      "RobloxModel": "Giant_8"
+    }
+  ]
+}

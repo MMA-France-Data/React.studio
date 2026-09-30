@@ -1,0 +1,36 @@
+{
+  "name": "Horde orc",
+  "waves": [
+    91,
+    100
+  ],
+  "mode": "local variants",
+  "newCreditsConsumed": 0,
+  "remoteTasksCreated": [],
+  "sources": [
+    {
+      "model": "Swarm_9",
+      "source": "outputs\\unites-11-30\\cuivre-11-20\\Swarm_1.blend"
+    },
+    {
+      "model": "Normal_9",
+      "source": "outputs\\unites-01-10\\Normal.blend"
+    },
+    {
+      "model": "Tank_9",
+      "source": "outputs\\unites-01-10\\Tank.blend"
+    },
+    {
+      "model": "Giant_9",
+      "source": "outputs\\unites-01-10\\Giant.blend"
+    },
+    {
+      "model": "Fast_9",
+      "source": "outputs\\unites-01-10\\Cavalry_Studio.blend"
+    }
+  ],
+  "humanBase": "KayKit Adventurers (Kay Lousberg), CC0",
+  "horseBase": "Quaternius Ultimate Animated Animal Pack, CC0",
+  "visualApproval": "pending owner review",
+  "studioValidation": "pending"
+}

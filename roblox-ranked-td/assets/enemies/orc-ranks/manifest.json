@@ -1,0 +1,110 @@
+[
+  {
+    "model": "Swarm_9",
+    "triangles": 4938,
+    "bones": 41,
+    "meshes": 1,
+    "materials": 1,
+    "texture": "Swarm_9_Color.png",
+    "clips": [
+      "Idle",
+      "Walking_A",
+      "Running_A",
+      "Death_A"
+    ],
+    "bytes": 731784,
+    "fps": 30,
+    "studioValidation": "pending",
+    "paidServicesUsed": false,
+    "source": "outputs\\unites-11-30\\cuivre-11-20\\Swarm_1.blend",
+    "style": "Green anatomical orc heads replacing original heads",
+    "localCredits": 0,
+    "unchangedRestRig": true
+  },
+  {
+    "model": "Normal_9",
+    "triangles": 5728,
+    "bones": 41,
+    "meshes": 1,
+    "materials": 1,
+    "texture": "Normal_9_Color.png",
+    "clips": [
+      "Idle",
+      "Walking_A",
+      "Running_A",
+      "Death_A"
+    ],
+    "bytes": 880384,
+    "fps": 30,
+    "studioValidation": "pending",
+    "paidServicesUsed": false,
+    "source": "outputs\\unites-01-10\\Normal.blend",
+    "style": "Green anatomical orc heads replacing original heads",
+    "localCredits": 0,
+    "unchangedRestRig": true
+  },
+  {
+    "model": "Tank_9",
+    "triangles": 6310,
+    "bones": 41,
+    "meshes": 1,
+    "materials": 1,
+    "texture": "Tank_9_Color.png",
+    "clips": [
+      "Idle",
+      "Walking_A",
+      "Running_A",
+      "Death_A"
+    ],
+    "bytes": 938380,
+    "fps": 30,
+    "studioValidation": "pending",
+    "paidServicesUsed": false,
+    "source": "outputs\\unites-01-10\\Tank.blend",
+    "style": "Green anatomical orc heads replacing original heads",
+    "localCredits": 0,
+    "unchangedRestRig": true
+  },
+  {
+    "model": "Giant_9",
+    "triangles": 6688,
+    "bones": 41,
+    "meshes": 1,
+    "materials": 1,
+    "texture": "Giant_9_Color.png",
+    "clips": [
+      "Idle",
+      "Walking_A",
+      "Running_A",
+      "Death_A"
+    ],
+    "bytes": 990648,
+    "fps": 30,
+    "studioValidation": "pending",
+    "paidServicesUsed": false,
+    "source": "outputs\\unites-01-10\\Giant.blend",
+    "style": "Green anatomical orc heads replacing original heads",
+    "localCredits": 0,
+    "unchangedRestRig": true
+  },
+  {
+    "model": "Fast_9",
+    "triangles": 8228,
+    "bones": 48,
+    "meshes": 1,
+    "materials": 1,
+    "texture": "Fast_9_Color.png",
+    "clips": [
+      "Gallop",
+      "Death"
+    ],
+    "bytes": 1419608,
+    "fps": 30,
+    "studioValidation": "pending",
+    "paidServicesUsed": false,
+    "source": "outputs\\unites-01-10\\Cavalry_Studio.blend",
+    "style": "Green anatomical orc heads replacing original heads",
+    "localCredits": 0,
+    "unchangedRestRig": true
+  }
+]

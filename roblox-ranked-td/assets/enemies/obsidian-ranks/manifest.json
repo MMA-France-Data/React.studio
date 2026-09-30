@@ -1,0 +1,120 @@
+[
+  {
+    "model": "Swarm_7",
+    "triangles": 3916,
+    "bones": 41,
+    "meshes": 1,
+    "materials": 1,
+    "texture": "Swarm_7_Color.png",
+    "clips": [
+      "Idle",
+      "Walking_A",
+      "Running_A",
+      "Death_A"
+    ],
+    "bytes": 601660,
+    "fps": 30,
+    "studioValidation": "pending",
+    "paidServicesUsed": false,
+    "source": "outputs\\unites-11-30\\cuivre-11-20\\Swarm_1.blend",
+    "style": "Black armored masked guards with ember eyes; original bodies, rig and clips retained",
+    "localCredits": 0,
+    "unchangedRestRig": true,
+    "headReplacement": "Original human head islands replaced by closed helmet/visor volumes",
+    "visorPlacement": "Original face rest space; retained face guard recessed; no forward offset"
+  },
+  {
+    "model": "Normal_7",
+    "triangles": 4746,
+    "bones": 41,
+    "meshes": 1,
+    "materials": 1,
+    "texture": "Normal_7_Color.png",
+    "clips": [
+      "Idle",
+      "Walking_A",
+      "Running_A",
+      "Death_A"
+    ],
+    "bytes": 735980,
+    "fps": 30,
+    "studioValidation": "pending",
+    "paidServicesUsed": false,
+    "source": "outputs\\unites-01-10\\Normal.blend",
+    "style": "Black armored masked guards with ember eyes; original bodies, rig and clips retained",
+    "localCredits": 0,
+    "unchangedRestRig": true,
+    "headReplacement": "Original human head islands replaced by closed helmet/visor volumes",
+    "visorPlacement": "Original face rest space; retained face guard recessed; no forward offset"
+  },
+  {
+    "model": "Tank_7",
+    "triangles": 5328,
+    "bones": 41,
+    "meshes": 1,
+    "materials": 1,
+    "texture": "Tank_7_Color.png",
+    "clips": [
+      "Idle",
+      "Walking_A",
+      "Running_A",
+      "Death_A"
+    ],
+    "bytes": 789404,
+    "fps": 30,
+    "studioValidation": "pending",
+    "paidServicesUsed": false,
+    "source": "outputs\\unites-01-10\\Tank.blend",
+    "style": "Black armored masked guards with ember eyes; original bodies, rig and clips retained",
+    "localCredits": 0,
+    "unchangedRestRig": true,
+    "headReplacement": "Original human head islands replaced by closed helmet/visor volumes",
+    "visorPlacement": "Original face rest space; retained face guard recessed; no forward offset"
+  },
+  {
+    "model": "Giant_7",
+    "triangles": 5706,
+    "bones": 41,
+    "meshes": 1,
+    "materials": 1,
+    "texture": "Giant_7_Color.png",
+    "clips": [
+      "Idle",
+      "Walking_A",
+      "Running_A",
+      "Death_A"
+    ],
+    "bytes": 846792,
+    "fps": 30,
+    "studioValidation": "pending",
+    "paidServicesUsed": false,
+    "source": "outputs\\unites-01-10\\Giant.blend",
+    "style": "Black armored masked guards with ember eyes; original bodies, rig and clips retained",
+    "localCredits": 0,
+    "unchangedRestRig": true,
+    "headReplacement": "Original human head islands replaced by closed helmet/visor volumes",
+    "visorPlacement": "Original face rest space; retained face guard recessed; no forward offset"
+  },
+  {
+    "model": "Fast_7",
+    "triangles": 7042,
+    "bones": 48,
+    "meshes": 1,
+    "materials": 1,
+    "texture": "Fast_7_Color.png",
+    "clips": [
+      "Gallop",
+      "Death"
+    ],
+    "bytes": 1235312,
+    "fps": 30,
+    "studioValidation": "pending",
+    "paidServicesUsed": false,
+    "source": "outputs\\unites-01-10\\Cavalry_Studio.blend",
+    "style": "Black armored masked guards with ember eyes; original bodies, rig and clips retained",
+    "localCredits": 0,
+    "unchangedRestRig": true,
+    "headReplacement": "Original human head islands replaced by closed helmet/visor volumes",
+    "visorPlacement": "Original face rest space; retained face guard recessed; no forward offset"
+  }
+]
