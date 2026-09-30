@@ -103,6 +103,10 @@ return {
 	["Inventaire : 0 rune  •  en Robux à volonté, sans hausse de prix"] = "Inventory: 0 runes  •  Robux spins: unlimited, no price increase",
 	["Inventaire : {1} rune  •  en Robux à volonté, sans hausse de prix"] = "Inventory: {1} rune  •  Robux spins: unlimited, no price increase",
 	["Inventaire : {1} runes  •  en Robux à volonté, sans hausse de prix"] = "Inventory: {1} runes  •  Robux spins: unlimited, no price increase",
+	-- Même chose sans le bouton Robux (achat d'objet aléatoire interdit par Roblox pour ce joueur : PolicyService)
+	["Inventaire : 0 rune"] = "Inventory: 0 runes",
+	["Inventaire : {1} rune"] = "Inventory: {1} rune",
+	["Inventaire : {1} runes"] = "Inventory: {1} runes",
 	-- Achat refusé (message en haut de l'écran)
 	["Ton inventaire de runes est plein : pose-en sur tes tours"] = "Your rune inventory is full: place some on your towers",
 	["Prix trop élevé (MAX) : la forge en pièces n'est plus possible"] = "Price too high (MAX): coin spins are no longer possible",

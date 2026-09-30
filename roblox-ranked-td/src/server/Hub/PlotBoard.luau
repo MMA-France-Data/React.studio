@@ -1,5 +1,6 @@
--- Affichage du panneau physique créé dans HubMap. Lecture seule des attributs existants.
--- Aucun accès aux sauvegardes et aucune modification de la simulation ou du HUD.
+-- Affichage du panneau physique créé dans HubMap. Lecture seule des attributs existants (le DPS total : attribut
+-- TotalDps de la parcelle, calculé par PlotGame:totalDps). Aucun accès aux sauvegardes et aucune modification de la
+-- simulation ou du HUD.
 local Players = game:GetService("Players")
 local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
 local IdleTowers = require(Shared.IdleTowers)
@@ -91,18 +92,11 @@ function PlotBoard.attach(plot: Folder, board: BasePart)
 			detailLabel.Text = "Installe tes défenses pour écrire ton histoire"
 			return
 		end
-		local dupes = {}
-		for entry in string.gmatch(owner:GetAttribute("TowerDupes") or "", "[^,]+") do
-			local kind, count = string.match(entry, "^(%w+):(%d+)$")
-			if kind then dupes[kind] = tonumber(count) or 0 end
-		end
-		local total, count = 0, 0
+		local count = 0
 		if towers then
 			for _, model in towers:GetChildren() do
 				local kind = model:GetAttribute("TowerType")
 				if model:IsA("Model") and kind and IdleTowers.Defs[kind] then
-					local stats = IdleTowers.effectiveStats(kind, model:GetAttribute("Level") or 1, dupes[kind], model:GetAttribute("Bonus"))
-					total += IdleTowers.dpsOf(stats)
 					count += 1
 				end
 			end
@@ -111,7 +105,9 @@ function PlotBoard.attach(plot: Folder, board: BasePart)
 		ownerLabel.Text = "Fief de " .. owner.DisplayName
 		values.Wave.Text = NumberFormat.short(plot:GetAttribute("Wave") or 1)
 		values.Record.Text = NumberFormat.short(plot:GetAttribute("HighestWave") or 1)
-		values.DPS.Text = NumberFormat.short(total * speed)
+		-- DPS total calculé par le serveur (PlotGame:totalDps : niveaux, doublons et runes compris, SANS la vitesse x2), publié
+		-- dans l'attribut TotalDps : exactement le nombre de la colonne « DPS » de la liste des joueurs.
+		values.DPS.Text = NumberFormat.short(plot:GetAttribute("TotalDps") or 0)
 		local enemies = math.max(0, plot:GetAttribute("EnemiesLeft") or 0)
 		stateLabel.Text = if plot:GetAttribute("State") == "Running" then `DÉFENSE EN COURS · {enemies} ennemis restants` else "RÉPIT · Prépare tes défenses"
 		detailLabel.Text = `{count} tours  ·  {NumberFormat.short(plot:GetAttribute("Rebirths") or 0)} renaissances  ·  +{NumberFormat.short(plot:GetAttribute("CoinBonus") or 0)} % pièces  ·  Vitesse x{speed}`
@@ -158,7 +154,7 @@ function PlotBoard.attach(plot: Folder, board: BasePart)
 		end
 		schedule()
 	end
-	for _, name in { "Wave", "HighestWave", "State", "EnemiesLeft", "Rebirths", "CoinBonus", "SimSpeed" } do
+	for _, name in { "Wave", "HighestWave", "State", "EnemiesLeft", "Rebirths", "CoinBonus", "SimSpeed", "TotalDps" } do
 		table.insert(connections, plot:GetAttributeChangedSignal(name):Connect(schedule))
 	end
 	table.insert(connections, plot:GetAttributeChangedSignal("OwnerUserId"):Connect(bindOwner))

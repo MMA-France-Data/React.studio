@@ -35,6 +35,7 @@ local TweenService = game:GetService("TweenService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local MapLayout = require(Shared.MapLayout)
+local RankedGate = require(Shared.RankedGate)
 local Remotes = require(Shared.Remotes)
 local Sounds = require(Shared.Sounds)
 local UI = require(script.Parent.UI)
@@ -652,10 +653,11 @@ local function watchOwnPlot()
 end
 
 -- Classé : « MATCH TROUVÉ ! » (QueueState passe à Pending) ; musique en pause tant que la fenêtre est ouverte.
+-- Classé fermé (Config.RANKED_OPEN = false, RankedGate.luau) : jamais (comme la fenêtre, LobbyUI).
 local function watchQueue()
 	local lastState = player:GetAttribute("QueueState")
 	local function update()
-		local state = player:GetAttribute("QueueState") or "Idle"
+		local state = if RankedGate.isOpen() then player:GetAttribute("QueueState") or "Idle" else "Idle"
 		if state == "Pending" and lastState ~= "Pending" then
 			SoundManager.play("MatchFound")
 		end

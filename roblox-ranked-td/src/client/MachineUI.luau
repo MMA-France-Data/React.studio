@@ -14,6 +14,10 @@
 -- meilleures runes », x100 dégâts ET x2 vitesse partout) : les boutons pièces ET Robux affichent le message et
 -- n'achètent rien (pas de fenêtre d'achat Robux). Si un reçu Robux arrive quand même (ex. tour vendue pendant
 -- l'achat), le serveur donne la meilleure rune : un achat payé n'est jamais perdu (PlotGame:grantBonusSpin).
+-- Objets aléatoires payants (règle de Roblox, PolicyService : Monetization.luau) : le bouton Robux de la forge n'existe
+-- que si l'attribut PaidRandomRestricted du joueur vaut exactement false (MachineUI.robuxAllowed) ; sinon le bouton
+-- des pièces prend toute la largeur et le bas de la fenêtre ne parle plus de Robux. Les chances affichées par la
+-- forge font toujours exactement 100 % (IdleConfig.forgeOdds, arrondies au 0,01 % près).
 -- S'ouvrent via les machines de ta parcelle ou les boutons de la colonne de gauche.
 local MarketplaceService = game:GetService("MarketplaceService")
 local Players = game:GetService("Players")
@@ -49,11 +53,19 @@ local function listAttribute(player: Player, name: string): { string }
 	return string.split(raw, ",")
 end
 
-local function formatChance(chance: number): string
-	if chance >= 1 or chance == 0 then
-		return string.format("%g %%", chance)
-	end
-	return string.format("%.1f %%", chance)
+-- Chance en %, 2 chiffres après la virgule au plus, sans zéros inutiles : 80 -> « 80 % », 23.5 -> « 23.5 % »,
+-- 0.4 -> « 0.4 % », 35.04 -> « 35.04 % » (les chances de la forge sont arrondies au 0,01 %, IdleConfig.roundedOdds).
+function MachineUI.formatChance(chance: number): string
+	local text = string.format("%.2f", chance):gsub("0+$", ""):gsub("%.$", "")
+	return text .. " %"
+end
+local formatChance = MachineUI.formatChance
+
+-- Achat Robux de la forge (un objet aléatoire payant) : seulement si Roblox l'autorise pour ce joueur, c'est-à-dire
+-- si l'attribut PaidRandomRestricted (mis par le serveur, Monetization.luau) vaut exactement false. Pas encore connu,
+-- ou interdit : pas de bouton Robux, jamais de fenêtre d'achat.
+function MachineUI.robuxAllowed(player: Player): boolean
+	return player:GetAttribute("PaidRandomRestricted") == false
 end
 
 -- Bonus de dégâts de `dupes` doublons, en % arrondi (sans l'arrondi, 29 doublons affichaient +57 %
@@ -213,6 +225,7 @@ function MachineUI.start()
 	})
 	-- Tableau des chances
 	local oddsList = UI.new("Frame", {
+		Name = "OddsList",
 		Position = UDim2.fromOffset(0, 0),
 		Size = UDim2.new(1, -10, 0, 330),
 		BackgroundTransparency = 1,
@@ -272,6 +285,7 @@ function MachineUI.start()
 	})
 
 	local primaryButton = UI.button({
+		Name = "PrimaryButton",
 		AnchorPoint = Vector2.new(0, 1),
 		Position = UDim2.new(0, 0, 1, -62),
 		Size = UDim2.new(1, 0, 0, 50),
@@ -280,6 +294,7 @@ function MachineUI.start()
 		Parent = window,
 	})
 	local robuxButton = UI.button({
+		Name = "RobuxButton",
 		AnchorPoint = Vector2.new(1, 1),
 		Position = UDim2.new(1, 0, 1, -62),
 		Size = UDim2.new(0.4, -4, 0, 50),
@@ -308,6 +323,7 @@ function MachineUI.start()
 		}),
 	})
 	local footer = UI.label({
+		Name = "Footer",
 		AnchorPoint = Vector2.new(0, 1),
 		Position = UDim2.new(0, 0, 1, 0),
 		Size = UDim2.new(1, 0, 0, 48),
@@ -640,10 +656,12 @@ function MachineUI.start()
 			subtitle.Text = "Ne tombent que les runes utiles à une tour posée • 2 runes par tour : dégâts + vitesse"
 
 			-- Chances : celles des runes tirables, remises sur 100 % ; les autres barrées. Pas encore publié
-			-- ou aucune tour posée : les chances de base.
+			-- ou aucune tour posée : les chances de base. Toujours arrondies pour faire exactement 100 %
+			-- (IdleConfig.forgeOdds).
 			local drawableKey = player:GetAttribute("ForgeDrawable")
 			rebuildOdds(`Bonus:{drawableKey}:{blocked}`, function()
 				local odds = if drawable and #drawable > 0 then IdleConfig.forgeOdds(drawable) else nil
+				local baseOdds = IdleConfig.forgeOdds(IdleConfig.BONUSES)
 				for order, bonus in IdleConfig.BONUSES do
 					local color = if bonus.chance >= 10
 						then IdleConfig.RARITIES.Common.color
@@ -659,7 +677,7 @@ function MachineUI.start()
 					elseif odds then
 						oddsRow(order, color, `<b>{bonus.displayName}</b>{note}`, formatChance(odds[bonus.id]))
 					else
-						oddsRow(order, color, `<b>{bonus.displayName}</b>{note}`, formatChance(bonus.chance), blocked ~= nil)
+						oddsRow(order, color, `<b>{bonus.displayName}</b>{note}`, formatChance(baseOdds[bonus.id] or 0), blocked ~= nil)
 					end
 				end
 			end)
@@ -672,8 +690,11 @@ function MachineUI.start()
 
 			bulkRow.Visible = false
 			primaryButton.Visible = true
-			robuxButton.Visible = true
-			primaryButton.Size = UDim2.new(0.6, -4, 0, 50)
+			-- Bouton Robux seulement si Roblox autorise ce joueur à acheter un objet aléatoire (sinon : pièces sur toute
+			-- la largeur).
+			local robuxShown = MachineUI.robuxAllowed(player)
+			robuxButton.Visible = robuxShown
+			primaryButton.Size = if robuxShown then UDim2.new(0.6, -4, 0, 50) else UDim2.new(1, 0, 0, 50)
 			local full = #bonuses >= IdleConfig.MAX_BONUS_INVENTORY
 			if blocked then
 				-- Aucune rune n'améliorerait une tour : pièces ET Robux bloqués.
@@ -687,7 +708,8 @@ function MachineUI.start()
 				primaryButton.BackgroundTransparency = if price < math.huge and coins() >= price and not busy() then 0 else 0.6
 			end
 			robuxButton.BackgroundTransparency = if blocked then 0.6 else 0
-			footer.Text = `Inventaire : {#bonuses} rune{if #bonuses > 1 then "s" else ""}  •  en Robux à volonté, sans hausse de prix`
+			local inventoryText = `Inventaire : {#bonuses} rune{if #bonuses > 1 then "s" else ""}`
+			footer.Text = if robuxShown then `{inventoryText}  •  en Robux à volonté, sans hausse de prix` else inventoryText
 		end
 	end
 
@@ -756,6 +778,11 @@ function MachineUI.start()
 		end
 	end)
 	robuxButton.Activated:Connect(function()
+		-- Achat d'un objet aléatoire interdit (ou pas encore autorisé) par Roblox pour ce joueur : jamais de fenêtre
+		-- d'achat (le bouton est d'ailleurs caché).
+		if not MachineUI.robuxAllowed(player) then
+			return
+		end
 		-- Forge bloquée (aucune rune n'améliorerait une tour) : pas de fenêtre d'achat. Si un reçu arrive quand
 		-- même, le serveur donne la meilleure rune (un achat payé n'est jamais perdu).
 		local _, blocked = forgeState()

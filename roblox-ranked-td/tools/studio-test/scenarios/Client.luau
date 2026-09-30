@@ -439,13 +439,19 @@ return function(log)
 			end
 
 			-- Classé : bouton « S'INSCRIRE », recherche, « MATCH TROUVÉ ! », attente. Attributs changés chez ce client
-			-- seulement (le serveur ne voit rien), puis remis comme avant.
+			-- seulement (le serveur ne voit rien), puis remis comme avant. Le classé est fermé depuis le tuto (serveur,
+			-- tests.testRankedClosed) : d'abord « BIENTÔT DISPONIBLE » dans le cercle, puis le classé ouvert chez ce client
+			-- seulement (attribut StudioRankedOpen de ReplicatedStorage, RankedGate.luau) pour voir les textes du classé.
 			local ATTRIBUTES = { "InRankedCircle", "QueueState", "QueueStartedAt", "MatchOpponent", "MatchOpponentMmr", "MatchOpponentGames", "MatchAcceptEndsAt" }
 			local saved = {}
 			for _, name in ATTRIBUTES do
 				saved[name] = player:GetAttribute(name)
 			end
+			local savedGate = ReplicatedStorage:GetAttribute("StudioRankedOpen")
 			player:SetAttribute("InRankedCircle", true)
+			task.wait(0.5)
+			scanScreen()
+			ReplicatedStorage:SetAttribute("StudioRankedOpen", true)
 			task.wait(0.5)
 			scanScreen()
 			player:SetAttribute("QueueStartedAt", workspace:GetServerTimeNow() - 42)
@@ -466,6 +472,7 @@ return function(log)
 			for _, name in ATTRIBUTES do
 				player:SetAttribute(name, saved[name])
 			end
+			ReplicatedStorage:SetAttribute("StudioRankedOpen", savedGate)
 
 			-- Le centre (classement, panneaux du classé) et ta parcelle, vus de près (textes flottants allumés).
 			local plotFrame = plotIndex and PlotLayout.cframe(plotIndex)
@@ -1085,9 +1092,90 @@ return function(log)
 			task.wait(0.3) -- (le temps que les boutons de la fenêtre soient placés)
 			return machinesGui ~= nil and machinesGui:GetAttribute("OpenMachine") == machine
 		end
+		-- Forge ouverte : objets aléatoires payants (PolicyService, Monetization.luau). Attribut PaidRandomRestricted changé
+		-- chez ce client seulement (puis remis) : interdit ou pas encore connu -> pas de bouton Robux (MachineUI.robuxAllowed :
+		-- jamais de fenêtre d'achat), bouton des pièces sur toute la largeur, plus de « Robux » en bas ; autorisé (false,
+		-- comme dans Studio) -> bouton Robux affiché. Puis les chances de la forge font 100 % tout juste, et l'écriture des
+		-- chances (2 chiffres après la virgule au plus, celles de l'autel inchangées : MachineUI.formatChance).
+		-- (Dans sa propre fonction : limite des 200 variables locales de Luau.)
+		local function checkForgeRobux()
+			local clientFolder = player:WaitForChild("PlayerScripts"):WaitForChild("Client", 10)
+			local machineModule = clientFolder and clientFolder:FindFirstChild("MachineUI")
+			local MachineUI = if machineModule then require(machineModule) else nil
+			local robuxButton = machinesGui and machinesGui:FindFirstChild("RobuxButton", true)
+			local primaryButton = machinesGui and machinesGui:FindFirstChild("PrimaryButton", true)
+			local footer = machinesGui and machinesGui:FindFirstChild("Footer", true)
+			local oddsList = machinesGui and machinesGui:FindFirstChild("OddsList", true)
+			if not (MachineUI and robuxButton and primaryButton and footer and oddsList) then
+				log("Error", "[FAIL] forge : bouton Robux, bouton des pièces, bas de la fenêtre, chances ou module MachineUI introuvable")
+				return
+			end
+			local attribute = "PaidRandomRestricted"
+			local saved = player:GetAttribute(attribute)
+			local function state(value)
+				player:SetAttribute(attribute, value)
+				task.wait(0.6) -- (la forge se met à jour 4 fois par seconde)
+				local fullWidth = math.abs(primaryButton.AbsoluteSize.X - footer.AbsoluteSize.X) <= 2
+				return {
+					visible = robuxButton.Visible,
+					allowed = MachineUI.robuxAllowed(player),
+					fullWidth = fullWidth,
+					robuxText = string.find(footer.Text, "Robux", 1, true) ~= nil,
+					footer = footer.Text,
+				}
+			end
+			local restricted = state(true)
+			local unknown = state(nil)
+			local allowed = state(false)
+			player:SetAttribute(attribute, saved)
+			local hiddenOk = not restricted.visible and not restricted.allowed and restricted.fullWidth and not restricted.robuxText
+				and not unknown.visible and not unknown.allowed
+			log(
+				if hiddenOk then "Info" else "Error",
+				`[{if hiddenOk then "PASS" else "FAIL"}] forge, achat d'objet aléatoire interdit par Roblox (ou pas encore connu) : pas de bouton Robux ni d'achat ({tostring(restricted.visible)}/{tostring(restricted.allowed)}, inconnu {tostring(unknown.visible)}/{tostring(unknown.allowed)}), bouton des pièces sur toute la largeur ({tostring(restricted.fullWidth)}), bas : « {restricted.footer} »`
+			)
+			local shownOk = allowed.visible and allowed.allowed and not allowed.fullWidth and allowed.robuxText
+			log(
+				if shownOk then "Info" else "Error",
+				`[{if shownOk then "PASS" else "FAIL"}] forge, achat autorisé (false, comme dans Studio) : bouton Robux affiché ({tostring(allowed.visible)}), bas : « {allowed.footer} »`
+			)
+
+			-- Chances affichées par la forge (colonne de droite de chaque ligne ; « — » = rune barrée) : 100 % tout juste.
+			local sum, shownChances = 0, {}
+			for _, label in oddsList:GetDescendants() do
+				if label:IsA("TextLabel") and label.TextXAlignment == Enum.TextXAlignment.Right then
+					local value = tonumber(string.match(label.Text, "^([%d%.]+) %%$"))
+					if value then
+						sum += math.floor(value * 100 + 0.5)
+						table.insert(shownChances, label.Text)
+					end
+				end
+			end
+			log(
+				if sum == 10000 then "Info" else "Error",
+				`[{if sum == 10000 then "PASS" else "FAIL"}] forge : les chances affichées font 100 % tout juste ({table.concat(shownChances, " + ")} = {sum / 100} %)`
+			)
+
+			-- Écriture des chances : 2 chiffres après la virgule au plus, sans zéros inutiles (autel : 80/20, 62/30/8, 23.5...).
+			local wrong = {}
+			for _, case in {
+				{ 80, "80 %" }, { 20, "20 %" }, { 62, "62 %" }, { 30, "30 %" }, { 8, "8 %" }, { 23.5, "23.5 %" }, { 2.5, "2.5 %" },
+				{ 1, "1 %" }, { 0, "0 %" }, { 0.4, "0.4 %" }, { 0.1, "0.1 %" }, { 35.04, "35.04 %" }, { 55.56, "55.56 %" }, { 100, "100 %" },
+			} do
+				local text = MachineUI.formatChance(case[1])
+				if text ~= case[2] then
+					table.insert(wrong, `{case[1]} -> « {text} » (attendu « {case[2]} »)`)
+				end
+			end
+			log(
+				if #wrong == 0 then "Info" else "Error",
+				`[{if #wrong == 0 then "PASS" else "FAIL"}] écriture des chances : 2 chiffres après la virgule au plus, celles de l'autel inchangées{if #wrong > 0 then " ; faux : " .. table.concat(wrong, ", ") else ""}`
+			)
+		end
 		checkModalFit("autel", machineWindow, Vector2.new(660, 620))
 		if openMachine("Bonus") then
 			checkModalFit("forge", machineWindow, Vector2.new(660, 620))
+			checkForgeRobux()
 		else
 			log("Error", "[FAIL] fenêtre « forge » sur téléphone : la forge ne s'est pas ouverte (CMD:OpenMachine:Bonus)")
 		end
@@ -2052,7 +2140,7 @@ return function(log)
 		)
 		local turn = waitFor(function()
 			return ReplicatedStorage:GetAttribute("AutoTestTutorial") == "Client"
-		end, 150)
+		end, 200) -- (150 avant : le serveur teste d'abord le classé fermé, tests.testRankedClosed)
 		local plotIndex = player:GetAttribute("Plot")
 		local plot = plotIndex and workspace.Hub.Plots:FindFirstChild("Plot" .. plotIndex)
 		if not (found and turn and plot) then
@@ -2095,6 +2183,93 @@ return function(log)
 		end
 		restoreCamera()
 
+		-- Classé FERMÉ (Config.RANKED_OPEN = false ; le serveur l'a fermé juste avant de donner la main, voir
+		-- tests.testRankedClosed de HubServer.luau) : le tuto se fait comme dans le jeu publié. D'abord l'écran : carte
+		-- de rang « BIENTÔT DISPONIBLE », bouton « ⚔ DÉFIS » caché, dans le cercle le panneau « BIENTÔT DISPONIBLE » à la
+		-- place du bouton « S'INSCRIRE » (capture ranked_soon), « MATCH TROUVÉ ! » impossible même si l'état le demandait
+		-- (attributs changés chez ce client seulement, puis remis), puis une vraie inscription et une réponse envoyées
+		-- au serveur (remote QueueAction), qui les refuse (vérifié par le serveur après le tuto).
+		local function closedRankedChecks()
+			local RankedGate = require(ReplicatedStorage.Shared.RankedGate)
+			local lobby = player.PlayerGui:FindFirstChild("Lobby")
+			local closedSeen = waitFor(function()
+				return ReplicatedStorage:GetAttribute(RankedGate.STUDIO_ATTRIBUTE) == false
+			end, 5)
+			local rankCard = lobby and lobby:FindFirstChild("RankCard")
+			local rankLabel = rankCard and rankCard:FindFirstChild("RankLabel")
+			local mmrLabel = rankCard and rankCard:FindFirstChild("MmrLabel")
+			local cardOk = waitFor(function()
+				return rankLabel ~= nil and mmrLabel ~= nil and rankLabel.Text == "CLASSÉ 1v1" and mmrLabel.Text == RankedGate.SOON_TITLE
+			end, 3)
+			local cardTexts = {}
+			for _, descendant in (if rankCard then rankCard:GetDescendants() else {}) do
+				if descendant:IsA("TextLabel") and descendant.Text ~= "" then
+					table.insert(cardTexts, descendant.Text)
+				end
+			end
+			local mmrShown = string.find(table.concat(cardTexts, " | "), "MMR", 1, true) ~= nil
+			local challengesGui = player.PlayerGui:FindFirstChild("ChallengesButton")
+			check(
+				closedSeen and cardOk and not mmrShown and challengesGui ~= nil and not challengesGui.Enabled,
+				`classé fermé (client) : carte de rang « {table.concat(cardTexts, " | ")} » (pas de rang ni de MMR), bouton « ⚔ DÉFIS » caché ({challengesGui and tostring(not challengesGui.Enabled)})`
+			)
+
+			-- Dans le cercle : « BIENTÔT DISPONIBLE » à la place du bouton « S'INSCRIRE ».
+			local soon = lobby and lobby:FindFirstChild("RankedSoon")
+			local signUp = lobby and lobby:FindFirstChild("SignUp")
+			local root = rootNow()
+			local circle = PlotLayout.RANKED_CIRCLE_POSITION
+			if root then
+				root.CFrame = CFrame.new(circle + Vector3.new(0, 3, 0))
+			end
+			local soonShown = waitFor(function()
+				return player:GetAttribute("InRankedCircle") == true and soon ~= nil and shown(soon)
+			end, 5)
+			local soonTitle = soon and soon:FindFirstChild("Title")
+			local soonText = soon and soon:FindFirstChild("Text")
+			check(
+				soonShown and soonTitle ~= nil and soonTitle.Text == RankedGate.SOON_TITLE and soonText ~= nil
+					and soonText.Text == RankedGate.SOON_TEXT and signUp ~= nil and not shown(signUp),
+				`classé fermé (client) : dans le cercle, « {soonTitle and soonTitle.Text} » + « {soonText and soonText.Text} », pas de bouton « S'INSCRIRE »`
+			)
+			shot("ranked_soon")
+
+			-- « MATCH TROUVÉ ! » et le statut de la recherche : jamais, même si l'état du joueur le demandait.
+			local ATTRIBUTES = { "QueueState", "QueueStartedAt", "MatchOpponent", "MatchOpponentMmr", "MatchOpponentGames", "MatchAcceptEndsAt" }
+			local saved = {}
+			for _, name in ATTRIBUTES do
+				saved[name] = player:GetAttribute(name)
+			end
+			player:SetAttribute("MatchOpponent", "TestBot")
+			player:SetAttribute("MatchOpponentMmr", 1000)
+			player:SetAttribute("MatchOpponentGames", 12)
+			player:SetAttribute("MatchAcceptEndsAt", workspace:GetServerTimeNow() + 15)
+			player:SetAttribute("QueueStartedAt", workspace:GetServerTimeNow() - 5)
+			player:SetAttribute("QueueState", "Pending")
+			task.wait(0.6)
+			local acceptGui = player.PlayerGui:FindFirstChild("RankedAccept")
+			local window = acceptGui and acceptGui:FindFirstChild("Window", true)
+			local status = lobby and lobby:FindFirstChild("QueueStatus", true)
+			check(
+				window ~= nil and not shown(window) and status ~= nil and not shown(status),
+				"classé fermé (client) : même avec l'état « Pending », ni fenêtre « MATCH TROUVÉ ! » ni statut de recherche"
+			)
+			for _, name in ATTRIBUTES do
+				player:SetAttribute(name, saved[name])
+			end
+
+			-- Vraie inscription et vraie réponse (remote QueueAction, comme les boutons) : le serveur refuse tout.
+			remotes.QueueAction:FireServer("Join")
+			task.wait(0.5) -- (anti-spam du serveur : une demande toutes les 0,25 s)
+			remotes.QueueAction:FireServer("Accept")
+			task.wait(1)
+			check(
+				(player:GetAttribute("QueueState") or "Idle") == "Idle",
+				`classé fermé (client) : « Join » envoyé dans le cercle -> toujours pas inscrit ({player:GetAttribute("QueueState") or "Idle"})`
+			)
+		end
+		closedRankedChecks()
+
 		-- Relance : étape 1, panneau en haut de l'écran, rayon et flèche vers le cercle classé. Le personnage est d'abord
 		-- posé à un endroit neutre (30 studs derrière le cercle, loin de sa parcelle) : les tests d'avant (classé...)
 		-- peuvent l'avoir laissé près du cercle ou chez lui, et une étape déjà faite se valide toute seule.
@@ -2120,6 +2295,12 @@ return function(log)
 		check(
 			started and guideTo(circle) < 1 and nextButton.Text == "Suivant" and skipButton.Text == "Passer",
 			`tuto : relancé -> « {title.Text} », rayon et flèche vers le cercle classé (à {math.floor(math.min(guideTo(circle), 9999))} studs), boutons « {nextButton.Text} » et « {skipButton.Text} »`
+		)
+		-- Classé fermé : l'étape 1 montre toujours où il est, et dit qu'il arrive bientôt (TutorialUI.RANKED_STEP_SOON).
+		local stepText = panel:FindFirstChild("Text")
+		check(
+			stepText ~= nil and string.find(stepText.Text, "bientôt disponibles", 1, true) ~= nil,
+			`tuto : classé fermé -> étape 1 « {stepText and stepText.Text} »`
 		)
 		local screen = tutorialGui.AbsoluteSize
 		local at = panel.AbsolutePosition - tutorialGui.AbsolutePosition

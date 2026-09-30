@@ -14,14 +14,33 @@ s'achètent **dans n'importe quel ordre**). Le prix ne dépend que du nombre d'e
 pour le 5e, puis ×2,6 à chaque fois, jusqu'à ~1,1 B pour le 22e (voir `PlotLayout.spotCost`).
 Au centre, le **sceau de l'Arène royale** : entre dedans et clique « ⚔ S'INSCRIRE AU CLASSÉ », puis retourne
 jouer : le match te sera proposé dès qu'un adversaire est trouvé (voir « S'inscrire et accepter un match
-classé »). On va à pied à sa parcelle et au sceau (plus de boutons de raccourci).
+classé »). On va à pied à sa parcelle et au sceau (plus de boutons de raccourci). **Pour la sortie, le classé est
+fermé** : voir juste en dessous.
+
+### Sortie sans le classé (`Config.RANKED_OPEN`)
+
+- Décision du 30/09/2026 : « on va commencer sans la ranked et la travailler encore ». Dans `src/shared/Config.luau` :
+  `Config.RANKED_OPEN = false` ; mets `true` pour ouvrir le classé. Tout le jeu le lit avec `src/shared/RankedGate.luau`.
+- **Ce que voit le joueur** : dans le cercle, un panneau « BIENTÔT DISPONIBLE » + « Les matchs classés 1v1 arrivent
+  bientôt ! » à la place du bouton « S'INSCRIRE » ; la carte de rang dit « CLASSÉ 1v1 / BIENTÔT DISPONIBLE » (ni rang, ni
+  MMR) ; le tableau du classement et ses 2 plaques disent « BIENTÔT DISPONIBLE » ; le bouton « ⚔ DÉFIS » est caché ;
+  l'étape 1 du tuto montre toujours le cercle mais dit que le classé arrive bientôt ; jamais de « MATCH TROUVÉ ! ».
+- **Le serveur** (il ne croit jamais le client) refuse toute inscription, réponse (accepter / refuser) et tout
+  « Récupérer » d'un défi classé, et ne fait aucun matchmaking : ni file, ni leader, aucun appel à MemoryStore, ni au
+  DataStore du classement. Le serveur de match (`STUDIO_FORCE_MODE = "Match"`, arrivées par téléportation) ne change pas.
+- **Dans Studio**, le classé est fermé aussi (comme dans le jeu publié). Pour l'essayer : `Config.RANKED_OPEN = true`, ou
+  la barre de commande (vue Serveur) `game.ServerStorage.StudioDebug:Invoke(game.Players:GetPlayers()[1], "RankedOpen", true)`
+  (`false` : fermé, `"Default"` : comme `Config`). Le test automatique de la map principale (`tools/studio-test`)
+  l'ouvre ainsi dès le début (attribut `StudioRankedOpen`, lu seulement dans Studio : impossible dans le jeu publié) pour
+  tous les tests du classé et des défis, puis le ferme pour tester le classé fermé, le tuto et la version anglaise.
 
 ### Le tuto des nouveaux joueurs
 
 - Un **petit tuto** en 6 étapes, **une seule fois**, pour les nouveaux joueurs : un panneau en haut de l'écran
   (« TUTO 1/6 • … », boutons « Suivant » / « Terminer » et **« Passer »**), un **rayon doré** du personnage vers la
   cible et une **flèche ▼** au-dessus d'elle. Rien n'est bloqué pendant le tuto.
-  1. **La zone classée** : entrer dans le cercle rouge (ou tout près), ou « Suivant ».
+  1. **La zone classée** : entrer dans le cercle rouge (ou tout près), ou « Suivant » (classé fermé : le texte dit
+     qu'il arrive bientôt).
   2. **Ta parcelle** : y retourner.
   3. **Poser une tour** : au moins une tour posée.
   4. **L'améliorer** : une tour au niveau 2.
@@ -199,6 +218,32 @@ classé »). On va à pied à sa parcelle et au sceau (plus de boutons de raccou
   sur le dossier de la parcelle ; la fenêtre de confirmation montre le gain et le bonus avant → après (`RebirthUI.luau`).
 - Rien de tout ça ne compte en ranked : mêmes tours et même or pour tout le monde.
 
+### Liste des joueurs et classement solo
+
+- **Liste des joueurs** de Roblox (en haut à droite, map principale) : 2 colonnes, **« DPS »** et **« Money »** (mots
+  anglais pour tout le monde, décision du 30/09 : Roblox ne traduit pas ces noms). DPS = le DPS total de ta parcelle,
+  le même nombre que « DPS TOTAL » de ton tableau du fief (niveaux, doublons et runes compris, mais **pas** le pass
+  Vitesse x2 : il accélère aussi les ennemis, on n'est pas plus fort, et un pass payant ne doit pas faire monter au
+  classement ; décidé le 30/09 : `PlotGame:totalDps`, recalculé à chaque image et publié dans l'attribut `TotalDps`
+  de la parcelle, que le tableau affiche aussi) ; Money = tes pièces. Écrits comme partout (« 1.5M », `NumberFormat.short`). Plus de « Rang » ni de
+  « MMR » dans la liste : ils restent sur la carte de rang. En match classé : aucune colonne (la liste y est cachée,
+  le HUD du match montre déjà les deux joueurs).
+- **Classement solo** : deux panneaux sur les côtés de la place centrale (x = ±33, face au centre, derrière les bancs,
+  entre les routes des fiefs), séparés du classement ranked. En arrivant face au tableau du classé : à droite
+  « MEILLEURE VAGUE » (record de tous les temps, `idle.highestWave`), à gauche « MEILLEUR DPS » (meilleur DPS total
+  jamais atteint) ; recto verso, chaque panneau montre l'autre classement au dos. Top 10 de **tous les serveurs** :
+  place, nom, valeur. Les saisons n'y touchent jamais (le classement ranked ne change pas).
+- Comment (`src/server/SoloLeaderboard.luau`, panneaux `src/server/Hub/SoloBoard.luau`) : 2 OrderedDataStore,
+  `RankedTD_SoloWave` et `RankedTD_SoloDps` (clé = UserId). Un DPS peut dépasser 1e100, mais un OrderedDataStore ne
+  garde que des nombres entiers : on garde un **code** = exposant x 1000 + ses 3 premiers chiffres (1 234 567 → 6123,
+  `NumberFormat.toRankCode`), qui se trie comme le DPS et se réaffiche exactement pareil (« 1.23M »,
+  `NumberFormat.fromRankCode`).
+- **Limites des DataStores** : un joueur n'est écrit que si son record ou son DPS a **monté**, au plus **une fois par
+  minute**, et à son départ (jamais plus bas : `UpdateAsync` garde le meilleur, même écrit par un autre serveur) ; les
+  panneaux sont relus **toutes les minutes** (un `GetSortedAsync` par classement).
+- **Dans Studio** : classements en mémoire, vides à chaque Play (comme le classement ranked). Commandes de test
+  `StudioDebug` « Solo » (faux joueurs, envoi et relecture tout de suite…) : liste en bas de `SoloLeaderboard.luau`.
+
 ### L'Autel des héros et la Forge runique
 
 - **Autel des héros** : les invocations se paient en pièces, par x1, x10, x100 (record 40), x1 000 (record 150),
@@ -258,6 +303,19 @@ classé »). On va à pied à sa parcelle et au sceau (plus de boutons de raccou
     (`PlotGame:publishForge`). Les anciennes sauvegardes démarrent à 0 lancer (`PlayerData.luau`).
 - **Robux** : crée un Developer Product dans le Creator Dashboard et mets son ID dans
   `Config.Products.BONUS_SPIN`. Chaque achat n'est livré qu'une fois (`Monetization.luau`).
+- **Objets aléatoires payants** (règle de Roblox ; au questionnaire de maturité : « PolicyService = oui ») : le lancer
+  Robux de la forge donne une rune au hasard. À l'arrivée de chaque joueur, le serveur demande à Roblox s'il a le droit
+  d'en acheter (`PolicyService:GetPolicyInfoForPlayerAsync`, 3 essais) et publie l'attribut `PaidRandomRestricted`
+  (`Monetization.luau`) : le bouton Robux de la forge n'apparaît que s'il vaut `false` ; sinon, le bouton des pièces
+  prend toute la largeur et le bas de la fenêtre ne parle plus de Robux. Tant que Roblox n'a pas répondu (ou s'il ne
+  répond pas) : caché. Un reçu qui arrive quand même est livré (un paiement n'est jamais perdu). Dans Studio : `false`
+  (StudioDebug « PaidRandom », `true`, pour voir la forge d'un joueur concerné).
+- **Chances affichées = 100 % tout juste** (même règle) : les chances de la forge, remises sur 100 %, sont arrondies au
+  0,01 % par la méthode du plus grand reste (`IdleConfig.roundedOdds`, à égalité l'ordre d'affichage) : elles font
+  toujours exactement 100 %, chacune à moins de 0,01 % de la vraie (le tirage du serveur garde les vraies). Écrites avec
+  2 chiffres après la virgule au plus (« 55.56 % » ; l'autel ne change pas : « 80 % », « 23.5 % »). Test sans Studio :
+  `luau tools/odds/tests.luau` (les 255 groupes de runes possibles, comparés au même calcul refait en nombres entiers :
+  deux restes égaux à une virgule près comptent comme égaux, donc l'ordre d'affichage gagne vraiment).
 - Côté technique, les ennemis n'existent que sous forme de données sur le serveur ; chaque client reçoit leurs
   positions 6 fois par seconde dans un paquet binaire et les affiche lui-même (`PlotGame.luau`, `PlotRenderer.luau`),
   seulement pour sa parcelle et celles dont il s'approche (voir « Parcelles des autres joueurs » ci-dessous).
@@ -347,7 +405,7 @@ Contrôles : `1`-`4` choisir une tour • clic pour poser • clic sur une de te
 | Sauvegarde | `src/server/PlayerData.luau` | DataStore + **verrou de session** (un seul serveur écrit à la fois) |
 | File d'attente | `src/server/Matchmaking.luau` | Inscription dans le cercle, MemoryStore SortedMap triée par MMR partagée par tous les serveurs, match à accepter (`MatchmakingBackend.luau` : en mémoire dans Studio) |
 | Match | `src/server/Match/` | Serveur réservé, attend les 2 joueurs, applique l'Elo, renvoie au lobby |
-| Classement | `src/server/Leaderboard.luau` | OrderedDataStore par saison, affiché sur un panneau dans le lobby |
+| Classement | `src/server/Leaderboard.luau` | OrderedDataStore par saison, affiché sur un panneau dans le lobby (le classement solo, de tous les temps, est à part : voir « Liste des joueurs et classement solo ») |
 | Saisons | `Config.SEASON` | Nouvelle saison = soft reset du MMR (moitié de l'écart à 1000) + nouveau classement |
 
 ### Déroulement d'un match classé
@@ -434,6 +492,8 @@ Contrôles : `1`-`4` choisir une tour • clic pour poser • clic sur une de te
   2 emplacements de toutes tes tours posées ont déjà la meilleure ; sans aucune tour posée, chances de base).
   Le pass Pièces x2 ne double pas ces pièces.
 - Une récompense **pas récupérée avant les nouveaux défis est perdue** (la fenêtre le dit).
+- **Classé fermé** (`Config.RANKED_OPEN = false`, voir « Sortie sans le classé ») : bouton « ⚔ DÉFIS » caché, le
+  serveur refuse « Récupérer », pas de message « récompenses à récupérer » à l'arrivée.
 - Code : `src/shared/Challenges.luau` (règles, listes, récompenses, tous les réglages), `src/server/Match/init.luau`
   (compte le match à la fin, chiffres des terrains dans `Match/Game.luau`), `src/server/Hub/ChallengeRewards.luau`
   (état publié au client, bouton « Récupérer » revérifié par le serveur), `src/client/ChallengeUI.luau` (fenêtre).
@@ -463,7 +523,8 @@ Rien d'autre à configurer : les téléportations vers un serveur réservé de l
 - `Test > Clients and Servers` avec 2 joueurs → vrai match (MMR appliqué sur des données en mémoire).
 - `Play` en solo → après 10 s, l'autre terrain est joué par un bot simple (match non classé).
 
-**Le matchmaking dans Studio** : la file tourne en mémoire (`MatchmakingBackend.luau`, un seul serveur) et
+**Le matchmaking dans Studio** (d'abord ouvrir le classé : `Config.RANKED_OPEN = true`, ou StudioDebug « RankedOpen »,
+voir « Sortie sans le classé ») : la file tourne en mémoire (`MatchmakingBackend.luau`, un seul serveur) et
 personne n'est téléporté (quand les deux ont accepté, un message dit que la téléportation partirait). Entre dans
 le cercle, clique « S'INSCRIRE », puis dans la barre de commande (vue Serveur) :
 `game.ServerStorage.StudioDebug:Invoke(game.Players:GetPlayers()[1], "Ranked", "FakeOpponent")` : un adversaire
@@ -475,6 +536,9 @@ deux comptes (ou avec un ami) : inscrivez-vous tous les deux dans le cercle, pui
 
 **Tests automatiques** : `tools/studio-test/` ouvre le jeu dans Studio, joue un scénario, prend des captures
 et récupère la fenêtre Sortie (voir son README).
+
+**Sans Studio** : `luau tools/odds/tests.luau` (chances de la forge : exactement 100 %), et les vérifications de la
+traduction (voir « Langues »).
 
 **La galerie des ennemis** (Studio seulement, jamais dans le jeu publié) : en `Play` sur la map principale, le
 bouton « GALERIE (Studio) » de la colonne de gauche t'emmène voir les 6 ennemis du mode solo dans les 10 styles
@@ -588,8 +652,8 @@ que chez le joueur (`src/client/SoundManager.luau`) : aucun coût pour le serveu
 - **Pas la traduction automatique de Roblox** : ne l'active pas dans le Creator Dashboard, et coupe-la si elle est
   allumée (elle prendrait les textes anglais pour du français). Par sécurité, `AutoTranslate.luau` la coupe déjà sur
   chaque texte qu'il traduit (`AutoLocalize = false`).
-- **Limite** : les colonnes de la liste des joueurs de Roblox (« Rang », « Pièces », `leaderstats`) ont le même nom
-  pour tout le monde : elles restent en français, comme le rang écrit dedans (« Or », « Placement 2/5 »).
+- **Limite** : les colonnes de la liste des joueurs de Roblox (`leaderstats`) ont le même nom pour tout le monde : ce
+  sont donc des mots anglais, « DPS » et « Money », lus aussi par les joueurs francophones (décision du 30/09).
 - **Hors du jeu** : le nom et la description du jeu, des pass et du produit Robux (fenêtres d'achat de Roblox) se
   traduisent à la main dans le Creator Dashboard (partie Localisation, langue anglaise), sans activer la traduction
   automatique.
@@ -604,8 +668,8 @@ vagues dans `Enemies.luau`, le tracé du chemin dans `MapLayout.luau`.
 
 ```
 src/
-  shared/   (ReplicatedStorage.Shared)   Config, IdleConfig, IdleTowers, NumberFormat, Elo, Ranks, Towers, Enemies, MapLayout, PlotLayout, Placement, Remotes, Challenges, Sounds, Lang, LangEN/{Glossary, Plot, Machines, Social, Server}
-  server/   (ServerScriptService.Server) Main, PlayerData, Leaderboard, Matchmaking, MatchmakingBackend, MockMemoryStore, Monetization, Hub/{init, HubMap, Plots, PlotGame, PlotInterest, IdleTowerModel, ChallengeRewards, Tutorial}, Match/{init, Game, MapBuilder}
+  shared/   (ReplicatedStorage.Shared)   Config, RankedGate, IdleConfig, IdleTowers, NumberFormat, Elo, Ranks, Towers, Enemies, MapLayout, PlotLayout, Placement, Remotes, Challenges, Sounds, Lang, LangEN/{Glossary, Plot, Machines, Social, Server}
+  server/   (ServerScriptService.Server) Main, PlayerData, Leaderboard, SoloLeaderboard, Matchmaking, MatchmakingBackend, MockDataStore, MockMemoryStore, Monetization, Hub/{init, HubMap, Plots, PlotGame, PlotBoard, PlotInterest, IdleTowerModel, RankedBoardDisplay, SoloBoard, ChallengeRewards, Tutorial}, Match/{init, Game, MapBuilder}
   client/   (StarterPlayerScripts.Client) Main, AutoTranslate, LobbyUI, PlotUI, PlotAccess, PlotRenderer, MachineUI, RebirthUI, ShopUI, ChallengeUI, MatchUI, TowerCard, TowerPlacement, Effects, UI, EnemyGallery, SoundManager, SoundPanel, TutorialUI
 ```
 

@@ -1,4 +1,5 @@
--- Construit la map principale : place centrale (cercle ranked + classement) et 6 parcelles.
+-- Construit la map principale : place centrale (cercle ranked, classement ranked, 2 panneaux du classement solo) et
+-- 6 parcelles.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Lighting = game:GetService("Lighting")
 
@@ -63,6 +64,27 @@ local function torch(parent: Instance, cframe: CFrame)
 	light.Range = 18
 	light.Shadows = false
 	light.Parent = flame
+end
+
+-- Panneau du classement SOLO (tableau : Hub/SoloBoard.luau) : côté est (side = 1) ou ouest (-1) de la place, tourné
+-- vers le centre, derrière les bancs et la torche du bord de la place (le bas du panneau est à 5 studs du sol, au-dessus
+-- de la flamme). Entre deux routes des fiefs (à x = 33, leurs bords passent à plus de 11 studs du milieu du panneau) :
+-- il ne gêne ni une route, ni une parcelle, ni le sceau du classé (z = 20), ni le tableau du classé (z = -12).
+local function buildSoloBoard(parent: Instance, decor: Instance, side: number): BasePart
+	local frame = CFrame.lookAt(Vector3.new(side * 33, 11.5, 0), Vector3.new(0, 11.5, 0)) -- face avant vers le centre
+	local board = part({ Name = if side > 0 then "SoloBoardEast" else "SoloBoardWest", Size = Vector3.new(19, 13, 0.7),
+		CFrame = frame, Color = Color3.fromRGB(43, 53, 48), Material = Enum.Material.Wood,
+		CanCollide = false, CanTouch = false, CanQuery = false, Parent = parent })
+	local wood, stone, gold = Color3.fromRGB(98, 67, 41), Color3.fromRGB(154, 151, 131), Color3.fromRGB(205, 170, 99)
+	for _, x in { -1, 1 } do
+		-- (repère du panneau : son centre est à 11,5 studs du sol ; le poteau va du sol à 18,5)
+		scenery(decor, "SoloBoardPost", Vector3.new(1.25, 18.5, 1.4), frame * CFrame.new(x * 10.15, -2.25, 0.3), wood, Enum.Material.Wood)
+		scenery(decor, "SoloBoardFoot", Vector3.new(2.2, 1.2, 2.2), frame * CFrame.new(x * 10.15, -10.9, 0.3), stone, Enum.Material.Limestone)
+		scenery(decor, "SoloBoardTrim", Vector3.new(0.22, 13.5, 0.95), frame * CFrame.new(x * 9.62, 0, 0), gold, Enum.Material.Metal)
+		scenery(decor, "SoloBoardTrim", Vector3.new(19.5, 0.25, 0.95), frame * CFrame.new(0, x * 6.62, 0), gold, Enum.Material.Metal)
+	end
+	MedievalModels.roof(decor, frame * CFrame.new(0, 7, 0.3), 23, 4, 2.5, Color3.fromRGB(43, 82, 94))
+	return board
 end
 
 local function buildPlot(index: number, parent: Instance)
@@ -456,6 +478,13 @@ function HubMap.build()
 	MedievalModels.roof(decor, CFrame.new(0, 22, -12.3), 33, 6, 5, Color3.fromRGB(43, 82, 94))
 	scenery(decor, "HallPediment", Vector3.new(32, 0.6, 3), CFrame.new(0, 21.8, -12.3), Color3.fromRGB(199, 172, 114), Enum.Material.Metal)
 
+	-- Classement SOLO (record de vague et DPS, tous les serveurs) : un panneau de chaque côté de la place, face au centre.
+	-- Est : « MEILLEURE VAGUE » vers la place, « MEILLEUR DPS » au dos ; ouest : l'inverse (Hub/SoloBoard.luau).
+	local soloBoards = {
+		{ board = buildSoloBoard(hub, decor, 1), front = "Wave" },
+		{ board = buildSoloBoard(hub, decor, -1), front = "Dps" },
+	}
+
 	local spawn = Instance.new("SpawnLocation")
 	spawn.Anchored = true
 	spawn.Size = Vector3.new(8, 1, 8)
@@ -479,6 +508,7 @@ function HubMap.build()
 	hub.Parent = workspace
 	return {
 		board = board,
+		soloBoards = soloBoards,
 		plots = plots,
 	}
 end

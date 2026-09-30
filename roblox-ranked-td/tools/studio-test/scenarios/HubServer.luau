@@ -6,7 +6,14 @@ return function(log)
 	local dbg = game:GetService("ServerStorage"):WaitForChild("StudioDebug", 30)
 	local function say(msg) log("Info", "[TEST] " .. msg) end
 	local function check(ok, msg) log(ok and "Info" or "Error", (ok and "[PASS] " or "[FAIL] ") .. msg) end
+	-- Les grands tests sont rangés dans cette table, pas dans des variables locales : une fonction Luau a au plus
+	-- 200 variables locales, et Studio refusait de charger ce scénario (« Out of local registers »).
+	local tests = {}
 	local player = Players:GetPlayers()[1] or Players.PlayerAdded:Wait()
+	-- Classé OUVERT pour les tests (Studio seulement, attribut StudioRankedOpen : src/shared/RankedGate.luau), même si
+	-- Config.RANKED_OPEN = false (sortie sans le classé) : tous les tests du classé et des défis tournent. Il est fermé
+	-- plus bas, juste avant le tuto (tests.testRankedClosed).
+	dbg:Invoke(player, "RankedOpen", true)
 	local data
 	for _ = 1, 150 do
 		data = dbg:Invoke(player, "Data")
@@ -1235,7 +1242,7 @@ return function(log)
 	-- Dans sa propre fonction : la fonction principale du scénario est à la limite des 200 variables locales
 	-- de Luau (« Out of local registers »).
 	----------------------------------------------------------------------
-	local function testControlsAndSpawns()
+	function tests.testControlsAndSpawns()
 		dbg:Invoke(player, "Set", "unlockedTowers", { MachineGun = true, Frost = true, Bomb = true, Tesla = true, Rocket = true, Laser = true, Chain = true, Orbital = true })
 		setCoins(1e15)
 		if not dbg:Invoke(player, "Data").idle.ownedSpots["10"] then
@@ -1660,7 +1667,7 @@ return function(log)
 			`après les vagues de test : vague remise ({waveBeforeRuns} -> {waveAfterRuns}), parcelle en entracte`
 		)
 	end
-	testControlsAndSpawns()
+	tests.testControlsAndSpawns()
 
 	----------------------------------------------------------------------
 	-- Pass Pièces x2 : toutes les pièces gagnées sur la parcelle sont doublées (ennemis tués, gains d'absence)
@@ -1754,7 +1761,7 @@ return function(log)
 	-- l'emplacement de leur sorte, forge bloquée sinon, lancers Robux hors compteur, anciennes sauvegardes.
 	-- Dans sa propre fonction (limite des 200 variables locales de Luau, voir plus haut).
 	----------------------------------------------------------------------
-	local function testForge()
+	function tests.testForge()
 		local FIRST = IdleConfig.FORGE_FIRST_PRICE
 		check(
 			IdleConfig.forgeCoinPrice(0) == 100e3 and IdleConfig.forgeCoinPrice(1) == 500e3 and FIRST == 100e3,
@@ -2027,7 +2034,7 @@ return function(log)
 		call("publishInventory")
 		setCoins(0)
 	end
-	testForge()
+	tests.testForge()
 
 	----------------------------------------------------------------------
 	-- Défis classés (Shared/Challenges.luau, Hub/ChallengeRewards.luau) : progression comptée par le même code
@@ -2037,7 +2044,7 @@ return function(log)
 	-- ont x100 dégâts et x2 vitesse : la forge est bloquée (le lancer offert donne la meilleure rune, comme un
 	-- reçu Robux ; le test de la forge vérifie aussi qu'un lancer offert suit les emplacements de rune).
 	----------------------------------------------------------------------
-	local function testChallenges()
+	function tests.testChallenges()
 		local HttpService = game:GetService("HttpService")
 		local Challenges = require(ReplicatedStorage.Shared.Challenges)
 		local function challengeState()
@@ -2266,7 +2273,7 @@ return function(log)
 		)
 		setCoins(0)
 	end
-	testChallenges()
+	tests.testChallenges()
 
 	----------------------------------------------------------------------
 	-- Classé : inscription dans le cercle et match à ACCEPTER (Matchmaking.luau). Dans Studio, la file tourne en
@@ -2280,7 +2287,7 @@ return function(log)
 	--    ou trop longue, priorité à ceux qui attendent depuis longtemps ; personne ne reste bloqué.
 	-- Dans sa propre fonction (limite des 200 variables locales de Luau, voir plus haut).
 	----------------------------------------------------------------------
-	local function testRanked()
+	function tests.testRanked()
 		local MM = require(ReplicatedStorage.Shared.Config).Matchmaking
 		local function ranked(...)
 			return dbg:Invoke(player, "Ranked", ...)
@@ -2604,7 +2611,7 @@ return function(log)
 		)
 		dbg:Invoke(player, "RankedMove", false)
 	end
-	testRanked()
+	tests.testRanked()
 
 	----------------------------------------------------------------------
 	-- Limite de tours identiques (IdleTowers.MAX_COPIES : 5 par tour commune, 4 rare, 3 épique, 2 légendaire), avec le
@@ -2615,7 +2622,7 @@ return function(log)
 	-- remis comme avant (tours, runes de l'inventaire, tours débloquées, pièces).
 	-- Dans sa propre fonction (limite des 200 variables locales de Luau, voir plus haut).
 	----------------------------------------------------------------------
-	local function testTowerLimit()
+	function tests.testTowerLimit()
 		local IdleTowers = require(ReplicatedStorage.Shared.IdleTowers)
 		local function call(method, ...)
 			return dbg:Invoke(player, "Call", method, ...)
@@ -2843,7 +2850,443 @@ return function(log)
 		end
 		check(same, "limite de tours : parcelle remise comme avant le test (mêmes tours, mêmes niveaux)")
 	end
-	testTowerLimit()
+	tests.testTowerLimit()
+
+	----------------------------------------------------------------------
+	-- Liste des joueurs et classement solo (juste avant le tuto, qui vide la parcelle).
+	-- 1) Liste des joueurs (leaderstats, PlayerData.luau) : seulement « DPS » et « Money » (mots anglais pour tout le
+	--    monde), écrits avec NumberFormat.short. DPS = DPS total de la parcelle (PlotGame:totalDps) : même texte que
+	--    « DPS TOTAL » du tableau du fief et que la formule refaite ici avec les données ; Money = les pièces. Le DPS suit
+	--    une tour posée, améliorée, vendue, et le pass Vitesse x2.
+	-- 2) Classement solo (SoloLeaderboard.luau, DataStores en mémoire de Studio) : envoi des valeurs du joueur, au plus
+	--    une fois par minute (horloge des envois avancée par StudioDebug « Solo », « Clock »), jamais plus bas, puis 12 faux
+	--    joueurs : les 2 panneaux de la place montrent le top 10 de chaque classement (recto verso), avec les DPS retrouvés
+	--    depuis leur code affichés comme les vrais nombres. Faux joueurs retirés et record remis à la fin.
+	-- Dans sa propre fonction (limite des 200 variables locales de Luau).
+	----------------------------------------------------------------------
+	function tests.testLeaderstatsAndSolo()
+		local IdleTowers = require(ReplicatedStorage.Shared.IdleTowers)
+		local function call(method, ...)
+			return dbg:Invoke(player, "Call", method, ...)
+		end
+		local function getData()
+			return dbg:Invoke(player, "Data")
+		end
+		local function waitFor(condition, timeout)
+			local deadline = os.clock() + timeout
+			while os.clock() < deadline do
+				if condition() then
+					return true
+				end
+				task.wait(0.1)
+			end
+			return condition() == true
+		end
+
+		-- 1) Liste des joueurs
+		local leaderstats = player:FindFirstChild("leaderstats")
+		local columns = {}
+		for _, child in if leaderstats then leaderstats:GetChildren() else {} do
+			table.insert(columns, `{child.Name}({child.ClassName})`)
+		end
+		table.sort(columns)
+		check(
+			#columns == 2 and columns[1] == "DPS(StringValue)" and columns[2] == "Money(StringValue)",
+			`liste des joueurs : seulement DPS et Money (obtenu : {table.concat(columns, " ")})`
+		)
+		check(
+			player:GetAttribute("RankName") ~= nil and player:GetAttribute("Mmr") ~= nil,
+			`liste des joueurs : rang et MMR toujours en attributs pour la carte de rang ({player:GetAttribute("RankName")}, {player:GetAttribute("Mmr")})`
+		)
+		local dpsValue = leaderstats and leaderstats:FindFirstChild("DPS")
+		local moneyValue = leaderstats and leaderstats:FindFirstChild("Money")
+		local fiefDisplay = plotFolder:FindFirstChild("Decor") and plotFolder.Decor:FindFirstChild("FiefBoard")
+		local boardDps = fiefDisplay and fiefDisplay:FindFirstChild("FiefDisplay")
+		boardDps = boardDps and boardDps.Panel.DPSCard.Value
+		if dpsValue and moneyValue and boardDps then
+			-- DPS attendu, refait avec les données : dpsOf de chaque tour (niveau, doublons, runes), emplacements dans
+			-- l'ordre, sans la vitesse x2 (même calcul que PlotGame:totalDps).
+			local function expectedDps()
+				local d = getData()
+				local total = 0
+				for spotIndex = 1, #PlotLayout.SPOTS do
+					local saved = d.idle.towers[tostring(spotIndex)]
+					if saved then
+						local stats = IdleTowers.effectiveStats(saved.type, saved.level, d.idle.towerDupes[saved.type] or 0, IdleConfig.runeList(saved.runes))
+						total += IdleTowers.dpsOf(stats)
+					end
+				end
+				return total
+			end
+			local function sameNumber(a, b)
+				return typeof(a) == "number" and typeof(b) == "number" and math.abs(a - b) <= 1e-9 * math.max(1, math.abs(b))
+			end
+			-- La colonne DPS, le tableau du fief et le calcul refait disent la même chose.
+			local function dpsShown(label)
+				local expected
+				local ok = waitFor(function()
+					expected = expectedDps()
+					local text = NumberFormat.short(expected)
+					return sameNumber(plotFolder:GetAttribute("TotalDps"), expected) and dpsValue.Value == text and boardDps.Text == text
+				end, 3)
+				check(
+					ok,
+					`liste des joueurs : DPS {label} « {dpsValue.Value} » = tableau du fief « {boardDps.Text} » = calcul {NumberFormat.short(expected)} (attribut TotalDps {plotFolder:GetAttribute("TotalDps")})`
+				)
+			end
+			local function moneyShown(label)
+				local coins
+				local ok = waitFor(function()
+					coins = getData().coins
+					return moneyValue.Value == NumberFormat.short(coins)
+				end, 3)
+				check(ok, `liste des joueurs : Money {label} « {moneyValue.Value} » = pièces {NumberFormat.short(coins)}`)
+			end
+			local coinsBefore = getData().coins
+			dpsShown("au départ")
+			moneyShown("au départ")
+			dbg:Invoke(player, "Coins", 1e12)
+			moneyShown("après +1T pièces")
+
+			-- Une tour posée sur un emplacement libre, améliorée, puis vendue : le DPS suit à chaque fois.
+			local d = getData()
+			local spot
+			for spotIndex = 1, #PlotLayout.SPOTS do
+				if d.idle.ownedSpots[tostring(spotIndex)] and not d.idle.towers[tostring(spotIndex)] then
+					spot = spotIndex
+					break
+				end
+			end
+			if not spot then
+				for spotIndex = 1, #PlotLayout.SPOTS do
+					if not d.idle.ownedSpots[tostring(spotIndex)] then
+						call("buySpot", spotIndex)
+						spot = spotIndex
+						break
+					end
+				end
+			end
+			local counts = IdleTowers.countCopies(d.idle.towers)
+			local towerType
+			for _, candidate in IdleTowers.ORDER do
+				if d.idle.unlockedTowers[candidate] and IdleTowers.canPlaceCopy(counts, candidate) then
+					towerType = candidate
+					break
+				end
+			end
+			if spot and towerType then
+				local dps0 = plotFolder:GetAttribute("TotalDps") or 0
+				local placed = call("placeTower", spot, towerType)
+				local rose = waitFor(function()
+					return (plotFolder:GetAttribute("TotalDps") or 0) > dps0
+				end, 3)
+				check(placed == true and rose, `DPS total après la pose d'une tour {towerType} (emplacement {spot}) : {dps0} -> {plotFolder:GetAttribute("TotalDps")}`)
+				dpsShown("après la pose")
+				local dps1 = plotFolder:GetAttribute("TotalDps") or 0
+				for _ = 1, 3 do
+					call("upgradeTower", spot)
+				end
+				rose = waitFor(function()
+					return (plotFolder:GetAttribute("TotalDps") or 0) > dps1
+				end, 3)
+				check(rose, `DPS total après 3 améliorations : {dps1} -> {plotFolder:GetAttribute("TotalDps")}`)
+				dpsShown("après 3 améliorations")
+				-- Pass Vitesse x2 : le DPS ne change PAS (décidé le 30/09/2026 : il accélère aussi les ennemis, et un pass
+				-- payant ne doit pas faire monter au classement), puis retiré.
+				local dps2 = plotFolder:GetAttribute("TotalDps") or 0
+				dbg:Invoke(player, "Pass", "SpeedX2", true)
+				local speedOn = waitFor(function()
+					return plotFolder:GetAttribute("SimSpeed") == IdleConfig.SPEED_PASS_FACTOR
+				end, 3)
+				task.wait(0.3) -- quelques images : le DPS aurait eu le temps de changer
+				check(
+					speedOn and sameNumber(plotFolder:GetAttribute("TotalDps"), dps2),
+					`DPS total avec la vitesse x2 : {dps2} -> {plotFolder:GetAttribute("TotalDps")} (inchangé ; vitesse {plotFolder:GetAttribute("SimSpeed")})`
+				)
+				dpsShown("en vitesse x2")
+				dbg:Invoke(player, "Pass", "SpeedX2", false)
+				call("sellTower", spot)
+				local back = waitFor(function()
+					return sameNumber(plotFolder:GetAttribute("TotalDps"), dps0)
+				end, 3)
+				check(back, `DPS total après la vente : {plotFolder:GetAttribute("TotalDps")} (avant la pose : {dps0})`)
+				dpsShown("après la vente")
+			else
+				check(false, `liste des joueurs : pas d'emplacement libre ou de tour permise pour tester le DPS (emplacement {spot}, tour {towerType})`)
+			end
+			dbg:Invoke(player, "Coins", coinsBefore - getData().coins) -- pièces remises comme avant
+			moneyShown("pièces remises")
+		else
+			check(false, `liste des joueurs : colonnes ou tableau du fief introuvables (DPS {dpsValue}, Money {moneyValue}, tableau {boardDps})`)
+		end
+
+		-- 2) Classement solo
+		local function solo(...)
+			return dbg:Invoke(player, "Solo", ...)
+		end
+		local state = solo("State")
+		if not state or not state.mock then
+			say("classement solo : vrais DataStores dans Studio (Config.Data.MOCK_IN_STUDIO = false), test ignoré")
+			return
+		end
+		local savedHighest = getData().idle.highestWave
+		-- Envoi : un record plus haut (+3), permis une minute après le dernier envoi (horloge avancée) : il arrive dans
+		-- les deux classements avec le DPS du joueur (en code).
+		local best = math.max(state.Wave or 0, savedHighest) + 3
+		dbg:Invoke(player, "Set", "highestWave", best)
+		solo("Clock", 61)
+		solo("Tick")
+		local stored
+		local sent = waitFor(function()
+			state = solo("State")
+			stored = solo("Stored")
+			return stored.Wave == best and state.Wave == best and state.sentWave == best and stored.Dps == state.Dps and state.Dps > 0
+		end, 5)
+		local dpsNow = plotFolder:GetAttribute("TotalDps")
+		check(
+			sent and state.Dps >= (NumberFormat.toRankCode(dpsNow) or 0),
+			`classement solo : record {best} et meilleur DPS envoyés (classements : vague {stored and stored.Wave}, DPS {stored and stored.Dps} = {NumberFormat.short(NumberFormat.fromRankCode(stored and stored.Dps))} ; DPS actuel {NumberFormat.short(dpsNow)})`
+		)
+		-- Au plus un envoi par minute : un record encore plus haut juste après est vu mais pas encore écrit...
+		local higher = best + 7
+		dbg:Invoke(player, "Set", "highestWave", higher)
+		solo("Tick")
+		task.wait(0.5)
+		local waiting, storedWaiting = solo("State"), solo("Stored")
+		check(
+			waiting.Wave == higher and waiting.sentWave == best and storedWaiting.Wave == best,
+			`classement solo : record {higher} vu mais pas encore envoyé (dernier envoi il y a {math.floor(waiting.sinceSend or -1)} s, classement : {storedWaiting.Wave})`
+		)
+		-- ... et il part une minute plus tard.
+		solo("Clock", 61)
+		solo("Tick")
+		local later = waitFor(function()
+			return solo("Stored").Wave == higher
+		end, 5)
+		check(later, `classement solo : record {higher} envoyé une minute plus tard (classement : {solo("Stored").Wave})`)
+		-- Jamais plus bas : une valeur plus basse ne remplace rien.
+		local storedBefore = solo("Stored")
+		solo("Submit", 2, 5)
+		local storedAfter = solo("Stored")
+		check(
+			storedAfter.Wave == storedBefore.Wave and storedAfter.Dps == storedBefore.Dps,
+			`classement solo : une valeur plus basse ne remplace rien (vague {storedAfter.Wave}, DPS {storedAfter.Dps})`
+		)
+
+		-- 12 faux joueurs (+ le joueur de test) : top 10 de chaque classement sur les 2 panneaux, recto verso.
+		local fakeDps = { 1.5e45, 2.5e6, 20, 7.25, 999.9, 1e300, 123456789, 1.23e21, 4.56e93, 1e18, 3.3e33, math.huge }
+		local fakes = {}
+		for i = 1, 12 do
+			table.insert(fakes, { userId = -9000 - i, name = `SoloBot{i}`, wave = 100000 + i * 1000, dps = fakeDps[i] })
+		end
+		check(solo("Fake", fakes) == true, "classement solo : 12 faux joueurs ajoutés (DataStores en mémoire)")
+		-- Attendu : faux joueurs et joueur de test, triés comme le classement (vague ; DPS par code), 10 premiers.
+		local function expected(kind)
+			local list = {}
+			for _, fake in fakes do
+				local sortValue = if kind == "Wave" then fake.wave else NumberFormat.toRankCode(fake.dps)
+				table.insert(list, { name = fake.name, sort = sortValue, text = NumberFormat.short(if kind == "Wave" then fake.wave else fake.dps) })
+			end
+			local mine = solo("Stored")[kind]
+			if typeof(mine) == "number" then
+				local myValue = if kind == "Wave" then mine else NumberFormat.fromRankCode(mine)
+				table.insert(list, { name = player.DisplayName, sort = mine, text = NumberFormat.short(myValue) })
+			end
+			table.sort(list, function(a, b)
+				return a.sort > b.sort
+			end)
+			return list
+		end
+		solo("Refresh")
+		local hubFolder = workspace:FindFirstChild("Hub")
+		local faceCount = { Wave = 0, Dps = 0 }
+		local fronts = {}
+		for _, boardName in { "SoloBoardEast", "SoloBoardWest" } do
+			local board = hubFolder and hubFolder:FindFirstChild(boardName)
+			for _, gui in if board then board:GetChildren() else {} do
+				local kind = gui:IsA("SurfaceGui") and gui:GetAttribute("SoloKind")
+				if not kind then
+					continue
+				end
+				faceCount[kind] += 1
+				if gui.Face == Enum.NormalId.Front then
+					fronts[boardName] = kind
+				end
+				local want = expected(kind)
+				local wrong = {}
+				for i = 1, 10 do
+					local row = gui.Background:FindFirstChild("Row" .. i)
+					local entry = want[i]
+					-- (à égalité, n'importe quel ordre : le nom doit être l'un de ceux qui ont cette valeur)
+					local nameOk = false
+					for _, other in want do
+						if entry and other.sort == entry.sort and row and row.PlayerName.Text == other.name then
+							nameOk = true
+						end
+					end
+					if not row or not entry or not row.Visible or not nameOk or row.Value.Text ~= entry.text then
+						table.insert(wrong, `#{i} « {row and row.PlayerName.Text} {row and row.Value.Text} » au lieu de « {entry and entry.name} {entry and entry.text} »`)
+					end
+				end
+				check(#wrong == 0, `classement solo : panneau {boardName}, face {gui.Face.Name} ({kind}) = top 10 attendu ({table.concat(wrong, " ; ")})`)
+			end
+		end
+		check(
+			faceCount.Wave == 2 and faceCount.Dps == 2 and fronts.SoloBoardEast == "Wave" and fronts.SoloBoardWest == "Dps",
+			`classement solo : 2 faces par classement (vague {faceCount.Wave}, DPS {faceCount.Dps}) ; vers la place : est = {fronts.SoloBoardEast}, ouest = {fronts.SoloBoardWest}`
+		)
+
+		-- Remise en état : faux joueurs retirés, record d'avant ; le panneau ne montre plus que le joueur. (L'horloge des
+		-- envois reste en avance : ça ne fait que permettre les prochains envois plus tôt.)
+		solo("ClearFakes")
+		dbg:Invoke(player, "Set", "highestWave", savedHighest)
+		solo("Refresh")
+		local east = hubFolder and hubFolder:FindFirstChild("SoloBoardEast")
+		local waveFace = east and east:FindFirstChild("SoloWaveFront")
+		local row1 = waveFace and waveFace.Background.Row1
+		local row2 = waveFace and waveFace.Background.Row2
+		check(
+			row1 ~= nil and row1.Visible and row1.PlayerName.Text == player.DisplayName and not row2.Visible,
+			`classement solo : faux joueurs retirés, il ne reste que le joueur de test (#1 « {row1 and row1.PlayerName.Text} »)`
+		)
+	end
+	tests.testLeaderstatsAndSolo()
+
+	----------------------------------------------------------------------
+	-- Classé FERMÉ (Config.RANKED_OPEN = false : sortie sans le classé, décidée le 30/09/2026 ; Shared/RankedGate.luau).
+	-- Jusqu'ici, le classé était ouvert (ouvert au début de ce scénario, Studio seulement). On le ferme ici
+	-- (StudioDebug « RankedOpen », false) et il reste fermé jusqu'à la fin : le tuto et la version anglaise se font
+	-- comme dans le jeu publié. Seul (le client attend le tuto) : inscription refusée même dans le cercle, aucun travail
+	-- du matchmaking, tableau du classement et plaques « BIENTÔT DISPONIBLE », défi classé terminé mais pas
+	-- récupérable. Puis la règle des objets aléatoires payants (PolicyService : attribut PaidRandomRestricted, false dans
+	-- Studio). Le client vérifie son écran pendant le tuto (cercle, carte de rang, défis, « MATCH TROUVÉ ! » impossible)
+	-- et envoie une vraie inscription (remote QueueAction) : tests.testRankedClosedRemote, après le tuto.
+	-- Dans sa propre fonction (limite des 200 variables locales de Luau, voir plus haut).
+	----------------------------------------------------------------------
+	function tests.testRankedClosed()
+		local MM = require(ReplicatedStorage.Shared.Config).Matchmaking
+		local RankedGate = require(ReplicatedStorage.Shared.RankedGate)
+		local Challenges = require(ReplicatedStorage.Shared.Challenges)
+		local function waitFor(condition, timeout)
+			local deadline = os.clock() + timeout
+			while os.clock() < deadline do
+				if condition() then
+					return true
+				end
+				task.wait(0.1)
+			end
+			return condition() == true
+		end
+		local function gate(...)
+			return dbg:Invoke(player, "RankedOpen", ...) or {}
+		end
+		local function ranked(...)
+			return dbg:Invoke(player, "Ranked", ...)
+		end
+		local me = tostring(player.UserId)
+
+		-- Avant : ouvert (au début du scénario), et la boucle du leader travaille.
+		local g0 = gate()
+		local passes0 = ranked("State").leaderPasses or 0
+		task.wait(MM.MATCHER_INTERVAL + 0.6)
+		local passes1 = ranked("State").leaderPasses or 0
+		check(
+			g0.open == true and g0.override == true and passes1 > passes0,
+			`classé fermé : avant le test, ouvert pour les tests (open {tostring(g0.open)}, forcé {tostring(g0.override)}), la boucle du leader tourne ({passes0} -> {passes1})`
+		)
+
+		-- On ferme (Studio seulement) : le client le voit aussi (attribut de ReplicatedStorage).
+		local g1 = gate(false)
+		check(
+			g1.open == false and g1.override == false and ReplicatedStorage:GetAttribute(RankedGate.STUDIO_ATTRIBUTE) == false
+				and (player:GetAttribute("QueueState") or "Idle") == "Idle",
+			`classé fermé : StudioDebug « RankedOpen » false -> fermé (open {tostring(g1.open)}), personne dans la file`
+		)
+
+		-- Inscription refusée, même dans le cercle (même chemin que le bouton / le remote).
+		dbg:Invoke(player, "RankedMove", true)
+		local inside = waitFor(function()
+			return player:GetAttribute("InRankedCircle") == true
+		end, 3)
+		local okSign, reasonSign = dbg:Invoke(player, "RankedSignUp")
+		local sSign = ranked("State")
+		local g2 = gate()
+		check(
+			inside and not okSign and reasonSign == "classé fermé" and (player:GetAttribute("QueueState") or "Idle") == "Idle"
+				and sSign.queue[me] == nil and g2.refused == (g1.refused or 0) + 1,
+			`classé fermé : inscription refusée dans le cercle (« {reasonSign} »), pas dans la file, refus compté ({g1.refused} -> {g2.refused})`
+		)
+
+		-- Aucun travail du matchmaking (dans le jeu publié : ni file, ni leader, ni MemoryStore).
+		local passes2 = ranked("State").leaderPasses or 0
+		task.wait(MM.MATCHER_INTERVAL + 0.6)
+		local passes3 = ranked("State").leaderPasses or 0
+		check(passes3 == passes2, `classé fermé : la boucle du leader ne travaille plus ({passes2} -> {passes3} passages en {MM.MATCHER_INTERVAL + 0.6} s)`)
+
+		-- Tableau du classement (les 2 faces) : « BIENTÔT DISPONIBLE » et le texte, plus aucune ligne.
+		local board = workspace.Hub:FindFirstChild("LeaderboardBoard")
+		local faces, faceProblems = 0, {}
+		for _, face in (if board then board:GetChildren() else {}) do
+			if face:IsA("SurfaceGui") and (face.Name == "RankedLeaderboardBack" or face.Name == "RankedLeaderboardFront") then
+				faces += 1
+				local soonTitle = face:FindFirstChild("RankedSoonTitle")
+				local soonText = face:FindFirstChild("RankedSoonText")
+				if not (soonTitle and soonTitle.Visible and soonTitle.Text == RankedGate.SOON_TITLE) then
+					table.insert(faceProblems, `{face.Name} : titre {soonTitle and soonTitle.Text}`)
+				end
+				if not (soonText and soonText.Visible and soonText.Text == RankedGate.SOON_TEXT) then
+					table.insert(faceProblems, `{face.Name} : texte {soonText and soonText.Text}`)
+				end
+				for _, child in face:GetChildren() do
+					if child:IsA("TextLabel") and string.find(child.Name, "^RankedRow") and child.Visible then
+						table.insert(faceProblems, `{face.Name}.{child.Name} visible`)
+					end
+				end
+			end
+		end
+		-- Plaques des deux côtés du tableau.
+		local hints, wrongHints = 0, 0
+		for _, descendant in workspace.Hub:GetDescendants() do
+			if descendant:IsA("TextLabel") and descendant.Name == "RankedMarkerHint" then
+				hints += 1
+				wrongHints += if descendant.Text == RankedGate.SOON_TITLE then 0 else 1
+			end
+		end
+		check(
+			faces == 2 and #faceProblems == 0 and hints == 4 and wrongHints == 0,
+			`classé fermé : tableau du classement « {RankedGate.SOON_TITLE} » sur ses {faces} faces, sans lignes ; {hints - wrongHints}/{hints} plaques « {RankedGate.SOON_TITLE} »{if #faceProblems > 0 then " ; problèmes : " .. table.concat(faceProblems, ", ") else ""}`
+		)
+
+		-- Défi classé terminé : pas récupérable tant que le classé est fermé (rien donné).
+		dbg:Invoke(player, "ChallengeForce", { "play2", "win1", "towers15" }, { "play10", "minutes45" })
+		dbg:Invoke(player, "ChallengeMatch", { seconds = 300, opponentId = 9101 })
+		dbg:Invoke(player, "ChallengeMatch", { seconds = 300, opponentId = 9102 })
+		local before = dbg:Invoke(player, "Challenges")
+		local okClaim, messageClaim = dbg:Invoke(player, "ChallengeClaim", "d1")
+		local after = dbg:Invoke(player, "Challenges")
+		check(
+			before.daily[1].id == "play2" and before.daily[1].done and not okClaim and messageClaim == RankedGate.SOON_TEXT
+				and after.daily[1].c == false and after.ready == before.ready,
+			`classé fermé : défi « {Challenges.BY_ID.play2.id} » terminé ({before.daily[1].p}/{before.daily[1].target}) mais « Récupérer » refusé (« {messageClaim} »), pas marqué récupéré`
+		)
+		dbg:Invoke(player, "ChallengeForce", { "play2", "win1", "towers15" }, { "play10", "minutes45" }) -- (progression remise à 0)
+
+		-- Objets aléatoires payants (PolicyService, Monetization.luau) : dans Studio, autorisé (false, toujours pareil) ;
+		-- StudioDebug « PaidRandom » le change (true = interdit : bouton Robux de la forge caché), puis remis.
+		local attribute = "PaidRandomRestricted"
+		local start = player:GetAttribute(attribute)
+		local restricted = dbg:Invoke(player, "PaidRandom", true)
+		local restrictedNow = player:GetAttribute(attribute)
+		local allowed = dbg:Invoke(player, "PaidRandom", false)
+		check(
+			start == false and restricted == true and restrictedNow == true and allowed == false and player:GetAttribute(attribute) == false,
+			`objets aléatoires payants : attribut {attribute} = {tostring(start)} dans Studio, « PaidRandom » true -> {tostring(restrictedNow)}, puis false -> {tostring(player:GetAttribute(attribute))}`
+		)
+
+		dbg:Invoke(player, "RankedMove", false)
+		tests.closedRefusedBefore = gate().refused or 0 -- (lu par tests.testRankedClosedRemote, après le tuto)
+	end
+	tests.testRankedClosed()
 
 	----------------------------------------------------------------------
 	-- Tuto des nouveaux joueurs (Hub/Tutorial.luau, client : TutorialUI.luau). Tout à la fin : le client y déplace son
@@ -2856,7 +3299,7 @@ return function(log)
 	--    Ici : le drapeau tutorialDone sauvegardé à chaque fin, et les 3 achats payés avec les 50 pièces.
 	-- Dans sa propre fonction (limite des 200 variables locales de Luau, voir plus haut).
 	----------------------------------------------------------------------
-	local function testTutorial()
+	function tests.testTutorial()
 		local IdleTowers = require(ReplicatedStorage.Shared.IdleTowers)
 		local function waitFor(condition, timeout)
 			local deadline = os.clock() + timeout
@@ -2965,7 +3408,24 @@ return function(log)
 		)
 		ReplicatedStorage:SetAttribute("AutoTestTutorial", "Server")
 	end
-	testTutorial()
+	tests.testTutorial()
+
+	----------------------------------------------------------------------
+	-- Classé fermé, suite (voir tests.testRankedClosed) : pendant le tuto, le client a envoyé une vraie inscription
+	-- (remote QueueAction « Join », dans le cercle) et une réponse « Accept » : le serveur les a refusées. Le classé reste
+	-- fermé jusqu'à la fin (version anglaise du client).
+	----------------------------------------------------------------------
+	function tests.testRankedClosedRemote()
+		local info = dbg:Invoke(player, "RankedOpen") or {}
+		local state = dbg:Invoke(player, "Ranked", "State") or {}
+		local before = tests.closedRefusedBefore or 0
+		check(
+			info.open == false and (info.refused or 0) >= before + 2 and (player:GetAttribute("QueueState") or "Idle") == "Idle"
+				and next(state.queue or {}) == nil and player:GetAttribute("MatchOpponent") == nil,
+			`classé fermé : « Join » et « Accept » envoyés par le client (remote QueueAction) refusés par le serveur ({(info.refused or 0) - before} refus), toujours pas inscrit ({player:GetAttribute("QueueState") or "Idle"})`
+		)
+	end
+	tests.testRankedClosedRemote()
 
 	----------------------------------------------------------------------
 	-- Parcelles des autres avec le VRAI personnage (Hub/init.luau, characterPosition) : plus haut, sa position était
@@ -2974,7 +3434,7 @@ return function(log)
 	-- renvoyé chez lui (Plots.sendHome), ne plus recevoir que la sienne, avec un « Clear ».
 	-- Dans sa propre fonction (limite des 200 variables locales de Luau).
 	----------------------------------------------------------------------
-	local function testInterestCharacter()
+	function tests.testInterestCharacter()
 		local character = player.Character
 		local own = player:GetAttribute("Plot")
 		if not character or typeof(own) ~= "number" then
@@ -3009,7 +3469,7 @@ return function(log)
 			`parcelles reçues (vrai personnage) : chez lui, rien d'autre ({okHome}) ; posé sur la parcelle {other}, il la reçoit ({okAway}) ; renvoyé chez lui, « Clear » et plus que la sienne ({okBack}, {if back then back.clears - clearsBefore else "?"} paquet(s))`
 		)
 	end
-	testInterestCharacter()
+	tests.testInterestCharacter()
 
 	-- Retour à une vague normale pour la fin
 	dbg:Invoke(player, "StartWave", 1)

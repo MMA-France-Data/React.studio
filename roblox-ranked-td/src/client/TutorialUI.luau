@@ -1,6 +1,7 @@
 -- Petit tuto des nouveaux joueurs (map principale seulement), montré une seule fois, avec un bouton « Passer ».
 -- 6 étapes, chacune validée par ce que le joueur fait vraiment :
---   1. la zone classée : entrer dans le cercle rouge au centre de la map, ou tout près (ou « Suivant ») ;
+--   1. la zone classée : entrer dans le cercle rouge au centre de la map, ou tout près (ou « Suivant ») ; classé fermé
+--      (Config.RANKED_OPEN = false, Shared/RankedGate.luau) : le texte dit qu'il arrive bientôt, et montre où il est ;
 --   2. ta parcelle : y retourner ;
 --   3. poser une tour : au moins une tour sur ta parcelle (le texte nomme l'Archer, sa carte est entourée d'or) ;
 --   4. l'améliorer : une tour au niveau 2 ou plus (« Améliorer » entouré d'or) ;
@@ -31,11 +32,16 @@ local IdleConfig = require(Shared.IdleConfig)
 local IdleTowers = require(Shared.IdleTowers)
 local NumberFormat = require(Shared.NumberFormat)
 local PlotLayout = require(Shared.PlotLayout)
+local RankedGate = require(Shared.RankedGate)
 local Remotes = require(Shared.Remotes)
 local SoundManager = require(script.Parent.SoundManager)
 local UI = require(script.Parent.UI)
 
 local TutorialUI = {}
+
+-- Texte de l'étape 1 (la zone classée) : classé ouvert, ou fermé (« bientôt disponible », Config.RANKED_OPEN).
+TutorialUI.RANKED_STEP_OPEN = "Le cercle rouge au centre, c'est le classé : des matchs 1 contre 1 pour monter en rang. Suis le rayon doré !"
+TutorialUI.RANKED_STEP_SOON = "Le cercle rouge au centre, c'est le classé : des matchs 1 contre 1, bientôt disponibles ! Suis le rayon doré."
 
 local PANEL_SIZE = Vector2.new(440, 104) -- 3 lignes de texte ; 440 px : ne cache pas le « X » des fenêtres des machines
 -- Bord droit de la carte de rang (LobbyUI : 260 px à 16 px du bord) et une marge : sur un écran étroit (téléphone),
@@ -172,7 +178,10 @@ function TutorialUI.start()
 	local STEPS = {
 		{
 			title = "LA ZONE CLASSÉE",
-			text = "Le cercle rouge au centre, c'est le classé : des matchs 1 contre 1 pour monter en rang. Suis le rayon doré !",
+			-- Classé fermé : le tuto montre quand même où il est, et dit qu'il arrive bientôt.
+			text = function()
+				return if RankedGate.isOpen() then TutorialUI.RANKED_STEP_OPEN else TutorialUI.RANKED_STEP_SOON
+			end,
 			marker = "ARÈNE CLASSÉE",
 			button = "Suivant",
 			target = function()
@@ -375,12 +384,15 @@ function TutorialUI.start()
 		local width, height = PANEL_SIZE.X * scale, PANEL_SIZE.Y * scale
 		local top = if screen.X >= WIDE_SCREEN then TOP_WIDE else TOP_NARROW
 		local lobby = player.PlayerGui:FindFirstChild("Lobby")
-		local signUp = lobby and lobby:FindFirstChild("SignUp")
-		if signUp and signUp:IsA("GuiObject") and signUp.Visible then
-			local signTop = signUp.AbsolutePosition.Y - gui.AbsolutePosition.Y
-			local signBottom = signTop + signUp.AbsoluteSize.Y
-			if top + height > signTop - 4 and top < signBottom then
-				top = signBottom + 8
+		-- (le bouton « S'INSCRIRE », ou « BIENTÔT DISPONIBLE » à sa place quand le classé est fermé)
+		for _, name in { "SignUp", "RankedSoon" } do
+			local signUp = lobby and lobby:FindFirstChild(name)
+			if signUp and signUp:IsA("GuiObject") and signUp.Visible then
+				local signTop = signUp.AbsolutePosition.Y - gui.AbsolutePosition.Y
+				local signBottom = signTop + signUp.AbsoluteSize.Y
+				if top + height > signTop - 4 and top < signBottom then
+					top = signBottom + 8
+				end
 			end
 		end
 		local centerX = math.max(screen.X / 2, LEFT_SIDE + width / 2)

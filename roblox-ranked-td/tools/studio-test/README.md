@@ -33,7 +33,11 @@ powershell -ExecutionPolicy Bypass -File tools\studio-test\run.ps1 -Place match
   défis décalée), anciennes sauvegardes. Le scénario client ouvre la fenêtre des défis (capture
   `challenges_panel`) et vérifie qu'elle ne couvre ni le chat ni la liste des joueurs, si la vue du jeu fait au
   moins 1 000 px de large (plus étroite, comme sur un téléphone, la fenêtre est réduite, à droite de la colonne de
-  gauche). **Téléphones** (`UI.windowScale` / `UI.fitWindow`, `UI.leftColumnSlot`) : l'autel, la forge, la
+  gauche). **Forge et objets aléatoires payants** (PolicyService) : forge ouverte, l'attribut `PaidRandomRestricted` est
+  changé chez le client seulement : interdit (true) ou pas encore connu (nil) -> pas de bouton Robux (ni d'achat :
+  `MachineUI.robuxAllowed`), bouton des pièces sur toute la largeur, plus de « Robux » en bas ; autorisé (false) ->
+  bouton Robux. Les chances affichées par la forge font 100 % tout juste, et `MachineUI.formatChance` écrit celles de
+  l'autel comme avant (« 80 % », « 23.5 % »). **Téléphones** (`UI.windowScale` / `UI.fitWindow`, `UI.leftColumnSlot`) : l'autel, la forge, la
   renaissance, les défis, la boutique, « Pendant ton absence » et « MATCH TROUVÉ ! » sont entiers sur l'écran du test,
   à leur taille d'ordinateur, puis, avec de fausses tailles de téléphone en paysage (844 x 390 et 667 x 375, moins la
   barre du haut), la fenêtre réduite et tous ses boutons restent dans l'écran ; la colonne de gauche aussi (et, avec
@@ -55,7 +59,25 @@ powershell -ExecutionPolicy Bypass -File tools\studio-test\run.ps1 -Place match
   Juste avant le tuto, la **limite de tours identiques** (`IdleTowers.MAX_COPIES` : 5 / 4 / 3 / 2 selon la
   rareté, fonction `testTowerLimit` du serveur) : la tour de trop refusée avec son message et sans rien dépenser,
   la vente qui libère une place, les remplacements, une vieille sauvegarde au-dessus de la limite gardée entière,
-  les textes « x/limite » ; la parcelle est remise comme avant à la fin.
+  les textes « x/limite » ; la parcelle est remise comme avant à la fin. Puis la **liste des joueurs** et le
+  **classement solo** (fonction `testLeaderstatsAndSolo`) : seulement les colonnes « DPS » et « Money », DPS = le même
+  texte que « DPS TOTAL » du tableau du fief et que la formule refaite avec les données (tour posée, 3 améliorations,
+  vitesse x2 qui ne change PAS le DPS, vente), Money = les pièces ; puis le classement solo (DataStores en mémoire) : envoi du record et du DPS,
+  un seul envoi par minute (horloge avancée par StudioDebug « Solo »), jamais plus bas, et 12 faux joueurs : les 2
+  panneaux de la place montrent le bon top 10, recto verso (DPS énormes et « MAX » réaffichés comme les vrais nombres),
+  puis faux joueurs retirés.
+  **Classé ouvert, puis fermé** : pendant tous les tests d'avant, le classé est ouvert (le scénario serveur l'ouvre dès
+  le début : StudioDebug « RankedOpen », true, attribut Studio seulement, `src/shared/RankedGate.luau`), même avec
+  `Config.RANKED_OPEN = false`. Les autres places de test (match, tournage) gardent le réglage du jeu. Juste avant le tuto,
+  le **classé fermé** (fonction `testRankedClosed` du serveur, StudioDebug « RankedOpen », false) : inscription refusée
+  même dans le cercle, la boucle du leader ne travaille plus, tableau du classement (2 faces, sans lignes) et plaques
+  « BIENTÔT DISPONIBLE », défi classé terminé mais « Récupérer » refusé ; puis l'attribut `PaidRandomRestricted` (false
+  dans Studio, commande « PaidRandom »). Il reste fermé jusqu'à la fin : au début de son test du tuto, le client vérifie
+  la carte de rang (« CLASSÉ 1v1 », sans MMR), le bouton « ⚔ DÉFIS » caché, dans le cercle le panneau « BIENTÔT
+  DISPONIBLE » à la place du bouton (capture `ranked_soon`), aucune fenêtre « MATCH TROUVÉ ! » même avec l'état
+  « Pending » (chez lui seulement), puis envoie « Join » et « Accept » par le vrai remote : le serveur les refuse
+  (`testRankedClosedRemote`, après le tuto). Le tuto se fait donc classé fermé, comme dans le jeu publié (étape 1 :
+  « … bientôt disponibles ! »).
   Après le classé, le **tuto des nouveaux joueurs** (`TutorialUI.luau`, `Hub/Tutorial.luau`) : il ne s'affiche
   jamais tout seul pendant les tests. Le serveur vérifie le drapeau d'un nouveau joueur, les coûts (tour + amélioration
   + autel x1 = 33 sur les 50 pièces de départ) et les anciennes sauvegardes (qui a déjà joué ne le voit pas), rend la
@@ -84,7 +106,8 @@ powershell -ExecutionPolicy Bypass -File tools\studio-test\run.ps1 -Place match
   démarre toujours en français, quelle que soit la langue de Studio) : le joueur passe en anglais en direct (son
   attribut `Lang`), puis l'écran, la fiche d'une tour et les cartes (attribut Studio `TestSelectSpot` de PlotUI), un
   cadenas, l'autel, la forge, la boutique, les défis, la renaissance, « Pendant ton absence », le tuto (« Replay » puis
-  « Passer ») et le classé (« S'INSCRIRE », recherche, « MATCH TROUVÉ ! », attente : attributs changés chez le client
+  « Passer ») et le classé (d'abord « BIENTÔT DISPONIBLE » dans le cercle, classé fermé, puis, classé ouvert chez le
+  client seulement : « S'INSCRIRE », recherche, « MATCH TROUVÉ ! », attente ; attributs changés chez le client
   seulement, remis après) : captures `english_*`. Chaque texte qui a encore l'air français (lettre accentuée ou mot
   français courant, sans les noms des joueurs ni les nombres) est écrit `[CTEST] non traduit : …` : textes de l'écran,
   panneaux du monde et invites, et ceux que le traducteur n'a pas trouvés (BindableFunction Studio
@@ -136,6 +159,31 @@ jeu publié. Ses commandes « Ranked » (adversaires factices, temps écoulé...
 Le test de la map principale dure maintenant ~6 min (Play de 420 s par défaut, 240 s pour `-Place match` ;
 `-Seconds` pour changer, le délai max suit : `-Seconds` + 150 s) : les tests du classé attendent la fin des autres
 tests du client (dont une photo par vrai modèle d'ennemi : ~3,5 s de plus pour chaque modèle ajouté dans
-`assets/EnemyModels`), puis ceux du tuto (~60 s : chaque étape reste affichée le temps de lire son texte) la fin
+`assets/EnemyModels`), puis le classé fermé (~15 s) et ceux du tuto (~60 s : chaque étape reste affichée le temps de lire son texte) la fin
 du classé, puis la version anglaise (~40 s, finie vers 6 min 10 s de Play). S'il manque les lignes du tuto ou de la
 version anglaise à la fin de la Sortie, le Play s'est arrêté trop tôt : relance avec un `-Seconds` plus grand.
+
+## Mode tournage (images et vidéos pour la page Roblox)
+
+```bat
+powershell -ExecutionPolicy Bypass -File tools\studio-test\tournage.ps1
+```
+
+Même machinerie que les tests, avec d'autres scénarios (`scenarios\TournageServer.luau` et
+`scenarios\TournageClient.luau`, choisis par `mkproj.cjs tournage`) : les vraies mécaniques du jeu (22 tours, vraies
+vagues, vrais effets), seule la caméra est pilotée et l'interface cachée (sauf l'image « interface »). OBS (déjà
+installé sur ce PC) filme la vue 3D de Studio : `obs.cjs` le pilote par sa télécommande WebSocket (activée le
+30/09/2026 avec l'accord du propriétaire ; mot de passe lu dans la configuration d'OBS, jamais recopié). Studio et
+OBS doivent être fermés : OBS est lancé directement sur son profil « Tower 22 » (1920 x 1080, 60 images/s, sans
+compte de stream) et sa collection de scènes « Tower 22 » (fenêtre de Studio + son de Studio, jamais le micro),
+puis refermé ; le profil et les scènes habituels du propriétaire sont remis à la fin (`user.ini`). Ne jamais
+changer de profil pendant qu'OBS tourne : passer du profil du propriétaire (chat Twitch) à « Tower 22 » l'a fait
+planter.
+- Le scénario client affiche d'abord un écran magenta (« CALIBRATE ») : OBS y repère la vue 3D dans la fenêtre de
+  Studio et la recadre en 16:9 plein cadre.
+- Marqueurs dans la Sortie : `REC:START` / `REC:STOP:nom` (vidéo `out\tournage\nom.mp4`), `IMG:nom` (image
+  1920 x 1080 `out\tournage\nom.png`).
+- Scènes actuelles : vidéo du Titan du givre (boss de la vague 40, tours niveau 23 pour qu'il tienne ~40 s), images
+  du dragon (vague 100, tours niveau 78), d'une horde d'orcs (vague 81, niveau 59), du jeu avec son interface et de
+  la carte vue du ciel. Le classé y est fermé, comme dans le jeu publié.
+- `-SansObs` : sans OBS, les images sont de simples captures de la fenêtre de Studio (pour régler les plans).

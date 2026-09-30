@@ -3,7 +3,8 @@
 -- Messages (remote « Notify ») et textes du monde de src/server/Hub/** : PlotGame.luau (messages de la parcelle),
 -- init.luau (messages, tableau du classement), HubMap.luau (panneaux, noms des machines, invites « Ouvrir » :
 -- ActionText / ObjectText), PlotBoard.luau (tableau « CHRONIQUES DU FIEF »), PlotIdentity.luau (panneau d'entrée des
--- parcelles), RankedBoardDisplay.luau (panneaux du classé), Plots.luau, Tutorial.luau, ChallengeRewards.luau ; et
+-- parcelles), RankedBoardDisplay.luau (panneaux du classé), SoloBoard.luau (panneaux du classement solo), Plots.luau,
+-- Tutorial.luau, ChallengeRewards.luau ; et
 -- src/server/Match/** (textes du match, raison de la fin, ligne des défis), Matchmaking.luau (inscription, match
 -- proposé...), Leaderboard.luau, PlayerData.luau.
 -- Un texte que le client ne peut pas traduire (ex. message de player:Kick) : le serveur le traduit lui-même avec
@@ -18,7 +19,9 @@
 --   * Social.luau : refus du bouton « Récupérer » (Challenges.findClaimable), raisons d'un match qui ne compte pas
 --     (Challenges.REASON_...), morceaux des récompenses (« +{1} pièces », « +{1} lancers d'autel »...), noms des rangs ;
 --   * Plot.luau : limite de tours identiques (IdleTowers.copiesLimitMessage), « Cette tour est déjà posée ici »,
---     « Pas assez d'or » et refus de pose du match (Placement.luau), forge bloquée et noms des runes (aussi Machines).
+--     « Pas assez d'or » et refus de pose du match (Placement.luau), forge bloquée et noms des runes (aussi Machines) ;
+--   * Social.luau : classé fermé (RankedGate.SOON_TITLE « BIENTÔT DISPONIBLE » et SOON_TEXT : tableau du classement,
+--     plaques, refus d'une inscription ou d'un « Récupérer »).
 return {
 	----------------------------------------------------------------------
 	-- Hub/PlotBoard.luau : tableau « CHRONIQUES DU FIEF » au fond de chaque parcelle
@@ -66,7 +69,20 @@ return {
 	-- une ligne du classement : place, nom, MMR, rang (le rang est traduit par le dictionnaire Social)
 	["  #{1}   {2}   —   {3} MMR ({4})"] = "  #{1}   {2}   —   {3} MMR ({4})",
 	["  Aucun joueur classé pour l'instant"] = "  No ranked players yet",
-	["Joueur {1}"] = "Player {1}", -- {1} = numéro du joueur (UserId)
+	["Joueur {1}"] = "Player {1}", -- {1} = numéro du joueur (UserId) ; aussi sur les panneaux du classement solo
+
+	----------------------------------------------------------------------
+	-- Hub/SoloBoard.luau : panneaux du classement SOLO (record de vague et DPS, tous les serveurs)
+	-- (les colonnes « DPS » et « Money » de la liste des joueurs sont déjà en anglais pour tout le monde)
+	----------------------------------------------------------------------
+	["CLASSEMENT SOLO"] = "SOLO LEADERBOARD",
+	["MEILLEURE VAGUE"] = "BEST WAVE",
+	["MEILLEUR DPS"] = "BEST DPS",
+	["JOUEUR"] = "PLAYER",
+	["VAGUE"] = "WAVE",
+	["DPS"] = "DPS",
+	["Aucun record pour l'instant"] = "No records yet",
+	["Tous les serveurs · mis à jour chaque minute"] = "All servers · updated every minute",
 	["Il te faut le pass Vitesse x2 (bouton « Boutique »)"] = "You need the Speed x2 pass (“Shop” button)",
 	["Vitesse x2 allumée"] = "Speed x2 on",
 	["Vitesse normale"] = "Normal speed",

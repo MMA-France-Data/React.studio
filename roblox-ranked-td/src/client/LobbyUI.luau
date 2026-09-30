@@ -5,6 +5,9 @@
 -- Le client ne décide rien : il affiche les attributs publiés par le serveur (QueueState, InRankedCircle,
 -- MatchOpponent..., voir Remotes.luau) et envoie les clics (remote QueueAction) ; le serveur vérifie tout
 -- (Hub/init.luau, Matchmaking.luau).
+-- Classé FERMÉ (Config.RANKED_OPEN = false, Shared/RankedGate.luau) : dans le cercle, un panneau « BIENTÔT
+-- DISPONIBLE » (« RankedSoon ») à la place du bouton ; jamais de statut de recherche ni de « MATCH TROUVÉ ! » ; la
+-- carte de rang dit « CLASSÉ 1v1 • BIENTÔT DISPONIBLE » (pas de rang ni de MMR).
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
@@ -12,6 +15,7 @@ local TweenService = game:GetService("TweenService")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.Config)
 local PlotLayout = require(Shared.PlotLayout)
+local RankedGate = require(Shared.RankedGate)
 local Ranks = require(Shared.Ranks)
 local Remotes = require(Shared.Remotes)
 local UI = require(script.Parent.UI)
@@ -44,6 +48,7 @@ function LobbyUI.start()
 
 	-- Carte de rang (en haut à gauche)
 	local card = UI.new("Frame", {
+		Name = "RankCard",
 		Position = UDim2.new(0, 16, 0, 16),
 		Size = UDim2.new(0, 260, 0, 130),
 		BackgroundColor3 = UI.Colors.Panel,
@@ -53,6 +58,7 @@ function LobbyUI.start()
 	UI.chrome(card)
 
 	local rankLabel = UI.label({
+		Name = "RankLabel",
 		Size = UDim2.new(1, 0, 0, 34),
 		Font = Enum.Font.GothamBlack,
 		TextXAlignment = Enum.TextXAlignment.Left,
@@ -61,6 +67,7 @@ function LobbyUI.start()
 		Parent = card,
 	})
 	local mmrLabel = UI.label({
+		Name = "MmrLabel",
 		Position = UDim2.new(0, 0, 0, 38),
 		Size = UDim2.new(1, 0, 0, 24),
 		TextXAlignment = Enum.TextXAlignment.Left,
@@ -70,6 +77,7 @@ function LobbyUI.start()
 		Parent = card,
 	})
 	local statsLabel = UI.label({
+		Name = "StatsLabel",
 		Position = UDim2.new(0, 0, 0, 66),
 		Size = UDim2.new(1, 0, 0, 20),
 		TextXAlignment = Enum.TextXAlignment.Left,
@@ -147,6 +155,39 @@ function LobbyUI.start()
 		Text = "Entre dans le sceau rouge pour t'inscrire au classé",
 		Visible = false,
 		Parent = gui,
+	})
+	-- Classé fermé : dans le cercle, ce panneau à la place du bouton (même place, même taille : le tuto l'évite pareil).
+	local soonFrame = UI.new("Frame", {
+		Name = "RankedSoon",
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.new(0.5, 0, 0.26, 0),
+		Size = UDim2.fromOffset(SIGNUP_SIZE.X, SIGNUP_SIZE.Y + 4 + SIGNUP_HINT_HEIGHT),
+		BackgroundColor3 = UI.Colors.Panel,
+		BackgroundTransparency = 0.08,
+		Visible = false,
+		Parent = gui,
+	}, { UI.corner(12), UI.padding(10) })
+	local soonStroke = UI.stroke(UI.Colors.Gold, 3)
+	soonStroke.Transparency = 0
+	soonStroke.Parent = soonFrame
+	local soonScale = UI.new("UIScale", { Parent = soonFrame })
+	UI.label({
+		Name = "Title",
+		Size = UDim2.new(1, 0, 0, 44),
+		Font = Enum.Font.GothamBlack,
+		TextColor3 = UI.Colors.Gold,
+		Text = RankedGate.SOON_TITLE,
+		MaxTextSize = 32,
+		Parent = soonFrame,
+	})
+	UI.label({
+		Name = "Text",
+		Position = UDim2.fromOffset(0, 48),
+		Size = UDim2.new(1, 0, 1, -48),
+		TextWrapped = true,
+		Text = RankedGate.SOON_TEXT,
+		MaxTextSize = 20,
+		Parent = soonFrame,
 	})
 
 	------------------------------------------------------------------
@@ -307,6 +348,8 @@ function LobbyUI.start()
 		signUpScale.Scale = signUpScaleValue
 		signUpFrame.Position = if narrow then UDim2.new(0.5, 0, 1, -130)
 			else UDim2.new(0, math.max(screen.X / 2, LEFT_SIDE + SIGNUP_SIZE.X * signUpScaleValue / 2), 0.26, 0)
+		soonScale.Scale = signUpScaleValue
+		soonFrame.Position = signUpFrame.Position
 		windowScale.Scale = UI.windowScale(screen, WINDOW_SIZE) -- (même règle que les autres fenêtres, UI.luau)
 	end
 	fitToScreen()
@@ -320,7 +363,7 @@ function LobbyUI.start()
 		return player:GetAttribute("QueueState") or "Idle"
 	end
 	signUpButton.Activated:Connect(function()
-		if queueState() == "Idle" and os.clock() - signUpClickedAt > CLICK_COOLDOWN then
+		if RankedGate.isOpen() and queueState() == "Idle" and os.clock() - signUpClickedAt > CLICK_COOLDOWN then
 			signUpClickedAt = os.clock()
 			queueAction:FireServer("Join")
 		end
@@ -376,7 +419,13 @@ function LobbyUI.start()
 	local function updateRankCard()
 		local mmr = player:GetAttribute("Mmr")
 		local games = player:GetAttribute("GamesPlayed") or 0
-		if mmr then
+		if not RankedGate.isOpen() then
+			-- Classé fermé : ni rang ni MMR, seulement « bientôt disponible ».
+			rankLabel.Text = "CLASSÉ 1v1"
+			rankLabel.TextColor3 = UI.Colors.Text
+			mmrLabel.Text = RankedGate.SOON_TITLE
+			statsLabel.Text = RankedGate.SOON_TEXT
+		elseif mmr then
 			rankLabel.Text = Ranks.label(mmr, games)
 			rankLabel.TextColor3 = Ranks.color(mmr, games)
 			mmrLabel.Text = if Ranks.isPlacement(games) then "MMR caché pendant le placement" else `{mmr} MMR  (record : {player:GetAttribute("PeakMmr") or mmr})`
@@ -387,13 +436,17 @@ function LobbyUI.start()
 	end
 
 	local function updateQueue()
-		local state = queueState()
+		-- Classé fermé : toujours « pas inscrit » (jamais de statut ni de « MATCH TROUVÉ ! », quoi que disent les
+		-- attributs) ; dans le cercle, « BIENTÔT DISPONIBLE » à la place du bouton.
+		local open = RankedGate.isOpen()
+		local state = if open then queueState() else "Idle"
 		local inCircle = player:GetAttribute("InRankedCircle") == true
 
-		-- Bouton d'inscription et conseil
-		signUpFrame.Visible = inCircle and state == "Idle"
+		-- Bouton d'inscription (ou « BIENTÔT DISPONIBLE ») et conseil
+		signUpFrame.Visible = open and inCircle and state == "Idle"
+		soonFrame.Visible = not open and inCircle
 		signUpButton.Text = if os.clock() - signUpClickedAt < CLICK_COOLDOWN then "Inscription…" else "⚔ S'INSCRIRE AU CLASSÉ"
-		circleHint.Visible = state == "Idle" and not inCircle and nearRankedCircle()
+		circleHint.Visible = open and state == "Idle" and not inCircle and nearRankedCircle()
 
 		-- Statut (en bas à droite, ou juste au-dessus du panneau des tours)
 		status.Visible = state ~= "Idle"

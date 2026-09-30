@@ -44,6 +44,25 @@ function MockDataStore.newOrdered()
 		data[key] = value
 	end
 
+	function store:GetAsync(key: string)
+		return data[key]
+	end
+
+	-- Comme le vrai : transform reçoit l'ancienne valeur (nil si aucune) ; renvoyer nil annule l'écriture.
+	function store:UpdateAsync(key: string, transform)
+		local result = transform(data[key])
+		if result ~= nil then
+			data[key] = result
+		end
+		return result
+	end
+
+	function store:RemoveAsync(key: string)
+		local old = data[key]
+		data[key] = nil
+		return old
+	end
+
 	function store:GetSortedAsync(ascending: boolean, pageSize: number)
 		local entries = {}
 		for key, value in data do

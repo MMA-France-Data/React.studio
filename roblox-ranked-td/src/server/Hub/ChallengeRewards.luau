@@ -8,6 +8,8 @@
 --   * nouveau jour (00:00 UTC) ou nouvelle semaine (lundi 00:00 UTC) pendant que le joueur est là : les
 --     nouveaux défis sont publiés tout seuls (au plus CHECK_INTERVAL secondes après).
 -- Les récompenses ne servent qu'au mode solo : rien ne change en ranked (mêmes tours, même or pour tous).
+-- Classé fermé (Config.RANKED_OPEN = false, Shared/RankedGate.luau) : les défis se font en match classé, donc rien
+-- n'est récupérable (« Récupérer » refusé), pas de message à l'arrivée, et le client cache le bouton « ⚔ DÉFIS ».
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -15,6 +17,7 @@ local RunService = game:GetService("RunService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Challenges = require(Shared.Challenges)
+local RankedGate = require(Shared.RankedGate)
 local Remotes = require(Shared.Remotes)
 local PlayerData = require(script.Parent.Parent.PlayerData)
 
@@ -56,6 +59,9 @@ end
 -- le client. Renvoie (réussi, message pour le joueur, détails pour les tests : { reward, altar, forge }).
 -- Rien n'attend (pas de yield) entre la vérification et le marquage « récupérée » : jamais deux fois.
 function ChallengeRewards.claim(player: Player, key: any, period: any): (boolean, string, any?)
+	if not RankedGate.isOpen() then
+		return false, RankedGate.SOON_TEXT -- classé fermé : rien à récupérer
+	end
 	local data = PlayerData.get(player)
 	if not data then
 		return false, "Tes données sont encore en cours de chargement"
@@ -98,7 +104,7 @@ end
 function ChallengeRewards.onPlayerLoaded(player: Player, data)
 	ChallengeRewards.publish(player, data)
 	local ready = Challenges.readyCount(data.challenges)
-	if ready > 0 then
+	if ready > 0 and RankedGate.isOpen() then
 		task.delay(ANNOUNCE_DELAY, function()
 			if player.Parent then
 				local text = if ready == 1 then "1 récompense à récupérer" else `{ready} récompenses à récupérer`

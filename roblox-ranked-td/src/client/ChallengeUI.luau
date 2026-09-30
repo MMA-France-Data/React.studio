@@ -5,6 +5,8 @@
 -- ChallengesReady du joueur, Hub/ChallengeRewards.luau) et envoie « Récupérer » (remote ChallengeAction) ; le
 -- serveur revérifie tout. Textes, objectifs et récompenses : Shared/Challenges.luau (les mêmes que le serveur).
 -- La progression est comptée par le serveur de match, à la fin de chaque match classé.
+-- Classé FERMÉ (Config.RANKED_OPEN = false, Shared/RankedGate.luau) : les défis se font en match classé, donc le
+-- bouton « ⚔ DÉFIS » est caché (son ScreenGui éteint) et la fenêtre ne s'ouvre pas ; le serveur refuse « Récupérer ».
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -12,6 +14,7 @@ local TweenService = game:GetService("TweenService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Challenges = require(Shared.Challenges)
+local RankedGate = require(Shared.RankedGate)
 local Remotes = require(Shared.Remotes)
 local SoundManager = require(script.Parent.SoundManager)
 local UI = require(script.Parent.UI)
@@ -25,8 +28,9 @@ local ROW_GAP = 6
 local REWARD_WIDTH = 190 -- colonne de droite : récompense et bouton « Récupérer »
 -- Zones de Roblox à ne pas couvrir (écrans d'ordinateur, au moins SMALL_SCREEN px de large), en pixels sous la
 -- barre du haut : le chat en bas à gauche (même largeur que dans PlotUI) et la liste des joueurs en haut à
--- droite. Liste mesurée sur une capture des tests Studio (hub_ui.png) : ~400 px de large avec nos 3 colonnes
--- (Rang, Pièces, MMR), ~85 px de haut avec 1 joueur et ~40 px de plus par joueur (~290 px avec 6 joueurs).
+-- droite. Liste mesurée sur une capture des tests Studio (hub_ui.png) : ~400 px de large avec les 3 colonnes d'avant
+-- (Rang, Pièces, MMR ; maintenant 2 : DPS et Money, donc plus étroite), ~85 px de haut avec 1 joueur et ~40 px de
+-- plus par joueur (~290 px avec 6 joueurs).
 -- Sur un petit écran (téléphone), la fenêtre est réduite pour tenir, à droite de la colonne de boutons de gauche.
 local CHAT_WIDTH = 500
 local PLAYER_LIST_WIDTH = 420
@@ -427,6 +431,9 @@ function ChallengeUI.start()
 	end
 
 	local function open()
+		if not RankedGate.isOpen() then
+			return -- classé fermé : pas de défis
+		end
 		overlay.Visible = true
 		refreshWindow()
 		refreshTimers()
@@ -434,6 +441,17 @@ function ChallengeUI.start()
 	local function close()
 		overlay.Visible = false
 	end
+	-- Classé fermé : bouton caché (tout son ScreenGui : UI.placeInLeftColumn remet parfois le bouton visible) et
+	-- fenêtre fermée. Le classé ne change jamais pendant une partie publiée (seulement dans Studio).
+	local function applyGate()
+		local rankedOpen = RankedGate.isOpen()
+		buttonGui.Enabled = rankedOpen
+		if not rankedOpen then
+			close()
+		end
+	end
+	applyGate()
+	RankedGate.onChanged(applyGate)
 	button.Activated:Connect(function()
 		if overlay.Visible then
 			close()

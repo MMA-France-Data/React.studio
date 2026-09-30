@@ -198,6 +198,31 @@ function PlotGame:syncAttributes()
 	self:setAttr("UnlockedSpots", self.idle.unlockedSpots)
 	self:setAttr("State", self.state)
 	self:setAttr("EnemiesLeft", alive + (#self.spawnQueue - self.spawnIndex + 1))
+	-- DPS total (voir totalDps) : recalculé à chaque image (22 tours au plus, stats gardées par statsOf), donc toujours à
+	-- jour (tour posée, vendue, améliorée, rune, doublon...) ; publié seulement quand il change : attribut
+	-- « TotalDps » de la parcelle (tableau du fief) et colonne « DPS » de la liste des joueurs.
+	local dps = self:totalDps()
+	if self.attributeCache.TotalDps ~= dps then
+		self:setAttr("TotalDps", dps)
+		PlayerData.setDps(self.player, dps)
+	end
+end
+
+-- DPS total de la parcelle : somme des dégâts par seconde de chaque tour posée (IdleTowers.dpsOf de ses stats : niveau,
+-- doublons et runes compris, statsOf). SANS le pass Vitesse x2 (décidé le 30/09/2026) : il accélère aussi les ennemis,
+-- on n'est donc pas plus fort, et un pass payant ne doit pas faire monter au classement. C'est LE nombre du mode solo,
+-- le même partout : « DPS TOTAL » du tableau du fief (PlotBoard.luau), colonne « DPS » de la liste des joueurs
+-- (PlayerData.setDps) et classement solo (SoloLeaderboard.luau). Emplacements lus dans l'ordre : toujours la même
+-- somme, au dernier chiffre près. Jamais NaN (0 à la place).
+function PlotGame:totalDps(): number
+	local total = 0
+	for spotIndex = 1, #PlotLayout.SPOTS do
+		local tower = self.towers[spotIndex]
+		if tower then
+			total += IdleTowers.dpsOf(self:statsOf(tower))
+		end
+	end
+	return if total == total then total else 0
 end
 
 -- Heure réelle (du serveur) du début de la prochaine vague, pour le compte à rebours des clients :

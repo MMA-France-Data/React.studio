@@ -20,6 +20,8 @@ return {
 	-- Étape 1 : la zone classée
 	["LA ZONE CLASSÉE"] = "THE RANKED ZONE",
 	["Le cercle rouge au centre, c'est le classé : des matchs 1 contre 1 pour monter en rang. Suis le rayon doré !"] = "The red circle in the middle is Ranked mode: 1v1 matches to climb the ranks. Follow the golden beam!",
+	-- (classé fermé : Config.RANKED_OPEN = false)
+	["Le cercle rouge au centre, c'est le classé : des matchs 1 contre 1, bientôt disponibles ! Suis le rayon doré."] = "The red circle in the middle is Ranked mode: 1v1 matches, coming soon! Follow the golden beam.",
 	["ARÈNE CLASSÉE"] = "RANKED ARENA",
 	-- Étape 2 : ta parcelle (« TA PARCELLE » sert de titre et de texte de la flèche)
 	["TA PARCELLE"] = "YOUR PLOT",
@@ -74,6 +76,11 @@ return {
 	["Match accepté ! Préparation du match…"] = "Match accepted! Setting up the match…",
 	["Téléportation vers le match…"] = "Teleporting to the match…",
 	["ANNULER"] = "CANCEL",
+	-- Classé fermé (Config.RANKED_OPEN = false, Shared/RankedGate.luau) : panneau dans le cercle, carte de rang ; les deux
+	-- premiers servent aussi au serveur (tableau du classement, plaques, refus d'une inscription ou d'un « Récupérer »)
+	["BIENTÔT DISPONIBLE"] = "COMING SOON",
+	["Les matchs classés 1v1 arrivent bientôt !"] = "Ranked 1v1 matches are coming soon!",
+	["CLASSÉ 1v1"] = "RANKED 1v1",
 	-- Fenêtre « MATCH TROUVÉ ! » ({1} = nom de l'adversaire)
 	["⚔ MATCH TROUVÉ !"] = "⚔ MATCH FOUND!",
 	["Adversaire : {1}"] = "Opponent: {1}",

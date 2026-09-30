@@ -26,6 +26,8 @@ Liste des choses à faire avant de rendre le jeu public. On coche au fur et à m
 - [ ] Remplir le questionnaire sur le contenu (âge conseillé), obligatoire pour être public.
 - [ ] Créer les pass (Ramassage auto, Vitesse x2, Pièces x2) et le produit Robux, puis donner leurs
       numéros à Claude pour les mettre dans le jeu.
+- [x] Objets aléatoires payants (lancer Robux de la forge) : PolicyService fait (bouton Robux caché pour les joueurs à
+      qui Roblox l'interdit, `PaidRandomRestricted`), et les chances affichées par la forge font exactement 100 %.
 - [ ] Version anglaise (décidé le 30/09 : pas de sortie sans elle) : les joueurs francophones gardent le
       français, tous les autres voient l'anglais, phrases à chiffres comprises (src/shared/Lang.luau,
       dictionnaires src/shared/LangEN, voir le README). Le test Studio « version anglaise » doit dire
@@ -33,9 +35,18 @@ Liste des choses à faire avant de rendre le jeu public. On coche au fur et à m
       Ne PAS activer la traduction automatique de Roblox (Creator Dashboard, Localisation) : elle prendrait
       les textes anglais pour du français.
 
+## Le classé (sortie sans lui, décidé le 30/09)
+
+- [x] Classé fermé pour la sortie : `Config.RANKED_OPEN = false` (dans le cercle « BIENTÔT DISPONIBLE », le serveur
+      refuse tout, défis classés cachés, tuto adapté). La description du jeu doit le dire : « Ranked 1v1 coming soon ».
+- [ ] Avant de l'ouvrir : classé avec 2 vrais joueurs (inscription dans le cercle, « MATCH TROUVÉ ! », accepter, match,
+      retour sur la map), dans une version publiée avec le classé ouvert (jeu encore privé, ou une copie du jeu).
+- [ ] Ouvrir le classé : `Config.RANKED_OPEN = true` (dans `src/shared/Config.luau`), puis publier la mise à jour.
+
 ## Derniers essais dans le jeu publié
 
-- [ ] Classé avec 2 vrais joueurs : inscription dans le cercle, « MATCH TROUVÉ ! », accepter, match,
-      retour sur la map.
+- [ ] Classement solo (panneaux « CLASSEMENT SOLO » à l'est et à l'ouest de la place) : avec les vrais DataStores,
+      vérifier qu'on y apparaît (record de vague et DPS, mis à jour chaque minute) depuis deux serveurs différents,
+      et la liste des joueurs (colonnes DPS et Money).
 - [ ] Sur téléphone : boutons, textes, tuto, fluidité.
 - [ ] Rendre le jeu public.

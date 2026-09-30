@@ -1,5 +1,7 @@
 -- Classement global de la saison (OrderedDataStore).
+-- (Le classement SOLO, de tous les temps, est à part : SoloLeaderboard.luau. Il se sert des noms d'ici.)
 local DataStoreService = game:GetService("DataStoreService")
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local UserService = game:GetService("UserService")
@@ -29,11 +31,19 @@ function Leaderboard.submit(userId: number, mmr: number)
 	end)
 end
 
-local function resolveNames(userIds: { number })
+-- Noms affichés des joueurs (tableaux du classé et du classement solo) : ceux qui sont sur ce serveur d'abord, puis
+-- une seule demande à Roblox pour les autres. Gardés en mémoire. Renvoie { [userId] = nom } (« Joueur 123 » si
+-- introuvable). Yield.
+function Leaderboard.names(userIds: { number }): { [number]: string }
 	local missing = {}
 	for _, userId in userIds do
-		if not nameCache[userId] and userId > 0 then
-			table.insert(missing, userId)
+		if not nameCache[userId] then
+			local player = Players:GetPlayerByUserId(userId)
+			if player then
+				nameCache[userId] = player.DisplayName
+			elseif userId > 0 then
+				table.insert(missing, userId)
+			end
 		end
 	end
 	if #missing > 0 then
@@ -46,6 +56,16 @@ local function resolveNames(userIds: { number })
 			end
 		end
 	end
+	local names = {}
+	for _, userId in userIds do
+		names[userId] = nameCache[userId] or ("Joueur " .. userId)
+	end
+	return names
+end
+
+-- Tests Studio (faux joueurs du classement solo) : retient ce nom pour ce numéro (nil = l'oublie).
+function Leaderboard.rememberName(userId: number, name: string?)
+	nameCache[userId] = name
 end
 
 -- Retourne { { userId, name, mmr } } trié du meilleur au moins bon. Yield.
@@ -66,9 +86,9 @@ function Leaderboard.fetchTop(count: number)
 		table.insert(entries, { userId = userId, mmr = item.value })
 	end
 
-	resolveNames(userIds)
+	local names = Leaderboard.names(userIds)
 	for _, entry in entries do
-		entry.name = nameCache[entry.userId] or ("Joueur " .. entry.userId)
+		entry.name = names[entry.userId]
 	end
 	return entries
 end

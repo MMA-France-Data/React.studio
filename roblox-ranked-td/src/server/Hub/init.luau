@@ -1,4 +1,4 @@
--- Map principale (serveur public) : 6 parcelles, cercle ranked au centre, classement.
+-- Map principale (serveur public) : 6 parcelles, cercle ranked au centre, classement ranked et classement solo.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -8,17 +8,20 @@ local Config = require(Shared.Config)
 local IdleConfig = require(Shared.IdleConfig)
 local NumberFormat = require(Shared.NumberFormat)
 local PlotLayout = require(Shared.PlotLayout)
+local RankedGate = require(Shared.RankedGate)
 local Ranks = require(Shared.Ranks)
 local Remotes = require(Shared.Remotes)
 local Leaderboard = require(script.Parent.Leaderboard)
 local Matchmaking = require(script.Parent.Matchmaking)
 local Monetization = require(script.Parent.Monetization)
 local PlayerData = require(script.Parent.PlayerData)
+local SoloLeaderboard = require(script.Parent.SoloLeaderboard)
 local PlotGame = require(script.PlotGame)
 local ChallengeRewards = require(script.ChallengeRewards)
 local HubMap = require(script.HubMap)
 local PlotInterest = require(script.PlotInterest)
 local Plots = require(script.Plots)
+local SoloBoard = require(script.SoloBoard)
 local Tutorial = require(script.Tutorial)
 
 local Hub = {}
@@ -363,10 +366,44 @@ local function buildBoardGui(board: BasePart)
 		row.Parent = gui
 		rows[i] = row
 	end
-	return rows
+	-- Classé fermé (Config.RANKED_OPEN = false) : « BIENTÔT DISPONIBLE » en grand à la place des lignes (refreshBoard).
+	-- (Attribut KeepStyle : RankedBoardDisplay ne les habille pas comme des lignes, mais les recopie au dos.)
+	local soon = {}
+	for _, info in {
+		{ "RankedSoonTitle", RankedGate.SOON_TITLE, 0.32, 0.14, Enum.Font.GothamBlack, Color3.fromRGB(255, 215, 90) },
+		{ "RankedSoonText", RankedGate.SOON_TEXT, 0.5, 0.08, Enum.Font.GothamMedium, Color3.fromRGB(230, 230, 240) },
+	} do
+		local label = Instance.new("TextLabel")
+		label.Name = info[1]
+		label.Text = info[2]
+		label.Position = UDim2.new(0.05, 0, info[3], 0)
+		label.Size = UDim2.new(0.9, 0, info[4], 0)
+		label.Font = info[5]
+		label.TextColor3 = info[6]
+		label.BackgroundTransparency = 1
+		label.TextScaled = true
+		label.Visible = false
+		label:SetAttribute("KeepStyle", true)
+		label.Parent = gui
+		table.insert(soon, label)
+	end
+	return { rows = rows, soon = soon }
 end
 
-local function refreshBoard(rows)
+-- Classement ranked du centre (board = résultat de buildBoardGui). Classé fermé : « BIENTÔT DISPONIBLE » à la place
+-- des lignes, et rien n'est lu (aucun appel au DataStore du classement).
+local function refreshBoard(board)
+	local open = RankedGate.isOpen()
+	for _, row in board.rows do
+		row.Visible = open
+	end
+	for _, label in board.soon do
+		label.Visible = not open
+	end
+	if not open then
+		return
+	end
+	local rows = board.rows
 	local entries = Leaderboard.fetchTop(#rows)
 	for i, row in rows do
 		local entry = entries[i]
@@ -410,11 +447,20 @@ local function watchRankedCircle()
 	end
 end
 
--- Bouton « S'INSCRIRE » (remote QueueAction « Join ») : le serveur revérifie que le joueur est VRAIMENT dans le
--- cercle (sa position à lui, pas ce que dit le client) ; Matchmaking.join vérifie le reste (pas déjà inscrit,
--- anti-spam, données chargées). Une fois inscrit, il peut partir : il reste dans la file.
+-- Demandes du classé refusées parce qu'il est fermé, par joueur (lu par les tests Studio : StudioDebug « RankedOpen »).
+local closedRefusals = {}
+
+-- Bouton « S'INSCRIRE » (remote QueueAction « Join ») : le serveur revérifie que le classé est ouvert
+-- (Config.RANKED_OPEN, RankedGate.luau) et que le joueur est VRAIMENT dans le cercle (sa position à lui, pas ce que
+-- dit le client) ; Matchmaking.join vérifie le reste (pas déjà inscrit, anti-spam, données chargées). Une fois
+-- inscrit, il peut partir : il reste dans la file.
 -- Renvoie (réussi, raison) pour les tests Studio.
 local function signUp(player: Player): (boolean, string)
+	if not RankedGate.isOpen() then
+		closedRefusals[player] = (closedRefusals[player] or 0) + 1
+		Remotes.get("Notify"):FireClient(player, RankedGate.SOON_TEXT, "Info")
+		return false, "classé fermé"
+	end
 	if not isInRankedCircle(player) then
 		Remotes.get("Notify"):FireClient(player, "Entre dans le cercle de l'arène pour t'inscrire au classé", "Warning")
 		return false, "hors du cercle"
@@ -499,9 +545,21 @@ end
 --   Invoke(player, "Ranked", "State")          -> { state, joinedAt, proposal, queue, opponents, lastStart, teleports }
 --                                                (lastStart = le match qui partirait, teleports = qui serait téléporté)
 --   Invoke(player, "Ranked", "Reset")          -> tout vidé (file, propositions, adversaires factices), joueur « Idle »
+--   Invoke(player, "RankedOpen", false)        -> classé forcé FERMÉ (« BIENTÔT DISPONIBLE » partout, file vidée) ; true :
+--                                                forcé ouvert (les tests automatiques le font au début) ; "Default" : de
+--                                                nouveau Config.RANKED_OPEN ; sans valeur : ne change rien. Renvoie { open,
+--                                                override, refused = demandes refusées car classé fermé } (RankedGate.luau)
+-- Achats d'objets aléatoires (règle de Roblox, PolicyService : Monetization.luau) :
+--   Invoke(player, "PaidRandom", true)         -> comme un joueur à qui Roblox interdit ces achats (attribut
+--                                                PaidRandomRestricted : bouton Robux de la forge caché) ; false : autorisé
 -- Tuto des nouveaux joueurs (Hub/Tutorial.luau, client : TutorialUI.luau) :
 --   Invoke(player, "Tutorial", "Replay")       -> le tuto recommence à l'étape 1 (même pendant les tests automatiques)
 --   Invoke(player, "Tutorial")                 -> { done, attribute, lastAction ("Done" | "Skip"), lastStep, replays }
+-- Classement solo (SoloLeaderboard.luau, panneaux Hub/SoloBoard.luau) :
+--   Invoke(player, "Solo", "Refresh")          -> relit les classements et met les panneaux à jour tout de suite
+--   Invoke(player, "Solo", "Fake", { { userId = -1, name = "Bot", wave = 500, dps = 1e12 } }) -> faux joueurs (DataStores
+--                                                en mémoire seulement), "ClearFakes" pour les retirer ; autres commandes
+--                                                ("State", "Tick", "Clock", "Submit", "Stored") en bas de SoloLeaderboard.luau
 local function setupStudioDebug()
 	if not RunService:IsStudio() then
 		return
@@ -633,8 +691,27 @@ local function setupStudioDebug()
 			return true
 		elseif command == "Ranked" then
 			return Matchmaking.debug(player, ...)
+		elseif command == "RankedOpen" then
+			local value = ...
+			if value == false and RankedGate.isOpen() then
+				Matchmaking.debug(player, "Reset") -- on ferme : plus personne dans la file
+			end
+			if typeof(value) == "boolean" then
+				RankedGate.setStudioOverride(value)
+			elseif value == "Default" then
+				RankedGate.setStudioOverride(nil)
+			end
+			return {
+				open = RankedGate.isOpen(),
+				override = ReplicatedStorage:GetAttribute(RankedGate.STUDIO_ATTRIBUTE),
+				refused = closedRefusals[player] or 0,
+			}
+		elseif command == "PaidRandom" then
+			return Monetization.setStudioPaidRandom(player, (...) == true)
 		elseif command == "Tutorial" and data then
 			return Tutorial.debug(player, data, ...)
+		elseif command == "Solo" then
+			return SoloLeaderboard.debug(player, ...)
 		end
 		return nil
 	end
@@ -646,7 +723,11 @@ function Hub.start()
 	Plots.init(map.plots)
 	Plots.start()
 
-	local rows = buildBoardGui(map.board)
+	local rankedBoard = buildBoardGui(map.board)
+	-- Classement solo : les 2 panneaux de la place (face vers le centre, et le dos), remplis par SoloLeaderboard.
+	for _, solo in map.soloBoards do
+		SoloBoard.attach(solo.board, solo.front)
+	end
 	Matchmaking.start()
 
 	-- Une partie infinie par joueur, dès que ses données sont chargées. D'abord les gains d'absence, tout de
@@ -673,10 +754,21 @@ function Hub.start()
 	PlayerData.onBeforeRelease(function(player)
 		local plotGame = games[player]
 		if plotGame then
+			-- Classement solo : ses dernières valeurs, envoyées si elles ont monté (sans attendre), avant de fermer.
+			SoloLeaderboard.leave(player, plotGame.idle.highestWave, plotGame:totalDps())
 			games[player] = nil
 			plotGame:destroy()
 		end
 	end)
+	-- Classement solo (tous les serveurs, de tous les temps) : record de vague et DPS total de chaque parcelle, envoyés
+	-- quand ils montent (au plus une fois par minute et par joueur), panneaux relus chaque minute.
+	SoloLeaderboard.start(function(player: Player)
+		local plotGame = games[player]
+		if plotGame then
+			return plotGame.idle.highestWave, plotGame:totalDps()
+		end
+		return nil
+	end, SoloBoard.show)
 	runPlotGames()
 	setupStudioDebug()
 	-- Défis classés : bouton « Récupérer » (remote ChallengeAction) et nouveaux défis à minuit UTC. Les lancers
@@ -785,6 +877,7 @@ function Hub.start()
 	local lastQueueAction = {}
 	Players.PlayerRemoving:Connect(function(player)
 		lastQueueAction[player] = nil
+		closedRefusals[player] = nil
 	end)
 	Remotes.get("QueueAction").OnServerEvent:Connect(function(player, action)
 		local now = os.clock()
@@ -793,7 +886,10 @@ function Hub.start()
 		end
 		lastQueueAction[player] = now
 		if action == "Join" then
-			signUp(player)
+			signUp(player) -- (refusée si le classé est fermé)
+		elseif not RankedGate.isOpen() then
+			-- Classé fermé : aucune autre demande n'est acceptée (le client n'affiche d'ailleurs aucun de ces boutons).
+			closedRefusals[player] = (closedRefusals[player] or 0) + 1
 		elseif action == "Leave" then
 			Matchmaking.leave(player, "Cancel")
 		elseif action == "Accept" then
@@ -819,9 +915,13 @@ function Hub.start()
 	task.spawn(watchRankedCircle)
 	task.spawn(function()
 		while true do
-			refreshBoard(rows)
+			refreshBoard(rankedBoard)
 			task.wait(Config.Ranked.LEADERBOARD_REFRESH)
 		end
+	end)
+	-- Classé ouvert ou fermé pendant la partie (Studio seulement, RankedGate.luau) : tableau mis à jour tout de suite.
+	RankedGate.onChanged(function()
+		task.spawn(refreshBoard, rankedBoard)
 	end)
 end
 

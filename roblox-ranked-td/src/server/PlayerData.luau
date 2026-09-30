@@ -339,23 +339,46 @@ local function write(userId: number, data, release: boolean): (boolean, boolean)
 	return ok, false
 end
 
+-- Colonnes de la liste des joueurs de Roblox (leaderstats), seulement sur la map principale (PlayerData.start) :
+--   « DPS »   = DPS total de sa parcelle, le même nombre que « DPS TOTAL » de son tableau du fief (PlotGame:totalDps,
+--               envoyé par PlayerData.setDps dès qu'il change) ;
+--   « Money » = ses pièces.
+-- Deux mots anglais pour tout le monde (décision du propriétaire, 30/09 : Roblox ne traduit pas ces noms). Écrits avec
+-- NumberFormat.short (« 1.5M ») : des StringValue. Le rang et le MMR restent sur la carte de rang (attributs RankName,
+-- Mmr...). Serveur de match : aucune colonne (la liste des joueurs y est cachée, le HUD montre déjà les 2 joueurs).
+local useLeaderstats = true
+
 local function setupLeaderstats(player: Player)
+	if not useLeaderstats then
+		return
+	end
 	local leaderstats = Instance.new("Folder")
 	leaderstats.Name = "leaderstats"
 
-	local rank = Instance.new("StringValue")
-	rank.Name = "Rang"
-	rank.Parent = leaderstats
+	local dps = Instance.new("StringValue")
+	dps.Name = "DPS"
+	dps.Value = "0" -- (pas encore de parcelle)
+	dps.Parent = leaderstats
 
-	local mmr = Instance.new("IntValue")
-	mmr.Name = "MMR"
-	mmr.Parent = leaderstats
-
-	local coins = Instance.new("StringValue")
-	coins.Name = "Pièces"
-	coins.Parent = leaderstats
+	local money = Instance.new("StringValue")
+	money.Name = "Money"
+	money.Parent = leaderstats
 
 	leaderstats.Parent = player
+end
+
+-- Une colonne de la liste des joueurs (si elle existe : map principale seulement).
+local function setLeaderstat(player: Player, name: string, text: string)
+	local leaderstats = player:FindFirstChild("leaderstats")
+	local value = leaderstats and leaderstats:FindFirstChild(name)
+	if value and value:IsA("StringValue") then
+		value.Value = text
+	end
+end
+
+-- Colonne « DPS » : appelée par PlotGame quand le DPS total de la parcelle du joueur change.
+function PlayerData.setDps(player: Player, dps: number)
+	setLeaderstat(player, "DPS", NumberFormat.short(dps))
 end
 
 -- Met à jour les attributs / leaderstats visibles par les clients.
@@ -376,13 +399,7 @@ function PlayerData.refresh(player: Player)
 	player:SetAttribute("SoundMode", data.soundMode) -- bouton « SON » (SoundManager.luau)
 	player:SetAttribute("TutorialDone", data.tutorialDone == true) -- tuto des nouveaux joueurs (TutorialUI.luau)
 	player:SetAttribute("DataLoaded", true)
-
-	local leaderstats = player:FindFirstChild("leaderstats")
-	if leaderstats then
-		leaderstats.Rang.Value = Ranks.label(data.mmr, data.gamesPlayed)
-		leaderstats.MMR.Value = data.mmr
-		leaderstats["Pièces"].Value = NumberFormat.short(data.coins)
-	end
+	setLeaderstat(player, "Money", NumberFormat.short(data.coins))
 end
 
 local function onPlayerAdded(player: Player)
@@ -435,10 +452,7 @@ function PlayerData.addCoins(player: Player, amount: number)
 	end
 	profile.data.coins = math.max(0, profile.data.coins + amount)
 	player:SetAttribute("Coins", profile.data.coins)
-	local leaderstats = player:FindFirstChild("leaderstats")
-	if leaderstats then
-		leaderstats["Pièces"].Value = NumberFormat.short(profile.data.coins)
-	end
+	setLeaderstat(player, "Money", NumberFormat.short(profile.data.coins))
 end
 
 function PlayerData.get(player: Player)
@@ -476,7 +490,9 @@ function PlayerData.onBeforeRelease(callback: (Player, boolean) -> ())
 	table.insert(beforeReleaseCallbacks, callback)
 end
 
-function PlayerData.start()
+-- options.leaderstats = false : pas de colonnes dans la liste des joueurs (serveur de match, Main.server.luau).
+function PlayerData.start(options: { leaderstats: boolean? }?)
+	useLeaderstats = not (options and options.leaderstats == false)
 	Players.PlayerAdded:Connect(onPlayerAdded)
 	for _, player in Players:GetPlayers() do
 		task.spawn(onPlayerAdded, player)

@@ -50,6 +50,11 @@
 --
 -- Où c'est rangé : MatchmakingBackend.luau (MemoryStore dans le jeu publié ; en mémoire dans Studio, sans
 -- téléportation). Tests Studio : Matchmaking.debug, commandes « Ranked » de ServerStorage.StudioDebug.
+--
+-- Classé FERMÉ (Config.RANKED_OPEN = false, lu avec Shared/RankedGate.luau) : inscription et réponses refusées, et
+-- aucun travail : dans le jeu publié, ni file, ni leader, ni aucun appel à MemoryStore (Matchmaking.start s'arrête
+-- tout de suite). Dans Studio, la file en mémoire est prête (les tests peuvent ouvrir le classé pendant la partie),
+-- mais les boucles ne font rien tant qu'il est fermé.
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -58,6 +63,7 @@ local TeleportService = game:GetService("TeleportService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.Config)
+local RankedGate = require(Shared.RankedGate)
 local Remotes = require(Shared.Remotes)
 local PlayerData = require(script.Parent.PlayerData)
 local Backend = require(script.Parent.MatchmakingBackend)
@@ -80,6 +86,9 @@ local seats = {}
 local lastSignUp = {} -- [UserId] = os.clock() de la dernière inscription (anti-spam)
 local lastStart = nil -- dernier match créé par ce serveur (tests Studio)
 local fakeCount = 0 -- adversaires factices créés (tests Studio)
+-- Passages de la boucle du leader qui ont vraiment travaillé (lu par les tests Studio : il ne doit pas bouger
+-- tant que le classé est fermé).
+local leaderPasses = 0
 
 local notify = Remotes.get("Notify")
 
@@ -898,6 +907,11 @@ end
 -- Renvoie (réussi, raison).
 function Matchmaking.join(player: Player): (boolean, string)
 	local userId = player.UserId
+	-- Classé fermé : jamais d'inscription (le serveur ne croit jamais le client).
+	if not RankedGate.isOpen() then
+		notify:FireClient(player, RankedGate.SOON_TEXT, "Info")
+		return false, "classé fermé"
+	end
 	if seats[userId] then
 		notify:FireClient(player, "Tu es déjà inscrit au classé", "Info")
 		return false, "déjà inscrit"
@@ -962,8 +976,8 @@ end
 -- Fenêtre « MATCH TROUVÉ ! » : ACCEPTER (true) ou REFUSER (false, seulement avant d'avoir accepté).
 function Matchmaking.answer(player: Player, accept: boolean)
 	local seat = seats[player.UserId]
-	if not seat then
-		return
+	if not seat or not RankedGate.isOpen() then
+		return -- (classé fermé : aucune réponse acceptée)
 	end
 	if accept then
 		acceptSeat(seat)
@@ -1037,6 +1051,7 @@ function Matchmaking.debug(player: Player, command: string, ...)
 			lastStart = lastStart,
 			teleports = teleports,
 			now = worldTime(),
+			leaderPasses = leaderPasses, -- (ne bouge pas tant que le classé est fermé)
 		}
 	elseif command == "FakeOpponent" then
 		-- Un adversaire factice s'inscrit (depuis `wait` secondes), puis le leader forme les paires tout de suite
@@ -1161,6 +1176,13 @@ function Matchmaking.start()
 		lastSignUp[player.UserId] = nil
 	end)
 
+	-- Classé fermé dans le jeu publié : rien ne démarre (ni file, ni leader, ni MemoryStore). Il ne peut pas s'ouvrir
+	-- pendant la partie (seulement dans Studio, voir RankedGate.luau).
+	if not RankedGate.isOpen() and not RunService:IsStudio() then
+		print("[Matchmaking] Classé fermé (Config.RANKED_OPEN = false) : pas de matchmaking")
+		return
+	end
+
 	local ok, result = pcall(Backend.create)
 	if not ok then
 		warn("[Matchmaking] MemoryStoreService indisponible :", result)
@@ -1169,9 +1191,13 @@ function Matchmaking.start()
 	backend = result
 
 	-- Suivi des places de ce serveur : invitations, réponses, création du match, téléportation, limites de temps.
+	-- (Classé fermé, Studio seulement : rien à faire.)
 	task.spawn(function()
 		while true do
 			task.wait(TICK)
+			if not RankedGate.isOpen() then
+				continue
+			end
 			local list = {}
 			for _, seat in seats do
 				table.insert(list, seat)
@@ -1192,10 +1218,14 @@ function Matchmaking.start()
 		end
 	end)
 
-	-- Boucle du leader.
+	-- Boucle du leader (classé fermé, Studio seulement : aucun passage, aucune lecture de la file).
 	task.spawn(function()
 		while true do
 			task.wait(MM.MATCHER_INTERVAL)
+			if not RankedGate.isOpen() then
+				continue
+			end
+			leaderPasses += 1
 			if tryBecomeLeader() then
 				local okMatcher, err = pcall(runMatcher)
 				if not okMatcher then

@@ -36,7 +36,8 @@ local mode = detectMode()
 ReplicatedStorage:SetAttribute("ServerMode", mode)
 print("[RankedTD] Mode serveur :", mode)
 
-PlayerData.start()
+-- Colonnes « DPS » et « Money » de la liste des joueurs : map principale seulement (en match, la liste est cachée).
+PlayerData.start({ leaderstats = mode ~= "Match" })
 
 local ok, err = xpcall(function()
 	if mode == "Match" then

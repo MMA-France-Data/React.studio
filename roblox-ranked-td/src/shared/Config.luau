@@ -4,6 +4,14 @@ local Config = {}
 -- Change ce numéro pour lancer une nouvelle saison (soft reset du MMR + nouveau classement).
 Config.SEASON = 1
 
+-- LE CLASSÉ EST-IL OUVERT ? Sortie sans le classé, décidée le 30/09/2026 (« on va commencer sans la ranked et la
+-- travailler encore ») ; mettre true pour l'ouvrir.
+-- false : dans le cercle de l'arène, « BIENTÔT DISPONIBLE » à la place du bouton « S'INSCRIRE » ; le serveur refuse
+-- toute inscription et ne fait aucun matchmaking (aucun appel à MemoryStore) ; bouton des défis classés caché ;
+-- tableau du classement, plaques et carte de rang : « BIENTÔT DISPONIBLE » ; le tuto dit que le classé arrive bientôt.
+-- Tout le jeu le lit avec Shared/RankedGate.luau (RankedGate.isOpen). Le serveur de match ne change pas.
+Config.RANKED_OPEN = false
+
 -- Dans Studio, TeleportService ne marche pas : on ne peut pas tester le vrai matchmaking.
 --   "Auto"  -> Lobby : map principale (parcelles + cercle ranked)
 --   "Match" -> lance directement un match pour tester le gameplay

@@ -91,6 +91,9 @@ IdleConfig.STARTING_TOWERS = { "MachineGun" }
 IdleConfig.DUPLICATE_DAMAGE_BONUS = 0.02
 
 IdleConfig.RARITY_ORDER = { "Common", "Rare", "Epic", "Legendary" }
+-- (Hors de Roblox, dans les tests lancés avec luau.exe comme tools/odds/tests.luau, Color3 n'existe pas : une simple
+-- table la remplace. Dans le jeu, c'est toujours la vraie Color3.)
+local Color3 = Color3 or { fromRGB = function(r: number, g: number, b: number) return { R = r / 255, G = g / 255, B = b / 255 } end }
 IdleConfig.RARITIES = {
 	Common = { displayName = "Commune", color = Color3.fromRGB(190, 195, 205) },
 	Rare = { displayName = "Rare", color = Color3.fromRGB(80, 150, 255) },
@@ -422,18 +425,81 @@ function IdleConfig.weakestRunes(runesOfTowers: { any }): { [string]: number }?
 	return weakest
 end
 
--- Chances affichées par la forge, en %, pour une liste de runes tirables (chances remises sur 100 %) :
--- { [id] = pourcentage }. Liste vide -> {}.
-function IdleConfig.forgeOdds(drawable): { [string]: number }
+-- Chances arrondies au 0,01 % qui font EXACTEMENT 100 % (règle de Roblox pour les objets aléatoires payants : les
+-- chances affichées doivent faire 100 %). ids = les ids dans l'ordre d'affichage ; odds = { [id] = chance exacte en %
+-- } (ou des poids : elles sont d'abord remises sur 100 %). Méthode du plus grand reste : chaque chance est d'abord
+-- arrondie vers le bas au 0,01 % ; les 0,01 % qui manquent pour arriver à 100 % vont, un par un, aux chances qui ont
+-- perdu le plus à l'arrondi (à égalité : la première dans l'ordre d'affichage). Chaque chance arrondie est donc à
+-- moins de 0,01 % de la vraie. Ex. 35 / 18 / 10 sur 63 -> 55.56 / 28.57 / 15.87 (= 100). Renvoie { [id] = % }.
+-- Pas de chance positive -> 0 partout.
+function IdleConfig.roundedOdds(ids: { string }, odds: { [string]: number }): { [string]: number }
+	local UNITS = 10000 -- 100 % en centièmes de %
 	local total = 0
-	for _, bonus in drawable do
-		total += bonus.chance
+	for _, id in ids do
+		local value = odds[id]
+		if typeof(value) == "number" and value > 0 and value < math.huge then
+			total += value
+		end
 	end
-	local odds = {}
-	for _, bonus in drawable do
-		odds[bonus.id] = if total > 0 then bonus.chance / total * 100 else 0
+	local result = {}
+	if total <= 0 then
+		for _, id in ids do
+			result[id] = 0
+		end
+		return result
 	end
-	return odds
+	local units, rests, positive, given = {}, {}, {}, 0
+	for _, id in ids do
+		local value = odds[id]
+		local exact = if typeof(value) == "number" and value > 0 and value < math.huge then value / total * UNITS else 0
+		-- (1e-9 : un 30 calculé 29,9999999999 à cause des virgules des calculs reste bien 30)
+		local down = math.floor(exact + 1e-9)
+		units[id] = down
+		rests[id] = exact - down
+		positive[id] = exact > 0
+		given += down
+	end
+	-- Les centièmes qui manquent (moins que le nombre de chances), un de plus pour chacune des chances aux plus grands
+	-- restes. À égalité, la première dans l'ordre d'affichage : deux restes à moins de 1e-9 centième l'un de l'autre sont
+	-- égaux (les calculs à virgule ne tombent pas toujours juste : 10, 0.4 et 0.1 sur 30 ont le même reste, un tiers de
+	-- centième, mais pas au dernier chiffre près ; sans cette marge, le centième allait parfois à la 2e ou la 3e).
+	-- Une chance à 0 reste à 0.
+	local missing = UNITS - given
+	local served = {}
+	while missing > 0 do
+		local best = nil
+		for _, id in ids do
+			if positive[id] and not served[id] and (best == nil or rests[id] > rests[best] + 1e-9) then
+				best = id
+			end
+		end
+		if best then
+			units[best] += 1
+			served[best] = true
+			missing -= 1
+		elseif next(served) ~= nil then
+			table.clear(served) -- (jamais avec de vraies chances : seulement pour toujours arriver à 100 % tout juste)
+		else
+			break -- (aucune chance positive : impossible ici, le total est positif)
+		end
+	end
+	for _, id in ids do
+		result[id] = units[id] / 100
+	end
+	return result
+end
+
+-- Chances affichées par la forge, en %, pour une liste de runes tirables (chances remises sur 100 %, arrondies au
+-- 0,01 % pour faire exactement 100 % : IdleConfig.roundedOdds, dans l'ordre de la liste) : { [id] = pourcentage }.
+-- Le tirage du serveur (PlotGame) garde les chances exactes (chance / total) : chaque chance affichée est à moins de
+-- 0,01 % de la vraie. Liste vide -> {}.
+function IdleConfig.forgeOdds(drawable): { [string]: number }
+	local ids, chances = {}, {}
+	for _, bonus in drawable do
+		table.insert(ids, bonus.id)
+		chances[bonus.id] = bonus.chance
+	end
+	return IdleConfig.roundedOdds(ids, chances)
 end
 
 -- La meilleure rune (plus grand multiplicateur, toutes sortes confondues : x100 dégâts) : donnée par un achat
