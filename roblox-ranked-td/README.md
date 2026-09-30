@@ -68,6 +68,16 @@ classé »). On va à pied à sa parcelle et au sceau (plus de boutons de raccou
   zone, contrôle, effets, « Idéale contre : … » écrit dans `idealAgainst`) : « Remplacer… » puis une
   confirmation la remplace (50 % remboursés), vendre (2 clics) rend 50 %.
   Le serveur refuse toute pose sur une tour existante sans cette confirmation (`PlotGame:placeTower`).
+- **Limite de tours identiques** (décision du propriétaire, 30/09) : sur ta parcelle, **5** exemplaires au plus
+  d'une même tour **commune**, **4** d'une **rare**, **3** d'une **épique**, **2** d'une **légendaire**
+  (`IdleTowers.MAX_COPIES` ; 28 places pour 22 emplacements : il faut mélanger). La pose de trop est refusée
+  par le serveur, remplacement compris (remplacer un Oracle par un Trébuchet compte les Trébuchets), avec le
+  message « Maximum 2 Oracle de la foudre sur ta parcelle (Légendaire) », sans rien dépenser. Chaque carte
+  affiche « 2/5 posées » ; à la limite, elle est grisée, « COMPLET » ; la fiche d'une tour posée dit la limite
+  de sa rareté. Les tours déjà posées au-delà (vieilles sauvegardes) sont **gardées** : on ne peut juste plus en
+  poser tant qu'on est à la limite ; en vendre une libère une place. Doublons de l'autel, runes, renaissance et
+  gains d'absence ne changent pas (seule la pose est limitée). Le joueur simulé de `tools/balance` respecte la
+  même limite (voir `tools/balance/RESULTS.md`).
 - **Projectiles** (flèches de l'Archer, rochers de la Catapulte, carreaux de la Baliste, pierres du
   Trébuchet) : la tour vise l'endroit où **sera** l'ennemi quand le projectile arrivera (sa vitesse, son
   ralentissement et le chemin sont pris en compte), et les dégâts tombent **à l'impact**, pas au tir. Temps de

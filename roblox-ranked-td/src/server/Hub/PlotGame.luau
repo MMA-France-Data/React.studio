@@ -137,12 +137,7 @@ function PlotGame.new(plot, player: Player, data)
 	self.towerFolder.Name = "Towers"
 	self.towerFolder.Parent = plot.folder
 
-	for key, saved in self.idle.towers do
-		local spotIndex = tonumber(key)
-		if IdleTowers.Defs[saved.type] and self:ownsSpot(spotIndex) then
-			self:createTower(spotIndex, saved.type, saved.level or 1, saved.spent or 0, saved.runes)
-		end
-	end
+	self:loadTowers()
 	self:publishInventory()
 
 	self:refreshSpots()
@@ -152,6 +147,18 @@ function PlotGame.new(plot, player: Player, data)
 	self:publishNextWave()
 	self:syncAttributes()
 	return self
+end
+
+-- Tours de la sauvegarde (data.idle.towers) posées sur la parcelle, à l'arrivée du joueur. TOUTES sont gardées, même
+-- au-delà de la limite de tours identiques (vieilles sauvegardes, tests du propriétaire) : rien n'est retiré ni
+-- remboursé ; le joueur ne peut juste plus poser de ce type tant qu'il est à la limite (placeTower).
+function PlotGame:loadTowers()
+	for key, saved in self.idle.towers do
+		local spotIndex = tonumber(key)
+		if IdleTowers.Defs[saved.type] and self:ownsSpot(spotIndex) then
+			self:createTower(spotIndex, saved.type, saved.level or 1, saved.spent or 0, saved.runes)
+		end
+	end
 end
 
 function PlotGame:newId(): number
@@ -1417,28 +1424,36 @@ end
 -- tour qu'il remplace (replaceType, envoyé par la confirmation de PlotUI) ; l'ancienne rembourse alors 50 %.
 -- Sans ça (clic parti avant l'arrivée de la tour à cause du lag...), la pose est refusée : une grosse
 -- tour n'est jamais remplacée par accident.
-function PlotGame:placeTower(spotIndex: any, towerType: any, replaceType: any)
+-- Limite de tours identiques (IdleTowers.MAX_COPIES : 5 par tour commune, 4 rare, 3 épique, 2 légendaire) : une
+-- pose de trop est refusée avec un message clair, sans rien dépenser. Remplacement : la tour remplacée ne compte
+-- que si elle est du même type (remplacer un Oracle par un Trébuchet compte les Trébuchets). Les tours déjà
+-- posées au-delà de la limite (vieilles sauvegardes) restent : voir loadTowers.
+-- Renvoie true si la tour est posée, sinon false et le message du refus (lu par les tests Studio).
+function PlotGame:placeTower(spotIndex: any, towerType: any, replaceType: any): (boolean, string?)
 	if not self:ownsSpot(spotIndex) or typeof(towerType) ~= "string" or not IdleTowers.Defs[towerType] then
-		return
+		return false, nil
 	end
 	local def = IdleTowers.Defs[towerType]
+	local function refuse(message: string, kind: string): (boolean, string?)
+		self:notify(message, kind)
+		return false, message
+	end
 	if not self.idle.unlockedTowers[towerType] then
-		self:notify(`{def.displayName} n'est pas encore débloquée : invoque-la à l'autel des héros !`, "Error")
-		return
+		return refuse(`{def.displayName} n'est pas encore débloquée : invoque-la à l'autel des héros !`, "Error")
 	end
 	local existing = self.towers[spotIndex]
 	if existing and existing.type == towerType then
-		self:notify("Cette tour est déjà posée ici", "Error")
-		return
+		return refuse("Cette tour est déjà posée ici", "Error")
 	end
 	if existing and replaceType ~= existing.type then
-		self:notify("Il y a déjà une tour ici : clique dessus puis « Remplacer… »", "Warning")
-		return
+		return refuse("Il y a déjà une tour ici : clique dessus puis « Remplacer… »", "Warning")
+	end
+	if not IdleTowers.canPlaceCopy(self:countCopies(), towerType, existing and existing.type) then
+		return refuse(IdleTowers.copiesLimitMessage(towerType), "Error")
 	end
 	local refund = if existing then math.floor(existing.spent * IdleConfig.SELL_REFUND) else 0
 	if self.data.coins + refund < def.placeCost then
-		self:notify("Pas assez de pièces", "Error")
-		return
+		return refuse("Pas assez de pièces", "Error")
 	end
 
 	if existing then
@@ -1450,6 +1465,12 @@ function PlotGame:placeTower(spotIndex: any, towerType: any, replaceType: any)
 	if existing then
 		self:notify(`{def.displayName} posé • ancienne tour revendue +{NumberFormat.short(refund)}`, "Success")
 	end
+	return true, nil
+end
+
+-- Nombre de tours posées de chaque type sur la parcelle : { [type] = nombre } (limite de tours identiques).
+function PlotGame:countCopies(): { [string]: number }
+	return IdleTowers.countCopies(self.towers)
 end
 
 -- Améliorer une tour : +1 niveau, dégâts multipliés (voir IdleConfig.UPGRADE_DAMAGE).
@@ -2112,6 +2133,19 @@ function PlotGame:debugTower(spotIndex: number)
 		targetHealth = if active then target.health else nil,
 		clock = self.clock,
 	}
+end
+
+-- Recharge les tours de la sauvegarde (data.idle.towers) comme à l'arrivée du joueur (loadTowers) : les modèles sont
+-- refaits, rien n'est vendu, remboursé ni rendu (runes). Sert à tester une vieille sauvegarde, ex. 3 Trébuchets (au-delà
+-- de la limite de tours identiques) : tous gardés. Renvoie le nombre de tours de chaque type (countCopies).
+function PlotGame:debugReloadTowers(): { [string]: number }
+	for _, tower in self.towers do
+		tower.model:Destroy()
+	end
+	table.clear(self.towers)
+	self:loadTowers()
+	self:publishInventory()
+	return self:countCopies()
 end
 
 -- Zones de feu actives de la parcelle.

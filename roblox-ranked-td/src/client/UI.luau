@@ -1,4 +1,5 @@
 -- Petits utilitaires pour construire l'interface en code.
+local GuiService = game:GetService("GuiService")
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 
@@ -20,6 +21,19 @@ UI.Colors = {
 -- Colonne de boutons à gauche de la map principale (sous le panneau de rang de 130 px).
 UI.LEFT_COLUMN_TOP = 162
 UI.LEFT_COLUMN_STEP = 54
+-- Ses boutons (Autel, Forge, Renaissance, Boutique, Défis : 180 x 46 px à 16 px du bord), placés par
+-- UI.placeInLeftColumn. Les boutons « (Studio) » viennent après, à leur place fixe (jamais sur un téléphone).
+UI.LEFT_COLUMN_X = 16
+UI.LEFT_BUTTON_SIZE = Vector2.new(180, 46)
+UI.LEFT_COLUMN_COUNT = 5
+
+-- Fenêtres sur petits écrans (téléphones) : chaque fenêtre garde sa taille d'ordinateur (design) et un UIScale la
+-- réduit juste assez pour qu'elle tienne entière à l'écran, à WINDOW_MARGIN px des bords. L'écran, c'est la zone
+-- de son ScreenGui (UI.screen : IgnoreGuiInset = false), donc déjà SOUS la barre du haut de Roblox et hors des
+-- encoches des téléphones. Jamais agrandie (échelle 1 au plus : rien ne change sur un écran d'ordinateur), jamais
+-- sous MIN_WINDOW_SCALE. Les MaxTextSize ne changent pas : tout est réduit pareil, textes compris.
+UI.WINDOW_MARGIN = 8
+UI.MIN_WINDOW_SCALE = 0.4
 
 -- UI.new("Frame", { Size = ..., Parent = ... }, { enfants })
 function UI.new(className: string, props: { [string]: any }?, children: { Instance }?)
@@ -68,6 +82,89 @@ function UI.screen(name: string, displayOrder: number?)
 		DisplayOrder = displayOrder or 0,
 		Parent = Players.LocalPlayer:WaitForChild("PlayerGui"),
 	})
+end
+
+-- Échelle d'une fenêtre de taille `design` (px) dont le CENTRE est à `center` de l'écran (en fractions ; par
+-- défaut 0,5 ; 0,5 = au milieu), pour qu'elle tienne dans un écran de taille `screen` (px), à WINDOW_MARGIN px des
+-- bords. Fonction pure : les tests l'appellent aussi avec de fausses tailles de téléphone.
+function UI.windowScale(screen: Vector2, design: Vector2, center: Vector2?): number
+	local c = center or Vector2.new(0.5, 0.5)
+	-- Place libre de chaque côté du centre (le côté le plus court compte) : la fenêtre en prend la moitié.
+	local halfWidth = math.min(c.X, 1 - c.X) * screen.X - UI.WINDOW_MARGIN
+	local halfHeight = math.min(c.Y, 1 - c.Y) * screen.Y - UI.WINDOW_MARGIN
+	local scale = math.min(1, 2 * halfWidth / design.X, 2 * halfHeight / design.Y)
+	return math.clamp(scale, UI.MIN_WINDOW_SCALE, 1)
+end
+
+-- Taille (px) de l'écran d'un ScreenGui fait par UI.screen : sa zone, sous la barre du haut de Roblox. Tout juste
+-- créé (pas encore mesuré) : l'écran entier moins cette barre.
+function UI.screenSize(gui: ScreenGui?): Vector2
+	local size = if gui then gui.AbsoluteSize else Vector2.zero
+	if size.X > 0 and size.Y > 0 then
+		return size
+	end
+	local camera = workspace.CurrentCamera
+	local topLeft, bottomRight = GuiService:GetGuiInset()
+	return if camera then camera.ViewportSize - topLeft - bottomRight else Vector2.zero
+end
+
+-- Réduit une fenêtre pour qu'elle tienne dans l'écran de son ScreenGui (UI.windowScale), et recommence quand la
+-- taille de l'écran change (téléphone tourné, fenêtre redimensionnée). La fenêtre : AnchorPoint 0,5 ; 0,5 et
+-- Position en fractions de l'écran (ex. UDim2.fromScale(0.5, 0.5)) : UIScale la réduit autour de son centre.
+-- design = sa taille sur un écran d'ordinateur. Elle doit déjà être dans son ScreenGui. Renvoie son UIScale
+-- (nommé « FitScale »).
+function UI.fitWindow(window: GuiObject, design: Vector2): UIScale
+	local scale = UI.new("UIScale", { Name = "FitScale", Parent = window }) :: UIScale
+	local gui = window:FindFirstAncestorWhichIsA("ScreenGui")
+	local function fit()
+		local screen = UI.screenSize(gui)
+		if screen.X > 0 and screen.Y > 0 then
+			scale.Scale = UI.windowScale(screen, design, Vector2.new(window.Position.X.Scale, window.Position.Y.Scale))
+		end
+	end
+	fit()
+	if gui then
+		gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(fit)
+	end
+	return scale
+end
+
+-- Place du bouton n° `index` (0 = celui du haut) de la colonne de gauche, pour un écran de taille `screen` (px) :
+-- son coin en haut à gauche et son échelle. Écran assez haut pour les 5 boutons : taille normale (rien ne change sur
+-- un ordinateur). Sinon (téléphone en paysage : la Boutique et les Défis sortaient de l'écran), toute la colonne
+-- est réduite pour tenir sous la carte de rang, à sa place d'avant (jamais plus large : elle ne passe pas sur le
+-- panneau des tours). Fonction pure.
+function UI.leftColumnSlot(screen: Vector2, index: number): (Vector2, number)
+	local step = UI.LEFT_COLUMN_STEP
+	-- Hauteur de la colonne à taille normale : 4 écarts de 54 px et le dernier bouton (46 px).
+	local height = (UI.LEFT_COLUMN_COUNT - 1) * step + UI.LEFT_BUTTON_SIZE.Y
+	local scale = math.clamp((screen.Y - UI.WINDOW_MARGIN - UI.LEFT_COLUMN_TOP) / height, UI.MIN_WINDOW_SCALE, 1)
+	return Vector2.new(UI.LEFT_COLUMN_X, math.floor(UI.LEFT_COLUMN_TOP + index * step * scale)), scale
+end
+
+-- Bord droit (px) des boutons de la colonne de gauche sur cet écran (une fenêtre qu'ils couvriraient reste à côté).
+function UI.leftColumnRight(screen: Vector2): number
+	local _, scale = UI.leftColumnSlot(screen, 0)
+	return UI.LEFT_COLUMN_X + UI.LEFT_BUTTON_SIZE.X * scale
+end
+
+-- Place un bouton de la colonne de gauche (UI.leftColumnSlot) et le replace quand la taille de l'écran change.
+-- Il doit déjà être dans son ScreenGui.
+function UI.placeInLeftColumn(button: GuiObject, index: number)
+	local scale = UI.new("UIScale", { Name = "ColumnScale", Parent = button }) :: UIScale
+	local gui = button:FindFirstAncestorWhichIsA("ScreenGui")
+	local function place()
+		local screen = UI.screenSize(gui)
+		if screen.X > 0 and screen.Y > 0 then
+			local position, value = UI.leftColumnSlot(screen, index)
+			button.Position = UDim2.fromOffset(position.X, position.Y)
+			scale.Scale = value
+		end
+	end
+	place()
+	if gui then
+		gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(place)
+	end
 end
 
 function UI.label(props: { [string]: any })

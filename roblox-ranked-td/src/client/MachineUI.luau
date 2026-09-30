@@ -38,6 +38,10 @@ local FANFARE_RUNE_MULT = 50
 -- temps (un double clic n'achète jamais deux fois).
 local RESULT_TIMEOUT = 3
 
+-- Taille de la fenêtre sur un écran d'ordinateur. Sur un téléphone, elle est réduite pour tenir entière,
+-- boutons x1, x10... compris (UI.fitWindow).
+local WINDOW_SIZE = Vector2.new(540, 490)
+
 local function listAttribute(player: Player, name: string): { string }
 	local raw = player:GetAttribute(name)
 	if typeof(raw) ~= "string" or raw == "" then
@@ -135,11 +139,15 @@ function MachineUI.start()
 		MaxTextSize = 18,
 		Parent = gui,
 	})
+	-- Écran trop bas (téléphone) : toute la colonne est réduite pour tenir (UI.leftColumnSlot).
+	UI.placeInLeftColumn(towerShortcut, 0)
+	UI.placeInLeftColumn(bonusShortcut, 1)
 
 	------------------------------------------------------------------
 	-- Fenêtre commune aux deux machines
 	------------------------------------------------------------------
 	local overlay = UI.new("TextButton", {
+		Name = "Overlay",
 		Size = UDim2.fromScale(1, 1),
 		BackgroundColor3 = Color3.new(0, 0, 0),
 		BackgroundTransparency = 0.5,
@@ -149,15 +157,18 @@ function MachineUI.start()
 		Parent = gui,
 	})
 	local window = UI.new("Frame", {
+		Name = "Window",
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.5),
-		Size = UDim2.fromOffset(540, 490),
+		Size = UDim2.fromOffset(WINDOW_SIZE.X, WINDOW_SIZE.Y),
 		BackgroundColor3 = UI.Colors.Panel,
 		Parent = overlay,
-	}, { UI.corner(16), UI.padding(14), UI.new("UISizeConstraint", { MaxSize = Vector2.new(540, 490) }) })
+	}, { UI.corner(16), UI.padding(14), UI.new("UISizeConstraint", { MaxSize = WINDOW_SIZE }) })
 	local windowStroke = UI.stroke(Color3.new(1, 1, 1), 3)
 	windowStroke.Transparency = 0
 	windowStroke.Parent = window
+	-- Petit écran (téléphone) : toute la fenêtre est réduite pour tenir sous la barre du haut de Roblox.
+	UI.fitWindow(window, WINDOW_SIZE)
 
 	local title = UI.label({
 		Size = UDim2.new(1, -40, 0, 30),

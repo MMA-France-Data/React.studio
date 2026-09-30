@@ -92,6 +92,15 @@ IdleTowers.BALLISTA_MAX_CANDIDATES = 12
 -- carreau rencontre sur sa ligne (les plus proches de la tour). Sa visée compte aussi au plus ce nombre par
 -- ligne : 3 alignés ou plus, c'est pareil (à égalité, le plus résistant). Voir PlotGame:hitLine et countPierced.
 IdleTowers.BALLISTA_PIERCE_MAX = 3
+-- LIMITE DE TOURS IDENTIQUES (décision du propriétaire, 30/09/2026 : « un nombre de tours max, pas total mais de
+-- doublons ») : sur sa parcelle, un joueur pose au plus ce nombre d'exemplaires de la MÊME tour, selon sa rareté.
+-- 2 tours par rareté, 22 emplacements au plus : 5 + 5 + 4 + 4 + 3 + 3 + 2 + 2 = 28 places, il faut mélanger.
+-- Le serveur refuse la pose de trop (PlotGame:placeTower, remplacement compris), avec un message clair et sans
+-- rien dépenser. Les tours déjà posées au-delà (vieilles sauvegardes) sont GARDÉES : on ne peut juste plus en
+-- poser tant qu'on est à la limite ou au-dessus ; en vendre une libère une place. Seule la pose est limitée :
+-- doublons de l'autel (+2 %), runes, renaissance et gains d'absence ne changent pas. Mode solo seulement.
+-- Utilisé par le serveur, les cartes (PlotUI) et le joueur simulé (tools/balance) : voir maxCopies, canPlaceCopy.
+IdleTowers.MAX_COPIES = { Common = 5, Rare = 4, Epic = 3, Legendary = 2 }
 
 IdleTowers.Defs = {
 	MachineGun = {
@@ -563,6 +572,54 @@ function IdleTowers.ofRarity(rarity: string): { string }
 		end
 	end
 	return list
+end
+
+----------------------------------------------------------------------
+-- Limite de tours identiques (MAX_COPIES, voir en haut du fichier)
+----------------------------------------------------------------------
+
+-- Nombre maximal d'exemplaires de cette tour sur une parcelle : 5 (Commune), 4 (Rare), 3 (Épique), 2 (Légendaire).
+function IdleTowers.maxCopies(towerType: string): number
+	local def = IdleTowers.Defs[towerType]
+	return (def and IdleTowers.MAX_COPIES[def.rarity]) or math.huge
+end
+
+-- Nombre de tours posées de chaque type : { [type] = nombre }. towers = n'importe quelle table dont les valeurs sont
+-- des types de tours ("Frost") ou des tours avec un champ type ({ type = "Frost", ... }) : tours du serveur
+-- (PlotGame), sauvegarde (data.idle.towers), tours du joueur simulé, simple liste de types.
+function IdleTowers.countCopies(towers): { [string]: number }
+	local counts = {}
+	for _, tower in towers or {} do
+		local towerType = if type(tower) == "string" then tower elseif type(tower) == "table" then tower.type else nil
+		if type(towerType) == "string" then
+			counts[towerType] = (counts[towerType] or 0) + 1
+		end
+	end
+	return counts
+end
+
+-- Vrai si on peut poser un exemplaire de plus de towerType, avec les tours déjà posées `counts` (countCopies).
+-- replacedType = type de la tour remplacée (remplacement) : si c'est le même type, elle ne compte pas deux fois ;
+-- sinon elle ne change rien (remplacer un Oracle par un Trébuchet compte les Trébuchets). Une parcelle déjà au-delà
+-- de la limite (vieille sauvegarde) garde ses tours, mais ne peut plus en poser de ce type.
+function IdleTowers.canPlaceCopy(counts, towerType: string, replacedType: string?): boolean
+	local count = counts[towerType] or 0
+	if replacedType == towerType then
+		count -= 1
+	end
+	return count < IdleTowers.maxCopies(towerType)
+end
+
+-- Texte court des cartes : « 2/5 posées ».
+function IdleTowers.copiesText(count: number, towerType: string): string
+	return `{count}/{IdleTowers.maxCopies(towerType)} posées`
+end
+
+-- Message du refus (serveur, cartes) : « Maximum 2 Oracle de la foudre sur ta parcelle (Légendaire) ».
+function IdleTowers.copiesLimitMessage(towerType: string): string
+	local def = IdleTowers.Defs[towerType]
+	local rarity = IdleConfig.RARITIES[def.rarity]
+	return `Maximum {IdleTowers.maxCopies(towerType)} {def.displayName} sur ta parcelle ({if rarity then rarity.displayName else def.rarity})`
 end
 
 return IdleTowers

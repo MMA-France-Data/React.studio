@@ -1008,6 +1008,19 @@ local function sameTeam(towerType: string, level: number, count: number)
 	return team
 end
 
+-- Vrai si l'équipe ({ { type, ... } }) dépasse la limite de tours identiques (IdleTowers.MAX_COPIES : 5 par tour
+-- commune, 4 rare, 3 épique, 2 légendaire) : composition IMPOSSIBLE en jeu. Le banc d'essai et l'anti-méta
+-- comparent quand même ces équipes (pour mesurer les tours), le rapport les marque « ! ».
+local function overLimit(team): boolean
+	for towerType, n in IdleTowers.countCopies(team) do
+		if n > IdleTowers.maxCopies(towerType) then
+			return true
+		end
+	end
+	return false
+end
+local LIMIT_TEXT = `limite de tours identiques : {IdleTowers.MAX_COPIES.Common} par Commune, {IdleTowers.MAX_COPIES.Rare} par Rare, {IdleTowers.MAX_COPIES.Epic} par Épique, {IdleTowers.MAX_COPIES.Legendary} par Légendaire`
+
 local function powerText(power: number): string
 	return if power <= 0 then "0" else shortNumber(power)
 end
@@ -1039,6 +1052,7 @@ local function benchSupport(wave: number, budget: number, cells, count: number)
 	for _, towerType in IdleTowers.ORDER do
 		if towerType ~= main and IdleTowers.Defs[towerType].placeCost <= budget then
 			local row = { Run.shortName(towerType) }
+			local rowOver = false -- équipe au-delà de la limite de tours identiques (impossible en jeu)
 			for _, waveType in Report.WAVE_TYPE_ORDER do
 				local team, used = {}, {}
 				for i = 1, math.min(3, count - 1) do
@@ -1054,17 +1068,22 @@ local function benchSupport(wave: number, budget: number, cells, count: number)
 						table.insert(team, { type = main, level = mainLevel, spot = spot })
 					end
 				end
+				rowOver = rowOver or overLimit(team)
 				local k = requiredMultiplier(Engine.composition(wave, waveType), team)
 				local value = if k == math.huge then 0 else 100 * cells[main][waveType].k / k
 				cells[towerType][waveType].support = value
 				table.insert(row, powerText(value) .. (if value > 100 then " +" else "  "))
+			end
+			if rowOver then
+				row[1] ..= " !"
 			end
 			table.insert(rows, row)
 		end
 	end
 	if #rows > 0 then
 		out(`  Soutien : {count - 3} {mainName} + 3 exemplaires d'une autre tour (100 = aussi fort que {count} {mainName} ;`)
-		out(`  « + » = l'équipe est plus forte qu'avec {count} {mainName}, la tour est utile en soutien) :`)
+		out(`  « + » = l'équipe est plus forte qu'avec {count} {mainName}, la tour est utile en soutien ; « ! » = équipe`)
+		out(`  impossible en jeu, au-delà de la {LIMIT_TEXT}) :`)
 		local headers = { `{count - 3} {mainName} + 3` }
 		for _, waveType in Report.WAVE_TYPE_ORDER do
 			table.insert(headers, Report.waveTypeName(waveType))
@@ -1084,6 +1103,8 @@ out("règles : une seule fuite = vague ratée), construite comme ce type. Case =
 out("les doublons moyens de ce moment. 100 = la meilleure tour sans doublons contre ce type de vague ; 50 = il lui faudrait 2 fois")
 out("plus de dégâts. * = la meilleure. « k » = multiplicateur de dégâts dont la meilleure tour a besoin pour réussir")
 out("(k < 1 : elle réussit avec de la marge).")
+out(`« ! » après le nom = N tours de ce type, au-delà de la {LIMIT_TEXT} : équipe IMPOSSIBLE`)
+out("en jeu (le banc compare quand même les tours entre elles ; le joueur simulé, lui, respecte la limite).")
 for _, wave in BENCH_WAVES do
 	local budgets, dupeSums, spotCounts, n = {}, {}, {}, 0
 	for _, run in reference do
@@ -1129,7 +1150,8 @@ for _, wave in BENCH_WAVES do
 	end
 	local rows = {}
 	for _, towerType in IdleTowers.ORDER do
-		local row = { Run.shortName(towerType) .. " (" .. IdleConfig.RARITIES[IdleTowers.Defs[towerType].rarity].displayName .. ")" }
+		local over = if count > IdleTowers.maxCopies(towerType) then " !" else ""
+		local row = { Run.shortName(towerType) .. " (" .. IdleConfig.RARITIES[IdleTowers.Defs[towerType].rarity].displayName .. ")" .. over }
 		for _, waveType in Report.WAVE_TYPE_ORDER do
 			local cell = cells[towerType][waveType]
 			if cell.tooExpensive then
@@ -1244,7 +1266,8 @@ do
 				end
 				local budget = total / count
 				local limit = math.max(60, checkpoint.frontier * 2 + 30)
-				local result = { frontier = checkpoint.frontier }
+				-- over[nom] = vrai si cette équipe dépasse la limite de tours identiques (impossible en jeu, « ! »).
+				local result = { frontier = checkpoint.frontier, over = { mixed = overLimit(checkpoint.layout) } }
 				result.mixed = reachedWave(checkpoint.layout, limit)
 				local equal = {}
 				for _, member in checkpoint.layout do
@@ -1252,7 +1275,9 @@ do
 				end
 				result.mixedEqual = reachedWave(equal, limit)
 				for _, extreme in EXTREMES do
-					result[extreme.name] = reachedWave(extremeTeam(extreme.types, count, budget, extreme.runes), limit)
+					local team = extremeTeam(extreme.types, count, budget, extreme.runes)
+					result.over[extreme.name] = overLimit(team)
+					result[extreme.name] = reachedWave(team, limit)
 				end
 				result.count, result.budget = count, budget
 				local types = {}
@@ -1284,12 +1309,27 @@ do
 			summary.budget = med("budget")
 			summary.mixed = med("mixed")
 			summary.mixedEqual = med("mixedEqual")
-			local row = { `{hour} h (record {summary.frontier}, {summary.count} tours)`, tostring(summary.mixed), tostring(summary.mixedEqual) }
+			-- « ! » : équipe au-delà de la limite de tours identiques dans au moins une graine (impossible en jeu).
+			summary.over = {}
+			local function overMark(key): string
+				for _, result in perSeed do
+					if result.over[key] then
+						summary.over[key] = true
+						return " !"
+					end
+				end
+				return ""
+			end
+			local row = {
+				`{hour} h (record {summary.frontier}, {summary.count} tours)`,
+				tostring(summary.mixed) .. overMark("mixed"),
+				tostring(summary.mixedEqual) .. overMark("mixed"),
+			}
 			local bestExtreme, bestExtremeName = -1, ""
 			for _, extreme in EXTREMES do
 				local value = med(extreme.name)
 				summary[extreme.name] = value
-				table.insert(row, tostring(value))
+				table.insert(row, tostring(value) .. overMark(extreme.name))
 				if value > bestExtreme then
 					bestExtreme, bestExtremeName = value, extreme.name
 				end
@@ -1320,6 +1360,8 @@ do
 	out("tours du joueur simulé à ce moment (vrais niveaux) ; « égal » = mêmes tours, budget réparti également ; les extrêmes")
 	out("ont le même nombre de tours et le même budget par tour, sur leurs meilleurs emplacements. Dernière colonne : graines")
 	out("où le mélange va plus loin que TOUTES les compositions extrêmes.")
+	out(`« ! » = équipe au-delà de la {LIMIT_TEXT} (dans au moins une graine) :`)
+	out("IMPOSSIBLE en jeu, mesurée quand même pour comparer. Le mélange du joueur simulé respecte la limite.")
 	if anyRow then
 		local headers = { "Moment", "Mélange", "Égal" }
 		for _, extreme in EXTREMES do
@@ -2351,13 +2393,15 @@ do
 			if summary.mixed <= summary.bestExtreme then
 				allOk = false
 			end
-			table.insert(parts, `{hour} h : mélange {summary.mixed}, meilleur extrême {summary.bestExtremeName} {summary.bestExtreme}`)
+			-- « ! » : cet extrême dépasse la limite de tours identiques (impossible en jeu, voir le tableau ANTI-MÉTA).
+			local mark = if summary.over and summary.over[summary.bestExtremeName] then " !" else ""
+			table.insert(parts, `{hour} h : mélange {summary.mixed}, meilleur extrême {summary.bestExtremeName}{mark} {summary.bestExtreme}`)
 		end
 	end
 	if any then
 		row(
 			"Anti-méta : le mélange bat les extrêmes",
-			"le mélange va plus loin que tout Trébuchet, tout givre, Trébuchet + givre, tout Sorcier, tout Catapulte, givre + Mage...",
+			"le mélange va plus loin que tout Trébuchet, tout givre, Trébuchet + givre, tout Sorcier, tout Catapulte, givre + Mage... (« ! » = extrême impossible en jeu depuis la limite de tours identiques)",
 			table.concat(parts, " ; "),
 			if allOk then "OK" else "NON"
 		)

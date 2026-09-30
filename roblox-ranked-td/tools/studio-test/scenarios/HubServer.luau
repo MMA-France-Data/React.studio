@@ -2607,6 +2607,245 @@ return function(log)
 	testRanked()
 
 	----------------------------------------------------------------------
+	-- Limite de tours identiques (IdleTowers.MAX_COPIES : 5 par tour commune, 4 rare, 3 épique, 2 légendaire), avec le
+	-- vrai PlotGame (StudioDebug « Call ») : la tour de trop est refusée avec le message et rien n'est dépensé, vendre
+	-- libère une place, le remplacement compte bien (un Oracle remplacé par un Trébuchet compte les Trébuchets), une
+	-- vieille sauvegarde au-delà de la limite garde toutes ses tours (debugReloadTowers = le chargement de l'arrivée),
+	-- et les textes « x/limite ». Arène sans ennemis pendant le test (pas de pièces qui tombent). À la fin, tout est
+	-- remis comme avant (tours, runes de l'inventaire, tours débloquées, pièces).
+	-- Dans sa propre fonction (limite des 200 variables locales de Luau, voir plus haut).
+	----------------------------------------------------------------------
+	local function testTowerLimit()
+		local IdleTowers = require(ReplicatedStorage.Shared.IdleTowers)
+		local function call(method, ...)
+			return dbg:Invoke(player, "Call", method, ...)
+		end
+		local function getData()
+			return dbg:Invoke(player, "Data")
+		end
+		local function typeOn(d, spotIndex)
+			local saved = d.idle.towers[tostring(spotIndex)]
+			return saved and saved.type
+		end
+		-- Modèles de tours de ce type sur la parcelle (ce que voient les clients).
+		local function modelsOf(towerType)
+			local n = 0
+			for _, model in plotFolder.Towers:GetChildren() do
+				if model:GetAttribute("TowerType") == towerType then
+					n += 1
+				end
+			end
+			return n
+		end
+
+		-- 1) La table et les fonctions partagées (serveur, cartes de PlotUI, simulateur).
+		local expected = { MachineGun = 5, Frost = 5, Bomb = 4, Tesla = 4, Rocket = 3, Laser = 3, Chain = 2, Orbital = 2 }
+		local wrongMax = {}
+		for towerType, max in expected do
+			if IdleTowers.maxCopies(towerType) ~= max then
+				table.insert(wrongMax, `{towerType} {IdleTowers.maxCopies(towerType)} au lieu de {max}`)
+			end
+		end
+		check(
+			#wrongMax == 0
+				and IdleTowers.MAX_COPIES.Common == 5
+				and IdleTowers.MAX_COPIES.Rare == 4
+				and IdleTowers.MAX_COPIES.Epic == 3
+				and IdleTowers.MAX_COPIES.Legendary == 2,
+			`limite de tours : 5 par commune, 4 par rare, 3 par épique, 2 par légendaire{if #wrongMax > 0 then " (faux : " .. table.concat(wrongMax, ", ") .. ")" else ""}`
+		)
+		local counted = IdleTowers.countCopies({ { type = "Frost" }, "Frost", { type = "Bomb" }, 42 })
+		check(
+			IdleTowers.copiesText(2, "Chain") == "2/2 posées"
+				and IdleTowers.copiesText(3, "MachineGun") == "3/5 posées"
+				and IdleTowers.copiesText(3, "Orbital") == "3/2 posées"
+				and counted.Frost == 2
+				and counted.Bomb == 1,
+			`limite de tours : textes « {IdleTowers.copiesText(2, "Chain")} », « {IdleTowers.copiesText(3, "MachineGun")} », comptage des tours (Totems {counted.Frost}, Catapultes {counted.Bomb})`
+		)
+		check(
+			IdleTowers.canPlaceCopy({ Orbital = 1 }, "Orbital")
+				and not IdleTowers.canPlaceCopy({ Orbital = 2 }, "Orbital")
+				and not IdleTowers.canPlaceCopy({ Orbital = 3 }, "Orbital")
+				and IdleTowers.canPlaceCopy({ Orbital = 2 }, "Orbital", "Orbital")
+				and not IdleTowers.canPlaceCopy({ Orbital = 2, Chain = 1 }, "Orbital", "Chain")
+				and IdleTowers.canPlaceCopy({ Orbital = 1, Chain = 2 }, "Orbital", "Chain"),
+			"limite de tours : 2e Trébuchet oui, 3e non ; remplacer une tour par le même type ne compte pas deux fois ; remplacer un Oracle par un Trébuchet compte les Trébuchets"
+		)
+
+		-- 2) Sur la parcelle : on part d'une parcelle vide (tours vendues, remises à la fin), toutes les tours débloquées.
+		local saved = getData()
+		local autoCollect = player:GetAttribute("PassAutoCollect") == true
+		if autoCollect then
+			dbg:Invoke(player, "Pass", "AutoCollect", false)
+		end
+		-- Remet la parcelle comme au début du test : les tours sauvegardées sont rechargées (mêmes niveaux, mêmes runes).
+		local function restore()
+			for key in getData().idle.towers do
+				call("sellTower", tonumber(key))
+			end
+			dbg:Invoke(player, "Set", "towers", saved.idle.towers)
+			dbg:Invoke(player, "Set", "bonuses", saved.idle.bonuses)
+			dbg:Invoke(player, "Set", "unlockedTowers", saved.idle.unlockedTowers)
+			call("debugReloadTowers")
+			call("debugEndArena")
+			setCoins(saved.coins)
+			if autoCollect then
+				dbg:Invoke(player, "Pass", "AutoCollect", true)
+			end
+		end
+		call("debugArena", {})
+		dbg:Invoke(player, "Set", "unlockedTowers", { MachineGun = true, Frost = true, Bomb = true, Tesla = true, Rocket = true, Laser = true, Chain = true, Orbital = true })
+		setCoins(1e15)
+		for key in saved.idle.towers do
+			call("sellTower", tonumber(key))
+		end
+		-- 9 emplacements libres au moins (achetés s'il en manque ; toutes les tours sont vendues).
+		local owned = 0
+		for _ in getData().idle.ownedSpots do
+			owned += 1
+		end
+		for spotIndex = 1, #PlotLayout.SPOTS do
+			if owned >= 9 then
+				break
+			end
+			if not getData().idle.ownedSpots[tostring(spotIndex)] then
+				call("buySpot", spotIndex)
+				owned += 1
+			end
+		end
+		local d = getData()
+		local spots = {}
+		for spotIndex = 1, #PlotLayout.SPOTS do
+			if d.idle.ownedSpots[tostring(spotIndex)] and not d.idle.towers[tostring(spotIndex)] then
+				table.insert(spots, spotIndex)
+			end
+		end
+		check(#spots >= 9 and next(d.idle.towers) == nil, `limite de tours : parcelle vidée, {#spots} emplacements libres`)
+		if #spots < 9 then
+			restore()
+			return
+		end
+		setCoins(1e6)
+
+		-- La tour de trop est refusée : message clair, rien de dépensé, rien de posé.
+		local firstOk = call("placeTower", spots[1], "Orbital")
+		local secondOk = call("placeTower", spots[2], "Orbital")
+		local counts = call("countCopies")
+		check(
+			firstOk == true and secondOk == true and counts.Orbital == 2 and modelsOf("Orbital") == 2
+				and IdleTowers.copiesText(counts.Orbital, "Orbital") == "2/2 posées",
+			`limite de tours : 2 Trébuchets posés (« {IdleTowers.copiesText(counts.Orbital or 0, "Orbital")} »)`
+		)
+		local before = getData().coins
+		local ok, message = call("placeTower", spots[3], "Orbital")
+		d = getData()
+		check(
+			ok == false
+				and message == IdleTowers.copiesLimitMessage("Orbital")
+				and message == "Maximum 2 Trébuchet royal sur ta parcelle (Légendaire)"
+				and d.coins == before
+				and typeOn(d, spots[3]) == nil
+				and call("countCopies").Orbital == 2,
+			`limite de tours : 3e Trébuchet refusé (« {message} »), pièces {NumberFormat.short(before)} -> {NumberFormat.short(d.coins)}, emplacement {spots[3]} vide`
+		)
+		-- Une commune : 5 Archers, le 6e refusé.
+		local archersOk = 0
+		for i = 4, 8 do
+			if call("placeTower", spots[i], "MachineGun") == true then
+				archersOk += 1
+			end
+		end
+		before = getData().coins
+		ok, message = call("placeTower", spots[9], "MachineGun")
+		d = getData()
+		check(
+			archersOk == 5 and ok == false and message == "Maximum 5 Archer du rempart sur ta parcelle (Commune)" and d.coins == before
+				and typeOn(d, spots[9]) == nil and call("countCopies").MachineGun == 5,
+			`limite de tours : 5 Archers posés ({archersOk}), le 6e refusé (« {message} »), rien dépensé`
+		)
+		for i = 4, 8 do
+			call("sellTower", spots[i])
+		end
+
+		-- Vendre libère une place.
+		call("sellTower", spots[2])
+		ok = call("placeTower", spots[3], "Orbital")
+		d = getData()
+		check(
+			ok == true and typeOn(d, spots[3]) == "Orbital" and typeOn(d, spots[2]) == nil and call("countCopies").Orbital == 2,
+			"limite de tours : un Trébuchet vendu -> un autre peut être posé (2/2)"
+		)
+
+		-- Remplacement (confirmé : 3e argument = la tour remplacée).
+		call("placeTower", spots[2], "Chain")
+		before = getData().coins
+		ok, message = call("placeTower", spots[2], "Orbital", "Chain")
+		d = getData()
+		check(
+			ok == false and message == IdleTowers.copiesLimitMessage("Orbital") and typeOn(d, spots[2]) == "Chain" and d.coins == before,
+			`limite de tours : remplacer l'Oracle par un 3e Trébuchet est refusé (« {message} »), l'Oracle reste, rien dépensé`
+		)
+		local toOracle = call("placeTower", spots[1], "Chain", "Orbital")
+		local toTrebuchet = call("placeTower", spots[2], "Orbital", "Chain")
+		d = getData()
+		counts = call("countCopies")
+		check(
+			toOracle == true and toTrebuchet == true and typeOn(d, spots[1]) == "Chain" and typeOn(d, spots[2]) == "Orbital"
+				and counts.Orbital == 2 and counts.Chain == 1,
+			`limite de tours : Trébuchet remplacé par un 2e Oracle, puis Oracle remplacé par un Trébuchet (Trébuchets {counts.Orbital}/2, Oracles {counts.Chain}/2)`
+		)
+		ok, message = call("placeTower", spots[1], "Chain", "Chain")
+		check(ok == false and message == "Cette tour est déjà posée ici", `limite de tours : remplacer un Oracle par un Oracle reste refusé (« {message} »)`)
+
+		-- Vieille sauvegarde avec 3 Trébuchets (au-delà de la limite) : tous gardés, rien de remboursé.
+		local towers = table.clone(getData().idle.towers)
+		towers[tostring(spots[4])] = { type = "Orbital", level = 3, spent = 999, runes = {} }
+		dbg:Invoke(player, "Set", "towers", towers)
+		before = getData().coins
+		local loaded = call("debugReloadTowers")
+		d = getData()
+		check(
+			loaded.Orbital == 3 and modelsOf("Orbital") == 3 and d.idle.towers[tostring(spots[4])].level == 3 and d.coins == before
+				and IdleTowers.copiesText(loaded.Orbital, "Orbital") == "3/2 posées",
+			`limite de tours : sauvegarde avec 3 Trébuchets -> les 3 gardés (« {IdleTowers.copiesText(loaded.Orbital or 0, "Orbital")} »), rien vendu ni remboursé`
+		)
+		ok, message = call("placeTower", spots[5], "Orbital")
+		d = getData()
+		check(
+			ok == false and message == IdleTowers.copiesLimitMessage("Orbital") and d.coins == before and typeOn(d, spots[5]) == nil,
+			`limite de tours : au-delà de la limite, pas de 4e Trébuchet (« {message} »)`
+		)
+		call("sellTower", spots[4])
+		local atLimit = call("placeTower", spots[5], "Orbital")
+		call("sellTower", spots[2])
+		local belowLimit = call("placeTower", spots[5], "Orbital")
+		d = getData()
+		check(
+			atLimit == false and belowLimit == true and typeOn(d, spots[5]) == "Orbital" and call("countCopies").Orbital == 2,
+			"limite de tours : 1 Trébuchet vendu (encore 2/2) -> toujours refusé ; un 2e vendu (1/2) -> posé"
+		)
+
+		-- Tout remis comme avant.
+		restore()
+		d = getData()
+		local same = true
+		for key, tower in saved.idle.towers do
+			local now = d.idle.towers[key]
+			if not now or now.type ~= tower.type or now.level ~= tower.level then
+				same = false
+			end
+		end
+		for key in d.idle.towers do
+			if not saved.idle.towers[key] then
+				same = false
+			end
+		end
+		check(same, "limite de tours : parcelle remise comme avant le test (mêmes tours, mêmes niveaux)")
+	end
+	testTowerLimit()
+
+	----------------------------------------------------------------------
 	-- Tuto des nouveaux joueurs (Hub/Tutorial.luau, client : TutorialUI.luau). Tout à la fin : le client y déplace son
 	-- personnage, pose et améliore une tour et lance l'autel, ce qui gênerait les autres tests.
 	-- 1) Seul : le joueur de test (nouveau) n'a pas fini le tuto ; un nouveau joueur paie tout avec ses pièces de

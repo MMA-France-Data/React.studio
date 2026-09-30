@@ -296,7 +296,7 @@ function LobbyUI.start()
 		local signUpScaleValue = math.clamp((screen.X - LEFT_SIDE - 16) / SIGNUP_SIZE.X, 0.5, 1)
 		signUpScale.Scale = signUpScaleValue
 		signUpFrame.Position = UDim2.new(0, math.max(screen.X / 2, LEFT_SIDE + SIGNUP_SIZE.X * signUpScaleValue / 2), 0.26, 0)
-		windowScale.Scale = math.clamp(math.min((screen.X - 16) / WINDOW_SIZE.X, (screen.Y - 16) / WINDOW_SIZE.Y), 0.4, 1)
+		windowScale.Scale = UI.windowScale(screen, WINDOW_SIZE) -- (même règle que les autres fenêtres, UI.luau)
 	end
 	fitToScreen()
 	gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(fitToScreen)

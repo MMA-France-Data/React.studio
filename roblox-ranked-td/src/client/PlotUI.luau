@@ -260,13 +260,15 @@ function PlotUI.start()
 		Visible = false,
 		Parent = gui,
 	}, { UI.corner(14), UI.padding(10), UI.stroke() })
-	-- Réduit le panneau quand il n'a pas la place à côté du chat (petits écrans, téléphones).
+	-- Réduit le panneau quand il n'a pas la place à côté du chat (ordinateur) ou de la colonne de boutons de
+	-- gauche (petits écrans, téléphones : sinon Autel, Forge... cacheraient ses premières cartes, dont l'Archer
+	-- que le tuto fait poser).
 	local CHAT_WIDTH = 500 -- largeur laissée au chat sur ordinateur
 	local panelScale = UI.new("UIScale", { Parent = panel })
 	local function fitPanel()
 		local viewport = workspace.CurrentCamera.ViewportSize
-		local reserved = if viewport.X >= 1000 then CHAT_WIDTH else 0
-		panelScale.Scale = math.min(1, (viewport.X - reserved - 32) / panel.Size.X.Offset, (viewport.Y * 0.55) / PANEL_HEIGHT)
+		local left = if viewport.X >= 1000 then CHAT_WIDTH + 16 else UI.leftColumnRight(UI.screenSize(gui)) + 8
+		panelScale.Scale = math.min(1, (viewport.X - left - 16) / panel.Size.X.Offset, (viewport.Y * 0.55) / PANEL_HEIGHT)
 	end
 	fitPanel()
 	workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(fitPanel)
@@ -345,8 +347,18 @@ function PlotUI.start()
 		-- jour dans refreshCards.
 		local stats = UI.label({
 			Position = UDim2.new(0, 0, 0, 38),
-			Size = UDim2.new(1, 0, 1, -64),
+			Size = UDim2.new(1, 0, 1, -77),
 			MaxTextSize = 13,
+			Parent = card,
+		})
+		-- Limite de tours identiques (IdleTowers.MAX_COPIES) : « 2/5 posées », en rouge à la limite (refreshCards).
+		local copies = UI.label({
+			AnchorPoint = Vector2.new(0, 1),
+			Position = UDim2.new(0, 0, 1, -23),
+			Size = UDim2.new(1, 0, 0, 14),
+			Font = Enum.Font.GothamBold,
+			TextColor3 = UI.Colors.Muted,
+			MaxTextSize = 12,
 			Parent = card,
 		})
 		local price = UI.label({
@@ -357,7 +369,7 @@ function PlotUI.start()
 			MaxTextSize = 17,
 			Parent = card,
 		})
-		cards[towerType] = { button = card, price = price, stats = stats }
+		cards[towerType] = { button = card, price = price, stats = stats, copies = copies }
 		card.MouseEnter:Connect(function()
 			hoveredType = towerType
 		end)
@@ -548,6 +560,22 @@ function PlotUI.start()
 	local function refundOf(tower: Model): number
 		return math.floor((tower:GetAttribute("Spent") or 0) * IdleConfig.SELL_REFUND)
 	end
+	-- Tours posées sur TA parcelle, par type : { [type] = nombre } (limite de tours identiques, IdleTowers.MAX_COPIES).
+	-- Le serveur revérifie à chaque pose (PlotGame:placeTower).
+	local function placedCounts(): { [string]: number }
+		local plot = myPlotFolder()
+		local towers = plot and plot:FindFirstChild("Towers")
+		local types = {}
+		if towers then
+			for _, model in towers:GetChildren() do
+				local towerType = model:GetAttribute("TowerType")
+				if typeof(towerType) == "string" then
+					table.insert(types, towerType)
+				end
+			end
+		end
+		return IdleTowers.countCopies(types)
+	end
 
 	local confirmBonus: string? = nil
 	local confirmBonusAt = 0
@@ -594,6 +622,10 @@ function PlotUI.start()
 			if not tower then
 				-- Emplacement libre : pose directe (pas assez de pièces : rien n'est envoyé, l'emplacement
 				-- n'est pas bloqué 2 s pour rien).
+				if not IdleTowers.canPlaceCopy(placedCounts(), towerType) then
+					UI.toast(IdleTowers.copiesLimitMessage(towerType), "Error") -- limite de tours identiques
+					return
+				end
 				if coins() < def.placeCost then
 					UI.toast(`Il te faut {NumberFormat.short(def.placeCost)} pièces`, "Error")
 					return
@@ -609,6 +641,11 @@ function PlotUI.start()
 			end
 			if tower:GetAttribute("TowerType") == towerType then
 				UI.toast("Cette tour est déjà posée ici", "Warning")
+				return
+			end
+			-- Limite de tours identiques : la tour remplacée ne libère une place que si elle est du même type.
+			if not IdleTowers.canPlaceCopy(placedCounts(), towerType, tower:GetAttribute("TowerType")) then
+				UI.toast(IdleTowers.copiesLimitMessage(towerType), "Error")
 				return
 			end
 			if coins() + refundOf(tower) < def.placeCost then
@@ -773,10 +810,16 @@ function PlotUI.start()
 
 	-- Cartes : stats au niveau 1 (doublons compris) et prix. currentType = tour à remplacer (ou nil),
 	-- refund = ce que rapporte sa revente, locked = une pose est en cours sur cet emplacement.
+	-- Limite de tours identiques : « 2/5 posées » sur chaque carte ; à la limite (ou au-delà : vieille sauvegarde),
+	-- la carte est grisée, « 2/2 posées » en rouge et « COMPLET » à la place du prix (un clic dit pourquoi).
 	local function refreshCards(currentType: string?, refund: number, locked: boolean)
+		local counts = placedCounts()
 		for towerType, card in cards do
 			local stats = IdleTowers.effectiveStats(towerType, 1, dupesOf(player, towerType))
 			card.stats.Text = cardStatsText(stats)
+			local full = not IdleTowers.canPlaceCopy(counts, towerType, currentType)
+			card.copies.Text = IdleTowers.copiesText(counts[towerType] or 0, towerType)
+			card.copies.TextColor3 = if full and towerType ~= currentType then UI.Colors.Error else UI.Colors.Muted
 
 			local cost = IdleTowers.Defs[towerType].placeCost
 			if not isUnlocked(towerType) then
@@ -787,6 +830,10 @@ function PlotUI.start()
 				card.price.Text = "POSÉE"
 				card.price.TextColor3 = UI.Colors.Success
 				card.button.BackgroundTransparency = 0.5
+			elseif full then
+				card.price.Text = "COMPLET"
+				card.price.TextColor3 = UI.Colors.Error
+				card.button.BackgroundTransparency = 0.6
 			else
 				local affordable = coins() + refund >= cost
 				card.price.Text = NumberFormat.short(cost)
@@ -864,11 +911,24 @@ function PlotUI.start()
 			end
 			table.insert(lines, `<font color="#D8AA4C">Runes :</font> {table.concat(parts, "  •  ")}`)
 		end
+		-- Dernière ligne : doublons (s'il y en a) et limite de tours identiques de sa rareté (IdleTowers.MAX_COPIES),
+		-- sur la même ligne et en court pour garder le texte lisible sur un téléphone : « 2/2 posées » comme sur les
+		-- cartes, en rouge à la limite (ou au-delà : vieille sauvegarde, tours gardées).
+		local last = {}
 		if dupes > 0 then
 			-- Arrondi : sans lui, 29 doublons affichaient +57 % au lieu de +58 % (virgules des calculs).
 			local percent = math.floor(dupes * IdleConfig.DUPLICATE_DAMAGE_BONUS * 100 + 0.5)
-			table.insert(lines, `Doublons : {NumberFormat.short(dupes)} (+{NumberFormat.short(percent)} % de dégâts)`)
+			table.insert(last, `Doublons : {NumberFormat.short(dupes)} (+{NumberFormat.short(percent)} % de dégâts)`)
 		end
+		local maxCopies = IdleTowers.maxCopies(towerType)
+		local count = placedCounts()[towerType] or 0
+		local rarity = IdleConfig.RARITIES[def.rarity]
+		local countText = IdleTowers.copiesText(count, towerType)
+		if count >= maxCopies then
+			countText = `<font color="#F06464">{countText}</font>`
+		end
+		table.insert(last, `<font color="#D8AA4C">Limite :</font> {maxCopies} par parcelle ({rarity and rarity.displayName or def.rarity}) • {countText}`)
+		table.insert(lines, table.concat(last, "  •  "))
 		return table.concat(lines, "\n")
 	end
 
@@ -928,8 +988,11 @@ function PlotUI.start()
 			setMode("empty")
 			panelTitle.Text = `Emplacement {spotIndex}`
 			local hovered = hoveredType and IdleTowers.Defs[hoveredType]
+			-- Carte survolée à la limite de tours identiques : le sous-titre dit pourquoi elle est grisée.
+			local hoveredFull = hovered ~= nil and not IdleTowers.canPlaceCopy(placedCounts(), hoveredType)
 			panelSubtitle.Text = if pending
 				then "Pose en cours…"
+				elseif hoveredFull then `{IdleTowers.copiesLimitMessage(hoveredType)} : vends-en une pour en poser une autre`
 				elseif hovered then idealText(hovered)
 				else "Choisis une tour à poser (survole une carte : contre quoi elle est idéale) :"
 			cardRow.Visible = true
@@ -985,8 +1048,12 @@ function PlotUI.start()
 			setMode("replace")
 			panelTitle.Text = `Remplacer : {def.displayName} • Niv. {level}`
 			local hovered = hoveredType and IdleTowers.Defs[hoveredType]
-			panelSubtitle.Text = if hovered
-				then idealText(hovered)
+			local hoveredFull = hovered ~= nil
+				and hoveredType ~= currentType
+				and not IdleTowers.canPlaceCopy(placedCounts(), hoveredType, currentType)
+			panelSubtitle.Text = if hoveredFull
+				then `{IdleTowers.copiesLimitMessage(hoveredType)} : vends-en une pour en poser une autre`
+				elseif hovered then idealText(hovered)
 				else `Choisis la nouvelle tour (elle repart au niveau 1 ; tu récupères {refundPercent()} % : +{NumberFormat.short(refund)}) :`
 			cardRow.Visible = true
 			refreshCards(currentType, refund, pending ~= nil)

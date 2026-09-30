@@ -10,10 +10,11 @@ Liste des choses à faire avant de rendre le jeu public. On coche au fur et à m
       l'autel une fois, la forge (à essayer toi-même dans Studio : il s'affiche à chaque Play).
 - [x] Monstres et tirs des autres parcelles affichés seulement quand on s'en approche ; interactions
       seulement avec sa propre parcelle (à revoir à 2 joueurs dans le jeu publié).
-- [ ] Limite de tours identiques sur sa parcelle : 5 par tour commune, 4 par rare, 3 par épique, 2 par
-      légendaire (mode solo seulement).
-- [ ] Fenêtres de l'autel, de la forge et de la renaissance adaptées aux téléphones (trop grandes : le
-      bouton x1 sort presque de l'écran).
+- [x] Limite de tours identiques sur sa parcelle : 5 par tour commune, 4 par rare, 3 par épique, 2 par
+      légendaire (mode solo seulement ; les tours déjà posées au-delà sont gardées).
+- [x] Fenêtres de l'autel, de la forge et de la renaissance adaptées aux téléphones (trop grandes : le
+      bouton x1 sort presque de l'écran). Toutes les fenêtres se réduisent pour tenir à l'écran, et la colonne
+      de boutons de gauche aussi (la Boutique et les Défis sortaient de l'écran). À revoir sur un vrai téléphone.
 - [ ] Sons : écoutés et validés dans Studio (bouton « SONS (Studio) »).
 
 ## Publication (Studio et Creator Dashboard)

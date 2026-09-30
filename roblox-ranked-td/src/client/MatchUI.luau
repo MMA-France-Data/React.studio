@@ -11,6 +11,19 @@ local UI = require(script.Parent.UI)
 
 local MatchUI = {}
 
+-- La fiche de tour s'arrête à ce nombre de px du bas de l'écran, juste au-dessus de la boutique de tours.
+local CARD_BOTTOM = 92
+
+-- Échelle de la fiche de tour (ancrée en bas au centre, taille `size` en px) pour un écran de taille `screen` (px,
+-- sous la barre du haut de Roblox) : entière entre le haut de l'écran et la boutique. Sur un téléphone en paysage,
+-- sans ça, son haut passait sous la barre du haut. Jamais agrandie (rien ne change sur un ordinateur). Fonction
+-- pure : les tests l'appellent avec de fausses tailles de téléphone.
+function MatchUI.cardScale(screen: Vector2, size: Vector2): number
+	local width = screen.X - 2 * UI.WINDOW_MARGIN
+	local height = screen.Y - CARD_BOTTOM - UI.WINDOW_MARGIN
+	return math.clamp(math.min(1, width / size.X, height / size.Y), UI.MIN_WINDOW_SCALE, 1)
+end
+
 local REASONS = {
 	BaseDestroyed = "Base détruite",
 	BothDestroyed = "Les deux bases sont tombées en même temps",
@@ -146,13 +159,25 @@ function MatchUI.start(TowerPlacement)
 	-- Fiche de tour (au-dessus de la boutique) : les 3 niveaux côte à côte.
 	-- Tour sélectionnée -> niveaux + boutons ; survol / pose -> aperçu boutique.
 	local towerPanel = UI.new("Frame", {
+		Name = "TowerCardPanel",
 		AnchorPoint = Vector2.new(0.5, 1),
-		Position = UDim2.new(0.5, 0, 1, -92),
+		Position = UDim2.new(0.5, 0, 1, -CARD_BOTTOM),
 		Size = UDim2.fromOffset(TowerCard.WIDTH, TowerCard.HEIGHT + 48),
 		BackgroundTransparency = 1,
 		Visible = false,
 		Parent = gui,
 	})
+	-- Petit écran (téléphone) : réduite depuis son bas pour tenir sous la barre du haut (MatchUI.cardScale).
+	local towerPanelScale = UI.new("UIScale", { Name = "FitScale", Parent = towerPanel })
+	local function fitTowerPanel()
+		local screen = UI.screenSize(gui)
+		if screen.X > 0 and screen.Y > 0 then
+			local size = towerPanel.Size
+			towerPanelScale.Scale = MatchUI.cardScale(screen, Vector2.new(size.X.Offset, size.Y.Offset))
+		end
+	end
+	fitTowerPanel()
+	gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(fitTowerPanel)
 	local towerCard = TowerCard.new(towerPanel)
 	local actions = UI.new("Frame", {
 		AnchorPoint = Vector2.new(0, 1),

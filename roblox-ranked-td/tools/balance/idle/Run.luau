@@ -799,6 +799,9 @@ function Run:packageOptions(focus, options, replacements: boolean)
 		end
 	end
 
+	-- Limite de tours identiques (IdleTowers.MAX_COPIES, comme PlotGame:placeTower) : pas de tour de plus d'un type
+	-- déjà posé au maximum (un remplacement compte la tour remplacée seulement si c'est le même type).
+	local copies = IdleTowers.countCopies(self.towers)
 	for _, candidate in candidates do
 		local existing = self.towers[candidate.spot]
 		for _, towerType in IdleTowers.ORDER do
@@ -807,6 +810,7 @@ function Run:packageOptions(focus, options, replacements: boolean)
 				and not self:banned(towerType)
 				and not (existing and existing.type == towerType)
 				and (candidate.onlyType == nil or candidate.onlyType == towerType)
+				and IdleTowers.canPlaceCopy(copies, towerType, existing and existing.type)
 			then
 				local option = self:packageOption(focus, candidate.spot, towerType, candidate.newSpot)
 				if option.ratio > 0 then
@@ -877,6 +881,13 @@ function Run:execute(option)
 	end
 
 	local spot = option.spot
+	-- Même règle que PlotGame:placeTower : limite de tours identiques (IdleTowers.MAX_COPIES). Les options qui la
+	-- dépassent ne sont jamais proposées (packageOptions, wallSolver) : vérifié ici avant tout achat.
+	local replacedType = if self.towers[spot] then self.towers[spot].type else nil
+	assert(
+		IdleTowers.canPlaceCopy(IdleTowers.countCopies(self.towers), option.type, replacedType),
+		`limite de tours identiques dépassée : {option.type}`
+	)
 	if option.kind == "spot" then
 		-- Même règle que PlotGame:buySpot : le prix ne dépend que du nombre d'emplacements déjà possédés.
 		local nth = self.unlockedSpots + 1
@@ -1594,6 +1605,7 @@ function Run:wallSolver()
 		return
 	end
 	local best, bestScore = nil, current * P.SOLVER_MIN_GAIN
+	local copies = IdleTowers.countCopies(self.towers) -- limite de tours identiques (IdleTowers.MAX_COPIES)
 	for _, towerType in SLOW_TOWERS do
 		if self.unlocked[towerType] and not self:banned(towerType) then
 			local placeCost = IdleTowers.Defs[towerType].placeCost
@@ -1604,6 +1616,7 @@ function Run:wallSolver()
 					self.owned[spot]
 					and not (existing and IdleTowers.Defs[existing.type].slow)
 					and self.coins + refund >= placeCost
+					and IdleTowers.canPlaceCopy(copies, towerType, existing and existing.type)
 				then
 					local copy = table.clone(self.towers)
 					copy[spot] = { type = towerType, level = 1 }

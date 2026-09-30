@@ -273,7 +273,12 @@ Un joueur **actif** (réglages dans `Run.POLICY`, en haut de `idle/Run.luau`) :
 - si le meilleur achat est trop cher mais payable en moins de 5 min de farm (30 min pour un lot x1 000 ou
   x1 000 000 de l'autel), il économise ; sinon il prend le meilleur achat abordable (s'il vaut au moins 25 %
   du meilleur) ;
-- il ne vend jamais une tour sans la remplacer.
+- il ne vend jamais une tour sans la remplacer ;
+- il respecte la **limite de tours identiques** du jeu (`IdleTowers.MAX_COPIES` : 5 par tour commune, 4 rare,
+  3 épique, 2 légendaire ; `IdleTowers.canPlaceCopy`, comme `PlotGame:placeTower`) : une pose, un emplacement
+  acheté avec sa tour ou un remplacement qui la dépasserait n'est jamais proposé (`Run:packageOptions`,
+  `Run:wallSolver`, vérifié dans `Run:execute`). Le banc d'essai et l'anti-méta comparent encore des équipes
+  « tout X » (N tours du même type) : le rapport les marque « ! » (impossibles en jeu).
 
 Option `-Regler "Joueur.SOLVER=true"` : au mur (bloqué depuis 2 min, puis toutes les 30 min), le joueur
 essaie aussi avec le vrai moteur de remplacer une tour par une tour qui ralentit (Mage des tempêtes, Totem

@@ -27,13 +27,13 @@ local REWARD_WIDTH = 190 -- colonne de droite : récompense et bouton « Récup�
 -- barre du haut : le chat en bas à gauche (même largeur que dans PlotUI) et la liste des joueurs en haut à
 -- droite. Liste mesurée sur une capture des tests Studio (hub_ui.png) : ~400 px de large avec nos 3 colonnes
 -- (Rang, Pièces, MMR), ~85 px de haut avec 1 joueur et ~40 px de plus par joueur (~290 px avec 6 joueurs).
--- Sur un petit écran (téléphone), la fenêtre est seulement réduite pour tenir.
+-- Sur un petit écran (téléphone), la fenêtre est réduite pour tenir, à droite de la colonne de boutons de gauche.
 local CHAT_WIDTH = 500
 local PLAYER_LIST_WIDTH = 420
 local PLAYER_LIST_HEIGHT = 310
 local SMALL_SCREEN = 1000
-local SCREEN_MARGIN = 8
-local MIN_SCALE = 0.4
+local SCREEN_MARGIN = UI.WINDOW_MARGIN -- 8 px, comme les autres fenêtres
+local MIN_SCALE = UI.MIN_WINDOW_SCALE
 local CLAIM_COOLDOWN = 1 -- secondes entre deux clics « Récupérer » (le serveur refuse de toute façon le 2e)
 local DONE_COLOR = UI.Colors.Success:Lerp(Color3.new(1, 1, 1), 0.35)
 
@@ -49,6 +49,41 @@ local function formatLeft(seconds: number): string
 		return `{minutes} min`
 	end
 	return `{seconds} s`
+end
+
+-- Place de la fenêtre pour un écran (zone du ScreenGui, sous la barre du haut) de taille `screen` (px) : son coin en
+-- haut à gauche et son échelle (UIScale, qui la réduit depuis ce coin). Fonction pure : les tests l'appellent aussi
+-- avec de fausses tailles de téléphone.
+-- Écran d'ordinateur : elle ne couvre ni le chat (à gauche de CHAT_WIDTH) ni la liste des joueurs (coin en haut à
+-- droite) : soit entre les deux sur toute la hauteur, soit à droite du chat et SOUS la liste (mieux sur les écrans
+-- moins larges) ; on garde la place où elle est la plus grande. Dans cette place, elle est centrée sur l'écran si
+-- possible. Petit écran (téléphone) : à droite de la colonne de boutons de gauche, réduite pour tenir. Les boutons
+-- de l'autel et de la forge (MachineUI, ordre 20) passent PAR-DESSUS cette fenêtre (ordre 19) : centrée, son bord
+-- gauche était caché dessous sur un téléphone de 667 px de large. (Pas assez de place à droite de la colonne :
+-- centrée, comme avant.)
+function ChallengeUI.placement(screen: Vector2): (Vector2, number)
+	local left, right = SCREEN_MARGIN, screen.X - SCREEN_MARGIN
+	local top, bottom = SCREEN_MARGIN, screen.Y - SCREEN_MARGIN
+	if screen.X >= SMALL_SCREEN then
+		left = CHAT_WIDTH
+		local between = math.min((screen.X - PLAYER_LIST_WIDTH - left) / WINDOW_SIZE.X, (bottom - top) / WINDOW_SIZE.Y)
+		local below = math.min((right - left) / WINDOW_SIZE.X, (bottom - PLAYER_LIST_HEIGHT) / WINDOW_SIZE.Y)
+		if between >= below then
+			right = screen.X - PLAYER_LIST_WIDTH
+		else
+			top = PLAYER_LIST_HEIGHT
+		end
+	else
+		local column = UI.leftColumnRight(screen) + SCREEN_MARGIN
+		if (right - column) / WINDOW_SIZE.X >= MIN_SCALE then
+			left = column
+		end
+	end
+	local scale = math.clamp(math.min((right - left) / WINDOW_SIZE.X, (bottom - top) / WINDOW_SIZE.Y, 1), MIN_SCALE, 1)
+	local width, height = WINDOW_SIZE.X * scale, WINDOW_SIZE.Y * scale
+	local x = math.clamp((screen.X - width) / 2, left, math.max(left, right - width))
+	local y = math.clamp((screen.Y - height) / 2, top, math.max(top, bottom - height))
+	return Vector2.new(math.floor(x), math.floor(y)), scale
 end
 
 function ChallengeUI.start()
@@ -122,6 +157,9 @@ function ChallengeUI.start()
 		ZIndex = 4,
 		Parent = badge,
 	})
+	-- Écran trop bas (téléphone) : toute la colonne est réduite pour tenir (UI.leftColumnSlot). Avant, ce bouton
+	-- sortait de l'écran d'un téléphone en paysage.
+	UI.placeInLeftColumn(button, 4)
 
 	------------------------------------------------------------------
 	-- Fenêtre (même style que les machines, MachineUI)
@@ -145,36 +183,17 @@ function ChallengeUI.start()
 	local windowStroke = UI.stroke(BUTTON_COLOR:Lerp(Color3.new(1, 1, 1), 0.3), 3)
 	windowStroke.Transparency = 0
 	windowStroke.Parent = window
-	local windowScale = UI.new("UIScale", { Parent = window })
+	local windowScale = UI.new("UIScale", { Name = "FitScale", Parent = window })
 
-	-- Place de la fenêtre (Position = son coin en haut à gauche, d'où UIScale la réduit). Sur un écran
-	-- d'ordinateur, elle ne couvre ni le chat (à gauche de CHAT_WIDTH) ni la liste des joueurs (coin en haut à
-	-- droite) : soit entre les deux sur toute la hauteur, soit à droite du chat et SOUS la liste (mieux sur les
-	-- écrans moins larges) ; on garde la place où elle est la plus grande. Dans cette place, elle est centrée sur
-	-- l'écran si possible. Petit écran (téléphone) : centrée, seulement réduite pour tenir.
+	-- Place de la fenêtre (Position = son coin en haut à gauche, d'où UIScale la réduit) : ChallengeUI.placement.
 	local function placeWindow()
 		local screen = gui.AbsoluteSize
 		if screen.X <= 0 or screen.Y <= 0 then
 			return
 		end
-		local left, right = SCREEN_MARGIN, screen.X - SCREEN_MARGIN
-		local top, bottom = SCREEN_MARGIN, screen.Y - SCREEN_MARGIN
-		if screen.X >= SMALL_SCREEN then
-			left = CHAT_WIDTH
-			local between = math.min((screen.X - PLAYER_LIST_WIDTH - left) / WINDOW_SIZE.X, (bottom - top) / WINDOW_SIZE.Y)
-			local below = math.min((right - left) / WINDOW_SIZE.X, (bottom - PLAYER_LIST_HEIGHT) / WINDOW_SIZE.Y)
-			if between >= below then
-				right = screen.X - PLAYER_LIST_WIDTH
-			else
-				top = PLAYER_LIST_HEIGHT
-			end
-		end
-		local scale = math.clamp(math.min((right - left) / WINDOW_SIZE.X, (bottom - top) / WINDOW_SIZE.Y, 1), MIN_SCALE, 1)
-		local width, height = WINDOW_SIZE.X * scale, WINDOW_SIZE.Y * scale
-		local x = math.clamp((screen.X - width) / 2, left, math.max(left, right - width))
-		local y = math.clamp((screen.Y - height) / 2, top, math.max(top, bottom - height))
+		local position, scale = ChallengeUI.placement(screen)
 		windowScale.Scale = scale
-		window.Position = UDim2.fromOffset(math.floor(x), math.floor(y))
+		window.Position = UDim2.fromOffset(position.X, position.Y)
 	end
 	placeWindow()
 	gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(placeWindow)

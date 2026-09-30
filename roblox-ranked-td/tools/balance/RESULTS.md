@@ -368,6 +368,68 @@ part des dégâts utiles, « de - à » selon le type de vague, moyenne des 3 pa
   maintenant le réglage (avec `BALLISTA_PIERCE_MAX` à 4, il attend T et les 3 plus proches) ; joué hors de Studio
   avec le vrai `PlotGame.luau`, il passe avec 1, 2, 3 et 4.
 
+## Limite de tours identiques (décision du propriétaire, 30/09/2026)
+
+Décision : « un nombre de tours max, pas total mais de doublons ». **Règle** (`IdleTowers.MAX_COPIES`,
+`PlotGame:placeTower`) : sur sa parcelle, 5 exemplaires au plus d'une même tour commune, 4 d'une rare, 3 d'une
+épique, 2 d'une légendaire (28 places pour 22 emplacements). Le joueur simulé la respecte (`Run:packageOptions`,
+`Run:wallSolver`, vérifiée dans `Run:execute`). Le banc d'essai et l'anti-méta comparent encore des équipes « tout X » :
+le rapport les marque maintenant « ! » (impossibles en jeu). Le combat ne change pas : `run.ps1 -Verifier` = 162
+vagues sur 162 identiques, 0,00 s d'écart, 106 sur 106 avec les mêmes carreaux, 2 essais de dégâts sur 2, 4 vagues
+faites à la main sur 4.
+
+Essai rapide (`run.ps1 -Rapide` : 3 parties x 40 h, scénario « base », mêmes graines que « Baliste : transperce 3
+max » juste au-dessus) ; aucun réglage changé :
+
+| Scénario « base » | Transperce 3 max (avant) | **Limite de tours** |
+|---|---|---|
+| Vague 50 / 100 | 5 h 02 / 18 h 26 | **4 h 17 / 16 h 00** |
+| Record à 40 h | 149 (139 - 159) | **163** (159 - 165) |
+| Murs 31-70 / 71-100 (80 % sous…) | 21 min / 34 min | 14 min / 33 min |
+| 1re légendaire | 9 h 42, vague 70 | 6 h 48, vague 63 |
+| Lancers de l'autel en 40 h | 2 010 | 2 370 |
+| Anti-méta à 40 h : mélange / tout Baliste | 143 / 137 | 157 / 150 ! |
+| Objectifs atteints | 18 sur 26 | 18 sur 26 : gagné « murs 31-70 » (OK) ; perdu « 22 emplacements peu à peu » (TROP TARD : le 22e à la vague 105 au lieu de 98, la progression va plus vite) ; « les 8 tours utiles » reste NON (l'Oracle rejoint le Mage) |
+
+Tours du joueur simulé (graine 1) :
+
+| Moment | Avant | Limite de tours |
+|---|---|---|
+| 5 h | 1 Archer, 6 Totem, 2 Catapulte, 1 Mage, 3 Baliste, 1 Sorcier | 1 Archer, 5 Totem, 3 Catapulte, 2 Mage, 2 Baliste, 1 Sorcier |
+| 10 h | 1 Archer, **9 Totem, 8 Oracle** | 2 Archer, 5 Totem, 4 Catapulte, 1 Mage, 3 Baliste, 3 Sorcier, 2 Trébuchet |
+| 20 h | **8 Totem**, 2 Baliste, **6 Oracle, 6 Trébuchet** | 2 Archer, 5 Totem, 4 Catapulte, 1 Mage, 3 Baliste, 3 Sorcier, 1 Oracle, 2 Trébuchet |
+| 40 h | 1 Archer, 4 Totem, 4 Catapulte, 2 Baliste, 1 Sorcier, **10 Trébuchet** | 2 Archer, 5 Totem, 4 Catapulte, 2 Mage, 3 Baliste, 3 Sorcier, 1 Oracle, 2 Trébuchet |
+
+Part des dégâts utiles (moyenne des 3 parties, « de - à » selon le type de vague ; vagues 26-50 / 51-100 / 101+) :
+
+| Tour | Avant | Limite de tours |
+|---|---|---|
+| Archer | 1-5 % / 3-20 % / 6-16 % | 2-7 % / 4-16 % / 4-14 % |
+| Catapulte | 30-76 % / 0-4 % / 26-67 % | 27-74 % / **13-43 %** / 23-79 % |
+| Baliste | 18-55 % / 9-25 % / 4-19 % | 22-66 % / 5-17 % / 6-27 % |
+| Sorcier | 1-24 % / 0-5 % / 2-36 % | 0-14 % / **2-39 %** / 3-32 % |
+| Oracle | 0 % / 28-32 % / 0 % | 0 % / **0-1 %** / 0 % |
+| Trébuchet | 0 % / 24-56 % / 6-20 % | 0 % / 17-53 % / 3-7 % |
+| Totem, Mage (contrôle) | 2 % au plus | 1 % au plus |
+
+- Le joueur simulé empilait des Totems (jusqu'à 9) et des légendaires (8 Oracles, 10 Trébuchets) : achat par achat,
+  c'était le meilleur choix, mais pas au total. Obligé de mélanger (Catapultes, Balistes, Sorciers), il va **plus
+  vite** : vague 100 2 h 26 plus tôt, record +14 à 40 h. Il achète aussi plus de lancers à l'autel (plus rien à
+  poser), d'où une 1re légendaire plus tôt.
+- **Cible manquée** : vague 100 vers 18-20 h, mesurée à **16 h 00**. Aucun réglage changé ici. **Proposition (une
+  seule)** : `IdleConfig.HEALTH_WAVE_POWER` de 2,55 à **2,62** (PV +17 % à la vague 50, +22 % à la 100). Essayé avec
+  `-Regler "IdleConfig.HEALTH_WAVE_POWER=2.62"` (mêmes graines) : vague 50 à 4 h 58, **vague 100 à 18 h 10**, record
+  154 (145 - 168) à 40 h, murs 31-70 / 71-100 : 80 % sous 20 min / 31 min ; 17 objectifs sur 26 (le 20, « Baliste et
+  Trébuchet utiles au milieu de partie », passe à NON). À décider avec le propriétaire.
+- Honnêtement : l'**Oracle** ne sert presque plus (0-1 % des dégâts) : avec 2 exemplaires au plus, le joueur simulé
+  préfère 2 Trébuchets et ne pose qu'un Oracle, tard (vague ~87). Le Mage reste une tour de contrôle (0 % des dégâts,
+  2 à 3 posés). 3 parties seulement.
+- Relecture : l'essai rapide relancé redonne exactement ces chiffres ; relancé sans limite (`-Regler` avec
+  `IdleTowers.MAX_COPIES` à 99 partout), il redonne exactement la colonne « avant » (seule la limite a changé le
+  joueur simulé) ; la proposition à 2,62 aussi. Erreur faite exprès dans le joueur simulé (une tour de plus que la
+  limite proposée) : `Run:execute` arrête la partie dès le 6e Totem. Le test Studio, rejoué hors de Studio avec le
+  vrai `PlotGame.luau` : 15 sur 15, et il voit une limite décalée de 1 ou une vieille sauvegarde rognée au chargement.
+
 ## Ce qui reste (honnêtement)
 
 1. **Murs des vagues 71-100 trop longs** (80 % sous 33 min, cible 20) : surtout les Escarmouches juste après une

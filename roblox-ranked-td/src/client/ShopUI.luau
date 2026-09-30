@@ -36,8 +36,11 @@ local ROBUX_GREEN = Color3.fromRGB(0, 176, 111) -- même vert que le bouton Robu
 local SPEED_COLOR = Color3.fromRGB(70, 130, 210)
 local COINS_COLOR = Color3.fromRGB(235, 140, 45)
 local DARK_TEXT = Color3.fromRGB(30, 25, 10)
--- 3 cartes côte à côte (~256 px chacune). Réduite sur les petits écrans (fitWindow).
+-- 3 cartes côte à côte (~256 px chacune). Réduite sur les petits écrans (UI.fitWindow).
 local WINDOW_SIZE = Vector2.new(820, 400)
+-- Message « Pendant ton absence » : sa taille, et son centre un peu au-dessus du milieu de l'écran.
+local OFFLINE_SIZE = Vector2.new(460, 270)
+local OFFLINE_CENTER = Vector2.new(0.5, 0.45)
 local PROMPT_COOLDOWN = 1 -- secondes entre deux fenêtres d'achat (un double clic n'en ouvre qu'une)
 local TOGGLE_COOLDOWN = 0.5 -- secondes entre deux changements de vitesse
 -- Limite par défaut des gains hors ligne (en runs complètes par jour), si IdleConfig n'en donne pas.
@@ -134,6 +137,8 @@ function ShopUI.start()
 		MaxTextSize = 18,
 		Parent = buttonGui,
 	})
+	-- Écran trop bas (téléphone) : toute la colonne est réduite pour tenir (UI.leftColumnSlot).
+	UI.placeInLeftColumn(shopButton, 3)
 
 	------------------------------------------------------------------
 	-- Bouton Vitesse x2 (visible seulement avec le pass) : sur la ligne du compteur de pièces de PlotUI, juste
@@ -166,6 +171,7 @@ function ShopUI.start()
 	-- Fenêtre de la boutique (même style que les machines, MachineUI)
 	------------------------------------------------------------------
 	local overlay = UI.new("TextButton", {
+		Name = "Overlay",
 		Size = UDim2.fromScale(1, 1),
 		BackgroundColor3 = Color3.new(0, 0, 0),
 		BackgroundTransparency = 0.5,
@@ -175,6 +181,7 @@ function ShopUI.start()
 		Parent = gui,
 	})
 	local window = UI.new("Frame", {
+		Name = "Window",
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.5),
 		Size = UDim2.fromOffset(WINDOW_SIZE.X, WINDOW_SIZE.Y),
@@ -184,14 +191,9 @@ function ShopUI.start()
 	local windowStroke = UI.stroke(UI.Colors.Gold, 3)
 	windowStroke.Transparency = 0
 	windowStroke.Parent = window
-	-- Réduit la fenêtre sur les petits écrans (téléphones).
-	local windowScale = UI.new("UIScale", { Parent = window })
-	local function fitWindow()
-		local viewport = workspace.CurrentCamera.ViewportSize
-		windowScale.Scale = math.clamp(math.min((viewport.X - 24) / WINDOW_SIZE.X, (viewport.Y - 24) / WINDOW_SIZE.Y), 0.4, 1)
-	end
-	fitWindow()
-	workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(fitWindow)
+	-- Réduit la fenêtre sur les petits écrans (téléphones). Avant, elle se basait sur l'écran entier, barre du haut
+	-- de Roblox comprise : sur un téléphone, son haut (et le « X ») passait sous cette barre.
+	UI.fitWindow(window, WINDOW_SIZE)
 
 	UI.label({
 		Size = UDim2.new(1, -40, 0, 30),
@@ -520,6 +522,7 @@ local showNextOffline: () -> ()
 local function buildOfflinePanel()
 	local gui = UI.screen("OfflineGains", 30)
 	local overlay = UI.new("TextButton", {
+		Name = "Overlay",
 		Size = UDim2.fromScale(1, 1),
 		BackgroundColor3 = Color3.new(0, 0, 0),
 		BackgroundTransparency = 0.55,
@@ -529,16 +532,18 @@ local function buildOfflinePanel()
 		Parent = gui,
 	})
 	local window = UI.new("Frame", {
+		Name = "Window",
 		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.45),
-		Size = UDim2.fromOffset(460, 270),
+		Position = UDim2.fromScale(OFFLINE_CENTER.X, OFFLINE_CENTER.Y),
+		Size = UDim2.fromOffset(OFFLINE_SIZE.X, OFFLINE_SIZE.Y),
 		BackgroundColor3 = UI.Colors.Panel,
 		Parent = overlay,
 	}, { UI.corner(16), UI.padding(16) })
 	local stroke = UI.stroke(UI.Colors.Gold, 3)
 	stroke.Transparency = 0
 	stroke.Parent = window
-	local scale = UI.new("UIScale", { Parent = window })
+	-- Échelle : petite animation à l'ouverture (displayOffline), jusqu'à la taille qui tient dans l'écran.
+	local scale = UI.new("UIScale", { Name = "FitScale", Parent = window })
 
 	local title = UI.label({
 		Size = UDim2.new(1, 0, 0, 28),
@@ -594,11 +599,18 @@ local function buildOfflinePanel()
 		countUp = nil :: RBXScriptConnection?,
 	}
 
+	-- Taille qui tient dans l'écran de ce ScreenGui, sous la barre du haut de Roblox (UI.windowScale). Avant, elle se
+	-- basait sur l'écran entier, barre comprise : sur un petit téléphone, le haut du message passait dessous.
 	local function fitScale(): number
-		local viewport = workspace.CurrentCamera.ViewportSize
-		return math.clamp(math.min((viewport.X - 24) / 460, (viewport.Y - 24) / 270), 0.4, 1)
+		return UI.windowScale(UI.screenSize(gui), OFFLINE_SIZE, OFFLINE_CENTER)
 	end
 	panel.fitScale = fitScale
+	-- Écran qui change de taille pendant l'affichage (téléphone tourné) : la fenêtre suit.
+	gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
+		if overlay.Visible and gui.AbsoluteSize.X > 0 and gui.AbsoluteSize.Y > 0 then
+			scale.Scale = fitScale()
+		end
+	end)
 
 	function panel.close()
 		if not overlay.Visible then
@@ -648,6 +660,13 @@ local function displayOffline(entry)
 	local target = panel.fitScale()
 	panel.scale.Scale = target * 0.8
 	TweenService:Create(panel.scale, TweenInfo.new(0.35, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = target }):Play()
+	-- Taille finale assurée même si l'animation est coupée (ou si l'écran a été mesuré pendant qu'elle jouait).
+	local openedAt = panel.shownAt
+	task.delay(0.4, function()
+		if panel.shownAt == openedAt and panel.overlay.Visible then
+			panel.scale.Scale = panel.fitScale()
+		end
+	end)
 
 	-- Le montant défile de 0 jusqu'au gain (en 1,2 s, de plus en plus lentement).
 	if panel.countUp then

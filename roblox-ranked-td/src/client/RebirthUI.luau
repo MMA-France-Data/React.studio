@@ -17,6 +17,8 @@ local RebirthUI = {}
 -- Couleur de la renaissance (bouton, fenêtre, flash).
 local REBIRTH_COLOR = Color3.fromRGB(132, 42, 48)
 local EXAMPLE_REWARD = 10 -- l'ennemi « qui vaut 10 pièces » de l'exemple
+-- Taille de la fenêtre sur un écran d'ordinateur (réduite sur un téléphone pour tenir entière : UI.fitWindow).
+local WINDOW_SIZE = Vector2.new(520, 440)
 local GOLD_HEX = "#" .. UI.Colors.Gold:ToHex()
 local MUTED_HEX = "#" .. UI.Colors.Muted:ToHex()
 
@@ -83,11 +85,14 @@ function RebirthUI.start()
 		MaxTextSize = 12,
 		Parent = button,
 	})
+	-- Écran trop bas (téléphone) : toute la colonne est réduite pour tenir (UI.leftColumnSlot).
+	UI.placeInLeftColumn(button, 2)
 
 	------------------------------------------------------------------
 	-- Fenêtre de confirmation (même style que les machines, MachineUI)
 	------------------------------------------------------------------
 	local overlay = UI.new("TextButton", {
+		Name = "Overlay",
 		Size = UDim2.fromScale(1, 1),
 		BackgroundColor3 = Color3.new(0, 0, 0),
 		BackgroundTransparency = 0.5,
@@ -97,15 +102,18 @@ function RebirthUI.start()
 		Parent = gui,
 	})
 	local window = UI.new("Frame", {
+		Name = "Window",
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.5),
-		Size = UDim2.fromOffset(520, 440),
+		Size = UDim2.fromOffset(WINDOW_SIZE.X, WINDOW_SIZE.Y),
 		BackgroundColor3 = UI.Colors.Panel,
 		Parent = overlay,
 	}, { UI.corner(16), UI.padding(14) })
 	local windowStroke = UI.stroke(REBIRTH_COLOR, 3)
 	windowStroke.Transparency = 0
 	windowStroke.Parent = window
+	-- Petit écran (téléphone) : toute la fenêtre est réduite pour tenir sous la barre du haut de Roblox.
+	UI.fitWindow(window, WINDOW_SIZE)
 
 	UI.label({
 		Size = UDim2.new(1, -40, 0, 30),

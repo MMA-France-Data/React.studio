@@ -60,6 +60,39 @@ return function(log)
 			if hudOk then "Info" else "Error",
 			`[{if hudOk then "PASS" else "FAIL"}] HUD du match sans panneau d'envois (HUD {hud ~= nil}, boutique {shop ~= nil}, texte d'envoi : {if sends then sends.Text else "aucun"})`
 		)
+		-- Téléphone : la fiche de tour (au-dessus de la boutique de tours, MatchUI.cardScale) garde sa taille sur l'écran
+		-- du test, et tient entière entre le haut de l'écran et la boutique sur un téléphone en paysage (844 x 390 et
+		-- 667 x 375, moins la barre du haut de Roblox) : avant, son haut passait sous cette barre.
+		do
+			local panel = hud and hud:FindFirstChild("TowerCardPanel")
+			local fit = panel and panel:FindFirstChild("FitScale")
+			local clientFolder = player:WaitForChild("PlayerScripts"):WaitForChild("Client", 10)
+			local matchModule = clientFolder and clientFolder:FindFirstChild("MatchUI")
+			if panel and fit and matchModule then
+				local cardScale = require(matchModule).cardScale
+				local size = Vector2.new(panel.Size.X.Offset, panel.Size.Y.Offset)
+				local bottom = -panel.Position.Y.Offset -- (92 px au-dessus du bas de l'écran)
+				local expected = cardScale(hud.AbsoluteSize, size)
+				local realOk = math.abs(fit.Scale - expected) < 0.01
+				log(
+					if realOk then "Info" else "Error",
+					`[{if realOk then "PASS" else "FAIL"}] fiche de tour du match sur l'écran du test ({math.floor(hud.AbsoluteSize.X)} x {math.floor(hud.AbsoluteSize.Y)}) : x{string.format("%.2f", fit.Scale)}{if fit.Scale > 0.999 then " (taille d'ordinateur)" else ""} (attendu x{string.format("%.2f", expected)})`
+				)
+				local topBar = math.max(58, (game:GetService("GuiService"):GetGuiInset()).Y)
+				for _, phone in { Vector2.new(844, 390), Vector2.new(667, 375) } do
+					local area = phone - Vector2.new(0, topBar)
+					local scale = cardScale(area, size)
+					local top = area.Y - bottom - size.Y * scale
+					local ok = scale > 0.4 and top >= 8 - 0.5 and size.X * scale <= area.X - 16 + 0.5
+					log(
+						if ok then "Info" else "Error",
+						`[{if ok then "PASS" else "FAIL"}] fiche de tour du match sur téléphone {math.floor(phone.X)} x {math.floor(phone.Y)} (écran utile {math.floor(area.X)} x {math.floor(area.Y)}) : x{string.format("%.2f", scale)}, de y {math.floor(top)} à {math.floor(area.Y - bottom)} (au-dessus de la boutique), {math.floor(size.X * scale)} px de large`
+					)
+				end
+			else
+				log("Error", "[FAIL] fiche de tour du match introuvable (PlayerGui.Match.TowerCardPanel, son FitScale, module MatchUI)")
+			end
+		end
 		shot("match_player")
 		look(Vector3.new(0, 140, 160), Vector3.new(0, 0, 0))
 		shot("match_aerial")
@@ -342,6 +375,113 @@ return function(log)
 	restoreCamera()
 	task.wait(1)
 
+	----------------------------------------------------------------------
+	-- Fenêtres sur téléphone (UI.windowScale, UI.fitWindow : src/client/UI.luau). Chaque fenêtre est réduite juste
+	-- assez pour tenir dans la zone de son ScreenGui (sous la barre du haut de Roblox), à UI.WINDOW_MARGIN px des
+	-- bords, jamais agrandie. La vraie fenêtre affichée : entière sur l'écran du test avec tous ses boutons, à la place
+	-- et à l'échelle calculées par le jeu (x1, sa taille d'ordinateur, quand l'écran est assez grand : captures
+	-- inchangées). Puis la vraie fonction avec de fausses tailles de téléphone en paysage (844 x 390 et 667 x 375,
+	-- moins la barre du haut) : la fenêtre réduite et chacun de ses boutons (à leur place dans la vraie fenêtre)
+	-- restent dans l'écran. place(écran) -> (coin en haut à gauche, échelle) : placement propre à la fenêtre (défis),
+	-- sinon centrée sur sa Position. besideColumn : sur téléphone, elle reste à droite de la colonne de gauche.
+	----------------------------------------------------------------------
+	local function checkPhoneFit(label, window, design, place, besideColumn)
+		local clientFolder = player:WaitForChild("PlayerScripts"):WaitForChild("Client", 10)
+		local uiModule = clientFolder and clientFolder:FindFirstChild("UI")
+		local gui = window and window:FindFirstAncestorWhichIsA("ScreenGui")
+		if not (uiModule and gui) then
+			log("Error", `[FAIL] fenêtre « {label} » sur téléphone : fenêtre ou module UI introuvable`)
+			return
+		end
+		local UI = require(uiModule)
+		local margin = UI.WINDOW_MARGIN
+		if not place then
+			local center = Vector2.new(window.Position.X.Scale, window.Position.Y.Scale)
+			place = function(screen)
+				local scale = UI.windowScale(screen, design, center)
+				return Vector2.new(center.X * screen.X, center.Y * screen.Y) - design * scale / 2, scale
+			end
+		end
+		-- Vraiment affiché : lui et tous ses parents visibles, dans un ScreenGui allumé.
+		local function shown(object)
+			local current = object
+			while current and current ~= gui do
+				if current:IsA("GuiObject") and not current.Visible then
+					return false
+				end
+				current = current.Parent
+			end
+			return current == gui and gui.Enabled
+		end
+		local screen = gui.AbsoluteSize
+		local at = window.AbsolutePosition - gui.AbsolutePosition
+		local size = window.AbsoluteSize
+		local scale = size.X / design.X
+		-- Boutons affichés, à leur place dans la fenêtre, en px « d'ordinateur » (échelle 1).
+		local buttons = {}
+		for _, descendant in window:GetDescendants() do
+			if descendant:IsA("GuiButton") and shown(descendant) then
+				local text = if descendant:IsA("TextButton") and descendant.Text ~= "" then descendant.Text else descendant.Name
+				table.insert(buttons, {
+					name = (string.gsub(text, "\n", " ")),
+					at = (descendant.AbsolutePosition - window.AbsolutePosition) / scale,
+					size = descendant.AbsoluteSize / scale,
+				})
+			end
+		end
+		local function inside(topLeft, bottomRight, area, edge)
+			return topLeft.X >= edge - 1 and topLeft.Y >= edge - 1 and bottomRight.X <= area.X - edge + 1 and bottomRight.Y <= area.Y - edge + 1
+		end
+		-- Boutons hors de l'écran pour une fenêtre dont le coin est en topLeft, à cette échelle ; et le moins haut.
+		local function buttonsOut(topLeft, factor, area)
+			local out, smallest = {}, math.huge
+			for _, button in buttons do
+				local corner = topLeft + button.at * factor
+				if not inside(corner, corner + button.size * factor, area, 0) then
+					table.insert(out, button.name)
+				end
+				smallest = math.min(smallest, button.size.Y * factor)
+			end
+			return out, smallest
+		end
+		local function px(value)
+			return math.floor(value + 0.5)
+		end
+
+		-- La vraie fenêtre, sur l'écran du test.
+		local expectedAt, expectedScale = place(screen)
+		local out = buttonsOut(at, scale, screen)
+		local realOk = shown(window)
+			and #buttons > 0
+			and #out == 0
+			and inside(at, at + size, screen, margin)
+			and math.abs(scale - expectedScale) < 0.01
+			and (at - expectedAt).Magnitude < 2
+		log(
+			if realOk then "Info" else "Error",
+			`[{if realOk then "PASS" else "FAIL"}] fenêtre « {label} » sur l'écran du test ({px(screen.X)} x {px(screen.Y)}) : x{string.format("%.2f", scale)}{if scale > 0.999 then " (taille d'ordinateur)" else ""} (attendu x{string.format("%.2f", expectedScale)}), de ({px(at.X)}, {px(at.Y)}) à ({px(at.X + size.X)}, {px(at.Y + size.Y)}), {#buttons - #out}/{#buttons} boutons dans l'écran{if #out > 0 then " ; dehors : " .. table.concat(out, ", ") else ""}`
+		)
+
+		-- Fausses tailles de téléphone en paysage, moins la barre du haut de Roblox (58 px avec la nouvelle barre).
+		local topBar = math.max(58, (game:GetService("GuiService"):GetGuiInset()).Y)
+		for _, phone in { Vector2.new(844, 390), Vector2.new(667, 375) } do
+			local area = phone - Vector2.new(0, topBar)
+			local topLeft, phoneScale = place(area)
+			local phoneOut, smallest = buttonsOut(topLeft, phoneScale, area)
+			local column = UI.leftColumnRight(area)
+			local columnOk = not besideColumn or topLeft.X >= column + margin - 1
+			local ok = #buttons > 0
+				and #phoneOut == 0
+				and columnOk
+				and phoneScale > UI.MIN_WINDOW_SCALE
+				and inside(topLeft, topLeft + design * phoneScale, area, margin)
+			log(
+				if ok then "Info" else "Error",
+				`[{if ok then "PASS" else "FAIL"}] fenêtre « {label} » sur téléphone {px(phone.X)} x {px(phone.Y)} (écran utile {px(area.X)} x {px(area.Y)}) : x{string.format("%.2f", phoneScale)} ({px(design.X * phoneScale)} x {px(design.Y * phoneScale)} px, coin en ({px(topLeft.X)}, {px(topLeft.Y)})), entière, {#buttons - #phoneOut}/{#buttons} boutons dans l'écran (le moins haut : {px(smallest)} px){if besideColumn then `, à droite de la colonne de gauche (bord à {px(column)} px) : {columnOk}` else ""}{if #phoneOut > 0 then " ; dehors : " .. table.concat(phoneOut, ", ") else ""}`
+			)
+		end
+	end
+
 	-- Renaissance (run à la vague 50 préparée par le scénario serveur)
 	local rebirthButton = findButton("Renaissance")
 	if rebirthButton then
@@ -352,6 +492,7 @@ return function(log)
 			overlay.Visible = true
 			task.wait(0.8)
 			shot("rebirth_window")
+			checkPhoneFit("renaissance", overlay:FindFirstChild("Window"), Vector2.new(520, 440))
 			overlay.Visible = false
 		else
 			log("Error", "[CTEST] fenêtre de renaissance introuvable")
@@ -372,6 +513,33 @@ return function(log)
 	ReplicatedStorage.Remotes.MachineAction:FireServer("SpinTower", 10)
 	task.wait(3)
 	shot("altar_x10")
+	-- Sur téléphone : la fenêtre de l'autel (x1, x10... compris), puis la même fenêtre en forge (boutons pièces et
+	-- Robux). L'autel est ensuite rouvert, comme avant (le tuto, plus bas, regarde quelle machine est ouverte).
+	do
+		local machinesGui = player.PlayerGui:FindFirstChild("Machines")
+		local machineWindow = machinesGui and machinesGui:FindFirstChild("Window", true)
+		-- Ouvre une machine et attend qu'elle soit vraiment ouverte (attribut OpenMachine de MachineUI) : la commande
+		-- passe par le plugin et le serveur (jusqu'à ~0,5 s d'attente). Avec une attente fixe, un autel rouvert en
+		-- retard passerait par-dessus la fenêtre des défis et les captures suivantes.
+		local function openMachine(machine)
+			say(`CMD:OpenMachine:{machine}`)
+			local deadline = os.clock() + 6
+			while os.clock() < deadline and not (machinesGui and machinesGui:GetAttribute("OpenMachine") == machine) do
+				task.wait(0.1)
+			end
+			task.wait(0.3) -- (le temps que les boutons de la fenêtre soient placés)
+			return machinesGui ~= nil and machinesGui:GetAttribute("OpenMachine") == machine
+		end
+		checkPhoneFit("autel", machineWindow, Vector2.new(540, 490))
+		if openMachine("Bonus") then
+			checkPhoneFit("forge", machineWindow, Vector2.new(540, 490))
+		else
+			log("Error", "[FAIL] fenêtre « forge » sur téléphone : la forge ne s'est pas ouverte (CMD:OpenMachine:Bonus)")
+		end
+		if not openMachine("Tower") then
+			log("Error", "[FAIL] l'autel ne s'est pas rouvert après la forge (CMD:OpenMachine:Tower)")
+		end
+	end
 
 	-- Défis classés : bouton « ⚔ DÉFIS » (colonne de gauche) et fenêtre (3 + 2 défis, bouton « X »), qui
 	-- ne couvre ni le chat (en bas à gauche) ni la liste des joueurs (en haut à droite) sur un écran d'ordinateur.
@@ -416,10 +584,148 @@ return function(log)
 			else
 				say(`écran étroit ({math.floor(screen.X)} px) : fenêtre des défis seulement réduite`)
 			end
+			-- Sur téléphone : réduite, et à droite de la colonne de gauche (les boutons de l'autel et de la forge
+			-- passent par-dessus cette fenêtre). Placement du jeu : ChallengeUI.placement.
+			checkPhoneFit("défis", window, Vector2.new(560, 530), function(area)
+				return require(player.PlayerScripts.Client.ChallengeUI).placement(area)
+			end, true)
 			shot("challenges_panel")
 			overlay.Visible = false
 		end
 	end
+
+	----------------------------------------------------------------------
+	-- Téléphone, suite : la colonne de boutons de gauche (UI.leftColumnSlot : toute la colonne réduite quand l'écran
+	-- est trop bas ; avant, la Boutique et les Défis sortaient de l'écran d'un téléphone en paysage), puis les
+	-- fenêtres qui ne s'ouvrent pas ailleurs dans le test : la boutique (ShopUI) et le message « Pendant ton
+	-- absence » (le vrai ShopUI.showOfflineGains, appelé comme au retour d'une absence ; sa fenêtre est retirée juste
+	-- après). Dans sa propre fonction (limite des 200 variables locales de Luau).
+	----------------------------------------------------------------------
+	local function testPhoneWindows()
+		local clientFolder = player:WaitForChild("PlayerScripts"):WaitForChild("Client", 10)
+		local uiModule = clientFolder and clientFolder:FindFirstChild("UI")
+		if not uiModule then
+			log("Error", "[FAIL] téléphone : module UI introuvable (PlayerScripts.Client)")
+			return
+		end
+		local UI = require(uiModule)
+		local function report(ok, message)
+			log(if ok then "Info" else "Error", `[{if ok then "PASS" else "FAIL"}] {message}`)
+		end
+		local function px(value)
+			return math.floor(value + 0.5)
+		end
+
+		-- Colonne de gauche, sur l'écran du test : les 5 vrais boutons à leur place de toujours (une colonne, taille
+		-- normale) quand l'écran est assez haut, sinon à la place calculée par le jeu.
+		local columnButtons = {
+			{ "Machines", "AUTEL DES HÉROS" },
+			{ "Machines", "FORGE RUNIQUE" },
+			{ "RebirthButton", nil },
+			{ "ShopButton", "★ BOUTIQUE" },
+			{ "ChallengesButton", "⚔ DÉFIS" },
+		}
+		local wrong, found, screenText = {}, 0, "?"
+		for index, entry in columnButtons do
+			local gui = player.PlayerGui:FindFirstChild(entry[1])
+			local button = nil
+			for _, child in (if gui then gui:GetChildren() else {}) do
+				if
+					child:IsA("GuiButton")
+					and child:FindFirstChild("ColumnScale")
+					and (entry[2] == nil or (child:IsA("TextButton") and child.Text == entry[2]))
+				then
+					button = child
+				end
+			end
+			if button and gui then
+				found += 1
+				local screen = gui.AbsoluteSize
+				screenText = `{px(screen.X)} x {px(screen.Y)}`
+				local tall = screen.Y
+					>= UI.LEFT_COLUMN_TOP + (UI.LEFT_COLUMN_COUNT - 1) * UI.LEFT_COLUMN_STEP + UI.LEFT_BUTTON_SIZE.Y + UI.WINDOW_MARGIN
+				local expected, expectedScale = UI.leftColumnSlot(screen, index - 1)
+				if tall then
+					expected, expectedScale = Vector2.new(16, UI.LEFT_COLUMN_TOP + (index - 1) * UI.LEFT_COLUMN_STEP), 1
+				end
+				local at = button.AbsolutePosition - gui.AbsolutePosition
+				local scale = button.AbsoluteSize.X / UI.LEFT_BUTTON_SIZE.X
+				if (at - expected).Magnitude > 1.5 or math.abs(scale - expectedScale) > 0.01 then
+					table.insert(wrong, `{entry[2] or entry[1]} en ({px(at.X)}, {px(at.Y)}) x{string.format("%.2f", scale)}`)
+				end
+			end
+		end
+		report(
+			found == #columnButtons and #wrong == 0,
+			`colonne de gauche sur l'écran du test ({screenText}) : {found}/{#columnButtons} boutons à leur place{if #wrong > 0 then " ; mal placés : " .. table.concat(wrong, ", ") else ""}`
+		)
+		-- Colonne de gauche sur téléphone (vraie fonction, fausses tailles) : les 5 boutons dans l'écran, sous la carte de
+		-- rang (16 + 130 px) et pas plus larges qu'elle (16 + 260 px), sans se chevaucher.
+		local topBar = math.max(58, (game:GetService("GuiService"):GetGuiInset()).Y)
+		for _, phone in { Vector2.new(844, 390), Vector2.new(667, 375) } do
+			local area = phone - Vector2.new(0, topBar)
+			local problems, rects, height = {}, {}, 0
+			for index = 0, UI.LEFT_COLUMN_COUNT - 1 do
+				local corner, scale = UI.leftColumnSlot(area, index)
+				local far = corner + UI.LEFT_BUTTON_SIZE * scale
+				height = UI.LEFT_BUTTON_SIZE.Y * scale
+				if corner.X < 0 or corner.Y < 16 + 130 or far.X > 16 + 260 + 0.5 or far.Y > area.Y - UI.WINDOW_MARGIN + 0.5 then
+					table.insert(problems, `bouton {index + 1} de ({px(corner.X)}, {px(corner.Y)}) à ({px(far.X)}, {px(far.Y)})`)
+				end
+				for _, other in rects do
+					if corner.X < other[2].X and other[1].X < far.X and corner.Y < other[2].Y and other[1].Y < far.Y then
+						table.insert(problems, `bouton {index + 1} sur un autre`)
+					end
+				end
+				table.insert(rects, { corner, far })
+			end
+			report(
+				#problems == 0,
+				`colonne de gauche sur téléphone {px(phone.X)} x {px(phone.Y)} (écran utile {px(area.X)} x {px(area.Y)}) : les {UI.LEFT_COLUMN_COUNT} boutons dans l'écran, sous la carte de rang et pas plus larges qu'elle, sans se chevaucher ({px(height)} px de haut){if #problems > 0 then " ; problèmes : " .. table.concat(problems, ", ") else ""}`
+			)
+		end
+
+		-- Boutique (ShopUI) : ouverte comme par son bouton, puis refermée.
+		local shopGui = player.PlayerGui:FindFirstChild("Shop")
+		local shopOverlay = shopGui and shopGui:FindFirstChild("Overlay")
+		if shopOverlay then
+			shopOverlay.Visible = true
+			task.wait(0.5)
+			checkPhoneFit("boutique", shopOverlay:FindFirstChild("Window"), Vector2.new(820, 400))
+			shopOverlay.Visible = false
+		else
+			report(false, "téléphone : fenêtre de la boutique introuvable (PlayerGui.Shop.Overlay)")
+		end
+
+		-- « Pendant ton absence » : le vrai ShopUI.showOfflineGains (copie du module chargée par le test : sa fenêtre est
+		-- à part, dans un nouveau ScreenGui « OfflineGains », retiré juste après la vérification).
+		local shopModule = clientFolder:FindFirstChild("ShopUI")
+		if not shopModule then
+			report(false, "téléphone : module ShopUI introuvable (PlayerScripts.Client)")
+			return
+		end
+		local before = {}
+		for _, child in player.PlayerGui:GetChildren() do
+			before[child] = true
+		end
+		require(shopModule).showOfflineGains({ amount = 123456, seconds = 2 * 3600, kind = "Offline", capped = true })
+		task.wait(1) -- (petite animation d'ouverture : 0,35 s)
+		local offlineGui = nil
+		for _, child in player.PlayerGui:GetChildren() do
+			if not before[child] and child.Name == "OfflineGains" then
+				offlineGui = child
+			end
+		end
+		checkPhoneFit("pendant ton absence", offlineGui and offlineGui:FindFirstChild("Window", true), Vector2.new(460, 270))
+		if offlineGui then
+			local offlineOverlay = offlineGui:FindFirstChild("Overlay")
+			if offlineOverlay then
+				offlineOverlay.Visible = false
+			end
+			offlineGui:Destroy()
+		end
+	end
+	testPhoneWindows()
 
 	----------------------------------------------------------------------
 	-- Modèles perso des ennemis (ReplicatedStorage.EnemyModels, CustomModels.luau) : un modèle « Swarm »
@@ -1121,6 +1427,7 @@ return function(log)
 			`classé : fenêtre « {title and title.Text} » : « {opponent and opponent.Text} », barre du temps, ACCEPTER et REFUSER`
 		)
 		shot("ranked_accept")
+		checkPhoneFit("MATCH TROUVÉ !", window, Vector2.new(470, 290)) -- (ACCEPTER et REFUSER dans l'écran d'un téléphone)
 		ReplicatedStorage.Remotes.QueueAction:FireServer("Accept")
 		local waitingOk = waitFor(function()
 			return queueState() == "Accepted" and waiting ~= nil and shown(waiting)

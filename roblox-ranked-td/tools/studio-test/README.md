@@ -32,7 +32,12 @@ powershell -ExecutionPolicy Bypass -File tools\studio-test\run.ps1 -Place match
   lancers offerts de l'autel et de la forge sans hausse des prix, nouveau jour et nouvelle semaine (horloge des
   défis décalée), anciennes sauvegardes. Le scénario client ouvre la fenêtre des défis (capture
   `challenges_panel`) et vérifie qu'elle ne couvre ni le chat ni la liste des joueurs, si la vue du jeu fait au
-  moins 1 000 px de large (plus étroite, comme sur un téléphone, la fenêtre est seulement centrée et réduite).
+  moins 1 000 px de large (plus étroite, comme sur un téléphone, la fenêtre est réduite, à droite de la colonne de
+  gauche). **Téléphones** (`UI.windowScale` / `UI.fitWindow`, `UI.leftColumnSlot`) : l'autel, la forge, la
+  renaissance, les défis, la boutique, « Pendant ton absence » et « MATCH TROUVÉ ! » sont entiers sur l'écran du test,
+  à leur taille d'ordinateur, puis, avec de fausses tailles de téléphone en paysage (844 x 390 et 667 x 375, moins la
+  barre du haut), la fenêtre réduite et tous ses boutons restent dans l'écran ; la colonne de gauche aussi (et, avec
+  `-Place match`, la fiche de tour du match : `MatchUI.cardScale`).
   Tout à la fin, le **classé** (inscription dans le cercle, match à ACCEPTER ; file en mémoire dans Studio, jamais
   de téléportation). Le scénario serveur donne la main au client (attribut `AutoTestRanked` de ReplicatedStorage =
   « Client ») : le client déplace son personnage hors du cercle / dans le cercle (le bouton « ⚔ S'INSCRIRE AU
@@ -47,6 +52,10 @@ powershell -ExecutionPolicy Bypass -File tools\studio-test\run.ps1 -Place match
   pendant le match proposé, réservation ratée et créateur du match disparu (retour dans la file), l'adversaire
   qui quitte le jeu après avoir accepté (retour dans la file), priorité à ceux qui attendent depuis longtemps, et
   personne ne reste bloqué.
+  Juste avant le tuto, la **limite de tours identiques** (`IdleTowers.MAX_COPIES` : 5 / 4 / 3 / 2 selon la
+  rareté, fonction `testTowerLimit` du serveur) : la tour de trop refusée avec son message et sans rien dépenser,
+  la vente qui libère une place, les remplacements, une vieille sauvegarde au-dessus de la limite gardée entière,
+  les textes « x/limite » ; la parcelle est remise comme avant à la fin.
   Après le classé, le **tuto des nouveaux joueurs** (`TutorialUI.luau`, `Hub/Tutorial.luau`) : il ne s'affiche
   jamais tout seul pendant les tests. Le serveur vérifie le drapeau d'un nouveau joueur, les coûts (tour + amélioration
   + autel x1 = 33 sur les 50 pièces de départ) et les anciennes sauvegardes (qui a déjà joué ne le voit pas), rend la
