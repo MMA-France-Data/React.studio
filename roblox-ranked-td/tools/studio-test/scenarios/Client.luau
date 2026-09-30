@@ -250,6 +250,54 @@ return function(log)
 			`[{if hudOk then "PASS" else "FAIL"}] HUD de la parcelle : compteur de pièces ({coinsLabel and coinsLabel.Text}), plus de panneau de vague ({#waveTexts} texte(s) de vague : {table.concat(waveTexts, " | ")})`
 		)
 	end
+	-- Parcelles des autres (src/client/PlotAccess.luau) : chez ce joueur, seules les invites « Ouvrir » de SON autel
+	-- et de SA forge sont allumées ; celles des autres parcelles (libres ici : un seul joueur) sont éteintes, et
+	-- les prix des cadenas ne s'affichent que sur sa parcelle. Lancé à part : il ne retarde pas les autres tests.
+	task.spawn(function()
+		local plotsFolder = workspace:WaitForChild("Hub"):WaitForChild("Plots")
+		local function access()
+			local myIndex = player:GetAttribute("Plot")
+			local result = { mine = 0, others = 0, wrong = {}, otherPrices = 0, wrongPrices = 0, plots = 0 }
+			for _, plot in plotsFolder:GetChildren() do
+				result.plots += 1
+				local isMine = myIndex ~= nil and plot:GetAttribute("PlotIndex") == myIndex
+				for _, descendant in plot:GetDescendants() do
+					local parent = descendant.Parent
+					if descendant:IsA("ProximityPrompt") then
+						if isMine then
+							result.mine += 1
+						else
+							result.others += 1
+						end
+						if descendant.Enabled ~= isMine then
+							table.insert(result.wrong, `{plot.Name}.{parent and parent.Name}={descendant.Enabled}`)
+						end
+					elseif descendant:IsA("TextLabel") and descendant.Name == "Price" and parent and parent.Name == "Lock" then
+						result.otherPrices += if isMine then 0 else 1
+						result.wrongPrices += if descendant.Visible ~= isMine then 1 else 0
+					end
+				end
+			end
+			return result
+		end
+		local deadline = os.clock() + 15
+		local state = access()
+		while (#state.wrong > 0 or state.wrongPrices > 0 or state.mine == 0) and os.clock() < deadline do
+			task.wait(0.25)
+			state = access()
+		end
+		-- (5 autres parcelles x 2 invites ; au moins une, si Roblox n'envoyait pas encore les parcelles lointaines)
+		local promptsOk = state.mine == 2 and state.others > 0 and state.others <= (state.plots - 1) * 2 and #state.wrong == 0
+		log(
+			if promptsOk then "Info" else "Error",
+			`[{if promptsOk then "PASS" else "FAIL"}] invites des machines : les 2 de sa parcelle allumées ({state.mine}), les {state.others} des autres parcelles éteintes (fausses : {table.concat(state.wrong, " ")})`
+		)
+		local pricesOk = state.otherPrices > 0 and state.wrongPrices == 0
+		log(
+			if pricesOk then "Info" else "Error",
+			`[{if pricesOk then "PASS" else "FAIL"}] prix des cadenas cachés sur les autres parcelles ({state.otherPrices} cachés, {state.wrongPrices} faux)`
+		)
+	end)
 	look(Vector3.new(0, 230, 290), Vector3.new(0, 0, 0))
 	shot("hub_aerial")
 	look(Vector3.new(0, 25, 70), Vector3.new(0, 4, 0))
@@ -521,7 +569,11 @@ return function(log)
 	-- du modèle (« Walking » / « Dead », les noms des exports Meshy). Animations de Roblox (marche et chute R15)
 	-- pour le test : la mort doit se charger et se jouer.
 	local WALK_TEST_ID, DEATH_TEST_ID = 507777826, 507767968
+	-- (Swarm_5 et Swarm_6 peuvent aussi être de vrais écuyers, avec leurs réglages : ceux-ci sont mis de côté
+	-- pendant le test puis remis, comme les modèles.)
+	local realSettings5, realSettings6 = CustomModels.SETTINGS.swarm_5, CustomModels.SETTINGS.swarm_6
 	CustomModels.SETTINGS.swarm_5 = { walk = WALK_TEST_ID, death = DEATH_TEST_ID }
+	CustomModels.SETTINGS.swarm_6 = nil
 	local swarm5 = testModel("Swarm_5", 2)
 	swarm5.Parent = modelsFolder
 	task.wait(0.1)
@@ -553,7 +605,7 @@ return function(log)
 		check(death ~= nil and length > 0, `animation de mort chargée et jouée (durée {string.format("%.2f", length)} s)`)
 		root5:Destroy()
 	end
-	CustomModels.SETTINGS.swarm_5 = nil
+	CustomModels.SETTINGS.swarm_5 = realSettings5
 	swarm5:Destroy()
 	local swarm6 = testModel("Swarm_6", 2)
 	for name, id in { Walking = WALK_TEST_ID, Dead = DEATH_TEST_ID } do
@@ -577,6 +629,7 @@ return function(log)
 		root6:Destroy()
 	end
 	swarm6:Destroy()
+	CustomModels.SETTINGS.swarm_6 = realSettings6
 	hideRealSwarms(false)
 
 	-- Vrais modèles du projet (assets/EnemyModels : Roi carmin « Boss_0 », troupes carmin...) : nom valable
@@ -1085,4 +1138,264 @@ return function(log)
 		check(closed, `classé : les deux ont accepté -> fenêtre et statut fermés, plus inscrit ({queueState()})`)
 	end
 	testRanked()
+
+	----------------------------------------------------------------------
+	-- Tuto des nouveaux joueurs (TutorialUI.luau, Hub/Tutorial.luau) : jamais tout seul pendant les tests
+	-- automatiques (le joueur de test est pourtant nouveau). Le scénario serveur rend la parcelle « nouveau joueur »
+	-- (aucune tour, record 1, aucun lancer, 50 pièces), puis donne la main (attribut AutoTestTutorial de
+	-- ReplicatedStorage = « Client »). Le client relance le tuto (« Replay », Studio seulement), vérifie le panneau et
+	-- le guide (capture tutorial_step1), puis valide chaque étape par les vraies actions : personnage dans le cercle,
+	-- puis sur sa parcelle (mort et réapparition au passage : le rayon repart du nouveau personnage), une tour posée
+	-- puis améliorée (remote PlotAction, comme PlotUI), un lancer x1 de l'autel (remote MachineAction), la forge
+	-- ouverte comme par son invite (CMD:OpenMachine:Bonus). Fin : drapeau reçu du serveur, guide retiré. Puis
+	-- « Passer » (le remote de ce bouton : un plugin ne peut pas cliquer) sur un 2e essai.
+	-- Dans sa propre fonction (limite des 200 variables locales de Luau).
+	----------------------------------------------------------------------
+	local function testTutorial()
+		local function waitFor(condition, timeout)
+			local deadline = os.clock() + timeout
+			while os.clock() < deadline do
+				if condition() then
+					return true
+				end
+				task.wait(0.1)
+			end
+			return condition() == true
+		end
+		-- Vraiment à l'écran : lui et tous ses parents visibles, dans un ScreenGui allumé.
+		local function shown(object)
+			local current = object
+			while current and not current:IsA("ScreenGui") do
+				if current:IsA("GuiObject") and not current.Visible then
+					return false
+				end
+				current = current.Parent
+			end
+			return current ~= nil and current.Enabled
+		end
+		local tutorialGui = player.PlayerGui:FindFirstChild("Tutorial")
+		local panel = tutorialGui and tutorialGui:FindFirstChild("Panel")
+		local title = panel and panel:FindFirstChild("Title")
+		local nextButton = panel and panel:FindFirstChild("NextButton")
+		local skipButton = panel and panel:FindFirstChild("SkipButton")
+		local found = panel ~= nil and title ~= nil and nextButton ~= nil and skipButton ~= nil
+		check(found, "tuto : panneau présent (PlayerGui.Tutorial : titre, « Suivant », « Passer »)")
+		check(
+			found and not shown(panel) and workspace:FindFirstChild("TutorialGuide") == nil and player:GetAttribute("TutorialDone") == false,
+			`tuto : jamais tout seul pendant les tests automatiques (nouveau joueur : TutorialDone = {tostring(player:GetAttribute("TutorialDone"))})`
+		)
+		local turn = waitFor(function()
+			return ReplicatedStorage:GetAttribute("AutoTestTutorial") == "Client"
+		end, 150)
+		local plotIndex = player:GetAttribute("Plot")
+		local plot = plotIndex and workspace.Hub.Plots:FindFirstChild("Plot" .. plotIndex)
+		if not (found and turn and plot) then
+			check(false, `tuto : test du client impossible (main donnée par le serveur : {turn}, parcelle {plotIndex})`)
+			return
+		end
+		local remotes = ReplicatedStorage:WaitForChild("Remotes")
+		local function rootNow()
+			local character = player.Character
+			return character and character:FindFirstChild("HumanoidRootPart")
+		end
+		local function titleHas(text)
+			return shown(panel) and string.find(title.Text, text, 1, true) ~= nil
+		end
+		-- Guide : rayon doré de la HumanoidRootPart du personnage ACTUEL vers la cible, flèche ▼ au-dessus d'elle.
+		local function guide()
+			return workspace:FindFirstChild("TutorialGuide")
+		end
+		local function guideOk()
+			local anchor, root = guide(), rootNow()
+			local beam = anchor and anchor:FindFirstChild("Beam")
+			local marker = anchor and anchor:FindFirstChild("Marker")
+			local arrow = marker and marker:FindFirstChild("Arrow")
+			return root ~= nil and beam ~= nil and beam.Enabled and beam.Attachment0 ~= nil and beam.Attachment0.Parent == root
+				and beam.Attachment1 ~= nil and beam.Attachment1.Parent == anchor
+				and marker ~= nil and marker.Enabled and arrow ~= nil and arrow.Text == "▼"
+		end
+		-- Distance au sol entre la cible du guide et ce point.
+		local function guideTo(position)
+			local anchor = guide()
+			if not anchor or not position then
+				return math.huge
+			end
+			local offset = anchor.Position - position
+			return Vector3.new(offset.X, 0, offset.Z).Magnitude
+		end
+		local function guideGone()
+			local root = rootNow()
+			return guide() == nil and (root == nil or root:FindFirstChild("TutorialGuideRoot") == nil)
+		end
+		restoreCamera()
+
+		-- Relance : étape 1, panneau en haut de l'écran, rayon et flèche vers le cercle classé. Le personnage est d'abord
+		-- posé à un endroit neutre (30 studs derrière le cercle, loin de sa parcelle) : les tests d'avant (classé...)
+		-- peuvent l'avoir laissé près du cercle ou chez lui, et une étape déjà faite se valide toute seule.
+		local circle = PlotLayout.RANKED_CIRCLE_POSITION
+		local away = circle - PlotLayout.cframe(plotIndex).Position
+		away = Vector3.new(away.X, 0, away.Z)
+		away = if away.Magnitude > 1e-3 then away.Unit else Vector3.new(0, 0, 1)
+		local neutralRoot = rootNow()
+		if neutralRoot then
+			neutralRoot.CFrame = CFrame.new(circle + away * 30 + Vector3.new(0, 3, 0))
+			task.wait(0.5)
+		end
+		remotes.TutorialAction:FireServer("Replay")
+		local started = waitFor(function()
+			return titleHas("1/6") and guideOk() and shown(nextButton) and shown(skipButton)
+		end, 8)
+		check(
+			started and guideTo(circle) < 1 and nextButton.Text == "Suivant" and skipButton.Text == "Passer",
+			`tuto : relancé -> « {title.Text} », rayon et flèche vers le cercle classé (à {math.floor(math.min(guideTo(circle), 9999))} studs), boutons « {nextButton.Text} » et « {skipButton.Text} »`
+		)
+		local screen = tutorialGui.AbsoluteSize
+		local at = panel.AbsolutePosition - tutorialGui.AbsolutePosition
+		local size = panel.AbsoluteSize
+		check(
+			at.X >= 0 and at.Y >= 0 and at.X + size.X <= screen.X + 1 and at.Y <= screen.Y / 3 and at.Y + size.Y <= screen.Y
+				and (at.X >= 16 + 260 or at.Y >= 16 + 130),
+			`tuto : panneau en haut de l'écran, entier, sans couvrir la carte de rang (x {math.floor(at.X)}, y {math.floor(at.Y)}, {math.floor(size.X)} x {math.floor(size.Y)} px, écran {math.floor(screen.X)} x {math.floor(screen.Y)})`
+		)
+		shot("tutorial_step1")
+
+		-- Téléphone : le panneau des tours (PlotUI) ouvert monte jusque sous le tuto -> le tuto se cache (cartes et
+		-- boutons des tours visibles), puis revient quand il se ferme. L'écran du test est grand : le panneau des
+		-- tours est placé en haut de l'écran le temps de la vérification, puis remis à sa place.
+		local plotGui = player.PlayerGui:FindFirstChild("Plot")
+		local towerPanel = plotGui and plotGui:FindFirstChild("TowerPanel")
+		if towerPanel then
+			local wasVisible, wasAnchor, wasPosition = towerPanel.Visible, towerPanel.AnchorPoint, towerPanel.Position
+			towerPanel.AnchorPoint = Vector2.new(0.5, 0) -- centré, à 100 px du haut : sous le tuto, quel que soit l'écran
+			towerPanel.Position = UDim2.new(0.5, 0, 0, 100)
+			towerPanel.Visible = true
+			local hidden = waitFor(function()
+				return not shown(panel)
+			end, 3)
+			towerPanel.Visible = wasVisible
+			towerPanel.AnchorPoint = wasAnchor
+			towerPanel.Position = wasPosition
+			local back = waitFor(function()
+				return shown(panel) and titleHas("1/6")
+			end, 3)
+			check(
+				hidden and back,
+				`tuto : panneau des tours ouvert par-dessus (téléphone) -> tuto caché ({hidden}), puis de retour à sa fermeture ({back})`
+			)
+		else
+			check(false, "tuto : panneau des tours (PlotUI « TowerPanel ») introuvable")
+		end
+
+		-- 1) La zone classée : le personnage entre dans le cercle -> étape 2, rayon vers sa parcelle.
+		local root = rootNow()
+		if root then
+			root.CFrame = CFrame.new(circle + Vector3.new(0, 3, 0))
+		end
+		local step2 = waitFor(function()
+			return titleHas("2/6") and guideOk() and guideTo(PlotLayout.toWorld(plotIndex, Vector3.new(0.5, 0, -22))) < 1
+		end, 8)
+		check(step2, `tuto : étape 1 validée dans le cercle -> « {title.Text} », rayon vers sa parcelle`)
+
+		-- 2) Ta parcelle : retour chez lui (son point d'apparition).
+		root = rootNow()
+		if root then
+			root.CFrame = CFrame.new(PlotLayout.toWorld(plotIndex, PlotLayout.PLAYER_SPAWN))
+		end
+		local step3 = waitFor(function()
+			return titleHas("3/6") and guideOk()
+		end, 8)
+		check(step3, `tuto : étape 2 validée sur sa parcelle -> « {title.Text} »`)
+
+		-- Mort et réapparition (comme « Réinitialiser ») : le tuto continue, le rayon repart du nouveau personnage.
+		local oldCharacter = player.Character
+		local humanoid = oldCharacter and oldCharacter:FindFirstChildOfClass("Humanoid")
+		if humanoid then
+			humanoid.Health = 0
+			humanoid:ChangeState(Enum.HumanoidStateType.Dead)
+		end
+		local respawned = waitFor(function()
+			return player.Character ~= oldCharacter and titleHas("3/6") and guideOk()
+		end, 20)
+		check(respawned, `tuto : après une mort, le rayon repart du nouveau personnage (étape gardée : « {title.Text} »)`)
+		task.wait(0.5) -- le serveur le remet sur sa parcelle (Plots.sendHome)
+
+		-- 3) Poser une tour (remote PlotAction, comme une carte de PlotUI) sur l'emplacement sous la flèche.
+		local spotIndex = nil
+		for _, pad in plot.Spots:GetChildren() do
+			if pad:IsA("BasePart") and guideTo(pad.Position) < 1 then
+				spotIndex = pad:GetAttribute("SpotIndex")
+			end
+		end
+		local pad = spotIndex and plot.Spots:FindFirstChild("Spot" .. spotIndex)
+		check(pad ~= nil and pad:GetAttribute("Unlocked") == true, `tuto : étape 3, la flèche montre un emplacement libre (n° {spotIndex})`)
+		spotIndex = spotIndex or 1
+		remotes.PlotAction:FireServer("Place", spotIndex, "MachineGun")
+		local step4 = waitFor(function()
+			return titleHas("4/6") and guideOk() and guideTo(PlotLayout.toWorld(plotIndex, PlotLayout.SPOTS[spotIndex])) < 1
+		end, 8)
+		check(step4, `tuto : tour posée -> « {title.Text} », flèche sur la tour`)
+
+		-- 4) L'améliorer (le serveur refuse 2 actions à moins de 0,15 s d'écart, 0,3 s pour les machines).
+		task.wait(0.5)
+		remotes.PlotAction:FireServer("Upgrade", spotIndex)
+		local altar = plot:FindFirstChild("TowerMachine")
+		local step5 = waitFor(function()
+			return titleHas("5/6") and guideOk() and altar ~= nil and guideTo(altar.Position) < 1
+		end, 8)
+		check(step5, `tuto : tour améliorée -> « {title.Text} », flèche sur l'autel`)
+
+		-- 5) Un lancer x1 de l'autel (3 pièces au record 1).
+		task.wait(0.5)
+		remotes.MachineAction:FireServer("SpinTower", 1)
+		local forge = plot:FindFirstChild("BonusMachine")
+		local step6 = waitFor(function()
+			return titleHas("6/6") and guideOk() and forge ~= nil and guideTo(forge.Position) < 1 and shown(nextButton)
+				and nextButton.Text == "Terminer"
+		end, 8)
+		check(step6, `tuto : lancer de l'autel -> « {title.Text} », flèche sur la forge, bouton « {nextButton.Text} »`)
+		-- Avec les parcelles des autres (PlotAccess.luau) : l'autel et la forge montrés par la flèche sont ceux de SA
+		-- parcelle, et leurs invites « Ouvrir » restent allumées (seules celles des autres parcelles sont éteintes).
+		local altarPrompt = altar and altar:FindFirstChildOfClass("ProximityPrompt")
+		local forgePrompt = forge and forge:FindFirstChildOfClass("ProximityPrompt")
+		check(
+			altarPrompt ~= nil and altarPrompt.Enabled and forgePrompt ~= nil and forgePrompt.Enabled,
+			`tuto : l'autel et la forge montrés par la flèche ont leur invite « Ouvrir » allumée (autel : {altarPrompt and altarPrompt.Enabled}, forge : {forgePrompt and forgePrompt.Enabled})`
+		)
+
+		-- 6) La forge, ouverte comme par son invite : tuto fini, drapeau reçu du serveur, plus rien à l'écran.
+		task.wait(0.5)
+		say("CMD:OpenMachine:Bonus")
+		local finished = waitFor(function()
+			return not shown(panel) and guideGone() and player:GetAttribute("TutorialDone") == true
+		end, 8)
+		check(
+			finished,
+			`tuto : forge ouverte -> tuto fini, panneau caché, guide retiré, drapeau reçu (TutorialDone = {tostring(player:GetAttribute("TutorialDone"))})`
+		)
+		-- (fenêtre de la forge : seulement son voile caché, comme pour les défis plus haut)
+		local machines = player.PlayerGui:FindFirstChild("Machines")
+		for _, child in (if machines then machines:GetChildren() else {}) do
+			if child:IsA("TextButton") and child.Size == UDim2.fromScale(1, 1) then
+				child.Visible = false
+			end
+		end
+
+		-- « Passer » sur un 2e essai : fini tout de suite, à l'étape 1.
+		task.wait(0.8) -- anti-spam du serveur (un message toutes les 0,5 s)
+		remotes.TutorialAction:FireServer("Replay")
+		local again = waitFor(function()
+			return titleHas("1/6") and guideOk() and shown(skipButton)
+		end, 8)
+		check(again, `tuto : 2e essai -> « {title.Text} », bouton « {skipButton.Text} » affiché`)
+		task.wait(0.8)
+		remotes.TutorialAction:FireServer("Skip", 1)
+		local skipped = waitFor(function()
+			return not shown(panel) and guideGone() and player:GetAttribute("TutorialDone") == true
+		end, 8)
+		check(
+			skipped,
+			`tuto : « Passer » -> tuto fini, panneau caché, guide retiré (TutorialDone = {tostring(player:GetAttribute("TutorialDone"))})`
+		)
+	end
+	testTutorial()
 end

@@ -22,6 +22,7 @@ local IdleTowers = require(Shared.IdleTowers)
 local NumberFormat = require(Shared.NumberFormat)
 local PlotLayout = require(Shared.PlotLayout)
 local Remotes = require(Shared.Remotes)
+local PlotAccess = require(script.Parent.PlotAccess)
 local SoundManager = require(script.Parent.SoundManager)
 local UI = require(script.Parent.UI)
 
@@ -185,6 +186,8 @@ local function refundPercent(): number
 end
 
 function PlotUI.start()
+	-- Parcelles des autres : invites de l'autel et de la forge éteintes, prix des cadenas cachés (PlotAccess.luau).
+	task.spawn(PlotAccess.start)
 	local player = Players.LocalPlayer
 	local plotAction = Remotes.get("PlotAction")
 	-- Chaque demande est notée pour les sons : « tour posée / vendue », « emplacement débloqué » ne jouent que

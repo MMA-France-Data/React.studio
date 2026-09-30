@@ -48,6 +48,13 @@ Config.STUDIO_ENEMY_GALLERY = true
 -- (src/client/SoundPanel.luau). Jamais dans le jeu publié. Mets false pour ne plus l'afficher.
 Config.STUDIO_SOUND_PANEL = true
 
+-- Tuto des nouveaux joueurs (src/client/TutorialUI.luau) dans Studio : tes données y sont en mémoire, tu es donc un
+-- nouveau joueur à chaque Play et le tuto s'affiche à chaque fois. Mets false pour ne plus le voir dans Studio
+-- (rejouer quand même : barre de commande, vue Serveur,
+-- game.ServerStorage.StudioDebug:Invoke(game.Players:GetPlayers()[1], "Tutorial", "Replay")).
+-- Ne change rien au jeu publié : chaque nouveau joueur y voit le tuto une seule fois.
+Config.STUDIO_TUTORIAL = true
+
 -- Distance (en studs) entre ton personnage et un objet sous laquelle son texte flottant s'affiche :
 -- l'écran reste lisible, chaque étiquette n'apparaît que quand on s'approche (ProximityLabel.luau).
 Config.LabelDistance = {

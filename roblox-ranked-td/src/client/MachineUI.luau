@@ -655,6 +655,9 @@ function MachineUI.start()
 		end
 		current = machine
 		overlay.Visible = true
+		-- Machine ouverte ("Tower" | "Bonus", rien = fermée), par l'invite ou par un bouton de gauche : lue par le tuto
+		-- (TutorialUI.luau, étape « la forge »).
+		gui:SetAttribute("OpenMachine", machine)
 		refresh()
 	end
 
@@ -664,6 +667,7 @@ function MachineUI.start()
 		end
 		current = nil
 		overlay.Visible = false
+		gui:SetAttribute("OpenMachine", nil)
 	end
 
 	closeButton.Activated:Connect(close)

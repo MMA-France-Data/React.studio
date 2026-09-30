@@ -17,7 +17,9 @@ local PlayerData = require(script.Parent.PlayerData)
 local PlotGame = require(script.PlotGame)
 local ChallengeRewards = require(script.ChallengeRewards)
 local HubMap = require(script.HubMap)
+local PlotInterest = require(script.PlotInterest)
 local Plots = require(script.Plots)
+local Tutorial = require(script.Tutorial)
 
 local Hub = {}
 
@@ -215,15 +217,86 @@ local function takeAbsenceGains(player: Player, data, now: number, silent: boole
 	return result
 end
 
+----------------------------------------------------------------------
+-- Qui reçoit les ennemis et les tirs de chaque parcelle (règle et réglages : Hub/PlotInterest.luau) :
+-- son propriétaire toujours, les autres joueurs seulement quand ils s'en approchent.
+----------------------------------------------------------------------
+local interest = {
+	near = {}, -- mémoire de PlotInterest.compute : [Player] = { [plotIndex] = true }
+	viewers = {}, -- [plotIndex] = joueurs qui reçoivent cette parcelle (propriétaire compris)
+	positions = {}, -- tests Studio : [Player] = position utilisée à la place de son personnage
+	clears = {}, -- tests Studio : [Player] = nombre de paquets « Clear » reçus
+}
+for plotIndex = 1, PlotLayout.COUNT do
+	interest.viewers[plotIndex] = {}
+end
+local EMPTY_PACKET = buffer.create(0)
+
+-- Position du personnage du joueur (nil = pas de personnage).
+local function characterPosition(player: Player): Vector3?
+	local override = interest.positions[player]
+	if override then
+		return override
+	end
+	local character = player.Character
+	local root = character and character:FindFirstChild("HumanoidRootPart")
+	return if root and root:IsA("BasePart") then root.Position else nil
+end
+
+-- Recalcule qui reçoit chaque parcelle (quelques fois par seconde, pas à chaque image). Un joueur qui vient
+-- d'arrêter de recevoir une parcelle reçoit (lui seul) un paquet PlotSync « Clear » : son client efface tout
+-- de suite ce qu'il en affichait (ennemis, zones de feu, rayons, corps). À son retour, les paquets suivants
+-- redonnent tout (chaque paquet PlotSync contient tous les ennemis de la parcelle).
+local function refreshInterest(syncRemote)
+	local viewers = {}
+	for _, player in Players:GetPlayers() do
+		table.insert(viewers, { key = player, position = characterPosition(player), plot = Plots.get(player) })
+	end
+	local recipients, leaving = PlotInterest.compute(viewers, interest.near)
+	interest.viewers = recipients
+	for _, gone in leaving do
+		local player = gone.key
+		if player.Parent then
+			syncRemote:FireClient(player, gone.plotIndex, EMPTY_PACKET, 0, "Clear")
+			interest.clears[player] = (interest.clears[player] or 0) + 1
+		end
+	end
+end
+
+-- Envoie un paquet d'une parcelle à son propriétaire (toujours, même loin d'elle) et aux joueurs qui s'en
+-- approchent (liste de refreshInterest).
+local function sendToViewers(remote, plotGame, packet: buffer, count: number)
+	local owner = plotGame.player
+	if owner.Parent then
+		remote:FireClient(owner, plotGame.index, packet, count)
+	end
+	for _, player in interest.viewers[plotGame.index] do
+		if player ~= owner and player.Parent then
+			remote:FireClient(player, plotGame.index, packet, count)
+		end
+	end
+end
+
 -- Boucle du mode infini : simulation à chaque frame, envois réseau quelques fois par seconde.
 local function runPlotGames()
 	local syncRemote = Remotes.get("PlotSync")
 	local shotsRemote = Remotes.get("PlotShots")
 	local syncTimer, shotsTimer, collectTimer = 0, 0, 0
+	local interestTimer = PlotInterest.REFRESH_INTERVAL -- premier calcul tout de suite
+	Players.PlayerRemoving:Connect(function(player)
+		interest.positions[player] = nil
+		interest.clears[player] = nil
+	end)
 
 	RunService.Heartbeat:Connect(function(dt)
 		for _, plotGame in games do
 			plotGame:step(dt)
+		end
+
+		interestTimer += dt
+		if interestTimer >= PlotInterest.REFRESH_INTERVAL then
+			interestTimer = 0
+			refreshInterest(syncRemote)
 		end
 
 		syncTimer += dt
@@ -232,7 +305,7 @@ local function runPlotGames()
 			for _, plotGame in games do
 				local packet, count = plotGame:buildSyncPacket()
 				if packet then
-					syncRemote:FireAllClients(plotGame.index, packet, count)
+					sendToViewers(syncRemote, plotGame, packet, count)
 				end
 			end
 		end
@@ -243,7 +316,7 @@ local function runPlotGames()
 			for _, plotGame in games do
 				local packet, count = plotGame:takeShotsPacket()
 				if packet then
-					shotsRemote:FireAllClients(plotGame.index, packet, count)
+					sendToViewers(shotsRemote, plotGame, packet, count)
 				end
 			end
 		end
@@ -376,6 +449,11 @@ end
 --                                                  personnage, renvoie (id, distance au personnage)
 --   Invoke(player, "HasDrop", id)               -> vrai si la pile est encore au sol
 --   Invoke(player, "Progress")                  -> { clock, simSpeed, spawned, alive, lead } de la vague en cours
+-- Parcelles reçues (ennemis et tirs, Hub/PlotInterest.luau) :
+--   Invoke(player, "Interest")                  -> { own, receivesOwn, receives = { numéros des parcelles des autres
+--                                                  qu'il reçoit }, clears = paquets « Clear » reçus depuis son arrivée }
+--   Invoke(player, "Interest", "Position", pos) -> cette position compte à la place de son personnage (nil : de nouveau
+--                                                  son personnage), au prochain calcul (PlotInterest.REFRESH_INTERVAL)
 -- Forge runique :
 --   Invoke(player, "Call", "spinBonusWithCoins") -> un lancer en pièces (renvoie le résultat, nil si refusé)
 --   Invoke(player, "Call", "grantBonusSpin", "Robux") -> comme un achat Robux (ne change pas le prix)
@@ -421,6 +499,9 @@ end
 --   Invoke(player, "Ranked", "State")          -> { state, joinedAt, proposal, queue, opponents, lastStart, teleports }
 --                                                (lastStart = le match qui partirait, teleports = qui serait téléporté)
 --   Invoke(player, "Ranked", "Reset")          -> tout vidé (file, propositions, adversaires factices), joueur « Idle »
+-- Tuto des nouveaux joueurs (Hub/Tutorial.luau, client : TutorialUI.luau) :
+--   Invoke(player, "Tutorial", "Replay")       -> le tuto recommence à l'étape 1 (même pendant les tests automatiques)
+--   Invoke(player, "Tutorial")                 -> { done, attribute, lastAction ("Done" | "Skip"), lastStep, replays }
 local function setupStudioDebug()
 	if not RunService:IsStudio() then
 		return
@@ -499,6 +580,25 @@ local function setupStudioDebug()
 			return false
 		elseif command == "Data" then
 			return data
+		elseif command == "Interest" then
+			local action, position = ...
+			if action == "Position" then
+				interest.positions[player] = if typeof(position) == "Vector3" then position else nil
+				return true
+			end
+			local own = Plots.get(player)
+			local receives, receivesOwn = {}, false
+			for plotIndex, list in interest.viewers do
+				if table.find(list, player) then
+					if plotIndex == own then
+						receivesOwn = true
+					else
+						table.insert(receives, plotIndex)
+					end
+				end
+			end
+			table.sort(receives)
+			return { own = own, receivesOwn = receivesOwn, receives = receives, clears = interest.clears[player] or 0 }
 		elseif command == "ChallengeMatch" and data then
 			return ChallengeRewards.debugMatch(player, data, ...)
 		elseif command == "ChallengeClock" then
@@ -533,6 +633,8 @@ local function setupStudioDebug()
 			return true
 		elseif command == "Ranked" then
 			return Matchmaking.debug(player, ...)
+		elseif command == "Tutorial" and data then
+			return Tutorial.debug(player, data, ...)
 		end
 		return nil
 	end
@@ -582,6 +684,8 @@ function Hub.start()
 	ChallengeRewards.start(function(player: Player)
 		return games[player]
 	end)
+	-- Tuto des nouveaux joueurs : fin ou « Passer » (remote TutorialAction), drapeau tutorialDone (Hub/Tutorial.luau).
+	Tutorial.start()
 
 	local lastPlotAction = {}
 	local lastPassAction = {}

@@ -48,4 +48,6 @@ else
 	require(script.Parent.EnemyGallery).start()
 	-- Panneau « SONS (Studio) » pour écouter chaque son : seulement dans Studio (Config.STUDIO_SOUND_PANEL).
 	require(script.Parent.SoundPanel).start()
+	-- Petit tuto des nouveaux joueurs (une seule fois, bouton « Passer ») : après les autres interfaces, qu'il montre.
+	require(script.Parent.TutorialUI).start()
 end

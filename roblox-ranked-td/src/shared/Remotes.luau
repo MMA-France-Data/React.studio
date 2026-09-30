@@ -17,6 +17,8 @@ local DEFINITIONS = {
 	-- (typeRemplacé : seulement pour un remplacement confirmé ; sans lui, poser sur une tour est refusé)
 	PlotAction = "RemoteEvent",
 	-- serveur -> clients : (plotIndex, buffer, count) positions des ennemis (format : PlotGame:buildSyncPacket).
+	-- Seulement au propriétaire de la parcelle et aux joueurs proches (Hub/PlotInterest.luau), comme PlotShots.
+	-- (plotIndex, buffer vide, 0, "Clear") : ce client ne reçoit plus cette parcelle, il l'efface tout de suite.
 	-- La vitesse de chaque ennemi dans le paquet ne compte PAS le pass Vitesse x2 : le client la multiplie
 	-- par l'attribut « SimSpeed » du dossier de la parcelle (1, ou 2 quand le pass est allumé).
 	-- Après les count x 11 octets des ennemis : count octets « contrôle », un par ennemi dans le même ordre :
@@ -60,6 +62,11 @@ local DEFINITIONS = {
 	-- en attributs du joueur : ChallengeState (JSON, voir Challenges.clientState) et ChallengesReady (nombre de
 	-- récompenses à récupérer).
 	ChallengeAction = "RemoteEvent",
+	-- Tuto des nouveaux joueurs (TutorialUI.luau), client -> serveur : ("Done", étape) = tuto fini (forge ouverte ou
+	-- « Terminer ») | ("Skip", étape) = bouton « Passer » | "Replay" = recommencer à l'étape 1 (Studio seulement,
+	-- refusé dans le jeu publié). Le serveur garde tutorialDone (PlayerData) et le publie dans l'attribut TutorialDone
+	-- du joueur ; « Replay » augmente aussi l'attribut TutorialReplay (Hub/Tutorial.luau).
+	TutorialAction = "RemoteEvent",
 	-- Commun
 	Notify = "RemoteEvent", -- serveur -> client : (message, kind)
 	-- Réglages du joueur, client -> serveur : ("SoundMode", "All" | "Effects" | "Mute") = bouton « SON »

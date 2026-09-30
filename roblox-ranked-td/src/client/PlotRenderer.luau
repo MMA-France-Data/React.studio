@@ -1,6 +1,9 @@
--- Affichage du mode infini côté client : ennemis des 6 parcelles, tirs des tours, pièces à ramasser.
+-- Affichage du mode infini côté client : ennemis des parcelles, tirs des tours, pièces à ramasser.
 -- Le serveur envoie la position des ennemis quelques fois par seconde ; entre deux paquets,
 -- le client les fait avancer lui-même pour que le mouvement reste fluide.
+-- Parcelles reçues : la tienne toujours, celles des autres seulement quand tu t'en approches (règle côté
+-- serveur : Hub/PlotInterest.luau). Quand tu t'en éloignes, le serveur envoie un paquet « Clear » et la
+-- parcelle est effacée tout de suite (clearPlot).
 -- Vitesse x2 (pass de jeu) : le serveur publie l'attribut « SimSpeed » (1 ou 2) sur le dossier de la
 -- parcelle et toute sa simulation va SimSpeed fois plus vite. Le facteur de vitesse du paquet ne
 -- contient PAS ce x2 : c'est ici qu'on le multiplie (voir simSpeedOf).
@@ -114,7 +117,9 @@ local coinFolder = Instance.new("Folder")
 coinFolder.Name = "Coins"
 
 local plotsFolder: Instance? = nil -- workspace.Hub.Plots (trouvé dans start)
-local plots = {} -- [plotIndex] = { cframe, folder, enemies = { [id] = enemy }, fires = { zone de feu } }
+-- [plotIndex] = { cframe, folder, enemies = { [id] = enemy }, fires = { zone de feu }, generation, cleared }
+-- (generation et cleared : voir clearPlot)
+local plots = {}
 local beams = {} -- [modèle de tour à rayon] = { plotIndex, def, muzzle, targetId, ramp, heat, handle }
 local coins = {} -- [id] = { part, label }
 local flyingCoins = {} -- piles ramassées à distance, en vol vers le joueur : { part, from, size, started, duration }
@@ -122,7 +127,7 @@ local remoteGain = 0
 local remoteGainPending = false
 local playingTracks = 0 -- pistes de marche en cours (modèles perso)
 local animClock = 0
-local dying = {} -- corps qui jouent leur animation de mort : { part, track, rate, started, fadeAt }
+local dying = {} -- corps qui jouent leur animation de mort : { part, track, rate, started, fadeAt, plotIndex }
 -- Réutilisées à chaque image (pas de nouvelles tables) : racines à déplacer et leurs CFrames.
 local movedParts: { BasePart } = {}
 local movedCFrames: { CFrame } = {}
@@ -130,7 +135,7 @@ local movedCFrames: { CFrame } = {}
 local function plotState(plotIndex: number)
 	local state = plots[plotIndex]
 	if not state then
-		state = { cframe = PlotLayout.cframe(plotIndex), enemies = {}, fires = {} }
+		state = { cframe = PlotLayout.cframe(plotIndex), enemies = {}, fires = {}, generation = 0, cleared = false }
 		plots[plotIndex] = state
 	end
 	return state
@@ -268,7 +273,7 @@ local function startDeath(enemy): boolean
 	end
 	local rate = enemy.simSpeed or 1
 	track:Play(if custom.flipWhenAnimated then 0 else 0.1, 1, rate)
-	table.insert(dying, { part = enemy.part, track = track, rate = rate, started = os.clock(), fadeAt = nil })
+	table.insert(dying, { part = enemy.part, track = track, rate = rate, started = os.clock(), fadeAt = nil, plotIndex = enemy.plotIndex })
 	return true
 end
 
@@ -371,8 +376,43 @@ local function setStatus(enemy, source: string?, fragile: boolean)
 	enemy.stroke.Transparency = if fragile then 0 else 1
 end
 
-local function onSync(plotIndex: number, packet: buffer, count: number)
+-- Paquet « Clear » (serveur, Hub/PlotInterest.luau) : on ne reçoit plus cette parcelle (on s'en est éloigné, ou
+-- son propriétaire est parti). Tout ce qu'on en affichait disparaît tout de suite, sans animation de mort ni son
+-- (ces ennemis ne sont pas tués : on ne les voit plus) : ennemis, zones de feu, corps des animations de mort.
+-- Les rayons des Sorciers s'éteignent seuls (plus d'ennemi visé, voir updateBeams). Les tirs déjà en vol ne
+-- font plus de zone de feu ni de traînée (generation), et les paquets de tirs arrivés en retard sont ignorés
+-- (cleared) jusqu'au prochain paquet des ennemis : il contient tous les ennemis de la parcelle, qui réapparaît
+-- donc entière quand on revient près d'elle.
+local function clearPlot(plotIndex: number)
 	local state = plotState(plotIndex)
+	state.generation += 1
+	state.cleared = true
+	for _, enemy in state.enemies do
+		removeEnemy(enemy, false)
+	end
+	table.clear(state.enemies)
+	for _, fire in state.fires do
+		Effects.fadeOut(fire.part, FIRE_FADE_TIME)
+	end
+	table.clear(state.fires)
+	for i = #dying, 1, -1 do
+		local body = dying[i]
+		if body.plotIndex == plotIndex then
+			body.track:Destroy()
+			body.part:Destroy()
+			table.remove(dying, i)
+		end
+	end
+end
+
+-- kind = "Clear" : paquet vide qui efface la parcelle (clearPlot) ; rien = paquet normal.
+local function onSync(plotIndex: number, packet: buffer, count: number, kind: string?)
+	if kind == "Clear" then
+		clearPlot(plotIndex)
+		return
+	end
+	local state = plotState(plotIndex)
+	state.cleared = false
 	-- En x2, les ennemis font 2 fois plus de chemin entre deux paquets : même tolérance en temps.
 	local snapDistance = SNAP_DISTANCE * simSpeedOf(plotIndex, state)
 	-- Octets « contrôle » après les positions (absents d'un ancien paquet : aucun contrôle).
@@ -397,6 +437,7 @@ local function onSync(plotIndex: number, packet: buffer, count: number)
 			local part, fill, stroke, custom = createEnemy(enemyType, def, palierOf(plotIndex, state))
 			enemy = { def = def, part = part, fill = fill, stroke = stroke, distance = distance, statusFragile = false }
 			enemy.enemyType = enemyType
+			enemy.plotIndex = plotIndex -- (son corps, s'il joue sa mort, est effacé avec la parcelle : clearPlot)
 			-- Cor de guerre (boss) ou pas lourds (colosse) quand il arrive sur ta parcelle.
 			if ARRIVAL_SOUNDS[enemyType] and distance < ARRIVAL_DISTANCE and plotIndex == Players.LocalPlayer:GetAttribute("Plot") then
 				SoundManager.play(ARRIVAL_SOUNDS[enemyType])
@@ -424,7 +465,8 @@ local function onSync(plotIndex: number, packet: buffer, count: number)
 		setStatus(enemy, IdleTowers.ORDER[control % CONTROL_SOURCE_MASK], control >= CONTROL_FRAGILE_FLAG)
 	end
 
-	-- Absents du paquet = tués, ou retirés (vague ratée, renaissance, départ du joueur). Tué = la vague continue
+	-- Absents du paquet = tués, ou retirés (vague ratée, renaissance ; le départ du joueur et une parcelle dont on
+	-- s'éloigne envoient un « Clear » à la place, voir clearPlot). Tué = la vague continue
 	-- (« Running ») ou vient d'être gagnée (entracte avec une vague plus haute que la sienne) : animation de mort
 	-- des modèles perso qui en ont une.
 	local runState = state.folder and state.folder:GetAttribute("State")
@@ -609,18 +651,29 @@ local function followTarget(state, targetId: number, predicted: Vector3, maxDist
 end
 
 -- Arrivée d'une flèche enflammée : sa zone de feu là où elle tombe (sur sa cible si elle la suit).
-local function landFire(plotIndex: number, predicted: Vector3, def, follow: (() -> Vector3)?)
+-- generation = celle de la parcelle au départ du tir : effacée entre-temps (clearPlot), pas de zone de feu.
+local function landFire(plotIndex: number, generation: number, predicted: Vector3, def, follow: (() -> Vector3)?)
+	if plotState(plotIndex).generation ~= generation then
+		return
+	end
 	addFire(plotIndex, if follow then follow() else predicted, def)
 end
 
 -- Arrivée d'un carreau perçant (Baliste lourde) : la ligne touchée par le serveur, de la tour (sous le départ du
--- tir) au point d'impact (sa cible si elle la suit), sur toute sa largeur (2 x pierceWidth).
-local function landPierce(from: Vector3, predicted: Vector3, def, follow: (() -> Vector3)?)
+-- tir) au point d'impact (sa cible si elle la suit), sur toute sa largeur (2 x pierceWidth). Pas de traînée si
+-- la parcelle a été effacée pendant le vol (generation, comme landFire).
+local function landPierce(plotIndex: number, generation: number, from: Vector3, predicted: Vector3, def, follow: (() -> Vector3)?)
+	if plotState(plotIndex).generation ~= generation then
+		return
+	end
 	Effects.pierceTrail(from, if follow then follow() else predicted, def.pierceWidth, def.color)
 end
 
 local function onShots(plotIndex: number, packet: buffer, count: number)
 	local state = plotState(plotIndex)
+	if state.cleared then
+		return -- paquet arrivé après le « Clear » de cette parcelle (voir clearPlot)
+	end
 	local simSpeed = simSpeedOf(plotIndex, state)
 	-- Ids des cibles suivies, après les tirs (absents d'un ancien paquet : aucun projectile ne suit sa cible).
 	local targetStart = count * SHOT_BYTES
@@ -654,10 +707,10 @@ local function onShots(plotIndex: number, packet: buffer, count: number)
 			end
 		end
 		if def.fireRadius then
-			task.delay(flight, landFire, plotIndex, to, def, follow)
+			task.delay(flight, landFire, plotIndex, state.generation, to, def, follow)
 		end
 		if def.kind == "Pierce" and def.pierceWidth then
-			task.delay(flight, landPierce, from, to, def, follow)
+			task.delay(flight, landPierce, plotIndex, state.generation, from, to, def, follow)
 		end
 	end
 end

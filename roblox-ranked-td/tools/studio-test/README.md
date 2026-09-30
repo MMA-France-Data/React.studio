@@ -47,16 +47,36 @@ powershell -ExecutionPolicy Bypass -File tools\studio-test\run.ps1 -Place match
   pendant le match proposé, réservation ratée et créateur du match disparu (retour dans la file), l'adversaire
   qui quitte le jeu après avoir accepté (retour dans la file), priorité à ceux qui attendent depuis longtemps, et
   personne ne reste bloqué.
+  Après le classé, le **tuto des nouveaux joueurs** (`TutorialUI.luau`, `Hub/Tutorial.luau`) : il ne s'affiche
+  jamais tout seul pendant les tests. Le serveur vérifie le drapeau d'un nouveau joueur, les coûts (tour + amélioration
+  + autel x1 = 33 sur les 50 pièces de départ) et les anciennes sauvegardes (qui a déjà joué ne le voit pas), rend la
+  parcelle « nouveau joueur » (aucune tour, record 1, aucun lancer, 50 pièces) et donne la main au client
+  (attribut `AutoTestTutorial` = « Client »). Le client relance le tuto (« Replay », Studio seulement), vérifie le
+  panneau et le guide (rayon + flèche ▼, capture `tutorial_step1`), que le tuto se cache sous le panneau des tours
+  ouvert par-dessus (comme sur un téléphone) et revient à sa fermeture, puis fait les 6 étapes pour de vrai : cercle,
+  retour sur sa parcelle (avec une mort au passage : le rayon repart du nouveau personnage), tour posée et
+  améliorée (remote `PlotAction`), lancer x1 de l'autel (`MachineAction`), forge ouverte comme par son invite (les
+  invites « Ouvrir » de l'autel et de la forge montrés par la flèche restent allumées malgré `PlotAccess.luau`). Le
+  serveur vérifie le drapeau `tutorialDone` et les 3 achats payés avec les 50 pièces ; puis « Passer » sur un 2e essai.
   **Sons** (côté client, en parallèle des autres tests) : le bouton « SON » ne couvre pas la carte de rang,
   chaque son de `src/shared/Sounds.luau` se charge (`[PASS]` / `[FAIL]` par son, avec sa durée), 200 tirs à la
   même image ne font pas jouer plus que `Sounds.MAX_COMBAT_SOUNDS` sons (la mort d'un boss, son « priority »,
   passe exprès au-delà : pas dans ce test), et 200 flèches un seul (à tout petit volume).
+  **Parcelles des autres** (en parallèle des autres tests) : côté serveur, la règle « qui reçoit les ennemis et
+  les tirs d'une parcelle » (`Hub/PlotInterest.luau`, vraie fonction avec de fausses positions) : le propriétaire
+  loin la reçoit toujours, un voisin chez lui (même dans le coin le plus proche, devant son autel ou sa forge) non,
+  il la reçoit en marchant dessus, hystérésis au bord (22 / 28 studs), « Clear » en partant ; puis le vrai joueur
+  (StudioDebug « Interest », sa position compte ailleurs sans bouger son personnage) : il reçoit une parcelle libre
+  en y allant et un « Clear » part quand il rentre. Tout à la fin (après le tuto), le **vrai personnage** : posé par
+  le serveur sur une parcelle libre, il la reçoit ; renvoyé chez lui, un « Clear » part et il ne reçoit plus que la
+  sienne. Côté client : seules les invites de SON autel et de SA forge
+  sont allumées, celles des 5 autres parcelles éteintes, et les prix de leurs cadenas cachés (`PlotAccess.luau`).
 - `match` : match ranked en solo (le bot joue l'autre terrain après 10 s). Le joueur de test ne pose
   aucune tour. Le scénario vérifie qu'il n'y a plus d'envois (ni remote `SendEnemies`, ni module
   `Sends`, ni panneau d'envoi dans le HUD), que l'or du joueur vaut 500 + 100 x vague, que les deux
   terrains reçoivent exactement les mêmes ennemis pendant 5 vagues, que le bot pose des tours
   et que les chiffres des défis classés de chaque terrain (tours posées, types, améliorations) sont justes
-  (~2 min 10). Avec `-Seconds 260 -Timeout 420`, il vérifie aussi la fin : la base du joueur
+  (~2 min 10). Avec la durée par défaut (240 s ; `-Seconds 260 -Timeout 420` pour plus de marge), il vérifie aussi la fin : la base du joueur
   tombe vers la vague 8 (~3 min 15), le bot gagne, et ce match contre le bot ne compte pas pour les défis.
 - Résultats dans `tools\studio-test\out\` : `studio-output.log` (la Sortie du serveur et du client)
   et les captures `.png`. À la fin, le script affiche le nombre d'erreurs.
@@ -92,5 +112,8 @@ dans `src/server/Match/init.luau`) n'est créé que dans Studio (`RunService:IsS
 jeu publié. Ses commandes « Ranked » (adversaires factices, temps écoulé...) sont dans `Matchmaking.debug`
 (`src/server/Matchmaking.luau`).
 
-Le test de la map principale dure maintenant ~2 min 20 (Play de 180 s par défaut, `-Seconds`) : les tests du classé
-attendent la fin des autres tests du client.
+Le test de la map principale dure maintenant ~3 min 50 (Play de 280 s par défaut, 240 s pour `-Place match` ;
+`-Seconds` pour changer, le délai max suit : `-Seconds` + 150 s) : les tests du classé attendent la fin des autres
+tests du client (dont une photo par vrai modèle d'ennemi : ~3,5 s de plus pour chaque modèle ajouté dans
+`assets/EnemyModels`), puis ceux du tuto (~25 s) la fin du classé. S'il manque les lignes du tuto à la fin de la
+Sortie, le Play s'est arrêté trop tôt : relance avec un `-Seconds` plus grand.

@@ -9,11 +9,15 @@
 # (ajoute -CloseStudio pour le fermer quand même). À la fin, il ferme le Studio qu'il a ouvert.
 param(
 	[ValidateSet("hub", "match")][string]$Place = "hub",
-	[int]$Seconds = 180, # durée du Play (le scénario de la map principale dure ~2 min 20 avec les tests du classé)
+	# Durée du Play en secondes. 0 = selon la place : map principale 280 s (les tests du classé puis du tuto sont à
+	# la fin, vers 3 min 50 ; chaque nouveau modèle d'ennemi du dossier assets/EnemyModels ajoute ~3,5 s), match 240 s.
+	[int]$Seconds = 0,
 	[switch]$CloseStudio,
 	[switch]$KeepOpen,
-	[int]$Timeout = 330 # ouverture de Studio + Play ($Seconds) + fermeture
+	[int]$Timeout = 0 # ouverture de Studio + Play ($Seconds) + fermeture (0 = $Seconds + 150 s)
 )
+if ($Seconds -le 0) { $Seconds = if ($Place -eq "match") { 240 } else { 280 } }
+if ($Timeout -le 0) { $Timeout = $Seconds + 150 }
 $ErrorActionPreference = "Stop"
 $root = $PSScriptRoot
 $repo = (Resolve-Path (Join-Path $root "..\..")).Path

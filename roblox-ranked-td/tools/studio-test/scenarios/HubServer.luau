@@ -102,6 +102,161 @@ return function(log)
 	end
 	state()
 
+	----------------------------------------------------------------------
+	-- Parcelles reçues (Hub/PlotInterest.luau) : les ennemis et les tirs d'une parcelle ne vont qu'à son
+	-- propriétaire (toujours) et aux joueurs qui s'en approchent. D'abord la règle avec de fausses positions (la
+	-- vraie fonction du jeu), puis le vrai joueur (Hub/init.luau, vrais remotes) : sa position compte ailleurs
+	-- quelques secondes (StudioDebug « Interest »), sans bouger son personnage (le scénario client s'en sert).
+	-- Lancé à part (task.spawn) : il ne retarde pas les autres tests.
+	----------------------------------------------------------------------
+	task.spawn(function()
+		local PlotInterest = require(game:GetService("ServerScriptService").Server.Hub.PlotInterest)
+		local at = PlotLayout.toWorld
+		local ENTER, LEAVE = PlotInterest.ENTER_MARGIN, PlotInterest.LEAVE_MARGIN
+		local function has(list, key)
+			return table.find(list, key) ~= nil
+		end
+		-- Faux joueurs : A possède la parcelle 1, B la parcelle 2 (sa voisine), C n'en a pas.
+		local near = {}
+		local function step(a, b, c)
+			return PlotInterest.compute({
+				{ key = "A", position = a, plot = 1 },
+				{ key = "B", position = b, plot = 2 },
+				{ key = "C", position = c, plot = nil },
+			}, near)
+		end
+		local function leavingText(leaving)
+			local parts = {}
+			for _, gone in leaving do
+				table.insert(parts, `{gone.key}:{gone.plotIndex}`)
+			end
+			return table.concat(parts, " ")
+		end
+		local homeB = at(2, Vector3.new(0, 3, 0))
+
+		-- A très loin (sur la parcelle 4), B chez lui, C sans personnage.
+		local r, leaving = step(at(4, Vector3.new(0, 3, 0)), homeB, nil)
+		check(
+			has(r[1], "A") and not has(r[1], "B") and not has(r[1], "C") and has(r[2], "B") and not has(r[2], "A") and #leaving == 0,
+			`parcelles reçues : le propriétaire loin de sa parcelle la reçoit toujours, le voisin chez lui non (parcelle 1 : {table.concat(r[1], ",")} ; parcelle 2 : {table.concat(r[2], ",")})`
+		)
+		check(has(r[4], "A") and not has(r[4], "C"), `parcelles reçues : A, debout sur la parcelle 4, la reçoit ; C, sans personnage, rien ({table.concat(r[4], ",")})`)
+
+		-- B sur SA parcelle ou devant SES machines, même dans le coin le plus proche de la parcelle 1 (à ~20 studs
+		-- d'elle) : il ne reçoit aucune autre parcelle.
+		local spots = {
+			{ "coin vers la parcelle 1", Vector3.new(-32, 3, -65) },
+			{ "coin vers la parcelle 3", Vector3.new(32, 3, -65) },
+			{ "autel", Vector3.new(-20, 3, -76) },
+			{ "forge", Vector3.new(20, 3, -76) },
+			{ "devant l'autel (12 studs)", Vector3.new(-20, 3, -85) },
+			{ "base", Vector3.new(0, 3, -59) },
+		}
+		for _, spot in spots do
+			r = step(at(4, Vector3.new(0, 3, 0)), at(2, spot[2]), nil)
+			local others = {}
+			for plotIndex = 1, PlotLayout.COUNT do
+				if plotIndex ~= 2 and has(r[plotIndex], "B") then
+					table.insert(others, plotIndex)
+				end
+			end
+			check(
+				#others == 0 and has(r[2], "B"),
+				`parcelles reçues : B chez lui ({spot[1]}, à {math.floor(PlotInterest.distanceTo(1, at(2, spot[2])) * 10 + 0.5) / 10} studs de la parcelle 1) ne reçoit que la sienne (autres : {table.concat(others, ",")})`
+			)
+		end
+
+		-- B marche sur la parcelle 1 : il la reçoit (et toujours la sienne).
+		r, leaving = step(at(4, Vector3.new(0, 3, 0)), at(1, Vector3.new(0, 3, 0)), nil)
+		check(has(r[1], "B") and has(r[2], "B") and #leaving == 0, `parcelles reçues : B debout sur la parcelle 1 la reçoit (parcelle 1 : {table.concat(r[1], ",")})`)
+		-- ... puis rentre chez lui : la parcelle 1 est à effacer chez lui, et seulement chez lui.
+		r, leaving = step(at(4, Vector3.new(0, 3, 0)), homeB, nil)
+		check(
+			not has(r[1], "B") and #leaving == 1 and leaving[1].key == "B" and leaving[1].plotIndex == 1,
+			`parcelles reçues : B rentre chez lui -> la parcelle 1 est à effacer chez lui (« Clear » : {leavingText(leaving)})`
+		)
+
+		-- Bord de la parcelle 1 (côté extérieur, loin de la parcelle 2) : on commence à la recevoir à ENTER studs,
+		-- on arrête plus loin (LEAVE studs) : pas de clignotement quand on marche sur le bord.
+		local function outside(distance)
+			return at(1, Vector3.new(0, 3, PlotLayout.LENGTH / 2 + distance))
+		end
+		local between = (ENTER + LEAVE) / 2
+		r, leaving = step(nil, outside(between), nil)
+		local okFar = not has(r[1], "B")
+		r, leaving = step(nil, outside(ENTER - 2), nil)
+		local okEnter = has(r[1], "B")
+		r, leaving = step(nil, outside(between), nil)
+		local okStay = has(r[1], "B") and #leaving == 0
+		r, leaving = step(nil, outside(LEAVE + 2), nil)
+		local okLeave = not has(r[1], "B") and #leaving == 1 and leaving[1].key == "B" and leaving[1].plotIndex == 1
+		check(
+			okFar and okEnter and okStay and okLeave,
+			`parcelles reçues : hystérésis au bord (à {between} studs en arrivant : {not okFar and "reçue" or "non"} ; à {ENTER - 2} : {okEnter and "reçue" or "NON"} ; retour à {between} : {okStay and "toujours reçue" or "PERDUE"} ; à {LEAVE + 2} : {okLeave and "effacée" or "PAS effacée"})`
+		)
+		check(has(r[1], "A") and not has(r[1], "C"), `parcelles reçues : A sans personnage reçoit toujours sa parcelle ({table.concat(r[1], ",")})`)
+
+		-- Entre les parcelles 2 et 1, par les coins intérieurs (~20 studs) : B reçoit la parcelle 1 seulement quand il
+		-- en est nettement plus près que de la sienne, et la garde en revenant un peu (hystérésis).
+		local cornerB, cornerA = at(2, Vector3.new(-32, 3, -65)), at(1, Vector3.new(32, 3, -65))
+		r = step(nil, cornerB, nil)
+		local walk = {}
+		for _, t in { 0.5, 1, 0.5, 0 } do
+			r, leaving = step(nil, cornerB:Lerp(cornerA, t), nil)
+			table.insert(walk, `{t}:{if has(r[1], "B") then "reçue" else "non"}{if #leaving > 0 then "+Clear" else ""}`)
+		end
+		check(
+			table.concat(walk, " ") == "0.5:non 1:reçue 0.5:reçue 0:non+Clear",
+			`parcelles reçues : B passe du coin de sa parcelle à celui de la parcelle 1 et revient ({table.concat(walk, " ")} ; attendu 0.5:non 1:reçue 0.5:reçue 0:non+Clear)`
+		)
+
+		-- B perd son personnage sur la parcelle 1 : effacée chez lui ; C sans parcelle ; un joueur parti est oublié.
+		step(nil, at(1, Vector3.new(0, 3, 0)), at(3, Vector3.new(0, 3, 0)))
+		r, leaving = step(nil, nil, at(3, Vector3.new(0, 3, 0)))
+		check(
+			has(r[2], "B") and not has(r[1], "B") and has(r[3], "C") and leavingText(leaving) == "B:1",
+			`parcelles reçues : B sans personnage -> parcelle 1 effacée, garde la sienne ; C (sans parcelle) reçoit la parcelle 3 (Clear : {leavingText(leaving)})`
+		)
+		PlotInterest.compute({ { key = "A", position = nil, plot = 1 } }, near)
+		check(near.B == nil and near.C == nil and near.A ~= nil, "parcelles reçues : les joueurs partis sont oubliés")
+
+		-- Le vrai joueur (un seul joueur dans le test : les autres parcelles sont libres).
+		local function interestWait(predicate)
+			local deadline = os.clock() + 8
+			local info = dbg:Invoke(player, "Interest")
+			while not predicate(info) and os.clock() < deadline do
+				task.wait(0.1)
+				info = dbg:Invoke(player, "Interest")
+			end
+			return info, predicate(info)
+		end
+		local own = player:GetAttribute("Plot")
+		local other = own % PlotLayout.COUNT + 1
+		dbg:Invoke(player, "Interest", "Position", at(own, Vector3.new(0, 3, 0)))
+		local info, ok = interestWait(function(i)
+			return i ~= nil and i.receivesOwn and #i.receives == 0
+		end)
+		check(ok and info.own == own, `parcelles reçues (vrai joueur) : chez lui, sa parcelle {own} seulement (autres : {info and table.concat(info.receives, ",")})`)
+		local clearsBefore = info and info.clears or 0
+		dbg:Invoke(player, "Interest", "Position", at(other, Vector3.new(0, 3, 0)))
+		info, ok = interestWait(function(i)
+			return i ~= nil and table.find(i.receives, other) ~= nil
+		end)
+		check(
+			ok and #info.receives == 1 and info.receivesOwn,
+			`parcelles reçues (vrai joueur) : sur la parcelle {other}, il la reçoit et garde la sienne (reçues : {info and table.concat(info.receives, ",")}, la sienne : {info and info.receivesOwn})`
+		)
+		dbg:Invoke(player, "Interest", "Position", at(own, Vector3.new(0, 3, 0)))
+		info, ok = interestWait(function(i)
+			return i ~= nil and #i.receives == 0
+		end)
+		check(
+			ok and info.clears == clearsBefore + 1,
+			`parcelles reçues (vrai joueur) : rentré chez lui, la parcelle {other} n'est plus envoyée et un « Clear » est parti ({info and info.clears - clearsBefore} paquet(s))`
+		)
+		dbg:Invoke(player, "Interest", "Position", nil)
+	end)
+
 	-- Tout débloquer et poser les 8 tours, quelques niveaux
 	dbg:Invoke(player, "Coins", 1e9)
 	dbg:Invoke(player, "Set", "unlockedTowers", { MachineGun = true, Frost = true, Bomb = true, Tesla = true, Rocket = true, Laser = true, Chain = true, Orbital = true })
@@ -2182,9 +2337,14 @@ return function(log)
 		ranked("Reset")
 		dbg:Invoke(player, "RankedMove", false) -- sur sa parcelle : le client entre lui-même dans le cercle
 		ReplicatedStorage:SetAttribute("AutoTestRanked", "Client")
-		local signedUp = waitFor(function()
+		-- Le client n'arrive au classé qu'après ses autres tests (durée variable : une photo par modèle d'ennemi...) :
+		-- on attend d'abord qu'il entre dans le cercle (4 min au plus), puis son inscription.
+		local reached = waitFor(function()
+			return player:GetAttribute("InRankedCircle") == true or queueState() == "Searching"
+		end, 240)
+		local signedUp = reached and waitFor(function()
 			return queueState() == "Searching"
-		end, 90)
+		end, 30)
 		check(signedUp, `classé (client) : bouton « S'INSCRIRE » dans le cercle (remote QueueAction « Join ») -> inscrit ({queueState()})`)
 		local walkedAway = signedUp and waitFor(function()
 			return player:GetAttribute("InRankedCircle") == false
@@ -2445,6 +2605,172 @@ return function(log)
 		dbg:Invoke(player, "RankedMove", false)
 	end
 	testRanked()
+
+	----------------------------------------------------------------------
+	-- Tuto des nouveaux joueurs (Hub/Tutorial.luau, client : TutorialUI.luau). Tout à la fin : le client y déplace son
+	-- personnage, pose et améliore une tour et lance l'autel, ce qui gênerait les autres tests.
+	-- 1) Seul : le joueur de test (nouveau) n'a pas fini le tuto ; un nouveau joueur paie tout avec ses pièces de
+	--    départ ; anciennes sauvegardes (d'avant le tuto) : qui a déjà joué ne le voit jamais.
+	-- 2) Sa parcelle redevient celle d'un nouveau joueur (aucune tour, record 1, aucun lancer, 50 pièces), puis
+	--    l'attribut AutoTestTutorial de ReplicatedStorage (« Client ») donne la main au client : il relance le tuto
+	--    (« Replay », Studio seulement), fait les 6 étapes par les vraies actions, puis « Passer » sur un 2e essai.
+	--    Ici : le drapeau tutorialDone sauvegardé à chaque fin, et les 3 achats payés avec les 50 pièces.
+	-- Dans sa propre fonction (limite des 200 variables locales de Luau, voir plus haut).
+	----------------------------------------------------------------------
+	local function testTutorial()
+		local IdleTowers = require(ReplicatedStorage.Shared.IdleTowers)
+		local function waitFor(condition, timeout)
+			local deadline = os.clock() + timeout
+			while os.clock() < deadline do
+				if condition() then
+					return true
+				end
+				task.wait(0.1)
+			end
+			return condition() == true
+		end
+		-- { done, attribute, lastAction ("Done" | "Skip"), lastStep, replays } (StudioDebug « Tutorial »)
+		local function tutorial()
+			return dbg:Invoke(player, "Tutorial") or {}
+		end
+
+		-- 1) Nouveau joueur : tuto pas encore fait (données et attribut TutorialDone publié au client).
+		local t0 = tutorial()
+		check(
+			t0.done == false and t0.attribute == false and t0.lastAction == nil,
+			`tuto : nouveau joueur -> tutorialDone = {tostring(t0.done)}, attribut TutorialDone = {tostring(t0.attribute)}`
+		)
+		-- Coûts des étapes 3 à 5 pour un nouveau joueur : pas besoin de lancer gratuit.
+		local placeCost = IdleTowers.Defs.MachineGun.placeCost
+		local upgradeCost = IdleTowers.upgradeCost("MachineGun", 1)
+		local spinCost = IdleConfig.towerSpinCost(1, 1, 0)
+		local total = placeCost + upgradeCost + spinCost
+		check(
+			total <= IdleConfig.STARTING_COINS,
+			`tuto : un nouveau joueur paie tout avec ses {IdleConfig.STARTING_COINS} pièces de départ (tour {placeCost} + amélioration {upgradeCost} + autel x1 {NumberFormat.price(spinCost)} = {NumberFormat.price(total)})`
+		)
+		-- Anciennes sauvegardes (sans le champ tutorialDone), complétées comme au chargement (« ChallengeMigrate »).
+		local cases = {
+			{ "record 12", { idle = { highestWave = 12 } }, true },
+			{ "une tour posée", { idle = { towers = { ["1"] = { type = "MachineGun", level = 1, spent = 10 } } } }, true },
+			{ "3 lancers de l'autel", { idle = { towerSpinsBought = 3 } }, true },
+			{ "1 lancer de la forge", { idle = { forgeSpinsBought = 1 } }, true },
+			{ "une renaissance", { idle = { rebirths = 1 } }, true },
+			{ "un match classé", { gamesPlayed = 2, idle = {} }, true },
+			{ "rien fait", { coins = 50, idle = { wave = 1, bestWave = 1, highestWave = 1 } }, false },
+			{ "déjà le champ (faux)", { tutorialDone = false, idle = { highestWave = 30 } }, false },
+			{ "déjà le champ (vrai)", { tutorialDone = true, idle = {} }, true },
+			{ "champ abîmé", { tutorialDone = "oui", idle = {} }, false },
+		}
+		local wrong = {}
+		for _, case in cases do
+			local migrated = dbg:Invoke(player, "ChallengeMigrate", case[2])
+			if not migrated or migrated.tutorialDone ~= case[3] then
+				table.insert(wrong, `{case[1]} -> {migrated and tostring(migrated.tutorialDone)}`)
+			end
+		end
+		check(
+			#wrong == 0,
+			`tuto : anciennes sauvegardes -> fini si le joueur a déjà joué (record, tour, lancers, renaissance, match), sinon à faire ; champ gardé s'il existe{if #wrong > 0 then " (faux : " .. table.concat(wrong, ", ") .. ")" else ""}`
+		)
+
+		-- 2) Parcelle de nouveau joueur : tours vendues, record 1 (autel à son prix de départ), aucun lancer acheté.
+		for key in dbg:Invoke(player, "Data").idle.towers do
+			dbg:Invoke(player, "Call", "sellTower", tonumber(key))
+		end
+		dbg:Invoke(player, "Set", "highestWave", 1)
+		dbg:Invoke(player, "Set", "bestWave", 1)
+		dbg:Invoke(player, "Set", "towerSpinsBought", 0)
+		dbg:Invoke(player, "Call", "publishInventory") -- attribut TowerSpinsBought = 0 (lu par l'autel et le tuto)
+		dbg:Invoke(player, "StartWave", 1)
+		setCoins(IdleConfig.STARTING_COINS)
+		dbg:Invoke(player, "RankedMove", false) -- sur sa parcelle
+		local fresh = dbg:Invoke(player, "Data")
+		check(
+			next(fresh.idle.towers) == nil and fresh.coins == IdleConfig.STARTING_COINS and fresh.idle.towerSpinsBought == 0
+				and player:GetAttribute("TowerSpinsBought") == 0,
+			`tuto : parcelle de nouveau joueur prête (tours : {next(fresh.idle.towers) == nil and "aucune" or "encore là"}, {fresh.coins} pièces, {fresh.idle.towerSpinsBought} lancer)`
+		)
+		ReplicatedStorage:SetAttribute("AutoTestTutorial", "Client")
+
+		-- Le client fait les 6 étapes : la forge ouverte termine le tuto (« Done » à l'étape 6), drapeau sauvegardé.
+		local finished = waitFor(function()
+			local t = tutorial()
+			return (t.replays == 1 and t.done == true) or (t.replays or 0) >= 2
+		end, 150)
+		local t1 = tutorial()
+		check(
+			finished and t1.replays == 1 and t1.lastAction == "Done" and t1.lastStep == 6 and t1.done == true and t1.attribute == true,
+			`tuto (client) : 6 étapes faites -> fini (« {t1.lastAction} » à l'étape {t1.lastStep}), tutorialDone sauvegardé = {tostring(t1.done)}, attribut {tostring(t1.attribute)}`
+		)
+		local after = dbg:Invoke(player, "Data")
+		local placed, count = nil, 0
+		for _, saved in after.idle.towers do
+			placed = saved
+			count += 1
+		end
+		check(
+			count == 1 and placed.type == "MachineGun" and placed.level == 2 and after.idle.towerSpinsBought == 1,
+			`tuto (client) : tout payé avec les {IdleConfig.STARTING_COINS} pièces de départ -> {count} tour ({placed and placed.type} niveau {placed and placed.level}), {after.idle.towerSpinsBought} lancer de l'autel, reste {NumberFormat.short(after.coins)} pièces`
+		)
+
+		-- « Passer » sur un 2e essai : fini à l'étape 1, drapeau sauvegardé.
+		local skipped = waitFor(function()
+			local t = tutorial()
+			return (t.replays or 0) >= 2 and t.done == true
+		end, 60)
+		local t2 = tutorial()
+		check(
+			skipped and t2.lastAction == "Skip" and t2.lastStep == 1 and t2.attribute == true,
+			`tuto (client) : « Passer » -> fini (« {t2.lastAction} » à l'étape {t2.lastStep}), tutorialDone sauvegardé = {tostring(t2.done)}`
+		)
+		ReplicatedStorage:SetAttribute("AutoTestTutorial", "Server")
+	end
+	testTutorial()
+
+	----------------------------------------------------------------------
+	-- Parcelles des autres avec le VRAI personnage (Hub/init.luau, characterPosition) : plus haut, sa position était
+	-- remplacée (StudioDebug « Interest », « Position ») sans bouger son personnage. Ici, tout à la fin (après le tuto,
+	-- qui déplace aussi le personnage), le serveur le pose vraiment sur une parcelle libre : il doit la recevoir, puis,
+	-- renvoyé chez lui (Plots.sendHome), ne plus recevoir que la sienne, avec un « Clear ».
+	-- Dans sa propre fonction (limite des 200 variables locales de Luau).
+	----------------------------------------------------------------------
+	local function testInterestCharacter()
+		local character = player.Character
+		local own = player:GetAttribute("Plot")
+		if not character or typeof(own) ~= "number" then
+			check(false, `parcelles reçues (vrai personnage) : test impossible (personnage {character ~= nil}, parcelle {own})`)
+			return
+		end
+		local other = own % PlotLayout.COUNT + 1
+		local function interestWait(predicate)
+			local deadline = os.clock() + 8
+			local info = dbg:Invoke(player, "Interest")
+			while not predicate(info) and os.clock() < deadline do
+				task.wait(0.1)
+				info = dbg:Invoke(player, "Interest")
+			end
+			return info, predicate(info)
+		end
+		dbg:Invoke(player, "Interest", "Position", nil) -- (au cas où : c'est de nouveau son personnage qui compte)
+		local home, okHome = interestWait(function(i)
+			return i ~= nil and i.receivesOwn and #i.receives == 0
+		end)
+		local clearsBefore = if home then home.clears else 0
+		character:PivotTo(CFrame.new(PlotLayout.toWorld(other, Vector3.new(0, 4, 0))))
+		local _, okAway = interestWait(function(i)
+			return i ~= nil and i.receivesOwn and table.find(i.receives, other) ~= nil
+		end)
+		dbg:Invoke(player, "RankedMove", false) -- renvoyé sur sa parcelle (Plots.sendHome)
+		local back, okBack = interestWait(function(i)
+			return i ~= nil and i.receivesOwn and #i.receives == 0 and i.clears > clearsBefore
+		end)
+		check(
+			okHome and okAway and okBack,
+			`parcelles reçues (vrai personnage) : chez lui, rien d'autre ({okHome}) ; posé sur la parcelle {other}, il la reçoit ({okAway}) ; renvoyé chez lui, « Clear » et plus que la sienne ({okBack}, {if back then back.clears - clearsBefore else "?"} paquet(s))`
+		)
+	end
+	testInterestCharacter()
 
 	-- Retour à une vague normale pour la fin
 	dbg:Invoke(player, "StartWave", 1)

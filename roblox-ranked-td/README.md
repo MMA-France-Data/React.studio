@@ -16,6 +16,31 @@ Au centre, le **sceau de l'Arène royale** : entre dedans et clique « ⚔ S'INS
 jouer : le match te sera proposé dès qu'un adversaire est trouvé (voir « S'inscrire et accepter un match
 classé »). On va à pied à sa parcelle et au sceau (plus de boutons de raccourci).
 
+### Le tuto des nouveaux joueurs
+
+- Un **petit tuto** en 6 étapes, **une seule fois**, pour les nouveaux joueurs : un panneau en haut de l'écran
+  (« TUTO 1/6 • … », boutons « Suivant » / « Terminer » et **« Passer »**), un **rayon doré** du personnage vers la
+  cible et une **flèche ▼** au-dessus d'elle. Rien n'est bloqué pendant le tuto.
+  1. **La zone classée** : entrer dans le cercle rouge (ou tout près), ou « Suivant ».
+  2. **Ta parcelle** : y retourner.
+  3. **Poser une tour** : au moins une tour posée.
+  4. **L'améliorer** : une tour au niveau 2.
+  5. **L'Autel des héros** : un lancer (x1).
+  6. **La Forge runique** : juste la montrer (trop chère au début : 100K) ; finie quand on l'ouvre ou « Terminer ».
+- Une étape déjà faite (ex. une tour déjà posée) passe toute seule. Un joueur qui part au milieu recommence à
+  l'étape 1 en revenant (les étapes faites passent vite). Le rayon suit le nouveau personnage après une mort.
+- Sur téléphone, le panneau des tours ouvert monte jusque sous le panneau du tuto : le tuto se cache tant qu'il
+  est ouvert (cartes et « Améliorer » bien visibles, pas de « Passer » touché par erreur), puis revient.
+- Les 50 pièces de départ paient tout : tour 10 + amélioration 20 + autel x1 3 = 33 (pas de lancer gratuit).
+- Sauvegarde : `tutorialDone` dans les données du joueur (`PlayerData.luau`), publié dans l'attribut `TutorialDone`.
+  Les anciens joueurs qui ont déjà joué (record au-delà de la vague 1, une tour, un lancer, une renaissance ou un
+  match classé) ne le voient jamais. Le client prévient à la fin ou à « Passer » (remote `TutorialAction`, vérifié
+  par le serveur : `Hub/Tutorial.luau`). Rien ne change en ranked.
+- **Dans Studio**, tes données sont en mémoire : tu es un nouveau joueur à chaque Play, donc tu vois le tuto à chaque
+  fois (`Config.STUDIO_TUTORIAL = false` pour ne plus le voir). Le rejouer pendant la partie (vue Serveur, barre de
+  commande) : `game.ServerStorage.StudioDebug:Invoke(game.Players:GetPlayers()[1], "Tutorial", "Replay")`.
+  Jamais dans le jeu publié. Code : `src/client/TutorialUI.luau` (textes des étapes dans la liste `STEPS`).
+
 ## Le mode infini (ta parcelle)
 
 - Des vagues sans fin arrivent sur ta parcelle. **Impossible de perdre**, mais pas de PV de base : si **un seul**
@@ -221,7 +246,8 @@ classé »). On va à pied à sa parcelle et au sceau (plus de boutons de raccou
 - **Robux** : crée un Developer Product dans le Creator Dashboard et mets son ID dans
   `Config.Products.BONUS_SPIN`. Chaque achat n'est livré qu'une fois (`Monetization.luau`).
 - Côté technique, les ennemis n'existent que sous forme de données sur le serveur ; chaque client reçoit leurs
-  positions 6 fois par seconde dans un paquet binaire et les affiche lui-même (`PlotGame.luau`, `PlotRenderer.luau`).
+  positions 6 fois par seconde dans un paquet binaire et les affiche lui-même (`PlotGame.luau`, `PlotRenderer.luau`),
+  seulement pour sa parcelle et celles dont il s'approche (voir « Parcelles des autres joueurs » ci-dessous).
   Les tirs partent 10 fois par seconde dans un autre paquet, avec le temps de vol qui reste à chaque projectile :
   le client le fait arriver au moment où le serveur applique les dégâts. Après les tirs, le paquet contient
   l'id (4 octets) de la cible que suit chaque projectile (0 = aucune) : le client le fait voler vers cet ennemi.
@@ -229,6 +255,25 @@ classé »). On va à pied à sa parcelle et au sceau (plus de boutons de raccou
   tour (attributs `BeamTarget` = id de l'ennemi visé, `BeamRamp` = montée) et dessiné à chaque image.
   Après les positions, le paquet des ennemis contient 1 octet « contrôle » par ennemi : la tour dont le contrôle
   est en cours (Totem, Mage ou Trébuchet, 0 = aucune) et un drapeau « fragile » (détails en haut de `PlotGame.luau`).
+
+### Parcelles des autres joueurs
+
+- **On ne reçoit que ce qu'on peut voir** (moins de réseau et d'affichage : les téléphones ne rament pas pour des
+  monstres qu'on ne regarde pas). Les ennemis et les tirs d'une parcelle ne sont envoyés qu'à son **propriétaire**
+  (toujours, même loin) et aux joueurs qui s'en **approchent** : à moins de **22 studs** de son terrain **et** plus
+  près d'elle que de leur propre parcelle. On arrête de la recevoir à plus de **28 studs** (ou quand on est
+  nettement plus près de sa parcelle, 5 studs d'écart) : pas de clignotement quand on marche sur le bord. Côté
+  place centrale, deux parcelles voisines ne sont qu'à ~20 studs l'une de l'autre : grâce à la règle « plus près
+  d'elle que de la tienne », sur ta parcelle et devant ton autel et ta forge, tu ne reçois que la tienne.
+- Quand tu t'éloignes d'une parcelle, le serveur t'envoie (à toi seul) un paquet « Clear » : elle est effacée tout
+  de suite chez toi (ennemis, zones de feu, rayons, corps), sans animation de mort. Quand tu reviens, elle
+  réapparaît entière au paquet suivant. « Qui est près » est recalculé 4 fois par seconde, pas à chaque image.
+  Règle et réglages : `Hub/PlotInterest.luau` (appelé par `Hub/init.luau`) ; effacement : `clearPlot` dans
+  `PlotRenderer.luau`. Un joueur qui quitte le jeu : « Clear » de sa parcelle pour tout le monde (`PlotGame:destroy`).
+- **On n'interagit qu'avec sa parcelle** : chez toi, les invites « Ouvrir » de l'autel et de la forge des autres
+  parcelles sont éteintes et les prix de leurs cadenas cachés (`PlotAccess.luau`) ; les clics sur les emplacements
+  et les tours ne visent que ta parcelle (`PlotUI.luau`). Le serveur revérifie tout (« Cet autel appartient à un
+  autre fief ! », actions seulement sur ta parcelle). Rien de tout ça ne touche au ranked.
 
 ### Gains d'absence
 
@@ -516,8 +561,8 @@ vagues dans `Enemies.luau`, le tracé du chemin dans `MapLayout.luau`.
 ```
 src/
   shared/   (ReplicatedStorage.Shared)   Config, IdleConfig, IdleTowers, NumberFormat, Elo, Ranks, Towers, Enemies, MapLayout, PlotLayout, Placement, Remotes, Challenges, Sounds
-  server/   (ServerScriptService.Server) Main, PlayerData, Leaderboard, Matchmaking, MatchmakingBackend, MockMemoryStore, Monetization, Hub/{init, HubMap, Plots, PlotGame, IdleTowerModel, ChallengeRewards}, Match/{init, Game, MapBuilder}
-  client/   (StarterPlayerScripts.Client) Main, LobbyUI, PlotUI, PlotRenderer, MachineUI, RebirthUI, ShopUI, ChallengeUI, MatchUI, TowerCard, TowerPlacement, Effects, UI, EnemyGallery, SoundManager, SoundPanel
+  server/   (ServerScriptService.Server) Main, PlayerData, Leaderboard, Matchmaking, MatchmakingBackend, MockMemoryStore, Monetization, Hub/{init, HubMap, Plots, PlotGame, PlotInterest, IdleTowerModel, ChallengeRewards, Tutorial}, Match/{init, Game, MapBuilder}
+  client/   (StarterPlayerScripts.Client) Main, LobbyUI, PlotUI, PlotAccess, PlotRenderer, MachineUI, RebirthUI, ShopUI, ChallengeUI, MatchUI, TowerCard, TowerPlacement, Effects, UI, EnemyGallery, SoundManager, SoundPanel, TutorialUI
 ```
 
 ## Limites connues / pistes d'amélioration

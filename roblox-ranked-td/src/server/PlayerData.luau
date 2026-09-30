@@ -94,6 +94,9 @@ local function defaultData()
 		challenges = Challenges.defaultData(),
 		-- Bouton « SON » : "All" (musique + effets), "Effects" (effets seuls) ou "Mute" (Sounds.MODES).
 		soundMode = "All",
+		-- Tuto des nouveaux joueurs fini ou passé (Hub/Tutorial.luau, TutorialUI.luau) : faux pour un nouveau joueur.
+		-- Les anciennes sauvegardes n'ont pas ce champ : voir migrateTutorial.
+		tutorialDone = false,
 	}
 end
 
@@ -168,8 +171,28 @@ local function migrateRunes(idle)
 	end
 end
 
+-- Tuto des nouveaux joueurs (Hub/Tutorial.luau). Les sauvegardes d'avant le tuto n'ont pas le champ tutorialDone :
+-- un joueur qui a déjà joué (record au-delà de la vague 1, une tour posée, un lancer de l'autel ou de la forge
+-- acheté, une renaissance ou un match classé) compte comme « fini » et ne le verra jamais ; les autres le voient.
+-- hadField = le champ était déjà dans la sauvegarde (sinon reconcile vient de le mettre à faux par défaut).
+-- À appeler après le nettoyage des compteurs de lancers. Toujours vrai ou faux.
+local function migrateTutorial(data, hadField: boolean)
+	if not hadField then
+		local idle = data.idle
+		data.tutorialDone = (tonumber(idle.highestWave) or 1) > 1
+			or (typeof(idle.towers) == "table" and next(idle.towers) ~= nil)
+			or idle.towerSpinsBought > 0
+			or idle.forgeSpinsBought > 0
+			or (tonumber(idle.rebirths) or 0) > 0
+			or (tonumber(data.gamesPlayed) or 0) > 0
+	end
+	data.tutorialDone = data.tutorialDone == true
+end
+
 -- Complète les champs manquants (utile quand tu ajoutes des champs plus tard).
 local function reconcile(data)
+	-- Avant de compléter : un champ absent du tuto veut dire « ancienne sauvegarde » (voir migrateTutorial).
+	local hadTutorial = data.tutorialDone ~= nil
 	for key, value in defaultData() do
 		if data[key] == nil then
 			data[key] = value
@@ -200,6 +223,8 @@ local function reconcile(data)
 	if not table.find(Sounds.MODES, data.soundMode) then
 		data.soundMode = "All"
 	end
+	-- Tuto : absent des anciennes sauvegardes -> fini si le joueur a déjà joué, sinon à faire.
+	migrateTutorial(data, hadTutorial)
 	return data
 end
 
@@ -348,6 +373,7 @@ function PlayerData.refresh(player: Player)
 	player:SetAttribute("RankName", Ranks.label(data.mmr, data.gamesPlayed))
 	player:SetAttribute("Coins", data.coins)
 	player:SetAttribute("SoundMode", data.soundMode) -- bouton « SON » (SoundManager.luau)
+	player:SetAttribute("TutorialDone", data.tutorialDone == true) -- tuto des nouveaux joueurs (TutorialUI.luau)
 	player:SetAttribute("DataLoaded", true)
 
 	local leaderstats = player:FindFirstChild("leaderstats")

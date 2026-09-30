@@ -2208,8 +2208,10 @@ function PlotGame:destroy()
 	table.clear(self.drops)
 	self.dropCount = 0
 	HubMap.resetSpots(self.plot)
-	-- Paquet vide : les clients effacent les ennemis de cette parcelle.
-	Remotes.get("PlotSync"):FireAllClients(self.index, buffer.create(0), 0)
+	-- Paquet « Clear » à tout le monde (ceux qui voyaient la parcelle, et les autres, pour qui il ne change rien) :
+	-- les clients effacent tout de suite ses ennemis, sans animation de mort (ils ne sont pas tués, la parcelle
+	-- se vide ; voir PlotRenderer). Les paquets normaux, eux, ne vont qu'aux joueurs proches (Hub/PlotInterest.luau).
+	Remotes.get("PlotSync"):FireAllClients(self.index, buffer.create(0), 0, "Clear")
 	for name in self.attributeCache do
 		self.plot.folder:SetAttribute(name, nil)
 	end
