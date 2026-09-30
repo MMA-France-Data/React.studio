@@ -1,4 +1,4 @@
-# Bases visuelles cuivre et ronces — transmission à Claude
+# Bases visuelles cuivre, ronces et givre — transmission à Claude
 
 Le propriétaire a validé le rendu des deux fantassins et demandé de décliner les autres unités, puis de transmettre ces assets sur GitHub pour créer des variantes. Ces fichiers sont des sources 3D, pas encore des modèles Roblox intégrés.
 
@@ -8,9 +8,16 @@ Le propriétaire a validé le rendu des deux fantassins et demandé de décliner
 | --- | --- | --- | --- |
 | `copper-ranks/` | 11–20 | `_1` | Pillards de cuivre : armure cuivre, cuir sombre, haches et masses |
 | `bramble-ranks/` | 21–30 | `_2` | Gardiens des ronces : capuche verte, branches, bois et feuilles |
+| `frost-ranks/` | 31–40 | `_3` | Légion du givre : armure argentée, tissus bleu nuit, cristaux liés aux os, cheval gris |
 
 Chaque dossier contient cinq unités : `Swarm` (écuyer), `Normal` (fantassin), `Fast` (cavalier), `Tank` (chevalier lourd), `Giant` (colosse).
-Les boss des vagues 20 et 30 restent séparés de ces troupes : aucun boss n'est remplacé par cet envoi.
+Tous les boss restent séparés de ces troupes : aucun boss n'est remplacé par cet envoi.
+
+## Ajout du 30 septembre : givre et cavalier carmin corrigé
+
+Le propriétaire a demandé d'envoyer les cinq troupes du givre sur GitHub pour Claude. `frost-ranks/ASSET_NOTES.md` donne les noms d'import et l'état exact des tests. Les cinq GLB et les dix FBX (marche/galop et mort) ont été réimportés et contrôlés dans Blender. Les animations et l'apparence givre ne sont **pas encore confirmées dans Studio**. Aucun fichier de gameplay, `.rbxm` ou identifiant d'animation Roblox n'est modifié.
+
+`crimson-cavalry-studio/` contient le cavalier carmin 1–10 corrigé. Après le lien `Fast_0_Gallop_Studio.fbx`, le propriétaire a répondu « parfait ça marche ». Le **galop carmin est donc désormais confirmé dans Studio**, comme le galop cuivre ; cette confirmation ne concerne pas sa mort ni les nouvelles variantes givre. Les anciens fichiers dans `crimson-ranks/` sont conservés intacts. La source Blender ajoutée conserve le galop ; la mort est livrée dans son FBX séparé.
 
 - `.glb` : modèle, texture embarquée, squelette et clips d'animation.
 - `.blend` : source Blender 5.2 éditable, rig et textures regroupées inclus.
@@ -20,13 +27,13 @@ Les boss des vagues 20 et 30 restent séparés de ces troupes : aucun boss n'est
 - `manifest.json` et `validation.json` : inventaire et contrôles locaux.
 - `preview-cavalry-variants.gif` : rendu animé du FBX cuivre réimporté dans Blender, pas une capture Studio.
 
-## État exact du cavalier : galop cuivre confirmé par le propriétaire
+## État exact du cavalier : galops cuivre et carmin confirmés par le propriétaire
 
 Le propriétaire précise que l'ancien cavalier pouvait être droit au repos, mais que **seule la tête bougeait dans l'Éditeur d'animation Roblox**. L'import au repos ne constituait donc pas une validation de l'animation.
 
 Les quatre jambes bougent dans les nouveaux GLB et FBX réimportés dans Blender. Le 30 septembre 2026, après le test proposé dans l'Éditeur d'animation, le propriétaire confirme que **le nouveau cavalier cuivre fonctionne** ("ça marche", puis précise "le cavalier"). Cette confirmation concerne le galop cuivre `Fast_1_Gallop_Studio.fbx` des vagues 11–20, pas le cavalier carmin des vagues 1–10.
 
-La mort cuivre et les animations du cavalier ronces n'ont pas encore reçu de confirmation Studio. La cause exacte du problème de l'ancien import reste à déterminer ; ne pas généraliser cette validation à tous les fichiers ni annoncer que `Fast_0` est corrigé.
+La mort cuivre et les animations du cavalier ronces n'ont pas encore reçu de confirmation Studio. La cause exacte du problème de l'ancien import reste à déterminer ; ne pas généraliser les validations cuivre et carmin aux autres clips. Le nouvel export carmin ajouté dans `crimson-cavalry-studio/` est confirmé pour le galop seulement, sans remplacer les anciennes sources.
 
 Précautions dans les nouveaux cavaliers :
 
