@@ -62,6 +62,9 @@ local DEFINITIONS = {
 	ChallengeAction = "RemoteEvent",
 	-- Commun
 	Notify = "RemoteEvent", -- serveur -> client : (message, kind)
+	-- Réglages du joueur, client -> serveur : ("SoundMode", "All" | "Effects" | "Mute") = bouton « SON »
+	-- (SoundManager.luau). Sauvegardé avec ses données (PlayerData) et publié dans l'attribut « SoundMode » du joueur.
+	Settings = "RemoteEvent",
 	-- Match
 	PlaceTower = "RemoteEvent", -- client -> serveur : (towerType, position)
 	UpgradeTower = "RemoteEvent", -- client -> serveur : (towerId)

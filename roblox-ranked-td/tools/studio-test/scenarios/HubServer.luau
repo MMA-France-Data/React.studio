@@ -1202,6 +1202,108 @@ return function(log)
 			check(lossD == 0, `Baliste perçante : ennemi à 5 studs du trait pas touché ({lossD})`)
 		end
 
+		-- Baliste plus maligne (demande du propriétaire : « viser le plus gros monstre ok, mais si plusieurs monstres
+		-- sont pareils, essayer de faire la meilleure zone ») : entre ennemis « pareils » (au moins
+		-- IdleTowers.BALLISTA_TIE_RATIO fois les PV du plus résistant), elle vise celui dont le carreau en
+		-- transpercera le plus. Même trait vertical x = -13 : X (-13, 14) au bout, Y (-13, -4) dessus et Z (-14, -4)
+		-- à 1 stud ; S (-13, -22) seul de l'autre côté de la tour (distance 269). Ennemis immobiles. Dans sa propre
+		-- fonction (limite des registres de Luau).
+		local function testBallistaAim()
+			local ratio = IdleTowers.BALLISTA_TIE_RATIO
+			-- Pose Y puis Z (mêmes PV), puis X avec xHealth PV. Avant, à PV égaux, la Baliste visait Y (le premier posé).
+			local function alignedTrio(xHealth)
+				call("debugArena", {})
+				local y = call("debugSpawn", "Normal", 233, 1e9, true)
+				local z = call("debugSpawn", "Normal", 234, 1e9, true)
+				local x = call("debugSpawn", "Normal", 145, xHealth, true)
+				return x, y, z
+			end
+			local function loss(id, health)
+				return health - call("debugEnemy", id).health
+			end
+
+			-- 1) Trois ennemis de mêmes PV : elle vise X, dont le carreau passe par Y et Z -> 3 touchés d'un coup.
+			local x1, y1, z1 = alignedTrio(1e9)
+			local shot = call("debugFire", 5)
+			check(
+				shot ~= nil and shot.fired and shot.targetId == x1,
+				`Baliste, 3 ennemis de mêmes PV : vise celui qui aligne les 2 autres (cible {shot and shot.targetId}, attendu X = {x1} ; avant, elle visait Y = {y1}, le premier posé)`
+			)
+			if shot and shot.fired then
+				waitClock(shot.clock + shot.flight + 0.05)
+				local lx, ly, lz = loss(x1, 1e9), loss(y1, 1e9), loss(z1, 1e9)
+				check(
+					close(lx, shot.damage, 1e-6) and close(ly, shot.damage, 1e-6) and close(lz, shot.damage, 1e-6),
+					`Baliste, mêmes PV : 3 ennemis transpercés d'un carreau ({NumberFormat.short(lx)}, {NumberFormat.short(ly)}, {NumberFormat.short(lz)} ; {NumberFormat.short(shot.damage)} attendus)`
+				)
+			end
+
+			-- 2) Un ennemi bien plus résistant, seul, contre le groupe aligné plus faible : elle garde le plus résistant.
+			local x2, y2, z2 = alignedTrio(1e9)
+			local lone = call("debugSpawn", "Tank", 269, 1e12, true)
+			local shot2 = call("debugFire", 5)
+			check(
+				shot2 ~= nil and shot2.fired and shot2.targetId == lone,
+				`Baliste, un ennemi bien plus résistant seul contre 3 alignés plus faibles : vise le plus résistant (cible {shot2 and shot2.targetId}, attendu S = {lone})`
+			)
+			if shot2 and shot2.fired then
+				waitClock(shot2.clock + shot2.flight + 0.05)
+				local ls, lx, ly, lz = loss(lone, 1e12), loss(x2, 1e9), loss(y2, 1e9), loss(z2, 1e9)
+				check(
+					close(ls, shot2.damage, 1e-6) and lx == 0 and ly == 0 and lz == 0,
+					`Baliste : le plus résistant touché ({NumberFormat.short(ls)}), le groupe aligné intact ({lx}, {ly}, {lz})`
+				)
+			end
+
+			-- 3) Le seuil des « pareils » : X à mi-chemin entre le seuil et les PV de Y reste un « pareil » (visé : il
+			-- aligne les 2 autres) ; X à 90 % du seuil n'en est plus un : elle revient au plus résistant (Y).
+			local x3 = alignedTrio(1e9 * (1 + ratio) / 2)
+			local inside = call("debugFire", 5)
+			local x4, y4 = alignedTrio(1e9 * ratio * 0.9)
+			local outside = call("debugFire", 5)
+			check(
+				inside ~= nil and inside.targetId == x3 and outside ~= nil and outside.targetId == y4 and outside.targetId ~= x4,
+				`Baliste, seuil des « pareils » ({math.floor(ratio * 100 + 0.5)} % des PV du plus résistant) : X à {math.floor((1 + ratio) / 2 * 100 + 0.5)} % visé ({inside and inside.targetId} = {x3}), X à {math.floor(ratio * 90 + 0.5)} % ignoré (cible {outside and outside.targetId} = Y {y4})`
+			)
+
+			-- 4) « Transperce 3 max » (décision du propriétaire, IdleTowers.BALLISTA_PIERCE_MAX = 3) : le carreau touche
+			-- sa cible et les 2 premiers ennemis qu'il rencontre, pas plus. Trait de la Baliste (-13, -13) vers T (-4, 14)
+			-- (rangée z = 14, distance 154) : il coupe la rangée z = -4 vers x = -10, où 5 fantassins sont sur le trait
+			-- (x = -9 à -11, à 1 stud au plus de lui). Posés du plus loin de la tour au plus proche, T en dernier :
+			-- prendre les premiers de la liste des ennemis donnerait les mauvais. Le test suit le réglage : avec
+			-- BALLISTA_PIERCE_MAX = 4, il attend T et les 3 plus proches de la tour.
+			call("debugArena", {})
+			local row = {}
+			for _, distance in { 229, 229.5, 230, 230.5, 231 } do -- x = -9, -9,5, -10, -10,5, -11
+				table.insert(row, call("debugSpawn", "Normal", distance, 1e9, true))
+			end
+			local far = call("debugSpawn", "Tank", 154, 1e12, true)
+			local shot4 = call("debugFire", 5)
+			check(
+				shot4 ~= nil and shot4.fired and shot4.targetId == far,
+				`Baliste, 5 ennemis alignés : vise T, le plus résistant (cible {shot4 and shot4.targetId}, attendu {far})`
+			)
+			if shot4 and shot4.fired then
+				waitClock(shot4.clock + shot4.flight + 0.05)
+				-- Touchés attendus : T et les (BALLISTA_PIERCE_MAX - 1) plus proches de la tour, les derniers de la rangée.
+				local others = math.clamp(IdleTowers.BALLISTA_PIERCE_MAX - 1, 0, #row)
+				local losses, expected, allRight = {}, {}, true
+				for index, id in row do
+					local lost = loss(id, 1e9)
+					local struck = index > #row - others
+					losses[index] = NumberFormat.short(lost)
+					expected[index] = if struck then NumberFormat.short(shot4.damage) else "0"
+					allRight = allRight and (if struck then close(lost, shot4.damage, 1e-6) else lost == 0)
+				end
+				local lt = loss(far, 1e12)
+				check(
+					allRight and close(lt, shot4.damage, 1e-6),
+					`Baliste, transperce {IdleTowers.BALLISTA_PIERCE_MAX} au plus : T ({NumberFormat.short(lt)}) + les {others} plus proches de la tour ; rangée du plus loin au plus proche : {table.concat(losses, ", ")} (attendu {table.concat(expected, ", ")})`
+				)
+			end
+		end
+		testBallistaAim()
+
 		-- Trébuchet royal (emplacement 8, (14, -31)) : une foule de 4 fantassins (distances 262 à 265, x = -20 à -17)
 		-- contre un Seigneur de guerre seul et bien plus résistant (330, (14, -40)) -> il vise la foule, la blesse
 		-- et l'étourdit ; le boss n'est pas touché.

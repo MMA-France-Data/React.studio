@@ -17,7 +17,8 @@ Codées dans `PlotGame.luau`, et jouées **à l'identique** par le simulateur (`
    niveau, +300 % au plus) pour toutes les autres tours sauf le Mage.
 3. **Mage des tempêtes** : dégâts inchangés, ralentissement **-85 % très court** autour de sa cible (aujourd'hui
    -90 % pendant 0,6 s puis 0,8 s d'immunité : voir « Le Mage après la fatigue » plus bas).
-4. **Baliste lourde** : carreau **perçant** (toute la ligne tour → impact).
+4. **Baliste lourde** : carreau **perçant** (la ligne tour → impact ; 3 ennemis au plus depuis le 30/09, voir
+   « Baliste : transperce 3 max » plus bas).
 5. **Trébuchet royal** : vise le **plus gros groupe**, grande zone, **étourdit** 0,5 s.
 6. **Une unité meurt → la suivante sort** tout de suite, et « vague écrasée » quand plus personne n'est en vie.
 7. **Forge runique** : 100 K le 1er lancer, x5 tant que le prix est sous 1 T, puis x2 ; plus de délai ;
@@ -258,6 +259,115 @@ graines avec les anciens chiffres du Mage) :
   (faible contre les boss, exprès) au lieu de l'Oracle vers la 63 dans l'essai « avant ». Les essais où l'Oracle
   est sorti en premier donnent 29-33 min. Avec 3 parties, les deux cas arrivent au hasard des lancers.
 
+## Baliste plus maligne : entre ennemis « pareils », la meilleure ligne (demande du propriétaire, 30/09/2026)
+
+Demande : « viser le plus gros monstre ok, mais si plusieurs monstres sont pareils, essayer de faire la meilleure
+zone ».
+
+- **Règle** (`PlotGame:pickPierceTarget`, la même dans `Engine.luau`) : la Baliste part du plus résistant à portée
+  (pas condamné par les projectiles en vol, comme avant). Les ennemis à portée, pas condamnés, qui ont au moins
+  **85 %** de ses PV (`IdleTowers.BALLISTA_TIE_RATIO`) sont « pareils » : elle vise celui dont le carreau (tour ->
+  point visé, visée anticipée) transpercera le plus d'ennemis non condamnés, positions prévues à l'arrivée du
+  carreau. À nombre égal : le plus résistant, puis le premier de la liste (la règle d'avant). 12 ennemis comparés
+  au plus (`BALLISTA_MAX_CANDIDATES`). Un ennemi bien plus résistant que les autres reste toujours sa cible.
+- **`run.ps1 -Verifier`** : 162 vagues sur 162 identiques, **0,00 s** d'écart (0,06 s avant : le moteur reçoit
+  maintenant ses tours dans l'ordre où le jeu les fait tirer), 2 essais « dégâts comptés » sur 2 (Baliste 800 et
+  950 au lieu de 450 et 550 : ennemis de mêmes PV, la règle joue à chaque tir) et, nouveau, les **carreaux de la
+  Baliste comparés tir par tir** : 106 vagues sur 106 identiques (1 429 carreaux, dont 14 où la règle a changé la
+  cible). Essai : départager les égalités autrement dans le moteur seul donne 26 vagues différentes ici, alors que
+  les 162 résultats et les 2 essais de dégâts restaient identiques.
+- **Relecture** : d'autres changements faits dans le moteur seul passaient encore la vérification (viser ou compter
+  un ennemi condamné, comparer 13 « pareils » au lieu de 12, seuil à 0,9 au lieu de 0,85). Ajouté : 2 vagues faites
+  à la main pour la Baliste, carreaux comparés tir par tir (« Balistes et condamnés » : 60 fantassins de 50 PV et
+  3 Balistes x2 vitesse ; « seuil des pareils » : 50 fantassins de 120 PV, 2 Balistes, une Catapulte et un
+  Archer). Elles voient maintenant ces 4 changements ; 2 sur 2 identiques (22 et 16 carreaux).
+
+Essai rapide (`run.ps1 -Rapide` : 3 parties x 40 h, scénario « base », mêmes graines que la simulation finale du
+Mage juste au-dessus) ; aucun réglage changé :
+
+| Scénario « base » | Avant | Après |
+|---|---|---|
+| Vague 50 / 100 | 4 h 42 / 18 h 51 | 4 h 43 / 18 h 50 |
+| Record à 40 h | 146 (145 - 149) | 149 (145 - 155) |
+| Part des dégâts de la Baliste 26-50 / 51-100 / 101+ (selon le type de vague) | 19-67 % / 10-28 % / 15-40 % | **43-84 %** / **32-60 %** / **42-80 %** |
+| Balistes posées vague 50 / 100 | 3,7 / 2,3 | 3 / 4,7 (10 à la vague 150, 1 partie sur 3) |
+| Foule (30 écuyers, 1 = la Catapulte) : Baliste | 0,87 | 1,31 |
+| Murs 31-70 / 71-100 (80 % sous…) | 23 min / 43 min | 25 min / 31 min |
+| Anti-méta à 40 h : mélange / tout Baliste | 138 / 131 | 139 / 133 |
+
+- La progression ne bouge presque pas (record +3 à 40 h, dans l'écart entre les parties ; vague 100 à la même
+  heure) et tous les objectifs gardent leur verdict : la Baliste n'est pas devenue trop forte au total.
+- Mais elle prend beaucoup plus de place dans les dégâts, surtout aux dépens de la Catapulte (101+ : 64-69 % ->
+  48-53 %), du Trébuchet (51-100 : 34-82 % -> 25-53 %), du Sorcier (51-100 : 23 % -> 4 % au mieux) et de l'Oracle
+  (51-100 : 6-14 % -> 2-5 %) : jusqu'à 84 % des dégâts des vagues 26-50 en moyenne des 3 parties, presque le niveau
+  qui avait fait réduire son carreau (90 % avec 1,5 stud), et jusqu'à **92 % d'une tranche de vagues dans une des
+  3 parties** (objectif 15 du rapport ; 84 % avant). Le joueur simulé ne pose presque plus de Sorcier ni d'Oracle
+  après la vague 100 : leur meilleure part des dégâts (dans une partie) tombe à 13 % et 14 % (55 % et 41 % avant),
+  tout près des 10 % de l'objectif 15 (« utile quelque part »). Contre une foule de 30 écuyers, elle fait
+  maintenant **plus que la Catapulte** (1,31 fois), la tour faite pour ça.
+  Si le propriétaire trouve qu'elle écrase les autres tours : `BALLISTA_TIE_RATIO` à 0,95 (moins de « pareils »)
+  ou `pierceWidth` à 1,1. Pas touché ici.
+- Relecture : « avant » rejoué avec `-Regler "IdleTowers.BALLISTA_TIE_RATIO=2"` (l'ancienne règle, mêmes graines) :
+  mêmes chiffres que la colonne « avant » (record 146, 145 - 149).
+
+## Baliste : transperce 3 max (décision du propriétaire, 30/09/2026)
+
+Avec sa visée maligne, la Baliste faisait jusqu'à 84 % (92 % dans une partie) des dégâts et écrasait les autres
+tours. Décision : « transperce 3 max peut-être ». **Règle** (`PlotGame:hitLine`, la même dans `Engine.luau`) : le
+carreau touche au plus `IdleTowers.BALLISTA_PIERCE_MAX` = **3** ennemis : sa cible, plus les 2 premiers ennemis
+que le carreau rencontre sur sa ligne (les plus proches de la tour ; à égalité, le premier de la liste des
+ennemis ; une cible morte pendant le vol laisse sa place). Sa visée (`countPierced`) compte aussi 3 au plus par
+ligne : 3 alignés ou plus, c'est pareil (à égalité, le plus résistant). Rien d'autre n'a changé (dégâts 50,
+largeur 1,25, seuil des « pareils » 85 %).
+
+`run.ps1 -Verifier` : 162 vagues sur 162 identiques, **0,00 s** d'écart, 106 vagues sur 106 avec les mêmes carreaux
+(1 429), 2 essais « dégâts comptés » sur 2 (Baliste 500 et 700 au lieu de 800 et 950 : le plafond joue), et 4 vagues
+faites à la main sur 4 : la nouvelle « lignes pleines » (36 carreaux) voit les égalités mal départagées ; « groupes
+serrés » (22 carreaux, ajoutée à la relecture) voit une cible morte en vol qui garderait sa place et des condamnés
+sautés à l'impact. Sans elle, ces 2 erreurs passaient : dans toute la vérification, seuls 13 carreaux (sur ~1 500
+dans le jeu) arrivaient sur une ligne pleine, et aucun avec une cible morte en vol.
+
+Essai rapide (`run.ps1 -Rapide` : 3 parties x 40 h, scénario « base », mêmes graines que les deux essais du dessus ;
+part des dégâts utiles, « de - à » selon le type de vague, moyenne des 3 parties) :
+
+| Scénario « base » | Visée simple | Visée maligne | **3 au plus** |
+|---|---|---|---|
+| Vague 50 / 100 | 4 h 42 / 18 h 51 | 4 h 43 / 18 h 50 | 5 h 02 / **18 h 26** |
+| Record à 40 h | 146 (145 - 149) | 149 (145 - 155) | **149** (139 - 159) |
+| Baliste 26-50 / 51-100 / 101+ | 19-67 % / 10-28 % / 15-40 % | 43-84 % / 32-60 % / 42-80 % | **18-55 % / 9-25 % / 4-19 %** |
+| Catapulte 26-50 / 101+ (Escarmouche, Levée, Charge) | ? / 64-69 % | 22-51 % / 48-53 % | **66-76 % / 66-67 %** |
+| Catapulte 51-100 (tous types) | ? | 2-13 % | 0-4 % |
+| Trébuchet 51-100 / 101+ | 34-82 % / ? | 25-53 % / 1-5 % | 24-56 % / **6-20 %** |
+| Sorcier 26-50 / 51-100 / 101+ | ? / 23 % au mieux / ? | 0 % / 0-4 % / 0 % | **1-24 %** / 0-5 % / **2-36 %** |
+| Oracle 51-100 / 101+ | 6-14 % / ? | 2-5 % / 0 % | **28-32 %** / 0 % |
+| Meilleure part d'une tranche (objectif 15) : Baliste / Sorcier / Oracle | 84 % / 55 % / 41 % | 92 % / 13 % / 14 % | 65 % / 62 % / 97 % |
+| Balistes posées vague 50 / 100 / 150 (150 : 1 partie sur 3) | 3,7 / 2,3 / ? | 3 / 4,7 / 10 | 3 / 2,7 / 1 |
+| Foule (30 écuyers, 1 = la Catapulte) : Baliste | 0,87 | 1,31 | 1,20 |
+| Murs 31-70 / 71-100 (80 % sous…) | 23 min / 43 min | 25 min / 31 min | 21 min / 34 min |
+| Anti-méta à 40 h : mélange / tout Baliste | 138 / 131 | 139 / 133 | 143 / 137 |
+
+(« ? » : pas noté à l'époque.)
+
+- **Ni dominante, ni inutile** : la Baliste reste la 1re tour contre les Gardes colossales et les boss des vagues
+  26-50 (55 % et 39 %), garde 9-25 % des dégâts aux vagues 51-100 (objectif 20 « utile au milieu de partie » :
+  OK) et 4-19 % après 100. La Catapulte reprend les foules (66-76 % des Escarmouches, Levées et Charges avant la
+  vague 51 et après la 100), le Sorcier revient contre les colosses et les boss (jusqu'à 36 %), le Trébuchet et
+  l'Oracle servent. Les verdicts des objectifs du rapport sont les mêmes qu'avec la visée maligne, et la
+  progression ne bouge presque pas (record 149 à 40 h ; vague 50 19 min plus tard, vague 100 24 min plus tôt).
+- Honnêtement : 3 parties seulement, et la part de l'Oracle (28-32 % aux vagues 51-100) dépend surtout de la
+  légendaire qui sort en premier à l'autel (hasard des lancers). Contre une foule seule, à niveau égal, la Baliste
+  fait encore un peu plus que la Catapulte (1,20) grâce à sa portée (30 contre 14), mais dans les vraies parties,
+  sur les Levées, la Catapulte fait 76 % des dégâts contre 18 % pour la Baliste (vagues 26-50), 67 % contre 4 %
+  (après 100).
+- Aucun réglage à changer. Si le propriétaire la trouve trop faible après la vague 100 : `BALLISTA_PIERCE_MAX` à 4.
+- Relecture : l'essai rapide relancé avec le code actuel redonne exactement le même rapport. 16 erreurs faites
+  exprès dans le moteur seul (sans plafond, plafond 2 ou 4, sans tri, le plus loin ou le plus avancé d'abord,
+  égalités à l'envers, cible pas toujours touchée ou en plus des 3, cible morte qui garde sa place, condamnés
+  sautés, visée sans plafond…) : 15 vues par `-Verifier`. La seule qui passe range la ligne par distance à la tour
+  au lieu de l'avancée le long du trait (presque toujours le même ordre). Le test Studio « 5 ennemis alignés » suit
+  maintenant le réglage (avec `BALLISTA_PIERCE_MAX` à 4, il attend T et les 3 plus proches) ; joué hors de Studio
+  avec le vrai `PlotGame.luau`, il passe avec 1, 2, 3 et 4.
+
 ## Ce qui reste (honnêtement)
 
 1. **Murs des vagues 71-100 trop longs** (80 % sous 33 min, cible 20) : surtout les Escarmouches juste après une
@@ -266,7 +376,8 @@ graines avec les anciens chiffres du Mage) :
    vague 100 plus tôt. Les deux cibles (vague 100 après 15 h, murs courts) tirent en sens contraire.
 2. **Sorcier des arcanes presque jamais posé** par le joueur simulé (4 % des dégâts au mieux) : il bat bien la
    Baliste en duel contre les lents, mais la Baliste perçante et les légendaires lui passent devant. Un vrai
-   joueur peut s'en servir contre les boss ; à revoir si les essais le confirment.
+   joueur peut s'en servir contre les boss ; à revoir si les essais le confirment. (Depuis le carreau à 3 ennemis
+   au plus : de nouveau posé, jusqu'à 36 % des dégâts contre les colosses et les boss, voir plus haut.)
 3. **Archer** : jamais dans les 3 meilleures au banc d'essai après la vague 25 (6-7 % des dégâts).
 4. **Anti-méta** : égalité avec « tout Trébuchet » tard dans le jeu (voir plus haut).
 5. **x1 000 et x10 000 de l'autel jamais achetés** par le joueur simulé (il dépense tout à chaque entracte).

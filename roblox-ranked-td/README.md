@@ -83,9 +83,18 @@ classé »). On va à pied à sa parcelle et au sceau (plus de boutons de raccou
   court** (-90 % pendant 0,6 s, puis 0,8 s d'immunité : voir la fatigue plus haut ; le Totem : -60 %). Il ne
   s'applique pas à un ennemi déjà gelé par un Totem (et inversement), et ses dégâts ne profitent pas de la
   fragilité du Totem : pas de synergie Givre + Mage.
-- **Baliste lourde** : vise toujours l'ennemi le plus résistant, mais son carreau est **perçant** : à l'impact,
-  tous les ennemis à moins de 1,25 stud (`pierceWidth`) de la ligne tour → point d'impact prennent les dégâts
-  (sa cible comprise). Elle remplace sa toute petite zone d'avant (rayon 2).
+- **Baliste lourde** : vise l'ennemi le plus résistant, et son carreau est **perçant** : à l'impact, les
+  ennemis à moins de 1,25 stud (`pierceWidth`) de la ligne tour → point d'impact prennent les dégâts, **3 au
+  plus** (« transperce 3 max », décision du propriétaire, `IdleTowers.BALLISTA_PIERCE_MAX`) : sa cible, plus
+  les 2 premiers que le carreau rencontre (les plus proches de la tour ; à égalité, le premier de la liste des
+  ennemis ; une cible morte pendant le vol laisse sa place). Elle remplace sa toute petite zone d'avant
+  (rayon 2). **Plus maligne** (demande du propriétaire) : entre ennemis « pareils » (au moins 85 % des PV du
+  plus résistant, `IdleTowers.BALLISTA_TIE_RATIO`), elle vise celui dont le carreau en transpercera le plus
+  (positions prévues à l'arrivée du carreau, 3 au plus : 3 alignés ou plus, c'est pareil ; à nombre égal, le
+  plus résistant, comme avant). Un ennemi bien plus résistant que les autres reste toujours sa cible
+  (`PlotGame:pickPierceTarget`, 12 ennemis comparés au plus : `BALLISTA_MAX_CANDIDATES`). Sans ce plafond, elle
+  faisait jusqu'à 84-92 % des dégâts et écrasait la Catapulte, le Trébuchet, le Sorcier et l'Oracle
+  (`tools/balance/RESULTS.md`).
 - **Trébuchet royal** : vise le point du chemin où sa **grande zone** (rayon 10) touchera **le plus d'ennemis**
   (positions prévues à l'arrivée de la pierre ; à égalité, le groupe le plus avancé), partout à portée (70), et
   **étourdit** la zone 0,5 s (un contrôle : pas sur un ennemi déjà ralenti par une autre tour ; puis 1,5 s
@@ -460,6 +469,42 @@ L'import d'un clip seul dans l'Éditeur d'animation (⋯ > Importer > depuis un 
 fichiers (seule la tête bouge, ou le modèle s'étire). L'os racine du squelette doit être sans rotation (sinon le
 modèle bascule quand l'animation joue).
 
+## Sons
+
+Tous les sons du jeu sont réglés dans **un seul fichier** : `src/shared/Sounds.luau` (un son par ligne : numéro,
+volume, hauteur, combien à la fois, écart minimum entre deux, distance à laquelle on l'entend). Ils ne sont joués
+que chez le joueur (`src/client/SoundManager.luau`) : aucun coût pour le serveur.
+
+- **Ce qu'on entend** : les tirs des 8 tours et leurs impacts (Catapulte, Baliste, Trébuchet), le bourdonnement du
+  rayon du Sorcier, les morts des ennemis (plus lourdes pour les chevaliers, les colosses et les boss), le cor de
+  guerre quand un boss arrive sur ta parcelle (des pas lourds pour un colosse), les pièces ramassées (un son plus
+  doux avec le ramassage auto), vague réussie / ratée, tour posée / améliorée / vendue (aussi en classé, pour tes
+  tours), emplacement débloqué, rune posée, l'autel, la forge (fanfare pour une tour légendaire ou une rune
+  x50 / x100), la renaissance, une récompense de défi, « MATCH TROUVÉ ! », victoire / défaite en classé, les clics
+  et les refus (messages d'erreur), et une musique médiévale calme sur la map principale (une autre en match classé).
+- **Pas de brouhaha** : les sons des tours, impacts et morts sont en 3D (on n'entend que ce qui est près de la
+  caméra, donc surtout sa parcelle) ; 10 au plus en même temps sur toute la map (les plus proches d'abord ; la mort
+  d'un boss passe toujours, réglage `priority`), et chaque son a son nombre maximum et son écart minimum (la
+  Vitesse x2 double les tirs, pas le bruit).
+- **Bouton « SON »** (en haut, à gauche du compteur de pièces, ou sous le compteur si l'écran fait moins de
+  ~1 140 px de large, pour ne pas cacher la carte de rang ; en match, sous ton panneau) : « tout », « effets
+  seuls » (sans musique) ou « muet » (même les bruits de pas). Le choix est sauvegardé avec tes données.
+- **Écouter les sons dans Studio** : en Play, bouton « SONS (Studio) » (colonne de gauche, à droite de
+  « GALERIE (Studio) ») : la liste de tous les sons, avec « Jouer », leur nom et leur numéro. Tu peux dire
+  « change le son de la Catapulte » en donnant son nom. `Config.STUDIO_SOUND_PANEL = false` pour cacher le bouton.
+- **Changer un son** :
+  1. Trouve un son **gratuit** : dans Studio, *Boîte à outils* (Toolbox) > onglet **Audio** (ou le Creator Store
+     sur le site de Roblox, catégorie Audio). Écoute-le, vérifie qu'il est gratuit et public (les sons de
+     Roblox, de « Pro Sound Effects » et d'« APM Music » marchent dans tous les jeux).
+  2. Copie son **numéro** (clic droit > *Copier l'ID de l'asset*, ou le nombre dans l'adresse de sa page).
+  3. Colle-le à la place de l'ancien `id` dans `src/shared/Sounds.luau` (garde le reste de la ligne), et change le
+     commentaire au-dessus (titre et créateur du son).
+  4. Joue dans Studio : bouton « SONS (Studio) » > « Jouer ». S'il affiche « ne se charge pas ! », le son est
+     privé ou payant : prends-en un autre.
+  Trop fort ou trop faible : change son `volume` (0 à 1). Joue trop souvent : augmente `minInterval`.
+- **Test automatique** (`tools/studio-test`, map principale) : chaque son doit se charger (`[PASS]` / `[FAIL]` par
+  son), et 200 tirs à la même image ne font jamais jouer plus que la limite.
+
 ## Réglages
 
 Tout est dans `src/shared/Config.luau` (MMR de départ, K, fourchettes du matchmaking, or de départ,
@@ -470,9 +515,9 @@ vagues dans `Enemies.luau`, le tracé du chemin dans `MapLayout.luau`.
 
 ```
 src/
-  shared/   (ReplicatedStorage.Shared)   Config, IdleConfig, IdleTowers, NumberFormat, Elo, Ranks, Towers, Enemies, MapLayout, PlotLayout, Placement, Remotes, Challenges
+  shared/   (ReplicatedStorage.Shared)   Config, IdleConfig, IdleTowers, NumberFormat, Elo, Ranks, Towers, Enemies, MapLayout, PlotLayout, Placement, Remotes, Challenges, Sounds
   server/   (ServerScriptService.Server) Main, PlayerData, Leaderboard, Matchmaking, MatchmakingBackend, MockMemoryStore, Monetization, Hub/{init, HubMap, Plots, PlotGame, IdleTowerModel, ChallengeRewards}, Match/{init, Game, MapBuilder}
-  client/   (StarterPlayerScripts.Client) Main, LobbyUI, PlotUI, PlotRenderer, MachineUI, RebirthUI, ShopUI, ChallengeUI, MatchUI, TowerCard, TowerPlacement, Effects, UI, EnemyGallery
+  client/   (StarterPlayerScripts.Client) Main, LobbyUI, PlotUI, PlotRenderer, MachineUI, RebirthUI, ShopUI, ChallengeUI, MatchUI, TowerCard, TowerPlacement, Effects, UI, EnemyGallery, SoundManager, SoundPanel
 ```
 
 ## Limites connues / pistes d'amélioration

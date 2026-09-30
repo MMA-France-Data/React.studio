@@ -20,8 +20,11 @@
 --     type de tour pendant ces secondes ;
 --   * fragilité du Totem de givre (applyFragility) : +X % de dégâts reçus des tours qui n'ont pas
 --     ignoresFragility (pas le Mage, pas les Totems) ; le plus fort des Totems gagne, un égal prolonge ;
---   * carreau perçant (Baliste, kind « Pierce ») : à l'impact, tous les ennemis à moins de pierceWidth du segment
---     tour -> point d'impact, et sa cible (hitLine) ;
+--   * carreau perçant (Baliste, kind « Pierce ») : à l'impact, sa cible et les ennemis à moins de pierceWidth du
+--     segment tour -> point d'impact, IdleTowers.BALLISTA_PIERCE_MAX au plus (les premiers rencontrés, hitLine) ;
+--     elle vise le plus résistant, et entre ennemis « pareils » (PV >= IdleTowers.BALLISTA_TIE_RATIO x les siens)
+--     celui dont le carreau en transpercera le plus (pickPierceTarget, countPierced : positions prévues à
+--     l'arrivée, BALLISTA_PIERCE_MAX au plus, comme le jeu) ;
 --   * Trébuchet royal (targeting « Crowd ») : vise le point où sa zone touchera le plus d'ennemis
 --     (pickCrowdTarget, mêmes positions prévues arrondies à CROWD_FLIGHT_STEP que le jeu) et étourdit ;
 --   * projectiles (Archer, Catapulte, Baliste, Trébuchet : projectileSpeed) : la tour vise l'endroit où SERA
@@ -67,6 +70,10 @@ Engine.HITS_DT = 0.1 -- pas des vagues « immortelles » (estimations seulement)
 -- (Engine.EPS) pour comparer au vrai PlotGame pas à pas, sans aucune différence.
 Engine.EPS = 1e-9
 local EPS = Engine.EPS
+-- Vérification du moteur seulement (verif/parity.luau) : une fonction appelée à chaque projectile lancé,
+-- onProjectile(tour, cible, heure), pour comparer les cibles choisies tir par tir avec le vrai PlotGame.
+-- nil dans le simulateur (rien n'est appelé).
+Engine.onProjectile = nil :: ((any, any, number) -> ())?
 local TIME_EPSILON = 1e-6 -- même marge que PlotGame pour les coups des zones de feu
 local MAX_ENEMIES = IdleConfig.MAX_ENEMIES
 local SPEED_MULTIPLIER = IdleConfig.ENEMY_SPEED_MULTIPLIER
@@ -239,6 +246,13 @@ function Engine.compileTower(spot: number, towerType: string, level: number, dup
 		kind = kind,
 		strongest = stats.targeting == "Strongest",
 		crowd = stats.targeting == "Crowd", -- Trébuchet : le plus gros groupe (pickCrowdTarget)
+		-- Baliste (carreau perçant qui vise le plus résistant) : entre ennemis « pareils », celui dont le carreau
+		-- en transpercera le plus (pickPierceTarget, comme PlotGame:pickPierceTarget).
+		pierceAim = stats.kind == "Pierce" and stats.targeting == "Strongest",
+		tieRatio = IdleTowers.BALLISTA_TIE_RATIO,
+		tieCandidates = IdleTowers.BALLISTA_MAX_CANDIDATES,
+		-- Ennemis transpercés au plus par un carreau (sa cible comprise : hitLine, countPierced).
+		pierceMax = IdleTowers.BALLISTA_PIERCE_MAX,
 		damage = stats.damage,
 		cooldown = stats.cooldown or 0,
 		range = stats.range,
@@ -364,6 +378,21 @@ local function segmentDistance(px: number, pz: number, ax: number, az: number, b
 	return math.sqrt(dx * dx + dz * dz)
 end
 
+-- Avancée d'un point le long du segment [a, b], vue depuis a (PlotGame alongSegment : produit scalaire, même
+-- ordre des calculs) : plus elle est petite, plus tôt le carreau rencontre ce point.
+local function alongSegment(px: number, pz: number, ax: number, az: number, bx: number, bz: number): number
+	return (px - ax) * (bx - ax) + (pz - az) * (bz - az)
+end
+
+-- Rangement des ennemis d'une ligne (PlotGame byAlongThenIndex) : le premier rencontré d'abord ; à égalité, le
+-- premier de la liste des ennemis.
+local function byAlongThenIndex(a, b): boolean
+	if a.along ~= b.along then
+		return a.along < b.along
+	end
+	return a.index < b.index
+end
+
 -- Trébuchet : positions prévues des ennemis rangées par temps de vol arrondi (PlotGame CROWD_FLIGHT_STEP).
 local CROWD_FLIGHT_STEP = 0.05
 
@@ -402,6 +431,7 @@ local function simulate(comp, towers, immortal: boolean, dt: number, hitsOut, us
 	-- immortelle (personne ne meurt). -Regler "IdleConfig.SPAWN_NEXT_ON_KILL=false" compare sans la règle.
 	local SPAWN_ON_KILL = IdleConfig.SPAWN_NEXT_ON_KILL == true
 	local releases = 0
+	local onProjectile = Engine.onProjectile -- vérification du moteur seulement (nil sinon)
 
 	for i = 1, nTowers do
 		local tower = towers[i]
@@ -456,13 +486,32 @@ local function simulate(comp, towers, immortal: boolean, dt: number, hitsOut, us
 		hitEnemy(enemy, tower.damage, towerIndex, tower.fragile, now)
 	end
 
-	-- Carreau perçant : tous les ennemis vivants à moins de pierceWidth du segment [origine, impact], et sa
-	-- cible où qu'elle soit (PlotGame:hitLine). Chacun une seule fois.
+	-- Carreau perçant (PlotGame:hitLine) : AU PLUS tower.pierceMax ennemis (IdleTowers.BALLISTA_PIERCE_MAX) : sa
+	-- cible où qu'elle soit (si elle vit), plus les PREMIERS ennemis vivants que le carreau rencontre à moins de
+	-- pierceWidth du segment [origine, impact] (les plus proches de la tour le long du trait ; à égalité, le
+	-- premier de la liste). Une cible morte laisse sa place. Chacun une seule fois, dans l'ordre de la liste.
 	local function hitLine(ox: number, oz: number, ix: number, iz: number, tower, target, towerIndex: number, now: number)
 		local width = tower.pierceWidth
+		-- Les autres ennemis sur la ligne : { ennemi, avancée le long du trait, rang dans la liste }.
+		local onLine = {}
 		for i = 1, n do
 			local enemy = enemies[i]
-			if not enemy.dead and (enemy == target or segmentDistance(enemy.x, enemy.z, ox, oz, ix, iz) <= width) then
+			if enemy ~= target and not enemy.dead and segmentDistance(enemy.x, enemy.z, ox, oz, ix, iz) <= width then
+				table.insert(onLine, { enemy = enemy, along = alongSegment(enemy.x, enemy.z, ox, oz, ix, iz), index = i })
+			end
+		end
+		-- Places pour eux : la cible vivante prend toujours la sienne.
+		local places = math.max(0, tower.pierceMax - (if target.dead then 0 else 1))
+		if #onLine > places then
+			table.sort(onLine, byAlongThenIndex)
+		end
+		local struck = {}
+		for k = 1, math.min(places, #onLine) do
+			struck[onLine[k].enemy] = true
+		end
+		for i = 1, n do
+			local enemy = enemies[i]
+			if not enemy.dead and (enemy == target or struck[enemy]) then
 				hitWith(enemy, tower, towerIndex, now)
 			end
 		end
@@ -543,6 +592,9 @@ local function simulate(comp, towers, immortal: boolean, dt: number, hitsOut, us
 		if not ax or not az or not flight then
 			ax, az, flight = predictImpact(tower, target, now)
 		end
+		if onProjectile then
+			onProjectile(tower, target, now)
+		end
 		if not immortal then
 			target.pending += tower.damage
 		end
@@ -603,6 +655,64 @@ local function simulate(comp, towers, immortal: boolean, dt: number, hitsOut, us
 			local ahead = candidate.dist + travelDistance(candidate, now, flight)
 			if count > bestCount or (count == bestCount and count > 0 and ahead > bestAhead) then
 				best, bestX, bestZ, bestFlight, bestCount, bestAhead = candidate, ax, az, flight, count, ahead
+			end
+		end
+		return best, bestX, bestZ, bestFlight
+	end
+
+	-- Baliste (PlotGame:countPierced) : combien d'ennemis le carreau tiré sur `candidate` (point visé ax, az,
+	-- temps de vol flight) transpercera : sa cible, plus chaque ennemi NON condamné qui sera à moins de
+	-- pierceWidth du segment tour -> point visé à l'arrivée (position prévue avec le même temps de vol). Ceux
+	-- qui sont trop loin du segment pour s'en approcher pendant le vol sont écartés sans calcul (comme le jeu).
+	-- Jamais plus de tower.pierceMax (le carreau n'en transperce pas plus) : 3 alignés ou plus, c'est pareil.
+	local function countPierced(tower, candidate, ax: number, az: number, flight: number, now: number): number
+		local ox, oz, width = tower.x, tower.z, tower.pierceWidth
+		local limit = tower.pierceMax
+		local count = 1 -- sa cible : toujours touchée (hitLine)
+		for i = 1, n do
+			if count >= limit then
+				break -- ligne pleine
+			end
+			local other = enemies[i]
+			if other ~= candidate and not other.dead and other.pending < other.hp then
+				if segmentDistance(other.x, other.z, ox, oz, ax, az) - other.speed * flight <= width then
+					local px, pz = pathPoint(other.dist + travelDistance(other, now, flight))
+					if segmentDistance(px, pz, ox, oz, ax, az) <= width then
+						count += 1
+					end
+				end
+			end
+		end
+		return count
+	end
+
+	-- Cible de la Baliste (PlotGame:pickPierceTarget). strongest = le plus résistant à portée et pas condamné
+	-- (pickTarget). « Pareils » = à portée, pas condamnés, PV >= tieRatio x les siens (lui compris) : elle vise
+	-- celui dont le carreau en transpercera le plus ; à nombre égal, le plus résistant, puis le premier de la
+	-- liste. tieCandidates comparés au plus (le plus résistant d'abord, puis dans l'ordre de la liste).
+	-- Renvoie (cible, x, z, vol) pour fireProjectile.
+	local function pickPierceTarget(tower, strongest, now: number)
+		local bestX, bestZ, bestFlight = predictImpact(tower, strongest, now)
+		local best, bestCount = strongest, countPierced(tower, strongest, bestX, bestZ, bestFlight, now)
+		local threshold = strongest.hp * tower.tieRatio
+		local maxCompared = tower.tieCandidates
+		local tx, tz, range = tower.x, tower.z, tower.range
+		local compared = 1
+		for i = 1, n do
+			if compared >= maxCompared then
+				break
+			end
+			local enemy = enemies[i]
+			if enemy ~= strongest and not enemy.dead and enemy.hp >= threshold and enemy.pending < enemy.hp then
+				local dx, dz = enemy.x - tx, enemy.z - tz
+				if math.sqrt(dx * dx + dz * dz) <= range then
+					compared += 1
+					local ax, az, flight = predictImpact(tower, enemy, now)
+					local count = countPierced(tower, enemy, ax, az, flight, now)
+					if count > bestCount or (count == bestCount and enemy.hp > best.hp) then
+						best, bestX, bestZ, bestFlight, bestCount = enemy, ax, az, flight, count
+					end
+				end
 			end
 		end
 		return best, bestX, bestZ, bestFlight
@@ -952,7 +1062,12 @@ local function simulate(comp, towers, immortal: boolean, dt: number, hitsOut, us
 					local target = pickTarget(tower, not projectile)
 					if target then
 						attacked = true
-						if projectile then
+						if projectile and tower.pierceAim then
+							-- Baliste : entre ennemis « pareils », celui dont le carreau en transpercera le plus.
+							local ax, az, flight
+							target, ax, az, flight = pickPierceTarget(tower, target, now)
+							fireProjectile(tower, ti, target, now, ax, az, flight)
+						elseif projectile then
 							fireProjectile(tower, ti, target, now)
 						elseif kind == 2 then
 							hitArea(target.x, target.z, tower, ti, now)

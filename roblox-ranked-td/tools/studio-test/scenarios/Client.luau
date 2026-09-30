@@ -71,6 +71,163 @@ return function(log)
 
 	-- Map principale : vue du joueur, vue aérienne, centre, ma parcelle
 	task.wait(3)
+
+	----------------------------------------------------------------------
+	-- Sons (src/shared/Sounds.luau, src/client/SoundManager.luau) : le bouton « SON » ne couvre pas la carte de rang,
+	-- chaque son se charge dans Studio (numéro valide, son public et gratuit), puis la limite des sons de combat
+	-- tient : 200 tirs à la même image n'en font jouer que Sounds.MAX_COMBAT_SOUNDS au plus, et un seul par son
+	-- (minInterval). Tout petit volume.
+	-- Lancé à part (task.spawn, fonction sans nom : limite des 200 variables locales) : il ne retarde pas les
+	-- autres tests.
+	----------------------------------------------------------------------
+	task.spawn(function()
+		-- Bouton « SON » (SoundManager) : à gauche du compteur de pièces ou juste dessous, jamais sur la carte de
+		-- rang (LobbyUI : 260 x 130 px à 16 px du bord en haut à gauche).
+		local soundGui = player.PlayerGui:FindFirstChild("SoundButton")
+		local soundButton = soundGui and soundGui:FindFirstChild("SoundButton")
+		if soundButton then
+			local at, size = soundButton.AbsolutePosition, soundButton.AbsoluteSize
+			local clear = at.X >= 16 + 260 or at.Y >= 16 + 130
+			log(
+				if clear then "Info" else "Error",
+				`[{if clear then "PASS" else "FAIL"}] bouton « SON » sans couvrir la carte de rang (x {math.floor(at.X)}, y {math.floor(at.Y)}, {math.floor(size.X)} x {math.floor(size.Y)} px, écran {math.floor(camera.ViewportSize.X)} px)`
+			)
+		else
+			log("Error", "[FAIL] bouton « SON » introuvable (PlayerGui.SoundButton)")
+		end
+
+		local ContentProvider = game:GetService("ContentProvider")
+		local SoundService = game:GetService("SoundService")
+		local Sounds = require(ReplicatedStorage.Shared.Sounds)
+		local testFolder = Instance.new("Folder")
+		testFolder.Name = "__TestSons"
+		testFolder.Parent = SoundService
+		local names, list, byName = {}, {}, {}
+		for name, def in Sounds.SLOTS do
+			local sound = Instance.new("Sound")
+			sound.Name = name
+			sound.SoundId = Sounds.assetId(def.id)
+			sound.Volume = 0
+			sound.Parent = testFolder
+			byName[name] = sound
+			table.insert(list, sound)
+			table.insert(names, name)
+		end
+		table.sort(names)
+		task.spawn(function()
+			pcall(function()
+				ContentProvider:PreloadAsync(list)
+			end)
+		end)
+		local deadline = os.clock() + 30
+		local function allLoaded()
+			for _, sound in list do
+				if not (sound.IsLoaded and sound.TimeLength > 0) then
+					return false
+				end
+			end
+			return true
+		end
+		while os.clock() < deadline and not allLoaded() do
+			task.wait(0.25)
+		end
+		local loaded = 0
+		for _, name in names do
+			local def, sound = Sounds.SLOTS[name], byName[name]
+			local ok = sound.IsLoaded and sound.TimeLength > 0
+			loaded += if ok then 1 else 0
+			log(
+				if ok then "Info" else "Error",
+				`[{if ok then "PASS" else "FAIL"}] son « {def.name} » ({name}, id {def.id}) : {if ok then `chargé, {string.format("%.2f", sound.TimeLength)} s` else "ne se charge pas (numéro faux, son privé ou payant ?)"}`
+			)
+		end
+		say(`sons chargés : {loaded}/{#names}`)
+		testFolder:Destroy()
+
+		-- Limite des sons de combat : 200 demandes à la même image, réparties sur tous les sons 3D (un seul départ
+		-- par son, MAX_COMBAT_SOUNDS en tout au plus), puis 200 demandes d'un seul son (une seule voix démarre).
+		local clientFolder = player:WaitForChild("PlayerScripts"):WaitForChild("Client", 10)
+		local managerModule = clientFolder and clientFolder:FindFirstChild("SoundManager")
+		if not managerModule then
+			log("Error", "[FAIL] sons : module SoundManager introuvable (PlayerScripts.Client)")
+			return
+		end
+		local SoundManager = require(managerModule)
+		-- (Sans les sons « priority » : la mort d'un boss passe exprès au-delà de la limite.)
+		local combat = {}
+		for _, name in names do
+			local def = Sounds.SLOTS[name]
+			if def.range and not def.loop and not def.priority then
+				table.insert(combat, name)
+			end
+		end
+		local started, cap, active = SoundManager.testBurst(combat, 200)
+		local capOk = started <= cap and active <= cap and (started >= 1 or active >= cap)
+		log(
+			if capOk then "Info" else "Error",
+			`[{if capOk then "PASS" else "FAIL"}] sons : 200 tirs à la même image ({#combat} sons 3D) -> {started} démarrés, {active} en train de jouer (limite {cap})`
+		)
+		task.wait(6) -- les sons du test précédent sont finis
+		local single = SoundManager.testBurst({ "ArcherShot" }, 200)
+		log(
+			if single <= 1 then "Info" else "Error",
+			`[{if single <= 1 then "PASS" else "FAIL"}] sons : 200 flèches à la même image -> {single} son (1 au plus : un départ toutes les {Sounds.SLOTS.ArcherShot.minInterval} s)`
+		)
+
+		-- Musiques qui s'enchaînent (Sounds.PLAYLISTS.Hub) : on saute à 1 s de la fin du morceau en cours, un autre
+		-- morceau de la liste doit démarrer tout seul (et avancer). Le Sound du jeu est cherché dans SoundService
+		-- (dossier « SonsDuJeu » : le require du test n'a pas la même copie du module que Main.client).
+		local function findMusic()
+			for _, descendant in SoundService:GetDescendants() do
+				if
+					descendant:IsA("Sound")
+					and descendant.Parent
+					and descendant.Parent.Name == "SonsDuJeu"
+					and table.find(Sounds.PLAYLISTS.Hub, descendant.Name)
+				then
+					return descendant
+				end
+			end
+			return nil
+		end
+		local musicDeadline = os.clock() + 40
+		local music = findMusic()
+		while os.clock() < musicDeadline and not (music and music.IsPlaying and music.TimeLength > 0) do
+			task.wait(0.25)
+			music = music or findMusic()
+		end
+		if not music then
+			log("Error", "[FAIL] musiques : pas de musique dans SoundService.SonsDuJeu")
+			return
+		end
+		local before = music.Name
+		if not (music.IsPlaying and music.TimeLength > 0) then
+			log("Error", `[FAIL] musiques : « {before} » ne joue pas (bouton « SON » sur {player:GetAttribute("SoundMode") or "?"})`)
+			return
+		end
+		-- (un Sound neuf par morceau : on cherche celui qui a pris la place)
+		music.TimePosition = math.max(0, music.TimeLength - 1)
+		musicDeadline = os.clock() + 30
+		local current = music
+		while os.clock() < musicDeadline do
+			task.wait(0.25)
+			current = findMusic()
+			if current and current ~= music and current.IsPlaying and current.TimePosition > 0.5 then
+				break
+			end
+		end
+		local chained = current ~= nil
+			and current ~= music
+			and current.Name ~= before
+			and table.find(Sounds.PLAYLISTS.Hub, current.Name) ~= nil
+			and current.IsPlaying
+			and current.TimePosition > 0.5
+		log(
+			if chained then "Info" else "Error",
+			`[{if chained then "PASS" else "FAIL"}] musiques : fin de « {before} » -> « {if current then current.Name else "aucune"} » ({if current and current.IsPlaying then "joue" else "ne joue pas"}, {if current then string.format("%.1f", current.TimePosition) else "?"} s)`
+		)
+	end)
+
 	shot("hub_player")
 	-- HUD de la parcelle (PlotUI) : la vague, le record et les ennemis restants sont sur le tableau « CHRONIQUES DU
 	-- FIEF » de la parcelle : plus de panneau de vague en haut de l'écran, seulement le compteur de pièces.
@@ -218,8 +375,9 @@ return function(log)
 
 	----------------------------------------------------------------------
 	-- Modèles perso des ennemis (ReplicatedStorage.EnemyModels, CustomModels.luau) : un modèle « Swarm »
-	-- posé pendant la partie sert aux nouveaux écuyers, sans ses scripts ; les autres types gardent leurs
-	-- blocs. Vérifié par le module (tous les cas), par la galerie Studio (construite avec) et par les
+	-- posé pendant la partie sert aux nouveaux écuyers, sans ses scripts (les vrais écuyers du projet sont mis
+	-- de côté pendant ce temps) ; les autres types gardent leurs blocs ou leur vrai modèle du projet.
+	-- Vérifié par le module (tous les cas), par la galerie Studio (construite avec) et par les
 	-- ennemis des parcelles qui apparaissent pendant le test (PlotRenderer).
 	----------------------------------------------------------------------
 	local function check(ok, message)
@@ -246,6 +404,22 @@ return function(log)
 	local function realModelFor(enemyType, palier)
 		return realModels[string.lower(`{enemyType}_{palier % 10}`)] or realModels[string.lower(enemyType)]
 	end
+	-- Vrais écuyers du projet (Swarm_0, Swarm_1...) : ils passeraient avant le modèle « Swarm » de test (nom
+	-- exact du palier). Mis de côté pendant ses vérifications, remis dans le dossier pour celles des vrais
+	-- modèles, puis à la fin.
+	local realSwarms = {}
+	for _, child in modelsFolder:GetChildren() do
+		if (child:IsA("Model") or child:IsA("BasePart")) and string.match(string.lower(child.Name), "^swarm_?%d*$") then
+			table.insert(realSwarms, child)
+		end
+	end
+	local function hideRealSwarms(hidden)
+		for _, model in realSwarms do
+			model.Parent = if hidden then nil else modelsFolder
+		end
+		task.wait(0.1)
+	end
+	hideRealSwarms(true)
 	local function scriptsIn(instance)
 		local count = 0
 		for _, descendant in instance:GetDescendants() do
@@ -403,7 +577,7 @@ return function(log)
 		root6:Destroy()
 	end
 	swarm6:Destroy()
-	task.wait(0.1)
+	hideRealSwarms(false)
 
 	-- Vrais modèles du projet (assets/EnemyModels : Roi carmin « Boss_0 », troupes carmin...) : nom valable
 	-- (<Type> ou <Type>_<palier>), à la bonne hauteur, tournés dans le sens de la marche (orteils, ou tête d'un
@@ -515,27 +689,53 @@ return function(log)
 			tip.Parent = workspace
 			local speed = def.speed * IdleConfig.ENEMY_SPEED_MULTIPLIER * IdleConfig.enemySpeedFactor(enemyType)
 			local track = CustomModels.loadWalk(root, entry)
-			local forwardRaw, forwardFixed = nil, nil
+			local forwardRaw, forwardFixed, earlyFlip, flip = nil, nil, nil, nil
 			if track then
-				track:Play(0, 1, CustomModels.walkRate(entry, speed))
-				task.wait(0.6)
-				local front = CustomModels.frontDirection(root)
-				forwardRaw = front and -origin:VectorToObjectSpace(front).Z
-				-- Comme PlotRenderer : si l'animation retourne ce modèle (measureFlip), sa racine fait un demi-tour.
-				if CustomModels.measureFlip(root, entry) then
-					root.CFrame = origin * CFrame.Angles(0, math.pi, 0)
-					task.wait(0.2)
+				-- Sens mesuré comme en jeu (CustomModels.measureFlip : à plusieurs moments du pas, jamais juste après
+				-- Play, où les os sont encore au repos), remis à zéro pour le test. Sens affiché = moyenne sur
+				-- plusieurs pas (à un moment du pas, les pieds peuvent pointer vers l'arrière).
+				entry.flipWhenAnimated = nil
+				entry.flipSamples = nil
+				track:Play(0.2, 1, CustomModels.walkRate(entry, speed))
+				earlyFlip = CustomModels.measureFlip(root, entry, track)
+				task.wait(0.5)
+				local rawSum, rawCount = 0, 0
+				local deadline = os.clock() + 4
+				while flip == nil and os.clock() < deadline do
+					task.wait()
+					flip = CustomModels.measureFlip(root, entry, track)
+					local front = CustomModels.frontDirection(root)
+					if front then
+						rawSum += -origin:VectorToObjectSpace(front).Z
+						rawCount += 1
+					end
 				end
-				local fixed = CustomModels.frontDirection(root)
-				forwardFixed = fixed and -origin:VectorToObjectSpace(fixed).Z
+				forwardRaw = if rawCount > 0 then rawSum / rawCount else nil
+				-- Comme PlotRenderer : si l'animation retourne ce modèle, sa racine fait un demi-tour.
+				if flip then
+					root.CFrame = origin * CFrame.Angles(0, math.pi, 0)
+				end
+				task.wait(0.2)
+				local fixedSum, fixedCount = 0, 0
+				local stop = os.clock() + 1.2
+				repeat
+					task.wait()
+					local front = CustomModels.frontDirection(root)
+					if front then
+						fixedSum += -origin:VectorToObjectSpace(front).Z
+						fixedCount += 1
+					end
+				until os.clock() >= stop
+				forwardFixed = if fixedCount > 0 then fixedSum / fixedCount else nil
 			end
 			local function two(x)
 				return if x then string.format("%.2f", x) else "?"
 			end
 			check(
-				forwardFixed ~= nil and forwardFixed > 0.9,
-				`« {realName} » marche vers l'avant, animation jouée ({two(forwardRaw)} sans correction, {two(forwardFixed)} avec ; 1 = vers l'avant, -1 = à reculons)`
+				forwardFixed ~= nil and forwardFixed > 0.5,
+				`« {realName} » marche vers l'avant, animation jouée (en moyenne {two(forwardRaw)} sans correction, {two(forwardFixed)} avec ; 1 = vers l'avant, -1 = à reculons ; retourné : {tostring(flip)})`
 			)
+			check(earlyFlip == nil, `« {realName} » : sens pas mesuré juste après le lancement de sa marche (obtenu {tostring(earlyFlip)}, attendu nil)`)
 			local side = def.size * 2.2 + 3
 			look(origin.Position + origin.RightVector * side + Vector3.new(0, def.size * 0.3, 0), origin.Position + Vector3.new(0, 0, -def.size * 0.5))
 			shot("walk_" .. realName)
@@ -552,6 +752,7 @@ return function(log)
 		end
 		restoreCamera()
 	end
+	hideRealSwarms(true)
 
 	-- 2) En jeu : les ennemis qui apparaissent sur les parcelles à partir de maintenant (PlotRenderer).
 	local live = { swarm = 0, swarmBad = 0, other = 0, otherBad = 0 }
@@ -710,7 +911,8 @@ return function(log)
 	else
 		say("parcelles : aucun nouvel ennemi d'un autre type pendant le test")
 	end
-	swarmModel:Destroy() -- le reste de la partie retrouve les blocs
+	swarmModel:Destroy()
+	hideRealSwarms(false) -- le reste de la partie retrouve les vrais écuyers du projet (ou les blocs)
 
 	----------------------------------------------------------------------
 	-- Classé : bouton « ⚔ S'INSCRIRE AU CLASSÉ » seulement dans le cercle de l'arène, statut de la recherche (en

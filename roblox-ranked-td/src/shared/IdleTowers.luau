@@ -14,8 +14,9 @@
 --                          monte avec son niveau) ; ses propres dégâts restent faibles (pas de « tout givre »)
 --   Catapulte           -> grosse zone contre les foules tassées
 --   Mage des tempêtes   -> contrôle : petite zone (3) + ralentissement TRÈS fort (-90 %) mais court
---   Baliste lourde      -> gros carreaux PERÇANTS à longue portée (30) : vise le plus résistant, et le
---                          carreau touche tous les ennemis sur sa ligne
+--   Baliste lourde      -> gros carreaux PERÇANTS à longue portée (30) : vise le plus résistant (entre ennemis
+--                          presque aussi résistants, celui qui en aligne le plus), et le carreau transperce
+--                          jusqu'à 3 ennemis sur sa ligne (BALLISTA_PIERCE_MAX)
 --   Sorcier des arcanes -> rayon qui monte : bat la Baliste contre les lents (boss, colosse, chevaliers
 --                          lourds), perd contre les rapides ; très fort avec un Totem de givre
 --   Oracle / Trébuchet  -> légendaires, rares : bien plus fortes à niveau égal (elles ont peu de doublons) ;
@@ -43,10 +44,12 @@
 --
 -- Façons de toucher (kind) :
 --   "Single" : une cible ; "Splash" : une zone autour du point d'impact (rayon `splash`) ;
---   "Pierce" : un carreau qui transperce tout sur la ligne tour -> point d'impact (demi-largeur `pierceWidth`) ;
+--   "Pierce" : un carreau qui transperce les ennemis sur la ligne tour -> point d'impact (demi-largeur
+--   `pierceWidth`), BALLISTA_PIERCE_MAX au plus ;
 --   "Aura" : tous les ennemis à portée ; "Chain" : un éclair qui rebondit ; "Beam" : rayon continu.
--- Façons de viser (targeting) : "First" = le plus avancé, "Strongest" = le plus résistant, "Crowd" = le point
--- du chemin où la zone touchera le plus d'ennemis (Trébuchet, voir PlotGame:pickCrowdTarget).
+-- Façons de viser (targeting) : "First" = le plus avancé, "Strongest" = le plus résistant (avec un carreau
+-- perçant : entre ennemis presque aussi résistants, celui qui en aligne le plus, voir BALLISTA_TIE_RATIO),
+-- "Crowd" = le point du chemin où la zone touchera le plus d'ennemis (Trébuchet, voir PlotGame:pickCrowdTarget).
 -- Avec projectileSpeed (studs par seconde), la tour lance un projectile (temps de vol : flightTime) ;
 -- sans, elle touche tout de suite.
 -- Effets : slow + slowDuration = ralentissement (contrôle) ; stunDuration = étourdissement (contrôle, vitesse
@@ -73,6 +76,22 @@ IdleTowers.PROJECTILE_CATCH_RADIUS = 1.5
 IdleTowers.PROJECTILE_FOLLOW_MARGIN = 6
 -- Zones de feu actives au plus sur une parcelle (toutes tours confondues) : au-delà, la plus vieille s'éteint.
 IdleTowers.FIRE_MAX_PER_PLOT = 30
+-- Baliste lourde plus maligne (demande du propriétaire : « viser le plus gros monstre ok, mais si plusieurs
+-- monstres sont pareils, essayer de faire la meilleure zone »). Parmi les ennemis qu'elle peut viser, ceux qui
+-- ont au moins BALLISTA_TIE_RATIO fois les PV du plus résistant sont « pareils » (0,85 : 85 % de ses PV ou
+-- plus) ; elle vise celui dont le carreau en transpercera le PLUS. À nombre égal : le plus résistant, comme
+-- avant. Un ennemi bien plus résistant que les autres reste donc toujours sa cible. 1 = seulement les PV
+-- exactement égaux ; plus de 1 = toujours le plus résistant (l'ancienne règle). Voir PlotGame:pickPierceTarget.
+IdleTowers.BALLISTA_TIE_RATIO = 0.85
+-- Nombre de « pareils » comparés au plus à chaque tir de Baliste (le plus résistant compris) : le calcul reste
+-- léger même devant une foule d'écuyers qui ont tous les mêmes PV.
+IdleTowers.BALLISTA_MAX_CANDIDATES = 12
+-- Le carreau de la Baliste transperce AU PLUS ce nombre d'ennemis (décision du propriétaire : « transperce 3 max » ;
+-- avec sa visée maligne, elle faisait jusqu'à 92 % des dégâts et écrasait la Catapulte, le Trébuchet, le Sorcier
+-- et l'Oracle, voir tools/balance/RESULTS.md). Sa cible est toujours touchée, plus les premiers ennemis que le
+-- carreau rencontre sur sa ligne (les plus proches de la tour). Sa visée compte aussi au plus ce nombre par
+-- ligne : 3 alignés ou plus, c'est pareil (à égalité, le plus résistant). Voir PlotGame:hitLine et countPierced.
+IdleTowers.BALLISTA_PIERCE_MAX = 3
 
 IdleTowers.Defs = {
 	MachineGun = {
@@ -213,11 +232,14 @@ IdleTowers.Defs = {
 	Rocket = {
 		rarity = "Epic",
 		displayName = "Baliste lourde",
-		description = "Un carreau perçant à longue portée : il vise le plus résistant et transperce tous les ennemis sur sa ligne.",
-		-- Carreau PERÇANT : la Baliste vise toujours l'ennemi le plus résistant, mais à l'impact, TOUS les
-		-- ennemis à moins de pierceWidth studs du segment tour -> point d'impact prennent les dégâts (sa
-		-- cible comprise, touchée même si un ralentissement l'a fait dévier). Remplace sa toute petite zone
-		-- (rayon 2) : elle doit servir au milieu de partie, pas seulement contre les boss.
+		description = "", -- écrite plus bas (elle cite BALLISTA_PIERCE_MAX)
+		-- Carreau PERÇANT : la Baliste vise l'ennemi le plus résistant, mais à l'impact, les ennemis à moins de
+		-- pierceWidth studs du segment tour -> point d'impact prennent aussi les dégâts, BALLISTA_PIERCE_MAX au
+		-- plus (3) : sa cible (touchée même si un ralentissement l'a fait dévier) et les premiers que le carreau
+		-- rencontre. Remplace sa toute petite zone (rayon 2) : elle doit servir au milieu de partie, pas seulement
+		-- contre les boss.
+		-- Entre ennemis « pareils » (au moins BALLISTA_TIE_RATIO fois les PV du plus résistant, voir en haut),
+		-- elle vise celui dont le carreau en transpercera le plus (PlotGame:pickPierceTarget).
 		kind = "Pierce",
 		targeting = "Strongest",
 		color = Color3.fromRGB(200, 60, 60),
@@ -233,7 +255,7 @@ IdleTowers.Defs = {
 		-- seul ennemi restent les mêmes.
 		pierceWidth = 1.25,
 		projectileSpeed = 75, -- carreau lourd, tir tendu : ~0,15 à 0,45 s de vol
-		idealAgainst = "les chevaliers lourds, les boss et les ennemis alignés",
+		idealAgainst = "", -- écrite plus bas (elle cite BALLISTA_PIERCE_MAX)
 	},
 	Laser = {
 		rarity = "Epic",
@@ -337,6 +359,10 @@ do
 	frost.description = `Ralentit de {frenchNumber(frost.slow * 100)} % tout ce qui passe dans son aura et rend ces ennemis fragiles : +{frenchNumber(frost.fragilityBase * 100)} % de dégâts reçus de tes autres tours (sauf le Mage des tempêtes), +{frenchNumber(frost.fragilityPerLevel * 100)} % par niveau.`
 	local mage = IdleTowers.Defs.Tesla
 	mage.description = `Foudroie une petite zone et ralentit très fort (-{frenchNumber(mage.slow * 100)} %) mais brièvement les ennemis touchés. Ne se cumule pas avec le Totem de givre.`
+	local ballista = IdleTowers.Defs.Rocket
+	local pierceMax = frenchNumber(IdleTowers.BALLISTA_PIERCE_MAX)
+	ballista.description = `Un carreau perçant à longue portée : il vise le plus résistant (entre ennemis presque aussi résistants, celui qui en aligne le plus) et transperce jusqu'à {pierceMax} ennemis sur sa ligne.`
+	ballista.idealAgainst = `les chevaliers lourds, les boss et les petits groupes alignés ({pierceMax} ennemis au plus par carreau)`
 end
 
 -- Améliorations : niveaux illimités. Chaque niveau multiplie les dégâts, et chaque

@@ -24,6 +24,8 @@
 -- blocs (déplacée pareil). Sa marche (Animation « Marche ») n'est jouée que près de la caméra, avec un nombre
 -- maximal de pistes, à la vitesse de l'ennemi (ralenti = plus lent, étourdi = figé, Vitesse x2 = 2 fois plus
 -- vite) : voir updateAnimations. Tué, il joue son animation de mort s'il en a une (startDeath, updateDying).
+-- Sons (SoundManager, réglages dans Sounds.luau) : tirs et impacts (SHOT_SOUNDS), morts, arrivée d'un boss ou d'un
+-- colosse sur ta parcelle, pièces ramassées, bourdonnement du rayon du Sorcier.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -41,8 +43,27 @@ local PlotLayout = require(Shared.PlotLayout)
 local ProximityLabel = require(Shared.ProximityLabel)
 local Remotes = require(Shared.Remotes)
 local Effects = require(script.Parent.Effects)
+local SoundManager = require(script.Parent.SoundManager)
 
 local PlotRenderer = {}
+
+-- Sons (Sounds.luau, joués par SoundManager, 3D : seulement près de la caméra, avec des limites) :
+-- launch = au départ, à la tour ; strike = foudre instantanée, sur la cible ; impact = à l'arrivée du
+-- projectile (quand les dégâts tombent).
+local SHOT_SOUNDS = {
+	MachineGun = { launch = "ArcherShot" },
+	Frost = { launch = "FrostPulse" },
+	Bomb = { launch = "CatapultLaunch", impact = "CatapultImpact" },
+	Tesla = { strike = "StormLightning" },
+	Rocket = { launch = "BallistaShot", impact = "BallistaImpact" },
+	Chain = { strike = "OracleChain" },
+	Orbital = { launch = "TrebuchetLaunch", impact = "TrebuchetImpact" },
+}
+-- Mort d'un ennemi (les autres types : EnemyDeath).
+local DEATH_SOUNDS = { Boss = "BossDeath", Giant = "BigDeath", Tank = "BigDeath" }
+-- Boss ou colosse qui vient d'apparaître (à moins de ça du début du chemin) sur TA parcelle : son 2D.
+local ARRIVAL_SOUNDS = { Boss = "BossArrival", Giant = "GiantArrival" }
+local ARRIVAL_DISTANCE = 15
 
 local ENEMY_BYTES = 11
 -- Octet « contrôle » (un par ennemi, après les count x ENEMY_BYTES octets, même ordre) : bits 0-3 = numéro
@@ -71,6 +92,11 @@ local ANIM_DISTANCE = 150
 local ANIM_MAX_TRACKS = 120
 local ANIM_CHECK_INTERVAL = 0.25
 local ANIM_RATE_STEP = 0.02 -- écart de vitesse sous lequel on ne touche pas à la piste
+-- Sens d'un modèle que son animation retourne (CustomModels.measureFlip) : mesuré seulement sur une marche qui
+-- joue sans interruption depuis au moins ce temps (juste après un Play, les os sont encore au repos).
+local FLIP_MEASURE_DELAY = 0.5
+-- Modèles dont le sens est en cours de mesure : [modèle préparé] = l'ennemi qui sert à la mesure.
+local flipSamplers = {}
 -- Mort des modèles perso qui ont une animation de mort (CustomModels : « Mort », « Dead »...) : jouée une fois
 -- là où l'ennemi est tombé (tué pendant la vague, pas quand la vague est ratée ou arrêtée), seulement à moins
 -- de ANIM_DISTANCE studs de la caméra et DEATH_MAX_ACTIVE corps à la fois (boss et colosses toujours). La
@@ -370,6 +396,11 @@ local function onSync(plotIndex: number, packet: buffer, count: number)
 		if not enemy then
 			local part, fill, stroke, custom = createEnemy(enemyType, def, palierOf(plotIndex, state))
 			enemy = { def = def, part = part, fill = fill, stroke = stroke, distance = distance, statusFragile = false }
+			enemy.enemyType = enemyType
+			-- Cor de guerre (boss) ou pas lourds (colosse) quand il arrive sur ta parcelle.
+			if ARRIVAL_SOUNDS[enemyType] and distance < ARRIVAL_DISTANCE and plotIndex == Players.LocalPlayer:GetAttribute("Plot") then
+				SoundManager.play(ARRIVAL_SOUNDS[enemyType])
+			end
 			-- Vague où il est apparu : à sa disparition, dit s'il a été tué ou retiré (vague ratée, voir plus bas).
 			local wave = state.folder and state.folder:GetAttribute("Wave")
 			enemy.wave = if typeof(wave) == "number" then wave else nil
@@ -404,6 +435,9 @@ local function onSync(plotIndex: number, packet: buffer, count: number)
 			local died = runState == "Running"
 				or (runState == "Intermission" and typeof(plotWave) == "number" and enemy.wave ~= nil and plotWave > enemy.wave)
 			enemy.simSpeed = simSpeed
+			if died then
+				SoundManager.playAt(DEATH_SOUNDS[enemy.enemyType] or "EnemyDeath", enemy.part.Position)
+			end
 			removeEnemy(enemy, died)
 			state.enemies[id] = nil
 		end
@@ -450,13 +484,15 @@ local function updateAnimations()
 				if not track.IsPlaying then
 					track:Play(fade / 2, 1, rate)
 					enemy.walkRateNow = rate
+					enemy.walkPlayedAt = os.clock()
 				elseif math.abs(rate - enemy.walkRateNow) > ANIM_RATE_STEP then
 					enemy.walkRateNow = rate
 					track:AdjustSpeed(rate)
 				end
-				-- Son animation le retourne-t-elle ? Mesuré une fois par modèle, racine encore dans le sens normal.
-				if enemy.custom.flipWhenAnimated == nil and not enemy.rootFlipped and track.IsPlaying and track.Length > 0 and track.TimePosition > 0.1 then
-					CustomModels.measureFlip(enemy.part, enemy.custom)
+				-- Son animation le retourne-t-elle ? Mesuré une fois par modèle, sur un de ses ennemis qui marche
+				-- (échantillons à chaque image : voir flipSamplers dans la boucle d'affichage).
+				if enemy.custom.flipWhenAnimated == nil and flipSamplers[enemy.custom] == nil then
+					flipSamplers[enemy.custom] = enemy
 				end
 			end
 		end
@@ -481,6 +517,7 @@ local function updateAnimations()
 			local rate = walkRate(enemy, simSpeed)
 			enemy.track:Play(if enemy.custom.flipWhenAnimated then 0 else 0.2, 1, rate)
 			enemy.walkRateNow = rate
+			enemy.walkPlayedAt = os.clock()
 			enemy.walking = true
 			playingTracks += 1
 		end
@@ -603,6 +640,19 @@ local function onShots(plotIndex: number, packet: buffer, count: number)
 		local targetId = if hasTargets then buffer.readu32(packet, targetStart + i * SHOT_TARGET_BYTES) else 0
 		local follow = if targetId ~= 0 and flight > 0 then followTarget(state, targetId, to, IdleTowers.followDistance(def)) else nil
 		Effects.playTowerShot(from, to, towerType, radius, def.color, def.kind, nearestTower(plotIndex, towerType, from), flight, follow)
+		-- Sons : ignorés tout de suite loin de la caméra ; l'impact n'est programmé que s'il sera entendu.
+		local sounds = SHOT_SOUNDS[towerType]
+		if sounds then
+			if sounds.launch then
+				SoundManager.playAt(sounds.launch, from)
+			end
+			if sounds.strike then
+				SoundManager.playAt(sounds.strike, to)
+			end
+			if sounds.impact and SoundManager.isAudible(sounds.impact, to) then
+				task.delay(flight, SoundManager.playAt, sounds.impact, to)
+			end
+		end
 		if def.fireRadius then
 			task.delay(flight, landFire, plotIndex, to, def, follow)
 		end
@@ -644,6 +694,7 @@ local function watchBeamTower(model: Instance)
 				Effects.destroyBeam(entry.handle)
 				entry.handle = nil
 			end
+			SoundManager.removeLoop(model)
 			beams[model] = nil
 		end
 	end)
@@ -659,6 +710,7 @@ local function updateBeams(dt: number, t: number)
 				Effects.hideBeam(entry.handle)
 			end
 			entry.heat = 0
+			SoundManager.setLoop(model, "ArcaneBeam", nil, false)
 			continue
 		end
 		-- 0 = rayon qui démarre (x1), 1 = rayon au maximum (beamRampMax de la tour, sans rune).
@@ -671,6 +723,9 @@ local function updateBeams(dt: number, t: number)
 		local from = if entry.muzzle then entry.muzzle.Position else model:GetPivot().Position + Vector3.new(0, 6, 0)
 		entry.handle = entry.handle or Effects.createBeam(entry.def.color)
 		Effects.updateBeam(entry.handle, from, enemy.part.Position, entry.heat, t)
+		-- Bourdonnement du rayon, à la tour : plus fort et plus aigu quand il monte (SoundManager choisit les plus
+		-- proches de la caméra).
+		SoundManager.setLoop(model, "ArcaneBeam", entry.muzzle or model.PrimaryPart, true, entry.heat)
 	end
 end
 
@@ -724,6 +779,7 @@ local function addRemoteGain(amount: number)
 		local root = characterRoot()
 		if root and total > 0 then
 			floatingText(root.Position + Vector3.new(0, 3.5, 0), "+" .. NumberFormat.short(total))
+			SoundManager.play("CoinAutoCollect") -- un petit son doux par groupe de piles arrivées
 		end
 	end)
 end
@@ -740,6 +796,7 @@ local function onCoinDrop(action: string, id: number, position: Vector3, amount:
 				coins[id] = nil
 			end
 			floatingText(position, "+" .. NumberFormat.short(amount))
+			SoundManager.play("CoinPickup")
 			return
 		end
 		-- Ramassée à distance (pass Ramassage auto) : la pile s'envole vers le joueur et rétrécit.
@@ -886,6 +943,16 @@ function PlotRenderer.start()
 		end
 		if #movedParts > 0 then
 			workspace:BulkMoveTo(movedParts, movedCFrames, Enum.BulkMoveMode.FireCFrameChanged)
+		end
+
+		-- Sens des modèles perso pas encore mesuré : un échantillon par image sur un de leurs ennemis qui marche
+		-- (plusieurs moments de son pas, CustomModels.measureFlip), racine encore dans le sens normal.
+		for custom, enemy in flipSamplers do
+			if custom.flipWhenAnimated ~= nil or not enemy.walking or enemy.rootFlipped or enemy.part.Parent == nil then
+				flipSamplers[custom] = nil
+			elseif os.clock() - (enemy.walkPlayedAt or 0) >= FLIP_MEASURE_DELAY then
+				CustomModels.measureFlip(enemy.part, custom, enemy.track)
+			end
 		end
 
 		-- Marche des modèles perso : quelques fois par seconde suffit (distance, vitesse).

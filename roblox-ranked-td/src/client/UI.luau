@@ -172,6 +172,10 @@ local toastList = nil
 local toastCount = 0
 local MAX_TOASTS = 3
 
+-- Appelée à chaque nouveau message affiché, (message, kind) : SoundManager y branche le son « refusé » des
+-- erreurs (UI ne peut pas charger SoundManager lui-même : SoundManager utilise UI).
+UI.onToast = nil :: ((string, string?) -> ())?
+
 -- Petite notification en haut de l'écran.
 function UI.toast(message: string, kind: string?)
 	if not toastGui then
@@ -209,6 +213,9 @@ function UI.toast(message: string, kind: string?)
 	end)
 	for i = 1, #visible - MAX_TOASTS + 1 do
 		visible[i]:Destroy()
+	end
+	if UI.onToast then
+		UI.onToast(message, kind)
 	end
 
 	local color = UI.Colors[kind or "Info"] or UI.Colors.PanelLight

@@ -22,6 +22,7 @@ local IdleTowers = require(Shared.IdleTowers)
 local NumberFormat = require(Shared.NumberFormat)
 local PlotLayout = require(Shared.PlotLayout)
 local Remotes = require(Shared.Remotes)
+local SoundManager = require(script.Parent.SoundManager)
 local UI = require(script.Parent.UI)
 
 local PlotUI = {}
@@ -91,14 +92,14 @@ local function percent(fraction: number): string
 	return UI.decimal(math.floor(fraction * 1000 + 0.5) / 10)
 end
 
--- Qui la tour touche, en court (cartes) : « Zone rayon 7 », « Ligne perçante », « 4 cibles »...
+-- Qui la tour touche, en court (cartes) : « Zone rayon 7 », « Perce 3 ennemis », « 4 cibles »...
 -- Les fiches (DPS par cible) trompaient pour les tours de zone : on montre plutôt dégâts par coup,
 -- attaques par seconde et combien d'ennemis chaque coup peut toucher.
 local function reachShort(stats): string
 	if stats.kind == "Splash" and stats.splash then
 		return `Zone rayon {UI.decimal(stats.splash)}`
 	elseif stats.kind == "Pierce" then
-		return "Ligne perçante"
+		return `Perce {IdleTowers.BALLISTA_PIERCE_MAX} ennemis`
 	elseif stats.kind == "Aura" then
 		return `Aura rayon {UI.decimal(stats.range)}`
 	elseif stats.kind == "Chain" then
@@ -113,7 +114,7 @@ local function reachLong(stats): string
 	if stats.kind == "Splash" and stats.splash then
 		text = `Zone : rayon <b>{UI.decimal(stats.splash)}</b> studs autour de l'impact`
 	elseif stats.kind == "Pierce" then
-		text = `Carreau perçant : touche tous les ennemis sur sa ligne (largeur <b>{UI.decimal((stats.pierceWidth or 0) * 2)}</b> studs)`
+		text = `Carreau perçant : jusqu'à <b>{IdleTowers.BALLISTA_PIERCE_MAX}</b> ennemis, sa cible et les premiers sur sa ligne (largeur <b>{UI.decimal((stats.pierceWidth or 0) * 2)}</b> studs)`
 	elseif stats.kind == "Aura" then
 		text = `Aura : tous les ennemis à <b>{UI.decimal(stats.range)}</b> studs`
 	elseif stats.kind == "Chain" then
@@ -186,6 +187,12 @@ end
 function PlotUI.start()
 	local player = Players.LocalPlayer
 	local plotAction = Remotes.get("PlotAction")
+	-- Chaque demande est notée pour les sons : « tour posée / vendue », « emplacement débloqué » ne jouent que
+	-- quand le serveur l'a vraiment fait (SoundManager.noteAction). « Upgrade » : la montée du niveau suffit.
+	local function send(action: string, spotIndex: number, ...)
+		SoundManager.noteAction(action, spotIndex)
+		plotAction:FireServer(action, spotIndex, ...)
+	end
 	local plotsFolder = workspace:WaitForChild("Hub"):WaitForChild("Plots")
 	local gui = UI.screen("Plot")
 
@@ -589,7 +596,7 @@ function PlotUI.start()
 					return
 				end
 				pendingPlace[spotIndex] = { towerType = towerType, at = os.clock() }
-				plotAction:FireServer("Place", spotIndex, towerType)
+				send("Place", spotIndex, towerType)
 				refreshPanel()
 				return
 			end
@@ -646,7 +653,7 @@ function PlotUI.start()
 		end
 		pendingPlace[confirm.spot] = { towerType = confirm.towerType, at = os.clock() }
 		-- 4e argument = la tour remplacée : sans lui, le serveur refuse de poser sur une tour existante.
-		plotAction:FireServer("Place", confirm.spot, confirm.towerType, confirm.model:GetAttribute("TowerType"))
+		send("Place", confirm.spot, confirm.towerType, confirm.model:GetAttribute("TowerType"))
 		refreshPanel()
 	end)
 
@@ -723,6 +730,7 @@ function PlotUI.start()
 					return -- double clic : pas une confirmation
 				end
 				confirmBonus = nil
+				SoundManager.noteAction("ApplyBonus", selectedSpot)
 				Remotes.get("MachineAction"):FireServer("ApplyBonus", selectedSpot, bonus.id)
 			end)
 		end
@@ -736,14 +744,14 @@ function PlotUI.start()
 		local owned = ownedSpots()
 		if not owned[selectedSpot] then
 			-- Achète CET emplacement (le serveur vérifie le numéro et les pièces).
-			plotAction:FireServer("BuySpot", selectedSpot)
+			send("BuySpot", selectedSpot)
 		elseif towerOn(selectedSpot) then
 			-- Vente en 2 clics : le 1er arme le bouton, le 2e (pas trop vite, pas trop tard) vend.
 			local now = os.clock()
 			if sellArmedAt and now - sellArmedAt <= SELL_CONFIRM_TIME then
 				if now - sellArmedAt >= CONFIRM_ARM_DELAY then
 					sellArmedAt = nil
-					plotAction:FireServer("Sell", selectedSpot)
+					send("Sell", selectedSpot)
 				end
 			else
 				sellArmedAt = now
@@ -755,7 +763,7 @@ function PlotUI.start()
 	local function upgradeSelected()
 		-- Pas pendant un remplacement (bouton Améliorer caché) : inutile d'améliorer la tour qu'on remplace.
 		if selectedSpot and not confirmReplace and not replacing and towerOn(selectedSpot) then
-			plotAction:FireServer("Upgrade", selectedSpot)
+			send("Upgrade", selectedSpot)
 		end
 	end
 	upgradeButton.Activated:Connect(upgradeSelected)

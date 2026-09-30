@@ -67,6 +67,12 @@ CustomModels.SETTINGS = {
 	-- Chef pillard de cuivre (ChatGPT, assets/enemies/copper-chieftain) : boss des vagues 20, 120, 220...
 	-- Importé en FBX (les GLB retournaient sa tête). Même genre de marche que le Roi carmin.
 	boss_1 = { walk = 71788744458869, death = 101510645677440, animSpeed = 3.8 },
+	-- Gardien des ronces (ChatGPT) : boss des vagues 30, 130, 230...
+	boss_2 = { walk = 91047716376652, death = 135721159652622, animSpeed = 3.8 },
+	-- Titan de glace (ChatGPT) : boss des vagues 40, 140, 240...
+	boss_3 = { walk = 72114228775968, death = 108006752796153, animSpeed = 3.8 },
+	-- Seigneur des dunes (ChatGPT) : boss des vagues 50, 150, 250...
+	boss_4 = { walk = 106949813842936, death = 136502915373905, animSpeed = 3.8 },
 	-- Troupes carmin (ChatGPT, assets/enemies/crimson-ranks, vagues 1-10) : les 3 chevaliers ont le même
 	-- squelette (KayKit), donc les mêmes animations (publiées une fois depuis le fantassin). Fantassin et
 	-- chevalier lourd vont vite pour leur taille : la course (Running_A) ; le colosse, lent : la marche
@@ -74,6 +80,34 @@ CustomModels.SETTINGS = {
 	normal_0 = { walk = 123757346012656, death = 85477305596501, animSpeed = 2.4 },
 	tank_0 = { walk = 123757346012656, death = 85477305596501, animSpeed = 2.4 },
 	giant_0 = { walk = 96179510952913, death = 85477305596501, animSpeed = 5.3 },
+	-- Variantes des troupes (ChatGPT, assets/enemies/copper-ranks et bramble-ranks) : même squelette KayKit que
+	-- les chevaliers carmin, donc mêmes animations (course, marche, mort publiées depuis le fantassin carmin).
+	-- L'écuyer (petit et rapide) court, comme le fantassin. Swarm_0 (vagues 1-10) : en attendant un vrai écuyer
+	-- carmin, c'est une copie du fantassin carmin (Normal_0), mis à la taille d'un écuyer par le jeu.
+	swarm_0 = { walk = 123757346012656, death = 85477305596501, animSpeed = 2.4 },
+	swarm_1 ={ walk = 123757346012656, death = 85477305596501, animSpeed = 2.4 },
+	normal_1 = { walk = 123757346012656, death = 85477305596501, animSpeed = 2.4 },
+	tank_1 = { walk = 123757346012656, death = 85477305596501, animSpeed = 2.4 },
+	giant_1 = { walk = 96179510952913, death = 85477305596501, animSpeed = 5.3 },
+	swarm_2 = { walk = 123757346012656, death = 85477305596501, animSpeed = 2.4 },
+	normal_2 = { walk = 123757346012656, death = 85477305596501, animSpeed = 2.4 },
+	tank_2 = { walk = 123757346012656, death = 85477305596501, animSpeed = 2.4 },
+	giant_2 = { walk = 96179510952913, death = 85477305596501, animSpeed = 5.3 },
+	swarm_3 = { walk = 123757346012656, death = 85477305596501, animSpeed = 2.4 },
+	normal_3 = { walk = 123757346012656, death = 85477305596501, animSpeed = 2.4 },
+	tank_3 = { walk = 123757346012656, death = 85477305596501, animSpeed = 2.4 },
+	giant_3 = { walk = 96179510952913, death = 85477305596501, animSpeed = 5.3 },
+	swarm_4 = { walk = 123757346012656, death = 85477305596501, animSpeed = 2.4 },
+	normal_4 = { walk = 123757346012656, death = 85477305596501, animSpeed = 2.4 },
+	tank_4 = { walk = 123757346012656, death = 85477305596501, animSpeed = 2.4 },
+	giant_4 = { walk = 96179510952913, death = 85477305596501, animSpeed = 5.3 },
+	-- Cavaliers (nouveau squelette du cheval, à 48 os, commun à toutes leurs variantes) : galop et mort publiés
+	-- depuis le cavalier carmin. animSpeed : un galop couvre bien plus de terrain qu'une marche Roblox.
+	fast_0 = { walk = 109710149140915, death = 89761902672237, animSpeed = 0.75 },
+	fast_1 = { walk = 109710149140915, death = 89761902672237, animSpeed = 0.75 },
+	fast_2 = { walk = 109710149140915, death = 89761902672237, animSpeed = 0.75 },
+	fast_3 = { walk = 109710149140915, death = 89761902672237, animSpeed = 0.75 },
+	fast_4 = { walk = 109710149140915, death = 89761902672237, animSpeed = 0.75 },
 }
 
 -- Paliers : même découpage que les styles de MedievalModels (10 tranches de 10 vagues, puis ça recommence).
@@ -338,23 +372,46 @@ CustomModels.frontDirection = frontDirection
 -- Animation qui retourne le modèle : certains modèles importés (os rangés dans un seul MeshPart : Roi carmin,
 -- fantassin carmin) se retrouvent tournés d'un demi-tour dès qu'une animation joue (l'import de Studio tourne
 -- leur os de départ d'un demi-tour au repos, et leurs animations le défont). Mesuré une fois par modèle, sur un
--- ennemi dont l'animation joue et dont la racine est encore dans le sens normal : entry.flipWhenAnimated =
--- vrai (retourné) ou faux ; nil tant que ce n'est pas mesurable (pas d'os, ou de côté). Ceux qui l'affichent
--- (PlotRenderer, EnemyGallery) tournent alors la racine d'un demi-tour pendant les animations.
-function CustomModels.measureFlip(root: BasePart, entry): boolean?
+-- ennemi dont la marche joue et dont la racine est encore dans le sens normal : entry.flipWhenAnimated =
+-- vrai (retourné) ou faux ; nil tant que la mesure n'est pas finie. Ceux qui l'affichent (PlotRenderer,
+-- EnemyGallery) tournent alors la racine d'un demi-tour pendant les animations.
+-- Un appel = un échantillon (à refaire à chaque image jusqu'à la décision). À un moment du pas, les pieds
+-- peuvent pointer vers l'arrière : une seule mesure pouvait tomber là et laisser le modèle à reculons toute la
+-- partie. On mesure donc à FLIP_PHASES_NEEDED moments différents du pas (sur FLIP_PHASES), et on décide avec
+-- leur moyenne.
+-- track : sa piste de marche. Pas d'échantillon tant qu'elle ne joue pas pour de bon (chargée, fondu d'entrée
+-- fini, pas figée) : juste après un Play, les os sont encore au repos.
+local FLIP_PHASES = 8
+local FLIP_PHASES_NEEDED = 6
+function CustomModels.measureFlip(root: BasePart, entry, track: AnimationTrack?): boolean?
 	if entry.flipWhenAnimated ~= nil then
 		return entry.flipWhenAnimated
+	end
+	if not track or not (track.IsPlaying and track.Length > 0 and track.WeightCurrent > 0.99 and track.Speed > 0.05) then
+		return nil
 	end
 	local front = frontDirection(root)
 	if not front then
 		entry.flipWhenAnimated = false -- pas d'os pour le savoir : on ne touche à rien
 		return false
 	end
-	local forward = -root.CFrame:VectorToObjectSpace(front).Z
-	if forward < -0.5 then
-		entry.flipWhenAnimated = true
-	elseif forward > 0.5 then
-		entry.flipWhenAnimated = false
+	local phase = math.clamp(math.floor(track.TimePosition / track.Length * FLIP_PHASES), 0, FLIP_PHASES - 1) + 1
+	local samples = entry.flipSamples
+	if not samples then
+		samples = {}
+		entry.flipSamples = samples
+	end
+	if samples[phase] == nil then
+		samples[phase] = -root.CFrame:VectorToObjectSpace(front).Z -- 1 = vers l'avant, -1 = à reculons
+	end
+	local count, sum = 0, 0
+	for _, forward in samples do
+		count += 1
+		sum += forward
+	end
+	if count >= FLIP_PHASES_NEEDED then
+		entry.flipWhenAnimated = sum / count < 0
+		entry.flipSamples = nil
 	end
 	return entry.flipWhenAnimated
 end

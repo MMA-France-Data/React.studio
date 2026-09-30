@@ -43,6 +43,11 @@ Config.STUDIO_TEST_PASSES = {
 -- Mets false pour ne plus la construire.
 Config.STUDIO_ENEMY_GALLERY = true
 
+-- Panneau des sons (Studio seulement) : quand tu joues dans Studio, un bouton « SONS (Studio) » ouvre la liste
+-- de tous les sons du jeu (src/shared/Sounds.luau) avec un bouton « Jouer » pour écouter chacun
+-- (src/client/SoundPanel.luau). Jamais dans le jeu publié. Mets false pour ne plus l'afficher.
+Config.STUDIO_SOUND_PANEL = true
+
 -- Distance (en studs) entre ton personnage et un objet sous laquelle son texte flottant s'affiche :
 -- l'écran reste lisible, chaque étiquette n'apparaît que quand on s'approche (ProximityLabel.luau).
 Config.LabelDistance = {

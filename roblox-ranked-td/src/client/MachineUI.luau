@@ -25,9 +25,14 @@ local IdleConfig = require(Shared.IdleConfig)
 local IdleTowers = require(Shared.IdleTowers)
 local NumberFormat = require(Shared.NumberFormat)
 local Remotes = require(Shared.Remotes)
+local SoundManager = require(script.Parent.SoundManager)
 local UI = require(script.Parent.UI)
 
 local MachineUI = {}
+
+-- Fanfare (son « RareFanfare ») : tour légendaire à l'autel, ou rune au moins x50 dégâts à la forge.
+local FANFARE_RARITY = "Legendary"
+local FANFARE_RUNE_MULT = 50
 
 -- Au plus ce temps sans réponse du serveur après un achat : les boutons restent bloqués pendant ce
 -- temps (un double clic n'achète jamais deux fois).
@@ -721,6 +726,14 @@ function MachineUI.start()
 		end
 		open(result.machine)
 		if result.machine == "Tower" and (tonumber(result.count) or 1) > 1 and typeof(result.results) == "table" then
+			-- Gros lot : son de l'autel, puis la fanfare s'il y a au moins une tour légendaire.
+			SoundManager.play("AltarSpin")
+			for _, entry in result.results do
+				if typeof(entry) == "table" and entry.rarity == FANFARE_RARITY then
+					task.delay(0.4, SoundManager.play, "RareFanfare")
+					break
+				end
+			end
 			showSummary(result)
 			refresh()
 			return
@@ -728,6 +741,7 @@ function MachineUI.start()
 
 		spinning = true
 		showSingle()
+		SoundManager.play(if result.machine == "Tower" then "AltarSpin" else "ForgeSpin")
 		local names, colors = {}, {}
 		if result.machine == "Tower" then
 			for _, towerType in IdleTowers.ORDER do
@@ -767,8 +781,14 @@ function MachineUI.start()
 			else
 				reelDetail.Text = `Doublon : +{dupesPercent(tonumber(result.dupes) or 0)} % de dégâts pour tes {def.displayName}`
 			end
+			if result.rarity == FANFARE_RARITY then
+				SoundManager.play("RareFanfare")
+			end
 		else
 			local bonus = IdleConfig.BONUS_BY_ID[result.bonus]
+			if bonus and bonus.kind == "Damage" and bonus.mult >= FANFARE_RUNE_MULT then
+				SoundManager.play("RareFanfare")
+			end
 			reelText.Text = if bonus then bonus.displayName else "?"
 			reelText.TextColor3 = UI.Colors.Gold
 			reelStroke.Color = UI.Colors.Gold

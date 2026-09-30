@@ -402,6 +402,7 @@ local function build()
 					walkRate = CustomModels.walkRate(entry.custom, normalSpeed)
 					track:Play(0.2, 1, walkRate)
 					table.insert(walkTracks, track)
+					entry.walkTrack = track
 				end
 				local death = entry.custom and CustomModels.loadDeath(entry.root, entry.custom)
 				if death then
@@ -409,22 +410,37 @@ local function build()
 				end
 			end
 		end
-		-- Modèles que leur animation retourne (CustomModels.measureFlip) : mesurés quand leur marche joue, puis
-		-- tournés d'un demi-tour pour rester de face.
-		task.delay(1.5, function()
+		-- Modèles que leur animation retourne (CustomModels.measureFlip) : mesurés quand leur marche joue pour de
+		-- bon (pas pendant la démonstration de mort), un échantillon par image jusqu'à la décision (au plus 10 s),
+		-- puis tournés d'un demi-tour pour rester de face.
+		task.spawn(function()
+			local pending = {}
 			for i, root in roots do
-				local entry = nil
 				for _, row in rows do
 					for _, candidate in row.models do
-						if candidate.root == root then
-							entry = candidate
+						if candidate.root == root and candidate.custom and candidate.walkTrack then
+							pending[i] = candidate
 						end
 					end
 				end
-				if entry and entry.custom and entry.custom.animation and CustomModels.measureFlip(root, entry.custom) then
-					bases[i] = bases[i] * CFrame.Angles(0, math.pi, 0)
-					cframes[i] = bases[i]
-					root.CFrame = bases[i]
+			end
+			task.wait(0.5)
+			local deadline = os.clock() + 10
+			while os.clock() < deadline do
+				task.wait()
+				for i, entry in pending do
+					local flip = CustomModels.measureFlip(roots[i], entry.custom, entry.walkTrack)
+					if flip ~= nil then
+						pending[i] = nil
+						if flip then
+							bases[i] = bases[i] * CFrame.Angles(0, math.pi, 0)
+							cframes[i] = bases[i]
+							roots[i].CFrame = bases[i]
+						end
+					end
+				end
+				if next(pending) == nil then
+					break
 				end
 			end
 		end)

@@ -18,6 +18,10 @@ end)
 -- Textes flottants (niveaux, prix, barres de vie...) visibles seulement quand on s'approche.
 require(Shared.ProximityLabel).start()
 
+-- Sons (effets, musique, bouton « SON »), seulement chez ce joueur : avant les autres modules, qui les jouent.
+-- Réglages dans src/shared/Sounds.luau.
+require(script.Parent.SoundManager).start(mode)
+
 if mode == "Match" then
 	-- La liste des joueurs de Roblox cacherait le panneau de l'adversaire (en haut à droite),
 	-- qui affiche déjà les mêmes infos.
@@ -42,4 +46,6 @@ else
 	Remotes.get("OfflineGains").OnClientEvent:Connect(ShopUI.showOfflineGains)
 	-- Galerie des ennemis : seulement dans Studio (Config.STUDIO_ENEMY_GALLERY), jamais dans le jeu publié.
 	require(script.Parent.EnemyGallery).start()
+	-- Panneau « SONS (Studio) » pour écouter chaque son : seulement dans Studio (Config.STUDIO_SOUND_PANEL).
+	require(script.Parent.SoundPanel).start()
 end

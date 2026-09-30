@@ -6,3 +6,6 @@ sourcemap.json
 
 # Tests automatiques dans Studio (places de test, captures, sortie)
 tools/studio-test/out/
+
+# Textures extraites par l'import FBX de Studio (dossiers .fbm à côté des .fbx) : de simples copies
+assets/enemies/**/*.fbm/

@@ -65,12 +65,34 @@ presque la même durée (2 s d'écart au plus) et les mêmes pièces. Puis 2 ess
 faite à la main (cavaliers ou fantassins presque immortels, sous les étourdissements des Trébuchets et les
 éclairs des Mages) où les dégâts de chaque type de tour (feu des flèches compris) doivent être les mêmes dans
 le jeu et dans le moteur : ils voient tout de suite un moteur dont les projectiles ne suivraient pas leur cible
-(les vagues du dessus y sont peu sensibles). Pour une comparaison exacte, le pas de temps
-vaut 1/32 s dans les deux (un nombre exact en binaire), la parcelle est au centre du monde et le moteur n'a pas
-sa petite marge d'arrondi (`Engine.EPS = 0`). Dernier résultat : 162 vagues sur 162 identiques, 0,06 s d'écart
-au plus, et 2 essais sur 2 avec les mêmes dégâts (avec la règle « un seul contrôle à la fois », la fatigue des
-contrôles courts, les projectiles qui suivent leur cible, la fragilité, le carreau perçant, la visée du
-Trébuchet, l'étourdissement, la sortie à chaque mort et la vague écrasée). **À relancer après chaque changement de combat dans `PlotGame.luau`** :
+(les vagues du dessus y sont peu sensibles). Enfin, les **carreaux de la Baliste sont comparés tir par tir**
+(heure, cible : sa distance sur le chemin et ses PV) dans toutes ces vagues : la visée « entre ennemis
+pareils, celui qui en aligne le plus » ne change presque jamais le résultat d'une vague, ce test voit la moindre
+différence de cible (`Engine.onProjectile`, appelé seulement par la vérification), plus 2 vagues faites à la main
+pour elle : « Balistes et condamnés » (60 fantassins de 50 PV : un carreau suffit, 3 Balistes qui tirent au même
+pas doivent écarter les ennemis condamnés, comme cible et dans le compte de leur ligne ; plus de 12 « pareils » à
+portée) et « seuil des pareils » (Catapulte et Archer laissent des PV juste autour de 85 %). Sans ces 2 vagues,
+un moteur qui visait ou comptait un ennemi condamné, comparait 13 « pareils » au lieu de 12, ou avait un seuil
+de 0,9 au lieu de 0,85, passait la vérification (essayé en changeant le moteur seul). Une 3e vague faite à la main,
+« lignes pleines » (groupes de 3 fantassins au même endroit, PV différents, 3 Balistes, un Mage, une Catapulte),
+vérifie le carreau qui transperce **3 ennemis au plus** : les mêmes ennemis touchés (les premiers rencontrés ; à
+égalité, le premier de la liste). Essayé en changeant le moteur seul : sans plafond, sans tri, le plus loin
+d'abord, égalités à l'envers (vu seulement grâce à cette vague), visée qui compte plus de 3, cible en plus des
+3 : tout est vu. Une 4e, « groupes serrés » (fantassins de 50 PV par groupes de 6 au même endroit, 3 Balistes),
+fait arriver souvent 2 cas presque jamais vus ailleurs sur une ligne pleine : une cible tuée pendant le vol du
+carreau (sa place revient à un ennemi de la ligne) et des ennemis condamnés parmi les premiers rencontrés (ils
+prennent quand même une place). Sans elle, un moteur qui gardait la place de la cible morte ou qui sautait les
+condamnés passait la vérification. Parmi les changements essayés, un seul reste invisible : ranger la ligne par
+distance à la tour au lieu de l'avancée le long du trait (presque toujours le même ordre). Pour une comparaison exacte,
+le pas de temps vaut 1/32 s dans les deux (un nombre exact en binaire), la parcelle est au centre du monde, le
+moteur n'a pas sa petite marge d'arrondi (`Engine.EPS = 0`) et il reçoit ses tours dans l'ordre où le jeu les
+fait tirer (celui de sa table des tours : avec des emplacements 1 à 4 puis 9 et 10, Luau parcourt parfois 10
+avant 9 ; c'était l'écart de 0,06 s). Dernier résultat (carreau à 3 ennemis au plus) : 162 vagues sur 162
+identiques, 0,00 s d'écart, 106 vagues sur 106 avec les mêmes carreaux de Baliste (1 429 carreaux, dont 14 où la
+règle des « pareils » a changé la cible), 4 vagues faites à la main sur 4 avec les mêmes carreaux (24, 17, 36 et
+22 carreaux), et 2 essais sur 2 avec les mêmes dégâts (avec la règle « un seul contrôle à la fois », la fatigue des
+contrôles courts, les projectiles qui suivent leur cible, la fragilité, le carreau perçant et sa visée, la visée
+du Trébuchet, l'étourdissement, la sortie à chaque mort et la vague écrasée). **À relancer après chaque changement de combat dans `PlotGame.luau`** :
 s'il affiche `DIFFÉRENCES`, fais le même changement dans `idle/Engine.luau`.
 
 ## Les résultats (`tools\balance\idle\out\`)
@@ -176,8 +198,11 @@ réglage dans `src/shared`, le simulateur l'utilise au prochain lancement.
   le plus fort Totem gagne) ;
 - tirs des tours dans l'ordre des emplacements : simple (le plus avancé), `Strongest` (le plus de PV),
   `Crowd` (Trébuchet : le point où sa zone touche le plus d'ennemis), zone, aura, chaîne, carreau perçant
-  (Baliste : toute la ligne tour -> impact) ; recharges ; stats de `IdleTowers.effectiveStats` (niveau,
-  doublons, bonus de la forge) ;
+  (Baliste : la ligne tour -> impact, `IdleTowers.BALLISTA_PIERCE_MAX` ennemis au plus : sa cible et les premiers
+  rencontrés ; entre ennemis « pareils », au moins `IdleTowers.BALLISTA_TIE_RATIO` fois les PV du plus résistant,
+  elle vise celui dont le carreau en transpercera le plus, 3 au plus, positions prévues à l'arrivée :
+  `pickPierceTarget`) ; recharges ; stats de `IdleTowers.effectiveStats` (niveau, doublons, bonus
+  de la forge) ;
 - **projectiles** (Archer, Catapulte, Baliste, Trébuchet) : visée à l'endroit où sera l'ennemi (sa vitesse, la
   fin de son ralentissement, le chemin, 2 itérations), temps de vol `IdleTowers.flightTime` (distance en 3D
   depuis le haut de la tour), dégâts à l'impact ; une zone touche autour du point d'impact, une flèche touche sa

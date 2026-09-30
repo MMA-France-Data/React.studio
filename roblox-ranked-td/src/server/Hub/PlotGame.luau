@@ -24,7 +24,9 @@
 --     projectile arrivera, et les dégâts tombent à l'impact (self.impacts, sur l'horloge de la simulation) ;
 --     Archer, Catapulte et Baliste SUIVENT leur cible : l'effet tombe là où elle est vraiment à l'impact
 --     (impactCenter), le Trébuchet garde son point prévu ;
---   carreau perçant (Baliste lourde) : à l'impact, tous les ennemis sur la ligne tour -> point d'impact ;
+--   carreau perçant (Baliste lourde) : à l'impact, les ennemis sur la ligne tour -> point d'impact, 3 au plus
+--     (IdleTowers.BALLISTA_PIERCE_MAX : sa cible et les premiers rencontrés, hitLine) ; elle vise le plus
+--     résistant, et entre ennemis presque aussi résistants, celui qui en aligne le plus (pickPierceTarget) ;
 --   Trébuchet royal : vise le plus gros groupe (pickCrowdTarget) et étourdit la zone ;
 --   flèches enflammées : zones de feu au sol (self.firePatches) ;
 --   rayon continu : Sorcier des arcanes (beamStep), publié aux clients par les attributs « BeamTarget »
@@ -47,8 +49,8 @@
 --     projectile qui suit sa cible (Archer, Catapulte, Baliste : IdleTowers.followsTarget) : le client le fait
 --     voler vers l'ennemi affiché avec cet id, comme le serveur fait tomber l'effet sur lui (impactCenter). Un
 --     client qui ne lit que les count x SHOT_BYTES premiers octets marche toujours (ces octets sont à la fin).
---     Baliste (type Rocket) : le trait va du départ au point d'arrivée et touche tout sur sa ligne
---     (demi-largeur IdleTowers.Defs.Rocket.pierceWidth, rayon envoyé = 0). Trébuchet (type Orbital) : rayon =
+--     Baliste (type Rocket) : le trait va du départ au point d'arrivée et touche les ennemis sur sa ligne
+--     (demi-largeur IdleTowers.Defs.Rocket.pierceWidth, 3 au plus, rayon envoyé = 0). Trébuchet (type Orbital) : rayon =
 --     sa grande zone ; les ennemis étourdis ont le contrôle Orbital dans PlotSync (et une vitesse 0).
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -575,7 +577,8 @@ local function isDoomed(enemy): boolean
 end
 
 -- Cible d'une tour à portée : la plus avancée (« First ») ou la plus résistante (« Strongest »). Le Trébuchet
--- (« Crowd ») a sa propre visée : pickCrowdTarget.
+-- (« Crowd ») a sa propre visée : pickCrowdTarget. La Baliste lourde part du plus résistant, puis choisit
+-- parmi les ennemis presque aussi résistants que lui (pickPierceTarget).
 -- Les ennemis condamnés sont évités (pas de tirs gâchés) ; allowDoomed = on les prend quand même s'il n'y
 -- a personne d'autre (tirs instantanés et rayon, qui ne gâchent rien en attendant).
 function PlotGame:pickTarget(tower, stats, allowDoomed: boolean): any
@@ -629,12 +632,48 @@ local function segmentDistance(point: Vector3, a: Vector3, b: Vector3): number
 	return math.sqrt(dx * dx + dz * dz)
 end
 
--- Carreau perçant (Baliste lourde) : tous les ennemis vivants à moins de stats.pierceWidth studs du segment
--- origine (la tour) -> point d'impact, plus sa cible si elle vit encore (touchée où qu'elle soit, comme une
--- flèche : un ralentissement arrivé pendant le vol ne lui fait pas éviter le carreau). Chacun une seule fois.
+-- Avancée d'un point le long du segment [a, b], vue depuis a (produit scalaire, à plat) : plus elle est petite,
+-- plus tôt un carreau parti de a rencontre ce point. Sert seulement à comparer des points sur le même segment.
+local function alongSegment(point: Vector3, a: Vector3, b: Vector3): number
+	return (point.X - a.X) * (b.X - a.X) + (point.Z - a.Z) * (b.Z - a.Z)
+end
+
+-- Rangement des ennemis d'une ligne (hitLine) : le premier rencontré par le carreau d'abord ; à égalité (ennemis
+-- au même endroit), le premier de la liste des ennemis. Toujours le même choix pour la même situation.
+local function byAlongThenIndex(a, b): boolean
+	if a.along ~= b.along then
+		return a.along < b.along
+	end
+	return a.index < b.index
+end
+
+-- Carreau perçant (Baliste lourde). Il transperce AU PLUS IdleTowers.BALLISTA_PIERCE_MAX ennemis (« transperce
+-- 3 max », décision du propriétaire) : sa cible si elle vit encore (touchée où qu'elle soit, comme une flèche :
+-- un ralentissement arrivé pendant le vol ne lui fait pas éviter le carreau), plus les PREMIERS ennemis vivants
+-- que le carreau rencontre à moins de stats.pierceWidth studs du segment origine (la tour) -> point d'impact :
+-- les plus proches de la tour le long du trait (alongSegment) ; à égalité, le premier de la liste des ennemis.
+-- Une cible morte pendant le vol laisse sa place à un ennemi de la ligne. Chacun une seule fois ; les coups
+-- tombent dans l'ordre de la liste des ennemis (comme avant : rien ne change quand la ligne n'est pas pleine).
 function PlotGame:hitLine(origin: Vector3, impactPoint: Vector3, stats, target, now: number)
+	-- Les autres ennemis sur la ligne : { ennemi, avancée le long du trait, rang dans la liste }.
+	local onLine = {}
+	for index, enemy in self.enemies do
+		if enemy ~= target and not enemy.dead and segmentDistance(enemy.position, origin, impactPoint) <= stats.pierceWidth then
+			table.insert(onLine, { enemy = enemy, along = alongSegment(enemy.position, origin, impactPoint), index = index })
+		end
+	end
+	-- Places pour eux : la cible vivante prend toujours la sienne.
+	local places = math.max(0, IdleTowers.BALLISTA_PIERCE_MAX - (if target.dead then 0 else 1))
+	if #onLine > places then
+		-- Trop d'ennemis sur la ligne : seulement les premiers que le carreau rencontre.
+		table.sort(onLine, byAlongThenIndex)
+	end
+	local struck = {}
+	for i = 1, math.min(places, #onLine) do
+		struck[onLine[i].enemy] = true
+	end
 	for _, enemy in self.enemies do
-		if not enemy.dead and (enemy == target or segmentDistance(enemy.position, origin, impactPoint) <= stats.pierceWidth) then
+		if not enemy.dead and (enemy == target or struck[enemy]) then
 			self:hitEnemy(enemy, stats, now)
 		end
 	end
@@ -750,6 +789,74 @@ function PlotGame:pickCrowdTarget(tower, stats, muzzle: Vector3, now: number): (
 	return best, bestAim, bestFlight
 end
 
+-- Baliste lourde : combien d'ennemis le carreau tiré sur `candidate` transpercera. Le carreau va de la tour
+-- (origin) au point visé (aim, visée anticipée de predictImpact, temps de vol `flight`) : il touche sa cible,
+-- plus chaque ennemi NON condamné qui sera à moins de stats.pierceWidth studs de ce segment à l'arrivée
+-- (position prévue avec le même temps de vol, comme le Trébuchet ; un ennemi condamné mourra de toute façon :
+-- le toucher ne sert à rien). Un ennemi trop loin du segment pour s'en approcher pendant le vol est écarté
+-- sans calcul de position. Aucune table créée : ce calcul tourne à chaque tir de Baliste.
+-- Jamais plus de IdleTowers.BALLISTA_PIERCE_MAX (le carreau n'en transperce pas plus, voir hitLine) : 3 alignés
+-- ou plus, c'est pareil pour sa visée (à égalité, le plus résistant, voir pickPierceTarget).
+function PlotGame:countPierced(candidate, origin: Vector3, aim: Vector3, flight: number, stats, now: number): number
+	local width = stats.pierceWidth
+	local limit = IdleTowers.BALLISTA_PIERCE_MAX
+	local count = 1 -- sa cible : toujours touchée (hitLine)
+	for _, other in self.enemies do
+		if count >= limit then
+			break -- ligne pleine : le carreau n'en transpercera pas plus
+		end
+		if other ~= candidate and not other.dead and not isDoomed(other) then
+			-- Distance parcourue au plus pendant le vol : sa vitesse normale (un ralentissement ne fait qu'en retirer).
+			local reach = other.def.speed * IdleConfig.ENEMY_SPEED_MULTIPLIER * other.speedScale * flight
+			if segmentDistance(other.position, origin, aim) - reach <= width then
+				local at = self:pathPoint(other.distance + travelDistance(other, now, flight))
+				if segmentDistance(at, origin, aim) <= width then
+					count += 1
+				end
+			end
+		end
+	end
+	return count
+end
+
+-- Baliste lourde (« viser le plus gros monstre ok, mais si plusieurs monstres sont pareils, essayer de faire la
+-- meilleure zone », demande du propriétaire). `strongest` = le plus résistant à portée et pas condamné
+-- (pickTarget). Sont « pareils » les ennemis à portée, pas condamnés, qui ont au moins
+-- IdleTowers.BALLISTA_TIE_RATIO fois ses PV (lui compris). Parmi eux, elle vise celui dont le carreau en
+-- transpercera le PLUS (countPierced, IdleTowers.BALLISTA_PIERCE_MAX au plus : 3 alignés ou plus, c'est pareil) ;
+-- à nombre égal, le plus résistant, puis le premier de la liste des ennemis (la règle d'avant). Un ennemi bien
+-- plus résistant que tous les autres reste donc toujours sa cible.
+-- Au plus IdleTowers.BALLISTA_MAX_CANDIDATES ennemis comparés : le plus résistant d'abord, puis dans l'ordre de
+-- la liste des ennemis (toujours le même choix pour la même situation). Renvoie (cible, point visé, temps de
+-- vol), déjà calculés pour fireProjectile.
+function PlotGame:pickPierceTarget(tower, stats, strongest, muzzle: Vector3, now: number): (any, Vector3, number)
+	local origin = tower.position
+	local bestAim, bestFlight = self:predictImpact(strongest, muzzle, stats, now)
+	local best, bestCount = strongest, self:countPierced(strongest, origin, bestAim, bestFlight, stats, now)
+	local threshold = strongest.health * IdleTowers.BALLISTA_TIE_RATIO
+	local compared = 1
+	for _, enemy in self.enemies do
+		if compared >= IdleTowers.BALLISTA_MAX_CANDIDATES then
+			break
+		end
+		if
+			enemy ~= strongest
+			and not enemy.dead
+			and enemy.health >= threshold
+			and not isDoomed(enemy)
+			and horizontalDistance(origin, enemy.position) <= stats.range
+		then
+			compared += 1
+			local aim, flight = self:predictImpact(enemy, muzzle, stats, now)
+			local count = self:countPierced(enemy, origin, aim, flight, stats, now)
+			if count > bestCount or (count == bestCount and enemy.health > best.health) then
+				best, bestAim, bestFlight, bestCount = enemy, aim, flight, count
+			end
+		end
+	end
+	return best, bestAim, bestFlight
+end
+
 -- Lance un projectile : les dégâts tomberont dans `flight` secondes (de simulation) au point prévu.
 -- Les stats sont celles du moment du tir (une amélioration pendant le vol ne change pas ce projectile).
 -- aim / flight : point visé et temps de vol déjà calculés (Trébuchet), sinon visée anticipée sur `target`.
@@ -793,7 +900,7 @@ end
 -- Arrivée d'un projectile. « Centre » = là où tombe son effet (impactCenter : sa cible s'il la suit, sinon le
 -- point prévu au tir).
 --   Zone (Catapulte, Trébuchet) : tous les ennemis autour du centre à cet instant.
---   Carreau perçant (Baliste) : tous les ennemis sur la ligne tour -> centre, et sa cible (hitLine).
+--   Carreau perçant (Baliste) : sa cible et les premiers ennemis sur la ligne tour -> centre, 3 au plus (hitLine).
 --   Flèche : sa cible si elle vit encore (où qu'elle soit) ; si elle est morte pendant le vol, l'ennemi
 --   vivant le plus proche du point prévu à moins de PROJECTILE_CATCH_RADIUS studs, sinon rien.
 --   Flèche enflammée : une zone de feu au centre, touchée ou non.
@@ -1028,6 +1135,14 @@ function PlotGame:towerAttack(tower, stats, now: number): boolean
 		return false
 	end
 	if projectile then
+		if stats.kind == "Pierce" and stats.targeting == "Strongest" then
+			-- Baliste lourde : parmi les ennemis presque aussi résistants que le plus résistant, celui dont le
+			-- carreau en transpercera le plus (point visé et temps de vol déjà calculés).
+			local aim, flight
+			target, aim, flight = self:pickPierceTarget(tower, stats, target, muzzle, now)
+			self:fireProjectile(tower, stats, target, muzzle, now, aim, flight)
+			return true
+		end
 		self:fireProjectile(tower, stats, target, muzzle, now)
 		return true
 	end

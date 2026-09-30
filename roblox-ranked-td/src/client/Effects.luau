@@ -9,8 +9,12 @@ local Config = require(Shared.Config)
 local ProximityLabel = require(Shared.ProximityLabel)
 local Remotes = require(Shared.Remotes)
 local Towers = require(Shared.Towers)
+local SoundManager = require(script.Parent.SoundManager)
 
 local Effects = {}
+
+-- Match classé : son du tir de chaque tour (Sounds.luau ; le mode solo joue les siens dans PlotRenderer).
+local RANKED_SHOT_SOUNDS = { Gunner = "ArcherShot", Sniper = "BallistaShot", Mortar = "CatapultLaunch", Freezer = "FrostPulse" }
 
 local effectsFolder = Instance.new("Folder")
 effectsFolder.Name = "Effects"
@@ -546,6 +550,15 @@ local function onTowerFired(from: Vector3, to: Vector3, towerType: string, radiu
 		return
 	end
 	Effects.playTowerShot(from, to, towerType, radius, def.color, def.kind, towerById(towerId))
+	local sound = RANKED_SHOT_SOUNDS[towerType]
+	if sound then
+		SoundManager.playAt(sound, from)
+	end
+	if towerType == "Mortar" and SoundManager.isAudible("CatapultImpact", to) then
+		-- Même durée que le rocher (animation de la tour, puis arcingProjectile) : le bruit tombe avec lui.
+		local travel = 0.12 + math.clamp((to - from).Magnitude / 55, 0.42, 0.9)
+		task.delay(travel, SoundManager.playAt, "CatapultImpact", to)
+	end
 end
 
 local function addHealthBar(enemy: Instance)

@@ -47,6 +47,10 @@ powershell -ExecutionPolicy Bypass -File tools\studio-test\run.ps1 -Place match
   pendant le match proposé, réservation ratée et créateur du match disparu (retour dans la file), l'adversaire
   qui quitte le jeu après avoir accepté (retour dans la file), priorité à ceux qui attendent depuis longtemps, et
   personne ne reste bloqué.
+  **Sons** (côté client, en parallèle des autres tests) : le bouton « SON » ne couvre pas la carte de rang,
+  chaque son de `src/shared/Sounds.luau` se charge (`[PASS]` / `[FAIL]` par son, avec sa durée), 200 tirs à la
+  même image ne font pas jouer plus que `Sounds.MAX_COMBAT_SOUNDS` sons (la mort d'un boss, son « priority »,
+  passe exprès au-delà : pas dans ce test), et 200 flèches un seul (à tout petit volume).
 - `match` : match ranked en solo (le bot joue l'autre terrain après 10 s). Le joueur de test ne pose
   aucune tour. Le scénario vérifie qu'il n'y a plus d'envois (ni remote `SendEnemies`, ni module
   `Sends`, ni panneau d'envoi dans le HUD), que l'or du joueur vaut 500 + 100 x vague, que les deux

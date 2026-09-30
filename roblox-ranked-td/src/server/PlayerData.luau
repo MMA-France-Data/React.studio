@@ -13,6 +13,8 @@ local IdleConfig = require(Shared.IdleConfig)
 local NumberFormat = require(Shared.NumberFormat)
 local PlotLayout = require(Shared.PlotLayout)
 local Ranks = require(Shared.Ranks)
+local Remotes = require(Shared.Remotes)
+local Sounds = require(Shared.Sounds)
 local MockDataStore = require(script.Parent.MockDataStore)
 
 local PlayerData = {}
@@ -21,6 +23,7 @@ local useMock = RunService:IsStudio() and Config.Data.MOCK_IN_STUDIO
 local store = if useMock then MockDataStore.new() else DataStoreService:GetDataStore(Config.Data.DATASTORE_NAME)
 
 local profiles = {} -- [Player] = { data = table }
+local lastSettingAt = {} -- [Player] = heure du dernier réglage reçu (remote « Settings »)
 local loadedCallbacks = {}
 local beforeReleaseCallbacks = {}
 local pendingWrites = 0
@@ -89,6 +92,8 @@ local function defaultData()
 		-- Défis classés : progression comptée par le serveur de match, récompenses récupérées sur la map
 		-- principale (format : Shared/Challenges.luau). Jamais remis à zéro par les saisons.
 		challenges = Challenges.defaultData(),
+		-- Bouton « SON » : "All" (musique + effets), "Effects" (effets seuls) ou "Mute" (Sounds.MODES).
+		soundMode = "All",
 	}
 end
 
@@ -191,6 +196,10 @@ local function reconcile(data)
 	-- Défis classés : absents des anciennes sauvegardes (-> valeurs par défaut juste au-dessus), toujours
 	-- propres (nombres entiers finis, défis connus). Les défis du jour sont tirés à la 1re utilisation.
 	data.challenges = Challenges.cleanData(data.challenges)
+	-- Réglage du son : absent des anciennes sauvegardes (-> "All" juste au-dessus), toujours une valeur connue.
+	if not table.find(Sounds.MODES, data.soundMode) then
+		data.soundMode = "All"
+	end
 	return data
 end
 
@@ -338,6 +347,7 @@ function PlayerData.refresh(player: Player)
 	player:SetAttribute("GamesPlayed", data.gamesPlayed)
 	player:SetAttribute("RankName", Ranks.label(data.mmr, data.gamesPlayed))
 	player:SetAttribute("Coins", data.coins)
+	player:SetAttribute("SoundMode", data.soundMode) -- bouton « SON » (SoundManager.luau)
 	player:SetAttribute("DataLoaded", true)
 
 	local leaderstats = player:FindFirstChild("leaderstats")
@@ -447,6 +457,20 @@ function PlayerData.start()
 
 	Players.PlayerRemoving:Connect(function(player)
 		release(player, false)
+		lastSettingAt[player] = nil
+	end)
+
+	-- Bouton « SON » (SoundManager.luau, map principale et match) : le choix est gardé dans les données du joueur
+	-- et republié dans son attribut « SoundMode ». Valeurs connues seulement, un changement toutes les 0,2 s au plus.
+	Remotes.get("Settings").OnServerEvent:Connect(function(player, key, value)
+		local profile = profiles[player]
+		local now = os.clock()
+		if not profile or key ~= "SoundMode" or not table.find(Sounds.MODES, value) or now - (lastSettingAt[player] or 0) < 0.2 then
+			return
+		end
+		lastSettingAt[player] = now
+		profile.data.soundMode = value
+		player:SetAttribute("SoundMode", value)
 	end)
 
 	task.spawn(function()

@@ -13,6 +13,7 @@ local TweenService = game:GetService("TweenService")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Challenges = require(Shared.Challenges)
 local Remotes = require(Shared.Remotes)
+local SoundManager = require(script.Parent.SoundManager)
 local UI = require(script.Parent.UI)
 
 local ChallengeUI = {}
@@ -431,6 +432,16 @@ function ChallengeUI.start()
 	end)
 	player:GetAttributeChangedSignal("ChallengesReady"):Connect(refreshButton)
 	refreshButton()
+	-- Son « récompense récupérée » : le nombre de récompenses prêtes baisse juste après un clic « Récupérer »
+	-- (le serveur a donné la récompense). Pas quand une récompense est perdue avec les nouveaux défis.
+	local lastReady = tonumber(player:GetAttribute("ChallengesReady")) or 0
+	player:GetAttributeChangedSignal("ChallengesReady"):Connect(function()
+		local ready = tonumber(player:GetAttribute("ChallengesReady")) or 0
+		if ready < lastReady and os.clock() - lastClaim < 5 then
+			SoundManager.play("ChallengeClaim")
+		end
+		lastReady = ready
+	end)
 
 	task.spawn(function()
 		while gui.Parent do
