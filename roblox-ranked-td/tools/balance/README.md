@@ -299,8 +299,11 @@ Scénarios (`-Scenarios`) :
 | `archer-x20` | « tout sur l'Archer » : un seul Archer (emplacement 1) et un Totem de givre niveau 1 à côté (emplacement 5), toutes les pièces dans l'Archer, l'autel seulement jusqu'au Totem ; 1er lancer de forge (100 K) forcé = x20 dégâts sur l'Archer. Partie « TOUT SUR L'ARCHER » du rapport : record à 1 / 4 / 12 / 40 h et vagues qui le bloquent |
 | `archer-x20-x2` | archer-x20 + 2e lancer de forge (500 K) forcé = x2 vitesse sur l'Archer |
 | `archer-x20-x2-givre` | archer-x20-x2, mais le Totem de givre est aussi amélioré (meilleur rapport gain / prix entre l'Archer et le Totem : sa fragilité monte vite à son maximum, +300 %) |
+| `archer-x20-x2-2givres` | archer-x20-x2-givre avec 2 Totems collés à l'Archer, un de chaque côté (emplacements 5 et 2, choisis au vrai moteur), gardés au même niveau et améliorés au meilleur rapport gain / prix. Règles inchangées : ralentissement et fragilité ne s'additionnent pas entre Totems (le plus fort gagne), un Totem de plus ne sert qu'à couvrir plus de chemin |
+| `archer-x20-x2-4givres` | pareil avec 4 Totems : 5 et 2, plus 12 et 3, en face de l'Archer de l'autre côté des deux couloirs (le Totem est une tour commune : 5 au plus) |
 | `archer-x20-renaissance`, `archer-x20-x2-renaissance` | les mêmes + renaissance après 15 min bloqué |
 | `archer-sans-rune` | le même joueur « tout sur l'Archer », sans rune (pour comparer) |
+| `base-archer-x20-x2` | le joueur `base` (même IA : toutes les tours, autel, emplacements) avec x20 dégâts puis x2 vitesse forcés à ses 2 premiers lancers de forge, posés sur son meilleur Archer. Le rapport donne l'écart de niveau entre l'Archer à rune et la moyenne des autres tours (répartit-il ses pièces ?) |
 
 Pas de Robux dans aucun scénario.
 

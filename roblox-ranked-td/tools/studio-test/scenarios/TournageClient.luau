@@ -202,17 +202,18 @@ return function(log)
 		end
 	end
 	local SCENES = {
-		-- Vague 81 : 42 orcs ; tours niveau 59 (la horde tient quelques dizaines de secondes).
-		horde = { level = 59, wave = 81, ready = function()
+		-- Niveaux baissés le 01/10/2026 avec les PV des vagues (59 -> 50, 28 -> 23, 74 -> 62) : même temps sous le feu.
+		-- Vague 81 : 42 orcs ; tours niveau 50 (la horde tient quelques dizaines de secondes).
+		horde = { level = 50, wave = 81, ready = function()
 			task.wait(5)
 		end },
-		-- Vague 40 : le Titan du givre et son escorte ; tours niveau 28 (il tombe en 15 à 20 s).
-		titan = { level = 28, wave = 40, ready = function()
+		-- Vague 40 : le Titan du givre et son escorte ; tours niveau 23 (il tombe en 15 à 20 s).
+		titan = { level = 23, wave = 40, ready = function()
 			boss = waitForBoss(8)
 			task.wait(1)
 		end },
-		-- Vague 100 : le dragon ; tours niveau 74 (il tient un moment sous le feu).
-		dragon = { level = 74, wave = 100, ready = function()
+		-- Vague 100 : le dragon ; tours niveau 62 (il tient un moment sous le feu).
+		dragon = { level = 62, wave = 100, ready = function()
 			boss = waitForBoss(10)
 			task.wait(1.5)
 		end },

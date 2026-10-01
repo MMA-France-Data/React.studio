@@ -29,11 +29,12 @@ StudioScenes.LAYOUT = {
 -- wave = vague lancée ; level = niveau des 22 tours (le boss tient un moment sous le feu, puis tombe) ; stand = où
 -- ton personnage est posé et look = ce qu'il regarde (coordonnées de la parcelle : x = largeur, z = profondeur, les
 -- ennemis arrivent du fond, z = 62). Les deux points sont hors du chemin et des emplacements de tours.
+-- Niveaux baissés le 01/10/2026 avec les PV des vagues (dragon 74 -> 62, glace 28 -> 23) : même temps sous le feu.
 StudioScenes.SCENES = {
 	-- Le dragon (vague 100) : tu es au bord du chemin, du côté où il arrive, et tu le vois voler vers toi.
-	dragon = { wave = 100, level = 74, stand = Vector3.new(28, 3, 41), look = Vector3.new(-12, 10, 50) },
+	dragon = { wave = 100, level = 62, stand = Vector3.new(28, 3, 41), look = Vector3.new(-12, 10, 50) },
 	-- Le Titan du givre (vague 40) : même place ; il passe juste devant toi au premier virage.
-	glace = { wave = 40, level = 28, stand = Vector3.new(28, 3, 41), look = Vector3.new(-12, 4, 50) },
+	glace = { wave = 40, level = 23, stand = Vector3.new(28, 3, 41), look = Vector3.new(-12, 4, 50) },
 }
 
 -- Prépare la scène `name` sur la parcelle du joueur. Renvoie true si elle est lancée.

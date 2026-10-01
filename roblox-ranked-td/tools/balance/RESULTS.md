@@ -542,6 +542,70 @@ Tours du joueur simulé (graine 1) : **10 h** : 2 Archer, 5 Totem, 4 Catapulte, 
   ~450 à plus de 1 000) à un moment qui change beaucoup d'une partie à l'autre. Sur 12 parties de 60 h, rien ne bouge
   en moyenne (record 258 à 40 h et 392 à 60 h, contre 258 et 393 avec 50 ; 9 parties identiques).
 
+## Forge sans x50 ni x100, « tout sur l'Archer », prix des améliorations x1,45 (décisions du propriétaire, 01/10/2026)
+
+**Forge** : x2 dégâts 37 %, x2 vitesse 31 %, x3 20 %, x5 10,9 %, x10 1 %, x20 0,1 % ; x50 et x100 retirées (celles
+déjà obtenues gardent leur effet, `IdleConfig.RETIRED_BONUSES`). Le simulateur tire dans `IdleConfig.BONUSES` : rien
+à changer de son côté.
+
+**« Tout sur l'Archer »** (question du propriétaire : sa copine a eu x20 au 1er lancer de forge ; « elle ne sera plus
+jamais bloquée si elle met tout sur l'Archer ? »). Nouveaux scénarios `archer-*` : l'Archer de l'emplacement 1 et un
+Totem de givre à côté (emplacement 5, la meilleure paire au vrai moteur), toutes les pièces dans l'Archer, runes
+forcées (x20 au 1er lancer de forge, 100 K ; x2 vitesse au 2e, 500 K). Et `base-archer-x20-x2` : le joueur normal avec
+les mêmes runes forcées sur son meilleur Archer. Avec les anciens prix (x1,35), 3 parties x 40 h :
+
+| Scénario | Record 1 / 4 / 12 / 40 h | Vague 100 |
+|---|---|---|
+| base (joueur normal) | 27 / 49 / 86 / 162 | 16 h 11 |
+| archer-sans-rune | 29 / 45 / 64 / 95 | jamais |
+| archer-x20 | 28 / 104 / 158 / 229 | 3 h 38 |
+| archer-x20-x2 | 28 / 121 / 186 / 272 | 2 h 50 |
+| archer-x20-x2-givre (Totem amélioré) | 28 / 147 / 248 / 372 | 2 h 21 |
+| archer-x20-x2-2givres (Totems 5 et 2, collés à l'Archer) | 29 / 158 / 266 / 399 | 2 h 15 |
+| archer-x20-x2-4givres (5, 2 + 12 et 3 en face) | 28 / 144 / 258 / 393 | 2 h 42 |
+| base-archer-x20-x2 | 27 / 121 / 255 / 514 | 3 h 18 |
+
+- Il bloque sur les vagues à beaucoup d'ennemis (Escarmouches, surtout après une Garde colossale ; Charges ; Levées) :
+  l'Archer ne tire que sur un ennemi à la fois. La Garde colossale et le Seigneur de guerre jamais (gelés par le Totem).
+  À chaque mur il ne manque que x1,1 à x1,5 de dégâts (1 ou 2 niveaux).
+- 2 Totems collés valent mieux qu'un (l'ennemi reste ~22 s sous les flèches au lieu de 18) ; 4 n'apportent rien de plus.
+  Le Totem monte à son maximum (niveau 146, +300 %) dès 12 h : ça coûte moins qu'un seul niveau d'Archer.
+- Renaissance (après 15 min bloqué) : moins bien pour lui (228 contre 272 à 40 h) : chaque remontée prend ~2 h.
+
+**Le problème** (« le plus rentable c'est d'investir sur peu de tours ») : `UPGRADE_COST_GROWTH` = `UPGRADE_DAMAGE` =
+1,35, donc une pièce rapporte autant de dégâts à n'importe quel niveau, et la tour au plus gros multiplicateur (rune,
+doublons, fragilité) reste TOUJOURS le meilleur achat. `base-archer-x20-x2` à 40 h : Archer niveau 387, ses 17 autres
+tours niveau 12, 100 % des pièces des tours dans l'Archer.
+
+**Décision** (« il faudrait que monter chaque tour soit rentable, exemple augmenter le prix des upgrades ») : prix x1,45
+par niveau (dégâts toujours x1,35 : chaque niveau de plus sur la même tour rapporte ~7 % de moins par pièce), compensé
+par des PV qui montent moins vite : **`UPGRADE_COST_GROWTH` 1,35 -> 1,45 et `HEALTH_GROWTH` 1,25 -> 1,207** (pièces
+inchangées : les grands nombres viennent toujours des vagues). Limite de sécurité : `HEALTH_GROWTH` doit rester
+au-dessus de `REWARD_GROWTH`^(ln 1,35 / ln prix), 1,1975 ici ; en dessous, un joueur fort ne bloque plus jamais (vu
+avec x1,55 et des PV x1,16 : 1 104 à 40 h). Essais (3 parties x 40 h, `-Regler`) :
+
+| Prix par niveau (compensation) | base 1 / 4 / 12 / 40 h | Vague 100 | forge 40 h | renaissance 40 h | base-archer-x20-x2 40 h (écart de niveau) | archer-x20-x2 40 h | archer-sans-rune 40 h |
+|---|---|---|---|---|---|---|---|
+| x1,35 (avant) | 27 / 49 / 86 / 162 | 16 h 11 | 251 | 229 | 514 (375) | 272 | 95 |
+| **x1,45 (PV x1,207)** | 29 / 50 / 89 / 156 | 15 h 50 | 221 | 231 | 359 (38) | 177 | 70 |
+| x1,55 (PV x1,16 + `HEALTH_WAVE_POWER` 3) | 29 / 50 / 89 / 177 | 14 h 59 | 279 | 302 | 1 104 (19), s'emballe | 188 | 56 |
+| x1,65 (PV x1,143 + puissance 3) | 30 / 53 / 93 / 160 | 14 h 41 | 258 | 239 | 415 (12) | 146 | 48 |
+| x1,8 (PV x1,1227 + puissance 3) | 31 / 56 / 92 / 150 | 15 h 24 | 237 | 263 | 342 (9) | 127 | 42 |
+
+Gardé : **x1,45**, le plus simple (2 chiffres) et sûr ; à partir de x1,55 il faut aussi `HEALTH_WAVE_POWER` et on est
+pile à la limite de sécurité (avec des PV plus prudents, base tombe sous 150 à 40 h). Vérifié avec le vrai code
+(`run.ps1 -Graines 3 -Heures 40`) : mêmes chiffres que l'essai. `base-archer-x20-x2` répartit enfin : Archer à rune
+niveau 70 / 134 / 222 à 4 / 12 / 40 h, ses autres tours 28 / 97 / 184. `archer-x20-x2-2givres` : 229 à 40 h (399
+avant). 1 T de pièces par minute vers 23 h (23 h 20 avant). Sur 100 h (essai) : base 219-225 (256 avant), le joueur à
+rune 430-450 ; rien ne s'emballe. Objectifs : 15 OK au lieu de 17, le début étant un peu plus facile (premier mur à la
+vague 18 au lieu de 16, vague 25 en 28 min au lieu de 33-35) ; gardé ainsi (le propriétaire voulait un début
+généreux). `HEALTH_BUDGET` 24 remettait le début, mais ralentissait la suite (vague 100 en 18 h 30, 146 à 40 h).
+
+Sauvegardes existantes (le jeu est public) : les PV baissent d'un coup, une défense qui tenait la vague 100 tient
+~116 ; ensuite leurs améliorations coûtent plus cher (prochain niveau d'une tour niveau 100 : 190 Qa au lieu de
+160 T). Scènes de tournage et bouton « SCÈNES (Studio) » : tours baissées de 74 à 62 (dragon), 28 à 23 (Titan du
+givre), 59 à 50 (horde) pour garder le même temps sous le feu.
+
 ## Ce qui reste (honnêtement)
 
 1. **Murs des vagues 71-100 trop longs** (80 % sous 33 min, cible 20) : surtout les Escarmouches juste après une

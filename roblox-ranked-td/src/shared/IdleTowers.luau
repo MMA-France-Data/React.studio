@@ -417,13 +417,13 @@ function IdleTowers.stats(towerType: string, level: number)
 	return stats
 end
 
--- Prix pour passer du niveau `level` au niveau `level + 1` : 20, 27, 36... (x1,35 par niveau), le même
--- pour toutes les tours. towerType est gardé pour les appels existants (PlotGame, PlotUI).
--- Niveau 100 -> 160 T, niveau 1000 -> 3,2e131 : toujours un nombre fini.
+-- Prix pour passer du niveau `level` au niveau `level + 1` : 20, 29, 42, 61... (x1,45 par niveau, plus que
+-- les dégâts : voir IdleConfig.UPGRADE_COST_GROWTH), le même pour toutes les tours. towerType est gardé pour
+-- les appels existants (PlotGame, PlotUI). Niveau 100 -> 190 Qa, niveau 1000 -> 3,2e162.
 function IdleTowers.upgradeCost(_towerType: string, level: number): number
 	local raw = IdleConfig.UPGRADE_COST_BASE * IdleConfig.UPGRADE_COST_GROWTH ^ (level - 1)
 	if raw >= math.huge then
-		-- Au-delà du niveau ~2 350 le prix devient infini : « MAX », jamais payable (sans ce test, l'arrondi
+		-- À partir du niveau ~1 900 le prix devient infini : « MAX », jamais payable (sans ce test, l'arrondi
 		-- ci-dessous donnerait NaN : « pièces < NaN » est faux, l'achat passerait et les pièces deviendraient NaN).
 		return math.huge
 	end

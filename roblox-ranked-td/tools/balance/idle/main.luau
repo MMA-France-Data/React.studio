@@ -101,7 +101,7 @@ end
 for _, id in options.scenarios do
 	assert(
 		Run.SCENARIOS[id],
-		`scénario inconnu : {id} (base, forge, renaissance, renaissance-seule, sans-sorcier ; tout sur l'Archer : archer-x20, archer-x20-x2, archer-x20-x2-givre, archer-x20-renaissance, archer-x20-x2-renaissance, archer-sans-rune)`
+		`scénario inconnu : {id} (base, forge, renaissance, renaissance-seule, sans-sorcier ; tout sur l'Archer : archer-x20, archer-x20-x2, archer-x20-x2-givre, archer-x20-x2-2givres, archer-x20-x2-4givres, archer-x20-renaissance, archer-x20-x2-renaissance, archer-sans-rune ; base avec les runes : base-archer-x20-x2)`
 	)
 end
 
@@ -220,13 +220,18 @@ for scenarioIndex, scenarioId in (if options.assemble then {} else options.scena
 			-- Joueur « tout sur l'Archer » : niveaux de l'Archer et du Totem à chaque heure, et pourquoi il bloque
 			-- à quelques heures (Run:archerDiagnosis), pour la partie « TOUT SUR L'ARCHER » du rapport.
 			if r.scenario.archer then
-				local archerLevel, frostLevel = r:archerLevels()
+				local archerLevel, frostLevel, frostCount, frostLow = r:archerLevels()
 				r.hourlyArcher = r.hourlyArcher or {}
-				r.hourlyArcher[hour] = { archer = archerLevel, frost = frostLevel }
+				r.hourlyArcher[hour] = { archer = archerLevel, frost = frostLevel, frosts = frostCount, frostLow = frostLow }
 				if table.find(ARCHER_DIAG_HOURS, hour) then
 					r.archerDiag = r.archerDiag or {}
 					r.archerDiag[hour] = r:archerDiagnosis()
 				end
+			end
+			-- Joueur « base » avec les runes forcées : niveau de sa tour à rune et des autres, à chaque heure
+			if r.scenario.forcedRunes then
+				r.hourlyRune = r.hourlyRune or {}
+				r.hourlyRune[hour] = r:runeTowerStats()
 			end
 		end)
 		if run.scenario.archer then
@@ -763,13 +768,16 @@ end
 -- (Run:archerDiagnosis).
 ----------------------------------------------------------------------
 do
-	local archerIds = {}
+	local archerIds, runeIds = {}, {}
 	for _, id in options.scenarios do
 		if Run.SCENARIOS[id].archer then
 			table.insert(archerIds, id)
 		end
+		if Run.SCENARIOS[id].forcedRunes then
+			table.insert(runeIds, id)
+		end
 	end
-	if #archerIds > 0 then
+	if #archerIds > 0 or #runeIds > 0 then
 		Report.section("archer")
 		table.insert(order, 2, "archer") -- juste après l'en-tête : c'est la question posée
 		local enemyName = function(name: string): string
@@ -785,8 +793,9 @@ do
 			return "x" .. (if k < 10 then string.format("%.2f", k) else shortNumber(k))
 		end
 		out(string.rep("=", 100))
-		out("TOUT SUR L'ARCHER : que l'Archer du rempart (emplacement 1) et un Totem de givre juste à côté (emplacement 5), toutes")
-		out("les pièces dans l'Archer. Runes forcées selon le scénario : x20 dégâts au 1er lancer de la forge (100 K), x2 vitesse au")
+		out("TOUT SUR L'ARCHER : que l'Archer du rempart (emplacement 1) et un Totem de givre juste à côté (emplacement 5 ; 2 ou 4")
+		out("Totems dans « …-2givres » et « …-4givres »), toutes les pièces dans l'Archer (et les Totems, s'ils sont améliorés).")
+		out("Runes forcées selon le scénario : x20 dégâts au 1er lancer de la forge (100 K), x2 vitesse au")
 		out("2e (500 K), prix mis de côté dès qu'il vaut moins de 30 min de revenu ; ensuite plus de forge ni d'autel (voir Run.luau).")
 		out("Comparé aux autres scénarios de ce calcul (base = le joueur normal, toutes les tours, sans forge).")
 		out(string.rep("=", 100))
@@ -874,24 +883,37 @@ do
 					table.insert(frostTimes, run.unlockedAt.Frost.t)
 				end
 			end
+			local frostSpots = Run.frostSpotsOf(plan)
+			out(
+				`  Emplacements : Archer {Run.ARCHER_SPOTS.archer}, {if #frostSpots > 1 then `{#frostSpots} Totems` else "Totem"} {table.concat(frostSpots, ", ")}`
+					.. `{if plan.upgradeFrost then " (améliorés au meilleur rapport gain / prix, tous au même niveau)" else " (niveau 1)"}.`
+			)
 			out(
 				`  Forge : {if #runeParts > 0 then table.concat(runeParts, " ; ") else "aucun lancer"}. Autel : {string.format("%.1f", mean(spins))} lancers x1 pour débloquer le Totem`
 					.. (if #frostTimes > 0 then ` (à {duration(mean(frostTimes))})` else " (jamais débloqué)")
 					.. "."
 			)
-			-- Niveaux de l'Archer et du Totem au fil des heures (moyenne des graines)
+			-- Niveaux de l'Archer et du (des) Totem(s) au fil des heures (moyenne des graines)
 			local levelParts = {}
 			for _, hour in hours do
-				local archers, frosts = {}, {}
+				local archers, frosts, lows = {}, {}, {}
 				for _, run in runs do
 					local levels = run.hourlyArcher and run.hourlyArcher[hour]
 					if levels then
 						table.insert(archers, levels.archer)
 						table.insert(frosts, levels.frost)
+						table.insert(lows, levels.frostLow or levels.frost)
 					end
 				end
 				if #archers > 0 then
-					table.insert(levelParts, string.format("%d h : Archer niv %.0f, Totem niv %.0f", hour, mean(archers), mean(frosts)))
+					local frostText = string.format("niv %.0f", mean(frosts))
+					if math.floor(mean(lows) + 0.5) ~= math.floor(mean(frosts) + 0.5) then
+						frostText = string.format("niv %.0f à %.0f", mean(lows), mean(frosts))
+					end
+					table.insert(
+						levelParts,
+						string.format("%d h : Archer niv %.0f, %s %s", hour, mean(archers), if #frostSpots > 1 then `{#frostSpots} Totems` else "Totem", frostText)
+					)
 				end
 			end
 			out(`  Niveaux : {table.concat(levelParts, " ; ")}.`)
@@ -937,7 +959,7 @@ do
 					`  {label} : bloqué à la vague {diag.blocked} ({Report.waveTypeName(diag.blockedType)}){climb}. Archer niv {diag.archerLevel}`
 						.. `{if diag.runes ~= "" then ` ({diag.runes})` else ""}, {diag.dupes} doublon(s) : {coins(diag.damage)} dégâts par flèche,`
 						.. ` {string.format("%.0f", diag.attacksPerSecond)} flèches/s (DPS {coins(diag.dps)} ; feu {coins(diag.fireDps)}/s par zone) ;`
-						.. ` Totem niv {diag.frostLevel} (+{string.format("%.0f", diag.fragility * 100)} % de dégâts reçus) ; revenu à son record {coins(diag.income * 60)}/min.`
+						.. ` {if (diag.frostCount or 1) > 1 then `{diag.frostCount} Totems` else "Totem"} niv {diag.frostLevel} (+{string.format("%.0f", diag.fragility * 100)} % de dégâts reçus) ; revenu à son record {coins(diag.income * 60)}/min.`
 				)
 				local leakParts = {}
 				for _, leak in diag.leaks do
@@ -978,6 +1000,57 @@ do
 			for _, run in runs do
 				describe(`Fin ({options.hours} h, graine {run.seed})`, run.archerDiag and run.archerDiag.fin)
 			end
+			out()
+		end
+		-- Joueur « base » avec les runes forcées : répartit-il ses pièces ? Niveau de la tour à rune contre le niveau
+		-- moyen des autres tours, et part des pièces des tours qui est dans la tour à rune (moyenne des graines).
+		for _, id in runeIds do
+			local runs = runsByScenario[id]
+			local runeParts = {}
+			for index, runeId in Run.SCENARIOS[id].forcedRunes do
+				local times, waves = {}, {}
+				for _, run in runs do
+					local entry = run.bonusLog[index]
+					if entry then
+						table.insert(times, entry.t)
+						table.insert(waves, entry.wave)
+					end
+				end
+				table.insert(
+					runeParts,
+					`{IdleConfig.BONUS_BY_ID[runeId].displayName} ` .. (if #times > 0 then `à {duration(mean(times))} (record {math.floor(mean(waves) + 0.5)})` else "jamais")
+				)
+			end
+			out(`« {id} » : {Run.SCENARIOS[id].label}`)
+			out(`  Runes : {table.concat(runeParts, " ; ")}.`)
+			local parts = {}
+			for _, hour in hours do
+				local levels, others, counts, shares = {}, {}, {}, {}
+				for _, run in runs do
+					local stats = run.hourlyRune and run.hourlyRune[hour]
+					if stats and stats.level > 0 then
+						table.insert(levels, stats.level)
+						table.insert(others, stats.others)
+						table.insert(counts, stats.count)
+						table.insert(shares, stats.share)
+					end
+				end
+				if #levels > 0 then
+					table.insert(
+						parts,
+						string.format(
+							"%d h : Archer à rune niv %.0f, les %.0f autres tours niv %.0f en moyenne (écart %.0f niveaux), %.0f %% des pièces des tours dans l'Archer à rune",
+							hour,
+							mean(levels),
+							mean(counts),
+							mean(others),
+							mean(levels) - mean(others),
+							mean(shares) * 100
+						)
+					)
+				end
+			end
+			out("  Répartition : " .. (if #parts > 0 then table.concat(parts, " ; ") else "rune jamais posée") .. ".")
 			out()
 		end
 		out("  (k = de combien il faudrait multiplier les dégâts de l'Archer pour réussir la vague avec ses tours actuelles ; la vague")

@@ -174,9 +174,12 @@ fermé** : voir juste en dessous.
   dans `data.idle.ownedSpots` (`unlockedSpots` = leur nombre) ; les anciennes sauvegardes sont converties
   automatiquement (`PlayerData.luau`).
 - **Améliorations** : clique sur une tour → « Améliorer » (ou touche E). Niveaux illimités, dégâts ×1,35 par
-  niveau, prix ×1,35 par niveau (20 pièces pour le niveau 2, le même prix pour toutes les tours). Les PV des
-  vagues montent un peu plus vite que les gains (×1,28 à ×1,47 contre ×1,25) :
-  on bloque souvent, on farme un peu, une amélioration débloque les vagues suivantes.
+  niveau, prix ×1,45 par niveau (20 pièces pour le niveau 2, le même prix pour toutes les tours). Le prix
+  monte plus vite que les dégâts : chaque niveau de plus sur la même tour rapporte un peu moins, donc il vaut
+  le coup d'améliorer toutes ses tours, pas une seule (décidé le 01/10/2026 ; avant, prix ×1,35 et tout
+  mettre sur la tour à rune était toujours le meilleur achat). Les PV des vagues montent de ×1,22 à ×1,42
+  par vague (pièces ×1,25) : on bloque souvent, on farme un peu, une amélioration débloque les vagues
+  suivantes.
 - Chemin de ~360 studs (6 allers-retours) et ennemis 1,35× plus rapides qu'en ranked, sauf les cavaliers
   et les écuyers, freinés (13 studs/s), et les chevaliers lourds, colosses et Seigneurs de guerre, un peu
   moins lents (`IdleConfig.ENEMY_SPEED_FACTORS`).

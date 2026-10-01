@@ -143,6 +143,26 @@ Run.SCENARIOS = {
 		rebirth = false,
 		archer = { runes = { "Damage20", "Speed2" }, upgradeFrost = true },
 	},
+	-- Plusieurs Totems (questions du propriétaire, 01/10/2026 : « et si on met 2 givres, un de chaque côté de
+	-- l'Archer ? », « ou même 4 givres, deux collés à lui et 2 dans les couloirs en face »). frostSpots = les
+	-- emplacements des Totems (voir Run.ARCHER_SPOTS pour le choix), posés dans cet ordre au début de la partie.
+	-- Règles du jeu inchangées : ralentissement et fragilité ne s'additionnent pas entre Totems (le plus fort gagne),
+	-- donc un Totem de plus ne sert qu'à couvrir plus de chemin. Les Totems restent au même niveau (voir
+	-- Run:archerSpend).
+	["archer-x20-x2-2givres"] = {
+		id = "archer-x20-x2-2givres",
+		label = "comme archer-x20-x2-givre, mais avec 2 Totems de givre collés à l'Archer, un de chaque côté (emplacements 5 et 2), tous améliorés",
+		forge = false,
+		rebirth = false,
+		archer = { runes = { "Damage20", "Speed2" }, upgradeFrost = true, frostSpots = { 5, 2 } },
+	},
+	["archer-x20-x2-4givres"] = {
+		id = "archer-x20-x2-4givres",
+		label = "comme archer-x20-x2-2givres, + 2 Totems de l'autre côté des couloirs, en face de l'Archer (emplacements 12 et 3) : 4 Totems, tous améliorés",
+		forge = false,
+		rebirth = false,
+		archer = { runes = { "Damage20", "Speed2" }, upgradeFrost = true, frostSpots = { 5, 2, 12, 3 } },
+	},
 	["archer-x20-renaissance"] = {
 		id = "archer-x20-renaissance",
 		label = "archer-x20 + renaissance dès que bloqué 15 min au record (vague >= 15)",
@@ -156,6 +176,18 @@ Run.SCENARIOS = {
 		forge = false,
 		rebirth = true,
 		archer = { runes = { "Damage20", "Speed2" }, upgradeFrost = false },
+	},
+	-- Le joueur « base » (même IA : meilleur rapport gain / prix, toutes les tours, autel, emplacements) avec en plus
+	-- les runes x20 dégâts puis x2 vitesse, FORCÉES à ses 2 premiers lancers de forge (100 K puis 500 K, prix mis de
+	-- côté comme le scénario « forge »), posées sur son meilleur Archer ; ensuite plus de forge. Question du
+	-- propriétaire (01/10/2026) : « il faudrait que monter chaque tour soit rentable » : répartit-il ses pièces, ou
+	-- met-il presque tout dans l'Archer à rune ? Le rapport donne l'écart de niveau entre la tour à rune et les autres.
+	["base-archer-x20-x2"] = {
+		id = "base-archer-x20-x2",
+		label = "base (même IA, toutes les tours) + runes x20 dégâts et x2 vitesse forcées sur son meilleur Archer (1er et 2e lancers de forge)",
+		forge = false,
+		rebirth = false,
+		forcedRunes = { "Damage20", "Speed2" },
 	},
 	["archer-sans-rune"] = {
 		id = "archer-sans-rune",
@@ -172,7 +204,21 @@ Run.SCENARIOS = {
 -- tous dans la portée de l'Archer. Un ennemi à 10 studs/s y reste ~18 s à portée de l'Archer au lieu de ~9 s sans
 -- Totem (15 s avec le Totem sur l'emplacement 2, gratuit : cette paire demande ~25 % de dégâts en plus). Le 5e
 -- emplacement coûte 100 pièces.
+-- Plusieurs Totems (scénarios « …-2givres » et « …-4givres », plan.frostSpots), choisis de la même façon (Totems
+-- niveau 100 sans leurs dégâts, vagues 80 et 160 des 5 types) :
+--   2 Totems : 5 et 2, collés à l'Archer de chaque côté (le 2 est gratuit) : la meilleure des paires. Un ennemi
+--     reste ~22 s à portée de l'Archer, ralenti presque tout le temps ; il faut ~29 % de dégâts en moins qu'avec le
+--     seul Totem 5 (la 2e meilleure paire, 5 et 10 : ~20 % en moins) ;
+--   4 Totems : 5 et 2, plus 12 (en face au-dessus, de l'autre côté du couloir d'arrivée, là où les ennemis entrent
+--     dans la portée de l'Archer) et 3 (en face en dessous, de l'autre côté du couloir de sortie ; gratuit) : le
+--     meilleur des 16 choix « un en face au-dessus, un en face en dessous ». Seulement ~8 % de dégâts en moins
+--     qu'avec 2 Totems : avec 5 et 2, l'ennemi est déjà ralenti presque partout où l'Archer tire.
 Run.ARCHER_SPOTS = { archer = 1, frost = 5 }
+
+-- Emplacements des Totems d'un plan (plan.frostSpots, sinon le seul Totem de Run.ARCHER_SPOTS).
+function Run.frostSpotsOf(plan): { number }
+	return plan.frostSpots or { Run.ARCHER_SPOTS.frost }
+end
 
 local P = Run.POLICY
 local SPOT_COUNT = #PlotLayout.SPOTS
@@ -996,6 +1042,10 @@ end
 -- rune n'améliorerait une tour posée) : rien. Jugée seulement sur son gain immédiat, la forge ne serait
 -- presque jamais achetée ; ce scénario mesure ce qu'elle apporte.
 function Run:forgeReserve(): number
+	-- Scénario « base-archer-x20-x2 » : les lancers forcés (Run:forcedRuneReserve)
+	if self.scenario.forcedRunes then
+		return self:forcedRuneReserve()
+	end
 	if not self.scenario.forge then
 		return 0
 	end
@@ -1016,9 +1066,87 @@ end
 function Run:useForge()
 	local reserve = self:forgeReserve()
 	if reserve > 0 and self.coins >= reserve then
-		self:spinForge()
+		if self.scenario.forcedRunes then
+			self:forcedRuneSpin(reserve)
+		else
+			self:spinForge()
+		end
 		self:purchased("forge")
 	end
+end
+
+-- Scénario « base-archer-x20-x2 » (joueur « base » + runes forcées, scenario.forcedRunes) : son meilleur Archer
+-- (celui qui a déjà la rune de dégâts du plan, sinon l'Archer du plus haut niveau ; à égalité, le premier
+-- emplacement), nil s'il n'a pas d'Archer posé.
+function Run:runeArcherSpot(): number?
+	local best, bestLevel = nil, -1
+	for spot = 1, SPOT_COUNT do
+		local tower = self.towers[spot]
+		if tower and tower.type == "MachineGun" then
+			if tower.runes.Damage == self.scenario.forcedRunes[1] then
+				return spot
+			end
+			if tower.level > bestLevel then
+				best, bestLevel = spot, tower.level
+			end
+		end
+	end
+	return best
+end
+
+-- Prix du prochain lancer forcé à mettre de côté (même règle que le scénario « forge » : dès qu'il vaut moins de
+-- FORGE_SAVE_SECONDS de revenu), 0 si tous les lancers du plan sont faits ou s'il n'a pas d'Archer.
+function Run:forcedRuneReserve(): number
+	if self.forgeSpins >= #self.scenario.forcedRunes or not self:runeArcherSpot() then
+		return 0
+	end
+	local cost = IdleConfig.forgeCoinPrice(self.forgeSpins)
+	if cost >= math.huge or cost > self.income * P.FORGE_SAVE_SECONDS then
+		return 0
+	end
+	return cost
+end
+
+-- Lancer forcé : la rune suivante du plan, posée tout de suite sur son meilleur Archer (emplacement de sa sorte).
+function Run:forcedRuneSpin(cost: number)
+	local spot = self:runeArcherSpot()
+	local runeId = self.scenario.forcedRunes[self.forgeSpins + 1]
+	local rune = IdleConfig.BONUS_BY_ID[runeId]
+	self.coins -= cost
+	self.forgeSpins += 1
+	self.forgeSpent += cost
+	self:addSpent("forge", cost)
+	self.towers[spot].runes[rune.kind] = runeId
+	table.insert(self.bonusLog, { t = self.t, id = runeId, cost = cost, wave = self.frontier })
+	self:changed(false)
+	self:log(`forge runique pour {Modules.NumberFormat.short(cost)} : {rune.displayName} (forcée), posée sur l'Archer de l'empl. {spot}`)
+end
+
+-- Tour à rune du scénario « base-archer-x20-x2 » et les autres, pour le rapport : niveau de la tour à rune, niveau
+-- moyen des autres tours, nombre d'autres tours et part des pièces mises dans les tours qui est dans la tour à rune.
+function Run:runeTowerStats()
+	local runeSpot = nil
+	for spot, tower in self.towers do
+		if tower.runes.Damage == self.scenario.forcedRunes[1] then
+			runeSpot = spot
+		end
+	end
+	local levels, count, spent, runeSpent = 0, 0, 0, 0
+	for spot, tower in self.towers do
+		spent += tower.spent
+		if spot == runeSpot then
+			runeSpent = tower.spent
+		else
+			levels += tower.level
+			count += 1
+		end
+	end
+	return {
+		level = if runeSpot then self.towers[runeSpot].level else 0,
+		others = if count > 0 then levels / count else 0,
+		count = count,
+		share = if runeSpot and spent > 0 then runeSpent / spent else 0,
+	}
 end
 
 -- Dépense les pièces (plusieurs achats de suite, en réévaluant après chacun).
@@ -1754,14 +1882,19 @@ function Run:archerSpend()
 		self:buySpins(1)
 		self:purchased("spin")
 	end
-	-- 3. Le Totem, juste à côté de l'Archer
-	if not self.towers[spots.frost] then
-		local owned = self.owned[spots.frost] == true
-		local cost = IdleTowers.Defs.Frost.placeCost + (if owned then 0 else PlotLayout.spotCost(self.unlockedSpots + 1))
-		if self.coins < cost then
-			return
+	-- 3. Le(s) Totem(s), juste à côté de l'Archer, dans l'ordre du plan. Vraies règles du jeu (Run:execute, comme
+	-- PlotGame:placeTower) : un Totem débloqué se pose autant de fois qu'on veut (5 au plus : tour commune,
+	-- IdleTowers.MAX_COPIES), 25 pièces + le prix de l'emplacement s'il ne l'a pas encore.
+	local frostSpots = Run.frostSpotsOf(plan)
+	for _, spot in frostSpots do
+		if not self.towers[spot] then
+			local owned = self.owned[spot] == true
+			local cost = IdleTowers.Defs.Frost.placeCost + (if owned then 0 else PlotLayout.spotCost(self.unlockedSpots + 1))
+			if self.coins < cost then
+				return
+			end
+			self:execute({ kind = if owned then "place" else "spot", spot = spot, type = "Frost" })
 		end
-		self:execute({ kind = if owned then "place" else "spot", spot = spots.frost, type = "Frost" })
 	end
 	-- 4. La forge : les lancers du plan, prix mis de côté quand il vaut moins de 30 min de revenu
 	local reserve = 0
@@ -1790,15 +1923,62 @@ function Run:archerSpend()
 	-- upgradeFrost : Archer ou Totem, au meilleur rapport gain / prix (même règle que Run:spend : il économise
 	-- pour le meilleur achat s'il peut le payer en moins de SAVE_SECONDS, sinon il prend l'autre s'il vaut au moins
 	-- FALLBACK_MIN_RATIO fois le meilleur).
+	-- Plusieurs Totems : leur fragilité ne s'additionne pas (le plus fort gagne), donc améliorer un seul Totem ne
+	-- sert qu'aux ennemis de SA zone. Le joueur garde ses Totems au même niveau : un Totem en retard rattrape les
+	-- autres d'abord (ça coûte peu), et « améliorer les Totems » = tous d'un niveau, pour la somme de leurs prix
+	-- (gain = celui d'un Totem calculé par Run:upgradeOptions : avec des Totems au même niveau, toutes les zones
+	-- gagnent la même fragilité).
 	local focus = self:buildFocus(false)
 	for _ = 1, 400 do
 		local available = self.coins - reserve
 		if available <= 0 then
 			return
 		end
+		if #frostSpots > 1 then
+			local top = 0
+			for _, spot in frostSpots do
+				top = math.max(top, self.towers[spot].level)
+			end
+			local caughtUp = true
+			for _, spot in frostSpots do
+				local frost = self.towers[spot]
+				while frost.level < top do
+					if self.coins - reserve < IdleTowers.upgradeCost(frost.type, frost.level) then
+						caughtUp = false
+						break
+					end
+					self:execute({ kind = "upgrade", spot = spot })
+				end
+			end
+			if not caughtUp then
+				return -- il économise pour le Totem en retard
+			end
+			available = self.coins - reserve
+			if available <= 0 then
+				return
+			end
+		end
 		self:evaluate(focus)
 		local options = {}
 		self:upgradeOptions(focus, options)
+		if #frostSpots > 1 then
+			-- Une seule option pour tous les Totems (voir plus haut)
+			local frostGain = nil
+			for i = #options, 1, -1 do
+				local option = options[i]
+				if option.kind == "upgrade" and self.towers[option.spot].type == "Frost" then
+					table.remove(options, i)
+					frostGain = math.max(frostGain or 0, option.gain)
+				end
+			end
+			if frostGain then
+				local cost = 0
+				for _, spot in frostSpots do
+					cost += IdleTowers.upgradeCost("Frost", self.towers[spot].level)
+				end
+				table.insert(options, { kind = "frosts", cost = cost, gain = frostGain, ratio = frostGain / cost })
+			end
+		end
 		local best, bestAffordable = nil, nil
 		for _, option in options do
 			if option.cost < math.huge then
@@ -1821,7 +2001,14 @@ function Run:archerSpend()
 			end
 			choice = bestAffordable
 		end
-		self:execute(choice)
+		if choice.kind == "frosts" then
+			-- Tous les Totems d'un niveau (plusieurs Totems)
+			for _, spot in frostSpots do
+				self:execute({ kind = "upgrade", spot = spot })
+			end
+		else
+			self:execute(choice)
+		end
 	end
 end
 
@@ -1847,11 +2034,20 @@ function Run:archerIntermission(): boolean
 	return rebirthed
 end
 
--- Niveaux de l'Archer et du Totem en ce moment (0 = pas posé), pour le rapport.
-function Run:archerLevels(): (number, number)
+-- Niveaux de l'Archer et du Totem en ce moment (0 = pas posé), pour le rapport. Plusieurs Totems : le niveau du
+-- plus haut (ils restent au même niveau), puis leur nombre et le niveau du plus bas.
+function Run:archerLevels(): (number, number, number, number)
 	local archer = self.towers[Run.ARCHER_SPOTS.archer]
-	local frost = self.towers[Run.ARCHER_SPOTS.frost]
-	return if archer then archer.level else 0, if frost then frost.level else 0
+	local top, count, low = 0, 0, math.huge
+	for _, spot in Run.frostSpotsOf(self.scenario.archer) do
+		local frost = self.towers[spot]
+		if frost then
+			top = math.max(top, frost.level)
+			low = math.min(low, frost.level)
+			count += 1
+		end
+	end
+	return if archer then archer.level else 0, top, count, if count > 0 then low else 0
 end
 
 -- Pourquoi il bloque (scénarios « archer » ; main.luau l'appelle à quelques heures et à la fin de la partie).
@@ -1947,8 +2143,9 @@ function Run:archerDiagnosis()
 		table.insert(leaks, { name = group.name, count = group.count, leaked = result.leak[g], hp = group.hp })
 		toughest = math.max(toughest, group.hp)
 	end
-	local _, frostLevel = self:archerLevels()
+	local _, frostLevel, frostCount = self:archerLevels()
 	return {
+		frostCount = frostCount,
 		hour = self.t / 3600,
 		blocked = blocked,
 		blockedType = IdleConfig.waveType(blocked),

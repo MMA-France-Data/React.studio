@@ -28,15 +28,20 @@ IdleConfig.COMPRESS_EMPTY_SPAWNS = true
 -- ennemi). false = seulement la vague écrasée.
 IdleConfig.SPAWN_NEXT_ON_KILL = true
 
--- Rythme « souvent bloqué, souvent débloqué » : les PV montent un peu plus vite que les gains.
--- Au mur, tu farmes les vagues d'avant jusqu'à pouvoir t'offrir l'amélioration qui te débloque.
+-- Rythme « souvent bloqué, souvent débloqué » : suivre les PV coûte un peu plus que ce que rapportent les
+-- vagues. Au mur, tu farmes les vagues d'avant jusqu'à pouvoir t'offrir l'amélioration qui te débloque.
 -- Les grands nombres viennent des vagues elles-mêmes : chaque vague rapporte 25 % de plus que la précédente
 -- (x9 toutes les 10 vagues). Joueur actif (simulateur, sans forge ni renaissance) : ~1 milliard (B) de
 -- pièces par minute vers 13 h de jeu, ~1 trillion (T) vers 23 h, ~1 quadrillion (Qa) vers 34 h,
 -- ~1 quintillion (Qi) vers 46 h, et ça continue (voir tools/balance/RESULTS.md).
--- Les PV montent aussi de x1,25 par vague, MULTIPLIÉS par un facteur qui dépend du numéro de la vague
--- (voir healthBudget plus bas) : au total, ils montent toujours un peu plus vite que les pièces.
-IdleConfig.HEALTH_GROWTH = 1.25 -- PV x1,25 par vague (fois le facteur de HEALTH_WAVE_POWER)
+-- Les PV montent de x1,207 par vague, MULTIPLIÉS par un facteur qui dépend du numéro de la vague (voir
+-- healthBudget plus bas). Après la vague ~67 ils montent un peu moins vite que les pièces, mais chaque niveau
+-- d'amélioration coûte x1,45 pour x1,35 de dégâts (UPGRADE_COST_GROWTH) : au total, suivre les PV coûte
+-- toujours un peu plus que ce que rapportent les vagues.
+-- 1,207 (1,25 avant le 01/10/2026) compense les améliorations plus chères : la vague 100 reste vers 16 h.
+-- À garder AU-DESSUS de REWARD_GROWTH ^ (ln UPGRADE_DAMAGE / ln UPGRADE_COST_GROWTH) (1,1975 ici) : en
+-- dessous, un joueur fort ne bloquerait plus jamais (vu au simulateur avec un prix x1,55 et des PV x1,16).
+IdleConfig.HEALTH_GROWTH = 1.207 -- PV x1,207 par vague (fois le facteur de HEALTH_WAVE_POWER)
 IdleConfig.REWARD_GROWTH = 1.25 -- pièces x1,25 par vague
 
 -- Améliorations des tours (niveaux illimités). Le prix ne dépend que du niveau, pas de la tour :
@@ -44,11 +49,15 @@ IdleConfig.REWARD_GROWTH = 1.25 -- pièces x1,25 par vague
 -- à niveau égal (voir IdleTowers.luau).
 IdleConfig.UPGRADE_DAMAGE = 1.35 -- dégâts x1,35 par niveau
 IdleConfig.UPGRADE_COST_BASE = 20 -- niveau 1 -> 2 : 20 pièces, pour toutes les tours
--- Chaque niveau suivant coûte x1,35, autant que le gain de dégâts : pour une tour donnée, une pièce
--- rapporte autant de dégâts à n'importe quel niveau. Une tour neuve vaut donc autant la peine d'être
--- améliorée qu'une vieille tour de haut niveau (avec un prix qui monte moins vite que les dégâts, tout
--- mettre sur une seule tour était toujours mieux).
-IdleConfig.UPGRADE_COST_GROWTH = 1.35
+-- Chaque niveau suivant coûte x1,45, PLUS que le gain de dégâts (x1,35) : sur une même tour, chaque niveau
+-- rapporte ~7 % de dégâts en moins par pièce que le précédent (2 fois moins tous les ~10 niveaux). Au bout
+-- d'un moment, il vaut donc mieux améliorer une autre tour. Décidé par le propriétaire le 01/10/2026 :
+-- « il faudrait que monter chaque tour soit rentable ». Avant : x1,35, autant que les dégâts, et la tour au
+-- plus gros multiplicateur (rune x20, x2 vitesse, doublons) restait TOUJOURS le meilleur achat. Le joueur
+-- simulé avec x20 + x2 vitesse sur un Archer avait, à 40 h, son Archer au niveau 387 et ses autres tours au
+-- niveau 12 ; avec x1,45 : Archer niveau 222, ses autres tours vers 184 (tools/balance/RESULTS.md). Un prix
+-- plus haut demande des PV plus bas (HEALTH_GROWTH, plus haut), sinon tout le jeu ralentit.
+IdleConfig.UPGRADE_COST_GROWTH = 1.45
 
 -- Vitesse des ennemis sur les parcelles = vitesse de Enemies.luau x ENEMY_SPEED_MULTIPLIER x le facteur
 -- de leur type (ENEMY_SPEED_FACTORS, 1 si absent). Réglages du mode infini seulement : le ranked garde
@@ -135,10 +144,10 @@ end
 -- Un lot coûte EXACTEMENT la somme des prix des lancers qu'il contient (voir towerSpinCost) : x100 coûte
 -- autant que 100 x1 achetés un par un. Les gros boutons évitent juste de cliquer 100 000 fois.
 -- ATTENTION, ne pas remettre de remise de gros, surtout sur x1 000 000.
--- Ici PV et pièces grandissent au même rythme (x1,25 par vague) : multiplier tous ses dégâts par M
--- fait avancer le record d'un facteur ~M^(1/2,55). Un million de lancers, c'est x1 500 à x3 500 de dégâts :
--- essayé à 5 000 lancers x1 le lot, le joueur simulé est passé de la vague 377 à la vague 600-1 000
--- en 6 h. Même x1 000 à moitié prix faisait arriver la vague 100 ~1 h 20 plus tôt.
+-- Multiplier tous ses dégâts par M fait avancer le record d'un facteur ~M^(1/2,55) au plus (voir
+-- healthBudget). Un million de lancers, c'est x1 500 à x3 500 de dégâts : essayé (avant le 01/10/2026) à
+-- 5 000 lancers x1 le lot, le joueur simulé est passé de la vague 377 à la vague 600-1 000 en 6 h. Même
+-- x1 000 à moitié prix faisait arriver la vague 100 ~1 h 20 plus tôt.
 -- Avec +0,05 % par lancer, un lot coûte toujours le même nombre de fois le prix du PROCHAIN lancer :
 -- x10 = 10,02 ; x100 = 102,5 ; x1 000 = 1 297 ; x10 000 = 294 456 ; x1 000 000 = ~2,5e220 (« MAX » : ce total
 -- dépasse les plus grands nombres possibles). Un joueur qui achète régulièrement garde le prix d'un lancer
@@ -573,19 +582,21 @@ end
 --   PV totaux de la vague w = HEALTH_BUDGET x HEALTH_GROWTH^(w - 1) x ((w + 5) / 6)^2,55
 --   pièces de la vague w    = REWARD_BUDGET x REWARD_GROWTH^(w - 1) x bonus de début (voir plus bas)
 -- Le facteur ((w + 5) / 6)^2,55 fait monter les PV bien plus vite que les pièces au début, puis de moins
--- en moins : d'une vague à la suivante, PV x1,47 à la vague 10, x1,36 à la 25, x1,31 à la 50, x1,28 à la
--- 100, x1,27 à la 200 (pièces toujours x1,25).
--- Comme PV et pièces grandissent au même rythme (x1,25), seul ce facteur les sépare : multiplier tous ses
--- dégâts par M (doublons, forge, bonus de renaissance) fait avancer le record d'un facteur ~M^(1/2,55).
--- Résultat (simulateur, joueur actif sans forge ni renaissance, voir tools/balance/RESULTS.md) : vague 10
--- vers 6 min sans mur, premier mur vers la vague 16 (2 min), vague 25 vers 33 min, vague 50 vers 4 h 20,
--- vague 100 vers 16 h 30 ; murs de ~2 min (vagues 11-30), ~9 min (31-70), ~16 min (71-100) en médiane,
--- ~29 min après la vague 100 (mais 1 mur sur 5 dépasse 22 min pour 31-70 et 33 min pour 71-100).
--- Exemples : vague 10 -> 1,4 K PV et 59 pièces (82 avec le bonus de début), vague 50 -> 286 M PV et 448 K pièces,
--- vague 100 -> 104 T PV et 31 B pièces, vague 200 -> 2,8 Sp PV et 154 Qi pièces.
--- Sans limite, les PV deviendraient infinis vers la vague 3 100 (au-delà de ~1,8e308, Luau passe à
--- l'infini et un DataStore ne sait pas le sauver) : à partir de MAX_SCALING_WAVE, PV et pièces arrêtent
--- de grandir.
+-- en moins : d'une vague à la suivante, PV x1,42 à la vague 10, x1,31 à la 25, x1,26 à la 50, x1,24 à la
+-- 100, x1,22 à la 200 (pièces toujours x1,25 ; PV plus lents que les pièces à partir de la vague 68, mais
+-- les améliorations coûtent x1,45 par niveau pour x1,35 de dégâts, voir HEALTH_GROWTH en haut).
+-- Multiplier tous ses dégâts par M (doublons, forge, bonus de renaissance) fait avancer le record d'un
+-- facteur ~M^(1/2,55) au plus (un peu moins loin dans le jeu, à cause du prix des améliorations).
+-- Résultat (simulateur, joueur actif sans forge ni renaissance, réglages du 01/10/2026, voir
+-- tools/balance/RESULTS.md) : vague 10 vers 6 min sans mur, premier mur vers la vague 18 (1 min), vague 25
+-- vers 28 min, vague 50 vers 4 h, vague 100 vers 15 h 50 ; murs de ~2 min (vagues 11-30), ~9 min (31-70),
+-- ~15 min (71-100) en médiane, ~19 min après la vague 100 (mais 1 mur sur 5 dépasse 20 min pour 31-70 et
+-- 31 min pour 71-100).
+-- Exemples : vague 10 -> 1 K PV et 59 pièces (82 avec le bonus de début), vague 50 -> 51,5 M PV et 448 K
+-- pièces, vague 100 -> 3,26 T PV et 31 B pièces, vague 200 -> 2,66 Sx PV et 154 Qi pièces.
+-- Sans limite, les pièces deviendraient infinies vers la vague 3 170 et les PV vers la 3 670 (au-delà de
+-- ~1,8e308, Luau passe à l'infini et un DataStore ne sait pas le sauver) : à partir de MAX_SCALING_WAVE,
+-- PV et pièces arrêtent de grandir.
 IdleConfig.MAX_SCALING_WAVE = 3000
 IdleConfig.HEALTH_BUDGET = 18 -- PV totaux de la vague 1
 -- Forme de la courbe : plus grand = PV plus hauts partout, et de plus en plus loin dans le jeu. 2,55 (2,4
