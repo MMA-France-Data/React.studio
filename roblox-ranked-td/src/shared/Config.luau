@@ -18,11 +18,14 @@ Config.RANKED_OPEN = false
 --              (Test > Clients and Servers > 2 joueurs, ou 1 joueur contre un bot)
 Config.STUDIO_FORCE_MODE = "Auto"
 
--- Produits Robux (Developer Products), à créer dans le Creator Dashboard :
--- Monétisation > Developer Products, puis colle l'ID ici. 0 = pas encore configuré.
--- Créé le 30/09/2026 : « Forge Spin », 49 Robux.
-Config.Products = {
-	BONUS_SPIN = 3715672549, -- un lancer de la machine à bonus (Forge runique)
+-- Produits Robux (Developer Products) : le jeu n'en vend plus aucun.
+-- Le lancer de la forge en Robux (« Forge Spin », 49 Robux, créé le 30/09/2026) a été retiré le 01/10/2026 à la
+-- demande du propriétaire : c'était un objet aléatoire payant (règle de Roblox). La forge et l'autel ne se paient
+-- plus qu'en pièces gagnées en jouant, et les pièces ne s'achètent pas : il n'y a plus d'objet aléatoire payant.
+-- Ce numéro ne sert plus qu'à livrer un achat fait AVANT le retrait et pas encore livré (Hub/init.luau) : un
+-- paiement n'est jamais perdu. Plus rien dans le jeu ne propose cet achat.
+Config.RetiredProducts = {
+	BONUS_SPIN = 3715672549, -- ancien lancer de la machine à bonus (Forge runique)
 }
 
 -- Passes de jeu (Game Passes) : achetés une seule fois en Robux, gardés pour toujours. Mode solo

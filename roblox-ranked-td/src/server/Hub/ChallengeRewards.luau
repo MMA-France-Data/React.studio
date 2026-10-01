@@ -91,7 +91,7 @@ function ChallengeRewards.claim(player: Player, key: any, period: any): (boolean
 		details.altar = plotGame:grantFreeTowerSpins(reward.altarSpins)
 	end
 	for _ = 1, reward.forgeSpins do
-		-- Comme un lancer Robux : ne compte pas dans le prix des lancers en pièces.
+		-- Lancer offert : ne compte pas dans le prix des lancers en pièces.
 		details.forge = plotGame:grantBonusSpin("Challenge")
 	end
 	ChallengeRewards.publish(player, data)

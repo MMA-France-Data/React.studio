@@ -32,7 +32,7 @@ local UI = require(script.Parent.UI)
 
 local ShopUI = {}
 
-local ROBUX_GREEN = Color3.fromRGB(0, 176, 111) -- même vert que le bouton Robux de la forge (MachineUI)
+local ROBUX_GREEN = Color3.fromRGB(0, 176, 111) -- vert des achats en Robux
 local SPEED_COLOR = Color3.fromRGB(70, 130, 210)
 local COINS_COLOR = Color3.fromRGB(235, 140, 45)
 local DARK_TEXT = Color3.fromRGB(30, 25, 10)

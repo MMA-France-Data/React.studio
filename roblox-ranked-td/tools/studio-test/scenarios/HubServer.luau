@@ -1895,7 +1895,8 @@ return function(log)
 				`forge : lancer n° {k0.idle.forgeSpinsBought + 1} payé {NumberFormat.price(k0.coins - k1.coins)} (attendu {NumberFormat.price(expected)})`
 			)
 		end
-		-- Un achat Robux ne compte pas et ne fait pas monter le prix.
+		-- Un ancien achat Robux livré en retard (l'achat n'existe plus dans le jeu) ne compte pas et ne fait pas
+		-- monter le prix.
 		local beforeRobux = forgeState()
 		local robuxBefore = #dbg:Invoke(player, "Data").idle.bonuses
 		local robux = call("grantBonusSpin", "Robux")
@@ -2053,7 +2054,7 @@ return function(log)
 			lateReceipt ~= nil and lateReceipt.bonus == IdleConfig.bestRune().id and dbg:Invoke(player, "Data").idle.forgeSpinsBought == b1.idle.forgeSpinsBought,
 			`forge bloquée : un achat Robux arrivé quand même donne la meilleure rune ({lateReceipt and lateReceipt.bonus}), compteur inchangé`
 		)
-		-- Inventaire plein : une rune payée en Robux entre quand même (un achat n'est jamais perdu).
+		-- Inventaire plein : la rune d'un ancien achat Robux entre quand même (un achat n'est jamais perdu).
 		local fullInventory = table.create(IdleConfig.MAX_BONUS_INVENTORY, "Damage2")
 		dbg:Invoke(player, "Set", "bonuses", fullInventory)
 		call("grantBonusSpin", "Robux")
@@ -3229,8 +3230,8 @@ return function(log)
 	-- (StudioDebug « RankedOpen », false) et il reste fermé jusqu'à la fin : le tuto et la version anglaise se font
 	-- comme dans le jeu publié. Seul (le client attend le tuto) : inscription refusée même dans le cercle, aucun travail
 	-- du matchmaking, tableau du classement et plaques « BIENTÔT DISPONIBLE », défi classé terminé mais pas
-	-- récupérable. Puis la règle des objets aléatoires payants (PolicyService : attribut PaidRandomRestricted, false dans
-	-- Studio). Le client vérifie son écran pendant le tuto (cercle, carte de rang, défis, « MATCH TROUVÉ ! » impossible)
+	-- récupérable. Puis : plus aucun objet aléatoire payant (le lancer Robux de la forge est retiré : plus d'attribut
+	-- PaidRandomRestricted). Le client vérifie son écran pendant le tuto (cercle, carte de rang, défis, « MATCH TROUVÉ ! » impossible)
 	-- et envoie une vraie inscription (remote QueueAction) : tests.testRankedClosedRemote, après le tuto.
 	-- Dans sa propre fonction (limite des 200 variables locales de Luau, voir plus haut).
 	----------------------------------------------------------------------
@@ -3342,16 +3343,16 @@ return function(log)
 		)
 		dbg:Invoke(player, "ChallengeForce", { "play2", "win1", "towers15" }, { "play10", "minutes45" }) -- (progression remise à 0)
 
-		-- Objets aléatoires payants (PolicyService, Monetization.luau) : dans Studio, autorisé (false, toujours pareil) ;
-		-- StudioDebug « PaidRandom » le change (true = interdit : bouton Robux de la forge caché), puis remis.
+		-- Plus aucun objet aléatoire payant (lancer Robux de la forge retiré le 01/10/2026, Config.RetiredProducts) : le
+		-- jeu ne vend plus de Developer Product, le serveur ne demande plus rien à PolicyService (plus d'attribut
+		-- PaidRandomRestricted) et la commande de test « PaidRandom » n'existe plus.
+		local gameConfig = require(ReplicatedStorage.Shared.Config)
 		local attribute = "PaidRandomRestricted"
-		local start = player:GetAttribute(attribute)
-		local restricted = dbg:Invoke(player, "PaidRandom", true)
-		local restrictedNow = player:GetAttribute(attribute)
-		local allowed = dbg:Invoke(player, "PaidRandom", false)
 		check(
-			start == false and restricted == true and restrictedNow == true and allowed == false and player:GetAttribute(attribute) == false,
-			`objets aléatoires payants : attribut {attribute} = {tostring(start)} dans Studio, « PaidRandom » true -> {tostring(restrictedNow)}, puis false -> {tostring(player:GetAttribute(attribute))}`
+			gameConfig.Products == nil and typeof(gameConfig.RetiredProducts) == "table" and gameConfig.RetiredProducts.BONUS_SPIN ~= 0
+				and player:GetAttribute(attribute) == nil and dbg:Invoke(player, "PaidRandom", true) == nil
+				and player:GetAttribute(attribute) == nil,
+			`plus d'objet aléatoire payant : aucun produit Robux en vente (Config.Products = {tostring(gameConfig.Products)}), attribut {attribute} = {tostring(player:GetAttribute(attribute))}, commande « PaidRandom » sans effet`
 		)
 
 		dbg:Invoke(player, "RankedMove", false)

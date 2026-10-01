@@ -346,22 +346,18 @@ fermé** : voir juste en dessous.
     une rune de dégâts xM ou mieux ; x2 vitesse est exclue quand toutes ont déjà x2 vitesse ; les runes de
     l'inventaire ne comptent pas). Les chances des runes restantes sont remises sur 100 %. Si plus rien
     n'améliore une tour (x20 dégâts ET x2 vitesse sur toutes), la forge est bloquée (« Toutes tes tours ont les
-    meilleures runes », ou « Pose d'abord une tour ») : bouton pièces et bouton Robux. Si un achat Robux arrive
-    quand même (ex. tour vendue pendant l'achat), la meilleure rune (x20 dégâts) est donnée : un achat n'est
-    jamais perdu.
+    meilleures runes », ou « Pose d'abord une tour »).
   - Le serveur publie l'état de la forge en attributs du joueur : `ForgeSpinsBought`, `ForgeCoinPrice` (-1 =
     « MAX »), `ForgeDrawable` (runes tirables) et `ForgeBlocked` (message, vide si la forge marche)
     (`PlotGame:publishForge`). Les anciennes sauvegardes démarrent à 0 lancer (`PlayerData.luau`).
-- **Robux** : crée un Developer Product dans le Creator Dashboard et mets son ID dans
-  `Config.Products.BONUS_SPIN`. Chaque achat n'est livré qu'une fois (`Monetization.luau`).
-- **Objets aléatoires payants** (règle de Roblox ; au questionnaire de maturité : « PolicyService = oui ») : le lancer
-  Robux de la forge donne une rune au hasard. À l'arrivée de chaque joueur, le serveur demande à Roblox s'il a le droit
-  d'en acheter (`PolicyService:GetPolicyInfoForPlayerAsync`, 3 essais) et publie l'attribut `PaidRandomRestricted`
-  (`Monetization.luau`) : le bouton Robux de la forge n'apparaît que s'il vaut `false` ; sinon, le bouton des pièces
-  prend toute la largeur et le bas de la fenêtre ne parle plus de Robux. Tant que Roblox n'a pas répondu (ou s'il ne
-  répond pas) : caché. Un reçu qui arrive quand même est livré (un paiement n'est jamais perdu). Dans Studio : `false`
-  (StudioDebug « PaidRandom », `true`, pour voir la forge d'un joueur concerné).
-- **Chances affichées = 100 % tout juste** (même règle) : les chances de la forge, remises sur 100 %, sont arrondies au
+- **Plus aucun objet aléatoire payant** (décision du propriétaire, 01/10/2026) : le lancer de la forge en Robux
+  (« Forge Spin », 49 Robux) est retiré du jeu : plus de bouton Robux dans la forge, plus de question à PolicyService.
+  L'autel et la forge ne se paient qu'en pièces gagnées en jouant, et les pièces ne s'achètent pas : d'après la règle
+  de Roblox, ce ne sont pas des objets aléatoires payants (au questionnaire de maturité : « non »). L'ancien numéro du
+  produit reste dans `Config.RetiredProducts.BONUS_SPIN`, seulement pour livrer un achat fait avant le retrait et pas
+  encore livré (`Monetization.luau` : un paiement n'est jamais perdu ; forge bloquée : la meilleure rune est donnée).
+  Les Robux ne servent plus qu'aux 3 passes de la boutique.
+- **Chances affichées = 100 % tout juste** : les chances de la forge, remises sur 100 %, sont arrondies au
   0,01 % par la méthode du plus grand reste (`IdleConfig.roundedOdds`, à égalité l'ordre d'affichage) : elles font
   toujours exactement 100 %, chacune à moins de 0,01 % de la vraie (le tirage du serveur garde les vraies). Écrites avec
   2 chiffres après la virgule au plus (« 55.56 % » ; l'autel ne change pas : « 80 % », « 23.5 % »). Test sans Studio :
@@ -539,7 +535,7 @@ Contrôles : `1`-`4` choisir une tour • clic pour poser • clic sur une de te
   fois, au moins 250 pièces), + **10 lancers de l'Autel des héros** pour « Gagne 1 match » et « Gagne avec 3 types ».
   Défi de la semaine = **25 vagues** (au moins 1 000 pièces) + **1 lancer de la Forge runique**. Les lancers
   offerts ne font pas monter les prix (compteurs `towerSpinsBought` et `forgeSpinsBought` inchangés) ; la forge
-  marche comme un lancer Robux (seulement les runes utiles, emplacement par emplacement ; meilleure rune si les
+  tire comme d'habitude (seulement les runes utiles, emplacement par emplacement ; meilleure rune si les
   2 emplacements de toutes tes tours posées ont déjà la meilleure ; sans aucune tour posée, chances de base).
   Le pass Pièces x2 ne double pas ces pièces.
 - Une récompense **pas récupérée avant les nouveaux défis est perdue** (la fenêtre le dit).

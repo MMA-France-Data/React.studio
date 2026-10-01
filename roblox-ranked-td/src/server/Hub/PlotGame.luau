@@ -1891,10 +1891,10 @@ end
 
 -- Tire une rune parmi celles qui améliorent au moins une tour posée dans l'emplacement de leur sorte (dégâts
 -- ou vitesse, voir forgeDrawable ; chances remises sur 100 %) et la met dans l'inventaire. source = "Coins"
--- (lancer payé en pièces, déjà vérifié par spinBonusWithCoins), "Robux" (achat livré par Monetization.luau)
--- ou "Challenge" (lancer offert par un défi classé, Hub/ChallengeRewards.luau : il marche comme un lancer Robux).
--- Achat Robux quand la forge est bloquée (aucune rune n'améliorerait une tour : le client bloque le bouton,
--- mais un reçu peut quand même arriver, ex. tour vendue pendant l'achat) : la MEILLEURE rune
+-- (lancer payé en pièces, déjà vérifié par spinBonusWithCoins), "Robux" (ancien achat Robux, retiré du jeu le
+-- 01/10/2026 : seulement un achat d'avant le retrait, livré en retard par Monetization.luau) ou "Challenge"
+-- (lancer offert par un défi classé, Hub/ChallengeRewards.luau : il marche pareil).
+-- Lancer Robux quand la forge est bloquée (aucune rune n'améliorerait une tour) : la MEILLEURE rune
 -- (IdleConfig.bestRune, x20 dégâts) est donnée, pour que l'achat ne soit jamais perdu. Pareil pour un lancer
 -- offert quand les 2 emplacements de toutes les tours posées ont déjà la meilleure rune de leur sorte (x20
 -- dégâts ou plus, x2 vitesse). Mais un lancer offert sans AUCUNE tour posée tire aux chances de base (toutes les

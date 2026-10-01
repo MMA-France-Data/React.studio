@@ -1,5 +1,5 @@
--- Chances affichées par la Forge runique : elles doivent faire EXACTEMENT 100 % (règle de Roblox pour les objets
--- aléatoires payants : le lancer Robux de la forge donne une rune au hasard). Voir IdleConfig.roundedOdds et
+-- Chances affichées par la Forge runique : elles doivent faire EXACTEMENT 100 % (règle écrite quand la forge avait un
+-- lancer en Robux, retiré le 01/10/2026 ; gardée : des chances affichées doivent être justes). Voir IdleConfig.roundedOdds et
 -- IdleConfig.forgeOdds. Sans Studio, depuis le dossier roblox-ranked-td :
 --   luau.exe tools/odds/tests.luau
 -- 1) Pour CHAQUE groupe possible de runes tirables (toutes les sous-listes non vides de IdleConfig.BONUSES : 63 pour

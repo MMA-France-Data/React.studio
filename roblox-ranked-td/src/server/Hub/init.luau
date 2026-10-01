@@ -511,7 +511,8 @@ end
 --                                                  son personnage), au prochain calcul (PlotInterest.REFRESH_INTERVAL)
 -- Forge runique :
 --   Invoke(player, "Call", "spinBonusWithCoins") -> un lancer en pièces (renvoie le résultat, nil si refusé)
---   Invoke(player, "Call", "grantBonusSpin", "Robux") -> comme un achat Robux (ne change pas le prix)
+--   Invoke(player, "Call", "grantBonusSpin", "Robux") -> comme un ancien achat Robux livré en retard (l'achat
+--                                                  n'existe plus dans le jeu ; ne change pas le prix)
 --   Invoke(player, "Call", "forgeState")        -> { bought, price, drawable = { ids }, blocked }
 --   Invoke(player, "Set", "forgeSpinsBought", 0) -> change le compteur des lancers en pièces (prix)
 --   Invoke(player, "Set", "bonuses", { "Speed2" }) puis Invoke(player, "Call", "applyBonus", 1, "Speed2")
@@ -558,9 +559,6 @@ end
 --                                                forcé ouvert (les tests automatiques le font au début) ; "Default" : de
 --                                                nouveau Config.RANKED_OPEN ; sans valeur : ne change rien. Renvoie { open,
 --                                                override, refused = demandes refusées car classé fermé } (RankedGate.luau)
--- Achats d'objets aléatoires (règle de Roblox, PolicyService : Monetization.luau) :
---   Invoke(player, "PaidRandom", true)         -> comme un joueur à qui Roblox interdit ces achats (attribut
---                                                PaidRandomRestricted : bouton Robux de la forge caché) ; false : autorisé
 -- Tuto des nouveaux joueurs (Hub/Tutorial.luau, client : TutorialUI.luau) :
 --   Invoke(player, "Tutorial", "Replay")       -> le tuto recommence au début (même pendant les tests automatiques)
 --   Invoke(player, "Tutorial")                 -> { done, attribute, lastAction ("Done" | "Skip"), lastStep, steps
@@ -727,8 +725,6 @@ local function setupStudioDebug()
 				override = ReplicatedStorage:GetAttribute(RankedGate.STUDIO_ATTRIBUTE),
 				refused = closedRefusals[player] or 0,
 			}
-		elseif command == "PaidRandom" then
-			return Monetization.setStudioPaidRandom(player, (...) == true)
 		elseif command == "Tutorial" and data then
 			return Tutorial.debug(player, data, ...)
 		elseif command == "Funnel" then
@@ -876,12 +872,13 @@ function Hub.start()
 		Funnel.update(player, PlayerData.get(player))
 	end)
 
-	-- Achat Robux : un lancer de la forge runique. Il ne compte pas dans le prix des lancers en pièces. Si la
-	-- forge est bloquée (aucune rune n'améliorerait une tour : x20 dégâts et x2 vitesse partout ; le client
-	-- bloque alors le bouton Robux), un reçu qui arrive quand même donne la meilleure rune : un achat payé n'est
-	-- jamais perdu (PlotGame:grantBonusSpin).
+	-- Ancien achat Robux (un lancer de la forge runique), retiré le 01/10/2026 : plus rien ne le propose. Seul un
+	-- achat fait AVANT le retrait et pas encore livré arrive encore ici : il est livré, un paiement n'est jamais
+	-- perdu. Il ne compte pas dans le prix des lancers en pièces. Si la forge est bloquée (aucune rune
+	-- n'améliorerait une tour : x20 dégâts et x2 vitesse partout), il donne la meilleure rune
+	-- (PlotGame:grantBonusSpin).
 	-- Pas encore de parcelle (joueur en train d'arriver) : false, Roblox redonnera le reçu plus tard.
-	Monetization.onProduct(Config.Products.BONUS_SPIN, function(player)
+	Monetization.onProduct(Config.RetiredProducts.BONUS_SPIN, function(player)
 		local plotGame = games[player]
 		if not plotGame then
 			return false

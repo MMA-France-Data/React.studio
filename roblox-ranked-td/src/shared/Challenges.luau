@@ -65,7 +65,7 @@ Challenges.WEEKLY_COIN_WAVES = 25
 Challenges.DAILY_MIN_COINS = 250
 Challenges.WEEKLY_MIN_COINS = 1000
 -- Lancers offerts : l'Autel des héros tire comme un lancer payé (chances de ton record) mais ne fait PAS monter
--- ses prix (compteur idle.towerSpinsBought inchangé) ; la Forge runique marche comme un lancer Robux.
+-- ses prix (compteur idle.towerSpinsBought inchangé) ; la Forge runique non plus (idle.forgeSpinsBought inchangé).
 Challenges.ALTAR_SPINS = 10
 Challenges.FORGE_SPINS = 1
 -- Plus grand nombre de pièces donné d'un coup : toujours fini (un DataStore ne sait pas sauver l'infini).

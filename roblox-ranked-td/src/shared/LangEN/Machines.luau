@@ -92,18 +92,13 @@ return {
 	["Chaque lancer en pièces : x{1} (x{2} dès {3})  •  aucun lancer en pièces"] = "Price x{1} per coin spin (x{2} from {3})  •  no coin spins bought",
 	["Chaque lancer en pièces : x{1} (x{2} dès {3})  •  déjà 1 lancer en pièces"] = "Price x{1} per coin spin (x{2} from {3})  •  1 coin spin bought",
 	["Chaque lancer en pièces : x{1} (x{2} dès {3})  •  déjà {4} lancers en pièces"] = "Price x{1} per coin spin (x{2} from {3})  •  {4} coin spins bought",
-	-- Boutons du bas
+	-- Bouton du bas
 	["Lancer • 💰 {1}"] = "Spin • 💰 {1}",
-	["Lancer • Robux"] = "Spin • Robux",
 	["Inventaire plein ({1} runes)"] = "Inventory full ({1} runes)",
 	-- Forge bloquée : message du serveur (attribut ForgeBlocked = IdleConfig.FORGE_NO_TOWER ou FORGE_ALL_BEST)
 	["Pose d'abord une tour"] = "Place a tower first",
 	["Toutes tes tours ont les meilleures runes"] = "All your towers have the best runes",
 	-- Bas de la fenêtre : runes de l'inventaire (0 et 1 : « rune » en français, 0 : « runes » en anglais)
-	["Inventaire : 0 rune  •  en Robux à volonté, sans hausse de prix"] = "Inventory: 0 runes  •  Robux spins: unlimited, no price increase",
-	["Inventaire : {1} rune  •  en Robux à volonté, sans hausse de prix"] = "Inventory: {1} rune  •  Robux spins: unlimited, no price increase",
-	["Inventaire : {1} runes  •  en Robux à volonté, sans hausse de prix"] = "Inventory: {1} runes  •  Robux spins: unlimited, no price increase",
-	-- Même chose sans le bouton Robux (achat d'objet aléatoire interdit par Roblox pour ce joueur : PolicyService)
 	["Inventaire : 0 rune"] = "Inventory: 0 runes",
 	["Inventaire : {1} rune"] = "Inventory: {1} rune",
 	["Inventaire : {1} runes"] = "Inventory: {1} runes",
@@ -111,7 +106,6 @@ return {
 	["Ton inventaire de runes est plein : pose-en sur tes tours"] = "Your rune inventory is full: place some on your towers",
 	["Prix trop élevé (MAX) : la forge en pièces n'est plus possible"] = "Price too high (MAX): coin spins are no longer possible",
 	["Il te faut {1} pièces"] = "You need {1} coins",
-	["L'achat en Robux n'est pas encore configuré (Config.Products.BONUS_SPIN)"] = "Robux purchase isn't set up yet (Config.Products.BONUS_SPIN)",
 	-- Rune obtenue
 	["Offerte par un défi classé : ajoutée à ton inventaire, clique sur une tour pour la poser."] = "Gift from a ranked challenge: added to your inventory. Click a tower to place it.",
 	["Ajoutée à ton inventaire : clique sur une tour pour la poser."] = "Added to your inventory: click a tower to place it.",

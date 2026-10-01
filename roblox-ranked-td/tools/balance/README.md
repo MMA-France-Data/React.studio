@@ -334,4 +334,4 @@ Pas de Robux dans aucun scénario.
   réglages (`Joueur.…`) change les temps d'environ 10 à 20 %, pas les grandes conclusions.
 - Le banc d'essai compare N tours du même type, ou N - 3 tours principales + 3 autres ; il ne teste pas
   toutes les combinaisons possibles.
-- La forge en Robux n'est pas simulée.
+- La forge ne se paie qu'en pièces (le lancer en Robux a été retiré du jeu le 01/10/2026).

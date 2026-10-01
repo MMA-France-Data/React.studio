@@ -38,14 +38,14 @@ local DEFINITIONS = {
 	--                    | "SpinBonusCoins" (forge en pièces, sans délai)
 	--                    | ("ApplyBonus", spot, bonusId) (rune posée dans l'emplacement de sa sorte : dégâts ou vitesse)
 	-- Forge : état publié en attributs du joueur (ForgeSpinsBought, ForgeCoinPrice (-1 = MAX), ForgeDrawable,
-	-- ForgeBlocked), voir PlotGame:publishForge. Quand ForgeBlocked n'est pas vide, le client bloque aussi le
-	-- bouton Robux (un reçu qui arrive quand même donne la meilleure rune).
+	-- ForgeBlocked), voir PlotGame:publishForge. Quand ForgeBlocked n'est pas vide, le client bloque le bouton
+	-- du lancer.
 	MachineAction = "RemoteEvent",
 	-- serveur -> client : résultat d'un lancer. Autel des héros : { machine = "Tower", count, tower, rarity,
 	-- isNew, dupes, results = { { tower, rarity, count, isNew } }, source = "Coins" | "Challenge" } (voir
 	-- PlotGame:spinTower ; "Challenge" = lancers offerts par un défi classé).
-	-- Forge runique : { machine = "Bonus", bonus, source = "Coins" | "Robux" | "Challenge", price (pièces payées,
-	-- 0 en Robux ou offert), forgeSpinsBought } (voir PlotGame:grantBonusSpin).
+	-- Forge runique : { machine = "Bonus", bonus, source = "Coins" | "Challenge" | "Robux" (ancien achat, retiré du
+	-- jeu, livré en retard), price (pièces payées, 0 si offert), forgeSpinsBought } (voir PlotGame:grantBonusSpin).
 	MachineResult = "RemoteEvent",
 	-- Gains d'absence, serveur -> client, une fois en arrivant sur la map principale (Hub/init.luau) :
 	-- (payload) = { amount, seconds, kind = "Offline" | "Match", capped, offlineAmount, offlineSeconds,

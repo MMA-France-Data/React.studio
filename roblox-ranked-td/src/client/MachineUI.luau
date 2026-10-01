@@ -11,20 +11,16 @@
 -- runes qui améliorent une tour posée DANS L'EMPLACEMENT DE LEUR SORTE peuvent tomber (attribut ForgeDrawable,
 -- chances remises sur 100 % avec IdleConfig.forgeOdds) : les autres sont barrées (« toutes tes tours l'ont
 -- déjà »). Forge bloquée (attribut ForgeBlocked : « Pose d'abord une tour » / « Toutes tes tours ont les
--- meilleures runes », x20 dégâts ET x2 vitesse partout) : les boutons pièces ET Robux affichent le message et
--- n'achètent rien (pas de fenêtre d'achat Robux). Si un reçu Robux arrive quand même (ex. tour vendue pendant
--- l'achat), le serveur donne la meilleure rune : un achat payé n'est jamais perdu (PlotGame:grantBonusSpin).
--- Objets aléatoires payants (règle de Roblox, PolicyService : Monetization.luau) : le bouton Robux de la forge n'existe
--- que si l'attribut PaidRandomRestricted du joueur vaut exactement false (MachineUI.robuxAllowed) ; sinon le bouton
--- des pièces prend toute la largeur et le bas de la fenêtre ne parle plus de Robux. Les chances affichées par la
--- forge font toujours exactement 100 % (IdleConfig.forgeOdds, arrondies au 0,01 % près).
+-- meilleures runes », x20 dégâts ET x2 vitesse partout) : le bouton affiche le message et n'achète rien.
+-- Rien ne s'achète en Robux dans ces fenêtres (le lancer Robux de la forge a été retiré le 01/10/2026 : c'était un
+-- objet aléatoire payant, voir Config.RetiredProducts) : l'autel et la forge ne se paient qu'en pièces gagnées en
+-- jouant. Les chances affichées par la forge font toujours exactement 100 % (IdleConfig.forgeOdds, arrondies au
+-- 0,01 % près).
 -- S'ouvrent via les machines de ta parcelle ou les boutons de la colonne de gauche.
-local MarketplaceService = game:GetService("MarketplaceService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
-local Config = require(Shared.Config)
 local IdleConfig = require(Shared.IdleConfig)
 local IdleTowers = require(Shared.IdleTowers)
 local NumberFormat = require(Shared.NumberFormat)
@@ -60,13 +56,6 @@ function MachineUI.formatChance(chance: number): string
 	return text .. " %"
 end
 local formatChance = MachineUI.formatChance
-
--- Achat Robux de la forge (un objet aléatoire payant) : seulement si Roblox l'autorise pour ce joueur, c'est-à-dire
--- si l'attribut PaidRandomRestricted (mis par le serveur, Monetization.luau) vaut exactement false. Pas encore connu,
--- ou interdit : pas de bouton Robux, jamais de fenêtre d'achat.
-function MachineUI.robuxAllowed(player: Player): boolean
-	return player:GetAttribute("PaidRandomRestricted") == false
-end
 
 -- Bonus de dégâts de `dupes` doublons, en % arrondi (sans l'arrondi, 29 doublons affichaient +57 %
 -- au lieu de +58 %, à cause des virgules des calculs).
@@ -293,17 +282,6 @@ function MachineUI.start()
 		MaxTextSize = 22,
 		Parent = window,
 	})
-	local robuxButton = UI.button({
-		Name = "RobuxButton",
-		AnchorPoint = Vector2.new(1, 1),
-		Position = UDim2.new(1, 0, 1, -62),
-		Size = UDim2.new(0.4, -4, 0, 50),
-		BackgroundColor3 = Color3.fromRGB(0, 176, 111),
-		Text = "Lancer • Robux",
-		MaxTextSize = 20,
-		Visible = false,
-		Parent = window,
-	})
 	-- Autel des héros : un bouton par quantité (x1, x10, x100...) débloquée par le record.
 	local bulkRow = UI.new("ScrollingFrame", {
 		AnchorPoint = Vector2.new(0, 1),
@@ -334,12 +312,9 @@ function MachineUI.start()
 	})
 
 	-- Fenêtre basse (téléphone en paysage) : titre et bas de fenêtre resserrés, sous-titre retiré. Sinon il ne restait
-	-- que quelques pixels aux chances, qui défilent : elles doivent rester lisibles (le lancer Robux de la forge est
-	-- un objet aléatoire payant, ses chances doivent se voir avant l'achat). shortWindow sert aussi à refresh
-	-- (hauteur du bouton d'achat).
-	local shortWindow = false
+	-- que quelques pixels aux chances, qui défilent : elles doivent rester lisibles.
 	local function fitContent()
-		shortWindow = UI.modalSize(UI.screenSize(gui), WINDOW_SIZE).Y < 420
+		local shortWindow = UI.modalSize(UI.screenSize(gui), WINDOW_SIZE).Y < 420
 		local buttonHeight = if shortWindow then 44 else 50
 		local buttonBottom = if shortWindow then -24 else -62
 		title.Size = UDim2.new(1, -48, 0, if shortWindow then 30 else 38)
@@ -347,9 +322,7 @@ function MachineUI.start()
 		body.Position = UDim2.fromOffset(0, if shortWindow then 36 else 88)
 		body.Size = UDim2.new(1, 0, 1, if shortWindow then -112 else -222)
 		primaryButton.Position = UDim2.new(0, 0, 1, buttonBottom)
-		primaryButton.Size = UDim2.new(primaryButton.Size.X.Scale, primaryButton.Size.X.Offset, 0, buttonHeight)
-		robuxButton.Position = UDim2.new(1, 0, 1, buttonBottom)
-		robuxButton.Size = UDim2.new(0.4, -4, 0, buttonHeight)
+		primaryButton.Size = UDim2.new(1, 0, 0, buttonHeight)
 		bulkRow.Position = UDim2.new(0, 0, 1, buttonBottom)
 		bulkRow.Size = UDim2.new(1, 0, 0, buttonHeight + 6)
 		footer.Size = UDim2.new(1, 0, 0, if shortWindow then 20 else 48)
@@ -653,7 +626,6 @@ function MachineUI.start()
 				end
 			end)
 
-			robuxButton.Visible = false
 			primaryButton.Visible = false
 			bulkRow.Visible = true
 			rebuildBulkRow(highest)
@@ -715,15 +687,9 @@ function MachineUI.start()
 
 			bulkRow.Visible = false
 			primaryButton.Visible = true
-			-- Bouton Robux seulement si Roblox autorise ce joueur à acheter un objet aléatoire (sinon : pièces sur toute
-			-- la largeur).
-			local robuxShown = MachineUI.robuxAllowed(player)
-			robuxButton.Visible = robuxShown
-			local buttonHeight = if shortWindow then 44 else 50
-			primaryButton.Size = if robuxShown then UDim2.new(0.6, -4, 0, buttonHeight) else UDim2.new(1, 0, 0, buttonHeight)
 			local full = #bonuses >= IdleConfig.MAX_BONUS_INVENTORY
 			if blocked then
-				-- Aucune rune n'améliorerait une tour : pièces ET Robux bloqués.
+				-- Aucune rune n'améliorerait une tour : lancer bloqué.
 				primaryButton.Text = blocked
 				primaryButton.BackgroundTransparency = 0.6
 			elseif full then
@@ -733,9 +699,7 @@ function MachineUI.start()
 				primaryButton.Text = `Lancer • 💰 {NumberFormat.price(price)}`
 				primaryButton.BackgroundTransparency = if price < math.huge and coins() >= price and not busy() then 0 else 0.6
 			end
-			robuxButton.BackgroundTransparency = if blocked then 0.6 else 0
-			local inventoryText = `Inventaire : {#bonuses} rune{if #bonuses > 1 then "s" else ""}`
-			footer.Text = if robuxShown then `{inventoryText}  •  en Robux à volonté, sans hausse de prix` else inventoryText
+			footer.Text = `Inventaire : {#bonuses} rune{if #bonuses > 1 then "s" else ""}`
 		end
 	end
 
@@ -803,26 +767,6 @@ function MachineUI.start()
 			machineAction:FireServer("SpinBonusCoins")
 		end
 	end)
-	robuxButton.Activated:Connect(function()
-		-- Achat d'un objet aléatoire interdit (ou pas encore autorisé) par Roblox pour ce joueur : jamais de fenêtre
-		-- d'achat (le bouton est d'ailleurs caché).
-		if not MachineUI.robuxAllowed(player) then
-			return
-		end
-		-- Forge bloquée (aucune rune n'améliorerait une tour) : pas de fenêtre d'achat. Si un reçu arrive quand
-		-- même, le serveur donne la meilleure rune (un achat payé n'est jamais perdu).
-		local _, blocked = forgeState()
-		if blocked then
-			UI.toast(blocked, "Warning")
-			return
-		end
-		if Config.Products.BONUS_SPIN == 0 then
-			UI.toast("L'achat en Robux n'est pas encore configuré (Config.Products.BONUS_SPIN)", "Warning")
-			return
-		end
-		MarketplaceService:PromptProductPurchase(player, Config.Products.BONUS_SPIN)
-	end)
-
 	-- Résultat : animation du rouleau (1 lancer) ou résumé (gros lot d'invocations).
 	Remotes.get("MachineResult").OnClientEvent:Connect(function(result)
 		awaitingUntil = 0

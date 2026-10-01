@@ -26,11 +26,13 @@ Liste des choses à faire avant de rendre le jeu public. On coche au fur et à m
 - [x] Taille des serveurs : 6 joueurs (une parcelle par joueur) : Hub Création > Lieux > Tower 22 > Accès.
 - [x] Remplir le questionnaire sur le contenu : fait le 30/09 (violence légère répétée -> « Léger » ; objets aléatoires
       payants : oui, et PolicyService respecté ; tout le reste : non).
-- [x] Créer les pass et le produit Robux (30/09) et les mettre dans le jeu (`Config.GamePasses`, `Config.Products`) :
-      Auto Collect 99, Speed x2 199, Coins x2 249 (pass), Forge Spin 49 (produit pour développeurs). Un pass
-      « Forge Spin » créé par erreur reste sans prix : personne ne peut l'acheter.
-- [x] Objets aléatoires payants (lancer Robux de la forge) : PolicyService fait (bouton Robux caché pour les joueurs à
-      qui Roblox l'interdit, `PaidRandomRestricted`), et les chances affichées par la forge font exactement 100 %.
+- [x] Créer les pass (30/09) et les mettre dans le jeu (`Config.GamePasses`) : Auto Collect 99, Speed x2 199,
+      Coins x2 249. Un pass « Forge Spin » créé par erreur reste sans prix : personne ne peut l'acheter.
+- [x] Lancer de la forge en Robux (produit « Forge Spin », 49 Robux) RETIRÉ du jeu le 01/10 : plus aucun objet
+      aléatoire payant (l'autel et la forge ne se paient qu'en pièces gagnées en jouant). Les chances affichées par
+      la forge font toujours exactement 100 %.
+- [ ] Après la publication de cette version : refaire le questionnaire sur le contenu (objets aléatoires payants :
+      non). Pas avant : tant que l'ancienne version tourne, le lancer Robux existe encore.
 - [x] Version anglaise (décidé le 30/09 : pas de sortie sans elle) : les joueurs francophones gardent le
       français, tous les autres voient l'anglais, phrases à chiffres comprises (src/shared/Lang.luau,
       dictionnaires src/shared/LangEN, voir le README). Le test Studio « version anglaise » dit 0 texte encore en
@@ -55,8 +57,7 @@ Liste des choses à faire avant de rendre le jeu public. On coche au fur et à m
 ## Derniers essais dans le jeu publié
 
 - [ ] Boutique : tu possèdes déjà tes 3 pass (le créateur d'un pass l'a toujours) ; un ami achète le plus petit
-      (Auto Collect, 99) et vérifie qu'il marche tout de suite. Toi, tu peux acheter un lancer de forge en Robux
-      (c'est ton jeu : tu récupères ~70 % des Robux).
+      (Auto Collect, 99) et vérifie qu'il marche tout de suite.
 - [ ] Classement solo (panneaux « CLASSEMENT SOLO » à l'est et à l'ouest de la place) : avec les vrais DataStores,
       vérifier qu'on y apparaît (record de vague et DPS, mis à jour chaque minute) depuis deux serveurs différents,
       et la liste des joueurs (colonnes DPS et Money).

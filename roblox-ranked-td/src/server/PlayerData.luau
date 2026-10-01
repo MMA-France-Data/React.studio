@@ -62,7 +62,7 @@ local function defaultIdle()
 		-- chaque jour : chaque lancer acheté rend le suivant 0,05 % plus cher (IdleConfig.towerSpinCost).
 		towerSpinsBought = 0,
 		bonuses = {}, -- inventaire de bonus (ids de IdleConfig.BONUSES)
-		-- Forge runique : lancers payés en PIÈCES depuis toujours (les lancers Robux ne comptent pas). Jamais
+		-- Forge runique : lancers payés en PIÈCES depuis toujours (les lancers offerts ne comptent pas). Jamais
 		-- remis à zéro, ni à la renaissance : le prix du prochain lancer en dépend (IdleConfig.forgeCoinPrice).
 		-- Plus de délai entre deux lancers (l'ancien champ lastBonusSpinAt est supprimé, voir reconcile).
 		forgeSpinsBought = 0,

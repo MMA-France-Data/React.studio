@@ -1,14 +1,14 @@
 -- Achats Robux (Developer Products). Chaque achat n'est livré qu'une seule fois : son PurchaseId
 -- est enregistré dans les données du joueur et sauvegardé avant de confirmer l'achat à Roblox.
--- Forge runique (Config.Products.BONUS_SPIN, livrée par Hub/init.luau -> PlotGame:grantBonusSpin) : un achat
--- payé est toujours livré, même si la forge est bloquée entre-temps (les 2 emplacements de rune, dégâts et
--- vitesse, de toutes les tours posées ont déjà la meilleure rune : la meilleure rune, x20 dégâts, est alors
--- donnée) ; il ne compte pas dans le prix des lancers en pièces.
--- Plus bas : les passes de jeu (Game Passes), achetés une fois et gardés pour toujours (mode solo), et la règle de
--- Roblox sur les objets aléatoires payants (PolicyService).
+-- Le jeu ne vend plus aucun Developer Product : le lancer de la forge en Robux, un objet aléatoire payant, a été
+-- retiré le 01/10/2026 (Config.RetiredProducts ; plus de bouton, plus de PolicyService). Un achat fait avant le
+-- retrait et pas encore livré l'est toujours (Hub/init.luau -> PlotGame:grantBonusSpin), même si la forge est
+-- bloquée entre-temps (les 2 emplacements de rune, dégâts et vitesse, de toutes les tours posées ont déjà la
+-- meilleure rune : la meilleure rune, x20 dégâts, est alors donnée) ; il ne compte pas dans le prix des lancers
+-- en pièces.
+-- Plus bas : les passes de jeu (Game Passes), achetés une fois et gardés pour toujours (mode solo).
 local MarketplaceService = game:GetService("MarketplaceService")
 local Players = game:GetService("Players")
-local PolicyService = game:GetService("PolicyService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
@@ -193,59 +193,7 @@ local function checkPass(player: Player, name: string)
 	end
 end
 
-----------------------------------------------------------------------
--- Objets aléatoires payants (règle de Roblox : questionnaire de maturité, « PolicyService = oui ») : le lancer Robux
--- de la forge runique donne une rune au hasard. Dans certains pays, Roblox interdit de vendre ça à certains joueurs :
--- on le demande à Roblox à l'arrivée de chaque joueur (PolicyService:GetPolicyInfoForPlayerAsync).
--- Attribut du joueur « PaidRandomRestricted » (lu par MachineUI.luau) : false = achat autorisé (bouton Robux de la
--- forge affiché) ; true = interdit (bouton caché). Il vaut true tant que la réponse n'est pas arrivée, et reste true
--- si Roblox ne répond pas après 3 essais : on cache l'achat plutôt que de prendre le risque.
--- Un reçu qui arrive quand même est livré comme d'habitude (un paiement n'est jamais perdu).
--- Dans Studio : false (toujours pareil, pour les tests) ; StudioDebug « PaidRandom » le change.
-----------------------------------------------------------------------
-Monetization.PAID_RANDOM_ATTRIBUTE = "PaidRandomRestricted"
-local POLICY_TRIES = 3
-
-local function checkPaidRandomPolicy(player: Player)
-	if RunService:IsStudio() then
-		player:SetAttribute(Monetization.PAID_RANDOM_ATTRIBUTE, false)
-		return
-	end
-	player:SetAttribute(Monetization.PAID_RANDOM_ATTRIBUTE, true) -- (caché tant qu'on ne sait pas)
-	for attempt = 1, POLICY_TRIES do
-		if not player.Parent then
-			return
-		end
-		local ok, info = pcall(function()
-			return PolicyService:GetPolicyInfoForPlayerAsync(player)
-		end)
-		if ok and typeof(info) == "table" then
-			if player.Parent then
-				-- (un champ absent compte comme « interdit »)
-				player:SetAttribute(Monetization.PAID_RANDOM_ATTRIBUTE, info.ArePaidRandomItemsRestricted ~= false)
-			end
-			return
-		end
-		warn(`[Monetization] Règles de Roblox (PolicyService) illisibles pour {player.Name} (essai {attempt}) :`, info)
-		if attempt < POLICY_TRIES then
-			task.wait(attempt * 5)
-		end
-	end
-	-- Tous les essais ont raté : l'attribut reste à true (achat caché).
-end
-
--- Tests dans Studio uniquement (ServerStorage.StudioDebug, commande « PaidRandom ») : restricted = true fait comme un
--- joueur à qui Roblox interdit ces achats. Ne fait rien dans le jeu publié. Renvoie la valeur de l'attribut.
-function Monetization.setStudioPaidRandom(player: Player, restricted: boolean): boolean?
-	if not RunService:IsStudio() then
-		return nil
-	end
-	player:SetAttribute(Monetization.PAID_RANDOM_ATTRIBUTE, restricted == true)
-	return player:GetAttribute(Monetization.PAID_RANDOM_ATTRIBUTE)
-end
-
 local function onPlayerAdded(player: Player)
-	task.spawn(checkPaidRandomPolicy, player)
 	-- Parties de test dans Studio : passes offerts selon Config.STUDIO_TEST_PASSES (pas dans le jeu publié,
 	-- ni pendant les tests automatiques, qui partent d'un joueur sans pass).
 	local isAutoTest = game:GetService("ReplicatedStorage"):FindFirstChild("__AutoPlayTest") ~= nil
@@ -292,9 +240,6 @@ end
 
 function Monetization.start()
 	MarketplaceService.ProcessReceipt = processReceipt
-	if Config.Products.BONUS_SPIN == 0 then
-		print("[Monetization] Config.Products.BONUS_SPIN = 0 : l'achat Robux de la machine à bonus est désactivé")
-	end
 
 	for name, pass in PASSES do
 		if passId(name) == 0 then

@@ -266,7 +266,8 @@ end
 --   1er lancer : FORGE_FIRST_PRICE (100 K), puis x5 à chaque lancer tant que le prix est sous 1 T, puis x2 :
 --   100 K, 500 K, 2,5 M, 12,5 M, 62,5 M, 312 M, 1,56 B, 7,81 B, 39 B, 195 B, 976 B (11e), 4,88 T (12e),
 --   9,76 T, 19,5 T, 39 T... (voir forgeCoinPrice).
--- Lancers en Robux (Config.Products.BONUS_SPIN) : à volonté ; ils ne comptent pas et ne font pas monter le prix.
+-- Plus de lancer en Robux (retiré le 01/10/2026, Config.RetiredProducts) : la forge ne se paie qu'en pièces. Les
+-- lancers offerts par les défis classés ne comptent pas et ne font pas monter le prix.
 -- Tirage : une rune n'est tirée que si elle AMÉLIORE au moins une tour posée DANS L'EMPLACEMENT DE SA SORTE
 -- (voir forgeDrawableRunes), avec les chances des runes restantes remises sur 100 %. Les runes de
 -- l'inventaire ne comptent pas.
@@ -276,7 +277,7 @@ IdleConfig.FORGE_FIRST_PRICE = 100e3 -- prix du tout premier lancer en pièces
 IdleConfig.FORGE_FAST_GROWTH = 5 -- x5 par lancer tant que le prix est sous FORGE_GROWTH_SWITCH
 IdleConfig.FORGE_SLOW_GROWTH = 2 -- puis x2 par lancer
 IdleConfig.FORGE_GROWTH_SWITCH = 1e12 -- 1 T
--- Messages quand aucune rune ne peut améliorer une tour : la forge est bloquée (pièces ET Robux).
+-- Messages quand aucune rune ne peut améliorer une tour : la forge est bloquée.
 IdleConfig.FORGE_NO_TOWER = "Pose d'abord une tour"
 IdleConfig.FORGE_ALL_BEST = "Toutes tes tours ont les meilleures runes"
 -- Les deux emplacements de rune d'une tour, dans l'ordre d'affichage : kind = sorte des runes qui y vont
@@ -522,9 +523,8 @@ function IdleConfig.forgeOdds(drawable): { [string]: number }
 	return IdleConfig.roundedOdds(ids, chances)
 end
 
--- La meilleure rune (plus grand multiplicateur, parmi les runes que la forge tire : x20 dégâts) : donnée par un achat
--- Robux qui arrive quand la forge est bloquée (le bouton Robux est bloqué côté client, mais un achat payé
--- n'est jamais perdu).
+-- La meilleure rune (plus grand multiplicateur, parmi les runes que la forge tire : x20 dégâts) : donnée par un
+-- lancer offert (défi classé) ou par un ancien achat Robux livré en retard quand la forge est bloquée.
 function IdleConfig.bestRune()
 	local best = IdleConfig.BONUSES[1]
 	for _, bonus in IdleConfig.BONUSES do

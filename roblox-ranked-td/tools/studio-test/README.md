@@ -68,10 +68,9 @@ jeu ou sélectionne un emplacement, et des vérifications échouent sans raison.
   défis décalée), anciennes sauvegardes. Le scénario client ouvre la fenêtre des défis (capture
   `challenges_panel`) et vérifie qu'elle ne couvre ni le chat ni la liste des joueurs, si la vue du jeu fait au
   moins 1 000 px de large (plus étroite, comme sur un téléphone, la fenêtre est réduite, à droite de la colonne de
-  gauche). **Forge et objets aléatoires payants** (PolicyService) : forge ouverte, l'attribut `PaidRandomRestricted` est
-  changé chez le client seulement : interdit (true) ou pas encore connu (nil) -> pas de bouton Robux (ni d'achat :
-  `MachineUI.robuxAllowed`), bouton des pièces sur toute la largeur, plus de « Robux » en bas ; autorisé (false) ->
-  bouton Robux. Les chances affichées par la forge font 100 % tout juste, et `MachineUI.formatChance` écrit celles de
+  gauche). **Forge sans achat en Robux** (lancer Robux retiré le 01/10/2026) : forge ouverte, pas de bouton Robux,
+  aucun texte de la fenêtre ne parle de Robux, bouton des pièces sur toute la largeur. Les chances affichées par la
+  forge font 100 % tout juste, et `MachineUI.formatChance` écrit celles de
   l'autel comme avant (« 80 % », « 23.5 % »). **Téléphones** (`UI.windowScale` / `UI.fitWindow`, `UI.leftColumnSlot`) : l'autel, la forge, la
   renaissance, les défis, la boutique, « Pendant ton absence » et « MATCH TROUVÉ ! » sont entiers sur l'écran du test,
   à leur taille d'ordinateur, puis, avec de fausses tailles de téléphone en paysage (844 x 390 et 667 x 375, moins la
@@ -106,8 +105,8 @@ jeu ou sélectionne un emplacement, et des vérifications échouent sans raison.
   `Config.RANKED_OPEN = false`. Les autres places de test (match, tournage) gardent le réglage du jeu. Juste avant le tuto,
   le **classé fermé** (fonction `testRankedClosed` du serveur, StudioDebug « RankedOpen », false) : inscription refusée
   même dans le cercle, la boucle du leader ne travaille plus, tableau du classement (2 faces, sans lignes) et plaques
-  « BIENTÔT DISPONIBLE », défi classé terminé mais « Récupérer » refusé ; puis l'attribut `PaidRandomRestricted` (false
-  dans Studio, commande « PaidRandom »). Il reste fermé jusqu'à la fin : au début de son test du tuto, le client vérifie
+  « BIENTÔT DISPONIBLE », défi classé terminé mais « Récupérer » refusé ; puis plus aucun objet aléatoire payant (pas
+  de produit Robux en vente, plus d'attribut `PaidRandomRestricted`). Il reste fermé jusqu'à la fin : au début de son test du tuto, le client vérifie
   la carte de rang (« CLASSÉ 1v1 », sans MMR), le bouton « ⚔ DÉFIS » caché, dans le cercle le panneau « BIENTÔT
   DISPONIBLE » à la place du bouton (capture `ranked_soon`), aucune fenêtre « MATCH TROUVÉ ! » même avec l'état
   « Pending » (chez lui seulement), puis envoie « Join » et « Accept » par le vrai remote : le serveur les refuse

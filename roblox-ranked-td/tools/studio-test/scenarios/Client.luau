@@ -1145,52 +1145,33 @@ return function(log)
 			task.wait(0.3) -- (le temps que les boutons de la fenêtre soient placés)
 			return machinesGui ~= nil and machinesGui:GetAttribute("OpenMachine") == machine
 		end
-		-- Forge ouverte : objets aléatoires payants (PolicyService, Monetization.luau). Attribut PaidRandomRestricted changé
-		-- chez ce client seulement (puis remis) : interdit ou pas encore connu -> pas de bouton Robux (MachineUI.robuxAllowed :
-		-- jamais de fenêtre d'achat), bouton des pièces sur toute la largeur, plus de « Robux » en bas ; autorisé (false,
-		-- comme dans Studio) -> bouton Robux affiché. Puis les chances de la forge font 100 % tout juste, et l'écriture des
-		-- chances (2 chiffres après la virgule au plus, celles de l'autel inchangées : MachineUI.formatChance).
+		-- Forge ouverte : plus AUCUN achat en Robux (le lancer Robux, un objet aléatoire payant, a été retiré le
+		-- 01/10/2026) : pas de bouton Robux dans la fenêtre, aucun texte de la fenêtre ne parle de Robux, le bouton des
+		-- pièces prend toute la largeur. Puis les chances de la forge font 100 % tout juste, et l'écriture des chances
+		-- (2 chiffres après la virgule au plus, celles de l'autel inchangées : MachineUI.formatChance).
 		-- (Dans sa propre fonction : limite des 200 variables locales de Luau.)
 		local function checkForgeRobux()
 			local clientFolder = player:WaitForChild("PlayerScripts"):WaitForChild("Client", 10)
 			local machineModule = clientFolder and clientFolder:FindFirstChild("MachineUI")
 			local MachineUI = if machineModule then require(machineModule) else nil
-			local robuxButton = machinesGui and machinesGui:FindFirstChild("RobuxButton", true)
 			local primaryButton = machinesGui and machinesGui:FindFirstChild("PrimaryButton", true)
 			local footer = machinesGui and machinesGui:FindFirstChild("Footer", true)
 			local oddsList = machinesGui and machinesGui:FindFirstChild("OddsList", true)
-			if not (MachineUI and robuxButton and primaryButton and footer and oddsList) then
-				log("Error", "[FAIL] forge : bouton Robux, bouton des pièces, bas de la fenêtre, chances ou module MachineUI introuvable")
+			if not (MachineUI and primaryButton and footer and oddsList) then
+				log("Error", "[FAIL] forge : bouton des pièces, bas de la fenêtre, chances ou module MachineUI introuvable")
 				return
 			end
-			local attribute = "PaidRandomRestricted"
-			local saved = player:GetAttribute(attribute)
-			local function state(value)
-				player:SetAttribute(attribute, value)
-				task.wait(0.6) -- (la forge se met à jour 4 fois par seconde)
-				local fullWidth = math.abs(primaryButton.AbsoluteSize.X - footer.AbsoluteSize.X) <= 2
-				return {
-					visible = robuxButton.Visible,
-					allowed = MachineUI.robuxAllowed(player),
-					fullWidth = fullWidth,
-					robuxText = string.find(footer.Text, "Robux", 1, true) ~= nil,
-					footer = footer.Text,
-				}
+			local robuxTexts = {}
+			for _, item in machinesGui:GetDescendants() do
+				if (item:IsA("TextLabel") or item:IsA("TextButton")) and string.find(item.Text, "Robux", 1, true) then
+					table.insert(robuxTexts, item.Text)
+				end
 			end
-			local restricted = state(true)
-			local unknown = state(nil)
-			local allowed = state(false)
-			player:SetAttribute(attribute, saved)
-			local hiddenOk = not restricted.visible and not restricted.allowed and restricted.fullWidth and not restricted.robuxText
-				and not unknown.visible and not unknown.allowed
+			local fullWidth = math.abs(primaryButton.AbsoluteSize.X - footer.AbsoluteSize.X) <= 2
+			local noRobux = machinesGui:FindFirstChild("RobuxButton", true) == nil and #robuxTexts == 0 and fullWidth
 			log(
-				if hiddenOk then "Info" else "Error",
-				`[{if hiddenOk then "PASS" else "FAIL"}] forge, achat d'objet aléatoire interdit par Roblox (ou pas encore connu) : pas de bouton Robux ni d'achat ({tostring(restricted.visible)}/{tostring(restricted.allowed)}, inconnu {tostring(unknown.visible)}/{tostring(unknown.allowed)}), bouton des pièces sur toute la largeur ({tostring(restricted.fullWidth)}), bas : « {restricted.footer} »`
-			)
-			local shownOk = allowed.visible and allowed.allowed and not allowed.fullWidth and allowed.robuxText
-			log(
-				if shownOk then "Info" else "Error",
-				`[{if shownOk then "PASS" else "FAIL"}] forge, achat autorisé (false, comme dans Studio) : bouton Robux affiché ({tostring(allowed.visible)}), bas : « {allowed.footer} »`
+				if noRobux then "Info" else "Error",
+				`[{if noRobux then "PASS" else "FAIL"}] forge : plus d'achat en Robux (pas de bouton Robux, {#robuxTexts} texte(s) qui parlent de Robux), bouton des pièces sur toute la largeur ({tostring(fullWidth)}), bas : « {footer.Text} »`
 			)
 
 			-- Chances affichées par la forge (colonne de droite de chaque ligne ; « — » = rune barrée) : 100 % tout juste.
