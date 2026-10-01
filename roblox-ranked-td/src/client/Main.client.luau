@@ -49,6 +49,8 @@ else
 	local ShopUI = require(script.Parent.ShopUI)
 	ShopUI.start()
 	Remotes.get("OfflineGains").OnClientEvent:Connect(ShopUI.showOfflineGains)
+	-- Téléphone : bouton « ▲ » / « ▼ » qui masque et remet les icônes de droite (Autel, Forge, Renaissance, Boutique, Défis).
+	UI.startShortcutToggle()
 	-- Galerie des ennemis : seulement dans Studio (Config.STUDIO_ENEMY_GALLERY), jamais dans le jeu publié.
 	require(script.Parent.EnemyGallery).start()
 	-- Panneau « SONS (Studio) » pour écouter chaque son : seulement dans Studio (Config.STUDIO_SOUND_PANEL).

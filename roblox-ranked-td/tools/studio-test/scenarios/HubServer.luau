@@ -1119,11 +1119,15 @@ return function(log)
 		if not (shot and shot.fired) then
 			return
 		end
-		local started, landedAfter = os.clock(), nil
+		-- Temps de vol mesuré à l'horloge de la SIMULATION (celle du jeu) : sur un PC occupé, une image lente fait
+		-- prendre du retard au temps réel (vu le 01/10/2026 : 1,05 s réelles pour 0,80 s de vol, sans erreur du jeu).
+		-- Le temps réel est seulement borné (jamais en avance, pas plus d'1 s de retard).
+		local started, startedClock, landedAfter, landedClock = os.clock(), clockNow(), nil, nil
 		while os.clock() - started < 5 do
 			local now = call("debugEnemy", id)
 			if not now.alive or now.health < 1e9 then
 				landedAfter = os.clock() - started
+				landedClock = clockNow() - startedClock
 				break
 			end
 			task.wait(0.02)
@@ -1131,8 +1135,9 @@ return function(log)
 		local after = call("debugEnemy", id)
 		local expected = shot.flight / speed
 		check(
-			landedAfter ~= nil and after.alive and close(1e9 - after.health, shot.damage, 1e-4) and math.abs(landedAfter - expected) <= 0.15,
-			`{label} : {NumberFormat.short(shot.damage)} dégâts à l'impact, après {fmt(landedAfter)} s réelles (vol {fmt(shot.flight)} s / SimSpeed {speed} = {fmt(expected)} s)`
+			landedAfter ~= nil and landedClock ~= nil and after.alive and close(1e9 - after.health, shot.damage, 1e-4)
+				and math.abs(landedClock - shot.flight) <= 0.15 and landedAfter >= expected - 0.15 and landedAfter <= expected + 1,
+			`{label} : {NumberFormat.short(shot.damage)} dégâts à l'impact, après {fmt(landedClock)} s de jeu (vol prévu {fmt(shot.flight)} s) et {fmt(landedAfter)} s réelles (SimSpeed {speed} : {fmt(expected)} s attendues)`
 		)
 		local impact = call("debugLastImpact")
 		local miss = if impact then flat(impact.aim, impact.targetPosition) else math.huge

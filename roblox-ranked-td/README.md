@@ -48,8 +48,15 @@ fermé** : voir juste en dessous.
   6. **La Forge runique** : juste la montrer (trop chère au début : 100K) ; finie quand on l'ouvre ou « Terminer ».
 - Une étape déjà faite (ex. une tour déjà posée) passe toute seule. Un joueur qui part au milieu recommence à
   l'étape 1 en revenant (les étapes faites passent vite). Le rayon suit le nouveau personnage après une mort.
-- Sur téléphone, le panneau des tours ouvert monte jusque sous le panneau du tuto : le tuto se cache tant qu'il
-  est ouvert (cartes et « Améliorer » bien visibles, pas de « Passer » touché par erreur), puis revient.
+- Sur téléphone, le panneau des tours prend presque tout l'écran : le tuto se cache tant qu'il est ouvert (cartes
+  et « Améliorer » bien visibles, pas de « Passer » touché par erreur), puis revient.
+- **Écran d'un téléphone** (01/10/2026, choisi par le propriétaire d'après d'autres jeux Roblox) : rien au milieu de
+  la vue. Contre le bord droit : deux icônes carrées, 🏰 Autel et 🔨 Forge, et dessous le petit bouton
+  « Renaissance » avec son gain. En haut à gauche, sous les boutons de Roblox : « ★ BOUTIQUE ». Tout en haut à
+  droite, dans la barre de Roblox : SON (une icône), le bouton « ▲ » et les pièces en petit. « ▲ » masque les
+  raccourcis et SON, reste toujours à sa place et devient « ▼ » pour les remettre. Sur ordinateur, rien n'a changé
+  (colonne de boutons à gauche, panneau des tours en bas). Test à la vraie taille d'un téléphone :
+  `tools\studio-test\phone.ps1`.
 - Les 50 pièces de départ paient tout : tour 10 + amélioration 20 + autel x1 3 = 33 (pas de lancer gratuit).
 - Sauvegarde : `tutorialDone` dans les données du joueur (`PlayerData.luau`), publié dans l'attribut `TutorialDone`.
   Les anciens joueurs qui ont déjà joué (record au-delà de la vague 1, une tour, un lancer, une renaissance ou un

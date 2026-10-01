@@ -71,6 +71,15 @@ function AdminUI.start()
 		BackgroundTransparency = 1,
 		Parent = window,
 	})
+	-- Téléphone : plus petit, en haut à gauche sous le bouton « ★ BOUTIQUE » (UI.leftColumnSlot).
+	local function place()
+		local phone = UI.touchLayout(UI.screenSize(gui))
+		openButton.Position = UDim2.fromOffset(if phone then 12 else 16, if phone then 48 else 16)
+		openButton.Size = UDim2.fromOffset(if phone then 110 else 130, if phone then 30 else 38)
+		window.Position = UDim2.fromOffset(if phone then 12 else 16, if phone then 84 else 60)
+	end
+	place()
+	gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(place)
 
 	local rows = {} -- [UserId] = { frame, buttons = { [nom] = bouton } }
 	local function refresh()

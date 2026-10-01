@@ -152,9 +152,9 @@ function MachineUI.start()
 		MaxTextSize = 18,
 		Parent = gui,
 	})
-	-- Écran trop bas (téléphone) : toute la colonne est réduite pour tenir (UI.leftColumnSlot).
-	UI.placeInLeftColumn(towerShortcut, 0)
-	UI.placeInLeftColumn(bonusShortcut, 1)
+	-- Téléphone : deux petites icônes à droite de l'écran (UI.leftColumnSlot).
+	UI.placeInLeftColumn(towerShortcut, 0, "🏰")
+	UI.placeInLeftColumn(bonusShortcut, 1, "🔨")
 
 	------------------------------------------------------------------
 	-- Fenêtre commune aux deux machines
@@ -332,6 +332,30 @@ function MachineUI.start()
 		MaxTextSize = 14,
 		Parent = window,
 	})
+
+	-- Fenêtre basse (téléphone en paysage) : titre et bas de fenêtre resserrés, sous-titre retiré. Sinon il ne restait
+	-- que quelques pixels aux chances, qui défilent : elles doivent rester lisibles (le lancer Robux de la forge est
+	-- un objet aléatoire payant, ses chances doivent se voir avant l'achat). shortWindow sert aussi à refresh
+	-- (hauteur du bouton d'achat).
+	local shortWindow = false
+	local function fitContent()
+		shortWindow = UI.modalSize(UI.screenSize(gui), WINDOW_SIZE).Y < 420
+		local buttonHeight = if shortWindow then 44 else 50
+		local buttonBottom = if shortWindow then -24 else -62
+		title.Size = UDim2.new(1, -48, 0, if shortWindow then 30 else 38)
+		subtitle.Visible = not shortWindow
+		body.Position = UDim2.fromOffset(0, if shortWindow then 36 else 88)
+		body.Size = UDim2.new(1, 0, 1, if shortWindow then -112 else -222)
+		primaryButton.Position = UDim2.new(0, 0, 1, buttonBottom)
+		primaryButton.Size = UDim2.new(primaryButton.Size.X.Scale, primaryButton.Size.X.Offset, 0, buttonHeight)
+		robuxButton.Position = UDim2.new(1, 0, 1, buttonBottom)
+		robuxButton.Size = UDim2.new(0.4, -4, 0, buttonHeight)
+		bulkRow.Position = UDim2.new(0, 0, 1, buttonBottom)
+		bulkRow.Size = UDim2.new(1, 0, 0, buttonHeight + 6)
+		footer.Size = UDim2.new(1, 0, 0, if shortWindow then 20 else 48)
+	end
+	fitContent()
+	gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(fitContent)
 
 	local current: string? = nil -- "Tower" | "Bonus"
 	local spinning = false
@@ -566,7 +590,8 @@ function MachineUI.start()
 		end
 
 		-- À petite largeur, on fait défiler les quantités au lieu de réduire le prix à quelques pixels.
-		local width = UDim2.fromOffset(104, 50)
+		-- (Hauteur : celle de la rangée moins sa barre de défilement, 50 px, ou 44 px dans une fenêtre basse.)
+		local width = UDim2.new(0, 104, 1, -6)
 		for order, bulk in available do
 			local button = UI.button({
 				Name = "Spin_" .. bulk.count, -- (le tuto entoure d'or « Spin_1 » à l'étape de l'autel)
@@ -694,7 +719,8 @@ function MachineUI.start()
 			-- la largeur).
 			local robuxShown = MachineUI.robuxAllowed(player)
 			robuxButton.Visible = robuxShown
-			primaryButton.Size = if robuxShown then UDim2.new(0.6, -4, 0, 50) else UDim2.new(1, 0, 0, 50)
+			local buttonHeight = if shortWindow then 44 else 50
+			primaryButton.Size = if robuxShown then UDim2.new(0.6, -4, 0, buttonHeight) else UDim2.new(1, 0, 0, buttonHeight)
 			local full = #bonuses >= IdleConfig.MAX_BONUS_INVENTORY
 			if blocked then
 				-- Aucune rune n'améliorerait une tour : pièces ET Robux bloqués.

@@ -231,7 +231,7 @@ function PlotUI.start()
 		Size = UDim2.fromOffset(240, 64), BackgroundColor3 = UI.Colors.Background, BackgroundTransparency = 0.08,
 		BorderSizePixel = 0, Parent = gui,
 	}, { UI.corner(12), UI.stroke(UI.Colors.Gold) })
-	UI.label({ Size = UDim2.new(1, 0, 0, 18), Position = UDim2.fromOffset(0, 5), Text = "TRÉSOR DU FIEF",
+	local walletTitle = UI.label({ Size = UDim2.new(1, 0, 0, 18), Position = UDim2.fromOffset(0, 5), Text = "TRÉSOR DU FIEF",
 		TextColor3 = UI.Colors.Muted, MaxTextSize = 11, Parent = wallet })
 	local coinsLabel = UI.label({
 		AnchorPoint = Vector2.new(0.5, 0),
@@ -267,22 +267,43 @@ function PlotUI.start()
 	local panelScale = UI.new("UIScale", { Parent = panel })
 	local cardGrid: UIGridLayout? = nil
 	local touchMode = false
+	local walletCovered = false -- téléphone : le panneau ouvert couvre le compteur de pièces (voir fitPanel)
+	local cardsMode = false -- le panneau montre les cartes des tours (emplacement libre, remplacement) : voir setMode
 	local applyContentLayout: (() -> ())? = nil
 	local function fitPanel()
 		local screen = UI.screenSize(gui)
 		if screen.X <= 0 or screen.Y <= 0 then return end
 		local size, columns = UI.plotPanelLayout(screen)
 		touchMode = UI.touchLayout(screen)
+		if not touchMode and cardsMode and size.Y < UI.PLOT_PANEL_TALL then
+			-- Ordinateur, une seule rangée de cartes : le panneau s'arrête aux cartes (pas de bande vide entre elles
+			-- et les flèches ◀ ▶). La fiche d'une tour garde toute la hauteur.
+			size = Vector2.new(size.X, math.min(size.Y, 20 + 106 + CARD_HEIGHT))
+		end
 		panel.Size = UDim2.fromOffset(size.X, size.Y)
-		panel.AnchorPoint = Vector2.new(0.5, 0.5)
-		panel.Position = UDim2.fromScale(0.5, 0.5)
-		gui.DisplayOrder = if panel.Visible then 30 else 5
-		wallet.Visible = not panel.Visible
-		panelScale.Scale = 1
-		if cardGrid then cardGrid.CellSize = UDim2.new(1 / columns, -8 * (columns - 1) / columns - 3, 0, CARD_HEIGHT) end
-		if applyContentLayout then applyContentLayout() end
-		if UI.isPhone(screen) then
-			-- Téléphone : en haut à droite, avec les boutons SON et Vitesse x2 (UI.phoneTopRight), pas au milieu.
+		if touchMode then
+			-- Téléphone : presque tout l'écran, au premier plan (au-dessus des icônes et du tuto).
+			panel.AnchorPoint = Vector2.new(0.5, 0.5)
+			panel.Position = UDim2.fromScale(0.5, 0.5)
+		else
+			-- Ordinateur et tablette : centré en bas de l'écran (demande du propriétaire : tant pis s'il cache un peu la
+			-- vue, on le ferme après usage), mais jamais sur la zone du chat de Roblox (en bas à gauche : il prendrait
+			-- les clics des premières cartes, dont l'Archer du tuto) ni sur la colonne de boutons de gauche.
+			local portrait = screen.X < 700 and screen.Y > screen.X
+			local leftLimit = if portrait then 16 elseif screen.X >= 1100 then 516 else UI.leftColumnRight(screen) + 8
+			local left = math.max((screen.X - size.X) / 2, leftLimit)
+			left = math.max(16, math.min(left, screen.X - size.X - 16))
+			panel.AnchorPoint = Vector2.new(0, 1)
+			panel.Position = UDim2.new(0, math.floor(left), 1, -16)
+		end
+		gui.DisplayOrder = if touchMode and panel.Visible then 30 else 5
+		-- Téléphone : petit compteur, juste « 💰 22.6M » sans son titre (demande du propriétaire : il gênait la vue).
+		local phone = UI.isPhone(screen)
+		walletTitle.Visible = not phone
+		coinsLabel.Position = if phone then UDim2.new(0.5, 0, 0, 3) else UDim2.new(0.5, 0, 0, 24)
+		coinsLabel.Size = if phone then UDim2.new(1, -12, 1, -6) else UDim2.new(1, -20, 0, 34)
+		if phone then
+			-- Tout en haut à droite, dans la barre de Roblox, avec « ▲ », SON et Vitesse x2 (UI.phoneTopRight).
 			local position, size = UI.phoneTopRight(screen, 0)
 			wallet.Size = UDim2.fromOffset(size.X, size.Y)
 			wallet.AnchorPoint = Vector2.new(1, 0)
@@ -292,6 +313,13 @@ function PlotUI.start()
 			wallet.AnchorPoint = Vector2.new(if screen.X < 700 then 1 else 0.5, 0)
 			wallet.Position = if screen.X < 700 then UDim2.new(1, -12, 0, 8) else UDim2.new(0.5, 0, 0, 8)
 		end
+		-- Le panneau du téléphone couvre le compteur seulement quand celui-ci est dans la zone de jeu (portrait, ou
+		-- barre de Roblox trop basse) : il est alors caché, et les pièces sont reprises dans le titre du panneau.
+		walletCovered = touchMode and wallet.Position.Y.Offset >= 0
+		wallet.Visible = not (walletCovered and panel.Visible)
+		panelScale.Scale = 1
+		if cardGrid then cardGrid.CellSize = UDim2.new(1 / columns, -8 * (columns - 1) / columns - 3, 0, CARD_HEIGHT) end
+		if applyContentLayout then applyContentLayout() end
 	end
 	fitPanel()
 	gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(fitPanel)
@@ -318,6 +346,20 @@ function PlotUI.start()
 		BackgroundColor3 = UI.Colors.PanelLight,
 		Text = "X",
 		MaxTextSize = 18,
+		Parent = panel,
+	})
+	-- Téléphone seulement : les pièces du joueur, à gauche du X (le panneau couvre le compteur « TRÉSOR DU FIEF »,
+	-- et il faut voir ses pièces pour acheter une tour ou une amélioration).
+	local panelCoins = UI.label({
+		Name = "Coins",
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.new(1, -54, 0, 0),
+		Size = UDim2.fromOffset(120, 26),
+		Font = Enum.Font.GothamBlack,
+		TextColor3 = UI.Colors.Gold,
+		TextXAlignment = Enum.TextXAlignment.Right,
+		MaxTextSize = 20,
+		Visible = false,
 		Parent = panel,
 	})
 
@@ -534,36 +576,72 @@ function PlotUI.start()
 	local page = 1
 	local pageSize = count
 	local detailsMode = false
+	-- Pages de cartes : ◀ « 1 / 2 » ▶ quand les cartes ne tiennent pas toutes sur une page (rien sinon). Pendant un
+	-- remplacement, « ← Garder ma tour » est entre les deux flèches (sur toute la largeur sans pages).
 	local function refreshPage()
 		local pages = math.max(1, math.ceil(count / pageSize))
 		page = math.clamp(page, 1, pages)
 		pageLabel.Text = `{page} / {pages}`
+		previousPage.Visible = pages > 1
+		nextPage.Visible = pages > 1
+		pageLabel.Visible = pages > 1 and not backButton.Visible
 		previousPage.Active = page > 1
 		nextPage.Active = page < pages
 		previousPage.BackgroundTransparency = if page > 1 then 0 else 0.6
 		nextPage.BackgroundTransparency = if page < pages then 0 else 0.6
+		backButton.Position = UDim2.new(if pages > 1 then 0.24 else 0, 0, 1, 0)
+		backButton.Size = UDim2.new(if pages > 1 then 0.52 else 1, 0, 0, 44)
 		for index, towerType in IdleTowers.ORDER do
 			cards[towerType].button.Visible = math.ceil(index / pageSize) == page
 		end
 	end
 	previousPage.Activated:Connect(function() page = math.max(1, page - 1); refreshPage() end)
 	nextPage.Activated:Connect(function() page = math.min(math.ceil(count / pageSize), page + 1); refreshPage() end)
+	-- Place de la fiche d'une tour (towerInfo), réglée par applyContentLayout : infoTop px sous le haut du panneau,
+	-- jusqu'à infoBottom px du bas (au-dessus de la ligne des runes et des boutons « Améliorer » / « Vendre »).
+	-- buttonsTop = où sont « Détails & effets » et « Remplacer… » dans la fiche ; tinyInfo = écran si bas que la
+	-- description (sous-titre) est cachée pour laisser la place à la fiche.
+	local infoTop, infoBottom, buttonsTop, tinyInfo = 52, 98, 76, false
 	local function fitDetails()
 		local expanded = detailsMode and detailsOpen
+		-- Téléphone, « Détails & effets » ouvert : la ligne des runes est cachée le temps de lire (le texte a ainsi
+		-- deux fois plus de place) ; « ← Statistiques » la ramène.
+		local runesHidden = expanded and touchMode
+		towerInfo.Position = UDim2.fromOffset(0, infoTop)
+		towerInfo.Size = UDim2.new(1, 0, 1, -(infoTop + (if runesHidden then 48 else infoBottom)))
+		if towerInfo.Visible then
+			bonusRow.Visible = not runesHidden
+		end
 		metricRow.Visible = not expanded
 		replaceButton.Visible = not expanded
 		replaceHint.Visible = not detailsMode
 		detailsButton.Visible = detailsMode
 		detailsButton.Text = if expanded then "← Statistiques" else "Détails & effets"
-		detailsButton.Position = UDim2.fromOffset(0, if expanded then 0 else 76)
+		detailsButton.Position = UDim2.fromOffset(0, if expanded then 0 else buttonsTop)
 		detailScroll.Visible = not detailsMode or expanded
-		detailScroll.Position = UDim2.fromOffset(0, if expanded then 40 else 124)
-		detailScroll.Size = UDim2.new(1, 0, 1, if expanded then -40 else -124)
+		detailScroll.Position = UDim2.fromOffset(0, if expanded then 38 else 124)
+		detailScroll.Size = UDim2.new(1, 0, 1, if expanded then -38 else -124)
 	end
 	detailsButton.Activated:Connect(function() detailsOpen = not detailsOpen; fitDetails() end)
+	-- Case de chiffres (UI.metric) resserrée sur les écrans bas : 52 px au lieu de 76.
+	local function fitMetric(metric, compact: boolean)
+		metric.frame.Size = UDim2.new(metric.frame.Size.X.Scale, metric.frame.Size.X.Offset, 0, if compact then 52 else 76)
+		local padding = metric.frame:FindFirstChildOfClass("UIPadding")
+		if padding then
+			local edge = UDim.new(0, if compact then 5 else 8)
+			padding.PaddingTop, padding.PaddingBottom = edge, edge
+		end
+		metric.caption.Size = UDim2.new(1, 0, 0, if compact then 12 else 14)
+		metric.value.Position = UDim2.fromOffset(0, if compact then 12 else 17)
+		metric.value.Size = UDim2.new(1, 0, 0, if compact then 19 else 24)
+		metric.detail.Position = UDim2.fromOffset(0, if compact then 31 else 44)
+		metric.detail.Size = UDim2.new(1, 0, 0, if compact then 11 else 14)
+	end
 	applyContentLayout = function()
-		local size, columns = UI.plotPanelLayout(UI.screenSize(gui))
-		local available = size.Y - 20 - 106 -- padding + titre + pied de page
+		local _, columns = UI.plotPanelLayout(UI.screenSize(gui))
+		local size = Vector2.new(panel.Size.X.Offset, panel.Size.Y.Offset) -- (la taille donnée par fitPanel)
+		local inner = size.Y - 20 -- (10 px de marge en haut et en bas)
+		local available = inner - 106 -- titre (52 px) et bas du panneau (54 px) retirés
 		local rows = math.max(1, math.floor((available + 8) / (if touchMode then 188 else 224)))
 		local cardHeight = math.min(CARD_HEIGHT, math.floor((available - (rows - 1) * 8) / rows))
 		pageSize = columns * rows
@@ -574,28 +652,46 @@ function PlotUI.start()
 		cardRow.CanvasPosition = Vector2.zero
 		cardGrid.CellSize = UDim2.new(1 / columns, -8 * (columns - 1) / columns - 3, 0, cardHeight)
 		for _, card in cards do
-			local short = cardHeight < 174
+			-- Carte basse : la ligne « sorte de tour » puis les 3 lignes de stats sont retirées tant qu'elles ne
+			-- tiennent pas au-dessus de « x/5 posées » et du prix (152 px : sorte ; 206 px : stats). Sous 126 px
+			-- (très petit téléphone), le nom et les dégâts sont resserrés pour ne pas toucher « x/5 posées ».
+			local short = cardHeight < 152
+			local tight = cardHeight < 126
+			card.name.Size = UDim2.new(1, 0, 0, if tight then 24 else 32)
 			card.kind.Visible = not short
-			card.stats.Visible = cardHeight >= 200
-			card.damage.Position = UDim2.fromOffset(0, if short then 34 else 58)
-			card.damageCaption.Position = UDim2.fromOffset(0, if short then 62 else 86)
+			card.stats.Visible = cardHeight >= 206
+			card.damage.Position = UDim2.fromOffset(0, if tight then 25 elseif short then 34 else 58)
+			card.damage.Size = UDim2.new(1, 0, 0, if tight then 26 else 28)
+			card.damageCaption.Position = UDim2.fromOffset(0, if tight then 51 elseif short then 62 else 86)
 		end
 		closeButton.Size = UDim2.fromOffset(if touchMode then 44 else 30, if touchMode then 44 else 30)
-		panelTitle.Size = UDim2.new(1, if touchMode then -54 else -40, 0, 26)
+		-- Compteur de pièces caché sous le panneau (walletCovered) : il est repris à droite du titre.
+		panelCoins.Visible = walletCovered
+		panelTitle.Size = UDim2.new(1, if walletCovered then -(54 + 124) elseif touchMode then -54 else -40, 0, 26)
 		panelSubtitle.Size = UDim2.new(1, if touchMode then -54 else 0, 0, 18)
-		towerInfo.Position = UDim2.fromOffset(0, if touchMode then 48 else 52)
-		towerInfo.Size = UDim2.new(1, 0, 1, if touchMode then -140 else -150)
+
+		-- Fiche d'une tour. Écran bas (téléphone en paysage) : cases de chiffres resserrées ; s'il manque encore de
+		-- la place, la description est cachée et la fiche remonte sous le titre (jamais de bouton sur un autre).
 		detailsMode = touchMode or size.Y < 450
-		replaceButton.Position = UDim2.new(1, -6, 0, if detailsMode then 76 else 84)
+		infoTop = if touchMode then 48 else 52
+		infoBottom = if touchMode then 92 else 98
+		local compact = detailsMode and inner - infoTop - infoBottom < 76 + 32
+		tinyInfo = compact and inner - infoTop - infoBottom < 52 + 4 + 32
+		if tinyInfo then
+			infoTop = 30
+		end
+		metricRow.Size = UDim2.new(1, -6, 0, if compact then 52 else 76)
+		for _, metric in { damageMetric, speedMetric, rangeMetric } do
+			fitMetric(metric, compact)
+		end
+		buttonsTop = if compact then 56 else 76
+		replaceButton.Position = UDim2.new(1, -6, 0, if detailsMode then buttonsTop else 84)
 		replaceButton.Size = if detailsMode then UDim2.new(0.5, -6, 0, 32) else UDim2.fromOffset(156, 32)
 		bonusRow.Size = UDim2.new(1, 0, 0, if touchMode then 44 else 36)
 		bonusRow.Position = UDim2.new(0, 0, 1, if touchMode then -48 else -54)
-		backButton.Position = UDim2.new(0.24, 0, 1, 0)
-		backButton.Size = UDim2.new(0.52, 0, 0, 44)
 		refreshPage()
 		fitDetails()
 		pager.Visible = cardRow.Visible
-		pageLabel.Visible = not backButton.Visible
 	end
 	fitPanel()
 
@@ -666,6 +762,12 @@ function PlotUI.start()
 			-- Les cartes viennent d'être cachées ou montrées : une carte cachée sous la souris ne reçoit pas
 			-- toujours MouseLeave (sinon le sous-titre garderait « idéale contre » d'une ancienne carte).
 			hoveredType = nil
+			-- Ordinateur : la hauteur du panneau suit ce qu'il montre (cartes ou fiche, voir fitPanel).
+			local cards = mode == "empty" or mode == "replace"
+			if cards ~= cardsMode then
+				cardsMode = cards
+				fitPanel()
+			end
 		end
 	end
 	local function justChanged(): boolean
@@ -1111,6 +1213,7 @@ function PlotUI.start()
 		backButton.Visible = false
 		confirmFrame.Visible = false
 		pager.Visible = false
+		panelSubtitle.Visible = true
 		actionButton.Size = UDim2.new(1, 0, 0, 44)
 
 		if not owned[spotIndex] then
@@ -1140,7 +1243,7 @@ function PlotUI.start()
 				else if touchMode then "Choisis ta tour • utilise ◀ ▶ pour les autres" else "Choisis une tour à poser (survole une carte : contre quoi elle est idéale) :"
 			cardRow.Visible = true
 			pager.Visible = true
-			pageLabel.Visible = true
+			refreshPage()
 			refreshCards(nil, 0, pending ~= nil)
 			return
 		end
@@ -1204,7 +1307,7 @@ function PlotUI.start()
 			refreshCards(currentType, refund, pending ~= nil)
 			backButton.Visible = true
 			pager.Visible = true
-			pageLabel.Visible = false
+			refreshPage()
 			return
 		end
 
@@ -1214,6 +1317,7 @@ function PlotUI.start()
 		local upgradeCost = IdleTowers.upgradeCost(currentType, level)
 		panelTitle.Text = `{def.displayName} • Niv. {level}`
 		panelSubtitle.Text = if pending then "Remplacement en cours…" else def.description or ""
+		panelSubtitle.Visible = not tinyInfo
 		towerInfo.Visible = true
 		local currentStats = IdleTowers.effectiveStats(currentType, level, dupes, tower:GetAttribute("Bonus"))
 		local nextStats = IdleTowers.effectiveStats(currentType, level + 1, dupes, tower:GetAttribute("Bonus"))
@@ -1226,7 +1330,8 @@ function PlotUI.start()
 		rangeMetric.detail.Text = "studs"
 		towerStats.Text = towerSheet(currentType, level, dupes, tower:GetAttribute("Bonus"))
 		replaceButton.BackgroundTransparency = if pending then 0.6 else 0
-		bonusRow.Visible = true
+		-- (téléphone, « Détails & effets » ouvert : la ligne des runes est cachée le temps de lire, voir fitDetails)
+		bonusRow.Visible = not (touchMode and detailsMode and detailsOpen)
 		rebuildBonusRow(tower)
 
 		upgradeButton.Visible = true
@@ -1306,6 +1411,19 @@ function PlotUI.start()
 				select(nil)
 			end
 		end)
+		-- Test « téléphone » (tools/studio-test/phone.ps1) : « TestTowerPage » (numéro de page des cartes) fait comme
+		-- un clic sur ◀ ▶, « TestTowerDetails » (vrai / faux) comme un clic sur « Détails & effets ».
+		gui:GetAttributeChangedSignal("TestTowerPage"):Connect(function()
+			local value = gui:GetAttribute("TestTowerPage")
+			if typeof(value) == "number" then
+				page = value
+				refreshPage()
+			end
+		end)
+		gui:GetAttributeChangedSignal("TestTowerDetails"):Connect(function()
+			detailsOpen = gui:GetAttribute("TestTowerDetails") == true
+			fitDetails()
+		end)
 	end
 
 	------------------------------------------------------------------
@@ -1313,6 +1431,7 @@ function PlotUI.start()
 	------------------------------------------------------------------
 	local function update()
 		coinsLabel.Text = "💰 " .. NumberFormat.short(coins())
+		panelCoins.Text = coinsLabel.Text
 		refreshPanel()
 	end
 

@@ -137,7 +137,7 @@ function ShopUI.start()
 		MaxTextSize = 18,
 		Parent = buttonGui,
 	})
-	-- Écran trop bas (téléphone) : toute la colonne est réduite pour tenir (UI.leftColumnSlot).
+	-- Téléphone : le même bouton, plus petit, en haut à gauche sous les boutons de Roblox (UI.leftColumnSlot).
 	UI.placeInLeftColumn(shopButton, 3)
 
 	------------------------------------------------------------------
@@ -153,10 +153,27 @@ function ShopUI.start()
 		Visible = false,
 		Parent = buttonGui,
 	})
-	-- Téléphone : en haut à droite, à côté du compteur de pièces et du bouton SON (UI.phoneTopRight).
+	local speedTitle = UI.label({
+		Size = UDim2.new(1, 0, 0, 19),
+		Font = Enum.Font.GothamBlack,
+		MaxTextSize = 18,
+		Parent = speedButton,
+	})
+	local speedCaption = UI.label({
+		Position = UDim2.new(0, 0, 0, 20),
+		Size = UDim2.new(1, 0, 0, 12),
+		Text = "Vitesse",
+		MaxTextSize = 11,
+		Parent = speedButton,
+	})
+	-- Téléphone : en haut à droite, à côté du compteur de pièces et du bouton SON (UI.phoneTopRight), petit : juste
+	-- « x1 » / « x2 », sans le mot « Vitesse ».
 	local function placeSpeedButton()
 		local screen = UI.screenSize(buttonGui)
-		if UI.isPhone(screen) then
+		local phone = UI.isPhone(screen)
+		speedCaption.Visible = not phone
+		speedTitle.Size = if phone then UDim2.fromScale(1, 1) else UDim2.new(1, 0, 0, 19)
+		if phone then
 			local position, size = UI.phoneTopRight(screen, 2)
 			speedButton.AnchorPoint = Vector2.new(1, 0)
 			speedButton.Position = position
@@ -169,19 +186,6 @@ function ShopUI.start()
 	end
 	placeSpeedButton()
 	buttonGui:GetPropertyChangedSignal("AbsoluteSize"):Connect(placeSpeedButton)
-	local speedTitle = UI.label({
-		Size = UDim2.new(1, 0, 0, 19),
-		Font = Enum.Font.GothamBlack,
-		MaxTextSize = 18,
-		Parent = speedButton,
-	})
-	UI.label({
-		Position = UDim2.new(0, 0, 0, 20),
-		Size = UDim2.new(1, 0, 0, 12),
-		Text = "Vitesse",
-		MaxTextSize = 11,
-		Parent = speedButton,
-	})
 
 	------------------------------------------------------------------
 	-- Fenêtre de la boutique (même style que les machines, MachineUI)
@@ -445,12 +449,15 @@ function ShopUI.start()
 	local function refreshSpeedButton()
 		local index = player:GetAttribute("Plot")
 		local plot = index and plotsFolder:FindFirstChild("Plot" .. index)
-		-- Seulement quand ma parcelle tourne (attribut Wave de son dossier, publié par le serveur).
+		-- Seulement quand ma parcelle tourne (attribut Wave de son dossier, publié par le serveur). Téléphone : caché
+		-- aussi quand le joueur a masqué les icônes de droite (bouton « ▲ », UI.startShortcutToggle).
 		speedButton.Visible = player:GetAttribute("PassSpeedX2") == true and plot ~= nil and plot:GetAttribute("Wave") ~= nil
+			and UI.extrasShown(UI.screenSize(buttonGui))
 		local enabled = speedEnabled()
 		speedTitle.Text = if enabled then "x2" else "x1"
 		speedButton.BackgroundColor3 = if enabled then SPEED_COLOR else UI.Colors.PanelLight
 	end
+	UI.watchShortcuts(speedButton, refreshSpeedButton)
 
 	-- Achat terminé : le serveur revérifie la possession, met à jour ces attributs (le pass marche tout de
 	-- suite, sans rejoindre à nouveau) et affiche lui-même « Merci ! Pass ... activé » (Monetization.luau).

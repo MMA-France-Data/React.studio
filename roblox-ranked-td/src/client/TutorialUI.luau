@@ -290,7 +290,13 @@ function TutorialUI.start()
 				return if altarOpen() then shownChild("Machines", "CloseButton") else nil
 			end,
 			-- Une fois la forge ouverte, avant la fin : le raccourci (les boutons de gauche), entouré d'or.
-			afterText = "Astuce : les boutons « Autel des héros » et « Forge runique », à gauche (entourés d'or), les ouvrent de n'importe où !",
+			-- (Téléphone : ce sont deux icônes à droite de l'écran, UI.leftColumnSlot.)
+			afterText = function()
+				if UI.touchLayout(UI.screenSize(nil)) then
+					return "Astuce : les icônes 🏰 (Autel) et 🔨 (Forge), à droite (entourées d'or), les ouvrent de n'importe où !"
+				end
+				return "Astuce : les boutons « Autel des héros » et « Forge runique », à gauche (entourés d'or), les ouvrent de n'importe où !"
+			end,
 			afterHighlight = function()
 				return { shownChild("Machines", "TowerShortcut"), shownChild("Machines", "BonusShortcut") }
 			end,
@@ -379,10 +385,16 @@ function TutorialUI.start()
 		if screen.X <= 0 or screen.Y <= 0 then
 			return
 		end
-		local scale = math.clamp((screen.X - LEFT_SIDE - 16) / PANEL_SIZE.X, 0.55, 1)
+		-- Téléphone : tout en haut de la zone de jeu, au milieu (le compteur de pièces et SON sont dans la barre de
+		-- Roblox, UI.phoneTopRight), entre le bouton « ★ BOUTIQUE » (en haut à gauche) et les icônes du bord droit
+		-- (UI.leftColumnSlot).
+		local phone = UI.touchLayout(screen)
+		local scale = if phone
+			then math.clamp((screen.X - 2 * (UI.PHONE_SHOP_SIZE.X + 20)) / PANEL_SIZE.X, 0.55, 1)
+			else math.clamp((screen.X - LEFT_SIDE - 16) / PANEL_SIZE.X, 0.55, 1)
 		panelScale.Scale = scale
 		local width, height = PANEL_SIZE.X * scale, PANEL_SIZE.Y * scale
-		local top = if screen.X >= WIDE_SCREEN then TOP_WIDE else TOP_NARROW
+		local top = if phone then 8 elseif screen.X >= WIDE_SCREEN then TOP_WIDE else TOP_NARROW
 		local lobby = player.PlayerGui:FindFirstChild("Lobby")
 		-- (le bouton « S'INSCRIRE », ou « BIENTÔT DISPONIBLE » à sa place quand le classé est fermé)
 		for _, name in { "SignUp", "RankedSoon" } do
@@ -395,7 +407,7 @@ function TutorialUI.start()
 				end
 			end
 		end
-		local centerX = math.max(screen.X / 2, LEFT_SIDE + width / 2)
+		local centerX = if phone then screen.X / 2 else math.max(screen.X / 2, LEFT_SIDE + width / 2)
 		panel.Position = UDim2.fromOffset(centerX, top)
 		local plotGui = player.PlayerGui:FindFirstChild("Plot")
 		local towerPanel = plotGui and plotGui:FindFirstChild("TowerPanel")
@@ -646,7 +658,8 @@ function TutorialUI.start()
 		local def = STEPS[step]
 		local hold = if byButton then DONE_FLASH else math.max(DONE_FLASH, stepShownAt + readTime() - os.clock())
 		if not byButton and def.afterText then
-			setBody(def.afterText)
+			UI.showShortcuts() -- (téléphone : les icônes montrées par l'astuce reviennent si le joueur les avait masquées)
+			setBody(if typeof(def.afterText) == "function" then def.afterText() else def.afterText)
 			hold = readTime()
 			afterShown = true
 		end

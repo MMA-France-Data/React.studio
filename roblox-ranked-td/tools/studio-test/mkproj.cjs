@@ -23,12 +23,14 @@ if (enemyModels && enemyModels.$path && !path.isAbsolute(enemyModels.$path)) {
 	enemyModels.$path = norm(path.join(repo, enemyModels.$path));
 }
 tree.ReplicatedStorage.__AutoPlayTest = { $className: 'NumberValue', $properties: { Value: Number(duration) } };
-// Scénarios serveur et client : map principale (HubServer), match ranked contre le bot (MatchServer), ou mode
-// tournage (images et vidéos du jeu, tournage.ps1 : TournageServer et TournageClient).
+// Scénarios serveur et client : map principale (HubServer), match ranked contre le bot (MatchServer), mode
+// tournage (images et vidéos du jeu, tournage.ps1 : TournageServer et TournageClient), ou test « téléphone »
+// (phone.ps1 : le jeu dans une fenêtre de la taille d'un téléphone, PhoneServer et PhoneClient).
 const scenarios = {
 	hub: ['HubServer.luau', 'Client.luau'],
 	match: ['MatchServer.luau', 'Client.luau'],
 	tournage: ['TournageServer.luau', 'TournageClient.luau'],
+	phone: ['PhoneServer.luau', 'PhoneClient.luau'],
 };
 const [serverScenario, clientScenario] = scenarios[mode] || scenarios.hub;
 tree.ReplicatedStorage.__AutoTestScript = { $path: norm(path.join(here, 'scenarios', serverScenario)) };

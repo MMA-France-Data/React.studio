@@ -44,6 +44,8 @@ return {
 	["Va à la Forge runique et ouvre-la : ses runes multiplient les dégâts de tes tours (chères au début : {1} pièces)."] = "Go to the Rune Forge and open it: its runes multiply your towers' damage (pricey at first: {1} coins).",
 	["FORGE RUNIQUE"] = "RUNE FORGE",
 	["Astuce : les boutons « Autel des héros » et « Forge runique », à gauche (entourés d'or), les ouvrent de n'importe où !"] = "Tip: the “Heroes' Altar” and “Rune Forge” buttons on the left (circled in gold) open them from anywhere!",
+	-- (la même astuce sur téléphone : ce sont deux icônes à droite de l'écran)
+	["Astuce : les icônes 🏰 (Autel) et 🔨 (Forge), à droite (entourées d'or), les ouvrent de n'importe où !"] = "Tip: the 🏰 (Altar) and 🔨 (Forge) icons on the right (circled in gold) open them from anywhere!",
 	-- Boutons et messages de fin
 	["Suivant"] = "Next",
 	["Terminer"] = "Finish",

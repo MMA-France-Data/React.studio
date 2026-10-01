@@ -468,6 +468,7 @@ end
 -- tablette, téléphone), sous le compteur, pour ne pas couvrir la carte de rang. Match : sous ton panneau (en haut
 -- à gauche).
 local BUTTON_WIDTH = 96
+local MODE_ICONS = { All = "🔊", Effects = "🔉", Mute = "🔇" } -- téléphone : tout, effets seuls (sans musique), muet
 local COUNTER_GAP = 188 -- du centre de l'écran au bord droit du bouton (moitié du compteur de 360 px + 8 px)
 local RANK_CARD_RIGHT = 16 + 260 + 8 -- bord droit de la carte de rang (LobbyUI) + 8 px d'écart
 local SEND_DELAY = 0.5 -- le choix part au serveur un peu après le dernier clic (voir createButton)
@@ -484,10 +485,39 @@ local function createButton(serverMode: string)
 		Text = "",
 		Parent = gui,
 	})
+	local titleLabel = UI.label({
+		Size = UDim2.new(1, 0, 0, 19),
+		Font = Enum.Font.GothamBlack,
+		Text = "SON",
+		MaxTextSize = 18,
+		Parent = button,
+	})
+	local modeLabel = UI.label({
+		Name = "ModeText",
+		Position = UDim2.new(0, 0, 0, 20),
+		Size = UDim2.new(1, 0, 0, 12),
+		MaxTextSize = 11,
+		Parent = button,
+	})
+	-- Téléphone : le bouton est petit (demande du propriétaire : « l'icône son est trop grande et gêne »), il ne
+	-- montre qu'une icône (MODE_ICONS) ; le message « Son : … » dit toujours le réglage choisi.
+	local iconLabel = UI.label({
+		Name = "ModeIcon",
+		Size = UDim2.fromScale(1, 1),
+		MaxTextSize = 20,
+		Visible = false,
+		Parent = button,
+	})
 	if hub then
 		local function place()
 			local screen = UI.screenSize(gui)
-			if UI.isPhone(screen) then
+			local phone = UI.isPhone(screen)
+			titleLabel.Visible = not phone
+			modeLabel.Visible = not phone
+			iconLabel.Visible = phone
+			-- (téléphone : caché avec les icônes de droite par le bouton « ▲ », UI.startShortcutToggle)
+			button.Visible = UI.extrasShown(screen)
+			if phone then
 				-- Téléphone : en haut à droite, à côté du compteur de pièces (UI.phoneTopRight).
 				local position, size = UI.phoneTopRight(screen, 1)
 				button.AnchorPoint = Vector2.new(1, 0)
@@ -504,27 +534,15 @@ local function createButton(serverMode: string)
 			button.Position = if fits then UDim2.new(0.5, -COUNTER_GAP, 0, 9) else UDim2.new(0.5, 0, 0, 56)
 		end
 		place()
+		UI.watchShortcuts(button, place)
 		if workspace.CurrentCamera then
 			workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(place)
 		end
 		gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(place)
 	end
-	UI.label({
-		Size = UDim2.new(1, 0, 0, 19),
-		Font = Enum.Font.GothamBlack,
-		Text = "SON",
-		MaxTextSize = 18,
-		Parent = button,
-	})
-	local modeLabel = UI.label({
-		Name = "ModeText",
-		Position = UDim2.new(0, 0, 0, 20),
-		Size = UDim2.new(1, 0, 0, 12),
-		MaxTextSize = 11,
-		Parent = button,
-	})
 	refreshButton = function()
 		modeLabel.Text = Sounds.MODE_LABELS[mode] or ""
+		iconLabel.Text = MODE_ICONS[mode] or "🔊"
 		button.BackgroundColor3 = if mode == "Mute" then UI.Colors.Error else UI.Colors.PanelLight
 	end
 	refreshButton()

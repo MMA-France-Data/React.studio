@@ -13,7 +13,22 @@ Depuis le dossier `roblox-ranked-td`, Studio fermé :
 ```bat
 powershell -ExecutionPolicy Bypass -File tools\studio-test\run.ps1
 powershell -ExecutionPolicy Bypass -File tools\studio-test\run.ps1 -Place match
+powershell -ExecutionPolicy Bypass -File tools\studio-test\phone.ps1
 ```
+
+**Ne touche pas à la fenêtre de Studio pendant un test** (ni clic, ni agrandissement) : un clic ferme une fenêtre du
+jeu ou sélectionne un emplacement, et des vérifications échouent sans raison.
+
+- `phone.ps1` : **le jeu à la taille d'un téléphone** (environ 3 minutes). Les autres tests ne font que des calculs
+  avec de fausses tailles ; celui-ci réduit vraiment la fenêtre de Studio jusqu'à ce que l'écran du jeu fasse la
+  taille voulue (706 x 300 = le téléphone du propriétaire, puis 750 x 332, 568 x 262 et 645 x 268), ouvre chaque
+  fenêtre (écran de jeu : rien au milieu de la vue, icônes de l'autel et de la forge et bouton Renaissance contre le
+  bord droit, Boutique en haut à gauche ; bouton « ▲ » qui les masque et les remet ;
+  tuto ; cartes des tours page par page, fiche d'une tour, « Détails & effets », emplacement à acheter, autel,
+  forge, boutique, défis, renaissance), vérifie que rien ne sort de l'écran ni ne se chevauche, et prend une
+  capture (`out\phone_<taille>_<nom>.png`). Scénarios : `PhoneServer.luau` (parcelle
+  de joueur avancé) et `PhoneClient.luau`. Les dispositions « téléphone » ne dépendent que de la taille de l'écran
+  (`UI.touchLayout`), jamais de « écran tactile » : c'est ce qui permet de les voir dans Studio.
 
 - `hub` (par défaut) : map principale. Le scénario achète des emplacements dans le désordre (prix,
   cadenas, refus), pose les 8 tours, les améliore, pose des bonus,

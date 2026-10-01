@@ -73,19 +73,21 @@ function RebirthUI.start()
 		TweenInfo.new(0.9, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true),
 		{ Transparency = 0 }
 	):Play()
+	-- (Hauteurs en parts du bouton : 20 et 13 px sur un ordinateur, moins sur le petit bouton d'un téléphone.)
 	local buttonTitle = UI.label({
-		Size = UDim2.new(1, 0, 0, 20),
+		Size = UDim2.new(1, 0, 0.59, 0),
 		Font = Enum.Font.GothamBold,
 		MaxTextSize = 17,
 		Parent = button,
 	})
 	local buttonBonus = UI.label({
-		Position = UDim2.new(0, 0, 0, 21),
-		Size = UDim2.new(1, 0, 0, 13),
+		Position = UDim2.new(0, 0, 0.61, 0),
+		Size = UDim2.new(1, 0, 0.39, 0),
 		MaxTextSize = 12,
 		Parent = button,
 	})
-	-- Écran trop bas (téléphone) : toute la colonne est réduite pour tenir (UI.leftColumnSlot).
+	-- Téléphone : le même bouton (son nom et son gain, comme dans les autres jeux : demande du propriétaire), plus
+	-- petit, contre le bord droit de l'écran sous les icônes de l'autel et de la forge (UI.leftColumnSlot).
 	UI.placeInLeftColumn(button, 2)
 
 	------------------------------------------------------------------
@@ -124,13 +126,19 @@ function RebirthUI.start()
 	})
 	local hintShownAt = 0
 	local function placeHint()
-		-- À droite du bouton Renaissance, à sa hauteur, sans sortir de l'écran (réduit sur un téléphone).
+		-- À côté du bouton Renaissance, à sa hauteur, sans sortir de l'écran (réduit sur un téléphone) : à sa droite
+		-- (ordinateur : le bouton est dans la colonne de gauche), ou à sa gauche quand il est contre le bord droit
+		-- (téléphone : icône à droite de l'écran).
 		local screen = UI.screenSize(buttonGui)
 		local at = button.AbsolutePosition - buttonGui.AbsolutePosition
 		local right = at.X + button.AbsoluteSize.X + 10
-		hintScale.Scale = math.clamp((screen.X - right - 12) / 310, 0.6, 1)
-		local height = 128 * hintScale.Scale
-		hint.Position = UDim2.fromOffset(math.floor(right), math.floor(math.clamp(at.Y, 8, math.max(8, screen.Y - height - 8))))
+		local onLeft = at.X > screen.X / 2
+		hintScale.Scale = math.clamp((if onLeft then at.X - 22 else screen.X - right - 12) / 310, 0.6, 1)
+		local width, height = 310 * hintScale.Scale, 128 * hintScale.Scale
+		hint.Position = UDim2.fromOffset(
+			math.floor(if onLeft then at.X - 10 - width else right),
+			math.floor(math.clamp(at.Y, 8, math.max(8, screen.Y - height - 8)))
+		)
 	end
 	hintOk.Activated:Connect(function()
 		hint.Visible = false
@@ -138,6 +146,7 @@ function RebirthUI.start()
 	Remotes.get("RebirthHint").OnClientEvent:Connect(function(gain)
 		local value = if typeof(gain) == "number" then gain else IdleConfig.REBIRTH_BASE_GAIN
 		hintText.Text = `💡 <b>Tu bloques sur une vague ?</b>\nUtilise la <b>Renaissance</b> sans perdre ta progression : tu gardes tes tours, tes améliorations et tes pièces, et tu gagnes +{percent(value)} % de pièces pour toujours.`
+		UI.showShortcuts() -- (téléphone : le bouton Renaissance revient si le joueur avait masqué les icônes)
 		placeHint()
 		hint.Visible = true
 		local shownAt = os.clock()
@@ -395,6 +404,12 @@ function RebirthUI.start()
 			buttonTitle.TextColor3 = UI.Colors.Muted
 			buttonBonus.TextColor3 = UI.Colors.Gold
 			buttonStroke.Enabled = false
+		end
+		-- Téléphone : petit bouton, comme dans les autres jeux (demande du propriétaire) : « Renaissance » et, dessous,
+		-- seulement son gain (ou la vague à réussir).
+		if UI.touchLayout(UI.screenSize(buttonGui)) then
+			buttonTitle.Text = "Renaissance"
+			buttonBonus.Text = if gain > 0 then `+{percent(gain)} %` else `vague {minWave}`
 		end
 	end
 

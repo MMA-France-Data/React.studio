@@ -794,7 +794,10 @@ return function(log)
 			if gui:IsA("TextLabel") then
 				local text = gui.Text
 				if string.find(text, "^💰") then
-					coinsLabel = gui
+					-- (le compteur « Wallet » ; le panneau des tours a aussi ses pièces, pour le téléphone : « Coins »)
+					if gui:FindFirstAncestor("Wallet") then
+						coinsLabel = gui
+					end
 				elseif string.find(text, "^Vague %d") or string.find(text, "vague ratée") or string.find(text, "Ennemis restants") or string.find(text, "Prochaine vague") then
 					table.insert(waveTexts, text)
 				end
@@ -1328,17 +1331,32 @@ return function(log)
 			found == #columnButtons and #wrong == 0,
 			`colonne de gauche sur l'écran du test ({screenText}) : {found}/{#columnButtons} boutons à leur place{if #wrong > 0 then " ; mal placés : " .. table.concat(wrong, ", ") else ""}`
 		)
-		-- Colonne de gauche sur téléphone (vraie fonction, fausses tailles) : les 5 boutons dans l'écran, sous la carte de
-		-- rang (16 + 130 px) et pas plus larges qu'elle (16 + 260 px), sans se chevaucher.
+		-- Raccourcis sur téléphone (vraie fonction UI.leftColumnSlot, fausses tailles) : plus de colonne à gauche (elle
+		-- tombait sur le joystick, et réduite elle était trop petite pour le doigt). Disposition choisie par le
+		-- propriétaire (01/10/2026, d'après d'autres jeux) : Autel et Forge = deux icônes carrées contre le bord droit ;
+		-- Renaissance = un bouton avec son nom, dessous, contre le bord droit ; Boutique = son bouton en haut à gauche ;
+		-- Défis = une icône à droite. Tous dans l'écran, sans se chevaucher, au moins 34 px de haut, rien au milieu de
+		-- la vue (à droite : dans les 130 derniers px, au-dessus du bouton de saut, UI.PHONE_JUMP_ZONE). Le vrai rendu
+		-- est vérifié par tools/studio-test/phone.ps1 (fenêtre de Studio à la taille d'un téléphone).
 		local topBar = math.max(58, (game:GetService("GuiService"):GetGuiInset()).Y)
-		for _, phone in { Vector2.new(844, 390), Vector2.new(667, 375) } do
+		for _, phone in { Vector2.new(844, 390), Vector2.new(667, 375), Vector2.new(706, 358), Vector2.new(568, 320) } do
 			local area = phone - Vector2.new(0, topBar)
-			local problems, rects, height = {}, {}, 0
+			local problems, rects, smallest = {}, {}, math.huge
 			for index = 0, UI.LEFT_COLUMN_COUNT - 1 do
-				local corner, scale = UI.leftColumnSlot(area, index)
-				local far = corner + UI.LEFT_BUTTON_SIZE * scale
-				height = UI.LEFT_BUTTON_SIZE.Y * scale
-				if corner.X < 0 or corner.Y < 16 + 130 or far.X > 16 + 260 + 0.5 or far.Y > area.Y - UI.WINDOW_MARGIN + 0.5 then
+				local corner, scale, size = UI.leftColumnSlot(area, index)
+				local far = corner + size * scale
+				smallest = math.min(smallest, size.Y * scale)
+				local square = math.abs(size.X - size.Y) < 0.5
+				local placed
+				if index == 3 then
+					-- Boutique : en haut à gauche, un bouton à texte
+					placed = corner.X >= 0 and corner.X <= 16 and corner.Y >= 0 and far.Y <= 50 and not square
+				else
+					-- les autres : à droite ; icônes carrées, sauf la Renaissance (bouton à texte)
+					placed = corner.X >= area.X - 130 and far.X <= area.X and corner.Y >= 0
+						and far.Y <= area.Y - UI.PHONE_JUMP_ZONE + 0.5 and square == (index ~= 2)
+				end
+				if not placed then
 					table.insert(problems, `bouton {index + 1} de ({px(corner.X)}, {px(corner.Y)}) à ({px(far.X)}, {px(far.Y)})`)
 				end
 				for _, other in rects do
@@ -1349,25 +1367,47 @@ return function(log)
 				table.insert(rects, { corner, far })
 			end
 			report(
-				#problems == 0,
-				`colonne de gauche sur téléphone {px(phone.X)} x {px(phone.Y)} (écran utile {px(area.X)} x {px(area.Y)}) : les {UI.LEFT_COLUMN_COUNT} boutons dans l'écran, sous la carte de rang et pas plus larges qu'elle, sans se chevaucher ({px(height)} px de haut){if #problems > 0 then " ; problèmes : " .. table.concat(problems, ", ") else ""}`
+				UI.touchLayout(area) and UI.leftColumnRight(area) == 0 and #problems == 0 and smallest >= 34,
+				`raccourcis sur téléphone {px(phone.X)} x {px(phone.Y)} (écran utile {px(area.X)} x {px(area.Y)}) : icônes de l'autel et de la forge et bouton Renaissance à droite, Boutique en haut à gauche, dans l'écran, au-dessus du bouton de saut, sans se chevaucher (le moins haut : {px(smallest)} px){if #problems > 0 then " ; problèmes : " .. table.concat(problems, ", ") else ""}`
 			)
 		end
-		-- Téléphone (vraie fonction UI.phoneTopRight, fausses tailles) : compteur de pièces, SON et Vitesse x2 en haut à
-		-- droite, dans l'écran, sans se chevaucher, et loin du milieu de la vue (demande du propriétaire, 30/09/2026).
-		for _, phone in { Vector2.new(844, 390), Vector2.new(667, 375), Vector2.new(390, 844) } do
+		-- Ordinateur : la colonne de gauche n'a pas bougé (16 px du bord, sous la carte de rang, 180 x 46 px).
+		local pcCorner, pcScale, pcSize = UI.leftColumnSlot(Vector2.new(1736, 735), 2)
+		report(
+			not UI.touchLayout(Vector2.new(1736, 735)) and pcCorner == Vector2.new(16, UI.LEFT_COLUMN_TOP + 2 * UI.LEFT_COLUMN_STEP) and pcScale == 1 and pcSize == UI.LEFT_BUTTON_SIZE,
+			`raccourcis sur ordinateur : colonne de gauche comme avant (3e bouton en ({px(pcCorner.X)}, {px(pcCorner.Y)}), x{pcScale})`
+		)
+		-- Panneau des tours (vraie fonction UI.plotPanelLayout) : en bas de l'écran sur ordinateur (760 x 460, 4 cartes
+		-- par page ; 566 px de haut sur un écran haut, pour les 8 tours d'un coup) ; presque tout l'écran sur téléphone
+		-- (4 cartes par rangée dès 560 px de large, 2 sinon).
+		local function panelText(screen)
+			local size, columns = UI.plotPanelLayout(screen)
+			return `{px(size.X)} x {px(size.Y)} / {columns}`
+		end
+		report(
+			panelText(Vector2.new(1736, 735)) == "760 x 460 / 4" and panelText(Vector2.new(1920, 1022)) == "760 x 566 / 4"
+				and panelText(Vector2.new(706, 300)) == "690 x 284 / 4" and panelText(Vector2.new(568, 262)) == "552 x 246 / 2",
+			`panneau des tours : ordinateur {panelText(Vector2.new(1736, 735))}, grand écran {panelText(Vector2.new(1920, 1022))}, téléphone {panelText(Vector2.new(706, 300))}, petit téléphone {panelText(Vector2.new(568, 262))}`
+		)
+		-- Téléphone (vraie fonction UI.phoneTopRight, fausses tailles) : compteur de pièces, bouton « ▲ », SON et Vitesse
+		-- x2 petits (34 px de haut) et tout en haut à droite, sans se chevaucher. En paysage : DANS la barre du haut de
+		-- Roblox (hauteur négative : au-dessus de la zone de jeu, rien sur la vue ; demandes du propriétaire, 30/09 et
+		-- 01/10/2026), à droite des boutons de Roblox (jamais dans le tiers gauche de l'écran). En portrait : en haut
+		-- de la zone de jeu.
+		for _, phone in { Vector2.new(844, 390), Vector2.new(667, 375), Vector2.new(568, 320), Vector2.new(390, 844) } do
 			local area = phone - Vector2.new(0, topBar)
+			local portrait = area.Y > area.X
 			local problems, rects = {}, {}
-			for slot = 0, 2 do
-				local position, size = UI.phoneTopRight(area, slot)
+			for slot = 0, 3 do
+				local position, size = UI.phoneTopRight(area, slot, topBar)
 				local right = position.X.Scale * area.X + position.X.Offset
 				local corner = Vector2.new(right - size.X, position.Y.Offset)
 				local far = corner + size
-				if corner.X < 0 or corner.Y < 0 or far.X > area.X or far.Y > area.Y then
+				if corner.X < 0 or far.X > area.X or corner.Y < -topBar or far.Y > area.Y then
 					table.insert(problems, `élément {slot} hors de l'écran`)
 				end
-				if far.Y > area.Y * 0.45 or corner.X < area.X * 0.3 then
-					table.insert(problems, `élément {slot} trop près du milieu ({px(corner.X)}, {px(corner.Y)})`)
+				if (not portrait and (far.Y > 0 or corner.X < area.X * 0.33)) or (portrait and far.Y > area.Y * 0.2) or size.Y > 34 then
+					table.insert(problems, `élément {slot} mal placé ({px(corner.X)}, {px(corner.Y)}, {px(size.X)} x {px(size.Y)} px)`)
 				end
 				for _, other in rects do
 					if corner.X < other[2].X and other[1].X < far.X and corner.Y < other[2].Y and other[1].Y < far.Y then
@@ -1378,7 +1418,7 @@ return function(log)
 			end
 			report(
 				UI.isPhone(area) and #problems == 0,
-				`téléphone {px(phone.X)} x {px(phone.Y)} : pièces, SON et Vitesse x2 en haut à droite, dans l'écran, sans se chevaucher{if #problems > 0 then " ; problèmes : " .. table.concat(problems, ", ") else ""}`
+				`téléphone {px(phone.X)} x {px(phone.Y)} : pièces, « ▲ », SON et Vitesse x2 petits, tout en haut à droite{if portrait then "" else " dans la barre de Roblox"}, sans se chevaucher{if #problems > 0 then " ; problèmes : " .. table.concat(problems, ", ") else ""}`
 			)
 		end
 		report(not UI.isPhone(Vector2.new(1736, 735)) and not UI.isPhone(Vector2.new(1280, 620)), "ordinateur : pas de disposition téléphone (compteur de pièces au milieu, comme avant)")
@@ -2367,9 +2407,10 @@ return function(log)
 		local towerPanel = plotGui and plotGui:FindFirstChild("TowerPanel")
 		if towerPanel then
 			local wasVisible, wasAnchor, wasPosition = towerPanel.Visible, towerPanel.AnchorPoint, towerPanel.Position
+			-- (d'abord l'afficher : PlotUI le remet à sa place quand il s'ouvre, puis on le déplace)
+			towerPanel.Visible = true
 			towerPanel.AnchorPoint = Vector2.new(0.5, 0) -- centré, à 100 px du haut : sous le tuto, quel que soit l'écran
 			towerPanel.Position = UDim2.new(0.5, 0, 0, 100)
-			towerPanel.Visible = true
 			local hidden = waitFor(function()
 				return not shown(panel)
 			end, 3)

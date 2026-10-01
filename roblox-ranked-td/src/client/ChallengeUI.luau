@@ -163,7 +163,7 @@ function ChallengeUI.start()
 	})
 	-- Écran trop bas (téléphone) : toute la colonne est réduite pour tenir (UI.leftColumnSlot). Avant, ce bouton
 	-- sortait de l'écran d'un téléphone en paysage.
-	UI.placeInLeftColumn(button, 4)
+	UI.placeInLeftColumn(button, 4, "⚔")
 
 	------------------------------------------------------------------
 	-- Fenêtre (même style que les machines, MachineUI)
