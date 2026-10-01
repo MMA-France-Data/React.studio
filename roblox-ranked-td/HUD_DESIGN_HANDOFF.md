@@ -1,5 +1,16 @@
 # HUD et panneaux — 30 septembre 2026
 
+## Correction lisibilité PC / téléphone — 1 octobre 2026
+
+- `TowerPanel` centré, jusqu'à 1040 × 720 sur PC ; presque toute la zone sûre sur téléphone, portrait comme paysage (tactile sans clavier compris). Aucun rétrécissement global des textes.
+- Les cartes entières restent dans le panneau : huit à la fois sur les grands écrans, pages ◀ / ▶ quand la hauteur manque. Plus de défilement vertical pour choisir une tour. La première page conserve `Card_MachineGun` pour le tutoriel.
+- Dégâts, cadence et portée restent fixes sur la fiche. Sur les petits écrans, « Détails & effets » ouvre les explications séparément ; achats, amélioration, vente, remplacement et runes conservent leurs règles / confirmations.
+- Raccourcis Autel, Forge, Renaissance, Boutique et Défis en haut sur mobile, hors de la zone du joystick ; ils se cachent pendant la consultation d'une tour et reviennent à sa fermeture.
+- `LangEN/Plot` reçoit uniquement les trois nouvelles traductions d'interface. Aucun changement de chiffres, de serveur ni de `tools/`.
+- Vérification locale : 236 assertions de construction / comportement avec mocks, 73 scripts compilés et construction Rojo réussie. Cela ne remplace pas les essais Studio / appareil réel : tester rotation, tutoriel, runes, vente et remplacement.
+
+Les sections ci-dessous décrivent l'envoi initial du 30 septembre ; les cartes défilantes mentionnées ci-dessous sont remplacées par la pagination ci-dessus.
+
 Présentation uniquement, sur `claude/exciting-gauss-ggwcwm`.
 
 - Palette ardoise/or, chiffres principaux distincts et textes secondaires plus discrets.

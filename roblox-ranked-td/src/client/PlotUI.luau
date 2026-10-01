@@ -253,6 +253,7 @@ function PlotUI.start()
 		AnchorPoint = Vector2.new(1, 1),
 		Position = UDim2.new(1, -16, 1, -16),
 		Size = UDim2.fromOffset(760, PANEL_HEIGHT),
+		Active = true,
 		BackgroundColor3 = UI.Colors.Panel,
 		BackgroundTransparency = 0.05,
 		Visible = false,
@@ -265,22 +266,21 @@ function PlotUI.start()
 	-- que le tuto fait poser).
 	local panelScale = UI.new("UIScale", { Parent = panel })
 	local cardGrid: UIGridLayout? = nil
+	local touchMode = false
+	local applyContentLayout: (() -> ())? = nil
 	local function fitPanel()
 		local screen = UI.screenSize(gui)
 		if screen.X <= 0 or screen.Y <= 0 then return end
 		local size, columns = UI.plotPanelLayout(screen)
+		touchMode = UI.touchLayout(screen)
 		panel.Size = UDim2.fromOffset(size.X, size.Y)
+		panel.AnchorPoint = Vector2.new(0.5, 0.5)
+		panel.Position = UDim2.fromScale(0.5, 0.5)
+		gui.DisplayOrder = if panel.Visible then 30 else 5
+		wallet.Visible = not panel.Visible
 		panelScale.Scale = 1
-		-- Centré en bas de l'écran (demande du propriétaire : tant pis s'il cache un peu la vue, on le ferme après
-		-- usage), mais jamais sur la zone du chat de Roblox (ordinateur, en bas à gauche : il prendrait les clics
-		-- des premières cartes, dont l'Archer du tuto) ni sur la colonne de boutons de gauche (téléphone).
-		local portrait = screen.X < 700 and screen.Y > screen.X
-		local leftLimit = if portrait then 16 elseif screen.X >= 1100 then 516 else UI.leftColumnRight(screen) + 8
-		local left = math.max((screen.X - size.X) / 2, leftLimit)
-		left = math.max(16, math.min(left, screen.X - size.X - 16))
-		panel.AnchorPoint = Vector2.new(0, 1)
-		panel.Position = UDim2.new(0, math.floor(left), 1, -16)
 		if cardGrid then cardGrid.CellSize = UDim2.new(1 / columns, -8 * (columns - 1) / columns - 3, 0, CARD_HEIGHT) end
+		if applyContentLayout then applyContentLayout() end
 		if UI.isPhone(screen) then
 			-- Téléphone : en haut à droite, avec les boutons SON et Vitesse x2 (UI.phoneTopRight), pas au milieu.
 			local position, size = UI.phoneTopRight(screen, 0)
@@ -295,6 +295,7 @@ function PlotUI.start()
 	end
 	fitPanel()
 	gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(fitPanel)
+	panel:GetPropertyChangedSignal("Visible"):Connect(fitPanel)
 	local panelTitle = UI.label({
 		Size = UDim2.new(1, -40, 0, 26),
 		Font = Enum.Font.GothamBlack,
@@ -322,6 +323,7 @@ function PlotUI.start()
 
 	-- Cartes des tours : sur un emplacement libre (pose directe) ou après « Remplacer… ».
 	local cardRow = UI.new("ScrollingFrame", {
+		Name = "TowerChoices",
 		Position = UDim2.new(0, 0, 0, 52),
 		Size = UDim2.new(1, 0, 1, -114),
 		BackgroundTransparency = 1,
@@ -351,7 +353,7 @@ function PlotUI.start()
 		local stroke = UI.stroke(rarity.color, 2)
 		stroke.Transparency = 0.45
 		stroke.Parent = card
-		UI.label({
+		local nameLabel = UI.label({
 			Size = UDim2.new(1, 0, 0, 32),
 			TextWrapped = true,
 			Font = Enum.Font.GothamBlack,
@@ -360,7 +362,7 @@ function PlotUI.start()
 			MaxTextSize = 15,
 			Parent = card,
 		})
-		UI.label({
+		local kind = UI.label({
 			Position = UDim2.new(0, 0, 0, 34),
 			Size = UDim2.new(1, 0, 0, 20),
 			TextWrapped = true,
@@ -401,7 +403,7 @@ function PlotUI.start()
 			MaxTextSize = 17,
 			Parent = card,
 		})
-		cards[towerType] = { button = card, price = price, stats = stats, copies = copies, damage = damage, damageCaption = damageCaption }
+		cards[towerType] = { button = card, name = nameLabel, kind = kind, price = price, stats = stats, copies = copies, damage = damage, damageCaption = damageCaption }
 		card.MouseEnter:Connect(function()
 			hoveredType = towerType
 		end)
@@ -413,30 +415,36 @@ function PlotUI.start()
 	end
 
 	-- Fiche de la tour posée (à la place des cartes) : ses stats et le bouton « Remplacer… », à part.
-	local towerInfo = UI.new("ScrollingFrame", {
+	local towerInfo = UI.new("Frame", {
+		Name = "TowerInfo",
 		Position = UDim2.new(0, 0, 0, 52),
 		Size = UDim2.new(1, 0, 1, -150),
 		BackgroundColor3 = UI.Colors.Background,
 		BackgroundTransparency = 0.4,
 		Visible = false,
-		BorderSizePixel = 0, ScrollBarThickness = 4, ScrollBarImageColor3 = UI.Colors.Gold,
-		CanvasSize = UDim2.new(), AutomaticCanvasSize = Enum.AutomaticSize.Y,
-		ScrollingDirection = Enum.ScrollingDirection.Y,
+		BorderSizePixel = 0,
 		Parent = panel,
-	}, { UI.corner(10), UI.padding(8) })
+	}, { UI.corner(10), UI.new("UIPadding", { PaddingLeft = UDim.new(0, 8), PaddingRight = UDim.new(0, 8) }) })
 	local metricRow = UI.new("Frame", { Size = UDim2.new(1, -6, 0, 76), BackgroundTransparency = 1, Parent = towerInfo })
 	local damageMetric = UI.metric(metricRow, "DÉGÂTS / COUP", 1, 3)
 	local speedMetric = UI.metric(metricRow, "CADENCE", 2, 3)
 	local rangeMetric = UI.metric(metricRow, "PORTÉE", 3, 3)
+	local detailScroll = UI.new("ScrollingFrame", {
+		Name = "TowerDetails", Position = UDim2.fromOffset(0, 124), Size = UDim2.new(1, 0, 1, -124),
+		BackgroundTransparency = 1, BorderSizePixel = 0, ScrollBarThickness = 5,
+		ScrollBarImageColor3 = UI.Colors.Gold, CanvasSize = UDim2.new(),
+		AutomaticCanvasSize = Enum.AutomaticSize.Y, ScrollingDirection = Enum.ScrollingDirection.Y,
+		Parent = towerInfo,
+	})
 	local towerStats = UI.label({
-		Position = UDim2.fromOffset(0, 124), Size = UDim2.new(1, -10, 0, 0),
+		Position = UDim2.fromOffset(0, 0), Size = UDim2.new(1, -10, 0, 0),
 		AutomaticSize = Enum.AutomaticSize.Y, TextScaled = false, TextSize = 15,
 		TextXAlignment = Enum.TextXAlignment.Left,
 		TextYAlignment = Enum.TextYAlignment.Top,
 		TextWrapped = true,
 		RichText = true,
 		MaxTextSize = 16,
-		Parent = towerInfo,
+		Parent = detailScroll,
 	})
 	local replaceButton = UI.button({
 		AnchorPoint = Vector2.new(1, 0),
@@ -447,7 +455,7 @@ function PlotUI.start()
 		MaxTextSize = 15,
 		Parent = towerInfo,
 	})
-	UI.label({
+	local replaceHint = UI.label({
 		Position = UDim2.new(0, 0, 0, 84),
 		Size = UDim2.new(1, -176, 0, 32),
 		TextColor3 = UI.Colors.Muted,
@@ -456,6 +464,12 @@ function PlotUI.start()
 		MaxTextSize = 12,
 		Parent = towerInfo,
 	})
+	local detailsButton = UI.button({
+		Name = "DetailsButton", Position = UDim2.fromOffset(0, 78), Size = UDim2.new(0.5, -6, 0, 32),
+		Text = "Détails & effets", BackgroundColor3 = UI.Colors.PanelLight, MaxTextSize = 15,
+		Visible = false, Parent = towerInfo,
+	})
+	local detailsOpen = false
 
 	-- Runes de l'inventaire à poser sur la tour sélectionnée (rebuildBonusRow).
 	local bonusRow = UI.new("ScrollingFrame", {
@@ -506,6 +520,84 @@ function PlotUI.start()
 		Visible = false,
 		Parent = panel,
 	})
+	local pager = UI.new("Frame", {
+		Name = "TowerPages", AnchorPoint = Vector2.new(0, 1), Position = UDim2.new(0, 0, 1, 0),
+		Size = UDim2.new(1, 0, 0, 44), BackgroundTransparency = 1, Visible = false, Parent = panel,
+	})
+	local previousPage = UI.button({ Name = "PreviousPage", Size = UDim2.new(0.22, 0, 1, 0), Text = "◀",
+		BackgroundColor3 = UI.Colors.PanelLight, Parent = pager })
+	local nextPage = UI.button({ Name = "NextPage", AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.fromScale(1, 0), Size = UDim2.new(0.22, 0, 1, 0), Text = "▶",
+		BackgroundColor3 = UI.Colors.PanelLight, Parent = pager })
+	local pageLabel = UI.label({ Name = "PageNumber", Position = UDim2.fromScale(0.24, 0),
+		Size = UDim2.new(0.52, 0, 1, 0), MaxTextSize = 18, Parent = pager })
+	local page = 1
+	local pageSize = count
+	local detailsMode = false
+	local function refreshPage()
+		local pages = math.max(1, math.ceil(count / pageSize))
+		page = math.clamp(page, 1, pages)
+		pageLabel.Text = `{page} / {pages}`
+		previousPage.Active = page > 1
+		nextPage.Active = page < pages
+		previousPage.BackgroundTransparency = if page > 1 then 0 else 0.6
+		nextPage.BackgroundTransparency = if page < pages then 0 else 0.6
+		for index, towerType in IdleTowers.ORDER do
+			cards[towerType].button.Visible = math.ceil(index / pageSize) == page
+		end
+	end
+	previousPage.Activated:Connect(function() page = math.max(1, page - 1); refreshPage() end)
+	nextPage.Activated:Connect(function() page = math.min(math.ceil(count / pageSize), page + 1); refreshPage() end)
+	local function fitDetails()
+		local expanded = detailsMode and detailsOpen
+		metricRow.Visible = not expanded
+		replaceButton.Visible = not expanded
+		replaceHint.Visible = not detailsMode
+		detailsButton.Visible = detailsMode
+		detailsButton.Text = if expanded then "← Statistiques" else "Détails & effets"
+		detailsButton.Position = UDim2.fromOffset(0, if expanded then 0 else 76)
+		detailScroll.Visible = not detailsMode or expanded
+		detailScroll.Position = UDim2.fromOffset(0, if expanded then 40 else 124)
+		detailScroll.Size = UDim2.new(1, 0, 1, if expanded then -40 else -124)
+	end
+	detailsButton.Activated:Connect(function() detailsOpen = not detailsOpen; fitDetails() end)
+	applyContentLayout = function()
+		local size, columns = UI.plotPanelLayout(UI.screenSize(gui))
+		local available = size.Y - 20 - 106 -- padding + titre + pied de page
+		local rows = math.max(1, math.floor((available + 8) / (if touchMode then 188 else 224)))
+		local cardHeight = math.min(CARD_HEIGHT, math.floor((available - (rows - 1) * 8) / rows))
+		pageSize = columns * rows
+		cardRow.Size = UDim2.new(1, 0, 1, -106)
+		cardRow.ScrollingEnabled = false
+		cardRow.ScrollBarThickness = 0
+		cardRow.AutomaticCanvasSize = Enum.AutomaticSize.None
+		cardRow.CanvasPosition = Vector2.zero
+		cardGrid.CellSize = UDim2.new(1 / columns, -8 * (columns - 1) / columns - 3, 0, cardHeight)
+		for _, card in cards do
+			local short = cardHeight < 174
+			card.kind.Visible = not short
+			card.stats.Visible = cardHeight >= 200
+			card.damage.Position = UDim2.fromOffset(0, if short then 34 else 58)
+			card.damageCaption.Position = UDim2.fromOffset(0, if short then 62 else 86)
+		end
+		closeButton.Size = UDim2.fromOffset(if touchMode then 44 else 30, if touchMode then 44 else 30)
+		panelTitle.Size = UDim2.new(1, if touchMode then -54 else -40, 0, 26)
+		panelSubtitle.Size = UDim2.new(1, if touchMode then -54 else 0, 0, 18)
+		towerInfo.Position = UDim2.fromOffset(0, if touchMode then 48 else 52)
+		towerInfo.Size = UDim2.new(1, 0, 1, if touchMode then -140 else -150)
+		detailsMode = touchMode or size.Y < 450
+		replaceButton.Position = UDim2.new(1, -6, 0, if detailsMode then 76 else 84)
+		replaceButton.Size = if detailsMode then UDim2.new(0.5, -6, 0, 32) else UDim2.fromOffset(156, 32)
+		bonusRow.Size = UDim2.new(1, 0, 0, if touchMode then 44 else 36)
+		bonusRow.Position = UDim2.new(0, 0, 1, if touchMode then -48 else -54)
+		backButton.Position = UDim2.new(0.24, 0, 1, 0)
+		backButton.Size = UDim2.new(0.52, 0, 0, 44)
+		refreshPage()
+		fitDetails()
+		pager.Visible = cardRow.Visible
+		pageLabel.Visible = not backButton.Visible
+	end
+	fitPanel()
 
 	-- Confirmation du remplacement : recouvre tout le panneau. Ses boutons sont en bas, loin des cartes
 	-- (un double clic sur une carte ne tombe jamais sur « Confirmer »).
@@ -625,6 +717,10 @@ function PlotUI.start()
 
 	local function select(spotIndex: number?)
 		if spotIndex ~= selectedSpot then
+			page = 1
+			detailsOpen = false
+			refreshPage()
+			fitDetails()
 			-- Autre emplacement : on repart de sa fiche (aucun choix en cours ne suit la sélection).
 			replacing = false
 			confirmReplace = nil
@@ -747,7 +843,7 @@ function PlotUI.start()
 	local function rebuildBonusRow(tower: Model?)
 		local inventory = player:GetAttribute("Bonuses") or ""
 		local current = tower and tower:GetAttribute("Bonus") or ""
-		local key = `{selectedSpot}:{inventory}:{current}:{confirmBonus}`
+		local key = `{selectedSpot}:{inventory}:{current}:{confirmBonus}:{touchMode}`
 		if key == bonusRowKey then
 			return
 		end
@@ -794,7 +890,7 @@ function PlotUI.start()
 			local old = placed[bonus.kind] -- rune de la même sorte déjà posée : c'est elle qui serait remplacée
 			local confirming = old ~= nil and confirmBonus == bonus.id
 			local button = UI.button({
-				Size = UDim2.fromOffset(if confirming then 150 else 96, 28),
+				Size = UDim2.fromOffset(if confirming then 150 else 96, if touchMode then 44 else 28),
 				LayoutOrder = order,
 				BackgroundColor3 = if confirming then UI.Colors.Error else UI.Colors.Gold,
 				TextColor3 = Color3.fromRGB(30, 25, 10),
@@ -1014,6 +1110,7 @@ function PlotUI.start()
 		actionButton.Visible = false
 		backButton.Visible = false
 		confirmFrame.Visible = false
+		pager.Visible = false
 		actionButton.Size = UDim2.new(1, 0, 0, 44)
 
 		if not owned[spotIndex] then
@@ -1040,8 +1137,10 @@ function PlotUI.start()
 				then "Pose en cours…"
 				elseif hoveredFull then `{IdleTowers.copiesLimitMessage(hoveredType)} : vends-en une pour en poser une autre`
 				elseif hovered then idealText(hovered)
-				else "Choisis une tour à poser (survole une carte : contre quoi elle est idéale) :"
+				else if touchMode then "Choisis ta tour • utilise ◀ ▶ pour les autres" else "Choisis une tour à poser (survole une carte : contre quoi elle est idéale) :"
 			cardRow.Visible = true
+			pager.Visible = true
+			pageLabel.Visible = true
 			refreshCards(nil, 0, pending ~= nil)
 			return
 		end
@@ -1104,6 +1203,8 @@ function PlotUI.start()
 			cardRow.Visible = true
 			refreshCards(currentType, refund, pending ~= nil)
 			backButton.Visible = true
+			pager.Visible = true
+			pageLabel.Visible = false
 			return
 		end
 

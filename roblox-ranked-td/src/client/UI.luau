@@ -3,6 +3,7 @@ local GuiService = game:GetService("GuiService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
 
 local Lang = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Lang"))
 
@@ -142,12 +143,20 @@ end
 -- un ordinateur). Sinon (téléphone en paysage : la Boutique et les Défis sortaient de l'écran), toute la colonne
 -- est réduite pour tenir sous la carte de rang, à sa place d'avant (jamais plus large : elle ne passe pas sur le
 -- panneau des tours). Fonction pure.
-function UI.leftColumnSlot(screen: Vector2, index: number): (Vector2, number)
+function UI.leftColumnSlot(screen: Vector2, index: number): (Vector2, number, Vector2)
+	if UI.touchLayout(screen) then
+		-- Une vraie barre en haut, jamais de boutons dans la zone du joystick.
+		local columns = if screen.Y > screen.X then 3 else UI.LEFT_COLUMN_COUNT
+		local width = math.min(180, math.floor((screen.X - 24 - (columns - 1) * 6) / columns))
+		local top = if screen.Y > screen.X then 134 else 78
+		return Vector2.new(12 + (index % columns) * (width + 6), top + math.floor(index / columns) * 50),
+			1, Vector2.new(width, 44)
+	end
 	local step = UI.LEFT_COLUMN_STEP
 	-- Hauteur de la colonne à taille normale : 4 écarts de 54 px et le dernier bouton (46 px).
 	local height = (UI.LEFT_COLUMN_COUNT - 1) * step + UI.LEFT_BUTTON_SIZE.Y
 	local scale = math.clamp((screen.Y - UI.WINDOW_MARGIN - UI.LEFT_COLUMN_TOP) / height, UI.MIN_WINDOW_SCALE, 1)
-	return Vector2.new(UI.LEFT_COLUMN_X, math.floor(UI.LEFT_COLUMN_TOP + index * step * scale)), scale
+	return Vector2.new(UI.LEFT_COLUMN_X, math.floor(UI.LEFT_COLUMN_TOP + index * step * scale)), scale, UI.LEFT_BUTTON_SIZE
 end
 
 -- Bord droit (px) des boutons de la colonne de gauche sur cet écran (une fenêtre qu'ils couvriraient reste à côté).
@@ -164,12 +173,13 @@ function UI.placeInLeftColumn(button: GuiObject, index: number)
 	local function place()
 		local screen = UI.screenSize(gui)
 		if screen.X > 0 and screen.Y > 0 then
-			local position, value = UI.leftColumnSlot(screen, index)
+			local position, value, size = UI.leftColumnSlot(screen, index)
 			button.Position = UDim2.fromOffset(position.X, position.Y)
+			button.Size = UDim2.fromOffset(size.X, size.Y)
 			scale.Scale = value
 			local plotGui = plotPanel and plotPanel:FindFirstAncestorWhichIsA("ScreenGui")
 			-- Sur téléphone portrait, la fiche est un panneau au premier plan : fermer la fiche rend la navigation.
-			button.Visible = not (screen.X < 700 and screen.Y > screen.X and plotPanel
+			button.Visible = not (UI.touchLayout(screen) and plotPanel
 				and plotPanel.Visible and plotGui and plotGui.Enabled)
 		end
 	end
@@ -187,13 +197,20 @@ function UI.registerPlotPanel(panel: GuiObject)
 	end
 	panel:GetPropertyChangedSignal("Visible"):Connect(refreshNavigation)
 	local gui = panel:FindFirstAncestorWhichIsA("ScreenGui")
-	if gui then gui:GetPropertyChangedSignal("Enabled"):Connect(refreshNavigation) end
+	if gui then
+		gui:GetPropertyChangedSignal("Enabled"):Connect(refreshNavigation)
+		gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(refreshNavigation)
+	end
 	refreshNavigation()
 end
 
 -- Téléphone = le petit côté de l'écran fait moins de 500 px (paysage 844 x 390, portrait 390 x 844...). Fonction pure.
 function UI.isPhone(screen: Vector2): boolean
 	return screen.X > 0 and screen.Y > 0 and math.min(screen.X, screen.Y) < 500
+end
+
+function UI.touchLayout(screen: Vector2): boolean
+	return UI.isPhone(screen) or (UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled) == true
 end
 
 -- Sur téléphone (demande du propriétaire, 30/09/2026 : le compteur de pièces et le bouton SON étaient en plein
@@ -221,11 +238,13 @@ end
 
 -- Taille réelle des panneaux : le texte ne devient pas minuscule pour faire tenir huit cartes.
 function UI.plotPanelLayout(screen: Vector2): (Vector2, number)
-	local portrait = screen.X < 700 and screen.Y > screen.X
-	local reserved = if portrait then 0 elseif screen.X >= 1100 then 500 else 280
-	local width = math.max(160, math.min(760, screen.X - reserved - 32))
-	local height = math.max(160, math.min(460, screen.Y - 96, math.max(280, screen.Y * 0.72)))
-	return Vector2.new(width, height), if width >= 600 then 4 else 2
+	if UI.touchLayout(screen) then
+		local width = math.max(160, screen.X - 16)
+		return Vector2.new(width, math.max(160, screen.Y - 16)), if width >= 700 then 4 else 2
+	end
+	local width = math.max(160, math.min(1040, screen.X - 32))
+	local height = math.max(160, math.min(720, screen.Y - 32))
+	return Vector2.new(width, height), if width >= 700 then 4 else 2
 end
 
 function UI.modalSize(screen: Vector2, design: Vector2): Vector2

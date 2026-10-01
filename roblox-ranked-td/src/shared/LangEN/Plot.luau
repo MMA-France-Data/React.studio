@@ -11,6 +11,9 @@
 -- morceau par morceau : chaque ligne ou morceau a donc sa propre ligne ici.
 -- Vérifier : luau.exe tools/lang/check.luau (depuis roblox-ranked-td).
 return {
+	["Détails & effets"] = "Details & effects",
+	["← Statistiques"] = "← Stats",
+	["Choisis ta tour • utilise ◀ ▶ pour les autres"] = "Pick your tower • use ◀ ▶ for more",
 	----------------------------------------------------------------------
 	-- Tours du mode solo (IdleTowers.luau) : descriptions. Les nombres viennent des réglages : {1}, {2}...
 	----------------------------------------------------------------------
