@@ -1388,8 +1388,11 @@ end
 function PlotGame:createTower(spotIndex: number, towerType: string, level: number, spent: number, runes: any?)
 	local runeIds = IdleConfig.runeIds(runes)
 	local runeKey = IdleConfig.runeList(runeIds)
+	-- cframe = position de la tour pour le combat (portées, départ des tirs) : inchangée. Le MODÈLE, lui, est posé
+	-- sur le socle surélevé de l'emplacement (PlotLayout.SPOT_PAD_HEIGHT) : seulement l'affichage.
 	local cframe = PlotLayout.worldCFrame(self.index, PlotLayout.SPOTS[spotIndex] + Vector3.new(0, 0.3, 0))
-	local model = IdleTowerModel.create(towerType, cframe, self.towerFolder, {
+	local modelCFrame = PlotLayout.worldCFrame(self.index, PlotLayout.SPOTS[spotIndex] + Vector3.new(0, PlotLayout.SPOT_PAD_HEIGHT, 0))
+	local model = IdleTowerModel.create(towerType, modelCFrame, self.towerFolder, {
 		SpotIndex = spotIndex,
 		PlotIndex = self.index,
 		Level = level,

@@ -3366,7 +3366,9 @@ return function(log)
 	--    départ ; anciennes sauvegardes (d'avant le tuto) : qui a déjà joué ne le voit jamais.
 	-- 2) Sa parcelle redevient celle d'un nouveau joueur (aucune tour, record 1, aucun lancer, 50 pièces), puis
 	--    l'attribut AutoTestTutorial de ReplicatedStorage (« Client ») donne la main au client : il relance le tuto
-	--    (« Replay », Studio seulement), fait les 6 étapes par les vraies actions, puis « Passer » sur un 2e essai.
+	--    (« Replay », Studio seulement), fait ses 5 étapes par les vraies actions (classé fermé : plus d'étape de la
+	--    zone classée), puis « Passer » sur un 2e essai, et sur un 3e (classé ouvert chez le client seulement : 6
+	--    étapes, « Passer » à la 2e).
 	--    Ici : le drapeau tutorialDone sauvegardé à chaque fin, et les 3 achats payés avec les 50 pièces.
 	-- Dans sa propre fonction (limite des 200 variables locales de Luau, voir plus haut).
 	----------------------------------------------------------------------
@@ -3382,7 +3384,7 @@ return function(log)
 			end
 			return condition() == true
 		end
-		-- { done, attribute, lastAction ("Done" | "Skip"), lastStep, replays } (StudioDebug « Tutorial »)
+		-- { done, attribute, lastAction ("Done" | "Skip"), lastStep, steps, replays } (StudioDebug « Tutorial »)
 		local function tutorial()
 			return dbg:Invoke(player, "Tutorial") or {}
 		end
@@ -3446,15 +3448,17 @@ return function(log)
 		)
 		ReplicatedStorage:SetAttribute("AutoTestTutorial", "Client")
 
-		-- Le client fait les 6 étapes : la forge ouverte termine le tuto (« Done » à l'étape 6), drapeau sauvegardé.
+		-- Classé fermé : le tuto a 5 étapes (plus d'étape de la zone classée, Tutorial.stepCount). Le client les fait :
+		-- la forge ouverte termine le tuto (« Done » à l'étape 5), drapeau sauvegardé.
 		local finished = waitFor(function()
 			local t = tutorial()
 			return (t.replays == 1 and t.done == true) or (t.replays or 0) >= 2
 		end, 150)
 		local t1 = tutorial()
 		check(
-			finished and t1.replays == 1 and t1.lastAction == "Done" and t1.lastStep == 6 and t1.done == true and t1.attribute == true,
-			`tuto (client) : 6 étapes faites -> fini (« {t1.lastAction} » à l'étape {t1.lastStep}), tutorialDone sauvegardé = {tostring(t1.done)}, attribut {tostring(t1.attribute)}`
+			finished and t1.replays == 1 and t1.steps == 5 and t1.lastAction == "Done" and t1.lastStep == 5 and t1.done == true
+				and t1.attribute == true,
+			`tuto (client) : classé fermé, {t1.steps} étapes faites -> fini (« {t1.lastAction} » à l'étape {t1.lastStep}), tutorialDone sauvegardé = {tostring(t1.done)}, attribut {tostring(t1.attribute)}`
 		)
 		local after = dbg:Invoke(player, "Data")
 		local placed, count = nil, 0
@@ -3476,6 +3480,18 @@ return function(log)
 		check(
 			skipped and t2.lastAction == "Skip" and t2.lastStep == 1 and t2.attribute == true,
 			`tuto (client) : « Passer » -> fini (« {t2.lastAction} » à l'étape {t2.lastStep}), tutorialDone sauvegardé = {tostring(t2.done)}`
+		)
+
+		-- 3e essai du client (classé ouvert chez lui seulement, pour revoir l'étape de la zone classée) : « Passer » à
+		-- l'étape 2, drapeau sauvegardé. Le serveur attend sa fin avant de reprendre la main.
+		local third = waitFor(function()
+			local t = tutorial()
+			return (t.replays or 0) >= 3 and t.done == true
+		end, 90)
+		local t3 = tutorial()
+		check(
+			third and t3.lastAction == "Skip" and t3.lastStep == 2 and t3.attribute == true,
+			`tuto (client) : 3e essai, « Passer » -> fini (« {t3.lastAction} » à l'étape {t3.lastStep}), tutorialDone sauvegardé = {tostring(t3.done)}`
 		)
 		ReplicatedStorage:SetAttribute("AutoTestTutorial", "Server")
 	end

@@ -54,7 +54,11 @@ function PlotLayout.pointAt(distance: number): (Vector3, Vector3)
 end
 
 PlotLayout.BASE_POSITION = Vector3.new(0, 0, -59)
-PlotLayout.PLAYER_SPAWN = Vector3.new(-20, 3, -60)
+-- Point d'apparition du joueur sur sa parcelle (il regarde vers le fond : Plots.homeCFrame). Z = -50 et plus -60
+-- (01/10/2026) : la caméra de départ est 12,5 studs derrière le personnage, donc en plein dans l'Autel des héros
+-- (devant l'entrée, x = -20, z = -73) quand on apparaissait à -60. La première image du jeu avait une large bande
+-- dorée en bas de l'écran : le linteau de l'autel, collé à la caméra (un cinquième de l'écran sur téléphone).
+PlotLayout.PLAYER_SPAWN = Vector3.new(-20, 3, -50)
 
 -- Emplacements de tours.
 -- 22 emplacements : les STARTING_SPOTS premiers sont gratuits (possédés dès le départ), les autres
@@ -84,6 +88,13 @@ PlotLayout.SPOTS = {
 	Vector3.new(-13, 0, 41),
 	Vector3.new(14, 0, 41),
 }
+
+-- Hauteur (studs) du socle de pierre d'un emplacement, posé sur le sol. 1 au lieu de 0,3 (demande du propriétaire,
+-- 01/10/2026 : deux nouveaux joueurs sont partis à l'étape « pose une tour » du tuto, sans en poser) : un socle
+-- surélevé se voit mieux et se touche plus facilement, surtout sur téléphone où la caméra regarde le sol de biais.
+-- La tour est posée dessus (PlotGame:createTower) ; rien ne change pour le combat (portées et vols se calculent
+-- comme avant).
+PlotLayout.SPOT_PAD_HEIGHT = 1
 
 -- Vrai si `value` est un numéro d'emplacement qui existe (nombre entier de 1 à 22).
 -- Le serveur s'en sert pour vérifier ce qu'envoie le client.

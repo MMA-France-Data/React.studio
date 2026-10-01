@@ -1,8 +1,12 @@
 -- Petit tuto des nouveaux joueurs (map principale seulement), montré une seule fois, avec un bouton « Passer ».
--- 6 étapes, chacune validée par ce que le joueur fait vraiment :
---   1. la zone classée : entrer dans le cercle rouge au centre de la map, ou tout près (ou « Suivant ») ; classé fermé
---      (Config.RANKED_OPEN = false, Shared/RankedGate.luau) : le texte dit qu'il arrive bientôt, et montre où il est ;
---   2. ta parcelle : y retourner ;
+-- 6 étapes, chacune validée par ce que le joueur fait vraiment. Classé fermé (Config.RANKED_OPEN = false,
+-- Shared/RankedGate.luau) : l'étape 1 n'est PAS montrée (demande du propriétaire, 01/10/2026 : « enlève la première
+-- partie du tuto qui montre ranked en attendant »). Le tuto a alors 5 étapes, numérotées de 1 à 5 (« TUTO 1/5 • TA
+-- PARCELLE »), et l'étape de la zone classée revient toute seule quand le classé rouvre.
+--   1. la zone classée (classé ouvert seulement) : entrer dans le cercle rouge au centre de la map, ou tout près (ou
+--      « Suivant ») ;
+--   2. ta parcelle : y retourner. Classé fermé, c'est la 1re étape, un mot d'accueil : le nouveau joueur apparaît sur
+--      sa parcelle, elle passe donc toute seule après le temps de lecture, sans « ✓ BRAVO ! » (il n'a rien fait) ;
 --   3. poser une tour : au moins une tour sur ta parcelle (le texte nomme l'Archer, sa carte est entourée d'or) ;
 --   4. l'améliorer : une tour au niveau 2 ou plus (« Améliorer » entouré d'or) ;
 --   5. l'Autel des héros : y aller à pied et lancer x1 (résultat reçu, ou des lancers déjà achetés : attribut
@@ -12,11 +16,12 @@
 --      qui ouvrent l'autel et la forge de n'importe où.
 -- Chaque étape reste affichée au moins le temps de lire son texte (READ_MIN à READ_MAX secondes).
 -- Une étape déjà faite avant d'y arriver (ex. une tour déjà posée) est validée tout de suite. Le tuto ne bloque
--- rien : un petit panneau en haut de l'écran, un rayon doré du personnage vers la cible et une flèche ▼ au-dessus
--- d'elle (créés seulement chez ce joueur, retirés à la fin ; le rayon repart du nouveau personnage après une mort).
+-- rien : un petit panneau en haut de l'écran (en bas sur téléphone, voir TutorialUI.panelPlace), un rayon doré du
+-- personnage vers la cible et une flèche ▼ au-dessus d'elle (créés seulement chez ce joueur, retirés à la fin ; le
+-- rayon repart du nouveau personnage après une mort).
 -- Le serveur garde « tuto fini » (PlayerData : tutorialDone, attribut TutorialDone du joueur) ; la fin et « Passer »
 -- partent par le remote TutorialAction (Hub/Tutorial.luau). Un joueur qui part au milieu du tuto le recommence à
--- l'étape 1 en revenant : les étapes déjà faites passent toutes seules, et l'étape 1 a « Suivant ».
+-- la 1re étape en revenant : les étapes déjà faites passent toutes seules, et la zone classée a « Suivant ».
 -- Studio : tes données y sont en mémoire, tu es donc un nouveau joueur à chaque Play et le tuto s'affiche à chaque
 -- fois (Config.STUDIO_TUTORIAL = false pour ne plus le voir). Il recommence à l'étape 1 quand l'attribut
 -- TutorialReplay du joueur change (StudioDebug « Tutorial », « Replay »). Tests automatiques
@@ -39,19 +44,33 @@ local UI = require(script.Parent.UI)
 
 local TutorialUI = {}
 
--- Texte de l'étape 1 (la zone classée) : classé ouvert, ou fermé (« bientôt disponible », Config.RANKED_OPEN).
+-- Texte de l'étape de la zone classée (montrée seulement quand le classé est ouvert, Config.RANKED_OPEN).
 TutorialUI.RANKED_STEP_OPEN = "Le cercle rouge au centre, c'est le classé : des matchs 1 contre 1 pour monter en rang. Suis le rayon doré !"
-TutorialUI.RANKED_STEP_SOON = "Le cercle rouge au centre, c'est le classé : des matchs 1 contre 1, bientôt disponibles ! Suis le rayon doré."
+-- Bouton « Passer » (sur téléphone, un 2e appui le confirme : voir skipButton).
+TutorialUI.SKIP_TEXT = "Passer"
+TutorialUI.SKIP_CONFIRM_TEXT = "Confirmer ?"
+-- Textes de l'étape « ta parcelle ». Classé ouvert : le joueur revient du cercle. Classé fermé, c'est la 1re étape :
+-- un mot d'accueil (le joueur vient d'apparaître chez lui), ou le chemin s'il n'y est pas.
+TutorialUI.PLOT_STEP_RETURN = "Voici ta parcelle : des vagues d'ennemis y arrivent sans fin. Retournes-y en suivant le rayon doré."
+TutorialUI.PLOT_STEP_WELCOME = "Bienvenue ! Voici ta parcelle : des vagues d'ennemis y arrivent sans fin."
+TutorialUI.PLOT_STEP_GO = "Bienvenue ! Ta parcelle est au bout du rayon doré : des vagues d'ennemis y arrivent sans fin."
 
-local PANEL_SIZE = Vector2.new(440, 104) -- 3 lignes de texte ; 440 px : ne cache pas le « X » des fenêtres des machines
+TutorialUI.PANEL_SIZE = Vector2.new(440, 104) -- 3 lignes de texte ; 440 px : ne cache pas le « X » des fenêtres des machines
+local PANEL_SIZE = TutorialUI.PANEL_SIZE
 -- Bord droit de la carte de rang (LobbyUI : 260 px à 16 px du bord) et une marge : sur un écran étroit (téléphone),
 -- le panneau se décale vers la droite et rétrécit au lieu de la couvrir (comme le bouton « S'INSCRIRE »).
 local LEFT_SIDE = 16 + 260 + 16
--- Haut du panneau : sous le compteur de pièces (PlotUI : 8 + 46 px) ; plus bas quand le bouton « SON » passe sous
--- le compteur (écran de moins de ~1 140 px, SoundManager : 56 + 44 px).
-local TOP_WIDE = 60
+-- Haut du panneau : sous le compteur de pièces (PlotUI : 8 + 64 px ; à 60, du temps où le compteur faisait 46 px,
+-- le panneau mordait sur le bas du compteur) ; plus bas quand le bouton « SON » passe sous le compteur (écran de
+-- moins de ~1 140 px, SoundManager : 56 + 44 px).
+local TOP_WIDE = 78
 local TOP_NARROW = 106
 local WIDE_SCREEN = 1140
+-- Téléphone tenu en largeur : le panneau est en BAS de l'écran, contre la zone du bouton de saut de Roblox (à droite),
+-- et ne va pas plus à gauche que cette part de la largeur (le pouce gauche, sur le joystick de Roblox dans le coin en
+-- bas à gauche, reste dégagé ; le panneau ne prend aucun toucher, le joystick marche aussi dessous).
+local PHONE_LEFT_LIMIT = 0.27
+local PHONE_BOTTOM_MARGIN = 6
 local CHECK_INTERVAL = 0.2 -- secondes entre deux vérifications de l'étape en cours
 local DONE_FLASH = 0.8 -- secondes de « ✓ BRAVO ! » avant l'étape suivante
 -- Temps de lecture : une étape faite très vite (ex. arrivé sur sa parcelle avant d'avoir fini de lire) garde son
@@ -60,16 +79,49 @@ local DONE_FLASH = 0.8 -- secondes de « ✓ BRAVO ! » avant l'étape suivante
 local READ_MIN, READ_MAX = 3, 8
 local READ_CHARS_PER_SECOND = 15
 local START_DELAY = 2 -- après le chargement des données : le temps que la map et l'interface arrivent
+local CHARACTER_WAIT = 10 -- puis au plus ce temps pour que le personnage apparaisse (le tuto démarre de toute façon)
+-- 1re étape faite moins de ce temps après le départ du tuto = déjà faite sans que le joueur ait rien fait (classé
+-- fermé : il apparaît sur sa parcelle, parfois une fraction de seconde après le départ du tuto) : pas de « BRAVO ».
+local ALREADY_DONE_TIME = 1
+local SKIP_CONFIRM_TIME = 3 -- téléphone : secondes pour toucher « Passer » une 2e fois (« Confirmer ? »)
 local CIRCLE_MARGIN = 6 -- studs autour du cercle classé qui comptent comme « dans la zone »
 local GUIDE_COLOR = Color3.fromRGB(255, 205, 80) -- doré, comme l'anneau du cercle classé
 local DONE_COLOR = Color3.fromRGB(125, 220, 125)
+
+-- Place du panneau sur l'écran `screen` (fonction pure, vérifiée par les tests) : le x de son milieu, son haut (y) et
+-- son échelle (le panneau fait PANEL_SIZE x échelle).
+--   Ordinateur, tablette : en haut, centré sous le compteur de pièces ; sur un écran étroit, à droite de la carte de
+--   rang et réduit.
+--   Téléphone tenu en largeur : en BAS, entre le joystick de Roblox et son bouton de saut. En haut (comme avant le
+--   01/10/2026), il cachait presque toute la vue : avec la caméra de départ, tout ce qui est à plus de ~5 studs
+--   devant le personnage passait derrière lui, donc les boutons « + » des emplacements et la flèche du tuto (capture
+--   phone_a_newplayer du test « téléphone »). En bas, il ne couvre que les pieds du personnage.
+--   machineOpen = fenêtre de l'autel ou de la forge ouverte : en haut (les boutons de ces fenêtres sont en bas).
+--   Téléphone tenu en hauteur : en haut, centré.
+function TutorialUI.panelPlace(screen: Vector2, machineOpen: boolean): (number, number, number)
+	if UI.touchLayout(screen) then
+		if screen.X > screen.Y and not machineOpen then
+			local right = screen.X - UI.PHONE_JUMP_ZONE - 8
+			local scale = math.clamp((right - screen.X * PHONE_LEFT_LIMIT) / PANEL_SIZE.X, 0.55, 1)
+			return right - PANEL_SIZE.X * scale / 2, screen.Y - PANEL_SIZE.Y * scale - PHONE_BOTTOM_MARGIN, scale
+		end
+		-- (entre le bouton « ★ BOUTIQUE », en haut à gauche, et les icônes du bord droit : UI.leftColumnSlot)
+		return screen.X / 2, 8, math.clamp((screen.X - 2 * (UI.PHONE_SHOP_SIZE.X + 20)) / PANEL_SIZE.X, 0.55, 1)
+	end
+	local scale = math.clamp((screen.X - LEFT_SIDE - 16) / PANEL_SIZE.X, 0.55, 1)
+	local top = if screen.X >= WIDE_SCREEN then TOP_WIDE else TOP_NARROW
+	return math.max(screen.X / 2, LEFT_SIDE + PANEL_SIZE.X * scale / 2), top, scale
+end
 
 function TutorialUI.start()
 	local player = Players.LocalPlayer
 	local tutorialAction = Remotes.get("TutorialAction")
 	local plotsFolder = workspace:WaitForChild("Hub"):WaitForChild("Plots")
-	-- Tests automatiques : le tuto ne démarre jamais tout seul (leurs captures ne changent pas).
+	-- Tests automatiques : le tuto ne démarre jamais tout seul (leurs captures ne changent pas). Sauf dans le test
+	-- « téléphone » (objet __AutoTestNewPlayer de sa place de test, tools/studio-test/mkproj.cjs) : il regarde
+	-- l'arrivée d'un vrai nouveau joueur, tuto compris.
 	local isAutoTest = ReplicatedStorage:FindFirstChild("__AutoPlayTest") ~= nil
+		and ReplicatedStorage:FindFirstChild("__AutoTestNewPlayer") == nil
 	local autoStart = not isAutoTest and not (RunService:IsStudio() and Config.STUDIO_TUTORIAL == false)
 
 	------------------------------------------------------------------
@@ -77,7 +129,8 @@ function TutorialUI.start()
 	------------------------------------------------------------------
 	local running = false
 	local runId = 0 -- change à chaque départ ou arrêt : l'ancienne boucle de vérification s'arrête
-	local step = 1
+	local steps = {} -- les étapes de ce tuto-ci, dans l'ordre (choisies dans STEPS à son départ, voir begin)
+	local step = 1 -- numéro de l'étape en cours dans `steps`
 	local startedAt = 0 -- os.clock() du départ du tuto
 	local flashUntil = 0 -- « ✓ BRAVO ! » affiché jusqu'à cette heure, puis étape suivante (0 = rien)
 	local stepShownAt = 0 -- os.clock() de l'apparition de l'étape en cours (temps de lecture)
@@ -97,6 +150,17 @@ function TutorialUI.start()
 	local function myPlot(): Instance?
 		local index = plotIndex()
 		return if index then plotsFolder:FindFirstChild("Plot" .. index) else nil
+	end
+	-- Le personnage est sur le sol de ta parcelle, ou devant son entrée (l'autel et la forge).
+	local function onMyPlot(): boolean
+		local index, root = plotIndex(), rootPart()
+		if not index or not root then
+			return false
+		end
+		local localPosition = PlotLayout.toLocal(index, root.Position)
+		return math.abs(localPosition.X) <= PlotLayout.WIDTH / 2 + 2
+			and localPosition.Z >= -PlotLayout.LENGTH / 2 - 12
+			and localPosition.Z <= PlotLayout.LENGTH / 2 + 2
 	end
 	-- Tours posées sur ta parcelle, triées par emplacement (modèles avec les attributs SpotIndex et Level).
 	local function myTowers(): { Instance }
@@ -174,14 +238,13 @@ function TutorialUI.start()
 	-- (au-dessus de la flèche ▼), button (« Suivant » / « Terminer », sinon aucun : l'action du joueur valide
 	-- l'étape), target() = position visée et hauteur de la flèche (nil = pas de guide), highlight() = bouton ou
 	-- carte à entourer d'or quand il est à l'écran (facultatif), done() = vrai quand l'étape est faite.
+	-- rankedOnly : étape montrée seulement quand le classé est ouvert (voir begin).
 	------------------------------------------------------------------
 	local STEPS = {
 		{
 			title = "LA ZONE CLASSÉE",
-			-- Classé fermé : le tuto montre quand même où il est, et dit qu'il arrive bientôt.
-			text = function()
-				return if RankedGate.isOpen() then TutorialUI.RANKED_STEP_OPEN else TutorialUI.RANKED_STEP_SOON
-			end,
+			rankedOnly = true, -- classé fermé : le tuto ne montre pas le classé, il commence par la parcelle
+			text = TutorialUI.RANKED_STEP_OPEN,
 			marker = "ARÈNE CLASSÉE",
 			button = "Suivant",
 			target = function()
@@ -201,36 +264,33 @@ function TutorialUI.start()
 		},
 		{
 			title = "TA PARCELLE",
-			text = "Voici ta parcelle : des vagues d'ennemis y arrivent sans fin. Retournes-y en suivant le rayon doré.",
+			text = function()
+				-- Après la zone classée : le joueur revient du cercle.
+				if steps[1] and steps[1].rankedOnly then
+					return TutorialUI.PLOT_STEP_RETURN
+				end
+				-- 1re étape (classé fermé) : le nouveau joueur apparaît chez lui ; sinon sa parcelle est au bout du rayon.
+				return if onMyPlot() then TutorialUI.PLOT_STEP_WELCOME else TutorialUI.PLOT_STEP_GO
+			end,
 			marker = "TA PARCELLE",
 			target = function()
 				local index = plotIndex()
 				return if index then PlotLayout.toWorld(index, Vector3.new(0.5, 0.5, -22)) else nil, 8
 			end,
-			done = function()
-				local index, root = plotIndex(), rootPart()
-				if not index or not root then
-					return false
-				end
-				-- Sur le sol de la parcelle, ou devant son entrée (l'autel et la forge).
-				local localPosition = PlotLayout.toLocal(index, root.Position)
-				return math.abs(localPosition.X) <= PlotLayout.WIDTH / 2 + 2
-					and localPosition.Z >= -PlotLayout.LENGTH / 2 - 12
-					and localPosition.Z <= PlotLayout.LENGTH / 2 + 2
-			end,
+			done = onMyPlot,
 		},
 		{
 			title = "POSE UNE TOUR",
 			-- (Retour du propriétaire : avec « une tour », un débutant prend n'importe laquelle : on nomme l'Archer,
 			-- et sa carte est entourée d'or dans le panneau des tours.)
-			text = `Clique sur un emplacement libre (sous la flèche), puis sur la carte « {IdleTowers.Defs.MachineGun.displayName} » entourée d'or : ta tour tire toute seule.`,
+			text = `Clique sur le « + » d'un emplacement libre (sous la flèche), puis sur la carte « {IdleTowers.Defs.MachineGun.displayName} » entourée d'or : ta tour tire toute seule.`,
 			marker = "ICI",
 			highlight = function()
 				return shownChild("Plot", "Card_MachineGun")
 			end,
 			target = function()
 				local pad = freeSpot()
-				return if pad then pad.Position + Vector3.new(0, 0.4, 0) else nil, 5
+				return if pad then pad.Position + Vector3.new(0, PlotLayout.SPOT_PAD_HEIGHT / 2 + 0.3, 0) else nil, 5
 			end,
 			done = function()
 				return #myTowers() > 0
@@ -370,52 +430,60 @@ function TutorialUI.start()
 		Position = UDim2.new(1, 0, 1, 0),
 		Size = UDim2.fromOffset(100, 30),
 		BackgroundColor3 = UI.Colors.PanelLight,
-		Text = "Passer",
+		Text = TutorialUI.SKIP_TEXT,
 		MaxTextSize = 16,
 		Parent = panel,
 	})
+	-- « Passer » sur téléphone : il faut le toucher DEUX fois (« Passer », puis « Confirmer ? » dans les
+	-- SKIP_CONFIRM_TIME secondes). Le panneau y est en bas de l'écran, à côté du bouton de saut et sous le pouce qui
+	-- tourne la caméra : un appui par erreur ne doit pas faire perdre le tuto. Ordinateur : un seul clic.
+	local skipArmedAt = -math.huge -- os.clock() du 1er appui sur « Passer » (téléphone)
+	local function disarmSkip()
+		skipArmedAt = -math.huge
+		skipButton.Text = TutorialUI.SKIP_TEXT
+		skipButton.BackgroundColor3 = UI.Colors.PanelLight
+	end
 
-	-- Place du panneau : centré sous le compteur de pièces ; sur un écran étroit, à droite de la carte de rang et
-	-- réduit ; sous le bouton « ⚔ S'INSCRIRE AU CLASSÉ » (LobbyUI, dans le cercle) quand il le cacherait.
-	-- Téléphone : le panneau des tours (PlotUI, en bas à droite) monte jusqu'ici quand il est ouvert. Le tuto se
-	-- cache tant qu'ils se touchent (il revient quand on le ferme) : les cartes des tours et « Améliorer » restent
-	-- visibles, et on ne touche jamais « Passer » par erreur à la place d'une carte.
+	-- Place du panneau (TutorialUI.panelPlace) : en haut sur ordinateur, en bas sur téléphone ; en haut, il descend sous
+	-- le bouton « ⚔ S'INSCRIRE AU CLASSÉ » (LobbyUI, dans le cercle) quand il le cacherait.
+	-- Téléphone : le panneau des tours (PlotUI) prend presque tout l'écran quand il est ouvert. Le tuto se cache tant
+	-- qu'ils se touchent (il revient quand on le ferme) : les cartes des tours et « Améliorer » restent visibles, et
+	-- on ne touche jamais « Passer » par erreur à la place d'une carte.
 	local function layout()
 		local screen = gui.AbsoluteSize
 		if screen.X <= 0 or screen.Y <= 0 then
 			return
 		end
-		-- Téléphone : tout en haut de la zone de jeu, au milieu (le compteur de pièces et SON sont dans la barre de
-		-- Roblox, UI.phoneTopRight), entre le bouton « ★ BOUTIQUE » (en haut à gauche) et les icônes du bord droit
-		-- (UI.leftColumnSlot).
-		local phone = UI.touchLayout(screen)
-		local scale = if phone
-			then math.clamp((screen.X - 2 * (UI.PHONE_SHOP_SIZE.X + 20)) / PANEL_SIZE.X, 0.55, 1)
-			else math.clamp((screen.X - LEFT_SIDE - 16) / PANEL_SIZE.X, 0.55, 1)
+		local centerX, top, scale = TutorialUI.panelPlace(screen, machineOpen())
 		panelScale.Scale = scale
 		local width, height = PANEL_SIZE.X * scale, PANEL_SIZE.Y * scale
-		local top = if phone then 8 elseif screen.X >= WIDE_SCREEN then TOP_WIDE else TOP_NARROW
-		local lobby = player.PlayerGui:FindFirstChild("Lobby")
-		-- (le bouton « S'INSCRIRE », ou « BIENTÔT DISPONIBLE » à sa place quand le classé est fermé)
-		for _, name in { "SignUp", "RankedSoon" } do
-			local signUp = lobby and lobby:FindFirstChild(name)
-			if signUp and signUp:IsA("GuiObject") and signUp.Visible then
-				local signTop = signUp.AbsolutePosition.Y - gui.AbsolutePosition.Y
-				local signBottom = signTop + signUp.AbsoluteSize.Y
-				if top + height > signTop - 4 and top < signBottom then
-					top = signBottom + 8
+		if top < screen.Y / 2 then
+			local lobby = player.PlayerGui:FindFirstChild("Lobby")
+			-- (le bouton « S'INSCRIRE », ou « BIENTÔT DISPONIBLE » à sa place quand le classé est fermé)
+			for _, name in { "SignUp", "RankedSoon" } do
+				local signUp = lobby and lobby:FindFirstChild(name)
+				if signUp and signUp:IsA("GuiObject") and signUp.Visible then
+					local signTop = signUp.AbsolutePosition.Y - gui.AbsolutePosition.Y
+					local signBottom = signTop + signUp.AbsoluteSize.Y
+					if top + height > signTop - 4 and top < signBottom then
+						top = signBottom + 8
+					end
 				end
 			end
 		end
-		local centerX = if phone then screen.X / 2 else math.max(screen.X / 2, LEFT_SIDE + width / 2)
 		panel.Position = UDim2.fromOffset(centerX, top)
 		local plotGui = player.PlayerGui:FindFirstChild("Plot")
 		local towerPanel = plotGui and plotGui:FindFirstChild("TowerPanel")
 		local covered = false
 		if towerPanel and towerPanel:IsA("GuiObject") and towerPanel.Visible and plotGui:IsA("ScreenGui") and plotGui.Enabled then
-			local towerTop = towerPanel.AbsolutePosition.Y - gui.AbsolutePosition.Y
-			local towerLeft = towerPanel.AbsolutePosition.X - gui.AbsolutePosition.X
-			covered = towerTop < top + height and towerLeft < centerX + width / 2
+			-- (les deux rectangles se touchent-ils ?)
+			local towerPosition = towerPanel.AbsolutePosition - gui.AbsolutePosition
+			local towerSize = towerPanel.AbsoluteSize
+			local left = centerX - width / 2
+			covered = towerPosition.X < left + width
+				and towerPosition.X + towerSize.X > left
+				and towerPosition.Y < top + height
+				and towerPosition.Y + towerSize.Y > top
 		end
 		panel.Visible = running and not covered
 	end
@@ -594,7 +662,7 @@ function TutorialUI.start()
 	-- fermait l'autel).
 	local function refreshButtons()
 		local free = not machineOpen()
-		local def = STEPS[step]
+		local def = steps[step]
 		nextButton.Visible = free and flashUntil == 0 and def ~= nil and def.button ~= nil
 		skipButton.Visible = free
 	end
@@ -604,8 +672,8 @@ function TutorialUI.start()
 		flashUntil = 0
 		afterShown = false
 		stepShownAt = os.clock()
-		local def = STEPS[index]
-		title.Text = `TUTO {index}/{#STEPS} • {def.title}`
+		local def = steps[index]
+		title.Text = `TUTO {index}/{#steps} • {def.title}`
 		title.TextColor3 = UI.Colors.Gold
 		setBody(if typeof(def.text) == "function" then def.text() else def.text)
 		nextButton.Text = def.button or ""
@@ -624,6 +692,7 @@ function TutorialUI.start()
 		runId += 1
 		flashUntil = 0
 		panel.Visible = false
+		disarmSkip()
 		destroyGuide()
 		setHighlight(nil)
 	end
@@ -650,12 +719,21 @@ function TutorialUI.start()
 	-- bouton « Suivant » / « Terminer » : le joueur a fini de lire, juste le court « BRAVO ».
 	-- Étape avec afterText (la forge : le raccourci des boutons de gauche) faite par l'action du joueur : ce texte
 	-- remplace le sien sous « ✓ BRAVO ! », le temps de le lire, avec afterHighlight entouré d'or.
-	local function validate(byButton: boolean)
-		if byButton and step >= #STEPS then
+	-- alreadyDone : la 1re étape était déjà faite quand le tuto a démarré (classé fermé : le nouveau joueur apparaît sur
+	-- sa parcelle). Il n'a encore rien fait : pas de « ✓ BRAVO ! », son titre et son texte restent le temps de lire.
+	local function validate(byButton: boolean, alreadyDone: boolean?)
+		if byButton and step >= #steps then
 			finish("Done")
 			return
 		end
-		local def = STEPS[step]
+		local def = steps[step]
+		if alreadyDone and typeof(def.text) == "function" then
+			-- (texte relu : le personnage vient peut-être juste d'arriver chez lui, c'est alors le mot d'accueil)
+			local text = def.text()
+			if bodyText ~= text then
+				setBody(text)
+			end
+		end
 		local hold = if byButton then DONE_FLASH else math.max(DONE_FLASH, stepShownAt + readTime() - os.clock())
 		if not byButton and def.afterText then
 			UI.showShortcuts() -- (téléphone : les icônes montrées par l'astuce reviennent si le joueur les avait masquées)
@@ -664,8 +742,10 @@ function TutorialUI.start()
 			afterShown = true
 		end
 		flashUntil = os.clock() + hold
-		title.Text = "✓ BRAVO !"
-		title.TextColor3 = DONE_COLOR
+		if not alreadyDone then
+			title.Text = "✓ BRAVO !"
+			title.TextColor3 = DONE_COLOR
+		end
 		refreshButtons()
 	end
 
@@ -673,17 +753,18 @@ function TutorialUI.start()
 		layout()
 		if flashUntil > 0 then
 			if os.clock() >= flashUntil then
-				if step >= #STEPS then
+				if step >= #steps then
 					finish("Done")
 				else
 					showStep(step + 1)
 				end
 			end
-		elseif STEPS[step].done() then
-			validate(false)
+		elseif steps[step].done() then
+			-- (1re étape faite dès le départ du tuto : le joueur n'a rien eu à faire, voir validate)
+			validate(false, step == 1 and os.clock() - stepShownAt < ALREADY_DONE_TIME)
 		end
 		if running then
-			local def = STEPS[step]
+			local def = steps[step]
 			refreshButtons()
 			-- Texte qui dépend de ce qui est ouvert (ex. la forge : « ferme d'abord l'autel »).
 			if flashUntil == 0 and typeof(def.text) == "function" then
@@ -705,6 +786,14 @@ function TutorialUI.start()
 
 	local function begin()
 		stop()
+		-- Les étapes de ce tuto-ci : sans la zone classée tant que le classé est fermé (choisies au départ : le classé
+		-- ne s'ouvre ni ne se ferme jamais pendant une partie publiée).
+		table.clear(steps)
+		for _, def in STEPS do
+			if not def.rankedOnly or RankedGate.isOpen() then
+				table.insert(steps, def)
+			end
+		end
 		running = true
 		startedAt = os.clock()
 		local myRun = runId
@@ -726,12 +815,34 @@ function TutorialUI.start()
 		end
 		validate(true)
 	end)
-	skipButton.Activated:Connect(function()
+	local function pressSkip()
+		if not running then
+			return
+		end
+		-- Téléphone : 1er appui = « Confirmer ? » (rouge) pendant SKIP_CONFIRM_TIME secondes ; 2e appui = on passe.
+		if UI.touchLayout(gui.AbsoluteSize) and os.clock() - skipArmedAt > SKIP_CONFIRM_TIME then
+			local armedAt = os.clock()
+			skipArmedAt = armedAt
+			skipButton.Text = TutorialUI.SKIP_CONFIRM_TEXT
+			skipButton.BackgroundColor3 = UI.Colors.Error
+			task.delay(SKIP_CONFIRM_TIME, function()
+				if skipArmedAt == armedAt then
+					disarmSkip()
+				end
+			end)
+			return
+		end
 		finish("Skip")
-	end)
+	end
+	skipButton.Activated:Connect(pressSkip)
+	-- Tests automatiques dans Studio (un plugin ne peut pas cliquer) : l'attribut « TestSkipTap » de cet écran, quand il
+	-- change, compte comme un appui sur « Passer ». Jamais dans le jeu publié.
+	if RunService:IsStudio() then
+		gui:GetAttributeChangedSignal("TestSkipTap"):Connect(pressSkip)
+	end
 
 	------------------------------------------------------------------
-	-- Ce qui valide les étapes 5 et 6, et le départ du tuto
+	-- Ce qui valide les étapes de l'autel et de la forge, et le départ du tuto
 	------------------------------------------------------------------
 	Remotes.get("MachineResult").OnClientEvent:Connect(function(result)
 		if typeof(result) == "table" and result.machine == "Tower" then
@@ -753,6 +864,7 @@ function TutorialUI.start()
 				end
 				if running then
 					refreshButtons() -- tout de suite, pas au prochain tour de update
+					layout() -- (téléphone : le panneau monte en haut tant que la fenêtre est ouverte)
 				end
 			end)
 		end
@@ -764,16 +876,24 @@ function TutorialUI.start()
 			stop()
 		end
 	end)
-	-- Studio : « Replay » (Hub/Tutorial.luau) -> le tuto recommence à l'étape 1, même pendant les tests automatiques.
+	-- Studio : « Replay » (Hub/Tutorial.luau) -> le tuto recommence au début, même pendant les tests automatiques.
 	player:GetAttributeChangedSignal("TutorialReplay"):Connect(begin)
 
-	-- Nouveau joueur : le tuto démarre tout seul une fois ses données chargées (TutorialDone = faux).
+	-- Nouveau joueur : le tuto démarre tout seul une fois ses données chargées (TutorialDone = faux) et son personnage
+	-- apparu (la 1re étape regarde où il est ; sur un appareil lent, il arrive parfois après les données).
 	task.spawn(function()
 		while not player:GetAttribute("DataLoaded") do
 			player:GetAttributeChangedSignal("DataLoaded"):Wait()
 		end
 		task.wait(START_DELAY)
-		if autoStart and not running and player:GetAttribute("TutorialDone") == false then
+		if not autoStart or player:GetAttribute("TutorialDone") ~= false then
+			return
+		end
+		local deadline = os.clock() + CHARACTER_WAIT
+		while not rootPart() and os.clock() < deadline do
+			task.wait(CHECK_INTERVAL)
+		end
+		if not running and player:GetAttribute("TutorialDone") == false then
 			begin()
 		end
 	end)

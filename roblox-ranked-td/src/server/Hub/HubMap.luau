@@ -210,12 +210,14 @@ local function buildPlot(index: number, parent: Instance)
 	local spots = Instance.new("Folder")
 	spots.Name = "Spots"
 	spots.Parent = folder
+	-- (socles surélevés : PlotLayout.SPOT_PAD_HEIGHT)
+	local padHeight = PlotLayout.SPOT_PAD_HEIGHT
 	for spotIndex, localPosition in PlotLayout.SPOTS do
 		local pad = part({
 			Name = "Spot" .. spotIndex,
 			Shape = Enum.PartType.Cylinder,
-			Size = Vector3.new(0.3, 5, 5),
-			CFrame = PlotLayout.worldCFrame(index, localPosition + Vector3.new(0, 0.15, 0)) * CFrame.Angles(0, 0, math.rad(90)),
+			Size = Vector3.new(padHeight, 5, 5),
+			CFrame = PlotLayout.worldCFrame(index, localPosition + Vector3.new(0, padHeight / 2, 0)) * CFrame.Angles(0, 0, math.rad(90)),
 			Color = Color3.fromRGB(118, 111, 96),
 			Material = Enum.Material.Cobblestone,
 			Parent = spots,

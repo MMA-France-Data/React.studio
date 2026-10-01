@@ -368,6 +368,30 @@ return function(log)
 					freeSpot = freeSpot or (if owned[spotIndex] and not taken[spotIndex] then spotIndex else nil)
 					lockedSpot = lockedSpot or (if not owned[spotIndex] then spotIndex else nil)
 				end
+				-- Emplacements surélevés (PlotLayout.SPOT_PAD_HEIGHT) et bouton « + » au-dessus de chaque emplacement
+				-- LIBRE de ma parcelle (PlotUI : BillboardGui « FreeSpot<n> » dans PlayerGui, bouton « Plus ») : un par
+				-- emplacement possédé sans tour, aucun sur une tour ni sur un cadenas (demande du propriétaire : des
+				-- nouveaux joueurs partaient à l'étape « pose une tour »).
+				task.wait(0.3)
+				local plusCount, wrongPlus, lowPads = 0, {}, 0
+				for spotIndex = 1, #PlotLayout.SPOTS do
+					local pad = plot.Spots:FindFirstChild("Spot" .. spotIndex)
+					if not pad or math.abs(pad.Size.X - PlotLayout.SPOT_PAD_HEIGHT) > 0.01 then
+						lowPads += 1
+					end
+					local marker = playerGui:FindFirstChild("FreeSpot" .. spotIndex)
+					local shownPlus = marker ~= nil and marker.Enabled and marker.Adornee == pad and marker:FindFirstChild("Plus") ~= nil
+					if shownPlus then
+						plusCount += 1
+					end
+					if shownPlus ~= (owned[spotIndex] == true and not taken[spotIndex]) then
+						table.insert(wrongPlus, tostring(spotIndex))
+					end
+				end
+				report(
+					lowPads == 0 and #wrongPlus == 0,
+					`emplacements : socles de {PlotLayout.SPOT_PAD_HEIGHT} stud de haut ({lowPads} mal faits), bouton « + » sur les {plusCount} emplacement(s) libre(s) et sur eux seulement{if #wrongPlus > 0 then " ; mauvais : " .. table.concat(wrongPlus, ", ") else ""}`
+				)
 			end
 			if towerSpot then
 				selectSpot(towerSpot)
@@ -2192,12 +2216,15 @@ return function(log)
 	-- Tuto des nouveaux joueurs (TutorialUI.luau, Hub/Tutorial.luau) : jamais tout seul pendant les tests
 	-- automatiques (le joueur de test est pourtant nouveau). Le scénario serveur rend la parcelle « nouveau joueur »
 	-- (aucune tour, record 1, aucun lancer, 50 pièces), puis donne la main (attribut AutoTestTutorial de
-	-- ReplicatedStorage = « Client »). Le client relance le tuto (« Replay », Studio seulement), vérifie le panneau et
-	-- le guide (capture tutorial_step1), puis valide chaque étape par les vraies actions : personnage dans le cercle,
-	-- puis sur sa parcelle (mort et réapparition au passage : le rayon repart du nouveau personnage), une tour posée
-	-- puis améliorée (remote PlotAction, comme PlotUI), un lancer x1 de l'autel (remote MachineAction), la forge
-	-- ouverte comme par son invite (CMD:OpenMachine:Bonus). Fin : drapeau reçu du serveur, guide retiré. Puis
-	-- « Passer » (le remote de ce bouton : un plugin ne peut pas cliquer) sur un 2e essai.
+	-- ReplicatedStorage = « Client »). Le classé est fermé : le tuto a 5 étapes et commence par « TA PARCELLE » (plus
+	-- d'étape de la zone classée). Le client relance le tuto (« Replay », Studio seulement) avec son personnage sur sa
+	-- parcelle, comme un nouveau joueur : mot d'accueil, panneau et guide (capture tutorial_step1), étape suivante
+	-- toute seule sans « BRAVO ». Puis chaque étape par les vraies actions (mort et réapparition au passage : le rayon
+	-- repart du nouveau personnage) : une tour posée puis améliorée (remote PlotAction, comme PlotUI), un lancer x1 de
+	-- l'autel (remote MachineAction), la forge ouverte comme par son invite (CMD:OpenMachine:Bonus). Fin : drapeau
+	-- reçu du serveur, guide retiré. 2e essai, loin de sa parcelle : le texte dit où elle est, puis « Passer » (le
+	-- remote de ce bouton : un plugin ne peut pas cliquer). 3e essai, classé ouvert chez ce client seulement : les 6
+	-- étapes reviennent, la zone classée en premier.
 	-- Dans sa propre fonction (limite des 200 variables locales de Luau).
 	----------------------------------------------------------------------
 	local function testTutorial()
@@ -2358,47 +2385,126 @@ return function(log)
 		end
 		closedRankedChecks()
 
-		-- Relance : étape 1, panneau en haut de l'écran, rayon et flèche vers le cercle classé. Le personnage est d'abord
-		-- posé à un endroit neutre (30 studs derrière le cercle, loin de sa parcelle) : les tests d'avant (classé...)
-		-- peuvent l'avoir laissé près du cercle ou chez lui, et une étape déjà faite se valide toute seule.
-		local circle = PlotLayout.RANKED_CIRCLE_POSITION
-		-- Les tests d'avant cachent les fenêtres des machines sans les fermer : aucune machine « ouverte » (sinon le
-		-- tuto cache ses boutons, voir TutorialUI.refreshButtons).
-		local machinesGui = player.PlayerGui:FindFirstChild("Machines")
-		if machinesGui then
-			machinesGui:SetAttribute("OpenMachine", nil)
+		-- Classé fermé : le tuto ne montre plus la zone classée (demande du propriétaire, 01/10/2026). Il a 5 étapes et
+		-- commence par « TA PARCELLE » (TutorialUI.luau : étape rankedOnly retirée).
+		-- Relance comme pour un nouveau joueur, qui apparaît sur sa parcelle (les vérifications d'avant ont laissé le
+		-- personnage dans le cercle) : mot d'accueil, panneau en haut de l'écran, rayon et flèche vers sa parcelle.
+		local TutorialUI = require(player.PlayerScripts.Client.TutorialUI)
+		-- Place du panneau (TutorialUI.panelPlace, fonction pure), avec de fausses tailles d'écran. Ordinateur : en haut
+		-- (à 78 px, sous le compteur de pièces ; 106 px et à droite de la carte de rang sur un écran étroit). Téléphone tenu
+		-- en largeur : en BAS (en haut, il cachait les boutons « + » et la flèche du tuto), entier, à gauche du bouton de
+		-- saut de Roblox (96 px du bord droit) et pas plus à gauche que le quart de l'écran (pouce du joystick) ;
+		-- fenêtre de l'autel ou de la forge ouverte : en haut. Téléphone tenu en hauteur : en haut.
+		do
+			local problems = {}
+			local function place(width, height, machineOpen)
+				local centerX, top, scale = TutorialUI.panelPlace(Vector2.new(width, height), machineOpen)
+				local w, h = TutorialUI.PANEL_SIZE.X * scale, TutorialUI.PANEL_SIZE.Y * scale
+				return { left = centerX - w / 2, right = centerX + w / 2, top = top, bottom = top + h, scale = scale }
+			end
+			local function expect(ok, label, at)
+				if not ok then
+					table.insert(problems, `{label} : x {math.floor(at.left)} -> {math.floor(at.right)}, y {math.floor(at.top)} -> {math.floor(at.bottom)}, échelle {string.format("%.2f", at.scale)}`)
+				end
+			end
+			for _, phone in { { 706, 300 }, { 750, 332 }, { 568, 262 }, { 645, 268 }, { 844, 390 } } do
+				local width, height = phone[1], phone[2]
+				local low = place(width, height, false)
+				expect(
+					low.top >= height / 2 and low.bottom <= height - 4 and low.right <= width - 96 and low.left >= width * 0.25
+						and low.scale >= 0.7 and low.scale <= 1,
+					`téléphone {width} x {height}`,
+					low
+				)
+				local high = place(width, height, true)
+				expect(high.top == 8 and high.bottom <= height / 2 and high.left >= 0 and high.right <= width, `téléphone {width} x {height}, machine ouverte`, high)
+			end
+			local wide, narrow, portrait = place(1736, 735, false), place(1000, 700, false), place(390, 786, false)
+			expect(wide.top == 78 and wide.scale == 1 and math.abs((wide.left + wide.right) / 2 - 868) < 1, "ordinateur 1736 x 735", wide)
+			expect(narrow.top == 106 and narrow.left >= 16 + 260 + 16 and narrow.right <= 1000, "ordinateur 1000 x 700", narrow)
+			expect(portrait.top == 8 and portrait.left >= 0 and portrait.right <= 390, "téléphone en hauteur 390 x 786", portrait)
+			check(
+				#problems == 0,
+				`tuto : place du panneau -> en haut sur ordinateur, en bas entre le joystick et le saut sur téléphone, en haut quand une machine est ouverte ({#problems} problème(s){if #problems > 0 then " : " .. table.concat(problems, " | ") else ""})`
+			)
 		end
+		local circle = PlotLayout.RANKED_CIRCLE_POSITION
+		local plotTarget = PlotLayout.toWorld(plotIndex, Vector3.new(0.5, 0, -22)) -- (cible de l'étape « ta parcelle »)
+		local homePosition = PlotLayout.toWorld(plotIndex, PlotLayout.PLAYER_SPAWN) -- (son point d'apparition)
+		-- Endroit neutre, pour les essais d'après (30 studs derrière le cercle, loin de sa parcelle) : une étape déjà
+		-- faite se valide toute seule.
 		local away = circle - PlotLayout.cframe(plotIndex).Position
 		away = Vector3.new(away.X, 0, away.Z)
 		away = if away.Magnitude > 1e-3 then away.Unit else Vector3.new(0, 0, 1)
-		local neutralRoot = rootNow()
-		if neutralRoot then
-			neutralRoot.CFrame = CFrame.new(circle + away * 30 + Vector3.new(0, 3, 0))
-			task.wait(0.5)
+		local neutralPosition = circle + away * 30 + Vector3.new(0, 3, 0)
+		local function moveTo(position)
+			local moved = rootNow()
+			if moved then
+				moved.CFrame = CFrame.new(position)
+				task.wait(0.5)
+			end
 		end
+		-- Les tests d'avant laissent la fenêtre d'une machine à l'écran, ou la cachent sans la fermer : aucune machine
+		-- « ouverte » (sinon le tuto cache ses boutons, voir TutorialUI.refreshButtons) et son voile caché (capture
+		-- tutorial_step1 : seulement ce que voit un nouveau joueur). 2 s : le message « classé fermé » du refus
+		-- d'inscription juste au-dessus (2,5 s à l'écran, sur le panneau du tuto) a disparu.
+		local machinesGui = player.PlayerGui:FindFirstChild("Machines")
+		if machinesGui then
+			machinesGui:SetAttribute("OpenMachine", nil)
+			for _, child in machinesGui:GetChildren() do
+				if child:IsA("TextButton") and child.Size == UDim2.fromScale(1, 1) then
+					child.Visible = false
+				end
+			end
+		end
+		task.wait(2)
+		local stepText = panel:FindFirstChild("Text")
+		-- Titres affichés pendant l'accueil : un « ✓ BRAVO ! » y serait une erreur (le joueur n'a encore rien fait).
+		local titles = {}
+		local titleConnection = title:GetPropertyChangedSignal("Text"):Connect(function()
+			table.insert(titles, title.Text)
+		end)
+		moveTo(homePosition)
 		remotes.TutorialAction:FireServer("Replay")
 		local started = waitFor(function()
-			return titleHas("1/6") and guideOk() and shown(nextButton) and shown(skipButton)
+			return titleHas("1/5") and guideOk() and shown(skipButton)
 		end, 8)
 		check(
-			started and guideTo(circle) < 1 and nextButton.Text == "Suivant" and skipButton.Text == "Passer",
-			`tuto : relancé -> « {title.Text} », rayon et flèche vers le cercle classé (à {math.floor(math.min(guideTo(circle), 9999))} studs), boutons « {nextButton.Text} » et « {skipButton.Text} »`
+			started and titleHas("TA PARCELLE") and guideTo(plotTarget) < 1 and not shown(nextButton) and skipButton.Text == "Passer",
+			`tuto : relancé, classé fermé -> « {title.Text} » (plus d'étape de la zone classée), rayon et flèche vers sa parcelle (à {math.floor(math.min(guideTo(plotTarget), 9999))} studs), bouton « {skipButton.Text} » seul`
 		)
-		-- Classé fermé : l'étape 1 montre toujours où il est, et dit qu'il arrive bientôt (TutorialUI.RANKED_STEP_SOON).
-		local stepText = panel:FindFirstChild("Text")
 		check(
-			stepText ~= nil and string.find(stepText.Text, "bientôt disponibles", 1, true) ~= nil,
-			`tuto : classé fermé -> étape 1 « {stepText and stepText.Text} »`
+			stepText ~= nil and stepText.Text == TutorialUI.PLOT_STEP_WELCOME,
+			`tuto : nouveau joueur sur sa parcelle -> mot d'accueil « {stepText and stepText.Text} »`
 		)
 		local screen = tutorialGui.AbsoluteSize
 		local at = panel.AbsolutePosition - tutorialGui.AbsolutePosition
 		local size = panel.AbsoluteSize
+		-- (le compteur de pièces « TRÉSOR DU FIEF », en haut au milieu : le panneau du tuto est dessous, sans mordre dessus)
+		local walletGui = player.PlayerGui:FindFirstChild("Plot")
+		local wallet = walletGui and walletGui:FindFirstChild("Wallet")
+		local walletBottom = if wallet and wallet.Visible then wallet.AbsolutePosition.Y + wallet.AbsoluteSize.Y - walletGui.AbsolutePosition.Y else -1
 		check(
 			at.X >= 0 and at.Y >= 0 and at.X + size.X <= screen.X + 1 and at.Y <= screen.Y / 3 and at.Y + size.Y <= screen.Y
-				and (at.X >= 16 + 260 or at.Y >= 16 + 130),
-			`tuto : panneau en haut de l'écran, entier, sans couvrir la carte de rang (x {math.floor(at.X)}, y {math.floor(at.Y)}, {math.floor(size.X)} x {math.floor(size.Y)} px, écran {math.floor(screen.X)} x {math.floor(screen.Y)})`
+				and (at.X >= 16 + 260 or at.Y >= 16 + 130) and walletBottom >= 0 and at.Y >= walletBottom,
+			`tuto : panneau en haut de l'écran, entier, sous le compteur de pièces (son bas à {math.floor(walletBottom)} px), sans couvrir la carte de rang (x {math.floor(at.X)}, y {math.floor(at.Y)}, {math.floor(size.X)} x {math.floor(size.Y)} px, écran {math.floor(screen.X)} x {math.floor(screen.Y)})`
 		)
 		shot("tutorial_step1")
+
+		-- 1) Ta parcelle : il y est déjà. L'accueil passe tout seul après le temps de lecture, sans « ✓ BRAVO ! » ->
+		-- étape 2, « POSE UNE TOUR » (sa parcelle est vide : l'étape reste affichée).
+		local step2 = waitFor(function()
+			return titleHas("2/5") and guideOk()
+		end, 15)
+		titleConnection:Disconnect()
+		local bravo = false
+		for _, text in titles do
+			bravo = bravo or string.find(text, "BRAVO", 1, true) ~= nil
+		end
+		check(
+			step2 and titleHas("POSE UNE TOUR") and not bravo,
+			`tuto : accueil lu -> étape suivante toute seule, sans « BRAVO » (titres : {table.concat(titles, " | ")})`
+		)
 
 		-- Téléphone : le panneau des tours (PlotUI) ouvert monte jusque sous le tuto -> le tuto se cache (cartes et
 		-- boutons des tours visibles), puis revient quand il se ferme. L'écran du test est grand : le panneau des
@@ -2418,7 +2524,7 @@ return function(log)
 			towerPanel.AnchorPoint = wasAnchor
 			towerPanel.Position = wasPosition
 			local back = waitFor(function()
-				return shown(panel) and titleHas("1/6")
+				return shown(panel) and titleHas("2/5")
 			end, 3)
 			check(
 				hidden and back,
@@ -2428,26 +2534,6 @@ return function(log)
 			check(false, "tuto : panneau des tours (PlotUI « TowerPanel ») introuvable")
 		end
 
-		-- 1) La zone classée : le personnage entre dans le cercle -> étape 2, rayon vers sa parcelle.
-		local root = rootNow()
-		if root then
-			root.CFrame = CFrame.new(circle + Vector3.new(0, 3, 0))
-		end
-		local step2 = waitFor(function()
-			return titleHas("2/6") and guideOk() and guideTo(PlotLayout.toWorld(plotIndex, Vector3.new(0.5, 0, -22))) < 1
-		end, 15)
-		check(step2, `tuto : étape 1 validée dans le cercle -> « {title.Text} », rayon vers sa parcelle`)
-
-		-- 2) Ta parcelle : retour chez lui (son point d'apparition).
-		root = rootNow()
-		if root then
-			root.CFrame = CFrame.new(PlotLayout.toWorld(plotIndex, PlotLayout.PLAYER_SPAWN))
-		end
-		local step3 = waitFor(function()
-			return titleHas("3/6") and guideOk()
-		end, 15)
-		check(step3, `tuto : étape 2 validée sur sa parcelle -> « {title.Text} »`)
-
 		-- Mort et réapparition (comme « Réinitialiser ») : le tuto continue, le rayon repart du nouveau personnage.
 		local oldCharacter = player.Character
 		local humanoid = oldCharacter and oldCharacter:FindFirstChildOfClass("Humanoid")
@@ -2456,12 +2542,12 @@ return function(log)
 			humanoid:ChangeState(Enum.HumanoidStateType.Dead)
 		end
 		local respawned = waitFor(function()
-			return player.Character ~= oldCharacter and titleHas("3/6") and guideOk()
+			return player.Character ~= oldCharacter and titleHas("2/5") and guideOk()
 		end, 20)
 		check(respawned, `tuto : après une mort, le rayon repart du nouveau personnage (étape gardée : « {title.Text} »)`)
 		task.wait(0.5) -- le serveur le remet sur sa parcelle (Plots.sendHome)
 
-		-- 3) Poser une tour (remote PlotAction, comme une carte de PlotUI) sur l'emplacement sous la flèche.
+		-- 2) Poser une tour (remote PlotAction, comme une carte de PlotUI) sur l'emplacement sous la flèche.
 		local spotIndex = nil
 		for _, pad in plot.Spots:GetChildren() do
 			if pad:IsA("BasePart") and guideTo(pad.Position) < 1 then
@@ -2469,7 +2555,7 @@ return function(log)
 			end
 		end
 		local pad = spotIndex and plot.Spots:FindFirstChild("Spot" .. spotIndex)
-		check(pad ~= nil and pad:GetAttribute("Unlocked") == true, `tuto : étape 3, la flèche montre un emplacement libre (n° {spotIndex})`)
+		check(pad ~= nil and pad:GetAttribute("Unlocked") == true, `tuto : « pose une tour », la flèche montre un emplacement libre (n° {spotIndex})`)
 		-- Panneau des tours ouvert (comme après un clic sur l'emplacement) : la carte de l'Archer est entourée d'or.
 		local IdleTowers = require(ReplicatedStorage.Shared.IdleTowers)
 		local body = panel:FindFirstChild("Text")
@@ -2495,35 +2581,35 @@ return function(log)
 			end, 3)
 			check(
 				ringed and elsewhere == 0 and cleared and body ~= nil and string.find(body.Text, IdleTowers.Defs.MachineGun.displayName, 1, true) ~= nil,
-				`tuto : étape 3, texte « {IdleTowers.Defs.MachineGun.displayName} » et sa carte entourée d'or quand le panneau des tours est ouvert ({ringed}, ailleurs : {elsewhere}), cadre retiré à sa fermeture ({cleared})`
+				`tuto : « pose une tour », texte « {IdleTowers.Defs.MachineGun.displayName} » et sa carte entourée d'or quand le panneau des tours est ouvert ({ringed}, ailleurs : {elsewhere}), cadre retiré à sa fermeture ({cleared})`
 			)
 		else
 			check(false, "tuto : carte de l'Archer (PlotUI « Card_MachineGun ») introuvable")
 		end
 		spotIndex = spotIndex or 1
 		remotes.PlotAction:FireServer("Place", spotIndex, "MachineGun")
-		local step4 = waitFor(function()
-			return titleHas("4/6") and guideOk() and guideTo(PlotLayout.toWorld(plotIndex, PlotLayout.SPOTS[spotIndex])) < 1
+		local step3 = waitFor(function()
+			return titleHas("3/5") and guideOk() and guideTo(PlotLayout.toWorld(plotIndex, PlotLayout.SPOTS[spotIndex])) < 1
 		end, 15)
-		check(step4, `tuto : tour posée -> « {title.Text} », flèche sur la tour`)
+		check(step3, `tuto : tour posée -> « {title.Text} », flèche sur la tour`)
 
-		-- 4) L'améliorer (le serveur refuse 2 actions à moins de 0,15 s d'écart, 0,3 s pour les machines).
+		-- 3) L'améliorer (le serveur refuse 2 actions à moins de 0,15 s d'écart, 0,3 s pour les machines).
 		task.wait(0.5)
 		remotes.PlotAction:FireServer("Upgrade", spotIndex)
 		local altar = plot:FindFirstChild("TowerMachine")
-		local step5 = waitFor(function()
-			return titleHas("5/6") and guideOk() and altar ~= nil and guideTo(altar.Position) < 1
+		local step4 = waitFor(function()
+			return titleHas("4/5") and guideOk() and altar ~= nil and guideTo(altar.Position) < 1
 		end, 15)
-		check(step5, `tuto : tour améliorée -> « {title.Text} », flèche sur l'autel`)
+		check(step4, `tuto : tour améliorée -> « {title.Text} », flèche sur l'autel`)
 
-		-- 5) Un lancer x1 de l'autel (3 pièces au record 1).
+		-- 4) Un lancer x1 de l'autel (3 pièces au record 1).
 		task.wait(0.5)
 		remotes.MachineAction:FireServer("SpinTower", 1)
 		local forge = plot:FindFirstChild("BonusMachine")
 		local body6 = panel:FindFirstChild("Text")
 		local machines6 = player.PlayerGui:FindFirstChild("Machines")
-		local step6 = waitFor(function()
-			return titleHas("6/6") and guideOk() and forge ~= nil and guideTo(forge.Position) < 1
+		local step5 = waitFor(function()
+			return titleHas("5/5") and guideOk() and forge ~= nil and guideTo(forge.Position) < 1
 		end, 15)
 		-- Fenêtre de l'autel ouverte par le résultat du lancer : « ferme d'abord l'autel » (son X entouré d'or), pas de
 		-- « Terminer » ni de « Passer » tant qu'elle est ouverte ; fermée (comme MachineUI) : la forge et « Terminer ».
@@ -2551,7 +2637,7 @@ return function(log)
 				and string.find(body6.Text, "Forge runique", 1, true) ~= nil
 		end, 5)
 		check(
-			step6 and closeAsked and forgeText,
+			step5 and closeAsked and forgeText,
 			`tuto : lancer de l'autel -> « {title.Text} », flèche sur la forge ; autel ouvert ({altarShown}) : « ferme l'autel », X entouré d'or, sans boutons ({closeAsked}) ; fermé : texte de la forge et « {nextButton.Text} » ({forgeText})`
 		)
 		-- Avec les parcelles des autres (PlotAccess.luau) : l'autel et la forge montrés par la flèche sont ceux de SA
@@ -2563,7 +2649,7 @@ return function(log)
 			`tuto : l'autel et la forge montrés par la flèche ont leur invite « Ouvrir » allumée (autel : {altarPrompt and altarPrompt.Enabled}, forge : {forgePrompt and forgePrompt.Enabled})`
 		)
 
-		-- 6) La forge, ouverte comme par son invite : tuto fini, drapeau reçu du serveur, plus rien à l'écran.
+		-- 5) La forge, ouverte comme par son invite : tuto fini, drapeau reçu du serveur, plus rien à l'écran.
 		task.wait(0.5)
 		say("CMD:OpenMachine:Bonus")
 		local finished = waitFor(function()
@@ -2583,33 +2669,79 @@ return function(log)
 			end
 		end
 
-		-- « Passer » sur un 2e essai : fini tout de suite, à l'étape 1. D'abord avec la forge encore « ouverte » :
-		-- pas de « Passer » (ni « Suivant ») tant qu'une machine est ouverte ; puis machine fermée : il revient.
+		-- 2e essai, loin de sa parcelle (endroit neutre) : la 1re étape reste affichée, son texte dit où est la parcelle
+		-- et le rayon y mène. D'abord avec la forge encore « ouverte » : pas de « Passer » tant qu'une machine est
+		-- ouverte ; puis machine fermée : il revient. Puis « Passer » : fini tout de suite, à l'étape 1.
 		task.wait(0.8) -- anti-spam du serveur (un message toutes les 0,5 s)
+		moveTo(neutralPosition)
 		remotes.TutorialAction:FireServer("Replay")
 		local hiddenWhileOpen = machines ~= nil
 			and machines:GetAttribute("OpenMachine") == "Bonus"
 			and waitFor(function()
-				return titleHas("1/6") and not shown(skipButton) and not shown(nextButton)
+				return titleHas("1/5") and not shown(skipButton) and not shown(nextButton)
 			end, 8)
 		if machines then
 			machines:SetAttribute("OpenMachine", nil) -- (comme MachineUI quand on ferme sa fenêtre)
 		end
 		local again = waitFor(function()
-			return titleHas("1/6") and guideOk() and shown(skipButton) and shown(nextButton)
+			return titleHas("1/5") and guideOk() and shown(skipButton)
 		end, 8)
 		check(
-			hiddenWhileOpen and again,
-			`tuto : 2e essai -> « {title.Text} » ; forge ouverte : ni « Passer » ni « Suivant » ({hiddenWhileOpen}) ; fermée : « {skipButton.Text} » et « {nextButton.Text} » affichés ({again})`
+			hiddenWhileOpen and again and not shown(nextButton) and guideTo(plotTarget) < 1
+				and stepText ~= nil and stepText.Text == TutorialUI.PLOT_STEP_GO,
+			`tuto : 2e essai, loin de sa parcelle -> « {title.Text} », « {stepText and stepText.Text} », rayon vers sa parcelle ; forge ouverte : pas de « Passer » ({hiddenWhileOpen}) ; fermée : « {skipButton.Text} » affiché ({again})`
 		)
+		-- « Passer », par le bouton (attribut de test TestSkipTap : un plugin ne peut pas cliquer). Sur ordinateur, un
+		-- seul clic suffit (sur téléphone il en faut deux : test « téléphone »).
 		task.wait(0.8)
-		remotes.TutorialAction:FireServer("Skip", 1)
+		tutorialGui:SetAttribute("TestSkipTap", (tutorialGui:GetAttribute("TestSkipTap") or 0) + 1)
 		local skipped = waitFor(function()
 			return not shown(panel) and guideGone() and player:GetAttribute("TutorialDone") == true
 		end, 8)
 		check(
 			skipped,
-			`tuto : « Passer » -> tuto fini, panneau caché, guide retiré (TutorialDone = {tostring(player:GetAttribute("TutorialDone"))})`
+			`tuto : un clic sur « Passer » -> tuto fini, panneau caché, guide retiré (TutorialDone = {tostring(player:GetAttribute("TutorialDone"))})`
+		)
+
+		-- 3e essai, classé OUVERT chez ce client seulement (attribut StudioRankedOpen de ReplicatedStorage, comme pour la
+		-- version anglaise : le serveur ne voit rien) : l'étape de la zone classée revient en premier et le tuto a 6
+		-- étapes. Dans le cercle -> « 2/6 • TA PARCELLE » avec le texte du retour ; de retour sur sa parcelle ->
+		-- « ✓ BRAVO ! ». Puis le classé est refermé, et « Passer » à l'étape 2.
+		local RankedGate = require(ReplicatedStorage.Shared.RankedGate)
+		local savedGate = ReplicatedStorage:GetAttribute(RankedGate.STUDIO_ATTRIBUTE)
+		task.wait(1.5) -- (le serveur lit d'abord la fin du 2e essai)
+		ReplicatedStorage:SetAttribute(RankedGate.STUDIO_ATTRIBUTE, true)
+		remotes.TutorialAction:FireServer("Replay")
+		local openStart = waitFor(function()
+			return titleHas("1/6") and guideOk() and shown(nextButton) and shown(skipButton)
+		end, 8)
+		check(
+			openStart and titleHas("LA ZONE CLASSÉE") and guideTo(circle) < 1 and nextButton.Text == "Suivant"
+				and stepText ~= nil and stepText.Text == TutorialUI.RANKED_STEP_OPEN,
+			`tuto : classé ouvert (chez ce client) -> « {title.Text} », rayon et flèche vers le cercle classé (à {math.floor(math.min(guideTo(circle), 9999))} studs), boutons « {nextButton.Text} » et « {skipButton.Text} »`
+		)
+		moveTo(circle + Vector3.new(0, 3, 0))
+		local openPlot = waitFor(function()
+			return titleHas("2/6") and guideOk() and guideTo(plotTarget) < 1
+		end, 15)
+		check(
+			openPlot and titleHas("TA PARCELLE") and stepText ~= nil and stepText.Text == TutorialUI.PLOT_STEP_RETURN,
+			`tuto : classé ouvert, dans le cercle -> « {title.Text} », « {stepText and stepText.Text} », rayon vers sa parcelle`
+		)
+		moveTo(homePosition)
+		local openBravo = waitFor(function()
+			return titleHas("BRAVO")
+		end, 5)
+		check(openBravo, `tuto : classé ouvert, de retour sur sa parcelle -> « {title.Text} »`)
+		ReplicatedStorage:SetAttribute(RankedGate.STUDIO_ATTRIBUTE, savedGate)
+		task.wait(0.8)
+		remotes.TutorialAction:FireServer("Skip", 2)
+		local skippedOpen = waitFor(function()
+			return not shown(panel) and guideGone() and player:GetAttribute("TutorialDone") == true
+		end, 8)
+		check(
+			skippedOpen and not RankedGate.isOpen(),
+			`tuto : 3e essai, « Passer » à l'étape 2 -> tuto fini, panneau caché, guide retiré ; classé refermé chez ce client ({tostring(not RankedGate.isOpen())})`
 		)
 	end
 	testTutorial()

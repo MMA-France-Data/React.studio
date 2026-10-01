@@ -561,8 +561,9 @@ end
 --   Invoke(player, "PaidRandom", true)         -> comme un joueur à qui Roblox interdit ces achats (attribut
 --                                                PaidRandomRestricted : bouton Robux de la forge caché) ; false : autorisé
 -- Tuto des nouveaux joueurs (Hub/Tutorial.luau, client : TutorialUI.luau) :
---   Invoke(player, "Tutorial", "Replay")       -> le tuto recommence à l'étape 1 (même pendant les tests automatiques)
---   Invoke(player, "Tutorial")                 -> { done, attribute, lastAction ("Done" | "Skip"), lastStep, replays }
+--   Invoke(player, "Tutorial", "Replay")       -> le tuto recommence au début (même pendant les tests automatiques)
+--   Invoke(player, "Tutorial")                 -> { done, attribute, lastAction ("Done" | "Skip"), lastStep, steps
+--                                                (5 étapes classé fermé, 6 ouvert), replays }
 -- Classement solo (SoloLeaderboard.luau, panneaux Hub/SoloBoard.luau) :
 --   Invoke(player, "Solo", "Refresh")          -> relit les classements et met les panneaux à jour tout de suite
 --   Invoke(player, "Solo", "Fake", { { userId = -1, name = "Bot", wave = 500, dps = 1e12 } }) -> faux joueurs (DataStores

@@ -1353,7 +1353,69 @@ function PlotUI.start()
 	local params = RaycastParams.new()
 	params.FilterType = Enum.RaycastFilterType.Include
 
+	-- Numéro de l'emplacement (ou de la tour) de MA parcelle touché par ce rayon ; nil : rien.
+	local function spotUnder(ray: Ray): number?
+		local plot = myPlotFolder()
+		if not plot then
+			return nil
+		end
+		params.FilterDescendantsInstances = { plot }
+		local hit = workspace:Raycast(ray.Origin, ray.Direction * 500, params)
+		if not hit then
+			return nil
+		end
+		local spotIndex = hit.Instance:GetAttribute("SpotIndex")
+		if not spotIndex then
+			local model = hit.Instance:FindFirstAncestorOfClass("Model")
+			spotIndex = model and model:GetAttribute("SpotIndex")
+		end
+		return spotIndex
+	end
+
+	-- TÉLÉPHONE : un emplacement ou une tour se choisit par un APPUI BREF sans glisser, au moment où le doigt se lève
+	-- (pas au début du toucher : faire tourner la caméra en partant d'une tour ouvrait le panneau).
+	-- Le bas gauche de l'écran (40 % de la largeur, les 2/3 du bas) est la zone du joystick de Roblox : il prend ces
+	-- touchers pour lui (« processed »), et avant un emplacement ou une tour affiché là ne pouvait PAS être choisi.
+	-- Un appui bref dans cette zone compte maintenant, tant qu'il ne tombe sur aucun bouton ni aucune fenêtre du jeu
+	-- (worldTapAllowed). Ailleurs, un toucher pris par un bouton (saut, interface) ne choisit jamais rien.
+	local TAP_MOVE, TAP_TIME = 16, 0.5 -- un appui : moins de 16 px de glissement, moins de 0,5 s
+	-- [InputObject du toucher] = { position, at, processed } (clés faibles : un toucher dont la fin n'arrive jamais,
+	-- ex. le jeu passe en arrière-plan, ne reste pas en mémoire)
+	local touchStarts = setmetatable({}, { __mode = "k" })
+	local ignoreTapsUntil = 0 -- (un bouton « + » vient d'être touché : son appui ne choisit pas autre chose derrière lui)
+	local function worldTapAllowed(position: Vector3): boolean
+		local camera = workspace.CurrentCamera
+		local viewport = if camera then camera.ViewportSize else Vector2.zero
+		if position.X > viewport.X * 0.42 or position.Y < viewport.Y * 0.3 then
+			return false -- hors de la zone du joystick : c'est un bouton (saut, interface) qui a pris le toucher
+		end
+		if touchMode and panel.Visible then
+			return false -- le panneau des tours couvre l'écran
+		end
+		for _, object in player.PlayerGui:GetGuiObjectsAtPosition(position.X, position.Y) do
+			if (object:IsA("GuiButton") or object.Active) and not object:FindFirstAncestor("TouchGui") then
+				-- (vraiment affiché : lui et ses parents visibles, dans un écran allumé)
+				local current, visible = object, true
+				while current and not current:IsA("LayerCollector") do
+					if current:IsA("GuiObject") and not current.Visible then
+						visible = false
+						break
+					end
+					current = current.Parent
+				end
+				if visible and current and (current :: LayerCollector).Enabled then
+					return false
+				end
+			end
+		end
+		return true
+	end
+
 	UserInputService.InputBegan:Connect(function(input, processed)
+		if input.UserInputType == Enum.UserInputType.Touch then
+			touchStarts[input] = { position = input.Position, at = os.clock(), processed = processed }
+			return
+		end
 		if processed then
 			return
 		end
@@ -1364,39 +1426,104 @@ function PlotUI.start()
 			upgradeSelected()
 			return
 		end
-		local isClick = input.UserInputType == Enum.UserInputType.MouseButton1
-		local isTouch = input.UserInputType == Enum.UserInputType.Touch
-		if not isClick and not isTouch then
+		if input.UserInputType ~= Enum.UserInputType.MouseButton1 then
 			return
 		end
-		local plot = myPlotFolder()
-		if not plot then
-			return
-		end
-		params.FilterDescendantsInstances = { plot }
-
 		local camera = workspace.CurrentCamera
-		local ray
-		if isTouch then
-			ray = camera:ScreenPointToRay(input.Position.X, input.Position.Y)
-		else
-			local mouse = UserInputService:GetMouseLocation()
-			ray = camera:ViewportPointToRay(mouse.X, mouse.Y)
-		end
-		local hit = workspace:Raycast(ray.Origin, ray.Direction * 500, params)
-		if not hit then
-			return
-		end
-		local spotIndex = hit.Instance:GetAttribute("SpotIndex")
-		if not spotIndex then
-			local model = hit.Instance:FindFirstAncestorOfClass("Model")
-			spotIndex = model and model:GetAttribute("SpotIndex")
-		end
+		local mouse = UserInputService:GetMouseLocation()
+		local spotIndex = spotUnder(camera:ViewportPointToRay(mouse.X, mouse.Y))
 		if spotIndex then
 			select(spotIndex)
 			refreshPanel()
 		end
 	end)
+	UserInputService.InputEnded:Connect(function(input)
+		if input.UserInputType ~= Enum.UserInputType.Touch then
+			return
+		end
+		local start = touchStarts[input]
+		touchStarts[input] = nil
+		if not start or os.clock() < ignoreTapsUntil then
+			return
+		end
+		if (input.Position - start.position).Magnitude > TAP_MOVE or os.clock() - start.at > TAP_TIME then
+			return -- glissé (caméra, joystick) ou appui long : pas un choix
+		end
+		if start.processed and not worldTapAllowed(input.Position) then
+			return
+		end
+		local spotIndex = spotUnder(workspace.CurrentCamera:ScreenPointToRay(input.Position.X, input.Position.Y))
+		if spotIndex then
+			select(spotIndex)
+			refreshPanel()
+		end
+	end)
+
+	------------------------------------------------------------------
+	-- Bouton « + » au-dessus de chaque emplacement LIBRE de ma parcelle (possédé, sans tour) : il se voit de loin et
+	-- il ouvre le choix des tours. Demande du propriétaire (01/10/2026) : deux nouveaux joueurs sont partis à l'étape
+	-- « pose une tour » du tuto sans en poser. C'est un vrai bouton (BillboardGui rangé dans PlayerGui) : sur
+	-- téléphone il marche aussi dans la zone du joystick, où un appui sur le sol ne passait pas. Seulement chez moi
+	-- et sur ma parcelle ; 38 px de côté de près, plus petit de loin (22 px au moins : deux « + » voisins ne se
+	-- recouvrent pas), caché au-delà de 90 studs.
+	------------------------------------------------------------------
+	local PLUS_SIZE, PLUS_SMALL, PLUS_FULL_DISTANCE = 38, 22, 35
+	local plusMarkers: { [number]: BillboardGui } = {}
+	local function refreshPlusMarkers()
+		local plot = myPlotFolder()
+		local owned = ownedSpots()
+		local camera = workspace.CurrentCamera
+		for spotIndex = 1, #PlotLayout.SPOTS do
+			local pad = if plot and owned[spotIndex] then spotPad(spotIndex) else nil
+			local wanted = pad ~= nil and pad:IsA("BasePart") and towerOn(spotIndex) == nil and pendingPlace[spotIndex] == nil
+			local marker = plusMarkers[spotIndex]
+			if wanted and not marker then
+				marker = UI.new("BillboardGui", {
+					Name = "FreeSpot" .. spotIndex,
+					Size = UDim2.fromOffset(PLUS_SIZE, PLUS_SIZE),
+					StudsOffsetWorldSpace = Vector3.new(0, 2.6, 0),
+					AlwaysOnTop = true,
+					MaxDistance = 90,
+					ResetOnSpawn = false,
+					Active = true,
+					Enabled = false,
+					Parent = player.PlayerGui,
+				})
+				local plusStroke = UI.stroke(Color3.new(1, 1, 1), 2)
+				plusStroke.Transparency = 0.15
+				local button = UI.new("TextButton", {
+					Name = "Plus",
+					Size = UDim2.fromScale(1, 1),
+					BackgroundColor3 = UI.Colors.Gold,
+					AutoButtonColor = true,
+					Font = Enum.Font.GothamBlack,
+					Text = "+",
+					TextScaled = true,
+					TextColor3 = Color3.fromRGB(30, 25, 10),
+					Parent = marker,
+				}, { UI.new("UICorner", { CornerRadius = UDim.new(0.5, 0) }), plusStroke })
+				button.Activated:Connect(function()
+					ignoreTapsUntil = os.clock() + 0.3
+					select(spotIndex)
+					refreshPanel()
+				end)
+				plusMarkers[spotIndex] = marker
+			end
+			if marker then
+				if wanted then
+					if marker.Adornee ~= pad then
+						marker.Adornee = pad
+					end
+					local distance = if camera then (camera.CFrame.Position - (pad :: BasePart).Position).Magnitude else 0
+					local side = math.clamp(math.floor(PLUS_SIZE * PLUS_FULL_DISTANCE / math.max(distance, 1)), PLUS_SMALL, PLUS_SIZE)
+					if marker.Size.X.Offset ~= side then
+						marker.Size = UDim2.fromOffset(side, side)
+					end
+				end
+				marker.Enabled = wanted
+			end
+		end
+	end
 
 	-- Tests automatiques dans Studio (tools/studio-test, test « version anglaise ») : un plugin ne peut pas cliquer.
 	-- L'attribut « TestSelectSpot » de cet écran (numéro d'emplacement ; 0 = rien) le sélectionne comme un clic dessus.
@@ -1433,6 +1560,7 @@ function PlotUI.start()
 		coinsLabel.Text = "💰 " .. NumberFormat.short(coins())
 		panelCoins.Text = coinsLabel.Text
 		refreshPanel()
+		refreshPlusMarkers()
 	end
 
 	task.spawn(function()

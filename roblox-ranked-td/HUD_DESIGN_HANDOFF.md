@@ -26,7 +26,11 @@ téléphone (`tools/studio-test/phone.ps1`, nouveau : 706 × 300, l'écran du pr
 - **Bouton « ▲ »** (demande du propriétaire : pouvoir masquer, sans jamais perdre le bouton) : collé au compteur de
   pièces, il cache les raccourcis, SON et Vitesse et devient « ▼ » ; il ne bouge pas et les remet
   (`UI.startShortcutToggle`). L'astuce de la Renaissance et la fin du tuto les remettent toutes seules.
-- **Tuto sur téléphone** : panneau tout en haut de la zone de jeu, au milieu (il était au milieu de l'écran), et son
+- **Tuto sur téléphone** : panneau en BAS de l'écran, entre le joystick de Roblox et son bouton de saut
+  (`TutorialUI.panelPlace`, 01/10/2026 à midi). Le matin, il était tout en haut de la zone de jeu, au milieu : la
+  capture d'un vrai nouveau joueur (`phone_a_newplayer`) a montré qu'il cachait les boutons « + » des emplacements
+  et la flèche du tuto. Il remonte en haut quand la fenêtre de l'autel ou de la forge est ouverte. « Passer » est
+  alors à côté du bouton de saut : sur téléphone il demande deux appuis (« Passer », puis « Confirmer ? »). Son
   astuce finale parle des icônes 🏰 et 🔨 « à droite ».
 - **Panneau des tours sur téléphone** : 4 cartes par page dès 560 px de large (2 avant), pièces du joueur à côté du
   X (le panneau couvre le compteur), fiche resserrée sur les écrans bas (sur 645 × 268, « Détails & effets » et

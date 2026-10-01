@@ -23,6 +23,14 @@ if (enemyModels && enemyModels.$path && !path.isAbsolute(enemyModels.$path)) {
 	enemyModels.$path = norm(path.join(repo, enemyModels.$path));
 }
 tree.ReplicatedStorage.__AutoPlayTest = { $className: 'NumberValue', $properties: { Value: Number(duration) } };
+// Test « téléphone » : le tuto des nouveaux joueurs démarre tout seul, comme dans le jeu publié (dans les autres
+// places de test il ne démarre jamais seul : src/client/TutorialUI.luau lit cet objet).
+if (mode === 'phone') {
+	tree.ReplicatedStorage.__AutoTestNewPlayer = { $className: 'BoolValue', $properties: { Value: true } };
+	// ... et le joueur de test y reçoit la parcelle 2 au lieu de la 1 (src/server/Hub/Plots.luau lit cet objet),
+	// comme le 2e joueur arrivé sur un serveur : le tuto doit le guider vers SA parcelle.
+	tree.ReplicatedStorage.__AutoTestPlot = { $className: 'IntValue', $properties: { Value: 2 } };
+}
 // Scénarios serveur et client : map principale (HubServer), match ranked contre le bot (MatchServer), mode
 // tournage (images et vidéos du jeu, tournage.ps1 : TournageServer et TournageClient), ou test « téléphone »
 // (phone.ps1 : le jeu dans une fenêtre de la taille d'un téléphone, PhoneServer et PhoneClient).

@@ -19,15 +19,30 @@ powershell -ExecutionPolicy Bypass -File tools\studio-test\phone.ps1
 **Ne touche pas à la fenêtre de Studio pendant un test** (ni clic, ni agrandissement) : un clic ferme une fenêtre du
 jeu ou sélectionne un emplacement, et des vérifications échouent sans raison.
 
-- `phone.ps1` : **le jeu à la taille d'un téléphone** (environ 3 minutes). Les autres tests ne font que des calculs
+- `phone.ps1` : **le jeu à la taille d'un téléphone** (environ 4 minutes). Les autres tests ne font que des calculs
   avec de fausses tailles ; celui-ci réduit vraiment la fenêtre de Studio jusqu'à ce que l'écran du jeu fasse la
-  taille voulue (706 x 300 = le téléphone du propriétaire, puis 750 x 332, 568 x 262 et 645 x 268), ouvre chaque
+  taille voulue (706 x 300 = le téléphone du propriétaire, puis 750 x 332, 568 x 262 et 645 x 268).
+  **D'abord l'arrivée d'un vrai nouveau joueur** : dans cette place de test seulement, le tuto démarre tout seul
+  comme dans le jeu publié (objet `__AutoTestNewPlayer` ajouté par `mkproj.cjs`, lu par `TutorialUI.luau` ; dans les
+  autres tests il ne démarre jamais seul), et le joueur reçoit la **parcelle 2** au lieu de la 1 (objet
+  `__AutoTestPlot`, lu par `Hub/Plots.luau` dans Studio seulement), comme le 2e joueur arrivé sur un serveur. Le
+  scénario vérifie qu'il est guidé vers SA parcelle : il y apparaît, la flèche du tuto et les « + » y sont, son Archer
+  s'y pose (rien sur la parcelle 1), et les invites de l'autel et de la forge de la parcelle 1 sont éteintes pour lui.
+  Tout le reste du test « téléphone » se fait donc sur la parcelle 2 (le test `hub` reste sur la 1).
+  Le scénario vérifie aussi qu'il commence par « TUTO 1/5 • TA PARCELLE » avec le
+  mot d'accueil, passe tout seul à « POSE UNE TOUR » sans « ✓ BRAVO ! », puis, à la taille du téléphone : le panneau
+  du tuto en bas de l'écran (à gauche du bouton de saut), la flèche « ICI » et les 4 boutons « + » (capture
+  `phone_a_newplayer`), l'autel ouvert (le tuto monte en haut, le bouton x1 reste dégagé : `phone_a_newplayer_altar`),
+  le « + » touché et la carte de l'Archer entourée d'or (`phone_a_newplayer_cards`), l'Archer posé et « Améliorer »
+  entouré d'or (`phone_a_newplayer_upgrade`), et « Passer » : un appui ne passe rien (« Confirmer ? »), deux appuis
+  passent le tuto (attribut de test `TestSkipTap` de l'écran du tuto : un plugin ne peut pas toucher l'écran).
+  Ensuite le serveur de test prépare la parcelle d'un joueur avancé et le scénario ouvre chaque
   fenêtre (écran de jeu : rien au milieu de la vue, icônes de l'autel et de la forge et bouton Renaissance contre le
   bord droit, Boutique en haut à gauche ; bouton « ▲ » qui les masque et les remet ;
   tuto ; cartes des tours page par page, fiche d'une tour, « Détails & effets », emplacement à acheter, autel,
   forge, boutique, défis, renaissance), vérifie que rien ne sort de l'écran ni ne se chevauche, et prend une
-  capture (`out\phone_<taille>_<nom>.png`). Scénarios : `PhoneServer.luau` (parcelle
-  de joueur avancé) et `PhoneClient.luau`. Les dispositions « téléphone » ne dépendent que de la taille de l'écran
+  capture (`out\phone_<taille>_<nom>.png`). Scénarios : `PhoneServer.luau` (attend la fin du tuto du nouveau joueur,
+  puis parcelle de joueur avancé) et `PhoneClient.luau`. Les dispositions « téléphone » ne dépendent que de la taille de l'écran
   (`UI.touchLayout`), jamais de « écran tactile » : c'est ce qui permet de les voir dans Studio.
 
 - `hub` (par défaut) : map principale. Le scénario achète des emplacements dans le désordre (prix,
@@ -91,19 +106,24 @@ jeu ou sélectionne un emplacement, et des vérifications échouent sans raison.
   la carte de rang (« CLASSÉ 1v1 », sans MMR), le bouton « ⚔ DÉFIS » caché, dans le cercle le panneau « BIENTÔT
   DISPONIBLE » à la place du bouton (capture `ranked_soon`), aucune fenêtre « MATCH TROUVÉ ! » même avec l'état
   « Pending » (chez lui seulement), puis envoie « Join » et « Accept » par le vrai remote : le serveur les refuse
-  (`testRankedClosedRemote`, après le tuto). Le tuto se fait donc classé fermé, comme dans le jeu publié (étape 1 :
-  « … bientôt disponibles ! »).
+  (`testRankedClosedRemote`, après le tuto). Le tuto se fait donc classé fermé, comme dans le jeu publié : 5 étapes,
+  sans celle de la zone classée (« TUTO 1/5 • TA PARCELLE »).
   Après le classé, le **tuto des nouveaux joueurs** (`TutorialUI.luau`, `Hub/Tutorial.luau`) : il ne s'affiche
   jamais tout seul pendant les tests. Le serveur vérifie le drapeau d'un nouveau joueur, les coûts (tour + amélioration
   + autel x1 = 33 sur les 50 pièces de départ) et les anciennes sauvegardes (qui a déjà joué ne le voit pas), rend la
   parcelle « nouveau joueur » (aucune tour, record 1, aucun lancer, 50 pièces) et donne la main au client
-  (attribut `AutoTestTutorial` = « Client »). Le client relance le tuto (« Replay », Studio seulement), vérifie le
-  panneau et le guide (rayon + flèche ▼, capture `tutorial_step1`), que le tuto se cache sous le panneau des tours
-  ouvert par-dessus (comme sur un téléphone) et revient à sa fermeture, puis fait les 6 étapes pour de vrai : cercle,
-  retour sur sa parcelle (avec une mort au passage : le rayon repart du nouveau personnage), tour posée et
-  améliorée (remote `PlotAction`), lancer x1 de l'autel (`MachineAction`), forge ouverte comme par son invite (les
-  invites « Ouvrir » de l'autel et de la forge montrés par la flèche restent allumées malgré `PlotAccess.luau`). Le
-  serveur vérifie le drapeau `tutorialDone` et les 3 achats payés avec les 50 pièces ; puis « Passer » sur un 2e essai.
+  (attribut `AutoTestTutorial` = « Client »). Le client relance le tuto (« Replay », Studio seulement) avec son
+  personnage sur sa parcelle, comme un nouveau joueur : mot d'accueil « Bienvenue ! Voici ta parcelle… », panneau et
+  guide (rayon + flèche ▼, capture `tutorial_step1`), puis l'étape suivante toute seule, sans « ✓ BRAVO ! ». Il
+  vérifie que le tuto se cache sous le panneau des tours ouvert par-dessus (comme sur un téléphone) et revient à sa
+  fermeture, puis fait les étapes pour de vrai (avec une mort au passage : le rayon repart du nouveau personnage) :
+  tour posée et améliorée (remote `PlotAction`), lancer x1 de l'autel (`MachineAction`), forge ouverte comme par son
+  invite (les invites « Ouvrir » de l'autel et de la forge montrés par la flèche restent allumées malgré
+  `PlotAccess.luau`). Le serveur vérifie le drapeau `tutorialDone` (« Done » à l'étape 5/5) et les 3 achats payés avec
+  les 50 pièces. 2e essai, loin de sa parcelle : le texte dit qu'elle est au bout du rayon doré, puis « Passer ».
+  3e essai, classé ouvert chez le client seulement (attribut `StudioRankedOpen` changé chez lui) : les 6 étapes
+  reviennent, la zone classée en premier (« TUTO 1/6 • LA ZONE CLASSÉE »), puis « 2/6 • TA PARCELLE » avec le texte
+  du retour, « ✓ BRAVO ! » sur sa parcelle, et « Passer ».
   **Sons** (côté client, en parallèle des autres tests) : le bouton « SON » ne couvre pas la carte de rang,
   chaque son de `src/shared/Sounds.luau` se charge (`[PASS]` / `[FAIL]` par son, avec sa durée), 200 tirs à la
   même image ne font pas jouer plus que `Sounds.MAX_COMBAT_SOUNDS` sons (la mort d'un boss, son « priority »,

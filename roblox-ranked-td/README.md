@@ -24,7 +24,8 @@ fermé** : voir juste en dessous.
 - **Ce que voit le joueur** : dans le cercle, un panneau « BIENTÔT DISPONIBLE » + « Les matchs classés 1v1 arrivent
   bientôt ! » à la place du bouton « S'INSCRIRE » ; la carte de rang dit « CLASSÉ 1v1 / BIENTÔT DISPONIBLE » (ni rang, ni
   MMR) ; le tableau du classement et ses 2 plaques disent « BIENTÔT DISPONIBLE » ; le bouton « ⚔ DÉFIS » est caché ;
-  l'étape 1 du tuto montre toujours le cercle mais dit que le classé arrive bientôt ; jamais de « MATCH TROUVÉ ! ».
+  le tuto ne parle plus du classé (son étape « la zone classée » est retirée, il commence par la parcelle) ; jamais de
+  « MATCH TROUVÉ ! ».
 - **Le serveur** (il ne croit jamais le client) refuse toute inscription, réponse (accepter / refuser) et tout
   « Récupérer » d'un défi classé, et ne fait aucun matchmaking : ni file, ni leader, aucun appel à MemoryStore, ni au
   DataStore du classement. Le serveur de match (`STUDIO_FORCE_MODE = "Match"`, arrivées par téléportation) ne change pas.
@@ -36,20 +37,38 @@ fermé** : voir juste en dessous.
 
 ### Le tuto des nouveaux joueurs
 
-- Un **petit tuto** en 6 étapes, **une seule fois**, pour les nouveaux joueurs : un panneau en haut de l'écran
-  (« TUTO 1/6 • … », boutons « Suivant » / « Terminer » et **« Passer »**), un **rayon doré** du personnage vers la
+- Un **petit tuto**, **une seule fois**, pour les nouveaux joueurs : un panneau en haut de l'écran (en bas sur
+  téléphone ; « TUTO 1/5 • … », boutons « Suivant » / « Terminer » et **« Passer »**), un **rayon doré** du personnage vers la
   cible et une **flèche ▼** au-dessus d'elle. Rien n'est bloqué pendant le tuto.
-  1. **La zone classée** : entrer dans le cercle rouge (ou tout près), ou « Suivant » (classé fermé : le texte dit
-     qu'il arrive bientôt).
-  2. **Ta parcelle** : y retourner.
-  3. **Poser une tour** : au moins une tour posée.
-  4. **L'améliorer** : une tour au niveau 2.
-  5. **L'Autel des héros** : un lancer (x1).
-  6. **La Forge runique** : juste la montrer (trop chère au début : 100K) ; finie quand on l'ouvre ou « Terminer ».
-- Une étape déjà faite (ex. une tour déjà posée) passe toute seule. Un joueur qui part au milieu recommence à
-  l'étape 1 en revenant (les étapes faites passent vite). Le rayon suit le nouveau personnage après une mort.
+- **Tant que le classé est fermé : 5 étapes** (demande du propriétaire, 01/10/2026 : « enlève la première partie du
+  tuto qui montre ranked en attendant »). L'étape « la zone classée » n'est pas montrée et les autres sont numérotées
+  de 1 à 5. Elle revient toute seule, en premier (6 étapes), quand le classé rouvre (`Config.RANKED_OPEN = true`).
+  - *(classé ouvert seulement)* **La zone classée** : entrer dans le cercle rouge (ou tout près), ou « Suivant ».
+  1. **Ta parcelle** : un mot d'accueil (« Bienvenue ! Voici ta parcelle… »). Le nouveau joueur apparaît dessus :
+     l'étape passe toute seule après le temps de lecture, sans « ✓ BRAVO ! ». S'il n'y est pas, le texte dit qu'elle
+     est au bout du rayon doré. (Classé ouvert : « Retournes-y », après le cercle.)
+  2. **Poser une tour** : au moins une tour posée (le « + » d'un emplacement libre, puis la carte de l'Archer).
+  3. **L'améliorer** : une tour au niveau 2.
+  4. **L'Autel des héros** : un lancer (x1).
+  5. **La Forge runique** : juste la montrer (trop chère au début : 100K) ; finie quand on l'ouvre ou « Terminer ».
+- Une étape déjà faite (ex. une tour déjà posée) passe toute seule. Un joueur qui part au milieu recommence au
+  début en revenant (les étapes faites passent vite). Le rayon suit le nouveau personnage après une mort.
+- **Chaque joueur est guidé vers SA parcelle** : le serveur lui donne la première parcelle libre (son numéro est dans
+  l'attribut `Plot` du joueur), et le tuto, les boutons « + », l'autel et la forge montrés sont ceux de cette
+  parcelle. Vérifié par le test « téléphone », dont le nouveau joueur est mis sur la parcelle 2 (la 1 n'est pas la
+  sienne).
+- **Sur téléphone, le panneau du tuto est en bas de l'écran** (01/10/2026), entre le joystick de Roblox et son bouton
+  de saut (`TutorialUI.panelPlace`). En haut, il cachait presque toute la vue : avec la caméra de départ, les boutons
+  « + » des emplacements et la flèche « ICI » étaient derrière lui (vu sur la capture `phone_a_newplayer` du test
+  « téléphone »). Quand la fenêtre de l'autel ou de la forge est ouverte, il remonte en haut (leurs boutons sont en
+  bas). Sur ordinateur et tablette, il reste en haut. Comme le bouton **« Passer »** se retrouve à côté du bouton de
+  saut, il faut le toucher **deux fois** sur téléphone (« Passer », puis « Confirmer ? » dans les 3 secondes) : un
+  appui par erreur ne fait pas perdre le tuto. Sur ordinateur, un seul clic.
 - Sur téléphone, le panneau des tours prend presque tout l'écran : le tuto se cache tant qu'il est ouvert (cartes
   et « Améliorer » bien visibles, pas de « Passer » touché par erreur), puis revient.
+- **Point d'apparition** : `PlotLayout.PLAYER_SPAWN` avancé de 10 studs dans la parcelle (z = -50, plus -60). La
+  caméra de départ (12,5 studs derrière le personnage) était en plein dans l'Autel des héros : la première image du
+  jeu avait une large bande dorée en bas de l'écran (le linteau de l'autel).
 - **Écran d'un téléphone** (01/10/2026, choisi par le propriétaire d'après d'autres jeux Roblox) : rien au milieu de
   la vue. Contre le bord droit : deux icônes carrées, 🏰 Autel et 🔨 Forge, et dessous le petit bouton
   « Renaissance » avec son gain. En haut à gauche, sous les boutons de Roblox : « ★ BOUTIQUE ». Tout en haut à
@@ -176,6 +195,12 @@ fermé** : voir juste en dessous.
   tours communes compensent avec leurs centaines de doublons. L'Oracle est passé de 50 à 60 le 30/09 (« renforce
   un peu, mais pas trop ») : depuis la limite de 2 légendaires, il ne servait presque plus quand il sortait
   après le Trébuchet (voir `tools/balance/RESULTS.md`).
+- **Emplacements faciles à trouver** (01/10/2026 : deux nouveaux joueurs sont partis à l'étape « pose une tour » du
+  tuto) : chaque emplacement est un socle de pierre surélevé (1 stud, `PlotLayout.SPOT_PAD_HEIGHT`), et un bouton
+  doré « + » flotte au-dessus de chaque emplacement libre de ta parcelle : un clic dessus ouvre le choix des tours
+  (`PlotUI`, BillboardGui « FreeSpot<n> »). Sur téléphone, un emplacement ou une tour se choisit par un appui bref
+  (plus au début du toucher : tourner la caméra n'ouvre plus le panneau), même dans la zone du joystick en bas à
+  gauche, où Roblox prenait le toucher pour lui.
 - Clique sur **n'importe quel cadenas** pour débloquer cet emplacement. Tous les cadenas affichent le même prix
   (celui de ton prochain emplacement), qui monte après chaque achat. Les emplacements possédés sont sauvegardés
   dans `data.idle.ownedSpots` (`unlockedSpots` = leur nombre) ; les anciennes sauvegardes sont converties

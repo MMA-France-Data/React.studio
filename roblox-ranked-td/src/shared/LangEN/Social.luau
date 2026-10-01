@@ -14,31 +14,32 @@ return {
 	----------------------------------------------------------------------
 	-- Tuto des nouveaux joueurs (TutorialUI.luau)
 	----------------------------------------------------------------------
-	-- Titre du panneau : « TUTO 1/6 • LA ZONE CLASSÉE » ({2} = titre de l'étape, traduit par sa ligne plus bas).
+	-- Titre du panneau : « TUTO 1/5 • TA PARCELLE » ({2} = titre de l'étape, traduit par sa ligne plus bas).
 	["TUTO {1} • {2}"] = "TUTORIAL {1} • {2}",
 	["✓ BRAVO !"] = "✓ WELL DONE!",
-	-- Étape 1 : la zone classée
+	-- Étape de la zone classée (montrée seulement quand le classé est ouvert : Config.RANKED_OPEN = true)
 	["LA ZONE CLASSÉE"] = "THE RANKED ZONE",
 	["Le cercle rouge au centre, c'est le classé : des matchs 1 contre 1 pour monter en rang. Suis le rayon doré !"] = "The red circle in the middle is Ranked mode: 1v1 matches to climb the ranks. Follow the golden beam!",
-	-- (classé fermé : Config.RANKED_OPEN = false)
-	["Le cercle rouge au centre, c'est le classé : des matchs 1 contre 1, bientôt disponibles ! Suis le rayon doré."] = "The red circle in the middle is Ranked mode: 1v1 matches, coming soon! Follow the golden beam.",
 	["ARÈNE CLASSÉE"] = "RANKED ARENA",
-	-- Étape 2 : ta parcelle (« TA PARCELLE » sert de titre et de texte de la flèche)
+	-- Étape « ta parcelle » (« TA PARCELLE » sert de titre et de texte de la flèche). Classé ouvert : après le cercle.
 	["TA PARCELLE"] = "YOUR PLOT",
 	["Voici ta parcelle : des vagues d'ennemis y arrivent sans fin. Retournes-y en suivant le rayon doré."] = "This is your plot: endless waves of enemies come here. Follow the golden beam to get back there.",
-	-- Étape 3 : poser une tour ({1} = nom de l'Archer du rempart)
+	-- (classé fermé : c'est la 1re étape. Le joueur apparaît sur sa parcelle ; sinon elle est au bout du rayon)
+	["Bienvenue ! Voici ta parcelle : des vagues d'ennemis y arrivent sans fin."] = "Welcome! This is your plot: endless waves of enemies come here.",
+	["Bienvenue ! Ta parcelle est au bout du rayon doré : des vagues d'ennemis y arrivent sans fin."] = "Welcome! Your plot is at the end of the golden beam: endless waves of enemies come there.",
+	-- Étape « poser une tour » ({1} = nom de l'Archer du rempart)
 	["POSE UNE TOUR"] = "PLACE A TOWER",
-	["Clique sur un emplacement libre (sous la flèche), puis sur la carte « {1} » entourée d'or : ta tour tire toute seule."] = "Click a free spot (under the arrow), then the “{1}” card circled in gold: your tower shoots on its own.",
+	["Clique sur le « + » d'un emplacement libre (sous la flèche), puis sur la carte « {1} » entourée d'or : ta tour tire toute seule."] = "Click the “+” on a free spot (under the arrow), then the “{1}” card circled in gold: your tower shoots on its own.",
 	["ICI"] = "HERE",
-	-- Étape 4 : l'améliorer
+	-- Étape « l'améliorer »
 	["AMÉLIORE-LA"] = "UPGRADE IT",
 	["Clique sur ta tour, puis sur « Améliorer » (entouré d'or) : elle fera plus de dégâts."] = "Click your tower, then “Upgrade” (circled in gold): it will deal more damage.",
 	["TA TOUR"] = "YOUR TOWER",
-	-- Étape 5 : l'Autel des héros
+	-- Étape « l'Autel des héros »
 	["L'AUTEL DES HÉROS"] = "THE HEROES' ALTAR",
 	["Va à l'Autel des héros (suis le rayon doré), ouvre-le et lance x1 (entouré d'or) : il donne de nouvelles tours."] = "Go to the Heroes' Altar (follow the golden beam), open it and spin x1 (circled in gold): it gives you new towers.",
 	["AUTEL DES HÉROS"] = "HEROES' ALTAR",
-	-- Étape 6 : la Forge runique ({1} = prix du prochain lancer, ex. « 100K »), puis l'astuce des boutons de gauche
+	-- Dernière étape : la Forge runique ({1} = prix du prochain lancer, ex. « 100K »), puis l'astuce des boutons de gauche
 	["LA FORGE RUNIQUE"] = "THE RUNE FORGE",
 	["Ferme la fenêtre de l'autel (X entouré d'or), puis va à la Forge runique, juste à côté, et ouvre-la."] = "Close the altar window (X circled in gold), then go to the Rune Forge, right next to it, and open it.",
 	["Va à la Forge runique et ouvre-la : ses runes multiplient les dégâts de tes tours (chères au début : {1} pièces)."] = "Go to the Rune Forge and open it: its runes multiply your towers' damage (pricey at first: {1} coins).",
@@ -50,6 +51,8 @@ return {
 	["Suivant"] = "Next",
 	["Terminer"] = "Finish",
 	["Passer"] = "Skip",
+	-- (téléphone : « Passer » touché une 1re fois ; un 2e appui passe le tuto)
+	["Confirmer ?"] = "Confirm?",
 	["Tuto terminé ! À toi de jouer"] = "Tutorial complete! Your turn to play",
 	["Tuto passé : bonne partie !"] = "Tutorial skipped: have fun!",
 

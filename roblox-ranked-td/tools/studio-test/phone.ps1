@@ -3,6 +3,8 @@
 # une taille par « PHONE:want=645x268;have=... » dans la Sortie : ce script redimensionne la fenêtre de Studio jusqu'à
 # ce que l'écran du jeu fasse cette taille, puis le scénario ouvre chaque fenêtre, vérifie que rien ne sort de l'écran
 # et demande une capture (« SHOT:nom »).
+# Tout au début, le joueur de test est un NOUVEAU joueur : le tuto démarre tout seul comme dans le jeu publié, et le
+# scénario regarde ses premières étapes à la taille du téléphone (captures phone_a_newplayer*.png).
 #
 #   powershell -ExecutionPolicy Bypass -File tools\studio-test\phone.ps1
 #
@@ -10,7 +12,7 @@
 # propriétaire, b = grand téléphone, c = petit). Ne touche pas au PC pendant le test (la fenêtre de Studio bouge).
 # À la fin, Studio est fermé (il retrouve sa taille normale à la prochaine ouverture).
 param(
-	[int]$Seconds = 330,
+	[int]$Seconds = 420,
 	[switch]$CloseStudio,
 	[switch]$KeepOpen
 )

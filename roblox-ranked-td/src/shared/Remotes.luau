@@ -70,7 +70,7 @@ local DEFINITIONS = {
 	-- récompenses à récupérer).
 	ChallengeAction = "RemoteEvent",
 	-- Tuto des nouveaux joueurs (TutorialUI.luau), client -> serveur : ("Done", étape) = tuto fini (forge ouverte ou
-	-- « Terminer ») | ("Skip", étape) = bouton « Passer » | "Replay" = recommencer à l'étape 1 (Studio seulement,
+	-- « Terminer ») | ("Skip", étape) = bouton « Passer » | "Replay" = recommencer au début (Studio seulement,
 	-- refusé dans le jeu publié). Le serveur garde tutorialDone (PlayerData) et le publie dans l'attribut TutorialDone
 	-- du joueur ; « Replay » augmente aussi l'attribut TutorialReplay (Hub/Tutorial.luau).
 	TutorialAction = "RemoteEvent",

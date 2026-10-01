@@ -42,29 +42,24 @@ return function(log)
 		return condition()
 	end
 
-	if not waitFor(function()
-		return ReplicatedStorage:GetAttribute("PhoneTestReady") == true
-	end, 90) then
-		check(false, "le serveur de test n'a pas préparé la parcelle")
-		return
-	end
-	local plotGui = playerGui:WaitForChild("Plot", 30)
+	local plotGui = playerGui:WaitForChild("Plot", 60)
 	local panel = plotGui and plotGui:WaitForChild("TowerPanel", 30)
 	if not panel then
 		check(false, "panneau des tours (PlotUI « TowerPanel ») introuvable")
 		return
 	end
 	-- Sur un téléphone, la liste des joueurs de Roblox est repliée : on la cache (dans Studio elle couvre le haut à
-	-- droite des captures).
-	for _ = 1, 20 do
-		if pcall(function()
-			game:GetService("StarterGui"):SetCoreGuiEnabled(Enum.CoreGuiType.PlayerList, false)
-		end) then
-			break
+	-- droite des captures). Dans sa propre tâche : le scénario regarde le tuto dès le début.
+	task.spawn(function()
+		for _ = 1, 20 do
+			if pcall(function()
+				game:GetService("StarterGui"):SetCoreGuiEnabled(Enum.CoreGuiType.PlayerList, false)
+			end) then
+				break
+			end
+			task.wait(0.2)
 		end
-		task.wait(0.2)
-	end
-	task.wait(4)
+	end)
 
 	-- Vraiment affiché : lui et ses parents visibles, dans un écran (ScreenGui) allumé.
 	local function shown(object)
@@ -183,25 +178,17 @@ return function(log)
 		)
 	end
 
-	for _, entry in SIZES do
-		local name, width, height = entry[1], entry[2], entry[3]
-		closeMachines()
-		for _, guiName in { "Shop", "Challenges", "Rebirth" } do
-			setOverlay(guiName, false)
-		end
-		selectSpot(0)
-
-		-- 1) phone.ps1 redimensionne la fenêtre de Studio jusqu'à la taille voulue (au plus près sinon). La taille doit
-		--    TENIR 4 s : le journal arrive à phone.ps1 avec ~1 s de retard, une correction en retard peut encore
-		--    changer la fenêtre juste après la bonne taille (elle est alors redemandée).
-		local fits, stableSince, deadline = false, nil, os.clock() + 90
+	-- phone.ps1 redimensionne la fenêtre de Studio jusqu'à la taille voulue (au plus près sinon). La taille doit TENIR
+	-- 4 s : le journal arrive à phone.ps1 avec ~1 s de retard, une correction en retard peut encore changer la fenêtre
+	-- juste après la bonne taille (elle est alors redemandée). Renvoie vrai si la taille est obtenue.
+	local function fitTo(width, height)
+		local stableSince, deadline = nil, os.clock() + 90
 		while os.clock() < deadline do
 			local size = plotGui.AbsoluteSize
 			if math.abs(size.X - width) <= TOLERANCE and math.abs(size.Y - height) <= TOLERANCE then
 				stableSince = stableSince or os.clock()
 				if os.clock() - stableSince >= 4 then
-					fits = true
-					break
+					return true
 				end
 				task.wait(0.25)
 			else
@@ -210,6 +197,285 @@ return function(log)
 				task.wait(0.9)
 			end
 		end
+		return false
+	end
+
+	-- Le panneau du tuto sur un téléphone (TutorialUI.panelPlace) : affiché, entier, dans le BAS de l'écran, à gauche du
+	-- bouton de saut de Roblox (96 px du bord droit), sans aucun bouton dessous. Renvoie vrai ou faux, et les boutons
+	-- qu'il recouvre.
+	local function tutorialLow(tutorialPanel)
+		local screen = plotGui.AbsoluteSize
+		local list = shownButtons(playerGui)
+		table.insert(list, tutorialPanel)
+		local crossed = {}
+		for _, crossing in overlaps(list) do
+			if string.find(crossing, "Panel", 1, true) then
+				table.insert(crossed, crossing)
+			end
+		end
+		local _, top, right = rect(tutorialPanel)
+		local ok = shown(tutorialPanel) and onScreen(tutorialPanel) and #crossed == 0 and top >= screen.Y / 2 and right <= screen.X - 95
+		return ok, crossed
+	end
+
+	----------------------------------------------------------------------
+	-- 0) NOUVEAU JOUEUR, avant que le serveur de test prépare la parcelle du joueur avancé. Dans cette place de test
+	-- le tuto démarre tout seul, comme dans le jeu publié (objet __AutoTestNewPlayer, TutorialUI.luau). Le classé est
+	-- fermé : pas d'étape « zone classée », le tuto commence par un mot d'accueil sur sa parcelle (« TUTO 1/5 • TA
+	-- PARCELLE », sans « ✓ BRAVO ! » : le joueur n'a rien fait), puis « POSE UNE TOUR » tout seul. À la taille du
+	-- téléphone du propriétaire : ce que voit un nouveau joueur (flèche « ICI », boutons « + » de ses 4 emplacements),
+	-- le « + » touché (panneau des tours, carte de l'Archer entourée d'or), l'Archer posé (remote PlotAction, comme la
+	-- carte) puis « Améliorer » entouré d'or, et enfin « Passer » (remote TutorialAction, comme le bouton).
+	-- Dans sa propre fonction (limite des 200 variables locales de Luau).
+	----------------------------------------------------------------------
+	local function newPlayer()
+		local name, width, height = SIZES[1][1], SIZES[1][2], SIZES[1][3]
+		local tag = `phone_{name}_`
+		local tutorialGui = playerGui:WaitForChild("Tutorial", 30)
+		local tutorialPanel = tutorialGui and tutorialGui:WaitForChild("Panel", 10)
+		local title = tutorialPanel and tutorialPanel:FindFirstChild("Title")
+		local body = tutorialPanel and tutorialPanel:FindFirstChild("Text")
+		local remotes = ReplicatedStorage:WaitForChild("Remotes", 30)
+		local action = remotes and remotes:WaitForChild("TutorialAction", 10)
+		local plotAction = remotes and remotes:WaitForChild("PlotAction", 10)
+		if not (title and body and action and plotAction) then
+			check(false, "nouveau joueur : panneau du tuto ou remotes introuvables")
+			return
+		end
+		local function has(text, piece)
+			return string.find(text, piece, 1, true) ~= nil
+		end
+		-- Tout ce que le panneau affiche depuis le début (le scénario démarre avant le tuto).
+		local titles, texts = {}, {}
+		local function note(list, label)
+			if label.Text ~= "" and list[#list] ~= label.Text then
+				table.insert(list, label.Text)
+			end
+		end
+		local titleConnection = title:GetPropertyChangedSignal("Text"):Connect(function()
+			note(titles, title)
+		end)
+		local bodyConnection = body:GetPropertyChangedSignal("Text"):Connect(function()
+			note(texts, body)
+		end)
+		local started = waitFor(function()
+			return shown(tutorialPanel)
+		end, 60)
+		note(titles, title)
+		note(texts, body)
+		check(
+			started and has(titles[1] or "", "1/5") and has(titles[1] or "", "TA PARCELLE") and player:GetAttribute("TutorialDone") == false,
+			`nouveau joueur : le tuto démarre tout seul ({started}) par « {titles[1]} » (classé fermé : pas d'étape de la zone classée)`
+		)
+		local placing = waitFor(function()
+			return has(title.Text, "2/5")
+		end, 25)
+		titleConnection:Disconnect()
+		bodyConnection:Disconnect()
+		local bravo, welcome = false, false
+		for _, text in titles do
+			bravo = bravo or has(text, "BRAVO")
+		end
+		for _, text in texts do
+			welcome = welcome or has(text, "Bienvenue ! Voici ta parcelle")
+		end
+		check(
+			placing and has(title.Text, "POSE UNE TOUR") and welcome and not bravo,
+			`nouveau joueur : mot d'accueil sur sa parcelle ({welcome}), puis « {title.Text} » tout seul, sans « BRAVO » (titres : {table.concat(titles, " | ")})`
+		)
+
+		-- À la taille du téléphone : le panneau du tuto en BAS de l'écran (en haut, il cachait les « + » et la flèche),
+		-- entier, sans bouton dessous, à gauche du bouton de saut de Roblox ; la flèche « ICI » et un bouton « + » sur
+		-- chacun des 4 emplacements de départ.
+		local fits = fitTo(width, height)
+		local screen = plotGui.AbsoluteSize
+		task.wait(1)
+		local lowOk, lowCrossed = tutorialLow(tutorialPanel)
+		local plus = 0
+		for _, child in playerGui:GetChildren() do
+			if child:IsA("BillboardGui") and string.match(child.Name, "^FreeSpot%d+$") and child.Enabled and child.Adornee ~= nil
+				and child:FindFirstChild("Plus") ~= nil then
+				plus += 1
+			end
+		end
+		local guide = workspace:FindFirstChild("TutorialGuide")
+		local marker = guide and guide:FindFirstChild("Marker")
+		local markerLabel = marker and marker:FindFirstChild("Label")
+		check(
+			fits and lowOk and plus == 4 and marker ~= nil and marker.Enabled and markerLabel ~= nil and markerLabel.Text == "ICI",
+			`nouveau joueur {name} ({math.floor(screen.X)} x {math.floor(screen.Y)}) : {where(tutorialPanel)} en bas de l'écran, à gauche du bouton de saut, {#lowCrossed} bouton(s) dessous, {plus} bouton(s) « + », flèche « {markerLabel and markerLabel.Text} »`
+				.. (if #lowCrossed > 0 then " : " .. table.concat(lowCrossed, " | ", 1, math.min(#lowCrossed, 3)) else "")
+		)
+		shot(tag .. "newplayer")
+
+		-- SA parcelle, pas la 1 (question du propriétaire, 01/10/2026 : « quelqu'un qui arrive dans ma partie, le tuto le
+		-- ramène bien à SA parcelle et pas à la mienne ? »). Dans cette place de test, le joueur reçoit la parcelle 2
+		-- (objet __AutoTestPlot, Hub/Plots.luau), comme le 2e arrivé sur un serveur dont la 1 est prise. Il apparaît sur
+		-- la 2 ; la flèche du tuto et les 4 boutons « + » sont sur la 2 ; les invites « Ouvrir » de l'autel et de la
+		-- forge sont allumées sur la 2 et éteintes sur la 1 (PlotAccess.luau).
+		local PlotLayout = require(ReplicatedStorage.Shared.PlotLayout)
+		local myIndex = player:GetAttribute("Plot")
+		local plotsFolder = workspace:FindFirstChild("Hub") and workspace.Hub:FindFirstChild("Plots")
+		local myFolder = plotsFolder and plotsFolder:FindFirstChild("Plot" .. tostring(myIndex))
+		local firstFolder = plotsFolder and plotsFolder:FindFirstChild("Plot1")
+		-- Ce point est-il sur le sol de cette parcelle (ou juste devant son entrée, là où sont l'autel et la forge) ?
+		local function onPlot(index, position)
+			local at = PlotLayout.toLocal(index, position)
+			return math.abs(at.X) <= PlotLayout.WIDTH / 2 + 2 and at.Z >= -PlotLayout.LENGTH / 2 - 14 and at.Z <= PlotLayout.LENGTH / 2 + 2
+		end
+		local function promptOn(folder, machineName)
+			local machine = folder and folder:FindFirstChild(machineName)
+			local prompt = machine and machine:FindFirstChildOfClass("ProximityPrompt")
+			return prompt ~= nil and prompt.Enabled
+		end
+		local character = player.Character
+		local root = character and character:FindFirstChild("HumanoidRootPart")
+		local plusMine, plusElsewhere = 0, 0
+		for _, child in playerGui:GetChildren() do
+			if child:IsA("BillboardGui") and string.match(child.Name, "^FreeSpot%d+$") and child.Enabled and child.Adornee ~= nil then
+				if myFolder and child.Adornee:IsDescendantOf(myFolder) then
+					plusMine += 1
+				else
+					plusElsewhere += 1
+				end
+			end
+		end
+		local spawnedHome = root ~= nil and onPlot(2, root.Position) and not onPlot(1, root.Position)
+		local arrowHome = guide ~= nil and onPlot(2, guide.Position) and not onPlot(1, guide.Position)
+		local promptsHome = promptOn(myFolder, "TowerMachine") and promptOn(myFolder, "BonusMachine")
+		local promptsFirst = promptOn(firstFolder, "TowerMachine") or promptOn(firstFolder, "BonusMachine")
+		check(
+			myIndex == 2 and myFolder ~= nil and firstFolder ~= nil and spawnedHome and arrowHome and plusMine == 4 and plusElsewhere == 0
+				and promptsHome and not promptsFirst,
+			`nouveau joueur sur la parcelle {tostring(myIndex)} (pas la 1) : il apparaît sur SA parcelle ({spawnedHome}), la flèche du tuto y est ({arrowHome}), {plusMine} boutons « + » dessus et {plusElsewhere} ailleurs, invites de l'autel et de la forge allumées chez lui ({promptsHome}) et éteintes sur la parcelle 1 ({not promptsFirst})`
+		)
+
+		-- Fenêtre de l'autel ouverte (comme par son invite) : ses boutons de lancer sont en bas, le panneau du tuto
+		-- monte donc en haut de l'écran, sans ses boutons ; fenêtre fermée : il redescend.
+		say("CMD:OpenMachine:Tower")
+		local machines = playerGui:FindFirstChild("Machines")
+		local altarOpen = waitFor(function()
+			return machines ~= nil and machines:GetAttribute("OpenMachine") == "Tower"
+		end, 6)
+		local movedUp = waitFor(function()
+			local _, top, _, bottom = rect(tutorialPanel)
+			return shown(tutorialPanel) and top >= 0 and bottom <= screen.Y / 2
+		end, 3)
+		local skipButton = tutorialPanel:FindFirstChild("SkipButton")
+		local spinButton = machines and machines:FindFirstChild("Spin_1", true)
+		local spinClear = spinButton ~= nil and shown(spinButton) and onScreen(spinButton)
+		if spinClear then
+			for _, crossing in overlaps({ spinButton, tutorialPanel }) do
+				spinClear = false
+				say(`autel : {crossing}`)
+			end
+		end
+		check(
+			altarOpen and movedUp and skipButton ~= nil and not shown(skipButton) and spinClear,
+			`nouveau joueur {name} : autel ouvert -> le tuto monte en haut ({where(tutorialPanel)}), sans « Passer » ({skipButton ~= nil and not shown(skipButton)}), bouton x1 de l'autel dégagé ({spinClear})`
+		)
+		shot(tag .. "newplayer_altar")
+		closeMachines()
+		local movedDown = waitFor(function()
+			return (tutorialLow(tutorialPanel))
+		end, 3)
+		check(movedDown, `nouveau joueur {name} : autel fermé -> le tuto redescend ({where(tutorialPanel)})`)
+
+		-- Le « + » de l'emplacement 1 (celui sous la flèche) : le panneau des tours s'ouvre, le tuto se cache derrière
+		-- lui, la carte de l'Archer est entourée d'or.
+		selectSpot(1)
+		local card = panel:FindFirstChild("Card_MachineGun", true)
+		local ringed = waitFor(function()
+			return card ~= nil and shown(card) and card:FindFirstChild("TutorialHighlight") ~= nil
+		end, 4)
+		check(
+			shown(panel) and onScreen(panel) and ringed and card ~= nil and onScreen(card) and not shown(tutorialPanel),
+			`nouveau joueur {name} : « + » -> {where(panel)} ouvert, carte de l'Archer entourée d'or ({ringed}), tuto caché derrière ({not shown(tutorialPanel)})`
+		)
+		shot(tag .. "newplayer_cards")
+
+		-- L'Archer posé : la fiche de la tour remplace les cartes, puis l'étape suivante entoure « Améliorer » d'or.
+		plotAction:FireServer("Place", 1, "MachineGun")
+		local upgradeStep = waitFor(function()
+			return has(title.Text, "3/5")
+		end, 20)
+		local upgradeButton = panel:FindFirstChild("UpgradeButton", true)
+		local upgradeRinged = waitFor(function()
+			return upgradeButton ~= nil and shown(upgradeButton) and upgradeButton:FindFirstChild("TutorialHighlight") ~= nil
+		end, 4)
+		check(
+			upgradeStep and upgradeRinged and upgradeButton ~= nil and onScreen(upgradeButton),
+			`nouveau joueur {name} : Archer posé -> « {title.Text} », bouton « Améliorer » entouré d'or sur sa fiche ({upgradeRinged})`
+		)
+		shot(tag .. "newplayer_upgrade")
+		selectSpot(0)
+		-- (la tour est posée sur SA parcelle, la 2 ; rien sur la 1 ; la flèche « TA TOUR » la montre)
+		local function towerCount(folder)
+			local towers = folder and folder:FindFirstChild("Towers")
+			local count, model = 0, nil
+			for _, child in (if towers then towers:GetChildren() else {}) do
+				if typeof(child:GetAttribute("SpotIndex")) == "number" then
+					count += 1
+					model = child
+				end
+			end
+			return count, model
+		end
+		local mine, placedModel = towerCount(myFolder)
+		local onFirst = towerCount(firstFolder)
+		local towerHome = placedModel ~= nil and placedModel:IsA("Model") and onPlot(2, placedModel:GetPivot().Position)
+		local arrowOnTower = guide ~= nil and placedModel ~= nil and placedModel:IsA("Model")
+			and (Vector3.new(guide.Position.X, 0, guide.Position.Z) - Vector3.new(placedModel:GetPivot().Position.X, 0, placedModel:GetPivot().Position.Z)).Magnitude < 1.5
+		check(
+			mine == 1 and onFirst == 0 and towerHome and arrowOnTower,
+			`nouveau joueur sur la parcelle {tostring(myIndex)} : son Archer est posé sur SA parcelle ({mine} tour, {towerHome}), aucune tour sur la parcelle 1 ({onFirst}), la flèche du tuto montre sa tour ({arrowOnTower})`
+		)
+
+		-- « Passer » sur téléphone (appuis faits par l'attribut de test TestSkipTap : un plugin ne peut pas toucher
+		-- l'écran) : le bouton est à côté du bouton de saut, un appui par erreur ne doit pas faire perdre le tuto. Un
+		-- 1er appui ne passe rien (« Confirmer ? »), il s'annule tout seul au bout de 3 s ; deux appuis de suite passent
+		-- le tuto. Le serveur de test prépare ensuite la parcelle du joueur avancé.
+		local function tapSkip()
+			tutorialGui:SetAttribute("TestSkipTap", (tutorialGui:GetAttribute("TestSkipTap") or 0) + 1)
+			task.wait(0.3)
+		end
+		tapSkip()
+		local armedText = if skipButton then skipButton.Text else "?"
+		local stillRunning = shown(tutorialPanel) and player:GetAttribute("TutorialDone") == false
+		local disarmed = waitFor(function()
+			return skipButton ~= nil and skipButton.Text == "Passer"
+		end, 5)
+		check(
+			armedText == "Confirmer ?" and stillRunning and disarmed and player:GetAttribute("TutorialDone") == false,
+			`nouveau joueur : 1er appui sur « Passer » -> « {armedText} », le tuto continue ({stillRunning}) ; 3 s sans 2e appui -> de nouveau « {skipButton and skipButton.Text} » ({disarmed})`
+		)
+		tapSkip()
+		tapSkip()
+		local skipped = waitFor(function()
+			return not shown(tutorialPanel) and player:GetAttribute("TutorialDone") == true
+		end, 8)
+		check(skipped, `nouveau joueur : deux appuis sur « Passer » -> tuto fermé (TutorialDone = {tostring(player:GetAttribute("TutorialDone"))})`)
+	end
+	newPlayer()
+
+	if not waitFor(function()
+		return ReplicatedStorage:GetAttribute("PhoneTestReady") == true
+	end, 90) then
+		check(false, "le serveur de test n'a pas préparé la parcelle")
+		return
+	end
+	task.wait(4)
+
+	for _, entry in SIZES do
+		local name, width, height = entry[1], entry[2], entry[3]
+		closeMachines()
+		for _, guiName in { "Shop", "Challenges", "Rebirth" } do
+			setOverlay(guiName, false)
+		end
+		selectSpot(0)
+
+		-- 1) La fenêtre de Studio à la taille voulue (fitTo).
+		local fits = fitTo(width, height)
 		local screen = plotGui.AbsoluteSize
 		check(fits, `taille {name} : voulu {width} x {height}, obtenu {math.floor(screen.X)} x {math.floor(screen.Y)}`)
 		local tag = `phone_{name}_`
@@ -289,9 +555,9 @@ return function(log)
 			check(false, `bouton « ▲ » {name} : introuvable (PlayerGui.ShortcutsToggle.ToggleButton)`)
 		end
 
-		-- Tuto des nouveaux joueurs sur téléphone (1re taille seulement) : relancé (« Replay », Studio seulement), son
-		-- panneau est en haut de la zone de jeu, entier, sans toucher les icônes ; puis « Passer ».
-		if name == SIZES[1][1] then
+		-- Tuto des nouveaux joueurs sur téléphone, à chaque taille : relancé (« Replay », Studio seulement), son panneau
+		-- est en bas de la zone de jeu, entier, à gauche du bouton de saut, sans toucher aucun bouton ; puis « Passer ».
+		do
 			local remotes = ReplicatedStorage:FindFirstChild("Remotes")
 			local action = remotes and remotes:FindFirstChild("TutorialAction")
 			local tutorialGui = playerGui:FindFirstChild("Tutorial")
@@ -302,18 +568,10 @@ return function(log)
 					return shown(tutorialPanel)
 				end, 8)
 				task.wait(0.6)
-				local list = shownButtons(playerGui)
-				table.insert(list, tutorialPanel)
-				local tutorialCrossed = {}
-				for _, crossing in overlaps(list) do
-					if string.find(crossing, "Panel", 1, true) then
-						table.insert(tutorialCrossed, crossing)
-					end
-				end
-				local _, _, _, panelBottom = rect(tutorialPanel)
+				local lowOk, tutorialCrossed = tutorialLow(tutorialPanel)
 				check(
-					started and onScreen(tutorialPanel) and #tutorialCrossed == 0 and panelBottom <= screen.Y / 2,
-					`tuto {name} : panneau affiché ({started}), {where(tutorialPanel)} dans le haut de l'écran, {#tutorialCrossed} bouton(s) dessous`
+					started and lowOk,
+					`tuto {name} : panneau affiché ({started}), {where(tutorialPanel)} en bas de l'écran, à gauche du bouton de saut, {#tutorialCrossed} bouton(s) dessous`
 						.. (if #tutorialCrossed > 0 then " : " .. table.concat(tutorialCrossed, " | ", 1, math.min(#tutorialCrossed, 3)) else "")
 				)
 				shot(tag .. "tutorial")
