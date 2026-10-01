@@ -95,6 +95,9 @@ PlotLayout.SPOTS = {
 -- La tour est posée dessus (PlotGame:createTower) ; rien ne change pour le combat (portées et vols se calculent
 -- comme avant).
 PlotLayout.SPOT_PAD_HEIGHT = 1
+-- Hauteur (studs) du bouton « + » d'un emplacement libre au-dessus du milieu de son socle (PlotUI ; la flèche du tuto
+-- le montre : TutorialUI).
+PlotLayout.SPOT_PLUS_HEIGHT = 2.6
 
 -- Vrai si `value` est un numéro d'emplacement qui existe (nombre entier de 1 à 22).
 -- Le serveur s'en sert pour vérifier ce qu'envoie le client.

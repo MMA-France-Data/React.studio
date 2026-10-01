@@ -29,9 +29,15 @@ téléphone (`tools/studio-test/phone.ps1`, nouveau : 706 × 300, l'écran du pr
 - **Tuto sur téléphone** : panneau en BAS de l'écran, entre le joystick de Roblox et son bouton de saut
   (`TutorialUI.panelPlace`, 01/10/2026 à midi). Le matin, il était tout en haut de la zone de jeu, au milieu : la
   capture d'un vrai nouveau joueur (`phone_a_newplayer`) a montré qu'il cachait les boutons « + » des emplacements
-  et la flèche du tuto. Il remonte en haut quand la fenêtre de l'autel ou de la forge est ouverte. « Passer » est
-  alors à côté du bouton de saut : sur téléphone il demande deux appuis (« Passer », puis « Confirmer ? »). Son
-  astuce finale parle des icônes 🏰 et 🔨 « à droite ».
+  et la flèche du tuto. Il se cache quand la fenêtre de l'autel ou de la forge est ouverte (sauf pour le mot de la
+  fin, en haut). « Passer » est alors à côté du bouton de saut : sur téléphone il demande deux appuis (« Passer »,
+  puis « Confirmer ? »).
+- **Tuto refait le 01/10/2026 (après-midi)** : une grosse flèche dorée qui rebondit, avec deux ou trois mots, montre
+  à chaque instant ce qu'il faut toucher (écran `TutorialPointer`, au-dessus de toutes les fenêtres). Elle est
+  dessinée avec des barres arrondies (`TutorialUI.luau`, « arrowBar ») : une vraie image dessinée peut la remplacer,
+  il suffit de mettre une ImageLabel dans le carré « Arrow » (elle pointe vers le bas quand Rotation = 0). Les
+  boutons « + » des emplacements libres flottent au-dessus de leur socle. L'autel et la forge se font par leurs
+  boutons (à gauche sur ordinateur, icônes 🏰 et 🔨 à droite sur téléphone).
 - **Panneau des tours sur téléphone** : 4 cartes par page dès 560 px de large (2 avant), pièces du joueur à côté du
   X (le panneau couvre le compteur), fiche resserrée sur les écrans bas (sur 645 × 268, « Détails & effets » et
   « Remplacer… » passaient sous la ligne des runes), ligne des runes cachée pendant « Détails & effets ».

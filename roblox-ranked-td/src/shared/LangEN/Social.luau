@@ -14,39 +14,45 @@ return {
 	----------------------------------------------------------------------
 	-- Tuto des nouveaux joueurs (TutorialUI.luau)
 	----------------------------------------------------------------------
-	-- Titre du panneau : « TUTO 1/5 • TA PARCELLE » ({2} = titre de l'étape, traduit par sa ligne plus bas).
+	-- Titre du panneau : « TUTO 1/4 • POSE UNE TOUR » ({2} = titre de l'étape, traduit par sa ligne plus bas).
 	["TUTO {1} • {2}"] = "TUTORIAL {1} • {2}",
 	["✓ BRAVO !"] = "✓ WELL DONE!",
-	-- Étape de la zone classée (montrée seulement quand le classé est ouvert : Config.RANKED_OPEN = true)
+	-- Les deux étapes à pied, montrées seulement quand le classé est ouvert (Config.RANKED_OPEN = true) : la zone
+	-- classée, puis le retour sur sa parcelle (« ARÈNE CLASSÉE » et « TA PARCELLE » sont aussi les mots de la flèche).
 	["LA ZONE CLASSÉE"] = "THE RANKED ZONE",
 	["Le cercle rouge au centre, c'est le classé : des matchs 1 contre 1 pour monter en rang. Suis le rayon doré !"] = "The red circle in the middle is Ranked mode: 1v1 matches to climb the ranks. Follow the golden beam!",
 	["ARÈNE CLASSÉE"] = "RANKED ARENA",
-	-- Étape « ta parcelle » (« TA PARCELLE » sert de titre et de texte de la flèche). Classé ouvert : après le cercle.
 	["TA PARCELLE"] = "YOUR PLOT",
 	["Voici ta parcelle : des vagues d'ennemis y arrivent sans fin. Retournes-y en suivant le rayon doré."] = "This is your plot: endless waves of enemies come here. Follow the golden beam to get back there.",
-	-- (classé fermé : c'est la 1re étape. Le joueur apparaît sur sa parcelle ; sinon elle est au bout du rayon)
-	["Bienvenue ! Voici ta parcelle : des vagues d'ennemis y arrivent sans fin."] = "Welcome! This is your plot: endless waves of enemies come here.",
-	["Bienvenue ! Ta parcelle est au bout du rayon doré : des vagues d'ennemis y arrivent sans fin."] = "Welcome! Your plot is at the end of the golden beam: endless waves of enemies come there.",
-	-- Étape « poser une tour » ({1} = nom de l'Archer du rempart)
+	-- Étape « poser une tour » (« appuie » = toucher ou cliquer : press)
 	["POSE UNE TOUR"] = "PLACE A TOWER",
-	["Clique sur le « + » d'un emplacement libre (sous la flèche), puis sur la carte « {1} » entourée d'or : ta tour tire toute seule."] = "Click the “+” on a free spot (under the arrow), then the “{1}” card circled in gold: your tower shoots on its own.",
-	["ICI"] = "HERE",
+	["Des ennemis attaquent ta parcelle ! Appuie sur un « + » doré, puis sur la carte de l'Archer."] = "Enemies are attacking your plot! Press a golden “+”, then the Archer card.",
 	-- Étape « l'améliorer »
 	["AMÉLIORE-LA"] = "UPGRADE IT",
-	["Clique sur ta tour, puis sur « Améliorer » (entouré d'or) : elle fera plus de dégâts."] = "Click your tower, then “Upgrade” (circled in gold): it will deal more damage.",
-	["TA TOUR"] = "YOUR TOWER",
-	-- Étape « l'Autel des héros »
+	["Ta tour tire toute seule. Appuie dessus, puis sur « Améliorer » : elle tapera plus fort."] = "Your tower shoots on its own. Press it, then “Upgrade”: it will hit harder.",
+	-- Étape « l'Autel des héros », par son bouton : à gauche sur ordinateur, l'icône de droite sur téléphone (sans
+	-- côté sur un téléphone tenu en hauteur)
 	["L'AUTEL DES HÉROS"] = "THE HEROES' ALTAR",
-	["Va à l'Autel des héros (suis le rayon doré), ouvre-le et lance x1 (entouré d'or) : il donne de nouvelles tours."] = "Go to the Heroes' Altar (follow the golden beam), open it and spin x1 (circled in gold): it gives you new towers.",
-	["AUTEL DES HÉROS"] = "HEROES' ALTAR",
-	-- Dernière étape : la Forge runique ({1} = prix du prochain lancer, ex. « 100K »), puis l'astuce des boutons de gauche
+	["Appuie sur « Autel des héros », à gauche, puis lance x1 : il donne de nouvelles tours."] = "Press “Heroes' Altar” on the left, then spin x1: it gives you new towers.",
+	["Appuie sur 🏰, à droite, puis lance x1 : il donne de nouvelles tours."] = "Press 🏰 on the right, then spin x1: it gives you new towers.",
+	["Appuie sur 🏰, puis lance x1 : il donne de nouvelles tours."] = "Press 🏰, then spin x1: it gives you new towers.",
+	-- Dernière étape : la Forge runique, par son bouton, puis le mot de la fin ({1} = prix du prochain lancer, ex. « 100K »)
 	["LA FORGE RUNIQUE"] = "THE RUNE FORGE",
-	["Ferme la fenêtre de l'autel (X entouré d'or), puis va à la Forge runique, juste à côté, et ouvre-la."] = "Close the altar window (X circled in gold), then go to the Rune Forge, right next to it, and open it.",
-	["Va à la Forge runique et ouvre-la : ses runes multiplient les dégâts de tes tours (chères au début : {1} pièces)."] = "Go to the Rune Forge and open it: its runes multiply your towers' damage (pricey at first: {1} coins).",
-	["FORGE RUNIQUE"] = "RUNE FORGE",
-	["Astuce : les boutons « Autel des héros » et « Forge runique », à gauche (entourés d'or), les ouvrent de n'importe où !"] = "Tip: the “Heroes' Altar” and “Rune Forge” buttons on the left (circled in gold) open them from anywhere!",
-	-- (la même astuce sur téléphone : ce sont deux icônes à droite de l'écran)
-	["Astuce : les icônes 🏰 (Autel) et 🔨 (Forge), à droite (entourées d'or), les ouvrent de n'importe où !"] = "Tip: the 🏰 (Altar) and 🔨 (Forge) icons on the right (circled in gold) open them from anywhere!",
+	["Dernière étape : appuie sur « Forge runique », à gauche. Ses runes rendent tes tours bien plus fortes."] = "Last step: press “Rune Forge” on the left. Its runes make your towers much stronger.",
+	["Dernière étape : appuie sur 🔨, à droite. Ses runes rendent tes tours bien plus fortes."] = "Last step: press 🔨 on the right. Its runes make your towers much stronger.",
+	["Dernière étape : appuie sur 🔨. Ses runes rendent tes tours bien plus fortes."] = "Last step: press 🔨. Its runes make your towers much stronger.",
+	["Les runes coûtent cher au début ({1} pièces) : reviens à la forge plus tard. À toi de jouer !"] = "Runes are pricey at first ({1} coins): come back to the forge later. Your turn to play!",
+	-- Une fenêtre ouverte cache ce qu'il faut toucher
+	["Ferme d'abord cette fenêtre : appuie sur son X."] = "Close this window first: press its X.",
+	-- Les mots de la grosse flèche (TutorialUI.CAPTIONS)
+	["APPUIE ICI"] = "PRESS HERE",
+	["CHOISIS L'ARCHER"] = "PICK THE ARCHER",
+	["APPUIE SUR TA TOUR"] = "PRESS YOUR TOWER",
+	["AMÉLIORE"] = "UPGRADE",
+	["OUVRE L'AUTEL"] = "OPEN THE ALTAR",
+	["LANCE x1"] = "SPIN x1",
+	["OUVRE LA FORGE"] = "OPEN THE FORGE",
+	["FERME"] = "CLOSE",
 	-- Boutons et messages de fin
 	["Suivant"] = "Next",
 	["Terminer"] = "Finish",

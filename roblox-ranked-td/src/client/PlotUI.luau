@@ -340,6 +340,7 @@ function PlotUI.start()
 		Parent = panel,
 	})
 	local closeButton = UI.button({
+		Name = "CloseButton", -- (la flèche du tuto le montre quand il faut fermer ce panneau : TutorialUI)
 		AnchorPoint = Vector2.new(1, 0),
 		Position = UDim2.new(1, 0, 0, 0),
 		Size = UDim2.fromOffset(30, 30),
@@ -1481,7 +1482,6 @@ function PlotUI.start()
 				marker = UI.new("BillboardGui", {
 					Name = "FreeSpot" .. spotIndex,
 					Size = UDim2.fromOffset(PLUS_SIZE, PLUS_SIZE),
-					StudsOffsetWorldSpace = Vector3.new(0, 2.6, 0),
 					AlwaysOnTop = true,
 					MaxDistance = 90,
 					ResetOnSpawn = false,
@@ -1513,6 +1513,11 @@ function PlotUI.start()
 				if wanted then
 					if marker.Adornee ~= pad then
 						marker.Adornee = pad
+						-- Le « + » flotte AU-DESSUS du milieu du socle. StudsOffsetWorldSpace suit l'orientation de la pièce
+						-- qui porte le bouton, et le socle est un cylindre couché (tourné de 90°) : on lui donne donc la
+						-- verticale du monde, exprimée dans le repère du socle. (Avec (0, hauteur, 0) tout court, le « + »
+						-- partait sur le côté du socle, au ras du sol : vu sur la capture phone_a_newplayer du 01/10/2026.)
+						marker.StudsOffsetWorldSpace = (pad :: BasePart).CFrame:VectorToObjectSpace(Vector3.new(0, PlotLayout.SPOT_PLUS_HEIGHT, 0))
 					end
 					local distance = if camera then (camera.CFrame.Position - (pad :: BasePart).Position).Magnitude else 0
 					local side = math.clamp(math.floor(PLUS_SIZE * PLUS_FULL_DISTANCE / math.max(distance, 1)), PLUS_SMALL, PLUS_SIZE)

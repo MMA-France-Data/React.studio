@@ -219,13 +219,68 @@ return function(log)
 	end
 
 	----------------------------------------------------------------------
+	-- La flèche du tuto (TutorialUI.luau) : son écran PlayerGui.TutorialPointer, ce qu'elle montre (attributs
+	-- « Target » = nom du bouton, ou « World » pour un point du monde, et « Caption » = ses mots en français), où elle
+	-- est. TutorialUI : la copie du module de ce scénario (ses textes et ses fonctions pures seulement).
+	----------------------------------------------------------------------
+	local TutorialUI = require(player:WaitForChild("PlayerScripts"):WaitForChild("Client", 30):WaitForChild("TutorialUI", 30))
+	local CAPTIONS = TutorialUI.CAPTIONS
+	local pointerGui = playerGui:WaitForChild("TutorialPointer", 60)
+	local pointerArrow = pointerGui and pointerGui:FindFirstChild("Arrow")
+	local pointerCaption = pointerGui and pointerGui:FindFirstChild("Caption")
+	local function pointerIs(target, words)
+		return pointerGui ~= nil and pointerGui:GetAttribute("Target") == target and pointerGui:GetAttribute("Caption") == words
+			and pointerArrow ~= nil and pointerArrow.Visible and pointerCaption ~= nil and pointerCaption.Visible
+	end
+	local function pointerNow()
+		return `« {tostring(pointerGui and pointerGui:GetAttribute("Target"))} » / « {tostring(pointerGui and pointerGui:GetAttribute("Caption"))} »`
+	end
+	local function pointerHidden()
+		return pointerGui ~= nil and pointerGui:GetAttribute("Target") == "" and pointerArrow ~= nil and not pointerArrow.Visible
+	end
+	-- La flèche et ses mots sont entiers dans l'écran (la barre du haut de Roblox comprise).
+	local function pointerOnScreen()
+		return pointerArrow ~= nil and pointerCaption ~= nil and onScreen(pointerArrow) and onScreen(pointerCaption)
+	end
+	-- La flèche est-elle à côté de ce bouton, du côté prévu (TutorialUI.pointerSide) : son milieu à moins de 55 px du
+	-- bord du bouton, dans l'axe du bouton ? Renvoie aussi ce côté. (Deux images d'attente : sa place est recalculée
+	-- à chaque image, après le changement de cible.)
+	local function arrowBeside(object)
+		if not (object and pointerGui and pointerArrow) then
+			return false, "?"
+		end
+		task.wait(0.15)
+		local area = pointerGui.AbsoluteSize
+		local position = object.AbsolutePosition - pointerGui.AbsolutePosition
+		local size = object.AbsoluteSize
+		local at = pointerArrow.AbsolutePosition + pointerArrow.AbsoluteSize / 2 - pointerGui.AbsolutePosition
+		local side = TutorialUI.pointerSide(area, position, size)
+		local gap, aligned
+		if side == "top" then
+			gap, aligned = position.Y - at.Y, math.abs(at.X - (position.X + size.X / 2)) < 3
+		elseif side == "bottom" then
+			gap, aligned = at.Y - (position.Y + size.Y), math.abs(at.X - (position.X + size.X / 2)) < 3
+		elseif side == "left" then
+			gap, aligned = position.X - at.X, math.abs(at.Y - (position.Y + size.Y / 2)) < 3
+		else
+			gap, aligned = at.X - (position.X + size.X), math.abs(at.Y - (position.Y + size.Y / 2)) < 3
+		end
+		return aligned and gap > 20 and gap < 55, side
+	end
+	local function ringed(object)
+		return object ~= nil and object:FindFirstChild("TutorialHighlight") ~= nil
+	end
+
+	----------------------------------------------------------------------
 	-- 0) NOUVEAU JOUEUR, avant que le serveur de test prépare la parcelle du joueur avancé. Dans cette place de test
-	-- le tuto démarre tout seul, comme dans le jeu publié (objet __AutoTestNewPlayer, TutorialUI.luau). Le classé est
-	-- fermé : pas d'étape « zone classée », le tuto commence par un mot d'accueil sur sa parcelle (« TUTO 1/5 • TA
-	-- PARCELLE », sans « ✓ BRAVO ! » : le joueur n'a rien fait), puis « POSE UNE TOUR » tout seul. À la taille du
-	-- téléphone du propriétaire : ce que voit un nouveau joueur (flèche « ICI », boutons « + » de ses 4 emplacements),
-	-- le « + » touché (panneau des tours, carte de l'Archer entourée d'or), l'Archer posé (remote PlotAction, comme la
-	-- carte) puis « Améliorer » entouré d'or, et enfin « Passer » (remote TutorialAction, comme le bouton).
+	-- le tuto démarre tout seul, comme dans le jeu publié (objet __AutoTestNewPlayer, TutorialUI.luau), et le joueur
+	-- est sur la parcelle 2 (objet __AutoTestPlot). Le tuto refait le 01/10/2026 : tout de suite « TUTO 1/4 • POSE UNE
+	-- TOUR » (ni zone classée, ni écran d'accueil), et une grosse flèche montre à chaque instant ce qu'il faut toucher.
+	-- À la taille du téléphone du propriétaire, le scénario suit la flèche du début à la fin, avec une capture à chaque
+	-- moment (out\phone_a_newplayer*.png) : le « + » d'un emplacement, la carte de l'Archer, « Améliorer », le X du
+	-- panneau des tours resté ouvert, l'icône de l'autel (à DROITE sur téléphone), x1, le X de l'autel, l'icône de la
+	-- forge, le mot de la fin. Les actions sont les vraies (remotes PlotAction et MachineAction ; fenêtres ouvertes
+	-- comme par leurs boutons : un plugin ne peut pas toucher l'écran). Puis un 2e tuto, pour le bouton « Passer ».
 	-- Dans sa propre fonction (limite des 200 variables locales de Luau).
 	----------------------------------------------------------------------
 	local function newPlayer()
@@ -235,62 +290,48 @@ return function(log)
 		local tutorialPanel = tutorialGui and tutorialGui:WaitForChild("Panel", 10)
 		local title = tutorialPanel and tutorialPanel:FindFirstChild("Title")
 		local body = tutorialPanel and tutorialPanel:FindFirstChild("Text")
+		local skipButton = tutorialPanel and tutorialPanel:FindFirstChild("SkipButton")
+		local nextButton = tutorialPanel and tutorialPanel:FindFirstChild("NextButton")
 		local remotes = ReplicatedStorage:WaitForChild("Remotes", 30)
 		local action = remotes and remotes:WaitForChild("TutorialAction", 10)
 		local plotAction = remotes and remotes:WaitForChild("PlotAction", 10)
-		if not (title and body and action and plotAction) then
-			check(false, "nouveau joueur : panneau du tuto ou remotes introuvables")
+		local machineAction = remotes and remotes:WaitForChild("MachineAction", 10)
+		if not (title and body and skipButton and nextButton and action and plotAction and machineAction and pointerArrow and pointerCaption) then
+			check(false, "nouveau joueur : panneau du tuto, flèche ou remotes introuvables")
 			return
 		end
 		local function has(text, piece)
 			return string.find(text, piece, 1, true) ~= nil
 		end
 		-- Tout ce que le panneau affiche depuis le début (le scénario démarre avant le tuto).
-		local titles, texts = {}, {}
-		local function note(list, label)
-			if label.Text ~= "" and list[#list] ~= label.Text then
-				table.insert(list, label.Text)
+		local titles = {}
+		local function note()
+			if title.Text ~= "" and titles[#titles] ~= title.Text then
+				table.insert(titles, title.Text)
 			end
 		end
-		local titleConnection = title:GetPropertyChangedSignal("Text"):Connect(function()
-			note(titles, title)
-		end)
-		local bodyConnection = body:GetPropertyChangedSignal("Text"):Connect(function()
-			note(texts, body)
-		end)
+		local titleConnection = title:GetPropertyChangedSignal("Text"):Connect(note)
 		local started = waitFor(function()
-			return shown(tutorialPanel)
+			return shown(tutorialPanel) and pointerIs("World", CAPTIONS.Plus)
 		end, 60)
-		note(titles, title)
-		note(texts, body)
-		check(
-			started and has(titles[1] or "", "1/5") and has(titles[1] or "", "TA PARCELLE") and player:GetAttribute("TutorialDone") == false,
-			`nouveau joueur : le tuto démarre tout seul ({started}) par « {titles[1]} » (classé fermé : pas d'étape de la zone classée)`
-		)
-		local placing = waitFor(function()
-			return has(title.Text, "2/5")
-		end, 25)
+		note()
 		titleConnection:Disconnect()
-		bodyConnection:Disconnect()
-		local bravo, welcome = false, false
-		for _, text in titles do
-			bravo = bravo or has(text, "BRAVO")
-		end
-		for _, text in texts do
-			welcome = welcome or has(text, "Bienvenue ! Voici ta parcelle")
-		end
 		check(
-			placing and has(title.Text, "POSE UNE TOUR") and welcome and not bravo,
-			`nouveau joueur : mot d'accueil sur sa parcelle ({welcome}), puis « {title.Text} » tout seul, sans « BRAVO » (titres : {table.concat(titles, " | ")})`
+			started and #titles == 1 and has(titles[1], "1/4") and has(titles[1], "POSE UNE TOUR") and body.Text == TutorialUI.PLACE_TEXT
+				and player:GetAttribute("TutorialDone") == false,
+			`nouveau joueur : le tuto démarre tout seul ({started}), tout de suite par « {tostring(titles[1])} » (ni zone classée ni écran d'accueil ; titres vus : {table.concat(titles, " | ")}), « {body.Text} », flèche {pointerNow()}`
 		)
 
 		-- À la taille du téléphone : le panneau du tuto en BAS de l'écran (en haut, il cachait les « + » et la flèche),
-		-- entier, sans bouton dessous, à gauche du bouton de saut de Roblox ; la flèche « ICI » et un bouton « + » sur
-		-- chacun des 4 emplacements de départ.
+		-- entier, sans bouton dessous, à gauche du bouton de saut de Roblox ; un bouton « + » sur chacun des 4
+		-- emplacements de départ ; la grosse flèche juste au-dessus (ou en dessous) d'un « + », droite, entière dans
+		-- l'écran avec ses mots, et sans rien couvrir du panneau du tuto.
 		local fits = fitTo(width, height)
 		local screen = plotGui.AbsoluteSize
 		task.wait(1)
 		local lowOk, lowCrossed = tutorialLow(tutorialPanel)
+		local upright = math.abs(pointerArrow.Rotation) < 1 or math.abs(math.abs(pointerArrow.Rotation) - 180) < 1
+		local pointerClear = #overlaps({ pointerArrow, tutorialPanel }) == 0 and #overlaps({ pointerCaption, tutorialPanel }) == 0
 		local plus = 0
 		for _, child in playerGui:GetChildren() do
 			if child:IsA("BillboardGui") and string.match(child.Name, "^FreeSpot%d+$") and child.Enabled and child.Adornee ~= nil
@@ -299,11 +340,10 @@ return function(log)
 			end
 		end
 		local guide = workspace:FindFirstChild("TutorialGuide")
-		local marker = guide and guide:FindFirstChild("Marker")
-		local markerLabel = marker and marker:FindFirstChild("Label")
 		check(
-			fits and lowOk and plus == 4 and marker ~= nil and marker.Enabled and markerLabel ~= nil and markerLabel.Text == "ICI",
-			`nouveau joueur {name} ({math.floor(screen.X)} x {math.floor(screen.Y)}) : {where(tutorialPanel)} en bas de l'écran, à gauche du bouton de saut, {#lowCrossed} bouton(s) dessous, {plus} bouton(s) « + », flèche « {markerLabel and markerLabel.Text} »`
+			fits and lowOk and plus == 4 and pointerIs("World", CAPTIONS.Plus) and pointerOnScreen() and upright and pointerClear
+				and pointerArrow.AbsoluteSize.X >= 50,
+			`nouveau joueur {name} ({math.floor(screen.X)} x {math.floor(screen.Y)}) : {where(tutorialPanel)} en bas de l'écran, à gauche du bouton de saut, {#lowCrossed} bouton(s) dessous, {plus} bouton(s) « + », flèche {pointerNow()} sur un « + » ({where(pointerArrow)}, tournée de {math.floor(pointerArrow.Rotation)}°, mots {where(pointerCaption)}), entière dans l'écran ({pointerOnScreen()}), hors du panneau du tuto ({pointerClear})`
 				.. (if #lowCrossed > 0 then " : " .. table.concat(lowCrossed, " | ", 1, math.min(#lowCrossed, 3)) else "")
 		)
 		shot(tag .. "newplayer")
@@ -311,8 +351,8 @@ return function(log)
 		-- SA parcelle, pas la 1 (question du propriétaire, 01/10/2026 : « quelqu'un qui arrive dans ma partie, le tuto le
 		-- ramène bien à SA parcelle et pas à la mienne ? »). Dans cette place de test, le joueur reçoit la parcelle 2
 		-- (objet __AutoTestPlot, Hub/Plots.luau), comme le 2e arrivé sur un serveur dont la 1 est prise. Il apparaît sur
-		-- la 2 ; la flèche du tuto et les 4 boutons « + » sont sur la 2 ; les invites « Ouvrir » de l'autel et de la
-		-- forge sont allumées sur la 2 et éteintes sur la 1 (PlotAccess.luau).
+		-- la 2 ; la cible de la flèche (le bout du rayon doré) et les 4 boutons « + » sont sur la 2 ; les invites
+		-- « Ouvrir » de l'autel et de la forge sont allumées sur la 2 et éteintes sur la 1 (PlotAccess.luau).
 		local PlotLayout = require(ReplicatedStorage.Shared.PlotLayout)
 		local myIndex = player:GetAttribute("Plot")
 		local plotsFolder = workspace:FindFirstChild("Hub") and workspace.Hub:FindFirstChild("Plots")
@@ -340,76 +380,81 @@ return function(log)
 				end
 			end
 		end
+		-- (l'emplacement que la flèche montre : celui sous le bout du rayon doré)
+		local spotIndex = nil
+		for _, pad in (if myFolder and myFolder:FindFirstChild("Spots") then myFolder.Spots:GetChildren() else {}) do
+			if guide and pad:IsA("BasePart") and (Vector3.new(pad.Position.X, 0, pad.Position.Z) - Vector3.new(guide.Position.X, 0, guide.Position.Z)).Magnitude < 1 then
+				spotIndex = pad:GetAttribute("SpotIndex")
+			end
+		end
 		local spawnedHome = root ~= nil and onPlot(2, root.Position) and not onPlot(1, root.Position)
-		local arrowHome = guide ~= nil and onPlot(2, guide.Position) and not onPlot(1, guide.Position)
+		local arrowHome = guide ~= nil and onPlot(2, guide.Position) and not onPlot(1, guide.Position) and spotIndex ~= nil
 		local promptsHome = promptOn(myFolder, "TowerMachine") and promptOn(myFolder, "BonusMachine")
 		local promptsFirst = promptOn(firstFolder, "TowerMachine") or promptOn(firstFolder, "BonusMachine")
 		check(
 			myIndex == 2 and myFolder ~= nil and firstFolder ~= nil and spawnedHome and arrowHome and plusMine == 4 and plusElsewhere == 0
 				and promptsHome and not promptsFirst,
-			`nouveau joueur sur la parcelle {tostring(myIndex)} (pas la 1) : il apparaît sur SA parcelle ({spawnedHome}), la flèche du tuto y est ({arrowHome}), {plusMine} boutons « + » dessus et {plusElsewhere} ailleurs, invites de l'autel et de la forge allumées chez lui ({promptsHome}) et éteintes sur la parcelle 1 ({not promptsFirst})`
+			`nouveau joueur sur la parcelle {tostring(myIndex)} (pas la 1) : il apparaît sur SA parcelle ({spawnedHome}), la flèche du tuto montre un emplacement de sa parcelle (n° {tostring(spotIndex)} : {arrowHome}), {plusMine} boutons « + » dessus et {plusElsewhere} ailleurs, invites de l'autel et de la forge allumées chez lui ({promptsHome}) et éteintes sur la parcelle 1 ({not promptsFirst})`
 		)
+		spotIndex = spotIndex or 1
 
-		-- Fenêtre de l'autel ouverte (comme par son invite) : ses boutons de lancer sont en bas, le panneau du tuto
-		-- monte donc en haut de l'écran, sans ses boutons ; fenêtre fermée : il redescend.
+		-- Fenêtre de l'autel ouverte trop tôt (comme par son icône) : elle prend presque tout l'écran du téléphone. Le
+		-- panneau du tuto se cache (il couvrait son titre et ses chances), et la flèche montre le X de la fenêtre
+		-- (« FERME ») ; fenêtre fermée : le panneau revient en bas et la flèche retourne sur le « + ».
 		say("CMD:OpenMachine:Tower")
 		local machines = playerGui:FindFirstChild("Machines")
 		local altarOpen = waitFor(function()
 			return machines ~= nil and machines:GetAttribute("OpenMachine") == "Tower"
 		end, 6)
-		local movedUp = waitFor(function()
-			local _, top, _, bottom = rect(tutorialPanel)
-			return shown(tutorialPanel) and top >= 0 and bottom <= screen.Y / 2
+		local machineClose = machines and machines:FindFirstChild("CloseButton", true)
+		local hiddenBehind = waitFor(function()
+			return not shown(tutorialPanel) and pointerIs("CloseButton", CAPTIONS.Close)
 		end, 3)
-		local skipButton = tutorialPanel:FindFirstChild("SkipButton")
 		local spinButton = machines and machines:FindFirstChild("Spin_1", true)
 		local spinClear = spinButton ~= nil and shown(spinButton) and onScreen(spinButton)
-		if spinClear then
-			for _, crossing in overlaps({ spinButton, tutorialPanel }) do
-				spinClear = false
-				say(`autel : {crossing}`)
-			end
-		end
+		local closeBeside, closeSide = arrowBeside(machineClose)
 		check(
-			altarOpen and movedUp and skipButton ~= nil and not shown(skipButton) and spinClear,
-			`nouveau joueur {name} : autel ouvert -> le tuto monte en haut ({where(tutorialPanel)}), sans « Passer » ({skipButton ~= nil and not shown(skipButton)}), bouton x1 de l'autel dégagé ({spinClear})`
+			altarOpen and hiddenBehind and spinClear and closeBeside and ringed(machineClose) and body.Text == TutorialUI.CLOSE_TEXT
+				and pointerOnScreen(),
+			`nouveau joueur {name} : autel ouvert trop tôt -> le panneau du tuto se cache ({hiddenBehind}), flèche {pointerNow()} à côté de son X (côté {closeSide} : {closeBeside}), bouton x1 visible ({spinClear})`
 		)
 		shot(tag .. "newplayer_altar")
 		closeMachines()
 		local movedDown = waitFor(function()
-			return (tutorialLow(tutorialPanel))
+			return (tutorialLow(tutorialPanel)) and pointerIs("World", CAPTIONS.Plus)
 		end, 3)
-		check(movedDown, `nouveau joueur {name} : autel fermé -> le tuto redescend ({where(tutorialPanel)})`)
+		check(movedDown, `nouveau joueur {name} : autel fermé -> le tuto revient en bas ({where(tutorialPanel)}), flèche {pointerNow()}`)
 
-		-- Le « + » de l'emplacement 1 (celui sous la flèche) : le panneau des tours s'ouvre, le tuto se cache derrière
-		-- lui, la carte de l'Archer est entourée d'or.
-		selectSpot(1)
+		-- 1) Le « + » de l'emplacement montré : le panneau des tours s'ouvre, le tuto se cache derrière lui, la flèche
+		-- passe sur la carte de l'Archer, entourée d'or.
+		selectSpot(spotIndex)
 		local card = panel:FindFirstChild("Card_MachineGun", true)
-		local ringed = waitFor(function()
-			return card ~= nil and shown(card) and card:FindFirstChild("TutorialHighlight") ~= nil
+		local cardPointed = waitFor(function()
+			return card ~= nil and shown(card) and ringed(card) and pointerIs("Card_MachineGun", CAPTIONS.Card)
 		end, 4)
+		local cardBeside, cardSide = arrowBeside(card)
 		check(
-			shown(panel) and onScreen(panel) and ringed and card ~= nil and onScreen(card) and not shown(tutorialPanel),
-			`nouveau joueur {name} : « + » -> {where(panel)} ouvert, carte de l'Archer entourée d'or ({ringed}), tuto caché derrière ({not shown(tutorialPanel)})`
+			shown(panel) and onScreen(panel) and cardPointed and cardBeside and card ~= nil and onScreen(card) and not shown(tutorialPanel)
+				and onScreen(pointerArrow),
+			`nouveau joueur {name} : « + » -> {where(panel)} ouvert, flèche {pointerNow()} à côté de la carte de l'Archer (côté {cardSide} : {cardBeside}), entourée d'or, tuto caché derrière ({not shown(tutorialPanel)})`
 		)
 		shot(tag .. "newplayer_cards")
 
-		-- L'Archer posé : la fiche de la tour remplace les cartes, puis l'étape suivante entoure « Améliorer » d'or.
-		plotAction:FireServer("Place", 1, "MachineGun")
-		local upgradeStep = waitFor(function()
-			return has(title.Text, "3/5")
-		end, 20)
+		-- L'Archer posé : la fiche de la tour remplace les cartes, l'étape suivante arrive tout de suite et la flèche
+		-- passe sur « Améliorer », entouré d'or.
+		plotAction:FireServer("Place", spotIndex, "MachineGun")
 		local upgradeButton = panel:FindFirstChild("UpgradeButton", true)
-		local upgradeRinged = waitFor(function()
-			return upgradeButton ~= nil and shown(upgradeButton) and upgradeButton:FindFirstChild("TutorialHighlight") ~= nil
-		end, 4)
+		local upgradePointed = waitFor(function()
+			return has(title.Text, "2/4") and upgradeButton ~= nil and shown(upgradeButton) and ringed(upgradeButton)
+				and pointerIs("UpgradeButton", CAPTIONS.Upgrade)
+		end, 15)
+		local upgradeBeside, upgradeSide = arrowBeside(upgradeButton)
 		check(
-			upgradeStep and upgradeRinged and upgradeButton ~= nil and onScreen(upgradeButton),
-			`nouveau joueur {name} : Archer posé -> « {title.Text} », bouton « Améliorer » entouré d'or sur sa fiche ({upgradeRinged})`
+			upgradePointed and upgradeBeside and upgradeButton ~= nil and onScreen(upgradeButton) and pointerOnScreen(),
+			`nouveau joueur {name} : Archer posé -> « {title.Text} », flèche {pointerNow()} à côté du bouton « Améliorer » de sa fiche (côté {upgradeSide} : {upgradeBeside}), entouré d'or`
 		)
 		shot(tag .. "newplayer_upgrade")
-		selectSpot(0)
-		-- (la tour est posée sur SA parcelle, la 2 ; rien sur la 1 ; la flèche « TA TOUR » la montre)
+		-- (la tour est posée sur SA parcelle, la 2 ; rien sur la 1)
 		local function towerCount(folder)
 			local towers = folder and folder:FindFirstChild("Towers")
 			local count, model = 0, nil
@@ -424,35 +469,124 @@ return function(log)
 		local mine, placedModel = towerCount(myFolder)
 		local onFirst = towerCount(firstFolder)
 		local towerHome = placedModel ~= nil and placedModel:IsA("Model") and onPlot(2, placedModel:GetPivot().Position)
-		local arrowOnTower = guide ~= nil and placedModel ~= nil and placedModel:IsA("Model")
-			and (Vector3.new(guide.Position.X, 0, guide.Position.Z) - Vector3.new(placedModel:GetPivot().Position.X, 0, placedModel:GetPivot().Position.Z)).Magnitude < 1.5
 		check(
-			mine == 1 and onFirst == 0 and towerHome and arrowOnTower,
-			`nouveau joueur sur la parcelle {tostring(myIndex)} : son Archer est posé sur SA parcelle ({mine} tour, {towerHome}), aucune tour sur la parcelle 1 ({onFirst}), la flèche du tuto montre sa tour ({arrowOnTower})`
+			mine == 1 and onFirst == 0 and towerHome,
+			`nouveau joueur sur la parcelle {tostring(myIndex)} : son Archer est posé sur SA parcelle ({mine} tour, {towerHome}), aucune tour sur la parcelle 1 ({onFirst})`
 		)
 
-		-- « Passer » sur téléphone (appuis faits par l'attribut de test TestSkipTap : un plugin ne peut pas toucher
-		-- l'écran) : le bouton est à côté du bouton de saut, un appui par erreur ne doit pas faire perdre le tuto. Un
-		-- 1er appui ne passe rien (« Confirmer ? »), il s'annule tout seul au bout de 3 s ; deux appuis de suite passent
-		-- le tuto. Le serveur de test prépare ensuite la parcelle du joueur avancé.
+		-- 2) La tour améliorée : étape de l'autel. Le panneau des tours est resté ouvert et couvre tout l'écran : la
+		-- flèche montre d'abord son X (« FERME »).
+		task.wait(0.3)
+		plotAction:FireServer("Upgrade", spotIndex)
+		local panelClose = panel:FindFirstChild("CloseButton")
+		local closePointed = waitFor(function()
+			return has(title.Text, "3/4") and pointerIs("CloseButton", CAPTIONS.Close) and ringed(panelClose)
+		end, 15)
+		local panelCloseBeside, panelCloseSide = arrowBeside(panelClose)
+		check(
+			closePointed and panelCloseBeside and pointerOnScreen(),
+			`nouveau joueur {name} : tour améliorée -> « {title.Text} » ; le panneau des tours couvre l'écran : flèche {pointerNow()} à côté de son X (côté {panelCloseSide} : {panelCloseBeside})`
+		)
+		shot(tag .. "newplayer_close")
+		-- Panneau fermé : la flèche montre l'icône de l'autel, contre le bord DROIT de l'écran (elle est à sa gauche et
+		-- pointe vers la droite) ; le texte dit « à droite ».
+		selectSpot(0)
+		local altarIcon = machines and machines:FindFirstChild("TowerShortcut")
+		local forgeIcon = machines and machines:FindFirstChild("BonusShortcut")
+		local altarPointed = waitFor(function()
+			return pointerIs("TowerShortcut", CAPTIONS.Altar) and ringed(altarIcon) and (tutorialLow(tutorialPanel))
+		end, 4)
+		local altarBeside, altarSide = arrowBeside(altarIcon)
+		check(
+			altarPointed and altarBeside and altarSide == "left" and body.Text == TutorialUI.ALTAR_TEXT_PHONE and pointerOnScreen(),
+			`nouveau joueur {name} : panneau fermé -> « {body.Text} », flèche {pointerNow()} à côté de l'icône de l'autel (côté {altarSide} : {altarBeside} ; {where(pointerArrow)}), entourée d'or`
+		)
+		shot(tag .. "newplayer_altar_icon")
+		-- L'icône touchée (l'autel s'ouvre) : la flèche passe sur x1, entouré d'or.
+		say("CMD:OpenMachine:Tower")
+		local spinPointed = waitFor(function()
+			spinButton = machines and machines:FindFirstChild("Spin_1", true)
+			return pointerIs("Spin_1", CAPTIONS.Spin) and ringed(spinButton)
+		end, 6)
+		local spinBeside, spinSide = arrowBeside(spinButton)
+		check(
+			spinPointed and spinBeside and pointerOnScreen(),
+			`nouveau joueur {name} : autel ouvert -> flèche {pointerNow()} à côté du bouton x1 (côté {spinSide} : {spinBeside}), entouré d'or`
+		)
+		shot(tag .. "newplayer_spin")
+
+		-- 3) Le lancer x1 : pendant que le rouleau tourne, plus de flèche ; puis l'étape de la forge. L'autel est encore
+		-- ouvert : la flèche montre son X.
+		task.wait(0.4)
+		machineAction:FireServer("SpinTower", 1)
+		local reelQuiet = waitFor(function()
+			return pointerHidden() and has(title.Text, "3/4")
+		end, 3)
+		local forgeStep = waitFor(function()
+			return has(title.Text, "4/4") and pointerIs("CloseButton", CAPTIONS.Close) and ringed(machineClose)
+		end, 15)
+		check(
+			reelQuiet and forgeStep and body.Text == TutorialUI.CLOSE_TEXT and pointerOnScreen(),
+			`nouveau joueur {name} : lancer x1 -> pas de flèche pendant que le rouleau tourne ({reelQuiet}), puis « {title.Text} » : « {body.Text} », flèche {pointerNow()} sur le X de l'autel`
+		)
+		shot(tag .. "newplayer_result")
+		-- Autel fermé : la flèche montre l'icône de la forge, à droite.
+		closeMachines()
+		local forgePointed = waitFor(function()
+			return pointerIs("BonusShortcut", CAPTIONS.Forge) and ringed(forgeIcon) and (tutorialLow(tutorialPanel)) and shown(nextButton)
+		end, 4)
+		local forgeBeside, forgeSide = arrowBeside(forgeIcon)
+		check(
+			forgePointed and forgeBeside and forgeSide == "left" and body.Text == TutorialUI.FORGE_TEXT_PHONE and nextButton.Text == "Terminer"
+				and pointerOnScreen(),
+			`nouveau joueur {name} : autel fermé -> « {body.Text} », flèche {pointerNow()} à côté de l'icône de la forge (côté {forgeSide} : {forgeBeside}), bouton « {nextButton.Text} »`
+		)
+		shot(tag .. "newplayer_forge_icon")
+
+		-- 4) L'icône touchée (la forge s'ouvre) : « ✓ BRAVO ! » et le mot de la fin, sans flèche ; puis le tuto se
+		-- ferme tout seul.
+		say("CMD:OpenMachine:Bonus")
+		local lastWord = waitFor(function()
+			return shown(tutorialPanel) and has(title.Text, "BRAVO") and has(body.Text, "Les runes coûtent cher au début") and pointerHidden()
+		end, 5)
+		shot(tag .. "newplayer_end")
+		local finished = waitFor(function()
+			return not shown(tutorialPanel) and pointerHidden() and player:GetAttribute("TutorialDone") == true
+		end, 15)
+		check(
+			lastWord and finished,
+			`nouveau joueur {name} : forge ouverte -> mot de la fin sous « BRAVO » ({lastWord}), puis tuto terminé, flèche retirée (TutorialDone = {tostring(player:GetAttribute("TutorialDone"))})`
+		)
+		closeMachines()
+
+		-- « Passer » sur téléphone, sur un 2e tuto (« Replay », Studio seulement ; les étapes déjà faites passent seules
+		-- jusqu'à la forge). Appuis faits par l'attribut de test TestSkipTap (un plugin ne peut pas toucher l'écran).
+		-- Le bouton est à côté du bouton de saut : un appui par erreur ne doit pas faire perdre le tuto. Un 1er appui ne
+		-- passe rien (« Confirmer ? »), il s'annule tout seul au bout de 3 s ; deux appuis de suite passent le tuto.
+		-- Le serveur de test prépare ensuite la parcelle du joueur avancé.
+		task.wait(1.5) -- (le serveur lit d'abord la fin du 1er tuto ; anti-spam du serveur)
+		action:FireServer("Replay")
+		local replayed = waitFor(function()
+			return has(title.Text, "4/4") and shown(skipButton) and pointerIs("BonusShortcut", CAPTIONS.Forge)
+		end, 12)
 		local function tapSkip()
 			tutorialGui:SetAttribute("TestSkipTap", (tutorialGui:GetAttribute("TestSkipTap") or 0) + 1)
 			task.wait(0.3)
 		end
 		tapSkip()
-		local armedText = if skipButton then skipButton.Text else "?"
+		local armedText = skipButton.Text
 		local stillRunning = shown(tutorialPanel) and player:GetAttribute("TutorialDone") == false
 		local disarmed = waitFor(function()
-			return skipButton ~= nil and skipButton.Text == "Passer"
+			return skipButton.Text == "Passer"
 		end, 5)
 		check(
-			armedText == "Confirmer ?" and stillRunning and disarmed and player:GetAttribute("TutorialDone") == false,
-			`nouveau joueur : 1er appui sur « Passer » -> « {armedText} », le tuto continue ({stillRunning}) ; 3 s sans 2e appui -> de nouveau « {skipButton and skipButton.Text} » ({disarmed})`
+			replayed and armedText == "Confirmer ?" and stillRunning and disarmed and player:GetAttribute("TutorialDone") == false,
+			`nouveau joueur : 2e tuto, les étapes déjà faites passent seules jusqu'à « {title.Text} » ({replayed}) ; 1er appui sur « Passer » -> « {armedText} », le tuto continue ({stillRunning}) ; 3 s sans 2e appui -> de nouveau « {skipButton.Text} » ({disarmed})`
 		)
 		tapSkip()
 		tapSkip()
 		local skipped = waitFor(function()
-			return not shown(tutorialPanel) and player:GetAttribute("TutorialDone") == true
+			return not shown(tutorialPanel) and pointerHidden() and player:GetAttribute("TutorialDone") == true
 		end, 8)
 		check(skipped, `nouveau joueur : deux appuis sur « Passer » -> tuto fermé (TutorialDone = {tostring(player:GetAttribute("TutorialDone"))})`)
 	end
@@ -555,27 +689,34 @@ return function(log)
 			check(false, `bouton « ▲ » {name} : introuvable (PlayerGui.ShortcutsToggle.ToggleButton)`)
 		end
 
-		-- Tuto des nouveaux joueurs sur téléphone, à chaque taille : relancé (« Replay », Studio seulement), son panneau
-		-- est en bas de la zone de jeu, entier, à gauche du bouton de saut, sans toucher aucun bouton ; puis « Passer ».
+		-- Tuto des nouveaux joueurs sur téléphone, à chaque taille : relancé (« Replay », Studio seulement). Tout est
+		-- déjà fait sauf la forge : il s'arrête à sa dernière étape. Son panneau est en bas de la zone de jeu, entier, à
+		-- gauche du bouton de saut, sans toucher aucun bouton ; la flèche montre l'icône de la forge, contre le bord
+		-- droit (elle est à sa gauche), entière dans l'écran. Puis « Passer ».
 		do
 			local remotes = ReplicatedStorage:FindFirstChild("Remotes")
 			local action = remotes and remotes:FindFirstChild("TutorialAction")
 			local tutorialGui = playerGui:FindFirstChild("Tutorial")
 			local tutorialPanel = tutorialGui and tutorialGui:FindFirstChild("Panel")
-			if action and tutorialPanel then
+			local tutorialTitle = tutorialPanel and tutorialPanel:FindFirstChild("Title")
+			local machinesGui = playerGui:FindFirstChild("Machines")
+			local forgeIcon = machinesGui and machinesGui:FindFirstChild("BonusShortcut")
+			if action and tutorialPanel and tutorialTitle then
 				action:FireServer("Replay")
 				local started = waitFor(function()
-					return shown(tutorialPanel)
-				end, 8)
-				task.wait(0.6)
+					return shown(tutorialPanel) and string.find(tutorialTitle.Text, "4/4", 1, true) ~= nil
+						and pointerIs("BonusShortcut", CAPTIONS.Forge)
+				end, 12)
+				task.wait(0.4)
 				local lowOk, tutorialCrossed = tutorialLow(tutorialPanel)
+				local forgeBeside, forgeSide = arrowBeside(forgeIcon)
 				check(
-					started and lowOk,
-					`tuto {name} : panneau affiché ({started}), {where(tutorialPanel)} en bas de l'écran, à gauche du bouton de saut, {#tutorialCrossed} bouton(s) dessous`
+					started and lowOk and forgeBeside and forgeSide == "left" and pointerOnScreen(),
+					`tuto {name} : « {tutorialTitle.Text} » ({started}), {where(tutorialPanel)} en bas de l'écran, à gauche du bouton de saut, {#tutorialCrossed} bouton(s) dessous ; flèche {pointerNow()} à côté de l'icône de la forge (côté {forgeSide} : {forgeBeside}), entière dans l'écran ({pointerOnScreen()})`
 						.. (if #tutorialCrossed > 0 then " : " .. table.concat(tutorialCrossed, " | ", 1, math.min(#tutorialCrossed, 3)) else "")
 				)
 				shot(tag .. "tutorial")
-				action:FireServer("Skip", 1)
+				action:FireServer("Skip", 4)
 				waitFor(function()
 					return not shown(tutorialPanel)
 				end, 5)

@@ -18,19 +18,22 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local RankedGate = require(Shared.RankedGate)
 local Remotes = require(Shared.Remotes)
 local PlayerData = require(script.Parent.Parent.PlayerData)
+local Funnel = require(script.Parent.Funnel)
 
 local Tutorial = {}
 
 Tutorial.STEP_COUNT = 6 -- nombre d'étapes du tuto quand le classé est ouvert (TutorialUI.luau)
+Tutorial.RANKED_STEPS = 2 -- dont les deux étapes à pied du classé : la zone classée, puis le retour sur sa parcelle
 local ACTION_COOLDOWN = 0.5 -- secondes entre deux messages acceptés d'un même joueur (anti-spam)
 
 local lastActionAt = {} -- [Player] = os.clock() du dernier message accepté
 local lastFinish = {} -- [Player] = { action, step } : dernière fin reçue (tests Studio)
 
 -- Nombre d'étapes montrées au joueur. Classé fermé (Config.RANKED_OPEN = false, Shared/RankedGate.luau) : le tuto ne
--- montre pas l'étape de la zone classée (demande du propriétaire, 01/10/2026), il en reste 5, numérotées de 1 à 5.
+-- montre pas les deux étapes du classé (demande du propriétaire, 01/10/2026), il en reste 4, numérotées de 1 à 4 :
+-- poser une tour, l'améliorer, l'autel, la forge.
 function Tutorial.stepCount(): number
-	return if RankedGate.isOpen() then Tutorial.STEP_COUNT else Tutorial.STEP_COUNT - 1
+	return if RankedGate.isOpen() then Tutorial.STEP_COUNT else Tutorial.STEP_COUNT - Tutorial.RANKED_STEPS
 end
 
 -- Tuto fini (« Done ») ou passé (« Skip ») : le drapeau part avec la prochaine sauvegarde, et le client est
@@ -48,6 +51,8 @@ local function finish(player: Player, data, action: string, step: any): boolean
 	data.tutorialDone = true
 	player:SetAttribute("TutorialDone", true)
 	lastFinish[player] = { action = action, step = reached }
+	-- Statistiques des nouveaux joueurs : tuto terminé, ou passé à telle étape (Hub/Funnel.luau).
+	Funnel.onTutorialEnd(player, data, action, reached)
 	local how = if action == "Done" then "terminé" else "passé"
 	print(`[Tuto] {player.Name} : tuto {how}{if reached then ` (étape {reached}/{total})` else ""}`)
 	return true

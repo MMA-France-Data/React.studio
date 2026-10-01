@@ -25,8 +25,10 @@ return function(log)
 		return
 	end
 
-	-- 1) Le nouveau joueur : ses données de départ, tuto pas encore fait. Le client fait le début du tuto et le passe
-	--    (remote TutorialAction, Hub/Tutorial.luau) : le drapeau tutorialDone arrive ici.
+	-- 1) Le nouveau joueur : ses données de départ, tuto pas encore fait. Le client fait tout le tuto en suivant sa
+	--    flèche (une tour posée, améliorée, un lancer de l'autel, la forge ouverte) : le drapeau tutorialDone arrive
+	--    ici (remote TutorialAction, Hub/Tutorial.luau), et l'entonnoir des statistiques a ses 5 étapes dans l'ordre
+	--    (Hub/Funnel.luau). Puis il relance le tuto et le passe (« Passer », deux appuis sur téléphone).
 	--    (« Data » renvoie une copie des données : on la redemande pour voir ce qui a changé.)
 	--    Il est sur la parcelle 2, pas la 1 (objet __AutoTestPlot de cette place de test, lu par Hub/Plots.luau), comme
 	--    le 2e joueur arrivé sur un serveur : le client vérifie que le tuto le guide vers SA parcelle.
@@ -36,25 +38,56 @@ return function(log)
 		if fresh then "Info" else "Error",
 		`[{if fresh then "PASS" else "FAIL"}] téléphone : le joueur de test arrive en nouveau joueur, sur la parcelle {tostring(player:GetAttribute("Plot"))} (tuto fait : {tostring(data.tutorialDone)}, aucune tour : {next(data.idle.towers) == nil}, {data.coins} pièces)`
 	)
-	local skipped = false
-	for _ = 1, 900 do -- (au plus 3 min : le client attend la taille du téléphone avant ses captures)
+	local funnelStart = dbg:Invoke(player, "Funnel") or {}
+	local finished = false
+	for _ = 1, 1200 do -- (au plus 4 min : le client attend la taille du téléphone avant ses captures)
 		if player:GetAttribute("TutorialDone") == true then
-			skipped = true
+			finished = true
 			break
 		end
 		task.wait(0.2)
 	end
 	local tutorial = dbg:Invoke(player, "Tutorial") or {}
 	local after = dbg:Invoke(player, "Data")
-	local placed = after and after.idle.towers["1"]
-	local ok = skipped and tutorial.done == true and tutorial.lastAction == "Skip" and tutorial.lastStep == 3 and tutorial.steps == 5
-		and placed ~= nil and placed.type == "MachineGun"
+	local placed, count = nil, 0
+	for _, saved in (if after then after.idle.towers else {}) do
+		placed = saved
+		count += 1
+	end
+	local ok = finished and tutorial.done == true and tutorial.lastAction == "Done" and tutorial.lastStep == 4 and tutorial.steps == 4
+		and count == 1 and placed.type == "MachineGun" and placed.level == 2 and after.idle.towerSpinsBought == 1
 	log(
 		if ok then "Info" else "Error",
-		`[{if ok then "PASS" else "FAIL"}] téléphone : le nouveau joueur a posé son Archer ({placed and placed.type}) puis passé le tuto (« {tostring(tutorial.lastAction)} » à l'étape {tostring(tutorial.lastStep)}/{tostring(tutorial.steps)}, tutorialDone sauvegardé = {tostring(tutorial.done)})`
+		`[{if ok then "PASS" else "FAIL"}] téléphone : le nouveau joueur a fait tout le tuto (« {tostring(tutorial.lastAction)} » à l'étape {tostring(tutorial.lastStep)}/{tostring(tutorial.steps)}, tutorialDone sauvegardé = {tostring(tutorial.done)}) : {count} tour ({placed and placed.type} niveau {placed and placed.level}), {after and after.idle.towerSpinsBought} lancer de l'autel`
+	)
+	-- Statistiques : les 5 étapes de l'entonnoir, dans l'ordre, et rien d'autre ; le joueur n'est plus suivi ensuite.
+	local funnel = dbg:Invoke(player, "Funnel") or {}
+	local wanted = "Arrivee > 1re tour posee > 1re amelioration > 1er lancer de l'autel > Tuto termine"
+	local got = table.concat(funnel.steps or {}, " > ")
+	local funnelOk = funnelStart.tracked == true and (funnelStart.steps or {})[1] == "Arrivee" and #(funnelStart.steps or {}) == 1
+		and got == wanted and funnel.tracked == false and funnel.skipped == nil and funnel.api == true
+	log(
+		if funnelOk then "Info" else "Error",
+		`[{if funnelOk then "PASS" else "FAIL"}] téléphone : statistiques du nouveau joueur -> à l'arrivée « {table.concat(funnelStart.steps or {}, " > ")} », à la fin du tuto « {got} » (fonctions de Roblox présentes : {tostring(funnel.api)})`
+	)
+	-- Le 2e tuto du client (« Replay »), passé par le bouton « Passer » : à la dernière étape (les autres sont faites).
+	local skipped = false
+	for _ = 1, 450 do -- (au plus 90 s)
+		local state = dbg:Invoke(player, "Tutorial") or {}
+		if (state.replays or 0) >= 1 and state.done == true then
+			skipped = true
+			break
+		end
+		task.wait(0.2)
+	end
+	local second = dbg:Invoke(player, "Tutorial") or {}
+	local skipOk = skipped and second.lastAction == "Skip" and second.lastStep == 4
+	log(
+		if skipOk then "Info" else "Error",
+		`[{if skipOk then "PASS" else "FAIL"}] téléphone : 2e tuto passé par « Passer » (« {tostring(second.lastAction)} » à l'étape {tostring(second.lastStep)}/{tostring(second.steps)})`
 	)
 
-	-- 2) La parcelle du joueur avancé (tuto fini : le client l'a passé ; l'attribut, au cas où il n'y serait pas arrivé).
+	-- 2) La parcelle du joueur avancé (tuto fini ; l'attribut, au cas où le client n'y serait pas arrivé).
 	player:SetAttribute("TutorialDone", true)
 	dbg:Invoke(player, "Set", "rebirthHintShown", true)
 

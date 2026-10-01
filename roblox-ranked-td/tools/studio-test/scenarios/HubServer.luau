@@ -3366,10 +3366,11 @@ return function(log)
 	--    départ ; anciennes sauvegardes (d'avant le tuto) : qui a déjà joué ne le voit jamais.
 	-- 2) Sa parcelle redevient celle d'un nouveau joueur (aucune tour, record 1, aucun lancer, 50 pièces), puis
 	--    l'attribut AutoTestTutorial de ReplicatedStorage (« Client ») donne la main au client : il relance le tuto
-	--    (« Replay », Studio seulement), fait ses 5 étapes par les vraies actions (classé fermé : plus d'étape de la
-	--    zone classée), puis « Passer » sur un 2e essai, et sur un 3e (classé ouvert chez le client seulement : 6
-	--    étapes, « Passer » à la 2e).
-	--    Ici : le drapeau tutorialDone sauvegardé à chaque fin, et les 3 achats payés avec les 50 pièces.
+	--    (« Replay », Studio seulement) 4 fois : « Passer » dès le début ; ses 4 étapes par les vraies actions (classé
+	--    fermé : ni zone classée ni accueil) ; les étapes déjà faites qui passent seules puis « Passer » à la dernière ;
+	--    classé ouvert chez le client seulement (6 étapes, « Passer » à la 2e).
+	--    Ici : le drapeau tutorialDone sauvegardé à chaque fin, les 3 achats payés avec les 50 pièces, et l'entonnoir
+	--    des nouveaux joueurs pour les statistiques (Hub/Funnel.luau).
 	-- Dans sa propre fonction (limite des 200 variables locales de Luau, voir plus haut).
 	----------------------------------------------------------------------
 	function tests.testTutorial()
@@ -3446,19 +3447,61 @@ return function(log)
 				and player:GetAttribute("TowerSpinsBought") == 0,
 			`tuto : parcelle de nouveau joueur prête (tours : {next(fresh.idle.towers) == nil and "aucune" or "encore là"}, {fresh.coins} pièces, {fresh.idle.towerSpinsBought} lancer)`
 		)
+		-- Entonnoir des nouveaux joueurs (statistiques Roblox, Hub/Funnel.luau) : l'étape atteinte d'après les données
+		-- (fonction pure, sur la copie du module de ce scénario). Les étapes se suivent : un lancer de l'autel sans tour
+		-- posée ne fait pas avancer.
+		local Funnel = require(game:GetService("ServerScriptService").Server.Hub.Funnel)
+		local funnelWrong = {}
+		for _, case in {
+			{ "rien", {}, false, 1 },
+			{ "lancer sans tour", { towerSpinsBought = 2 }, false, 1 },
+			{ "une tour", { towers = { ["1"] = { type = "MachineGun", level = 1 } } }, false, 2 },
+			{ "tour au niveau 2", { towers = { ["3"] = { type = "MachineGun", level = 2 } } }, false, 3 },
+			{ "niveau 2 + lancer", { towers = { ["3"] = { type = "MachineGun", level = 2 } }, towerSpinsBought = 1 }, false, 4 },
+			{ "niveau 2 + lancer + tuto terminé", { towers = { ["3"] = { type = "MachineGun", level = 5 } }, towerSpinsBought = 1 }, true, 5 },
+			{ "tuto terminé sans lancer", { towers = { ["3"] = { type = "MachineGun", level = 2 } } }, true, 3 },
+		} do
+			local got = Funnel.stepOf(case[2], case[3])
+			if got ~= case[4] then
+				table.insert(funnelWrong, `{case[1]} -> {got} au lieu de {case[4]}`)
+			end
+		end
+		check(
+			#funnelWrong == 0 and #Funnel.STEPS == 5,
+			`statistiques : étape de l'entonnoir d'après les données ({table.concat(Funnel.STEPS, " > ")}){if #funnelWrong > 0 then " ; faux : " .. table.concat(funnelWrong, ", ") else ""}`
+		)
+		local f0 = dbg:Invoke(player, "Funnel") or {}
+		check(
+			f0.api == true and f0.tracked == true and f0.steps ~= nil and f0.steps[1] == Funnel.STEPS[1] and f0.skipped == nil,
+			`statistiques : le joueur de test (nouveau) est suivi depuis son arrivée (étapes envoyées : {table.concat(f0.steps or {}, " > ")}) ; les fonctions de Roblox existent ({tostring(f0.api)})`
+		)
 		ReplicatedStorage:SetAttribute("AutoTestTutorial", "Client")
 
-		-- Classé fermé : le tuto a 5 étapes (plus d'étape de la zone classée, Tutorial.stepCount). Le client les fait :
-		-- la forge ouverte termine le tuto (« Done » à l'étape 5), drapeau sauvegardé.
-		local finished = waitFor(function()
+		-- 1er essai du client : « Passer » dès la 1re étape. Fini à l'étape 1, drapeau sauvegardé ; l'entonnoir note le
+		-- « Passer » et ne suit plus le joueur.
+		local firstSkip = waitFor(function()
 			local t = tutorial()
 			return (t.replays == 1 and t.done == true) or (t.replays or 0) >= 2
 		end, 150)
+		local t0 = tutorial()
+		local fSkip = dbg:Invoke(player, "Funnel") or {}
+		check(
+			firstSkip and t0.replays == 1 and t0.lastAction == "Skip" and t0.lastStep == 1 and t0.done == true and t0.attribute == true
+				and fSkip.skipped == 1 and fSkip.tracked == false,
+			`tuto (client) : « Passer » dès le début -> fini (« {tostring(t0.lastAction)} » à l'étape {tostring(t0.lastStep)}), tutorialDone sauvegardé = {tostring(t0.done)} ; statistiques : passé à l'étape {tostring(fSkip.skipped)}, joueur plus suivi ({tostring(fSkip.tracked == false)})`
+		)
+
+		-- 2e essai. Classé fermé : le tuto a 4 étapes (ni zone classée ni accueil, Tutorial.stepCount). Le client les
+		-- fait : la forge ouverte termine le tuto (« Done » à l'étape 4), drapeau sauvegardé.
+		local finished = waitFor(function()
+			local t = tutorial()
+			return (t.replays == 2 and t.done == true) or (t.replays or 0) >= 3
+		end, 150)
 		local t1 = tutorial()
 		check(
-			finished and t1.replays == 1 and t1.steps == 5 and t1.lastAction == "Done" and t1.lastStep == 5 and t1.done == true
+			finished and t1.replays == 2 and t1.steps == 4 and t1.lastAction == "Done" and t1.lastStep == 4 and t1.done == true
 				and t1.attribute == true,
-			`tuto (client) : classé fermé, {t1.steps} étapes faites -> fini (« {t1.lastAction} » à l'étape {t1.lastStep}), tutorialDone sauvegardé = {tostring(t1.done)}, attribut {tostring(t1.attribute)}`
+			`tuto (client) : classé fermé, {tostring(t1.steps)} étapes faites -> fini (« {tostring(t1.lastAction)} » à l'étape {tostring(t1.lastStep)}), tutorialDone sauvegardé = {tostring(t1.done)}, attribut {tostring(t1.attribute)}`
 		)
 		local after = dbg:Invoke(player, "Data")
 		local placed, count = nil, 0
@@ -3471,27 +3514,27 @@ return function(log)
 			`tuto (client) : tout payé avec les {IdleConfig.STARTING_COINS} pièces de départ -> {count} tour ({placed and placed.type} niveau {placed and placed.level}), {after.idle.towerSpinsBought} lancer de l'autel, reste {NumberFormat.short(after.coins)} pièces`
 		)
 
-		-- « Passer » sur un 2e essai : fini à l'étape 1, drapeau sauvegardé.
+		-- 3e essai : les étapes déjà faites passent seules, « Passer » à la dernière (la forge) : fini à l'étape 4.
 		local skipped = waitFor(function()
 			local t = tutorial()
-			return (t.replays or 0) >= 2 and t.done == true
+			return ((t.replays or 0) == 3 and t.done == true) or (t.replays or 0) >= 4
 		end, 60)
 		local t2 = tutorial()
 		check(
-			skipped and t2.lastAction == "Skip" and t2.lastStep == 1 and t2.attribute == true,
-			`tuto (client) : « Passer » -> fini (« {t2.lastAction} » à l'étape {t2.lastStep}), tutorialDone sauvegardé = {tostring(t2.done)}`
+			skipped and t2.replays == 3 and t2.lastAction == "Skip" and t2.lastStep == 4 and t2.attribute == true,
+			`tuto (client) : 3e essai, « Passer » à la dernière étape -> fini (« {tostring(t2.lastAction)} » à l'étape {tostring(t2.lastStep)}), tutorialDone sauvegardé = {tostring(t2.done)}`
 		)
 
-		-- 3e essai du client (classé ouvert chez lui seulement, pour revoir l'étape de la zone classée) : « Passer » à
+		-- 4e essai du client (classé ouvert chez lui seulement, pour revoir les deux étapes à pied) : « Passer » à
 		-- l'étape 2, drapeau sauvegardé. Le serveur attend sa fin avant de reprendre la main.
-		local third = waitFor(function()
+		local fourth = waitFor(function()
 			local t = tutorial()
-			return (t.replays or 0) >= 3 and t.done == true
+			return (t.replays or 0) >= 4 and t.done == true
 		end, 90)
 		local t3 = tutorial()
 		check(
-			third and t3.lastAction == "Skip" and t3.lastStep == 2 and t3.attribute == true,
-			`tuto (client) : 3e essai, « Passer » -> fini (« {t3.lastAction} » à l'étape {t3.lastStep}), tutorialDone sauvegardé = {tostring(t3.done)}`
+			fourth and t3.lastAction == "Skip" and t3.lastStep == 2 and t3.attribute == true,
+			`tuto (client) : 4e essai, « Passer » -> fini (« {tostring(t3.lastAction)} » à l'étape {tostring(t3.lastStep)}), tutorialDone sauvegardé = {tostring(t3.done)}`
 		)
 		ReplicatedStorage:SetAttribute("AutoTestTutorial", "Server")
 	end

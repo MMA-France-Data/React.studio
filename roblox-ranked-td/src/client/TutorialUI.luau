@@ -1,29 +1,36 @@
 -- Petit tuto des nouveaux joueurs (map principale seulement), montré une seule fois, avec un bouton « Passer ».
--- 6 étapes, chacune validée par ce que le joueur fait vraiment. Classé fermé (Config.RANKED_OPEN = false,
--- Shared/RankedGate.luau) : l'étape 1 n'est PAS montrée (demande du propriétaire, 01/10/2026 : « enlève la première
--- partie du tuto qui montre ranked en attendant »). Le tuto a alors 5 étapes, numérotées de 1 à 5 (« TUTO 1/5 • TA
--- PARCELLE »), et l'étape de la zone classée revient toute seule quand le classé rouvre.
---   1. la zone classée (classé ouvert seulement) : entrer dans le cercle rouge au centre de la map, ou tout près (ou
---      « Suivant ») ;
---   2. ta parcelle : y retourner. Classé fermé, c'est la 1re étape, un mot d'accueil : le nouveau joueur apparaît sur
---      sa parcelle, elle passe donc toute seule après le temps de lecture, sans « ✓ BRAVO ! » (il n'a rien fait) ;
---   3. poser une tour : au moins une tour sur ta parcelle (le texte nomme l'Archer, sa carte est entourée d'or) ;
---   4. l'améliorer : une tour au niveau 2 ou plus (« Améliorer » entouré d'or) ;
---   5. l'Autel des héros : y aller à pied et lancer x1 (résultat reçu, ou des lancers déjà achetés : attribut
---      TowerSpinsBought ; x1 entouré d'or) ;
---   6. la Forge runique : fermer l'autel s'il est encore ouvert (X entouré d'or), puis l'ouvrir (sa machine ou son
---      bouton de gauche), ou « Terminer ». Forge ouverte : une astuce montre les boutons de gauche (entourés d'or)
---      qui ouvrent l'autel et la forge de n'importe où.
--- Chaque étape reste affichée au moins le temps de lire son texte (READ_MIN à READ_MAX secondes).
+-- Refait le 01/10/2026 (retour du propriétaire : « le didacticiel fait fuir les gens avant même qu'ils commencent à
+-- jouer », ils partent dès leur arrivée sur leur parcelle ; « plus clair, avec des flèches ») :
+--   * il démarre tout de suite par une action (« pose une tour »), sans écran d'accueil à lire ;
+--   * une grosse FLÈCHE qui rebondit, avec deux ou trois mots (« APPUIE ICI »), montre à chaque instant ce qu'il
+--     faut toucher : le « + » d'un emplacement, la carte de l'Archer, la tour, « Améliorer », le bouton de l'autel,
+--     « x1 », le X d'une fenêtre à fermer, le bouton de la forge. Cible hors de l'écran : la flèche se met au bord
+--     de l'écran, du côté où regarder ;
+--   * plus de marche : l'autel et la forge s'ouvrent par leurs boutons (à gauche sur ordinateur, les icônes 🏰 et
+--     🔨 à droite sur téléphone), que la flèche montre ;
+--   * des textes courts.
+-- Classé fermé (Config.RANKED_OPEN = false, Shared/RankedGate.luau) : 4 étapes, chacune validée par ce que le
+-- joueur fait vraiment :
+--   1. poser une tour : au moins une tour sur ta parcelle (la flèche montre un « + », puis la carte de l'Archer) ;
+--   2. l'améliorer : une tour au niveau 2 ou plus (la flèche montre la tour, puis « Améliorer ») ;
+--   3. l'Autel des héros : un lancer x1 (résultat reçu, ou des lancers déjà achetés : attribut TowerSpinsBought ; la
+--      flèche montre le bouton de l'autel, puis x1) ;
+--   4. la Forge runique : l'ouvrir (la flèche montre son bouton), ou « Terminer ». Forge ouverte : un mot de la fin
+--      (les runes coûtent cher au début).
+-- Classé ouvert : 2 étapes de plus au début (6 en tout), à pied : la zone classée (entrer dans le cercle rouge au
+-- centre de la map, ou « Suivant »), puis le retour sur sa parcelle. Elles reviennent toutes seules quand le classé
+-- rouvre (demande du propriétaire, 01/10/2026 : « enlève la première partie du tuto qui montre ranked en attendant »).
+-- Une fenêtre gêne (l'autel resté ouvert, le panneau des tours qui couvre l'écran d'un téléphone) : la flèche montre
+-- son X (« FERME »).
 -- Une étape déjà faite avant d'y arriver (ex. une tour déjà posée) est validée tout de suite. Le tuto ne bloque
--- rien : un petit panneau en haut de l'écran (en bas sur téléphone, voir TutorialUI.panelPlace), un rayon doré du
--- personnage vers la cible et une flèche ▼ au-dessus d'elle (créés seulement chez ce joueur, retirés à la fin ; le
--- rayon repart du nouveau personnage après une mort).
+-- rien : un petit panneau en haut de l'écran (en bas sur téléphone, voir TutorialUI.panelPlace), la flèche, un cadre
+-- doré autour du bouton montré, et un rayon doré du personnage vers une cible du monde (créés seulement chez ce
+-- joueur, retirés à la fin ; le rayon repart du nouveau personnage après une mort).
 -- Le serveur garde « tuto fini » (PlayerData : tutorialDone, attribut TutorialDone du joueur) ; la fin et « Passer »
--- partent par le remote TutorialAction (Hub/Tutorial.luau). Un joueur qui part au milieu du tuto le recommence à
--- la 1re étape en revenant : les étapes déjà faites passent toutes seules, et la zone classée a « Suivant ».
+-- partent par le remote TutorialAction (Hub/Tutorial.luau). Un joueur qui part au milieu du tuto le recommence au
+-- début en revenant : les étapes déjà faites passent toutes seules.
 -- Studio : tes données y sont en mémoire, tu es donc un nouveau joueur à chaque Play et le tuto s'affiche à chaque
--- fois (Config.STUDIO_TUTORIAL = false pour ne plus le voir). Il recommence à l'étape 1 quand l'attribut
+-- fois (Config.STUDIO_TUTORIAL = false pour ne plus le voir). Il recommence au début quand l'attribut
 -- TutorialReplay du joueur change (StudioDebug « Tutorial », « Replay »). Tests automatiques
 -- (ReplicatedStorage.__AutoPlayTest) : jamais tout seul, seulement quand le test le demande (TutorialReplay).
 local Players = game:GetService("Players")
@@ -34,7 +41,6 @@ local TweenService = game:GetService("TweenService")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.Config)
 local IdleConfig = require(Shared.IdleConfig)
-local IdleTowers = require(Shared.IdleTowers)
 local NumberFormat = require(Shared.NumberFormat)
 local PlotLayout = require(Shared.PlotLayout)
 local RankedGate = require(Shared.RankedGate)
@@ -44,16 +50,38 @@ local UI = require(script.Parent.UI)
 
 local TutorialUI = {}
 
--- Texte de l'étape de la zone classée (montrée seulement quand le classé est ouvert, Config.RANKED_OPEN).
+-- Textes des étapes (français ; anglais : Shared/LangEN/Social.luau). Courts : la flèche montre le reste.
+-- Les deux étapes à pied (classé ouvert seulement) :
 TutorialUI.RANKED_STEP_OPEN = "Le cercle rouge au centre, c'est le classé : des matchs 1 contre 1 pour monter en rang. Suis le rayon doré !"
+TutorialUI.PLOT_STEP_RETURN = "Voici ta parcelle : des vagues d'ennemis y arrivent sans fin. Retournes-y en suivant le rayon doré."
+TutorialUI.PLACE_TEXT = "Des ennemis attaquent ta parcelle ! Appuie sur un « + » doré, puis sur la carte de l'Archer."
+TutorialUI.UPGRADE_TEXT = "Ta tour tire toute seule. Appuie dessus, puis sur « Améliorer » : elle tapera plus fort."
+-- L'autel et la forge par leurs boutons : à gauche sur ordinateur, les icônes de droite sur un téléphone tenu en
+-- largeur (UI.leftColumnSlot), sous le compteur de pièces sur un téléphone tenu en hauteur.
+TutorialUI.ALTAR_TEXT_PC = "Appuie sur « Autel des héros », à gauche, puis lance x1 : il donne de nouvelles tours."
+TutorialUI.ALTAR_TEXT_PHONE = "Appuie sur 🏰, à droite, puis lance x1 : il donne de nouvelles tours."
+TutorialUI.ALTAR_TEXT_PORTRAIT = "Appuie sur 🏰, puis lance x1 : il donne de nouvelles tours."
+TutorialUI.FORGE_TEXT_PC = "Dernière étape : appuie sur « Forge runique », à gauche. Ses runes rendent tes tours bien plus fortes."
+TutorialUI.FORGE_TEXT_PHONE = "Dernière étape : appuie sur 🔨, à droite. Ses runes rendent tes tours bien plus fortes."
+TutorialUI.FORGE_TEXT_PORTRAIT = "Dernière étape : appuie sur 🔨. Ses runes rendent tes tours bien plus fortes."
+-- Une fenêtre ouverte cache ce qu'il faut toucher (ex. l'autel resté ouvert à l'étape de la forge).
+TutorialUI.CLOSE_TEXT = "Ferme d'abord cette fenêtre : appuie sur son X."
+-- Les mots de la flèche (2 ou 3 mots, en majuscules).
+TutorialUI.CAPTIONS = {
+	Plus = "APPUIE ICI",
+	Card = "CHOISIS L'ARCHER",
+	Tower = "APPUIE SUR TA TOUR",
+	Upgrade = "AMÉLIORE",
+	Altar = "OUVRE L'AUTEL",
+	Spin = "LANCE x1",
+	Forge = "OUVRE LA FORGE",
+	Close = "FERME",
+	Ranked = "ARÈNE CLASSÉE",
+	Plot = "TA PARCELLE",
+}
 -- Bouton « Passer » (sur téléphone, un 2e appui le confirme : voir skipButton).
 TutorialUI.SKIP_TEXT = "Passer"
 TutorialUI.SKIP_CONFIRM_TEXT = "Confirmer ?"
--- Textes de l'étape « ta parcelle ». Classé ouvert : le joueur revient du cercle. Classé fermé, c'est la 1re étape :
--- un mot d'accueil (le joueur vient d'apparaître chez lui), ou le chemin s'il n'y est pas.
-TutorialUI.PLOT_STEP_RETURN = "Voici ta parcelle : des vagues d'ennemis y arrivent sans fin. Retournes-y en suivant le rayon doré."
-TutorialUI.PLOT_STEP_WELCOME = "Bienvenue ! Voici ta parcelle : des vagues d'ennemis y arrivent sans fin."
-TutorialUI.PLOT_STEP_GO = "Bienvenue ! Ta parcelle est au bout du rayon doré : des vagues d'ennemis y arrivent sans fin."
 
 TutorialUI.PANEL_SIZE = Vector2.new(440, 104) -- 3 lignes de texte ; 440 px : ne cache pas le « X » des fenêtres des machines
 local PANEL_SIZE = TutorialUI.PANEL_SIZE
@@ -73,20 +101,38 @@ local PHONE_LEFT_LIMIT = 0.27
 local PHONE_BOTTOM_MARGIN = 6
 local CHECK_INTERVAL = 0.2 -- secondes entre deux vérifications de l'étape en cours
 local DONE_FLASH = 0.8 -- secondes de « ✓ BRAVO ! » avant l'étape suivante
--- Temps de lecture : une étape faite très vite (ex. arrivé sur sa parcelle avant d'avoir fini de lire) garde son
--- texte sous « ✓ BRAVO ! » jusqu'à ce temps-là depuis son apparition : 2 s + 1 s par 15 lettres, entre 3 et 8 s
--- (retour du propriétaire : « j'ai pas eu le temps de lire le texte que j'étais déjà arrivé »).
+-- Temps de lecture, pour les étapes à pied (readFirst : arrivé avant d'avoir fini de lire, le texte reste sous
+-- « ✓ BRAVO ! » jusqu'à ce temps-là depuis son apparition ; retour du propriétaire : « j'ai pas eu le temps de lire
+-- le texte que j'étais déjà arrivé ») et pour le mot de la fin : 2 s + 1 s par 15 lettres, entre 3 et 8 s. Les autres
+-- étapes s'enchaînent tout de suite : la flèche passe au bouton suivant.
 local READ_MIN, READ_MAX = 3, 8
 local READ_CHARS_PER_SECOND = 15
-local START_DELAY = 2 -- après le chargement des données : le temps que la map et l'interface arrivent
+local START_DELAY = 1 -- après le chargement des données : le temps que la map et l'interface arrivent
 local CHARACTER_WAIT = 10 -- puis au plus ce temps pour que le personnage apparaisse (le tuto démarre de toute façon)
--- 1re étape faite moins de ce temps après le départ du tuto = déjà faite sans que le joueur ait rien fait (classé
--- fermé : il apparaît sur sa parcelle, parfois une fraction de seconde après le départ du tuto) : pas de « BRAVO ».
-local ALREADY_DONE_TIME = 1
 local SKIP_CONFIRM_TIME = 3 -- téléphone : secondes pour toucher « Passer » une 2e fois (« Confirmer ? »)
+-- Après un lancer de l'autel : le rouleau tourne ~3,7 s (MachineUI), puis le joueur lit ce qu'il a gagné. L'étape de
+-- l'autel n'est validée qu'après ce temps.
+local SPIN_REVEAL_TIME = 5
 local CIRCLE_MARGIN = 6 -- studs autour du cercle classé qui comptent comme « dans la zone »
 local GUIDE_COLOR = Color3.fromRGB(255, 205, 80) -- doré, comme l'anneau du cercle classé
 local DONE_COLOR = Color3.fromRGB(125, 220, 125)
+
+-- La flèche (px). Elle est dessinée avec des barres dorées (pas d'image ; le caractère « ▼ » était trop petit sur un
+-- téléphone), dans un carré tourné vers sa cible.
+TutorialUI.POINTER_ARROW = 56 -- côté du carré : la flèche fait toute sa hauteur
+local POINTER_TIP = TutorialUI.POINTER_ARROW / 2 -- du milieu du carré à la pointe de la flèche
+local POINTER_BAR = 13 -- épaisseur de ses barres
+local POINTER_GAP = 5 -- entre la pointe et le bouton montré
+local POINTER_BOUNCE = 10 -- elle recule et revient de tant
+local POINTER_BOUNCE_SPEED = 7
+local POINTER_CAPTION_HEIGHT = 26
+local POINTER_CAPTION_WIDTH = 160 -- largeur prévue pour ses mots, quand ils se mettent à côté d'un bouton
+local POINTER_EDGE = 24 -- un petit bouton à moins de tant du bord gauche ou droit de l'écran : la flèche se met à côté
+local POINTER_SMALL = Vector2.new(200, 64) -- « petit bouton » : au plus cette taille
+local POINTER_MARGIN = 40 -- cible du monde hors de l'écran : la pointe de la flèche est à tant du bord
+-- Place qu'il faut à la flèche seule, puis à la flèche et à ses mots au bout.
+local POINTER_NEED = 2 * POINTER_TIP + POINTER_BOUNCE + POINTER_GAP
+local POINTER_NEED_WORDS = POINTER_NEED + POINTER_GAP + POINTER_CAPTION_HEIGHT
 
 -- Place du panneau sur l'écran `screen` (fonction pure, vérifiée par les tests) : le x de son milieu, son haut (y) et
 -- son échelle (le panneau fait PANEL_SIZE x échelle).
@@ -113,6 +159,74 @@ function TutorialUI.panelPlace(screen: Vector2, machineOpen: boolean): (number, 
 	return math.max(screen.X / 2, LEFT_SIDE + PANEL_SIZE.X * scale / 2), top, scale
 end
 
+-- De quel côté d'un bouton se met la flèche (fonction pure, vérifiée par les tests). Le bouton est le rectangle
+-- `position` (coin en haut à gauche), `size`, dans un écran de taille `screen`.
+--   "top" = au-dessus, elle pointe vers le bas (le cas normal) ; "bottom" = dessous, quand la place manque au-dessus ;
+--   "left" = à sa gauche, elle pointe vers la droite ; "right" = à sa droite, elle pointe vers la gauche.
+--   Petit bouton collé au bord DROIT de l'écran (les icônes de l'autel et de la forge sur téléphone, le X du panneau
+--   des tours) : à sa gauche. Collé au bord GAUCHE (les boutons de l'autel et de la forge sur ordinateur : au-dessus
+--   ou en dessous, elle couvrirait le bouton voisin de la colonne) : à sa droite.
+--   Grande cible (la carte de l'Archer) sans la place au-dessus pour la flèche et ses mots (téléphone : la carte
+--   monte presque jusqu'en haut du panneau) : à côté d'elle, à droite de préférence, sans cacher la carte.
+function TutorialUI.pointerSide(screen: Vector2, position: Vector2, size: Vector2): string
+	local small = size.X <= POINTER_SMALL.X and size.Y <= POINTER_SMALL.Y
+	local below = position.Y + size.Y + POINTER_NEED_WORDS <= screen.Y
+	if small then
+		if position.X + size.X >= screen.X - POINTER_EDGE then
+			return "left"
+		elseif position.X <= POINTER_EDGE then
+			return "right"
+		elseif position.Y >= POINTER_NEED then
+			return "top"
+		end
+		return if below then "bottom" else "top"
+	end
+	if position.Y >= POINTER_NEED_WORDS then
+		return "top"
+	end
+	local beside = POINTER_NEED + POINTER_GAP + POINTER_CAPTION_WIDTH
+	if position.X + size.X + beside <= screen.X then
+		return "right"
+	elseif position.X - beside >= 0 then
+		return "left"
+	end
+	return if below then "bottom" else "top"
+end
+
+local SIDE_DIRECTIONS = {
+	top = Vector2.new(0, 1),
+	bottom = Vector2.new(0, -1),
+	left = Vector2.new(1, 0),
+	right = Vector2.new(-1, 0),
+}
+-- Où va la pointe de la flèche pour ce bouton, et dans quel sens elle pointe (vecteur de la flèche vers le bouton).
+-- Fonction pure. Renvoie aussi le côté (TutorialUI.pointerSide).
+function TutorialUI.pointerAt(screen: Vector2, position: Vector2, size: Vector2): (Vector2, Vector2, string)
+	local side = TutorialUI.pointerSide(screen, position, size)
+	local center = position + size / 2
+	local tip
+	if side == "top" then
+		tip = Vector2.new(center.X, position.Y - POINTER_GAP)
+	elseif side == "bottom" then
+		tip = Vector2.new(center.X, position.Y + size.Y + POINTER_GAP)
+	elseif side == "left" then
+		tip = Vector2.new(position.X - POINTER_GAP, center.Y)
+	else
+		tip = Vector2.new(position.X + size.X + POINTER_GAP, center.Y)
+	end
+	return tip, SIDE_DIRECTIONS[side], side
+end
+
+-- Cible du monde hors de l'écran : la flèche se met au bord de l'écran, dans la direction `direction` (vecteur écran :
+-- x vers la droite, y vers le bas) depuis le milieu, et pointe vers l'extérieur. Renvoie sa pointe et son sens.
+-- Fonction pure.
+function TutorialUI.pointerToward(screen: Vector2, direction: Vector2): (Vector2, Vector2)
+	local d = if direction.Magnitude > 1e-3 then direction.Unit else Vector2.new(0, 1)
+	local reachX = if math.abs(d.X) > 1e-3 then (screen.X / 2 - POINTER_MARGIN) / math.abs(d.X) else math.huge
+	local reachY = if math.abs(d.Y) > 1e-3 then (screen.Y / 2 - POINTER_MARGIN) / math.abs(d.Y) else math.huge
+	return screen / 2 + d * math.max(0, math.min(reachX, reachY)), d
+end
+
 function TutorialUI.start()
 	local player = Players.LocalPlayer
 	local tutorialAction = Remotes.get("TutorialAction")
@@ -134,9 +248,11 @@ function TutorialUI.start()
 	local startedAt = 0 -- os.clock() du départ du tuto
 	local flashUntil = 0 -- « ✓ BRAVO ! » affiché jusqu'à cette heure, puis étape suivante (0 = rien)
 	local stepShownAt = 0 -- os.clock() de l'apparition de l'étape en cours (temps de lecture)
-	local afterShown = false -- l'astuce de fin d'étape (afterText) est affichée sous « ✓ BRAVO ! »
-	local lastSpinAt = -math.huge -- dernier résultat de l'Autel des héros reçu (os.clock())
+	local afterShown = false -- le mot de la fin (afterText) est affiché sous « ✓ BRAVO ! »
+	local lastSpinAt = -math.huge -- dernier lancer de l'Autel des héros (os.clock() de son résultat)
+	local spinsAtStart = 0 -- lancers de l'autel déjà achetés au départ du tuto (attribut TowerSpinsBought)
 	local lastForgeAt = -math.huge -- dernière ouverture de la Forge runique (os.clock())
+	local spotTarget: BasePart? = nil -- l'emplacement libre montré par la flèche (gardé tant qu'il reste libre)
 
 	local function rootPart(): BasePart?
 		local character = player.Character
@@ -177,7 +293,9 @@ function TutorialUI.start()
 		end)
 		return list
 	end
-	-- Premier emplacement possédé et libre (attribut Unlocked du socle, publié par le serveur).
+	-- L'emplacement libre que la flèche montre : possédé (attribut Unlocked du socle, publié par le serveur) et sans
+	-- tour. Le plus proche du personnage au moment du choix (le plus petit numéro sans personnage) ; il reste le même
+	-- tant qu'il est libre, pour que la flèche ne saute pas d'un « + » à l'autre quand le joueur marche.
 	local function freeSpot(): BasePart?
 		local plot = myPlot()
 		local spots = plot and plot:FindFirstChild("Spots")
@@ -188,35 +306,43 @@ function TutorialUI.start()
 		for _, model in myTowers() do
 			taken[model:GetAttribute("SpotIndex")] = true
 		end
-		local best, bestIndex = nil, math.huge
-		for _, pad in spots:GetChildren() do
+		local function free(pad: Instance): boolean
 			local index = pad:GetAttribute("SpotIndex")
-			if pad:IsA("BasePart") and pad:GetAttribute("Unlocked") == true and typeof(index) == "number" and not taken[index] and index < bestIndex then
-				best, bestIndex = pad, index
+			return pad:IsA("BasePart") and pad:GetAttribute("Unlocked") == true and typeof(index) == "number" and not taken[index]
+		end
+		if spotTarget and spotTarget.Parent == spots and free(spotTarget) then
+			return spotTarget
+		end
+		local root = rootPart()
+		local best, bestScore = nil, math.huge
+		for _, pad in spots:GetChildren() do
+			if free(pad) then
+				local score = if root then ((pad :: BasePart).Position - root.Position).Magnitude else pad:GetAttribute("SpotIndex")
+				if score < bestScore then
+					best, bestScore = pad, score
+				end
 			end
 		end
+		spotTarget = best
 		return best
 	end
-	-- Autel des héros (« TowerMachine ») ou Forge runique (« BonusMachine ») de ta parcelle (Hub/HubMap.luau).
-	local function machinePosition(name: string): Vector3?
-		local plot = myPlot()
-		local machine = plot and plot:FindFirstChild(name)
-		return if machine and machine:IsA("BasePart") then machine.Position else nil
+	local function machinesGui(): Instance?
+		return player.PlayerGui:FindFirstChild("Machines")
 	end
 	local function forgeOpen(): boolean
-		local machines = player.PlayerGui:FindFirstChild("Machines")
+		local machines = machinesGui()
 		return machines ~= nil and machines:GetAttribute("OpenMachine") == "Bonus" -- (MachineUI)
 	end
 	local function altarOpen(): boolean
-		local machines = player.PlayerGui:FindFirstChild("Machines")
+		local machines = machinesGui()
 		return machines ~= nil and machines:GetAttribute("OpenMachine") == "Tower" -- (MachineUI)
 	end
 	local function machineOpen(): boolean
-		local machines = player.PlayerGui:FindFirstChild("Machines")
+		local machines = machinesGui()
 		return machines ~= nil and machines:GetAttribute("OpenMachine") ~= nil
 	end
-	-- Bouton ou carte vraiment à l'écran (lui et tous ses parents visibles, écran allumé), sinon nil : le tuto
-	-- l'entoure d'or (ex. la carte de l'Archer quand le panneau des tours est ouvert).
+	-- Bouton ou carte vraiment à l'écran (lui et tous ses parents visibles, écran allumé), sinon nil : la flèche le
+	-- montre et le tuto l'entoure d'or (ex. la carte de l'Archer quand le panneau des tours est ouvert).
 	local function shownChild(guiName: string, childName: string): GuiObject?
 		local screen = player.PlayerGui:FindFirstChild(guiName)
 		local child = screen and screen:FindFirstChild(childName, true)
@@ -232,23 +358,37 @@ function TutorialUI.start()
 		end
 		return if screen:IsA("ScreenGui") and screen.Enabled then child else nil
 	end
+	-- Texte de l'autel ou de la forge selon l'appareil : leurs boutons sont à gauche sur ordinateur, à droite sur un
+	-- téléphone tenu en largeur (rappel du propriétaire, 01/10/2026).
+	local function bySide(pc: string, phone: string, portrait: string): string
+		local screen = UI.screenSize(nil)
+		if not UI.touchLayout(screen) then
+			return pc
+		end
+		return if screen.Y > screen.X then portrait else phone
+	end
 
 	------------------------------------------------------------------
-	-- Les 6 étapes : title et text (panneau ; text peut être une fonction, relue pendant l'étape), marker
-	-- (au-dessus de la flèche ▼), button (« Suivant » / « Terminer », sinon aucun : l'action du joueur valide
-	-- l'étape), target() = position visée et hauteur de la flèche (nil = pas de guide), highlight() = bouton ou
-	-- carte à entourer d'or quand il est à l'écran (facultatif), done() = vrai quand l'étape est faite.
-	-- rankedOnly : étape montrée seulement quand le classé est ouvert (voir begin).
+	-- Les étapes : title et text (panneau ; text peut être une fonction, relue pendant l'étape), button (« Suivant » /
+	-- « Terminer », sinon aucun : l'action du joueur valide l'étape), done() = vrai quand l'étape est faite,
+	-- point() = ce que la flèche montre en ce moment, nil (rien à montrer) ou false (attendre : aucune flèche) :
+	--   { gui = bouton ou carte à l'écran, caption = ses mots } : flèche à côté de lui, et cadre doré autour ;
+	--   { world = point du monde, caption = ses mots, anchor = bout du rayon doré (par défaut world), radius = px à
+	--     laisser libres autour du point } : flèche au-dessus du point, ou au bord de l'écran s'il n'est pas à l'écran.
+	-- rankedOnly : étape montrée seulement quand le classé est ouvert (voir begin). readFirst : étape à pied, son
+	-- texte reste le temps de le lire. enter() : appelée quand l'étape apparaît.
 	------------------------------------------------------------------
+	local CAPTIONS = TutorialUI.CAPTIONS
 	local STEPS = {
 		{
 			title = "LA ZONE CLASSÉE",
-			rankedOnly = true, -- classé fermé : le tuto ne montre pas le classé, il commence par la parcelle
+			rankedOnly = true, -- classé fermé : le tuto ne montre pas le classé
+			readFirst = true,
 			text = TutorialUI.RANKED_STEP_OPEN,
-			marker = "ARÈNE CLASSÉE",
 			button = "Suivant",
-			target = function()
-				return PlotLayout.RANKED_CIRCLE_POSITION + Vector3.new(0, 0.5, 0), 7
+			point = function()
+				local circle = PlotLayout.RANKED_CIRCLE_POSITION
+				return { world = circle + Vector3.new(0, 6, 0), anchor = circle + Vector3.new(0, 0.5, 0), caption = CAPTIONS.Ranked }
 			end,
 			done = function()
 				if player:GetAttribute("InRankedCircle") == true then
@@ -264,33 +404,45 @@ function TutorialUI.start()
 		},
 		{
 			title = "TA PARCELLE",
-			text = function()
-				-- Après la zone classée : le joueur revient du cercle.
-				if steps[1] and steps[1].rankedOnly then
-					return TutorialUI.PLOT_STEP_RETURN
-				end
-				-- 1re étape (classé fermé) : le nouveau joueur apparaît chez lui ; sinon sa parcelle est au bout du rayon.
-				return if onMyPlot() then TutorialUI.PLOT_STEP_WELCOME else TutorialUI.PLOT_STEP_GO
-			end,
-			marker = "TA PARCELLE",
-			target = function()
+			rankedOnly = true, -- (le retour du cercle classé ; classé fermé, le joueur apparaît déjà sur sa parcelle)
+			readFirst = true,
+			text = TutorialUI.PLOT_STEP_RETURN,
+			point = function()
 				local index = plotIndex()
-				return if index then PlotLayout.toWorld(index, Vector3.new(0.5, 0.5, -22)) else nil, 8
+				if not index then
+					return nil
+				end
+				return {
+					world = PlotLayout.toWorld(index, Vector3.new(0.5, 7, -22)),
+					anchor = PlotLayout.toWorld(index, Vector3.new(0.5, 0.5, -22)),
+					caption = CAPTIONS.Plot,
+				}
 			end,
 			done = onMyPlot,
 		},
 		{
 			title = "POSE UNE TOUR",
-			-- (Retour du propriétaire : avec « une tour », un débutant prend n'importe laquelle : on nomme l'Archer,
-			-- et sa carte est entourée d'or dans le panneau des tours.)
-			text = `Clique sur le « + » d'un emplacement libre (sous la flèche), puis sur la carte « {IdleTowers.Defs.MachineGun.displayName} » entourée d'or : ta tour tire toute seule.`,
-			marker = "ICI",
-			highlight = function()
-				return shownChild("Plot", "Card_MachineGun")
-			end,
-			target = function()
+			text = TutorialUI.PLACE_TEXT,
+			point = function()
+				-- Panneau des tours ouvert sur un emplacement libre : la carte de l'Archer (la seule tour d'un nouveau
+				-- joueur ; retour du propriétaire : avec « une tour », un débutant prenait n'importe laquelle).
+				local card = shownChild("Plot", "Card_MachineGun")
+				if card then
+					return { gui = card, caption = CAPTIONS.Card }
+				end
 				local pad = freeSpot()
-				return if pad then pad.Position + Vector3.new(0, PlotLayout.SPOT_PAD_HEIGHT / 2 + 0.3, 0) else nil, 5
+				if not pad then
+					return nil
+				end
+				-- Le bouton « + » de cet emplacement (PlotUI : BillboardGui « FreeSpot<n> »), sa taille à l'écran.
+				local plus = player.PlayerGui:FindFirstChild("FreeSpot" .. tostring(pad:GetAttribute("SpotIndex")))
+				local radius = if plus and plus:IsA("BillboardGui") and plus.Enabled then plus.Size.X.Offset / 2 else 0
+				return {
+					world = pad.Position + Vector3.new(0, PlotLayout.SPOT_PLUS_HEIGHT, 0),
+					anchor = pad.Position + Vector3.new(0, PlotLayout.SPOT_PAD_HEIGHT / 2 + 0.3, 0),
+					radius = radius,
+					caption = CAPTIONS.Plus,
+				}
 			end,
 			done = function()
 				return #myTowers() > 0
@@ -298,15 +450,25 @@ function TutorialUI.start()
 		},
 		{
 			title = "AMÉLIORE-LA",
-			text = "Clique sur ta tour, puis sur « Améliorer » (entouré d'or) : elle fera plus de dégâts.",
-			marker = "TA TOUR",
-			highlight = function()
-				return shownChild("Plot", "UpgradeButton")
-			end,
-			target = function()
+			text = TutorialUI.UPGRADE_TEXT,
+			point = function()
+				-- Fiche d'une tour ouverte : son bouton « Améliorer ». Sinon la tour elle-même.
+				local button = shownChild("Plot", "UpgradeButton")
+				if button then
+					return { gui = button, caption = CAPTIONS.Upgrade }
+				end
 				local tower, index = myTowers()[1], plotIndex()
 				local spot = tower and PlotLayout.SPOTS[tower:GetAttribute("SpotIndex")]
-				return if spot and index then PlotLayout.toWorld(index, spot + Vector3.new(0, 0.5, 0)) else nil, 9
+				if not (tower and spot and index) then
+					return nil
+				end
+				local base = PlotLayout.toWorld(index, spot + Vector3.new(0, 0.5, 0))
+				local top = base.Y + 6
+				if tower:IsA("Model") then
+					local cframe, size = tower:GetBoundingBox()
+					top = cframe.Position.Y + size.Y / 2
+				end
+				return { world = Vector3.new(base.X, top + 0.5, base.Z), anchor = base, caption = CAPTIONS.Tower }
 			end,
 			done = function()
 				for _, tower in myTowers() do
@@ -319,49 +481,48 @@ function TutorialUI.start()
 		},
 		{
 			title = "L'AUTEL DES HÉROS",
-			-- (Retour du propriétaire : d'abord y aller à pied, pour savoir où il est ; le bouton de gauche est
-			-- montré à la fin du tuto.)
-			text = "Va à l'Autel des héros (suis le rayon doré), ouvre-le et lance x1 (entouré d'or) : il donne de nouvelles tours.",
-			marker = "AUTEL DES HÉROS",
-			highlight = function()
-				return if altarOpen() then shownChild("Machines", "Spin_1") else nil
+			-- Par son bouton, sans marcher (choix du propriétaire, 01/10/2026 ; avant, le joueur y allait à pied).
+			text = function()
+				return bySide(TutorialUI.ALTAR_TEXT_PC, TutorialUI.ALTAR_TEXT_PHONE, TutorialUI.ALTAR_TEXT_PORTRAIT)
 			end,
-			target = function()
-				return machinePosition("TowerMachine"), 8
+			enter = UI.showShortcuts, -- (téléphone : les icônes reviennent si le joueur les avait masquées avec « ▲ »)
+			point = function()
+				if lastSpinAt >= startedAt then
+					return false -- lancer fait : le rouleau tourne, rien à toucher (ni à fermer) pour l'instant
+				end
+				if altarOpen() then
+					local spin = shownChild("Machines", "Spin_1")
+					return if spin then { gui = spin, caption = CAPTIONS.Spin } else nil
+				end
+				local shortcut = shownChild("Machines", "TowerShortcut")
+				return if shortcut then { gui = shortcut, caption = CAPTIONS.Altar } else nil
 			end,
+			-- Faite : des lancers déjà achetés avant ce tuto, ou un lancer fait pendant le tuto ET le temps de voir
+			-- tourner le rouleau et de lire ce qu'on a gagné (pendant qu'il tourne, la fenêtre ne se ferme pas :
+			-- la flèche ne doit pas encore montrer son X).
 			done = function()
-				return lastSpinAt >= startedAt or (tonumber(player:GetAttribute("TowerSpinsBought")) or 0) > 0
+				if lastSpinAt >= startedAt then
+					return os.clock() - lastSpinAt >= SPIN_REVEAL_TIME
+				end
+				return spinsAtStart > 0
 			end,
 		},
 		{
 			title = "LA FORGE RUNIQUE",
 			text = function()
-				-- Fenêtre de l'autel encore ouverte (juste après le lancer) : d'abord la fermer (retour du propriétaire).
-				if altarOpen() then
-					return "Ferme la fenêtre de l'autel (X entouré d'or), puis va à la Forge runique, juste à côté, et ouvre-la."
-				end
-				-- Prix du prochain lancer en pièces (100K pour un nouveau joueur, voir IdleConfig.forgeCoinPrice).
-				local price = IdleConfig.forgeCoinPrice(IdleConfig.cleanSpinsBought(player:GetAttribute("ForgeSpinsBought")))
-				return `Va à la Forge runique et ouvre-la : ses runes multiplient les dégâts de tes tours (chères au début : {NumberFormat.short(price)} pièces).`
+				return bySide(TutorialUI.FORGE_TEXT_PC, TutorialUI.FORGE_TEXT_PHONE, TutorialUI.FORGE_TEXT_PORTRAIT)
 			end,
-			marker = "FORGE RUNIQUE",
 			button = "Terminer",
-			highlight = function()
-				return if altarOpen() then shownChild("Machines", "CloseButton") else nil
+			enter = UI.showShortcuts,
+			point = function()
+				local shortcut = shownChild("Machines", "BonusShortcut")
+				return if shortcut then { gui = shortcut, caption = CAPTIONS.Forge } else nil
 			end,
-			-- Une fois la forge ouverte, avant la fin : le raccourci (les boutons de gauche), entouré d'or.
-			-- (Téléphone : ce sont deux icônes à droite de l'écran, UI.leftColumnSlot.)
+			-- Le mot de la fin, une fois la forge ouverte (prix du prochain lancer en pièces : 100K pour un nouveau
+			-- joueur, voir IdleConfig.forgeCoinPrice).
 			afterText = function()
-				if UI.touchLayout(UI.screenSize(nil)) then
-					return "Astuce : les icônes 🏰 (Autel) et 🔨 (Forge), à droite (entourées d'or), les ouvrent de n'importe où !"
-				end
-				return "Astuce : les boutons « Autel des héros » et « Forge runique », à gauche (entourés d'or), les ouvrent de n'importe où !"
-			end,
-			afterHighlight = function()
-				return { shownChild("Machines", "TowerShortcut"), shownChild("Machines", "BonusShortcut") }
-			end,
-			target = function()
-				return machinePosition("BonusMachine"), 8
+				local price = IdleConfig.forgeCoinPrice(IdleConfig.cleanSpinsBought(player:GetAttribute("ForgeSpinsBought")))
+				return `Les runes coûtent cher au début ({NumberFormat.short(price)} pièces) : reviens à la forge plus tard. À toi de jouer !`
 			end,
 			done = function()
 				return lastForgeAt >= startedAt or forgeOpen()
@@ -444,11 +605,24 @@ function TutorialUI.start()
 		skipButton.BackgroundColor3 = UI.Colors.PanelLight
 	end
 
+	-- Le panneau des tours (PlotUI) quand il est ouvert, sinon nil.
+	local function openTowerPanel(): GuiObject?
+		local plotGui = player.PlayerGui:FindFirstChild("Plot")
+		local towerPanel = plotGui and plotGui:FindFirstChild("TowerPanel")
+		if towerPanel and towerPanel:IsA("GuiObject") and towerPanel.Visible and plotGui:IsA("ScreenGui") and plotGui.Enabled then
+			return towerPanel
+		end
+		return nil
+	end
+
 	-- Place du panneau (TutorialUI.panelPlace) : en haut sur ordinateur, en bas sur téléphone ; en haut, il descend sous
 	-- le bouton « ⚔ S'INSCRIRE AU CLASSÉ » (LobbyUI, dans le cercle) quand il le cacherait.
 	-- Téléphone : le panneau des tours (PlotUI) prend presque tout l'écran quand il est ouvert. Le tuto se cache tant
 	-- qu'ils se touchent (il revient quand on le ferme) : les cartes des tours et « Améliorer » restent visibles, et
-	-- on ne touche jamais « Passer » par erreur à la place d'une carte.
+	-- on ne touche jamais « Passer » par erreur à la place d'une carte. La flèche, elle, reste au-dessus.
+	-- Téléphone encore : la fenêtre de l'autel ou de la forge prend aussi presque tout l'écran. Le panneau se cache
+	-- tant qu'elle est ouverte (il couvrait son titre et ses chances ; la flèche et ses mots suffisent : « LANCE x1 »,
+	-- « FERME »), sauf pour le mot de la fin, affiché en haut.
 	local function layout()
 		local screen = gui.AbsoluteSize
 		if screen.X <= 0 or screen.Y <= 0 then
@@ -472,10 +646,9 @@ function TutorialUI.start()
 			end
 		end
 		panel.Position = UDim2.fromOffset(centerX, top)
-		local plotGui = player.PlayerGui:FindFirstChild("Plot")
-		local towerPanel = plotGui and plotGui:FindFirstChild("TowerPanel")
+		local towerPanel = openTowerPanel()
 		local covered = false
-		if towerPanel and towerPanel:IsA("GuiObject") and towerPanel.Visible and plotGui:IsA("ScreenGui") and plotGui.Enabled then
+		if towerPanel then
 			-- (les deux rectangles se touchent-ils ?)
 			local towerPosition = towerPanel.AbsolutePosition - gui.AbsolutePosition
 			local towerSize = towerPanel.AbsoluteSize
@@ -485,14 +658,165 @@ function TutorialUI.start()
 				and towerPosition.Y < top + height
 				and towerPosition.Y + towerSize.Y > top
 		end
-		panel.Visible = running and not covered
+		local behindMachine = UI.touchLayout(screen) and machineOpen() and not afterShown
+		panel.Visible = running and not covered and not behindMachine
 	end
 	gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(layout)
 
 	------------------------------------------------------------------
-	-- Guide dans le monde : un rayon doré du personnage vers la cible, et une flèche ▼ au-dessus de la cible
+	-- La flèche : sur son propre écran, au-dessus de toutes les fenêtres (panneau des tours, autel, forge) et sous les
+	-- messages. Le caractère « ▼ » tourné vers la cible, et ses mots derrière lui. Elle ne prend aucun clic.
+	-- `pointed` = ce qu'elle montre (voir STEPS : point), choisi à chaque vérification de l'étape ; sa place est
+	-- recalculée à chaque image (la caméra et les fenêtres bougent). Pour les tests : attributs « Target » (nom du
+	-- bouton montré, « World » pour un point du monde, vide sans flèche) et « Caption » (ses mots, en français).
 	------------------------------------------------------------------
-	local guide = nil -- { anchor, beam, marker, label } : objets de ce joueur seulement
+	local pointerGui = UI.screen("TutorialPointer", 45)
+	pointerGui:SetAttribute("Target", "")
+	pointerGui:SetAttribute("Caption", "")
+	-- Le carré de la flèche : elle pointe vers le BAS quand il n'est pas tourné (Rotation = 0), sa pointe au milieu de
+	-- son bord du bas. Trois barres arrondies (la tige et les deux ailes de la pointe), chacune sur une barre sombre
+	-- un peu plus large qui fait son contour.
+	local arrow = UI.new("Frame", {
+		Name = "Arrow",
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Size = UDim2.fromOffset(TutorialUI.POINTER_ARROW, TutorialUI.POINTER_ARROW),
+		BackgroundTransparency = 1,
+		Visible = false,
+		Parent = pointerGui,
+	})
+	local function arrowBar(center: Vector2, length: number, rotation: number)
+		for _, outline in { 6, 0 } do
+			UI.new("Frame", {
+				Name = if outline > 0 then "Outline" else "Bar",
+				AnchorPoint = Vector2.new(0.5, 0.5),
+				Position = UDim2.fromOffset(center.X, center.Y),
+				Size = UDim2.fromOffset(POINTER_BAR + outline, length + outline),
+				Rotation = rotation,
+				BackgroundColor3 = if outline > 0 then Color3.fromRGB(24, 18, 6) else GUIDE_COLOR,
+				ZIndex = if outline > 0 then 1 else 2,
+				Parent = arrow,
+			}, { UI.new("UICorner", { CornerRadius = UDim.new(0.5, 0) }) })
+		end
+	end
+	do
+		local middle, wing = TutorialUI.POINTER_ARROW / 2, 30
+		local slant = math.sin(math.rad(45))
+		-- Bout des deux ailes : leur contour sombre (3 px) touche juste le bas du carré.
+		local tipY = TutorialUI.POINTER_ARROW - 3 - POINTER_BAR / 2 * (1 - slant)
+		local reach = wing / 2 * slant
+		arrowBar(Vector2.new(middle, (3 + tipY) / 2), tipY - 3, 0)
+		arrowBar(Vector2.new(middle + reach, tipY - reach), wing, 45)
+		arrowBar(Vector2.new(middle - reach, tipY - reach), wing, -45)
+	end
+	local captionStroke = UI.stroke(GUIDE_COLOR, 2)
+	captionStroke.Transparency = 0.1
+	local caption = UI.new("TextLabel", {
+		Name = "Caption",
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Size = UDim2.fromOffset(120, POINTER_CAPTION_HEIGHT),
+		BackgroundColor3 = UI.Colors.Background,
+		BackgroundTransparency = 0.05,
+		Font = Enum.Font.GothamBlack,
+		Text = "",
+		TextSize = 15,
+		TextColor3 = GUIDE_COLOR,
+		Visible = false,
+		Parent = pointerGui,
+	}, { UI.corner(9), captionStroke })
+	-- (largeur selon le texte affiché, qui peut être sa traduction anglaise : AutoTranslate)
+	caption:GetPropertyChangedSignal("TextBounds"):Connect(function()
+		caption.Size = UDim2.fromOffset(math.ceil(caption.TextBounds.X) + 24, POINTER_CAPTION_HEIGHT)
+	end)
+
+	local pointed = nil -- { gui | world, caption, anchor, radius } ou nil
+	local function setPointed(target)
+		pointed = target
+		local name, words = "", ""
+		if target then
+			name = if target.gui then target.gui.Name else "World"
+			words = target.caption or ""
+		end
+		if pointerGui:GetAttribute("Target") ~= name then
+			pointerGui:SetAttribute("Target", name)
+		end
+		-- Écrit seulement quand il change : traduit en anglais (AutoTranslate), il serait sinon réécrit en français
+		-- puis retraduit à chaque vérification.
+		if pointerGui:GetAttribute("Caption") ~= words then
+			pointerGui:SetAttribute("Caption", words)
+			caption.Text = words
+		end
+		if not target then
+			arrow.Visible = false
+			caption.Visible = false
+		end
+	end
+
+	-- Place de la flèche et de ses mots, à chaque image.
+	local function placePointer()
+		local target = pointed
+		if not running or not target then
+			return
+		end
+		local screen = pointerGui.AbsoluteSize
+		local origin = pointerGui.AbsolutePosition
+		local tip, direction
+		if target.gui then
+			local object = target.gui :: GuiObject
+			if not object:IsDescendantOf(player.PlayerGui) then
+				arrow.Visible = false
+				caption.Visible = false
+				return
+			end
+			tip, direction = TutorialUI.pointerAt(screen, object.AbsolutePosition - origin, object.AbsoluteSize)
+		else
+			local camera = workspace.CurrentCamera
+			if not camera then
+				return
+			end
+			-- (WorldToScreenPoint tient compte de la barre du haut de Roblox, comme la place des boutons)
+			local point = camera:WorldToScreenPoint(target.world)
+			local at = Vector2.new(point.X, point.Y) - origin
+			local radius = target.radius or 0
+			local inside = point.Z > 0
+				and at.X >= POINTER_MARGIN and at.X <= screen.X - POINTER_MARGIN
+				and at.Y >= POINTER_MARGIN and at.Y <= screen.Y - POINTER_MARGIN
+			if inside and (at.Y - radius >= POINTER_NEED or at.Y + radius + POINTER_NEED_WORDS > screen.Y) then
+				tip, direction = at - Vector2.new(0, radius + POINTER_GAP), SIDE_DIRECTIONS.top
+			elseif inside then
+				tip, direction = at + Vector2.new(0, radius + POINTER_GAP), SIDE_DIRECTIONS.bottom
+			else
+				-- Hors de l'écran (ou derrière la caméra) : au bord de l'écran, du côté où elle est.
+				local relative = camera.CFrame:PointToObjectSpace(target.world)
+				tip, direction = TutorialUI.pointerToward(screen, Vector2.new(relative.X, -relative.Y))
+			end
+		end
+		local bounce = (math.sin(os.clock() * POINTER_BOUNCE_SPEED) * 0.5 + 0.5) * POINTER_BOUNCE
+		local arrowAt = tip - direction * (POINTER_TIP + bounce)
+		arrow.Position = UDim2.fromOffset(arrowAt.X, arrowAt.Y)
+		arrow.Rotation = math.deg(math.atan2(-direction.X, direction.Y))
+		arrow.Visible = true
+		-- Ses mots : au bout de la flèche, derrière elle. Flèche vers le bas sans la place au-dessus (cible près du haut
+		-- de l'écran) : à côté d'elle, à droite de préférence.
+		local words = caption.AbsoluteSize
+		local half = math.abs(direction.X) * words.X / 2 + math.abs(direction.Y) * words.Y / 2
+		local captionAt = tip - direction * (2 * POINTER_TIP + POINTER_BOUNCE + POINTER_GAP + half)
+		if direction.Y > 0.9 and captionAt.Y - words.Y / 2 < 2 then
+			local beside = POINTER_TIP + POINTER_GAP + words.X / 2
+			local onRight = tip.X + beside + words.X / 2 <= screen.X - 4
+			captionAt = Vector2.new(tip.X + (if onRight then beside else -beside), tip.Y - POINTER_TIP - POINTER_BOUNCE / 2)
+		end
+		caption.Position = UDim2.fromOffset(
+			math.clamp(captionAt.X, words.X / 2 + 4, math.max(words.X / 2 + 4, screen.X - words.X / 2 - 4)),
+			math.min(captionAt.Y, screen.Y - words.Y / 2 - 4)
+		)
+		caption.Visible = (target.caption or "") ~= ""
+	end
+	RunService.RenderStepped:Connect(placePointer)
+
+	------------------------------------------------------------------
+	-- Rayon doré du personnage vers une cible du monde (un « + », la tour, le cercle classé...)
+	------------------------------------------------------------------
+	local guide = nil -- { anchor, beam } : objets de ce joueur seulement
 	local rootAttachment: Attachment? = nil -- dans le personnage actuel (recréé après une mort)
 
 	local function destroyGuide()
@@ -533,47 +857,13 @@ function TutorialUI.start()
 			Enabled = false,
 			Parent = anchor,
 		})
-		local marker = UI.new("BillboardGui", {
-			Name = "Marker",
-			Size = UDim2.fromOffset(170, 74),
-			AlwaysOnTop = true,
-			LightInfluence = 0,
-			Enabled = false,
-			Parent = anchor,
-		})
-		local label = UI.label({
-			Name = "Label",
-			Size = UDim2.new(1, 0, 0, 20),
-			Font = Enum.Font.GothamBlack,
-			TextColor3 = GUIDE_COLOR,
-			TextStrokeTransparency = 0.2,
-			MaxTextSize = 16,
-			Parent = marker,
-		})
-		local arrow = UI.label({
-			Name = "Arrow",
-			AnchorPoint = Vector2.new(0.5, 0),
-			Position = UDim2.new(0.5, 0, 0, 20),
-			Size = UDim2.fromOffset(52, 48),
-			Font = Enum.Font.GothamBlack,
-			Text = "▼",
-			TextColor3 = GUIDE_COLOR,
-			TextStrokeTransparency = 0.1,
-			MaxTextSize = 44,
-			Parent = marker,
-		})
-		-- La flèche monte et descend doucement (s'arrête toute seule quand le guide est retiré).
-		TweenService:Create(
-			arrow,
-			TweenInfo.new(0.6, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true),
-			{ Position = UDim2.new(0.5, 0, 0, 26) }
-		):Play()
 		anchor.Parent = workspace
-		guide = { anchor = anchor, beam = beam, marker = marker, label = label }
+		guide = { anchor = anchor, beam = beam }
 	end
 
-	-- Suit la cible de l'étape et le personnage (nouveau personnage après une mort : le rayon repart de lui).
-	local function updateGuide(def)
+	-- Suit la cible montrée (un point du monde seulement) et le personnage (nouveau personnage après une mort : le
+	-- rayon repart de lui).
+	local function updateGuide(target)
 		if not guide then
 			return
 		end
@@ -589,67 +879,44 @@ function TutorialUI.start()
 				Parent = root,
 			})
 		end
-		local position, height = def.target()
+		local position = if target and target.world then target.anchor or target.world else nil
 		guide.beam.Attachment0 = rootAttachment
 		guide.beam.Enabled = rootAttachment ~= nil and position ~= nil
-		guide.marker.Enabled = position ~= nil
-		-- Écrit seulement quand il change : traduit en anglais (AutoTranslate), il serait sinon réécrit en français puis
-		-- retraduit à chaque vérification.
-		if guide.markerText ~= def.marker then
-			guide.markerText = def.marker
-			guide.label.Text = def.marker
-		end
-		if position then
-			if (guide.anchor.Position - position).Magnitude > 0.05 then
-				guide.anchor.CFrame = CFrame.new(position)
-			end
-			guide.marker.StudsOffsetWorldSpace = Vector3.new(0, height or 6, 0)
+		if position and (guide.anchor.Position - position).Magnitude > 0.05 then
+			guide.anchor.CFrame = CFrame.new(position)
 		end
 	end
 
 	------------------------------------------------------------------
-	-- Cadre doré qui clignote autour du bouton ou de la carte à cliquer (highlight de l'étape : carte de l'Archer,
-	-- « Améliorer », x1 de l'autel, X de l'autel), seulement quand il est à l'écran.
+	-- Cadre doré qui clignote autour du bouton ou de la carte que la flèche montre.
 	------------------------------------------------------------------
 	local highlights: { [GuiObject]: Frame } = {} -- [bouton ou carte entouré] = son cadre
-	-- targets : un bouton, une liste de boutons (les nil sont ignorés), ou nil (plus aucun cadre).
-	local function setHighlight(targets: any)
-		local wanted: { [GuiObject]: boolean } = {}
-		if typeof(targets) == "Instance" then
-			wanted[targets] = true
-		elseif type(targets) == "table" then
-			for _, target in targets do
-				if typeof(target) == "Instance" then
-					wanted[target] = true
-				end
-			end
-		end
-		for target, frame in highlights do
-			if not wanted[target] or frame.Parent ~= target then
+	-- target : un bouton, ou nil (plus aucun cadre).
+	local function setHighlight(target: GuiObject?)
+		for object, frame in highlights do
+			if object ~= target or frame.Parent ~= object then
 				frame:Destroy()
-				highlights[target] = nil
+				highlights[object] = nil
 			end
 		end
-		for target in wanted do
-			if not highlights[target] then
-				local frame = UI.new("Frame", {
-					Name = "TutorialHighlight",
-					AnchorPoint = Vector2.new(0.5, 0.5),
-					Position = UDim2.fromScale(0.5, 0.5),
-					Size = UDim2.new(1, 8, 1, 8),
-					BackgroundTransparency = 1,
-					ZIndex = target.ZIndex + 5,
-					Parent = target,
-				}, { UI.corner(10) })
-				local stroke = UI.new("UIStroke", {
-					Color = GUIDE_COLOR,
-					Thickness = 3,
-					ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
-					Parent = frame,
-				})
-				TweenService:Create(stroke, TweenInfo.new(0.45, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), { Transparency = 0.75 }):Play()
-				highlights[target] = frame
-			end
+		if target and not highlights[target] then
+			local frame = UI.new("Frame", {
+				Name = "TutorialHighlight",
+				AnchorPoint = Vector2.new(0.5, 0.5),
+				Position = UDim2.fromScale(0.5, 0.5),
+				Size = UDim2.new(1, 8, 1, 8),
+				BackgroundTransparency = 1,
+				ZIndex = target.ZIndex + 5,
+				Parent = target,
+			}, { UI.corner(10) })
+			local stroke = UI.new("UIStroke", {
+				Color = GUIDE_COLOR,
+				Thickness = 3,
+				ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+				Parent = frame,
+			})
+			TweenService:Create(stroke, TweenInfo.new(0.45, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), { Transparency = 0.75 }):Play()
+			highlights[target] = frame
 		end
 	end
 
@@ -667,34 +934,64 @@ function TutorialUI.start()
 		skipButton.Visible = free
 	end
 
+	-- Ce que la flèche doit montrer maintenant pour cette étape, et le texte du panneau.
+	-- Une fenêtre gêne : celle de l'autel ou de la forge alors que la cible n'est pas dedans (ex. l'autel resté
+	-- ouvert à l'étape de la forge), ou le panneau des tours qui couvre l'écran d'un téléphone alors que la cible
+	-- est ailleurs (ex. la fiche de la tour restée ouverte à l'étape de l'autel) : la flèche montre son X.
+	local function resolve(def)
+		local target = def.point()
+		local text = if typeof(def.text) == "function" then def.text() else def.text
+		if target == false then
+			return nil, text -- (l'étape demande d'attendre : aucune flèche)
+		end
+		local machines = machinesGui()
+		local overlay = machines and machines:FindFirstChild("Overlay")
+		if machineOpen() and not (target and target.gui and overlay and target.gui:IsDescendantOf(overlay)) then
+			local close = shownChild("Machines", "CloseButton")
+			return if close then { gui = close, caption = CAPTIONS.Close } else nil, TutorialUI.CLOSE_TEXT
+		end
+		local towerPanel = openTowerPanel()
+		if towerPanel and UI.touchLayout(gui.AbsoluteSize) and not (target and target.gui and target.gui:IsDescendantOf(towerPanel)) then
+			local close = shownChild("Plot", "CloseButton")
+			return if close then { gui = close, caption = CAPTIONS.Close } else nil, TutorialUI.CLOSE_TEXT
+		end
+		return target, text
+	end
+
 	local function showStep(index: number)
 		step = index
 		flashUntil = 0
 		afterShown = false
 		stepShownAt = os.clock()
+		spotTarget = nil
 		local def = steps[index]
 		title.Text = `TUTO {index}/{#steps} • {def.title}`
 		title.TextColor3 = UI.Colors.Gold
 		setBody(if typeof(def.text) == "function" then def.text() else def.text)
 		nextButton.Text = def.button or ""
+		if def.enter then
+			def.enter()
+		end
 		refreshButtons()
 	end
 
-	-- Temps pour lire le texte de l'étape en cours (READ_MIN à READ_MAX secondes).
+	-- Temps pour lire le texte affiché (READ_MIN à READ_MAX secondes).
 	local function readTime(): number
 		local letters = utf8.len(bodyText) or #bodyText
 		return math.clamp(2 + letters / READ_CHARS_PER_SECOND, READ_MIN, READ_MAX)
 	end
 
-	-- Arrête le tuto chez ce joueur : panneau caché, guide retiré (rien n'est envoyé au serveur).
+	-- Arrête le tuto chez ce joueur : panneau caché, flèche, cadre et rayon retirés (rien n'est envoyé au serveur).
 	local function stop()
 		running = false
 		runId += 1
 		flashUntil = 0
+		afterShown = false
 		panel.Visible = false
 		disarmSkip()
 		destroyGuide()
 		setHighlight(nil)
+		setPointed(nil)
 	end
 
 	-- Fin du tuto (« Done » : dernière étape faite ou « Terminer » ; « Skip » : « Passer ») : le serveur note le
@@ -714,39 +1011,31 @@ function TutorialUI.start()
 		end
 	end
 
-	-- Étape faite : « ✓ BRAVO ! » (son texte reste affiché), puis la suivante (la dernière termine le tuto).
-	-- Faite par l'action du joueur : au moins le temps de lire le texte depuis son apparition (readTime). Par le
-	-- bouton « Suivant » / « Terminer » : le joueur a fini de lire, juste le court « BRAVO ».
-	-- Étape avec afterText (la forge : le raccourci des boutons de gauche) faite par l'action du joueur : ce texte
-	-- remplace le sien sous « ✓ BRAVO ! », le temps de le lire, avec afterHighlight entouré d'or.
-	-- alreadyDone : la 1re étape était déjà faite quand le tuto a démarré (classé fermé : le nouveau joueur apparaît sur
-	-- sa parcelle). Il n'a encore rien fait : pas de « ✓ BRAVO ! », son titre et son texte restent le temps de lire.
-	local function validate(byButton: boolean, alreadyDone: boolean?)
+	-- Étape faite : « ✓ BRAVO ! », la flèche disparaît, puis l'étape suivante (la dernière termine le tuto).
+	--   Le temps du « BRAVO » : court (DONE_FLASH), la flèche passe tout de suite au bouton suivant. Étape à pied
+	--   (readFirst) faite par l'action du joueur : au moins le temps de lire son texte depuis son apparition.
+	--   Étape avec afterText (la forge : le mot de la fin) faite par l'action du joueur : ce texte remplace le sien
+	--   sous « ✓ BRAVO ! », le temps de le lire.
+	local function validate(byButton: boolean)
 		if byButton and step >= #steps then
 			finish("Done")
 			return
 		end
 		local def = steps[step]
-		if alreadyDone and typeof(def.text) == "function" then
-			-- (texte relu : le personnage vient peut-être juste d'arriver chez lui, c'est alors le mot d'accueil)
-			local text = def.text()
-			if bodyText ~= text then
-				setBody(text)
-			end
+		local hold = DONE_FLASH
+		if not byButton and def.readFirst then
+			hold = math.max(DONE_FLASH, stepShownAt + readTime() - os.clock())
 		end
-		local hold = if byButton then DONE_FLASH else math.max(DONE_FLASH, stepShownAt + readTime() - os.clock())
 		if not byButton and def.afterText then
-			UI.showShortcuts() -- (téléphone : les icônes montrées par l'astuce reviennent si le joueur les avait masquées)
 			setBody(if typeof(def.afterText) == "function" then def.afterText() else def.afterText)
 			hold = readTime()
 			afterShown = true
 		end
 		flashUntil = os.clock() + hold
-		if not alreadyDone then
-			title.Text = "✓ BRAVO !"
-			title.TextColor3 = DONE_COLOR
-		end
+		title.Text = "✓ BRAVO !"
+		title.TextColor3 = DONE_COLOR
 		refreshButtons()
+		layout() -- (téléphone : le mot de la fin s'affiche même devant la fenêtre de la forge)
 	end
 
 	local function update()
@@ -760,34 +1049,29 @@ function TutorialUI.start()
 				end
 			end
 		elseif steps[step].done() then
-			-- (1re étape faite dès le départ du tuto : le joueur n'a rien eu à faire, voir validate)
-			validate(false, step == 1 and os.clock() - stepShownAt < ALREADY_DONE_TIME)
+			validate(false)
 		end
 		if running then
-			local def = steps[step]
 			refreshButtons()
-			-- Texte qui dépend de ce qui est ouvert (ex. la forge : « ferme d'abord l'autel »).
-			if flashUntil == 0 and typeof(def.text) == "function" then
-				local text = def.text()
+			local target = nil
+			if flashUntil == 0 then
+				-- La cible et le texte du moment (ils dépendent de ce qui est ouvert).
+				local text
+				target, text = resolve(steps[step])
 				if bodyText ~= text then
 					setBody(text)
 				end
 			end
-			local targets = nil
-			if flashUntil == 0 and def.highlight then
-				targets = def.highlight()
-			elseif afterShown and def.afterHighlight then
-				targets = def.afterHighlight()
-			end
-			setHighlight(targets)
-			updateGuide(def)
+			setPointed(target)
+			setHighlight(if target then target.gui else nil)
+			updateGuide(target)
 		end
 	end
 
 	local function begin()
 		stop()
-		-- Les étapes de ce tuto-ci : sans la zone classée tant que le classé est fermé (choisies au départ : le classé
-		-- ne s'ouvre ni ne se ferme jamais pendant une partie publiée).
+		-- Les étapes de ce tuto-ci : sans les deux étapes à pied du classé tant qu'il est fermé (choisies au départ :
+		-- le classé ne s'ouvre ni ne se ferme jamais pendant une partie publiée).
 		table.clear(steps)
 		for _, def in STEPS do
 			if not def.rankedOnly or RankedGate.isOpen() then
@@ -796,6 +1080,7 @@ function TutorialUI.start()
 		end
 		running = true
 		startedAt = os.clock()
+		spinsAtStart = tonumber(player:GetAttribute("TowerSpinsBought")) or 0
 		local myRun = runId
 		makeGuide()
 		showStep(1)
@@ -849,7 +1134,13 @@ function TutorialUI.start()
 			lastSpinAt = os.clock()
 		end
 	end)
-	-- Forge ouverte par son invite (serveur) ou par un bouton de gauche (attribut OpenMachine de MachineUI).
+	-- (au cas où le compteur de lancers arriverait sans le résultat : un lancer de plus = un lancer fait)
+	player:GetAttributeChangedSignal("TowerSpinsBought"):Connect(function()
+		if running and lastSpinAt < startedAt and (tonumber(player:GetAttribute("TowerSpinsBought")) or 0) > spinsAtStart then
+			lastSpinAt = os.clock()
+		end
+	end)
+	-- Forge ouverte par son invite (serveur) ou par son bouton (attribut OpenMachine de MachineUI).
 	Remotes.get("OpenMachine").OnClientEvent:Connect(function(machine)
 		if machine == "Bonus" then
 			lastForgeAt = os.clock()
@@ -863,8 +1154,7 @@ function TutorialUI.start()
 					lastForgeAt = os.clock()
 				end
 				if running then
-					refreshButtons() -- tout de suite, pas au prochain tour de update
-					layout() -- (téléphone : le panneau monte en haut tant que la fenêtre est ouverte)
+					update() -- tout de suite (flèche, boutons, place du panneau), pas au prochain tour
 				end
 			end)
 		end
@@ -880,7 +1170,7 @@ function TutorialUI.start()
 	player:GetAttributeChangedSignal("TutorialReplay"):Connect(begin)
 
 	-- Nouveau joueur : le tuto démarre tout seul une fois ses données chargées (TutorialDone = faux) et son personnage
-	-- apparu (la 1re étape regarde où il est ; sur un appareil lent, il arrive parfois après les données).
+	-- apparu (la flèche et le rayon partent de lui ; sur un appareil lent, il arrive parfois après les données).
 	task.spawn(function()
 		while not player:GetAttribute("DataLoaded") do
 			player:GetAttributeChangedSignal("DataLoaded"):Wait()

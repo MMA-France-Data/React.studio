@@ -24,6 +24,7 @@ local Plots = require(script.Plots)
 local SoloBoard = require(script.SoloBoard)
 local StudioScenes = require(script.StudioScenes)
 local AdminGifts = require(script.AdminGifts)
+local Funnel = require(script.Funnel)
 local Tutorial = require(script.Tutorial)
 
 local Hub = {}
@@ -563,7 +564,9 @@ end
 -- Tuto des nouveaux joueurs (Hub/Tutorial.luau, client : TutorialUI.luau) :
 --   Invoke(player, "Tutorial", "Replay")       -> le tuto recommence au début (même pendant les tests automatiques)
 --   Invoke(player, "Tutorial")                 -> { done, attribute, lastAction ("Done" | "Skip"), lastStep, steps
---                                                (5 étapes classé fermé, 6 ouvert), replays }
+--                                                (4 étapes classé fermé, 6 ouvert), replays }
+-- Entonnoir des nouveaux joueurs (statistiques Roblox, Hub/Funnel.luau) :
+--   Invoke(player, "Funnel")                   -> { steps = noms des étapes envoyées, skipped, tracked, api }
 -- Classement solo (SoloLeaderboard.luau, panneaux Hub/SoloBoard.luau) :
 --   Invoke(player, "Solo", "Refresh")          -> relit les classements et met les panneaux à jour tout de suite
 --   Invoke(player, "Solo", "Fake", { { userId = -1, name = "Bot", wave = 500, dps = 1e12 } }) -> faux joueurs (DataStores
@@ -728,6 +731,8 @@ local function setupStudioDebug()
 			return Monetization.setStudioPaidRandom(player, (...) == true)
 		elseif command == "Tutorial" and data then
 			return Tutorial.debug(player, data, ...)
+		elseif command == "Funnel" then
+			return Funnel.debug(player)
 		elseif command == "Solo" then
 			return SoloLeaderboard.debug(player, ...)
 		end
@@ -756,6 +761,8 @@ function Hub.start()
 			warn("[Hub] Gains d'absence impossibles :", err) -- la parcelle démarre quand même
 		end
 		startPlotGame(player, data)
+		-- Statistiques : un nouveau joueur est arrivé (étape 1 de l'entonnoir, Hub/Funnel.luau).
+		Funnel.onLoaded(player, data)
 		-- Défis classés : état publié pour le bouton « DÉFIS », message si des récompenses attendent.
 		local challengesOk, challengesErr = pcall(ChallengeRewards.onPlayerLoaded, player, data)
 		if not challengesOk then
@@ -828,6 +835,8 @@ function Hub.start()
 			-- Renaissance : le serveur vérifie lui-même la vague minimale (PlotGame:rebirth).
 			plotGame:rebirth()
 		end
+		-- Statistiques des nouveaux joueurs : 1re tour posée, 1re amélioration (Hub/Funnel.luau).
+		Funnel.update(player, PlayerData.get(player))
 	end)
 
 	-- Machines à sous : chaque joueur n'utilise que les machines de SA parcelle.
@@ -863,6 +872,8 @@ function Hub.start()
 			-- arg1 = emplacement, arg2 = id de la rune (posée dans l'emplacement de sa sorte : dégâts ou vitesse)
 			plotGame:applyBonus(arg1, arg2)
 		end
+		-- Statistiques des nouveaux joueurs : 1er lancer de l'autel (Hub/Funnel.luau).
+		Funnel.update(player, PlayerData.get(player))
 	end)
 
 	-- Achat Robux : un lancer de la forge runique. Il ne compte pas dans le prix des lancers en pièces. Si la

@@ -29,13 +29,18 @@ jeu ou sélectionne un emplacement, et des vérifications échouent sans raison.
   scénario vérifie qu'il est guidé vers SA parcelle : il y apparaît, la flèche du tuto et les « + » y sont, son Archer
   s'y pose (rien sur la parcelle 1), et les invites de l'autel et de la forge de la parcelle 1 sont éteintes pour lui.
   Tout le reste du test « téléphone » se fait donc sur la parcelle 2 (le test `hub` reste sur la 1).
-  Le scénario vérifie aussi qu'il commence par « TUTO 1/5 • TA PARCELLE » avec le
-  mot d'accueil, passe tout seul à « POSE UNE TOUR » sans « ✓ BRAVO ! », puis, à la taille du téléphone : le panneau
-  du tuto en bas de l'écran (à gauche du bouton de saut), la flèche « ICI » et les 4 boutons « + » (capture
-  `phone_a_newplayer`), l'autel ouvert (le tuto monte en haut, le bouton x1 reste dégagé : `phone_a_newplayer_altar`),
-  le « + » touché et la carte de l'Archer entourée d'or (`phone_a_newplayer_cards`), l'Archer posé et « Améliorer »
-  entouré d'or (`phone_a_newplayer_upgrade`), et « Passer » : un appui ne passe rien (« Confirmer ? »), deux appuis
-  passent le tuto (attribut de test `TestSkipTap` de l'écran du tuto : un plugin ne peut pas toucher l'écran).
+  Le scénario suit ensuite la **grosse flèche du tuto** du début à la fin, à la taille du téléphone, avec une capture
+  à chaque moment (`phone_a_newplayer*.png`) : le tuto commence tout de suite par « TUTO 1/4 • POSE UNE TOUR » (ni
+  zone classée, ni écran d'accueil), son panneau est en bas de l'écran, la flèche montre un « + » (`newplayer`) ;
+  l'autel ouvert trop tôt : le panneau se cache et la flèche montre son X (`newplayer_altar`) ; le « + » touché : la
+  carte de l'Archer (`newplayer_cards`) ; l'Archer posé : « Améliorer » (`newplayer_upgrade`) ; la tour améliorée :
+  le X du panneau des tours resté ouvert (`newplayer_close`), puis l'icône de l'autel, contre le bord droit
+  (`newplayer_altar_icon`), puis x1 (`newplayer_spin`) ; le lancer : plus de flèche pendant que le rouleau tourne,
+  puis le X de l'autel (`newplayer_result`), l'icône de la forge (`newplayer_forge_icon`) et le mot de la fin
+  (`newplayer_end`). Côté serveur : le tuto est fini (« Done » à l'étape 4/4) et l'entonnoir des statistiques a ses
+  5 étapes dans l'ordre (`Hub/Funnel.luau`). Puis un 2e tuto pour « Passer » : un appui ne passe rien
+  (« Confirmer ? »), deux appuis passent le tuto (attribut de test `TestSkipTap` de l'écran du tuto : un plugin ne
+  peut pas toucher l'écran).
   Ensuite le serveur de test prépare la parcelle d'un joueur avancé et le scénario ouvre chaque
   fenêtre (écran de jeu : rien au milieu de la vue, icônes de l'autel et de la forge et bouton Renaissance contre le
   bord droit, Boutique en haut à gauche ; bouton « ▲ » qui les masque et les remet ;
@@ -106,24 +111,31 @@ jeu ou sélectionne un emplacement, et des vérifications échouent sans raison.
   la carte de rang (« CLASSÉ 1v1 », sans MMR), le bouton « ⚔ DÉFIS » caché, dans le cercle le panneau « BIENTÔT
   DISPONIBLE » à la place du bouton (capture `ranked_soon`), aucune fenêtre « MATCH TROUVÉ ! » même avec l'état
   « Pending » (chez lui seulement), puis envoie « Join » et « Accept » par le vrai remote : le serveur les refuse
-  (`testRankedClosedRemote`, après le tuto). Le tuto se fait donc classé fermé, comme dans le jeu publié : 5 étapes,
-  sans celle de la zone classée (« TUTO 1/5 • TA PARCELLE »).
+  (`testRankedClosedRemote`, après le tuto). Le tuto se fait donc classé fermé, comme dans le jeu publié : 4 étapes,
+  sans zone classée ni écran d'accueil (« TUTO 1/4 • POSE UNE TOUR »).
   Après le classé, le **tuto des nouveaux joueurs** (`TutorialUI.luau`, `Hub/Tutorial.luau`) : il ne s'affiche
   jamais tout seul pendant les tests. Le serveur vérifie le drapeau d'un nouveau joueur, les coûts (tour + amélioration
-  + autel x1 = 33 sur les 50 pièces de départ) et les anciennes sauvegardes (qui a déjà joué ne le voit pas), rend la
-  parcelle « nouveau joueur » (aucune tour, record 1, aucun lancer, 50 pièces) et donne la main au client
-  (attribut `AutoTestTutorial` = « Client »). Le client relance le tuto (« Replay », Studio seulement) avec son
-  personnage sur sa parcelle, comme un nouveau joueur : mot d'accueil « Bienvenue ! Voici ta parcelle… », panneau et
-  guide (rayon + flèche ▼, capture `tutorial_step1`), puis l'étape suivante toute seule, sans « ✓ BRAVO ! ». Il
-  vérifie que le tuto se cache sous le panneau des tours ouvert par-dessus (comme sur un téléphone) et revient à sa
-  fermeture, puis fait les étapes pour de vrai (avec une mort au passage : le rayon repart du nouveau personnage) :
-  tour posée et améliorée (remote `PlotAction`), lancer x1 de l'autel (`MachineAction`), forge ouverte comme par son
-  invite (les invites « Ouvrir » de l'autel et de la forge montrés par la flèche restent allumées malgré
-  `PlotAccess.luau`). Le serveur vérifie le drapeau `tutorialDone` (« Done » à l'étape 5/5) et les 3 achats payés avec
-  les 50 pièces. 2e essai, loin de sa parcelle : le texte dit qu'elle est au bout du rayon doré, puis « Passer ».
-  3e essai, classé ouvert chez le client seulement (attribut `StudioRankedOpen` changé chez lui) : les 6 étapes
-  reviennent, la zone classée en premier (« TUTO 1/6 • LA ZONE CLASSÉE »), puis « 2/6 • TA PARCELLE » avec le texte
-  du retour, « ✓ BRAVO ! » sur sa parcelle, et « Passer ».
+  + autel x1 = 33 sur les 50 pièces de départ), les anciennes sauvegardes (qui a déjà joué ne le voit pas) et
+  l'entonnoir des statistiques (`Hub/Funnel.luau` : étape d'après les données, joueur suivi depuis son arrivée), rend
+  la parcelle « nouveau joueur » (aucune tour, record 1, aucun lancer, 50 pièces) et donne la main au client
+  (attribut `AutoTestTutorial` = « Client »). Le client vérifie d'abord les fonctions pures (place du panneau, côté
+  de la flèche avec de faux boutons), puis relance le tuto 4 fois (« Replay », Studio seulement) :
+  1. « Passer » tout de suite, par son bouton (attribut de test `TestSkipTap`) : le serveur note « passé à l'étape 1 »
+     dans l'entonnoir ;
+  2. tout le tuto, en suivant **la flèche** (écran `PlayerGui.TutorialPointer` : attributs `Target` = nom du bouton
+     montré ou « World », `Caption` = ses mots, et la place de la flèche à côté de sa cible) : le « + » d'un
+     emplacement (caméra vers lui : juste au-dessus ; caméra tournée ailleurs : au bord de l'écran ; capture
+     `tutorial_step1`), la carte de l'Archer (`tutorial_card`), « Améliorer », la tour, le bouton de l'autel à
+     gauche (`tutorial_altar`), x1, rien pendant que le rouleau tourne, le X de l'autel, le bouton de la forge, le
+     mot de la fin. Actions vraies : tour posée et améliorée (remote `PlotAction`), lancer x1 (`MachineAction`),
+     fenêtres ouvertes comme par leurs boutons. Au passage : le tuto se cache sous le panneau des tours ouvert
+     par-dessus (comme sur un téléphone), et une mort (le rayon repart du nouveau personnage). Le serveur vérifie le
+     drapeau `tutorialDone` (« Done » à l'étape 4/4) et les 3 achats payés avec les 50 pièces ;
+  3. les étapes déjà faites passent toutes seules jusqu'à la forge ; autel ouvert par-dessus : ni « Passer » ni
+     « Terminer », la flèche montre son X ; puis « Passer » ;
+  4. classé ouvert chez le client seulement (attribut `StudioRankedOpen` changé chez lui) : les 6 étapes reviennent,
+     la zone classée en premier (« TUTO 1/6 • LA ZONE CLASSÉE », flèche et rayon vers le cercle), puis « 2/6 • TA
+     PARCELLE » avec le texte du retour, « ✓ BRAVO ! » sur sa parcelle, et « Passer ».
   **Sons** (côté client, en parallèle des autres tests) : le bouton « SON » ne couvre pas la carte de rang,
   chaque son de `src/shared/Sounds.luau` se charge (`[PASS]` / `[FAIL]` par son, avec sa durée), 200 tirs à la
   même image ne font pas jouer plus que `Sounds.MAX_COMBAT_SOUNDS` sons (la mort d'un boss, son « priority »,
