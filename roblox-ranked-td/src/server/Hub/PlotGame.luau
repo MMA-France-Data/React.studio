@@ -95,6 +95,14 @@ local SHOT_TARGET_BYTES = 4
 -- Petite marge pour comparer des heures de la simulation (additions de 0,5 s répétées).
 local TIME_EPSILON = 1e-6
 
+-- Défilé d'accueil (PlotGame:startParade) : pas dans la place des tests automatiques (objet __AutoPlayTest de
+-- tools/studio-test : leurs mesures partent d'une parcelle vide), sauf pour le test du nouveau joueur
+-- (__AutoTestNewPlayer), qui joue comme dans le jeu publié.
+local function paradeAllowedHere(): boolean
+	return ReplicatedStorage:FindFirstChild("__AutoPlayTest") == nil
+		or ReplicatedStorage:FindFirstChild("__AutoTestNewPlayer") ~= nil
+end
+
 local PlotGame = {}
 PlotGame.__index = PlotGame
 
@@ -132,12 +140,24 @@ function PlotGame.new(plot, player: Player, data)
 
 	self.state = "Intermission"
 	self.nextWaveAt = self.clock + IdleConfig.FIRST_WAVE_DELAY
+	self.parade = nil -- défilé d'accueil d'un nouveau joueur, tant qu'il n'a posé aucune tour (voir startParade)
+	self.kills = 0 -- ennemis tués depuis l'arrivée du joueur (tests Studio : StudioDebug « Progress »)
 
 	self.towerFolder = Instance.new("Folder")
 	self.towerFolder.Name = "Towers"
 	self.towerFolder.Parent = plot.folder
 
 	self:loadTowers()
+	-- Nouveau joueur (tuto pas encore fait) sans aucune tour, à la vague 1 : le défilé d'accueil remplace l'entracte.
+	if
+		IdleConfig.NEW_PLAYER_PARADE
+		and data.tutorialDone == false
+		and self.idle.wave == 1
+		and next(self.towers) == nil
+		and paradeAllowedHere()
+	then
+		self:startParade()
+	end
 	self:publishInventory()
 
 	self:refreshSpots()
@@ -285,6 +305,47 @@ function PlotGame:startWave()
 	self.state = "Running"
 end
 
+-- Défilé d'accueil d'un nouveau joueur qui n'a encore posé aucune tour (raisons et réglages :
+-- IdleConfig.NEW_PLAYER_PARADE). Des fantassins de la vague 1 marchent déjà sur tout le chemin, un tous les
+-- IdleConfig.PARADE_SPACING studs ; ensuite un nouveau part du fond à ce rythme (simulate). Au bout du chemin,
+-- ils s'en vont sans rien faire rater (simulate). État « Running », file d'apparition vide. Fini dès la première
+-- tour posée (endParade, appelée par createTower).
+function PlotGame:startParade()
+	local item = nil
+	for _, entry in IdleConfig.buildWave(1) do
+		if entry.enemy == "Normal" then
+			item = { enemy = entry.enemy, health = entry.health, reward = entry.reward, parade = true }
+			break
+		end
+	end
+	if not item then
+		return -- (pas de fantassin à la vague 1 : entracte normal)
+	end
+	local spacing = math.max(tonumber(IdleConfig.PARADE_SPACING) or 30, 5)
+	local speed = Enemies.Defs[item.enemy].speed * IdleConfig.ENEMY_SPEED_MULTIPLIER * IdleConfig.enemySpeedFactor(item.enemy)
+	local gap = spacing / speed -- secondes entre deux départs : le même écart que ceux déjà sur le chemin
+	self.parade = { item = item, gap = gap, nextAt = self.clock + gap }
+	self.spawnQueue = {}
+	self.spawnIndex = 1
+	self.state = "Running"
+	local distance = 0
+	while distance < PlotLayout.PATH_LENGTH do
+		self:spawnEnemy(item, distance)
+		distance += spacing
+	end
+end
+
+-- Première tour posée : fin du défilé d'accueil. Plus aucun fantassin du défilé n'apparaît ; ceux déjà sur le
+-- chemin finissent leur marche (la tour les abat, ou ils s'en vont au bout sans rien faire rater) et la vraie
+-- vague 1 démarre tout de suite : ses ennemis partent du fond et arrivent derrière les derniers du défilé.
+function PlotGame:endParade()
+	if not self.parade then
+		return
+	end
+	self.parade = nil
+	self:startWave()
+end
+
 function PlotGame:clearEnemies()
 	table.clear(self.enemies)
 	self.spawnQueue = {}
@@ -364,9 +425,11 @@ function PlotGame:rebirth()
 	task.spawn(PlayerData.save, self.player)
 end
 
-function PlotGame:spawnEnemy(item)
+-- distance = studs déjà parcourus sur le chemin (rien = au départ ; le défilé d'accueil place les siens partout).
+function PlotGame:spawnEnemy(item, distance: number?)
 	local def = Enemies.Defs[item.enemy]
-	local localPosition = PlotLayout.pointAt(0)
+	local start = distance or 0
+	local localPosition = PlotLayout.pointAt(start)
 	table.insert(self.enemies, {
 		id = self:newId(),
 		typeIndex = ENEMY_INDEX[item.enemy],
@@ -376,7 +439,9 @@ function PlotGame:spawnEnemy(item)
 		health = item.health,
 		maxHealth = item.health,
 		reward = item.reward,
-		distance = 0,
+		distance = start,
+		-- Fantassin du défilé d'accueil : au bout du chemin, il s'en va sans faire rater la vague (voir simulate).
+		parade = item.parade == true,
 		position = self.cframe:PointToWorldSpace(localPosition),
 		-- Contrôle en cours (un seul à la fois, voir applyControl) : type de tour qui l'a posé (ex. "Frost"),
 		-- force (0,6 = -60 % de vitesse, 1 = étourdi) et heure de fin (horloge de la simulation).
@@ -574,6 +639,7 @@ function PlotGame:damageEnemy(enemy, amount: number, fragile: boolean?)
 	enemy.health -= amount
 	if enemy.health <= 0 then
 		enemy.dead = true
+		self.kills += 1
 		-- Sa mort fait sortir le prochain ennemi de la file tout de suite (au début du prochain pas, voir simulate).
 		if IdleConfig.SPAWN_NEXT_ON_KILL then
 			self.spawnReleases += 1
@@ -1211,6 +1277,14 @@ function PlotGame:simulate(dt: number)
 		return
 	end
 
+	-- Défilé d'accueil (startParade) : un fantassin de plus au départ du chemin, à intervalle régulier, tant que le
+	-- nouveau joueur n'a posé aucune tour.
+	local parade = self.parade
+	if parade and now + TIME_EPSILON >= parade.nextAt and #self.enemies < IdleConfig.MAX_ENEMIES then
+		parade.nextAt = now + parade.gap
+		self:spawnEnemy(parade.item)
+	end
+
 	-- Apparitions. Un ennemi sort à son heure (item.at - spawnSkipped) OU en avance quand un ennemi est mort
 	-- (IdleConfig.SPAWN_NEXT_ON_KILL) : chaque mort des pas d'avant (spawnReleases) fait sortir UN ennemi de la
 	-- file tout de suite, même si d'autres sont encore en vie ; l'attente qui lui restait est sautée et toute la
@@ -1252,6 +1326,11 @@ function PlotGame:simulate(dt: number)
 		local speed = enemy.def.speed * IdleConfig.ENEMY_SPEED_MULTIPLIER * speedFactorOf(enemy, now)
 		enemy.distance += speed * dt
 		if enemy.distance >= PlotLayout.PATH_LENGTH then
+			if enemy.parade then
+				-- Fantassin du défilé d'accueil arrivé au bout : il s'en va, rien n'est raté (retiré à la fin du pas).
+				enemy.dead = true
+				continue
+			end
 			self:endWave(false, enemy.def.displayName)
 			return
 		end
@@ -1287,8 +1366,8 @@ function PlotGame:simulate(dt: number)
 		end
 	end
 
-	-- debugHold : arène de test Studio, la vague ne se termine pas toute seule.
-	if not self.debugHold and self.spawnIndex > #self.spawnQueue and #self.enemies == 0 then
+	-- debugHold : arène de test Studio, la vague ne se termine pas toute seule. Défilé d'accueil : pas de vague.
+	if not self.debugHold and not self.parade and self.spawnIndex > #self.spawnQueue and #self.enemies == 0 then
 		self:endWave(true)
 	end
 end
@@ -1413,6 +1492,7 @@ function PlotGame:createTower(spotIndex: number, towerType: string, level: numbe
 	}
 	self:saveTower(self.towers[spotIndex])
 	self:publishForge() -- les runes tirables dépendent des tours posées
+	self:endParade() -- première tour d'un nouveau joueur : fin du défilé d'accueil, la vraie vague 1 démarre
 end
 
 function PlotGame:saveTower(tower)

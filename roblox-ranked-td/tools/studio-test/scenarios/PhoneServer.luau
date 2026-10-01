@@ -38,15 +38,55 @@ return function(log)
 		if fresh then "Info" else "Error",
 		`[{if fresh then "PASS" else "FAIL"}] téléphone : le joueur de test arrive en nouveau joueur, sur la parcelle {tostring(player:GetAttribute("Plot"))} (tuto fait : {tostring(data.tutorialDone)}, aucune tour : {next(data.idle.towers) == nil}, {data.coins} pièces)`
 	)
+	-- Défilé d'accueil (IdleConfig.NEW_PLAYER_PARADE, PlotGame:startParade) : dès l'arrivée du nouveau joueur, des
+	-- fantassins marchent déjà sur tout le chemin (les emplacements gratuits sont au bout, vers 205-300 studs), et
+	-- rien ne « rate » tant qu'aucune tour n'est posée. Plus bas : la première tour posée tue dans les 2 secondes.
+	local plots = workspace:FindFirstChild("Hub") and workspace.Hub:FindFirstChild("Plots")
+	local plotFolder = plots and plots:FindFirstChild("Plot" .. tostring(player:GetAttribute("Plot")))
+	local arrival = dbg:Invoke(player, "Progress") or {}
+	local paradeOk = arrival.parade == true and (arrival.alive or 0) >= 8 and (arrival.lead or 0) >= 250
+		and plotFolder ~= nil and plotFolder:GetAttribute("State") == "Running" and plotFolder:GetAttribute("Wave") == 1
+	log(
+		if paradeOk then "Info" else "Error",
+		`[{if paradeOk then "PASS" else "FAIL"}] téléphone : défilé d'accueil du nouveau joueur ({tostring(arrival.parade)}) -> {tostring(arrival.alive)} ennemis déjà en marche, le plus avancé à {math.floor(arrival.lead or 0)} studs sur 358, état « {tostring(plotFolder and plotFolder:GetAttribute("State"))} », vague {tostring(plotFolder and plotFolder:GetAttribute("Wave"))}`
+	)
 	local funnelStart = dbg:Invoke(player, "Funnel") or {}
 	local finished = false
-	for _ = 1, 1200 do -- (au plus 4 min : le client attend la taille du téléphone avant ses captures)
+	local towersFolder = plotFolder and plotFolder:FindFirstChild("Towers")
+	local firstTowerAt, firstKillAfter, killsAtTower, paradeAfter = nil, nil, 0, nil
+	local stoppedBefore = false -- (une vague « ratée » avant la première tour : l'état quitterait « Running »)
+	for _ = 1, 2400 do -- (au plus 4 min : le client attend la taille du téléphone avant ses captures)
+		if not firstKillAfter then
+			if not firstTowerAt then
+				if plotFolder and plotFolder:GetAttribute("State") ~= "Running" then
+					stoppedBefore = true
+				end
+				if towersFolder and #towersFolder:GetChildren() > 0 then
+					firstTowerAt = os.clock()
+					killsAtTower = (dbg:Invoke(player, "Progress") or {}).kills or 0
+				end
+			else
+				local progress = dbg:Invoke(player, "Progress") or {}
+				if (progress.kills or 0) > killsAtTower then
+					firstKillAfter = os.clock() - firstTowerAt
+					paradeAfter = progress.parade
+				elseif os.clock() - firstTowerAt > 10 then
+					firstKillAfter = math.huge
+				end
+			end
+		end
 		if player:GetAttribute("TutorialDone") == true then
 			finished = true
 			break
 		end
-		task.wait(0.2)
+		task.wait(0.1)
 	end
+	local quickOk = firstTowerAt ~= nil and firstKillAfter ~= nil and firstKillAfter <= 2 and killsAtTower == 0
+		and not stoppedBefore and paradeAfter == false
+	log(
+		if quickOk then "Info" else "Error",
+		`[{if quickOk then "PASS" else "FAIL"}] téléphone : la première tour du nouveau joueur tue un ennemi {if firstKillAfter then string.format("%.1f", firstKillAfter) else "?"} s après avoir été posée (2 s au plus ; avant le défilé : 10 à 20 s), aucune vague ratée avant ({tostring(not stoppedBefore)}), défilé fini et vraie vague 1 lancée ({tostring(paradeAfter == false)})`
+	)
 	local tutorial = dbg:Invoke(player, "Tutorial") or {}
 	local after = dbg:Invoke(player, "Data")
 	local placed, count = nil, 0

@@ -503,7 +503,8 @@ end
 --   Invoke(player, "Drop", 100)                 -> pile de 100 pièces au point du chemin le plus loin du
 --                                                  personnage, renvoie (id, distance au personnage)
 --   Invoke(player, "HasDrop", id)               -> vrai si la pile est encore au sol
---   Invoke(player, "Progress")                  -> { clock, simSpeed, spawned, alive, lead } de la vague en cours
+--   Invoke(player, "Progress")                  -> { clock, simSpeed, spawned, alive, lead, kills, parade } de la
+--                                                  vague en cours (parade = défilé d'accueil du nouveau joueur)
 -- Parcelles reçues (ennemis et tirs, Hub/PlotInterest.luau) :
 --   Invoke(player, "Interest")                  -> { own, receivesOwn, receives = { numéros des parcelles des autres
 --                                                  qu'il reçoit }, clears = paquets « Clear » reçus depuis son arrivée }
@@ -629,6 +630,8 @@ local function setupStudioDebug()
 				spawned = plotGame.spawnIndex - 1,
 				alive = alive,
 				lead = lead,
+				kills = plotGame.kills, -- ennemis tués depuis l'arrivée du joueur
+				parade = plotGame.parade ~= nil, -- défilé d'accueil du nouveau joueur en cours (PlotGame:startParade)
 			}
 		elseif command == "Coins" then
 			PlayerData.addCoins(player, ...)

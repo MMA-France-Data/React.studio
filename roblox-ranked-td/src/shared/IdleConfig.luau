@@ -10,6 +10,21 @@ IdleConfig.STARTING_COINS = 50 -- 25 avant : le début était trop dur
 IdleConfig.FIRST_WAVE_DELAY = 4
 IdleConfig.WAVE_CLEAR_DELAY = 1.5
 IdleConfig.WAVE_FAIL_DELAY = 3
+-- Défilé d'accueil d'un NOUVEAU joueur (tuto pas encore fait, aucune tour posée, vague 1 : PlotGame:startParade).
+-- Constat du propriétaire (01/10/2026) : les visiteurs posent leur première tour puis partent « sans même attendre
+-- que les unités passent ». Cause : les 4 emplacements gratuits sont au BOUT du chemin (~358 studs) ; un fantassin
+-- (10,8 studs/s) n'arrive à portée de la première tour que ~19 s après son apparition, soit au mieux ~23 s après
+-- l'arrivée du joueur, et sans tour la vague ratait en boucle (« Vague 1 ratée »). Le joueur regardait une tour qui
+-- ne faisait rien pendant 10 à 20 secondes.
+-- Avec le défilé : dès l'arrivée, des fantassins de la vague 1 marchent déjà sur TOUT le chemin (un tous les
+-- PARADE_SPACING studs, et un nouveau au départ à ce rythme) ; au bout du chemin ils s'en vont sans rien faire
+-- rater. La première tour posée tire donc dans la seconde. Dès qu'elle est posée, plus aucun fantassin du défilé
+-- n'apparaît et la vraie vague 1 démarre tout de suite : ses ennemis arrivent derrière les derniers du défilé.
+-- Ceux du défilé rapportent comme un fantassin de la vague 1 (1 pièce) ; il n'y en a qu'une douzaine en tout.
+-- false = comme avant (entracte de FIRST_WAVE_DELAY puis vague 1). Ne change rien pour un joueur qui a déjà joué,
+-- ni pour le simulateur (tools/balance), ni en ranked.
+IdleConfig.NEW_PLAYER_PARADE = true
+IdleConfig.PARADE_SPACING = 30 -- studs de chemin entre deux fantassins du défilé (un en vue toutes les ~2,8 s)
 -- Vague écrasée (demande du propriétaire : après une renaissance, remonter était lent, les ennemis mettaient
 -- du temps à sortir même tués d'un coup) : quand plus AUCUN ennemi n'est en vie sur la parcelle et qu'il en
 -- reste à faire apparaître, le suivant arrive TOUT DE SUITE (l'attente qui restait est sautée ; les écarts

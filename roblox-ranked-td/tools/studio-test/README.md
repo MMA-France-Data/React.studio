@@ -37,8 +37,11 @@ jeu ou sélectionne un emplacement, et des vérifications échouent sans raison.
   le X du panneau des tours resté ouvert (`newplayer_close`), puis l'icône de l'autel, contre le bord droit
   (`newplayer_altar_icon`), puis x1 (`newplayer_spin`) ; le lancer : plus de flèche pendant que le rouleau tourne,
   puis le X de l'autel (`newplayer_result`), l'icône de la forge (`newplayer_forge_icon`) et le mot de la fin
-  (`newplayer_end`). Côté serveur : le tuto est fini (« Done » à l'étape 4/4) et l'entonnoir des statistiques a ses
-  5 étapes dans l'ordre (`Hub/Funnel.luau`). Puis un 2e tuto pour « Passer » : un appui ne passe rien
+  (`newplayer_end`). Côté serveur : le **défilé d'accueil** (`IdleConfig.NEW_PLAYER_PARADE` ; dans les places de test,
+  il n'existe que dans celle-ci) : une dizaine d'ennemis déjà en marche sur tout le chemin à l'arrivée, aucune vague
+  ratée avant la première tour, premier ennemi tué moins de 2 s après la pose (StudioDebug « Progress » : `kills`,
+  `parade`), défilé fini et vraie vague 1 lancée ; puis le tuto est fini (« Done » à l'étape 4/4) et l'entonnoir des
+  statistiques a ses 5 étapes dans l'ordre (`Hub/Funnel.luau`). Puis un 2e tuto pour « Passer » : un appui ne passe rien
   (« Confirmer ? »), deux appuis passent le tuto (attribut de test `TestSkipTap` de l'écran du tuto : un plugin ne
   peut pas toucher l'écran).
   Ensuite le serveur de test prépare la parcelle d'un joueur avancé et le scénario ouvre chaque

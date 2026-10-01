@@ -77,6 +77,9 @@ local SHOT_BYTES = 27 -- départ 3xf32, arrivée 3xf32, type u8, rayon u8, vol r
 -- Après les count x SHOT_BYTES octets : l'id u32 de la cible suivie par chaque tir (0 = aucune), même ordre.
 local SHOT_TARGET_BYTES = 4
 local SNAP_DISTANCE = 4 -- au-delà, on replace l'ennemi directement à la position du serveur (x SimSpeed)
+-- Un ennemi qui disparaît à moins de ça du bout du chemin est PARTI, pas mort (fantassin du défilé d'accueil d'un
+-- nouveau joueur, PlotGame:startParade) : ni son ni animation de mort.
+local EXIT_DISTANCE = 8
 local MAX_FIRE_VISUALS = 10 -- zones de feu affichées au plus par parcelle (la plus vieille disparaît)
 local FIRE_FADE_TIME = 0.25
 local BEAM_HEAT_SPEED = 8 -- vitesse à laquelle l'épaisseur du rayon suit sa montée
@@ -444,6 +447,10 @@ local function onSync(plotIndex: number, packet: buffer, count: number, kind: st
 		if not seen[id] then
 			local died = runState == "Running"
 				or (runState == "Intermission" and typeof(plotWave) == "number" and enemy.wave ~= nil and plotWave > enemy.wave)
+			-- Disparu au bout du chemin pendant que la partie continue : il est parti (défilé d'accueil), pas mort.
+			if died and enemy.distance >= PlotLayout.PATH_LENGTH - EXIT_DISTANCE then
+				died = false
+			end
 			enemy.simSpeed = simSpeed
 			if died then
 				SoundManager.playAt(DEATH_SOUNDS[enemy.enemyType] or "EnemyDeath", enemy.part.Position)

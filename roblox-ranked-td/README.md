@@ -81,6 +81,19 @@ fermé** : voir juste en dessous.
   appui par erreur ne fait pas perdre le tuto. Sur ordinateur, un seul clic.
 - Sur téléphone, le panneau des tours prend presque tout l'écran : le tuto se cache tant qu'il est ouvert (cartes
   et « Améliorer » bien visibles, pas de « Passer » touché par erreur), puis revient.
+- **Défilé d'accueil** (01/10/2026, `IdleConfig.NEW_PLAYER_PARADE`, `PlotGame:startParade`) : le propriétaire a vu
+  ses visiteurs poser leur première tour puis partir « sans même attendre que les unités passent ». Les 4 emplacements
+  gratuits sont au bout du chemin (~358 studs) : un fantassin n'arrivait à portée de la première tour que ~19 s après
+  son apparition (au mieux ~23 s après l'arrivée du joueur), et sans tour la vague 1 ratait en boucle. Maintenant,
+  pour un nouveau joueur (tuto pas fait, aucune tour, vague 1), des fantassins de la vague 1 marchent déjà sur tout
+  le chemin dès son arrivée (un tous les 30 studs, `IdleConfig.PARADE_SPACING`) ; au bout, ils s'en vont sans rien
+  faire rater (pas de « Vague 1 ratée » avant la première tour). La première tour posée tire dans la seconde ; à ce
+  moment le défilé s'arrête (plus de nouveau fantassin) et la vraie vague 1 démarre tout de suite, ses ennemis
+  arrivent derrière les derniers du défilé. Ceux du défilé rapportent comme un fantassin de la vague 1 (1 pièce).
+  Rien ne change pour un joueur qui a déjà joué, ni pour le simulateur, ni en ranked. Pas dans la place des tests
+  automatiques, sauf le test « téléphone » (son nouveau joueur joue comme dans le jeu publié), qui vérifie : une
+  dizaine d'ennemis en marche à l'arrivée, aucune vague ratée avant la première tour, premier ennemi tué moins de
+  2 s après la pose.
 - **Point d'apparition** : `PlotLayout.PLAYER_SPAWN` avancé de 10 studs dans la parcelle (z = -50, plus -60). La
   caméra de départ (12,5 studs derrière le personnage) était en plein dans l'Autel des héros : la première image du
   jeu avait une large bande dorée en bas de l'écran (le linteau de l'autel).
