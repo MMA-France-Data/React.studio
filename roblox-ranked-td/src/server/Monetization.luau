@@ -250,6 +250,16 @@ function Monetization.start()
 	for _, player in Players:GetPlayers() do
 		task.spawn(onPlayerAdded, player)
 	end
+	-- Passes OFFERTS (data.giftedPasses) : ils sont dans les données du joueur, qui finissent de se charger APRÈS son
+	-- arrivée dans le jeu publié (le DataStore met un instant à répondre) : onPlayerAdded les a donc publiés « pas
+	-- possédés ». Dès que les données sont là, chaque pass est republié. Sans ça, un pass offert semblait perdu à
+	-- chaque retour dans le jeu (constat du propriétaire, 01/10/2026 : « ça part après la session ») : la boutique
+	-- le reproposait et le bouton x2 avait disparu, alors que le cadeau était bien sauvegardé.
+	PlayerData.onLoaded(function(player)
+		for name in PASSES do
+			publishPass(player, name)
+		end
+	end)
 	Players.PlayerRemoving:Connect(function(player)
 		ownedPasses[player] = nil
 		studioPasses[player] = nil
