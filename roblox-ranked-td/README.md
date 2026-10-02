@@ -181,8 +181,8 @@ que chez le joueur (`src/client/SoundManager.luau`) : aucun coût pour le serveu
 - **Comment ça marche** : le serveur met l'attribut `Lang` (« fr » ou « en ») sur chaque joueur d'après sa langue
   Roblox (`Lang.startServer`). Chez un joueur non francophone, `src/client/AutoTranslate.luau` remplace chaque texte
   affiché par sa traduction dès qu'il apparaît ou change, et garde le texte français d'origine. Un joueur
-  francophone ne paie rien. Le code du jeu ne relit donc jamais un `.Text` pour décider quelque chose, et n'écrit un
-  texte que quand il change.
+  francophone ne paie presque rien. Le code du jeu ne relit donc jamais un `.Text` pour décider quelque chose, et
+  n'écrit un texte que quand il change.
 - **Traductions** : `src/shared/LangEN/` (`Glossary` = les noms : tours, monstres, territoires, évolutions ; `Game` =
   tous les autres textes), une ligne par texte : `["texte français exact"] = "English",`. Un texte qui change :
   `{1}`, `{2}`… Un texte entouré de symboles ou de nombres (« 🔒 Totem de givre », « Archer du rempart ★★ »,
@@ -196,9 +196,12 @@ que chez le joueur (`src/client/SoundManager.luau`) : aucun coût pour le serveu
 - **Vérifier dans Studio** : `tools\studio-test\run.ps1 -Test english` passe le joueur en anglais, ouvre tous les
   écrans et liste chaque texte resté en français (il ne doit y en avoir aucun).
 - **Voir le jeu en anglais dans Studio** : `Config.STUDIO_LANGUAGE = "en"` (`"auto"` = comme le jeu publié, `"fr"`).
-- **Pas la traduction automatique de Roblox** : ne l'active pas dans le Creator Dashboard, et coupe-la si elle est
-  allumée (elle prendrait les textes anglais pour du français). Par sécurité, `AutoTranslate.luau` la coupe déjà sur
-  chaque texte qu'il traduit (`AutoLocalize = false`).
+- **Jamais la traduction automatique de Roblox** : depuis juin 2026, Roblox traduit tout seul les textes des jeux
+  pour les joueurs qui ont le réglage « Traductions automatiques », en supposant qu'ils sont écrits dans la « langue
+  source » du jeu. Les nôtres sont en français pour les uns, en anglais pour les autres : il prendrait l'un pour
+  l'autre. `AutoTranslate.luau` l'en empêche pour tous les joueurs (« LE BOUCLIER » : `AutoLocalize = false` sur
+  chaque écran, chaque panneau du monde et chaque invite). La langue source réglée dans le Hub Création ne compte
+  donc que pour la **page** du jeu (son nom, sa description), jamais pour le jeu lui-même.
 - La colonne de la liste des joueurs de Roblox (`leaderstats`) a le même nom pour tout le monde : c'est donc un mot
   anglais, « Level » (le plus haut niveau réussi).
 

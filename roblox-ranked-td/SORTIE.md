@@ -23,14 +23,20 @@ Le jeu sort comme une **nouvelle expérience Roblox** (décision du 02/10/2026) 
 - [x] La Baliste et le Trébuchet renforcés (02/10/2026, voir `NIVEAUX.md`, « Ce que chaque tour de la boutique
       apporte »).
 - [ ] Les niveaux 21 et plus (une carte et un réglage par territoire) : après la sortie.
+- [ ] Les autres langues (espagnol, portugais...) : aujourd'hui ces joueurs voient le jeu en anglais. Après la
+      sortie, on pourra essayer de laisser Roblox traduire notre anglais dans leur langue (ça ne se teste que sur le
+      jeu publié, pas dans Studio).
 - [ ] Monstres : il manque les boss des territoires 6 et 9 (niveaux 60 et 90) et la mort du dragon. Sans importance
       tant que le jeu a 20 niveaux.
 - [ ] Des passes Robux pour ce jeu ? Il n'y en a plus aucun.
 
 ## Publication (Studio et Hub Création)
 
+- [ ] Le fichier à publier : la copie propre préparée par Claude, sur ton PC, dans le dossier du jeu :
+      `A-PUBLIER\Jeu-20-niveaux.rbxl` (refaite à chaque version ; elle n'est pas dans git). Ferme les autres
+      fenêtres de Studio avant de publier, pour ne pas te tromper de fichier.
 - [ ] Publier comme une **nouvelle expérience** sur ton compte personnel (Fichier > Publier sur Roblox > « Créer une
-      nouvelle expérience »), en privé. Les mises à jour ensuite : ouvrir la copie propre préparée par Claude,
+      nouvelle expérience »), en privé. Les mises à jour ensuite : ouvrir la nouvelle copie propre,
       Publier sur Roblox > « Mettre à jour l'expérience existante… » > la nouvelle expérience (**pas** « Tower 22 »).
 - [ ] Sur ton compte, pas sur une communauté : les animations des monstres sont publiées sur ton compte, elles ne se
       jouent que dans tes expériences.
@@ -39,7 +45,11 @@ Le jeu sort comme une **nouvelle expérience Roblox** (décision du 02/10/2026) 
       commandes à la manette (Hub Création > l'expérience > Accès).
 - [ ] Questionnaire sur le contenu : violence légère répétée -> « Léger » ; objets aléatoires payants : **non**
       (plus aucun tirage, plus aucun achat) ; tout le reste : non.
-- [ ] Ne pas activer la traduction automatique de Roblox (Hub Création > Localisation).
+- [ ] Langue de la page (Hub Création > l'expérience > Audience > Localisation > Langues) : la **langue source** doit
+      être celle de la description que tu colles sur la page (**English** si tu colles la description anglaise).
+      Tu peux ajouter « Français » dans les langues prises en charge et y coller le nom et la description en
+      français. Pour les textes **dans** le jeu, rien à régler : le jeu se traduit lui-même (français ou anglais)
+      et empêche Roblox d'y toucher (voir `README.md`, « Langues »).
 - [ ] Page du jeu : nom, description (français et anglais), icône, miniatures, vidéo (Roblox : 30 s au plus, textes
       et son en anglais, compte vérifié de 13 ans et plus pour l'envoyer). Les images et vidéos tournées pour
       « Tower 22 » montrent l'ancien jeu : à refaire. Une description prête à coller est plus bas (« Textes pour la
@@ -58,7 +68,7 @@ Defend your castle in fast 2-3 minute levels!
 
 - Place your towers anywhere and upgrade them non-stop: the monsters never stop getting stronger.
 - 20 levels across 2 territories, with mini-bosses and bosses.
-- 8 towers to unlock in the shop: fixed prices, no luck.
+- 8 towers, 6 of them to unlock in the shop: fixed prices, no luck.
 - Your own training camp: your towers train and evolve, even while you're away.
 - Plays on PC and phone. No pay-to-win.
 ```
@@ -70,7 +80,7 @@ Défends ton château dans des niveaux rapides de 2 à 3 minutes !
 
 - Pose tes tours où tu veux et améliore-les sans arrêt : les monstres deviennent de plus en plus forts.
 - 20 niveaux dans 2 territoires, avec des mini-boss et des boss.
-- 8 tours à débloquer à la boutique : prix fixes, aucun hasard.
+- 8 tours, dont 6 à débloquer à la boutique : prix fixes, aucun hasard.
 - Ton camp d'entraînement : tes tours s'entraînent et évoluent, même quand tu es parti.
 - Sur ordinateur et sur téléphone. Rien à acheter pour gagner.
 ```

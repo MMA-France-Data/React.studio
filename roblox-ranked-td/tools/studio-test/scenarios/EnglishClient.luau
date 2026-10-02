@@ -224,6 +224,22 @@ return function(log)
 		task.wait(0.35)
 		scan(workspace, where, false)
 	end
+	-- Le bouclier (AutoTranslate.luau) : la traduction automatique de Roblox ne doit toucher aucun texte du jeu. Compte
+	-- les écrans, les panneaux du monde et les invites, et liste ceux qui lui restent ouverts (AutoLocalize pas coupé).
+	local function robloxTranslation()
+		local total, open = 0, {}
+		for _, root in { playerGui, workspace } do
+			for _, object in root:GetDescendants() do
+				if object:IsA("LayerCollector") or object:IsA("ProximityPrompt") then
+					total += 1
+					if object.AutoLocalize ~= false then
+						table.insert(open, object:GetFullName())
+					end
+				end
+			end
+		end
+		return total, open
+	end
 	local function oneLine(text)
 		return (string.gsub(text, "\n", " ⏎ "))
 	end
@@ -263,6 +279,11 @@ return function(log)
 		return pointerGui:GetAttribute("Target") == "Play"
 	end, 20)
 	check(openButton.Text == "⚔ NIVEAUX" and ask("Language") == "fr", `avant : le jeu est en français (« {openButton.Text} »)`)
+	local shieldedBefore, openBefore = robloxTranslation()
+	check(
+		shieldedBefore >= 10 and #openBefore == 0,
+		`avant, en français : la traduction automatique de Roblox ne touche aucun texte du jeu ({shieldedBefore} écrans, panneaux et invites, tous avec AutoLocalize coupé ; oubliés : {#openBefore} {table.concat(openBefore, ", ")})`
+	)
 	player:SetAttribute("Lang", "en")
 	local english = waitFor(function()
 		return ask("Language") == "en" and openButton.Text == "⚔ LEVELS"
@@ -417,6 +438,11 @@ return function(log)
 	task.wait(0.6)
 	scanScreen("niveau 1, tour améliorée")
 	scanWorld("niveau 1, étiquettes des tours")
+	local shielded, openToRoblox = robloxTranslation()
+	check(
+		shielded >= 10 and #openToRoblox == 0,
+		`en anglais, pendant un niveau : la traduction automatique de Roblox ne touche aucun texte du jeu ({shielded} écrans, panneaux et invites ; oubliés : {#openToRoblox} {table.concat(openToRoblox, ", ")})`
+	)
 	act(hudGui, "Bar:Bomb")
 	scanScreen("niveau 1, Catapulte en main (conseil de pose)")
 	check(string.find(hudGui.Hint.Text, "to place: Catapult", 1, true) ~= nil, `conseil de pose : « {hudGui.Hint.Text} »`)

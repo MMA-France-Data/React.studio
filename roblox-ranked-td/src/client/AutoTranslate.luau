@@ -8,11 +8,12 @@
 -- le serveur) le change : le jeu continue d'écrire en français, sans rien savoir de l'anglais. Pour chaque texte, on
 -- garde le texte français d'origine : retour au français en direct si la langue change (attribut « Lang »).
 -- Rien ne se traduit sous un objet qui a l'attribut NoTranslate = true (outils Studio, noms de joueurs...), ni un texte
--- qui est juste le nom d'un joueur. La traduction automatique de Roblox est coupée sur chaque texte suivi
--- (AutoLocalize = false) : elle prendrait notre anglais pour du français.
--- Coût : un joueur francophone ne paie rien (juste l'écoute de l'attribut « Lang ») ; un joueur anglais : un tour de
--- tous les objets au départ, puis seulement quand un objet apparaît ou qu'un texte change (jamais à chaque image), et
--- les traductions déjà faites sont gardées en mémoire (Lang.luau).
+-- qui est juste le nom d'un joueur.
+-- La traduction automatique de Roblox ne touche jamais les textes du jeu, pour AUCUN joueur : voir « LE BOUCLIER ».
+-- Coût : un joueur francophone ne paie presque rien (l'écoute de l'attribut « Lang », et le bouclier : un coup d'œil
+-- à la classe de chaque objet qui apparaît) ; un joueur anglais : un tour de tous les objets au départ, puis
+-- seulement quand un objet apparaît ou qu'un texte change (jamais à chaque image), et les traductions déjà faites
+-- sont gardées en mémoire (Lang.luau).
 -- Le code du jeu ne doit donc jamais RELIRE un .Text pour décider quelque chose (il peut être en anglais) : il garde
 -- son propre texte français (ou AutoTranslate.original).
 -- Studio seulement : BindableFunction « AutoTranslateStudio » dans le joueur (tests automatiques, voir setupStudioDebug).
@@ -97,6 +98,34 @@ local function setAutoLocalize(instance: Instance, value: boolean)
 	pcall(function()
 		(instance :: any).AutoLocalize = value
 	end)
+end
+
+-- LE BOUCLIER, pour tous les joueurs (français compris). Depuis juin 2026, Roblox traduit tout seul les textes des
+-- jeux pour les joueurs qui ont le réglage « Traductions automatiques », même si le jeu n'a rien demandé, en
+-- supposant que ces textes sont écrits dans la « langue source » du jeu (Hub Création > Audience > Localisation).
+-- Les nôtres sont en français pour les uns et en anglais (notre traduction) pour les autres : aucune langue source
+-- ne convient aux deux, Roblox prendrait l'un pour l'autre. Il ne doit donc en traduire AUCUN : chaque écran, chaque
+-- panneau du monde et chaque invite a AutoLocalize = false. Coupé sur l'écran ou le panneau, il l'est pour tout ce
+-- qu'il contient (documentation de Roblox : « AutoLocalize must be set to true on the GuiBase2d and its ancestors
+-- for automated localization to be applied »). Le réglage de la langue source ne compte donc plus que pour la page
+-- du jeu (son nom, sa description), jamais pour le jeu lui-même.
+local SHIELDED = { ScreenGui = true, SurfaceGui = true, BillboardGui = true, ProximityPrompt = true }
+local function shield(instance: Instance)
+	if SHIELDED[instance.ClassName] then
+		setAutoLocalize(instance, false)
+	end
+end
+-- Protège tout ce qui est déjà là, puis tout ce qui apparaît (écran du joueur et monde), jusqu'à la fin de la visite.
+local function shieldAll()
+	local playerGui = player:WaitForChild("PlayerGui")
+	playerGui.DescendantAdded:Connect(shield)
+	workspace.DescendantAdded:Connect(shield)
+	for _, instance in playerGui:GetDescendants() do
+		shield(instance)
+	end
+	for _, instance in workspace:GetDescendants() do
+		shield(instance)
+	end
 end
 
 -- Arrête de suivre un objet. restore = remettre d'abord son texte français (objet retiré de l'écran mais pas détruit :
@@ -313,6 +342,7 @@ function AutoTranslate.start()
 	end
 	started = true
 	setupStudioDebug()
+	shieldAll()
 	player:GetAttributeChangedSignal(Lang.ATTRIBUTE):Connect(function()
 		AutoTranslate.setLanguage(Lang.current())
 	end)

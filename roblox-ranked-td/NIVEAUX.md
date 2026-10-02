@@ -356,6 +356,9 @@ arrivent à un niveau) : rien d'autre n'a changé. Les chiffres sont dans `src/s
    traduits ; un test Studio vérifie qu'aucun texte ne reste en français.
 10. **Petites aides** ajoutées en même temps : la pastille « ! » de la boutique, les conseils de l'écran de fin, et
     des images toutes prêtes pour la page Roblox du jeu (`assets/page`).
+11. **Le bouclier** : Roblox traduit maintenant tout seul les textes des jeux (réglage « Traductions
+    automatiques » des joueurs, juin 2026). Le jeu l'en empêche pour tous ses textes : il se traduit lui-même, et
+    Roblox aurait pris son français pour de l'anglais (ou l'inverse). Voir `README.md`, « Langues ».
 
 ### Le grand ménage : ce qui a été enlevé
 

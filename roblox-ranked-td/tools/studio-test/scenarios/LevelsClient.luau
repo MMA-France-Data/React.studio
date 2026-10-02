@@ -192,6 +192,22 @@ return function(log)
 		end
 		return list
 	end
+	-- Le bouclier (AutoTranslate.luau) : la traduction automatique de Roblox ne doit toucher aucun texte du jeu. Compte
+	-- les écrans, les panneaux du monde et les invites, et liste ceux qui lui restent ouverts (AutoLocalize pas coupé).
+	local function robloxTranslation()
+		local total, open = 0, {}
+		for _, root in { playerGui, workspace } do
+			for _, object in root:GetDescendants() do
+				if object:IsA("LayerCollector") or object:IsA("ProximityPrompt") then
+					total += 1
+					if object.AutoLocalize ~= false then
+						table.insert(open, object:GetFullName())
+					end
+				end
+			end
+		end
+		return total, open
+	end
 	local function overlapping(objects)
 		local found = {}
 		for i = 1, #objects do
@@ -480,6 +496,11 @@ return function(log)
 	check(
 		hudGui:GetAttribute("Placing") == "MachineGun" and string.find(hudGui.Hint.Text, "+", 1, true) ~= nil,
 		`premier niveau : l'Archer est déjà choisi dans la barre et le conseil montre les « + » (« {hudGui.Hint.Text} »)`
+	)
+	local shielded, openToRoblox = robloxTranslation()
+	check(
+		shielded >= 10 and #openToRoblox == 0,
+		`joueur français : la traduction automatique de Roblox ne touche aucun texte du jeu ({shielded} écrans, panneaux et invites, tous avec AutoLocalize coupé ; oubliés : {#openToRoblox} {table.concat(openToRoblox, ", ")})`
 	)
 	local helpers = workspace:FindFirstChild("LevelHelpers")
 	local plus = 0

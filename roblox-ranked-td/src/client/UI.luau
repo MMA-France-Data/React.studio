@@ -82,6 +82,8 @@ function UI.screen(name: string, displayOrder: number?)
 	return UI.new("ScreenGui", {
 		Name = name,
 		ResetOnSpawn = false,
+		-- (la traduction automatique de Roblox ne touche aucun texte du jeu : AutoTranslate.luau, « LE BOUCLIER »)
+		AutoLocalize = false,
 		IgnoreGuiInset = false,
 		ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
 		DisplayOrder = displayOrder or 0,
