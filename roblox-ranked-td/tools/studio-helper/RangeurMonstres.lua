@@ -1,9 +1,10 @@
--- Plugin Studio « Rangeur de monstres » (projet Ranked Tower Defense).
--- Range les modèles 3D importés dans ReplicatedStorage > EnemyModels avec le bon nom (<Type>_<tranche>),
+-- Plugin Studio « Rangeur de monstres ».
+-- Range les modèles 3D importés dans ReplicatedStorage > EnemyModels avec le bon nom (<Type>_<tranche>,
+-- tranche = territoire de 10 niveaux : 0 = niveaux 1-10, 1 = niveaux 11-20...),
 -- sans passer par « Enregistrer dans un fichier » pour chacun :
 --   1. Fichier > Importer : importer un ou plusieurs .glb / .fbx (ils arrivent dans le Workspace) ;
 --   2. dans le panneau « Ranger un monstre » (bouton « Monstres » de l'onglet Plugins) : choisir la tranche
---      de vagues, sélectionner un modèle importé (dans l'Explorer ou la vue 3D), cliquer sur son type ;
+--      de niveaux, sélectionner un modèle importé (dans l'Explorer ou la vue 3D), cliquer sur son type ;
 --   3. à la fin, Fichier > Enregistrer (Ctrl+S) : tools/studio-helper/recuperer-monstres.ps1 sort ensuite
 --      chaque modèle de EnemyModels en fichier .rbxm dans assets/EnemyModels (Rojo syncback).
 -- Installé par tools/studio-helper/install.ps1 (copie dans le dossier des plugins de Studio).
@@ -19,9 +20,9 @@ local TYPES = {
 	{ key = "Giant", label = "Colosse" },
 	{ key = "Boss", label = "Boss" },
 }
-local TRANCHES = 10 -- 0 = vagues 1-10 ... 9 = vagues 91-100
+local TRANCHES = 10 -- 0 = niveaux 1-10 ... 9 = niveaux 91-100
 
-local toolbar = plugin:CreateToolbar("Ranked TD")
+local toolbar = plugin:CreateToolbar("Tower Defense")
 local toggle = toolbar:CreateButton("Monstres", "Ranger un monstre importé dans EnemyModels", "")
 toggle.ClickableWhenViewportHidden = true
 
@@ -109,7 +110,7 @@ local function button(parent: Instance, text: string, layoutOrder: number): Text
 	return item
 end
 
-label("1. Tranche de vagues du monstre :", 20)
+label("1. Niveaux du monstre :", 20)
 local trancheFrame = grid(60, 28, 2)
 local tranche = 0
 local trancheButtons = {}
@@ -247,7 +248,7 @@ for index, typeInfo in TYPES do
 		end
 		local first = tranche * 10 + 1
 		status.TextColor3 = GOOD
-		status.Text = `✓ {typeInfo.label} des vagues {first}-{first + 9} rangé : {name}{if replaced then " (ancien remplacé)" else ""}`
+		status.Text = `✓ {typeInfo.label} des niveaux {first}-{first + 9} rangé : {name}{if replaced then " (ancien remplacé)" else ""}`
 		refreshList()
 	end)
 end
@@ -282,7 +283,7 @@ autoButton.Activated:Connect(function()
 		status.Text = "Aucun monstre importé dans le Workspace."
 	else
 		status.TextColor3 = if #unknown == 0 then GOOD else BAD
-		status.Text = `Vagues {first}-{first + 9} : {if #done > 0 then "✓ " .. table.concat(done, ", ") else "rien de rangé"}`
+		status.Text = `Niveaux {first}-{first + 9} : {if #done > 0 then "✓ " .. table.concat(done, ", ") else "rien de rangé"}`
 			.. (if #unknown > 0 then ` ; pas reconnus (à ranger à la main) : {table.concat(unknown, ", ")}` else "")
 	end
 	refreshList()

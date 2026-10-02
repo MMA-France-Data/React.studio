@@ -121,7 +121,7 @@ end
 
 local function ground(position: Vector3, effects: Instance): Vector3
 	local exclusions = { effects }
-	for _, name in { "PlotEnemies", "Enemies", "Coins", "Towers" } do
+	for _, name in { "PlotEnemies" } do
 		local folder = workspace:FindFirstChild(name)
 		if folder then table.insert(exclusions, folder) end
 	end
@@ -247,11 +247,6 @@ end
 function VFX.decorateStone(root: BasePart, color: Color3)
 	if not claim(root) then return end
 	trail(root, color:Lerp(Color3.fromRGB(177, 165, 143), 0.75), root.Size.X * 0.7, 0.16)
-end
-
-function VFX.decorateMagic(root: BasePart, color: Color3)
-	if not claim(root) then return end
-	trail(root, color, 0.35, 0.18)
 end
 
 function VFX.burst(parent: Instance, position: Vector3, radius: number, color: Color3, duration: number)

@@ -1,12 +1,12 @@
 -- Vérifications des règles des NIVEAUX sans ouvrir Studio (run.ps1 -Tests) : les chiffres de Shared/Levels.luau et
--- le VRAI moteur d'un niveau (LevelGame.luau, qui hérite du vrai PlotGame.luau), avec les imitations de Roblox de
+-- le VRAI moteur d'un niveau (LevelGame.luau, qui hérite du vrai Combat.luau), avec les imitations de Roblox de
 -- env.luau. Sortie 1 si un test rate.
 local Env = require("./env")
 local Levels = require("./gen/shared/Levels")
 local IdleConfig = require("./gen/shared/IdleConfig")
 local IdleTowers = require("./gen/shared/IdleTowers")
 local LevelGame = require("./gen/server/Hub/LevelGame")
-local Shim = require("../balance/idle/shim")
+local Shim = require("./shim")
 local Bot = require("./Bot")
 local Vector3 = Shim.Vector3
 
@@ -66,7 +66,7 @@ end
 ----------------------------------------------------------------------
 -- 1) Les niveaux : 10 niveaux, mini-boss au 5, boss au 10, 2 à 3 minutes, un FLOT CONTINU qui monte
 ----------------------------------------------------------------------
-check(Levels.COUNT == 10 and #Levels.DEFINITIONS == 10, `10 niveaux dans le prototype ({Levels.COUNT}, {#Levels.DEFINITIONS} fiches)`)
+check(Levels.COUNT == 10 and #Levels.DEFINITIONS == 10, `10 niveaux dans le jeu ({Levels.COUNT}, {#Levels.DEFINITIONS} fiches)`)
 for level = 1, Levels.COUNT do
 	local definition = Levels.definition(level)
 	local source = Levels.DEFINITIONS[level]
@@ -269,10 +269,8 @@ check(dirty.xp.Dragon == nil and dirty.xp.MachineGun == 12 and dirty.xp.Frost ==
 check(#dirty.slots == 3 and dirty.slots[1].tower == "" and dirty.slots[1].level == 5 and dirty.slots[2].tower == "" and dirty.slots[3].tower == "Frost" and dirty.slots[3].level == 2, "sauvegarde abîmée : 3 emplacements au plus, tour non possédée retirée, niveau borné")
 check(#dirty.bar == 2 and dirty.bar[1] == "Frost" and dirty.bar[2] == "MachineGun", "sauvegarde abîmée : barre sans doublon ni tour inconnue")
 check(Levels.cleanData(nil).best == 0 and Levels.cleanData("x").towers.MachineGun == true, "pas de sauvegarde : un nouveau joueur")
--- Première version du prototype : la Catapulte coûtait 350 pièces, le Mage 700 (400 aujourd'hui).
-local firstVersion = Levels.cleanData({ coins = 100, towers = { MachineGun = true, Frost = true, Bomb = true, Tesla = true } })
-check(firstVersion.coins == 100 + 350 + 300 and firstVersion.version == Levels.DATA_VERSION, `sauvegarde de la première version : la Catapulte (350) et l'écart de prix du Mage (300) sont rendus ({firstVersion.coins} pièces)`)
-check(Levels.cleanData(firstVersion).coins == firstVersion.coins and Levels.cleanData(Levels.defaultData()).coins == 0, "... une seule fois, et rien pour un nouveau joueur")
+local kept = Levels.cleanData({ coins = 100, towers = { MachineGun = true, Frost = true, Bomb = true, Tesla = true } })
+check(kept.coins == 100 and kept.towers.Frost == true and kept.towers.Tesla == true and Levels.cleanData(Levels.defaultData()).coins == 0, "sauvegarde relue : pièces et tours gardées telles quelles")
 local owned = Levels.ownedTowers({ bar = { "Bomb", "MachineGun" }, towers = { MachineGun = true, Bomb = true, Frost = true, Orbital = true } })
 check(table.concat(owned, ",") == "Bomb,MachineGun,Frost,Orbital", "barre rapide : l'ordre du joueur, puis ses autres tours")
 

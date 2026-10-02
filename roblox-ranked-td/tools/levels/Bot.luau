@@ -10,7 +10,7 @@ local Env = require("./env")
 local Levels = require("./gen/shared/Levels")
 local IdleTowers = require("./gen/shared/IdleTowers")
 local LevelGame = require("./gen/server/Hub/LevelGame")
-local Shim = require("../balance/idle/shim")
+local Shim = require("./shim")
 
 local Bot = {}
 

@@ -1,8 +1,9 @@
 ﻿# Sort en fichiers .rbxm (assets/EnemyModels) les monstres rangés par le plugin « Rangeur de monstres »
-# dans ReplicatedStorage > EnemyModels du jeu enregistré (RankedTD.rbxl, Ctrl+S dans Studio).
+# dans ReplicatedStorage > EnemyModels du jeu enregistré (Jeu.rbxl, Ctrl+S dans Studio).
 #   powershell -ExecutionPolicy Bypass -File tools\studio-helper\recuperer-monstres.ps1
 #   ... -Remplacer   : remplace aussi les fichiers qui existent déjà (sinon seuls les nouveaux sont ajoutés)
-#   ... -Place <fichier.rbxl> : un autre fichier de jeu que RankedTD.rbxl
+#   ... -Place <fichier.rbxl> : un autre fichier de jeu que Jeu.rbxl (sans -Place : Jeu.rbxl, sinon l'ancien
+#                               nom RankedTD.rbxl, à la racine du dossier roblox-ranked-td)
 # Ne supprime jamais rien : Rojo syncback écrit dans un dossier temporaire, puis on copie.
 param(
 	[string]$Place = "",
@@ -10,7 +11,10 @@ param(
 )
 $ErrorActionPreference = "Stop"
 $repo = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
-if (-not $Place) { $Place = Join-Path $repo "RankedTD.rbxl" }
+if (-not $Place) {
+	$Place = Join-Path $repo "Jeu.rbxl"
+	if (-not (Test-Path $Place)) { $Place = Join-Path $repo "RankedTD.rbxl" }
+}
 if (-not (Test-Path $Place)) { Write-Host "Fichier de jeu introuvable : $Place"; exit 1 }
 $target = Join-Path $repo "assets\EnemyModels"
 

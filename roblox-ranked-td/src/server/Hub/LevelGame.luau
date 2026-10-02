@@ -1,22 +1,18 @@
--- Un NIVEAU en cours (prototype de la nouvelle formule : règles et chiffres dans Shared/Levels.luau).
+-- Un NIVEAU en cours (règles et chiffres : Shared/Levels.luau).
 -- Une instance par joueur qui joue un niveau, dans sa zone de combat (Hub/LevelArena.luau), créée et arrêtée par
 -- Hub/LevelsService.luau.
 --
--- Le combat est celui des parcelles : LevelGame HÉRITE de PlotGame (visée, projectiles, zones, carreau perçant,
--- rayon, contrôles, fragilité, feu des flèches, paquets réseau PlotSync / PlotShots), donc les 8 tours tapent
--- exactement comme sur une parcelle et PlotRenderer affiche la zone comme une parcelle de plus. PlotGame.luau
--- n'est PAS modifié. Ce qui change ici, ce sont les règles autour du combat :
---   * le chemin est celui de la carte du niveau (self.layout), pas celui des parcelles ;
+-- LevelGame HÉRITE de Combat (Hub/Combat.luau : visée, projectiles, zones, carreau perçant, rayon, contrôles,
+-- fragilité, feu des flèches, paquets réseau PlotSync / PlotShots). Ici, les règles autour du combat :
+--   * le chemin est celui de la carte du niveau (self.layout) ;
 --   * les tours se posent OÙ ON VEUT (Levels.checkPlacement), avec l'OR du niveau, et s'améliorent avec lui ;
 --   * les monstres arrivent en un flot continu, de plus en plus serré et résistant (Levels.buildQueue) ; un
 --     monstre tué donne son or tout de suite ;
 --   * un monstre qui atteint le château coûte des VIES (Levels.ENEMY.leak) ; à 0, le niveau est perdu ;
 --   * le niveau est gagné quand tout le flot est éliminé ;
 --   * rien n'est sauvegardé ici : les récompenses sont données par LevelsService (onEnd).
--- Les seules méthodes de PlotGame utilisées sont celles du combat ; tout ce qui touche à la parcelle (sauvegarde,
--- emplacements, autel, forge, pièces au sol) est remplacé ou jamais appelé.
--- Ce fichier tourne aussi hors de Studio (tools/levels, avec les imitations de tools/balance) : pas d'autre objet
--- Roblox que le dossier des tours et leurs modèles (IdleTowerModel).
+-- Ce fichier tourne aussi hors de Studio (tools/levels, avec ses imitations de Roblox) : pas d'autre objet Roblox
+-- que le dossier des tours et leurs modèles (IdleTowerModel).
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
@@ -24,8 +20,8 @@ local Enemies = require(Shared.Enemies)
 local IdleConfig = require(Shared.IdleConfig)
 local IdleTowers = require(Shared.IdleTowers)
 local Levels = require(Shared.Levels)
+local Combat = require(script.Parent.Combat)
 local IdleTowerModel = require(script.Parent.IdleTowerModel)
-local PlotGame = require(script.Parent.PlotGame)
 
 local ENEMY_INDEX = {}
 for index, name in Enemies.ORDER do
@@ -35,7 +31,7 @@ end
 -- Petite marge pour comparer des heures de la simulation.
 local TIME_EPSILON = 1e-6
 
-local LevelGame = setmetatable({}, { __index = PlotGame })
+local LevelGame = setmetatable({}, { __index = Combat })
 LevelGame.__index = LevelGame
 
 -- arena = { index (numéro pour les paquets : Levels.arenaIndex), folder (dossier de la zone : ses attributs sont
@@ -57,7 +53,7 @@ function LevelGame.new(arena, player, options)
 	self.training = options.training or {}
 	self.onEnd = options.onEnd
 
-	-- Champs du combat de PlotGame.
+	-- Champs du combat (Combat.luau).
 	self.enemies = {}
 	self.towers = {} -- [id] = tour
 	self.shots = {}
@@ -69,7 +65,6 @@ function LevelGame.new(arena, player, options)
 	self.clock = 0
 	self.simSpeed = 1
 	self.kills = 0
-	self.spawnReleases = 0 -- (compté par PlotGame.damageEnemy : pas utilisé ici)
 
 	-- Règles du niveau.
 	self.state = "Running" -- "Running" | "Won" | "Lost"
@@ -149,8 +144,9 @@ function LevelGame:spawnEnemy(item)
 	})
 end
 
--- Comme PlotGame.damageEnemy, mais l'or du monstre va tout de suite dans la bourse du niveau (pas de pièces à
--- ramasser en marchant).
+-- Dégâts sur un monstre. fragile = ces dégâts profitent de la fragilité du Totem de givre (toutes les tours sauf
+-- celles marquées ignoresFragility) : x (1 + fragilité) tant qu'elle dure. Tué, son or va tout de suite dans la
+-- bourse du niveau.
 function LevelGame:damageEnemy(enemy, amount: number, fragile: boolean?)
 	if enemy.dead then
 		return
@@ -171,7 +167,7 @@ function LevelGame:statsOf(tower)
 	return Levels.towerStats(tower.type, tower.level, self.training[tower.type])
 end
 
--- Vitesse actuelle en fraction de la vitesse normale : type x contrôle (0 si étourdi). Même calcul que PlotGame.
+-- Vitesse actuelle en fraction de la vitesse normale : type x contrôle (0 si étourdi). Même calcul que Combat.
 local function speedFactorOf(enemy, now: number): number
 	local controlFactor = if now < enemy.controlUntil then 1 - enemy.controlFactor else 1
 	return enemy.speedScale * controlFactor
@@ -243,7 +239,7 @@ function LevelGame:simulate(dt: number)
 		enemy.position = self.cframe:PointToWorldSpace((self.layout.pointAt(enemy.distance)))
 	end
 
-	-- Projectiles qui arrivent, tours, zones de feu : le combat de PlotGame.
+	-- Projectiles qui arrivent, tours, zones de feu : Combat.luau.
 	self:resolveImpacts(now)
 	for _, tower in self.towers do
 		local stats = self:statsOf(tower)
@@ -270,7 +266,7 @@ function LevelGame:simulate(dt: number)
 	end
 end
 
--- Appelé à chaque image : simSpeed pas de dt (pass Vitesse x2).
+-- Appelé à chaque image : simSpeed pas de dt (bouton x2).
 function LevelGame:step(dt: number)
 	for _ = 1, self.simSpeed do
 		self:simulate(dt)
@@ -308,13 +304,12 @@ function LevelGame:createTower(towerType: string, level: number, spent: number, 
 		PlotIndex = self.index,
 		Level = level,
 		Spent = spent,
-		Bonus = "",
 	})
 	-- Tour évoluée par l'entraînement : anneau, fanions, étoiles (Levels.evolutionStage).
 	IdleTowerModel.addEvolution(model, Levels.evolutionStage(towerType, self.training[towerType]))
 	local tower = {
 		id = id,
-		spotIndex = id, -- (PlotGame : identifie la tour pour ses zones de feu)
+		spotIndex = id, -- (Combat : identifie la tour pour ses zones de feu)
 		type = towerType,
 		level = level,
 		spent = spent,
@@ -322,7 +317,6 @@ function LevelGame:createTower(towerType: string, level: number, spent: number, 
 		position = combat.Position,
 		cooldown = 0,
 		model = model,
-		runeKey = "",
 	}
 	self.towers[id] = tower
 	self.usedTowers[towerType] = true

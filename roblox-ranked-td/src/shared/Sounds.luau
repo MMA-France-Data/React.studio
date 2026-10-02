@@ -23,15 +23,15 @@
 --                 atteinte par les flèches et les rochers, et il n'y compte pas ; facultatif
 local Sounds = {}
 
--- Sons 3D (tours, impacts, morts) qui jouent en même temps au plus, sur TOUTE la map (6 parcelles). Les
--- plus proches de la caméra passent d'abord : 80 ennemis x 6 parcelles ne font jamais un brouhaha. (Un son
+-- Sons 3D (tours, impacts, morts) qui jouent en même temps au plus, sur TOUTE la map. Les plus proches de la
+-- caméra passent d'abord : des dizaines de monstres ne font jamais un brouhaha. (Un son
 -- « priority », la mort d'un boss, passe toujours et ne compte pas.)
 Sounds.MAX_COMBAT_SOUNDS = 10
 -- Rayons des Sorciers des arcanes qui bourdonnent en même temps au plus (les plus proches).
 Sounds.MAX_BEAM_LOOPS = 3
 -- En dessous de cette distance (studs), un son 3D joue à plein volume ; il s'éteint à sa « range ».
 Sounds.ROLLOFF_MIN_DISTANCE = 12
--- Musique : fondu (secondes) quand elle démarre, s'arrête (bouton « Son », fenêtre « MATCH TROUVÉ ! »).
+-- Musique : fondu (secondes) quand elle démarre ou s'arrête (bouton « Son »).
 Sounds.MUSIC_FADE_TIME = 2
 
 Sounds.SLOTS = {
@@ -70,52 +70,24 @@ Sounds.SLOTS = {
 	BigDeath = { name = "Mort d'un gros ennemi (chevalier, colosse)", id = 9113157634, volume = 0.45, pitch = 0.85, variation = 0.06, maxAtOnce = 2, minInterval = 0.2, range = 90 },
 	-- « Thunder With Lion Roar Searing Blast Growl 3 (SFX) », Roblox (4 s)
 	BossDeath = { name = "Mort d'un boss", id = 9120031442, volume = 0.55, maxAtOnce = 1, minInterval = 1, range = 160, priority = true },
-	-- « Horn Call 3 - Remastered », APM Music (Alfred Kluten, 7 s) : son 2D, seulement sur ta parcelle
+	-- « Horn Call 3 - Remastered », APM Music (Alfred Kluten, 7 s) : son 2D, seulement dans ton niveau
 	BossArrival = { name = "Arrivée d'un boss (cor de guerre)", id = 1838612394, volume = 0.5, maxAtOnce = 1, minInterval = 3 },
-	-- « Boomy Footsteps Giant Thumpy Dinosaur Footst (SFX) », Pro Sound Effects (3 s) : 2D, sur ta parcelle
+	-- « Boomy Footsteps Giant Thumpy Dinosaur Footst (SFX) », Pro Sound Effects (3 s) : 2D, dans ton niveau
 	GiantArrival = { name = "Arrivée d'un chevalier colossal", id = 9125404769, volume = 0.5, maxAtOnce = 1, minInterval = 3 },
 
 	----------------------------------------------------------------------
-	-- Pièces, vagues, tours (sons 2D : ta parcelle)
+	-- Pendant un niveau (sons 2D)
 	----------------------------------------------------------------------
-	-- « Coins Or Keys Jingle 6 (SFX) », Pro Sound Effects (1 s)
-	CoinPickup = { name = "Pièces ramassées", id = 9113849492, volume = 0.35, variation = 0.1, maxAtOnce = 3, minInterval = 0.08 },
-	-- « Coin Bounce 3 (SFX) », Pro Sound Effects (1 s)
-	CoinAutoCollect = { name = "Pièces ramassées toutes seules (pass)", id = 9113848469, volume = 0.18, variation = 0.1, maxAtOnce = 2, minInterval = 0.3 },
-	-- « Glistening Harp - Sting », APM Music (Julie Blake, 4 s)
-	WaveCleared = { name = "Vague réussie", id = 125706237686412, volume = 0.3, maxAtOnce = 1, minInterval = 1 },
-	-- « BOOM-Deep Boom 13 », APM Music (Aaron Frensley, 4 s)
-	WaveFailed = { name = "Vague ratée", id = 1837830278, volume = 0.45, maxAtOnce = 1, minInterval = 1 },
 	-- « Hammer Nail Into Wood 9 (SFX) », Pro Sound Effects (1 s)
 	TowerPlaced = { name = "Tour posée", id = 9114756156, volume = 0.5, maxAtOnce = 2, minInterval = 0.1 },
 	-- « Blacksmith Anvil Hammer Hits 16 (SFX) », Pro Sound Effects (1 s)
 	TowerUpgraded = { name = "Tour améliorée", id = 9113447467, volume = 0.4, variation = 0.05, maxAtOnce = 2, minInterval = 0.08 },
 	-- « Coin Throws 3 (SFX) », Pro Sound Effects (1 s)
 	TowerSold = { name = "Tour vendue", id = 9113849651, volume = 0.45, maxAtOnce = 1, minInterval = 0.2 },
-	-- « Padlock Open Lock Pick Up Throw Down 1 (SFX) », Pro Sound Effects (2 s)
-	SpotUnlocked = { name = "Emplacement débloqué", id = 9117185722, volume = 0.5, maxAtOnce = 1, minInterval = 0.3 },
-	-- « Magic Glows Soft Clusters Of Chiming Hits 1 (SFX) », Pro Sound Effects (1 s)
-	RuneApplied = { name = "Rune posée sur une tour", id = 9116394545, volume = 0.45, maxAtOnce = 1, minInterval = 0.2 },
-
-	----------------------------------------------------------------------
-	-- Autel, forge, renaissance, défis, classé
-	----------------------------------------------------------------------
-	-- « Magic Twirling Small High Pitch Spinning Chi (SFX) », Pro Sound Effects (2 s)
-	AltarSpin = { name = "Invocation à l'Autel des héros", id = 9125644310, volume = 0.45, maxAtOnce = 1, minInterval = 0.3 },
-	-- « Anvil Hits Ringing Metal Clinks Blacksmith 1 (SFX) », Pro Sound Effects (1 s)
-	ForgeSpin = { name = "Forge runique", id = 9125361455, volume = 0.5, maxAtOnce = 1, minInterval = 0.3 },
-	-- « Heraldic Bugle », APM Music (Soho, 5 s)
-	RareFanfare = { name = "Fanfare : tour légendaire ou rune x20", id = 1845415163, volume = 0.5, maxAtOnce = 1, minInterval = 1 },
-	-- « Orchestral Sting », APM Music (Gregor Narholz, 5 s)
-	Rebirth = { name = "Renaissance", id = 1846284687, volume = 0.5, maxAtOnce = 1, minInterval = 2 },
-	-- « Top Prize », APM Music (David John Arnold, 5 s)
-	ChallengeClaim = { name = "Récompense de défi récupérée", id = 1845411858, volume = 0.45, maxAtOnce = 1, minInterval = 0.5 },
-	-- « Bugle Call », APM Music (Soho, 7 s)
-	MatchFound = { name = "Classé : « MATCH TROUVÉ ! »", id = 1845354030, volume = 0.55, maxAtOnce = 1, minInterval = 2 },
-	-- « Victory Fanfare Sting », APM Music (Alan Hawkshaw, 10 s)
-	MatchVictory = { name = "Classé : victoire", id = 1836473422, volume = 0.5, maxAtOnce = 1, minInterval = 2 },
+	-- « Victory Fanfare Sting », APM Music (Alan Hawkshaw, 10 s) : niveau gagné, tour qui évolue
+	Victory = { name = "Victoire", id = 1836473422, volume = 0.5, maxAtOnce = 1, minInterval = 2 },
 	-- « BOOM-Deep Boom 13 », APM Music (Aaron Frensley, 4 s)
-	MatchDefeat = { name = "Classé : défaite", id = 1837830278, volume = 0.5, maxAtOnce = 1, minInterval = 2 },
+	Defeat = { name = "Défaite", id = 1837830278, volume = 0.5, maxAtOnce = 1, minInterval = 2 },
 
 	----------------------------------------------------------------------
 	-- Interface
@@ -139,28 +111,18 @@ Sounds.SLOTS = {
 	MusicHub3 = { name = "Map : taverne", id = 132846105965979, volume = 0.13, music = true },
 	-- « The Ancient Lutes », Medieval Tavern Music | REDEEMED RUST (DistrokidOfficial, 4 min 05)
 	MusicHub4 = { name = "Map : luths anciens", id = 137023744071437, volume = 0.13, music = true },
-	-- « Into Battle », APM Music (Thomas Balmforth, 3 min 11)
-	MusicMatch1 = { name = "Match : en bataille", id = 1836963388, volume = 0.12, music = true },
-	-- « Medieval Battle Blaze », The Realm of Medieval Music (DistrokidOfficial, 3 min 09)
-	MusicMatch2 = { name = "Match : bataille médiévale", id = 137177134668386, volume = 0.12, music = true },
-	-- « War Horns Ascend », Medieval Tones (DistrokidOfficial, 2 min 18)
-	MusicMatch3 = { name = "Match : cors de guerre", id = 137761154289595, volume = 0.12, music = true },
 }
 
--- Morceaux joués à la suite sur la map principale (Hub) et en match classé (Match).
-Sounds.PLAYLISTS = {
-	Hub = { "MusicHub1", "MusicHub2", "MusicHub3", "MusicHub4" },
-	Match = { "MusicMatch1", "MusicMatch2", "MusicMatch3" },
-}
+-- Morceaux joués à la suite, dans un ordre au hasard.
+Sounds.PLAYLIST = { "MusicHub1", "MusicHub2", "MusicHub3", "MusicHub4" }
 
 -- Ordre et titres du panneau « SONS (Studio) ».
 Sounds.GROUPS = {
 	{ title = "Tours", slots = { "ArcherShot", "FrostPulse", "CatapultLaunch", "CatapultImpact", "StormLightning", "BallistaShot", "BallistaImpact", "ArcaneBeam", "OracleChain", "TrebuchetLaunch", "TrebuchetImpact" } },
 	{ title = "Ennemis", slots = { "EnemyDeath", "BigDeath", "BossDeath", "BossArrival", "GiantArrival" } },
-	{ title = "Parcelle", slots = { "CoinPickup", "CoinAutoCollect", "WaveCleared", "WaveFailed", "TowerPlaced", "TowerUpgraded", "TowerSold", "SpotUnlocked", "RuneApplied" } },
-	{ title = "Machines, renaissance, défis, classé", slots = { "AltarSpin", "ForgeSpin", "RareFanfare", "Rebirth", "ChallengeClaim", "MatchFound", "MatchVictory", "MatchDefeat" } },
+	{ title = "Niveaux", slots = { "TowerPlaced", "TowerUpgraded", "TowerSold", "Victory", "Defeat" } },
 	{ title = "Interface", slots = { "Click", "Error" } },
-	{ title = "Musiques", slots = { "MusicHub1", "MusicHub2", "MusicHub3", "MusicHub4", "MusicMatch1", "MusicMatch2", "MusicMatch3" } },
+	{ title = "Musiques", slots = { "MusicHub1", "MusicHub2", "MusicHub3", "MusicHub4" } },
 }
 
 -- Réglage du bouton « Son » du joueur (sauvegardé avec ses données, voir PlayerData) :

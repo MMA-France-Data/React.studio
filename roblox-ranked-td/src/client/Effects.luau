@@ -1,21 +1,13 @@
--- Effets visuels purement côté client : tirs des tours et barres de vie des ennemis.
+-- Effets visuels purement côté client : tirs des tours, zones de feu, rayon, marques des contrôles
+-- (appelés par PlotRenderer).
 local Debris = game:GetService("Debris")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 
-local Shared = ReplicatedStorage:WaitForChild("Shared")
-local Config = require(Shared.Config)
-local ProximityLabel = require(Shared.ProximityLabel)
-local Remotes = require(Shared.Remotes)
-local Towers = require(Shared.Towers)
-local SoundManager = require(script.Parent.SoundManager)
 local CombatVFX = require(script.Parent.CombatVFX)
 
 local Effects = {}
-
--- Match classé : son du tir de chaque tour (Sounds.luau ; le mode solo joue les siens dans PlotRenderer).
-local RANKED_SHOT_SOUNDS = { Gunner = "ArcherShot", Sniper = "BallistaShot", Mortar = "CatapultLaunch", Freezer = "FrostPulse" }
 
 local effectsFolder = Instance.new("Folder")
 effectsFolder.Name = "Effects"
@@ -55,7 +47,7 @@ function Effects.pulse(position: Vector3, radius: number, color: Color3)
 	CombatVFX.pulse(effectsFolder, position, radius, color)
 end
 
--- Cercle bleu simple du Totem de givre (et de la tour de givre du classé), comme à l'origine (CombatVFX.circle).
+-- Cercle bleu simple du Totem de givre (CombatVFX.circle).
 function Effects.circle(position: Vector3, radius: number, color: Color3)
 	CombatVFX.circle(effectsFolder, position, radius, color)
 end
@@ -91,7 +83,7 @@ local bowAnimating: { [Model]: boolean } = setmetatable({}, { __mode = "k" }) ::
 local function aimTower(model: Model?, target: Vector3)
 	if not model then return end
 	local current = model:GetAttribute("AimFrame")
-	if typeof(current) ~= "CFrame" then return end -- modèles du mode infini uniquement
+	if typeof(current) ~= "CFrame" then return end -- (tour sans repère de visée : rien à tourner)
 	-- Ne pas déplacer une pièce dont un ancien tween conserve la position absolue.
 	for _, descendant in model:GetDescendants() do
 		if descendant:IsA("BasePart") and animating[descendant] then return end
@@ -165,9 +157,9 @@ local function projectilePart(color: Color3, size: Vector3, material): Part
 end
 
 -- Flèche ou carreau réellement visible pendant tout le trajet.
--- travel = durée du vol imposée (mode infini : le serveur applique les dégâts à l'arrivée) ;
+-- travel = durée du vol imposée (le serveur applique les dégâts à l'arrivée) ;
 -- impactRadius > 0 = petite explosion à l'arrivée (carreau de la Baliste) ;
--- follow = projectile qui suit sa cible (mode infini, voir playTowerShot) : à chaque image, il vole vers le
+-- follow = projectile qui suit sa cible (voir playTowerShot) : à chaque image, il vole vers le
 -- point que renvoie follow() au lieu de `to`, et l'explosion a lieu là où il arrive.
 local function linearProjectile(from: Vector3, to: Vector3, color: Color3, heavy: boolean, travel: number?, impactRadius: number?, follow: (() -> Vector3)?, flaming: boolean?)
 	local delta = to - from
@@ -215,13 +207,13 @@ local function linearProjectile(from: Vector3, to: Vector3, color: Color3, heavy
 	end
 end
 
--- Étourdissement du Trébuchet royal (mode infini) : même doré que le disque des ennemis étourdis (PlotRenderer).
+-- Étourdissement du Trébuchet royal : même doré que le disque des ennemis étourdis (PlotRenderer).
 local STUN_COLOR = Color3.fromRGB(255, 212, 90)
 
 -- Pierre de siège avec une vraie trajectoire parabolique.
--- travel = durée du vol imposée (mode infini), sinon calculée avec la distance (ranked).
+-- travel = durée du vol imposée, sinon calculée avec la distance.
 -- size / material / onImpact : grosse pierre du Trébuchet royal (sinon rocher de 0,9 et petite explosion).
--- follow = rocher qui suit sa cible (Catapulte du mode infini, voir playTowerShot) : à chaque image, la cloche
+-- follow = rocher qui suit sa cible (Catapulte, voir playTowerShot) : à chaque image, la cloche
 -- (même hauteur) retombe sur le point que renvoie follow() au lieu de `to`, et l'explosion a lieu là.
 local function arcingProjectile(from: Vector3, to: Vector3, color: Color3, radius: number, travel: number?, size: number?, material: Enum.Material?, onImpact: ((Vector3) -> ())?, follow: (() -> Vector3)?)
 	local projectile = projectilePart(color, Vector3.one * (size or 0.9), material or Enum.Material.Rock)
@@ -260,13 +252,13 @@ end
 
 -- Impact de la pierre runique du Trébuchet royal : un éclat, puis une onde dorée au sol exactement de la
 -- taille de sa zone (radius, envoyé par le serveur) : les ennemis dedans prennent les dégâts et sont étourdis
--- (sauf ceux déjà contrôlés par une autre tour, règle des contrôles de PlotGame).
+-- (sauf ceux déjà contrôlés par une autre tour, règle des contrôles de Hub/Combat.luau).
 local function trebuchetImpact(to: Vector3, radius: number, color: Color3)
 	CombatVFX.stoneImpact(effectsFolder, to, math.max(2, radius * 0.45), color)
 	Effects.pulse(to, math.max(1, radius), STUN_COLOR)
 end
 
--- Carreau perçant de la Baliste lourde (mode infini, appelé par PlotRenderer à l'impact) : une traînée au ras
+-- Carreau perçant de la Baliste lourde (appelé par PlotRenderer à l'impact) : une traînée au ras
 -- du chemin, de la tour (sous `from`) au point d'impact, aussi large que la zone touchée par le serveur
 -- (2 x halfWidth) : tous les ennemis dessous ont pris les dégâts.
 function Effects.pierceTrail(from: Vector3, to: Vector3, halfWidth: number, color: Color3)
@@ -285,23 +277,7 @@ function Effects.pierceTrail(from: Vector3, to: Vector3, halfWidth: number, colo
 	Effects.burst(b, 1.4, color, 0.2)
 end
 
-local function magicProjectile(from: Vector3, to: Vector3, color: Color3)
-	local projectile = projectilePart(color, Vector3.one * 0.58, Enum.Material.Neon)
-	projectile.Shape = Enum.PartType.Ball
-	projectile.Position = from
-	CombatVFX.decorateMagic(projectile, color)
-	local duration = math.clamp((to - from).Magnitude / 75, 0.18, 0.55)
-	Debris:AddItem(projectile, duration + 0.5)
-	TweenService:Create(projectile, TweenInfo.new(duration, Enum.EasingStyle.Quad, Enum.EasingDirection.In), { Position = to, Size = Vector3.one * 0.3 }):Play()
-	task.delay(duration, function()
-		if projectile.Parent then
-			projectile:Destroy()
-			Effects.burst(to, 1.4, color, 0.18)
-		end
-	end)
-end
-
--- Éclair en zigzag (Mage des tempêtes du mode infini) : 7 segments à cœur clair qui s'effacent vite, puis une petite
+-- Éclair en zigzag (Mage des tempêtes, Oracle de la foudre) : 7 segments à cœur clair qui s'effacent vite, puis une petite
 -- décharge de la taille de sa zone là où la foudre tombe.
 local function stormStrike(from: Vector3, to: Vector3, color: Color3, radius: number)
 	local segments = 7
@@ -323,18 +299,14 @@ local function stormStrike(from: Vector3, to: Vector3, color: Color3, radius: nu
 	Effects.burst(to + Vector3.new(0, 0.6, 0), math.max(1.2, radius), color, 0.22)
 end
 
-local ARROW_TYPES = { Gunner = true, MachineGun = true, Sniper = true, Rocket = true }
-local SIEGE_TYPES = { Mortar = true, Bomb = true, Orbital = true }
+local ARROW_TYPES = { MachineGun = true, Rocket = true }
+local SIEGE_TYPES = { Bomb = true, Orbital = true }
 
 local MUZZLE_PARTS = {
-	Gunner = { "Arrow" },
 	MachineGun = { "Arrow" },
-	Sniper = { "Bolt" },
 	Rocket = { "Bolt", "BoltHead" },
-	Mortar = { "Boulder" },
 	Bomb = { "Boulder" },
 	Orbital = { "RunicStone" },
-	Cryo = { "IceCrystal", "Staff" },
 	Frost = { "CrystalCore" },
 	Tesla = { "StormGem" },
 	Laser = { "ArcaneShard2", "RuneFront" },
@@ -360,15 +332,15 @@ local function animateTower(model: Model?, towerType: string): number
 	if model and model:GetAttribute("WorkingBow") then
 		releaseBow(model)
 		return 0.035
-	elseif towerType == "Sniper" or towerType == "Rocket" then
+	elseif towerType == "Rocket" then
 		recoil(model, { CrossbowArm = true, CrossbowString = true, BowArm = true, String = true }, CFrame.new(0, 0, 0.32), 0.1, 0.12)
 		hideBriefly(model, { Bolt = true }, 0.28)
 		return 0.09
-	elseif towerType == "Gunner" or towerType == "MachineGun" then
+	elseif towerType == "MachineGun" then
 		recoil(model, { BowUpper = true, BowLower = true }, CFrame.new(0, 0, 0.18) * CFrame.Angles(0, 0, math.rad(5)), 0.08, 0.14)
 		hideBriefly(model, { Arrow = true }, 0.22)
 		return 0.07
-	elseif towerType == "Mortar" or towerType == "Bomb" then
+	elseif towerType == "Bomb" then
 		recoil(model, { ThrowingArm = true, Spoon = true }, CFrame.Angles(math.rad(52), 0, 0), 0.13, 0.42)
 		hideBriefly(model, { Boulder = true }, 0.55)
 		return 0.12
@@ -377,7 +349,7 @@ local function animateTower(model: Model?, towerType: string): number
 		recoil(model, { Counterweight = true }, CFrame.new(0, -0.5, 0), 0.16, 0.55)
 		hideBriefly(model, { RunicStone = true }, 0.7)
 		return 0.15
-	elseif towerType == "Cryo" or towerType == "Tesla" then
+	elseif towerType == "Tesla" then
 		recoil(model, { Staff = true }, CFrame.Angles(0, 0, math.rad(-10)), 0.1, 0.22)
 	elseif towerType == "Laser" then
 		recoil(model, { ArcaneShard1 = true, ArcaneShard2 = true, ArcaneShard3 = true }, CFrame.new(0, 0.35, 0), 0.1, 0.2)
@@ -387,10 +359,9 @@ local function animateTower(model: Model?, towerType: string): number
 	return 0
 end
 
--- flightTime (mode infini seulement) : secondes réelles avant l'impact, envoyées par le serveur. Le
--- projectile part après l'animation de la tour et arrive pile à ce moment-là (quand les dégâts tombent).
--- Sans flightTime (ranked), les durées de toujours.
--- follow (mode infini seulement : flèche, rocher de la Catapulte, carreau de la Baliste) : fonction qui renvoie,
+-- flightTime : secondes réelles avant l'impact, envoyées par le serveur. Le projectile part après l'animation
+-- de la tour et arrive pile à ce moment-là (quand les dégâts tombent).
+-- follow (flèche, rocher de la Catapulte, carreau de la Baliste) : fonction qui renvoie,
 -- à chaque image, le point où le projectile doit tomber (l'ennemi visé tel qu'il est affiché, ou le point prévu
 -- s'il a disparu, voir PlotRenderer) : il arrive là où le serveur fait tomber les dégâts. La tour vise quand
 -- même le point prévu au départ. Sans follow, le projectile va tout droit à `to`.
@@ -421,7 +392,7 @@ function Effects.playTowerShot(from: Vector3, to: Vector3, towerType: string, ra
 				from,
 				to,
 				if towerType == "Rocket" then color else Color3.fromRGB(218, 171, 71),
-				towerType == "Sniper" or towerType == "Rocket",
+				towerType == "Rocket",
 				travel,
 				if flightTime and towerType == "Rocket" then radius else nil,
 				follow,
@@ -433,14 +404,12 @@ function Effects.playTowerShot(from: Vector3, to: Vector3, towerType: string, ra
 			stormStrike(from, to, color, 0.7)
 		elseif towerType == "Laser" then
 			Effects.tracer(from, to, color, 0.28)
-		else
-			magicProjectile(from, to, color)
 		end
 	end)
 end
 
 ----------------------------------------------------------------------
--- Mode infini : zones de feu et rayon continu (appelés par PlotRenderer)
+-- Zones de feu et rayon continu (appelés par PlotRenderer)
 ----------------------------------------------------------------------
 
 -- Fait disparaître une part en douceur, puis la détruit.
@@ -479,155 +448,6 @@ end
 
 function Effects.setStatusVisual(anchor: BasePart, source: string?, fragile: boolean)
 	CombatVFX.setStatus(anchor, source, fragile)
-end
-
-local function towerById(towerId: number?): Model?
-	if not towerId then
-		return nil
-	end
-	local towers = workspace:FindFirstChild("Towers")
-	if not towers then
-		return nil
-	end
-	for _, tower in towers:GetChildren() do
-		if tower:IsA("Model") and tower:GetAttribute("TowerId") == towerId then
-			return tower
-		end
-	end
-	return nil
-end
-
-local function onTowerFired(from: Vector3, to: Vector3, towerType: string, radius: number, towerId: number?)
-	local def = Towers.Defs[towerType]
-	if not def then
-		return
-	end
-	Effects.playTowerShot(from, to, towerType, radius, def.color, def.kind, towerById(towerId))
-	local sound = RANKED_SHOT_SOUNDS[towerType]
-	if sound then
-		SoundManager.playAt(sound, from)
-	end
-	if towerType == "Mortar" and SoundManager.isAudible("CatapultImpact", to) then
-		-- Même durée que le rocher (animation de la tour, puis arcingProjectile) : le bruit tombe avec lui.
-		local travel = 0.12 + math.clamp((to - from).Magnitude / 55, 0.42, 0.9)
-		task.delay(travel, SoundManager.playAt, "CatapultImpact", to)
-	end
-end
-
-local function addHealthBar(enemy: Instance)
-	if not enemy:IsA("BasePart") then
-		return
-	end
-	local billboard = Instance.new("BillboardGui")
-	billboard.Size = UDim2.fromOffset(40, 6)
-	billboard.StudsOffset = Vector3.new(0, enemy.Size.Y / 2 + 1, 0)
-	ProximityLabel.register(billboard, Config.LabelDistance.Far)
-	billboard.AlwaysOnTop = true
-
-	local background = Instance.new("Frame")
-	background.Size = UDim2.fromScale(1, 1)
-	background.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-	background.BorderSizePixel = 0
-	background.Parent = billboard
-
-	local fill = Instance.new("Frame")
-	fill.Size = UDim2.fromScale(1, 1)
-	fill.BackgroundColor3 = Color3.fromRGB(90, 220, 90)
-	fill.BorderSizePixel = 0
-	fill.Parent = background
-
-	local function update()
-		local health = enemy:GetAttribute("Health") or 0
-		local maxHealth = enemy:GetAttribute("MaxHealth") or 1
-		fill.Size = UDim2.fromScale(math.clamp(health / maxHealth, 0, 1), 1)
-	end
-	update()
-	enemy:GetAttributeChangedSignal("Health"):Connect(update)
-	billboard.Parent = enemy
-end
-
--- Badge au-dessus de chaque tour : 3 pastilles qui se remplissent avec le niveau
--- (dorées au niveau max). Visible sur tes tours comme sur celles de l'adversaire.
-local function addTowerBadge(model: Instance)
-	local towerType = model:GetAttribute("TowerType")
-	local def = towerType and Towers.Defs[towerType]
-	if not def or not model:IsA("Model") then
-		return
-	end
-	local anchor = model:WaitForChild("Base", 5)
-	if not anchor then
-		return
-	end
-	local maxLevel = Towers.maxLevel(towerType)
-
-	local billboard = Instance.new("BillboardGui")
-	billboard.Name = "LevelBadge"
-	billboard.Size = UDim2.fromOffset(78, 26)
-	billboard.AlwaysOnTop = true
-	ProximityLabel.register(billboard, Config.LabelDistance.Medium)
-	billboard.Adornee = anchor
-
-	local background = Instance.new("Frame")
-	background.Size = UDim2.fromScale(1, 1)
-	background.BackgroundColor3 = Color3.fromRGB(20, 22, 30)
-	background.BackgroundTransparency = 0.25
-	background.Parent = billboard
-	local corner = Instance.new("UICorner")
-	corner.CornerRadius = UDim.new(1, 0)
-	corner.Parent = background
-	local layout = Instance.new("UIListLayout")
-	layout.FillDirection = Enum.FillDirection.Horizontal
-	layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-	layout.VerticalAlignment = Enum.VerticalAlignment.Center
-	layout.Padding = UDim.new(0, 6)
-	layout.Parent = background
-
-	local pips = {}
-	for index = 1, maxLevel do
-		local pip = Instance.new("Frame")
-		pip.Size = UDim2.fromOffset(14, 14)
-		pip.LayoutOrder = index
-		pip.Parent = background
-		local pipCorner = Instance.new("UICorner")
-		pipCorner.CornerRadius = UDim.new(1, 0)
-		pipCorner.Parent = pip
-		local stroke = Instance.new("UIStroke")
-		stroke.Color = Color3.new(1, 1, 1)
-		stroke.Transparency = 0.4
-		stroke.Parent = pip
-		pips[index] = pip
-	end
-
-	local function update()
-		local level = model:GetAttribute("Level") or 1
-		local maxed = level >= maxLevel
-		for index, pip in pips do
-			local filled = index <= level
-			pip.BackgroundColor3 = if maxed then Color3.fromRGB(255, 205, 80) elseif filled then def.color else Color3.fromRGB(45, 48, 60)
-			pip.BackgroundTransparency = if filled then 0 else 0.2
-		end
-		-- Le badge suit la hauteur de la tour (qui grandit à chaque niveau).
-		billboard.StudsOffsetWorldSpace = Vector3.new(0, 1.5 + level * 1.2 + (if maxed then 3.2 else 2), 0)
-	end
-	update()
-	model:GetAttributeChangedSignal("Level"):Connect(update)
-	billboard.Parent = model
-end
-
-function Effects.start()
-	Remotes.get("TowerFired").OnClientEvent:Connect(onTowerFired)
-
-	local towers = workspace:WaitForChild("Towers")
-	towers.ChildAdded:Connect(addTowerBadge)
-	for _, model in towers:GetChildren() do
-		task.spawn(addTowerBadge, model)
-	end
-
-	local enemies = workspace:WaitForChild("Enemies")
-	enemies.ChildAdded:Connect(addHealthBar)
-	for _, enemy in enemies:GetChildren() do
-		addHealthBar(enemy)
-	end
 end
 
 return Effects

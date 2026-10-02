@@ -1,65 +1,53 @@
-# Avant la sortie du jeu
+# Avant de rendre le jeu public
 
-Liste des choses à faire avant de rendre le jeu public. On coche au fur et à mesure.
+Liste des choses à faire avant d'ouvrir le jeu à tout le monde. On coche au fur et à mesure.
 
-## Contenu du jeu
+Le jeu sort comme une **nouvelle expérience Roblox** (décision du 02/10/2026) : plus rien n'est publié sur
+« Tower 22 ». L'ancien jeu est gardé dans le dépôt, à l'étiquette git `ancien-jeu-complet`.
 
-- [ ] Monstres des vagues 51 à 100 : troupes et boss importés dans Studio, puis vérifiés par les tests
-      (toutes les troupes 1-100 sont faites ; boss faits : 10, 20, 30, 40, 50, 70, 80 et le dragon de la vague 100 ;
-      restent le boss 60 (Roi mort-vivant, fichier donné à part), le boss 90 (orc) et la mort du dragon).
-- [x] Tuto pour les nouveaux joueurs : arène classée, ta parcelle, poser une tour, l'améliorer, lancer
-      l'autel une fois, la forge (à essayer toi-même dans Studio : il s'affiche à chaque Play).
-- [x] Monstres et tirs des autres parcelles affichés seulement quand on s'en approche ; interactions
-      seulement avec sa propre parcelle (à revoir à 2 joueurs dans le jeu publié).
-- [x] Limite de tours identiques sur sa parcelle : 5 par tour commune, 4 par rare, 3 par épique, 2 par
-      légendaire (mode solo seulement ; les tours déjà posées au-delà sont gardées).
-- [x] Fenêtres de l'autel, de la forge et de la renaissance adaptées aux téléphones (trop grandes : le
-      bouton x1 sort presque de l'écran). Toutes les fenêtres se réduisent pour tenir à l'écran, et la colonne
-      de boutons de gauche aussi (la Boutique et les Défis sortaient de l'écran). À revoir sur un vrai téléphone.
-- [ ] Sons : écoutés et validés dans Studio (bouton « SONS (Studio) »).
+## Le jeu lui-même
 
-## Publication (Studio et Creator Dashboard)
+- [x] 10 niveaux, camp d'entraînement, évolutions des tours, boutique à prix fixes (voir `NIVEAUX.md`).
+- [x] Tout l'ancien jeu enlevé (classé, autel, forge, vagues infinies, renaissance, défis, passes, ancien tuto).
+- [ ] **Petit tuto** pour un nouveau joueur : aujourd'hui, seul un conseil en bas de l'écran guide la pose puis
+      l'amélioration au niveau 1. Il faudrait au moins dire où cliquer en arrivant (« ⚔ NIVEAUX »).
+- [ ] **Traduction anglaise** des écrans des niveaux et du camp (ils sont en français pour tout le monde). Le
+      mécanisme existe déjà (voir `README.md`, « Langues »).
+- [ ] **Essai sur un vrai téléphone** : boutons, textes, pose d'une tour au doigt, zoom en pinçant, fluidité. (Les
+      tests automatiques ne vérifient que la taille de l'écran, pas le toucher.)
+- [ ] **Un nouveau joueur passe-t-il le niveau 1 ?** La difficulté est réglée avec des joueurs simulés et un seul
+      vrai joueur (toi).
+- [ ] La Baliste et le Trébuchet : les renforcer ? (en attente de ta décision, voir `NIVEAUX.md`)
+- [ ] Les niveaux 11 à 20 (autre carte, autre famille de monstres) : avant ou après la sortie ?
+- [ ] Monstres : il manque les boss des territoires 6 et 9 (niveaux 60 et 90) et la mort du dragon. Sans importance
+      tant que le jeu a 10 niveaux.
+- [ ] Des passes Robux pour ce jeu ? Il n'y en a plus aucun.
 
-- [x] Publier le jeu sur ton compte personnel (Fichier > Publier sur Roblox) : « Tower 22 », privé, publié le 30/09.
-      Mises à jour : ouvrir la copie propre préparée par Claude, Publier sur Roblox > « Mettre à jour l'expérience
-      existante… » > Tower 22.
-- [x] Taille des serveurs : 6 joueurs (une parcelle par joueur) : Hub Création > Lieux > Tower 22 > Accès.
-- [x] Remplir le questionnaire sur le contenu : fait le 30/09 (violence légère répétée -> « Léger » ; objets aléatoires
-      payants : oui, et PolicyService respecté ; tout le reste : non).
-- [x] Créer les pass (30/09) et les mettre dans le jeu (`Config.GamePasses`) : Auto Collect 99, Speed x2 199,
-      Coins x2 249. Un pass « Forge Spin » créé par erreur reste sans prix : personne ne peut l'acheter.
-- [x] Lancer de la forge en Robux (produit « Forge Spin », 49 Robux) RETIRÉ du jeu le 01/10 : plus aucun objet
-      aléatoire payant (l'autel et la forge ne se paient qu'en pièces gagnées en jouant). Les chances affichées par
-      la forge font toujours exactement 100 %.
-- [ ] Après la publication de cette version : refaire le questionnaire sur le contenu (objets aléatoires payants :
-      non). Pas avant : tant que l'ancienne version tourne, le lancer Robux existe encore.
-- [x] Version anglaise (décidé le 30/09 : pas de sortie sans elle) : les joueurs francophones gardent le
-      français, tous les autres voient l'anglais, phrases à chiffres comprises (src/shared/Lang.luau,
-      dictionnaires src/shared/LangEN, voir le README). Le test Studio « version anglaise » dit 0 texte encore en
-      français. La traduction automatique de Roblox peut se réactiver toute seule : le jeu protège déjà ses textes
-      anglais (AutoLocalize = false) ; à faire plus tard : la même protection pour les textes français.
-- [ ] Page du jeu (Hub Création) : description anglaise « Ranked 1v1 coming soon » (et sa traduction française dans
-      Localisation), icône, miniatures (sa miniature + images du tournage : Vidéos\Tower 22\Images), vidéo
-      `Vidéos\Tower 22\Tower22-compilation-finale.mp4` (17,8 s ; Roblox : 30 s au plus, en anglais, compte vérifié de
-      13 ans et plus pour l'envoyer).
+## Publication (Studio et Hub Création)
+
+- [ ] Publier comme une **nouvelle expérience** sur ton compte personnel (Fichier > Publier sur Roblox > « Créer une
+      nouvelle expérience »), en privé. Les mises à jour ensuite : ouvrir la copie propre préparée par Claude,
+      Publier sur Roblox > « Mettre à jour l'expérience existante… » > la nouvelle expérience (**pas** « Tower 22 »).
+- [ ] Sur ton compte, pas sur une communauté : les animations des monstres sont publiées sur ton compte, elles ne se
+      jouent que dans tes expériences.
+- [ ] Taille des serveurs : **6 joueurs** (une parcelle par joueur) : Hub Création > Lieux > le lieu > Accès.
+- [ ] Questionnaire sur le contenu : violence légère répétée -> « Léger » ; objets aléatoires payants : **non**
+      (plus aucun tirage, plus aucun achat) ; tout le reste : non.
+- [ ] Ne pas activer la traduction automatique de Roblox (Hub Création > Localisation).
+- [ ] Page du jeu : nom, description (français et anglais), icône, miniatures, vidéo (Roblox : 30 s au plus, textes
+      et son en anglais, compte vérifié de 13 ans et plus pour l'envoyer). Les images et vidéos tournées pour
+      « Tower 22 » montrent l'ancien jeu : à refaire.
 - [ ] Public des moins de 16 ans (règles Roblox 2026) : tout nouveau jeu commence en 16+ ; pour Roblox Kids (5-8 ans)
       et Select (9-15 ans) : âge vérifié, double authentification, Roblox Premium 2 mois de suite (ou frais
-      remboursables), puis 250 parties de joueurs « très engagés » en 60 jours (tableau « Audience Reach »).
+      remboursables), puis 250 parties de joueurs « très engagés » en 60 jours (tableau « Audience Reach »). Ne pas
+      payer l'examen accéléré.
 
-## Le classé (sortie sans lui, décidé le 30/09)
+## Derniers essais dans le jeu publié (encore privé)
 
-- [x] Classé fermé pour la sortie : `Config.RANKED_OPEN = false` (dans le cercle « BIENTÔT DISPONIBLE », le serveur
-      refuse tout, défis classés cachés, tuto adapté). La description du jeu doit le dire : « Ranked 1v1 coming soon ».
-- [ ] Avant de l'ouvrir : classé avec 2 vrais joueurs (inscription dans le cercle, « MATCH TROUVÉ ! », accepter, match,
-      retour sur la map), dans une version publiée avec le classé ouvert (jeu encore privé, ou une copie du jeu).
-- [ ] Ouvrir le classé : `Config.RANKED_OPEN = true` (dans `src/shared/Config.luau`), puis publier la mise à jour.
-
-## Derniers essais dans le jeu publié
-
-- [ ] Boutique : tu possèdes déjà tes 3 pass (le créateur d'un pass l'a toujours) ; un ami achète le plus petit
-      (Auto Collect, 99) et vérifie qu'il marche tout de suite.
-- [ ] Classement solo (panneaux « CLASSEMENT SOLO » à l'est et à l'ouest de la place) : avec les vrais DataStores,
-      vérifier qu'on y apparaît (record de vague et DPS, mis à jour chaque minute) depuis deux serveurs différents,
-      et la liste des joueurs (colonnes DPS et Money).
-- [ ] Sur téléphone : boutons, textes, tuto, fluidité.
+- [ ] La sauvegarde : gagner un niveau, quitter, revenir : le niveau, les pièces et les tours achetées sont là.
+- [ ] L'entraînement pendant l'absence : mettre une tour dans le camp, revenir une heure plus tard.
+- [ ] À deux joueurs : chacun sa parcelle, on voit le camp de l'autre en s'approchant, les invites de l'autre
+      parcelle ne marchent pas, deux niveaux joués en même temps.
+- [ ] Les sons et les animations des monstres se chargent (dans une nouvelle expérience, une animation qui ne
+      t'appartient pas ne se joue pas : le monstre glisse sans bouger les jambes).
 - [ ] Rendre le jeu public.

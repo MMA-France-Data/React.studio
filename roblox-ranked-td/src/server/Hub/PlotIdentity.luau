@@ -67,8 +67,7 @@ function PlotIdentity.attach(plot: Folder, board: BasePart, index: number, accen
 		for _, item in faces do
 			item.owner.Text = if player then player.DisplayName else "Fief libre"
 			item.username.Text = if player then "@" .. player.Name else "Un domaine prêt à accueillir son seigneur"
-			-- (parcelle devenue camp de la nouvelle formule : attribut Camp, Hub/Camp.luau)
-			item.status.Text = if not player then "PARCELLE DISPONIBLE" elseif plot:GetAttribute("Camp") == true then "CAMP DES TOURS" else "DÉFENDS TON ROYAUME"
+			item.status.Text = if not player then "PARCELLE DISPONIBLE" else "CAMP DES TOURS"
 			item.avatar.Image = if player then cache[player.UserId] or "" else ""
 			item.fallback.Visible = item.avatar.Image == ""
 			item.fallback.Text = if player and player.DisplayName ~= "" then utf8.char(utf8.codepoint(player.DisplayName, 1)) else "?"
@@ -104,7 +103,6 @@ function PlotIdentity.attach(plot: Folder, board: BasePart, index: number, accen
 		end)
 	end
 	table.insert(connections, plot:GetAttributeChangedSignal("OwnerUserId"):Connect(refresh))
-	table.insert(connections, plot:GetAttributeChangedSignal("Camp"):Connect(refresh))
 	table.insert(connections, bridge:GetPropertyChangedSignal("Text"):Connect(refresh))
 	table.insert(connections, Players.PlayerAdded:Connect(function(player)
 		if player.UserId == plot:GetAttribute("OwnerUserId") then boundId = nil; refresh() end

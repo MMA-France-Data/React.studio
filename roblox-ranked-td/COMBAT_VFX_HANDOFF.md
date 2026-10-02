@@ -1,10 +1,13 @@
 # Effets de combat — client, 30 septembre 2026
 
+(Écrit pour l'ancien jeu ; les effets servent aujourd'hui aux niveaux et au camp d'entraînement, sans changement.
+« Parcelle » = une zone de combat : un niveau ou un camp.)
+
 Livraison séparée du HUD, préparée après récupération de `943bdfa` (unités 61–100 et tests de Claude). Modules : `src/client/CombatVFX.luau`, `Effects.luau` et `PlotRenderer.luau`. Rojo charge automatiquement le nouveau module.
 
 ## Visuels
 
-- Flèches et carreaux : pointe, empennage, traînée ; flèches enflammées de l'Archer infini avec flammes et braises en vol.
+- Flèches et carreaux : pointe, empennage, traînée ; flèches enflammées de l'Archer avec flammes et braises en vol.
 - Feu au sol : foyers, braises et fumée plutôt qu'un disque orange opaque.
 - Catapulte/trébuchet : projectile visible, poussière, étincelles et petits fragments ancrés qui disparaissent, sans physique.
 - Givre : onde creuse brève, brume froide et éclats aux pieds des ennemis ralentis.

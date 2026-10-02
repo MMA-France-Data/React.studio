@@ -1,9 +1,9 @@
--- Traduction automatique de tout ce qui s'affiche, côté client (map principale et match).
+-- Traduction automatique de tout ce qui s'affiche, côté client.
 -- Le jeu écrit tous ses textes en français. Pour un joueur NON francophone (attribut « Lang » = "en", mis par le
 -- serveur d'après sa langue Roblox, voir Shared/Lang.luau), ce module remplace chaque texte affiché par sa
 -- traduction anglaise (dictionnaires Shared/LangEN) :
 --   * les TextLabel et TextButton de son écran (PlayerGui) et des panneaux du monde (SurfaceGui, BillboardGui) ;
---   * les invites ProximityPrompt (ActionText « Ouvrir », ObjectText « Autel des héros »...).
+--   * les invites ProximityPrompt (ActionText « Ouvrir », ObjectText « BOUTIQUE DES TOURS »...).
 -- Jamais les TextBox (où le joueur écrit). Un texte est traduit quand il apparaît, puis à chaque fois que le jeu (ou
 -- le serveur) le change : le jeu continue d'écrire en français, sans rien savoir de l'anglais. Pour chaque texte, on
 -- garde le texte français d'origine : retour au français en direct si la langue change (attribut « Lang »).
@@ -263,8 +263,8 @@ function AutoTranslate.original(instance: Instance, property: string?): string?
 end
 
 -- Studio seulement (jamais dans le jeu publié) : BindableFunction « AutoTranslateStudio » dans le joueur, pour les
--- tests automatiques (tools/studio-test/scenarios/Client.luau, test « version anglaise »). Le scénario de test a
--- sa propre copie des modules : il passe par elle pour lire l'état de CETTE copie.
+-- tests automatiques (tools/studio-test). Un scénario de test a sa propre copie des modules : il passe par elle
+-- pour lire l'état de CETTE copie.
 --   Invoke("Language")               -> langue affichée ("fr" ou "en")
 --   Invoke("Tracked")                -> nombre de textes suivis
 --   Invoke("Original", objet, prop?) -> texte français d'origine de l'objet (nil s'il n'est pas suivi)
@@ -306,7 +306,7 @@ local function setupStudioDebug()
 	bindable.Parent = player
 end
 
--- Démarré une seule fois par Main.client.luau (map principale et match), avant les interfaces.
+-- Démarré une seule fois par Main.client.luau, avant les interfaces.
 function AutoTranslate.start()
 	if started then
 		return

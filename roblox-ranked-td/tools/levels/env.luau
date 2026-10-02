@@ -1,5 +1,5 @@
--- Imitations de Roblox pour charger les VRAIS modules du serveur des niveaux (PlotGame.luau, LevelGame.luau) hors
--- de Studio, avec la commande `luau` (voir run.ps1). Les Vector3 / CFrame viennent de tools/balance/idle/shim.luau.
+-- Imitations de Roblox pour charger les VRAIS modules du serveur des niveaux (Combat.luau, LevelGame.luau,
+-- CampGame.luau) hors de Studio, avec la commande `luau` (voir run.ps1). Les Vector3 / CFrame viennent de shim.luau.
 -- run.ps1 copie chaque module dans gen/ en ajoutant ces imitations au début de sa première ligne (les numéros de
 -- ligne des erreurs restent ceux de src/).
 local Env = {}

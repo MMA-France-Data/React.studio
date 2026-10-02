@@ -1,5 +1,4 @@
--- NIVEAUX, côté client (prototype de la nouvelle formule : règles et chiffres dans Shared/Levels.luau, serveur :
--- Hub/LevelsService.luau). Deux écrans :
+-- NIVEAUX, côté client (règles et chiffres : Shared/Levels.luau, serveur : Hub/LevelsService.luau). Deux écrans :
 --   « Levels »   : le bouton « ⚔ NIVEAUX » de la map principale et sa fenêtre à 4 onglets : Niveaux (choisir un
 --                  niveau), Boutique (tours à prix fixes, en pièces de niveau), Entraînement (emplacements du camp,
 --                  XP et améliorations de chaque tour), Mes tours (l'inventaire et l'ordre de la barre rapide) ;
@@ -11,14 +10,12 @@
 --                  ou glisser la tour depuis la barre ; la tour en main dit « ANNULER » : un appui dessus annule),
 --                  « + » aux emplacements conseillés (on peut poser ailleurs), petit menu Améliorer / Vendre à côté
 --                  de la tour touchée, bouton x2, écran de fin (Niveau suivant / Rejouer / Retour au camp).
--- Le client ne décide rien : il lit les attributs publiés par le serveur (du joueur : LevelsAccess, LevelsState,
--- LevelArena ; du dossier de sa zone : Level, State, Gold, Lives..., voir Remotes.luau) et envoie des demandes
--- (remote LevelAction). Les monstres, les tirs et les étiquettes des tours sont affichés par PlotRenderer, comme
--- pour une parcelle.
--- Pendant un niveau, le personnage reste sur la place : ses commandes sont coupées, les autres écrans du jeu sont
+-- Le client ne décide rien : il lit les attributs publiés par le serveur (du joueur : LevelsState, LevelArena ; du
+-- dossier de sa zone : Level, State, Gold, Lives..., voir Remotes.luau) et envoie des demandes (remote
+-- LevelAction). Les monstres, les tirs et les étiquettes des tours sont affichés par PlotRenderer.
+-- Pendant un niveau, le personnage reste sur sa parcelle : ses commandes sont coupées, les autres écrans du jeu sont
 -- cachés, puis tout est remis au retour.
--- Visible seulement si le serveur donne l'accès (Config.LEVELS_ACCESS : le propriétaire, pour l'instant). Pas
--- encore traduit en anglais (écrans marqués NoTranslate) : à faire avant de l'ouvrir à tout le monde.
+-- Pas encore traduit en anglais (écrans marqués NoTranslate) : à faire avant de rendre le jeu public.
 -- Tests automatiques (Studio seulement, un plugin ne peut pas cliquer) : l'attribut « TestAction » de chaque écran
 -- lance les mêmes fonctions que les boutons et les appuis (voir testAction en bas du fichier).
 local GuiService = game:GetService("GuiService")
@@ -38,7 +35,6 @@ local Levels = require(Shared.Levels)
 local NumberFormat = require(Shared.NumberFormat)
 local ProximityLabel = require(Shared.ProximityLabel)
 local Remotes = require(Shared.Remotes)
-local CampMode = require(script.Parent.CampMode)
 local CombatVFX = require(script.Parent.CombatVFX)
 local PlotRenderer = require(script.Parent.PlotRenderer)
 local SoundManager = require(script.Parent.SoundManager)
@@ -126,15 +122,22 @@ local BAR_GAP = 6
 local PHONE_STRIP_LEFT = 190
 -- Écrans laissés affichés pendant un niveau (les autres sont cachés puis remis).
 local KEEP_GUIS = { LevelHud = true, Toasts = true }
--- Écrans du JEU INFINI, cachés tant que la parcelle du joueur est son camp d'entraînement (CampMode.luau) : pièces
--- du fief et panneau des tours, autel et forge, renaissance, boutique des passes et gains d'absence, défis, tuto
--- du jeu infini, bouton qui masque les raccourcis du téléphone.
-local INFINITE_GUIS = {
-	"Plot", "Machines", "Rebirth", "RebirthButton", "ShopButton", "Shop", "OfflineGains", "ChallengesButton", "Challenges",
-	"Tutorial", "TutorialPointer", "ShortcutsToggle",
-}
 
 local levelAction = nil -- remote LevelAction (LevelsUI.start)
+
+-- Dossier de la parcelle du joueur, son camp (workspace.Hub.Plots.Plot<n>), nil tant qu'elle n'est pas connue.
+local plotsFolder: Instance? = nil
+local function myPlotFolder(): Instance?
+	local index = player:GetAttribute("Plot")
+	if typeof(index) ~= "number" then
+		return nil
+	end
+	if not plotsFolder or not plotsFolder.Parent then
+		local hub = workspace:FindFirstChild("Hub")
+		plotsFolder = hub and hub:FindFirstChild("Plots")
+	end
+	return plotsFolder and plotsFolder:FindFirstChild("Plot" .. index)
+end
 
 ----------------------------------------------------------------------
 -- État du joueur (attribut « LevelsState », publié par le serveur)
@@ -400,7 +403,7 @@ local function buildCamp()
 	local windowScale = UI.new("UIScale", { Name = "FitScale", Parent = window }) :: UIScale
 	local cardFits = {}
 
-	-- Bouton d'ouverture : à droite du bouton « 🎁 DONNER » du propriétaire (AdminUI), plus petit sur téléphone.
+	-- Bouton d'ouverture, en haut à gauche (à droite des boutons de Roblox) : plus petit sur téléphone.
 	local function placeButton()
 		local screen = UI.screenSize(gui)
 		local phone = UI.touchLayout(screen)
@@ -1716,9 +1719,7 @@ local function exitLevel()
 	end
 	savedCamera = nil
 	-- Retour au camp : la fenêtre des niveaux s'ouvre (pièces gagnées, boutique, niveau suivant).
-	if player:GetAttribute("LevelsAccess") == true then
-		camp.open("Niveaux")
-	end
+	camp.open("Niveaux")
 end
 
 local function enterLevel(index: number)
@@ -2087,7 +2088,7 @@ local function buildHud()
 		replayButton.Visible = won
 		campButton.Size = if won then UDim2.new(0.5, -4, 0, 42) else UDim2.new(1, 0, 0, 42)
 		overlay.Visible = true
-		SoundManager.play(if won then "MatchVictory" else "MatchDefeat")
+		SoundManager.play(if won then "Victory" else "Defeat")
 	end
 
 	-- Marges de l'écran prises par les bandeaux (px, dans l'image de la caméra) : la carte tient entre elles.
@@ -2703,7 +2704,7 @@ local function build()
 	-- Entraînement qui avance pendant que le joueur est là : « +X XP » au-dessus de la tour, sur sa parcelle (son
 	-- camp), et une annonce quand elle monte d'un niveau d'entraînement ou qu'elle ÉVOLUE.
 	local function campTower(slotIndex: number): Model?
-		local plot = CampMode.plotFolder()
+		local plot = myPlotFolder()
 		local towers = plot and plot:FindFirstChild("Towers")
 		for _, model in if towers then towers:GetChildren() else {} do
 			if model:IsA("Model") and model:GetAttribute("CampSlot") == slotIndex then
@@ -2721,14 +2722,14 @@ local function build()
 				local gained = Levels.perksBetween(towerType, oldLevel, newLevel)
 				if #gained > 0 then
 					UI.toast(`⭐ ÉVOLUTION ! {def.displayName} : {gained[#gained].name}`, "Success")
-					SoundManager.play("MatchVictory")
+					SoundManager.play("Victory")
 				else
 					UI.toast(`{def.displayName} : entraînement {newLevel} (+{math.floor(Levels.TRAINING.DAMAGE_PER_LEVEL * 100 + 0.5)} % de dégâts)`, "Success")
 					SoundManager.play("TowerUpgraded")
 				end
 			end
 		end
-		if not CampMode.active() or level.active then
+		if level.active then
 			return
 		end
 		for slotIndex, slot in after.slots do
@@ -2753,41 +2754,11 @@ local function build()
 		hud.layout()
 	end)
 
-	-- Parcelle devenue CAMP D'ENTRAÎNEMENT (CampMode.luau) : les écrans du jeu infini sont cachés ; ils reviennent si
-	-- la parcelle redevient celle du jeu infini (accès aux niveaux retiré).
-	local campHidden = {} -- [ScreenGui] = vrai : cachés par le camp
-	task.spawn(function()
-		while true do
-			if CampMode.active() then
-				for _, name in INFINITE_GUIS do
-					local gui = player.PlayerGui:FindFirstChild(name)
-					if gui and gui:IsA("ScreenGui") and (gui.Enabled or hiddenGuis[gui]) then
-						hiddenGuis[gui] = nil -- (caché par un niveau en cours : il ne sera pas remis à la fin)
-						gui.Enabled = false
-						campHidden[gui] = true
-					end
-				end
-			elseif next(campHidden) ~= nil then
-				for gui in campHidden do
-					if gui.Parent then
-						if level.active then
-							hiddenGuis[gui] = true -- (remis à la sortie du niveau)
-						else
-							gui.Enabled = true
-						end
-					end
-				end
-				table.clear(campHidden)
-			end
-			task.wait(0.25)
-		end
-	end)
-
 	-- Sur la parcelle : l'invite d'un socle d'entraînement ouvre l'onglet Entraînement sur cet emplacement, celle de
 	-- la boutique ou de la porte des niveaux ouvre son onglet (attributs CampSlot / CampTab, Hub/Camp.luau).
 	ProximityPromptService.PromptTriggered:Connect(function(prompt, who)
-		local plot = CampMode.plotFolder()
-		if who ~= player or level.active or player:GetAttribute("LevelsAccess") ~= true or not plot or not prompt:IsDescendantOf(plot) then
+		local plot = myPlotFolder()
+		if who ~= player or level.active or not plot or not prompt:IsDescendantOf(plot) then
 			return
 		end
 		local slot, tab = prompt:GetAttribute("CampSlot"), prompt:GetAttribute("CampTab")
@@ -2798,26 +2769,12 @@ local function build()
 		end
 	end)
 
-	local function syncAccess()
-		local access = player:GetAttribute("LevelsAccess") == true
-		-- (pendant un niveau, l'écran du camp est caché avec les autres : il sera remis au retour)
-		if not level.active then
-			camp.gui.Enabled = access
-		elseif not access then
-			hiddenGuis[camp.gui] = nil
-			camp.gui.Enabled = false
-		end
-	end
-	player:GetAttributeChangedSignal("LevelsAccess"):Connect(syncAccess)
-	syncAccess()
-
 	local function syncLevel()
 		local index = player:GetAttribute("LevelArena")
 		if typeof(index) == "number" and Levels.isArena(index) then
 			enterLevel(index)
 		else
 			exitLevel()
-			syncAccess()
 		end
 	end
 	player:GetAttributeChangedSignal("LevelArena"):Connect(syncLevel)
@@ -3018,15 +2975,17 @@ local function build()
 	end
 end
 
+-- Les écrans sont construits dès que le serveur a publié l'état du joueur (attribut « LevelsState » : ses données
+-- sont chargées).
 function LevelsUI.start()
 	local built = false
 	local function tryBuild()
-		if not built and player:GetAttribute("LevelsAccess") == true then
+		if not built and player:GetAttribute("LevelsState") ~= nil then
 			built = true
 			build()
 		end
 	end
-	player:GetAttributeChangedSignal("LevelsAccess"):Connect(tryBuild)
+	player:GetAttributeChangedSignal("LevelsState"):Connect(tryBuild)
 	tryBuild()
 end
 

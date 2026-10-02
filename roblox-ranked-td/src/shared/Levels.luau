@@ -1,7 +1,6 @@
--- NIVEAUX : la nouvelle formule du jeu, en PROTOTYPE (demande du propriétaire, 02/10/2026 : « sors-moi tout un
--- prototype, même s'il n'est pas parfait »). Elle vit à côté du jeu actuel (parcelle infinie), sans y toucher.
+-- NIVEAUX : les règles et les chiffres du jeu.
 --
--- Le principe, décidé avec le propriétaire :
+-- Le principe, décidé avec le propriétaire (02/10/2026) :
 --   * le jeu est une suite de niveaux : niveau 1, niveau 2, niveau 3... Chaque niveau est une partie à lui tout
 --     seul : un FLOT CONTINU de monstres, de plus en plus serrés et résistants jusqu'à la fin (voir « LE FLOT »), un
 --     mini-boss dans le flot au niveau 5, un boss au niveau 10. Dix niveaux = un territoire (une famille de monstres) ;
@@ -13,9 +12,7 @@
 --     PRIX FIXES (aucun hasard) et à améliorer le CAMP D'ENTRAÎNEMENT ;
 --   * le camp d'entraînement : les tours qu'on y met s'entraînent, même quand le joueur est absent, et en jouant ;
 --     l'entraînement débloque des améliorations par paliers (ex. les flèches enflammées de l'Archer).
--- Deux monnaies bien séparées : l'OR ne vit que le temps d'un niveau ; les PIÈCES DE NIVEAU se gardent (elles ne
--- sont PAS les pièces de la parcelle infinie, qui montent aux milliards).
--- Rien de tout ça n'entre dans le classé.
+-- Deux monnaies bien séparées : l'OR ne vit que le temps d'un niveau ; les PIÈCES DE NIVEAU se gardent.
 --
 -- Ce module ne contient que des règles et des chiffres (aucun objet Roblox en dehors de Vector3 / CFrame) : le
 -- serveur (Hub/LevelGame.luau, Hub/LevelsService.luau), le client (LevelsUI.luau, PlotRenderer.luau) et le
@@ -26,7 +23,7 @@ local IdleTowers = require(script.Parent.IdleTowers)
 
 local Levels = {}
 
-Levels.COUNT = 10 -- niveaux jouables dans ce prototype (le premier territoire)
+Levels.COUNT = 10 -- niveaux jouables (le premier territoire)
 Levels.LIVES = 10
 
 ----------------------------------------------------------------------
@@ -183,7 +180,7 @@ function Levels.checkPlacement(mapName: string, localPosition: Vector3, towers: 
 end
 
 ----------------------------------------------------------------------
--- Monstres d'un niveau. Les PV ne viennent pas du jeu infini : ils sont petits et lisibles.
+-- Monstres d'un niveau. Leurs PV sont petits et lisibles.
 --   PV = PV du fantassin de ce niveau (champ health de sa définition) x part de son type x montée du moment (ramp).
 -- gold = or donné quand il meurt ; leak = vies perdues s'il atteint le château.
 ----------------------------------------------------------------------
@@ -198,14 +195,9 @@ Levels.ENEMY = {
 -- TAILLE AFFICHÉE des monstres dans un niveau (demande du propriétaire, 02/10/2026 : « j'aurais agrandi aussi les
 -- monstres pour bien les voir ») : la carte est vue de haut et de loin, surtout sur téléphone. Multiplie la taille du
 -- modèle, de sa barre de vie et de ses effets (client/PlotRenderer.luau). AFFICHAGE SEULEMENT : le combat ne connaît
--- que la place du monstre sur le chemin, la difficulté ne change pas. 1 = la taille qu'il a sur une parcelle.
+-- que la place du monstre sur le chemin, la difficulté ne change pas. 1 = sa taille de base (Enemies.luau).
 -- Les gros (colosse, boss) grossissent moins : ils déborderaient trop du chemin (6 studs de large).
 Levels.ENEMY_SCALE = { Normal = 1.8, Fast = 1.8, Swarm = 2, Tank = 1.6, Giant = 1.4, Boss = 1.4 }
--- Bouton « x2 » pendant un niveau (tout va 2 fois plus vite, comme le pass Vitesse x2 de la parcelle) :
---   true  -> pour tout le monde (prototype : un niveau doit pouvoir se jouer vite) ;
---   false -> seulement avec le pass Vitesse x2.
--- À décider par le propriétaire avant d'ouvrir les niveaux à tous les joueurs.
-Levels.SPEED_FREE = true
 
 ----------------------------------------------------------------------
 -- LE FLOT. Retour du propriétaire après son premier essai (02/10/2026) : « beaucoup trop facile, et ils sortent
@@ -393,12 +385,10 @@ function Levels.duration(level: number): number
 end
 
 ----------------------------------------------------------------------
--- Tours pendant un niveau. Les mêmes 8 tours que la parcelle (IdleTowers : dégâts, portée, effets), mais avec
--- leurs prix à elles, en OR : ceux de la parcelle n'ont pas de sens ici (là-bas l'Archer coûte 10 pièces et tout
--- se joue sur les améliorations).
+-- Tours pendant un niveau : les 8 tours de IdleTowers (dégâts, portée, effets) ; leurs prix, en OR, sont ici.
 --   poser : TOWER_COST ; améliorer du niveau n à n + 1 : prix de pose x UPGRADE_FACTOR x UPGRADE_GROWTH ^ (n - 1),
 --   pour +35 % de dégâts (IdleConfig.UPGRADE_DAMAGE) ; revendre : SELL_REFUND de l'or dépensé.
--- Limite de tours identiques : celle de la parcelle (IdleTowers.maxCopies : 5 communes, 4 rares, 3 épiques,
+-- Limite de tours identiques : selon leur rareté (IdleTowers.maxCopies : 5 communes, 4 rares, 3 épiques,
 -- 2 légendaires), sauf MAX_COPIES ci-dessous. Avec le seul Archer, on en pose 5 au plus : il faut les améliorer,
 -- puis acheter d'autres tours. Le Totem de givre est limité à 3 : à 5, le joueur simulé en couvrait tout le chemin
 -- et gagnait tout avec « 5 Archers + 5 Totems » (tools/levels).
@@ -407,7 +397,7 @@ end
 ----------------------------------------------------------------------
 Levels.TOWER_COST = { MachineGun = 20, Frost = 40, Bomb = 45, Tesla = 40, Rocket = 50, Laser = 90, Chain = 150, Orbital = 100 }
 Levels.MAX_COPIES = { Frost = 3 }
--- Stats changées pour les niveaux seulement (la parcelle garde celles de IdleTowers) : { [type] = { champ = valeur } }.
+-- Stats changées par rapport à IdleTowers : { [type] = { champ = valeur } }.
 -- Totem de givre : -40 % de vitesse au lieu de -60 %. Retour du propriétaire après avoir joué la 2e version
 -- (02/10/2026) : « le ralentissement du givre est un peu cheaté quand même ». Mesuré avec le joueur simulé : à
 -- -60 %, trois Totems (120 or) permettaient de battre des monstres 50 à 70 % plus résistants ; à -40 %, 23 à 29 %
@@ -452,11 +442,6 @@ Levels.STARTING_TOWERS = { "MachineGun", "Bomb" }
 -- 10 niveaux réussis (2 180 pièces) puis 13 parties rejouées au niveau 10 (240 pièces chacune) suffisaient pour
 -- l'Oracle (3 000), et 21 pour le Trébuchet (5 000). Maintenant : 34 parties pour l'Oracle, 63 pour le Trébuchet.
 Levels.SHOP = { Frost = 150, Tesla = 400, Rocket = 1200, Laser = 3000, Chain = 8000, Orbital = 15000 }
--- Dans la première version du prototype, la Catapulte s'achetait 350 pièces et le Mage 700 : un joueur qui les
--- avait achetés retrouve la différence, une seule fois (sa sauvegarde d'avant n'a pas de champ `version` :
--- cleanData). Les tours plus chères ne rendent plus rien : leurs prix sont remontés depuis.
-Levels.DATA_VERSION = 2
-Levels.PRICE_REFUNDS = { Bomb = 350, Tesla = 300 }
 
 ----------------------------------------------------------------------
 -- Camp d'entraînement. Chaque type de tour a de l'expérience (XP), qui donne un niveau d'entraînement (0 à
@@ -715,13 +700,13 @@ function Levels.stars(stage: number): string
 end
 
 ----------------------------------------------------------------------
--- LE CAMP SUR LA PARCELLE. Même demande : la parcelle du joueur devient son camp d'entraînement (le jeu infini ne
--- tourne plus dessus : Config.LEVELS_CAMP_PLOT). Les tours mises dans les emplacements d'entraînement sont posées
--- pour de vrai sur des socles de la parcelle et tirent sur des CIBLES ROULANTES qui suivent le chemin : on les voit
--- s'entraîner, avec leurs évolutions (Hub/Camp.luau, Hub/CampGame.luau). L'XP, elle, vient toujours du temps passé
--- dans l'emplacement (TRAINING.SLOT_RATE) : les cibles ne rapportent rien.
+-- LE CAMP SUR LA PARCELLE. Même demande : la parcelle du joueur est son camp d'entraînement. Les tours mises dans
+-- les emplacements d'entraînement sont posées pour de vrai sur des socles de la parcelle et tirent sur des CIBLES
+-- ROULANTES qui suivent le chemin : on les voit s'entraîner, avec leurs évolutions (Hub/Camp.luau,
+-- Hub/CampGame.luau). L'XP, elle, vient toujours du temps passé dans l'emplacement (TRAINING.SLOT_RATE) : les
+-- cibles ne rapportent rien.
 --   SPOTS = socles de la parcelle (numéros de PlotLayout.SPOTS) des emplacements d'entraînement 1, 2, 3 : une
---           rangée face au chemin, juste devant le point d'arrivée du joueur. Les autres socles sont cachés.
+--           rangée face au chemin, juste devant le point d'arrivée du joueur.
 --   TARGET_GAP = secondes entre deux cibles ; TARGET_SPEED = leur vitesse (part de celle d'un fantassin : elles
 --           roulent lentement, les tours ont le temps de tirer) ;
 --   TARGET_SECONDS = PV d'une cible, en secondes de tir de toutes les tours du camp réunies (dégâts de base, sans
@@ -732,7 +717,7 @@ end
 -- détruisait que 4 cibles en 3 minutes (chaque cible sortait de sa portée à moitié cassée).
 ----------------------------------------------------------------------
 Levels.CAMP = {
-	SPOTS = { 7, 3, 4 },
+	SPOTS = { 1, 2, 3 },
 	TARGET_GAP = 3.5,
 	TARGET_SPEED = 0.5,
 	TARGET_SECONDS = 2,
@@ -742,7 +727,7 @@ Levels.CAMP = {
 
 ----------------------------------------------------------------------
 -- Données sauvegardées du joueur (data.levels, PlayerData.luau). Toujours propres : cleanData remet tout champ
--- absent ou abîmé à sa valeur de départ (une vieille sauvegarde, sans ce champ, donne un nouveau joueur des niveaux).
+-- absent ou abîmé à sa valeur de départ.
 ----------------------------------------------------------------------
 function Levels.defaultData()
 	local towers = {}
@@ -759,7 +744,6 @@ function Levels.defaultData()
 		bar = table.clone(Levels.STARTING_TOWERS), -- tours de la barre rapide, dans l'ordre
 		wins = 0,
 		losses = 0,
-		version = Levels.DATA_VERSION,
 	}
 end
 
@@ -785,10 +769,6 @@ function Levels.cleanData(saved: any)
 		for towerType, owned in saved.towers do
 			if IdleTowers.Defs[towerType] and owned == true then
 				data.towers[towerType] = true
-				-- Sauvegarde de la première version : tour payée plus cher qu'aujourd'hui, la différence est rendue.
-				if saved.version == nil and Levels.PRICE_REFUNDS[towerType] then
-					data.coins += Levels.PRICE_REFUNDS[towerType]
-				end
 			end
 		end
 	end

@@ -1,39 +1,37 @@
--- Affichage du mode infini côté client : ennemis des parcelles, tirs des tours, pièces à ramasser.
--- Le serveur envoie la position des ennemis quelques fois par seconde ; entre deux paquets,
+-- Affichage du combat côté client : monstres d'un niveau, cibles d'un camp d'entraînement, tirs des tours.
+-- Le serveur envoie la position des monstres quelques fois par seconde ; entre deux paquets,
 -- le client les fait avancer lui-même pour que le mouvement reste fluide.
--- Parcelles reçues : la tienne toujours, celles des autres seulement quand tu t'en approches (règle côté
--- serveur : Hub/PlotInterest.luau). Quand tu t'en éloignes, le serveur envoie un paquet « Clear » et la
--- parcelle est effacée tout de suite (clearPlot).
--- Vitesse x2 (pass de jeu) : le serveur publie l'attribut « SimSpeed » (1 ou 2) sur le dossier de la
--- parcelle et toute sa simulation va SimSpeed fois plus vite. Le facteur de vitesse du paquet ne
--- contient PAS ce x2 : c'est ici qu'on le multiplie (voir simSpeedOf).
+-- Une « zone » = la zone de combat d'un NIVEAU (son numéro : Levels.isArena ; son centre : Levels.arenaCFrame ; son
+-- chemin : celui de sa carte, attribut « Map » de son dossier workspace.Arenas.Arena<n>) ou une PARCELLE, le camp
+-- d'entraînement d'un joueur (dossier workspace.Hub.Plots.Plot<n>, attribut « Camp ») : ce qui suit son chemin n'est
+-- pas un monstre mais une cible d'entraînement (MedievalModels.trainingTarget). Voir plotState et refreshLayout.
+-- Zones reçues : ton niveau, ton camp toujours, les camps des autres seulement quand tu t'en approches (règle côté
+-- serveur : Hub/PlotInterest.luau). Quand tu t'en éloignes, le serveur envoie un paquet « Clear » et la zone est
+-- effacée tout de suite (clearPlot).
+-- Vitesse x2 : le serveur publie l'attribut « SimSpeed » (1 ou 2) sur le dossier de la zone et toute sa simulation
+-- va SimSpeed fois plus vite. Le facteur de vitesse du paquet ne contient PAS ce x2 : c'est ici qu'on le multiplie
+-- (voir simSpeedOf).
 -- Projectiles : chaque tir du paquet dit combien de temps il lui reste à voler (en secondes de simulation,
--- format dans PlotGame.luau) ; le projectile est animé jusqu'au point d'impact prévu par le serveur en
+-- format dans Hub/Combat.luau) ; le projectile est animé jusqu'au point d'impact prévu par le serveur en
 -- vol / SimSpeed secondes, et l'impact (explosion, zone de feu des flèches) apparaît quand les dégâts tombent.
 -- Flèches, rochers de la Catapulte et carreaux de la Baliste SUIVENT leur cible (id envoyé après les tirs) :
 -- pendant le vol, ils vont vers l'ennemi affiché (même règle que le serveur, voir followTarget), et l'impact
 -- tombe sur lui ; s'il disparaît (tué par une autre tour), ils retombent sur le point prévu.
 -- Rayon du Sorcier des arcanes : lu sur les attributs « BeamTarget » / « BeamRamp » de sa tour, dessiné à
 -- chaque image jusqu'à l'ennemi affiché ici (voir updateBeams).
--- Styles des ennemis : un par tranche de 10 vagues (MedievalModels.decorateEnemy avec le palier, voir palierOf).
+-- Styles des monstres : un par territoire de 10 niveaux (MedievalModels.decorateEnemy avec le palier, voir palierOf).
 -- Contrôles et fragilité : après les positions, le paquet PlotSync contient un octet « contrôle » par ennemi
--- (format dans PlotGame.luau). Effets distincts : brume et éclats de givre aux pieds, étincelles de foudre,
+-- (format dans Hub/Combat.luau). Effets distincts : brume et éclats de givre aux pieds, étincelles de foudre,
 -- étoiles dorées au-dessus d'un ennemi étourdi, motes violettes quand il est fragile. Le contour violet de
 -- la barre de vie est conservé. Les ancres sont créées une fois, soudées, et nettoyées avec l'ennemi.
 -- Baliste lourde : à l'impact de son carreau perçant, une traînée montre la ligne touchée (largeur du serveur).
 -- Modèles perso (CustomModels.luau) : si le propriétaire a mis un modèle pour ce type (et ce palier) dans
 -- ReplicatedStorage.EnemyModels, l'ennemi est une copie de ce modèle soudée à la même racine invisible que les
 -- blocs (déplacée pareil). Sa marche (Animation « Marche ») n'est jouée que près de la caméra, avec un nombre
--- maximal de pistes, à la vitesse de l'ennemi (ralenti = plus lent, étourdi = figé, Vitesse x2 = 2 fois plus
+-- maximal de pistes, à la vitesse de l'ennemi (ralenti = plus lent, étourdi = figé, vitesse x2 = 2 fois plus
 -- vite) : voir updateAnimations. Tué, il joue son animation de mort s'il en a une (startDeath, updateDying).
 -- Sons (SoundManager, réglages dans Sounds.luau) : tirs et impacts (SHOT_SOUNDS), morts, arrivée d'un boss ou d'un
--- colosse sur ta parcelle, pièces ramassées, bourdonnement du rayon du Sorcier.
--- CAMP D'ENTRAÎNEMENT (nouvelle formule) : une parcelle dont le dossier porte l'attribut « Camp » n'a plus de monstres
--- mais des cibles d'entraînement (MedievalModels.trainingTarget), sur lesquelles tirent les tours du camp.
--- NIVEAUX (prototype de la nouvelle formule, Shared/Levels.luau) : la zone de combat d'un niveau s'affiche comme une
--- parcelle de plus. Son numéro (Levels.isArena) donne son centre (Levels.arenaCFrame) ; son chemin est celui de sa
--- carte (attribut « Map » de son dossier, workspace.Arenas.Arena<n>) au lieu de celui des parcelles : voir
--- plotState et refreshLayout. Tout le reste (monstres, tirs, rayons, feu, étiquettes) est le même code.
+-- colosse dans ton niveau, bourdonnement du rayon du Sorcier.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -47,7 +45,6 @@ local IdleConfig = require(Shared.IdleConfig)
 local IdleTowers = require(Shared.IdleTowers)
 local Levels = require(Shared.Levels)
 local MedievalModels = require(Shared.MedievalModels)
-local NumberFormat = require(Shared.NumberFormat)
 local PlotLayout = require(Shared.PlotLayout)
 local ProximityLabel = require(Shared.ProximityLabel)
 local Remotes = require(Shared.Remotes)
@@ -56,7 +53,7 @@ local SoundManager = require(script.Parent.SoundManager)
 
 local PlotRenderer = {}
 
--- Appelée quand un ennemi affiché vient d'être tué : (numéro de la parcelle ou de la zone, type d'ennemi, position).
+-- Appelée quand un monstre affiché vient d'être tué : (numéro de la zone, type d'ennemi, position).
 -- LevelsUI s'en sert pour montrer l'or gagné au-dessus du monstre, pendant un niveau. Rien par défaut.
 PlotRenderer.onEnemyKilled = nil :: ((number, string, Vector3) -> ())?
 
@@ -74,7 +71,7 @@ local SHOT_SOUNDS = {
 }
 -- Mort d'un ennemi (les autres types : EnemyDeath).
 local DEATH_SOUNDS = { Boss = "BossDeath", Giant = "BigDeath", Tank = "BigDeath" }
--- Boss ou colosse qui vient d'apparaître (à moins de ça du début du chemin) sur TA parcelle : son 2D.
+-- Boss ou colosse qui vient d'apparaître (à moins de ça du début du chemin) dans TON niveau : son 2D.
 local ARRIVAL_SOUNDS = { Boss = "BossArrival", Giant = "GiantArrival" }
 local ARRIVAL_DISTANCE = 15
 
@@ -88,16 +85,13 @@ local SHOT_BYTES = 27 -- départ 3xf32, arrivée 3xf32, type u8, rayon u8, vol r
 -- Après les count x SHOT_BYTES octets : l'id u32 de la cible suivie par chaque tir (0 = aucune), même ordre.
 local SHOT_TARGET_BYTES = 4
 local SNAP_DISTANCE = 4 -- au-delà, on replace l'ennemi directement à la position du serveur (x SimSpeed)
--- Un ennemi qui disparaît à moins de ça du bout du chemin est PARTI, pas mort (fantassin du défilé d'accueil d'un
--- nouveau joueur, PlotGame:startParade) : ni son ni animation de mort.
+-- Un ennemi qui disparaît à moins de ça du bout du chemin est PARTI, pas mort (monstre arrivé au château, cible
+-- d'entraînement sortie du camp) : ni son ni animation de mort.
 local EXIT_DISTANCE = 8
-local MAX_FIRE_VISUALS = 10 -- zones de feu affichées au plus par parcelle (la plus vieille disparaît)
+local MAX_FIRE_VISUALS = 10 -- zones de feu affichées au plus par zone (la plus vieille disparaît)
 local FIRE_FADE_TIME = 0.25
 local BEAM_HEAT_SPEED = 8 -- vitesse à laquelle l'épaisseur du rayon suit sa montée
 local MAX_SIM_SPEED = 4 -- garde-fou : une valeur abîmée ne fait pas s'envoler les ennemis
--- Pièces ramassées à distance (pass Ramassage auto) : plus loin que ça du joueur, la pile s'envole vers lui.
-local REMOTE_PICKUP_DISTANCE = IdleConfig.PICKUP_RADIUS + 4
-local REMOTE_GAIN_DELAY = 0.6 -- les gains des piles arrivées ensemble s'affichent en un seul « +X »
 -- Marche des modèles perso : jouée seulement à moins de ANIM_DISTANCE studs de la caméra, ANIM_MAX_TRACKS
 -- pistes à la fois au plus (au-delà, le modèle avance figé), vérifié toutes les ANIM_CHECK_INTERVAL s.
 local ANIM_DISTANCE = 150
@@ -110,7 +104,7 @@ local FLIP_MEASURE_DELAY = 0.5
 -- Modèles dont le sens est en cours de mesure : [modèle préparé] = l'ennemi qui sert à la mesure.
 local flipSamplers = {}
 -- Mort des modèles perso qui ont une animation de mort (CustomModels : « Mort », « Dead »...) : jouée une fois
--- là où l'ennemi est tombé (tué pendant la vague, pas quand la vague est ratée ou arrêtée), seulement à moins
+-- là où l'ennemi est tombé (tué pendant le combat, pas quand il est retiré à la fin), seulement à moins
 -- de ANIM_DISTANCE studs de la caméra et DEATH_MAX_ACTIVE corps à la fois (boss et colosses toujours). La
 -- dernière pose est gardée, puis le corps s'efface en DEATH_FADE_TIME s (au plus DEATH_MAX_TIME s d'animation).
 local DEATH_MAX_ACTIVE = 12
@@ -122,8 +116,6 @@ local DEATH_ALWAYS = { Boss = true, Giant = true }
 
 local folder = Instance.new("Folder")
 folder.Name = "PlotEnemies"
-local coinFolder = Instance.new("Folder")
-coinFolder.Name = "Coins"
 
 local plotsFolder: Instance? = nil -- workspace.Hub.Plots (trouvé dans start)
 -- [plotIndex] = { cframe, folder, enemies = { [id] = enemy }, fires = { zone de feu }, generation, cleared,
@@ -131,10 +123,6 @@ local plotsFolder: Instance? = nil -- workspace.Hub.Plots (trouvé dans start)
 -- (generation et cleared : voir clearPlot)
 local plots = {}
 local beams = {} -- [modèle de tour à rayon] = { plotIndex, def, muzzle, targetId, ramp, heat, handle }
-local coins = {} -- [id] = { part, label }
-local flyingCoins = {} -- piles ramassées à distance, en vol vers le joueur : { part, from, size, started, duration }
-local remoteGain = 0
-local remoteGainPending = false
 local playingTracks = 0 -- pistes de marche en cours (modèles perso)
 local animClock = 0
 local dying = {} -- corps qui jouent leur animation de mort : { part, track, rate, started, fadeAt, plotIndex }
@@ -196,8 +184,8 @@ local function refreshLayout(plotIndex: number, state): boolean
 	return state.mapName ~= nil
 end
 
--- Vitesse de la simulation de cette parcelle : 1 (normal) ou 2 (pass Vitesse x2 activé), lue sur
--- l'attribut « SimSpeed » du dossier de la parcelle (publié par le serveur, PlotGame).
+-- Vitesse de la simulation de cette zone : 1 (normal) ou 2 (bouton x2 d'un niveau), lue sur l'attribut
+-- « SimSpeed » de son dossier (publié par le serveur).
 local function simSpeedOf(plotIndex: number, state): number
 	local plotFolder = folderOf(plotIndex, state)
 	local speed = plotFolder and plotFolder:GetAttribute("SimSpeed")
@@ -207,15 +195,10 @@ local function simSpeedOf(plotIndex: number, state): number
 	return math.clamp(speed, 1, MAX_SIM_SPEED)
 end
 
-local function characterRoot(): BasePart?
-	local character = Players.LocalPlayer.Character
-	local root = character and character:FindFirstChild("HumanoidRootPart")
-	return if root and root:IsA("BasePart") then root else nil
-end
-
--- Style des ennemis : un par tranche de 10 vagues (palier 0 = vagues 1-10, 1 = 11-20 ... 9 = 91-100, puis
--- MedievalModels recommence), lu sur l'attribut « Wave » du dossier de la parcelle quand l'ennemi apparaît.
-local WAVES_PER_STYLE = 10
+-- Style des monstres : un par territoire de 10 niveaux (palier 0 = niveaux 1-10, 1 = 11-20 ... puis MedievalModels
+-- recommence), lu sur l'attribut « Wave » du dossier de la zone (le numéro du niveau ; 1 pour un camp) quand le
+-- monstre apparaît.
+local LEVELS_PER_STYLE = 10
 
 local function palierOf(plotIndex: number, state): number
 	simSpeedOf(plotIndex, state) -- retrouve le dossier de la parcelle si besoin
@@ -223,7 +206,7 @@ local function palierOf(plotIndex: number, state): number
 	if typeof(wave) ~= "number" or wave ~= wave or wave < 1 or wave == math.huge then
 		return 0
 	end
-	return math.floor((wave - 1) / WAVES_PER_STYLE)
+	return math.floor((wave - 1) / LEVELS_PER_STYLE)
 end
 
 -- Hauteur du haut du modèle au-dessus du centre de sa racine (couronne, cornes...) : la barre de vie
@@ -255,8 +238,8 @@ local function arenaDef(enemyType: string, def)
 	return scaled
 end
 
--- palier : style du mode solo (voir palierOf). Les ennemis du ranked gardent leur appel sans palier (Match).
--- camp = parcelle devenue camp d'entraînement (attribut « Camp » de son dossier, Hub/CampGame.luau) : ce qui suit le
+-- palier : style des monstres (voir palierOf).
+-- camp = camp d'entraînement d'une parcelle (attribut « Camp » de son dossier, Hub/CampGame.luau) : ce qui suit le
 -- chemin n'est pas un monstre mais une CIBLE d'entraînement (mannequin de paille sur un chariot).
 -- Renvoie la racine (déplacée à chaque image), la barre de vie, son contour et le modèle perso (nil = blocs).
 local function createEnemy(enemyType: string, def, palier: number, camp: boolean?)
@@ -352,7 +335,7 @@ local function startDeath(enemy): boolean
 end
 
 -- Retire un ennemi (mort ou arrivé à la base) : sa piste de marche d'abord, puis la racine et tout le modèle.
--- died = tué pendant la vague : son animation de mort s'il en a une (startDeath).
+-- died = tué pendant le combat : son animation de mort s'il en a une (startDeath).
 local function removeEnemy(enemy, died: boolean?)
 	if enemy.track then
 		if enemy.walking then
@@ -494,16 +477,12 @@ local function onSync(plotIndex: number, packet: buffer, count: number, kind: st
 			enemy.enemyType = enemyType
 			enemy.camp = camp -- cible d'entraînement : détruite sans cri ni or
 			enemy.plotIndex = plotIndex -- (son corps, s'il joue sa mort, est effacé avec la parcelle : clearPlot)
-			-- Cor de guerre (boss) ou pas lourds (colosse) quand il arrive sur ta parcelle.
-			-- (pendant un niveau, seule la zone de combat compte : la parcelle, restée sur la place, se tait)
+			-- Cor de guerre (boss) ou pas lourds (colosse) quand il arrive dans ton niveau.
 			local arenaIndex = Players.LocalPlayer:GetAttribute("LevelArena")
 			local mine = if arenaIndex ~= nil then plotIndex == arenaIndex else plotIndex == Players.LocalPlayer:GetAttribute("Plot")
 			if ARRIVAL_SOUNDS[enemyType] and distance < ARRIVAL_DISTANCE and mine then
 				SoundManager.play(ARRIVAL_SOUNDS[enemyType])
 			end
-			-- Vague où il est apparu : à sa disparition, dit s'il a été tué ou retiré (vague ratée, voir plus bas).
-			local wave = state.folder and state.folder:GetAttribute("Wave")
-			enemy.wave = if typeof(wave) == "number" then wave else nil
 			enemy.custom = custom -- modèle perso (marche, mort), nil = blocs
 			if custom and custom.animation then
 				-- Modèle perso qui sait marcher (updateAnimations) : vitesse de lecture à sa vitesse normale,
@@ -524,21 +503,16 @@ local function onSync(plotIndex: number, packet: buffer, count: number, kind: st
 		setStatus(enemy, IdleTowers.ORDER[control % CONTROL_SOURCE_MASK], control >= CONTROL_FRAGILE_FLAG)
 	end
 
-	-- Absents du paquet = tués, ou retirés (vague ratée, renaissance ; le départ du joueur et une parcelle dont on
-	-- s'éloigne envoient un « Clear » à la place, voir clearPlot). Tué = la vague continue
-	-- (« Running ») ou vient d'être gagnée (entracte avec une vague plus haute que la sienne) : animation de mort
-	-- des modèles perso qui en ont une.
+	-- Absents du paquet = tués, ou retirés (niveau perdu ; le départ du joueur et un camp dont on s'éloigne envoient
+	-- un « Clear » à la place, voir clearPlot). Tué = le combat continue (« Running ») ou vient d'être gagné
+	-- (« Won » : le dernier monstre vient de tomber) : animation de mort des modèles perso qui en ont une.
 	local runState = state.folder and state.folder:GetAttribute("State")
-	local plotWave = state.folder and state.folder:GetAttribute("Wave")
 	local simSpeed = simSpeedOf(plotIndex, state)
 	for id, enemy in state.enemies do
 		if not seen[id] then
-			-- (Niveau : « Won » = le dernier monstre vient de tomber ; « Lost » = ils sont retirés, pas tués.)
-			local died = runState == "Running"
-				or (runState == "Intermission" and typeof(plotWave) == "number" and enemy.wave ~= nil and plotWave > enemy.wave)
-				or (state.arena and runState == "Won")
-			-- Disparu au bout du chemin pendant que la partie continue : il est parti (défilé d'accueil, ou monstre
-			-- d'un niveau arrivé au château), pas mort.
+			local died = runState == "Running" or (state.arena and runState == "Won")
+			-- Disparu au bout du chemin pendant que le combat continue : il est parti (monstre arrivé au château,
+			-- cible sortie du camp), pas mort.
 			if died and enemy.distance >= state.pathLength - EXIT_DISTANCE then
 				died = false
 			end
@@ -665,7 +639,7 @@ local function horizontalDistance(a: Vector3, b: Vector3): number
 	return math.sqrt(dx * dx + dz * dz)
 end
 
--- Une flèche enflammée touche le sol : même règle que le serveur (PlotGame:addFirePatch), une flèche qui
+-- Une flèche enflammée touche le sol : même règle que le serveur (Combat:addFirePatch), une flèche qui
 -- tombe dans une zone la ravive au lieu d'en créer une autre. Durée en secondes réelles (/ SimSpeed).
 local function addFire(plotIndex: number, position: Vector3, def)
 	local state = plotState(plotIndex)
@@ -683,7 +657,7 @@ local function addFire(plotIndex: number, position: Vector3, def)
 	table.insert(state.fires, { part = Effects.firePatch(position, def.fireRadius), position = position, expiresAt = expiresAt })
 end
 
--- Éteint les zones de feu arrivées au bout (toutes, si la vague est finie : le serveur les a effacées).
+-- Éteint les zones de feu arrivées au bout (toutes, si le combat est fini : le serveur les a effacées).
 local function updateFires(plotIndex: number, state, now: number)
 	if #state.fires == 0 then
 		return
@@ -700,7 +674,7 @@ local function updateFires(plotIndex: number, state, now: number)
 end
 
 -- Projectile qui suit sa cible : renvoie la fonction que Effects appelle à chaque image pour savoir où il doit
--- tomber. Même règle que le serveur (PlotGame impactCenter) : l'ennemi visé tel qu'il est affiché ici (au sol)
+-- tomber. Même règle que le serveur (impactCenter, Hub/Combat.luau) : l'ennemi visé tel qu'il est affiché ici (au sol)
 -- tant qu'il est là et à moins de maxDistance studs (IdleTowers.followDistance) du point prévu par le serveur ;
 -- sinon (tué, disparu, trop loin) le point prévu. Une fonction par tir ; aucune table ni fonction créée image
 -- par image.
@@ -743,9 +717,8 @@ local function onShots(plotIndex: number, packet: buffer, count: number)
 		return -- paquet arrivé après le « Clear » de cette parcelle (voir clearPlot)
 	end
 	local simSpeed = simSpeedOf(plotIndex, state)
-	-- Niveau : le feu des flèches et le carreau perçant ne s'affichent que s'ils sont débloqués par l'entraînement
-	-- (attribut « Perks » de la zone, ex. « MachineGun:Fire,Rocket:Pierce » : Levels.perkKeys). Parcelle : toujours.
-	-- (Pareil sur une parcelle devenue camp d'entraînement : ses tours ont les stats des niveaux.)
+	-- Le feu des flèches et le carreau perçant ne s'affichent que s'ils sont débloqués par l'entraînement (attribut
+	-- « Perks » de la zone, niveau ou camp, ex. « MachineGun:Fire,Rocket:Pierce » : Levels.perkKeys).
 	local perks = nil
 	if state.arena or (state.folder ~= nil and state.folder:GetAttribute("Camp") == true) then
 		local value = state.folder and state.folder:GetAttribute("Perks")
@@ -842,7 +815,7 @@ local function updateBeams(dt: number, t: number)
 			SoundManager.setLoop(model, "ArcaneBeam", nil, false)
 			continue
 		end
-		-- 0 = rayon qui démarre (x1), 1 = rayon au maximum (beamRampMax de la tour, sans rune).
+		-- 0 = rayon qui démarre (x1), 1 = rayon au maximum (beamRampMax de la tour).
 		local goal = math.clamp((entry.ramp - 1) / math.max(0.001, entry.def.beamRampMax - 1), 0, 1)
 		entry.heat += (goal - entry.heat) * math.min(1, dt * BEAM_HEAT_SPEED)
 		if not entry.muzzle or not entry.muzzle.Parent then
@@ -859,143 +832,8 @@ local function updateBeams(dt: number, t: number)
 end
 
 ----------------------------------------------------------------------
--- Pièces (visibles seulement par le propriétaire de la parcelle)
-----------------------------------------------------------------------
 
-local function floatingText(position: Vector3, text: string)
-	local anchor = Instance.new("Part")
-	anchor.Anchored = true
-	anchor.CanCollide = false
-	anchor.CanQuery = false
-	anchor.Transparency = 1
-	anchor.Size = Vector3.one * 0.2
-	anchor.Position = position
-	anchor.Parent = coinFolder
-
-	local billboard = Instance.new("BillboardGui")
-	billboard.Size = UDim2.fromOffset(140, 34)
-	billboard.AlwaysOnTop = true
-	billboard.Parent = anchor
-	local label = Instance.new("TextLabel")
-	label.Size = UDim2.fromScale(1, 1)
-	label.BackgroundTransparency = 1
-	label.Font = Enum.Font.GothamBlack
-	label.TextScaled = true
-	label.TextColor3 = Color3.fromRGB(255, 215, 80)
-	label.TextStrokeTransparency = 0.2
-	label.Text = text
-	label.Parent = billboard
-
-	TweenService:Create(anchor, TweenInfo.new(0.9), { Position = position + Vector3.new(0, 4, 0) }):Play()
-	TweenService:Create(label, TweenInfo.new(0.9), { TextTransparency = 1, TextStrokeTransparency = 1 }):Play()
-	task.delay(1, function()
-		anchor:Destroy()
-	end)
-end
-
--- Pendant un NIVEAU (LevelsUI.luau : attribut LevelArena du joueur), l'écran montre la zone de combat : les pièces
--- de la parcelle, restée sur la place, sont ramassées sans bruit.
-local function inLevel(): boolean
-	return Players.LocalPlayer:GetAttribute("LevelArena") ~= nil
-end
-
--- Gains des piles ramassées à distance : additionnés, puis un seul « +X » au-dessus du joueur quand
--- les pièces arrivent (sinon, en x2 avec beaucoup d'ennemis, l'écran serait couvert de « +X »).
-local function addRemoteGain(amount: number)
-	remoteGain += amount
-	if remoteGainPending then
-		return
-	end
-	remoteGainPending = true
-	task.delay(REMOTE_GAIN_DELAY, function()
-		remoteGainPending = false
-		local total = remoteGain
-		remoteGain = 0
-		local root = characterRoot()
-		if root and total > 0 then
-			floatingText(root.Position + Vector3.new(0, 3.5, 0), "+" .. NumberFormat.short(total))
-			if not inLevel() then
-				SoundManager.play("CoinAutoCollect") -- un petit son doux par groupe de piles arrivées
-			end
-		end
-	end)
-end
-
-local function onCoinDrop(action: string, id: number, position: Vector3, amount: number)
-	local coin = coins[id]
-	if action == "Collect" then
-		local root = characterRoot()
-		local offset = if root then position - root.Position else Vector3.zero
-		if not root or Vector3.new(offset.X, 0, offset.Z).Magnitude <= REMOTE_PICKUP_DISTANCE then
-			-- Ramassée en marchant dessus : « +X » sur place.
-			if coin then
-				coin.part:Destroy()
-				coins[id] = nil
-			end
-			floatingText(position, "+" .. NumberFormat.short(amount))
-			if not inLevel() then
-				SoundManager.play("CoinPickup")
-			end
-			return
-		end
-		-- Ramassée à distance (pass Ramassage auto) : la pile s'envole vers le joueur et rétrécit.
-		if coin then
-			coins[id] = nil
-			local billboard = coin.part:FindFirstChildOfClass("BillboardGui")
-			if billboard then
-				billboard:Destroy() -- son montant ne vole pas avec elle
-			end
-			table.insert(flyingCoins, {
-				part = coin.part,
-				from = coin.part.Position,
-				size = coin.part.Size,
-				started = os.clock(),
-				duration = math.clamp(offset.Magnitude / 90, 0.35, 0.8),
-			})
-		end
-		addRemoteGain(amount)
-		return
-	end
-
-	if not coin then
-		local part = Instance.new("Part")
-		part.Shape = Enum.PartType.Cylinder
-		part.Size = Vector3.new(0.4, 2, 2)
-		part.Color = Color3.fromRGB(255, 200, 60)
-		part.Material = Enum.Material.Neon
-		part.Anchored = true
-		part.CanCollide = false
-		part.CanQuery = false
-		part.CanTouch = false
-		part.Position = position
-
-		local billboard = Instance.new("BillboardGui")
-		billboard.Size = UDim2.fromOffset(90, 22)
-		billboard.StudsOffset = Vector3.new(0, 1.8, 0)
-		ProximityLabel.register(billboard, Config.LabelDistance.Close)
-		billboard.Parent = part
-		local label = Instance.new("TextLabel")
-		label.Size = UDim2.fromScale(1, 1)
-		label.BackgroundTransparency = 1
-		label.Font = Enum.Font.GothamBlack
-		label.TextScaled = true
-		label.TextColor3 = Color3.fromRGB(255, 225, 120)
-		label.TextStrokeTransparency = 0.3
-		label.Parent = billboard
-
-		part.Parent = coinFolder
-		coin = { part = part, label = label, base = position }
-		coins[id] = coin
-	end
-	coin.label.Text = NumberFormat.short(amount)
-	-- Les grosses piles grossissent un peu.
-	local size = math.clamp(1.6 + math.log10(math.max(1, amount)) * 0.15, 1.6, 3.5)
-	coin.part.Size = Vector3.new(0.4, size, size)
-end
-
-----------------------------------------------------------------------
-
--- Étiquette « Niv. X » au pied de chaque tour des parcelles (mise à jour à chaque amélioration).
+-- Étiquette « Niv. X » au pied de chaque tour d'un niveau (mise à jour à chaque amélioration).
 local function addLevelTag(model: Instance)
 	if not model:IsA("Model") or not model:GetAttribute("SpotIndex") then
 		return
@@ -1057,8 +895,8 @@ function PlotRenderer.start()
 			watchBeamTower(instance)
 		end
 	end
-	-- Tours des zones de combat des niveaux (workspace.Arenas, créé par le serveur de la map principale) : mêmes
-	-- étiquettes « Niv. X » et mêmes rayons.
+	-- Tours des zones de combat des niveaux (workspace.Arenas, créé par le serveur) : étiquettes « Niv. X » et
+	-- rayons.
 	task.spawn(function()
 		local arenasRoot = workspace:WaitForChild("Arenas", 60)
 		if not arenasRoot then
@@ -1079,17 +917,15 @@ function PlotRenderer.start()
 	end)
 
 	folder.Parent = workspace
-	coinFolder.Parent = workspace
 
 	Remotes.get("PlotSync").OnClientEvent:Connect(onSync)
 	Remotes.get("PlotShots").OnClientEvent:Connect(onShots)
-	Remotes.get("CoinDrop").OnClientEvent:Connect(onCoinDrop)
 
 	RunService.RenderStepped:Connect(function(dt)
 		table.clear(movedParts)
 		table.clear(movedCFrames)
 		for plotIndex, state in plots do
-			-- Même vitesse que la simulation du serveur : x2 si le pass Vitesse x2 est activé sur cette parcelle.
+			-- Même vitesse que la simulation du serveur : x2 si le bouton x2 du niveau est allumé.
 			local simDt = dt * simSpeedOf(plotIndex, state)
 			for _, enemy in state.enemies do
 				enemy.distance = math.min(state.pathLength, enemy.distance + enemy.def.speed * IdleConfig.ENEMY_SPEED_MULTIPLIER * (enemy.speedFactor or 1) * simDt)
@@ -1134,31 +970,6 @@ function PlotRenderer.start()
 		updateBeams(dt, t)
 		for plotIndex, state in plots do
 			updateFires(plotIndex, state, t)
-		end
-
-		-- Pièces qui tournent et flottent.
-		for id, coin in coins do
-			local bob = math.sin(t * 3 + id) * 0.3
-			coin.part.CFrame = CFrame.new(coin.base + Vector3.new(0, bob, 0)) * CFrame.Angles(0, t * 2 + id, 0)
-		end
-
-		-- Piles ramassées à distance : elles volent en arc vers le joueur (qui peut bouger), de plus en
-		-- plus vite, en rétrécissant, puis disparaissent.
-		if #flyingCoins > 0 then
-			local root = characterRoot()
-			for i = #flyingCoins, 1, -1 do
-				local flying = flyingCoins[i]
-				local alpha = (t - flying.started) / flying.duration
-				if alpha >= 1 or not root then
-					flying.part:Destroy()
-					table.remove(flyingCoins, i)
-					continue
-				end
-				local target = root.Position + Vector3.new(0, 1.5, 0)
-				local arc = Vector3.new(0, math.sin(alpha * math.pi) * 5, 0)
-				flying.part.Size = flying.size * (1 - 0.6 * alpha)
-				flying.part.CFrame = CFrame.new(flying.from:Lerp(target, alpha * alpha) + arc) * CFrame.Angles(0, t * 12, 0)
-			end
 		end
 	end)
 end

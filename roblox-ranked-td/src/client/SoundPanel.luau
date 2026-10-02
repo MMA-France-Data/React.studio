@@ -1,4 +1,4 @@
--- Panneau des sons (Studio seulement) : le bouton « SONS (Studio) » (colonne de gauche, à droite de « GALERIE
+-- Panneau des sons (Studio seulement) : le bouton « SONS (Studio) » (en haut à gauche, à droite de « GALERIE
 -- (Studio) ») ouvre la liste de tous les sons du jeu (src/shared/Sounds.luau), rangés comme dans ce fichier :
 -- « Jouer » fait écouter le son (en 2D, même quand le bouton « SON » est sur muet), avec son nom, son numéro (id)
 -- et ses réglages. Après l'écoute, sa durée s'affiche, ou « ne se charge pas ! » (numéro faux, son privé...).
@@ -219,7 +219,7 @@ function SoundPanel.start()
 	-- Colonne de gauche, ligne 5 (celle de « GALERIE (Studio) »), juste à sa droite.
 	local button = UI.button({
 		Name = "SoundPanelButton",
-		Position = UDim2.new(0, 16 + 180 + 8, 0, UI.LEFT_COLUMN_TOP + 5 * UI.LEFT_COLUMN_STEP),
+		Position = UDim2.new(0, 16 + 180 + 8, 0, UI.STUDIO_BUTTONS_TOP),
 		Size = UDim2.fromOffset(160, 46),
 		BackgroundColor3 = UI.Colors.PanelLight,
 		Text = "SONS (Studio)",

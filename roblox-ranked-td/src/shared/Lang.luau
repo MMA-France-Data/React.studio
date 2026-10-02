@@ -3,9 +3,9 @@
 -- autres voient l'anglais.
 --
 -- COMMENT AJOUTER UNE TRADUCTION
---   1. Ouvre le dictionnaire de la bonne partie du jeu, dans src/shared/LangEN/ : Plot (parcelle, tours), Machines
---      (autel, forge, renaissance, boutique), Social (tuto, classé, défis, match), Server (messages et panneaux du
---      serveur). Glossary = les noms du jeu (tours, raretés, ennemis...), à reprendre partout à l'identique.
+--   1. Ouvre un dictionnaire de src/shared/LangEN/ : Game (les textes du jeu) ou Glossary (les noms du jeu : tours,
+--      monstres..., à reprendre partout à l'identique). Un nouveau fichier posé dans ce dossier est lu tout seul par
+--      le jeu ; pour les tests hors de Studio, l'ajouter aussi dans tools/lang/load.luau.
 --   2. Ajoute une ligne  ["texte français"] = "English text",  Le texte français doit être EXACTEMENT celui qui
 --      s'affiche : mêmes accents, espaces, ponctuation, « », emoji, balises <b>…</b>, retours à la ligne \n.
 --   3. Un texte avec des nombres ou des noms qui changent : remplace chaque partie qui change par {1}, {2}...
@@ -21,7 +21,7 @@
 --   plusieurs lignes : chaque ligne -> ligne coupée par « • » ou « · » : chaque morceau. Un texte sans mot (nombres,
 --   « 1.5K », « x10 », emoji) n'est jamais cherché : en anglais, seuls ses nombres changent d'écriture (« 7,5 » -> « 7.5 »,
 --   « 2,5 % » -> « 2.5% »). Un texte inconnu reste en français (et, dans Studio, il est noté
---   dans une liste : Lang.getMisses, pour le test « version anglaise » de tools/studio-test).
+--   dans une liste : Lang.getMisses).
 --
 -- LA LANGUE D'UN JOUEUR
 --   * Le serveur lui met l'attribut « Lang » ("fr" ou "en") dès son arrivée (Lang.startServer, dans
@@ -29,8 +29,7 @@
 --   * Le client traduit tout ce qui s'affiche (src/client/AutoTranslate.luau), messages du serveur compris : le
 --     serveur envoie toujours ses textes en français. Avant l'arrivée de l'attribut, le client prend sa langue Roblox.
 --   * Dans Studio : Config.STUDIO_LANGUAGE ("auto" = comme dans le jeu publié, "fr" ou "en" pour tester). Pendant les
---     tests automatiques (tools/studio-test), toujours le français (leur test « version anglaise » passe en anglais à
---     la fin, tout seul).
+--     tests automatiques (tools/studio-test), toujours le français : leurs vérifications lisent les textes français.
 --
 -- Hors de Roblox (tests avec luau.exe), seul le traducteur marche : les dictionnaires s'ajoutent avec
 -- Lang.addDictionary (voir tools/lang/load.luau).
@@ -126,7 +125,7 @@ function Lang.current(): string
 	return Lang.forPlayer(Players.LocalPlayer)
 end
 
--- Serveur (map principale et match) : attribut « Lang » de chaque joueur dès son arrivée, remis à jour si sa langue
+-- Serveur : attribut « Lang » de chaque joueur dès son arrivée, remis à jour si sa langue
 -- Roblox change pendant la partie. Appelée une seule fois par Main.server.luau.
 local serverStarted = false
 function Lang.startServer()
@@ -490,7 +489,7 @@ translateCore = function(text: string, depth: number): string?
 	return nil
 end
 
--- Note un texte sans traduction (Studio : liste du test « version anglaise », Lang.getMisses).
+-- Note un texte sans traduction (Studio : liste Lang.getMisses).
 local function noteMiss(text: string)
 	if not recordMisses or missSet[text] or #missList >= MISS_LIMIT then
 		return

@@ -1,15 +1,14 @@
--- La PARCELLE devient le CAMP D'ENTRAÎNEMENT (nouvelle formule ; demande du propriétaire, 02/10/2026 : « tu peux
--- gérer toute la parcelle et le système d'évolution de tour »). Pour un joueur qui a les niveaux
--- (Config.LEVELS_CAMP_PLOT, décidé par Hub/init.luau : applyPlotMode), sa parcelle n'est plus celle du jeu infini :
---   * trois SOCLES d'entraînement (Levels.CAMP.SPOTS), les autres emplacements sont cachés. Sur chacun : la tour
---     qu'il y a mise (Hub/CampGame.luau : elle tire sur des cibles roulantes), une étiquette (nom, étoiles
---     d'évolution, niveau d'entraînement, barre d'XP, XP par minute) et une invite « Gérer » qui ouvre l'onglet
---     Entraînement de sa fenêtre (LevelsUI lit l'attribut CampSlot de l'invite) ;
---   * les deux bâtiments devant l'entrée (autel et forge du jeu infini) deviennent la BOUTIQUE DES TOURS et la
---     PORTE DES NIVEAUX : leur invite ouvre l'onglet de ce nom (attribut CampTab) ;
+-- La PARCELLE d'un joueur est son CAMP D'ENTRAÎNEMENT (demande du propriétaire, 02/10/2026 : « tu peux gérer toute
+-- la parcelle et le système d'évolution de tour ») :
+--   * trois SOCLES d'entraînement (PlotLayout.SPOTS). Sur chacun : la tour qu'il y a mise (Hub/CampGame.luau : elle
+--     tire sur des cibles roulantes), une étiquette (nom, étoiles d'évolution, niveau d'entraînement, barre d'XP,
+--     XP par minute) et une invite « Gérer » qui ouvre l'onglet Entraînement de sa fenêtre (LevelsUI lit l'attribut
+--     CampSlot de l'invite) ;
+--   * devant l'entrée, la BOUTIQUE DES TOURS et la PORTE DES NIVEAUX (construites par Hub/HubMap.luau) : leur invite
+--     ouvre l'onglet de ce nom (attribut CampTab) ;
 --   * le tableau du fond affiche le camp (Hub/PlotBoard.luau lit les attributs Camp... de la parcelle).
 -- Rien n'est sauvegardé ici : tout vient de data.levels (Hub/LevelsService.luau), relu à chaque changement
--- (Camp.refresh). Quand le camp s'arrête (départ du joueur, accès retiré), la parcelle retrouve son état d'origine.
+-- (Camp.refresh). Quand le joueur part, la parcelle redevient libre.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
@@ -17,7 +16,6 @@ local Config = require(Shared.Config)
 local IdleTowers = require(Shared.IdleTowers)
 local Levels = require(Shared.Levels)
 local NumberFormat = require(Shared.NumberFormat)
-local PlotLayout = require(Shared.PlotLayout)
 local ProximityLabel = require(Shared.ProximityLabel)
 local CampGame = require(script.Parent.CampGame)
 local HubMap = require(script.Parent.HubMap)
@@ -26,14 +24,8 @@ local IdleTowerModel = require(script.Parent.IdleTowerModel)
 local Camp = {}
 
 -- [Player] = son CampGame. Hub/init.luau les fait avancer et envoie leurs paquets (cibles, tirs) au joueur et à ceux
--- qui s'approchent de sa parcelle, comme pour une parcelle du jeu infini.
+-- qui s'approchent de sa parcelle.
 Camp.games = {}
-
--- Titre et onglet des deux bâtiments de l'entrée (clés de HubMap : plot.machines).
-Camp.BUILDINGS = {
-	Tower = { title = "BOUTIQUE DES TOURS", tab = "Boutique" },
-	Bonus = { title = "PORTE DES NIVEAUX", tab = "Niveaux" },
-}
 
 local LABEL_DISTANCE = Config.LabelDistance.Medium + 20 -- lisible depuis le point d'arrivée du joueur
 local LABEL_HEIGHT = 11.5 -- studs au-dessus du socle (la plus haute tour, le Trébuchet, fait ~10 studs)
@@ -66,7 +58,7 @@ local function preparePreviews()
 	folder.Parent = ReplicatedStorage
 end
 
-local dressings = {} -- [Player] = { plot, slots = { [i] = { pad, gui, title, sub, bar, fill, xp, prompt } }, buildings, signature }
+local dressings = {} -- [Player] = { plot, slots = { [i] = { pad, gui, title, sub, bar, fill, xp, prompt } }, signature }
 
 local function text(parent: Instance, name: string, position: UDim2, size: UDim2, color: Color3, font: Enum.Font): TextLabel
 	local label = Instance.new("TextLabel")
@@ -149,17 +141,13 @@ end
 
 local function setLabelHeight(entry, height: number)
 	-- StudsOffsetWorldSpace suit l'orientation du socle (un cylindre couché) : on lui donne la verticale du monde
-	-- dans son repère (comme les « + » de PlotUI).
+	-- dans son repère.
 	entry.gui.StudsOffsetWorldSpace = entry.pad.CFrame:VectorToObjectSpace(Vector3.new(0, height, 0))
 end
 
 local function decimal(value: number): string
 	local rounded = math.floor(value * 10 + 0.5) / 10
 	return (string.gsub(tostring(rounded), "%.", ","))
-end
-
-function Camp.active(player: Player): boolean
-	return Camp.games[player] ~= nil
 end
 
 -- Remet tout d'accord avec les données du joueur (emplacements, XP, pièces) : tours posées, étiquettes, invites,
@@ -248,42 +236,16 @@ function Camp.start(player: Player, plot, levels)
 		return
 	end
 	preparePreviews()
-	local dressing = { plot = plot, slots = {}, buildings = {}, signature = nil }
-	-- Socles : ceux du camp reçoivent leur étiquette et leur invite, tous les autres sont cachés.
+	local dressing = { plot = plot, slots = {}, signature = nil }
+	-- Socles d'entraînement : chacun reçoit son étiquette et son invite.
 	local campSpot = {}
 	for slotIndex, spotIndex in Levels.CAMP.SPOTS do
 		campSpot[spotIndex] = slotIndex
 	end
 	for _, pad in plot.spots:GetChildren() do
-		if not pad:IsA("BasePart") then
-			continue
-		end
-		local lock = pad:FindFirstChild("Lock")
-		if lock then
-			lock:Destroy()
-		end
-		local slotIndex = campSpot[pad:GetAttribute("SpotIndex")]
+		local slotIndex = if pad:IsA("BasePart") then campSpot[pad:GetAttribute("SpotIndex")] else nil
 		if slotIndex and slotIndex <= #Levels.TRAINING.SLOT_UNLOCK_COST then
 			dressing.slots[slotIndex] = dressPad(pad, slotIndex)
-		else
-			pad.Transparency = 1
-			pad.CanCollide = false
-			pad.CanQuery = false
-		end
-	end
-	-- Bâtiments de l'entrée : boutique et porte des niveaux.
-	for key, prompt in plot.machines do
-		local building = Camp.BUILDINGS[key]
-		local cabinet = prompt.Parent
-		local billboard = cabinet and cabinet:FindFirstChildOfClass("BillboardGui")
-		local label = billboard and billboard:FindFirstChildOfClass("TextLabel")
-		if building then
-			table.insert(dressing.buildings, { prompt = prompt, label = label, objectText = prompt.ObjectText, text = label and label.Text })
-			prompt.ObjectText = building.title
-			prompt:SetAttribute("CampTab", building.tab)
-			if label then
-				label.Text = building.title
-			end
 		end
 	end
 	dressings[player] = dressing
@@ -291,7 +253,7 @@ function Camp.start(player: Player, plot, levels)
 	Camp.refresh(player, levels)
 end
 
--- Fin du camp : la parcelle retrouve son état d'origine (emplacements du jeu infini, autel, forge).
+-- Fin du camp (le joueur part) : la parcelle redevient libre, ses socles vides.
 function Camp.stop(player: Player)
 	local game = Camp.games[player]
 	local dressing = dressings[player]
@@ -307,25 +269,7 @@ function Camp.stop(player: Player)
 		entry.gui:Destroy()
 		entry.prompt:Destroy()
 	end
-	for _, pad in dressing.plot.spots:GetChildren() do
-		if pad:IsA("BasePart") then
-			pad.CanCollide = true
-			pad.CanQuery = true
-		end
-	end
-	HubMap.resetSpots(dressing.plot)
-	for _, building in dressing.buildings do
-		building.prompt.ObjectText = building.objectText
-		building.prompt:SetAttribute("CampTab", nil)
-		if building.label and building.text then
-			building.label.Text = building.text
-		end
-	end
-end
-
--- Position (dans le monde) du socle d'un emplacement d'entraînement de la parcelle `plotIndex` (tests).
-function Camp.slotPosition(plotIndex: number, slotIndex: number): Vector3
-	return PlotLayout.toWorld(plotIndex, PlotLayout.SPOTS[Levels.CAMP.SPOTS[slotIndex]])
+	HubMap.resetPads(dressing.plot)
 end
 
 return Camp

@@ -1,8 +1,8 @@
--- Le CAMP D'ENTRAÎNEMENT d'un joueur, sur sa parcelle (nouvelle formule : règles dans Shared/Levels.luau, « LE CAMP
--- SUR LA PARCELLE » ; lancé et rangé par Hub/Camp.luau).
+-- Le CAMP D'ENTRAÎNEMENT d'un joueur, sur sa parcelle (règles dans Shared/Levels.luau, « LE CAMP SUR LA
+-- PARCELLE » ; lancé et rangé par Hub/Camp.luau).
 -- Les tours mises dans les emplacements d'entraînement sont posées pour de vrai sur des socles de la parcelle, et
--- des CIBLES ROULANTES suivent le chemin : les tours leur tirent dessus avec le vrai combat des parcelles (CampGame
--- hérite de LevelGame, donc de PlotGame : mêmes tirs, mêmes paquets réseau, même affichage par PlotRenderer). On
+-- des CIBLES ROULANTES suivent le chemin : les tours leur tirent dessus avec le vrai combat des niveaux (CampGame
+-- hérite de LevelGame, donc de Combat : mêmes tirs, mêmes paquets réseau, même affichage par PlotRenderer). On
 -- voit donc ses tours s'entraîner, avec les pouvoirs que leurs évolutions leur ont donnés.
 -- Rien ne se gagne ni ne se perd ici : une cible détruite ne rapporte rien, une cible qui arrive au bout du chemin
 -- s'en va. L'XP d'entraînement vient du temps passé dans l'emplacement (Levels.accrueTraining), pas des cibles.
@@ -27,7 +27,7 @@ CampGame.__index = CampGame
 -- Le chemin d'un camp est celui de la parcelle (LevelGame le lit dans self.layout).
 local LAYOUT = { name = "Camp", PATH_LENGTH = PlotLayout.PATH_LENGTH, pointAt = PlotLayout.pointAt }
 
--- Vitesse actuelle en fraction de la vitesse normale : type x contrôle (0 si étourdi). Même calcul que PlotGame.
+-- Vitesse actuelle en fraction de la vitesse normale : type x contrôle (0 si étourdi). Même calcul que Combat.
 local function speedFactorOf(enemy, now: number): number
 	local controlFactor = if now < enemy.controlUntil then 1 - enemy.controlFactor else 1
 	return enemy.speedScale * controlFactor
@@ -44,7 +44,7 @@ function CampGame.new(plot, player, levels)
 	self.layout = LAYOUT
 	self.training = {}
 
-	-- Champs du combat de PlotGame (et ceux que LevelGame lit).
+	-- Champs du combat (Combat.luau) et ceux que LevelGame lit.
 	self.enemies = {}
 	self.towers = {} -- [id] = tour
 	self.shots = {}
@@ -56,7 +56,6 @@ function CampGame.new(plot, player, levels)
 	self.clock = 0
 	self.simSpeed = 1
 	self.kills = 0
-	self.spawnReleases = 0
 	self.state = "Running"
 	self.gold = 0
 	self.goldEarned = 0
@@ -85,20 +84,19 @@ function CampGame:createSlotTower(slotIndex: number, towerType: string, stage: n
 	local spot = PlotLayout.SPOTS[Levels.CAMP.SPOTS[slotIndex]]
 	local id = self:newId()
 	local ground = Vector3.new(spot.X, 0, spot.Z)
-	-- Position de combat un peu au-dessus du sol ; le modèle, lui, est posé sur le socle (comme PlotGame).
+	-- Position de combat un peu au-dessus du sol ; le modèle, lui, est posé sur le socle.
 	local combat = self.cframe * CFrame.new(ground + Vector3.new(0, 0.3, 0))
 	local model = IdleTowerModel.create(towerType, self.cframe * CFrame.new(ground + Vector3.new(0, PlotLayout.SPOT_PAD_HEIGHT, 0)), self.towerFolder, {
 		TowerId = id,
 		PlotIndex = self.index,
-		CampSlot = slotIndex, -- (pas de SpotIndex : ni étiquette « Niv. X », ni clic du jeu infini)
+		CampSlot = slotIndex, -- (pas de SpotIndex : pas d'étiquette « Niv. X »)
 		Level = 1,
 		Spent = 0,
-		Bonus = "",
 	})
 	IdleTowerModel.addEvolution(model, stage)
 	local tower = {
 		id = id,
-		spotIndex = id, -- (PlotGame : identifie la tour pour ses zones de feu)
+		spotIndex = id, -- (Combat : identifie la tour pour ses zones de feu)
 		slotIndex = slotIndex,
 		type = towerType,
 		level = 1,
@@ -108,7 +106,6 @@ function CampGame:createSlotTower(slotIndex: number, towerType: string, stage: n
 		position = combat.Position,
 		cooldown = 0,
 		model = model,
-		runeKey = "",
 	}
 	self.towers[id] = tower
 	self.slotTowers[slotIndex] = tower
@@ -214,7 +211,7 @@ function CampGame:simulate(dt: number)
 		enemy.position = self.cframe:PointToWorldSpace((self.layout.pointAt(enemy.distance)))
 	end
 
-	-- Projectiles qui arrivent, tours, zones de feu : le combat de PlotGame.
+	-- Projectiles qui arrivent, tours, zones de feu : Combat.luau.
 	self:resolveImpacts(now)
 	for _, tower in self.towers do
 		local stats = self:statsOf(tower)
@@ -242,8 +239,8 @@ function CampGame:step(dt: number)
 	self:simulate(dt)
 end
 
--- Le camp est rangé (le joueur part, ou sa parcelle redevient celle du jeu infini) : tours et cibles effacées,
--- attributs de la parcelle remis à zéro, et un paquet « Clear » pour que les clients effacent les cibles.
+-- Le camp est rangé (le joueur part) : tours et cibles effacées, attributs de la parcelle remis à zéro, et un
+-- paquet « Clear » pour que les clients effacent les cibles.
 function CampGame:destroy()
 	for slotIndex in self.slotTowers do
 		self:removeSlotTower(slotIndex)

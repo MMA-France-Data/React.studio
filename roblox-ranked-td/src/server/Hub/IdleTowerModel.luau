@@ -1,4 +1,4 @@
--- Modèles 3D médiévaux des tours du mode infini.
+-- Modèles 3D médiévaux des 8 tours (niveaux, camp d'entraînement, vignettes de la boutique).
 -- Chaque silhouette reste simple, mais doit être identifiable au premier regard.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -35,9 +35,9 @@ end
 
 local VERTICAL_CYLINDER = CFrame.Angles(0, 0, math.rad(90))
 
--- cframe : position au sol de l'emplacement, orientée comme la parcelle.
+-- cframe : position au sol de la tour, orientée comme sa zone (niveau ou parcelle).
 function IdleTowerModel.create(towerType: string, cframe: CFrame, parent: Instance, attributes: { [string]: any }): Model
-	-- Les armes regardent -Z ; les ennemis arrivent du fond (+Z) de la parcelle.
+	-- Les armes regardent -Z ; sur une parcelle, les cibles arrivent du fond (+Z).
 	cframe = cframe * CFrame.Angles(0, math.pi, 0)
 	local def = IdleTowers.Defs[towerType]
 	local accent = def.color

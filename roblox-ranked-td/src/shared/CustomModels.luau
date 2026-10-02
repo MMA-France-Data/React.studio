@@ -1,8 +1,7 @@
--- Modèles perso des ennemis du mode solo (« emplacements de modèles »). Le propriétaire dépose un vrai
+-- Modèles perso des monstres (« emplacements de modèles »). Le propriétaire dépose un vrai
 -- modèle 3D (Toolbox / Creator Store, générateur 3D + Mixamo, artiste...) dans ReplicatedStorage.EnemyModels :
--- les ennemis de ce type l'utilisent à la place des blocs de MedievalModels, sur les parcelles
--- (PlotRenderer) et dans la galerie Studio (EnemyGallery). Le ranked n'est pas concerné (ses ennemis sont
--- des pièces du serveur, Match/Game.luau).
+-- les monstres de ce type l'utilisent à la place des blocs de MedievalModels, dans les niveaux
+-- (PlotRenderer) et dans la galerie Studio (EnemyGallery).
 --
 -- Où mettre les modèles :
 --   * dossier du projet assets/EnemyModels (Rojo : chaque fichier .rbxm / .rbxmx = un modèle, qui prend le
@@ -11,9 +10,9 @@
 --     « EnemyModels » s'il n'existe pas). Ajoutés, renommés ou retirés pendant une partie : pris en compte
 --     pour les ennemis suivants.
 -- Noms (majuscules / minuscules sans importance) :
---   1. « <Type>_<palier> » : palier = tranche de 10 vagues, comme les styles de MedievalModels (Swarm_0 =
---      vagues 1-10, Boss_9 = vagues 91-100 ; ensuite ça recommence : vagues 101-110 = _0...) ;
---   2. sinon « <Type> » : toutes les vagues ;
+--   1. « <Type>_<palier> » : palier = territoire de 10 niveaux, comme les styles de MedievalModels (Swarm_0 =
+--      niveaux 1-10, Boss_9 = niveaux 91-100 ; ensuite ça recommence : niveaux 101-110 = _0...) ;
+--   2. sinon « <Type> » : tous les niveaux ;
 --   3. sinon les blocs habituels.
 --   Types (clés de Enemies.ORDER) : Normal = Fantassin, Fast = Cavalier, Tank = Chevalier lourd,
 --   Boss = Seigneur de guerre, Swarm = Écuyer, Giant = Chevalier colossal.
@@ -60,28 +59,28 @@ CustomModels.FOLDER_NAME = "EnemyModels"
 --   height = comme l'attribut HeightScale, animSpeed = comme l'attribut AnimSpeed }.
 -- Tout est facultatif. Ces réglages passent avant les objets Animation et les attributs du modèle.
 CustomModels.SETTINGS = {
-	-- Roi carmin (ChatGPT, assets/enemies/crimson-king) : boss des vagues 10, 110, 210... Animations
+	-- Roi carmin (ChatGPT, assets/enemies/crimson-king) : boss du 1er territoire (niveau 10). Animations
 	-- « Walking » et « Dead » publiées par le propriétaire. animSpeed : sa marche est une vraie marche (Meshy),
 	-- bien plus ample qu'une marche Roblox (WALK_REFERENCE) : ~3,8 fois plus vite pour que ses pieds suivent.
 	boss_0 = { walk = 87099435097618, death = 90573475248434, animSpeed = 3.8 },
-	-- Chef pillard de cuivre (ChatGPT, assets/enemies/copper-chieftain) : boss des vagues 20, 120, 220...
+	-- Chef pillard de cuivre (ChatGPT, assets/enemies/copper-chieftain) : boss du 2e territoire (niveau 20).
 	-- Importé en FBX (les GLB retournaient sa tête). Même genre de marche que le Roi carmin.
 	boss_1 = { walk = 71788744458869, death = 101510645677440, animSpeed = 3.8 },
-	-- Gardien des ronces (ChatGPT) : boss des vagues 30, 130, 230...
+	-- Gardien des ronces (ChatGPT) : boss du 3e territoire (niveau 30).
 	boss_2 = { walk = 91047716376652, death = 135721159652622, animSpeed = 3.8 },
-	-- Titan de glace (ChatGPT) : boss des vagues 40, 140, 240...
+	-- Titan de glace (ChatGPT) : boss du 4e territoire (niveau 40).
 	boss_3 = { walk = 72114228775968, death = 108006752796153, animSpeed = 3.8 },
-	-- Seigneur des dunes (ChatGPT) : boss des vagues 50, 150, 250...
+	-- Seigneur des dunes (ChatGPT) : boss du 5e territoire (niveau 50).
 	boss_4 = { walk = 106949813842936, death = 136502915373905, animSpeed = 3.8 },
-	-- Seigneur de la tempête (vague 70) : le Titan de glace repeint, même squelette : ses animations.
+	-- Seigneur de la tempête (niveau 70) : le Titan de glace repeint, même squelette : ses animations.
 	boss_6 = { walk = 72114228775968, death = 108006752796153, animSpeed = 3.8 },
-	-- Seigneur d'obsidienne (vague 80) : le Roi carmin retouché, mais son squelette est 100 fois plus petit (les
+	-- Seigneur d'obsidienne (niveau 80) : le Roi carmin retouché, mais son squelette est 100 fois plus petit (les
 	-- animations du roi le faisaient marcher à l'envers) : ses propres animations, publiées depuis ses FBX.
 	boss_7 = { walk = 81844791793411, death = 98247649438268, animSpeed = 3.8 },
-	-- Dragon (vague 100) : il vole (animation « fly » jouée à la place de la marche, à peu près à vitesse 1 ; pas
+	-- Dragon (niveau 100) : il vole (animation « fly » jouée à la place de la marche, à peu près à vitesse 1 ; pas
 	-- encore d'animation de mort).
 	boss_9 = { walk = 83377179082342, animSpeed = 4.3 },
-	-- Troupes carmin (ChatGPT, assets/enemies/crimson-ranks, vagues 1-10) : les 3 chevaliers ont le même
+	-- Troupes carmin (ChatGPT, assets/enemies/crimson-ranks, niveaux 1-10) : les 3 chevaliers ont le même
 	-- squelette (KayKit), donc les mêmes animations (publiées une fois depuis le fantassin). Fantassin et
 	-- chevalier lourd vont vite pour leur taille : la course (Running_A) ; le colosse, lent : la marche
 	-- (Walking_A). animSpeed : estimé d'après leur taille et leur vitesse (à revoir à l'œil si les pieds glissent).
@@ -90,7 +89,7 @@ CustomModels.SETTINGS = {
 	giant_0 = { walk = 96179510952913, death = 85477305596501, animSpeed = 5.3 },
 	-- Variantes des troupes (ChatGPT, assets/enemies/copper-ranks et bramble-ranks) : même squelette KayKit que
 	-- les chevaliers carmin, donc mêmes animations (course, marche, mort publiées depuis le fantassin carmin).
-	-- L'écuyer (petit et rapide) court, comme le fantassin. Swarm_0 (vagues 1-10) : en attendant un vrai écuyer
+	-- L'écuyer (petit et rapide) court, comme le fantassin. Swarm_0 (niveaux 1-10) : en attendant un vrai écuyer
 	-- carmin, c'est une copie du fantassin carmin (Normal_0), mis à la taille d'un écuyer par le jeu.
 	swarm_0 = { walk = 123757346012656, death = 85477305596501, animSpeed = 2.4 },
 	swarm_1 ={ walk = 123757346012656, death = 85477305596501, animSpeed = 2.4 },
@@ -109,12 +108,12 @@ CustomModels.SETTINGS = {
 	normal_4 = { walk = 123757346012656, death = 85477305596501, animSpeed = 2.4 },
 	tank_4 = { walk = 123757346012656, death = 85477305596501, animSpeed = 2.4 },
 	giant_4 = { walk = 96179510952913, death = 85477305596501, animSpeed = 5.3 },
-	-- Vagues 51-60 : Légion des os (mêmes squelettes, donc mêmes animations).
+	-- Niveaux 51-60 : Légion des os (mêmes squelettes, donc mêmes animations).
 	swarm_5 = { walk = 123757346012656, death = 85477305596501, animSpeed = 2.4 },
 	normal_5 = { walk = 123757346012656, death = 85477305596501, animSpeed = 2.4 },
 	tank_5 = { walk = 123757346012656, death = 85477305596501, animSpeed = 2.4 },
 	giant_5 = { walk = 96179510952913, death = 85477305596501, animSpeed = 5.3 },
-	-- Vagues 61-70 (tempête), 71-80 (obsidienne), 81-90 (orcs), 91-100 (soldats du dragon) : mêmes squelettes.
+	-- Niveaux 61-70 (tempête), 71-80 (obsidienne), 81-90 (orcs), 91-100 (soldats du dragon) : mêmes squelettes.
 	swarm_6 = { walk = 123757346012656, death = 85477305596501, animSpeed = 2.4 },
 	normal_6 = { walk = 123757346012656, death = 85477305596501, animSpeed = 2.4 },
 	tank_6 = { walk = 123757346012656, death = 85477305596501, animSpeed = 2.4 },
@@ -145,7 +144,7 @@ CustomModels.SETTINGS = {
 	fast_9 = { walk = 109710149140915, death = 89761902672237, animSpeed = 0.75 },
 }
 
--- Paliers : même découpage que les styles de MedievalModels (10 tranches de 10 vagues, puis ça recommence).
+-- Paliers : même découpage que les styles de MedievalModels (10 territoires de 10 niveaux, puis ça recommence).
 local PALIER_COUNT = MedievalModels.ENEMY_STYLE_COUNT or 10
 
 -- Hauteur visée = taille du type (Enemies.Defs[type].size) x ce facteur : à peu près la hauteur des modèles
@@ -405,7 +404,7 @@ local function frontDirection(model: Instance): Vector3?
 	end
 	return nil
 end
--- (pour les tests Studio : sens d'un modèle perso déjà posé)
+-- (pour le test Studio des modèles, tools/studio-test : sens d'un modèle perso déjà posé)
 CustomModels.frontDirection = frontDirection
 
 -- Animation qui retourne le modèle : certains modèles importés (os rangés dans un seul MeshPart : Roi carmin,

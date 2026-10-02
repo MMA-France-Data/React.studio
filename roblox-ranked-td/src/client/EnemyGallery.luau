@@ -1,19 +1,20 @@
--- Galerie des ennemis (Studio seulement) : tous les ennemis du mode solo, pour les voir avant les joueurs.
--- 10 rangées, une par style de MedievalModels (vagues 1-10, 11-20 ... 91-100 ; après la vague 100, les
--- styles recommencent), et 6 ennemis par rangée : Fantassin, Cavalier, Chevalier lourd, Écuyer, Chevalier
--- colossal et Seigneur de guerre. Chaque ennemi est construit avec MedievalModels.decorateEnemy et le même
--- palier que sur les parcelles (PlotRenderer : palier = math.floor((vague - 1) / 10)) : c'est exactement ce
--- que verront les joueurs. Les ennemis pivotent doucement (±25°) pour montrer leurs côtés.
--- Modèles perso (ReplicatedStorage.EnemyModels, voir CustomModels.luau) : un ennemi qui a le sien est montré
--- avec ce modèle (et sa marche, s'il en a une), comme sur les parcelles ; une plaque à ses pieds dit
+-- Galerie des monstres (Studio seulement) : tous les monstres du jeu, pour les voir avant les joueurs.
+-- 10 rangées, une par style de MedievalModels (un style par territoire de 10 niveaux : niveaux 1-10, 11-20 ...
+-- 91-100 ; après le niveau 100, les styles recommencent), et 6 monstres par rangée : Fantassin, Cavalier,
+-- Chevalier lourd, Écuyer, Chevalier colossal et Seigneur de guerre. Chaque monstre est construit avec
+-- MedievalModels.decorateEnemy et le même palier que dans les niveaux (PlotRenderer : palier =
+-- math.floor((niveau - 1) / 10)), à sa taille de base (les niveaux les affichent plus gros : Levels.ENEMY_SCALE).
+-- Ils pivotent doucement (±25°) pour montrer leurs côtés.
+-- Modèles perso (ReplicatedStorage.EnemyModels, voir CustomModels.luau) : un monstre qui a le sien est montré
+-- avec ce modèle (et sa marche, s'il en a une), comme dans les niveaux ; une plaque à ses pieds dit
 -- « modèle perso : <nom du modèle> » ou « blocs ». La galerie est construite une fois : pour revoir un modèle
 -- changé, relance la partie.
 --
 -- Où ? Autour du centre de la map, il n'y a pas de place libre assez grande (place centrale, routes des
--- fiefs, jardins, machines, parcelles et villages entre les parcelles) : la galerie est construite
+-- parcelles, jardins, parcelles et villages entre les parcelles) : la galerie est construite
 -- derrière les montagnes du décor, en diagonale, à ~415 studs du centre, loin de tout (aucune parcelle,
--- aucun chemin, ni le cercle ranked, ni les panneaux des fiefs). Le bouton « GALERIE (Studio) » de la
--- colonne de gauche t'y emmène, « ← RETOUR » te ramène là où tu étais.
+-- aucun chemin). Le bouton « GALERIE (Studio) », en haut à gauche, t'y emmène ; « ← RETOUR » te ramène là
+-- où tu étais.
 --
 -- Seulement dans Studio (RunService:IsStudio()) avec Config.STUDIO_ENEMY_GALLERY = true : jamais dans le
 -- jeu publié. Pas pendant les tests automatiques (ReplicatedStorage.__AutoPlayTest), sauf si le test la
@@ -43,7 +44,7 @@ local EnemyGallery = {}
 
 -- Colonnes, de gauche à droite.
 local TYPES = { "Normal", "Fast", "Tank", "Swarm", "Giant", "Boss" }
-local WAVES_PER_STYLE = 10 -- un style par tranche de 10 vagues (même calcul que PlotRenderer)
+local LEVELS_PER_STYLE = 10 -- un style par territoire de 10 niveaux (même calcul que PlotRenderer)
 
 -- Emplacement : direction depuis le centre de la map (même convention que PlotLayout.cframe : 0° = +Z,
 -- 90° = +X) et distance du fond de la galerie au centre. Les montagnes du décor (MedievalModels.landscape,
@@ -57,7 +58,7 @@ local MIN_HALF_WIDTH = 1.9 -- demi-largeur minimale d'une colonne (place pour so
 local AISLE = 3 -- allée devant chaque rangée (on peut y marcher)
 local STEP_RISE = 1.2 -- chaque rangée est un peu plus haute que la précédente (gradins)
 local BASE_HEIGHT = 0.4 -- hauteur de la première marche
-local SIGN_WIDTH = 9 -- panneau « Vagues 1-10 : ... » à gauche de chaque rangée
+local SIGN_WIDTH = 9 -- panneau « Niveaux 1-10 : ... » à gauche de chaque rangée
 local FRONT_MARGIN = 3 -- devant la 1re rangée : noms des colonnes
 local BACK_MARGIN = 2
 local VIEW_DISTANCE = 12 -- où arrive le joueur : devant la galerie
@@ -195,7 +196,7 @@ local function extentsOf(corners: { Vector3 })
 	return extents
 end
 
--- Un ennemi exactement comme sur les parcelles (PlotRenderer.createEnemy), sans barre de vie. Construit
+-- Un monstre comme dans les niveaux (PlotRenderer.createEnemy), sans barre de vie. Construit
 -- en `at` (sous le sol, invisible) : il sera déplacé à sa place une fois toute la galerie mesurée.
 -- Renvoie sa racine, les coins de ses pièces (repère de la racine) et son modèle perso (nil = blocs).
 local function createEnemy(enemyType: string, def, palier: number, parent: Instance, at: CFrame): (BasePart, { Vector3 }, any)
@@ -228,7 +229,7 @@ local function animate()
 		return
 	end
 	-- Marche publiée sans boucle : Roblox peut remettre Looped à faux quand elle finit de se charger (comme
-	-- sur les parcelles, PlotRenderer.updateAnimations) : remise en boucle, même loin (sinon elle serait
+	-- dans les niveaux, PlotRenderer.updateAnimations) : remise en boucle, même loin (sinon elle serait
 	-- déjà arrêtée quand le joueur arrive).
 	for _, track in walkTracks do
 		if not track.Looped then
@@ -263,7 +264,7 @@ local function build()
 	local rows = {}
 	local customCount = 0 -- ennemis montrés avec un modèle perso
 	for palier = 0, styleCount - 1 do
-		local row = { palier = palier, models = {}, name = nil }
+		local row = { palier = palier, models = {} }
 		for column, enemyType in TYPES do
 			local def = Enemies.Defs[enemyType]
 			if not def then
@@ -271,7 +272,6 @@ local function build()
 			end
 			local model, corners, custom = createEnemy(enemyType, def, palier, root, staging)
 			row.models[column] = { def = def, root = model, extents = extentsOf(corners), custom = custom }
-			row.name = row.name or model:GetAttribute("EnemyStyleName") -- (pas sur un modèle perso)
 			if custom then
 				customCount += 1
 			end
@@ -332,13 +332,13 @@ local function build()
 		block(root, "Gradin" .. index, Vector3.new(width + 2, height, stepDepth), frame * CFrame.new(0, row.top - height / 2, -(row.stepStart + stepDepth / 2)), color, Enum.Material.Slate, true)
 		block(root, "Liseré", Vector3.new(width + 2, 0.12, 0.3), frame * CFrame.new(0, row.top + 0.01, -row.stepStart - 0.15), GOLD, Enum.Material.Metal, false)
 
-		-- Panneau « Vagues 1-10 : Chevaliers carmin » à gauche de la rangée.
-		local first = row.palier * WAVES_PER_STYLE + 1
-		local styleName = row.name or `Style {row.palier + 1}`
+		-- Panneau « Niveaux 1-10 : Chevaliers carmin » à gauche de la rangée.
+		local first = row.palier * LEVELS_PER_STYLE + 1
+		local styleName = MedievalModels.enemyStyleName(row.palier)
 		local signX = offsetX + 0.5 + SIGN_WIDTH / 2
 		local board = block(root, "Panneau", Vector3.new(SIGN_WIDTH, 2.6, 0.3), frame * CFrame.new(signX, row.top + 1.9, -row.depth), WOOD, Enum.Material.Wood, false)
 		signText(board, {
-			{ text = `Vagues {first}-{first + WAVES_PER_STYLE - 1} : {styleName}`, color = GOLD, weight = 1 },
+			{ text = `Niveaux {first}-{first + LEVELS_PER_STYLE - 1} : {styleName}`, color = GOLD, weight = 1 },
 		})
 		for _, side in { -1, 1 } do
 			block(root, "Pied", Vector3.new(0.3, 0.7, 0.3), frame * CFrame.new(signX + side * (SIGN_WIDTH / 2 - 0.8), row.top + 0.3, -row.depth), WOOD, Enum.Material.Wood, false)
@@ -379,8 +379,8 @@ local function build()
 	local titleWidth = math.min(width, 40)
 	local title = block(root, "Titre", Vector3.new(titleWidth, 5, 0.4), frame * CFrame.new(0, titleY, -(totalDepth - 0.6)), WOOD, Enum.Material.Wood, false)
 	signText(title, {
-		{ text = "GALERIE DES ENNEMIS (Studio seulement)", color = GOLD, weight = 1.3 },
-		{ text = "Mode solo : un style par tranche de 10 vagues, puis les styles recommencent après la vague 100", color = IVORY, weight = 1 },
+		{ text = "GALERIE DES MONSTRES (Studio seulement)", color = GOLD, weight = 1.3 },
+		{ text = "Un style par territoire de 10 niveaux, puis les styles recommencent après le niveau 100", color = IVORY, weight = 1 },
 		{ text = `Modèles perso (ReplicatedStorage.EnemyModels) : {customCount} ennemi(s) sur {#rows * #TYPES}`, color = IVORY, weight = 0.8 },
 	})
 	for _, side in { -1, 1 } do
@@ -491,13 +491,13 @@ local function build()
 	print(`[Galerie] {#roots} ennemis posés ({#rows} styles x {#TYPES} types, {customCount} avec un modèle perso), centre {center}`)
 end
 
--- Bouton de la colonne de gauche (sous « Boutique ») : emmène à la galerie, puis ramène.
+-- Bouton en haut à gauche, sous les boutons du jeu (UI.STUDIO_BUTTONS_TOP) : emmène à la galerie, puis ramène.
 local function createButton()
 	local player = Players.LocalPlayer
 	local gui = UI.screen("EnemyGallery")
 	gui:SetAttribute("NoTranslate", true) -- outil Studio : jamais traduit en anglais (AutoTranslate.luau)
 	local button = UI.button({
-		Position = UDim2.new(0, 16, 0, UI.LEFT_COLUMN_TOP + 5 * UI.LEFT_COLUMN_STEP),
+		Position = UDim2.new(0, 16, 0, UI.STUDIO_BUTTONS_TOP),
 		Size = UDim2.fromOffset(180, 46),
 		BackgroundColor3 = UI.Colors.PanelLight,
 		Text = "GALERIE (Studio)",

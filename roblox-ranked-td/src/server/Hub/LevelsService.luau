@@ -1,39 +1,28 @@
--- NIVEAUX, côté serveur (prototype de la nouvelle formule : règles et chiffres dans Shared/Levels.luau).
+-- NIVEAUX, côté serveur (règles et chiffres : Shared/Levels.luau).
 -- Ce module fait tourner tout ce qui se passe AUTOUR du combat d'un niveau (le combat lui-même : LevelGame.luau,
 -- la carte : LevelArena.luau) :
---   * qui a droit aux niveaux (Config.LEVELS_ACCESS : le propriétaire seulement, pour l'instant) ;
 --   * lancer un niveau dans la zone de combat du joueur (la zone n° de sa parcelle), l'arrêter, enchaîner ;
 --   * faire avancer les niveaux en cours à chaque image et envoyer monstres et tirs AU JOUEUR DU NIVEAU SEULEMENT
 --     (paquets PlotSync / PlotShots, numéro de zone à la place du numéro de parcelle) ;
 --   * la fin d'un niveau : pièces de niveau, niveau suivant débloqué, XP d'entraînement des tours posées ;
 --   * la boutique à prix fixes, le camp d'entraînement (emplacements), l'ordre de la barre rapide ;
---   * publier l'état du joueur (attributs LevelsAccess, LevelsState, LevelArena : voir Remotes.luau, LevelAction).
+--   * publier l'état du joueur (attributs LevelsState, LevelArena : voir Remotes.luau, LevelAction).
 -- Le client (LevelsUI.luau) ne décide rien : il envoie des demandes (remote LevelAction), tout est revérifié ici.
--- Le jeu actuel (parcelle infinie) n'est pas touché : il continue de tourner pendant qu'on joue un niveau.
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
-local Config = require(Shared.Config)
 local IdleConfig = require(Shared.IdleConfig)
 local IdleTowers = require(Shared.IdleTowers)
 local Levels = require(Shared.Levels)
 local Remotes = require(Shared.Remotes)
 local PlayerData = require(script.Parent.Parent.PlayerData)
-local Monetization = require(script.Parent.Parent.Monetization)
-local AdminGifts = require(script.Parent.AdminGifts)
 local LevelArena = require(script.Parent.LevelArena)
 local LevelGame = require(script.Parent.LevelGame)
 
 local LevelsService = {}
-
--- Tests Studio : attribut de ReplicatedStorage qui remplace Config.LEVELS_ACCESS ("Off" | "Owner" | "All").
--- Sans lui, dans les places des tests automatiques (objet __AutoPlayTest de tools/studio-test), les niveaux sont
--- fermés : ces tests regardent le jeu actuel, sans le bouton « NIVEAUX ». Seule la place du test des niveaux
--- (objet __AutoTestLevels) les ouvre.
-LevelsService.STUDIO_ACCESS = "StudioLevelsAccess"
 
 local ACTION_COOLDOWN = 0.08 -- secondes entre deux demandes d'un joueur (on améliore vite, pendant un niveau)
 local TRAINING_INTERVAL = 20 -- secondes entre deux calculs de l'entraînement des joueurs présents
@@ -51,13 +40,11 @@ end
 local clockOffset = 0 -- tests Studio : secondes ajoutées à l'heure (entraînement pendant une absence)
 
 local changedCallbacks = {} -- appelées quand l'état d'un joueur est publié (Hub/init.luau : son camp suit)
-local accessCallbacks = {} -- appelées quand son accès aux niveaux est (re)calculé
 
 local function now(): number
 	return os.time() + clockOffset
 end
 
--- ("Levels" : pendant un niveau, le client n'affiche que les messages des niveaux, pas ceux de la parcelle.)
 local function notify(player: Player, message: string, kind: string?)
 	if player.Parent then
 		Remotes.get("Notify"):FireClient(player, message, kind or "Info", "Levels")
@@ -65,26 +52,8 @@ local function notify(player: Player, message: string, kind: string?)
 end
 
 ----------------------------------------------------------------------
--- Accès et état publié
+-- État publié
 ----------------------------------------------------------------------
-
-function LevelsService.hasAccess(player: Player): boolean
-	local mode = Config.LEVELS_ACCESS
-	if RunService:IsStudio() then
-		local override = ReplicatedStorage:GetAttribute(LevelsService.STUDIO_ACCESS)
-		if typeof(override) == "string" then
-			mode = override
-		elseif ReplicatedStorage:FindFirstChild("__AutoPlayTest") and not ReplicatedStorage:FindFirstChild("__AutoTestLevels") then
-			mode = "Off"
-		end
-	end
-	if mode == "All" then
-		return true
-	elseif mode == "Owner" then
-		return AdminGifts.isOwner(player)
-	end
-	return false
-end
 
 -- Données des niveaux du joueur (data.levels), nil tant que sa sauvegarde n'est pas chargée.
 local function levelsOf(player: Player)
@@ -115,6 +84,7 @@ local function publish(player: Player)
 		wins = levels.wins,
 		losses = levels.losses,
 	}))
+	PlayerData.setLevel(player, levels.best) -- colonne « Level » de la liste des joueurs
 	for _, callback in changedCallbacks do
 		task.spawn(callback, player, levels)
 	end
@@ -125,25 +95,7 @@ function LevelsService.onChanged(callback: (Player, any) -> ())
 	table.insert(changedCallbacks, callback)
 end
 
--- callback(player, accès) chaque fois que l'accès d'un joueur aux niveaux est recalculé (arrivée, tests Studio).
-function LevelsService.onAccessChanged(callback: (Player, boolean) -> ())
-	table.insert(accessCallbacks, callback)
-end
-
 local closeLevel -- (défini plus bas)
-
-local function refreshAccess(player: Player)
-	local access = LevelsService.hasAccess(player) and levelsOf(player) ~= nil
-	player:SetAttribute("LevelsAccess", access)
-	if access then
-		publish(player)
-	else
-		closeLevel(player, false) -- (accès retiré pendant un niveau : il s'arrête)
-	end
-	for _, callback in accessCallbacks do
-		task.spawn(callback, player, access)
-	end
-end
 
 -- Entraînement du camp jusqu'à maintenant (emplacements, même pendant une absence) : Levels.accrueTraining.
 local function train(player: Player): boolean
@@ -386,7 +338,7 @@ end
 -- Une demande (remote LevelAction, ou tests Studio). Renvoie (réussie, raison du refus à montrer au joueur).
 local function handle(player: Player, action: any, a: any, b: any, c: any): (boolean, string?)
 	local levels = levelsOf(player)
-	if not levels or not LevelsService.hasAccess(player) then
+	if not levels then
 		return false, nil
 	end
 	if action == "Start" then
@@ -442,11 +394,7 @@ local function handle(player: Player, action: any, a: any, b: any, c: any): (boo
 		end
 		return (game:sellTower(a)), nil
 	elseif action == "Speed" then
-		local fast = a == IdleConfig.SPEED_PASS_FACTOR
-		if fast and not Levels.SPEED_FREE and not Monetization.ownsPass(player, "SpeedX2") then
-			return false, "Il te faut le pass Vitesse x2 (bouton « Boutique »)"
-		end
-		game:setSimSpeed(if fast then IdleConfig.SPEED_PASS_FACTOR else 1)
+		game:setSimSpeed(if a == IdleConfig.SPEED_PASS_FACTOR then IdleConfig.SPEED_PASS_FACTOR else 1)
 		return true, nil
 	end
 	return false, nil
@@ -462,10 +410,8 @@ function LevelsService.start(plots)
 	LevelArena.init()
 
 	local function onLoaded(player: Player)
-		if LevelsService.hasAccess(player) then
-			train(player) -- entraînement pendant l'absence (première visite : l'heure est seulement notée)
-		end
-		refreshAccess(player)
+		train(player) -- entraînement pendant l'absence (première visite : l'heure est seulement notée)
+		publish(player)
 	end
 	PlayerData.onLoaded(onLoaded)
 	for _, player in Players:GetPlayers() do
@@ -482,9 +428,7 @@ function LevelsService.start(plots)
 		if not ok then
 			warn("[Niveaux] Niveau mal rangé au départ de", player.Name, ":", err)
 		end
-		if LevelsService.hasAccess(player) then
-			train(player)
-		end
+		train(player)
 	end)
 	Players.PlayerRemoving:Connect(function(player)
 		lastAction[player] = nil
@@ -535,7 +479,7 @@ function LevelsService.start(plots)
 		while true do
 			task.wait(TRAINING_INTERVAL)
 			for _, player in Players:GetPlayers() do
-				if player:GetAttribute("LevelsAccess") == true and train(player) then
+				if train(player) then
 					publish(player)
 				end
 			end
@@ -545,7 +489,7 @@ end
 
 ----------------------------------------------------------------------
 -- Tests Studio (StudioDebug « Levels », Hub/init.luau) : jamais dans le jeu publié.
---   Invoke(player, "Levels", "State")            -> { access, levels (données sauvegardées), active (niveau en cours : level,
+--   Invoke(player, "Levels", "State")            -> { levels (données sauvegardées), active (niveau en cours : level,
 --                                                   state, gold, lives, kills, total, clock, towers, alive, simSpeed) }
 --   Invoke(player, "Levels", "Action", "Start", 1) -> une demande, comme le remote LevelAction (sans l'anti-spam) ;
 --                                                   renvoie (réussie, raison)
@@ -556,8 +500,6 @@ end
 --   Invoke(player, "Levels", "Finish", true)     -> finit le niveau tout de suite (true = gagné)
 --   Invoke(player, "Levels", "Clock", 3600)      -> avance l'heure du serveur d'une heure (entraînement du camp), puis
 --                                                   compte l'entraînement ; renvoie l'XP de chaque tour
---   Invoke(player, "Levels", "Access", "Off")    -> remplace Config.LEVELS_ACCESS ("Off" | "Owner" | "All", nil = réglage
---                                                   normal) et republie l'accès de tous les joueurs
 --   Invoke(player, "Levels", "Bench", 6, 60, 12) -> 6 niveaux 10 joués en même temps pendant 60 s de jeu, 12 tours
 --                                                   chacun, hors de la carte : { games, steps, enemiesPeak, averageMs,
 --                                                   p99Ms, worstMs } (coût du serveur par image pour les 6 combats)
@@ -593,7 +535,7 @@ function LevelsService.debug(player: Player, command: string, ...)
 				index = game.index,
 			}
 		end
-		return { access = LevelsService.hasAccess(player), levels = levels, active = active }
+		return { levels = levels, active = active }
 	elseif command == "Action" then
 		return handle(player, ...)
 	elseif command == "Set" and levels then
@@ -634,12 +576,6 @@ function LevelsService.debug(player: Player, command: string, ...)
 		train(player)
 		publish(player)
 		return table.clone(levels.xp)
-	elseif command == "Access" then
-		ReplicatedStorage:SetAttribute(LevelsService.STUDIO_ACCESS, (...))
-		for _, other in Players:GetPlayers() do
-			refreshAccess(other)
-		end
-		return LevelsService.hasAccess(player)
 	elseif command == "Bench" then
 		local count, seconds, towerCount = ...
 		return LevelsService.bench(count or Levels.ARENA_SLOTS, seconds or 60, towerCount)

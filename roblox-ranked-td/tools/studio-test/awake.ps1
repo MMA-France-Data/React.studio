@@ -1,4 +1,4 @@
-﻿# Garde l'écran allumé pendant un test automatique (à charger avec « . awake.ps1 » dans run.ps1 et phone.ps1).
+﻿# Garde l'écran allumé pendant un test automatique (à charger avec « . awake.ps1 » dans run.ps1).
 # Sans ça, quand personne ne touche au PC pendant 10 minutes, Windows éteint l'écran, et Studio n'affiche plus
 # rien du tout : l'image du jeu fait 1 x 1 pixel, plus aucune image n'est dessinée (RenderStepped s'arrête), les
 # captures sont blanches et tous les tests de l'écran ratent (vu le 02/10/2026).

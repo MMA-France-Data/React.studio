@@ -1,9 +1,9 @@
-MODÈLES PERSO DES MONSTRES (mode solo)
-======================================
+MODÈLES PERSO DES MONSTRES
+==========================
 
 Chaque fichier .rbxm (ou .rbxmx) de ce dossier = un modèle de monstre. Rojo le range dans
-ReplicatedStorage > EnemyModels, avec le nom du fichier. Les ennemis du mode solo de ce type
-l'utilisent à la place des blocs. Le ranked ne change pas.
+ReplicatedStorage > EnemyModels, avec le nom du fichier. Les monstres de ce type l'utilisent
+à la place des blocs, dans les niveaux.
 (Dans Studio, ce fichier apparaît aussi dans EnemyModels, en StringValue « README » : c'est normal.
 Garde-le : sans lui, un dossier vide n'irait pas sur GitHub et rojo build échouerait.)
 
@@ -12,11 +12,12 @@ NOM DU FICHIER = QUEL MONSTRE
   Tank   = Chevalier lourd    Boss  = Seigneur de guerre
   Swarm  = Écuyer             Giant = Chevalier colossal
 
-  Boss.rbxm     -> le boss de toutes les vagues
-  Boss_9.rbxm   -> le boss des vagues 91 à 100 seulement (passe avant Boss.rbxm)
-  Swarm_0.rbxm  -> les écuyers des vagues 1 à 10
-  Le chiffre = la tranche de 10 vagues : _0 = vagues 1-10, _1 = 11-20 ... _9 = 91-100,
-  puis ça recommence (vagues 101-110 = _0).
+  Boss.rbxm     -> le boss de tous les niveaux
+  Boss_9.rbxm   -> le boss des niveaux 91 à 100 seulement (passe avant Boss.rbxm)
+  Swarm_0.rbxm  -> les écuyers des niveaux 1 à 10
+  Le chiffre = le territoire de 10 niveaux : _0 = niveaux 1-10, _1 = 11-20 ... _9 = 91-100,
+  puis ça recommence (niveaux 101-110 = _0). Pour l'instant le jeu a 10 niveaux : seuls les
+  modèles _0 se voient en jeu, les autres attendent les niveaux suivants (la galerie les montre).
   Pas de fichier pour un type = les blocs habituels.
 
 ÉTAPES (exemple : un gobelin pour les écuyers, son chef pour le boss)
@@ -34,7 +35,7 @@ NOM DU FICHIER = QUEL MONSTRE
      position : le jeu le met à la bonne hauteur, les pieds au sol.
   4. Pour l'essayer tout de suite : glisse-le dans ReplicatedStorage > EnemyModels (crée un
      Folder nommé « EnemyModels » s'il n'existe pas), puis Play. Le bouton « GALERIE (Studio) »
-     montre tous les ennemis ; une plaque dit « modèle perso » ou « blocs » sous chacun.
+     montre tous les monstres ; une plaque dit « modèle perso » ou « blocs » sous chacun.
   5. Pour le garder : clic droit sur le modèle > « Enregistrer dans un fichier... » (Save to
      File...), choisis CE dossier et le même nom (Swarm.rbxm). Un seul modèle par fichier.
      Ensuite rojo build (ou rojo serve), et pousse le fichier sur GitHub.
@@ -69,17 +70,18 @@ IMPORTER UN .GLB AVEC SES ANIMATIONS
   d'animation (⋯ > Importer > depuis un fichier) marche mal avec ces fichiers. Enregistre toujours
   le « Scene » qui est sous Workspace (pas celui de ServerStorage > RBX_ANIMSAVES).
 
-MODÈLES EN PLACE : vagues 1-10 : Boss_0 (Roi carmin), Normal_0, Tank_0, Giant_0 (troupes carmin) ;
-  vague 20 : Boss_1 (Chef pillard de cuivre, importé en FBX : ses GLB lui retournaient la tête).
-  Le cavalier (Fast_0) attend un squelette corrigé.
+MODÈLES EN PLACE : les troupes des 10 territoires (Normal, Fast, Tank, Giant, Swarm : _0 à _9) et
+  les boss _0 (Roi carmin), _1 (Chef pillard de cuivre, importé en FBX : ses GLB lui retournaient
+  la tête), _2, _3, _4, _6, _7 et _9 (dragon). Manquent les boss _5 et _8.
   Si un GLB s'anime mal dans Studio, essayer le même modèle en FBX (ça a marché pour le chef).
+  Vérifier tous les modèles d'un coup : tools\studio-test\run.ps1 -Test monsters.
 
 ROI CARMIN (ChatGPT : assets/enemies/crimson-king/RoiCarmin_Studio.glb)
-  Boss des vagues 10, 110, 210... Un .glb ne passe pas par Rojo : importe-le une fois dans Studio
+  Boss du niveau 10. Un .glb ne passe pas par Rojo : importe-le une fois dans Studio
   (Importer, type de rig « Custom »), enregistre le modèle ici sous le nom Boss_0.rbxm, puis publie
   ses animations « Walking » et « Dead » et donne leurs numéros à Claude.
 
 PERFORMANCES
-  Des dizaines d'ennemis par parcelle (IdleConfig.MAX_ENEMIES au plus) sur 6 parcelles : préfère
+  Des dizaines de monstres par niveau (IdleConfig.MAX_ENEMIES au plus), six niveaux à la fois : préfère
   des modèles légers (quelques MeshPart, pas des centaines de pièces), sans sons ni particules en
   masse.

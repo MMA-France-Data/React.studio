@@ -32,9 +32,9 @@ Lang.addDictionary({
 	["Écuyer"] = "Squire",
 	-- textes exacts
 	["Suivant"] = "Next",
-	["⚔ S'INSCRIRE AU CLASSÉ"] = "⚔ JOIN RANKED",
+	["⚔ JOUER AU NIVEAU"] = "⚔ PLAY THE LEVEL",
 	["Ligne un\nLigne deux"] = "Line one\nLine two",
-	["<b>Renaître</b>"] = "<b>Rebirth</b>",
+	["<b>Rejouer</b>"] = "<b>Replay</b>",
 	["Tu gardes tout le reste :"] = "You keep everything else:",
 	-- modèles
 	["Vague {1}"] = "Wave {1}",
@@ -49,12 +49,12 @@ Lang.addDictionary({
 	["+{1} % de pièces"] = "+{1}% coins",
 	["Zone rayon {1}"] = "Area radius {1}",
 	["Ralentit {1} %"] = "Slows {1}%",
-	["{1} doublons"] = "{1} duplicates",
+	["{1} monstres"] = "{1} monsters",
 	["{1} contre {2}"] = "{1} vs {2}",
 	["Adversaire : {1}"] = "Opponent: {1}",
 	["déjà {1} lancers"] = "already {1} rolls",
 	["Améliorer [E] • {1}"] = "Upgrade [E] • {1}",
-	['<font color="#D8AA4C">Runes :</font> {1}'] = '<font color="#D8AA4C">Runes:</font> {1}',
+	['<font color="#D8AA4C">Effets :</font> {1}'] = '<font color="#D8AA4C">Effects:</font> {1}',
 	["x20 dégâts"] = "x20 damage",
 	["x2 vitesse"] = "x2 speed",
 	["Titre {1}\nDétail {2}"] = "Title {1}\nDetail {2}",
@@ -77,9 +77,9 @@ same("en-us = anglais", Lang.translate("Suivant", "en-us"), "Next")
 
 -- Exact
 same("exact", en("Suivant"), "Next")
-same("exact avec emoji et accents", en("⚔ S'INSCRIRE AU CLASSÉ"), "⚔ JOIN RANKED")
+same("exact avec emoji et accents", en("⚔ JOUER AU NIVEAU"), "⚔ PLAY THE LEVEL")
 same("exact sur 2 lignes", en("Ligne un\nLigne deux"), "Line one\nLine two")
-same("exact avec RichText", en("<b>Renaître</b>"), "<b>Rebirth</b>")
+same("exact avec RichText", en("<b>Rejouer</b>"), "<b>Replay</b>")
 same("nom seul", en("Archer du rempart"), "Rampart Archer")
 
 -- Modèles
@@ -97,7 +97,7 @@ same(
 	en("Maximum 2 Oracle de la foudre sur ta parcelle (Légendaire) : vends-en une pour en poser une autre"),
 	"Max 2 Lightning Oracle on your plot (Legendary): sell one to place another"
 )
-same("modèle qui commence par {1}", en("12 doublons"), "12 duplicates")
+same("modèle qui commence par {1}", en("12 monstres"), "12 monsters")
 same("modèle qui commence et finit par {n}", en("Archer du rempart contre Écuyer"), "Rampart Archer vs Squire")
 same("valeur inconnue gardée", en("Adversaire : Bot42"), "Opponent: Bot42")
 
@@ -123,9 +123,9 @@ same("morceaux « • » avec espaces", en("Vague 3  •  déjà 12 lancers"), "
 same("lignes et morceaux", en("Suivant\nZone rayon 7 · Ralentit 60 %"), "Next\nArea radius 7 · Slows 60%")
 same("modèle avec « • » dans ses mots fixes", en("Améliorer [E] • 1.5K"), "Upgrade [E] • 1.5K")
 same(
-	"ligne des runes (balises, morceaux, valeurs dans des balises)",
-	en('<font color="#D8AA4C">Runes :</font> <b>x20 dégâts</b>  •  <b>x2 vitesse</b>'),
-	'<font color="#D8AA4C">Runes:</font> <b>x20 damage</b>  •  <b>x2 speed</b>'
+	"ligne d'effets (balises, morceaux, valeurs dans des balises)",
+	en('<font color="#D8AA4C">Effets :</font> <b>x20 dégâts</b>  •  <b>x2 vitesse</b>'),
+	'<font color="#D8AA4C">Effects:</font> <b>x20 damage</b>  •  <b>x2 speed</b>'
 )
 same("modèle sur 2 lignes", en("Titre A\nDétail B"), "Title A\nDetail B")
 

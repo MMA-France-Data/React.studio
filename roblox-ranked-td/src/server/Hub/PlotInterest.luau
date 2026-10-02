@@ -1,7 +1,7 @@
--- Qui reçoit les ennemis et les tirs de chaque parcelle (mode infini, map principale).
+-- Qui reçoit les cibles et les tirs du camp d'entraînement de chaque parcelle (map principale).
 --
--- Le serveur n'envoie le paquet des ennemis (PlotSync) et celui des tirs (PlotShots) d'une parcelle qu'aux
--- joueurs qui peuvent la voir : de ta parcelle, tu ne reçois pas les monstres et les tirs des autres (ça
+-- Le serveur n'envoie le paquet des cibles (PlotSync) et celui des tirs (PlotShots) d'une parcelle qu'aux
+-- joueurs qui peuvent la voir : de ta parcelle, tu ne reçois pas les cibles et les tirs des autres (ça
 -- ferait ramer les téléphones pour rien), seulement quand tu t'approches de leur parcelle.
 --
 -- La règle, pour une parcelle :
@@ -15,8 +15,8 @@
 --   * sans personnage (mort, en train d'apparaître) : seulement sa parcelle.
 -- Pourquoi « plus près d'elle que de la tienne » : côté place centrale, deux parcelles voisines ne sont qu'à
 -- ~20 studs l'une de l'autre (coins intérieurs). Avec la marge seule, on recevrait sa voisine en restant dans
--- le coin de sa parcelle. Avec cette règle, sur ta parcelle et devant ton autel ou ta forge (les voisines y
--- sont à 29 studs au moins), tu ne reçois que la tienne.
+-- le coin de sa parcelle. Avec cette règle, sur ta parcelle et devant ses deux bâtiments, tu ne reçois que
+-- la tienne.
 --
 -- Hub/init.luau appelle compute quelques fois par seconde (REFRESH_INTERVAL) avec la position des joueurs,
 -- envoie les paquets aux joueurs de la liste, et un paquet « Clear » (PlotSync) à ceux qui viennent d'arrêter

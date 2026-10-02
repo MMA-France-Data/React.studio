@@ -1,13 +1,10 @@
--- Parcelles des autres joueurs : on les voit, mais on ne peut interagir qu'avec la sienne (demande du
--- propriétaire du jeu). Ici, côté client, on ne montre donc pas ce qui serait refusé :
---   * invites (ProximityPrompt) « Ouvrir » de l'AUTEL DES HÉROS et de la FORGE RUNIQUE : allumées seulement
---     devant TES machines ; chez toi, celles des autres parcelles et des parcelles libres sont éteintes ;
---   * prix des cadenas (« 🔒 prix » au-dessus des emplacements à acheter) : seulement sur ta parcelle.
--- Les clics sur les emplacements et les tours ne visent déjà que ta parcelle (PlotUI : le rayon du clic ne
--- regarde que son dossier). Le serveur reste le seul juge et revérifie tout (machines : « Cet autel appartient
--- à un autre fief ! » ; actions : seulement sur ta parcelle, Hub/init.luau).
--- Tenu à jour quand ta parcelle t'est donnée (attribut « Plot » du joueur) et quand des invites ou des cadenas
--- apparaissent (parcelle remise à zéro au départ d'un joueur, nouvel emplacement à vendre...).
+-- Camps des autres joueurs : on les voit, mais on ne peut interagir qu'avec le sien (demande du propriétaire du
+-- jeu). Ici, côté client, on ne montre donc pas ce qui ne servirait à rien : les invites (ProximityPrompt) des
+-- socles d'entraînement, de la boutique des tours et de la porte des niveaux ne sont allumées que sur TA parcelle ;
+-- celles des autres parcelles et des parcelles libres sont éteintes. (LevelsUI n'écoute de toute façon que celles
+-- de ta parcelle, et le serveur revérifie tout.)
+-- Tenu à jour quand ta parcelle t'est donnée (attribut « Plot » du joueur) et quand des invites apparaissent (un
+-- joueur arrive, un socle s'ouvre).
 local Players = game:GetService("Players")
 
 local PlotAccess = {}
@@ -22,28 +19,19 @@ local function plotIndexOf(instance: Instance, plotsFolder: Instance): number?
 	return if typeof(index) == "number" then index else nil
 end
 
--- Démarré une seule fois (par PlotUI.start, map principale).
+-- Démarré une seule fois (Main.client.luau).
 function PlotAccess.start()
 	local player = Players.LocalPlayer
 	local plotsFolder = workspace:WaitForChild("Hub"):WaitForChild("Plots")
 
-	-- Allume (ta parcelle) ou éteint (les autres) une invite ou un prix de cadenas ; ignore tout le reste.
+	-- Allume (ta parcelle) ou éteint (les autres) une invite ; ignore tout le reste.
 	local function apply(instance: Instance)
-		local isPrompt = instance:IsA("ProximityPrompt")
-		local parent = instance.Parent
-		local isLockPrice = instance:IsA("TextLabel") and instance.Name == "Price" and parent ~= nil and parent.Name == "Lock"
-		if not isPrompt and not isLockPrice then
+		if not instance:IsA("ProximityPrompt") then
 			return
 		end
 		local index = plotIndexOf(instance, plotsFolder)
-		if not index then
-			return
-		end
-		local mine = index == player:GetAttribute("Plot")
-		if isPrompt then
-			(instance :: ProximityPrompt).Enabled = mine
-		else
-			(instance :: TextLabel).Visible = mine
+		if index then
+			instance.Enabled = index == player:GetAttribute("Plot")
 		end
 	end
 	local function applyAll()

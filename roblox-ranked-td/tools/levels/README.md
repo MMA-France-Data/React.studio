@@ -1,8 +1,8 @@
 # Les niveaux hors de Studio
 
-Ces scripts font tourner le **vrai moteur des niveaux** (`src/server/Hub/LevelGame.luau`, qui hérite du vrai
-`PlotGame.luau`, avec les règles de `src/shared/Levels.luau`) sans ouvrir Studio, en quelques secondes. Ils servent à
-régler la difficulté et à vérifier les règles. Le prototype est expliqué dans [NIVEAUX.md](../../NIVEAUX.md).
+Ces scripts font tourner le **vrai moteur du jeu** (`src/server/Hub/LevelGame.luau` et `CampGame.luau`, qui héritent
+du vrai `Combat.luau`, avec les règles de `src/shared/Levels.luau`) sans ouvrir Studio, en quelques secondes. Ils
+servent à régler la difficulté et à vérifier les règles. Le jeu est expliqué dans [NIVEAUX.md](../../NIVEAUX.md).
 
 Il faut la commande `luau` ([Luau](https://github.com/luau-lang/luau/releases)). Depuis le dossier `roblox-ranked-td` :
 
@@ -18,7 +18,7 @@ powershell -ExecutionPolicy Bypass -File tools\levels\run.ps1 -Regler "Levels.ST
 - **sans option** : le tableau de difficulté. Chaque niveau est joué par des joueurs simulés : très actif, au rythme
   demandé par le niveau, lent (un achat toutes les 8 s), distrait (toutes les 15 s), sans boutique, tout débloqué.
   « G 7 » = gagné avec 7 vies, « P 62 % » = perdu après avoir éliminé 62 % des monstres. Environ 45 secondes.
-- **`-Tests`** : 292 vérifications (niveaux, flot continu, carte, pose libre, récompenses, prix, entraînement, données
+- **`-Tests`** : 291 vérifications (niveaux, flot continu, carte, pose libre, récompenses, prix, entraînement, données
   du joueur, le moteur : or, vies, victoire, défaite, vitesse x2, paquets réseau, **la difficulté de chaque
   niveau** : voir plus bas, les évolutions des tours et le camp d'entraînement de la parcelle : `CampGame.luau`).
   Environ 20 secondes.
@@ -69,7 +69,7 @@ Les tours et l'entraînement « attendus » à chaque niveau, et le rythme deman
 | Fichier | Rôle |
 |---|---|
 | `run.ps1` | Copie les vrais modules dans `gen\` (avec les imitations de Roblox ajoutées en tête) et lance le script voulu |
-| `env.luau`, `stubs\` | Imitations de Roblox (objets, services) et des modules du serveur dont le combat n'a pas besoin |
+| `env.luau`, `shim.luau`, `stubs\` | Imitations de Roblox (objets, services, Vector3, CFrame...) et des modules du serveur dont le combat n'a pas besoin |
 | `Bot.luau` | Les joueurs simulés : à chaque décision, l'achat qui donne le plus de dégâts par pièce d'or (plusieurs façons de jouer, la meilleure partie est gardée) ; le joueur qui pose quelques tours puis attend ; ce qui est attendu à chaque niveau |
 | `settings.luau` | Lit les options (`regler=`, `rythme=`…) |
 | `sim.luau` | Le tableau de difficulté |

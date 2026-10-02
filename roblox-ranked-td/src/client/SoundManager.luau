@@ -8,25 +8,21 @@
 --   Sounds.MAX_COMBAT_SOUNDS sons 3D en même temps sur toute la map (sauf les sons « priority », la mort d'un
 --     boss : ils passent toujours et ne comptent pas, sinon les flèches pourraient les étouffer),
 --   maxAtOnce voix par son (au-delà, le nouveau est ignoré, on ne coupe pas celui qui joue),
---   un départ au plus tous les minInterval secondes par son (Vitesse x2 = 2 fois plus de tirs : ça tient).
--- Sons 2D (interface, ta parcelle) : SoundManager.play(nom), mêmes limites maxAtOnce et minInterval.
+--   un départ au plus tous les minInterval secondes par son (vitesse x2 = 2 fois plus de tirs : ça tient).
+-- Sons 2D (interface, niveau) : SoundManager.play(nom), mêmes limites maxAtOnce et minInterval.
 -- Boucle du rayon du Sorcier des arcanes : SoundManager.setLoop, seulement les Sounds.MAX_BEAM_LOOPS plus proches.
--- Musique en boucle (map principale ou match), avec fondu, en pause pendant la fenêtre « MATCH TROUVÉ ! ».
--- Bouton « SON » (tout / effets seuls / muet) : en haut, à gauche du compteur de pièces (sous le compteur sur un
--- écran de moins de ~1 140 px ; en match : sous ton panneau). Choix sauvegardé avec tes données (remote
--- « Settings », attribut « SoundMode » du joueur). « muet » coupe aussi les bruits de pas des personnages.
+-- Musique : les morceaux de Sounds.PLAYLIST à la suite, avec fondu.
+-- Bouton « SON » (tout / effets seuls / muet) : en haut à gauche, après le bouton « ⚔ NIVEAUX » et les pièces de
+-- niveau (téléphone : une petite icône dans la barre du haut de Roblox, à droite). Choix sauvegardé avec tes
+-- données (remote « Settings », attribut « SoundMode » du joueur). « muet » coupe aussi les bruits de pas.
 --
 -- Qui déclenche quoi :
---   PlotRenderer : tirs et impacts des tours (paquet PlotShots), morts des ennemis, arrivée d'un boss ou d'un
---     colosse sur ta parcelle (PlotSync), pièces ramassées (CoinDrop), rayon du Sorcier ;
---   Effects : tirs des tours en match classé (TowerFired) ;
---   MachineUI : autel, forge et fanfare (tour légendaire, rune x20) ; ChallengeUI : récompense récupérée ;
---   ici : vague réussie / ratée et renaissance (attributs de ta parcelle), tour posée / améliorée / vendue,
---     emplacement débloqué, rune posée (dossier « Towers » de ta parcelle, seulement après une demande de
---     PlotUI : SoundManager.noteAction), « MATCH TROUVÉ ! » (attribut QueueState), fin du match (MatchResult),
---     tes tours en match (posée / améliorée / vendue, workspace.Towers), morts des ennemis en match, clic des
---     boutons, messages d'erreur (UI.onToast).
+--   PlotRenderer : tirs et impacts des tours (paquet PlotShots), morts des monstres, arrivée d'un boss ou d'un
+--     colosse dans ton niveau (PlotSync), rayon du Sorcier ;
+--   LevelsUI : tour posée / améliorée / vendue, victoire, défaite, évolution d'une tour ;
+--   ici : clic des boutons, messages d'erreur (UI.onToast).
 local ContentProvider = game:GetService("ContentProvider")
+local GuiService = game:GetService("GuiService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -34,8 +30,6 @@ local SoundService = game:GetService("SoundService")
 local TweenService = game:GetService("TweenService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
-local MapLayout = require(Shared.MapLayout)
-local RankedGate = require(Shared.RankedGate)
 local Remotes = require(Shared.Remotes)
 local Sounds = require(Shared.Sounds)
 local UI = require(script.Parent.UI)
@@ -45,12 +39,8 @@ local SoundManager = {}
 local SLOTS = Sounds.SLOTS
 local DEFAULT_LENGTH = 1.5 -- durée comptée pour un son pas encore chargé (secondes)
 local LOOP_CHECK_INTERVAL = 0.25 -- boucles des rayons : on choisit les plus proches 4 fois par seconde
-local REQUEST_WINDOW = 4 -- une action demandée par PlotUI (poser, vendre...) attend la réponse du serveur au plus
 local IMPACT_MARGIN = 20 -- la caméra bouge pendant le vol d'un projectile : un peu de marge (isAudible)
 local LOCAL_CHOICE_HOLD = 3 -- après un clic sur « SON », on ignore l'ancien choix renvoyé par le serveur
-local LEAK_DISTANCE = 6 -- match : un ennemi retiré à moins de ça du bout du chemin est arrivé à la base
--- Mort : son selon le type d'ennemi (les autres : EnemyDeath).
-local DEATH_SOUNDS = { Boss = "BossDeath", Giant = "BigDeath", Tank = "BigDeath" }
 
 local player = Players.LocalPlayer
 local mode = "All" -- choix du bouton « SON » (Sounds.MODES)
@@ -66,12 +56,9 @@ local sorted = {}
 local loops = {} -- [clé] = { slot, parent, wanted, strength, distance, sound, playing }
 local loopCandidates = {}
 local loopClock = 0
-local requests = {} -- ["Place:3"] = heure de la demande (noteAction)
 local music: Sound? = nil
 local musicStarted = false
 local musicTween: Tween? = nil
-local musicStopped = false -- fin du match : la musique ne reprend plus
-local matchFoundOpen = false -- fenêtre « MATCH TROUVÉ ! » ouverte : musique en pause
 local refreshButton: () -> () = function() end
 local previewSound: Sound? = nil
 
@@ -421,7 +408,7 @@ end
 ----------------------------------------------------------------------
 
 local function musicWanted(): boolean
-	return mode == "All" and not matchFoundOpen and not musicStopped
+	return mode == "All"
 end
 
 -- Fondu vers le volume voulu (0 = pause à la fin du fondu).
@@ -484,24 +471,23 @@ local function readSavedMode()
 	end
 end
 
--- Bouton « SON » : 2 lignes, comme le bouton Vitesse x2 (ShopUI). Carte principale : en haut, juste à gauche du
--- compteur de pièces (centré, 360 px ; le bouton Vitesse x2 est à sa droite), s'il tient à droite de la carte de
--- rang (LobbyUI : 260 px de large à 16 px du bord, donc un écran d'au moins ~1 140 px) ; sinon (petit portable,
--- tablette, téléphone), sous le compteur, pour ne pas couvrir la carte de rang. Match : sous ton panneau (en haut
--- à gauche).
+-- Bouton « SON », 2 lignes (« SON » et le réglage). Ordinateur : en haut à gauche, à droite du bouton « ⚔ NIVEAUX »
+-- et des pièces de niveau (LevelsUI). Téléphone : une petite icône (demande du propriétaire : « l'icône son est trop
+-- grande et gêne »), tenu en large dans la barre du haut de Roblox, contre le bord droit (elle ne prend rien sur la
+-- vue) ; barre trop basse ou téléphone debout : en haut à droite de la zone de jeu.
 local BUTTON_WIDTH = 96
+local BUTTON_POSITION = Vector2.new(430, 13)
+local PHONE_SIZE = Vector2.new(40, 34)
+local PHONE_MARGIN = 12
 local MODE_ICONS = { All = "🔊", Effects = "🔉", Mute = "🔇" } -- téléphone : tout, effets seuls (sans musique), muet
-local COUNTER_GAP = 188 -- du centre de l'écran au bord droit du bouton (moitié du compteur de 360 px + 8 px)
-local RANK_CARD_RIGHT = 16 + 260 + 8 -- bord droit de la carte de rang (LobbyUI) + 8 px d'écart
 local SEND_DELAY = 0.5 -- le choix part au serveur un peu après le dernier clic (voir createButton)
 local sendPending = false
-local function createButton(serverMode: string)
+local function createButton()
 	local gui = UI.screen("SoundButton")
-	local hub = serverMode ~= "Match"
 	local button = UI.button({
 		Name = "SoundButton",
 		AnchorPoint = Vector2.new(0, 0),
-		Position = UDim2.new(0, 16, 0, 120),
+		Position = UDim2.fromOffset(BUTTON_POSITION.X, BUTTON_POSITION.Y),
 		Size = UDim2.fromOffset(BUTTON_WIDTH, 44),
 		BackgroundColor3 = UI.Colors.PanelLight,
 		Text = "",
@@ -521,8 +507,7 @@ local function createButton(serverMode: string)
 		MaxTextSize = 11,
 		Parent = button,
 	})
-	-- Téléphone : le bouton est petit (demande du propriétaire : « l'icône son est trop grande et gêne »), il ne
-	-- montre qu'une icône (MODE_ICONS) ; le message « Son : … » dit toujours le réglage choisi.
+	-- Téléphone : seulement une icône (MODE_ICONS) ; le message « Son : … » dit toujours le réglage choisi.
 	local iconLabel = UI.label({
 		Name = "ModeIcon",
 		Size = UDim2.fromScale(1, 1),
@@ -530,38 +515,26 @@ local function createButton(serverMode: string)
 		Visible = false,
 		Parent = button,
 	})
-	if hub then
-		local function place()
-			local screen = UI.screenSize(gui)
-			local phone = UI.isPhone(screen)
-			titleLabel.Visible = not phone
-			modeLabel.Visible = not phone
-			iconLabel.Visible = phone
-			-- (téléphone : caché avec les icônes de droite par le bouton « ▲ », UI.startShortcutToggle)
-			button.Visible = UI.extrasShown(screen)
-			if phone then
-				-- Téléphone : en haut à droite, à côté du compteur de pièces (UI.phoneTopRight).
-				local position, size = UI.phoneTopRight(screen, 1)
-				button.AnchorPoint = Vector2.new(1, 0)
-				button.Position = position
-				button.Size = UDim2.fromOffset(size.X, size.Y)
-				return
-			end
+	local function place()
+		local screen = UI.screenSize(gui)
+		local phone = UI.isPhone(screen)
+		titleLabel.Visible = not phone
+		modeLabel.Visible = not phone
+		iconLabel.Visible = phone
+		if phone then
+			local bar = (GuiService:GetGuiInset()).Y
+			local inBar = screen.X > screen.Y and bar >= PHONE_SIZE.Y + 8
+			button.AnchorPoint = Vector2.new(1, 0)
+			button.Position = UDim2.new(1, -PHONE_MARGIN, 0, if inBar then -bar + math.floor((bar - PHONE_SIZE.Y) / 2) else 8)
+			button.Size = UDim2.fromOffset(PHONE_SIZE.X, PHONE_SIZE.Y)
+		else
+			button.AnchorPoint = Vector2.new(0, 0)
+			button.Position = UDim2.fromOffset(BUTTON_POSITION.X, BUTTON_POSITION.Y)
 			button.Size = UDim2.fromOffset(BUTTON_WIDTH, 44)
-			local camera = workspace.CurrentCamera
-			local width = if camera then camera.ViewportSize.X else 0
-			-- Assez large : le bouton tient entre la carte de rang et le compteur (sinon il cacherait la carte).
-			local fits = width / 2 - COUNTER_GAP - BUTTON_WIDTH >= RANK_CARD_RIGHT
-			button.AnchorPoint = if fits then Vector2.new(1, 0) else Vector2.new(0.5, 0)
-			button.Position = if fits then UDim2.new(0.5, -COUNTER_GAP, 0, 9) else UDim2.new(0.5, 0, 0, 56)
 		end
-		place()
-		UI.watchShortcuts(button, place)
-		if workspace.CurrentCamera then
-			workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(place)
-		end
-		gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(place)
 	end
+	place()
+	gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(place)
 	refreshButton = function()
 		modeLabel.Text = Sounds.MODE_LABELS[mode] or ""
 		iconLabel.Text = MODE_ICONS[mode] or "🔊"
@@ -589,213 +562,6 @@ end
 ----------------------------------------------------------------------
 -- Ce que le client voit déjà passer (aucun message en plus du serveur)
 ----------------------------------------------------------------------
-
--- PlotUI note chaque demande (« Place », « Sell », « BuySpot », « ApplyBonus » + emplacement) : le son joue
--- quand le serveur l'a vraiment fait (tour arrivée, partie...), jamais pour les tours chargées à l'arrivée.
-function SoundManager.noteAction(action: string, spot: any)
-	requests[`{action}:{spot}`] = os.clock()
-end
-
-local function consume(action: string, spot: any): boolean
-	local key = `{action}:{spot}`
-	local at = requests[key]
-	if at and os.clock() - at <= REQUEST_WINDOW then
-		requests[key] = nil
-		return true
-	end
-	return false
-end
-
--- Ta parcelle : vague réussie / ratée, renaissance, emplacement débloqué, tours posées / améliorées / vendues.
-local function watchOwnPlot()
-	local plotIndex = player:GetAttribute("Plot")
-	while typeof(plotIndex) ~= "number" do
-		player:GetAttributeChangedSignal("Plot"):Wait()
-		plotIndex = player:GetAttribute("Plot")
-	end
-	local plots = workspace:WaitForChild("Hub"):WaitForChild("Plots")
-	local plot = plots:WaitForChild("Plot" .. plotIndex)
-
-	local lastState = plot:GetAttribute("State")
-	local runningWave = plot:GetAttribute("Wave")
-	local lastRebirths = plot:GetAttribute("Rebirths")
-	local lastRebirthAt = -math.huge
-	plot:GetAttributeChangedSignal("Rebirths"):Connect(function()
-		local rebirths = plot:GetAttribute("Rebirths")
-		if typeof(rebirths) == "number" and typeof(lastRebirths) == "number" and rebirths > lastRebirths then
-			lastRebirthAt = os.clock()
-			SoundManager.play("Rebirth")
-		end
-		lastRebirths = rebirths
-	end)
-	-- Fin de vague (Running -> Intermission) : la vague a monté = réussie, sinon ratée (à la vague 1, une vague
-	-- ratée reste à 1). Attributs lus un peu après : Wave peut arriver juste après State. Pas pendant une
-	-- renaissance (elle a son propre son).
-	plot:GetAttributeChangedSignal("State"):Connect(function()
-		local state = plot:GetAttribute("State")
-		if state == "Running" then
-			runningWave = plot:GetAttribute("Wave")
-		elseif state == "Intermission" and lastState == "Running" then
-			local startWave = runningWave
-			task.delay(0.25, function()
-				-- (pas pendant une renaissance ; ni pendant un NIVEAU, LevelsUI.luau : la parcelle tourne toute seule
-				-- sur la place, loin de l'écran)
-				if os.clock() - lastRebirthAt < 2 or player:GetAttribute("LevelArena") ~= nil then
-					return
-				end
-				local wave = plot:GetAttribute("Wave")
-				if typeof(wave) == "number" and typeof(startWave) == "number" and wave > startWave then
-					SoundManager.play("WaveCleared")
-				else
-					SoundManager.play("WaveFailed")
-				end
-			end)
-		end
-		lastState = state
-	end)
-	plot:GetAttributeChangedSignal("OwnedSpots"):Connect(function()
-		for key in requests do
-			local spot = string.match(key, "^BuySpot:(%d+)$")
-			if spot and consume("BuySpot", spot) then
-				SoundManager.play("SpotUnlocked")
-				return
-			end
-		end
-	end)
-
-	-- (Le dossier « Towers » arrive quand tes données sont chargées : attente sans avertissement dans la Sortie.)
-	local towers = plot:WaitForChild("Towers", 120)
-	if not towers then
-		return
-	end
-	local levels = {} -- [modèle] = niveau connu
-	local function track(model: Instance)
-		if not model:IsA("Model") or levels[model] ~= nil then
-			return
-		end
-		levels[model] = model:GetAttribute("Level") or 1
-		model:GetAttributeChangedSignal("Level"):Connect(function()
-			local level = model:GetAttribute("Level")
-			local before = levels[model]
-			if typeof(level) == "number" and typeof(before) == "number" and level > before then
-				SoundManager.play("TowerUpgraded")
-			end
-			levels[model] = level
-		end)
-		model:GetAttributeChangedSignal("Bonus"):Connect(function()
-			if consume("ApplyBonus", model:GetAttribute("SpotIndex")) then
-				SoundManager.play("RuneApplied")
-			end
-		end)
-	end
-	for _, model in towers:GetChildren() do
-		track(model)
-	end
-	towers.ChildAdded:Connect(function(model)
-		track(model)
-		if consume("Place", model:GetAttribute("SpotIndex")) then
-			SoundManager.play("TowerPlaced")
-		end
-	end)
-	towers.ChildRemoved:Connect(function(model)
-		levels[model] = nil
-		if consume("Sell", model:GetAttribute("SpotIndex")) then
-			SoundManager.play("TowerSold")
-		end
-	end)
-end
-
--- Classé : « MATCH TROUVÉ ! » (QueueState passe à Pending) ; musique en pause tant que la fenêtre est ouverte.
--- Classé fermé (Config.RANKED_OPEN = false, RankedGate.luau) : jamais (comme la fenêtre, LobbyUI).
-local function watchQueue()
-	local lastState = player:GetAttribute("QueueState")
-	local function update()
-		local state = if RankedGate.isOpen() then player:GetAttribute("QueueState") or "Idle" else "Idle"
-		if state == "Pending" and lastState ~= "Pending" then
-			SoundManager.play("MatchFound")
-		end
-		local open = state == "Pending" or state == "Accepted" or state == "Found" or state == "Teleporting"
-		if open ~= matchFoundOpen then
-			matchFoundOpen = open
-			refreshMusic()
-		end
-		lastState = state
-	end
-	player:GetAttributeChangedSignal("QueueState"):Connect(update)
-end
-
--- Match classé : tes tours posées / améliorées / vendues (dossier workspace.Towers, attribut OwnerUserId : jamais
--- celles de l'adversaire ni du bot).
-local function watchMatchTowers()
-	local towers = workspace:WaitForChild("Towers")
-	local levels = {} -- [modèle] = niveau connu (seulement tes tours)
-	local function track(model: Instance, placed: boolean)
-		if not model:IsA("Model") or levels[model] ~= nil or model:GetAttribute("OwnerUserId") ~= player.UserId then
-			return
-		end
-		levels[model] = model:GetAttribute("Level") or 1
-		if placed then
-			SoundManager.play("TowerPlaced")
-		end
-		model:GetAttributeChangedSignal("Level"):Connect(function()
-			local level = model:GetAttribute("Level")
-			local before = levels[model]
-			if typeof(level) == "number" and typeof(before) == "number" and level > before then
-				SoundManager.play("TowerUpgraded")
-			end
-			if levels[model] ~= nil then
-				levels[model] = level
-			end
-		end)
-	end
-	for _, model in towers:GetChildren() do
-		track(model, false)
-	end
-	towers.ChildAdded:Connect(function(model)
-		track(model, true)
-	end)
-	towers.ChildRemoved:Connect(function(model)
-		if levels[model] ~= nil then
-			levels[model] = nil
-			SoundManager.play("TowerSold")
-		end
-	end)
-end
-
--- Match classé : tes tours (juste au-dessus), morts des ennemis (pièce retirée loin de la base) et fin du match.
-local function watchMatch()
-	task.spawn(watchMatchTowers)
-	Remotes.get("MatchResult").OnClientEvent:Connect(function(result)
-		if typeof(result) ~= "table" then
-			return
-		end
-		if result.outcome == "Win" then
-			SoundManager.play("MatchVictory")
-		elseif result.outcome == "Loss" then
-			SoundManager.play("MatchDefeat")
-		end
-		musicStopped = true
-		refreshMusic()
-	end)
-	task.spawn(function()
-		local enemies = workspace:WaitForChild("Enemies")
-		local localEnd = MapLayout.pointAt(MapLayout.PATH_LENGTH)
-		enemies.ChildRemoved:Connect(function(part)
-			if not part:IsA("BasePart") then
-				return
-			end
-			local position = part.Position
-			local lane = part:GetAttribute("Lane")
-			if typeof(lane) == "number" then
-				local base = MapLayout.toWorld(lane, localEnd)
-				if Vector3.new(position.X - base.X, 0, position.Z - base.Z).Magnitude < LEAK_DISTANCE then
-					return -- arrivé à la base, pas tué
-				end
-			end
-			SoundManager.playAt(DEATH_SOUNDS[part.Name] or "EnemyDeath", position)
-		end)
-	end)
-end
 
 -- Clic sur les boutons : tous ceux qui s'éclairent au survol (AutoButtonColor), pas les voiles sombres des
 -- fenêtres. Attribut « NoClickSound » = pas de clic (boutons « Jouer » du panneau Studio).
@@ -895,13 +661,12 @@ local function nextTrack(playlist: { string }, current: string?): string?
 	return choices[math.random(1, #choices)]
 end
 
--- serverMode = "Match" (serveur de match) ou autre (map principale).
-function SoundManager.start(serverMode: string)
+function SoundManager.start()
 	ensureInit()
-	-- Musique de ce serveur : les morceaux de Sounds.PLAYLISTS à la suite. Un Sound neuf par morceau, créé à la
-	-- fin du précédent (son nom = celui du morceau : refreshMusic y lit le volume voulu). Changer le SoundId du
-	-- même Sound à la fin d'un morceau ne relançait pas la lecture : silence après le premier morceau.
-	local playlist = Sounds.PLAYLISTS[if serverMode == "Match" then "Match" else "Hub"] or {}
+	-- Musique : les morceaux de Sounds.PLAYLIST à la suite. Un Sound neuf par morceau, créé à la fin du précédent
+	-- (son nom = celui du morceau : refreshMusic y lit le volume voulu). Changer le SoundId du même Sound à la fin
+	-- d'un morceau ne relançait pas la lecture : silence après le premier morceau.
+	local playlist = Sounds.PLAYLIST
 	local function useTrack(name: string): Sound
 		local sound = newSound(name, SLOTS[name])
 		sound.Looped = #playlist <= 1
@@ -923,8 +688,8 @@ function SoundManager.start(serverMode: string)
 				musicTween = nil
 			end
 			if musicWanted() then
-				-- Nouveau morceau : même fondu qu'au démarrage. Sinon (coupée, fenêtre « MATCH TROUVÉ ! ») :
-				-- refreshMusic le lancera quand la musique sera de nouveau voulue.
+				-- Nouveau morceau : même fondu qu'au démarrage. Sinon (musique coupée) : refreshMusic le lancera
+				-- quand elle sera de nouveau voulue.
 				nextSound:Play()
 				local tween = TweenService:Create(nextSound, TweenInfo.new(Sounds.MUSIC_FADE_TIME), { Volume = SLOTS[following].volume })
 				musicTween = tween
@@ -937,7 +702,7 @@ function SoundManager.start(serverMode: string)
 	if first and SLOTS[first] then
 		useTrack(first)
 	end
-	createButton(serverMode)
+	createButton()
 	player:GetAttributeChangedSignal("SoundMode"):Connect(readSavedMode)
 	-- La musique démarre quand le choix sauvegardé est connu (données chargées, 6 s au plus) : un joueur qui
 	-- a coupé la musique ne l'entend pas démarrer.
@@ -958,12 +723,6 @@ function SoundManager.start(serverMode: string)
 	end
 	task.spawn(hookButtons)
 	watchCharacterSounds()
-	if serverMode == "Match" then
-		watchMatch()
-	else
-		task.spawn(watchOwnPlot)
-		watchQueue()
-	end
 
 	RunService.Heartbeat:Connect(function(dt)
 		local now = os.clock()
@@ -989,7 +748,7 @@ function SoundManager.start(serverMode: string)
 end
 
 ----------------------------------------------------------------------
--- Studio : écoute depuis le panneau « SONS (Studio) » et test automatique
+-- Studio : écoute depuis le panneau « SONS (Studio) »
 ----------------------------------------------------------------------
 
 -- Joue un son en 2D, quel que soit le bouton « SON » (panneau Studio). Les boucles s'arrêtent au bout de 4 s,
@@ -1024,24 +783,6 @@ function SoundManager.stopPreview()
 		previewSound:Destroy()
 		previewSound = nil
 	end
-end
-
--- Test automatique (tools/studio-test) : `count` demandes 3D À LA MÊME IMAGE, tout près de la caméra, réparties
--- sur les sons `names` (pas de son « priority » : ils passent exprès au-delà de la limite), à tout petit volume,
--- puis une seule mise en file. Renvoie : combien ont démarré, la limite Sounds.MAX_COMBAT_SOUNDS et le nombre de
--- sons 3D qui jouent juste après.
-function SoundManager.testBurst(names: { string }, count: number): (number, number, number)
-	ensureInit()
-	local eye = listener() or Vector3.zero
-	local savedMode = mode
-	mode = "All"
-	for i = 1, count do
-		local offset = Vector3.new(math.random() * 6 - 3, 0, math.random() * 6 - 3)
-		SoundManager.playAt(names[(i - 1) % #names + 1], eye + offset, 0.05)
-	end
-	mode = savedMode
-	local startedCount = SoundManager.flush()
-	return startedCount, Sounds.MAX_COMBAT_SOUNDS, activeCombat(os.clock())
 end
 
 return SoundManager

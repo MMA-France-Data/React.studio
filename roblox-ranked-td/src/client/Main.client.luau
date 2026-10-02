@@ -1,75 +1,35 @@
--- Point d'entrée client : charge l'interface du lobby ou celle du match selon le serveur.
+-- Point d'entrée client : charge l'interface du jeu (niveaux et camp d'entraînement).
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Remotes = require(Shared.Remotes)
 local UI = require(script.Parent.UI)
 
-local mode = ReplicatedStorage:GetAttribute("ServerMode")
-while not mode do
-	ReplicatedStorage:GetAttributeChangedSignal("ServerMode"):Wait()
-	mode = ReplicatedStorage:GetAttribute("ServerMode")
-end
-
--- source = "Levels" : message d'un NIVEAU (prototype de la nouvelle formule, Hub/LevelsService.luau). Pendant un
--- niveau (attribut LevelArena du joueur), l'écran montre la zone de combat : les messages de la parcelle, qui tourne
--- toute seule sur la place (« Vague 12 ratée... »), ne s'affichent pas ; seuls ceux du niveau passent.
-Remotes.get("Notify").OnClientEvent:Connect(function(message: string, kind: string?, source: string?)
-	if game:GetService("Players").LocalPlayer:GetAttribute("LevelArena") ~= nil and source ~= "Levels" then
-		return
-	end
+-- Messages du serveur (achat réussi, pas assez d'or...) : petite notification en haut de l'écran.
+Remotes.get("Notify").OnClientEvent:Connect(function(message: string, kind: string?)
 	UI.toast(message, kind)
 end)
 
--- Traduction : un joueur qui ne joue pas en français voit tous les textes en anglais, messages du serveur compris
--- (AutoTranslate.luau, Shared/Lang.luau, dictionnaires Shared/LangEN). Avant les interfaces. Rien ne change pour un
--- joueur francophone.
+-- Traduction : un joueur qui ne joue pas en français voit les textes traduits en anglais (AutoTranslate.luau,
+-- Shared/Lang.luau, dictionnaires Shared/LangEN). Avant les interfaces. Rien ne change pour un joueur francophone.
 require(script.Parent.AutoTranslate).start()
 
--- Textes flottants (niveaux, prix, barres de vie...) visibles seulement quand on s'approche.
+-- Textes flottants (niveaux des tours, barres de vie...) visibles seulement quand on s'approche.
 require(Shared.ProximityLabel).start()
 
 -- Sons (effets, musique, bouton « SON »), seulement chez ce joueur : avant les autres modules, qui les jouent.
 -- Réglages dans src/shared/Sounds.luau.
-require(script.Parent.SoundManager).start(mode)
+require(script.Parent.SoundManager).start()
 
-if mode == "Match" then
-	-- La liste des joueurs de Roblox cacherait le panneau de l'adversaire (en haut à droite),
-	-- qui affiche déjà les mêmes infos.
-	pcall(function()
-		game:GetService("StarterGui"):SetCoreGuiEnabled(Enum.CoreGuiType.PlayerList, false)
-	end)
-	local TowerPlacement = require(script.Parent.TowerPlacement)
-	TowerPlacement.start()
-	require(script.Parent.MatchUI).start(TowerPlacement)
-	require(script.Parent.Effects).start()
-else
-	require(script.Parent.LobbyUI).start()
-	require(script.Parent.PlotRenderer).start()
-	require(script.Parent.PlotUI).start()
-	require(script.Parent.MachineUI).start()
-	require(script.Parent.RebirthUI).start()
-	-- Défis classés : bouton « DÉFIS » et fenêtre (récompenses pour le mode solo).
-	require(script.Parent.ChallengeUI).start()
-	-- Boutique (passes de jeu du mode infini) et message « Pendant ton absence : +X » au retour.
-	local ShopUI = require(script.Parent.ShopUI)
-	ShopUI.start()
-	Remotes.get("OfflineGains").OnClientEvent:Connect(ShopUI.showOfflineGains)
-	-- Téléphone : bouton « ▲ » / « ▼ » qui masque et remet les icônes de droite (Autel, Forge, Renaissance, Boutique, Défis).
-	UI.startShortcutToggle()
-	-- Galerie des ennemis : seulement dans Studio (Config.STUDIO_ENEMY_GALLERY), jamais dans le jeu publié.
-	require(script.Parent.EnemyGallery).start()
-	-- Panneau « SONS (Studio) » pour écouter chaque son : seulement dans Studio (Config.STUDIO_SOUND_PANEL).
-	require(script.Parent.SoundPanel).start()
-	-- Panneau « 🎁 DONNER » : seulement pour le propriétaire du jeu (offrir un pass à un joueur du serveur).
-	require(script.Parent.AdminUI).start()
-	-- NIVEAUX (prototype de la nouvelle formule) : bouton « ⚔ NIVEAUX », fenêtre du camp et écran des niveaux.
-	-- Seulement pour les joueurs à qui le serveur donne l'accès (Config.LEVELS_ACCESS : le propriétaire, pour l'instant).
-	require(script.Parent.LevelsUI).start()
-	-- Bouton « SCÈNES (Studio) » (dragon ou boss de glace tout prêts) : seulement dans Studio (Config.STUDIO_SCENES).
-	task.spawn(function()
-		require(script.Parent.StudioScenes).start()
-	end)
-	-- Petit tuto des nouveaux joueurs (une seule fois, bouton « Passer ») : après les autres interfaces, qu'il montre.
-	require(script.Parent.TutorialUI).start()
-end
+-- Monstres, cibles d'entraînement et tirs des tours.
+require(script.Parent.PlotRenderer).start()
+-- Invites des camps : seulement celles de ta parcelle.
+task.spawn(function()
+	require(script.Parent.PlotAccess).start()
+end)
+-- NIVEAUX : bouton « ⚔ NIVEAUX », fenêtre du camp (niveaux, boutique, entraînement, mes tours) et écran d'un niveau.
+require(script.Parent.LevelsUI).start()
+-- Galerie des ennemis : seulement dans Studio (Config.STUDIO_ENEMY_GALLERY), jamais dans le jeu publié.
+require(script.Parent.EnemyGallery).start()
+-- Panneau « SONS (Studio) » pour écouter chaque son : seulement dans Studio (Config.STUDIO_SOUND_PANEL).
+require(script.Parent.SoundPanel).start()

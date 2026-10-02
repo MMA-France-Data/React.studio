@@ -20,7 +20,7 @@ local nameLabel = new("TextLabel", { Text = "Maël", Parent = screen })
 local part = new("Part", { Parent = work })
 local billboard = new("BillboardGui", { Parent = part })
 local worldLabel = new("TextLabel", { Text = "Vague 7", Parent = billboard })
-local prompt = new("ProximityPrompt", { ActionText = "Ouvrir", ObjectText = "Autel des héros", Parent = part })
+local prompt = new("ProximityPrompt", { ActionText = "Ouvrir", ObjectText = "Totem de givre", Parent = part })
 
 localPlayer:SetAttribute("Lang", startLanguage)
 local AutoTranslate = load(new("ModuleScript", { Name = "AutoTranslate" }))
@@ -52,11 +52,11 @@ same("anglais : outil Studio (NoTranslate) pas traduit", studioLabel.Text, "Suiv
 same("anglais : nom du joueur pas traduit", nameLabel.Text, "Maël")
 same("anglais : panneau du monde traduit", worldLabel.Text, "Wave 7")
 same("anglais : invite ActionText", prompt.ActionText, "Open")
-same("anglais : invite ObjectText", prompt.ObjectText, "Heroes' Altar")
+same("anglais : invite ObjectText", prompt.ObjectText, "Frost Totem")
 same("anglais : Studio Language", studio:Invoke("Language"), "en")
 same("anglais : texte d'origine (Studio)", studio:Invoke("Original", title), "Archer du rempart")
 same("anglais : texte d'origine (API)", AutoTranslate.original(title), "Archer du rempart")
-same("anglais : texte d'origine d'une invite", studio:Invoke("Original", prompt, "ObjectText"), "Autel des héros")
+same("anglais : texte d'origine d'une invite", studio:Invoke("Original", prompt, "ObjectText"), "Totem de givre")
 -- La traduction automatique de Roblox ne touche jamais un texte traduit par nous (AutoLocalize = false)
 same("anglais : AutoLocalize coupé (texte)", title.AutoLocalize, false)
 same("anglais : AutoLocalize coupé (invite)", prompt.AutoLocalize, false)
@@ -98,7 +98,7 @@ worldLabel.Text = "Vague 9"
 settle()
 same("de nouveau traduit", worldLabel.Text, "Wave 9")
 same("texte d'origine suivi", AutoTranslate.original(worldLabel), "Vague 9")
--- Nombre seul écrit à la française (ex. dégâts « 7,5 » de la fiche d'une tour) : écriture anglaise, puis retour
+-- Nombre seul écrit à la française (ex. « 7,5 ») : écriture anglaise, puis retour
 local decimal = new("TextLabel", { Text = "7,5", Parent = screen })
 settle()
 same("nombre seul : virgule -> point", decimal.Text, "7.5")
@@ -133,9 +133,9 @@ settle()
 same("objet déplacé : toujours suivi", moved.Text, "Wave 5")
 
 -- Invite changée par le serveur
-prompt.ObjectText = "Forge runique"
+prompt.ObjectText = "Catapulte"
 settle()
-same("invite changée : retraduite", prompt.ObjectText, "Rune Forge")
+same("invite changée : retraduite", prompt.ObjectText, "Catapult")
 
 -- Retour au français en direct
 localPlayer:SetAttribute("Lang", "fr")
@@ -145,7 +145,7 @@ same("retour : bouton", button.Text, "Suivant")
 same("retour : texte changé pendant l'anglais", worldLabel.Text, "Vague 9")
 same("retour : écran ajouté pendant l'anglais", nested.Text, "Vague 3")
 same("retour : invite ActionText", prompt.ActionText, "Ouvrir")
-same("retour : invite ObjectText", prompt.ObjectText, "Forge runique")
+same("retour : invite ObjectText", prompt.ObjectText, "Catapulte")
 same("retour : TextBox", box.Text, "Archer du rempart")
 same("retour : nombre seul", decimal.Text, "7,5")
 same("retour : AutoLocalize remis (texte)", title.AutoLocalize, true)

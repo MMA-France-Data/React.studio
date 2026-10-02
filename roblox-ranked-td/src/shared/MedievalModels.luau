@@ -1,6 +1,6 @@
--- Habillage médiéval commun aux ennemis du ranked et du mode infini.
--- La racine reste une Part légère déplacée par la simulation ; les éléments visuels
--- sont soudés dessus afin de conserver BulkMoveTo et le protocole réseau existants.
+-- Habillage médiéval : les monstres en blocs, la cible d'entraînement du camp, et le décor (map et niveaux).
+-- La racine d'un monstre reste une Part légère déplacée par l'affichage ; les éléments visuels
+-- sont soudés dessus afin de conserver BulkMoveTo.
 local MedievalModels = {}
 
 local IRON = Color3.fromRGB(92, 98, 108)
@@ -35,76 +35,8 @@ local function piece(root: BasePart, name: string, size: Vector3, relative: CFra
 	return part
 end
 
-local function weapon(root: BasePart, s: number, heavy: boolean?)
-	local x = 0.78 * s
-	piece(root, "SwordGrip", Vector3.new(0.16, 0.65, 0.16) * s, CFrame.new(x, -0.05 * s, -0.35 * s) * CFrame.Angles(math.rad(-20), 0, 0), LEATHER, Enum.Material.Wood)
-	piece(root, "SwordBlade", Vector3.new(0.12, (heavy and 1.7 or 1.35) * s, 0.28 * s), CFrame.new(x, 0.8 * s, -0.8 * s) * CFrame.Angles(math.rad(-28), 0, 0), Color3.fromRGB(190, 198, 207), Enum.Material.Metal)
-end
-
-local function shield(root: BasePart, s: number, color: Color3, large: boolean?)
-	local scale = if large then 1.25 else 1
-	piece(root, "Shield", Vector3.new(0.22 * s, 1.35 * s * scale, 1.15 * s * scale), CFrame.new(-0.72 * s, 0.1 * s, -0.22 * s), color, Enum.Material.Metal, Enum.PartType.Cylinder)
-	piece(root, "ShieldBoss", Vector3.new(0.3, 0.35, 0.35) * s, CFrame.new(-0.86 * s, 0.1 * s, -0.22 * s), GOLD, Enum.Material.Metal, Enum.PartType.Ball)
-end
-
-local function infantry(root: BasePart, def, armored: boolean, warlord: boolean)
-	local s = def.size / 2
-	local armor = if warlord then DARK_IRON elseif armored then IRON else def.color
-	local tabard = def.color:Lerp(Color3.new(0, 0, 0), 0.18)
-
-	-- Jambes, cotte de mailles, tabard et tête casquée.
-	for _, x in { -0.28, 0.28 } do
-		piece(root, "Boot", Vector3.new(0.34, 0.75, 0.38) * s, CFrame.new(x * s, -0.64 * s, 0), LEATHER, Enum.Material.Fabric)
-	end
-	piece(root, "Torso", Vector3.new(1.05, 1.25, 0.72) * s, CFrame.new(0, 0.22 * s, 0), armor, if armored or warlord then Enum.Material.Metal else Enum.Material.Fabric)
-	piece(root, "Tabard", Vector3.new(0.72, 0.95, 0.12) * s, CFrame.new(0, 0.12 * s, -0.43 * s), tabard, Enum.Material.Fabric)
-	piece(root, "Head", Vector3.one * 0.63 * s, CFrame.new(0, 1.08 * s, 0), SKIN, Enum.Material.SmoothPlastic, Enum.PartType.Ball)
-	piece(root, "Helmet", Vector3.new(0.72, 0.48, 0.72) * s, CFrame.new(0, 1.33 * s, 0), armor, Enum.Material.Metal)
-	piece(root, "Visor", Vector3.new(0.76, 0.17, 0.15) * s, CFrame.new(0, 1.18 * s, -0.37 * s), DARK_IRON, Enum.Material.Metal)
-
-	if armored or warlord then
-		for _, x in { -0.72, 0.72 } do
-			piece(root, "Pauldron", Vector3.new(0.48, 0.42, 0.82) * s, CFrame.new(x * s, 0.62 * s, 0), armor:Lerp(GOLD, if warlord then 0.35 else 0.05), Enum.Material.Metal, Enum.PartType.Ball)
-		end
-	end
-	shield(root, s, if warlord then Color3.fromRGB(112, 27, 31) else def.color, armored or warlord)
-	weapon(root, s, armored or warlord)
-
-	if warlord then
-		piece(root, "CrownBand", Vector3.new(0.84, 0.18, 0.84) * s, CFrame.new(0, 1.66 * s, 0), GOLD, Enum.Material.Metal)
-		for _, x in { -0.28, 0, 0.28 } do
-			piece(root, "CrownSpike", Vector3.new(0.12, 0.42 + (if x == 0 then 0.18 else 0), 0.12) * s, CFrame.new(x * s, 1.93 * s, 0), GOLD, Enum.Material.Metal)
-		end
-		piece(root, "Cape", Vector3.new(0.95, 1.55, 0.16) * s, CFrame.new(0, 0.12 * s, 0.46 * s) * CFrame.Angles(math.rad(-8), 0, 0), Color3.fromRGB(112, 22, 29), Enum.Material.Fabric)
-	end
-end
-
-local function cavalry(root: BasePart, def)
-	local s = def.size / 2
-	-- Cheval orienté vers -Z, donc dans le sens de marche de la racine.
-	piece(root, "HorseBody", Vector3.new(1.15, 0.9, 2.35) * s, CFrame.new(0, -0.05 * s, 0.08 * s), HORSE, Enum.Material.SmoothPlastic)
-	piece(root, "HorseNeck", Vector3.new(0.62, 1.1, 0.62) * s, CFrame.new(0, 0.42 * s, -0.9 * s) * CFrame.Angles(math.rad(-25), 0, 0), HORSE, Enum.Material.SmoothPlastic)
-	piece(root, "HorseHead", Vector3.new(0.72, 0.58, 0.9) * s, CFrame.new(0, 0.82 * s, -1.3 * s), HORSE:Lerp(Color3.new(0, 0, 0), 0.08), Enum.Material.SmoothPlastic)
-	for _, offset in {
-		Vector3.new(-0.38, -0.76, -0.65), Vector3.new(0.38, -0.76, -0.65),
-		Vector3.new(-0.38, -0.76, 0.72), Vector3.new(0.38, -0.76, 0.72),
-	} do
-		piece(root, "HorseLeg", Vector3.new(0.23, 0.95, 0.23) * s, CFrame.new(offset * s), HORSE:Lerp(Color3.new(0, 0, 0), 0.15), Enum.Material.SmoothPlastic)
-	end
-	piece(root, "Saddle", Vector3.new(0.9, 0.18, 1.05) * s, CFrame.new(0, 0.55 * s, 0.15 * s), LEATHER, Enum.Material.Fabric)
-
-	-- Cavalier compact avec lance et fanion.
-	piece(root, "RiderTorso", Vector3.new(0.75, 0.9, 0.55) * s, CFrame.new(0, 1.15 * s, 0.1 * s), def.color, Enum.Material.Fabric)
-	piece(root, "RiderHead", Vector3.one * 0.48 * s, CFrame.new(0, 1.83 * s, 0.02 * s), SKIN, Enum.Material.SmoothPlastic, Enum.PartType.Ball)
-	piece(root, "RiderHelmet", Vector3.new(0.58, 0.38, 0.58) * s, CFrame.new(0, 2.02 * s, 0.02 * s), IRON, Enum.Material.Metal)
-	piece(root, "Lance", Vector3.new(0.13, 0.13, 3.2) * s, CFrame.new(0.65 * s, 1.18 * s, -0.82 * s) * CFrame.Angles(math.rad(-8), 0, 0), WOOD, Enum.Material.Wood)
-	piece(root, "LanceTip", Vector3.new(0.22, 0.22, 0.48) * s, CFrame.new(0.65 * s, 1.38 * s, -2.55 * s), Color3.fromRGB(201, 205, 211), Enum.Material.Metal)
-	shield(root, s * 0.72, def.color, false)
-end
-
--- Styles du mode infini : palier 0 = vagues 1–10, palier 9 = 91–100.
--- L'appel sans palier conserve les modèles historiques du ranked.
--- Aucun accès à Wave ici : le branchement dans PlotRenderer reste indépendant.
+-- Styles des monstres : un par territoire de 10 niveaux (palier 0 = niveaux 1-10, palier 9 = 91-100, puis ça
+-- recommence). Le palier est donné par celui qui affiche le monstre (PlotRenderer, EnemyGallery).
 local ENEMY_STYLES = {
 	{ name = "Chevaliers carmin", cloth = Color3.fromRGB(155, 42, 46), armor = IRON, skin = SKIN, mount = HORSE, boss = "king" },
 	{ name = "Pillards de cuivre", cloth = Color3.fromRGB(168, 96, 38), armor = Color3.fromRGB(123, 80, 49), skin = SKIN, mount = Color3.fromRGB(62, 44, 35), boss = "raider" },
@@ -114,7 +46,7 @@ local ENEMY_STYLES = {
 	{ name = "Legion des os", cloth = Color3.fromRGB(106, 83, 134), armor = Color3.fromRGB(110, 109, 118), skin = Color3.fromRGB(224, 214, 177), mount = Color3.fromRGB(183, 180, 158), boss = "undead" },
 	{ name = "Garde de la tempete", cloth = Color3.fromRGB(75, 91, 179), armor = Color3.fromRGB(107, 126, 172), skin = SKIN, mount = Color3.fromRGB(75, 78, 104), boss = "storm" },
 	{ name = "Chevaliers d'obsidienne", cloth = Color3.fromRGB(209, 75, 40), armor = Color3.fromRGB(48, 44, 53), skin = Color3.fromRGB(137, 119, 112), mount = Color3.fromRGB(47, 43, 48), boss = "obsidian" },
-	-- (Décision du propriétaire, 30/09/2026 : le dragon est le boss de la vague 100, la horde gobeline passe avant.)
+	-- (Décision du propriétaire, 30/09/2026 : le dragon est le dernier boss, la horde gobeline passe avant.)
 	{ name = "Horde gobeline", cloth = Color3.fromRGB(130, 71, 41), armor = Color3.fromRGB(94, 101, 66), skin = Color3.fromRGB(111, 156, 62), mount = Color3.fromRGB(72, 83, 48), boss = "goblin" },
 	{ name = "Couvee du dragon", cloth = Color3.fromRGB(153, 46, 42), armor = Color3.fromRGB(117, 51, 43), skin = Color3.fromRGB(174, 116, 63), mount = Color3.fromRGB(103, 59, 43), boss = "dragon" },
 }
@@ -124,6 +56,11 @@ MedievalModels.ENEMY_STYLE_COUNT = #ENEMY_STYLES
 local function styleIndex(palier: number): number
 	if palier ~= palier or math.abs(palier) == math.huge then return 1 end
 	return math.max(0, math.floor(palier)) % #ENEMY_STYLES + 1
+end
+
+-- Nom de la famille de monstres d'un palier (« Chevaliers carmin »...).
+function MedievalModels.enemyStyleName(palier: number): string
+	return ENEMY_STYLES[styleIndex(palier)].name
 end
 
 local function tierEnemy(root: BasePart, def, index: number)
@@ -259,6 +196,7 @@ local function tierEnemy(root: BasePart, def, index: number)
 	end
 end
 
+-- Habille la racine d'un monstre dans le style de son territoire (palier, voir ENEMY_STYLES).
 function MedievalModels.decorateEnemy(root: BasePart, def, palier: number?)
 	root.Transparency = 1
 	root.Color = def.color
@@ -267,26 +205,13 @@ function MedievalModels.decorateEnemy(root: BasePart, def, palier: number?)
 	root.CanCollide = false
 	root.CanTouch = false
 	root.CanQuery = false
-	if palier ~= nil then
-		local index = styleIndex(palier)
-		root:SetAttribute("EnemyStyle", index - 1)
-		root:SetAttribute("EnemyStyleName", ENEMY_STYLES[index].name)
-		tierEnemy(root, def, index)
-		return
-	end
-
-	if def.visual == "Cavalry" then
-		cavalry(root, def)
-	elseif def.visual == "Heavy" then
-		infantry(root, def, true, false)
-	elseif def.visual == "Warlord" then
-		infantry(root, def, true, true)
-	else
-		infantry(root, def, false, false)
-	end
+	local index = styleIndex(palier or 0)
+	root:SetAttribute("EnemyStyle", index - 1)
+	root:SetAttribute("EnemyStyleName", ENEMY_STYLES[index].name)
+	tierEnemy(root, def, index)
 end
 
--- CIBLE D'ENTRAÎNEMENT du camp (nouvelle formule, Hub/CampGame.luau) : un mannequin de paille sur un chariot, que
+-- CIBLE D'ENTRAÎNEMENT du camp (Hub/CampGame.luau) : un mannequin de paille sur un chariot, que
 -- les tours à l'entraînement prennent pour cible. Habille la même racine qu'un ennemi (elle suit le chemin de la
 -- parcelle) ; on le reconnaît de tous les côtés : rien à voir avec un vrai monstre.
 function MedievalModels.trainingTarget(root: BasePart, def)

@@ -1,17 +1,18 @@
--- Test des NIVEAUX (prototype de la nouvelle formule), côté client : tools/studio-test/phone.ps1 -Mode levels.
+-- Test du JEU (niveaux et camp d'entraînement), côté client : tools/studio-test/run.ps1.
 -- Il attend que le serveur ait fini ses propres vérifications (attribut LevelsTestPhase = "Client"), puis joue avec
 -- la VRAIE interface (src/client/LevelsUI.luau) : un plugin ne peut pas cliquer, il passe donc par l'attribut
 -- « TestAction » des deux écrans, qui lance les mêmes fonctions que les boutons et les appuis (un appui sur le
 -- terrain passe par le vrai chemin : point de l'écran -> rayon de la caméra -> sol).
---   0) la PARCELLE du joueur est son camp d'entraînement : écrans du jeu infini cachés, tour posée sur son socle,
---      cibles d'entraînement sur le chemin, invite d'un socle -> onglet Entraînement et ses évolutions ;
+--   0) la place centrale et la PARCELLE du joueur, son camp d'entraînement : plus aucun écran de l'ancien jeu, tour
+--      posée sur son socle, cibles d'entraînement sur le chemin, invite d'un socle -> onglet Entraînement et ses
+--      évolutions, bouton « SON » ;
 --   1) à la taille normale de Studio : fenêtre du camp et ses 4 onglets, niveau 1 (vue d'en haut, Archer offert,
 --      « + » conseillés, pose libre, bouton « ANNULER » de la tour en main, amélioration, refus sur le chemin, x2),
 --      DÉFAITE de celui qui pose 4 Archers puis attend, « Réessayer », victoire en posant et en améliorant sans
 --      arrêt, « Niveau suivant », abandon ;
 --   2) à la taille d'un téléphone (750 x 332) : un niveau (dont « ANNULER ») et la fenêtre du camp, rien ne sort
 --      de l'écran.
--- « SHOT:nom » = capture (out\levels_<nom>.png) ; « PHONE:want=... » = phone.ps1 redimensionne la fenêtre de Studio.
+-- « SHOT:nom » = capture (out\levels_<nom>.png) ; « PHONE:want=... » = run.ps1 redimensionne la fenêtre de Studio.
 return function(log)
 	local GuiService = game:GetService("GuiService")
 	local HttpService = game:GetService("HttpService")
@@ -233,15 +234,26 @@ return function(log)
 	local plotFolder = workspace.Hub.Plots:FindFirstChild("Plot" .. tostring(slot))
 	local plotCFrame = PlotLayout.cframe(slot)
 	waitFor(function()
-		return plotFolder ~= nil and plotFolder:GetAttribute("Camp") == true and playerGui:FindFirstChild("Plot") ~= nil and not playerGui.Plot.Enabled
+		return plotFolder ~= nil and plotFolder:GetAttribute("Camp") == true
 	end, 6)
+	-- Les écrans de l'ancien jeu (parcelle à vagues, autel, forge, renaissance, boutique des passes, défis, tuto,
+	-- classé) n'existent plus du tout.
 	local stillOn = {}
-	for _, name in { "Plot", "Machines", "Rebirth", "RebirthButton", "ShopButton", "Shop", "ChallengesButton", "Challenges", "Tutorial", "TutorialPointer", "ShortcutsToggle" } do
-		local gui = playerGui:FindFirstChild(name)
-		if gui and gui:IsA("ScreenGui") and gui.Enabled then
+	for _, name in {
+		"Plot", "Machines", "Rebirth", "RebirthButton", "ShopButton", "Shop", "ChallengesButton", "Challenges", "Tutorial", "TutorialPointer",
+		"ShortcutsToggle", "Lobby", "Match", "Admin", "Offline",
+	} do
+		if playerGui:FindFirstChild(name) then
 			table.insert(stillOn, name)
 		end
 	end
+	local gameGuis = {}
+	for _, gui in playerGui:GetChildren() do
+		if gui:IsA("ScreenGui") and gui.Enabled then
+			table.insert(gameGuis, gui.Name)
+		end
+	end
+	table.sort(gameGuis)
 	local plusOn = 0
 	for _, child in playerGui:GetChildren() do
 		if child:IsA("BillboardGui") and string.sub(child.Name, 1, 8) == "FreeSpot" and child.Enabled then
@@ -250,12 +262,31 @@ return function(log)
 	end
 	check(
 		plotFolder ~= nil and plotFolder:GetAttribute("Camp") == true and #stillOn == 0 and plusOn == 0,
-		`parcelle devenue camp d'entraînement : les écrans du jeu infini sont cachés (encore allumés : {table.concat(stillOn, ", ")} ; boutons « + » : {plusOn})`
+		`la parcelle est le camp d'entraînement ; plus aucun écran de l'ancien jeu (restes : {table.concat(stillOn, ", ")} ; boutons « + » : {plusOn} ; écrans du jeu : {table.concat(gameGuis, ", ")})`
 	)
+	-- Capture de la place centrale, vue d'en haut : la rosace et ses torches, plus de cercle du classé.
+	local usualView = cam().CFrame
+	cam().CameraType = Enum.CameraType.Scriptable
+	cam().CFrame = CFrame.lookAt(Vector3.new(0, 105, 85), Vector3.new(0, 0, 5))
+	cam().Focus = CFrame.new(0, 0, 5)
+	task.wait(0.6)
+	shot("place")
+	-- (la caméra du joueur repart de sa direction d'avant : sinon elle garderait cette vue plongeante)
+	cam().CameraType = Enum.CameraType.Custom
+	cam().CFrame = usualView
+	task.wait(0.4)
 	local hudCoins = campGui:FindFirstChild("HudCoins")
 	check(
 		hudCoins ~= nil and shown(hudCoins) and onScreen(hudCoins) and string.find(hudCoins.Text, "🏅", 1, true) ~= nil and shown(openButton),
 		`pièces de niveau affichées à côté du bouton « ⚔ NIVEAUX » (« {if hudCoins then hudCoins.Text else "?"} »)`
+	)
+	-- Bouton « SON » : à droite des pièces, sans rien recouvrir.
+	local soundGui = playerGui:FindFirstChild("SoundButton")
+	local soundButton = soundGui and soundGui:FindFirstChild("SoundButton")
+	check(
+		soundButton ~= nil and hudCoins ~= nil and shown(soundButton) and onScreen(soundButton) and #overlapping({ openButton, hudCoins, soundButton }) == 0
+			and soundButton.AbsolutePosition.X >= hudCoins.AbsolutePosition.X + hudCoins.AbsoluteSize.X,
+		`bouton « SON » à droite des pièces de niveau, sans recouvrir les autres boutons ({if soundButton then math.floor(soundButton.AbsolutePosition.X) else "?"} px, {if soundButton then math.floor(soundButton.AbsoluteSize.X) else "?"} x {if soundButton then math.floor(soundButton.AbsoluteSize.Y) else "?"} px)`
 	)
 	-- La tour à l'entraînement est sur son socle, des cibles (mannequins de paille) roulent sur le chemin.
 	local function campModel(slotIndex)
@@ -456,7 +487,7 @@ return function(log)
 	local seen, bars = enemies()
 	check(seen >= 1 and bars >= 1, `{seen} monstres affichés sur le chemin de la zone, {bars} barres de vie visibles (personnage resté sur la place)`)
 	-- Monstres grossis dans un niveau (Levels.ENEMY_SCALE) pour être vus de haut : le fantassin fait 1,8 fois sa
-	-- taille de la parcelle.
+	-- taille de base.
 	local Enemies = require(ReplicatedStorage:WaitForChild("Shared").Enemies)
 	local footSize = nil
 	local enemyFolder = workspace:FindFirstChild("PlotEnemies")
@@ -468,7 +499,7 @@ return function(log)
 	end
 	check(
 		footSize ~= nil and Levels.enemyScale("Normal") >= 1.5 and math.abs(footSize - Enemies.Defs.Normal.size * Levels.enemyScale("Normal")) < 0.05,
-		`les monstres d'un niveau sont affichés plus gros pour être vus de haut (fantassin : {if footSize then string.format("%.1f", footSize) else "?"} studs, {Enemies.Defs.Normal.size} sur une parcelle)`
+		`les monstres d'un niveau sont affichés plus gros pour être vus de haut (fantassin : {if footSize then string.format("%.1f", footSize) else "?"} studs, {Enemies.Defs.Normal.size} de base)`
 	)
 	-- Le combat s'entend : un son de flèche (3D) a été joué dans la zone. La caméra est à ~100 studs, plus loin que la
 	-- portée de ce son (70) : LevelsUI place l'écoute près du terrain (SoundManager.setListener).
@@ -683,8 +714,7 @@ return function(log)
 		published().best == 0 and published().losses == 1 and published().coins == lostResult.reward,
 		`défaite comptée : niveau 1 toujours à faire, {tostring(published().coins)} pièce(s) de niveau pour l'avancée`
 	)
-	-- Pendant le niveau, la parcelle du joueur (sans tour, restée sur la place) a raté sa vague : son message
-	-- « Vague 1 ratée » ne doit PAS s'afficher par-dessus le niveau. Un message du niveau, lui, s'affiche.
+	-- Petit message affiché qui contient ce mot (nil si aucun).
 	local function toastWith(word)
 		local gui = playerGui:FindFirstChild("Toasts")
 		for _, label in if gui then gui:GetDescendants() else {} do
@@ -694,11 +724,6 @@ return function(log)
 		end
 		return nil
 	end
-	local plotFolder = workspace.Hub.Plots:FindFirstChild("Plot" .. tostring(slot))
-	check(
-		toastWith("ratée") == nil and plotFolder ~= nil and plotFolder:GetAttribute("State") ~= nil,
-		`pendant un niveau, les messages de la parcelle restée sur la place ne s'affichent pas (parcelle : état « {tostring(plotFolder and plotFolder:GetAttribute("State"))} », message affiché : {tostring(toastWith("ratée"))})`
-	)
 
 	------------------------------------------------------------------
 	-- 5) « Réessayer », victoire en restant actif, « Niveau suivant »
@@ -855,6 +880,13 @@ return function(log)
 		check(
 			phoneCoins ~= nil and shown(phoneCoins) and onScreen(phoneCoins) and phoneCoins.AbsolutePosition.X >= buttonRight,
 			`téléphone : pièces de niveau à droite du bouton « ⚔ NIVEAUX », dans l'écran ({if phoneCoins then math.floor(phoneCoins.AbsolutePosition.X) else "?"} px, bouton jusqu'à {math.floor(buttonRight)} px)`
+		)
+		-- Bouton « SON » : une petite icône dans la barre du haut de Roblox, contre le bord droit.
+		local phoneSound = if soundGui then soundGui:FindFirstChild("SoundButton") else nil
+		check(
+			phoneSound ~= nil and phoneCoins ~= nil and shown(phoneSound) and onScreen(phoneSound) and phoneSound.AbsoluteSize.X <= 44 and phoneSound.AbsoluteSize.Y <= 38
+				and phoneSound.AbsolutePosition.X + phoneSound.AbsoluteSize.X >= screenSize().X - 16 and #overlapping({ openButton, phoneCoins, phoneSound }) == 0,
+			`téléphone : bouton « SON » en petite icône contre le bord droit ({if phoneSound then math.floor(phoneSound.AbsolutePosition.X) else "?"},{if phoneSound then math.floor(phoneSound.AbsolutePosition.Y) else "?"}, {if phoneSound then math.floor(phoneSound.AbsoluteSize.X) else "?"} x {if phoneSound then math.floor(phoneSound.AbsoluteSize.Y) else "?"} px), sans recouvrir les autres boutons`
 		)
 		shot("tel_parcelle")
 		act(campGui, "Open")

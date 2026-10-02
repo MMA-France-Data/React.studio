@@ -1,4 +1,4 @@
--- Zones de combat des NIVEAUX (prototype de la nouvelle formule : Shared/Levels.luau).
+-- Zones de combat des NIVEAUX (règles et chiffres : Shared/Levels.luau).
 -- Une zone par joueur, dans le même serveur que la map principale, très loin de la place (Levels.arenaCFrame) :
 -- pas de téléportation, donc pas d'écran de chargement. Le dossier workspace.Arenas.Arena<n> existe dès le départ
 -- (vide) ; la carte du niveau n'y est construite que pendant qu'un niveau tourne (« Map »), puis effacée : six

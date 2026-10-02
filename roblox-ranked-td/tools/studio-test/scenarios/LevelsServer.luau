@@ -1,22 +1,23 @@
--- Test des NIVEAUX (prototype de la nouvelle formule), côté serveur : tools/studio-test/phone.ps1 -Mode levels.
--- 0) La PARCELLE du joueur est son camp d'entraînement : pas de jeu infini, sa tour posée sur un socle tire sur des
---    cibles, étiquettes, bâtiments, tableau, évolution d'une tour, 2e emplacement, retour au jeu infini quand
---    l'accès aux niveaux est retiré.
--- 1) D'abord, seul (le client attend) : accès, six combats en même temps (mesure), un niveau PERDU par celui qui
---    pose 2 Archers puis attend, le même niveau gagné en posant et en améliorant tout, récompenses, « Rejouer »,
---    niveau suivant, abandon, boutique à prix fixes, camp d'entraînement (emplacements, absence), ordre de la barre
---    rapide, améliorations débloquées par l'entraînement. Tout passe par les mêmes demandes que le remote
---    LevelAction (StudioDebug « Levels », « Action »).
--- 2) Puis il remet le joueur à zéro et donne la main au client (attribut LevelsTestPhase = "Client" de
+-- Test du JEU (niveaux et camp d'entraînement), côté serveur : tools/studio-test/run.ps1.
+-- 0) Le jeu ne contient plus que les niveaux et le camp : données, remotes, map (plus rien de l'ancien jeu).
+-- 1) La PARCELLE du joueur est son camp d'entraînement : sa tour posée sur un socle tire sur des cibles, étiquettes,
+--    bâtiments, tableau, évolution d'une tour, 2e emplacement ; qui reçoit les cibles et les tirs de quel camp.
+-- 2) Puis, seul (le client attend) : six combats en même temps (mesure), un niveau PERDU par celui qui pose 2 Archers
+--    puis attend, le même niveau gagné en posant et en améliorant tout, récompenses, « Rejouer », niveau suivant,
+--    abandon, boutique à prix fixes, camp d'entraînement (emplacements, absence), ordre de la barre rapide,
+--    améliorations débloquées par l'entraînement. Tout passe par les mêmes demandes que le remote LevelAction
+--    (StudioDebug « Levels », « Action »).
+-- 3) Il remet le joueur à zéro et donne la main au client (attribut LevelsTestPhase = "Client" de
 --    ReplicatedStorage) : scenarios/LevelsClient.luau joue avec la vraie interface.
--- 3) Quand le client a fini (« LEVELS:client=done » dans son journal), il vérifie ce que le serveur a gardé.
--- Uniquement dans la place de test des niveaux (StudioDebug n'existe que dans Studio).
+-- 4) Quand le client a fini (« LEVELS:client=done » dans son journal), il vérifie ce que le serveur a gardé.
+-- StudioDebug n'existe que dans Studio.
 return function(log)
 	local HttpService = game:GetService("HttpService")
 	local Players = game:GetService("Players")
 	local ReplicatedStorage = game:GetService("ReplicatedStorage")
 	local dbg = game:GetService("ServerStorage"):WaitForChild("StudioDebug", 30)
 	local Levels = require(ReplicatedStorage:WaitForChild("Shared").Levels)
+	local PlotLayout = require(ReplicatedStorage.Shared.PlotLayout)
 
 	local function check(ok, message)
 		log(if ok then "Info" else "Error", `[{if ok then "PASS" else "FAIL"}] niveaux : {message}`)
@@ -27,7 +28,7 @@ return function(log)
 
 	local player = Players:GetPlayers()[1] or Players.PlayerAdded:Wait()
 	for _ = 1, 150 do
-		if dbg:Invoke(player, "Data") and typeof(player:GetAttribute("Plot")) == "number" and player:GetAttribute("LevelsAccess") ~= nil then
+		if dbg:Invoke(player, "Data") and typeof(player:GetAttribute("Plot")) == "number" and player:GetAttribute("LevelsState") ~= nil then
 			break
 		end
 		task.wait(0.2)
@@ -68,17 +69,75 @@ return function(log)
 	end
 
 	------------------------------------------------------------------
-	-- Accès et état de départ
+	-- État de départ ; plus rien de l'ancien jeu (classé, autel, forge, vagues infinies, passes...)
 	------------------------------------------------------------------
 	local start = levels("State")
 	check(
-		player:GetAttribute("LevelsAccess") == true and start.access == true and start.active == nil,
-		`dans la place de test des niveaux, le joueur de test y a droit (attribut LevelsAccess = {tostring(player:GetAttribute("LevelsAccess"))})`
-	)
-	check(
 		start.levels.best == 0 and start.levels.coins == 0 and start.levels.towers.MachineGun == true and start.levels.towers.Bomb == true
-			and #start.levels.slots == 1 and published().best == 0 and table.concat(published().towers, ",") == "MachineGun,Bomb",
-		`nouveau joueur des niveaux : aucun niveau réussi, 0 pièce de niveau, deux tours (l'Archer et la Catapulte), un emplacement de camp (publié : {tostring(player:GetAttribute("LevelsState"))})`
+			and #start.levels.slots == 1 and published().best == 0 and table.concat(published().towers, ",") == "MachineGun,Bomb" and start.active == nil,
+		`nouveau joueur : aucun niveau réussi, 0 pièce de niveau, deux tours (l'Archer et la Catapulte), un emplacement de camp (publié : {tostring(player:GetAttribute("LevelsState"))})`
+	)
+	local data = dbg:Invoke(player, "Data")
+	local dataKeys = {}
+	for key in data do
+		table.insert(dataKeys, tostring(key))
+	end
+	table.sort(dataKeys)
+	check(
+		table.concat(dataKeys, ",") == "levels,soundMode" and data.soundMode == "All" and player:GetAttribute("SoundMode") == "All"
+			and player:GetAttribute("DataLoaded") == true,
+		`sauvegarde du joueur : seulement ses niveaux et son réglage du son (champs : {table.concat(dataKeys, ", ")})`
+	)
+	local oldAttributes = {}
+	for _, name in {
+		"LevelsAccess", "PassSpeedX2", "PassCoinsX2", "PassAutoCollect", "SpeedX2Enabled", "TowerSpinsBought", "ForgeSpinsBought",
+		"ForgeCoinPrice", "ForgeBlocked", "Rebirths", "TutorialStep", "RankedOpen", "Queued",
+	} do
+		if player:GetAttribute(name) ~= nil then
+			table.insert(oldAttributes, name)
+		end
+	end
+	local remoteNames = {}
+	for _, remote in ReplicatedStorage:WaitForChild("Remotes"):GetChildren() do
+		table.insert(remoteNames, remote.Name)
+	end
+	table.sort(remoteNames)
+	check(
+		#oldAttributes == 0 and table.concat(remoteNames, ",") == "LevelAction,Notify,PlotShots,PlotSync,Settings" and ReplicatedStorage:GetAttribute("ServerMode") == nil,
+		`plus rien de l'ancien jeu côté réseau : remotes « {table.concat(remoteNames, ", ")} », attributs de l'ancien jeu encore là : {#oldAttributes} ({table.concat(oldAttributes, ", ")})`
+	)
+	local stats = player:FindFirstChild("leaderstats")
+	local statNames = {}
+	for _, stat in if stats then stats:GetChildren() else {} do
+		table.insert(statNames, stat.Name)
+	end
+	check(
+		table.concat(statNames, ",") == "Level" and stats.Level.Value == 0,
+		`liste des joueurs : une seule colonne, « Level » (le plus haut niveau réussi : {if stats and stats:FindFirstChild("Level") then stats.Level.Value else "?"})`
+	)
+	local hub = workspace:WaitForChild("Hub")
+	local plotCount, badPlots = 0, {}
+	for _, folder in hub.Plots:GetChildren() do
+		plotCount += 1
+		local spots = folder:FindFirstChild("Spots")
+		if not folder:FindFirstChild("ShopBuilding") or not folder:FindFirstChild("LevelsBuilding") or folder:FindFirstChild("TowerMachine")
+			or folder:FindFirstChild("BonusMachine") or not spots or #spots:GetChildren() ~= #PlotLayout.SPOTS
+		then
+			table.insert(badPlots, folder.Name)
+		end
+	end
+	-- Place centrale : seulement le sol, le décor, la rosace et ses torches (plus de cercle ni de tableaux du classé).
+	local plazaParts = { Ground = true, KingdomDecor = true, Plaza = true, PlazaRosette = true, PlazaRing = true, Torch = true, Flame = true, SpawnLocation = true, Plots = true }
+	local oldPlaza = {}
+	for _, child in hub:GetChildren() do
+		if not plazaParts[child.Name] and not table.find(oldPlaza, child.Name) then
+			table.insert(oldPlaza, child.Name)
+		end
+	end
+	check(
+		plotCount == PlotLayout.COUNT and #badPlots == 0 and #PlotLayout.SPOTS == 3 and hub:FindFirstChild("PlazaRosette") ~= nil and #oldPlaza == 0
+			and workspace:FindFirstChild("Map") == nil,
+		`map : {plotCount} parcelles avec leur boutique, leur porte des niveaux et 3 socles ; place centrale sans cercle ni tableau du classé (objets en trop : {table.concat(oldPlaza, ", ")} ; parcelles à revoir : {table.concat(badPlots, ", ")})`
 	)
 	local folders, clean = 0, true
 	for slot = 1, Levels.ARENA_SLOTS do
@@ -99,7 +158,7 @@ return function(log)
 	-- La parcelle est le CAMP D'ENTRAÎNEMENT. Demande du propriétaire (02/10/2026) : « tu peux gérer toute la parcelle
 	-- et le système d'évolution de tour ».
 	------------------------------------------------------------------
-	local plotFolder = workspace:WaitForChild("Hub"):WaitForChild("Plots"):WaitForChild("Plot" .. tostring(plot))
+	local plotFolder = hub:WaitForChild("Plots"):WaitForChild("Plot" .. tostring(plot))
 	local function campState()
 		return dbg:Invoke(player, "Camp")
 	end
@@ -128,37 +187,34 @@ return function(log)
 		return if label then label.Text else nil, if prompt then prompt:GetAttribute("CampTab") else nil
 	end
 	local function countPads()
-		local shown, hidden, locks = 0, 0, 0
+		local shown, hidden = 0, 0
 		for _, part in plotFolder.Spots:GetChildren() do
 			if part.Transparency >= 1 then
 				hidden += 1
 			else
 				shown += 1
 			end
-			if part:FindFirstChild("Lock") then
-				locks += 1
-			end
 		end
-		return shown, hidden, locks
+		return shown, hidden
 	end
 
 	local camp = campState()
 	check(
-		camp.camp == true and camp.infinite == false and camp.towers[1] ~= nil and camp.towers[1].type == "MachineGun" and camp.towers[1].stage == 0
-			and plotFolder:GetAttribute("Camp") == true and plotFolder:GetAttribute("OwnedSpots") == nil,
-		"la parcelle du joueur est son camp d'entraînement : aucune partie infinie, l'Archer de l'emplacement 1 est posé dessus"
+		camp.camp == true and camp.towers[1] ~= nil and camp.towers[1].type == "MachineGun" and camp.towers[1].stage == 0
+			and plotFolder:GetAttribute("Camp") == true and plotFolder:GetAttribute("OwnerUserId") == player.UserId,
+		"la parcelle du joueur est son camp d'entraînement : l'Archer de l'emplacement 1 est posé dessus"
 	)
 	local archerModel = campTower(1)
 	local padPosition = pad(1).Position
-	local shown, hidden, locks = countPads()
+	local shown, hidden = countPads()
 	check(
 		archerModel ~= nil and archerModel:GetAttribute("TowerType") == "MachineGun" and archerModel:GetAttribute("SpotIndex") == nil
 			and (Vector3.new(archerModel:GetPivot().Position.X, 0, archerModel:GetPivot().Position.Z) - Vector3.new(padPosition.X, 0, padPosition.Z)).Magnitude < 1,
 		"l'Archer à l'entraînement est debout sur le 1er socle du camp"
 	)
 	check(
-		pad(1).Transparency == 0 and pad(2).Transparency > 0 and pad(2).Transparency < 1 and pad(3).Transparency == 1 and shown == 2 and hidden == 20 and locks == 0,
-		`socles : le 1er ouvert, le 2e à ouvrir, le 3e et les 19 emplacements du jeu infini cachés ({shown} visibles, {hidden} cachés, {locks} cadenas du jeu infini)`
+		pad(1).Transparency == 0 and pad(2).Transparency > 0 and pad(2).Transparency < 1 and pad(3).Transparency == 1 and shown == 2 and hidden == 1,
+		`socles : le 1er ouvert, le 2e à ouvrir, le 3e caché ({shown} visibles, {hidden} caché)`
 	)
 	local label1, label2 = padLabel(1), padLabel(2)
 	check(
@@ -172,11 +228,11 @@ return function(log)
 			and pad(3).CampPrompt.Enabled == false and padLabel(3).shown == false and label2.shown == true,
 		`étiquette du 2e socle : « {tostring(label2.title)} », « {tostring(label2.sub)} » ; invites « Gérer » et « Ouvrir »`
 	)
-	local shopTitle, shopTab = buildingTitle("TowerMachine")
-	local gateTitle, gateTab = buildingTitle("BonusMachine")
+	local shopTitle, shopTab = buildingTitle("ShopBuilding")
+	local gateTitle, gateTab = buildingTitle("LevelsBuilding")
 	check(
 		shopTitle == "BOUTIQUE DES TOURS" and shopTab == "Boutique" and gateTitle == "PORTE DES NIVEAUX" and gateTab == "Niveaux",
-		`les deux bâtiments de l'entrée : « {tostring(shopTitle)} » et « {tostring(gateTitle)} » (plus d'autel ni de forge)`
+		`les deux bâtiments de l'entrée : « {tostring(shopTitle)} » et « {tostring(gateTitle)} »`
 	)
 	local boardPanel = plotFolder.Decor.FiefBoard.FiefDisplay.Panel
 	task.wait(0.3)
@@ -192,10 +248,6 @@ return function(log)
 	end
 	camp = campState()
 	check(camp.kills >= 2 and camp.targets >= 5, `l'Archer du camp tire sur les cibles d'entraînement : {camp.kills} détruites, {camp.targets} sur le chemin`)
-	check(
-		action("Place", "MachineGun", 0, 0) == false and dbg:Invoke(player, "Call", "placeTower", 1, "MachineGun") == nil and campState().infinite == false,
-		"plus rien du jeu infini ne répond sur cette parcelle (poser une tour sur un emplacement : ignoré)"
-	)
 	-- Une autre tour dans l'emplacement : elle remplace la première sur le socle.
 	check(
 		action("SlotAssign", 1, "Bomb") == true and campState().towers[1].type == "Bomb" and campTower(1) ~= archerModel and campTower(1):GetAttribute("TowerType") == "Bomb"
@@ -231,31 +283,150 @@ return function(log)
 	task.wait(4)
 	log("Info", "[LEVELS] SHOT:levels_camp_evolue")
 	task.wait(1.8)
-	-- Accès aux niveaux retiré : la parcelle redevient celle du jeu infini, telle qu'elle était. Rendu : le camp revient.
-	levels("Access", "Off")
-	task.wait(0.5)
-	camp = campState()
-	local infiniteShown, _, infiniteLocks = countPads()
-	local altarTitle, altarTab = buildingTitle("TowerMachine")
-	check(
-		camp.camp == false and camp.infinite == true and plotFolder:GetAttribute("Camp") == nil and plotFolder:GetAttribute("OwnedSpots") ~= nil
-			and infiniteShown == 22 and infiniteLocks == 18 and pad(1):FindFirstChild("CampLabel") == nil and altarTitle == "AUTEL DES HÉROS" and altarTab == nil
-			and campTower(1) == nil,
-		`accès aux niveaux retiré : la parcelle redevient celle du jeu infini ({infiniteShown} emplacements, {infiniteLocks} cadenas, « {tostring(altarTitle)} »)`
-	)
-	levels("Access", nil)
-	task.wait(0.5)
-	camp = campState()
-	check(
-		camp.camp == true and camp.infinite == false and camp.towers[1] ~= nil and camp.towers[1].stage == 3 and camp.towers[2] ~= nil and campTower(2) ~= nil
-			and plotFolder:GetAttribute("Camp") == true,
-		"accès rendu : le camp revient avec ses deux tours, là où il en était"
-	)
-	-- Retour à un nouveau joueur des niveaux pour la suite du test.
+	-- Retour à un nouveau joueur pour la suite du test.
 	levels("Set", "xp", {})
 	levels("Set", "coins", 0)
 	levels("Set", "slots", { { tower = "MachineGun", level = 1 } })
 	check(campState().towers[1].stage == 0 and campState().towers[2] == nil and pad(2).Transparency > 0, "camp remis à zéro pour la suite du test (un Archer sans évolution)")
+
+	------------------------------------------------------------------
+	-- Camps reçus (Hub/PlotInterest.luau) : les cibles et les tirs d'un camp ne vont qu'à son propriétaire (toujours)
+	-- et aux joueurs qui s'en approchent. D'abord la règle avec de fausses positions (la vraie fonction du jeu), puis
+	-- le vrai joueur (Hub/init.luau, vrais remotes) : sa position compte ailleurs quelques secondes (StudioDebug
+	-- « Interest »), sans bouger son personnage.
+	------------------------------------------------------------------
+	do
+		local PlotInterest = require(game:GetService("ServerScriptService").Server.Hub.PlotInterest)
+		local at = PlotLayout.toWorld
+		local ENTER, LEAVE = PlotInterest.ENTER_MARGIN, PlotInterest.LEAVE_MARGIN
+		local function has(list, key)
+			return table.find(list, key) ~= nil
+		end
+		-- Faux joueurs : A possède la parcelle 1, B la parcelle 2 (sa voisine), C n'en a pas.
+		local memory = {}
+		local function step(a, b, c)
+			return PlotInterest.compute({
+				{ key = "A", position = a, plot = 1 },
+				{ key = "B", position = b, plot = 2 },
+				{ key = "C", position = c, plot = nil },
+			}, memory)
+		end
+		local function leavingText(leaving)
+			local parts = {}
+			for _, gone in leaving do
+				table.insert(parts, `{gone.key}:{gone.plotIndex}`)
+			end
+			return table.concat(parts, " ")
+		end
+		local homeB = at(2, Vector3.new(0, 3, 0))
+
+		-- A très loin (sur la parcelle 4), B chez lui, C sans personnage.
+		local r, leaving = step(at(4, Vector3.new(0, 3, 0)), homeB, nil)
+		check(
+			has(r[1], "A") and not has(r[1], "B") and not has(r[1], "C") and has(r[2], "B") and not has(r[2], "A") and #leaving == 0,
+			`camps reçus : le propriétaire loin de sa parcelle la reçoit toujours, le voisin chez lui non (parcelle 1 : {table.concat(r[1], ",")} ; parcelle 2 : {table.concat(r[2], ",")})`
+		)
+		check(has(r[4], "A") and not has(r[4], "C"), `camps reçus : A, debout sur la parcelle 4, la reçoit ; C, sans personnage, rien ({table.concat(r[4], ",")})`)
+
+		-- B sur SA parcelle ou devant SES bâtiments, même dans le coin le plus proche de la parcelle 1 (à ~20 studs
+		-- d'elle) : il ne reçoit aucune autre parcelle.
+		local half = PlotLayout.LENGTH / 2
+		local wrong = {}
+		for _, spot in {
+			{ "coin vers la parcelle 1", Vector3.new(-PlotLayout.WIDTH / 2, 3, -half) },
+			{ "coin vers la parcelle 3", Vector3.new(PlotLayout.WIDTH / 2, 3, -half) },
+			{ "boutique", Vector3.new(-20, 3, -half - 8) },
+			{ "porte des niveaux", Vector3.new(20, 3, -half - 8) },
+			{ "devant la boutique (12 studs)", Vector3.new(-20, 3, -half - 20) },
+			{ "château", PlotLayout.BASE_POSITION + Vector3.new(0, 3, 0) },
+		} do
+			r = step(at(4, Vector3.new(0, 3, 0)), at(2, spot[2]), nil)
+			for plotIndex = 1, PlotLayout.COUNT do
+				if plotIndex ~= 2 and has(r[plotIndex], "B") then
+					table.insert(wrong, `{spot[1]} : parcelle {plotIndex}`)
+				end
+			end
+			if not has(r[2], "B") then
+				table.insert(wrong, `{spot[1]} : pas la sienne`)
+			end
+		end
+		check(#wrong == 0, `camps reçus : B chez lui (coins de sa parcelle, boutique, porte des niveaux, château) ne reçoit que la sienne ({table.concat(wrong, " ; ")})`)
+
+		-- B marche sur la parcelle 1 : il la reçoit (et toujours la sienne).
+		r, leaving = step(at(4, Vector3.new(0, 3, 0)), at(1, Vector3.new(0, 3, 0)), nil)
+		check(has(r[1], "B") and has(r[2], "B") and #leaving == 0, `camps reçus : B debout sur la parcelle 1 la reçoit (parcelle 1 : {table.concat(r[1], ",")})`)
+		-- ... puis rentre chez lui : la parcelle 1 est à effacer chez lui, et seulement chez lui.
+		r, leaving = step(at(4, Vector3.new(0, 3, 0)), homeB, nil)
+		check(
+			not has(r[1], "B") and #leaving == 1 and leaving[1].key == "B" and leaving[1].plotIndex == 1,
+			`camps reçus : B rentre chez lui -> la parcelle 1 est à effacer chez lui (« Clear » : {leavingText(leaving)})`
+		)
+
+		-- Bord de la parcelle 1 (côté extérieur, loin de la parcelle 2) : on commence à la recevoir à ENTER studs,
+		-- on arrête plus loin (LEAVE studs) : pas de clignotement quand on marche sur le bord.
+		local function outside(distance)
+			return at(1, Vector3.new(0, 3, half + distance))
+		end
+		local between = (ENTER + LEAVE) / 2
+		r, leaving = step(nil, outside(between), nil)
+		local okFar = not has(r[1], "B")
+		r, leaving = step(nil, outside(ENTER - 2), nil)
+		local okEnter = has(r[1], "B")
+		r, leaving = step(nil, outside(between), nil)
+		local okStay = has(r[1], "B") and #leaving == 0
+		r, leaving = step(nil, outside(LEAVE + 2), nil)
+		local okLeave = not has(r[1], "B") and #leaving == 1 and leaving[1].key == "B" and leaving[1].plotIndex == 1
+		check(
+			okFar and okEnter and okStay and okLeave,
+			`camps reçus : hystérésis au bord (à {between} studs en arrivant : {not okFar and "reçue" or "non"} ; à {ENTER - 2} : {okEnter and "reçue" or "NON"} ; retour à {between} : {okStay and "toujours reçue" or "PERDUE"} ; à {LEAVE + 2} : {okLeave and "effacée" or "PAS effacée"})`
+		)
+		check(has(r[1], "A") and not has(r[1], "C"), `camps reçus : A sans personnage reçoit toujours sa parcelle ({table.concat(r[1], ",")})`)
+
+		-- B perd son personnage sur la parcelle 1 : effacée chez lui ; C sans parcelle ; un joueur parti est oublié.
+		step(nil, at(1, Vector3.new(0, 3, 0)), at(3, Vector3.new(0, 3, 0)))
+		r, leaving = step(nil, nil, at(3, Vector3.new(0, 3, 0)))
+		check(
+			has(r[2], "B") and not has(r[1], "B") and has(r[3], "C") and leavingText(leaving) == "B:1",
+			`camps reçus : B sans personnage -> parcelle 1 effacée, garde la sienne ; C (sans parcelle) reçoit la parcelle 3 (Clear : {leavingText(leaving)})`
+		)
+		PlotInterest.compute({ { key = "A", position = nil, plot = 1 } }, memory)
+		check(memory.B == nil and memory.C == nil and memory.A ~= nil, "camps reçus : les joueurs partis sont oubliés")
+
+		-- Le vrai joueur (un seul joueur dans le test : les autres parcelles sont libres).
+		local function interestWait(predicate)
+			local limit = os.clock() + 8
+			local info = dbg:Invoke(player, "Interest")
+			while not predicate(info) and os.clock() < limit do
+				task.wait(0.1)
+				info = dbg:Invoke(player, "Interest")
+			end
+			return info, predicate(info)
+		end
+		local other = plot % PlotLayout.COUNT + 1
+		dbg:Invoke(player, "Interest", "Position", at(plot, Vector3.new(0, 3, 0)))
+		local info, ok = interestWait(function(i)
+			return i ~= nil and i.receivesOwn and #i.receives == 0
+		end)
+		check(ok and info.own == plot, `camps reçus (vrai joueur) : chez lui, sa parcelle {plot} seulement (autres : {info and table.concat(info.receives, ",")})`)
+		local clearsBefore = info and info.clears or 0
+		dbg:Invoke(player, "Interest", "Position", at(other, Vector3.new(0, 3, 0)))
+		info, ok = interestWait(function(i)
+			return i ~= nil and table.find(i.receives, other) ~= nil
+		end)
+		check(
+			ok and #info.receives == 1 and info.receivesOwn,
+			`camps reçus (vrai joueur) : sur la parcelle {other}, il la reçoit et garde la sienne (reçues : {info and table.concat(info.receives, ",")}, la sienne : {info and info.receivesOwn})`
+		)
+		dbg:Invoke(player, "Interest", "Position", at(plot, Vector3.new(0, 3, 0)))
+		info, ok = interestWait(function(i)
+			return i ~= nil and #i.receives == 0
+		end)
+		check(
+			ok and info.clears == clearsBefore + 1,
+			`camps reçus (vrai joueur) : rentré chez lui, la parcelle {other} n'est plus envoyée et un « Clear » est parti ({info and info.clears - clearsBefore} paquet(s))`
+		)
+		dbg:Invoke(player, "Interest", "Position", nil)
+	end
 
 	------------------------------------------------------------------
 	-- Six combats dans le même serveur : coût du calcul
@@ -278,13 +449,8 @@ return function(log)
 	end
 
 	------------------------------------------------------------------
-	-- Accès fermé, demandes refusées
+	-- Demandes refusées
 	------------------------------------------------------------------
-	levels("Access", "Off")
-	local closedOk = action("Start", 1)
-	check(player:GetAttribute("LevelsAccess") == false and closedOk == false and player:GetAttribute("LevelArena") == nil, "accès fermé : attribut à faux, lancer un niveau est refusé")
-	levels("Access", nil)
-	check(player:GetAttribute("LevelsAccess") == true, "accès rouvert")
 	local farOk, farReason = action("Start", 3)
 	check(farOk == false and farReason == "Réussis d'abord le niveau 1", `niveau 3 refusé tant que le niveau 1 n'est pas réussi (« {tostring(farReason)} »)`)
 	check(action("Start", 0) == false and action("Start", 11) == false and action("Start", 1.5) == false and action("Start", "1") == false, "niveaux inconnus refusés (0, 11, 1,5, texte)")
@@ -313,7 +479,7 @@ return function(log)
 	check(action("Place", "MachineGun", -1, 0) == true and #towers() == 2 and levels("State").active.gold == 40, "pose libre : un 2e Archer à l'endroit choisi, 20 or dépensés")
 	local poorOk, poorReason = action("Place", "Bomb", 21, 0)
 	check(poorOk == false and poorReason == "Pas assez d'or" and #towers() == 2, "40 or : pas assez pour une Catapulte (45), la pose est refusée")
-	check(action("Speed", 2) == true and levels("State").active.simSpeed == 2 and action("Speed", 1) == true, "x2 allumé puis éteint")
+	check(action("Speed", 2) == true and levels("State").active.simSpeed == 2 and action("Speed", 1) == true, "x2 allumé puis éteint (pour tout le monde, sans pass)")
 	-- Retour du propriétaire (02/10/2026) : « si juste 2 Archers gèrent le niveau, je passe mon temps à attendre ».
 	-- 2 Archers, puis plus rien : le flot monte, le niveau est PERDU.
 	local state = levels("Skip", 200)
@@ -372,8 +538,8 @@ return function(log)
 	)
 	check(
 		after.best == 1 and after.coins == lost.reward + 80 and after.wins == 1 and near(after.xp.MachineGun, Levels.playXp(false, lostProgress) + 8, 0.5)
-			and near(after.xp.Bomb, 8, 0.5),
-		`sauvegarde : niveau 1 réussi, {after.coins} pièces, {tostring(after.xp.MachineGun)} XP pour l'Archer, {tostring(after.xp.Bomb)} pour la Catapulte`
+			and near(after.xp.Bomb, 8, 0.5) and player.leaderstats.Level.Value == 1,
+		`sauvegarde : niveau 1 réussi, {after.coins} pièces, {tostring(after.xp.MachineGun)} XP pour l'Archer, {tostring(after.xp.Bomb)} pour la Catapulte ; colonne « Level » de la liste des joueurs : {player.leaderstats.Level.Value}`
 	)
 
 	-- « Niveau suivant » sans repasser par le camp : la carte reste (pas de clignotement).
@@ -416,7 +582,7 @@ return function(log)
 	check(againOk == false and string.find(tostring(againReason), "déjà", 1, true) ~= nil and richOk == false and string.find(tostring(richReason), "manque", 1, true) ~= nil and saved().coins == 850, `boutique : déjà possédée (« {tostring(againReason)} ») ou trop chère (« {tostring(richReason)} ») : refusé, rien n'est dépensé`)
 	check(action("Buy", "MachineGun") == false and action("Buy", "Bomb") == false and action("Buy", "Dragon") == false and action("Buy", 5) == false and saved().coins == 850, "boutique : les deux tours de départ et les tours inconnues ne sont pas en vente")
 	-- Retour du propriétaire (02/10/2026) : les tours légendaires doivent coûter bien plus cher que les premières,
-	-- et le ralentissement du Totem de givre était « un peu cheaté » (-40 % dans les niveaux, au lieu de -60 %).
+	-- et le ralentissement du Totem de givre était « un peu cheaté » (-40 % au lieu de -60 %).
 	levels("Set", "coins", 7999)
 	local oracleOk, oracleReason = action("Buy", "Chain")
 	levels("Set", "coins", 8000)
@@ -427,7 +593,7 @@ return function(log)
 		`boutique : l'Oracle (légendaire) coûte 8 000 pièces (« {tostring(oracleReason)} » avec 7 999), le Trébuchet 15 000`
 	)
 	local frostStats = Levels.towerStats("Frost", 1, 0)
-	check(math.abs(frostStats.slow - 0.4) < 1e-6, `Totem de givre dans les niveaux : ralentit de {frostStats.slow * 100} %`)
+	check(math.abs(frostStats.slow - 0.4) < 1e-6, `Totem de givre : ralentit de {frostStats.slow * 100} %`)
 	levels("Set", "towers", { MachineGun = true, Bomb = true, Frost = true })
 	levels("Set", "coins", 850)
 
@@ -465,7 +631,7 @@ return function(log)
 	action("Quit")
 
 	------------------------------------------------------------------
-	-- Le client prend la main, comme un nouveau joueur des niveaux
+	-- Le client prend la main, comme un nouveau joueur
 	------------------------------------------------------------------
 	for key, value in {
 		best = 0,

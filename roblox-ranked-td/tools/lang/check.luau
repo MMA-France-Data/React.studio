@@ -1,7 +1,7 @@
 -- Vérifie les dictionnaires anglais sans ouvrir Studio (depuis le dossier roblox-ranked-td) :
 --   luau.exe tools/lang/check.luau
 --       -> nombre de traductions chargées et problèmes (doublons, modèles impossibles...)
---   luau.exe tools/lang/check.luau -a "Vague 5" "Il te faut 1.5K pi\u{e8}ces pour x10"
+--   luau.exe tools/lang/check.luau -a "Niv. 5" "Impossible de charger tes donn\u{e9}es. R\u{e9}essaie dans une minute."
 --       -> traduit aussi ces textes (écrire \n pour un retour à la ligne). Le terminal de Windows abîme souvent les
 --          accents passés ainsi : écrire \u{e8} pour è, \u{e9} pour é, \u{e0} pour à... ou, mieux, écrire ses textes
 --          dans un petit fichier .luau qui fait  local Lang = require("<chemin>/tools/lang/load")  (fichier en UTF-8).
