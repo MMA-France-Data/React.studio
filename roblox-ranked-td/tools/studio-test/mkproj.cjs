@@ -1,6 +1,6 @@
 // Génère un projet Rojo de test à partir de default.project.json, dans out/.
 // Il ajoute seulement le marqueur __AutoPlayTest (durée du test) et les scénarios de test.
-//   node mkproj.cjs <levels|monsters|tutorial|english> <durée en secondes>
+//   node mkproj.cjs <levels|monsters|tutorial|english|page> <durée en secondes>
 const fs = require('fs');
 const path = require('path');
 
@@ -20,6 +20,8 @@ const scenarios = {
 	monsters: [null, 'MonstersClient.luau'],
 	tutorial: ['TutorialServer.luau', 'TutorialClient.luau'],
 	english: ['EnglishServer.luau', 'EnglishClient.luau'],
+	// (pas un test : les captures pour les images de la page du jeu, voir page.ps1)
+	page: ['EnglishServer.luau', 'PageClient.luau'],
 };
 if (!scenarios[mode]) {
 	console.error(`Test inconnu : ${mode} (attendu : ${Object.keys(scenarios).join(', ')})`);

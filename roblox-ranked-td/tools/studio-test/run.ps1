@@ -17,6 +17,9 @@
 #       -> la VERSION ANGLAISE (scenarios\EnglishServer.luau et EnglishClient.luau) : le joueur passe en anglais,
 #          tous les écrans sont ouverts l'un après l'autre (camp, boutique, niveau, fin de niveau, tuto, panneaux
 #          de la parcelle) et chaque texte resté en français est listé. Captures : english_<nom>.png.
+#   powershell -ExecutionPolicy Bypass -File tools\studio-test\run.ps1 -Test page
+#       -> pas un test : les captures pour les IMAGES DE LA PAGE ROBLOX du jeu (scenarios\PageClient.luau), que
+#          page.ps1 recadre ensuite dans assets\page (miniatures 1920 x 1080, icône 512 x 512).
 #
 # Résultats dans tools\studio-test\out : studio-output.log et les captures. Ne touche pas au PC pendant le test (la
 # fenêtre de Studio du test bouge).
@@ -24,12 +27,12 @@
 # seule cette fenêtre est redimensionnée, photographiée puis fermée à la fin (-KeepOpen : elle reste ouverte).
 # -CloseStudio : ferme d'abord tous les Studio ouverts (travail non enregistré perdu).
 param(
-	[ValidateSet("levels", "monsters", "tutorial", "english")][string]$Test = "levels",
+	[ValidateSet("levels", "monsters", "tutorial", "english", "page")][string]$Test = "levels",
 	[int]$Seconds = 0, # durée maximale du Play ; 0 = selon le test : jeu 480 s, monstres 540 s, tuto et anglais 420 s
 	[switch]$CloseStudio,
 	[switch]$KeepOpen
 )
-if ($Seconds -le 0) { $Seconds = if ($Test -eq "monsters") { 540 } elseif ($Test -eq "tutorial" -or $Test -eq "english") { 420 } else { 480 } }
+if ($Seconds -le 0) { $Seconds = if ($Test -eq "monsters") { 540 } elseif ($Test -eq "levels") { 480 } else { 420 } }
 $ErrorActionPreference = "Stop"
 $root = $PSScriptRoot
 $out = Join-Path $root "out"
@@ -186,7 +189,7 @@ if (-not $KeepOpen) {
 }
 
 $lines = Read-Log
-$lines | Where-Object { $_ -match "\[LEVELS\]|\[MONSTERS\]|\[TUTO\]|\[EN\]|\[PASS\]|\[FAIL\]|\]\[Error\]" } | Where-Object { $_ -notmatch "PHONE:want" }
+$lines | Where-Object { $_ -match "\[LEVELS\]|\[MONSTERS\]|\[TUTO\]|\[EN\]|\[PAGE\]|\[PASS\]|\[FAIL\]|\]\[Error\]" } | Where-Object { $_ -notmatch "PHONE:want" }
 Write-Host ""
 Write-Host ("Captures : " + (($shots.Keys | Sort-Object) -join ", "))
 $passed = @($lines | Where-Object { $_ -match "\[PASS\]" })

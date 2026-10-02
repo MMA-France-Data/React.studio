@@ -35,13 +35,15 @@ Le jeu sort comme une **nouvelle expérience Roblox** (décision du 02/10/2026) 
 - [ ] Sur ton compte, pas sur une communauté : les animations des monstres sont publiées sur ton compte, elles ne se
       jouent que dans tes expériences.
 - [ ] Taille des serveurs : **6 joueurs** (une parcelle par joueur) : Hub Création > Lieux > le lieu > Accès.
+- [ ] Appareils : **ordinateur, téléphone, tablette**. Décoche la console et la réalité virtuelle : le jeu n'a pas de
+      commandes à la manette (Hub Création > l'expérience > Accès).
 - [ ] Questionnaire sur le contenu : violence légère répétée -> « Léger » ; objets aléatoires payants : **non**
       (plus aucun tirage, plus aucun achat) ; tout le reste : non.
 - [ ] Ne pas activer la traduction automatique de Roblox (Hub Création > Localisation).
 - [ ] Page du jeu : nom, description (français et anglais), icône, miniatures, vidéo (Roblox : 30 s au plus, textes
       et son en anglais, compte vérifié de 13 ans et plus pour l'envoyer). Les images et vidéos tournées pour
       « Tower 22 » montrent l'ancien jeu : à refaire. Une description prête à coller est plus bas (« Textes pour la
-      page du jeu »).
+      page du jeu »), et des images du nouveau jeu sont prêtes dans `assets/page` (voir son `LISEZ-MOI.txt`).
 - [ ] Public des moins de 16 ans (règles Roblox 2026) : tout nouveau jeu commence en 16+ ; pour Roblox Kids (5-8 ans)
       et Select (9-15 ans) : âge vérifié, double authentification, Roblox Premium 2 mois de suite (ou frais
       remboursables), puis 250 parties de joueurs « très engagés » en 60 jours (tableau « Audience Reach »). Ne pas
@@ -75,8 +77,8 @@ Défends ton château dans des niveaux rapides de 2 à 3 minutes !
 
 ## Derniers essais dans le jeu publié (encore privé)
 
-- [ ] Le tuto : à ta première visite, la flèche t'emmène au niveau 1 puis à la boutique ; à la deuxième, elle ne
-      revient pas.
+- [ ] Le tuto : à ta première visite, la flèche t'emmène au niveau 1 puis à la boutique. Une fois ta première tour
+      achetée (ou le tuto passé avec « Passer le tuto »), elle ne revient plus, même à la visite suivante.
 - [ ] La sauvegarde : gagner un niveau, quitter, revenir : le niveau, les pièces et les tours achetées sont là.
 - [ ] L'entraînement pendant l'absence : mettre une tour dans le camp, revenir une heure plus tard.
 - [ ] À deux joueurs : chacun sa parcelle, on voit le camp de l'autre en s'approchant, les invites de l'autre

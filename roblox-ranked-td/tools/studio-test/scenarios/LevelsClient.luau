@@ -362,7 +362,11 @@ return function(log)
 	------------------------------------------------------------------
 	-- (elle s'ouvre toute seule au retour d'un niveau : le serveur vient d'en jouer plusieurs pour ses tests)
 	act(campGui, "Close")
-	check(shown(openButton) and not window.Visible and openButton.Text == "⚔ NIVEAUX" and onScreen(openButton), "bouton « ⚔ NIVEAUX » affiché sur la map principale, fenêtre fermée")
+	local openBadge = openButton:FindFirstChild("Badge")
+	check(
+		shown(openButton) and not window.Visible and openButton.Text == "⚔ NIVEAUX" and onScreen(openButton) and openBadge ~= nil and not openBadge.Visible,
+		"bouton « ⚔ NIVEAUX » affiché sur la map principale, fenêtre fermée, sans pastille « ! » (0 pièce : rien à acheter)"
+	)
 	local guisBefore = otherGuis()
 	act(campGui, "Open")
 	local page1 = window:FindFirstChild("Page1")

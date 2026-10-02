@@ -77,6 +77,9 @@ powershell -ExecutionPolicy Bypass -File tools\studio-test\run.ps1 -Test english
 Le premier joue le jeu en entier (serveur, puis la vraie interface à la taille d'un ordinateur et d'un téléphone),
 le deuxième vérifie les modèles 3D des monstres, le troisième joue le tuto d'un nouveau joueur en suivant la flèche,
 le quatrième vérifie la version anglaise.
+
+**Images pour la page Roblox du jeu** (icône et miniatures, dans `assets/page`) : elles se refont toutes seules avec
+`run.ps1 -Test page` puis `tools\studio-test\page.ps1` (voir `assets/page/LISEZ-MOI.txt`).
 Captures dans `tools/studio-test/out/`. Le test s'ouvre dans sa propre fenêtre de Studio : un Studio déjà ouvert
 n'est pas touché.
 
@@ -187,7 +190,7 @@ que chez le joueur (`src/client/SoundManager.luau`) : aucun coût pour le serveu
   `src/shared/Lang.luau`. Un texte sans traduction reste en français.
 - **Quand tu ajoutes un texte au jeu** : ajoute sa traduction dans `LangEN/Game.luau`, et une ligne dans
   `tools/lang/samples.luau` (le texte tel qu'il s'affiche, et l'anglais attendu).
-- **Vérifier sans Studio** : `luau tools/lang/samples.luau` (215 textes du jeu et leur anglais attendu, aucun trou),
+- **Vérifier sans Studio** : `luau tools/lang/samples.luau` (219 textes du jeu et leur anglais attendu, aucun trou),
   `luau tools/lang/check.luau` (traductions chargées, doublons), `luau tools/lang/tests.luau` (le traducteur),
   `node tools/lang/autotranslate-test.cjs` (la traduction de l'écran, avec un faux Roblox).
 - **Vérifier dans Studio** : `tools\studio-test\run.ps1 -Test english` passe le joueur en anglais, ouvre tous les
@@ -232,6 +235,7 @@ src/
 assets/
   EnemyModels/   les modèles 3D des monstres utilisés par le jeu (.rbxm, lus par Rojo)
   enemies/       leurs fichiers d'origine (.glb, .fbx), faits avec ChatGPT
+  page/          icône et miniatures pour la page Roblox du jeu (pas dans le jeu lui-même)
 tools/
   levels/        joueurs simulés et vérifications hors Studio
   studio-test/   tests automatiques dans Studio

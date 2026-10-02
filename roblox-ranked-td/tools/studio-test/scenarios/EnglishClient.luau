@@ -336,6 +336,11 @@ return function(log)
 			and page1.CanvasPosition.Y > 100,
 		`joueur au niveau 11 : la page s'ouvre sur le 2e territoire (« {page1.Territory2.Text} », niveau 1 « {page1.Level1.Play.Text} », niveau 11 « {page1.Level11.Play.Text} »)`
 	)
+	local openBadge, shopBadge = openButton:FindFirstChild("Badge"), window.Tab2:FindFirstChild("Badge")
+	check(
+		openBadge ~= nil and shopBadge ~= nil and openBadge.Visible and shopBadge.Visible and openBadge.Text == "!",
+		"5 000 pièces et des tours à acheter : une pastille « ! » sur le bouton des niveaux et sur l'onglet de la boutique"
+	)
 	shot("niveaux_territoire2")
 	act(campGui, "Tab:Boutique")
 	scanScreen("camp, onglet Boutique (joueur avancé)")
@@ -484,7 +489,24 @@ return function(log)
 		return endScreen.Visible and arena:GetAttribute("State") == "Won"
 	end, 5)
 	scanScreen("écran de fin : dernier niveau gagné")
-	check(panel.Next.Text == "All levels cleared!", `dernier niveau gagné : « {panel.Next.Text} », « {oneLine(panel.Details.Text)} »`)
+	check(
+		panel.Next.Text == "All levels cleared!" and string.find(panel.Details.Text, "You can buy a new tower in the shop!", 1, true) ~= nil,
+		`dernier niveau gagné : « {panel.Next.Text} », « {oneLine(panel.Details.Text)} »`
+	)
+	-- Fin du premier territoire : le suivant s'ouvre, l'écran de fin le dit.
+	test:InvokeServer("Set", { best = 9 })
+	startLevel(10)
+	task.wait(0.5)
+	test:InvokeServer("Finish", true)
+	waitFor(function()
+		return endScreen.Visible and arena:GetAttribute("State") == "Won" and panel.Next.Text == "Level 11 ▶"
+	end, 5)
+	scanScreen("écran de fin : niveau 10 gagné (nouveau territoire)")
+	check(
+		panel.Next.Text == "Level 11 ▶" and string.find(panel.Details.Text, "New territory unlocked: The Copper Raiders' Pass!", 1, true) ~= nil,
+		`niveau 10 gagné : « {oneLine(panel.Details.Text)} », bouton « {panel.Next.Text} »`
+	)
+	shot("nouveau_territoire")
 	backToCamp()
 	scanScreen("retour au camp")
 	-- Achat à la boutique : le message du serveur.

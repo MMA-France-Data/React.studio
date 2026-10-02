@@ -74,6 +74,7 @@ function LevelGame.new(arena, player, options)
 	self.queueIndex = 1
 	self.streamSeconds = math.max(1, self.queue[#self.queue].at) -- heure de sortie du dernier monstre
 	self.leaked = 0
+	self.leakedBig = 0 -- dont les gros monstres (colosse, boss : 5 vies ou plus) : l'écran de défaite donne un conseil
 	self.usedTowers = {} -- [type] = true : types de tours posés pendant ce niveau (entraînement gagné à la fin)
 	self.goldEarned = 0
 	self.goldSpent = 0
@@ -228,8 +229,12 @@ function LevelGame:simulate(dt: number)
 		enemy.distance += speed * dt
 		if enemy.distance >= pathLength then
 			enemy.dead = true
+			local cost = Levels.ENEMY[enemy.enemyType].leak
 			self.leaked += 1
-			self.lives = math.max(0, self.lives - Levels.ENEMY[enemy.enemyType].leak)
+			if cost >= 5 then
+				self.leakedBig += 1
+			end
+			self.lives = math.max(0, self.lives - cost)
 			if self.lives <= 0 then
 				self:finish(false)
 				return

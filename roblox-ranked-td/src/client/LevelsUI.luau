@@ -180,6 +180,16 @@ local function owns(towerType: string): boolean
 	return table.find(state.towers, towerType) ~= nil
 end
 
+-- Vrai si le joueur a de quoi acheter une tour de la boutique avec `coins` pièces de niveau.
+local function canBuyTower(coins: number): boolean
+	for towerType, price in Levels.SHOP do
+		if not owns(towerType) and coins >= price then
+			return true
+		end
+	end
+	return false
+end
+
 local function amount(value: number): string
 	return NumberFormat.short(value)
 end
@@ -484,6 +494,27 @@ local function buildCamp()
 			Parent = window,
 		})
 	end
+
+	-- Pastille « ! » sur le bouton « ⚔ NIVEAUX » et sur l'onglet Boutique : le joueur a de quoi acheter une tour (sans
+	-- elle, celui qui ne pense pas à la boutique reste bloqué : les niveaux 3, 6 et 11 attendent une nouvelle tour).
+	local function badge(parent: GuiObject): TextLabel
+		return UI.new("TextLabel", {
+			Name = "Badge",
+			AnchorPoint = Vector2.new(1, 0),
+			Position = UDim2.new(1, 9, 0, -9),
+			Size = UDim2.fromOffset(20, 20),
+			BackgroundColor3 = UI.Colors.Gold,
+			Font = UI.TitleFont,
+			Text = "!",
+			TextColor3 = UI.Colors.Ink,
+			TextSize = 16,
+			Visible = false,
+			ZIndex = parent.ZIndex + 2,
+			Parent = parent,
+		}, { UI.new("UICorner", { CornerRadius = UDim.new(0.5, 0) }), UI.stroke(UI.Colors.Ink, 2) }) :: TextLabel
+	end
+	local openBadge = badge(openButton)
+	local shopBadge = badge(tabButtons.Boutique)
 
 	------------------------------------------------------------------
 	-- Onglet « Niveaux » : un bandeau par territoire (son numéro et le nom de sa carte), puis ses 10 cartes (5 par
@@ -1156,6 +1187,9 @@ local function buildCamp()
 			button.BackgroundColor3 = if name == currentTab then UI.Colors.Accent else UI.Colors.PanelLight
 			pages[name].Visible = name == currentTab
 		end
+		local buyable = canBuyTower(state.coins)
+		openBadge.Visible = buyable
+		shopBadge.Visible = buyable and currentTab ~= "Boutique"
 		refreshLevels()
 		refreshShop()
 		refreshTraining()
@@ -2099,6 +2133,12 @@ local function buildHud()
 		if won then
 			table.insert(lines, if result.firstClear then `Niveau {result.level} réussi pour la première fois !` else `Niveau {result.level} réussi une fois de plus.`)
 			table.insert(lines, `Vies restantes : {result.lives}/{Levels.LIVES}`)
+			-- Dernier niveau d'un territoire réussi pour la première fois : le territoire suivant s'ouvre.
+			local nextLevel = tonumber(result.nextLevel)
+			if result.firstClear and nextLevel and Levels.territoryOf(nextLevel) > Levels.territoryOf(tonumber(result.level) or nextLevel) then
+				local map = Levels.MAPS[Levels.TERRITORIES[Levels.territoryOf(nextLevel)]]
+				table.insert(lines, `🗺 Nouveau territoire ouvert : {map.displayName} !`)
+			end
 		else
 			table.insert(lines, `Niveau {result.level} : {result.kills} monstres éliminés sur {result.total}.`)
 			-- Perdu avec de l'or en poche : c'est la raison la plus fréquente, on la dit avec son chiffre.
@@ -2108,7 +2148,16 @@ local function buildHud()
 			else
 				table.insert(lines, "Les monstres deviennent plus forts sans arrêt : pose et améliore tes tours du début à la fin, sans garder ton or.")
 			end
-			table.insert(lines, "La boutique et le camp d'entraînement aident aussi.")
+			-- Un colosse ou un boss est arrivé au château : les deux tours qui visent toujours le plus gros.
+			if (tonumber(result.bigLeaks) or 0) > 0 then
+				table.insert(lines, "Un gros monstre est passé : la Baliste lourde et le Sorcier des arcanes visent toujours le plus gros.")
+			else
+				table.insert(lines, "La boutique et le camp d'entraînement aident aussi.")
+			end
+		end
+		-- De quoi acheter une tour : on le dit ici, au moment où le joueur choisit entre continuer et rentrer au camp.
+		if canBuyTower(tonumber(result.coins) or state.coins) then
+			table.insert(lines, `{COIN} Tu peux acheter une nouvelle tour à la boutique !`)
 		end
 		local xp = tonumber(result.xp) or 0
 		if xp > 0 and typeof(result.towers) == "table" and #result.towers > 0 then

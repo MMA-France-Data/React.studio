@@ -104,6 +104,9 @@ return {
 	["Il te restait {1} : dépense ton or au fur et à mesure, les monstres deviennent plus forts sans arrêt."] = "You had {1} left: spend your gold as you go, the monsters never stop getting stronger.",
 	["Les monstres deviennent plus forts sans arrêt : pose et améliore tes tours du début à la fin, sans garder ton or."] = "The monsters never stop getting stronger: place and upgrade towers from start to finish, and don't sit on your gold.",
 	["La boutique et le camp d'entraînement aident aussi."] = "The shop and the training camp help too.",
+	["Un gros monstre est passé : la Baliste lourde et le Sorcier des arcanes visent toujours le plus gros."] = "A big monster got through: the Heavy Ballista and the Arcane Sorcerer always aim at the biggest one.",
+	["Tu peux acheter une nouvelle tour à la boutique !"] = "You can buy a new tower in the shop!", -- « 🏅 Tu peux... »
+	["Nouveau territoire ouvert : {1} !"] = "New territory unlocked: {1}!", -- « 🗺 Nouveau territoire... »
 	["Tes tours posées gagnent +{1} XP d'entraînement."] = "Your placed towers gain +{1} training XP.",
 	["ÉVOLUTION ! {1} : {2}"] = "EVOLUTION! {1}: {2}", -- « ⭐ ÉVOLUTION ! Archer du rempart : Flèches enflammées »
 	["Tour"] = "Tower",

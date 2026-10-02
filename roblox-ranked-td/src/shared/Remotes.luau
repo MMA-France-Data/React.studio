@@ -35,7 +35,7 @@ local DEFINITIONS = {
 	--     (numéro de sa zone de combat pendant un niveau, absent sinon) ;
 	--   du dossier de sa zone, workspace.Arenas.Arena<n> : Map, Level, State ("Running" | "Won" | "Lost"), Gold,
 	--     Lives, Left, Total, Progress, SimSpeed, Perks, Training, et à la fin Result (JSON : won, level, reward,
-	--     firstClear, coins, kills, total, lives, xp, towers, perks, nextLevel, seconds).
+	--     firstClear, coins, kills, total, lives, bigLeaks, xp, towers, perks, nextLevel, seconds).
 	LevelAction = "RemoteEvent",
 	-- serveur -> client : (message, kind, source). source = "Levels" pour un message d'un niveau.
 	Notify = "RemoteEvent",

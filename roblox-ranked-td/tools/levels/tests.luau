@@ -473,11 +473,11 @@ do
 	game:spawnEnemy({ enemy = "Giant", health = 1e9, reward = 40 })
 	game.enemies[#game.enemies].distance = geometry.PATH_LENGTH - 0.01
 	game:simulate(1 / 30)
-	check(game.lives == 5 and game.state == "Running", "un mini-boss qui atteint le château coûte 5 vies")
+	check(game.lives == 5 and game.state == "Running" and game.leakedBig == 1, "un mini-boss qui atteint le château coûte 5 vies (noté : l'écran de défaite donnera un conseil)")
 	game:spawnEnemy({ enemy = "Boss", health = 1e9, reward = 100 })
 	game.enemies[#game.enemies].distance = geometry.PATH_LENGTH - 0.01
 	game:simulate(1 / 30)
-	check(game.lives == 0 and game.state == "Lost", "un boss qui atteint le château : c'est perdu")
+	check(game.lives == 0 and game.state == "Lost" and game.leakedBig == 2 and game.leaked == 2, "un boss qui atteint le château : c'est perdu")
 end
 
 do

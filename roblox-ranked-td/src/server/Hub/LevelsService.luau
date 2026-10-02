@@ -163,6 +163,7 @@ local function onLevelEnd(player: Player, game, won: boolean)
 		kills = game.kills,
 		total = #game.queue,
 		lives = game.lives,
+		bigLeaks = game.leakedBig, -- colosses et boss arrivés au château
 		xp = xp,
 		towers = towers,
 		perks = perks, -- améliorations d'entraînement débloquées par cette partie

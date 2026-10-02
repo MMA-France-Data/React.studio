@@ -117,6 +117,21 @@ du tuto. À chaque écran, chaque texte qui a encore l'air français (lettre acc
 noté, ainsi que les textes que le traducteur n'a pas trouvés. À la fin : la liste « non traduit : ... » (elle doit
 être vide), puis le retour au français (chaque texte doit revenir).
 
+### `run.ps1 -Test page` puis `page.ps1` : les images de la page Roblox du jeu
+
+Ce n'est pas un test. Le scénario `scenarios\PageClient.luau` met en scène de vraies parties, en anglais (un combat
+dans la vallée avec les 8 tours et un colosse, la même partie vue de près sans l'interface, le boss du col, l'écran
+de victoire, le camp avec trois tours évoluées, la boutique, les niveaux) et prend les captures `out\page_<nom>.png`.
+Puis :
+
+```bat
+powershell -ExecutionPolicy Bypass -File tools\studio-test\page.ps1
+```
+
+découpe l'image du jeu dans chaque capture (sans les menus de Studio : il la trouve grâce à la capture
+`page_calibrage`, un écran rose plein cadre) et enregistre dans `assets\page` les miniatures (1920 x 1080) et
+l'icône (512 x 512). À refaire quand le jeu change d'allure.
+
 ### Lire le résultat
 
 À la fin, le script affiche chaque ligne `[PASS]` / `[FAIL]`, les erreurs de la Sortie, la liste des captures et le
@@ -138,7 +153,7 @@ powershell -ExecutionPolicy Bypass -File tools\studio-test\check.ps1
 | Fichier | Rôle |
 |---|---|
 | `run.ps1` | Construit la place de test, installe le plugin, ouvre Studio, redimensionne sa fenêtre quand le scénario le demande, prend les captures, affiche les résultats |
-| `mkproj.cjs` | Crée `out\<levels\|monsters\|tutorial\|english>.project.json` : `default.project.json` + le marqueur `__AutoPlayTest` + les scénarios |
+| `mkproj.cjs` | Crée `out\<levels\|monsters\|tutorial\|english\|page>.project.json` : `default.project.json` + le marqueur `__AutoPlayTest` + les scénarios |
 | `awake.ps1` | Garde l'écran du PC allumé pendant un test (voir plus haut) |
 | `AutoPlayTest.lua` | Plugin Studio, copié dans `%LOCALAPPDATA%\Roblox\Plugins` par `run.ps1` |
 | `logserver.cjs` | Petit serveur sur `127.0.0.1:34999` (ce PC uniquement) qui écrit la Sortie dans `out\studio-output.log` |
@@ -149,6 +164,7 @@ powershell -ExecutionPolicy Bypass -File tools\studio-test\check.ps1
 | `scenarios\MonstersClient.luau` | Les modèles 3D des monstres et la galerie |
 | `scenarios\TutorialServer.luau`, `scenarios\TutorialClient.luau` | Le tuto d'un nouveau joueur |
 | `scenarios\EnglishServer.luau`, `scenarios\EnglishClient.luau` | La version anglaise |
+| `scenarios\PageClient.luau`, `page.ps1` | Les images de la page Roblox du jeu (captures, puis recadrage dans `assets\page`) |
 
 **Le plugin ne fait rien dans tes places** : sa première vérification est `if not marker then return end`. Il ne
 s'active que si la place contient `ReplicatedStorage.__AutoPlayTest`, un objet que seul `mkproj.cjs` ajoute aux

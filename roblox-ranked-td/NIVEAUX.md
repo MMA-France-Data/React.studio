@@ -54,7 +54,11 @@ fixes, camp d'entraînement, plus aucun hasard).
    - en haut : le niveau, tes vies ❤, ton or 💰, les monstres qui restent (la barre passe du vert au rouge : le
      niveau devient de plus en plus dur), le bouton **x1 / x2**, et **X** pour quitter (deux appuis).
 5. À la fin : **Niveau suivant**, **Rejouer**, ou **Retour au camp** (la fenêtre des niveaux se rouvre : boutique,
-   entraînement).
+   entraînement). L'écran de fin te dit aussi quand tu as de quoi acheter une nouvelle tour, quand un nouveau
+   territoire s'ouvre, et, après une défaite où un colosse ou un boss est passé, que la Baliste et le Sorcier visent
+   toujours le plus gros.
+6. Une pastille dorée **« ! »** sur le bouton « ⚔ NIVEAUX » et sur l'onglet Boutique veut dire : tu peux acheter
+   une tour. (Les niveaux 3, 6 et 11 sont réglés pour un joueur qui a acheté la tour suivante.)
 
 ## Les règles
 
@@ -350,6 +354,8 @@ arrivent à un niveau) : rien d'autre n'a changé. Les chiffres sont dans `src/s
 8. **Les niveaux 11 à 20** (« ajoute des niveaux ») : voir « Les deux territoires ».
 9. **La version anglaise** (pour un jeu « sortable ») : tous les écrans, le tuto, les messages et les panneaux sont
    traduits ; un test Studio vérifie qu'aucun texte ne reste en français.
+10. **Petites aides** ajoutées en même temps : la pastille « ! » de la boutique, les conseils de l'écran de fin, et
+    des images toutes prêtes pour la page Roblox du jeu (`assets/page`).
 
 ### Le grand ménage : ce qui a été enlevé
 

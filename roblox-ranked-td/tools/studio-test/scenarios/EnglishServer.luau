@@ -1,4 +1,5 @@
--- Test de la VERSION ANGLAISE, côté serveur : tools/studio-test/run.ps1 -Test english.
+-- Test de la VERSION ANGLAISE, côté serveur : tools/studio-test/run.ps1 -Test english (et -Test page : les images
+-- de la page du jeu, scenarios/PageClient.luau).
 -- Il obéit au scénario du client (scenarios/EnglishClient.luau), qui ouvre tous les écrans en anglais : la
 -- RemoteFunction ReplicatedStorage.__EnglishTest lui donne les commandes de ServerStorage.StudioDebug dont il a
 -- besoin pour montrer tous les textes (un joueur riche, un niveau perdu, gagné, le dernier niveau...).
@@ -39,6 +40,11 @@ return function(log)
 			return levels("Reset") ~= nil
 		elseif command == "Action" then
 			return levels("Action", a, b)
+		elseif command == "Do" then
+			-- a = { demande, arguments... } : comme le remote LevelAction, sans l'anti-spam
+			return levels("Action", table.unpack(a))
+		elseif command == "Skip" then
+			return levels("Skip", a)
 		end
 		return nil
 	end

@@ -1,0 +1,24 @@
+IMAGES POUR LA PAGE ROBLOX DU JEU
+=================================
+
+Ces images viennent de vraies parties du jeu, en anglais (la langue de la plupart des joueurs). Elles sont faites
+toutes seules par deux commandes (depuis le dossier roblox-ranked-td) :
+
+  powershell -ExecutionPolicy Bypass -File tools\studio-test\run.ps1 -Test page
+  powershell -ExecutionPolicy Bypass -File tools\studio-test\page.ps1
+
+À refaire quand le jeu change d'allure. Ce sont des images simples, sans titre ni montage : elles suffisent pour
+ouvrir le jeu, tu pourras en mettre de plus belles plus tard.
+
+  icone.jpg               512 x 512    l'icône du jeu (un combat vu de près)
+  miniature_combat.jpg    1920 x 1080  un niveau de la vallée : les 8 tours, le flot de monstres, un colosse
+  miniature_boss.jpg      1920 x 1080  le niveau 20 : le col des Pillards de cuivre et son boss
+  miniature_zoom.jpg      1920 x 1080  un combat vu de près, sans l'interface
+  miniature_camp.jpg      1920 x 1080  le camp d'entraînement : trois tours évoluées
+  miniature_victoire.jpg  1920 x 1080  l'écran de victoire
+  miniature_boutique.jpg  1920 x 1080  la boutique des tours
+  miniature_niveaux.jpg   1920 x 1080  la liste des niveaux
+
+OÙ LES METTRE
+  Hub Création (create.roblox.com) > ton expérience > Configurer > « Icône » et « Miniatures ».
+  Roblox vérifie chaque image avant de l'afficher (quelques minutes).
