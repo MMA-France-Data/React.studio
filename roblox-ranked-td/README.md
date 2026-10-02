@@ -24,7 +24,7 @@ un bouton « ANNULER ».
   `src/shared/Config.luau` (`"All"` = tout le monde, `"Off"` = personne).
 - Règles et chiffres : `src/shared/Levels.luau`. Serveur : `Hub/LevelsService.luau`, `Hub/LevelGame.luau`,
   `Hub/LevelArena.luau`. Client : `LevelsUI.luau` (et `PlotRenderer.luau` pour l'affichage des monstres).
-- Vérifications : `tools/levels` (joueurs simulés et 266 tests hors Studio, dont la difficulté de chaque niveau) et
+- Vérifications : `tools/levels` (joueurs simulés et 273 tests hors Studio, dont la difficulté de chaque niveau) et
   `tools/studio-test/phone.ps1 -Mode levels` (test complet dans Studio).
 
 ## La map principale
@@ -620,7 +620,7 @@ et récupère la fenêtre Sortie (voir son README).
 
 **Sans Studio** : `luau tools/odds/tests.luau` (chances de la forge : exactement 100 %), les vérifications de la
 traduction (voir « Langues »), et les niveaux : `powershell -ExecutionPolicy Bypass -File tools\levels\run.ps1 -Tests`
-(266 vérifications des règles et de la difficulté), sans `-Tests` pour le tableau de difficulté des 10 niveaux joués
+(273 vérifications des règles et de la difficulté), sans `-Tests` pour le tableau de difficulté des 10 niveaux joués
 par des joueurs simulés, `-Lazy` pour les niveaux joués sans presque rien faire (ils doivent tous être perdus), `-Tune`
 et `-Curve` pour régler la difficulté (voir `tools/levels/README.md`).
 

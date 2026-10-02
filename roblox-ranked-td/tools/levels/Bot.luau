@@ -18,6 +18,9 @@ Bot.DT = 1 / 30 -- pas de simulation (comme une image du serveur)
 Bot.DECISION_INTERVAL = 0.4 -- secondes entre deux décisions du joueur simulé
 Bot.MAX_SECONDS = 900
 Bot.DANGER = 0.55 -- part du chemin au-delà de laquelle un monstre fait acheter tout de suite
+-- Ce que vaut le premier Totem de givre pour le joueur simulé : part des dégâts de ses autres tours gagnée pour un
+-- ralentissement qui double le temps passé sous les tirs (s / (1 - s) = 1, soit -50 %). Les suivants : 30 % de ça.
+Bot.FROST_GAIN = 0.23
 
 -- Emplacements essayés dans l'ordre : ceux de la carte, puis tous les points valides d'une grille (les plus proches
 -- du chemin d'abord).
@@ -84,8 +87,8 @@ Bot.POLICIES = {
 
 -- Ce qu'un joueur a quand il arrive à chaque niveau, sans rejouer ni attendre :
 --   * tours : Totem (150 pièces) avant le niveau 3, Mage (400) avant le 6, payés avec les pièces de la première
---     victoire des niveaux d'avant (180 après le niveau 2, 740 après le 5). La Baliste (900) n'est jamais
---     attendue : elle se paie après le niveau 9, c'est un vrai plus contre le boss ;
+--     victoire des niveaux d'avant (180 après le niveau 2, 740 après le 5). La Baliste (1 200) n'est jamais
+--     attendue : elle se paie après le niveau 10 (ou en rejouant), comme toutes les tours suivantes ;
 --   * entraînement : 8 XP par victoire pour chaque tour posée, soit le niveau 1 (20 XP) après 3 victoires et le
 --     niveau 2 (60 XP) après 7 ou 8, le camp aidant.
 -- pace = le RYTHME demandé par ce niveau : secondes entre deux achats du joueur de référence, celui pour qui le
@@ -265,8 +268,11 @@ function Bot.playWith(level: number, profile, policy, observe: ((any, number) ->
 					if (copies[towerType] or 0) < Levels.maxCopies(towerType) then
 						local value = estimate(towerType, 1, training[towerType])
 						if towerType == "Frost" then
-							-- Le Totem ralentit : il renforce toutes les autres tours (le premier surtout).
-							value += total * (if (copies.Frost or 0) == 0 then 0.35 else 0.1)
+							-- Le Totem ralentit : il renforce toutes les autres tours (le premier surtout). Un monstre
+							-- ralenti de s reste 1 / (1 - s) fois plus longtemps sous les tirs : le gain suit s / (1 - s).
+							local slow = Levels.towerStats("Frost", 1, training.Frost).slow or 0
+							local gain = slow / math.max(0.05, 1 - slow) * Bot.FROST_GAIN
+							value += total * gain * (if (copies.Frost or 0) == 0 then 1 else 0.3)
 						elseif towerType == "Tesla" then
 							-- Le Mage freine très fort, un court instant : les autres tours tirent plus longtemps.
 							value += total * (if (copies.Tesla or 0) == 0 then 0.15 else 0.05)

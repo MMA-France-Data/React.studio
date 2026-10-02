@@ -60,7 +60,7 @@ local SHORT_NAMES = {
 }
 local ROLES = {
 	MachineGun = "Tireur rapide à longue portée. Ta tour de base.",
-	Frost = "Ralentit tout ce qui passe près de lui.",
+	Frost = `Ralentit de {math.floor(Levels.towerStats("Frost", 1, 0).slow * 100 + 0.5)} % tout ce qui passe près de lui.`,
 	Bomb = "Ses rochers écrasent les groupes serrés.",
 	Tesla = "Foudre sur un petit groupe, gros coup de frein.",
 	Rocket = "Gros carreau contre les monstres résistants.",
@@ -403,6 +403,7 @@ local function buildCamp()
 			Parent = card,
 		})
 		UI.label({
+			Name = "Role",
 			Position = UDim2.fromOffset(0, 42),
 			Size = UDim2.new(1, 0, 0, 52),
 			TextWrapped = true,

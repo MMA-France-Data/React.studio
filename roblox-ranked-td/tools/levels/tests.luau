@@ -181,6 +181,31 @@ for _, towerType in IdleTowers.ORDER do
 end
 check(shopOk, "boutique : un prix fixe pour chaque tour sauf les deux de départ (déjà possédées), et un prix en or pour toutes")
 check(Levels.SHOP.Frost == 150 and Levels.SHOP.Tesla == 400, "boutique : Totem 150 pièces (payable après 2 niveaux), Mage 400")
+-- Retour du propriétaire (02/10/2026) : « les prix des prochaines tours doivent être plus hauts, pas forcément les
+-- basiques mais les légendaires surtout, car au niveau 10 tu les as en gros ? ». Les 10 niveaux réussis une fois
+-- paient le Totem, le Mage et la Baliste, pas plus : les légendaires demandent de rejouer longtemps.
+local allFirst, previousPrice, rising = 0, 0, true
+for level = 1, Levels.COUNT do
+	allFirst += Levels.firstReward(level)
+end
+for _, towerType in IdleTowers.ORDER do
+	local price = Levels.SHOP[towerType]
+	if price then
+		rising = rising and price > previousPrice
+		previousPrice = price
+	end
+end
+check(rising, "boutique : chaque tour coûte plus cher que la précédente")
+check(
+	allFirst == 2180 and allFirst >= Levels.SHOP.Frost + Levels.SHOP.Tesla + Levels.SHOP.Rocket and allFirst < Levels.SHOP.Frost + Levels.SHOP.Tesla + Levels.SHOP.Laser,
+	`les 10 niveaux réussis une fois ({allFirst} pièces) paient le Totem, le Mage et la Baliste, mais pas le Sorcier`
+)
+local replay10 = Levels.reward(Levels.COUNT, true, false)
+check(
+	IdleTowers.Defs.Chain.rarity == "Legendary" and IdleTowers.Defs.Orbital.rarity == "Legendary" and Levels.SHOP.Chain >= 30 * replay10
+		and Levels.SHOP.Orbital >= 60 * replay10,
+	`tours légendaires : l'Oracle vaut {math.ceil(Levels.SHOP.Chain / replay10)} parties rejouées au niveau 10, le Trébuchet {math.ceil(Levels.SHOP.Orbital / replay10)} (au moins 30 et 60)`
+)
 check(Levels.ENEMY.Normal.gold == 6 and Levels.ENEMY.Swarm.gold == 2 and Levels.ENEMY.Tank.gold == 18 and Levels.ENEMY.Boss.leak == 10, "or des monstres : 6 le fantassin, 2 l'écuyer, 18 le chevalier lourd")
 check(Levels.RUSH_GOLD_PER_SECOND == nil and Levels.GROUP_PAUSE == nil, "plus de pauses entre des groupes ni de bouton « envoyer la suite »")
 
@@ -197,6 +222,12 @@ check(near(archer0.damage, 3) and near(archer2.damage, 3.3) and near(archer6.dam
 check(archer4.range == archer0.range + 3 and near(archer6.cooldown, archer0.cooldown / 1.2), "Archer : +3 de portée à l'entraînement 4, +20 % de vitesse au 6")
 check(Levels.towerStats("Rocket", 1, 0).kind == "Single" and Levels.towerStats("Rocket", 1, 2).kind == "Pierce", "Baliste : carreau perçant à partir de l'entraînement 2")
 check(Levels.towerStats("Frost", 3, 0).fragility == 0 and Levels.towerStats("Frost", 3, 2).fragility > 0, "Totem : fragilité à partir de l'entraînement 2")
+-- Retour du propriétaire (02/10/2026) : « le ralentissement du givre est un peu cheaté » : -40 % dans les niveaux.
+check(
+	near(Levels.towerStats("Frost", 1, 0).slow, 0.4) and near(Levels.towerStats("Frost", 5, 5).slow, 0.4) and near(Levels.towerStats("Frost", 1, 6).slow, 0.5)
+		and IdleTowers.stats("Frost", 1).slow == 0.6,
+	"Totem : ralentit de 40 % dans les niveaux (50 % à l'entraînement 6), toujours 60 % sur la parcelle"
+)
 check(near(Levels.towerStats("MachineGun", 3, 0).damage, 3 * IdleConfig.UPGRADE_DAMAGE ^ 2), "une amélioration en niveau : dégâts x1,35")
 check(Levels.towerStats("MachineGun", 1, 2) == archer2 and IdleTowers.stats("MachineGun", 1).fireRadius ~= nil, "towerStats garde ses tableaux et ne touche pas aux stats de la parcelle")
 check(Levels.perkKeys({ MachineGun = 2, Rocket = 1, Frost = 6 }) == "MachineGun:Fire,Frost:Fragile" and Levels.perkKeys({}) == "", "perkKeys : seulement les effets débloqués")
@@ -424,12 +455,50 @@ for level = 1, Levels.COUNT do
 	check(two.seconds >= 35, `niveau {level} : celui qui pose 2 Archers puis attend tient au moins 35 s ({math.floor(two.seconds)} s)`)
 end
 do
-	-- La boutique devient nécessaire au niveau 3 ; tout débloquer et tout entraîner rend le boss facile.
+	-- Sans la boutique, le joueur très actif passe les premiers niveaux ; à partir du niveau 6 il faut ses tours.
+	-- Tout débloquer et tout entraîner rend le boss facile.
 	local startOnly = { towers = Levels.STARTING_TOWERS, training = 0 }
-	check(Bot.play(1, startOnly).won and Bot.play(2, startOnly).won and not Bot.play(3, startOnly).won, "sans boutique : les niveaux 1 et 2 se gagnent, pas le 3 (il faut le Totem)")
+	check(Bot.play(1, startOnly).won and Bot.play(2, startOnly).won, "sans boutique : les niveaux 1 et 2 se gagnent")
+	local stuck = true
+	for level = 6, Levels.COUNT do
+		stuck = stuck and not Bot.play(level, startOnly).won
+	end
+	check(stuck, "sans boutique : les niveaux 6 à 10 sont perdus, même en étant très actif")
+	-- Le Totem aide sans tout faire : au niveau 5, le joueur de référence gagne avec lui et perd sans lui.
+	local withTotem = Bot.play(5, Bot.profile(5, "reference"))
+	local withoutTotem = Bot.play(5, { towers = Levels.STARTING_TOWERS, training = 1, interval = Bot.EXPECTED[5].pace, actions = 1 })
+	check(withTotem.won and not withoutTotem.won and withoutTotem.kills / withoutTotem.total >= 0.6, `niveau 5 au rythme demandé : {outcome(withTotem)} avec le Totem, {outcome(withoutTotem)} sans lui (il aide, il ne fait pas tout)`)
 	local alone = Bot.play(10, startOnly)
 	local full = Bot.play(10, { towers = Bot.ALL_TOWERS, training = 6 })
 	check(not alone.won and full.won and full.lives == 10, "niveau 10 : perdu avec les deux tours de départ, gagné sans perdre de vie avec toutes les tours entraînées")
+end
+
+do
+	-- Totem de givre dans le moteur : un monstre dans son aura avance à 60 % de sa vitesse (-40 %, pas -60 %).
+	local game = newGame(3, { "MachineGun", "Bomb", "Frost" })
+	game.gold = 1e6
+	game.lives = math.huge
+	local placed = game:placeTower("Frost", Vector3.new(-45, 0, -8))
+	local slowed = nil
+	for _ = 1, 10 * 30 do
+		game:simulate(1 / 30)
+		for _, enemy in game.enemies do
+			if not enemy.dead and enemy.controlSource == "Frost" and game.clock < enemy.controlUntil then
+				slowed = enemy
+				break
+			end
+		end
+		if slowed then
+			break
+		end
+	end
+	local before = if slowed then slowed.distance else 0
+	game:simulate(1 / 30)
+	local full = if slowed then slowed.def.speed * IdleConfig.ENEMY_SPEED_MULTIPLIER * slowed.speedScale / 30 else 1
+	check(
+		placed and slowed ~= nil and near(slowed.controlFactor, 0.4) and near((slowed.distance - before) / full, 0.6, 0.01),
+		`Totem posé dans un niveau : le monstre dans son aura avance à {if slowed then math.floor((slowed.distance - before) / full * 100 + 0.5) else "?"} % de sa vitesse`
+	)
 end
 
 do

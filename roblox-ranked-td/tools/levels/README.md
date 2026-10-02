@@ -18,7 +18,7 @@ powershell -ExecutionPolicy Bypass -File tools\levels\run.ps1 -Regler "Levels.ST
 - **sans option** : le tableau de difficulté. Chaque niveau est joué par des joueurs simulés : très actif, au rythme
   demandé par le niveau, lent (un achat toutes les 8 s), distrait (toutes les 15 s), sans boutique, tout débloqué.
   « G 7 » = gagné avec 7 vies, « P 62 % » = perdu après avoir éliminé 62 % des monstres. Environ 45 secondes.
-- **`-Tests`** : 266 vérifications (niveaux, flot continu, carte, pose libre, récompenses, prix, entraînement, données
+- **`-Tests`** : 273 vérifications (niveaux, flot continu, carte, pose libre, récompenses, prix, entraînement, données
   du joueur, le moteur : or, vies, victoire, défaite, vitesse x2, paquets réseau, et **la difficulté de chaque
   niveau** : voir plus bas). Environ 20 secondes.
 - **`-Lazy`** : les 10 niveaux joués par un joueur qui pose quelques tours puis attend (rien de plus, 2 Archers,
@@ -57,6 +57,9 @@ Les tours et l'entraînement « attendus » à chaque niveau, et le rythme deman
    dépense tout. C'est ce qui sépare le joueur actif du joueur lent (lui ne peut pas tout dépenser).
 3. Les **PV** de chaque niveau (`health` dans `Levels.DEFINITIONS`) : `-Tune` donne la valeur la plus haute pour le
    joueur de référence ; on garde environ 5 % de marge en dessous, puis on vérifie avec le tableau et `-Tests`.
+4. Changer la force d'une tour change ce que le joueur peut battre : il faut alors refaire `-Tune` pour les niveaux
+   où cette tour est attendue. Exemple : le ralentissement du Totem de givre (`Levels.TOWER_TWEAKS`), passé de 60 %
+   à 40 % après le retour du propriétaire (« un peu cheaté ») ; les PV des niveaux 3 à 10 ont baissé de 15 à 25 %.
 
 | Fichier | Rôle |
 |---|---|

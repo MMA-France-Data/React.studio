@@ -16,6 +16,7 @@ return function(log)
 	local Players = game:GetService("Players")
 	local ReplicatedStorage = game:GetService("ReplicatedStorage")
 	local Levels = require(ReplicatedStorage:WaitForChild("Shared").Levels)
+	local NumberFormat = require(ReplicatedStorage:WaitForChild("Shared").NumberFormat)
 	local player = Players.LocalPlayer
 	local playerGui = player:WaitForChild("PlayerGui")
 
@@ -247,6 +248,12 @@ return function(log)
 		shopPage.Visible and not page1.Visible and archerCard.Buy.Text == "✓ À TOI" and bombCard.Buy.Text == "✓ À TOI"
 			and string.find(frostCard.Buy.Text, "150", 1, true) ~= nil and string.find(frostCard.Buy.Text, "manque", 1, true) ~= nil,
 		`onglet « Boutique » : Archer « {archerCard.Buy.Text} », Catapulte « {bombCard.Buy.Text} » (les deux tours de départ), Totem « {frostCard.Buy.Text} » (prix fixe, aucun hasard)`
+	)
+	local oracleCard, trebuchetCard = shopPage:FindFirstChild("Shop_Chain"), shopPage:FindFirstChild("Shop_Orbital")
+	check(
+		string.find(frostCard.Role.Text, "40 %", 1, true) ~= nil and string.find(oracleCard.Buy.Text, NumberFormat.short(8000), 1, true) ~= nil
+			and string.find(trebuchetCard.Buy.Text, NumberFormat.short(15000), 1, true) ~= nil,
+		`boutique : Totem « {frostCard.Role.Text} », Oracle « {oracleCard.Buy.Text} », Trébuchet « {trebuchetCard.Buy.Text} » (les légendaires sont des buts à long terme)`
 	)
 	shot("camp_boutique")
 	act(campGui, "Tab:Entraînement")

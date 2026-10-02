@@ -249,14 +249,14 @@ Levels.STREAM = {
 Levels.DEFINITIONS = {
 	{ gold = 60, seconds = 95, health = 72, gap = { 1.1, 0.34 }, from = { Fast = 0.25 } },
 	{ gold = 65, seconds = 105, health = 88, gap = { 1.1, 0.33 }, from = { Fast = 0.15, Swarm = 0.45 } },
-	{ gold = 70, seconds = 115, health = 110, gap = { 1.05, 0.32 }, from = { Fast = 0.15, Swarm = 0.3, Tank = 0.6 } },
-	{ gold = 75, seconds = 120, health = 116, gap = { 1.05, 0.31 }, from = { Fast = 0.1, Swarm = 0.25, Tank = 0.45 } },
-	{ gold = 80, seconds = 130, health = 95, gap = { 1, 0.3 }, from = { Fast = 0.1, Swarm = 0.25, Tank = 0.4 }, specials = { { "Giant", 0.75 } } },
-	{ gold = 85, seconds = 130, health = 130, gap = { 1, 0.3 }, from = { Fast = 0.1, Swarm = 0.2, Tank = 0.35 } },
-	{ gold = 90, seconds = 135, health = 146, gap = { 1, 0.29 }, from = { Fast = 0.1, Swarm = 0.2, Tank = 0.3 } },
-	{ gold = 95, seconds = 140, health = 168, gap = { 0.95, 0.29 }, from = { Fast = 0.1, Swarm = 0.2, Tank = 0.3 }, specials = { { "Giant", 0.6, 0.8 } } },
-	{ gold = 100, seconds = 145, health = 190, gap = { 0.95, 0.28 }, from = { Fast = 0.1, Swarm = 0.2, Tank = 0.25 } },
-	{ gold = 110, seconds = 155, health = 146, gap = { 0.95, 0.28 }, from = { Fast = 0.1, Swarm = 0.2, Tank = 0.25 }, specials = { { "Giant", 0.5, 0.7 }, { "Boss", 1 } } },
+	{ gold = 70, seconds = 115, health = 86, gap = { 1.05, 0.32 }, from = { Fast = 0.15, Swarm = 0.3, Tank = 0.6 } },
+	{ gold = 75, seconds = 120, health = 88, gap = { 1.05, 0.31 }, from = { Fast = 0.1, Swarm = 0.25, Tank = 0.45 } },
+	{ gold = 80, seconds = 130, health = 77, gap = { 1, 0.3 }, from = { Fast = 0.1, Swarm = 0.25, Tank = 0.4 }, specials = { { "Giant", 0.75 } } },
+	{ gold = 85, seconds = 130, health = 115, gap = { 1, 0.3 }, from = { Fast = 0.1, Swarm = 0.2, Tank = 0.35 } },
+	{ gold = 90, seconds = 135, health = 122, gap = { 1, 0.29 }, from = { Fast = 0.1, Swarm = 0.2, Tank = 0.3 } },
+	{ gold = 95, seconds = 140, health = 145, gap = { 0.95, 0.29 }, from = { Fast = 0.1, Swarm = 0.2, Tank = 0.3 }, specials = { { "Giant", 0.6, 0.8 } } },
+	{ gold = 100, seconds = 145, health = 158, gap = { 0.95, 0.28 }, from = { Fast = 0.1, Swarm = 0.2, Tank = 0.25 } },
+	{ gold = 110, seconds = 155, health = 126, gap = { 0.95, 0.28 }, from = { Fast = 0.1, Swarm = 0.2, Tank = 0.25 }, specials = { { "Giant", 0.5, 0.7 }, { "Boss", 1 } } },
 }
 
 -- Niveau 1 : cette tour est déjà posée à l'arrivée du joueur (premier emplacement conseillé de la carte), pour
@@ -396,6 +396,16 @@ end
 ----------------------------------------------------------------------
 Levels.TOWER_COST = { MachineGun = 20, Frost = 40, Bomb = 45, Tesla = 40, Rocket = 50, Laser = 90, Chain = 150, Orbital = 100 }
 Levels.MAX_COPIES = { Frost = 3 }
+-- Stats changées pour les niveaux seulement (la parcelle garde celles de IdleTowers) : { [type] = { champ = valeur } }.
+-- Totem de givre : -40 % de vitesse au lieu de -60 %. Retour du propriétaire après avoir joué la 2e version
+-- (02/10/2026) : « le ralentissement du givre est un peu cheaté quand même ». Mesuré avec le joueur simulé : à
+-- -60 %, trois Totems (120 or) permettaient de battre des monstres 50 à 70 % plus résistants ; à -40 %, 23 à 29 %
+-- (avec les Mages, qui ne ralentissent pas un monstre déjà gelé : 12 %). Il reste une bonne tour, plus LA tour.
+-- Les PV des niveaux 3 à 10 ont été refaits avec ce réglage (run.ps1 -Tune) : à changer ensemble.
+-- (L'amélioration d'entraînement « Gel profond », plus bas, ajoute 10 points : elle suit ce chiffre.)
+Levels.TOWER_TWEAKS = {
+	Frost = { slow = 0.4 },
+}
 
 function Levels.maxCopies(towerType: string): number
 	return Levels.MAX_COPIES[towerType] or IdleTowers.maxCopies(towerType)
@@ -425,12 +435,17 @@ end
 -- reçoit la Catapulte tout seul (cleanData). Pour changer la 2e tour : cette liste, et SHOP.
 ----------------------------------------------------------------------
 Levels.STARTING_TOWERS = { "MachineGun", "Bomb" }
-Levels.SHOP = { Frost = 150, Tesla = 400, Rocket = 900, Laser = 1600, Chain = 3000, Orbital = 5000 }
--- Dans la première version du prototype, la Catapulte s'achetait 350 pièces et les tours suivantes coûtaient plus
--- cher (Mage 700, Baliste 1 200, Sorcier 2 000, Oracle 3 500, Trébuchet 6 000). Un joueur qui en avait acheté
--- retrouve la différence, une seule fois : sa sauvegarde d'avant n'a pas de champ `version` (cleanData).
+-- Prix : les deux premières tours se paient avec les pièces des premiers niveaux (Totem avant le niveau 3, Mage
+-- avant le niveau 6). Les suivantes sont des buts à long terme. Retour du propriétaire (02/10/2026) : « les prix des
+-- prochaines tours doivent être plus hauts, pas forcément les basiques mais les légendaires surtout » : avant, les
+-- 10 niveaux réussis (2 180 pièces) puis 13 parties rejouées au niveau 10 (240 pièces chacune) suffisaient pour
+-- l'Oracle (3 000), et 21 pour le Trébuchet (5 000). Maintenant : 34 parties pour l'Oracle, 63 pour le Trébuchet.
+Levels.SHOP = { Frost = 150, Tesla = 400, Rocket = 1200, Laser = 3000, Chain = 8000, Orbital = 15000 }
+-- Dans la première version du prototype, la Catapulte s'achetait 350 pièces et le Mage 700 : un joueur qui les
+-- avait achetés retrouve la différence, une seule fois (sa sauvegarde d'avant n'a pas de champ `version` :
+-- cleanData). Les tours plus chères ne rendent plus rien : leurs prix sont remontés depuis.
 Levels.DATA_VERSION = 2
-Levels.PRICE_REFUNDS = { Bomb = 350, Tesla = 300, Rocket = 300, Laser = 400, Chain = 500, Orbital = 1000 }
+Levels.PRICE_REFUNDS = { Bomb = 350, Tesla = 300 }
 
 ----------------------------------------------------------------------
 -- Camp d'entraînement. Chaque type de tour a de l'expérience (XP), qui donne un niveau d'entraînement (0 à
@@ -479,8 +494,8 @@ Levels.PERKS = {
 		{ level = 4, name = "Grande aura", text = "+2 de portée.", on = function(stats)
 			stats.range += 2
 		end },
-		{ level = 6, name = "Gel profond", text = "Ralentit de 70 % au lieu de 60 %.", on = function(stats)
-			stats.slow = 0.7
+		{ level = 6, name = "Gel profond", text = "Ralentit de 50 % au lieu de 40 %.", on = function(stats)
+			stats.slow += 0.1
 		end },
 	},
 	Bomb = {
@@ -586,6 +601,9 @@ function Levels.towerStats(towerType: string, level: number, training: number?)
 		return cached
 	end
 	local stats = table.clone(IdleTowers.stats(towerType, level))
+	for field, value in Levels.TOWER_TWEAKS[towerType] or {} do
+		stats[field] = value
+	end
 	stats.damage *= 1 + Levels.TRAINING.DAMAGE_PER_LEVEL * trained
 	for _, perk in Levels.PERKS[towerType] or {} do
 		if trained >= perk.level then

@@ -15,6 +15,16 @@ attendre ») :
 - la tour que tu as prise dans la barre devient un bouton rouge **« ANNULER »** ;
 - le bouton « envoyer la suite » n'existe plus (il n'y a plus de pause à sauter).
 
+**Réglage après ton deuxième essai** (« ça va, mais le ralentissement du givre est un peu cheaté, et les prix des
+prochaines tours doivent être plus hauts, pas forcément les basiques mais les légendaires surtout ») :
+
+- le **Totem de givre ralentit de 40 %** au lieu de 60 % dans les niveaux (sur ta parcelle, rien ne change). Mesuré
+  avec le joueur simulé : avant, trois Totems permettaient de battre des monstres 50 à 70 % plus résistants ;
+  maintenant 23 à 29 %. Il reste utile, ce n'est plus LA tour qui gagne le niveau. Les niveaux 3 à 10 ont été
+  recalculés avec ce Totem plus faible, pour rester faisables ;
+- **boutique** : le Totem (150) et le Mage (400) ne bougent pas. La Baliste passe de 900 à 1 200, le Sorcier de 1 600
+  à 3 000, et les deux légendaires montent beaucoup : l'Oracle de 3 000 à 8 000, le Trébuchet de 5 000 à 15 000.
+
 ## En deux mots
 
 - Le jeu actuel (ta parcelle infinie, l'autel, la forge, le classement) **n'est pas touché**. Il tourne exactement
@@ -75,7 +85,8 @@ Config.LEVELS_ACCESS = "Owner"   -- "Owner" = toi seul (et toi dans Studio), "Al
 | Vitesse x2 | bouton x1 / x2, pour tout le monde (réglage `Levels.SPEED_FREE`) |
 | Vue | caméra penchée : on voit les tours et les monstres de côté, et la carte remplit l'écran. **Choisie par toi le 02/10/2026** parmi trois (penchée, plus plongeante, pile au-dessus). Réglage : `CAMERA_PITCH_MIN` et `CAMERA_PITCH_MAX`, en haut de `src/client/LevelsUI.luau` |
 
-Les 8 tours sont celles de la parcelle (mêmes dégâts, mêmes portées, mêmes effets), avec leurs prix en or à elles :
+Les 8 tours sont celles de la parcelle (mêmes dégâts, mêmes portées, mêmes effets), avec leurs prix en or à elles.
+Une seule différence : le Totem de givre ralentit de 40 % dans les niveaux (60 % sur la parcelle).
 
 | Tour | Prix en or | Maximum par niveau |
 |---|---|---|
@@ -117,13 +128,26 @@ Lancer un niveau et le quitter tout de suite ne donne donc rien.
 | Catapulte | déjà à toi |
 | Totem de givre | 150 |
 | Mage des tempêtes | 400 |
-| Baliste lourde | 900 |
-| Sorcier des arcanes | 1 600 |
-| Oracle de la foudre | 3 000 |
-| Trébuchet royal | 5 000 |
+| Baliste lourde (épique) | 1 200 |
+| Sorcier des arcanes (épique) | 3 000 |
+| Oracle de la foudre (légendaire) | 8 000 |
+| Trébuchet royal (légendaire) | 15 000 |
 
 Les pièces des premières victoires suffisent pour le Totem avant le niveau 3 (180 pièces après deux niveaux) et pour
 le Mage avant le niveau 6 (740 après cinq niveaux).
+
+**Est-ce qu'on a tout au niveau 10 ?** Non. Les 10 niveaux réussis une fois donnent 2 180 pièces en tout : de quoi
+acheter le Totem, le Mage et la Baliste (1 750), pas plus. Le reste se gagne en rejouant (le niveau 10 rejoué rapporte
+240 pièces) :
+
+| Tour | Parties à rejouer au niveau 10 pour la payer | Avant ce réglage |
+|---|---|---|
+| Sorcier des arcanes | 13 | 7 |
+| Oracle de la foudre | 34 | 13 |
+| Trébuchet royal | 63 | 21 |
+
+Les niveaux 11 à 20 rapporteront plus : les légendaires sont des buts à long terme, pas des tours du premier
+territoire. Chaque prix est un seul chiffre dans `Levels.SHOP`.
 
 ### Le camp d'entraînement
 
@@ -148,21 +172,22 @@ pour qu'**attendre fasse perdre** et que **rester actif fasse gagner** :
 |---|---|---|---|---|---|
 | 1 | gagne, 10 vies | un achat toutes les 5 s : gagne, 7 vies | perd à 76 % | perd à 15 % (48 s) | perd à 39 % |
 | 2 | gagne, 10 vies | toutes les 4,5 s : gagne, 10 vies | perd à 80 % | perd à 11 % (46 s) | perd à 35 % |
-| 3 | gagne, 10 vies | toutes les 4 s : gagne, 8 vies | perd à 84 % | perd à 8 % (42 s) | perd à 30 % |
-| 4 | gagne, 10 vies | toutes les 4 s : gagne, 10 vies | perd à 82 % | perd à 8 % (43 s) | perd à 29 % |
-| 5 (mini-boss) | gagne, 10 vies | toutes les 4 s : gagne, 10 vies | perd à 93 % | perd à 10 % (47 s) | perd à 33 % |
-| 6 | gagne, 10 vies | toutes les 3,5 s : gagne, 10 vies | perd à 79 % | perd à 6 % (39 s) | perd à 24 % |
-| 7 | gagne, 10 vies | toutes les 3,5 s : gagne, 6 vies | perd à 40 % | perd à 5 % (38 s) | perd à 19 % |
-| 8 | gagne, 10 vies | toutes les 3,5 s : gagne, 10 vies | perd à 54 % | perd à 4 % (36 s) | perd à 16 % |
-| 9 | gagne, 10 vies | toutes les 3,5 s : gagne, 10 vies | perd à 34 % | perd à 4 % (35 s) | perd à 15 % |
-| 10 (boss) | gagne, 10 vies | toutes les 3,5 s : gagne, 10 vies | perd à 80 % | perd à 5 % (38 s) | perd à 18 % |
+| 3 | gagne, 10 vies | toutes les 4 s : gagne, 10 vies | perd à 83 % | perd à 11 % (48 s) | perd à 44 % |
+| 4 | gagne, 10 vies | toutes les 4 s : gagne, 10 vies | perd à 85 % | perd à 11 % (48 s) | perd à 38 % |
+| 5 (mini-boss) | gagne, 10 vies | toutes les 4 s : gagne, 6 vies | perd à 94 % | perd à 12 % (51 s) | perd à 38 % |
+| 6 | gagne, 10 vies | toutes les 3,5 s : gagne, 10 vies | perd à 68 % | perd à 7 % (42 s) | perd à 27 % |
+| 7 | gagne, 10 vies | toutes les 3,5 s : gagne, 10 vies | perd à 52 % | perd à 7 % (42 s) | perd à 26 % |
+| 8 | gagne, 10 vies | toutes les 3,5 s : gagne, 10 vies | perd à 70 % | perd à 5 % (37 s) | perd à 18 % |
+| 9 | gagne, 10 vies | toutes les 3,5 s : gagne, 10 vies | perd à 49 % | perd à 4 % (37 s) | perd à 15 % |
+| 10 (boss) | gagne, 10 vies | toutes les 3,5 s : gagne, 10 vies | perd à 92 % | perd à 6 % (41 s) | perd à 21 % |
 
 « Perd à 76 % » = le château tombe quand 76 % des monstres du niveau ont été éliminés.
 
 Ce que les joueurs simulés ont en arrivant à chaque niveau : les deux tours de départ aux niveaux 1 et 2, le Totem à
 partir du niveau 3, le Mage à partir du niveau 6, un peu d'entraînement (niveau 1 à partir du niveau 4, niveau 2 à
-partir du niveau 8). Sans la boutique (Archer et Catapulte seulement), on gagne les niveaux 1 et 2, pas le 3. La
-Baliste (900 pièces) n'est jamais nécessaire : c'est un vrai plus contre le boss.
+partir du niveau 8). Sans la boutique (Archer et Catapulte seulement), un joueur très actif gagne les niveaux 1 et 2,
+passe ou rate de très peu les niveaux 3 à 5, et perd à partir du niveau 6. La Baliste et les tours suivantes ne
+sont jamais nécessaires pour finir les 10 niveaux.
 
 Un vrai joueur choisit moins bien que le joueur simulé : pour gagner, il doit aller un peu plus vite que le rythme
 indiqué. **C'est un réglage à ajuster quand tu y auras joué** : si c'est trop dur ou encore trop facile, dis-le-moi,
@@ -221,7 +246,7 @@ powershell -ExecutionPolicy Bypass -File tools\levels\run.ps1
 powershell -ExecutionPolicy Bypass -File tools\studio-test\phone.ps1 -Mode levels
 ```
 
-- le premier : 266 vérifications des règles et de la difficulté de chaque niveau, sans Studio (20 secondes) ;
+- le premier : 273 vérifications des règles et de la difficulté de chaque niveau, sans Studio (20 secondes) ;
 - le deuxième : le tableau de difficulté des 10 niveaux par les joueurs simulés ;
 - le troisième : le test complet dans Studio (serveur, puis la vraie interface à la taille normale et à la taille
   d'un téléphone), avec des captures dans `tools/studio-test/out/levels_*.png`.

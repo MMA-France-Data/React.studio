@@ -250,6 +250,21 @@ return function(log)
 	local richOk, richReason = action("Buy", "Orbital")
 	check(againOk == false and string.find(tostring(againReason), "déjà", 1, true) ~= nil and richOk == false and string.find(tostring(richReason), "manque", 1, true) ~= nil and saved().coins == 850, `boutique : déjà possédée (« {tostring(againReason)} ») ou trop chère (« {tostring(richReason)} ») : refusé, rien n'est dépensé`)
 	check(action("Buy", "MachineGun") == false and action("Buy", "Bomb") == false and action("Buy", "Dragon") == false and action("Buy", 5) == false and saved().coins == 850, "boutique : les deux tours de départ et les tours inconnues ne sont pas en vente")
+	-- Retour du propriétaire (02/10/2026) : les tours légendaires doivent coûter bien plus cher que les premières,
+	-- et le ralentissement du Totem de givre était « un peu cheaté » (-40 % dans les niveaux, au lieu de -60 %).
+	levels("Set", "coins", 7999)
+	local oracleOk, oracleReason = action("Buy", "Chain")
+	levels("Set", "coins", 8000)
+	local oracleBought = action("Buy", "Chain")
+	check(
+		oracleOk == false and string.find(tostring(oracleReason), "manque 1 ", 1, true) ~= nil and oracleBought == true and saved().coins == 0
+			and saved().towers.Chain == true and Levels.SHOP.Orbital == 15000,
+		`boutique : l'Oracle (légendaire) coûte 8 000 pièces (« {tostring(oracleReason)} » avec 7 999), le Trébuchet 15 000`
+	)
+	local frostStats = Levels.towerStats("Frost", 1, 0)
+	check(math.abs(frostStats.slow - 0.4) < 1e-6, `Totem de givre dans les niveaux : ralentit de {frostStats.slow * 100} %`)
+	levels("Set", "towers", { MachineGun = true, Bomb = true, Frost = true })
+	levels("Set", "coins", 850)
 
 	------------------------------------------------------------------
 	-- Camp d'entraînement
