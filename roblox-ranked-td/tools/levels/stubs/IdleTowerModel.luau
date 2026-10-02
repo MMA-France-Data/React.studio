@@ -10,4 +10,7 @@ return {
 		model:SetAttribute("TowerType", towerType)
 		return model
 	end,
+	addEvolution = function(model, stage)
+		model:SetAttribute("Stars", stage)
+	end,
 }

@@ -19,6 +19,12 @@ Config.RANKED_OPEN = false
 --   "Off"   -> personne (le bouton n'existe pas)
 -- Le serveur refuse toute demande d'un joueur qui n'y a pas droit (Hub/LevelsService.luau).
 Config.LEVELS_ACCESS = "Owner"
+-- La PARCELLE d'un joueur qui a les niveaux devient son CAMP D'ENTRAÎNEMENT (demande du propriétaire, 02/10/2026 :
+-- « tu peux gérer toute la parcelle ») : ses tours à l'entraînement y sont posées et tirent sur des cibles, le jeu
+-- infini (vagues, autel, forge, renaissance) ne tourne plus dessus et ses boutons disparaissent. Rien n'est effacé
+-- de sa sauvegarde : avec false, sa parcelle redevient celle du jeu infini, là où il l'avait laissée.
+-- Les joueurs qui n'ont PAS les niveaux gardent le jeu actuel, quoi qu'il arrive (Hub/init.luau, applyPlotMode).
+Config.LEVELS_CAMP_PLOT = true
 
 -- Dans Studio, TeleportService ne marche pas : on ne peut pas tester le vrai matchmaking.
 --   "Auto"  -> Lobby : map principale (parcelles + cercle ranked)

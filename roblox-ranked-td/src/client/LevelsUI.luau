@@ -24,6 +24,7 @@
 local GuiService = game:GetService("GuiService")
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
+local ProximityPromptService = game:GetService("ProximityPromptService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local StarterGui = game:GetService("StarterGui")
@@ -37,6 +38,7 @@ local Levels = require(Shared.Levels)
 local NumberFormat = require(Shared.NumberFormat)
 local ProximityLabel = require(Shared.ProximityLabel)
 local Remotes = require(Shared.Remotes)
+local CampMode = require(script.Parent.CampMode)
 local CombatVFX = require(script.Parent.CombatVFX)
 local PlotRenderer = require(script.Parent.PlotRenderer)
 local SoundManager = require(script.Parent.SoundManager)
@@ -122,6 +124,13 @@ local BAR_GAP = 6
 local PHONE_STRIP_LEFT = 190
 -- Écrans laissés affichés pendant un niveau (les autres sont cachés puis remis).
 local KEEP_GUIS = { LevelHud = true, Toasts = true }
+-- Écrans du JEU INFINI, cachés tant que la parcelle du joueur est son camp d'entraînement (CampMode.luau) : pièces
+-- du fief et panneau des tours, autel et forge, renaissance, boutique des passes et gains d'absence, défis, tuto
+-- du jeu infini, bouton qui masque les raccourcis du téléphone.
+local INFINITE_GUIS = {
+	"Plot", "Machines", "Rebirth", "RebirthButton", "ShopButton", "Shop", "OfflineGains", "ChallengesButton", "Challenges",
+	"Tutorial", "TutorialPointer", "ShortcutsToggle",
+}
 
 local levelAction = nil -- remote LevelAction (LevelsUI.start)
 
@@ -197,6 +206,18 @@ local function buildCamp()
 		MaxTextSize = 18,
 		Parent = gui,
 	})
+	-- Pièces de niveau, toujours visibles à côté du bouton (la parcelle du joueur est son camp : plus de « trésor du
+	-- fief » en haut de l'écran).
+	local hudCoins = UI.label({
+		Name = "HudCoins",
+		BackgroundColor3 = UI.Colors.Background,
+		BackgroundTransparency = 0.15,
+		Font = Enum.Font.GothamBlack,
+		TextColor3 = UI.Colors.Gold,
+		MaxTextSize = 18,
+		Parent = gui,
+	})
+	UI.corner(8).Parent = hudCoins
 	local window = UI.new("Frame", {
 		Name = "Window",
 		AnchorPoint = Vector2.new(0.5, 0.5),
@@ -221,6 +242,8 @@ local function buildCamp()
 		local phone = UI.touchLayout(screen)
 		openButton.Position = if phone then UDim2.fromOffset(128, 48) else UDim2.fromOffset(154, 16)
 		openButton.Size = if phone then UDim2.fromOffset(110, 30) else UDim2.fromOffset(150, 38)
+		hudCoins.Position = if phone then UDim2.fromOffset(244, 48) else UDim2.fromOffset(310, 16)
+		hudCoins.Size = if phone then UDim2.fromOffset(84, 30) else UDim2.fromOffset(110, 38)
 		if screen.X > 0 and screen.Y > 0 then
 			local scale = math.clamp((screen.X - 2 * UI.WINDOW_MARGIN) / WINDOW_SIZE.X, UI.MIN_WINDOW_SCALE, 1)
 			windowScale.Scale = scale
@@ -556,13 +579,13 @@ local function buildCamp()
 		local def = IdleTowers.Defs[towerType]
 		local row = UI.new("Frame", {
 			Name = "Train_" .. towerType,
-			Size = UDim2.new(1, -8, 0, 72),
+			Size = UDim2.new(1, -8, 0, 116),
 			BackgroundColor3 = UI.Colors.PanelLight,
 			Visible = false,
 			Parent = trainingList,
 		}, { UI.corner(10), UI.padding(8) })
 		UI.label({
-			Size = UDim2.new(1, -230, 0, 20),
+			Size = UDim2.new(1, -290, 0, 20),
 			Font = Enum.Font.GothamBlack,
 			TextXAlignment = Enum.TextXAlignment.Left,
 			TextColor3 = def.color:Lerp(Color3.new(1, 1, 1), 0.4),
@@ -571,9 +594,10 @@ local function buildCamp()
 			Parent = row,
 		})
 		local levelLabel = UI.label({
+			Name = "Level",
 			AnchorPoint = Vector2.new(1, 0),
 			Position = UDim2.new(1, -116, 0, 0),
-			Size = UDim2.fromOffset(110, 20),
+			Size = UDim2.fromOffset(170, 20),
 			Font = Enum.Font.GothamBold,
 			TextXAlignment = Enum.TextXAlignment.Right,
 			TextColor3 = UI.Colors.Gold,
@@ -591,10 +615,31 @@ local function buildCamp()
 			ZIndex = 2,
 			Parent = row,
 		})
-		local perk = UI.label({
-			Position = UDim2.fromOffset(0, 38),
-			Size = UDim2.new(1, -116, 0, 18),
+		-- ÉVOLUTIONS de la tour (Levels.PERKS : aux niveaux d'entraînement 2, 4 et 6) : une case par évolution, dorée
+		-- quand elle est débloquée, et le détail de la prochaine en dessous.
+		local evolutions = {}
+		local perks = Levels.PERKS[towerType] or {}
+		for index, _ in perks do
+			evolutions[index] = UI.label({
+				Name = "Evolution" .. index,
+				-- (les cases se partagent la largeur de la ligne moins le bouton de droite : 116 px)
+				Position = UDim2.new((index - 1) / #perks, -(index - 1) * 116 / #perks, 0, 42),
+				Size = UDim2.new(1 / #perks, -(116 / #perks) - 4, 0, 22),
+				BackgroundColor3 = UI.Colors.Background,
+				BackgroundTransparency = 0.2,
+				Font = Enum.Font.GothamBold,
+				MaxTextSize = 12,
+				Parent = row,
+			})
+			UI.corner(6).Parent = evolutions[index]
+		end
+		local detail = UI.label({
+			Name = "NextEvolution",
+			Position = UDim2.fromOffset(0, 68),
+			Size = UDim2.new(1, -116, 0, 32),
 			TextXAlignment = Enum.TextXAlignment.Left,
+			TextYAlignment = Enum.TextYAlignment.Top,
+			TextWrapped = true,
 			TextColor3 = UI.Colors.Muted,
 			MaxTextSize = 13,
 			Parent = row,
@@ -613,7 +658,7 @@ local function buildCamp()
 				levelAction:FireServer("SlotAssign", selectedSlot, if slot.tower == towerType then "" else towerType)
 			end
 		end)
-		trainingRows[towerType] = { row = row, level = levelLabel, setBar = setBar, xp = xpLabel, perk = perk, button = button }
+		trainingRows[towerType] = { row = row, level = levelLabel, setBar = setBar, xp = xpLabel, evolutions = evolutions, detail = detail, button = button }
 	end
 
 	function refreshTraining()
@@ -659,17 +704,23 @@ local function buildCamp()
 			local xp = tonumber(state.xp[towerType]) or 0
 			local trained = Levels.trainingLevel(xp)
 			local done, needed = Levels.trainingProgress(xp)
-			entry.level.Text = `Entraînement {trained}/{Levels.TRAINING.MAX_LEVEL}`
+			local stars = Levels.stars(Levels.evolutionStage(towerType, trained))
+			entry.level.Text = `{if stars ~= "" then stars .. "  " else ""}Entraînement {trained}/{Levels.TRAINING.MAX_LEVEL}`
 			entry.setBar(if needed > 0 then done / needed else 1)
 			entry.xp.Text = if needed > 0 then `{math.floor(done)} / {needed} XP` else "MAX"
 			local nextPerk = nil
-			for _, candidate in Levels.PERKS[towerType] or {} do
-				if candidate.level > trained then
+			for index, candidate in Levels.PERKS[towerType] or {} do
+				local unlocked = trained >= candidate.level
+				local chip = entry.evolutions[index]
+				chip.Text = `{if unlocked then string.rep("★", index) else "🔒"} {candidate.name}`
+				chip.TextColor3 = if unlocked then UI.Colors.Gold else UI.Colors.Muted
+				if not unlocked and not nextPerk then
 					nextPerk = candidate
-					break
 				end
 			end
-			entry.perk.Text = if nextPerk then `Niv. {nextPerk.level} : {nextPerk.name}` else "Toutes ses améliorations sont débloquées"
+			entry.detail.Text = if nextPerk
+				then `Prochaine évolution (entraînement {nextPerk.level}) : {nextPerk.name}. {nextPerk.text}`
+				else "Toutes ses évolutions sont débloquées."
 			local here = slot ~= nil and slot.tower == towerType
 			local elsewhere = nil
 			for index, other in state.slots do
@@ -787,7 +838,8 @@ local function buildCamp()
 						table.insert(unlocked, perk.name)
 					end
 				end
-				entry.title.Text = `{index}. {def.displayName} • {Levels.placeCost(towerType)} {GOLD} • entraînement {trained}`
+				local stars = Levels.stars(Levels.evolutionStage(towerType, trained))
+				entry.title.Text = `{index}. {def.displayName}{if stars ~= "" then " " .. stars else ""} • {Levels.placeCost(towerType)} {GOLD} • entraînement {trained}`
 				entry.stats.Text = statsLine(Levels.towerStats(towerType, 1, trained))
 					.. (if #unlocked > 0 then "\n" .. table.concat(unlocked, ", ") else "")
 			end
@@ -797,6 +849,7 @@ local function buildCamp()
 	------------------------------------------------------------------
 	local function refresh()
 		coinsLabel.Text = `{amount(state.coins)} {COIN}`
+		hudCoins.Text = coinsLabel.Text
 		for name, button in tabButtons do
 			button.BackgroundColor3 = if name == currentTab then UI.Colors.Accent else UI.Colors.Panel
 			pages[name].Visible = name == currentTab
@@ -808,9 +861,13 @@ local function buildCamp()
 	end
 	camp.refresh = refresh
 
-	function camp.open(tab: string?)
+	-- slot = emplacement d'entraînement à montrer (invite d'un socle du camp, sur la parcelle).
+	function camp.open(tab: string?, slot: number?)
 		if tab and pages[tab] then
 			currentTab = tab
+		end
+		if slot and state.slots[slot] then
+			selectedSlot = slot
 		end
 		window.Visible = true
 		refresh()
@@ -825,11 +882,13 @@ local function buildCamp()
 			camp.open(name)
 		end)
 	end
+	-- Le bouton « ⚔ NIVEAUX » ouvre toujours l'onglet des niveaux (les autres onglets : leurs boutons, ou les
+	-- bâtiments et les socles de la parcelle).
 	openButton.Activated:Connect(function()
 		if window.Visible then
 			camp.close()
 		else
-			camp.open()
+			camp.open("Niveaux")
 		end
 	end)
 	closeButton.Activated:Connect(camp.close)
@@ -1747,7 +1806,7 @@ local function buildHud()
 		end
 		for _, perk in if typeof(result.perks) == "table" then result.perks else {} do
 			local def = IdleTowers.Defs[perk.tower]
-			table.insert(lines, `✨ {if def then def.displayName else "Tour"} : « {perk.name} » débloqué !`)
+			table.insert(lines, `⭐ ÉVOLUTION ! {if def then def.displayName else "Tour"} : {perk.name}`)
 		end
 		endDetails.Text = table.concat(lines, "\n")
 		local canNext = won and result.nextLevel ~= nil
@@ -2182,6 +2241,40 @@ local function goldPopup(position: Vector3, gold: number, big: boolean)
 	end)
 end
 
+-- Texte doré qui s'envole au-dessus d'un point de la parcelle (camp d'entraînement : « +0,3 XP » d'une tour).
+local function campPopup(position: Vector3, text: string)
+	local anchor = Instance.new("Part")
+	anchor.Name = "CampPopup"
+	anchor.Anchored = true
+	anchor.CanCollide = false
+	anchor.CanQuery = false
+	anchor.CanTouch = false
+	anchor.Transparency = 1
+	anchor.Size = Vector3.one * 0.2
+	anchor.Position = position
+	local billboard = Instance.new("BillboardGui")
+	billboard.Size = UDim2.fromOffset(110, 28)
+	billboard.AlwaysOnTop = true
+	billboard.MaxDistance = 140
+	billboard.Parent = anchor
+	local label = Instance.new("TextLabel")
+	label.Size = UDim2.fromScale(1, 1)
+	label.BackgroundTransparency = 1
+	label.Font = Enum.Font.GothamBlack
+	label.TextScaled = true
+	label.TextColor3 = UI.Colors.Gold
+	label.TextStrokeTransparency = 0.2
+	label.Text = text
+	label.Parent = billboard
+	anchor.Parent = workspace
+	local info = TweenInfo.new(1.4)
+	TweenService:Create(anchor, info, { Position = position + Vector3.new(0, 4, 0) }):Play()
+	TweenService:Create(label, info, { TextTransparency = 1, TextStrokeTransparency = 1 }):Play()
+	task.delay(1.5, function()
+		anchor:Destroy()
+	end)
+end
+
 -- Aperçu de pose : il suit la souris (ordinateur) ou le doigt pendant un glisser (téléphone).
 local function updatePlacing()
 	local placing = level.placing
@@ -2224,7 +2317,7 @@ end
 ----------------------------------------------------------------------
 
 -- Tests automatiques (Studio) : gui:SetAttribute("TestAction", "<commande>#<numéro>") fait comme le joueur.
---   écran « Levels »   : "Open", "Close", "Tab:Boutique"
+--   écran « Levels »   : "Open", "Close", "Tab:Boutique", "Slot:2" (invite du socle d'entraînement 2 du camp)
 --   écran « LevelHud » : "Select:MachineGun" (tour en main), "Bar:MachineGun" (appui sur son bouton de la barre :
 --                        la prendre, ou annuler si elle est déjà en main), "Tap:-23,0" (appui sur ce point local
 --                        du terrain, par le vrai chemin : point de l'écran -> rayon de la caméra -> sol), "Upgrade",
@@ -2234,11 +2327,14 @@ end
 local function testAction(command: string)
 	local name, argument = string.match(command, "^(%a+):?([^#]*)")
 	if name == "Open" then
-		camp.open()
+		camp.open("Niveaux")
 	elseif name == "Close" then
 		camp.close()
 	elseif name == "Tab" then
 		camp.open(argument)
+	elseif name == "Slot" then
+		-- (comme l'invite « Gérer » d'un socle d'entraînement de la parcelle)
+		camp.open("Entraînement", tonumber(argument))
 	elseif not level.active then
 		return
 	elseif name == "Select" then
@@ -2302,10 +2398,102 @@ local function build()
 		end
 	end
 
+	-- Entraînement qui avance pendant que le joueur est là : « +X XP » au-dessus de la tour, sur sa parcelle (son
+	-- camp), et une annonce quand elle monte d'un niveau d'entraînement ou qu'elle ÉVOLUE.
+	local function campTower(slotIndex: number): Model?
+		local plot = CampMode.plotFolder()
+		local towers = plot and plot:FindFirstChild("Towers")
+		for _, model in if towers then towers:GetChildren() else {} do
+			if model:IsA("Model") and model:GetAttribute("CampSlot") == slotIndex then
+				return model
+			end
+		end
+		return nil
+	end
+	local function announceTraining(before, after)
+		for _, towerType in after.towers do
+			local oldLevel = Levels.trainingLevel(before.xp[towerType])
+			local newLevel = Levels.trainingLevel(after.xp[towerType])
+			if newLevel > oldLevel and table.find(before.towers, towerType) and not level.active then
+				local def = IdleTowers.Defs[towerType]
+				local gained = Levels.perksBetween(towerType, oldLevel, newLevel)
+				if #gained > 0 then
+					UI.toast(`⭐ ÉVOLUTION ! {def.displayName} : {gained[#gained].name}`, "Success")
+					SoundManager.play("MatchVictory")
+				else
+					UI.toast(`{def.displayName} : entraînement {newLevel} (+{math.floor(Levels.TRAINING.DAMAGE_PER_LEVEL * 100 + 0.5)} % de dégâts)`, "Success")
+					SoundManager.play("TowerUpgraded")
+				end
+			end
+		end
+		if not CampMode.active() or level.active then
+			return
+		end
+		for slotIndex, slot in after.slots do
+			local previous = before.slots[slotIndex]
+			local gain = (tonumber(after.xp[slot.tower]) or 0) - (tonumber(before.xp[slot.tower]) or 0)
+			local model = if previous and previous.tower == slot.tower and gain > 0.04 then campTower(slotIndex) else nil
+			if model then
+				campPopup(model:GetPivot().Position + Vector3.new(0, 8, 0), `+{UI.decimal(math.floor(gain * 10 + 0.5) / 10)} XP`)
+			end
+		end
+	end
+
+	local stateReads = 0
 	player:GetAttributeChangedSignal("LevelsState"):Connect(function()
+		local before = state
 		readState()
+		stateReads += 1
+		if stateReads > 1 then
+			announceTraining(before, state)
+		end
 		camp.refresh()
 		hud.layout()
+	end)
+
+	-- Parcelle devenue CAMP D'ENTRAÎNEMENT (CampMode.luau) : les écrans du jeu infini sont cachés ; ils reviennent si
+	-- la parcelle redevient celle du jeu infini (accès aux niveaux retiré).
+	local campHidden = {} -- [ScreenGui] = vrai : cachés par le camp
+	task.spawn(function()
+		while true do
+			if CampMode.active() then
+				for _, name in INFINITE_GUIS do
+					local gui = player.PlayerGui:FindFirstChild(name)
+					if gui and gui:IsA("ScreenGui") and (gui.Enabled or hiddenGuis[gui]) then
+						hiddenGuis[gui] = nil -- (caché par un niveau en cours : il ne sera pas remis à la fin)
+						gui.Enabled = false
+						campHidden[gui] = true
+					end
+				end
+			elseif next(campHidden) ~= nil then
+				for gui in campHidden do
+					if gui.Parent then
+						if level.active then
+							hiddenGuis[gui] = true -- (remis à la sortie du niveau)
+						else
+							gui.Enabled = true
+						end
+					end
+				end
+				table.clear(campHidden)
+			end
+			task.wait(0.25)
+		end
+	end)
+
+	-- Sur la parcelle : l'invite d'un socle d'entraînement ouvre l'onglet Entraînement sur cet emplacement, celle de
+	-- la boutique ou de la porte des niveaux ouvre son onglet (attributs CampSlot / CampTab, Hub/Camp.luau).
+	ProximityPromptService.PromptTriggered:Connect(function(prompt, who)
+		local plot = CampMode.plotFolder()
+		if who ~= player or level.active or player:GetAttribute("LevelsAccess") ~= true or not plot or not prompt:IsDescendantOf(plot) then
+			return
+		end
+		local slot, tab = prompt:GetAttribute("CampSlot"), prompt:GetAttribute("CampTab")
+		if typeof(slot) == "number" then
+			camp.open("Entraînement", slot)
+		elseif typeof(tab) == "string" then
+			camp.open(tab)
+		end
 	end)
 
 	local function syncAccess()

@@ -50,6 +50,9 @@ local plotOf: (Player) -> number? = function()
 end
 local clockOffset = 0 -- tests Studio : secondes ajoutées à l'heure (entraînement pendant une absence)
 
+local changedCallbacks = {} -- appelées quand l'état d'un joueur est publié (Hub/init.luau : son camp suit)
+local accessCallbacks = {} -- appelées quand son accès aux niveaux est (re)calculé
+
 local function now(): number
 	return os.time() + clockOffset
 end
@@ -112,6 +115,19 @@ local function publish(player: Player)
 		wins = levels.wins,
 		losses = levels.losses,
 	}))
+	for _, callback in changedCallbacks do
+		task.spawn(callback, player, levels)
+	end
+end
+
+-- callback(player, data.levels) à chaque publication de l'état d'un joueur (emplacements, XP, pièces...).
+function LevelsService.onChanged(callback: (Player, any) -> ())
+	table.insert(changedCallbacks, callback)
+end
+
+-- callback(player, accès) chaque fois que l'accès d'un joueur aux niveaux est recalculé (arrivée, tests Studio).
+function LevelsService.onAccessChanged(callback: (Player, boolean) -> ())
+	table.insert(accessCallbacks, callback)
 end
 
 local closeLevel -- (défini plus bas)
@@ -123,6 +139,9 @@ local function refreshAccess(player: Player)
 		publish(player)
 	else
 		closeLevel(player, false) -- (accès retiré pendant un niveau : il s'arrête)
+	end
+	for _, callback in accessCallbacks do
+		task.spawn(callback, player, access)
 	end
 end
 

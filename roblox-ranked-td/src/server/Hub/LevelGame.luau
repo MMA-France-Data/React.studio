@@ -310,6 +310,8 @@ function LevelGame:createTower(towerType: string, level: number, spent: number, 
 		Spent = spent,
 		Bonus = "",
 	})
+	-- Tour évoluée par l'entraînement : anneau, fanions, étoiles (Levels.evolutionStage).
+	IdleTowerModel.addEvolution(model, Levels.evolutionStage(towerType, self.training[towerType]))
 	local tower = {
 		id = id,
 		spotIndex = id, -- (PlotGame : identifie la tour pour ses zones de feu)

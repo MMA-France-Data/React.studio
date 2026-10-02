@@ -3,6 +3,8 @@
 -- la VRAIE interface (src/client/LevelsUI.luau) : un plugin ne peut pas cliquer, il passe donc par l'attribut
 -- « TestAction » des deux écrans, qui lance les mêmes fonctions que les boutons et les appuis (un appui sur le
 -- terrain passe par le vrai chemin : point de l'écran -> rayon de la caméra -> sol).
+--   0) la PARCELLE du joueur est son camp d'entraînement : écrans du jeu infini cachés, tour posée sur son socle,
+--      cibles d'entraînement sur le chemin, invite d'un socle -> onglet Entraînement et ses évolutions ;
 --   1) à la taille normale de Studio : fenêtre du camp et ses 4 onglets, niveau 1 (vue d'en haut, Archer offert,
 --      « + » conseillés, pose libre, bouton « ANNULER » de la tour en main, amélioration, refus sur le chemin, x2),
 --      DÉFAITE de celui qui pose 4 Archers puis attend, « Réessayer », victoire en posant et en améliorant sans
@@ -17,6 +19,7 @@ return function(log)
 	local ReplicatedStorage = game:GetService("ReplicatedStorage")
 	local Levels = require(ReplicatedStorage:WaitForChild("Shared").Levels)
 	local NumberFormat = require(ReplicatedStorage:WaitForChild("Shared").NumberFormat)
+	local PlotLayout = require(ReplicatedStorage:WaitForChild("Shared").PlotLayout)
 	local player = Players.LocalPlayer
 	local playerGui = player:WaitForChild("PlayerGui")
 
@@ -221,6 +224,107 @@ return function(log)
 		say("PHONE:done")
 		return
 	end
+
+	------------------------------------------------------------------
+	-- 0) La parcelle est le camp d'entraînement (demande du propriétaire, 02/10/2026 : « tu peux gérer toute la
+	--    parcelle et le système d'évolution de tour »)
+	------------------------------------------------------------------
+	act(campGui, "Close")
+	local plotFolder = workspace.Hub.Plots:FindFirstChild("Plot" .. tostring(slot))
+	local plotCFrame = PlotLayout.cframe(slot)
+	waitFor(function()
+		return plotFolder ~= nil and plotFolder:GetAttribute("Camp") == true and playerGui:FindFirstChild("Plot") ~= nil and not playerGui.Plot.Enabled
+	end, 6)
+	local stillOn = {}
+	for _, name in { "Plot", "Machines", "Rebirth", "RebirthButton", "ShopButton", "Shop", "ChallengesButton", "Challenges", "Tutorial", "TutorialPointer", "ShortcutsToggle" } do
+		local gui = playerGui:FindFirstChild(name)
+		if gui and gui:IsA("ScreenGui") and gui.Enabled then
+			table.insert(stillOn, name)
+		end
+	end
+	local plusOn = 0
+	for _, child in playerGui:GetChildren() do
+		if child:IsA("BillboardGui") and string.sub(child.Name, 1, 8) == "FreeSpot" and child.Enabled then
+			plusOn += 1
+		end
+	end
+	check(
+		plotFolder ~= nil and plotFolder:GetAttribute("Camp") == true and #stillOn == 0 and plusOn == 0,
+		`parcelle devenue camp d'entraînement : les écrans du jeu infini sont cachés (encore allumés : {table.concat(stillOn, ", ")} ; boutons « + » : {plusOn})`
+	)
+	local hudCoins = campGui:FindFirstChild("HudCoins")
+	check(
+		hudCoins ~= nil and shown(hudCoins) and onScreen(hudCoins) and string.find(hudCoins.Text, "🏅", 1, true) ~= nil and shown(openButton),
+		`pièces de niveau affichées à côté du bouton « ⚔ NIVEAUX » (« {if hudCoins then hudCoins.Text else "?"} »)`
+	)
+	-- La tour à l'entraînement est sur son socle, des cibles (mannequins de paille) roulent sur le chemin.
+	local function campModel(slotIndex)
+		local folder = plotFolder and plotFolder:FindFirstChild("Towers")
+		for _, model in if folder then folder:GetChildren() else {} do
+			if model:GetAttribute("CampSlot") == slotIndex then
+				return model
+			end
+		end
+		return nil
+	end
+	local function campTargets()
+		local folder = workspace:FindFirstChild("PlotEnemies")
+		local targets, monsters = 0, 0
+		for _, part in if folder then folder:GetChildren() else {} do
+			if part:IsA("BasePart") and (part.Position - plotCFrame.Position).Magnitude < 90 then
+				if part:FindFirstChild("StrawBody") then
+					targets += 1
+				else
+					monsters += 1
+				end
+			end
+		end
+		return targets, monsters
+	end
+	waitFor(function()
+		return campModel(1) ~= nil and campTargets() >= 4
+	end, 12)
+	local targets, monsters = campTargets()
+	local model1 = campModel(1)
+	local padPart = plotFolder.Spots:FindFirstChild("Spot" .. tostring(Levels.CAMP.SPOTS[1]))
+	local padLabel = padPart and padPart:FindFirstChild("CampLabel")
+	check(
+		model1 ~= nil and model1:GetAttribute("TowerType") == "MachineGun" and targets >= 4 and monsters == 0,
+		`sur la parcelle : l'Archer à l'entraînement sur son socle, {targets} cibles de paille sur le chemin, {monsters} monstre`
+	)
+	check(
+		waitFor(function()
+			return padLabel ~= nil and padLabel.Enabled
+		end, 4) and string.find(padLabel.Panel.Title.Text, "Archer", 1, true) ~= nil,
+		`étiquette du socle visible depuis le point d'arrivée (« {if padLabel then padLabel.Panel.Title.Text else "?"} », « {if padLabel then padLabel.Panel.Sub.Text else "?"} »)`
+	)
+	-- Le combat du camp se voit : une flèche tirée sur une cible (son de l'Archer joué sur la parcelle).
+	local function plotSound(name)
+		for _, child in workspace.Terrain:GetChildren() do
+			if child:IsA("Attachment") and child.Name == "Son_" .. name and (child.WorldPosition - plotCFrame.Position).Magnitude < 90 then
+				return true
+			end
+		end
+		return false
+	end
+	check(
+		waitFor(function()
+			return plotSound("ArcherShot")
+		end, 15),
+		"l'Archer du camp tire sur les cibles (son de ses flèches sur la parcelle)"
+	)
+	shot("camp_parcelle")
+	-- L'invite « Gérer » du socle ouvre l'onglet Entraînement sur cet emplacement ; chaque tour y montre ses évolutions.
+	act(campGui, "Slot:1")
+	local trainingPage = window.Page3
+	local archerTraining = trainingPage.Towers:FindFirstChild("Train_MachineGun")
+	check(
+		window.Visible and trainingPage.Visible and archerTraining ~= nil and string.find(archerTraining.Evolution1.Text, "Flèches enflammées", 1, true) ~= nil
+			and string.find(archerTraining.Evolution1.Text, "🔒", 1, true) ~= nil and string.find(archerTraining.Evolution3.Text, "Tir rapide", 1, true) ~= nil
+			and string.find(archerTraining.NextEvolution.Text, "entraînement 2", 1, true) ~= nil and string.find(archerTraining.Level.Text, "Entraînement 0/6", 1, true) ~= nil,
+		`invite du socle : onglet « Entraînement », évolutions de l'Archer « {archerTraining and archerTraining.Evolution1.Text} », « {archerTraining and archerTraining.Evolution2.Text} », « {archerTraining and archerTraining.Evolution3.Text} » ; « {archerTraining and archerTraining.NextEvolution.Text} »`
+	)
+	shot("camp_evolutions")
 
 	------------------------------------------------------------------
 	-- 1) Fenêtre du camp
@@ -708,6 +812,14 @@ return function(log)
 	check(phone, `fenêtre de Studio à la taille d'un téléphone ({math.floor(screenSize().X)} x {math.floor(screenSize().Y)})`)
 	if phone then
 		check(shown(openButton) and onScreen(openButton), `téléphone : bouton « ⚔ NIVEAUX » dans l'écran ({math.floor(openButton.AbsolutePosition.X)},{math.floor(openButton.AbsolutePosition.Y)}, {math.floor(openButton.AbsoluteSize.X)} x {math.floor(openButton.AbsoluteSize.Y)} px)`)
+		-- Le camp sur la parcelle, à la taille du téléphone : pièces à côté du bouton, sans se recouvrir.
+		local phoneCoins = campGui:FindFirstChild("HudCoins")
+		local buttonRight = openButton.AbsolutePosition.X + openButton.AbsoluteSize.X
+		check(
+			phoneCoins ~= nil and shown(phoneCoins) and onScreen(phoneCoins) and phoneCoins.AbsolutePosition.X >= buttonRight,
+			`téléphone : pièces de niveau à droite du bouton « ⚔ NIVEAUX », dans l'écran ({if phoneCoins then math.floor(phoneCoins.AbsolutePosition.X) else "?"} px, bouton jusqu'à {math.floor(buttonRight)} px)`
+		)
+		shot("tel_parcelle")
 		act(campGui, "Open")
 		task.wait(0.5)
 		check(window.Visible and onScreen(window), `téléphone : la fenêtre du camp tient dans l'écran ({math.floor(window.AbsoluteSize.X)} x {math.floor(window.AbsoluteSize.Y)} px)`)

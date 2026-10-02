@@ -21,6 +21,9 @@ Bot.DANGER = 0.55 -- part du chemin au-delà de laquelle un monstre fait acheter
 -- Ce que vaut le premier Totem de givre pour le joueur simulé : part des dégâts de ses autres tours gagnée pour un
 -- ralentissement qui double le temps passé sous les tirs (s / (1 - s) = 1, soit -50 %). Les suivants : 30 % de ça.
 Bot.FROST_GAIN = 0.23
+-- Goût du joueur simulé pour un type de tour (outils de réglage) : { [type] = multiplicateur de la valeur qu'il lui
+-- donne }. 0 = il ne la pose jamais, 3 = il la préfère. Sert à mesurer ce qu'une tour apporte vraiment.
+Bot.VALUE_SCALE = {}
 
 -- Emplacements essayés dans l'ordre : ceux de la carte, puis tous les points valides d'une grille (les plus proches
 -- du chemin d'abord).
@@ -277,6 +280,7 @@ function Bot.playWith(level: number, profile, policy, observe: ((any, number) ->
 							-- Le Mage freine très fort, un court instant : les autres tours tirent plus longtemps.
 							value += total * (if (copies.Tesla or 0) == 0 then 0.15 else 0.05)
 						end
+						value *= Bot.VALUE_SCALE[towerType] or 1
 						table.insert(options, { cost = Levels.placeCost(towerType), value = value, place = towerType })
 					end
 				end
@@ -285,6 +289,7 @@ function Bot.playWith(level: number, profile, policy, observe: ((any, number) ->
 				local cost = Levels.upgradeCost(tower.type, tower.level)
 				if cost then
 					local value = estimate(tower.type, tower.level + 1, training[tower.type]) - estimate(tower.type, tower.level, training[tower.type])
+					value *= Bot.VALUE_SCALE[tower.type] or 1
 					table.insert(options, { cost = cost, value = value, upgrade = id })
 				end
 			end

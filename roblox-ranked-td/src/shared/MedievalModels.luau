@@ -286,6 +286,39 @@ function MedievalModels.decorateEnemy(root: BasePart, def, palier: number?)
 	end
 end
 
+-- CIBLE D'ENTRAÎNEMENT du camp (nouvelle formule, Hub/CampGame.luau) : un mannequin de paille sur un chariot, que
+-- les tours à l'entraînement prennent pour cible. Habille la même racine qu'un ennemi (elle suit le chemin de la
+-- parcelle) ; on le reconnaît de tous les côtés : rien à voir avec un vrai monstre.
+function MedievalModels.trainingTarget(root: BasePart, def)
+	root.Transparency = 1
+	root.CastShadow = false
+	root.CanCollide = false
+	root.CanTouch = false
+	root.CanQuery = false
+	local s = def.size / 2
+	local straw = Color3.fromRGB(214, 184, 106)
+	local red, white = Color3.fromRGB(190, 52, 46), Color3.fromRGB(236, 232, 220)
+	local sideways = CFrame.Angles(0, math.rad(90), 0) -- cylindre couché dans l'axe de la marche
+	-- Chariot et ses 4 roues.
+	piece(root, "Cart", Vector3.new(1.5, 0.2, 1.9) * s, CFrame.new(0, -0.6 * s, 0), WOOD, Enum.Material.WoodPlanks)
+	for _, x in { -0.84, 0.84 } do
+		for _, z in { -0.6, 0.6 } do
+			piece(root, "CartWheel", Vector3.new(0.18, 0.72, 0.72) * s, CFrame.new(x * s, -0.64 * s, z * s), LEATHER, Enum.Material.Wood, Enum.PartType.Cylinder)
+		end
+	end
+	-- Croix de bois, corps et tête de paille.
+	piece(root, "Post", Vector3.new(0.2, 1.7, 0.2) * s, CFrame.new(0, 0.3 * s, 0), WOOD, Enum.Material.Wood)
+	piece(root, "Arms", Vector3.new(1.7, 0.18, 0.18) * s, CFrame.new(0, 0.62 * s, 0), WOOD, Enum.Material.Wood)
+	piece(root, "StrawBody", Vector3.new(0.95, 1.05, 0.62) * s, CFrame.new(0, 0.28 * s, 0), straw, Enum.Material.Fabric)
+	piece(root, "StrawHead", Vector3.one * 0.62 * s, CFrame.new(0, 1.2 * s, 0), straw, Enum.Material.Fabric, Enum.PartType.Ball)
+	piece(root, "Rope", Vector3.new(1, 0.1, 0.68) * s, CFrame.new(0, 0.74 * s, 0), LEATHER, Enum.Material.Fabric)
+	-- Cible peinte sur la poitrine et dans le dos.
+	for _, side in { -1, 1 } do
+		piece(root, "TargetRing", Vector3.new(0.08, 0.78, 0.78) * s, CFrame.new(0, 0.3 * s, side * 0.33 * s) * sideways, white, Enum.Material.SmoothPlastic, Enum.PartType.Cylinder)
+		piece(root, "TargetCore", Vector3.new(0.1, 0.4, 0.4) * s, CFrame.new(0, 0.3 * s, side * 0.36 * s) * sideways, red, Enum.Material.SmoothPlastic, Enum.PartType.Cylinder)
+	end
+end
+
 -- Décor statique partagé : aucun script, collision, événement tactile ou boucle par objet.
 -- Les cartes conservent leurs sols et leurs zones de jeu ; cet habillage est purement visuel.
 function MedievalModels.sceneryPart(parent: Instance, name: string, size: Vector3, cf: CFrame, color: Color3, material: Enum.Material?, className: string?): BasePart

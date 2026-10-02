@@ -520,6 +520,122 @@ do
 	check(trained.kills >= plain.kills, `l'Archer entraîné tue au moins autant ({trained.kills} contre {plain.kills} en 20 s)`)
 end
 
+----------------------------------------------------------------------
+-- 8) Évolutions et camp d'entraînement sur la parcelle. Demande du propriétaire (02/10/2026) : « tu peux gérer
+--    toute la parcelle et le système d'évolution de tour ».
+----------------------------------------------------------------------
+check(
+	Levels.evolutionStage("MachineGun", 0) == 0 and Levels.evolutionStage("MachineGun", 1) == 0 and Levels.evolutionStage("MachineGun", 2) == 1
+		and Levels.evolutionStage("MachineGun", 5) == 2 and Levels.evolutionStage("MachineGun", 6) == 3 and Levels.evolutionStage("Dragon", 6) == 0,
+	"évolutions : la 1re à l'entraînement 2, la 2e au 4, la 3e au 6"
+)
+check(Levels.stars(0) == "" and Levels.stars(2) == "★★" and Levels.stars(9) == "★★★", "étoiles : une par évolution, trois au plus")
+local evolvingTowers = true
+for _, towerType in IdleTowers.ORDER do
+	evolvingTowers = evolvingTowers and Levels.evolutionStage(towerType, Levels.TRAINING.MAX_LEVEL) == #Levels.EVOLUTION_NAMES
+end
+check(evolvingTowers, "chacune des 8 tours a ses 3 évolutions")
+do
+	local level2 = newGame(2, Levels.STARTING_TOWERS, 4)
+	level2.gold = 1e6
+	local _, _, evolved = level2:placeTower("MachineGun", map.spots[1])
+	check(evolved.model:GetAttribute("Stars") == 2, "dans un niveau, une tour entraînée au niveau 4 porte ses 2 étoiles")
+end
+
+local CampGame = require("./gen/server/Hub/CampGame")
+local PlotLayout = require("./gen/shared/PlotLayout")
+check(
+	#Levels.CAMP.SPOTS >= #Levels.TRAINING.SLOT_UNLOCK_COST and PlotLayout.SPOTS[Levels.CAMP.SPOTS[1]] ~= nil and PlotLayout.SPOTS[Levels.CAMP.SPOTS[3]] ~= nil,
+	"camp : un socle de la parcelle pour chaque emplacement d'entraînement"
+)
+do
+	local levels = Levels.defaultData() -- (l'Archer est dans l'emplacement 1)
+	local plot = { index = 2, folder = Env.fakeInstance("Plot2") }
+	local camp = CampGame.new(plot, { UserId = 7, Parent = {} }, levels)
+	local archer = camp.slotTowers[1]
+	local pad = PlotLayout.SPOTS[Levels.CAMP.SPOTS[1]]
+	check(
+		archer ~= nil and archer.type == "MachineGun" and archer.stage == 0 and camp.slotTowers[2] == nil
+			and near(archer.localPosition.X, pad.X) and near(archer.localPosition.Z, pad.Z) and archer.model:GetAttribute("CampSlot") == 1
+			and archer.model:GetAttribute("SpotIndex") == nil,
+		"camp : la tour de l'emplacement 1 (l'Archer) est posée sur son socle de la parcelle"
+	)
+	check(
+		plot.folder:GetAttribute("Camp") == true and plot.folder:GetAttribute("State") == "Running" and plot.folder:GetAttribute("OwnerUserId") == 7
+			and plot.folder:GetAttribute("Wave") == 1 and plot.folder:GetAttribute("Perks") == "",
+		"camp : la parcelle publie qu'elle est un camp (attributs Camp, State, OwnerUserId) et aucun effet débloqué"
+	)
+	local coinsBefore, xpBefore, most = levels.coins, levels.xp.MachineGun, 0
+	camp:step(1 / 30)
+	local first = camp.enemies[1]
+	check(
+		#camp.enemies >= 10 and first ~= nil and first.health == Levels.CAMP.TARGET_SECONDS * 15 and near(first.speedScale, Levels.CAMP.TARGET_SPEED)
+			and first.distance > PlotLayout.PATH_LENGTH - 40,
+		`camp : des cibles roulent déjà sur tout le chemin à l'arrivée ({#camp.enemies} cibles de {first and first.health} PV, 2 s de tir de l'Archer)`
+	)
+	local earlyKills = 0
+	for step = 1, 90 * 30 do
+		camp:step(1 / 30)
+		most = math.max(most, #camp.enemies)
+		if step == 10 * 30 then
+			earlyKills = camp.kills
+		end
+	end
+	check(
+		earlyKills >= 1 and camp.kills >= 20 and most >= 5 and most <= Levels.CAMP.MAX_TARGETS,
+		`camp : l'Archer détruit {earlyKills} cible(s) dans les 10 premières secondes, {camp.kills} en 90 s ({most} cibles sur le chemin au plus)`
+	)
+	check(levels.coins == coinsBefore and levels.xp.MachineGun == xpBefore and camp.gold == 0, "camp : les cibles ne rapportent rien (ni pièces, ni or, ni XP)")
+	local packet, count = camp:buildSyncPacket()
+	local shots, shotCount = camp:takeShotsPacket()
+	check(packet ~= nil and count == #camp.enemies and shots ~= nil and shotCount > 0, `camp : mêmes paquets réseau qu'une parcelle ({count} cibles, {shotCount} tirs)`)
+
+	-- L'entraînement fait évoluer la tour : au niveau 2 (60 XP), l'Archer du camp est refait avec sa 1re évolution et
+	-- se sert de son nouveau pouvoir (flèches enflammées) sur les cibles.
+	local oldModel = archer.model
+	levels.xp.MachineGun = 60
+	local changed = camp:refresh(levels)
+	local evolved = camp.slotTowers[1]
+	local fires = 0
+	for _ = 1, 30 * 30 do
+		camp:step(1 / 30)
+		fires = math.max(fires, #camp.firePatches)
+	end
+	check(
+		changed and evolved ~= archer and evolved.stage == 1 and evolved.model:GetAttribute("Stars") == 1 and oldModel.destroyed == true and fires > 0
+			and plot.folder:GetAttribute("Perks") == "MachineGun:Fire",
+		`camp : à 60 XP l'Archer évolue (1 étoile) et ses flèches enflammées brûlent les cibles ({fires} zones de feu à la fois)`
+	)
+	check(camp:refresh(levels) == false and camp.slotTowers[1] == evolved, "camp : rien n'est refait quand rien ne change")
+	-- +5 % de dégâts par niveau d'entraînement, sans refaire le modèle.
+	levels.xp.MachineGun = 140
+	check(camp:refresh(levels) == false and near(camp:statsOf(evolved).damage, 3 * 1.15), "camp : au niveau d'entraînement 3, +15 % de dégâts, même tour (pas de nouvelle évolution)")
+
+	-- Emplacements : une 2e tour, puis l'emplacement 1 vidé.
+	table.insert(levels.slots, { tower = "Bomb", level = 1 })
+	camp:refresh(levels)
+	local catapult = camp.slotTowers[2]
+	local pad2 = PlotLayout.SPOTS[Levels.CAMP.SPOTS[2]]
+	check(catapult ~= nil and catapult.type == "Bomb" and near(catapult.localPosition.X, pad2.X) and towerCount(camp) == 2, "camp : la Catapulte mise dans l'emplacement 2 apparaît sur le 2e socle")
+	levels.slots[1].tower = ""
+	camp:refresh(levels)
+	check(camp.slotTowers[1] == nil and evolved.model.destroyed == true and towerCount(camp) == 1, "camp : une tour retirée de son emplacement quitte la parcelle")
+	levels.slots[2].tower = "Frost" -- (tour pas possédée : personne sur le socle)
+	camp:refresh(levels)
+	check(camp.slotTowers[2] == nil and towerCount(camp) == 0, "camp : une tour pas possédée n'est jamais posée")
+	local targets = #camp.enemies
+	for _ = 1, 80 * 30 do
+		camp:step(1 / 30)
+	end
+	check(targets > 0 and #camp.enemies == 0, "camp : sans tour à l'entraînement, plus aucune cible ne sort (les dernières s'en vont au bout du chemin)")
+
+	camp:destroy()
+	check(
+		plot.folder:GetAttribute("Camp") == nil and plot.folder:GetAttribute("State") == nil and camp.towerFolder.destroyed == true and next(camp.towers) == nil,
+		"camp rangé : la parcelle n'est plus un camp, tours retirées"
+	)
+end
+
 print(`{passed} tests réussis, {failed} ratés`)
 if failed > 0 then
 	error(`{failed} test(s) raté(s)`, 0)

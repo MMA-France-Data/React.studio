@@ -28,6 +28,8 @@
 -- vite) : voir updateAnimations. Tué, il joue son animation de mort s'il en a une (startDeath, updateDying).
 -- Sons (SoundManager, réglages dans Sounds.luau) : tirs et impacts (SHOT_SOUNDS), morts, arrivée d'un boss ou d'un
 -- colosse sur ta parcelle, pièces ramassées, bourdonnement du rayon du Sorcier.
+-- CAMP D'ENTRAÎNEMENT (nouvelle formule) : une parcelle dont le dossier porte l'attribut « Camp » n'a plus de monstres
+-- mais des cibles d'entraînement (MedievalModels.trainingTarget), sur lesquelles tirent les tours du camp.
 -- NIVEAUX (prototype de la nouvelle formule, Shared/Levels.luau) : la zone de combat d'un niveau s'affiche comme une
 -- parcelle de plus. Son numéro (Levels.isArena) donne son centre (Levels.arenaCFrame) ; son chemin est celui de sa
 -- carte (attribut « Map » de son dossier, workspace.Arenas.Arena<n>) au lieu de celui des parcelles : voir
@@ -240,10 +242,15 @@ local function modelTop(root: BasePart): number
 end
 
 -- palier : style du mode solo (voir palierOf). Les ennemis du ranked gardent leur appel sans palier (Match).
+-- camp = parcelle devenue camp d'entraînement (attribut « Camp » de son dossier, Hub/CampGame.luau) : ce qui suit le
+-- chemin n'est pas un monstre mais une CIBLE d'entraînement (mannequin de paille sur un chariot).
 -- Renvoie la racine (déplacée à chaque image), la barre de vie, son contour et le modèle perso (nil = blocs).
-local function createEnemy(enemyType: string, def, palier: number)
+local function createEnemy(enemyType: string, def, palier: number, camp: boolean?)
 	-- Modèle perso du propriétaire pour ce type et ce palier (ReplicatedStorage.EnemyModels), sinon les blocs.
-	local part, custom = CustomModels.spawn(enemyType, def, palier)
+	local part, custom = nil, nil
+	if not camp then
+		part, custom = CustomModels.spawn(enemyType, def, palier)
+	end
 	local top
 	if part and custom then
 		top = custom.top
@@ -257,7 +264,11 @@ local function createEnemy(enemyType: string, def, palier: number)
 		part.CanQuery = false
 		part.CanTouch = false
 		part.CastShadow = false
-		MedievalModels.decorateEnemy(part, def, palier)
+		if camp then
+			MedievalModels.trainingTarget(part, def)
+		else
+			MedievalModels.decorateEnemy(part, def, palier)
+		end
 		top = modelTop(part)
 	end
 	part:SetAttribute("EnemyType", enemyType)
@@ -459,9 +470,12 @@ local function onSync(plotIndex: number, packet: buffer, count: number, kind: st
 
 		local enemy = state.enemies[id]
 		if not enemy then
-			local part, fill, stroke, custom = createEnemy(enemyType, def, palierOf(plotIndex, state))
+			local palier = palierOf(plotIndex, state)
+			local camp = state.folder ~= nil and state.folder:GetAttribute("Camp") == true
+			local part, fill, stroke, custom = createEnemy(enemyType, def, palier, camp)
 			enemy = { def = def, part = part, fill = fill, stroke = stroke, distance = distance, statusFragile = false }
 			enemy.enemyType = enemyType
+			enemy.camp = camp -- cible d'entraînement : détruite sans cri ni or
 			enemy.plotIndex = plotIndex -- (son corps, s'il joue sa mort, est effacé avec la parcelle : clearPlot)
 			-- Cor de guerre (boss) ou pas lourds (colosse) quand il arrive sur ta parcelle.
 			-- (pendant un niveau, seule la zone de combat compte : la parcelle, restée sur la place, se tait)
@@ -512,7 +526,7 @@ local function onSync(plotIndex: number, packet: buffer, count: number, kind: st
 				died = false
 			end
 			enemy.simSpeed = simSpeed
-			if died then
+			if died and not enemy.camp then
 				SoundManager.playAt(DEATH_SOUNDS[enemy.enemyType] or "EnemyDeath", enemy.part.Position)
 				if PlotRenderer.onEnemyKilled then
 					PlotRenderer.onEnemyKilled(plotIndex, enemy.enemyType, enemy.part.Position)
@@ -714,8 +728,9 @@ local function onShots(plotIndex: number, packet: buffer, count: number)
 	local simSpeed = simSpeedOf(plotIndex, state)
 	-- Niveau : le feu des flèches et le carreau perçant ne s'affichent que s'ils sont débloqués par l'entraînement
 	-- (attribut « Perks » de la zone, ex. « MachineGun:Fire,Rocket:Pierce » : Levels.perkKeys). Parcelle : toujours.
+	-- (Pareil sur une parcelle devenue camp d'entraînement : ses tours ont les stats des niveaux.)
 	local perks = nil
-	if state.arena then
+	if state.arena or (state.folder ~= nil and state.folder:GetAttribute("Camp") == true) then
 		local value = state.folder and state.folder:GetAttribute("Perks")
 		perks = if typeof(value) == "string" then value else ""
 	end
@@ -998,11 +1013,15 @@ local function addLevelTag(model: Instance)
 	corner.CornerRadius = UDim.new(1, 0)
 	corner.Parent = label
 
+	-- Étoiles = évolutions de la tour (niveaux : attribut « Stars », Hub/IdleTowerModel.addEvolution).
 	local function update()
-		label.Text = `Niv. {model:GetAttribute("Level") or 1}`
+		local stars = tonumber(model:GetAttribute("Stars")) or 0
+		label.Text = if stars > 0 then `{string.rep("★", stars)} Niv. {model:GetAttribute("Level") or 1}` else `Niv. {model:GetAttribute("Level") or 1}`
+		billboard.Size = UDim2.fromOffset(64 + 13 * stars, 22)
 	end
 	update()
 	model:GetAttributeChangedSignal("Level"):Connect(update)
+	model:GetAttributeChangedSignal("Stars"):Connect(update)
 	billboard.Parent = model
 end
 

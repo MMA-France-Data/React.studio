@@ -17,6 +17,7 @@ local Monetization = require(script.Parent.Monetization)
 local PlayerData = require(script.Parent.PlayerData)
 local SoloLeaderboard = require(script.Parent.SoloLeaderboard)
 local PlotGame = require(script.PlotGame)
+local Camp = require(script.Camp)
 local ChallengeRewards = require(script.ChallengeRewards)
 local HubMap = require(script.HubMap)
 local LevelsService = require(script.LevelsService)
@@ -81,6 +82,38 @@ local function startPlotGame(player: Player, data)
 	end
 	games[player] = PlotGame.new(Plots.plot(plotIndex), player, data)
 	refreshPasses(player)
+end
+
+----------------------------------------------------------------------
+-- Jeu infini ou CAMP D'ENTRAÎNEMENT. La parcelle d'un joueur qui a les NIVEAUX (nouvelle formule) devient son camp
+-- (Hub/Camp.luau, Config.LEVELS_CAMP_PLOT) : pas de partie infinie pour lui, ses données du jeu infini restent
+-- telles quelles dans sa sauvegarde. Tous les autres joueurs gardent le jeu actuel, sans aucun changement.
+----------------------------------------------------------------------
+local modeReady = {} -- [Player] = vrai une fois sa parcelle lancée (avant : seul onDataLoaded choisit son mode)
+
+local function wantsCamp(player: Player): boolean
+	return Config.LEVELS_CAMP_PLOT == true and LevelsService.hasAccess(player)
+end
+
+-- Met la parcelle du joueur dans le bon mode. Sans effet si elle y est déjà : peut être rappelée à tout moment
+-- (accès aux niveaux donné ou retiré pendant la partie : tests Studio).
+local function applyPlotMode(player: Player)
+	local data = PlayerData.get(player)
+	local plotIndex = Plots.get(player)
+	if not data or not plotIndex or not player.Parent then
+		return
+	end
+	if wantsCamp(player) then
+		local plotGame = games[player]
+		if plotGame then
+			games[player] = nil
+			plotGame:destroy()
+		end
+		Camp.start(player, Plots.plot(plotIndex), data.levels)
+	else
+		Camp.stop(player)
+		startPlotGame(player, data)
+	end
 end
 
 ----------------------------------------------------------------------
@@ -299,6 +332,10 @@ local function runPlotGames()
 		for _, plotGame in games do
 			plotGame:step(dt)
 		end
+		-- Camps d'entraînement (Hub/Camp.luau) : mêmes paquets que les parcelles, envoyés aux mêmes joueurs.
+		for _, campGame in Camp.games do
+			campGame:step(dt)
+		end
 
 		interestTimer += dt
 		if interestTimer >= PlotInterest.REFRESH_INTERVAL then
@@ -315,6 +352,12 @@ local function runPlotGames()
 					sendToViewers(syncRemote, plotGame, packet, count)
 				end
 			end
+			for _, campGame in Camp.games do
+				local packet, count = campGame:buildSyncPacket()
+				if packet then
+					sendToViewers(syncRemote, campGame, packet, count)
+				end
+			end
 		end
 
 		shotsTimer += dt
@@ -324,6 +367,12 @@ local function runPlotGames()
 				local packet, count = plotGame:takeShotsPacket()
 				if packet then
 					sendToViewers(shotsRemote, plotGame, packet, count)
+				end
+			end
+			for _, campGame in Camp.games do
+				local packet, count = campGame:takeShotsPacket()
+				if packet then
+					sendToViewers(shotsRemote, campGame, packet, count)
 				end
 			end
 		end
@@ -576,6 +625,8 @@ end
 --   Invoke(player, "Levels", "State")          -> { access, levels, active } ; les autres commandes ("Action", "Set",
 --                                                "Gold", "Skip", "KillAll", "Finish", "Clock", "Access", "Bench") sont
 --                                                décrites en bas de LevelsService.luau
+--   Invoke(player, "Camp")                     -> parcelle du joueur : { camp, infinite, towers, targets, kills, clock }
+--                                                (camp d'entraînement de la nouvelle formule, Hub/Camp.luau)
 local function setupStudioDebug()
 	if not RunService:IsStudio() then
 		return
@@ -741,6 +792,24 @@ local function setupStudioDebug()
 			return SoloLeaderboard.debug(player, ...)
 		elseif command == "Levels" then
 			return LevelsService.debug(player, ...)
+		elseif command == "Camp" then
+			-- État de la parcelle : { camp (vrai = camp d'entraînement), infinite (vrai = jeu infini), towers =
+			-- { [emplacement] = { type, stage } }, targets (cibles en vie), kills (cibles détruites), clock }
+			local campGame = Camp.games[player]
+			local towers = {}
+			if campGame then
+				for slotIndex, tower in campGame.slotTowers do
+					towers[slotIndex] = { type = tower.type, stage = tower.stage }
+				end
+			end
+			return {
+				camp = campGame ~= nil,
+				infinite = plotGame ~= nil,
+				towers = towers,
+				targets = if campGame then #campGame.enemies else 0,
+				kills = if campGame then campGame.kills else 0,
+				clock = if campGame then campGame.clock else 0,
+			}
 		end
 		return nil
 	end
@@ -765,13 +834,20 @@ function Hub.start()
 	-- Une partie infinie par joueur, dès que ses données sont chargées. D'abord les gains d'absence, tout de
 	-- suite (sans attendre) : une sauvegarde changerait l'heure de sa dernière visite.
 	local function onDataLoaded(player: Player, data)
-		local ok, err = pcall(takeAbsenceGains, player, data, os.time())
-		if not ok then
-			warn("[Hub] Gains d'absence impossibles :", err) -- la parcelle démarre quand même
+		-- Camp d'entraînement (nouvelle formule) : pas de gains d'absence du jeu infini, pas d'entonnoir du tuto.
+		local camp = wantsCamp(player)
+		if not camp then
+			local ok, err = pcall(takeAbsenceGains, player, data, os.time())
+			if not ok then
+				warn("[Hub] Gains d'absence impossibles :", err) -- la parcelle démarre quand même
+			end
 		end
-		startPlotGame(player, data)
+		applyPlotMode(player)
+		modeReady[player] = true
 		-- Statistiques : un nouveau joueur est arrivé (étape 1 de l'entonnoir, Hub/Funnel.luau).
-		Funnel.onLoaded(player, data)
+		if not camp then
+			Funnel.onLoaded(player, data)
+		end
 		-- Défis classés : état publié pour le bouton « DÉFIS », message si des récompenses attendent.
 		local challengesOk, challengesErr = pcall(ChallengeRewards.onPlayerLoaded, player, data)
 		if not challengesOk then
@@ -785,7 +861,17 @@ function Hub.start()
 			onDataLoaded(player, data)
 		end
 	end
+	-- Niveaux : état du joueur changé (emplacements, XP, pièces) -> son camp suit ; accès donné ou retiré -> sa
+	-- parcelle change de mode.
+	LevelsService.onChanged(Camp.refresh)
+	LevelsService.onAccessChanged(function(player: Player)
+		if modeReady[player] then
+			applyPlotMode(player)
+		end
+	end)
 	PlayerData.onBeforeRelease(function(player)
+		modeReady[player] = nil
+		Camp.stop(player)
 		local plotGame = games[player]
 		if plotGame then
 			-- Classement solo : ses dernières valeurs, envoyées si elles ont monté (sans attendre), avant de fermer.
@@ -852,6 +938,11 @@ function Hub.start()
 	for plotIndex, plot in map.plots do
 		for machine, prompt in plot.machines do
 			prompt.Triggered:Connect(function(player)
+				if Camp.active(player) then
+					-- Parcelle devenue camp : ces bâtiments sont la boutique et la porte des niveaux, ouvertes par
+					-- l'interface des niveaux chez le joueur (attribut CampTab de l'invite, LevelsUI.luau).
+					return
+				end
 				if Plots.get(player) == plotIndex then
 					Remotes.get("OpenMachine"):FireClient(player, machine)
 				else

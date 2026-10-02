@@ -23,6 +23,7 @@ local IdleTowers = require(Shared.IdleTowers)
 local NumberFormat = require(Shared.NumberFormat)
 local PlotLayout = require(Shared.PlotLayout)
 local Remotes = require(Shared.Remotes)
+local CampMode = require(script.Parent.CampMode)
 local PlotAccess = require(script.Parent.PlotAccess)
 local SoundManager = require(script.Parent.SoundManager)
 local UI = require(script.Parent.UI)
@@ -1414,8 +1415,9 @@ function PlotUI.start()
 
 	-- Pendant un NIVEAU (prototype de la nouvelle formule, LevelsUI.luau : attribut LevelArena du joueur), l'écran
 	-- montre sa zone de combat, pas la parcelle : clics et touches (E, Q) sont pour le niveau, rien ne doit agir ici.
+	-- Pareil quand sa parcelle est devenue son CAMP D'ENTRAÎNEMENT (CampMode.luau) : plus de jeu infini chez lui.
 	local function inLevel(): boolean
-		return player:GetAttribute("LevelArena") ~= nil
+		return player:GetAttribute("LevelArena") ~= nil or CampMode.active()
 	end
 
 	UserInputService.InputBegan:Connect(function(input, processed)
@@ -1483,8 +1485,10 @@ function PlotUI.start()
 		local plot = myPlotFolder()
 		local owned = ownedSpots()
 		local camera = workspace.CurrentCamera
+		-- (parcelle devenue camp d'entraînement : aucun « + », ses socles sont ceux du camp)
+		local camp = CampMode.active()
 		for spotIndex = 1, #PlotLayout.SPOTS do
-			local pad = if plot and owned[spotIndex] then spotPad(spotIndex) else nil
+			local pad = if plot and owned[spotIndex] and not camp then spotPad(spotIndex) else nil
 			local wanted = pad ~= nil and pad:IsA("BasePart") and towerOn(spotIndex) == nil and pendingPlace[spotIndex] == nil
 			local marker = plusMarkers[spotIndex]
 			if wanted and not marker then

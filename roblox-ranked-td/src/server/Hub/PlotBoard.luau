@@ -1,9 +1,12 @@
 -- Affichage du panneau physique créé dans HubMap. Lecture seule des attributs existants (le DPS total : attribut
 -- TotalDps de la parcelle, calculé par PlotGame:totalDps). Aucun accès aux sauvegardes et aucune modification de la
 -- simulation ou du HUD.
+-- Parcelle devenue CAMP D'ENTRAÎNEMENT (nouvelle formule, Hub/Camp.luau : attribut Camp de la parcelle) : le même
+-- panneau affiche le camp (niveaux réussis, tours débloquées, pièces de niveau, tours à l'entraînement).
 local Players = game:GetService("Players")
 local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
 local IdleTowers = require(Shared.IdleTowers)
+local Levels = require(Shared.Levels)
 local NumberFormat = require(Shared.NumberFormat)
 
 local PlotBoard = {}
@@ -49,9 +52,10 @@ function PlotBoard.attach(plot: Folder, board: BasePart)
 	panel.BackgroundColor3 = Color3.fromRGB(20, 40, 41)
 	panel.BorderSizePixel = 0
 	panel.Parent = gui
-	text(panel, "Heading", "CHRONIQUES DU FIEF", 40, 22, 1120, 54, 44, GOLD)
+	local heading = text(panel, "Heading", "CHRONIQUES DU FIEF", 40, 22, 1120, 54, 44, GOLD)
 	local ownerLabel = text(panel, "Owner", "Parcelle libre", 40, 81, 1120, 42, 31, MUTED)
-	local values = {}
+	local values, titles = {}, {}
+	local CARD_TITLES = { Wave = "VAGUE ACTUELLE", Record = "RECORD DE VAGUE", DPS = "DPS TOTAL" }
 	for i, info in {
 		{ key = "Wave", title = "VAGUE ACTUELLE" },
 		{ key = "Record", title = "RECORD DE VAGUE" },
@@ -67,13 +71,16 @@ function PlotBoard.attach(plot: Folder, board: BasePart)
 		local corner = Instance.new("UICorner")
 		corner.CornerRadius = UDim.new(0, 12)
 		corner.Parent = card
-		text(card, "Title", info.title, 12, 17, 344, 38, 26, MUTED)
+		titles[info.key] = text(card, "Title", info.title, 12, 17, 344, 38, 26, MUTED)
 		values[info.key] = text(card, "Value", "—", 12, 65, 344, 118, 92, if i == 2 then GOLD else IVORY)
 	end
 	local stateLabel = text(panel, "BattleState", "En attente d'un propriétaire", 40, 389, 1120, 42, 30, IVORY)
 	local detailLabel = text(panel, "Details", "", 40, 446, 1120, 42, 27, MUTED)
-	text(panel, "DPSNote", "DPS théorique · niveaux, doublons, bonus et cadence inclus", 35, 525, 1130, 34, 23, MUTED)
-	text(panel, "AreaNote", "Hors cibles supplémentaires touchées par les attaques de zone", 35, 562, 1130, 30, 21, MUTED)
+	local notes = {
+		text(panel, "DPSNote", "DPS théorique · niveaux, doublons, bonus et cadence inclus", 35, 525, 1130, 34, 23, MUTED),
+		text(panel, "AreaNote", "Hors cibles supplémentaires touchées par les attaques de zone", 35, 562, 1130, 30, 21, MUTED),
+	}
+	local NOTE_TEXTS = { notes[1].Text, notes[2].Text }
 
 	local alive, queued = true, false
 	local connections, ownerConnections, towerFolderConnections = {}, {}, {}
@@ -85,6 +92,30 @@ function PlotBoard.attach(plot: Folder, board: BasePart)
 		table.clear(list)
 	end
 	local function refresh()
+		local camp = plot:GetAttribute("Camp") == true and owner ~= nil and owner.Parent == Players
+		heading.Text = if camp then "CAMP D'ENTRAÎNEMENT" else "CHRONIQUES DU FIEF"
+		titles.Wave.Text = if camp then "NIVEAUX RÉUSSIS" else CARD_TITLES.Wave
+		titles.Record.Text = if camp then "TOURS DÉBLOQUÉES" else CARD_TITLES.Record
+		titles.DPS.Text = if camp then "PIÈCES DE NIVEAU" else CARD_TITLES.DPS
+		notes[1].Text = if camp then "Les tours posées ici s'entraînent tout le temps, même quand leur seigneur est parti" else NOTE_TEXTS[1]
+		notes[2].Text = if camp then "L'entraînement les fait évoluer : ★ ★★ ★★★" else NOTE_TEXTS[2]
+		if camp then
+			local training = 0
+			if towers then
+				for _, model in towers:GetChildren() do
+					if model:IsA("Model") and model:GetAttribute("CampSlot") then
+						training += 1
+					end
+				end
+			end
+			ownerLabel.Text = "Camp de " .. (owner :: Player).DisplayName
+			values.Wave.Text = `{plot:GetAttribute("CampBest") or 0} / {Levels.COUNT}`
+			values.Record.Text = `{plot:GetAttribute("CampTowers") or 0} / {#IdleTowers.ORDER}`
+			values.DPS.Text = NumberFormat.short(plot:GetAttribute("CampCoins") or 0)
+			stateLabel.Text = if training > 0 then `ENTRAÎNEMENT EN COURS · {training} {if training > 1 then "tours" else "tour"}` else "AUCUNE TOUR À L'ENTRAÎNEMENT"
+			detailLabel.Text = tostring(plot:GetAttribute("CampTraining") or "")
+			return
+		end
 		if not owner or owner.Parent ~= Players then
 			ownerLabel.Text = "Parcelle libre"
 			for _, label in values do label.Text = "—" end
@@ -154,7 +185,7 @@ function PlotBoard.attach(plot: Folder, board: BasePart)
 		end
 		schedule()
 	end
-	for _, name in { "Wave", "HighestWave", "State", "EnemiesLeft", "Rebirths", "CoinBonus", "SimSpeed", "TotalDps" } do
+	for _, name in { "Wave", "HighestWave", "State", "EnemiesLeft", "Rebirths", "CoinBonus", "SimSpeed", "TotalDps", "Camp", "CampBest", "CampCoins", "CampTowers", "CampTraining" } do
 		table.insert(connections, plot:GetAttributeChangedSignal(name):Connect(schedule))
 	end
 	table.insert(connections, plot:GetAttributeChangedSignal("OwnerUserId"):Connect(bindOwner))

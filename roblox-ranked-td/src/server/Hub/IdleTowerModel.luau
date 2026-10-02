@@ -361,4 +361,72 @@ function IdleTowerModel.create(towerType: string, cframe: CFrame, parent: Instan
 	return model
 end
 
+-- ÉVOLUTIONS (nouvelle formule, Shared/Levels.luau : Levels.evolutionStage). Une tour évoluée se reconnaît de loin :
+--   1re évolution : anneau de BRONZE autour du socle et 4 clous ;
+--   2e évolution  : anneau d'ARGENT, 4 hampes et leurs fanions aux couleurs de la tour ;
+--   3e évolution  : anneau d'OR, hampes plus hautes, 4 joyaux lumineux et un halo doré sur le socle.
+-- Les pièces sont ajoutées au modèle (elles tournent avec lui quand la tour vise). L'attribut « Stars » (0 à 3) est lu
+-- par les clients pour afficher les étoiles. À appeler juste après create, une seule fois.
+local EVOLUTION_METALS = {
+	Color3.fromRGB(176, 112, 62),
+	Color3.fromRGB(198, 204, 212),
+	Color3.fromRGB(240, 196, 84),
+}
+
+function IdleTowerModel.addEvolution(model: Model, stage: number)
+	local level = math.clamp(math.floor(tonumber(stage) or 0), 0, #EVOLUTION_METALS)
+	model:SetAttribute("Stars", level)
+	local cframe = model:GetAttribute("RestCFrame")
+	local def = IdleTowers.Defs[model:GetAttribute("TowerType")]
+	if level <= 0 or typeof(cframe) ~= "CFrame" or not def then
+		return
+	end
+	local metal = EVOLUTION_METALS[level]
+	local function at(offset: Vector3, rotation: CFrame?): CFrame
+		return cframe * CFrame.new(offset) * (rotation or CFrame.new())
+	end
+	part(model, "EvolutionRing", {
+		Shape = Enum.PartType.Cylinder,
+		Size = Vector3.new(0.18, 4.7, 4.7),
+		CFrame = at(Vector3.new(0, 0.1, 0), VERTICAL_CYLINDER),
+		Color = metal,
+		Material = Enum.Material.Metal,
+	})
+	for i = 1, 4 do
+		local angle = (i - 0.5) * math.pi / 2
+		local foot = Vector3.new(math.cos(angle) * 2.2, 0.36, math.sin(angle) * 2.2)
+		part(model, "EvolutionStud", {
+			Shape = Enum.PartType.Ball,
+			Size = Vector3.one * (0.3 + 0.08 * level),
+			CFrame = at(foot),
+			Color = if level >= 3 then metal:Lerp(Color3.new(1, 1, 1), 0.25) else metal,
+			Material = if level >= 3 then Enum.Material.Neon else Enum.Material.Metal,
+		})
+		if level >= 2 then
+			local height = 0.9 + 0.35 * level
+			part(model, "EvolutionPost", {
+				Size = Vector3.new(0.14, height, 0.14),
+				CFrame = at(foot + Vector3.new(0, height / 2, 0)),
+				Color = metal,
+				Material = Enum.Material.Metal,
+			})
+			part(model, "EvolutionPennant", {
+				Size = Vector3.new(0.06, 0.42, 0.66),
+				CFrame = at(foot + Vector3.new(0, height - 0.25, 0.4)),
+				Color = def.color,
+				Material = Enum.Material.Fabric,
+			})
+		end
+	end
+	if level >= 3 then
+		part(model, "EvolutionHalo", {
+			Shape = Enum.PartType.Cylinder,
+			Size = Vector3.new(0.1, 3.5, 3.5),
+			CFrame = at(Vector3.new(0, 0.9, 0), VERTICAL_CYLINDER),
+			Color = metal,
+			Material = Enum.Material.Neon,
+		})
+	end
+end
+
 return IdleTowerModel

@@ -18,13 +18,19 @@ soit en continu et que je sois obligé d'être super actif ») : les monstres so
 fort, attendre fait perdre, on commence avec deux tours (Archer et Catapulte), et la tour prise dans la barre devient
 un bouton « ANNULER ».
 
+Troisième étape (« tu peux gérer toute la parcelle et le système d'évolution de tour ») : pour un joueur qui a les
+niveaux, **la parcelle devient son camp d'entraînement** (`Config.LEVELS_CAMP_PLOT`). Le jeu infini ne tourne plus
+dessus ; ses tours à l'entraînement sont posées sur des socles et tirent sur des cibles ; l'entraînement les fait
+**évoluer** (★ à ★★★ : nouveau pouvoir, nouvelle apparence). Les joueurs sans les niveaux gardent le jeu infini.
+
 - Il vit **à côté** du jeu actuel, sans y toucher : la parcelle infinie, l'autel, la forge et le classement marchent
   comme avant.
 - Seul le propriétaire le voit pour l'instant (bouton « ⚔ NIVEAUX ») : `Config.LEVELS_ACCESS = "Owner"` dans
   `src/shared/Config.luau` (`"All"` = tout le monde, `"Off"` = personne).
 - Règles et chiffres : `src/shared/Levels.luau`. Serveur : `Hub/LevelsService.luau`, `Hub/LevelGame.luau`,
-  `Hub/LevelArena.luau`. Client : `LevelsUI.luau` (et `PlotRenderer.luau` pour l'affichage des monstres).
-- Vérifications : `tools/levels` (joueurs simulés et 273 tests hors Studio, dont la difficulté de chaque niveau) et
+  `Hub/LevelArena.luau`, `Hub/Camp.luau` et `Hub/CampGame.luau` (la parcelle devenue camp). Client : `LevelsUI.luau`,
+  `CampMode.luau` (et `PlotRenderer.luau` pour l'affichage des monstres et des cibles).
+- Vérifications : `tools/levels` (joueurs simulés et 292 tests hors Studio, dont la difficulté de chaque niveau) et
   `tools/studio-test/phone.ps1 -Mode levels` (test complet dans Studio).
 
 ## La map principale
@@ -620,7 +626,7 @@ et récupère la fenêtre Sortie (voir son README).
 
 **Sans Studio** : `luau tools/odds/tests.luau` (chances de la forge : exactement 100 %), les vérifications de la
 traduction (voir « Langues »), et les niveaux : `powershell -ExecutionPolicy Bypass -File tools\levels\run.ps1 -Tests`
-(273 vérifications des règles et de la difficulté), sans `-Tests` pour le tableau de difficulté des 10 niveaux joués
+(292 vérifications des règles, de la difficulté, des évolutions et du camp), sans `-Tests` pour le tableau de difficulté des 10 niveaux joués
 par des joueurs simulés, `-Lazy` pour les niveaux joués sans presque rien faire (ils doivent tous être perdus), `-Tune`
 et `-Curve` pour régler la difficulté (voir `tools/levels/README.md`).
 

@@ -676,6 +676,60 @@ function Levels.perksBetween(towerType: string, before: number, after: number)
 end
 
 ----------------------------------------------------------------------
+-- ÉVOLUTIONS. Demande du propriétaire (02/10/2026) : « tu peux gérer toute la parcelle et le système d'évolution de
+-- tour ». L'entraînement fait ÉVOLUER chaque tour par paliers : chaque amélioration de PERKS est une évolution
+-- (1re, 2e, 3e : aux niveaux d'entraînement 2, 4 et 6). Une tour évoluée se reconnaît :
+--   * à ses étoiles (★ à ★★★) sur son étiquette, au camp comme dans un niveau ;
+--   * à son apparence : anneau de bronze, d'argent puis d'or autour de son socle, fanions, joyaux
+--     (Hub/IdleTowerModel.luau, addEvolution) ;
+--   * à son nouveau pouvoir (PERKS), qu'on la voit utiliser au camp, sur les cibles d'entraînement.
+----------------------------------------------------------------------
+Levels.EVOLUTION_NAMES = { "1re évolution", "2e évolution", "3e évolution" }
+
+-- Nombre d'évolutions débloquées (0 à 3) d'une tour à ce niveau d'entraînement.
+function Levels.evolutionStage(towerType: string, training: any): number
+	local trained = tonumber(training) or 0
+	local stage = 0
+	for _, perk in Levels.PERKS[towerType] or {} do
+		if trained >= perk.level then
+			stage += 1
+		end
+	end
+	return stage
+end
+
+-- Étoiles d'une tour : « ★★ » pour 2 évolutions, rien sans évolution (texte prêt à afficher).
+function Levels.stars(stage: number): string
+	return string.rep("★", math.clamp(math.floor(tonumber(stage) or 0), 0, #Levels.EVOLUTION_NAMES))
+end
+
+----------------------------------------------------------------------
+-- LE CAMP SUR LA PARCELLE. Même demande : la parcelle du joueur devient son camp d'entraînement (le jeu infini ne
+-- tourne plus dessus : Config.LEVELS_CAMP_PLOT). Les tours mises dans les emplacements d'entraînement sont posées
+-- pour de vrai sur des socles de la parcelle et tirent sur des CIBLES ROULANTES qui suivent le chemin : on les voit
+-- s'entraîner, avec leurs évolutions (Hub/Camp.luau, Hub/CampGame.luau). L'XP, elle, vient toujours du temps passé
+-- dans l'emplacement (TRAINING.SLOT_RATE) : les cibles ne rapportent rien.
+--   SPOTS = socles de la parcelle (numéros de PlotLayout.SPOTS) des emplacements d'entraînement 1, 2, 3 : une
+--           rangée face au chemin, juste devant le point d'arrivée du joueur. Les autres socles sont cachés.
+--   TARGET_GAP = secondes entre deux cibles ; TARGET_SPEED = leur vitesse (part de celle d'un fantassin : elles
+--           roulent lentement, les tours ont le temps de tirer) ;
+--   TARGET_SECONDS = PV d'une cible, en secondes de tir de toutes les tours du camp réunies (dégâts de base, sans
+--           l'entraînement : une tour entraînée ou évoluée les détruit donc plus vite, et ça se voit) ;
+--           TARGET_MIN_HEALTH = PV au moins (un Totem seul ne fait presque pas de dégâts) ;
+--   MAX_TARGETS = cibles sur le chemin au plus.
+-- Réglé avec tools/levels : à la vitesse d'un fantassin et 45 PV, l'Archer seul tirait 4 flèches par seconde mais ne
+-- détruisait que 4 cibles en 3 minutes (chaque cible sortait de sa portée à moitié cassée).
+----------------------------------------------------------------------
+Levels.CAMP = {
+	SPOTS = { 7, 3, 4 },
+	TARGET_GAP = 3.5,
+	TARGET_SPEED = 0.5,
+	TARGET_SECONDS = 2,
+	TARGET_MIN_HEALTH = 12,
+	MAX_TARGETS = 24,
+}
+
+----------------------------------------------------------------------
 -- Données sauvegardées du joueur (data.levels, PlayerData.luau). Toujours propres : cleanData remet tout champ
 -- absent ou abîmé à sa valeur de départ (une vieille sauvegarde, sans ce champ, donne un nouveau joueur des niveaux).
 ----------------------------------------------------------------------

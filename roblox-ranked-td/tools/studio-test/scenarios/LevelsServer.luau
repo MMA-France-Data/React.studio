@@ -1,4 +1,7 @@
 -- Test des NIVEAUX (prototype de la nouvelle formule), côté serveur : tools/studio-test/phone.ps1 -Mode levels.
+-- 0) La PARCELLE du joueur est son camp d'entraînement : pas de jeu infini, sa tour posée sur un socle tire sur des
+--    cibles, étiquettes, bâtiments, tableau, évolution d'une tour, 2e emplacement, retour au jeu infini quand
+--    l'accès aux niveaux est retiré.
 -- 1) D'abord, seul (le client attend) : accès, six combats en même temps (mesure), un niveau PERDU par celui qui
 --    pose 2 Archers puis attend, le même niveau gagné en posant et en améliorant tout, récompenses, « Rejouer »,
 --    niveau suivant, abandon, boutique à prix fixes, camp d'entraînement (emplacements, absence), ordre de la barre
@@ -91,6 +94,168 @@ return function(log)
 		(arena.Focus.Position - Levels.arenaCFrame(plot).Position).Magnitude < 1 and arena.Focus.Position.Magnitude > 2000,
 		`la zone du joueur est loin de la place ({math.floor(arena.Focus.Position.Magnitude)} studs du centre)`
 	)
+
+	------------------------------------------------------------------
+	-- La parcelle est le CAMP D'ENTRAÎNEMENT. Demande du propriétaire (02/10/2026) : « tu peux gérer toute la parcelle
+	-- et le système d'évolution de tour ».
+	------------------------------------------------------------------
+	local plotFolder = workspace:WaitForChild("Hub"):WaitForChild("Plots"):WaitForChild("Plot" .. tostring(plot))
+	local function campState()
+		return dbg:Invoke(player, "Camp")
+	end
+	local function pad(slot)
+		return plotFolder.Spots:FindFirstChild("Spot" .. tostring(Levels.CAMP.SPOTS[slot]))
+	end
+	local function padLabel(slot)
+		local gui = pad(slot):FindFirstChild("CampLabel")
+		local panel = gui and gui:FindFirstChild("Panel")
+		return if panel then { title = panel.Title.Text, sub = panel.Sub.Text, xp = panel.Bar.Xp.Text, bar = panel.Bar.Visible, shown = panel.Visible } else {}
+	end
+	local function campTower(slot)
+		local folder = plotFolder:FindFirstChild("Towers")
+		for _, model in if folder then folder:GetChildren() else {} do
+			if model:GetAttribute("CampSlot") == slot then
+				return model
+			end
+		end
+		return nil
+	end
+	local function buildingTitle(name)
+		local cabinet = plotFolder:FindFirstChild(name)
+		local billboard = cabinet and cabinet:FindFirstChildOfClass("BillboardGui")
+		local label = billboard and billboard:FindFirstChildOfClass("TextLabel")
+		local prompt = cabinet and cabinet:FindFirstChildOfClass("ProximityPrompt")
+		return if label then label.Text else nil, if prompt then prompt:GetAttribute("CampTab") else nil
+	end
+	local function countPads()
+		local shown, hidden, locks = 0, 0, 0
+		for _, part in plotFolder.Spots:GetChildren() do
+			if part.Transparency >= 1 then
+				hidden += 1
+			else
+				shown += 1
+			end
+			if part:FindFirstChild("Lock") then
+				locks += 1
+			end
+		end
+		return shown, hidden, locks
+	end
+
+	local camp = campState()
+	check(
+		camp.camp == true and camp.infinite == false and camp.towers[1] ~= nil and camp.towers[1].type == "MachineGun" and camp.towers[1].stage == 0
+			and plotFolder:GetAttribute("Camp") == true and plotFolder:GetAttribute("OwnedSpots") == nil,
+		"la parcelle du joueur est son camp d'entraînement : aucune partie infinie, l'Archer de l'emplacement 1 est posé dessus"
+	)
+	local archerModel = campTower(1)
+	local padPosition = pad(1).Position
+	local shown, hidden, locks = countPads()
+	check(
+		archerModel ~= nil and archerModel:GetAttribute("TowerType") == "MachineGun" and archerModel:GetAttribute("SpotIndex") == nil
+			and (Vector3.new(archerModel:GetPivot().Position.X, 0, archerModel:GetPivot().Position.Z) - Vector3.new(padPosition.X, 0, padPosition.Z)).Magnitude < 1,
+		"l'Archer à l'entraînement est debout sur le 1er socle du camp"
+	)
+	check(
+		pad(1).Transparency == 0 and pad(2).Transparency > 0 and pad(2).Transparency < 1 and pad(3).Transparency == 1 and shown == 2 and hidden == 20 and locks == 0,
+		`socles : le 1er ouvert, le 2e à ouvrir, le 3e et les 19 emplacements du jeu infini cachés ({shown} visibles, {hidden} cachés, {locks} cadenas du jeu infini)`
+	)
+	local label1, label2 = padLabel(1), padLabel(2)
+	check(
+		string.find(label1.title or "", "Archer", 1, true) ~= nil and string.find(label1.sub or "", "Entraînement 0/6", 1, true) ~= nil
+			and string.find(label1.sub or "", "+1 XP/min", 1, true) ~= nil and label1.bar == true and string.find(label1.xp or "", "/ 20 XP", 1, true) ~= nil,
+		`étiquette du 1er socle : « {tostring(label1.title)} », « {tostring(label1.sub)} », « {tostring(label1.xp)} »`
+	)
+	check(
+		string.find(label2.title or "", "EMPLACEMENT 2", 1, true) ~= nil and string.find(label2.sub or "", "400", 1, true) ~= nil and label2.bar == false
+			and pad(1).CampPrompt:GetAttribute("CampSlot") == 1 and pad(1).CampPrompt.ActionText == "Gérer" and pad(2).CampPrompt.ActionText == "Ouvrir"
+			and pad(3).CampPrompt.Enabled == false and padLabel(3).shown == false and label2.shown == true,
+		`étiquette du 2e socle : « {tostring(label2.title)} », « {tostring(label2.sub)} » ; invites « Gérer » et « Ouvrir »`
+	)
+	local shopTitle, shopTab = buildingTitle("TowerMachine")
+	local gateTitle, gateTab = buildingTitle("BonusMachine")
+	check(
+		shopTitle == "BOUTIQUE DES TOURS" and shopTab == "Boutique" and gateTitle == "PORTE DES NIVEAUX" and gateTab == "Niveaux",
+		`les deux bâtiments de l'entrée : « {tostring(shopTitle)} » et « {tostring(gateTitle)} » (plus d'autel ni de forge)`
+	)
+	local boardPanel = plotFolder.Decor.FiefBoard.FiefDisplay.Panel
+	task.wait(0.3)
+	check(
+		boardPanel.Heading.Text == "CAMP D'ENTRAÎNEMENT" and boardPanel.WaveCard.Title.Text == "NIVEAUX RÉUSSIS" and boardPanel.WaveCard.Value.Text == `0 / {Levels.COUNT}`
+			and boardPanel.RecordCard.Value.Text == "2 / 8" and string.find(boardPanel.BattleState.Text, "1 tour", 1, true) ~= nil,
+		`tableau de la parcelle : « {boardPanel.Heading.Text} », « {boardPanel.WaveCard.Title.Text} {boardPanel.WaveCard.Value.Text} », tours « {boardPanel.RecordCard.Value.Text} », « {boardPanel.BattleState.Text} »`
+	)
+	-- Les tours s'entraînent pour de vrai : des cibles roulent sur le chemin, l'Archer les détruit.
+	local deadline = os.clock() + 20
+	while campState().kills < 2 and os.clock() < deadline do
+		task.wait(0.25)
+	end
+	camp = campState()
+	check(camp.kills >= 2 and camp.targets >= 5, `l'Archer du camp tire sur les cibles d'entraînement : {camp.kills} détruites, {camp.targets} sur le chemin`)
+	check(
+		action("Place", "MachineGun", 0, 0) == false and dbg:Invoke(player, "Call", "placeTower", 1, "MachineGun") == nil and campState().infinite == false,
+		"plus rien du jeu infini ne répond sur cette parcelle (poser une tour sur un emplacement : ignoré)"
+	)
+	-- Une autre tour dans l'emplacement : elle remplace la première sur le socle.
+	check(
+		action("SlotAssign", 1, "Bomb") == true and campState().towers[1].type == "Bomb" and campTower(1) ~= archerModel and campTower(1):GetAttribute("TowerType") == "Bomb"
+			and string.find(padLabel(1).title, "Catapulte", 1, true) ~= nil,
+		`la Catapulte mise dans l'emplacement 1 remplace l'Archer sur le socle (étiquette « {padLabel(1).title} »)`
+	)
+	-- ÉVOLUTION : l'entraînement monte, la tour change (étoiles, anneau, fanions) et garde son nouveau pouvoir.
+	levels("Set", "xp", { MachineGun = 300 })
+	action("SlotAssign", 1, "MachineGun")
+	local evolved = campTower(1)
+	camp = campState()
+	check(
+		camp.towers[1].type == "MachineGun" and camp.towers[1].stage == 2 and evolved ~= nil and evolved:GetAttribute("Stars") == 2
+			and evolved:FindFirstChild("EvolutionRing") ~= nil and evolved:FindFirstChild("EvolutionPennant") ~= nil and evolved:FindFirstChild("EvolutionHalo") == nil
+			and string.find(padLabel(1).title, "★★", 1, true) ~= nil and string.find(padLabel(1).sub, "Entraînement 4/6", 1, true) ~= nil,
+		`Archer entraîné au niveau 4 : 2e évolution sur la parcelle (étiquette « {padLabel(1).title} », « {padLabel(1).sub} », anneau et fanions sur le modèle)`
+	)
+	levels("Set", "xp", { MachineGun = 1200 })
+	local maxed = campTower(1)
+	check(
+		campState().towers[1].stage == 3 and maxed ~= evolved and maxed:GetAttribute("Stars") == 3 and maxed:FindFirstChild("EvolutionHalo") ~= nil
+			and string.find(padLabel(1).xp, "MAX", 1, true) ~= nil,
+		`entraînement 6 : 3e évolution, la tour est refaite avec son halo doré (« {padLabel(1).title} », « {padLabel(1).xp} »)`
+	)
+	-- 2e emplacement : ouvert avec les pièces de niveau, une 2e tour s'entraîne à côté.
+	levels("Set", "coins", 400)
+	check(
+		action("SlotUnlock") == true and pad(2).Transparency == 0 and pad(3).Transparency > 0 and pad(3).Transparency < 1
+			and string.find(padLabel(3).sub, "1.5K", 1, true) ~= nil and action("SlotAssign", 2, "Bomb") == true and campState().towers[2].type == "Bomb"
+			and campTower(2) ~= nil,
+		`2e emplacement ouvert (400 pièces) : la Catapulte s'y entraîne, le 3e socle apparaît à son tour (« {padLabel(3).sub} »)`
+	)
+	task.wait(4)
+	log("Info", "[LEVELS] SHOT:levels_camp_evolue")
+	task.wait(1.8)
+	-- Accès aux niveaux retiré : la parcelle redevient celle du jeu infini, telle qu'elle était. Rendu : le camp revient.
+	levels("Access", "Off")
+	task.wait(0.5)
+	camp = campState()
+	local infiniteShown, _, infiniteLocks = countPads()
+	local altarTitle, altarTab = buildingTitle("TowerMachine")
+	check(
+		camp.camp == false and camp.infinite == true and plotFolder:GetAttribute("Camp") == nil and plotFolder:GetAttribute("OwnedSpots") ~= nil
+			and infiniteShown == 22 and infiniteLocks == 18 and pad(1):FindFirstChild("CampLabel") == nil and altarTitle == "AUTEL DES HÉROS" and altarTab == nil
+			and campTower(1) == nil,
+		`accès aux niveaux retiré : la parcelle redevient celle du jeu infini ({infiniteShown} emplacements, {infiniteLocks} cadenas, « {tostring(altarTitle)} »)`
+	)
+	levels("Access", nil)
+	task.wait(0.5)
+	camp = campState()
+	check(
+		camp.camp == true and camp.infinite == false and camp.towers[1] ~= nil and camp.towers[1].stage == 3 and camp.towers[2] ~= nil and campTower(2) ~= nil
+			and plotFolder:GetAttribute("Camp") == true,
+		"accès rendu : le camp revient avec ses deux tours, là où il en était"
+	)
+	-- Retour à un nouveau joueur des niveaux pour la suite du test.
+	levels("Set", "xp", {})
+	levels("Set", "coins", 0)
+	levels("Set", "slots", { { tower = "MachineGun", level = 1 } })
+	check(campState().towers[1].stage == 0 and campState().towers[2] == nil and pad(2).Transparency > 0, "camp remis à zéro pour la suite du test (un Archer sans évolution)")
 
 	------------------------------------------------------------------
 	-- Six combats dans le même serveur : coût du calcul

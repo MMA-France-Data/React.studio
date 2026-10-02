@@ -45,6 +45,7 @@ local NumberFormat = require(Shared.NumberFormat)
 local PlotLayout = require(Shared.PlotLayout)
 local RankedGate = require(Shared.RankedGate)
 local Remotes = require(Shared.Remotes)
+local CampMode = require(script.Parent.CampMode)
 local SoundManager = require(script.Parent.SoundManager)
 local UI = require(script.Parent.UI)
 
@@ -1177,6 +1178,11 @@ function TutorialUI.start()
 		end
 		task.wait(START_DELAY)
 		if not autoStart or player:GetAttribute("TutorialDone") ~= false then
+			return
+		end
+		-- Parcelle devenue camp d'entraînement (nouvelle formule, CampMode.luau) : ce tuto est celui du jeu infini
+		-- (poser une tour sur un emplacement, l'autel, la forge), il n'a rien à montrer là.
+		if CampMode.active() then
 			return
 		end
 		local deadline = os.clock() + CHARACTER_WAIT

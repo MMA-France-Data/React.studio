@@ -30,6 +30,12 @@ réglage d'alimentation n'est changé : tout redevient normal à la fin du test.
   Dans cette place de test seulement, les niveaux sont ouverts au joueur de test (objet `__AutoTestLevels` ajouté par
   `mkproj.cjs`, lu par `Hub/LevelsService.luau` ; dans les autres places de test ils sont fermés : le bouton
   « ⚔ NIVEAUX » n'y existe pas, ces tests regardent le jeu actuel).
+  **Le camp d'entraînement** (la parcelle du joueur de test, côté serveur puis côté client) : pas de partie infinie,
+  l'Archer posé sur le 1er socle, socles du jeu infini cachés, étiquettes et invites, boutique et porte des niveaux à
+  la place de l'autel et de la forge, tableau du camp, cibles détruites, tour remplacée, **évolutions** ★★ puis ★★★
+  (anneau, fanions, halo), 2e emplacement, retour au jeu infini quand l'accès est retiré puis retour du camp ; chez
+  le joueur : écrans du jeu infini cachés, pièces à côté du bouton, cibles de paille affichées, son des flèches,
+  onglet Entraînement et évolutions (`levels_camp_parcelle`, `levels_camp_evolue`, `levels_camp_evolutions`).
   **Côté serveur** (`scenarios\LevelsServer.luau`, par les mêmes demandes que le remote `LevelAction`) : accès, zones de
   combat vides, **six niveaux joués en même temps** (temps du serveur par image, voir `NIVEAUX.md`), accès fermé puis
   rouvert, demandes refusées, le niveau 1 **perdu** par celui qui pose 2 Archers puis attend (pose libre, refus, x2,

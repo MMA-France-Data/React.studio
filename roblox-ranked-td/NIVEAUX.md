@@ -25,11 +25,24 @@ prochaines tours doivent être plus hauts, pas forcément les basiques mais les 
 - **boutique** : le Totem (150) et le Mage (400) ne bougent pas. La Baliste passe de 900 à 1 200, le Sorcier de 1 600
   à 3 000, et les deux légendaires montent beaucoup : l'Oracle de 3 000 à 8 000, le Trébuchet de 5 000 à 15 000.
 
+**Troisième étape : ta parcelle et l'évolution des tours** (« tu peux gérer toute la parcelle et le système
+d'évolution de tour ») :
+
+- **ta parcelle est devenue ton camp d'entraînement** : le jeu infini (vagues, autel, forge, renaissance) ne tourne
+  plus dessus et ses boutons ont disparu de ton écran. Les tours que tu mets à l'entraînement sont posées sur des
+  socles, juste devant toi quand tu arrives, et elles tirent sur des cibles de paille qui roulent sur le chemin ;
+- **les tours évoluent** : ★ au niveau d'entraînement 2, ★★ au 4, ★★★ au 6. Une tour évoluée a un nouveau pouvoir et
+  se reconnaît de loin (étoiles, anneau de bronze, d'argent puis d'or, fanions, halo doré) ;
+- **seulement pour toi pour l'instant** : les autres joueurs gardent le jeu actuel. Rien n'est effacé de ta
+  sauvegarde : une ligne de réglage (`Config.LEVELS_CAMP_PLOT = false`) remet ta parcelle comme avant, avec tes
+  vagues et tes tours.
+
 ## En deux mots
 
-- Le jeu actuel (ta parcelle infinie, l'autel, la forge, le classement) **n'est pas touché**. Il tourne exactement
-  comme avant, pour tous les joueurs.
-- À côté, un nouveau mode : **10 niveaux**. Chaque niveau est une partie de 2 à 3 minutes, vue d'en haut : un flot
+- Pour les autres joueurs, le jeu actuel (parcelle infinie, autel, forge, classement) **n'est pas touché**. Il tourne
+  exactement comme avant.
+- Pour toi, la nouvelle formule : ta parcelle est ton **camp d'entraînement**, et tu joues des **niveaux**.
+- **10 niveaux**. Chaque niveau est une partie de 2 à 3 minutes, vue d'en haut : un flot
   continu de monstres, de plus en plus forts. Tu poses tes tours **où tu veux** et tu les améliores **sans arrêt**
   avec l'or des monstres (si tu t'arrêtes, tu perds), tu protèges ton château (10 vies). Mini-boss au niveau 5, boss
   au niveau 10.
@@ -41,8 +54,15 @@ prochaines tours doivent être plus hauts, pas forcément les basiques mais les 
 ## Comment l'essayer
 
 1. Publie le jeu comme d'habitude (« Mettre à jour l'expérience existante… »), ou lance `Play` dans Studio.
-2. En haut à gauche, à côté de ton bouton « 🎁 DONNER », clique **« ⚔ NIVEAUX »**.
-3. Onglet « Niveaux » : clique **« ▶ JOUER »** sur le niveau 1.
+2. Tu arrives sur ta parcelle, devenue ton **camp** :
+   - devant toi, les **socles d'entraînement** : ton Archer est sur le premier et tire sur les cibles. Au-dessus de
+     lui : son nom, ses étoiles, son niveau d'entraînement, sa barre d'XP. Approche-toi d'un socle et utilise
+     l'invite **« Gérer »** (touche `E`, ou le bouton sur téléphone) pour choisir la tour qui s'y entraîne ;
+   - le socle sombre à côté est le 2e emplacement, à ouvrir avec 400 pièces de niveau ;
+   - derrière toi, à l'entrée, les deux bâtiments sont la **BOUTIQUE DES TOURS** et la **PORTE DES NIVEAUX** ;
+   - au fond, le grand tableau affiche ton camp (niveaux réussis, tours débloquées, pièces).
+3. En haut à gauche, à côté de ton bouton « 🎁 DONNER », clique **« ⚔ NIVEAUX »** (tes pièces de niveau 🏅 sont
+   affichées juste à côté), puis **« ▶ JOUER »** sur le niveau 1.
 4. Dans le niveau :
    - tu as deux tours dans la barre du bas : l'**Archer** (une cible, rapide, 20 or) et la **Catapulte** (une zone,
      45 or). Au niveau 1, un Archer est déjà posé et tire tout seul ;
@@ -149,19 +169,57 @@ acheter le Totem, le Mage et la Baliste (1 750), pas plus. Le reste se gagne en 
 Les niveaux 11 à 20 rapporteront plus : les légendaires sont des buts à long terme, pas des tours du premier
 territoire. Chaque prix est un seul chiffre dans `Levels.SHOP`.
 
-### Le camp d'entraînement
+### Ta parcelle : le camp d'entraînement
 
+- **3 emplacements d'entraînement**, chacun avec son socle sur ta parcelle. Le premier est ouvert, les deux autres
+  s'achètent (400 puis 1 500 pièces de niveau). Les 22 emplacements du jeu infini sont cachés.
+- La tour d'un emplacement est **posée pour de vrai** sur son socle et tire sur des **cibles d'entraînement**
+  (mannequins de paille sur des chariots) qui roulent lentement sur le chemin. Elle se sert de ses évolutions : un
+  Archer ★ met le feu aux cibles. Les cibles ne rapportent rien : ni pièces, ni XP.
+- Une cible a autant de PV que les tours du camp en enlèvent en 2 secondes (à leurs dégâts de base) : une tour
+  entraînée ou évoluée les casse donc plus vite, et ça se voit.
 - Chaque tour a de l'**XP d'entraînement**, qui donne un niveau d'entraînement de 0 à 6 (20, 60, 140, 300, 600 et
   1 200 XP).
-- Chaque niveau d'entraînement : **+5 % de dégâts** dans les niveaux, et une amélioration aux niveaux 2, 4 et 6.
-  Exemples : Archer niveau 2 = **flèches enflammées**, niveau 4 = +3 de portée, niveau 6 = +20 % de vitesse ;
-  Totem niveau 2 = les monstres ralentis prennent plus de dégâts ; Baliste niveau 2 = carreau perçant.
+- Chaque niveau d'entraînement : **+5 % de dégâts** dans les niveaux, et une **évolution** aux niveaux 2, 4 et 6
+  (voir plus bas).
 - L'XP vient de deux endroits :
   - **les emplacements du camp** : la tour qu'on y met gagne 1 XP par minute, **même quand tu es parti** (12 h au
     plus d'un coup). Un emplacement s'améliore (120, 300, 700, 1 500 pièces : jusqu'à 4,5 XP par minute) et on en
     ouvre d'autres (400 puis 1 500 pièces, 3 au plus) ;
   - **jouer** : chaque type de tour posé dans un niveau gagne 8 XP si tu gagnes (moins si tu perds).
 - Attendre n'est donc jamais la seule façon d'avancer.
+- Quand une tour monte d'un niveau d'entraînement pendant que tu es là, un message te le dit ; quand elle
+  **évolue**, elle est refaite sur son socle avec sa nouvelle apparence.
+
+### Les évolutions des tours
+
+| Tour | ★ (entraînement 2) | ★★ (entraînement 4) | ★★★ (entraînement 6) |
+|---|---|---|---|
+| Archer du rempart | Flèches enflammées : chaque flèche laisse une petite zone de feu | Longue-vue : +3 de portée | Tir rapide : +20 % de vitesse d'attaque |
+| Catapulte | Gros rochers : zone d'impact plus large (+1,5) | Bras long : +3 de portée | Rechargement rapide : +20 % de vitesse |
+| Totem de givre | Givre mordant : les monstres ralentis prennent plus de dégâts | Grande aura : +2 de portée | Gel profond : ralentit de 50 % au lieu de 40 % |
+| Mage des tempêtes | Éclair large : zone de foudre plus large (+1) | Long regard : +3 de portée | Tempête : +20 % de vitesse |
+| Baliste lourde | Carreau perçant : transperce jusqu'à 3 monstres alignés | Tir tendu : +5 de portée | Treuil graissé : +20 % de vitesse |
+| Sorcier des arcanes | Concentration : le rayon chauffe 50 % plus vite | Long rayon : +3 de portée | Surchauffe : le rayon monte 20 % plus haut |
+| Oracle de la foudre | Éclair bondissant : un monstre de plus par éclair (5) | Vision lointaine : +3 de portée | Orage : +20 % de vitesse |
+| Trébuchet royal | Pierre géante : zone d'impact plus large (+2) | Onde de choc : étourdit plus longtemps (+0,3 s) | Contrepoids : +20 % de vitesse |
+
+À quoi on reconnaît une tour évoluée :
+
+| Évolution | Sur la tour | Sur son étiquette |
+|---|---|---|
+| ★ | anneau de bronze autour du socle, 4 clous | ★ |
+| ★★ | anneau d'argent, 4 hampes avec des fanions à sa couleur | ★★ |
+| ★★★ | anneau d'or, hampes plus hautes, 4 joyaux lumineux, halo doré | ★★★ |
+
+Les étoiles se voient au camp et dans les niveaux (« ★★ Niv. 3 » au pied de la tour).
+
+Temps pour évoluer avec le seul emplacement du camp (sans compter l'XP gagnée en jouant, 8 XP par victoire) :
+
+| Emplacement | ★ (60 XP) | ★★ (300 XP) | ★★★ (1 200 XP) |
+|---|---|---|---|
+| niveau 1 (1 XP par minute) | 1 h | 5 h | 20 h |
+| niveau 5 (4,5 XP par minute) | 13 min | 1 h 07 | 4 h 27 |
 
 ### La difficulté, réglée avec des joueurs simulés
 
@@ -195,16 +253,19 @@ un seul chiffre par niveau change tout (`health` dans `Levels.DEFINITIONS`).
 
 ## Ce qui reste à décider (par toi)
 
-1. **Le mode infini** : on le garde à côté, ou la parcelle devient seulement le camp d'entraînement ? Et que deviennent
-   les progrès des joueurs actuels (vagues, tours, runes) ?
+1. **Le mode infini** : c'est fait pour toi (ta parcelle est ton camp). Reste à décider pour les **autres joueurs** :
+   le jour où les niveaux s'ouvrent à tous, leur parcelle devient aussi un camp. Que deviennent leurs progrès
+   (vagues, tours, runes, pièces) et les passes déjà achetés ?
 2. **Les passes Robux** : « Ramassage auto » n'a plus de sens dans les niveaux (l'or tombe tout seul). Le x2 est
    gratuit dans les niveaux pour l'instant (`Levels.SPEED_FREE`) : faut-il le réserver au pass ?
-3. **L'autel et la forge** : tu as dit « on les supprime ». Dans le prototype ils n'existent pas dans les niveaux ;
-   ils sont toujours sur la parcelle tant que le mode infini est là.
-4. **Les améliorations d'entraînement** de chaque tour (3 par tour) : j'ai mis des idées simples, à revoir ensemble.
-5. **La suite des niveaux** : 11 à 20 avec une autre famille de monstres et une autre carte (le code est prêt pour
+3. **L'autel et la forge** : tu as dit « on les supprime ». Sur une parcelle devenue camp, leurs deux bâtiments sont
+   la boutique des tours et la porte des niveaux. Ils existent encore pour les joueurs du jeu infini.
+4. **Les évolutions** de chaque tour (3 par tour) : ce sont mes propositions, à changer comme tu veux.
+5. **La Baliste et le Trébuchet** n'apportent presque rien dans les niveaux (mesuré : voir `run.ps1 -Worth`), alors
+   que le Trébuchet est la tour la plus chère. Je propose de les renforcer : j'attends ton accord.
+6. **La suite des niveaux** : 11 à 20 avec une autre famille de monstres et une autre carte (le code est prêt pour
    plusieurs cartes : `Levels.MAPS`).
-6. **Ouvrir à tout le monde** : il faudra d'abord la traduction anglaise des nouveaux écrans, et un petit tuto.
+7. **Ouvrir à tout le monde** : il faudra d'abord la traduction anglaise des nouveaux écrans, et un petit tuto.
 
 ## Technique (pour s'y retrouver)
 
@@ -225,7 +286,11 @@ un seul chiffre par niveau change tout (`health` dans `Levels.DEFINITIONS`).
 | `src/server/Hub/LevelArena.luau` | les zones de combat et leur carte |
 | `src/server/Hub/LevelsService.luau` | accès, lancement, récompenses, boutique, camp, sauvegarde |
 | `src/client/LevelsUI.luau` | le bouton, la fenêtre du camp, l'écran d'un niveau |
-| `src/client/PlotRenderer.luau` | affiche aussi les zones de combat |
+| `src/client/PlotRenderer.luau` | affiche aussi les zones de combat, et les cibles d'un camp |
+| `src/server/Hub/Camp.luau` | la parcelle devenue camp : socles, étiquettes, invites, bâtiments |
+| `src/server/Hub/CampGame.luau` | les tours du camp et leurs cibles d'entraînement (même combat que les parcelles) |
+| `src/server/Hub/IdleTowerModel.luau` | modèles des tours, et leurs marques d'évolution (`addEvolution`) |
+| `src/client/CampMode.luau` | dit au reste de l'interface que la parcelle est un camp (le jeu infini se tait) |
 | `tools/levels/` | joueur simulé et vérifications hors Studio |
 | `tools/studio-test/scenarios/Levels*.luau` | test automatique dans Studio |
 
@@ -246,7 +311,8 @@ powershell -ExecutionPolicy Bypass -File tools\levels\run.ps1
 powershell -ExecutionPolicy Bypass -File tools\studio-test\phone.ps1 -Mode levels
 ```
 
-- le premier : 273 vérifications des règles et de la difficulté de chaque niveau, sans Studio (20 secondes) ;
+- le premier : 292 vérifications des règles, de la difficulté de chaque niveau, des évolutions et du camp, sans
+  Studio (20 secondes) ;
 - le deuxième : le tableau de difficulté des 10 niveaux par les joueurs simulés ;
 - le troisième : le test complet dans Studio (serveur, puis la vraie interface à la taille normale et à la taille
   d'un téléphone), avec des captures dans `tools/studio-test/out/levels_*.png`.
@@ -284,4 +350,8 @@ print(m.averageMs, m.p99Ms, m.worstMs, m.enemiesPeak)
 - La difficulté est réglée avec des joueurs simulés, pas encore avec de vrais joueurs : le niveau 1 demande déjà
   d'acheter souvent. Avant d'ouvrir à tout le monde, il faudra voir si un nouveau joueur le passe.
 - Les autres joueurs ne voient pas ton combat (ils restent sur la place).
-- Pendant un niveau, ta parcelle continue de tourner toute seule sur la place.
+- Pendant un niveau, ton camp continue de s'entraîner sur ta parcelle.
+- Le camp garde le chemin et la porte de la parcelle du jeu infini : les cibles en sortent comme les monstres avant.
+- La liste des joueurs de Roblox affiche encore les colonnes « Money » et « DPS » du jeu infini.
+- Un joueur du jeu infini et un joueur de la nouvelle formule peuvent être dans le même serveur : chacun voit la
+  parcelle de l'autre telle qu'elle est (vagues chez l'un, camp chez l'autre).
