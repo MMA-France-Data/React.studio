@@ -27,6 +27,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local StarterGui = game:GetService("StarterGui")
+local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
@@ -37,6 +38,7 @@ local NumberFormat = require(Shared.NumberFormat)
 local ProximityLabel = require(Shared.ProximityLabel)
 local Remotes = require(Shared.Remotes)
 local CombatVFX = require(script.Parent.CombatVFX)
+local PlotRenderer = require(script.Parent.PlotRenderer)
 local SoundManager = require(script.Parent.SoundManager)
 local UI = require(script.Parent.UI)
 
@@ -80,6 +82,10 @@ local HOTKEYS = {
 -- Vue d'en haut. Inclinaison de la caméra (90° = à la verticale) : choisie entre ces deux angles pour que la
 -- carte remplisse le mieux l'écran (un téléphone est large et bas : vue plus couchée ; un écran d'ordinateur :
 -- plus plongeante). Champ de vision petit = peu de perspective.
+-- Pour une vue FIXE, mets la même valeur aux deux : 70 et 70 = plus plongeante, 90 et 90 = pile au-dessus (on ne voit
+-- alors que le dessus des tours et des monstres, et la carte est environ 30 % plus petite à l'écran). Les trois
+-- vues ont été montrées au propriétaire le 02/10/2026 (« pourquoi la vue n'est pas vraiment au-dessus ? ») : à lui
+-- de choisir.
 local CAMERA_PITCH_MIN = 48
 local CAMERA_PITCH_MAX = 64
 local CAMERA_FOV = 40
@@ -99,6 +105,7 @@ local TAP_MOVE, TAP_TIME = 18, 0.6 -- un appui (téléphone) : moins de 18 px de
 local DRAG_START = 22 -- px : au-delà, un toucher parti d'une tour de la barre devient un « glisser »
 local QUIT_CONFIRM = 3 -- secondes pour confirmer « Quitter »
 local PLUS_MARKERS = 8 -- « + » affichés au plus (les premiers emplacements conseillés encore libres)
+local GOLD_POPUPS = 14 -- « +2 » dorés affichés à la fois au plus (or gagné au-dessus des monstres tués)
 
 local WINDOW_SIZE = Vector2.new(780, 540)
 local END_SIZE = Vector2.new(460, 372)
@@ -198,14 +205,23 @@ local function buildCamp()
 		Parent = gui,
 	}, { UI.corner(14), UI.padding(12) })
 	UI.chrome(window)
-	UI.fitWindow(window, WINDOW_SIZE)
 	camp.window = window
+	-- Petit écran (téléphone) : la fenêtre est réduite pour tenir en LARGEUR seulement, et son contenu défile de
+	-- haut en bas (pages = ScrollingFrame). Réduite pour tenir aussi en hauteur (comme UI.fitWindow), elle serait à
+	-- moitié de sa taille sur un téléphone tenu en large : cartes et textes trop petits pour le doigt.
+	local windowScale = UI.new("UIScale", { Name = "FitScale", Parent = window }) :: UIScale
 
 	-- Bouton d'ouverture : à droite du bouton « 🎁 DONNER » du propriétaire (AdminUI), plus petit sur téléphone.
 	local function placeButton()
-		local phone = UI.touchLayout(UI.screenSize(gui))
+		local screen = UI.screenSize(gui)
+		local phone = UI.touchLayout(screen)
 		openButton.Position = if phone then UDim2.fromOffset(128, 48) else UDim2.fromOffset(154, 16)
 		openButton.Size = if phone then UDim2.fromOffset(110, 30) else UDim2.fromOffset(150, 38)
+		if screen.X > 0 and screen.Y > 0 then
+			local scale = math.clamp((screen.X - 2 * UI.WINDOW_MARGIN) / WINDOW_SIZE.X, UI.MIN_WINDOW_SCALE, 1)
+			windowScale.Scale = scale
+			window.Size = UDim2.fromOffset(WINDOW_SIZE.X, math.min(WINDOW_SIZE.Y, (screen.Y - 2 * UI.WINDOW_MARGIN) / scale))
+		end
 	end
 	placeButton()
 	gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(placeButton)
@@ -253,11 +269,16 @@ local function buildCamp()
 			MaxTextSize = 16,
 			Parent = window,
 		})
-		pages[name] = UI.new("Frame", {
+		-- (hauteur du contenu = celle d'un écran d'ordinateur : sur un écran plus bas, la page défile)
+		pages[name] = UI.new("ScrollingFrame", {
 			Name = "Page" .. index,
 			Position = UDim2.fromOffset(0, 80),
 			Size = UDim2.new(1, 0, 1, -80),
 			BackgroundTransparency = 1,
+			ScrollBarThickness = 5,
+			ScrollBarImageColor3 = UI.Colors.Gold,
+			CanvasSize = UDim2.fromOffset(0, WINDOW_SIZE.Y - 24 - 80),
+			ScrollingDirection = Enum.ScrollingDirection.Y,
 			Visible = false,
 			Parent = window,
 		})
@@ -838,6 +859,7 @@ local level = {
 	cameraPitch = math.rad(CAMERA_PITCH_MAX),
 	zoom = 1,
 	pan = Vector2.zero, -- déplacement de la vue sur le sol (studs) : X = vers la droite, Y = vers le fond
+	pitchOverride = nil :: number?, -- essais dans Studio : inclinaison imposée, en degrés (TestAction « Pitch »)
 	quitArmedAt = nil :: number?,
 	resultShown = nil :: string?,
 	training = {} :: { [string]: number },
@@ -1035,7 +1057,8 @@ local function fitCamera(origin: CFrame, points: { Vector3 }, viewport: Vector2,
 	local target = origin.Position
 	local distance = 140
 	for _ = 1, 28 do
-		local cframe = CFrame.lookAt(target - look * distance, target)
+		-- (« haut » de l'image = le fond de la carte : marche aussi quand la caméra regarde pile vers le bas)
+		local cframe = CFrame.lookAt(target - look * distance, target, forward)
 		local minX, maxX, minY, maxY = math.huge, -math.huge, math.huge, -math.huge
 		for _, point in points do
 			local relative = cframe:PointToObjectSpace(point)
@@ -1111,8 +1134,11 @@ local function updateCamera()
 		end
 		-- L'inclinaison qui montre la carte en plus grand (caméra la plus proche) ; à peu près égal : la plus
 		-- plongeante.
+		-- (Essais dans Studio : « Pitch:70 » de TestAction impose une inclinaison, pour comparer les vues.)
 		local best = nil
-		for degrees = CAMERA_PITCH_MAX, CAMERA_PITCH_MIN, -2 do
+		local steepest = level.pitchOverride or CAMERA_PITCH_MAX
+		local flattest = level.pitchOverride or CAMERA_PITCH_MIN
+		for degrees = steepest, flattest, -2 do
 			local pitch = math.rad(degrees)
 			local target, distance, look = fitCamera(level.cframe, points, viewport, margins, pitch)
 			if not best or distance < best.distance * 0.985 then
@@ -1120,6 +1146,7 @@ local function updateCamera()
 			end
 		end
 		level.cameraTarget, level.cameraDistance, level.cameraLook, level.cameraPitch = best.target, best.distance, best.look, best.pitch
+		hud.gui:SetAttribute("Pitch", math.floor(math.deg(best.pitch) + 0.5))
 		setView(level.zoom, level.pan)
 	end
 	local right = level.cframe:VectorToWorldSpace(Vector3.new(1, 0, 0))
@@ -1127,7 +1154,7 @@ local function updateCamera()
 	local target = level.cameraTarget + right * level.pan.X + forward * level.pan.Y
 	camera.CameraType = Enum.CameraType.Scriptable
 	camera.FieldOfView = CAMERA_FOV
-	camera.CFrame = CFrame.lookAt(target - level.cameraLook * (level.cameraDistance / level.zoom), target)
+	camera.CFrame = CFrame.lookAt(target - level.cameraLook * (level.cameraDistance / level.zoom), target, forward)
 	-- On écoute depuis un point proche du terrain, sur la ligne du regard : la caméra, elle, est trop loin pour
 	-- entendre les tirs et les morts (SoundManager.setListener). Les effets du combat mesurent aussi leurs
 	-- distances depuis ce point (CombatVFX.setFocus), sinon ceux du fond de la carte seraient coupés.
@@ -1394,6 +1421,7 @@ local function onLevelStart(number: number)
 	level.quitArmedAt = nil
 	level.resultShown = nil
 	setView(1, Vector2.zero)
+	hud.resetCounters()
 	selectTower(nil)
 	-- Tout premier niveau : la première tour de la barre est déjà choisie, les « + » sont affichés.
 	level.firstTime = number == 1 and state.best == 0
@@ -1808,14 +1836,34 @@ local function buildHud()
 		end
 	end
 	local barOrder = ""
+	-- Or gagné : le compteur clignote en blanc. Vie perdue (un monstre a atteint le château) : le compteur des vies
+	-- clignote et un son prévient. (Valeurs d'avant oubliées à chaque nouveau niveau : hud.resetCounters.)
+	local lastGold: number? = nil
+	local lastLives: number? = nil
+	local function flash(label: TextLabel, color: Color3)
+		label.TextColor3 = Color3.new(1, 1, 1)
+		TweenService:Create(label, TweenInfo.new(0.35), { TextColor3 = color }):Play()
+	end
+	function hud.resetCounters()
+		lastGold, lastLives = nil, nil
+	end
 
 	function hud.update()
 		local gold = numberAttribute("Gold")
 		local total = numberAttribute("Total")
 		local left = numberAttribute("Left")
+		local lives = numberAttribute("Lives")
 		local running = attribute("State") == "Running"
+		if running and lastGold and gold > lastGold then
+			flash(goldLabel, UI.Colors.Gold)
+		end
+		if lastLives and lives < lastLives then
+			flash(livesLabel, UI.Colors.DangerText)
+			SoundManager.play("Error")
+		end
+		lastGold, lastLives = gold, lives
 		set(levelLabel, "Text", `NIVEAU {numberAttribute("Level")}`)
-		set(livesLabel, "Text", `❤ {numberAttribute("Lives")}`)
+		set(livesLabel, "Text", `❤ {lives}`)
 		set(goldLabel, "Text", `{GOLD} {amount(gold)}`)
 		setProgress(if total > 0 then 1 - left / total else 0)
 		set(progressLabel, "Text", if total > 0 then `Monstres : {left} / {total}` else "")
@@ -2042,6 +2090,48 @@ function hud.showRange(world: Vector3, range: number)
 	placeRing(selectRing, world, range, UI.Colors.Gold)
 end
 
+-- Or gagné : un petit « +2 » doré s'envole au-dessus du monstre tué (plus gros pour un mini-boss ou un boss).
+-- GOLD_POPUPS à la fois au plus : une vague écrasée d'un coup ne couvre pas l'écran de chiffres.
+local goldPopups = 0
+local function goldPopup(position: Vector3, gold: number, big: boolean)
+	if goldPopups >= GOLD_POPUPS then
+		return
+	end
+	goldPopups += 1
+	local anchor = Instance.new("Part")
+	anchor.Name = "GoldPopup"
+	anchor.Size = Vector3.one * 0.2
+	anchor.Transparency = 1
+	anchor.Anchored = true
+	anchor.CanCollide = false
+	anchor.CanQuery = false
+	anchor.CanTouch = false
+	anchor.Position = position + Vector3.new(0, 2.5, 0)
+	local billboard = UI.new("BillboardGui", {
+		Size = if big then UDim2.fromOffset(120, 32) else UDim2.fromOffset(56, 20),
+		AlwaysOnTop = true,
+		Parent = anchor,
+	})
+	local label = UI.new("TextLabel", {
+		Size = UDim2.fromScale(1, 1),
+		BackgroundTransparency = 1,
+		Font = Enum.Font.GothamBlack,
+		Text = `+{amount(gold)}`,
+		TextColor3 = UI.Colors.Gold,
+		TextScaled = true,
+		TextStrokeTransparency = 0.25,
+		Parent = billboard,
+	})
+	anchor.Parent = helpers
+	local info = TweenInfo.new(0.8)
+	TweenService:Create(anchor, info, { Position = anchor.Position + Vector3.new(0, 3.5, 0) }):Play()
+	TweenService:Create(label, info, { TextTransparency = 1, TextStrokeTransparency = 1 }):Play()
+	task.delay(0.85, function()
+		goldPopups -= 1
+		anchor:Destroy()
+	end)
+end
+
 -- Aperçu de pose : il suit la souris (ordinateur) ou le doigt pendant un glisser (téléphone).
 local function updatePlacing()
 	local placing = level.placing
@@ -2088,7 +2178,8 @@ end
 --   écran « LevelHud » : "Select:MachineGun" (tour de la barre), "Tap:-23,0" (appui sur ce point local du terrain,
 --                        par le vrai chemin : point de l'écran -> rayon de la caméra -> sol), "Upgrade", "Sell",
 --                        "Rush", "Speed", "Quit", "Next", "Replay", "Camp", "Zoom:2" (zoom voulu), "Pan:120,-40"
---                        (glissement de la vue en pixels, comme un doigt)
+--                        (glissement de la vue en pixels, comme un doigt), "Pitch:70" (inclinaison imposée de la
+--                        caméra en degrés, 90 = pile au-dessus ; "Pitch:" = de nouveau le réglage normal)
 local function testAction(command: string)
 	local name, argument = string.match(command, "^(%a+):?([^#]*)")
 	if name == "Open" then
@@ -2109,6 +2200,10 @@ local function testAction(command: string)
 			local point = camera:WorldToScreenPoint(world)
 			tapScreen(Vector3.new(point.X, point.Y, 0))
 		end
+	elseif name == "Pitch" then
+		local degrees = tonumber(argument)
+		level.pitchOverride = if degrees then math.clamp(degrees, 20, 90) else nil
+		level.cameraKey = ""
 	elseif name == "Zoom" then
 		setView(tonumber(argument) or 1, level.pan)
 	elseif name == "Pan" then
@@ -2146,6 +2241,13 @@ local function build()
 	buildHelpers()
 	buildCamp()
 	buildHud()
+	-- Monstre tué dans ma zone de combat : l'or qu'il donne s'affiche au-dessus de lui.
+	PlotRenderer.onEnemyKilled = function(plotIndex: number, enemyType: string, position: Vector3)
+		local enemy = Levels.ENEMY[enemyType]
+		if level.active and plotIndex == level.index and enemy then
+			goldPopup(position, enemy.gold, enemyType == "Giant" or enemyType == "Boss")
+		end
+	end
 
 	player:GetAttributeChangedSignal("LevelsState"):Connect(function()
 		readState()

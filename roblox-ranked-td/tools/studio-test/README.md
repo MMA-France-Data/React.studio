@@ -38,9 +38,11 @@ réglage d'alimentation n'est changé : tout redevient normal à la fin du test.
   **Côté client** (`scenarios\LevelsClient.luau`, avec la vraie interface : l'attribut `TestAction` des écrans
   « Levels » et « LevelHud » lance les mêmes fonctions que les boutons, et un appui sur le terrain passe par le vrai
   chemin : point de l'écran, rayon de la caméra, sol) : fenêtre du camp et ses 4 onglets, niveau 1 (vue d'en haut qui
-  remplit l'écran, Archer offert qui tue en moins de 10 s, « + », pose près d'un « + », menu de la tour, amélioration,
-  pose libre, zoom et déplacement de la vue, refus sur le chemin, x2), victoire et écran de fin, « Niveau suivant »,
-  défaite et « Réessayer », abandon en deux appuis, retour au camp (caméra, écrans de la parcelle remis), puis à la
+  remplit l'écran, Archer offert qui tue en moins de 10 s, « + », son du combat, « +2 » doré de l'or gagné, pose près
+  d'un « + », menu de la tour, amélioration, pose libre, zoom et déplacement de la vue, trois inclinaisons de la
+  caméra à comparer (`levels_vue_normale`, `levels_vue_70`, `levels_vue_90` : attribut de test `Pitch`), refus sur
+  le chemin, x2), victoire et écran de fin, « Niveau suivant », défaite et « Réessayer », messages de la parcelle
+  coupés pendant un niveau, abandon en deux appuis, retour au camp (caméra, écrans de la parcelle remis), puis à la
   taille d'un téléphone (750 x 332) : fenêtre du camp, niveau, boutons dans l'écran et sans recouvrement, zoom.
   Captures `levels_*.png`.
 

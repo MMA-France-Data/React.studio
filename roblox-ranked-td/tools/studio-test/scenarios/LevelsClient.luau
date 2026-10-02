@@ -327,6 +327,14 @@ return function(log)
 		end, 8),
 		`on entend le combat pendant un niveau : le son des flèches joue dans la zone (caméra à {math.floor((cam().CFrame.Position - arenaCFrame.Position).Magnitude)} studs du centre)`
 	)
+	-- L'or gagné se voit sur le terrain : un « +2 » doré au-dessus d'un monstre tué.
+	check(
+		waitFor(function()
+			local helpersNow = workspace:FindFirstChild("LevelHelpers")
+			return helpersNow ~= nil and helpersNow:FindFirstChild("GoldPopup") ~= nil
+		end, 8),
+		"un « +2 » doré s'envole au-dessus du monstre tué (or gagné)"
+	)
 	shot("depart")
 
 	------------------------------------------------------------------
@@ -417,6 +425,23 @@ return function(log)
 	task.wait(0.3)
 	local _, backMinX, backMaxX = fieldOnScreen()
 	check(math.abs(backMinX - wideMinX) < 3 and math.abs(backMaxX - wideMaxX) < 3, "zoom remis à 1 : toute la carte, comme au départ")
+	-- Trois inclinaisons de la caméra à comparer (question du propriétaire : « pourquoi la vue n'est pas vraiment
+	-- au-dessus ? ») : la même scène vue comme d'habitude, plus plongeante, et pile au-dessus.
+	local usual = hudGui:GetAttribute("Pitch")
+	for _, degrees in { 70, 90 } do
+		act(hudGui, `Pitch:{degrees}`)
+		task.wait(0.4)
+		local seenAll, pitchMinX, pitchMaxX = fieldOnScreen()
+		check(
+			hudGui:GetAttribute("Pitch") == degrees and seenAll and pitchMinX >= 0 and pitchMaxX <= cam().ViewportSize.X,
+			`caméra à {degrees}° : toute la carte reste à l'écran ({math.floor(pitchMaxX - pitchMinX)} px de large ; {tostring(usual)}° d'habitude : {math.floor(wideMaxX - wideMinX)} px)`
+		)
+		shot("vue_" .. degrees)
+	end
+	act(hudGui, "Pitch:")
+	task.wait(0.4)
+	check(hudGui:GetAttribute("Pitch") == usual, `inclinaison normale remise ({tostring(usual)}°)`)
+	shot("vue_normale")
 	-- Sur le chemin : refusé, rien n'est posé.
 	waitFor(function()
 		return (arena:GetAttribute("Gold") or 0) >= 20
@@ -597,6 +622,13 @@ return function(log)
 		check(#outside == 0 and #clashes == 0 and menu.Visible and onScreen(menu), `téléphone : tous les boutons du niveau sont dans l'écran et ne se recouvrent pas ({#hudButtons()} boutons ; dehors : {table.concat(outside, ", ")} ; recouvrements : {table.concat(clashes, " ; ")})`)
 		task.wait(4)
 		shot("tel_combat")
+		for _, degrees in { 70, 90 } do
+			act(hudGui, `Pitch:{degrees}`)
+			task.wait(0.6)
+			shot("tel_vue_" .. degrees)
+		end
+		act(hudGui, "Pitch:")
+		task.wait(0.4)
 		act(hudGui, `Tap:{map.spots[3].X},{map.spots[3].Z + 9}`) -- (herbe vide : le menu se ferme)
 		act(hudGui, "Zoom:1.8")
 		act(hudGui, "Pan:260,0")

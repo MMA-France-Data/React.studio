@@ -54,6 +54,10 @@ local SoundManager = require(script.Parent.SoundManager)
 
 local PlotRenderer = {}
 
+-- Appelée quand un ennemi affiché vient d'être tué : (numéro de la parcelle ou de la zone, type d'ennemi, position).
+-- LevelsUI s'en sert pour montrer l'or gagné au-dessus du monstre, pendant un niveau. Rien par défaut.
+PlotRenderer.onEnemyKilled = nil :: ((number, string, Vector3) -> ())?
+
 -- Sons (Sounds.luau, joués par SoundManager, 3D : seulement près de la caméra, avec des limites) :
 -- launch = au départ, à la tour ; strike = foudre instantanée, sur la cible ; impact = à l'arrivée du
 -- projectile (quand les dégâts tombent).
@@ -510,6 +514,9 @@ local function onSync(plotIndex: number, packet: buffer, count: number, kind: st
 			enemy.simSpeed = simSpeed
 			if died then
 				SoundManager.playAt(DEATH_SOUNDS[enemy.enemyType] or "EnemyDeath", enemy.part.Position)
+				if PlotRenderer.onEnemyKilled then
+					PlotRenderer.onEnemyKilled(plotIndex, enemy.enemyType, enemy.part.Position)
+				end
 			end
 			removeEnemy(enemy, died)
 			state.enemies[id] = nil
