@@ -11,11 +11,18 @@
 # Résultats dans tools\studio-test\out : studio-output.log et phone_<taille>_<nom>.png (a = le téléphone du
 # propriétaire, b = grand téléphone, c = petit). Ne touche pas au PC pendant le test (la fenêtre de Studio bouge).
 # À la fin, Studio est fermé (il retrouve sa taille normale à la prochaine ouverture).
+#
+# Test des NIVEAUX (prototype de la nouvelle formule) : même outil, autre scénario (scenarios\LevelsServer.luau et
+# LevelsClient.luau), à la taille normale de Studio puis à la taille d'un téléphone :
+#   powershell -ExecutionPolicy Bypass -File tools\studio-test\phone.ps1 -Mode levels
+# Captures : levels_<nom>.png.
 param(
-	[int]$Seconds = 420,
+	[ValidateSet("phone", "levels")][string]$Mode = "phone",
+	[int]$Seconds = 0, # 0 = selon le test : téléphone 420 s, niveaux 360 s
 	[switch]$CloseStudio,
 	[switch]$KeepOpen
 )
+if ($Seconds -le 0) { $Seconds = if ($Mode -eq "levels") { 360 } else { 420 } }
 $ErrorActionPreference = "Stop"
 $root = $PSScriptRoot
 $out = Join-Path $root "out"
@@ -41,19 +48,22 @@ public class PhoneWindow {
 }
 "@
 
-node (Join-Path $root "mkproj.cjs") phone $Seconds
-$placeFile = Join-Path $out "phone.rbxl"
-rojo build (Join-Path $out "phone.project.json") -o $placeFile
+node (Join-Path $root "mkproj.cjs") $Mode $Seconds
+$placeFile = Join-Path $out "$Mode.rbxl"
+rojo build (Join-Path $out "$Mode.project.json") -o $placeFile
 if ($LASTEXITCODE -ne 0) { exit 1 }
 
 $plugins = Join-Path $env:LOCALAPPDATA "Roblox\Plugins"
 New-Item -ItemType Directory -Force $plugins | Out-Null
 Copy-Item (Join-Path $root "AutoPlayTest.lua") $plugins -Force
 
-Get-ChildItem $out -Filter "phone_*.png" -ErrorAction SilentlyContinue | Remove-Item -Force
+Get-ChildItem $out -Filter "$($Mode)_*.png" -ErrorAction SilentlyContinue | Remove-Item -Force
 $log = Join-Path $out "studio-output.log"
 [IO.File]::WriteAllText($log, "")
 $server = Start-Process node -ArgumentList "`"$(Join-Path $root 'logserver.cjs')`"" -WindowStyle Hidden -PassThru
+# Écran gardé allumé pendant le test (éteint, Studio n'affiche plus rien : voir awake.ps1).
+. (Join-Path $root "awake.ps1")
+Start-KeepAwake
 
 # Lit le journal pendant que logserver.cjs y écrit.
 function Read-Log {
@@ -126,13 +136,14 @@ try {
 	}
 } finally {
 	Stop-Process -Id $server.Id -Force -ErrorAction SilentlyContinue
+	Stop-KeepAwake
 }
 if (-not $KeepOpen) {
 	Stop-Process -Name RobloxStudioBeta -Force -ErrorAction SilentlyContinue
 }
 
 $lines = Read-Log
-$lines | Where-Object { $_ -match "\[PHONE\]|\[PASS\]|\[FAIL\]|\]\[Error\]" } | Where-Object { $_ -notmatch "PHONE:want" }
+$lines | Where-Object { $_ -match "\[PHONE\]|\[LEVELS\]|\[PASS\]|\[FAIL\]|\]\[Error\]" } | Where-Object { $_ -notmatch "PHONE:want" }
 Write-Host ""
 Write-Host ("Captures : " + (($shots.Keys | Sort-Object) -join ", "))
 $errors = @($lines | Where-Object { $_ -match "\]\[Error\]|\[FAIL\]" })

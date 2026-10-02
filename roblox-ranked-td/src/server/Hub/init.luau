@@ -19,6 +19,7 @@ local SoloLeaderboard = require(script.Parent.SoloLeaderboard)
 local PlotGame = require(script.PlotGame)
 local ChallengeRewards = require(script.ChallengeRewards)
 local HubMap = require(script.HubMap)
+local LevelsService = require(script.LevelsService)
 local PlotInterest = require(script.PlotInterest)
 local Plots = require(script.Plots)
 local SoloBoard = require(script.SoloBoard)
@@ -571,6 +572,10 @@ end
 --   Invoke(player, "Solo", "Fake", { { userId = -1, name = "Bot", wave = 500, dps = 1e12 } }) -> faux joueurs (DataStores
 --                                                en mémoire seulement), "ClearFakes" pour les retirer ; autres commandes
 --                                                ("State", "Tick", "Clock", "Submit", "Stored") en bas de SoloLeaderboard.luau
+-- Niveaux (prototype de la nouvelle formule, Hub/LevelsService.luau) :
+--   Invoke(player, "Levels", "State")          -> { access, levels, active } ; les autres commandes ("Action", "Set",
+--                                                "Gold", "Skip", "KillAll", "Finish", "Clock", "Access", "Bench") sont
+--                                                décrites en bas de LevelsService.luau
 local function setupStudioDebug()
 	if not RunService:IsStudio() then
 		return
@@ -734,6 +739,8 @@ local function setupStudioDebug()
 			return Funnel.debug(player)
 		elseif command == "Solo" then
 			return SoloLeaderboard.debug(player, ...)
+		elseif command == "Levels" then
+			return LevelsService.debug(player, ...)
 		end
 		return nil
 	end
@@ -751,6 +758,9 @@ function Hub.start()
 		SoloBoard.attach(solo.board, solo.front)
 	end
 	Matchmaking.start()
+	-- Niveaux (prototype de la nouvelle formule) : zones de combat loin de la place, une par parcelle. Visibles par
+	-- le propriétaire seulement pour l'instant (Config.LEVELS_ACCESS) ; la parcelle infinie n'est pas touchée.
+	LevelsService.start(Plots)
 
 	-- Une partie infinie par joueur, dès que ses données sont chargées. D'abord les gains d'absence, tout de
 	-- suite (sans attendre) : une sauvegarde changerait l'heure de sa dernière visite.

@@ -1,6 +1,6 @@
 // Génère un projet Rojo de test à partir de default.project.json, dans out/.
 // Il ajoute seulement le marqueur __AutoPlayTest (durée du test) et les scénarios de test.
-//   node mkproj.cjs <hub|match> <durée en secondes>
+//   node mkproj.cjs <hub|match|tournage|phone|levels> <durée en secondes>
 const fs = require('fs');
 const path = require('path');
 
@@ -31,14 +31,21 @@ if (mode === 'phone') {
 	// comme le 2e joueur arrivé sur un serveur : le tuto doit le guider vers SA parcelle.
 	tree.ReplicatedStorage.__AutoTestPlot = { $className: 'IntValue', $properties: { Value: 2 } };
 }
+// Test des NIVEAUX (prototype de la nouvelle formule, phone.ps1 -Mode levels) : dans les autres places de test les
+// niveaux sont fermés (src/server/Hub/LevelsService.luau lit cet objet), ici ils sont ouverts au joueur de test.
+if (mode === 'levels') {
+	tree.ReplicatedStorage.__AutoTestLevels = { $className: 'BoolValue', $properties: { Value: true } };
+}
 // Scénarios serveur et client : map principale (HubServer), match ranked contre le bot (MatchServer), mode
-// tournage (images et vidéos du jeu, tournage.ps1 : TournageServer et TournageClient), ou test « téléphone »
-// (phone.ps1 : le jeu dans une fenêtre de la taille d'un téléphone, PhoneServer et PhoneClient).
+// tournage (images et vidéos du jeu, tournage.ps1 : TournageServer et TournageClient), test « téléphone »
+// (phone.ps1 : le jeu dans une fenêtre de la taille d'un téléphone, PhoneServer et PhoneClient), ou test des
+// niveaux (phone.ps1 -Mode levels : LevelsServer et LevelsClient).
 const scenarios = {
 	hub: ['HubServer.luau', 'Client.luau'],
 	match: ['MatchServer.luau', 'Client.luau'],
 	tournage: ['TournageServer.luau', 'TournageClient.luau'],
 	phone: ['PhoneServer.luau', 'PhoneClient.luau'],
+	levels: ['LevelsServer.luau', 'LevelsClient.luau'],
 };
 const [serverScenario, clientScenario] = scenarios[mode] || scenarios.hub;
 tree.ReplicatedStorage.__AutoTestScript = { $path: norm(path.join(here, 'scenarios', serverScenario)) };

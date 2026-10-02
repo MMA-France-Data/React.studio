@@ -57,6 +57,9 @@ Copy-Item (Join-Path $root "AutoPlayTest.lua") $plugins -Force
 $log = Join-Path $out "studio-output.log"
 [IO.File]::WriteAllText($log, "")
 $server = Start-Process node -ArgumentList "`"$(Join-Path $root 'logserver.cjs')`"" -WindowStyle Hidden -PassThru
+# Écran gardé allumé pendant le test (éteint, Studio n'affiche plus rien : voir awake.ps1).
+. (Join-Path $root "awake.ps1")
+Start-KeepAwake
 try {
 	explorer.exe $placeFile
 	$start = Get-Date
@@ -76,6 +79,7 @@ try {
 	}
 } finally {
 	Stop-Process -Id $server.Id -Force -ErrorAction SilentlyContinue
+	Stop-KeepAwake
 }
 if (-not $KeepOpen) {
 	Stop-Process -Name RobloxStudioBeta -Force -ErrorAction SilentlyContinue

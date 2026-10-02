@@ -28,6 +28,10 @@
 -- vite) : voir updateAnimations. Tué, il joue son animation de mort s'il en a une (startDeath, updateDying).
 -- Sons (SoundManager, réglages dans Sounds.luau) : tirs et impacts (SHOT_SOUNDS), morts, arrivée d'un boss ou d'un
 -- colosse sur ta parcelle, pièces ramassées, bourdonnement du rayon du Sorcier.
+-- NIVEAUX (prototype de la nouvelle formule, Shared/Levels.luau) : la zone de combat d'un niveau s'affiche comme une
+-- parcelle de plus. Son numéro (Levels.isArena) donne son centre (Levels.arenaCFrame) ; son chemin est celui de sa
+-- carte (attribut « Map » de son dossier, workspace.Arenas.Arena<n>) au lieu de celui des parcelles : voir
+-- plotState et refreshLayout. Tout le reste (monstres, tirs, rayons, feu, étiquettes) est le même code.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -39,6 +43,7 @@ local CustomModels = require(Shared.CustomModels)
 local Enemies = require(Shared.Enemies)
 local IdleConfig = require(Shared.IdleConfig)
 local IdleTowers = require(Shared.IdleTowers)
+local Levels = require(Shared.Levels)
 local MedievalModels = require(Shared.MedievalModels)
 local NumberFormat = require(Shared.NumberFormat)
 local PlotLayout = require(Shared.PlotLayout)
@@ -115,7 +120,8 @@ local coinFolder = Instance.new("Folder")
 coinFolder.Name = "Coins"
 
 local plotsFolder: Instance? = nil -- workspace.Hub.Plots (trouvé dans start)
--- [plotIndex] = { cframe, folder, enemies = { [id] = enemy }, fires = { zone de feu }, generation, cleared }
+-- [plotIndex] = { cframe, folder, enemies = { [id] = enemy }, fires = { zone de feu }, generation, cleared,
+--                 pointAt, pathLength (son chemin), arena (zone de combat d'un niveau), mapName (carte de la zone) }
 -- (generation et cleared : voir clearPlot)
 local plots = {}
 local beams = {} -- [modèle de tour à rayon] = { plotIndex, def, muzzle, targetId, ramp, heat, handle }
@@ -133,20 +139,61 @@ local movedCFrames: { CFrame } = {}
 local function plotState(plotIndex: number)
 	local state = plots[plotIndex]
 	if not state then
-		state = { cframe = PlotLayout.cframe(plotIndex), enemies = {}, fires = {}, generation = 0, cleared = false }
+		local arena = Levels.isArena(plotIndex)
+		state = {
+			cframe = if arena then Levels.arenaCFrame(Levels.slotOf(plotIndex)) else PlotLayout.cframe(plotIndex),
+			-- Chemin : celui des parcelles ; pour une zone de combat, celui de sa carte (refreshLayout).
+			pointAt = PlotLayout.pointAt,
+			pathLength = PlotLayout.PATH_LENGTH,
+			arena = arena,
+			mapName = nil,
+			enemies = {},
+			fires = {},
+			generation = 0,
+			cleared = false,
+		}
 		plots[plotIndex] = state
 	end
 	return state
 end
 
+-- Dossier de la parcelle (workspace.Hub.Plots.Plot<n>) ou de la zone de combat (workspace.Arenas.Arena<n>) : ses
+-- attributs (SimSpeed, Wave, State...) sont publiés par le serveur.
+local function folderOf(plotIndex: number, state): Instance?
+	local plotFolder = state.folder
+	if not plotFolder or not plotFolder.Parent then
+		if state.arena then
+			local arenas = workspace:FindFirstChild("Arenas")
+			plotFolder = arenas and arenas:FindFirstChild("Arena" .. Levels.slotOf(plotIndex))
+		else
+			plotFolder = plotsFolder and plotsFolder:FindFirstChild("Plot" .. plotIndex)
+		end
+		state.folder = plotFolder
+	end
+	return plotFolder
+end
+
+-- Zone de combat d'un niveau : son chemin est celui de sa carte (attribut « Map » de son dossier). Renvoie faux
+-- tant que la carte n'est pas connue (l'attribut arrive juste avant les premiers monstres).
+local function refreshLayout(plotIndex: number, state): boolean
+	if not state.arena then
+		return true
+	end
+	local arenaFolder = folderOf(plotIndex, state)
+	local mapName = arenaFolder and arenaFolder:GetAttribute("Map")
+	if typeof(mapName) == "string" and mapName ~= state.mapName and Levels.MAPS[mapName] then
+		local geometry = Levels.geometry(mapName)
+		state.mapName = mapName
+		state.pointAt = geometry.pointAt
+		state.pathLength = geometry.PATH_LENGTH
+	end
+	return state.mapName ~= nil
+end
+
 -- Vitesse de la simulation de cette parcelle : 1 (normal) ou 2 (pass Vitesse x2 activé), lue sur
 -- l'attribut « SimSpeed » du dossier de la parcelle (publié par le serveur, PlotGame).
 local function simSpeedOf(plotIndex: number, state): number
-	local plotFolder = state.folder
-	if not plotFolder or not plotFolder.Parent then
-		plotFolder = plotsFolder and plotsFolder:FindFirstChild("Plot" .. plotIndex)
-		state.folder = plotFolder
-	end
+	local plotFolder = folderOf(plotIndex, state)
 	local speed = plotFolder and plotFolder:GetAttribute("SimSpeed")
 	if typeof(speed) ~= "number" or speed ~= speed then
 		return 1
@@ -383,6 +430,9 @@ local function onSync(plotIndex: number, packet: buffer, count: number, kind: st
 		return
 	end
 	local state = plotState(plotIndex)
+	if not refreshLayout(plotIndex, state) then
+		return -- zone de combat dont la carte n'est pas encore connue : le paquet suivant redonnera tout
+	end
 	state.cleared = false
 	-- En x2, les ennemis font 2 fois plus de chemin entre deux paquets : même tolérance en temps.
 	local snapDistance = SNAP_DISTANCE * simSpeedOf(plotIndex, state)
@@ -410,7 +460,10 @@ local function onSync(plotIndex: number, packet: buffer, count: number, kind: st
 			enemy.enemyType = enemyType
 			enemy.plotIndex = plotIndex -- (son corps, s'il joue sa mort, est effacé avec la parcelle : clearPlot)
 			-- Cor de guerre (boss) ou pas lourds (colosse) quand il arrive sur ta parcelle.
-			if ARRIVAL_SOUNDS[enemyType] and distance < ARRIVAL_DISTANCE and plotIndex == Players.LocalPlayer:GetAttribute("Plot") then
+			-- (pendant un niveau, seule la zone de combat compte : la parcelle, restée sur la place, se tait)
+			local arenaIndex = Players.LocalPlayer:GetAttribute("LevelArena")
+			local mine = if arenaIndex ~= nil then plotIndex == arenaIndex else plotIndex == Players.LocalPlayer:GetAttribute("Plot")
+			if ARRIVAL_SOUNDS[enemyType] and distance < ARRIVAL_DISTANCE and mine then
 				SoundManager.play(ARRIVAL_SOUNDS[enemyType])
 			end
 			-- Vague où il est apparu : à sa disparition, dit s'il a été tué ou retiré (vague ratée, voir plus bas).
@@ -445,10 +498,13 @@ local function onSync(plotIndex: number, packet: buffer, count: number, kind: st
 	local simSpeed = simSpeedOf(plotIndex, state)
 	for id, enemy in state.enemies do
 		if not seen[id] then
+			-- (Niveau : « Won » = le dernier monstre vient de tomber ; « Lost » = ils sont retirés, pas tués.)
 			local died = runState == "Running"
 				or (runState == "Intermission" and typeof(plotWave) == "number" and enemy.wave ~= nil and plotWave > enemy.wave)
-			-- Disparu au bout du chemin pendant que la partie continue : il est parti (défilé d'accueil), pas mort.
-			if died and enemy.distance >= PlotLayout.PATH_LENGTH - EXIT_DISTANCE then
+				or (state.arena and runState == "Won")
+			-- Disparu au bout du chemin pendant que la partie continue : il est parti (défilé d'accueil, ou monstre
+			-- d'un niveau arrivé au château), pas mort.
+			if died and enemy.distance >= state.pathLength - EXIT_DISTANCE then
 				died = false
 			end
 			enemy.simSpeed = simSpeed
@@ -542,8 +598,7 @@ local function updateAnimations()
 end
 
 local function nearestTower(plotIndex: number, towerType: string, from: Vector3): Model?
-	local hub = workspace:FindFirstChild("Hub")
-	local plotFolder = hub and hub:FindFirstChild("Plots") and hub.Plots:FindFirstChild("Plot" .. plotIndex)
+	local plotFolder = folderOf(plotIndex, plotState(plotIndex))
 	if not plotFolder then
 		return nil
 	end
@@ -650,6 +705,13 @@ local function onShots(plotIndex: number, packet: buffer, count: number)
 		return -- paquet arrivé après le « Clear » de cette parcelle (voir clearPlot)
 	end
 	local simSpeed = simSpeedOf(plotIndex, state)
+	-- Niveau : le feu des flèches et le carreau perçant ne s'affichent que s'ils sont débloqués par l'entraînement
+	-- (attribut « Perks » de la zone, ex. « MachineGun:Fire,Rocket:Pierce » : Levels.perkKeys). Parcelle : toujours.
+	local perks = nil
+	if state.arena then
+		local value = state.folder and state.folder:GetAttribute("Perks")
+		perks = if typeof(value) == "string" then value else ""
+	end
 	-- Ids des cibles suivies, après les tirs (absents d'un ancien paquet : aucun projectile ne suit sa cible).
 	local targetStart = count * SHOT_BYTES
 	local hasTargets = buffer.len(packet) >= targetStart + count * SHOT_TARGET_BYTES
@@ -681,10 +743,10 @@ local function onShots(plotIndex: number, packet: buffer, count: number)
 				task.delay(flight, SoundManager.playAt, sounds.impact, to)
 			end
 		end
-		if def.fireRadius then
+		if def.fireRadius and (not perks or string.find(perks, towerType .. ":Fire", 1, true)) then
 			task.delay(flight, landFire, plotIndex, state.generation, to, def, follow)
 		end
-		if def.kind == "Pierce" and def.pierceWidth then
+		if def.kind == "Pierce" and def.pierceWidth and (not perks or string.find(perks, towerType .. ":Pierce", 1, true)) then
 			task.delay(flight, landPierce, plotIndex, state.generation, from, to, def, follow)
 		end
 	end
@@ -792,6 +854,12 @@ local function floatingText(position: Vector3, text: string)
 	end)
 end
 
+-- Pendant un NIVEAU (LevelsUI.luau : attribut LevelArena du joueur), l'écran montre la zone de combat : les pièces
+-- de la parcelle, restée sur la place, sont ramassées sans bruit.
+local function inLevel(): boolean
+	return Players.LocalPlayer:GetAttribute("LevelArena") ~= nil
+end
+
 -- Gains des piles ramassées à distance : additionnés, puis un seul « +X » au-dessus du joueur quand
 -- les pièces arrivent (sinon, en x2 avec beaucoup d'ennemis, l'écran serait couvert de « +X »).
 local function addRemoteGain(amount: number)
@@ -807,7 +875,9 @@ local function addRemoteGain(amount: number)
 		local root = characterRoot()
 		if root and total > 0 then
 			floatingText(root.Position + Vector3.new(0, 3.5, 0), "+" .. NumberFormat.short(total))
-			SoundManager.play("CoinAutoCollect") -- un petit son doux par groupe de piles arrivées
+			if not inLevel() then
+				SoundManager.play("CoinAutoCollect") -- un petit son doux par groupe de piles arrivées
+			end
 		end
 	end)
 end
@@ -824,7 +894,9 @@ local function onCoinDrop(action: string, id: number, position: Vector3, amount:
 				coins[id] = nil
 			end
 			floatingText(position, "+" .. NumberFormat.short(amount))
-			SoundManager.play("CoinPickup")
+			if not inLevel() then
+				SoundManager.play("CoinPickup")
+			end
 			return
 		end
 		-- Ramassée à distance (pass Ramassage auto) : la pile s'envole vers le joueur et rétrécit.
@@ -942,6 +1014,26 @@ function PlotRenderer.start()
 			watchBeamTower(instance)
 		end
 	end
+	-- Tours des zones de combat des niveaux (workspace.Arenas, créé par le serveur de la map principale) : mêmes
+	-- étiquettes « Niv. X » et mêmes rayons.
+	task.spawn(function()
+		local arenasRoot = workspace:WaitForChild("Arenas", 60)
+		if not arenasRoot then
+			return
+		end
+		arenasRoot.DescendantAdded:Connect(function(instance)
+			if instance:IsA("Model") then
+				task.defer(addLevelTag, instance)
+				task.defer(watchBeamTower, instance)
+			end
+		end)
+		for _, instance in arenasRoot:GetDescendants() do
+			if instance:IsA("Model") then
+				task.spawn(addLevelTag, instance)
+				watchBeamTower(instance)
+			end
+		end
+	end)
 
 	folder.Parent = workspace
 	coinFolder.Parent = workspace
@@ -957,8 +1049,8 @@ function PlotRenderer.start()
 			-- Même vitesse que la simulation du serveur : x2 si le pass Vitesse x2 est activé sur cette parcelle.
 			local simDt = dt * simSpeedOf(plotIndex, state)
 			for _, enemy in state.enemies do
-				enemy.distance = math.min(PlotLayout.PATH_LENGTH, enemy.distance + enemy.def.speed * IdleConfig.ENEMY_SPEED_MULTIPLIER * (enemy.speedFactor or 1) * simDt)
-				local localPosition, direction = PlotLayout.pointAt(enemy.distance)
+				enemy.distance = math.min(state.pathLength, enemy.distance + enemy.def.speed * IdleConfig.ENEMY_SPEED_MULTIPLIER * (enemy.speedFactor or 1) * simDt)
+				local localPosition, direction = state.pointAt(enemy.distance)
 				local position = state.cframe:PointToWorldSpace(localPosition) + Vector3.new(0, enemy.def.size / 2, 0)
 				local worldDirection = state.cframe:VectorToWorldSpace(direction)
 				-- Modèle perso que son animation retourne (CustomModels.measureFlip) : racine tournée d'un demi-tour

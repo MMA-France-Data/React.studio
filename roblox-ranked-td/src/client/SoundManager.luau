@@ -197,7 +197,29 @@ local function activeCombat(now: number): number
 	return active
 end
 
+-- Point d'écoute forcé (nil = la caméra). Pendant un NIVEAU (LevelsUI.luau), la caméra regarde la carte de très
+-- haut, bien plus loin que la portée des sons 3D (flèches : 70 studs, morts : 60...) : le combat serait muet. On
+-- écoute alors depuis un point proche du terrain, donné à chaque image par LevelsUI (et remis à la caméra en
+-- sortant du niveau).
+local listenerOverride: Vector3? = nil
+
+function SoundManager.setListener(position: Vector3?)
+	if position then
+		pcall(function()
+			SoundService:SetListener(Enum.ListenerType.CFrame, CFrame.new(position))
+		end)
+	elseif listenerOverride then
+		pcall(function()
+			SoundService:SetListener(Enum.ListenerType.Camera)
+		end)
+	end
+	listenerOverride = position
+end
+
 local function listener(): Vector3?
+	if listenerOverride then
+		return listenerOverride
+	end
 	local camera = workspace.CurrentCamera
 	return camera and camera.CFrame.Position
 end
@@ -616,7 +638,9 @@ local function watchOwnPlot()
 		elseif state == "Intermission" and lastState == "Running" then
 			local startWave = runningWave
 			task.delay(0.25, function()
-				if os.clock() - lastRebirthAt < 2 then
+				-- (pas pendant une renaissance ; ni pendant un NIVEAU, LevelsUI.luau : la parcelle tourne toute seule
+				-- sur la place, loin de l'écran)
+				if os.clock() - lastRebirthAt < 2 or player:GetAttribute("LevelArena") ~= nil then
 					return
 				end
 				local wave = plot:GetAttribute("Wave")

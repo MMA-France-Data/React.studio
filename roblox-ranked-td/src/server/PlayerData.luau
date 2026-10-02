@@ -11,6 +11,7 @@ local Challenges = require(Shared.Challenges)
 local Config = require(Shared.Config)
 local IdleConfig = require(Shared.IdleConfig)
 local Lang = require(Shared.Lang) -- (messages de player:Kick : l'écran du joueur ne peut pas les traduire)
+local Levels = require(Shared.Levels)
 local NumberFormat = require(Shared.NumberFormat)
 local PlotLayout = require(Shared.PlotLayout)
 local Ranks = require(Shared.Ranks)
@@ -103,6 +104,9 @@ local function defaultData()
 		-- Tuto des nouveaux joueurs fini ou passé (Hub/Tutorial.luau, TutorialUI.luau) : faux pour un nouveau joueur.
 		-- Les anciennes sauvegardes n'ont pas ce champ : voir migrateTutorial.
 		tutorialDone = false,
+		-- NIVEAUX (prototype de la nouvelle formule) : plus haut niveau réussi, pièces de niveau, tours achetées à la
+		-- boutique, entraînement (format : Shared/Levels.luau, « Données sauvegardées »). Rien à voir avec la parcelle.
+		levels = Levels.defaultData(),
 	}
 end
 
@@ -231,6 +235,8 @@ local function reconcile(data)
 	end
 	-- Tuto : absent des anciennes sauvegardes -> fini si le joueur a déjà joué, sinon à faire.
 	migrateTutorial(data, hadTutorial)
+	-- Niveaux : absents des anciennes sauvegardes (-> valeurs de départ juste au-dessus), toujours propres.
+	data.levels = Levels.cleanData(data.levels)
 	return data
 end
 

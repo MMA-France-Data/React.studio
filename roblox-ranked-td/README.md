@@ -6,6 +6,22 @@ saisons, classement global et matchmaking entre serveurs.
 Tout est construit par code (forteresses, arènes, interfaces, tours et armées) : pas besoin de modèles dans Studio.
 Les assauts opposent fantassins, écuyers, cavaliers rapides, chevaliers lourds et immenses seigneurs de guerre.
 
+## Les NIVEAUX (prototype de la nouvelle formule)
+
+Depuis le 02/10/2026, le jeu contient aussi un **prototype** de la nouvelle formule décidée avec le propriétaire :
+10 niveaux de 2 à 3 minutes, vue d'en haut, pose libre des tours, mini-boss au niveau 5 et boss au niveau 10, boutique
+à prix fixes (aucun hasard) et camp d'entraînement. **Tout est expliqué dans [NIVEAUX.md](NIVEAUX.md)** (comment
+l'essayer, les règles, les chiffres, ce qui reste à décider).
+
+- Il vit **à côté** du jeu actuel, sans y toucher : la parcelle infinie, l'autel, la forge et le classement marchent
+  comme avant.
+- Seul le propriétaire le voit pour l'instant (bouton « ⚔ NIVEAUX ») : `Config.LEVELS_ACCESS = "Owner"` dans
+  `src/shared/Config.luau` (`"All"` = tout le monde, `"Off"` = personne).
+- Règles et chiffres : `src/shared/Levels.luau`. Serveur : `Hub/LevelsService.luau`, `Hub/LevelGame.luau`,
+  `Hub/LevelArena.luau`. Client : `LevelsUI.luau` (et `PlotRenderer.luau` pour l'affichage des monstres).
+- Vérifications : `tools/levels` (joueur simulé et 150 tests hors Studio) et
+  `tools/studio-test/phone.ps1 -Mode levels` (test complet dans Studio).
+
 ## La map principale
 
 Chaque serveur accueille 6 joueurs (à régler dans *Game Settings > Places > Server Size*).
@@ -597,8 +613,13 @@ deux comptes (ou avec un ami) : inscrivez-vous tous les deux dans le cercle, pui
 **Tests automatiques** : `tools/studio-test/` ouvre le jeu dans Studio, joue un scénario, prend des captures
 et récupère la fenêtre Sortie (voir son README).
 
-**Sans Studio** : `luau tools/odds/tests.luau` (chances de la forge : exactement 100 %), et les vérifications de la
-traduction (voir « Langues »).
+**Sans Studio** : `luau tools/odds/tests.luau` (chances de la forge : exactement 100 %), les vérifications de la
+traduction (voir « Langues »), et les niveaux : `powershell -ExecutionPolicy Bypass -File tools\levels\run.ps1 -Tests`
+(150 vérifications des règles), sans `-Tests` pour le tableau de difficulté des 10 niveaux joués par un joueur simulé,
+`-Lazy` pour les premiers niveaux joués sans presque rien faire.
+
+**Les niveaux dans Studio** : `powershell -ExecutionPolicy Bypass -File tools\studio-test\phone.ps1 -Mode levels`
+(serveur, puis la vraie interface à la taille normale et à la taille d'un téléphone ; captures `levels_*.png`).
 
 **La galerie des ennemis** (Studio seulement, jamais dans le jeu publié) : en `Play` sur la map principale, le
 bouton « GALERIE (Studio) » de la colonne de gauche t'emmène voir les 6 ennemis du mode solo dans les 10 styles
@@ -734,9 +755,9 @@ vagues dans `Enemies.luau`, le tracé du chemin dans `MapLayout.luau`.
 
 ```
 src/
-  shared/   (ReplicatedStorage.Shared)   Config, RankedGate, IdleConfig, IdleTowers, NumberFormat, Elo, Ranks, Towers, Enemies, MapLayout, PlotLayout, Placement, Remotes, Challenges, Sounds, Lang, LangEN/{Glossary, Plot, Machines, Social, Server}
-  server/   (ServerScriptService.Server) Main, PlayerData, Leaderboard, SoloLeaderboard, Matchmaking, MatchmakingBackend, MockDataStore, MockMemoryStore, Monetization, Hub/{init, HubMap, Plots, PlotGame, PlotBoard, PlotInterest, IdleTowerModel, RankedBoardDisplay, SoloBoard, ChallengeRewards, Tutorial}, Match/{init, Game, MapBuilder}
-  client/   (StarterPlayerScripts.Client) Main, AutoTranslate, LobbyUI, PlotUI, PlotAccess, PlotRenderer, MachineUI, RebirthUI, ShopUI, ChallengeUI, MatchUI, TowerCard, TowerPlacement, Effects, UI, EnemyGallery, SoundManager, SoundPanel, TutorialUI
+  shared/   (ReplicatedStorage.Shared)   Config, RankedGate, IdleConfig, IdleTowers, Levels, NumberFormat, Elo, Ranks, Towers, Enemies, MapLayout, PlotLayout, Placement, Remotes, Challenges, Sounds, Lang, LangEN/{Glossary, Plot, Machines, Social, Server}
+  server/   (ServerScriptService.Server) Main, PlayerData, Leaderboard, SoloLeaderboard, Matchmaking, MatchmakingBackend, MockDataStore, MockMemoryStore, Monetization, Hub/{init, HubMap, Plots, PlotGame, PlotBoard, PlotInterest, IdleTowerModel, RankedBoardDisplay, SoloBoard, ChallengeRewards, Tutorial, LevelsService, LevelGame, LevelArena}, Match/{init, Game, MapBuilder}
+  client/   (StarterPlayerScripts.Client) Main, AutoTranslate, LobbyUI, PlotUI, PlotAccess, PlotRenderer, MachineUI, RebirthUI, ShopUI, ChallengeUI, MatchUI, TowerCard, TowerPlacement, Effects, UI, EnemyGallery, SoundManager, SoundPanel, TutorialUI, LevelsUI
 ```
 
 ## Limites connues / pistes d'amélioration

@@ -12,6 +12,14 @@ Config.SEASON = 1
 -- Tout le jeu le lit avec Shared/RankedGate.luau (RankedGate.isOpen). Le serveur de match ne change pas.
 Config.RANKED_OPEN = false
 
+-- NIVEAUX : la nouvelle formule du jeu, en PROTOTYPE (règles et chiffres : src/shared/Levels.luau, explications :
+-- NIVEAUX.md). Elle vit à côté du jeu actuel sans y toucher. Qui voit le bouton « NIVEAUX » et peut y jouer ?
+--   "Owner" -> seulement le propriétaire du jeu (et toi dans Studio) : pour l'essayer sans rien changer pour les joueurs
+--   "All"   -> tout le monde
+--   "Off"   -> personne (le bouton n'existe pas)
+-- Le serveur refuse toute demande d'un joueur qui n'y a pas droit (Hub/LevelsService.luau).
+Config.LEVELS_ACCESS = "Owner"
+
 -- Dans Studio, TeleportService ne marche pas : on ne peut pas tester le vrai matchmaking.
 --   "Auto"  -> Lobby : map principale (parcelles + cercle ranked)
 --   "Match" -> lance directement un match pour tester le gameplay

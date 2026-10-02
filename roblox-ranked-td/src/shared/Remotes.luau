@@ -74,8 +74,27 @@ local DEFINITIONS = {
 	-- refusé dans le jeu publié). Le serveur garde tutorialDone (PlayerData) et le publie dans l'attribut TutorialDone
 	-- du joueur ; « Replay » augmente aussi l'attribut TutorialReplay (Hub/Tutorial.luau).
 	TutorialAction = "RemoteEvent",
+	-- NIVEAUX (prototype de la nouvelle formule, Shared/Levels.luau), client -> serveur :
+	--   ("Start", niveau) | "Quit" (retour au camp ; pendant un niveau : abandon)
+	--   | ("Place", type de tour, x, z) : pose libre, point de la zone de combat en coordonnées locales
+	--   | ("Upgrade", id de la tour) | ("Sell", id) | "Rush" (envoyer la suite) | ("Speed", 1 ou 2)
+	--   | ("Buy", type de tour) : boutique à prix fixes, payée en pièces de niveau
+	--   | ("SlotAssign", emplacement du camp, type de tour ou "") | ("SlotUpgrade", emplacement) | "SlotUnlock"
+	--   | ("Bar", { types de tours }) : ordre de la barre rapide.
+	-- Le serveur vérifie tout (Hub/LevelsService.luau). État publié en attributs :
+	--   du joueur : LevelsAccess (il a droit aux niveaux), LevelsState (JSON : best, coins, towers = ses tours dans
+	--     l'ordre de sa barre rapide, xp, slots, wins, losses), LevelArena (numéro de sa zone de combat pendant un
+	--     niveau, absent sinon) ;
+	--   du dossier de sa zone, workspace.Arenas.Arena<n> : Map, Level, State ("Running" | "Won" | "Lost"), Gold,
+	--     Lives, Left, Total, RushSeconds, SimSpeed, Perks, Training, et à la fin Result (JSON : won, level, reward,
+	--     firstClear, coins, kills, total, lives, xp, towers, perks, nextLevel, seconds).
+	-- Les monstres et les tirs de la zone arrivent par PlotSync / PlotShots, avec le numéro de la zone à la place
+	-- du numéro de parcelle (Levels.arenaIndex), au joueur du niveau seulement.
+	LevelAction = "RemoteEvent",
 	-- Commun
-	Notify = "RemoteEvent", -- serveur -> client : (message, kind)
+	-- serveur -> client : (message, kind, source). source = "Levels" pour un message d'un niveau : pendant un niveau,
+	-- le client n'affiche que ceux-là (Main.client.luau) ; absent pour tout le reste du jeu.
+	Notify = "RemoteEvent",
 	-- Réglages du joueur, client -> serveur : ("SoundMode", "All" | "Effects" | "Mute") = bouton « SON »
 	-- (SoundManager.luau). Sauvegardé avec ses données (PlayerData) et publié dans l'attribut « SoundMode » du joueur.
 	Settings = "RemoteEvent",

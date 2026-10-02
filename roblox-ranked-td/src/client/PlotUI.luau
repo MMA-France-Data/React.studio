@@ -1412,7 +1412,16 @@ function PlotUI.start()
 		return true
 	end
 
+	-- Pendant un NIVEAU (prototype de la nouvelle formule, LevelsUI.luau : attribut LevelArena du joueur), l'écran
+	-- montre sa zone de combat, pas la parcelle : clics et touches (E, Q) sont pour le niveau, rien ne doit agir ici.
+	local function inLevel(): boolean
+		return player:GetAttribute("LevelArena") ~= nil
+	end
+
 	UserInputService.InputBegan:Connect(function(input, processed)
+		if inLevel() then
+			return
+		end
 		if input.UserInputType == Enum.UserInputType.Touch then
 			touchStarts[input] = { position = input.Position, at = os.clock(), processed = processed }
 			return
@@ -1444,7 +1453,7 @@ function PlotUI.start()
 		end
 		local start = touchStarts[input]
 		touchStarts[input] = nil
-		if not start or os.clock() < ignoreTapsUntil then
+		if not start or os.clock() < ignoreTapsUntil or inLevel() then
 			return
 		end
 		if (input.Position - start.position).Magnitude > TAP_MOVE or os.clock() - start.at > TAP_TIME then

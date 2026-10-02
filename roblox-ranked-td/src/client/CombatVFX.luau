@@ -72,7 +72,19 @@ local function emitter(parent: Instance, name: string, texture: string, color: C
 	return e
 end
 
+-- Point depuis lequel les distances sont mesurées (nil = la caméra). Pendant un NIVEAU (LevelsUI.luau), la caméra
+-- regarde la carte de très haut : mesurées depuis elle, les limites ci-dessus (pensées pour la vue à pied)
+-- couperaient les effets du fond de la carte. LevelsUI donne donc un point proche du terrain.
+local focus: Vector3? = nil
+
+function VFX.setFocus(position: Vector3?)
+	focus = position
+end
+
 local function distance(position: Vector3): number
+	if focus then
+		return (focus - position).Magnitude
+	end
 	local camera = workspace.CurrentCamera
 	return if camera then (camera.CFrame.Position - position).Magnitude else math.huge
 end
@@ -88,8 +100,9 @@ local function claim(root: BasePart): boolean
 	return true
 end
 
--- Tours des parcelles (workspace.Hub.Plots.PlotN.Towers) : le sol est SOUS elles. Sans ça, l'onde du Totem
--- de givre se posait sur le haut de la tour, en l'air (retour du propriétaire). Liste refaite toutes les 2 s.
+-- Tours des parcelles (workspace.Hub.Plots.PlotN.Towers) et des zones de combat des niveaux
+-- (workspace.Arenas.ArenaN.Towers) : le sol est SOUS elles. Sans ça, l'onde du Totem de givre se posait sur le
+-- haut de la tour, en l'air (retour du propriétaire). Liste refaite toutes les 2 s.
 local towerFolders: { Instance } = {}
 local towerFoldersAt = -math.huge
 local function plotTowerFolders(): { Instance }
@@ -97,10 +110,11 @@ local function plotTowerFolders(): { Instance }
 	towerFoldersAt = os.clock()
 	table.clear(towerFolders)
 	local hub = workspace:FindFirstChild("Hub")
-	local plots = hub and hub:FindFirstChild("Plots")
-	for _, plot in (if plots then plots:GetChildren() else {}) do
-		local towers = plot:FindFirstChild("Towers")
-		if towers then table.insert(towerFolders, towers) end
+	for _, parent in { hub and hub:FindFirstChild("Plots"), workspace:FindFirstChild("Arenas") } do
+		for _, plot in parent:GetChildren() do
+			local towers = plot:FindFirstChild("Towers")
+			if towers then table.insert(towerFolders, towers) end
+		end
 	end
 	return towerFolders
 end

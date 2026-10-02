@@ -14,10 +14,35 @@ Depuis le dossier `roblox-ranked-td`, Studio fermé :
 powershell -ExecutionPolicy Bypass -File tools\studio-test\run.ps1
 powershell -ExecutionPolicy Bypass -File tools\studio-test\run.ps1 -Place match
 powershell -ExecutionPolicy Bypass -File tools\studio-test\phone.ps1
+powershell -ExecutionPolicy Bypass -File tools\studio-test\phone.ps1 -Mode levels
 ```
 
 **Ne touche pas à la fenêtre de Studio pendant un test** (ni clic, ni agrandissement) : un clic ferme une fenêtre du
 jeu ou sélectionne un emplacement, et des vérifications échouent sans raison.
+
+**L'écran du PC reste allumé pendant un test** (`awake.ps1`, chargé par `run.ps1` et `phone.ps1`) : quand Windows
+éteint l'écran (10 minutes sans souris ni clavier), Studio n'affiche plus rien du tout (image du jeu de 1 x 1 pixel,
+captures blanches, plus aucune image dessinée) et tous les tests de l'écran ratent. Le script demande donc à Windows
+de garder l'écran allumé tant qu'il tourne, et le rallume s'il était éteint (un mouvement de souris d'un pixel). Aucun
+réglage d'alimentation n'est changé : tout redevient normal à la fin du test.
+
+- `phone.ps1 -Mode levels` : **les NIVEAUX** (prototype de la nouvelle formule, voir `NIVEAUX.md`), environ 2 min 30.
+  Dans cette place de test seulement, les niveaux sont ouverts au joueur de test (objet `__AutoTestLevels` ajouté par
+  `mkproj.cjs`, lu par `Hub/LevelsService.luau` ; dans les autres places de test ils sont fermés : le bouton
+  « ⚔ NIVEAUX » n'y existe pas, ces tests regardent le jeu actuel).
+  **Côté serveur** (`scenarios\LevelsServer.luau`, par les mêmes demandes que le remote `LevelAction`) : accès, zones de
+  combat vides, **six niveaux joués en même temps** (temps du serveur par image, voir `NIVEAUX.md`), accès fermé puis
+  rouvert, demandes refusées, un niveau joué en entier (pose libre, refus, x2, victoire, récompense, XP), « Niveau
+  suivant » dans la même zone, abandon, « Rejouer », boutique à prix fixes, camp d'entraînement (emplacements,
+  absence d'une heure puis d'une semaine), ordre de la barre rapide, flèches enflammées débloquées par l'entraînement.
+  **Côté client** (`scenarios\LevelsClient.luau`, avec la vraie interface : l'attribut `TestAction` des écrans
+  « Levels » et « LevelHud » lance les mêmes fonctions que les boutons, et un appui sur le terrain passe par le vrai
+  chemin : point de l'écran, rayon de la caméra, sol) : fenêtre du camp et ses 4 onglets, niveau 1 (vue d'en haut qui
+  remplit l'écran, Archer offert qui tue en moins de 10 s, « + », pose près d'un « + », menu de la tour, amélioration,
+  pose libre, zoom et déplacement de la vue, refus sur le chemin, x2), victoire et écran de fin, « Niveau suivant »,
+  défaite et « Réessayer », abandon en deux appuis, retour au camp (caméra, écrans de la parcelle remis), puis à la
+  taille d'un téléphone (750 x 332) : fenêtre du camp, niveau, boutons dans l'écran et sans recouvrement, zoom.
+  Captures `levels_*.png`.
 
 - `phone.ps1` : **le jeu à la taille d'un téléphone** (environ 4 minutes). Les autres tests ne font que des calculs
   avec de fausses tailles ; celui-ci réduit vraiment la fenêtre de Studio jusqu'à ce que l'écran du jeu fasse la
@@ -187,7 +212,9 @@ powershell -ExecutionPolicy Bypass -File tools\studio-test\check.ps1
 | Fichier | Rôle |
 |---|---|
 | `run.ps1` | Construit la place de test, installe le plugin, ouvre Studio, prend les captures, affiche la Sortie |
-| `mkproj.cjs` | Crée `out\<hub\|match>.project.json` : `default.project.json` + le marqueur `__AutoPlayTest` + les scénarios |
+| `mkproj.cjs` | Crée `out\<hub\|match\|phone\|levels>.project.json` : `default.project.json` + le marqueur `__AutoPlayTest` + les scénarios |
+| `phone.ps1` | Comme `run.ps1`, mais redimensionne aussi la fenêtre de Studio quand le scénario demande une taille de téléphone (`-Mode levels` : test des niveaux) |
+| `awake.ps1` | Garde l'écran du PC allumé pendant un test (voir plus haut) |
 | `AutoPlayTest.lua` | Plugin Studio, copié dans `%LOCALAPPDATA%\Roblox\Plugins` par `run.ps1` |
 | `logserver.cjs` | Petit serveur sur `127.0.0.1:34999` (ce PC uniquement) qui écrit la Sortie dans `out\studio-output.log` |
 | `shot.ps1` | Capture de la fenêtre de Studio |

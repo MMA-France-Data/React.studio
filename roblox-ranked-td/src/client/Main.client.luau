@@ -11,7 +11,13 @@ while not mode do
 	mode = ReplicatedStorage:GetAttribute("ServerMode")
 end
 
-Remotes.get("Notify").OnClientEvent:Connect(function(message: string, kind: string?)
+-- source = "Levels" : message d'un NIVEAU (prototype de la nouvelle formule, Hub/LevelsService.luau). Pendant un
+-- niveau (attribut LevelArena du joueur), l'écran montre la zone de combat : les messages de la parcelle, qui tourne
+-- toute seule sur la place (« Vague 12 ratée... »), ne s'affichent pas ; seuls ceux du niveau passent.
+Remotes.get("Notify").OnClientEvent:Connect(function(message: string, kind: string?, source: string?)
+	if game:GetService("Players").LocalPlayer:GetAttribute("LevelArena") ~= nil and source ~= "Levels" then
+		return
+	end
 	UI.toast(message, kind)
 end)
 
@@ -57,6 +63,9 @@ else
 	require(script.Parent.SoundPanel).start()
 	-- Panneau « 🎁 DONNER » : seulement pour le propriétaire du jeu (offrir un pass à un joueur du serveur).
 	require(script.Parent.AdminUI).start()
+	-- NIVEAUX (prototype de la nouvelle formule) : bouton « ⚔ NIVEAUX », fenêtre du camp et écran des niveaux.
+	-- Seulement pour les joueurs à qui le serveur donne l'accès (Config.LEVELS_ACCESS : le propriétaire, pour l'instant).
+	require(script.Parent.LevelsUI).start()
 	-- Bouton « SCÈNES (Studio) » (dragon ou boss de glace tout prêts) : seulement dans Studio (Config.STUDIO_SCENES).
 	task.spawn(function()
 		require(script.Parent.StudioScenes).start()
