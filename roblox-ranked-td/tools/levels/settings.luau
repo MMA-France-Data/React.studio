@@ -1,6 +1,10 @@
--- Arguments des outils de réglage (sim, lazy, tune, curve, explore) : "nom=valeur".
---   regler=Levels.CHAMP=valeur;Levels.Autre.champ=valeur   essaie des réglages sans toucher à src.
---     « * » = toutes les entrées d'une table : Levels.DEFINITIONS.*.ramp.1=0.5
+-- Arguments des outils de réglage (sim, lazy, tune, curve, worth) : "nom=valeur".
+--   regler=Levels.CHAMP=valeur;IdleTowers.Defs.Rocket.damage=120   essaie des réglages sans toucher à src.
+--     Deux tables se règlent : Levels (src/shared/Levels.luau) et IdleTowers (src/shared/IdleTowers.luau).
+--     « * » = toutes les entrées d'une table : Levels.DEFINITIONS.*.gold=80
+--     Une table absente en chemin est créée : Levels.TOWER_TWEAKS.Orbital.stunDuration=1
+local IdleTowers = require("./gen/shared/IdleTowers")
+
 local Settings = {}
 
 -- Valeur de l'argument "name=..." (nil s'il est absent ou vide).
@@ -14,16 +18,18 @@ function Settings.argument(name: string, ...): string?
 	return nil
 end
 
--- Applique l'argument "regler=..." à la table Levels (et affiche chaque réglage).
+-- Applique l'argument "regler=..." aux tables Levels et IdleTowers (et affiche chaque réglage). À appeler avant de
+-- jouer : les stats des tours sont gardées en mémoire dès leur premier calcul.
 function Settings.apply(Levels, ...)
 	local settings = Settings.argument("regler", ...)
 	if not settings then
 		return
 	end
+	local roots = { Levels = Levels, IdleTowers = IdleTowers }
 	for assignment in string.gmatch(settings, "[^;]+") do
-		local path, value = string.match(assignment, "^%s*Levels%.([%w_%.%*]+)%s*=%s*([^%s]+)%s*$")
-		assert(path, "Réglage illisible : " .. assignment)
-		local targets = { Levels }
+		local rootName, path, value = string.match(assignment, "^%s*(%a+)%.([%w_%.%*]+)%s*=%s*([^%s]+)%s*$")
+		assert(rootName and roots[rootName], "Réglage illisible : " .. assignment)
+		local targets = { roots[rootName] }
 		local keys = string.split(path, ".")
 		for i = 1, #keys - 1 do
 			local nextTargets = {}
@@ -33,7 +39,11 @@ function Settings.apply(Levels, ...)
 						table.insert(nextTargets, entry)
 					end
 				else
-					table.insert(nextTargets, target[tonumber(keys[i]) or keys[i]])
+					local key = tonumber(keys[i]) or keys[i]
+					if target[key] == nil then
+						target[key] = {}
+					end
+					table.insert(nextTargets, target[key])
 				end
 			end
 			targets = nextTargets
@@ -42,7 +52,7 @@ function Settings.apply(Levels, ...)
 		for _, target in targets do
 			target[tonumber(key) or key] = tonumber(value)
 		end
-		print(`Réglage : Levels.{path} = {value}`)
+		print(`Réglage : {rootName}.{path} = {value}`)
 	end
 end
 

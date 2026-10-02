@@ -17,7 +17,8 @@ Le jeu sort comme une **nouvelle expérience Roblox** (décision du 02/10/2026) 
       tests automatiques ne vérifient que la taille de l'écran, pas le toucher.)
 - [ ] **Un nouveau joueur passe-t-il le niveau 1 ?** La difficulté est réglée avec des joueurs simulés et un seul
       vrai joueur (toi).
-- [ ] La Baliste et le Trébuchet : les renforcer ? (en attente de ta décision, voir `NIVEAUX.md`)
+- [x] La Baliste et le Trébuchet renforcés (02/10/2026, voir `NIVEAUX.md`, « Ce que chaque tour de la boutique
+      apporte »).
 - [ ] Les niveaux 11 à 20 (autre carte, autre famille de monstres) : avant ou après la sortie ?
 - [ ] Monstres : il manque les boss des territoires 6 et 9 (niveaux 60 et 90) et la mort du dragon. Sans importance
       tant que le jeu a 10 niveaux.

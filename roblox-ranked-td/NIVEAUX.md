@@ -208,6 +208,29 @@ Un vrai joueur choisit moins bien que le joueur simulé : pour gagner, il doit a
 indiqué. Tu as joué cette version et dit « ça va » (02/10/2026). Si c'est trop dur ou trop facile un jour, un seul
 chiffre par niveau change tout (`health` dans `Levels.DEFINITIONS`).
 
+### Ce que chaque tour de la boutique apporte
+
+Mesuré avec le joueur simulé (`tools\levels\run.ps1 -Worth`) : « +20 % » veut dire qu'avec cette tour en plus,
+il bat des monstres 20 % plus résistants qu'avec les seules tours attendues à ce niveau.
+
+| Tour (prix à la boutique) | Niveau 6 | Niveau 8 | Niveau 10 |
+|---|---|---|---|
+| Baliste lourde (1 200) | +20 % | +23 % | +59 % |
+| Sorcier des arcanes (3 000) | +20 % | +23 % | +59 % |
+| Oracle de la foudre (8 000) | +47 % | +42 % | +29 % |
+| Trébuchet royal (15 000) | +55 % | +34 % | +46 % |
+
+La Baliste et le Trébuchet ont été **renforcés le 02/10/2026** (avec ton accord). Avant, ils n'apportaient presque
+rien : la Baliste 0, 0 et +19 %, le Trébuchet +12 %, 0 et +12 %, alors que le Trébuchet est la tour la plus chère.
+
+| Tour | Avant | Maintenant |
+|---|---|---|
+| Baliste lourde | 50 dégâts toutes les 4 s | **120** dégâts toutes les 4 s |
+| Trébuchet royal | 35 dégâts dans sa zone toutes les 5 s, étourdit 0,5 s | **100** dégâts toutes les 5 s, étourdit **1 s** |
+
+Ces deux tours ne servent pas à régler la difficulté des 10 niveaux (les joueurs simulés ne les ont pas quand ils
+arrivent à un niveau) : rien d'autre n'a changé. Les chiffres sont dans `src/shared/IdleTowers.luau`.
+
 ## Comment on en est arrivé là (tes retours du 02/10/2026)
 
 1. **Premier essai** (« beaucoup trop facile », « ils sortent par vagues, je veux que ce soit en continu et de plus
@@ -226,6 +249,8 @@ chiffre par niveau change tout (`health` dans `Levels.DEFINITIONS`).
    un bouton « BOUTIQUE ») ; monstres affichés plus gros dans les niveaux (`Levels.ENEMY_SCALE`).
 5. **Le grand ménage** (« enlève tous les anciens trucs maintenant : ranked, forge, etc., tout ce qui est
    obsolète ») : voir juste en dessous.
+6. **La Baliste et le Trébuchet renforcés** (« oui renforce la baliste et le trébuchet ») : voir « Ce que chaque
+   tour de la boutique apporte », plus bas.
 
 ### Le grand ménage : ce qui a été enlevé
 
@@ -249,15 +274,12 @@ niveaux du joueur et son réglage du son. Les sauvegardes de l'ancien jeu « Tow
 
 ## Ce qui reste à décider (par toi)
 
-1. **La Baliste et le Trébuchet** n'apportent presque rien dans les niveaux (mesuré : voir `run.ps1 -Worth` dans
-   `tools/levels`), alors que le Trébuchet est la tour la plus chère. Je propose de les renforcer : j'attends ton
-   accord.
-2. **Les évolutions** de chaque tour (3 par tour) : ce sont mes propositions, à changer comme tu veux.
-3. **La suite des niveaux** : 11 à 20 avec une autre famille de monstres et une autre carte (le code est prêt pour
+1. **Les évolutions** de chaque tour (3 par tour) : ce sont mes propositions, à changer comme tu veux.
+2. **La suite des niveaux** : 11 à 20 avec une autre famille de monstres et une autre carte (le code est prêt pour
    plusieurs cartes : `Levels.MAPS`, et les modèles des monstres des territoires suivants existent déjà).
-4. **Des passes Robux pour ce jeu ?** Il n'y en a plus aucun. Si tu en veux, il faudra choisir lesquels (jamais un
+3. **Des passes Robux pour ce jeu ?** Il n'y en a plus aucun. Si tu en veux, il faudra choisir lesquels (jamais un
    avantage qui casse la difficulté des niveaux).
-5. **Avant de rendre le jeu public** : voir `SORTIE.md` (petit tuto, traduction anglaise des nouveaux écrans, essai
+4. **Avant de rendre le jeu public** : voir `SORTIE.md` (petit tuto, traduction anglaise des nouveaux écrans, essai
    sur un vrai téléphone, page du jeu).
 
 ## Technique (pour s'y retrouver)

@@ -183,7 +183,11 @@ IdleTowers.Defs = {
 		kind = "Pierce",
 		targeting = "Strongest",
 		color = Color3.fromRGB(200, 60, 60),
-		damage = 50,
+		-- RENFORCÉE (accord du propriétaire, 02/10/2026) : 120 dégâts au lieu de 50. Mesuré avec le joueur simulé
+		-- (tools\levels\run.ps1 -Worth) : à 50, l'avoir ne permettait de battre des monstres plus résistants qu'au
+		-- niveau 10 (+19 %, rien aux niveaux 6 et 8) ; à 120 : +20 %, +23 % et +59 % aux niveaux 6, 8 et 10, comme le
+		-- Sorcier des arcanes (l'autre tour épique).
+		damage = 120,
 		range = 30,
 		cooldown = 4, -- tire rarement : excellente contre les gros
 		pierceWidth = 1.25, -- demi-largeur du carreau perçant, en studs
@@ -227,16 +231,21 @@ IdleTowers.Defs = {
 		kind = "Splash",
 		targeting = "Crowd",
 		color = Color3.fromRGB(120, 240, 255),
-		damage = 35,
+		-- RENFORCÉ (accord du propriétaire, 02/10/2026) : 100 dégâts au lieu de 35, étourdissement de 1 s au lieu de
+		-- 0,5 s (immunité 2 s au lieu de 1,5 s : un monstre reste arrêté au plus 1 s sur 3). Mesuré avec le joueur
+		-- simulé (tools\levels\run.ps1 -Worth) : avant, l'avoir apportait +12 %, 0 et +12 % aux niveaux 6, 8 et 10 ;
+		-- maintenant +55 %, +34 % et +46 % : un peu plus que l'Oracle de la foudre (+47 %, +42 %, +29 %), l'autre
+		-- tour légendaire, qui coûte deux fois moins cher à la boutique.
+		damage = 100,
 		range = 70,
 		cooldown = 5,
 		splash = 10, -- grande zone (la Catapulte : 7)
 		-- Étourdit (vitesse 0) tous les monstres de la zone pendant stunDuration s. C'est un CONTRÔLE : refusé
 		-- sur un monstre déjà ralenti par une autre tour (les dégâts, eux, tombent toujours).
-		stunDuration = 0.5,
+		stunDuration = 1,
 		-- FATIGUE (comme le Mage) : une pierre ne prolonge jamais un étourdissement en cours, et quand il se
 		-- termine, le monstre est immunisé contre les étourdissements pendant stunImmunity secondes.
-		stunImmunity = 1.5,
+		stunImmunity = 2,
 		-- Grande cloche : vol = distance / 45 studs par seconde, 0,8 s au moins (~0,8 à 1,6 s).
 		projectileSpeed = 45,
 		projectileMinFlight = 0.8,
