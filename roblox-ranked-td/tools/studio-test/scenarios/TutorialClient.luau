@@ -223,6 +223,10 @@ return function(log)
 			game:GetService("StarterGui"):SetCoreGuiEnabled(Enum.CoreGuiType.PlayerList, false)
 		end)
 	end)
+	-- (au tout début du Play, l'image du jeu fait 1 x 1 px un instant : on lui laisse le temps de s'installer)
+	waitFor(function()
+		return cam() ~= nil and cam().ViewportSize.X >= 400 and cam().ViewportSize.Y >= 250
+	end, 20)
 	local viewport = cam().ViewportSize
 	if viewport.X < 400 or viewport.Y < 250 then
 		check(false, `Studio n'affiche pas le jeu (image de {viewport.X} x {viewport.Y} px : écran du PC éteint ?) : test abandonné`)

@@ -6,10 +6,11 @@ fixes, camp d'entraînement, plus aucun hasard).
 
 ## En deux mots
 
-- Le jeu est une suite de **niveaux** : **10 niveaux** pour l'instant. Chaque niveau est une partie de 2 à 3 minutes,
+- Le jeu est une suite de **niveaux** : **20 niveaux**, en deux **territoires** de 10 (la vallée du Roi carmin, puis
+  le col des Pillards de cuivre : une autre carte, d'autres monstres). Chaque niveau est une partie de 2 à 3 minutes,
   vue d'en haut : un flot continu de monstres, de plus en plus forts. Tu poses tes tours **où tu veux** et tu les
   améliores **sans arrêt** avec l'or des monstres (si tu t'arrêtes, tu perds), tu protèges ton château (10 vies).
-  Mini-boss au niveau 5, boss au niveau 10.
+  Dans chaque territoire : un mini-boss au 5e niveau, un boss au 10e.
 - Gagner donne des **pièces de niveau** 🏅. Elles servent à acheter les autres tours dans une **boutique à prix fixes**
   (aucun tirage au sort) et à améliorer ton **camp d'entraînement**.
 - Ta parcelle est ton **camp d'entraînement** : les tours que tu y mets deviennent plus fortes, même quand tu n'es
@@ -31,7 +32,8 @@ fixes, camp d'entraînement, plus aucun hasard).
    - derrière toi, à l'entrée, les deux bâtiments sont la **BOUTIQUE DES TOURS** et la **PORTE DES NIVEAUX** ;
    - au fond, le grand tableau affiche ton camp (niveaux réussis, tours débloquées, pièces).
 3. En haut à gauche, clique **« ⚔ NIVEAUX »** (tes pièces de niveau 🏅 sont affichées juste à côté, puis le bouton
-   « SON »), puis **« ▶ JOUER »** sur le niveau 1.
+   « SON »), puis **« ▶ JOUER »** sur le niveau 1. La liste des niveaux défile : un bandeau par territoire, et elle
+   s'ouvre toujours sur le territoire de ton prochain niveau.
 4. Dans le niveau :
    - tu as deux tours dans la barre du bas : l'**Archer** (une cible, rapide, 20 or) et la **Catapulte** (une zone,
      45 or). Au niveau 1, un Archer est déjà posé et tire tout seul ;
@@ -58,9 +60,9 @@ fixes, camp d'entraînement, plus aucun hasard).
 
 | | |
 |---|---|
-| Durée | 2 à 3 minutes (1 min 55 pour le niveau 1, 3 min 15 pour le niveau 10) |
+| Durée | 2 à 3 minutes (1 min 55 pour le niveau 1, 3 min 15 pour les niveaux 10 et 20) |
 | Vies | 10. Un monstre qui atteint le château en coûte 1 (chevalier lourd : 2, mini-boss : 5, boss : 10) |
-| Or de départ | fixe par niveau : 60 au niveau 1 (avec un Archer déjà posé), 65 au niveau 2… 110 au niveau 10 |
+| Or de départ | fixe par niveau : 60 au niveau 1 (avec un Archer déjà posé), 65 au niveau 2… 110 au niveau 10, puis de 115 (niveau 11) à 160 (niveau 20) |
 | Or gagné | chaque monstre tué donne son or tout de suite (6 pour un fantassin, 18 pour un chevalier lourd, 120 pour le mini-boss) : un « +6 » doré s'envole au-dessus de lui |
 | Ce qu'on garde d'un niveau à l'autre | **rien** : l'or et les tours posées repartent de zéro. On garde ses tours débloquées, ses pièces de niveau et son entraînement |
 | Le flot | les monstres sortent **un par un, sans aucune pause**, du début à la fin. Ils sortent de plus en plus serrés (3 fois plus par seconde à la fin) et sont de plus en plus résistants (16 fois plus de PV à la fin). Les types se mélangent : fantassins, cavaliers, meutes d'écuyers, chevaliers lourds |
@@ -99,6 +101,19 @@ Améliorer une tour : +35 % de dégâts par niveau, jusqu'au niveau 10. Le prix 
 | 8 | 220 | 88 |
 | 9 | 240 | 96 |
 | 10 (boss) | **600** | 240 |
+| 11 | 280 | 112 |
+| 12 | 300 | 120 |
+| 13 | 320 | 128 |
+| 14 | 340 | 136 |
+| 15 (mini-boss) | **600** | 240 |
+| 16 | 380 | 152 |
+| 17 | 400 | 160 |
+| 18 | 420 | 168 |
+| 19 | 440 | 176 |
+| 20 (boss) | **1 200** | 480 |
+
+Les mini-boss et les boss rapportent de plus en plus à chaque territoire (300 et 600 au premier, 600 et 1 200 au
+deuxième).
 
 Perdu ou abandonné : une petite part (la moitié de « en le rejouant », multipliée par la part des monstres éliminés).
 Lancer un niveau et le quitter tout de suite ne donne donc rien.
@@ -119,12 +134,41 @@ Lancer un niveau et le quitter tout de suite ne donne donc rien.
 Les pièces des premières victoires suffisent pour le Totem avant le niveau 3 (180 pièces après deux niveaux) et pour
 le Mage avant le niveau 6 (740 après cinq niveaux).
 
-**Est-ce qu'on a tout au niveau 10 ?** Non. Les 10 niveaux réussis une fois donnent 2 180 pièces en tout : de quoi
-acheter le Totem, le Mage et la Baliste (1 750), pas plus. Le reste se gagne en rejouant (le niveau 10 rejoué rapporte
-240 pièces) : 13 parties pour le Sorcier des arcanes, 34 pour l'Oracle de la foudre, 63 pour le Trébuchet royal.
+**Est-ce qu'on a tout au niveau 10 ?** Non. Les 10 premiers niveaux réussis une fois donnent 2 180 pièces : de quoi
+acheter le Totem, le Mage et la Baliste (1 750), pas plus.
 
-Les niveaux 11 à 20 rapporteront plus : les légendaires sont des buts à long terme, pas des tours du premier
-territoire. Chaque prix est un seul chiffre dans `Levels.SHOP`.
+**Et au niveau 20 ?** Les 20 niveaux réussis une fois donnent 6 860 pièces en tout : de quoi acheter aussi le
+Sorcier des arcanes (4 750 pour les quatre tours), mais aucune légendaire. Les légendaires restent des buts à long
+terme : en rejouant le niveau 20 (480 pièces à chaque fois), il faut 13 parties de plus pour l'Oracle de la foudre,
+et 32 pour le Trébuchet royal. Chaque prix est un seul chiffre dans `Levels.SHOP`.
+
+### Les deux territoires
+
+| | Territoire 1 : la vallée du Roi carmin | Territoire 2 : le col des Pillards de cuivre |
+|---|---|---|
+| Niveaux | 1 à 10 | 11 à 20 (ouvert quand le niveau 10 est réussi) |
+| Monstres | les Chevaliers carmin | les Pillards de cuivre (autres modèles 3D, mêmes 6 types) |
+| Carte | prairie verte ; le chemin serpente de gauche à droite jusqu'au château (204 studs) | terre rousse et rochers ; le chemin fait le tour du terrain puis revient vers le château, au milieu (282 studs) |
+| Gros monstres | un colosse aux niveaux 5, 8 et 10, le boss au niveau 10 | des colosses dans presque tous les niveaux (un, puis deux, puis trois), deux ensemble au niveau 15, le boss au niveau 20 |
+| Tours attendues | Archer et Catapulte, puis le Totem (niveau 3) et le Mage (niveau 6) | en plus : la Baliste dès le niveau 11 (les 10 premiers niveaux la paient), le Sorcier à partir du niveau 18 |
+| Pièces (première victoire) | 2 180 en tout | 4 680 en tout |
+
+Au col, le chemin passe trois fois devant le milieu du terrain : une tour posée entre deux couloirs tire sur les
+deux. Les monstres y sont plus résistants (fantassin : 126 PV au niveau 10, 190 au niveau 11) et la Baliste, qui
+vise le plus gros, sert enfin à quelque chose. Mesuré avec le joueur simulé, au rythme demandé (un achat toutes les
+3,5 s) :
+
+| Niveau | Avec la Baliste | Sans elle |
+|---|---|---|
+| 11 (pas de colosse) | gagné, 10 vies | gagné, 10 vies |
+| 12 (un colosse) | gagné, 10 vies | gagné, 5 vies : le colosse passe |
+| 15 (deux colosses ensemble) | gagné, 10 vies | perdu à 98 % : les deux colosses passent |
+| 20 (deux colosses, puis le boss) | gagné, 10 vies | perdu à 87 %, même en étant très actif |
+
+Pour ajouter un territoire : sa carte dans `Levels.MAPS`, son nom dans `Levels.TERRITORIES`, ses 10 niveaux dans
+`Levels.DEFINITIONS` (les PV se trouvent avec `tools\levels\run.ps1 -Tune`), ce que le joueur a en y arrivant dans
+`tools/levels/Bot.luau`, son décor dans `LevelArena.luau`. Les modèles 3D des monstres des territoires 3 à 10
+existent déjà.
 
 ### Le tuto des nouveaux joueurs
 
@@ -215,7 +259,7 @@ Temps pour évoluer avec le seul emplacement du camp (sans compter l'XP gagnée 
 
 ### La difficulté, réglée avec des joueurs simulés
 
-`tools/levels` fait jouer les 10 niveaux par des joueurs simulés, avec le vrai moteur du jeu. Chaque niveau est réglé
+`tools/levels` fait jouer les 20 niveaux par des joueurs simulés, avec le vrai moteur du jeu. Chaque niveau est réglé
 pour qu'**attendre fasse perdre** et que **rester actif fasse gagner** :
 
 | Niveau | Très actif (dépense tout, tout de suite) | Au rythme demandé | Un achat toutes les 8 s | 2 Archers puis attendre | 4 Archers et 2 Catapultes, sans améliorer |
@@ -230,14 +274,28 @@ pour qu'**attendre fasse perdre** et que **rester actif fasse gagner** :
 | 8 | gagne, 10 vies | toutes les 3,5 s : gagne, 10 vies | perd à 70 % | perd à 5 % (37 s) | perd à 18 % |
 | 9 | gagne, 10 vies | toutes les 3,5 s : gagne, 10 vies | perd à 49 % | perd à 4 % (37 s) | perd à 15 % |
 | 10 (boss) | gagne, 10 vies | toutes les 3,5 s : gagne, 10 vies | perd à 92 % | perd à 6 % (41 s) | perd à 21 % |
+| 11 | gagne, 10 vies | toutes les 3,5 s : gagne, 10 vies | perd à 52 % | perd à 5 % (45 s) | perd à 21 % |
+| 12 | gagne, 10 vies | toutes les 3,5 s : gagne, 10 vies | perd à 56 % | perd à 5 % (45 s) | perd à 22 % |
+| 13 | gagne, 10 vies | toutes les 3,5 s : gagne, 10 vies | perd à 57 % | perd à 5 % (44 s) | perd à 26 % |
+| 14 | gagne, 10 vies | toutes les 3,5 s : gagne, 10 vies | perd à 56 % | perd à 5 % (45 s) | perd à 21 % |
+| 15 (mini-boss) | gagne, 10 vies | toutes les 3,5 s : gagne, 10 vies | perd à 59 % | perd à 5 % (46 s) | perd à 21 % |
+| 16 | gagne, 10 vies | toutes les 3,5 s : gagne, 10 vies | perd à 50 % | perd à 5 % (44 s) | perd à 20 % |
+| 17 | gagne, 10 vies | toutes les 3,5 s : gagne, 10 vies | perd à 51 % | perd à 5 % (45 s) | perd à 22 % |
+| 18 | gagne, 10 vies | toutes les 3,5 s : gagne, 10 vies | perd à 41 % | perd à 4 % (42 s) | perd à 17 % |
+| 19 | gagne, 10 vies | toutes les 3,5 s : gagne, 10 vies | perd à 40 % | perd à 5 % (43 s) | perd à 19 % |
+| 20 (boss) | gagne, 10 vies | toutes les 3,5 s : gagne, 10 vies | perd à 40 % | perd à 4 % (42 s) | perd à 20 % |
 
 « Perd à 76 % » = le château tombe quand 76 % des monstres du niveau ont été éliminés.
 
 Ce que les joueurs simulés ont en arrivant à chaque niveau : les deux tours de départ aux niveaux 1 et 2, le Totem à
-partir du niveau 3, le Mage à partir du niveau 6, un peu d'entraînement (niveau 1 à partir du niveau 4, niveau 2 à
-partir du niveau 8). Sans la boutique (Archer et Catapulte seulement), un joueur très actif gagne les niveaux 1 et 2,
-passe ou rate de très peu les niveaux 3 à 5, et perd à partir du niveau 6. La Baliste et les tours suivantes ne
-sont jamais nécessaires pour finir les 10 niveaux.
+partir du niveau 3, le Mage à partir du niveau 6, la Baliste à partir du niveau 11, le Sorcier à partir du niveau 18,
+un peu d'entraînement (niveau 1 à partir du niveau 4, niveau 2 à partir du niveau 8, niveau 3 à partir du niveau 18 ;
+une tour qui vient d'être achetée n'est pas encore entraînée). Sans la boutique (Archer et Catapulte seulement), un
+joueur très actif gagne les niveaux 1 et 2, passe ou rate de très peu les niveaux 3 à 5, et perd à partir du
+niveau 6. Les deux légendaires (Oracle, Trébuchet) ne sont jamais nécessaires pour finir les 20 niveaux.
+
+Les niveaux 11 à 20 ont été réglés avec la même méthode que les dix premiers (`run.ps1 -Tune`, puis 5 % de marge),
+mais **aucun vrai joueur ne les a encore essayés** : dis-moi s'ils sont trop durs ou trop faciles.
 
 Un vrai joueur choisit moins bien que le joueur simulé : pour gagner, il doit aller un peu plus vite que le rythme
 indiqué. Tu as joué cette version et dit « ça va » (02/10/2026). Si c'est trop dur ou trop facile un jour, un seul
@@ -286,6 +344,8 @@ arrivent à un niveau) : rien d'autre n'a changé. Les chiffres sont dans `src/s
    obsolète ») : voir juste en dessous.
 6. **La Baliste et le Trébuchet renforcés** (« oui renforce la baliste et le trébuchet ») : voir « Ce que chaque
    tour de la boutique apporte », plus bas.
+7. **Le tuto** (« fais le tuto bien, je veux un jeu sortable ») : voir « Le tuto des nouveaux joueurs ».
+8. **Les niveaux 11 à 20** (« ajoute des niveaux ») : voir « Les deux territoires ».
 
 ### Le grand ménage : ce qui a été enlevé
 
@@ -310,8 +370,9 @@ niveaux du joueur et son réglage du son. Les sauvegardes de l'ancien jeu « Tow
 ## Ce qui reste à décider (par toi)
 
 1. **Les évolutions** de chaque tour (3 par tour) : ce sont mes propositions, à changer comme tu veux.
-2. **La suite des niveaux** : 11 à 20 avec une autre famille de monstres et une autre carte (le code est prêt pour
-   plusieurs cartes : `Levels.MAPS`, et les modèles des monstres des territoires suivants existent déjà).
+2. **Les niveaux 11 à 20** sont faits, mais tu ne les as pas encore joués : leur difficulté, la carte du col et le
+   nombre de colosses sont mes choix. Dis-moi ce que tu en penses. **La suite** (niveaux 21 à 30…) : les modèles des
+   monstres des territoires suivants existent déjà, il faut une carte et un réglage par territoire.
 3. **Des passes Robux pour ce jeu ?** Il n'y en a plus aucun. Si tu en veux, il faudra choisir lesquels (jamais un
    avantage qui casse la difficulté des niveaux).
 4. **Avant de rendre le jeu public** : voir `SORTIE.md` (traduction anglaise des nouveaux écrans, essai sur un vrai
@@ -332,11 +393,11 @@ niveaux du joueur et son réglage du son. Les sauvegardes de l'ancien jeu « Tow
 
 | Fichier | Rôle |
 |---|---|
-| `src/shared/Levels.luau` | toutes les règles et tous les chiffres (niveaux, monstres, prix, boutique, entraînement) |
+| `src/shared/Levels.luau` | toutes les règles et tous les chiffres (niveaux, territoires et cartes, monstres, prix, boutique, entraînement, tuto) |
 | `src/shared/IdleTowers.luau`, `IdleConfig.luau`, `Enemies.luau` | les 8 tours, les réglages du combat, les 6 types de monstres |
 | `src/server/Hub/Combat.luau` | le combat des tours contre les monstres, et ses paquets réseau |
 | `src/server/Hub/LevelGame.luau` | un niveau en cours (or, vies, flot de monstres, pose des tours) |
-| `src/server/Hub/LevelArena.luau` | les zones de combat et leur carte |
+| `src/server/Hub/LevelArena.luau` | les zones de combat, leur carte et le décor de chaque territoire |
 | `src/server/Hub/LevelsService.luau` | lancement, récompenses, boutique, camp, état publié au joueur |
 | `src/server/Hub/Camp.luau`, `CampGame.luau` | la parcelle : socles, étiquettes, invites ; les tours du camp et leurs cibles |
 | `src/server/Hub/HubMap.luau`, `Plots.luau`, `PlotBoard.luau`, `PlotIdentity.luau`, `PlotInterest.luau` | la map, l'attribution des parcelles, leurs panneaux, qui reçoit quel camp |
@@ -366,9 +427,9 @@ powershell -ExecutionPolicy Bypass -File tools\levels\run.ps1
 powershell -ExecutionPolicy Bypass -File tools\studio-test\run.ps1
 ```
 
-- le premier : 311 vérifications des règles, de la difficulté de chaque niveau, des évolutions, du camp et du tuto,
-  sans Studio (25 secondes) ;
-- le deuxième : le tableau de difficulté des 10 niveaux par les joueurs simulés ;
+- le premier : 484 vérifications des règles, de la difficulté de chacun des 20 niveaux, des évolutions, du camp et
+  du tuto, sans Studio (une minute et demie) ;
+- le deuxième : le tableau de difficulté des 20 niveaux par les joueurs simulés ;
 - le troisième : le test complet dans Studio (serveur, puis la vraie interface à la taille normale et à la taille
   d'un téléphone), avec des captures dans `tools/studio-test/out/levels_*.png`. Avec `-Test tutorial` : le tuto
   d'un nouveau joueur, suivi flèche après flèche (captures `tutorial_*.png`).
@@ -376,17 +437,18 @@ powershell -ExecutionPolicy Bypass -File tools\studio-test\run.ps1
 ### Six combats dans le même serveur
 
 C'était le point à valider par des mesures (un serveur = 6 joueurs, donc 6 niveaux possibles en même temps, en plus
-des 6 camps). Mesuré dans Studio le 02/10/2026, six niveaux 10 (le plus chargé) joués en même temps pendant
-170 secondes de jeu (tout le flot, dont la fin, le moment le plus chargé) :
+des 6 camps). Mesuré dans Studio le 02/10/2026, six niveaux 20 (le plus chargé : le chemin le plus long) joués en
+même temps pendant 170 secondes de jeu (presque tout le flot, dont la fin, le moment le plus chargé) :
 
 | Cas | Temps moyen par image | 99 % des images | Monstres en même temps |
 |---|---|---|---|
-| 12 tours par joueur (combat normal) | 0,13 ms | moins de 0,4 ms | jusqu'à 348 |
-| 3 tours par joueur (carte pleine de monstres) | 0,10 ms | moins de 0,25 ms | jusqu'à 348 |
+| 12 tours par joueur (combat normal) | 0,16 ms | moins de 0,5 ms | jusqu'à 474 |
+| 3 tours par joueur (carte pleine de monstres) | 0,16 ms | moins de 0,45 ms | jusqu'à 480 |
 
-(348 = 58 monstres en vie par niveau : à la fin du flot il en sort 3,5 par seconde, et chacun met environ 16 secondes
-à traverser la carte. La mesure donne des vies infinies et des tours de niveau 1, qui ne tuent presque plus rien à la
-fin : c'est le pire cas possible. Dans une vraie partie, le château tombe bien avant.)
+(480 = 80 monstres en vie par niveau, le maximum autorisé : à la fin du flot il en sort 3,3 par seconde, et chacun
+met environ 26 secondes à traverser la carte du col. La mesure donne des vies infinies et des tours de niveau 1, qui
+ne tuent presque plus rien à la fin : c'est le pire cas possible. Dans une vraie partie, le château tombe bien
+avant.)
 
 Une image du serveur dure 16,7 ms : les six combats ensemble en prennent **moins de 1 %**. Rester dans le même
 serveur tient donc largement.
@@ -400,7 +462,8 @@ print(m.averageMs, m.p99Ms, m.worstMs, m.enemiesPeak)
 
 ## Limites connues
 
-- Une seule carte (« La vallée du Roi carmin ») pour les 10 niveaux.
+- Deux cartes pour 20 niveaux (une par territoire).
+- Les niveaux 11 à 20 n'ont été joués que par les joueurs simulés.
 - Les écrans des niveaux et du camp sont en français seulement (voir `README.md`, « Langues »).
 - La difficulté est réglée avec des joueurs simulés et un seul vrai joueur (toi) : avant de rendre le jeu public, il
   faudra voir si un nouveau joueur passe le niveau 1.

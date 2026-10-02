@@ -7,7 +7,8 @@ Le jeu sort comme une **nouvelle expérience Roblox** (décision du 02/10/2026) 
 
 ## Le jeu lui-même
 
-- [x] 10 niveaux, camp d'entraînement, évolutions des tours, boutique à prix fixes (voir `NIVEAUX.md`).
+- [x] 20 niveaux en 2 territoires (les niveaux 11 à 20 ajoutés le 02/10/2026 : autre carte, monstres suivants), camp
+      d'entraînement, évolutions des tours, boutique à prix fixes (voir `NIVEAUX.md`).
 - [x] Tout l'ancien jeu enlevé (classé, autel, forge, vagues infinies, renaissance, défis, passes, ancien tuto).
 - [x] **Tuto** pour un nouveau joueur : une flèche dorée lui montre quoi toucher, du camp à la fin du niveau 1,
       puis la boutique (voir `NIVEAUX.md`, « Le tuto des nouveaux joueurs »). Celui qui la suit gagne le niveau 1.
@@ -16,12 +17,13 @@ Le jeu sort comme une **nouvelle expérience Roblox** (décision du 02/10/2026) 
 - [ ] **Essai sur un vrai téléphone** : boutons, textes, pose d'une tour au doigt, zoom en pinçant, fluidité. (Les
       tests automatiques ne vérifient que la taille de l'écran, pas le toucher.)
 - [ ] **Un nouveau joueur passe-t-il le niveau 1 ?** La difficulté est réglée avec des joueurs simulés et un seul
-      vrai joueur (toi).
+      vrai joueur (toi). Le tuto aide : un joueur simulé qui suit seulement la flèche gagne le niveau 1.
+- [ ] **Joue les niveaux 11 à 20** : ils n'ont été essayés que par les joueurs simulés (trop durs ? trop faciles ?).
 - [x] La Baliste et le Trébuchet renforcés (02/10/2026, voir `NIVEAUX.md`, « Ce que chaque tour de la boutique
       apporte »).
-- [ ] Les niveaux 11 à 20 (autre carte, autre famille de monstres) : avant ou après la sortie ?
+- [ ] Les niveaux 21 et plus (une carte et un réglage par territoire) : après la sortie.
 - [ ] Monstres : il manque les boss des territoires 6 et 9 (niveaux 60 et 90) et la mort du dragon. Sans importance
-      tant que le jeu a 10 niveaux.
+      tant que le jeu a 20 niveaux.
 - [ ] Des passes Robux pour ce jeu ? Il n'y en a plus aucun.
 
 ## Publication (Studio et Hub Création)

@@ -1,5 +1,6 @@
 -- NIVEAUX, côté client (règles et chiffres : Shared/Levels.luau, serveur : Hub/LevelsService.luau). Deux écrans :
 --   « Levels »   : le bouton « ⚔ NIVEAUX » de la map principale et sa fenêtre à 4 onglets : Niveaux (choisir un
+--                  niveau : 10 cartes par territoire, la page défile et s'ouvre sur le territoire du prochain
 --                  niveau), Boutique (tours à prix fixes, en pièces de niveau), Entraînement (emplacements du camp,
 --                  XP et améliorations de chaque tour), Mes tours (l'inventaire et l'ordre de la barre rapide) ;
 --   « LevelHud » : pendant un niveau. Vue d'en haut de la zone de combat (caméra réglée pour montrer toute la carte
@@ -431,7 +432,7 @@ local function buildCamp()
 		Font = Enum.Font.GothamBlack,
 		TextXAlignment = Enum.TextXAlignment.Left,
 		MaxTextSize = 24,
-		Text = "⚔ NIVEAUX • " .. Levels.MAPS.Valley.displayName,
+		Text = "⚔ NIVEAUX",
 		Parent = window,
 	})
 	local coinsLabel = UI.label({
@@ -484,16 +485,41 @@ local function buildCamp()
 	end
 
 	------------------------------------------------------------------
-	-- Onglet « Niveaux » : 10 cartes (5 par rangée)
+	-- Onglet « Niveaux » : un bandeau par territoire (son numéro et le nom de sa carte), puis ses 10 cartes (5 par
+	-- rangée). La page défile ; elle s'ouvre sur le territoire du prochain niveau à jouer (showTerritory).
 	------------------------------------------------------------------
-	local CARD_W, CARD_H, GAP = 144, 152, 9
+	local CARD_W, CARD_H, GAP = 142, 152, 9 -- (5 cartes + la barre de défilement tiennent dans la fenêtre)
+	local HEADER_H = 30
+	local TERRITORY_H = HEADER_H + 2 * (CARD_H + GAP) + 6 -- hauteur d'un territoire dans la page
+	local SUMMARY_H = 150
+	local territoryHeaders = {}
+	for territory in Levels.TERRITORIES do
+		territoryHeaders[territory] = UI.label({
+			Name = "Territory" .. territory,
+			Position = UDim2.fromOffset(2, (territory - 1) * TERRITORY_H),
+			Size = UDim2.new(1, -16, 0, HEADER_H - 6),
+			Font = Enum.Font.GothamBlack,
+			TextXAlignment = Enum.TextXAlignment.Left,
+			MaxTextSize = 18,
+			Parent = pages.Niveaux,
+		})
+	end
+	pages.Niveaux.CanvasSize = UDim2.fromOffset(0, #Levels.TERRITORIES * TERRITORY_H + SUMMARY_H)
+	-- La page montre le territoire du prochain niveau à jouer (appelé quand l'onglet s'ouvre, pas à chaque mise à
+	-- jour : le joueur peut faire défiler la page).
+	local function showTerritory()
+		local territory = Levels.territoryOf(math.min(state.best + 1, Levels.COUNT))
+		pages.Niveaux.CanvasPosition = Vector2.new(0, (territory - 1) * TERRITORY_H)
+	end
 	local levelCards = {}
 	for level = 1, Levels.COUNT do
 		local definition = Levels.definition(level)
-		local column, row = (level - 1) % 5, math.floor((level - 1) / 5)
+		local index = (level - 1) % Levels.TERRITORY_SIZE
+		local column, row = index % 5, math.floor(index / 5)
+		local top = (definition.territory - 1) * TERRITORY_H + HEADER_H
 		local card = UI.new("Frame", {
 			Name = "Level" .. level,
-			Position = UDim2.fromOffset(column * (CARD_W + GAP), row * (CARD_H + GAP)),
+			Position = UDim2.fromOffset(column * (CARD_W + GAP), top + row * (CARD_H + GAP)),
 			Size = UDim2.fromOffset(CARD_W, CARD_H),
 			BackgroundColor3 = UI.Colors.PanelLight,
 			Parent = pages.Niveaux,
@@ -542,8 +568,8 @@ local function buildCamp()
 	end
 	local summary = UI.label({
 		Name = "Summary",
-		Position = UDim2.fromOffset(0, 2 * CARD_H + GAP + 12),
-		Size = UDim2.new(1, 0, 1, -(2 * CARD_H + GAP + 12)),
+		Position = UDim2.fromOffset(0, #Levels.TERRITORIES * TERRITORY_H + 4),
+		Size = UDim2.new(1, -16, 0, SUMMARY_H - 50),
 		TextWrapped = true,
 		TextXAlignment = Enum.TextXAlignment.Left,
 		TextYAlignment = Enum.TextYAlignment.Top,
@@ -553,6 +579,14 @@ local function buildCamp()
 	})
 
 	local function refreshLevels()
+		-- Un territoire s'ouvre quand le dernier niveau du précédent est réussi.
+		for territory, header in territoryHeaders do
+			local map = Levels.MAPS[Levels.TERRITORIES[territory]]
+			local before = (territory - 1) * Levels.TERRITORY_SIZE
+			local open = state.best >= before
+			header.Text = `TERRITOIRE {territory} • {map.displayName}` .. (if open then "" else ` • 🔒 réussis le niveau {before}`)
+			header.TextColor3 = if open then UI.Colors.Gold else UI.Colors.Muted
+		end
 		for level, entry in levelCards do
 			local cleared = level <= state.best
 			local nextOne = level == state.best + 1
@@ -1107,7 +1141,7 @@ local function buildCamp()
 				local stars = Levels.stars(Levels.evolutionStage(towerType, trained))
 				entry.title.Text = `{index}. {def.displayName}{if stars ~= "" then " " .. stars else ""} • {Levels.placeCost(towerType)} {GOLD} • entraînement {trained}`
 				entry.stats.Text = statsLine(Levels.towerStats(towerType, 1, trained))
-					.. (if #unlocked > 0 then "\n" .. table.concat(unlocked, ", ") else "")
+					.. (if #unlocked > 0 then "\n" .. table.concat(unlocked, " • ") else "")
 			end
 		end
 	end
@@ -1133,6 +1167,9 @@ local function buildCamp()
 	function camp.open(tab: string?, slot: number?)
 		if tab and pages[tab] then
 			currentTab = tab
+			if tab == "Niveaux" then
+				showTerritory()
+			end
 		end
 		if slot and state.slots[slot] then
 			selectedSlot = slot

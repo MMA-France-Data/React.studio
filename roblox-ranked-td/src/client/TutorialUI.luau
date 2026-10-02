@@ -478,7 +478,13 @@ function TutorialUI.start()
 		local tip, direction
 		if target.gui then
 			local object = target.gui :: GuiObject
-			if not object:IsDescendantOf(playerGui) or not shown(object) then
+			-- (bouton d'une page qui défile, sorti de la page : la flèche se cache au lieu de pointer hors de la fenêtre)
+			local page = object:FindFirstAncestorWhichIsA("ScrollingFrame")
+			local middle = object.AbsolutePosition + object.AbsoluteSize / 2
+			local clipped = page ~= nil
+				and (middle.Y < page.AbsolutePosition.Y or middle.Y > page.AbsolutePosition.Y + page.AbsoluteSize.Y
+					or middle.X < page.AbsolutePosition.X or middle.X > page.AbsolutePosition.X + page.AbsoluteSize.X)
+			if not object:IsDescendantOf(playerGui) or not shown(object) or clipped then
 				arrow.Visible = false
 				caption.Visible = false
 				return

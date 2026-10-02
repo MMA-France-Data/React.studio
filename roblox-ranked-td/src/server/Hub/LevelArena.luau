@@ -23,14 +23,28 @@ local LevelArena = {}
 
 local arenas = {} -- [slot] = { slot, index, folder, cframe, focus, map, palier }
 
--- Décor de chaque territoire (palier = (niveau - 1) // 10) : couleurs du sol, du terrain et du chemin.
+-- Décor de chaque territoire (palier = (niveau - 1) // 10) : couleurs et matières du sol, du terrain et du chemin,
+-- feuillage des arbres (autumn = roux), rochers posés autour du terrain.
 local THEMES = {
+	-- La vallée du Roi carmin : prairie verte.
 	[0] = {
 		ground = Color3.fromRGB(88, 116, 69),
 		field = Color3.fromRGB(104, 136, 82),
 		path = Color3.fromRGB(150, 138, 110),
 		wall = Color3.fromRGB(139, 144, 128),
 		banner = Color3.fromRGB(142, 48, 44),
+		groundMaterial = Enum.Material.Grass,
+	},
+	-- Le col des Pillards de cuivre : terre sèche et rousse, rochers, arbres d'automne.
+	[1] = {
+		ground = Color3.fromRGB(121, 96, 66),
+		field = Color3.fromRGB(150, 121, 80),
+		path = Color3.fromRGB(196, 172, 128),
+		wall = Color3.fromRGB(128, 106, 88),
+		banner = Color3.fromRGB(198, 108, 40),
+		groundMaterial = Enum.Material.Ground,
+		autumn = true,
+		rocks = Color3.fromRGB(133, 110, 92),
 	},
 }
 
@@ -77,8 +91,8 @@ function LevelArena.build(slot: number, mapName: string, palier: number)
 	folder.Name = "Map"
 
 	-- Grand sol autour du terrain, puis le terrain lui-même (là où on pose les tours), un peu plus clair.
-	scenery(folder, "Ground", Vector3.new(w + 260, 1, d + 260), origin * CFrame.new(0, -0.7, 0), theme.ground, Enum.Material.Grass)
-	scenery(folder, "Field", Vector3.new(w, 1, d), origin * CFrame.new(0, -0.5, 0), theme.field, Enum.Material.Grass)
+	scenery(folder, "Ground", Vector3.new(w + 260, 1, d + 260), origin * CFrame.new(0, -0.7, 0), theme.ground, theme.groundMaterial)
+	scenery(folder, "Field", Vector3.new(w, 1, d), origin * CFrame.new(0, -0.5, 0), theme.field, theme.groundMaterial)
 
 	-- Chemin des monstres.
 	for _, slab in RoadGeometry.rectangles(map.path, Levels.PATH_WIDTH) do
@@ -120,10 +134,27 @@ function LevelArena.build(slot: number, mapName: string, palier: number)
 	end
 	-- Quelques arbres, seulement au fond et sur les côtés (devant, ils cacheraient le terrain à la caméra).
 	for i = 0, 6 do
-		MedievalModels.tree(folder, origin * CFrame.new(-w / 2 + 6 + i * (w - 12) / 6, 0, -d / 2 - 12 - (i % 2) * 6), 1.1 + (i % 3) * 0.15, i % 4 == 1)
+		MedievalModels.tree(folder, origin * CFrame.new(-w / 2 + 6 + i * (w - 12) / 6, 0, -d / 2 - 12 - (i % 2) * 6), 1.1 + (i % 3) * 0.15, theme.autumn or i % 4 == 1)
 	end
 	for _, side in { -1, 1 } do
-		MedievalModels.tree(folder, origin * CFrame.new(side * (w / 2 + 14), 0, -6), 1.2, false)
+		MedievalModels.tree(folder, origin * CFrame.new(side * (w / 2 + 14), 0, -6), 1.2, theme.autumn == true)
+	end
+	-- Rochers autour du terrain (jamais dessus), au fond et sur les côtés.
+	if theme.rocks then
+		for i = 0, 9 do
+			local size = 3 + (i * 7 % 5)
+			local x = -w / 2 - 4 + i * (w + 8) / 9
+			local z = -d / 2 - 5 - (i * 3 % 4) * 1.5
+			local rock = scenery(folder, "Rock", Vector3.new(size * 1.3, size, size * 1.1), origin * CFrame.new(x, size * 0.3, z) * CFrame.Angles(0, i * 0.9, 0.2), theme.rocks:Lerp(Color3.new(0, 0, 0), (i % 3) * 0.08), Enum.Material.Slate)
+			rock.Shape = Enum.PartType.Ball
+		end
+		for _, side in { -1, 1 } do
+			for i = 0, 2 do
+				local size = 3.5 + i
+				local rock = scenery(folder, "Rock", Vector3.new(size * 1.2, size, size), origin * CFrame.new(side * (w / 2 + 6 + i * 2), size * 0.3, -d / 2 + 10 + i * 13) * CFrame.Angles(0, i * 1.3, 0.15), theme.rocks, Enum.Material.Slate)
+				rock.Shape = Enum.PartType.Ball
+			end
+		end
 	end
 
 	folder.Parent = arena.folder

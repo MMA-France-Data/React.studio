@@ -97,7 +97,13 @@ Bot.POLICIES = {
 -- pace = le RYTHME demandé par ce niveau : secondes entre deux achats du joueur de référence, celui pour qui le
 -- niveau est réglé (tune.luau). Le premier niveau laisse un peu de temps, les derniers demandent un achat toutes
 -- les 3,5 secondes (un humain choisit moins bien que le joueur simulé : il doit aller un peu plus vite que ça).
-local MG, BOMB, FROST, TESLA = "MachineGun", "Bomb", "Frost", "Tesla"
+-- 2e territoire (niveaux 11 à 20) :
+--   * la Baliste (1 200 pièces) est achetée en arrivant : les 10 premiers niveaux donnent 2 180 pièces, moins le
+--     Totem et le Mage (550) ;
+--   * le Sorcier (3 000) avant le niveau 18, avec les pièces des niveaux 11 à 17 (2 620) ;
+--   * trainings = entraînement d'une tour à part : une tour qui vient d'être achetée n'est pas encore entraînée
+--     (la Baliste n'a donc pas encore son carreau perçant, qui vient à l'entraînement 2).
+local MG, BOMB, FROST, TESLA, ROCKET, LASER = "MachineGun", "Bomb", "Frost", "Tesla", "Rocket", "Laser"
 Bot.EXPECTED = {
 	{ towers = { MG, BOMB }, training = 0, pace = 5 },
 	{ towers = { MG, BOMB }, training = 0, pace = 4.5 },
@@ -109,6 +115,17 @@ Bot.EXPECTED = {
 	{ towers = { MG, BOMB, FROST, TESLA }, training = 2, pace = 3.5 },
 	{ towers = { MG, BOMB, FROST, TESLA }, training = 2, pace = 3.5 },
 	{ towers = { MG, BOMB, FROST, TESLA }, training = 2, pace = 3.5 },
+	-- 2e territoire
+	{ towers = { MG, BOMB, FROST, TESLA, ROCKET }, training = 2, trainings = { Rocket = 0 }, pace = 3.5 },
+	{ towers = { MG, BOMB, FROST, TESLA, ROCKET }, training = 2, trainings = { Rocket = 0 }, pace = 3.5 },
+	{ towers = { MG, BOMB, FROST, TESLA, ROCKET }, training = 2, trainings = { Rocket = 0 }, pace = 3.5 },
+	{ towers = { MG, BOMB, FROST, TESLA, ROCKET }, training = 2, trainings = { Rocket = 1 }, pace = 3.5 },
+	{ towers = { MG, BOMB, FROST, TESLA, ROCKET }, training = 2, trainings = { Rocket = 1 }, pace = 3.5 },
+	{ towers = { MG, BOMB, FROST, TESLA, ROCKET }, training = 2, trainings = { Rocket = 1 }, pace = 3.5 },
+	{ towers = { MG, BOMB, FROST, TESLA, ROCKET }, training = 2, trainings = { Rocket = 1 }, pace = 3.5 },
+	{ towers = { MG, BOMB, FROST, TESLA, ROCKET, LASER }, training = 3, trainings = { Rocket = 2, Laser = 0 }, pace = 3.5 },
+	{ towers = { MG, BOMB, FROST, TESLA, ROCKET, LASER }, training = 3, trainings = { Rocket = 2, Laser = 0 }, pace = 3.5 },
+	{ towers = { MG, BOMB, FROST, TESLA, ROCKET, LASER }, training = 3, trainings = { Rocket = 2, Laser = 0 }, pace = 3.5 },
 }
 Bot.ALL_TOWERS = { "MachineGun", "Frost", "Bomb", "Tesla", "Rocket", "Laser", "Chain", "Orbital" }
 
@@ -118,10 +135,11 @@ Bot.ALL_TOWERS = { "MachineGun", "Frost", "Bomb", "Tesla", "Rocket", "Laser", "C
 function Bot.profile(level: number, pace: (number | string)?)
 	local expected = Bot.EXPECTED[level]
 	local interval = if pace == "reference" then expected.pace else pace
-	return { towers = expected.towers, training = expected.training, interval = interval, actions = if interval then 1 else nil }
+	return { towers = expected.towers, training = expected.training, trainings = expected.trainings, interval = interval, actions = if interval then 1 else nil }
 end
 
 -- profile = { towers = { types débloqués }, training = niveau d'entraînement de toutes les tours (0 à 6),
+--             trainings = { [type] = entraînement de cette tour-là, à la place de `training` },
 --             interval = secondes entre deux décisions (0,4 par défaut : un joueur très actif),
 --             actions = achats au plus par décision (20 par défaut : il dépense tout ce qu'il peut) }
 -- Un joueur « moyen » (interval 3, actions 1) ou « lent » (interval 8, actions 1) sert à vérifier qu'un niveau
@@ -256,7 +274,7 @@ function Bot.playWith(level: number, profile, policy, observe: ((any, number) ->
 	local unlocked, training = {}, {}
 	for _, towerType in profile.towers do
 		unlocked[towerType] = true
-		training[towerType] = profile.training or 0
+		training[towerType] = (profile.trainings and profile.trainings[towerType]) or profile.training or 0
 	end
 	local arena = { index = Levels.arenaIndex(1), folder = Env.fakeInstance("Arena"), cframe = Levels.arenaCFrame(1), map = definition.map }
 	local player = { UserId = 1, Parent = {} }

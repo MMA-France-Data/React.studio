@@ -19,17 +19,18 @@ powershell -ExecutionPolicy Bypass -File tools\levels\run.ps1 -Regler "Levels.ST
 
 - **sans option** : le tableau de difficulté. Chaque niveau est joué par des joueurs simulés : très actif, au rythme
   demandé par le niveau, lent (un achat toutes les 8 s), distrait (toutes les 15 s), sans boutique, tout débloqué.
-  « G 7 » = gagné avec 7 vies, « P 62 % » = perdu après avoir éliminé 62 % des monstres. Environ 45 secondes.
-- **`-Tests`** : 311 vérifications (niveaux, flot continu, carte, pose libre, récompenses, prix, entraînement, données
+  « G 7 » = gagné avec 7 vies, « P 62 % » = perdu après avoir éliminé 62 % des monstres. Environ 2 minutes.
+- **`-Tests`** : 484 vérifications (20 niveaux, 2 territoires, flot continu, cartes, pose libre, récompenses, prix, entraînement, données
   du joueur, le moteur : or, vies, victoire, défaite, vitesse x2, paquets réseau, **la difficulté de chaque
   niveau** : voir plus bas, les évolutions des tours, le camp d'entraînement de la parcelle : `CampGame.luau`, et
-  **le tuto** : son étape dans les données, le guide du niveau 1, le joueur qui suit la flèche). Environ
-  25 secondes.
+  **le tuto** : son étape dans les données, le guide du niveau 1, le joueur qui suit la flèche). Environ une minute
+  et demie.
 - **`-Lazy`** : les 10 niveaux joués par un joueur qui pose quelques tours puis attend (rien de plus, 2 Archers,
   3 Archers, 2 Archers et une Catapulte, 4 Archers et 2 Catapultes). Ils doivent tous perdre.
 - **`-Tune`** : cherche, pour chaque niveau, les PV des monstres les plus hauts avec lesquels le joueur de référence
-  gagne encore (un niveau par processus, environ 1 minute). `-Niveaux "1,3"` : seulement ces niveaux. `-Rythme 3` :
-  un autre rythme de référence. `-Vies 8` : il doit garder 8 vies.
+  gagne encore (un niveau par processus, environ 2 minutes pour 10 niveaux). `-Niveaux "1,3"` : seulement ces
+  niveaux (pour régler un nouveau territoire : `-Niveaux "11,12,13,14,15,16,17,18,19,20"`). `-Rythme 3` : un autre
+  rythme de référence. `-Vies 8` : il doit garder 8 vies.
 - **`-Curve`** : la pression d'un niveau au fil du temps (les PV qui sortent par seconde, comparés à ce que le joueur
   peut se payer). Elle doit monter du début à la fin.
 - **`-Worth`** : ce que chaque tour de la boutique APPORTE (de combien les monstres peuvent être plus résistants
@@ -48,7 +49,7 @@ powershell -ExecutionPolicy Bypass -File tools\levels\run.ps1 -Regler "Levels.ST
 
 Retour du propriétaire après son premier essai (02/10/2026) : « beaucoup trop facile », « je veux que ce soit en
 continu et de plus en plus dur, que je sois obligé d'être super actif : poser des tours, améliorer », « si juste
-2 Archers gèrent le niveau, je passe mon temps à attendre ». `tests.luau` vérifie donc, pour **chacun des 10 niveaux** :
+2 Archers gèrent le niveau, je passe mon temps à attendre ». `tests.luau` vérifie donc, pour **chacun des 20 niveaux** :
 
 | Joueur simulé | Doit |
 |---|---|
@@ -59,7 +60,23 @@ continu et de plus en plus dur, que je sois obligé d'être super actif : poser 
 | 2 Archers puis attendre | perdre avant 30 % du niveau, mais tenir au moins 35 s |
 | 4 Archers et 2 Catapultes sans rien améliorer | perdre avant 60 % du niveau |
 
-Les tours et l'entraînement « attendus » à chaque niveau, et le rythme demandé, sont dans `Bot.EXPECTED`.
+Les tours et l'entraînement « attendus » à chaque niveau, et le rythme demandé, sont dans `Bot.EXPECTED` (une tour
+qui vient d'être achetée n'est pas encore entraînée : `trainings`).
+
+## Ajouter un territoire (10 niveaux)
+
+C'est ce qui a été fait pour les niveaux 11 à 20 (02/10/2026, « ajoute des niveaux ») :
+
+1. `src/shared/Levels.luau` : la carte dans `MAPS` (chemin en tronçons droits, château, 12 emplacements conseillés),
+   son nom dans `TERRITORIES`, 10 lignes dans `DEFINITIONS` avec des PV provisoires, puis `COUNT`.
+2. `Bot.luau` : 10 lignes dans `Bot.EXPECTED` (les tours que les pièces gagnées jusque-là permettent d'acheter).
+3. `run.ps1 -Tune -Niveaux "..."` donne les PV ; on garde 5 % de marge en dessous.
+4. `run.ps1 -Tests` vérifie tout (les mêmes règles que pour les autres niveaux), puis `run.ps1` montre le tableau.
+5. `src/server/Hub/LevelArena.luau` : le décor du territoire (`THEMES`).
+
+Un boss doit fermer le flot (`{ "Boss", 1 }`). Sorti pendant le flot, il se fait doubler par les monstres rapides,
+les tours qui visent « le plus avancé » ne le touchent plus, et le joueur simulé très actif perd après avoir tout
+éliminé sauf lui (essayé au niveau 20).
 
 ## Comment un niveau est réglé
 

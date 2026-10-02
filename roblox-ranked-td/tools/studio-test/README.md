@@ -46,7 +46,10 @@ Scénarios `scenarios\LevelsServer.luau` puis `scenarios\LevelsClient.luau`. Cap
 - demandes refusées, le niveau 1 **perdu** par celui qui pose 2 Archers puis attend (pose libre, refus, x2, défaite,
   petite récompense), puis gagné avec toutes ses tours posées et améliorées (victoire, récompense, XP), « Niveau
   suivant » dans la même zone, abandon, « Rejouer », boutique à prix fixes, camp (emplacements, absence d'une heure
-  puis d'une semaine), ordre de la barre rapide, flèches enflammées débloquées par l'entraînement.
+  puis d'une semaine), ordre de la barre rapide, flèches enflammées débloquées par l'entraînement ;
+- **le 2e territoire** : le niveau 11 fermé tant que le niveau 10 n'est pas réussi, la carte du col construite
+  (terre rousse, rochers), ses 12 emplacements, une capture en plein combat (`levels_territoire2`), les récompenses
+  (280, 600 au mini-boss, 1 200 au boss), le retour à la carte de la vallée.
 
 **Côté client** (avec la vraie interface : l'attribut `TestAction` des écrans « Levels » et « LevelHud » lance les
 mêmes fonctions que les boutons, et un appui sur le terrain passe par le vrai chemin : point de l'écran, rayon de la
@@ -56,7 +59,7 @@ caméra, sol) :
   côté du bouton « ⚔ NIVEAUX », cibles de paille sur la parcelle, son des flèches, onglet Entraînement et évolutions
   (`levels_camp_parcelle`, `levels_camp_evolutions`) ;
 - fenêtre du camp et ses 4 onglets (`levels_camp_niveaux`, `levels_camp_boutique`, `levels_camp_entrainement`,
-  `levels_camp_tours`) ;
+  `levels_camp_tours`), les 20 niveaux en 2 territoires dans une page qui défile (`levels_camp_territoire2`) ;
 - niveau 1 : vue d'en haut qui remplit l'écran, deux tours dans la barre, Archer offert qui tue en moins de 10 s,
   « + », son du combat, « +6 » doré de l'or gagné, pose près d'un « + », **bouton « ANNULER » de la tour en main**
   (`levels_annuler`), menu de la tour, amélioration, pose libre, zoom et déplacement de la vue, trois inclinaisons

@@ -64,9 +64,18 @@ local function towerCount(game): number
 end
 
 ----------------------------------------------------------------------
--- 1) Les niveaux : 10 niveaux, mini-boss au 5, boss au 10, 2 à 3 minutes, un FLOT CONTINU qui monte
+-- 1) Les niveaux : 20 niveaux en 2 territoires de 10, mini-boss au milieu d'un territoire, boss à la fin, 2 à
+--    3 minutes et demie, un FLOT CONTINU qui monte
 ----------------------------------------------------------------------
-check(Levels.COUNT == 10 and #Levels.DEFINITIONS == 10, `10 niveaux dans le jeu ({Levels.COUNT}, {#Levels.DEFINITIONS} fiches)`)
+check(
+	Levels.COUNT == 20 and #Levels.DEFINITIONS == 20 and #Levels.TERRITORIES == 2 and Levels.TERRITORY_SIZE == 10,
+	`20 niveaux dans le jeu, en 2 territoires de 10 ({Levels.COUNT} niveaux, {#Levels.DEFINITIONS} fiches, {#Levels.TERRITORIES} territoires)`
+)
+check(
+	Levels.territoryOf(1) == 1 and Levels.territoryOf(10) == 1 and Levels.territoryOf(11) == 2 and Levels.territoryOf(20) == 2
+		and Levels.definition(10).map == "Valley" and Levels.definition(11).map == "Pass" and Levels.definition(11).palier == 1,
+	"territoires : niveaux 1 à 10 dans la vallée, 11 à 20 au col (autre carte, famille de monstres suivante)"
+)
 for level = 1, Levels.COUNT do
 	local definition = Levels.definition(level)
 	local source = Levels.DEFINITIONS[level]
@@ -85,11 +94,19 @@ for level = 1, Levels.COUNT do
 	check(#queue >= 120 and ordered, `niveau {level} : {#queue} monstres, dans l'ordre de leur heure, PV et or positifs`)
 	check(duration >= 100 and duration <= 200, `niveau {level} : dure {math.floor(duration)} s (entre 100 et 200)`)
 	check(definition.gold >= Levels.placeCost("MachineGun"), `niveau {level} : l'or de départ ({definition.gold}) paie au moins un Archer`)
-	check(definition.miniBoss == (level == 5) and definition.boss == (level == 10), `niveau {level} : mini-boss {tostring(definition.miniBoss)}, boss {tostring(definition.boss)}`)
+	check(
+		definition.miniBoss == (level % 10 == 5) and definition.boss == (level % 10 == 0) and definition.territory == Levels.territoryOf(level)
+			and definition.palier == definition.territory - 1 and Levels.MAPS[definition.map] ~= nil,
+		`niveau {level} : territoire {definition.territory}, mini-boss {tostring(definition.miniBoss)}, boss {tostring(definition.boss)}`
+	)
 	if level == 5 then
 		check(types.Giant == 1 and not types.Boss, "niveau 5 : un mini-boss (chevalier colossal) dans le flot, pas de boss")
 	elseif level == 10 then
 		check(types.Boss == 1 and queue[#queue].enemy == "Boss", "niveau 10 : le boss ferme le flot")
+	elseif level == 15 then
+		check(types.Giant == 2 and not types.Boss, "niveau 15 : deux mini-boss ensemble (chevaliers colossaux), pas de boss")
+	elseif level == 20 then
+		check(types.Boss == 1 and types.Giant == 2 and queue[#queue].enemy == "Boss", "niveau 20 : deux colosses dans le flot, puis le boss le ferme")
 	end
 	-- Demande du propriétaire : « en continu », jamais par vagues. Aucune pause : l'écart le plus long entre deux
 	-- monstres est l'écart du tout début.
@@ -133,7 +150,11 @@ for level = 1, Levels.COUNT do
 	check(same and #again == #queue, `niveau {level} : toujours exactement le même flot`)
 end
 check(Levels.enemyHealth(10, "Boss") > Levels.enemyHealth(5, "Giant"), "le boss du niveau 10 est plus résistant que le mini-boss du niveau 5")
-check(not pcall(Levels.definition, 11) and not pcall(Levels.buildQueue, 0), "un niveau inconnu (0, 11) est refusé")
+check(
+	Levels.enemyHealth(20, "Boss") > Levels.enemyHealth(10, "Boss") and Levels.enemyHealth(11, "Normal") > Levels.enemyHealth(10, "Normal"),
+	`2e territoire : des monstres plus résistants (fantassin {Levels.enemyHealth(10, "Normal")} PV au niveau 10, {Levels.enemyHealth(11, "Normal")} au niveau 11 ; boss {Levels.enemyHealth(10, "Boss")} puis {Levels.enemyHealth(20, "Boss")} PV)`
+)
+check(not pcall(Levels.definition, 21) and not pcall(Levels.buildQueue, 0), "un niveau inconnu (0, 21) est refusé")
 
 ----------------------------------------------------------------------
 -- 2) La carte : chemin, pose libre
@@ -161,11 +182,53 @@ for _, spot in map.spots do
 	table.insert(placedSpots, spot)
 end
 check(spotsOk and #map.spots >= 8, `les {#map.spots} emplacements conseillés sont tous posables, même tous occupés à la fois`)
+-- Chaque territoire a sa carte : mêmes règles pour toutes.
+for territory, mapName in Levels.TERRITORIES do
+	local territoryGeometry = Levels.geometry(mapName)
+	local territoryMap = territoryGeometry.map
+	local placed, allFit = {}, true
+	for _, spot in territoryMap.spots do
+		allFit = allFit and Levels.checkPlacement(mapName, spot, placed) == true
+		table.insert(placed, spot)
+	end
+	local straight = true
+	for index = 2, #territoryMap.path do
+		local delta = territoryMap.path[index] - territoryMap.path[index - 1]
+		straight = straight and (delta.X == 0 or delta.Z == 0) and delta.Magnitude >= Levels.PATH_WIDTH
+	end
+	local last = territoryMap.path[#territoryMap.path]
+	check(
+		allFit and #territoryMap.spots >= 12 and straight and territoryMap.path[1].X == -territoryMap.width / 2
+			and (territoryMap.base - last).Magnitude <= 5 and math.abs(territoryMap.base.X) < territoryMap.width / 2 and math.abs(territoryMap.base.Z) < territoryMap.depth / 2
+			and territoryMap.width == 112 and territoryMap.depth == 52,
+		`carte du territoire {territory} (« {territoryMap.displayName} ») : chemin de {territoryGeometry.PATH_LENGTH} studs en tronçons droits, entrée à gauche, château au bout, {#territoryMap.spots} emplacements conseillés tous posables`
+	)
+end
+check(Levels.geometry("Pass").PATH_LENGTH == 282 and Levels.geometry("Pass").PATH_LENGTH > geometry.PATH_LENGTH, "le chemin du col est plus long que celui de la vallée (282 studs)")
+-- Entre deux couloirs du col, une tour est à portée des deux.
+do
+	local pass = Levels.geometry("Pass")
+	local spot = pass.map.spots[1]
+	local reached = 0
+	for distance = 0, pass.PATH_LENGTH, 2 do
+		if (pass.pointAt(distance) - spot).Magnitude <= IdleTowers.Defs.MachineGun.range then
+			reached += 2
+		end
+	end
+	local valleyReached = 0
+	for distance = 0, geometry.PATH_LENGTH, 2 do
+		if (geometry.pointAt(distance) - map.spots[1]).Magnitude <= IdleTowers.Defs.MachineGun.range then
+			valleyReached += 2
+		end
+	end
+	check(reached >= 70 and valleyReached >= 70, `un Archer au premier emplacement conseillé voit {reached} studs de chemin au col (deux couloirs), {valleyReached} dans la vallée`)
+end
 
 ----------------------------------------------------------------------
 -- 3) Récompenses, prix, limites, or des monstres
 ----------------------------------------------------------------------
 check(Levels.firstReward(1) == 80 and Levels.firstReward(4) == 140 and Levels.firstReward(5) == 300 and Levels.firstReward(10) == 600, "première victoire : 80 au niveau 1, 140 au 4, 300 au mini-boss, 600 au boss")
+check(Levels.firstReward(11) == 280 and Levels.firstReward(15) == 600 and Levels.firstReward(20) == 1200 and Levels.reward(20, true, false) == 480, "2e territoire : 280 au niveau 11, 600 au mini-boss, 1 200 au boss (480 en le rejouant)")
 check(Levels.reward(3, true, true) == 120 and Levels.reward(3, true, false) == 48, "niveau 3 : 120 la première fois, 48 en le rejouant (40 %)")
 check(Levels.reward(3, false, false, 0.5) == 12 and Levels.reward(3, false, false, 0) == 0 and Levels.reward(3, false, true, 1) == 24, "défaite : une part de la récompense « rejouer » selon l'avancée (0 si rien n'est éliminé)")
 check(Levels.reward(10, true, false) > Levels.reward(4, true, false) and Levels.reward(4, true, false) > Levels.reward(1, true, false), "rejouer un niveau plus haut rapporte plus")
@@ -182,11 +245,18 @@ end
 check(shopOk, "boutique : un prix fixe pour chaque tour sauf les deux de départ (déjà possédées), et un prix en or pour toutes")
 check(Levels.SHOP.Frost == 150 and Levels.SHOP.Tesla == 400, "boutique : Totem 150 pièces (payable après 2 niveaux), Mage 400")
 -- Retour du propriétaire (02/10/2026) : « les prix des prochaines tours doivent être plus hauts, pas forcément les
--- basiques mais les légendaires surtout, car au niveau 10 tu les as en gros ? ». Les 10 niveaux réussis une fois
--- paient le Totem, le Mage et la Baliste, pas plus : les légendaires demandent de rejouer longtemps.
-local allFirst, previousPrice, rising = 0, 0, true
+-- basiques mais les légendaires surtout, car au niveau 10 tu les as en gros ? ». Les 10 premiers niveaux réussis
+-- une fois paient le Totem, le Mage et la Baliste, pas plus ; les 20, le Sorcier en plus : les légendaires demandent
+-- de rejouer longtemps.
+local firstTerritory, allFirst, beforeLevel18, previousPrice, rising = 0, 0, 0, 0, true
 for level = 1, Levels.COUNT do
 	allFirst += Levels.firstReward(level)
+	if level <= Levels.TERRITORY_SIZE then
+		firstTerritory += Levels.firstReward(level)
+	end
+	if level < 18 then
+		beforeLevel18 += Levels.firstReward(level)
+	end
 end
 for _, towerType in IdleTowers.ORDER do
 	local price = Levels.SHOP[towerType]
@@ -197,14 +267,23 @@ for _, towerType in IdleTowers.ORDER do
 end
 check(rising, "boutique : chaque tour coûte plus cher que la précédente")
 check(
-	allFirst == 2180 and allFirst >= Levels.SHOP.Frost + Levels.SHOP.Tesla + Levels.SHOP.Rocket and allFirst < Levels.SHOP.Frost + Levels.SHOP.Tesla + Levels.SHOP.Laser,
-	`les 10 niveaux réussis une fois ({allFirst} pièces) paient le Totem, le Mage et la Baliste, mais pas le Sorcier`
+	firstTerritory == 2180 and firstTerritory >= Levels.SHOP.Frost + Levels.SHOP.Tesla + Levels.SHOP.Rocket
+		and firstTerritory < Levels.SHOP.Frost + Levels.SHOP.Tesla + Levels.SHOP.Laser,
+	`les 10 premiers niveaux réussis une fois ({firstTerritory} pièces) paient le Totem, le Mage et la Baliste, mais pas le Sorcier`
 )
-local replay10 = Levels.reward(Levels.COUNT, true, false)
+local fourTowers = Levels.SHOP.Frost + Levels.SHOP.Tesla + Levels.SHOP.Rocket + Levels.SHOP.Laser
+check(
+	allFirst == 6860 and allFirst >= fourTowers and allFirst < fourTowers + Levels.SHOP.Chain,
+	`les 20 niveaux réussis une fois ({allFirst} pièces) paient aussi le Sorcier ({fourTowers} pour les quatre), mais aucune légendaire`
+)
+-- Ce que le réglage des niveaux attend (Bot.EXPECTED) : la Baliste en arrivant au niveau 11, le Sorcier au 18.
+check(beforeLevel18 >= fourTowers, `le Sorcier est payable avant le niveau 18 ({beforeLevel18} pièces gagnées du niveau 1 au 17, il en faut {fourTowers})`)
+local replay10 = Levels.reward(10, true, false)
+local replayLast = Levels.reward(Levels.COUNT, true, false)
 check(
 	IdleTowers.Defs.Chain.rarity == "Legendary" and IdleTowers.Defs.Orbital.rarity == "Legendary" and Levels.SHOP.Chain >= 30 * replay10
-		and Levels.SHOP.Orbital >= 60 * replay10,
-	`tours légendaires : l'Oracle vaut {math.ceil(Levels.SHOP.Chain / replay10)} parties rejouées au niveau 10, le Trébuchet {math.ceil(Levels.SHOP.Orbital / replay10)} (au moins 30 et 60)`
+		and Levels.SHOP.Orbital >= 60 * replay10 and Levels.SHOP.Chain >= 15 * replayLast and Levels.SHOP.Orbital >= 30 * replayLast,
+	`tours légendaires : l'Oracle vaut {math.ceil(Levels.SHOP.Chain / replay10)} parties rejouées au niveau 10 ou {math.ceil(Levels.SHOP.Chain / replayLast)} au niveau {Levels.COUNT}, le Trébuchet {math.ceil(Levels.SHOP.Orbital / replay10)} ou {math.ceil(Levels.SHOP.Orbital / replayLast)}`
 )
 check(Levels.ENEMY.Normal.gold == 6 and Levels.ENEMY.Swarm.gold == 2 and Levels.ENEMY.Tank.gold == 18 and Levels.ENEMY.Boss.leak == 10, "or des monstres : 6 le fantassin, 2 l'écuyer, 18 le chevalier lourd")
 check(Levels.RUSH_GOLD_PER_SECOND == nil and Levels.GROUP_PAUSE == nil, "plus de pauses entre des groupes ni de bouton « envoyer la suite »")
@@ -461,7 +540,7 @@ do
 	for level = 6, Levels.COUNT do
 		stuck = stuck and not Bot.play(level, startOnly).won
 	end
-	check(stuck, "sans boutique : les niveaux 6 à 10 sont perdus, même en étant très actif")
+	check(stuck, `sans boutique : les niveaux 6 à {Levels.COUNT} sont perdus, même en étant très actif`)
 	-- Le Totem aide sans tout faire : au niveau 5, le joueur de référence gagne avec lui et perd sans lui.
 	local withTotem = Bot.play(5, Bot.profile(5, "reference"))
 	local withoutTotem = Bot.play(5, { towers = Levels.STARTING_TOWERS, training = 1, interval = Bot.EXPECTED[5].pace, actions = 1 })
@@ -469,6 +548,13 @@ do
 	local alone = Bot.play(10, startOnly)
 	local full = Bot.play(10, { towers = Bot.ALL_TOWERS, training = 6 })
 	check(not alone.won and full.won and full.lives == 10, "niveau 10 : perdu avec les deux tours de départ, gagné sans perdre de vie avec toutes les tours entraînées")
+	local lastFull = Bot.play(Levels.COUNT, { towers = Bot.ALL_TOWERS, training = 6 })
+	check(lastFull.won and lastFull.lives == 10, `niveau {Levels.COUNT} : gagné sans perdre de vie avec toutes les tours entraînées ({outcome(lastFull)})`)
+	-- 2e territoire : la Baliste est attendue (les 10 premiers niveaux la paient). Sans elle, le niveau 12 (son
+	-- premier colosse) se perd au rythme demandé.
+	local noBallista = Bot.play(12, { towers = { "MachineGun", "Bomb", "Frost", "Tesla" }, training = 2, interval = Bot.EXPECTED[12].pace, actions = 1 })
+	local withBallista = Bot.play(12, Bot.profile(12, "reference"))
+	check(withBallista.won and (not noBallista.won or noBallista.lives < withBallista.lives), `niveau 12 au rythme demandé : {outcome(withBallista)} avec la Baliste, {outcome(noBallista)} sans elle`)
 end
 
 do

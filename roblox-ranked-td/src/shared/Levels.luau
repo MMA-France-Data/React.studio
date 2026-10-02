@@ -3,7 +3,8 @@
 -- Le principe, décidé avec le propriétaire (02/10/2026) :
 --   * le jeu est une suite de niveaux : niveau 1, niveau 2, niveau 3... Chaque niveau est une partie à lui tout
 --     seul : un FLOT CONTINU de monstres, de plus en plus serrés et résistants jusqu'à la fin (voir « LE FLOT »), un
---     mini-boss dans le flot au niveau 5, un boss au niveau 10. Dix niveaux = un territoire (une famille de monstres) ;
+--     mini-boss dans le flot au niveau 5, un boss au niveau 10. Dix niveaux = un TERRITOIRE : sa carte, sa famille
+--     de monstres (voir « Territoires ») ;
 --   * dans un niveau : vue d'en haut, une base d'OR fixe au départ, l'or tombe tout seul à chaque monstre tué, on
 --     pose ses tours OÙ ON VEUT et on les améliore sans arrêt (il le faut : sinon on perd), 10 vies ;
 --   * à chaque niveau on repart avec seulement ses tours DÉBLOQUÉES (l'or et les tours posées ne se gardent pas) ;
@@ -23,7 +24,7 @@ local IdleTowers = require(script.Parent.IdleTowers)
 
 local Levels = {}
 
-Levels.COUNT = 10 -- niveaux jouables (le premier territoire)
+Levels.COUNT = 20 -- niveaux jouables : 2 territoires de 10 niveaux (voir « Territoires »)
 Levels.LIVES = 10
 
 ----------------------------------------------------------------------
@@ -97,7 +98,56 @@ Levels.MAPS = {
 			Vector3.new(-45, 0, 6),
 		},
 	},
+	-- 2e territoire (niveaux 11 à 20). Le chemin fait le tour du terrain puis revient vers le château, au milieu :
+	-- trois couloirs presque parallèles (en haut, en bas, au milieu). Une tour posée entre deux couloirs tire sur
+	-- les deux : les monstres passent deux ou trois fois devant elle. Chemin plus long que la vallée (282 studs au
+	-- lieu de 204) : ils restent plus longtemps sous les tirs, et ils sont plus résistants.
+	Pass = {
+		displayName = "Le col des Pillards de cuivre",
+		width = 112,
+		depth = 52,
+		path = {
+			Vector3.new(-56, 0, -16),
+			Vector3.new(42, 0, -16),
+			Vector3.new(42, 0, 16),
+			Vector3.new(-40, 0, 16),
+			Vector3.new(-40, 0, 0),
+			Vector3.new(14, 0, 0),
+		},
+		base = Vector3.new(18, 0, 0),
+		spots = {
+			Vector3.new(-13, 0, -8),
+			Vector3.new(-13, 0, 8),
+			Vector3.new(8, 0, -8),
+			Vector3.new(8, 0, 8),
+			Vector3.new(30, 0, 0),
+			Vector3.new(-30, 0, -8),
+			Vector3.new(-30, 0, 8),
+			Vector3.new(-47, 0, 8),
+			Vector3.new(24, 0, -8),
+			Vector3.new(24, 0, 8),
+			Vector3.new(-47, 0, -6),
+			Vector3.new(48, 0, 0),
+		},
+	},
 }
+
+----------------------------------------------------------------------
+-- Territoires. Demande du propriétaire (02/10/2026) : « ajoute des niveaux ». Un territoire = TERRITORY_SIZE niveaux
+-- sur la même carte, contre la même famille de monstres (leur apparence suit le territoire : MedievalModels et
+-- CustomModels, palier = territoire - 1 ; le décor de la carte aussi : Hub/LevelArena.luau), avec un mini-boss au
+-- milieu et un boss à la fin. Niveaux 1 à 10 : le premier ; 11 à 20 : le deuxième.
+-- Pour en ajouter un : sa carte dans MAPS, son nom ici, ses 10 niveaux dans DEFINITIONS (PV trouvés avec
+-- tools\levels\run.ps1 -Tune), ce que le joueur a en y arrivant dans tools/levels/Bot.luau (Bot.EXPECTED), son
+-- décor dans LevelArena.luau (THEMES), puis COUNT.
+----------------------------------------------------------------------
+Levels.TERRITORY_SIZE = 10
+Levels.TERRITORIES = { "Valley", "Pass" } -- carte de chaque territoire (clé de MAPS)
+
+-- Numéro du territoire d'un niveau (1, 2...).
+function Levels.territoryOf(level: number): number
+	return math.floor((level - 1) / Levels.TERRITORY_SIZE) + 1
+end
 
 local function flat(v: Vector3): Vector3
 	return Vector3.new(v.X, 0, v.Z)
@@ -244,6 +294,12 @@ Levels.STREAM = {
 -- pose 2 Archers puis attend perd avant 30 % du niveau (tests.luau le vérifie pour les 10 niveaux). Trop dur ou
 -- trop facile pour de vrais joueurs : baisser ou monter ce chiffre, rien d'autre.
 -- Les niveaux à colosse (5, 8) et à boss (10) ont un flot un peu moins résistant : le gros monstre fait le reste.
+-- NIVEAUX 11 À 20 (2e territoire, carte « Pass ») : plus d'or au départ, des niveaux un peu plus longs, tous les
+-- types de monstres dès le début, et des COLOSSES dans presque tous les niveaux (un, puis deux, puis trois). Niveau
+-- 15 : deux colosses ensemble. Niveau 20 : deux colosses, puis le boss, qui ferme le flot comme au niveau 10. (Sorti
+-- PENDANT le flot, il se faisait doubler par les monstres rapides : les tours qui visent « le plus avancé » ne le
+-- touchaient plus, et le joueur simulé très actif perdait après avoir tout éliminé sauf lui.) Réglés pour un joueur
+-- qui a acheté la Baliste (les 10 premiers niveaux la paient), puis le Sorcier à partir du niveau 18 (Bot.EXPECTED).
 Levels.DEFINITIONS = {
 	{ gold = 60, seconds = 95, health = 72, gap = { 1.1, 0.34 }, from = { Fast = 0.25 } },
 	{ gold = 65, seconds = 105, health = 88, gap = { 1.1, 0.33 }, from = { Fast = 0.15, Swarm = 0.45 } },
@@ -255,21 +311,34 @@ Levels.DEFINITIONS = {
 	{ gold = 95, seconds = 140, health = 145, gap = { 0.95, 0.29 }, from = { Fast = 0.1, Swarm = 0.2, Tank = 0.3 }, specials = { { "Giant", 0.6, 0.8 } } },
 	{ gold = 100, seconds = 145, health = 158, gap = { 0.95, 0.28 }, from = { Fast = 0.1, Swarm = 0.2, Tank = 0.25 } },
 	{ gold = 110, seconds = 155, health = 126, gap = { 0.95, 0.28 }, from = { Fast = 0.1, Swarm = 0.2, Tank = 0.25 }, specials = { { "Giant", 0.5, 0.7 }, { "Boss", 1 } } },
+	-- 2e territoire
+	{ gold = 115, seconds = 130, health = 190, gap = { 0.95, 0.3 }, from = { Fast = 0.1, Swarm = 0.2, Tank = 0.25 } },
+	{ gold = 120, seconds = 135, health = 178, gap = { 0.95, 0.3 }, from = { Fast = 0.1, Swarm = 0.2, Tank = 0.25 }, specials = { { "Giant", 0.75, 0.8 } } },
+	{ gold = 125, seconds = 135, health = 178, gap = { 0.95, 0.3 }, from = { Fast = 0.1, Swarm = 0.15, Tank = 0.25 }, specials = { { "Giant", 0.6, 0.8 } } },
+	{ gold = 130, seconds = 140, health = 178, gap = { 0.95, 0.3 }, from = { Fast = 0.1, Swarm = 0.15, Tank = 0.2 }, specials = { { "Giant", 0.45, 0.7 }, { "Giant", 0.85 } } },
+	{ gold = 135, seconds = 145, health = 169, gap = { 0.95, 0.3 }, from = { Fast = 0.1, Swarm = 0.15, Tank = 0.2 }, specials = { { "Giant", 0.7 }, { "Giant", 0.73 } } },
+	{ gold = 140, seconds = 145, health = 190, gap = { 0.9, 0.3 }, from = { Fast = 0.05, Swarm = 0.15, Tank = 0.2 }, specials = { { "Giant", 0.4, 0.7 }, { "Giant", 0.8 } } },
+	{ gold = 145, seconds = 150, health = 178, gap = { 0.9, 0.3 }, from = { Fast = 0.05, Swarm = 0.1, Tank = 0.2 }, specials = { { "Giant", 0.35, 0.7 }, { "Giant", 0.6, 0.85 }, { "Giant", 0.85 } } },
+	{ gold = 150, seconds = 150, health = 207, gap = { 0.9, 0.3 }, from = { Fast = 0.05, Swarm = 0.1, Tank = 0.15 }, specials = { { "Giant", 0.3, 0.7 }, { "Giant", 0.55, 0.85 }, { "Giant", 0.8 } } },
+	{ gold = 155, seconds = 155, health = 207, gap = { 0.9, 0.3 }, from = { Fast = 0.05, Swarm = 0.1, Tank = 0.15 }, specials = { { "Giant", 0.3, 0.8 }, { "Giant", 0.55 }, { "Giant", 0.8, 1.2 } } },
+	{ gold = 160, seconds = 145, health = 207, gap = { 0.9, 0.3 }, from = { Fast = 0.05, Swarm = 0.1, Tank = 0.15 }, specials = { { "Giant", 0.35, 0.7 }, { "Giant", 0.6, 0.9 }, { "Boss", 1 } } },
 }
 
 -- Niveau 1 : cette tour est déjà posée à l'arrivée du joueur (premier emplacement conseillé de la carte), pour
 -- qu'il voie tout de suite le jeu marcher (priorité du propriétaire : « les 10 premières secondes »).
 Levels.STARTING_TOWER = "MachineGun"
 
--- Pièces de niveau gagnées : première victoire, puis en rejouant (REPLAY_SHARE). Mini-boss et boss : bien plus.
+-- Pièces de niveau gagnées : première victoire, puis en rejouant (REPLAY_SHARE). Mini-boss et boss : bien plus, et
+-- de plus en plus à chaque territoire (300 et 600 au premier, 600 et 1 200 au deuxième).
 -- Défaite : une petite part de la récompense « en rejouant », selon la part des monstres éliminés.
 Levels.REPLAY_SHARE = 0.4
 Levels.DEFEAT_SHARE = 0.5
 function Levels.firstReward(level: number): number
+	local territory = Levels.territoryOf(level)
 	if level % 10 == 0 then
-		return 600
+		return 600 * territory
 	elseif level % 5 == 0 then
-		return 300
+		return 300 * territory
 	end
 	return 60 + 20 * level
 end
@@ -287,14 +356,17 @@ function Levels.reward(level: number, won: boolean, firstClear: boolean, progres
 	return math.floor(replay * Levels.DEFEAT_SHARE * math.clamp(progress or 0, 0, 1))
 end
 
--- Fiche d'un niveau : { level, map, palier (famille de monstres), gold, lives, boss, miniBoss, reward, replay }.
+-- Fiche d'un niveau : { level, territory, map, palier (famille de monstres), gold, lives, boss, miniBoss, reward,
+-- replay }.
 function Levels.definition(level: number)
 	local source = Levels.DEFINITIONS[level]
 	assert(source, "Niveau inconnu : " .. tostring(level))
+	local territory = Levels.territoryOf(level)
 	return {
 		level = level,
-		map = "Valley",
-		palier = math.floor((level - 1) / 10),
+		territory = territory,
+		map = Levels.TERRITORIES[territory],
+		palier = territory - 1,
 		gold = source.gold,
 		lives = Levels.LIVES,
 		boss = level % 10 == 0,

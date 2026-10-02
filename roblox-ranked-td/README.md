@@ -1,7 +1,8 @@
 # Tower defense à niveaux (Roblox)
 
-Un tower defense médiéval : une suite de **niveaux** de 2 à 3 minutes, vus d'en haut, où un flot continu de monstres
-devient de plus en plus fort. On pose ses tours où on veut et on les améliore sans arrêt. Entre deux niveaux, on
+Un tower defense médiéval : une suite de **niveaux** de 2 à 3 minutes (20 niveaux, en deux territoires), vus d'en
+haut, où un flot continu de monstres devient de plus en plus fort. On pose ses tours où on veut et on les améliore
+sans arrêt. Entre deux niveaux, on
 retrouve sa parcelle, son **camp d'entraînement** : les tours s'y entraînent (même quand on est parti) et **évoluent**.
 Les pièces gagnées servent à acheter les tours suivantes dans une **boutique à prix fixes** (aucun hasard).
 
@@ -38,14 +39,15 @@ sauvegarde (`Niveaux_PlayerData_v1`) : il ne lit et n'écrase jamais les sauvega
 
 ## Tester
 
-**Sans Studio** (quelques secondes) :
+**Sans Studio** :
 
 ```bash
 powershell -ExecutionPolicy Bypass -File tools\levels\run.ps1 -Tests
 ```
 
-311 vérifications des règles, de la difficulté de chaque niveau, des évolutions, du camp et du tuto. Sans `-Tests` : le
-tableau de difficulté des 10 niveaux joués par des joueurs simulés ; `-Lazy`, `-Tune`, `-Curve`, `-Worth`, `-Coach` pour
+484 vérifications des règles, de la difficulté de chacun des 20 niveaux, des évolutions, du camp et du tuto (une
+minute et demie). Sans `-Tests` : le tableau de difficulté des 20 niveaux joués par des joueurs simulés ; `-Lazy`,
+`-Tune`, `-Curve`, `-Worth`, `-Coach` pour
 régler la difficulté et le guide du tuto (voir [tools/levels/README.md](tools/levels/README.md)).
 
 ```bash
@@ -189,7 +191,8 @@ que chez le joueur (`src/client/SoundManager.luau`) : aucun coût pour le serveu
 
 | Quoi | Où |
 |---|---|
-| Niveaux, monstres, or, prix, boutique, entraînement, évolutions | `src/shared/Levels.luau` |
+| Niveaux, territoires et cartes, monstres, or, prix, boutique, entraînement, évolutions | `src/shared/Levels.luau` |
+| Décor de chaque territoire (couleurs du sol, rochers, arbres) | `THEMES`, en haut de `src/server/Hub/LevelArena.luau` |
 | Les 8 tours (dégâts, portée, effets) | `src/shared/IdleTowers.luau` |
 | Vitesses, limites du combat, rythme des envois réseau | `src/shared/IdleConfig.luau` |
 | Les 6 types de monstres (nom, vitesse, taille) | `src/shared/Enemies.luau` |
@@ -198,7 +201,7 @@ que chez le joueur (`src/client/SoundManager.luau`) : aucun coût pour le serveu
 | Caméra d'un niveau, tailles des fenêtres | en haut de `src/client/LevelsUI.luau` |
 | Style de l'interface (couleurs, polices, contours) | `src/client/UI.luau` |
 
-Après un changement de chiffre : `tools\levels\run.ps1 -Tests` (20 secondes) dit tout de suite si une règle ou la
+Après un changement de chiffre : `tools\levels\run.ps1 -Tests` (une minute et demie) dit si une règle ou la
 difficulté d'un niveau est cassée.
 
 ## Structure

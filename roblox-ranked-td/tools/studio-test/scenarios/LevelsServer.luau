@@ -5,8 +5,8 @@
 -- 2) Puis, seul (le client attend) : six combats en même temps (mesure), un niveau PERDU par celui qui pose 2 Archers
 --    puis attend, le même niveau gagné en posant et en améliorant tout, récompenses, « Rejouer », niveau suivant,
 --    abandon, boutique à prix fixes, camp d'entraînement (emplacements, absence), ordre de la barre rapide,
---    améliorations débloquées par l'entraînement. Tout passe par les mêmes demandes que le remote LevelAction
---    (StudioDebug « Levels », « Action »).
+--    améliorations débloquées par l'entraînement, le 2e TERRITOIRE (niveaux 11 à 20 : autre carte, autres monstres,
+--    plus de pièces). Tout passe par les mêmes demandes que le remote LevelAction (StudioDebug « Levels », « Action »).
 -- 3) Il remet le joueur à zéro et donne la main au client (attribut LevelsTestPhase = "Client" de
 --    ReplicatedStorage) : scenarios/LevelsClient.luau joue avec la vraie interface.
 -- 4) Quand le client a fini (« LEVELS:client=done » dans son journal), il vérifie ce que le serveur a gardé.
@@ -433,12 +433,14 @@ return function(log)
 	------------------------------------------------------------------
 	-- 12 tours par joueur (un combat normal), puis 3 tours seulement (les monstres s'entassent : le pire cas).
 	for _, case in { { 12, "12 tours chacun" }, { 3, "3 tours chacun : la carte pleine de monstres" } } do
-		-- (170 s : tout le flot du niveau 10, dont la fin, le moment le plus chargé : 3,5 monstres par seconde)
+		-- (170 s : presque tout le flot du dernier niveau, dont la fin, le moment le plus chargé : 3,3 monstres par
+		-- seconde sur le plus long chemin)
 		local bench = levels("Bench", 6, 170, case[1])
 		check(
 			bench.games == 6 and bench.enemiesPeak >= 100 and bench.averageMs < 2 and bench.p99Ms < 4,
 			string.format(
-				"six niveaux 10 joués en même temps pendant 170 s de jeu (%s) : %.2f ms par image en moyenne, %.2f ms pour 99 %% des images, %.1f ms pour la pire (une image du serveur = 16,7 ms), jusqu'à %d monstres à la fois",
+				"six niveaux %d joués en même temps pendant 170 s de jeu (%s) : %.2f ms par image en moyenne, %.2f ms pour 99 %% des images, %.1f ms pour la pire (une image du serveur = 16,7 ms), jusqu'à %d monstres à la fois",
+				Levels.COUNT,
 				case[2],
 				bench.averageMs,
 				bench.p99Ms,
@@ -453,7 +455,11 @@ return function(log)
 	------------------------------------------------------------------
 	local farOk, farReason = action("Start", 3)
 	check(farOk == false and farReason == "Réussis d'abord le niveau 1", `niveau 3 refusé tant que le niveau 1 n'est pas réussi (« {tostring(farReason)} »)`)
-	check(action("Start", 0) == false and action("Start", 11) == false and action("Start", 1.5) == false and action("Start", "1") == false, "niveaux inconnus refusés (0, 11, 1,5, texte)")
+	local unknownOk, unknownReason = action("Start", Levels.COUNT + 1)
+	check(
+		action("Start", 0) == false and unknownOk == false and unknownReason == "Ce niveau n'existe pas encore" and action("Start", 1.5) == false and action("Start", "1") == false,
+		`niveaux inconnus refusés (0, {Levels.COUNT + 1} : « {tostring(unknownReason)} », 1,5, texte)`
+	)
 	check(action("Place", "MachineGun", 0, 0) == false and action("Upgrade", 1) == false and action("Rush") == false, "hors d'un niveau : poser et améliorer ne font rien (et l'ancienne demande « envoyer la suite » n'existe plus)")
 
 	------------------------------------------------------------------
@@ -629,6 +635,81 @@ return function(log)
 	levels("Gold", 100)
 	check(action("Place", "Frost", -1, 0) == true and levels("State").active.gold == 160 - Levels.placeCost("Frost"), "le Totem acheté à la boutique se pose dans le niveau (40 or)")
 	action("Quit")
+
+	------------------------------------------------------------------
+	-- 2e territoire (niveaux 11 à 20). Demande du propriétaire (02/10/2026) : « ajoute des niveaux ».
+	------------------------------------------------------------------
+	do
+		local lockedOk, lockedReason = action("Start", 11)
+		check(lockedOk == false and lockedReason == `Réussis d'abord le niveau {saved().best + 1}`, `le niveau 11 est fermé tant que le premier territoire n'est pas fini (« {tostring(lockedReason)} »)`)
+		levels("Set", "best", 10)
+		levels("Set", "coins", 0)
+		levels("Set", "towers", { MachineGun = true, Bomb = true, Frost = true, Tesla = true, Rocket = true })
+		check(action("Start", 11) == true, "niveau 11 lancé (premier territoire réussi)")
+		local passMap = arena:FindFirstChild("Map")
+		local rocks, crowns = 0, 0
+		for _, part in if passMap then passMap:GetChildren() else {} do
+			if part.Name == "Rock" then
+				rocks += 1
+			end
+		end
+		local field = passMap and passMap:FindFirstChild("Field")
+		check(
+			arena:GetAttribute("Map") == "Pass" and arena:GetAttribute("Level") == 11 and arena:GetAttribute("Wave") == 11 and arena:GetAttribute("Gold") == 115
+				and #towers() == 0 and arena:GetAttribute("Total") == #Levels.buildQueue(11) and rocks >= 10 and field ~= nil and field.Color.R > field.Color.G,
+			`niveau 11 : la carte du 2e territoire (« {tostring(arena:GetAttribute("Map"))} ») est construite, terre rousse et {rocks} rochers, {tostring(arena:GetAttribute("Gold"))} or, {tostring(arena:GetAttribute("Total"))} monstres de la famille suivante (attribut Wave = {tostring(arena:GetAttribute("Wave"))})`
+		)
+		-- La pose suit le chemin de CETTE carte : un point libre de la vallée est sur le chemin du col, et l'inverse.
+		local onPathOk, onPathReason = action("Place", "MachineGun", -23, 0)
+		local passSpots = Levels.MAPS.Pass.spots
+		check(
+			onPathOk == false and onPathReason == "Trop près du chemin" and action("Place", "MachineGun", passSpots[1].X, passSpots[1].Z) == true and #towers() == 1,
+			`col : le premier emplacement de la vallée est sur le chemin (« {tostring(onPathReason)} »), le premier emplacement du col est libre`
+		)
+		levels("Gold", 4000)
+		for index, towerType in { "MachineGun", "MachineGun", "MachineGun", "Bomb", "Frost", "Bomb", "Tesla", "Rocket", "Rocket", "MachineGun", "Bomb" } do
+			action("Place", towerType, passSpots[index + 1].X, passSpots[index + 1].Z)
+		end
+		for _, model in towers() do
+			for _ = 1, 3 do
+				action("Upgrade", model:GetAttribute("TowerId"))
+			end
+		end
+		check(#towers() == 12, `les 12 emplacements conseillés du col sont tous posables ({#towers()} tours posées)`)
+		-- (le client du joueur regarde ce niveau : une capture du col en plein combat)
+		task.wait(1.5)
+		levels("Skip", 70)
+		task.wait(3)
+		log("Info", "[LEVELS] SHOT:levels_territoire2")
+		task.wait(1.8)
+		levels("Finish", true)
+		local first = result()
+		check(
+			first.won == true and first.level == 11 and first.reward == 280 and first.firstClear == true and first.nextLevel == 12 and saved().best == 11
+				and saved().coins == 280,
+			`niveau 11 gagné : +{tostring(first.reward)} pièces de niveau, niveau suivant {tostring(first.nextLevel)}`
+		)
+		check(action("Start", 12) == true and arena:FindFirstChild("Map") == passMap and arena:GetAttribute("Level") == 12, "« Niveau suivant » dans le même territoire : la carte du col reste (pas de clignotement)")
+		-- Mini-boss et boss du 2e territoire : deux fois plus de pièces qu'au premier.
+		levels("Set", "best", 14)
+		action("Start", 15)
+		levels("Finish", true)
+		local mini = result()
+		levels("Set", "best", 19)
+		local coinsBefore20 = saved().coins
+		action("Start", Levels.COUNT)
+		local bossQueue = Levels.buildQueue(Levels.COUNT)
+		levels("Finish", true)
+		local last = result()
+		check(
+			mini.reward == 600 and last.won == true and last.reward == 1200 and last.nextLevel == nil and saved().best == Levels.COUNT
+				and saved().coins == coinsBefore20 + 1200 and player.leaderstats.Level.Value == Levels.COUNT and bossQueue[#bossQueue].enemy == "Boss",
+			`mini-boss du niveau 15 : +{tostring(mini.reward)} pièces ; boss du niveau {Levels.COUNT} : +{tostring(last.reward)} pièces, plus de niveau suivant, colonne « Level » : {player.leaderstats.Level.Value}`
+		)
+		-- Retour au premier territoire : la carte de la vallée est refaite.
+		check(action("Start", 3) == true and arena:GetAttribute("Map") == "Valley" and arena:FindFirstChild("Map") ~= passMap, "rejouer un niveau du premier territoire : la carte de la vallée revient")
+		action("Quit")
+	end
 
 	------------------------------------------------------------------
 	-- Le client prend la main, comme un nouveau joueur
