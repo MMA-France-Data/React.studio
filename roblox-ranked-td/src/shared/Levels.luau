@@ -3,10 +3,10 @@
 --
 -- Le principe, décidé avec le propriétaire :
 --   * le jeu est une suite de niveaux : niveau 1, niveau 2, niveau 3... Chaque niveau est une partie à lui tout
---     seul : une longue vague de monstres qui arrivent en continu, un mini-boss dans la vague au niveau 5, un boss au
---     niveau 10. Dix niveaux = un territoire (une famille de monstres) ;
+--     seul : un FLOT CONTINU de monstres, de plus en plus serrés et résistants jusqu'à la fin (voir « LE FLOT »), un
+--     mini-boss dans le flot au niveau 5, un boss au niveau 10. Dix niveaux = un territoire (une famille de monstres) ;
 --   * dans un niveau : vue d'en haut, une base d'OR fixe au départ, l'or tombe tout seul à chaque monstre tué, on
---     pose ses tours OÙ ON VEUT et on les améliore sans arrêt, 10 vies ;
+--     pose ses tours OÙ ON VEUT et on les améliore sans arrêt (il le faut : sinon on perd), 10 vies ;
 --   * à chaque niveau on repart avec seulement ses tours DÉBLOQUÉES (l'or et les tours posées ne se gardent pas) ;
 --   * gagner un niveau rapporte des PIÈCES DE NIVEAU (plus la première fois, bien plus sur les boss ; on peut rejouer
 --     un niveau réussi pour en regagner un peu) ; elles servent à acheter les tours suivantes dans une BOUTIQUE À
@@ -184,194 +184,79 @@ end
 
 ----------------------------------------------------------------------
 -- Monstres d'un niveau. Les PV ne viennent pas du jeu infini : ils sont petits et lisibles.
---   PV = PV du fantassin de ce niveau (champ health de sa définition) x part de son type (x le réglage du groupe).
+--   PV = PV du fantassin de ce niveau (champ health de sa définition) x part de son type x montée du moment (ramp).
 -- gold = or donné quand il meurt ; leak = vies perdues s'il atteint le château.
 ----------------------------------------------------------------------
 Levels.ENEMY = {
-	Normal = { health = 1, gold = 2, leak = 1 },
-	Fast = { health = 0.6, gold = 2, leak = 1 },
-	Swarm = { health = 0.35, gold = 1, leak = 1 },
-	Tank = { health = 4.5, gold = 6, leak = 2 },
-	Giant = { health = 30, gold = 40, leak = 5 }, -- mini-boss (chevalier colossal)
-	Boss = { health = 60, gold = 100, leak = 10 }, -- boss : s'il passe, c'est perdu
+	Normal = { health = 1, gold = 6, leak = 1 },
+	Fast = { health = 0.6, gold = 6, leak = 1 },
+	Swarm = { health = 0.35, gold = 2, leak = 1 },
+	Tank = { health = 4.5, gold = 18, leak = 2 },
+	Giant = { health = 30, gold = 120, leak = 5 }, -- mini-boss (chevalier colossal)
+	Boss = { health = 60, gold = 300, leak = 10 }, -- boss : s'il passe, c'est perdu
 }
--- Secondes entre deux groupes d'un niveau (le flot ne s'arrête presque jamais).
-Levels.GROUP_PAUSE = 2.5
--- Montée en pression dans un niveau : les monstres du premier groupe ont RAMP_START fois les PV du niveau, ceux du
--- dernier RAMP_END fois, les autres entre les deux (régulièrement). Le joueur commence avec peu d'or : les premiers
--- monstres doivent tomber vite, et lui donner de quoi poser la suite. Un groupe peut fixer sa part (champ health).
-Levels.RAMP_START = 0.25
-Levels.RAMP_END = 1.2
--- Bouton « envoyer la suite » : l'attente qui restait avant le prochain monstre est sautée, et chaque seconde
--- sautée rapporte cet or (au moins RUSH_MIN_SECONDS à sauter, sinon le bouton ne fait rien).
--- 2,2 s : le bouton ne sert qu'aux pauses ENTRE deux groupes (2,5 s et plus), jamais entre deux monstres d'un même
--- groupe (2 s au plus) : une prise de risque de temps en temps (5 à 9 pièces d'or), pas un bouton à marteler.
-Levels.RUSH_GOLD_PER_SECOND = 2
-Levels.RUSH_MIN_SECONDS = 2.2
 -- Bouton « x2 » pendant un niveau (tout va 2 fois plus vite, comme le pass Vitesse x2 de la parcelle) :
 --   true  -> pour tout le monde (prototype : un niveau doit pouvoir se jouer vite) ;
 --   false -> seulement avec le pass Vitesse x2.
 -- À décider par le propriétaire avant d'ouvrir les niveaux à tous les joueurs.
 Levels.SPEED_FREE = true
 
--- Les groupes de chaque niveau, dans l'ordre : { type, nombre, secondes entre deux }. pause = attente après le
--- groupe (GROUP_PAUSE si absent), health = réglage des PV du groupe (1 si absent).
--- gold = or de départ. Niveau 1 : un Archer est déjà posé (Levels.STARTING_TOWER), l'or sert à poser le deuxième.
--- health = PV d'un fantassin à ce niveau (une flèche d'Archer : 3), réglés avec tools/levels (joueur simulé).
--- Chaque niveau dure 2 à 3 minutes et monte en pression : un début calme (le temps de poser ses premières tours
--- avec l'or de départ), puis des groupes de plus en plus serrés, et le mini-boss ou le boss vers la fin.
--- Niveau 1 (réglé avec tools/levels, run.ps1 -Lazy) : un joueur qui ne fait RIEN gagne quand même, mais de peu
--- (l'Archer offert laisse passer 4 monstres à la fin : 6 vies) ; dès qu'il pose une 2e tour, il ne perd plus une
--- vie. À 8 PV, ne rien faire gagnait sans perdre une vie (agir ne se voyait pas) ; à 13, c'était perdu.
+----------------------------------------------------------------------
+-- LE FLOT. Retour du propriétaire après son premier essai (02/10/2026) : « beaucoup trop facile, et ils sortent
+-- par vague malgré tout ; je veux que ce soit en continu, et que le niveau soit de plus en plus dur au fur et à
+-- mesure, que je sois obligé d'être super actif pendant le niveau : poser des tours, améliorer... Si juste
+-- 2 Archers gèrent le niveau, je passe mon temps à attendre. »
+-- Un niveau n'a donc ni groupes ni pauses : un monstre sort, puis le suivant, sans arrêt, pendant `seconds`
+-- secondes. Du début à la fin du niveau :
+--   * l'écart entre deux monstres RÉTRÉCIT (gap = { au début, à la fin }, en secondes) : 3 fois plus de monstres
+--     par seconde à la fin ;
+--   * leurs PV MONTENT (RAMP = { au début, à la fin } : part des PV du niveau, champ health) : 16 fois plus à la
+--     fin. RAMP_CURVE donne la forme de la montée (1 = régulière ; moins de 1 = elle monte plus vite au début).
+-- Les PV qui arrivent par seconde sont donc multipliés par 50 environ entre le début et la fin. La forme a été
+-- dessinée avec tools/levels (run.ps1 -Curve) pour suivre ce qu'un joueur peut se payer s'il réinvestit tout son
+-- or : les premières secondes ne demandent que le tiers de ses moyens (le temps de poser ses premières tours), la
+-- fin les demande tous. Celui qui s'arrête d'acheter est dépassé en une vingtaine de secondes.
+-- L'OR suit (ENEMY.gold) : les monstres en donnent assez pour un achat toutes les 3 secondes environ. C'est ce qui
+-- oblige à rester actif : on ne peut pas attendre puis tout dépenser d'un coup, il faut poser et améliorer sans
+-- arrêt, du début à la fin.
+-- Les types se mélangent au lieu d'arriver par paquets : 1 monstre sur FAST_EVERY est un cavalier, 1 sur
+-- SWARM_EVERY une meute de SWARM_PACK écuyers serrés, 1 sur TANK_EVERY un chevalier lourd, les autres des
+-- fantassins. Chaque type n'entre qu'à partir d'une avancée du niveau (from = { Fast = 0.2 } : après 20 %).
+-- specials = monstres à part : { type, avancée du niveau où il sort (1 = tout à la fin, il ferme le flot), part de
+-- ses PV (1 si absente : il ne suit pas la montée ; plus petite quand il sort tôt, face à des tours encore
+-- faibles) } : mini-boss du niveau 5, colosses des niveaux 8 et 10, boss du niveau 10.
+-- Rien n'est tiré au hasard : le même niveau donne toujours exactement le même flot.
+----------------------------------------------------------------------
+Levels.STREAM = {
+	FAST_EVERY = 4,
+	SWARM_EVERY = 6,
+	SWARM_PACK = 3,
+	SWARM_GAP = 0.3, -- secondes entre deux écuyers d'une meute
+	TANK_EVERY = 9,
+	RAMP = { 0.1, 1.6 },
+	RAMP_CURVE = 0.8,
+}
+
+-- gold = or de départ. Niveau 1 : un Archer est déjà posé (Levels.STARTING_TOWER) et tire tout de suite.
+-- health = PV d'un fantassin quand la montée vaut 1 (une flèche d'Archer : 3). Niveau 1 : le premier fantassin a
+-- 7 PV, le dernier 115.
+-- C'est LE réglage de la difficulté d'un niveau, trouvé avec les joueurs simulés (tools/levels, run.ps1 -Tune, puis
+-- 5 % de marge) : avec les tours attendues à ce niveau, celui qui achète au rythme demandé (un achat toutes les 5 s
+-- au niveau 1, toutes les 3,5 s à partir du niveau 6) gagne ; celui qui n'achète que toutes les 8 s perd ; celui qui
+-- pose 2 Archers puis attend perd avant 30 % du niveau (tests.luau le vérifie pour les 10 niveaux). Trop dur ou
+-- trop facile pour de vrais joueurs : baisser ou monter ce chiffre, rien d'autre.
+-- Les niveaux à colosse (5, 8) et à boss (10) ont un flot un peu moins résistant : le gros monstre fait le reste.
 Levels.DEFINITIONS = {
-	{
-		gold = 25,
-		health = 11,
-		groups = {
-			{ "Normal", 8, 2.0 },
-			{ "Normal", 12, 1.4 },
-			{ "Fast", 8, 1.0 },
-			{ "Normal", 16, 1.0 },
-			{ "Fast", 10, 0.8 },
-			{ "Normal", 20, 0.7 },
-		},
-	},
-	{
-		gold = 45,
-		health = 19,
-		groups = {
-			{ "Normal", 12, 1.4 },
-			{ "Fast", 10, 0.9 },
-			{ "Normal", 18, 0.9 },
-			{ "Fast", 12, 0.7 },
-			{ "Normal", 22, 0.7 },
-			{ "Fast", 16, 0.55 },
-			{ "Normal", 24, 0.55 },
-		},
-	},
-	{
-		gold = 50,
-		health = 42,
-		groups = {
-			{ "Normal", 13, 1.4 },
-			{ "Fast", 11, 0.9 },
-			{ "Normal", 20, 0.9 },
-			{ "Swarm", 25, 0.35 },
-			{ "Tank", 2, 2.2 },
-			{ "Fast", 18, 0.6 },
-			{ "Normal", 24, 0.6 },
-			{ "Swarm", 29, 0.3 },
-		},
-	},
-	{
-		gold = 55,
-		health = 66,
-		groups = {
-			{ "Normal", 14, 1.3 },
-			{ "Fast", 12, 0.85 },
-			{ "Normal", 22, 0.85 },
-			{ "Swarm", 28, 0.33 },
-			{ "Tank", 3, 2.0 },
-			{ "Fast", 20, 0.55 },
-			{ "Normal", 26, 0.55 },
-			{ "Swarm", 32, 0.25 },
-			{ "Tank", 3, 1.5 },
-		},
-	},
-	{
-		gold = 60,
-		health = 95,
-		groups = {
-			{ "Normal", 15, 1.3 },
-			{ "Fast", 13, 0.8 },
-			{ "Normal", 24, 0.8 },
-			{ "Swarm", 31, 0.3 },
-			{ "Tank", 3, 2.0 },
-			{ "Fast", 22, 0.55 },
-			{ "Normal", 28, 0.55 },
-			{ "Swarm", 35, 0.25 },
-			{ "Tank", 3, 1.5, pause = 0 },
-			{ "Giant", 1, 0, health = 1 },
-		},
-	},
-	{
-		gold = 65,
-		health = 98,
-		groups = {
-			{ "Normal", 16, 1.2 },
-			{ "Fast", 14, 0.8 },
-			{ "Normal", 26, 0.75 },
-			{ "Swarm", 34, 0.3 },
-			{ "Tank", 4, 1.9 },
-			{ "Fast", 24, 0.5 },
-			{ "Normal", 30, 0.5 },
-			{ "Swarm", 38, 0.22 },
-			{ "Tank", 4, 1.4 },
-		},
-	},
-	{
-		gold = 70,
-		health = 115,
-		groups = {
-			{ "Normal", 17, 1.2 },
-			{ "Fast", 15, 0.75 },
-			{ "Normal", 28, 0.7 },
-			{ "Swarm", 37, 0.28 },
-			{ "Tank", 4, 1.8 },
-			{ "Fast", 26, 0.5 },
-			{ "Normal", 32, 0.5 },
-			{ "Swarm", 41, 0.22 },
-			{ "Tank", 5, 1.3 },
-		},
-	},
-	{
-		gold = 75,
-		health = 132,
-		groups = {
-			{ "Normal", 18, 1.1 },
-			{ "Fast", 16, 0.7 },
-			{ "Normal", 30, 0.7 },
-			{ "Swarm", 40, 0.26 },
-			{ "Tank", 5, 1.7 },
-			{ "Fast", 28, 0.45 },
-			{ "Normal", 34, 0.45 },
-			{ "Giant", 1, 0, health = 1 },
-			{ "Swarm", 44, 0.2 },
-			{ "Tank", 5, 1.3 },
-		},
-	},
-	{
-		gold = 80,
-		health = 150,
-		groups = {
-			{ "Normal", 19, 1.1 },
-			{ "Fast", 17, 0.7 },
-			{ "Normal", 32, 0.65 },
-			{ "Swarm", 43, 0.25 },
-			{ "Tank", 5, 1.6 },
-			{ "Fast", 30, 0.45 },
-			{ "Normal", 36, 0.45 },
-			{ "Swarm", 47, 0.2 },
-			{ "Tank", 6, 1.2 },
-		},
-	},
-	{
-		gold = 90,
-		health = 170,
-		groups = {
-			{ "Normal", 20, 1.0 },
-			{ "Fast", 18, 0.65 },
-			{ "Normal", 34, 0.6 },
-			{ "Swarm", 46, 0.24 },
-			{ "Tank", 6, 1.5 },
-			{ "Giant", 1, 0, health = 1 },
-			{ "Fast", 32, 0.42 },
-			{ "Normal", 38, 0.42 },
-			{ "Swarm", 50, 0.2 },
-			{ "Tank", 6, 1.2, pause = 0 },
-			{ "Boss", 1, 0, health = 1 },
-		},
-	},
+	{ gold = 60, seconds = 95, health = 72, gap = { 1.1, 0.34 }, from = { Fast = 0.25 } },
+	{ gold = 65, seconds = 105, health = 88, gap = { 1.1, 0.33 }, from = { Fast = 0.15, Swarm = 0.45 } },
+	{ gold = 70, seconds = 115, health = 110, gap = { 1.05, 0.32 }, from = { Fast = 0.15, Swarm = 0.3, Tank = 0.6 } },
+	{ gold = 75, seconds = 120, health = 116, gap = { 1.05, 0.31 }, from = { Fast = 0.1, Swarm = 0.25, Tank = 0.45 } },
+	{ gold = 80, seconds = 130, health = 95, gap = { 1, 0.3 }, from = { Fast = 0.1, Swarm = 0.25, Tank = 0.4 }, specials = { { "Giant", 0.75 } } },
+	{ gold = 85, seconds = 130, health = 130, gap = { 1, 0.3 }, from = { Fast = 0.1, Swarm = 0.2, Tank = 0.35 } },
+	{ gold = 90, seconds = 135, health = 146, gap = { 1, 0.29 }, from = { Fast = 0.1, Swarm = 0.2, Tank = 0.3 } },
+	{ gold = 95, seconds = 140, health = 168, gap = { 0.95, 0.29 }, from = { Fast = 0.1, Swarm = 0.2, Tank = 0.3 }, specials = { { "Giant", 0.6, 0.8 } } },
+	{ gold = 100, seconds = 145, health = 190, gap = { 0.95, 0.28 }, from = { Fast = 0.1, Swarm = 0.2, Tank = 0.25 } },
+	{ gold = 110, seconds = 155, health = 146, gap = { 0.95, 0.28 }, from = { Fast = 0.1, Swarm = 0.2, Tank = 0.25 }, specials = { { "Giant", 0.5, 0.7 }, { "Boss", 1 } } },
 }
 
 -- Niveau 1 : cette tour est déjà posée à l'arrivée du joueur (premier emplacement conseillé de la carte), pour
@@ -379,7 +264,7 @@ Levels.DEFINITIONS = {
 Levels.STARTING_TOWER = "MachineGun"
 
 -- Pièces de niveau gagnées : première victoire, puis en rejouant (REPLAY_SHARE). Mini-boss et boss : bien plus.
--- Défaite : une petite part de la récompense « en rejouant », selon la part de la vague éliminée.
+-- Défaite : une petite part de la récompense « en rejouant », selon la part des monstres éliminés.
 Levels.REPLAY_SHARE = 0.4
 Levels.DEFEAT_SHARE = 0.5
 function Levels.firstReward(level: number): number
@@ -391,7 +276,7 @@ function Levels.firstReward(level: number): number
 	return 60 + 20 * level
 end
 
--- won = niveau gagné, firstClear = première victoire sur ce niveau, progress = part de la vague éliminée (0 à 1).
+-- won = niveau gagné, firstClear = première victoire sur ce niveau, progress = part des monstres éliminés (0 à 1).
 function Levels.reward(level: number, won: boolean, firstClear: boolean, progress: number?): number
 	local first = Levels.firstReward(level)
 	if won and firstClear then
@@ -421,27 +306,68 @@ function Levels.definition(level: number)
 	}
 end
 
-function Levels.enemyHealth(level: number, enemyType: string, groupFactor: number?): number
-	local raw = Levels.DEFINITIONS[level].health * Levels.ENEMY[enemyType].health * (groupFactor or 1)
+-- PV d'un monstre de ce type à ce niveau ; factor = montée du moment (ramp), 1 si absente.
+function Levels.enemyHealth(level: number, enemyType: string, factor: number?): number
+	local raw = Levels.DEFINITIONS[level].health * Levels.ENEMY[enemyType].health * (factor or 1)
 	return math.floor(raw * 10 + 0.5) / 10
 end
 
--- File d'apparition d'un niveau : { { enemy, health, reward (or), at (secondes depuis le début) } }, dans l'ordre.
+-- Type du monstre n° `slot` du flot (1, 2, 3...) à l'avancée `progress` (0 à 1) : voir « LE FLOT ».
+local function streamType(source, slot: number, progress: number): string
+	local from = source.from or {}
+	local stream = Levels.STREAM
+	if from.Tank and progress >= from.Tank and slot % stream.TANK_EVERY == 0 then
+		return "Tank"
+	elseif from.Swarm and progress >= from.Swarm and slot % stream.SWARM_EVERY == 0 then
+		return "Swarm"
+	elseif from.Fast and progress >= from.Fast and slot % stream.FAST_EVERY == 0 then
+		return "Fast"
+	end
+	return "Normal"
+end
+
+-- File d'apparition d'un niveau : { { enemy, health, reward (or), at (secondes depuis le début) } }, dans l'ordre
+-- des heures. Le flot continu décrit plus haut : toujours la même file pour le même niveau.
 function Levels.buildQueue(level: number)
 	local source = Levels.DEFINITIONS[level]
 	assert(source, "Niveau inconnu : " .. tostring(level))
 	local queue = {}
-	local at = 0
-	local groups = source.groups
-	for index, group in groups do
-		local enemyType, count, gap = group[1], group[2], group[3]
-		local ramp = Levels.RAMP_START + (Levels.RAMP_END - Levels.RAMP_START) * (index - 1) / math.max(1, #groups - 1)
-		local health = Levels.enemyHealth(level, enemyType, group.health or ramp)
-		for _ = 1, count do
-			table.insert(queue, { enemy = enemyType, health = health, reward = Levels.ENEMY[enemyType].gold, at = at })
-			at += gap
+	local function push(enemyType: string, at: number, factor: number)
+		table.insert(queue, { enemy = enemyType, health = Levels.enemyHealth(level, enemyType, factor), reward = Levels.ENEMY[enemyType].gold, at = at })
+	end
+	-- Monstres à part (mini-boss, boss), rangés par heure de sortie.
+	local specials = {}
+	for _, special in source.specials or {} do
+		table.insert(specials, { enemy = special[1], at = special[2] * source.seconds, factor = special[3] or 1 })
+	end
+	table.sort(specials, function(a, b)
+		return a.at < b.at
+	end)
+	local nextSpecial = 1
+	local at, slot = 0, 0
+	while at < source.seconds do
+		while specials[nextSpecial] and specials[nextSpecial].at <= at do
+			push(specials[nextSpecial].enemy, at, specials[nextSpecial].factor)
+			nextSpecial += 1
 		end
-		at += group.pause or Levels.GROUP_PAUSE
+		local progress = at / source.seconds
+		local ramp = Levels.STREAM.RAMP[1] + (Levels.STREAM.RAMP[2] - Levels.STREAM.RAMP[1]) * progress ^ Levels.STREAM.RAMP_CURVE
+		slot += 1
+		local enemyType = streamType(source, slot, progress)
+		if enemyType == "Swarm" then
+			for index = 1, Levels.STREAM.SWARM_PACK do
+				push(enemyType, at + (index - 1) * Levels.STREAM.SWARM_GAP, ramp)
+			end
+			at += (Levels.STREAM.SWARM_PACK - 1) * Levels.STREAM.SWARM_GAP
+		else
+			push(enemyType, at, ramp)
+		end
+		at += source.gap[1] + (source.gap[2] - source.gap[1]) * progress
+	end
+	-- Ceux qui ferment le flot (boss).
+	while specials[nextSpecial] do
+		push(specials[nextSpecial].enemy, math.max(at, specials[nextSpecial].at), specials[nextSpecial].factor)
+		nextSpecial += 1
 	end
 	return queue
 end
@@ -493,10 +419,18 @@ end
 
 ----------------------------------------------------------------------
 -- Boutique : les tours s'achètent à PRIX FIXES avec les pièces de niveau (aucun hasard, décision du propriétaire).
--- L'Archer est possédé dès le départ.
+-- DEUX tours sont possédées dès le départ (retour du propriétaire, 02/10/2026 : « il faudrait commencer avec au
+-- moins deux tours, juste l'Archer c'est ennuyant ») : l'Archer (une cible, rapide, pas cher) et la Catapulte (une
+-- zone : utile quand les monstres arrivent serrés, à la fin d'un niveau). Un joueur qui n'avait que l'Archer
+-- reçoit la Catapulte tout seul (cleanData). Pour changer la 2e tour : cette liste, et SHOP.
 ----------------------------------------------------------------------
-Levels.STARTING_TOWERS = { "MachineGun" }
-Levels.SHOP = { Frost = 150, Bomb = 350, Tesla = 700, Rocket = 1200, Laser = 2000, Chain = 3500, Orbital = 6000 }
+Levels.STARTING_TOWERS = { "MachineGun", "Bomb" }
+Levels.SHOP = { Frost = 150, Tesla = 400, Rocket = 900, Laser = 1600, Chain = 3000, Orbital = 5000 }
+-- Dans la première version du prototype, la Catapulte s'achetait 350 pièces et les tours suivantes coûtaient plus
+-- cher (Mage 700, Baliste 1 200, Sorcier 2 000, Oracle 3 500, Trébuchet 6 000). Un joueur qui en avait acheté
+-- retrouve la différence, une seule fois : sa sauvegarde d'avant n'a pas de champ `version` (cleanData).
+Levels.DATA_VERSION = 2
+Levels.PRICE_REFUNDS = { Bomb = 350, Tesla = 300, Rocket = 300, Laser = 400, Chain = 500, Orbital = 1000 }
 
 ----------------------------------------------------------------------
 -- Camp d'entraînement. Chaque type de tour a de l'expérience (XP), qui donne un niveau d'entraînement (0 à
@@ -506,7 +440,7 @@ Levels.SHOP = { Frost = 150, Bomb = 350, Tesla = 700, Rocket = 1200, Laser = 200
 --     OFFLINE_MAX_SECONDS d'un coup) ; un emplacement s'améliore (SLOT_UPGRADE_COST) et on en débloque d'autres
 --     (SLOT_UNLOCK_COST) avec les pièces de niveau ;
 --   * jouer : chaque type de tour posé pendant un niveau gagne XP_PER_WIN (victoire), ou XP_PER_LOSS x la part
---     de la vague éliminée (défaite ou abandon : lancer un niveau et le quitter tout de suite ne donne rien).
+--     des monstres éliminés (défaite ou abandon : lancer un niveau et le quitter tout de suite ne donne rien).
 -- Attendre n'est donc jamais la seule façon d'avancer (garde-fou voulu), et les premiers niveaux se gagnent sans
 -- aucun entraînement.
 ----------------------------------------------------------------------
@@ -704,7 +638,7 @@ function Levels.decodeTraining(text: any): { [string]: number }
 end
 
 -- XP gagnée en jouant un niveau, par type de tour posé (voir TRAINING) : victoire = XP_PER_WIN ; défaite ou
--- abandon = XP_PER_LOSS x la part de la vague éliminée, arrondie au dixième.
+-- abandon = XP_PER_LOSS x la part des monstres éliminés, arrondie au dixième.
 function Levels.playXp(won: boolean, progress: number?): number
 	if won then
 		return Levels.TRAINING.XP_PER_WIN
@@ -742,6 +676,7 @@ function Levels.defaultData()
 		bar = table.clone(Levels.STARTING_TOWERS), -- tours de la barre rapide, dans l'ordre
 		wins = 0,
 		losses = 0,
+		version = Levels.DATA_VERSION,
 	}
 end
 
@@ -767,6 +702,10 @@ function Levels.cleanData(saved: any)
 		for towerType, owned in saved.towers do
 			if IdleTowers.Defs[towerType] and owned == true then
 				data.towers[towerType] = true
+				-- Sauvegarde de la première version : tour payée plus cher qu'aujourd'hui, la différence est rendue.
+				if saved.version == nil and Levels.PRICE_REFUNDS[towerType] then
+					data.coins += Levels.PRICE_REFUNDS[towerType]
+				end
 			end
 		end
 	end

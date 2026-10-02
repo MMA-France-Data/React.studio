@@ -64,37 +64,73 @@ local function towerCount(game): number
 end
 
 ----------------------------------------------------------------------
--- 1) Les niveaux : 10 niveaux, mini-boss au 5, boss au 10, 2 à 3 minutes
+-- 1) Les niveaux : 10 niveaux, mini-boss au 5, boss au 10, 2 à 3 minutes, un FLOT CONTINU qui monte
 ----------------------------------------------------------------------
 check(Levels.COUNT == 10 and #Levels.DEFINITIONS == 10, `10 niveaux dans le prototype ({Levels.COUNT}, {#Levels.DEFINITIONS} fiches)`)
 for level = 1, Levels.COUNT do
 	local definition = Levels.definition(level)
+	local source = Levels.DEFINITIONS[level]
 	local queue = Levels.buildQueue(level)
 	local types, lastAt, ordered = {}, -1, true
-	for _, item in queue do
+	local longestGap = 0
+	for index, item in queue do
 		types[item.enemy] = (types[item.enemy] or 0) + 1
 		ordered = ordered and item.at >= lastAt and item.health > 0 and item.reward > 0
+		if index > 1 then
+			longestGap = math.max(longestGap, item.at - lastAt)
+		end
 		lastAt = item.at
 	end
 	local duration = Levels.duration(level)
-	check(#queue >= 60 and ordered, `niveau {level} : {#queue} monstres, dans l'ordre de leur heure, PV et or positifs`)
-	check(duration >= 100 and duration <= 190, `niveau {level} : dure {math.floor(duration)} s (entre 100 et 190)`)
+	check(#queue >= 120 and ordered, `niveau {level} : {#queue} monstres, dans l'ordre de leur heure, PV et or positifs`)
+	check(duration >= 100 and duration <= 200, `niveau {level} : dure {math.floor(duration)} s (entre 100 et 200)`)
 	check(definition.gold >= Levels.placeCost("MachineGun"), `niveau {level} : l'or de départ ({definition.gold}) paie au moins un Archer`)
 	check(definition.miniBoss == (level == 5) and definition.boss == (level == 10), `niveau {level} : mini-boss {tostring(definition.miniBoss)}, boss {tostring(definition.boss)}`)
 	if level == 5 then
-		check(types.Giant == 1 and not types.Boss, "niveau 5 : un mini-boss (chevalier colossal) dans la vague, pas de boss")
+		check(types.Giant == 1 and not types.Boss, "niveau 5 : un mini-boss (chevalier colossal) dans le flot, pas de boss")
 	elseif level == 10 then
-		check(types.Boss == 1 and queue[#queue].enemy == "Boss", "niveau 10 : le boss ferme la vague")
+		check(types.Boss == 1 and queue[#queue].enemy == "Boss", "niveau 10 : le boss ferme le flot")
 	end
-	-- La vague monte en pression : le dernier groupe de fantassins a plus de PV que le premier.
-	local firstNormal, lastNormal = nil, nil
+	-- Demande du propriétaire : « en continu », jamais par vagues. Aucune pause : l'écart le plus long entre deux
+	-- monstres est l'écart du tout début.
+	check(queue[1].at == 0 and longestGap <= source.gap[1] + 1e-6, `niveau {level} : flot continu, jamais plus de {source.gap[1]} s entre deux monstres ({string.format("%.2f", longestGap)} s au plus)`)
+	-- « De plus en plus dur au fur et à mesure » : les monstres sortent de plus en plus serrés...
+	local quarter = source.seconds / 4
+	local firstQuarter, lastQuarter = 0, 0
+	for _, item in queue do
+		if item.at < quarter then
+			firstQuarter += 1
+		elseif item.at >= source.seconds - quarter then
+			lastQuarter += 1
+		end
+	end
+	check(lastQuarter >= 2 * firstQuarter, `niveau {level} : {firstQuarter} monstres dans le premier quart du niveau, {lastQuarter} dans le dernier (au moins 2 fois plus)`)
+	-- ... et de plus en plus résistants : chaque fantassin a au moins autant de PV que le précédent.
+	local firstNormal, lastNormal, rising = nil, nil, true
 	for _, item in queue do
 		if item.enemy == "Normal" then
 			firstNormal = firstNormal or item.health
+			rising = rising and (lastNormal == nil or item.health >= lastNormal)
 			lastNormal = item.health
 		end
 	end
-	check(firstNormal ~= nil and lastNormal > firstNormal, `niveau {level} : les fantassins passent de {firstNormal} à {lastNormal} PV`)
+	check(firstNormal ~= nil and rising and lastNormal >= 10 * firstNormal, `niveau {level} : les fantassins passent de {firstNormal} à {lastNormal} PV, sans jamais redescendre (au moins x10)`)
+	-- Chaque type n'entre qu'à partir de son moment du niveau.
+	local early = true
+	for _, item in queue do
+		local from = (source.from or {})[item.enemy]
+		if item.enemy ~= "Normal" and item.enemy ~= "Giant" and item.enemy ~= "Boss" then
+			early = early and from ~= nil and item.at >= from * source.seconds - 1e-6
+		end
+	end
+	check(early, `niveau {level} : aucun cavalier, écuyer ou chevalier lourd avant son moment`)
+	-- Rien n'est tiré au hasard : deux fois le même flot.
+	local again, same = Levels.buildQueue(level), true
+	for index, item in queue do
+		local other = again[index]
+		same = same and other ~= nil and other.enemy == item.enemy and other.at == item.at and other.health == item.health
+	end
+	check(same and #again == #queue, `niveau {level} : toujours exactement le même flot`)
 end
 check(Levels.enemyHealth(10, "Boss") > Levels.enemyHealth(5, "Giant"), "le boss du niveau 10 est plus résistant que le mini-boss du niveau 5")
 check(not pcall(Levels.definition, 11) and not pcall(Levels.buildQueue, 0), "un niveau inconnu (0, 11) est refusé")
@@ -127,7 +163,7 @@ end
 check(spotsOk and #map.spots >= 8, `les {#map.spots} emplacements conseillés sont tous posables, même tous occupés à la fois`)
 
 ----------------------------------------------------------------------
--- 3) Récompenses, prix, limites
+-- 3) Récompenses, prix, limites, or des monstres
 ----------------------------------------------------------------------
 check(Levels.firstReward(1) == 80 and Levels.firstReward(4) == 140 and Levels.firstReward(5) == 300 and Levels.firstReward(10) == 600, "première victoire : 80 au niveau 1, 140 au 4, 300 au mini-boss, 600 au boss")
 check(Levels.reward(3, true, true) == 120 and Levels.reward(3, true, false) == 48, "niveau 3 : 120 la première fois, 48 en le rejouant (40 %)")
@@ -136,11 +172,17 @@ check(Levels.reward(10, true, false) > Levels.reward(4, true, false) and Levels.
 check(Levels.placeCost("MachineGun") == 20 and Levels.upgradeCost("MachineGun", 1) == 15 and Levels.upgradeCost("MachineGun", 2) == 22, "Archer : 20 or, puis 15 et 22 pour ses deux premières améliorations")
 check(Levels.upgradeCost("MachineGun", Levels.MAX_TOWER_LEVEL) == nil and Levels.upgradeCost("MachineGun", Levels.MAX_TOWER_LEVEL - 1) ~= nil, "pas d'amélioration au-delà du niveau maximum")
 check(Levels.maxCopies("Frost") == 3 and Levels.maxCopies("MachineGun") == 5 and Levels.maxCopies("Orbital") == 2, "limites : 3 Totems, 5 Archers, 2 Trébuchets par niveau")
-local shopOk = Levels.SHOP.MachineGun == nil
+-- Demande du propriétaire : « commencer avec au moins deux tours, juste l'Archer c'est ennuyant ».
+check(#Levels.STARTING_TOWERS == 2 and Levels.STARTING_TOWERS[1] == "MachineGun" and Levels.STARTING_TOWERS[2] == "Bomb", "deux tours possédées dès le départ : l'Archer et la Catapulte")
+local shopOk = true
 for _, towerType in IdleTowers.ORDER do
-	shopOk = shopOk and Levels.TOWER_COST[towerType] ~= nil and (towerType == "MachineGun" or Levels.SHOP[towerType] > 0)
+	local starting = table.find(Levels.STARTING_TOWERS, towerType) ~= nil
+	shopOk = shopOk and Levels.TOWER_COST[towerType] ~= nil and (if starting then Levels.SHOP[towerType] == nil else Levels.SHOP[towerType] > 0)
 end
-check(shopOk, "boutique : un prix fixe pour chaque tour sauf l'Archer (déjà possédé), et un prix en or pour toutes")
+check(shopOk, "boutique : un prix fixe pour chaque tour sauf les deux de départ (déjà possédées), et un prix en or pour toutes")
+check(Levels.SHOP.Frost == 150 and Levels.SHOP.Tesla == 400, "boutique : Totem 150 pièces (payable après 2 niveaux), Mage 400")
+check(Levels.ENEMY.Normal.gold == 6 and Levels.ENEMY.Swarm.gold == 2 and Levels.ENEMY.Tank.gold == 18 and Levels.ENEMY.Boss.leak == 10, "or des monstres : 6 le fantassin, 2 l'écuyer, 18 le chevalier lourd")
+check(Levels.RUSH_GOLD_PER_SECOND == nil and Levels.GROUP_PAUSE == nil, "plus de pauses entre des groupes ni de bouton « envoyer la suite »")
 
 ----------------------------------------------------------------------
 -- 4) Entraînement : niveaux, améliorations débloquées, stats
@@ -178,22 +220,28 @@ end
 -- 5) Données du joueur
 ----------------------------------------------------------------------
 local fresh = Levels.defaultData()
-check(fresh.best == 0 and fresh.coins == 0 and fresh.towers.MachineGun == true and #fresh.slots == 1 and fresh.slots[1].tower == "MachineGun" and fresh.bar[1] == "MachineGun", "nouveau joueur : l'Archer, un emplacement de camp, rien d'autre")
+check(fresh.best == 0 and fresh.coins == 0 and fresh.towers.MachineGun == true and fresh.towers.Bomb == true and fresh.towers.Frost == nil and #fresh.slots == 1 and fresh.slots[1].tower == "MachineGun" and table.concat(fresh.bar, ",") == "MachineGun,Bomb", "nouveau joueur : l'Archer et la Catapulte dans sa barre, un emplacement de camp, rien d'autre")
+local archerOnly = Levels.cleanData({ best = 3, towers = { MachineGun = true }, bar = { "MachineGun" } })
+check(archerOnly.towers.Bomb == true and table.concat(Levels.ownedTowers(archerOnly), ",") == "MachineGun,Bomb" and archerOnly.best == 3, "ancienne sauvegarde avec le seul Archer : la Catapulte est donnée, le reste est gardé")
 local dirty = Levels.cleanData({
 	best = 99,
 	coins = -5,
-	towers = { Frost = true, Dragon = true, Bomb = "oui" },
+	towers = { Frost = true, Dragon = true, Tesla = "oui" },
 	xp = { Frost = 1 / 0, Dragon = 5, MachineGun = "12" },
-	slots = { { tower = "Bomb", level = 99 }, "n'importe quoi", { tower = "Frost", level = 2 }, { tower = "Frost", level = 1 } },
+	slots = { { tower = "Tesla", level = 99 }, "n'importe quoi", { tower = "Frost", level = 2 }, { tower = "Frost", level = 1 } },
 	bar = { "Frost", "Frost", "Dragon", "MachineGun" },
 	trainedAt = "hier",
 })
 check(dirty.best == Levels.COUNT and dirty.coins == 0 and dirty.trainedAt == 0, "sauvegarde abîmée : niveau, pièces et heure remis dans les clous")
-check(dirty.towers.Frost and dirty.towers.MachineGun and not dirty.towers.Dragon and not dirty.towers.Bomb, "sauvegarde abîmée : seules les vraies tours possédées restent (l'Archer toujours)")
+check(dirty.towers.Frost and dirty.towers.MachineGun and dirty.towers.Bomb and not dirty.towers.Dragon and not dirty.towers.Tesla, "sauvegarde abîmée : seules les vraies tours possédées restent (celles de départ toujours)")
 check(dirty.xp.Dragon == nil and dirty.xp.MachineGun == 12 and dirty.xp.Frost == 1e9, "sauvegarde abîmée : XP des vraies tours seulement, bornée")
 check(#dirty.slots == 3 and dirty.slots[1].tower == "" and dirty.slots[1].level == 5 and dirty.slots[2].tower == "" and dirty.slots[3].tower == "Frost" and dirty.slots[3].level == 2, "sauvegarde abîmée : 3 emplacements au plus, tour non possédée retirée, niveau borné")
 check(#dirty.bar == 2 and dirty.bar[1] == "Frost" and dirty.bar[2] == "MachineGun", "sauvegarde abîmée : barre sans doublon ni tour inconnue")
 check(Levels.cleanData(nil).best == 0 and Levels.cleanData("x").towers.MachineGun == true, "pas de sauvegarde : un nouveau joueur")
+-- Première version du prototype : la Catapulte coûtait 350 pièces, le Mage 700 (400 aujourd'hui).
+local firstVersion = Levels.cleanData({ coins = 100, towers = { MachineGun = true, Frost = true, Bomb = true, Tesla = true } })
+check(firstVersion.coins == 100 + 350 + 300 and firstVersion.version == Levels.DATA_VERSION, `sauvegarde de la première version : la Catapulte (350) et l'écart de prix du Mage (300) sont rendus ({firstVersion.coins} pièces)`)
+check(Levels.cleanData(firstVersion).coins == firstVersion.coins and Levels.cleanData(Levels.defaultData()).coins == 0, "... une seule fois, et rien pour un nouveau joueur")
 local owned = Levels.ownedTowers({ bar = { "Bomb", "MachineGun" }, towers = { MachineGun = true, Bomb = true, Frost = true, Orbital = true } })
 check(table.concat(owned, ",") == "Bomb,MachineGun,Frost,Orbital", "barre rapide : l'ordre du joueur, puis ses autres tours")
 
@@ -214,17 +262,19 @@ check(Levels.trainingLevels(camp).MachineGun == Levels.trainingLevel(camp.xp.Mac
 ----------------------------------------------------------------------
 do
 	-- Niveau 1 : un Archer déjà posé au premier emplacement conseillé, qui tue tout de suite.
-	local game, arena = newGame(1, { "MachineGun" })
+	local game, arena = newGame(1, Levels.STARTING_TOWERS)
 	local starter = nil
 	for _, tower in game.towers do
 		starter = tower
 	end
 	check(towerCount(game) == 1 and starter.type == "MachineGun" and (starter.localPosition - map.spots[1]).Magnitude < 1e-6, "niveau 1 : un Archer offert au premier emplacement conseillé")
-	check(game.gold == 25 and game.lives == 10 and game.state == "Running" and arena.folder:GetAttribute("State") == "Running" and arena.folder:GetAttribute("Level") == 1, "niveau 1 : 25 or, 10 vies, en cours (attributs publiés)")
-	check(arena.folder:GetAttribute("Total") == #Levels.buildQueue(1) and arena.folder:GetAttribute("Left") == arena.folder:GetAttribute("Total"), "niveau 1 : avancée publiée (tous les monstres restent)")
+	check(game.gold == 60 and game.lives == 10 and game.state == "Running" and arena.folder:GetAttribute("State") == "Running" and arena.folder:GetAttribute("Level") == 1, "niveau 1 : 60 or, 10 vies, en cours (attributs publiés)")
+	check(arena.folder:GetAttribute("Total") == #Levels.buildQueue(1) and arena.folder:GetAttribute("Left") == arena.folder:GetAttribute("Total") and arena.folder:GetAttribute("Progress") == 0, "niveau 1 : avancée publiée (tous les monstres restent, flot à 0 %)")
 	check(arena.folder:GetAttribute("Perks") == "" and arena.folder:GetAttribute("Training") == Levels.encodeTraining({}), "niveau 1 sans entraînement : aucun effet débloqué publié")
 	run(game, 12)
-	check(game.kills >= 1 and game.gold == 25 + 2 * game.kills and game.lives == 10, `l'Archer offert tue seul : {game.kills} monstres en 12 s, 2 or chacun, aucune vie perdue`)
+	game:syncAttributes()
+	check(game.kills >= 5 and game.gold == 60 + 6 * game.kills and game.lives == 10, `l'Archer offert tue seul : {game.kills} monstres en 12 s, 6 or chacun, aucune vie perdue`)
+	check(arena.folder:GetAttribute("Progress") == math.floor(game.clock / game.streamSeconds * 100) and arena.folder:GetAttribute("Progress") >= 10 and arena.folder:GetAttribute("Gold") == game.gold, `avancée du flot publiée : {arena.folder:GetAttribute("Progress")} % après 12 s`)
 
 	-- Pose libre : refus (or, tour pas débloquée, chemin, trop près), puis une vraie pose.
 	local before = game.gold
@@ -271,7 +321,7 @@ do
 	end
 	local _, limitReason = game:placeTower("MachineGun", Vector3.new(40, 0, -15))
 	check(archers == 5 and towerCount(game) == 5 and string.find(limitReason or "", "Maximum 5", 1, true) ~= nil, "5 Archers au plus dans un niveau")
-	check(before >= 25, "(l'or n'a fait que monter pendant les 12 premières secondes)")
+	check(before >= 60, "(l'or n'a fait que monter pendant les 12 premières secondes)")
 
 	-- Vitesse x2 : deux pas par image, la même partie jouée deux fois plus vite.
 	local clock = game.clock
@@ -295,8 +345,8 @@ end
 
 do
 	-- Défaite : sans tour, les monstres arrivent au château ; chaque fantassin coûte une vie.
-	local game, arena, ends = newGame(2, { "MachineGun" })
-	check(towerCount(game) == 0 and game.gold == 45, "niveau 2 : aucune tour offerte, 45 or")
+	local game, arena, ends = newGame(2, Levels.STARTING_TOWERS)
+	check(towerCount(game) == 0 and game.gold == 65, "niveau 2 : aucune tour offerte, 65 or")
 	run(game, 120)
 	check(game.state == "Lost" and game.lives == 0 and game.leaked == 10 and #ends == 1 and ends[1] == false, `sans tour : perdu quand 10 fantassins ont atteint le château (en {math.floor(game.clock)} s), fin annoncée une seule fois`)
 	game:syncAttributes()
@@ -305,13 +355,13 @@ do
 	game:simulate(1)
 	game:finish(true)
 	check(game.clock == clock and game.state == "Lost" and #ends == 1, "un niveau fini ne bouge plus et ne se termine pas deux fois")
-	check(game:placeTower("MachineGun", map.spots[1]) == false and game:rush() == 0, "un niveau fini refuse les poses et « envoyer la suite »")
-	check(near(game:progress(), game.kills / #game.queue) and game:progress() == 0, "avancée : part de la vague éliminée (0 ici)")
+	check(game:placeTower("MachineGun", map.spots[1]) == false and game.rush == nil, "un niveau fini refuse les poses (et « envoyer la suite » n'existe plus)")
+	check(near(game:progress(), game.kills / #game.queue) and game:progress() == 0, "avancée : part du flot éliminée (0 ici)")
 end
 
 do
 	-- Un colosse qui passe coûte 5 vies, le boss 10.
-	local game = newGame(5, { "MachineGun" })
+	local game = newGame(5, Levels.STARTING_TOWERS)
 	game:spawnEnemy({ enemy = "Giant", health = 1e9, reward = 40 })
 	game.enemies[#game.enemies].distance = geometry.PATH_LENGTH - 0.01
 	game:simulate(1 / 30)
@@ -323,45 +373,69 @@ do
 end
 
 do
-	-- « Envoyer la suite » : seulement pendant la pause entre deux groupes, contre un peu d'or.
-	local game, arena = newGame(2, { "MachineGun" })
-	game:simulate(1 / 30)
-	check(game:rushSeconds() == 0 and game:rush() == 0, "pas d'« envoyer la suite » entre deux monstres d'un même groupe")
-	local queue = Levels.buildQueue(2)
-	local firstOfSecond = nil
-	for index, item in queue do
-		if item.enemy == "Fast" then
-			firstOfSecond = index
-			break
-		end
-	end
+	-- Flot continu dans le moteur : chaque monstre sort à son heure, sans pause, jusqu'au dernier.
+	local game = newGame(2, Levels.STARTING_TOWERS)
 	game.lives = math.huge
-	while game.queueIndex < firstOfSecond do
+	local queue = Levels.buildQueue(2)
+	local onTime = true
+	for _ = 1, 40 * 30 do
 		game:simulate(1 / 30)
+		local due = 0
+		for _, item in queue do
+			if item.at <= game.clock + 1e-6 then
+				due += 1
+			end
+		end
+		onTime = onTime and game.queueIndex - 1 == due
 	end
-	local wait = game:rushSeconds()
-	local gold, spawned = game.gold, game.queueIndex
-	local bonus = game:rush()
-	game:simulate(1 / 30)
-	game:syncAttributes()
-	check(wait > 2.2 and bonus == math.floor(wait * Levels.RUSH_GOLD_PER_SECOND + 0.5) and game.gold >= gold + bonus and game.queueIndex == spawned + 1, `pause entre deux groupes : {wait} s sautées, +{bonus} or, le monstre suivant sort tout de suite`)
-	check(arena.folder:GetAttribute("RushSeconds") == 0, "juste après : plus rien à sauter")
+	check(onTime and game.queueIndex > 30, `flot continu : après 40 s, {game.queueIndex - 1} monstres sortis, chacun à son heure`)
 end
 
+----------------------------------------------------------------------
+-- 7) La difficulté. Retour du propriétaire (02/10/2026) : « beaucoup trop facile », « obligé d'être super actif
+--    pendant le niveau : poser des tours, améliorer », « si juste 2 Archers gèrent le niveau, je passe mon temps
+--    à attendre ». Chaque niveau, joué par les joueurs simulés (Bot.luau) avec les tours attendues à ce niveau.
+----------------------------------------------------------------------
+local function outcome(result): string
+	return if result.won then `gagné avec {result.lives} vies` else `perdu à {math.floor(result.kills / result.total * 100 + 0.5)} %`
+end
+for level = 1, Levels.COUNT do
+	-- Celui qui réinvestit son or sans arrêt gagne, avec presque toutes ses vies.
+	local active = Bot.play(level, Bot.profile(level), function(result)
+		return result.won and result.lives >= 8
+	end)
+	check(active.won and active.lives >= 8, `niveau {level} : le joueur très actif gagne avec au moins 8 vies ({outcome(active)})`)
+	-- Le rythme demandé (Bot.EXPECTED : un achat toutes les 5 s au niveau 1, toutes les 3,5 s à la fin) suffit.
+	local reference = Bot.play(level, Bot.profile(level, "reference"), function(result)
+		return result.won and result.lives >= 5
+	end)
+	check(reference.won and reference.lives >= 5, `niveau {level} : un achat toutes les {Bot.EXPECTED[level].pace} s suffit ({outcome(reference)})`)
+	-- Plus lent que ça, on perd : un achat toutes les 8 s, toutes les 15 s.
+	local slow = Bot.play(level, Bot.profile(level, 8))
+	check(not slow.won, `niveau {level} : un achat toutes les 8 s ne suffit pas ({outcome(slow)})`)
+	local distracted = Bot.play(level, Bot.profile(level, 15))
+	check(not distracted.won and distracted.kills <= slow.kills, `niveau {level} : un achat toutes les 15 s perd encore plus tôt ({outcome(distracted)})`)
+	-- Poser quelques tours puis attendre : toujours perdu, et de plus en plus tard quand on en pose plus.
+	local two = Bot.playLazy(level, { "MachineGun", "MachineGun" })
+	local six = Bot.playLazy(level, { "MachineGun", "MachineGun", "Bomb", "MachineGun", "MachineGun", "Bomb" })
+	check(not two.won and two.kills / two.total < 0.3, `niveau {level} : 2 Archers puis attendre : {outcome(two)} (avant 30 %)`)
+	check(not six.won and six.kills > two.kills and six.kills / six.total < 0.6, `niveau {level} : 4 Archers et 2 Catapultes sans rien améliorer : {outcome(six)} (plus tard, avant 60 %)`)
+	-- Les premières secondes laissent le temps de poser ses premières tours : celui qui attend tient un moment.
+	check(two.seconds >= 35, `niveau {level} : celui qui pose 2 Archers puis attend tient au moins 35 s ({math.floor(two.seconds)} s)`)
+end
 do
-	-- Victoire : le joueur simulé gagne le niveau 1 avec le seul Archer, sans perdre de vie.
-	local result = Bot.play(1, { towers = { "MachineGun" }, training = 0 })
-	check(result.won and result.lives == 10 and result.kills == result.total, `niveau 1 gagné par le joueur simulé avec le seul Archer ({result.kills}/{result.total} monstres, {result.lives} vies, {math.floor(result.seconds)} s)`)
-	-- ... et le niveau 10 est hors de portée de l'Archer seul, mais pas de toutes les tours entraînées.
-	local alone = Bot.play(10, { towers = { "MachineGun" }, training = 0 })
-	local full = Bot.play(10, { towers = table.clone(IdleTowers.ORDER), training = 6 })
-	check(not alone.won and full.won, "niveau 10 : perdu avec l'Archer seul, gagné avec toutes les tours entraînées")
+	-- La boutique devient nécessaire au niveau 3 ; tout débloquer et tout entraîner rend le boss facile.
+	local startOnly = { towers = Levels.STARTING_TOWERS, training = 0 }
+	check(Bot.play(1, startOnly).won and Bot.play(2, startOnly).won and not Bot.play(3, startOnly).won, "sans boutique : les niveaux 1 et 2 se gagnent, pas le 3 (il faut le Totem)")
+	local alone = Bot.play(10, startOnly)
+	local full = Bot.play(10, { towers = Bot.ALL_TOWERS, training = 6 })
+	check(not alone.won and full.won and full.lives == 10, "niveau 10 : perdu avec les deux tours de départ, gagné sans perdre de vie avec toutes les tours entraînées")
 end
 
 do
 	-- Entraînement : les flèches enflammées n'existent dans un niveau qu'à partir de l'entraînement 2.
-	local plain = newGame(2, { "MachineGun" }, 0)
-	local trained, trainedArena = newGame(2, { "MachineGun" }, 2)
+	local plain = newGame(2, Levels.STARTING_TOWERS, 0)
+	local trained, trainedArena = newGame(2, Levels.STARTING_TOWERS, 2)
 	local most = {}
 	for _, game in { plain, trained } do
 		game.gold = 1e6

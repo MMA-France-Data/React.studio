@@ -5,12 +5,12 @@
 --                  XP et améliorations de chaque tour), Mes tours (l'inventaire et l'ordre de la barre rapide) ;
 --   « LevelHud » : pendant un niveau. Vue d'en haut de la zone de combat (caméra réglée pour montrer toute la carte
 --                  entre les bandeaux ; zoom avec la molette ou en pinçant, déplacement en glissant un doigt ou
---                  avec le clic droit / les flèches), or / vies / avancée de la vague, barre rapide des tours, pose
---                  LIBRE (ordinateur : clic sur une tour de la barre, un aperçu vert ou rouge suit la souris avec
---                  sa portée, clic pour poser ; téléphone : appui sur la tour puis appui sur le terrain, ou glisser
---                  la tour depuis la barre), « + » aux emplacements conseillés (on peut poser ailleurs), petit menu
---                  Améliorer / Vendre à côté de la tour touchée, boutons « envoyer la suite » et x2, écran de fin
---                  (Niveau suivant / Rejouer / Retour au camp).
+--                  avec le clic droit / les flèches), or / vies / avancée du flot de monstres, barre rapide des
+--                  tours, pose LIBRE (ordinateur : clic sur une tour de la barre, un aperçu vert ou rouge suit la
+--                  souris avec sa portée, clic pour poser ; téléphone : appui sur la tour puis appui sur le terrain,
+--                  ou glisser la tour depuis la barre ; la tour en main dit « ANNULER » : un appui dessus annule),
+--                  « + » aux emplacements conseillés (on peut poser ailleurs), petit menu Améliorer / Vendre à côté
+--                  de la tour touchée, bouton x2, écran de fin (Niveau suivant / Rejouer / Retour au camp).
 -- Le client ne décide rien : il lit les attributs publiés par le serveur (du joueur : LevelsAccess, LevelsState,
 -- LevelArena ; du dossier de sa zone : Level, State, Gold, Lives..., voir Remotes.luau) et envoie des demandes
 -- (remote LevelAction). Les monstres, les tirs et les étiquettes des tours sont affichés par PlotRenderer, comme
@@ -106,6 +106,10 @@ local DRAG_START = 22 -- px : au-delà, un toucher parti d'une tour de la barre 
 local QUIT_CONFIRM = 3 -- secondes pour confirmer « Quitter »
 local PLUS_MARKERS = 8 -- « + » affichés au plus (les premiers emplacements conseillés encore libres)
 local GOLD_POPUPS = 14 -- « +2 » dorés affichés à la fois au plus (or gagné au-dessus des monstres tués)
+-- Conseil « ne garde pas ton or » : affiché quand le joueur a au moins IDLE_GOLD d'or, de quoi acheter quelque
+-- chose, et qu'il n'achète rien depuis IDLE_GOLD_SECONDS (un niveau ne se gagne qu'en réinvestissant sans arrêt).
+local IDLE_GOLD = 80
+local IDLE_GOLD_SECONDS = 4
 
 local WINDOW_SIZE = Vector2.new(780, 540)
 local END_SIZE = Vector2.new(460, 372)
@@ -124,7 +128,7 @@ local levelAction = nil -- remote LevelAction (LevelsUI.start)
 ----------------------------------------------------------------------
 -- État du joueur (attribut « LevelsState », publié par le serveur)
 ----------------------------------------------------------------------
-local state = { best = 0, coins = 0, towers = { "MachineGun" }, xp = {}, slots = {}, wins = 0, losses = 0 }
+local state = { best = 0, coins = 0, towers = table.clone(Levels.STARTING_TOWERS), xp = {}, slots = {}, wins = 0, losses = 0 }
 
 local function readState()
 	local raw = player:GetAttribute("LevelsState")
@@ -366,7 +370,7 @@ local function buildCamp()
 			entry.stroke.Transparency = if nextOne then 0 else 0.8
 			entry.card.BackgroundTransparency = if cleared or nextOne then 0 else 0.55
 		end
-		summary.Text = `Chaque niveau est une longue vague : pose tes tours où tu veux, améliore-les avec l'or des monstres, protège ton château ({Levels.LIVES} vies). `
+		summary.Text = `Chaque niveau est un flot de monstres sans pause, de plus en plus forts : pose et améliore tes tours sans arrêt avec l'or qu'ils donnent, protège ton château ({Levels.LIVES} vies). `
 			.. `Gagner rapporte des pièces de niveau {COIN} pour acheter d'autres tours et améliorer ton camp d'entraînement.\n`
 			.. `Victoires : {state.wins} • Défaites : {state.losses}`
 	end
@@ -1176,6 +1180,13 @@ local function setPlacing(towerType: string?)
 	hud.gui:SetAttribute("Selected", 0)
 end
 
+-- Appui sur une tour de la barre (ou sa touche) : on la prend pour la poser ; un deuxième appui ANNULE, et le
+-- bouton le dit tant que la tour est en main (retour du propriétaire, 02/10/2026 : « quand je clique sur une tour
+-- pour la poser, il faut que je puisse annuler mon action »). Aussi : clic droit, touche Q.
+local function barTap(towerType: string)
+	setPlacing(if level.placing == towerType then nil else towerType)
+end
+
 local function selectTower(model: Model?)
 	level.selected = model
 	if model then
@@ -1439,7 +1450,7 @@ local function buildHud()
 	gui.Enabled = false
 	hud.gui = gui
 
-	-- Bandeau du haut : niveau, vies, or, avancée de la vague, « envoyer la suite », x2, quitter.
+	-- Bandeau du haut : niveau, vies, or, avancée du flot de monstres, x2, quitter.
 	local strip = UI.new("Frame", {
 		Name = "TopStrip",
 		BackgroundColor3 = UI.Colors.Panel,
@@ -1453,6 +1464,8 @@ local function buildHud()
 	local goldLabel = UI.label({ Name = "Gold", Font = Enum.Font.GothamBlack, TextColor3 = UI.Colors.Gold, MaxTextSize = 20, Parent = strip })
 	local progress, setProgress = UI.bar({ Name = "Progress" }, UI.Colors.Success)
 	progress.Parent = strip
+	local progressFill = progress:FindFirstChildOfClass("Frame") :: Frame
+	progressFill.Name = "Fill"
 	local progressLabel = UI.label({
 		Name = "ProgressText",
 		Size = UDim2.fromScale(1, 1),
@@ -1462,7 +1475,6 @@ local function buildHud()
 		ZIndex = 2,
 		Parent = progress,
 	})
-	local rushButton = UI.button({ Name = "Rush", BackgroundColor3 = UI.Colors.Warning, MaxTextSize = 15, Parent = strip })
 	local speedButton = UI.button({ Name = "Speed", MaxTextSize = 16, Parent = strip })
 	local quitButton = UI.button({ Name = "Quit", BackgroundColor3 = UI.Colors.Error, Text = "X", MaxTextSize = 16, Parent = strip })
 
@@ -1525,7 +1537,7 @@ local function buildHud()
 			if drag.active then
 				return -- (fin d'un glisser : déjà traité)
 			end
-			setPlacing(if level.placing == towerType then nil else towerType)
+			barTap(towerType)
 		end)
 		-- Téléphone : glisser la tour depuis la barre jusqu'au terrain (suivi dans TouchMoved / TouchEnded).
 		button.InputBegan:Connect(function(input)
@@ -1533,7 +1545,7 @@ local function buildHud()
 				drag.input, drag.towerType, drag.origin, drag.active = input, towerType, input.Position, false
 			end
 		end)
-		barButtons[towerType] = { button = button, stroke = stroke, name = name, cost = cost, copies = copies }
+		barButtons[towerType] = { button = button, stroke = stroke, name = name, cost = cost, copies = copies, color = button.BackgroundColor3 }
 	end
 
 	local hint = UI.label({
@@ -1719,7 +1731,14 @@ local function buildHud()
 			table.insert(lines, `Vies restantes : {result.lives}/{Levels.LIVES}`)
 		else
 			table.insert(lines, `Niveau {result.level} : {result.kills} monstres éliminés sur {result.total}.`)
-			table.insert(lines, "Améliore tes tours, achètes-en d'autres ou entraîne-les au camp, puis réessaie.")
+			-- Perdu avec de l'or en poche : c'est la raison la plus fréquente, on la dit avec son chiffre.
+			local unspent = numberAttribute("Gold")
+			if unspent >= IDLE_GOLD then
+				table.insert(lines, `Il te restait {amount(unspent)} {GOLD} : dépense ton or au fur et à mesure, les monstres deviennent plus forts sans arrêt.`)
+			else
+				table.insert(lines, "Les monstres deviennent plus forts sans arrêt : pose et améliore tes tours du début à la fin, sans garder ton or.")
+			end
+			table.insert(lines, "La boutique et le camp d'entraînement aident aussi.")
 		end
 		local xp = tonumber(result.xp) or 0
 		if xp > 0 and typeof(result.towers) == "table" and #result.towers > 0 then
@@ -1767,8 +1786,8 @@ local function buildHud()
 		strip.Size = UDim2.fromOffset(width, height)
 		local gap, pad = 6, 6
 		local widths = if phone
-			then { level = 76, lives = 48, gold = 66, rush = 78, speed = 38, quit = 34 }
-			else { level = 110, lives = 70, gold = 96, rush = 130, speed = 52, quit = 42 }
+			then { level = 76, lives = 48, gold = 66, speed = 38, quit = 34 }
+			else { level = 110, lives = 70, gold = 96, speed = 52, quit = 42 }
 		local x = pad
 		local function place(object: GuiObject, itemWidth: number)
 			object.Position = UDim2.fromOffset(x, 4)
@@ -1778,9 +1797,8 @@ local function buildHud()
 		place(levelLabel, widths.level)
 		place(livesLabel, widths.lives)
 		place(goldLabel, widths.gold)
-		local fixed = widths.rush + widths.speed + widths.quit + 3 * gap + pad
+		local fixed = widths.speed + widths.quit + 2 * gap + pad
 		place(progress, math.max(40, width - x - fixed))
-		place(rushButton, widths.rush)
 		place(speedButton, widths.speed)
 		place(quitButton, widths.quit)
 
@@ -1810,9 +1828,6 @@ local function buildHud()
 	layout()
 	gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(layout)
 
-	rushButton.Activated:Connect(function()
-		levelAction:FireServer("Rush")
-	end)
 	speedButton.Activated:Connect(toggleSpeed)
 	function hud.quit()
 		-- Niveau fini : retour direct. En cours : un deuxième appui confirme l'abandon.
@@ -1844,8 +1859,26 @@ local function buildHud()
 		label.TextColor3 = Color3.new(1, 1, 1)
 		TweenService:Create(label, TweenInfo.new(0.35), { TextColor3 = color }):Play()
 	end
+	-- Or qui dort : heure depuis laquelle le joueur garde de quoi acheter sans rien acheter (nil = il dépense).
+	local richSince: number? = nil
+	local nextRichCheck = 0
+	local function canBuySomething(gold: number): boolean
+		for _, towerType in state.towers do
+			if gold >= Levels.placeCost(towerType) and copiesOf(towerType) < Levels.maxCopies(towerType) then
+				return true
+			end
+		end
+		for _, model in towerModels() do
+			local cost = Levels.upgradeCost(model:GetAttribute("TowerType"), model:GetAttribute("Level") or 1)
+			if cost and gold >= cost then
+				return true
+			end
+		end
+		return false
+	end
 	function hud.resetCounters()
 		lastGold, lastLives = nil, nil
+		richSince = nil
 	end
 
 	function hud.update()
@@ -1867,9 +1900,11 @@ local function buildHud()
 		set(goldLabel, "Text", `{GOLD} {amount(gold)}`)
 		setProgress(if total > 0 then 1 - left / total else 0)
 		set(progressLabel, "Text", if total > 0 then `Monstres : {left} / {total}` else "")
-		local rush = numberAttribute("RushSeconds")
-		set(rushButton, "Visible", running and rush > 0)
-		set(rushButton, "Text", `⏩ +{math.floor(rush * Levels.RUSH_GOLD_PER_SECOND + 0.5)} {GOLD}`)
+		-- Le flot devient plus dur du début à la fin du niveau : la barre passe du vert à l'orange, puis au rouge.
+		local stream = math.clamp(numberAttribute("Progress") / 100, 0, 1)
+		set(progressFill, "BackgroundColor3", if stream < 0.5
+			then UI.Colors.Success:Lerp(UI.Colors.Warning, stream * 2)
+			else UI.Colors.Warning:Lerp(UI.Colors.Error, (stream - 0.5) * 2))
 		local fast = numberAttribute("SimSpeed") >= IdleConfig.SPEED_PASS_FACTOR
 		set(speedButton, "Text", if fast then "x2" else "x1")
 		set(speedButton, "BackgroundColor3", if fast then UI.Colors.Warning else UI.Colors.Accent)
@@ -1893,19 +1928,32 @@ local function buildHud()
 				local cost = Levels.placeCost(towerType)
 				local copies, limit = copiesOf(towerType), Levels.maxCopies(towerType)
 				local available = running and gold >= cost and copies < limit
+				-- La tour en main : son bouton devient rouge et dit « ANNULER » (un appui dessus annule la pose).
+				local held = level.placing == towerType
 				-- (téléphone : pas de ligne « 2/5 » ; à la limite, « MAX » remplace le prix)
-				entry.cost.Text = if phoneBar and copies >= limit then "MAX" else `{cost} {GOLD}`
-				entry.cost.TextColor3 = if gold >= cost and copies < limit then UI.Colors.Gold else UI.Colors.DangerText
+				entry.cost.Text = if held then "ANNULER" else if phoneBar and copies >= limit then "MAX" else `{cost} {GOLD}`
+				entry.cost.TextColor3 = if held
+					then Color3.new(1, 1, 1)
+					else if gold >= cost and copies < limit then UI.Colors.Gold else UI.Colors.DangerText
 				entry.copies.Text = `{copies}/{limit}` .. (if UserInputService.KeyboardEnabled then `  [{index}]` else "")
-				entry.copies.TextColor3 = if copies >= limit then UI.Colors.DangerText else UI.Colors.Muted
-				entry.button.BackgroundTransparency = if available then 0 else 0.45
-				entry.name.TextTransparency = if available then 0 else 0.35
-				entry.stroke.Transparency = if level.placing == towerType then 0 else 0.7
-				entry.stroke.Color = if level.placing == towerType then Color3.new(1, 1, 1) else UI.Colors.Gold
+				entry.copies.TextColor3 = if held then Color3.new(1, 1, 1) else if copies >= limit then UI.Colors.DangerText else UI.Colors.Muted
+				entry.button.BackgroundColor3 = if held then UI.Colors.Error else entry.color
+				entry.button.BackgroundTransparency = if held or available then 0 else 0.45
+				entry.name.TextTransparency = if held or available then 0 else 0.35
+				entry.stroke.Transparency = if held then 0 else 0.7
+				entry.stroke.Color = if held then Color3.new(1, 1, 1) else UI.Colors.Gold
 			end
 		end
 
 		-- Conseil au-dessus de la barre.
+		if os.clock() >= nextRichCheck then
+			nextRichCheck = os.clock() + 0.5
+			if running and gold >= IDLE_GOLD and canBuySomething(gold) then
+				richSince = richSince or os.clock()
+			else
+				richSince = nil
+			end
+		end
 		local text = ""
 		if running then
 			local placingDef = level.placing and IdleTowers.Defs[level.placing]
@@ -1914,9 +1962,10 @@ local function buildHud()
 			elseif level.firstTime and not level.upgraded and not level.selected and not level.placing then
 				text = "Touche une tour pour l'améliorer avec ton or"
 			elseif placingDef then
-				text = `Touche le terrain (ou un « + ») pour poser : {placingDef.displayName}`
-			elseif level.firstTime and level.upgraded then
-				text = "Continue : pose et améliore tes tours jusqu'à la fin de la vague !"
+				text = `Touche le terrain (ou un « + ») pour poser : {placingDef.displayName}. Changer d'avis : « Annuler »`
+			elseif not level.selected and richSince and os.clock() - richSince > IDLE_GOLD_SECONDS then
+				-- Le niveau ne se gagne qu'en réinvestissant son or sans arrêt : on le dit à celui qui le garde.
+				text = "Ne garde pas ton or : pose ou améliore une tour, les monstres deviennent de plus en plus forts !"
 			end
 		end
 		set(hint, "Text", text)
@@ -2175,9 +2224,10 @@ end
 
 -- Tests automatiques (Studio) : gui:SetAttribute("TestAction", "<commande>#<numéro>") fait comme le joueur.
 --   écran « Levels »   : "Open", "Close", "Tab:Boutique"
---   écran « LevelHud » : "Select:MachineGun" (tour de la barre), "Tap:-23,0" (appui sur ce point local du terrain,
---                        par le vrai chemin : point de l'écran -> rayon de la caméra -> sol), "Upgrade", "Sell",
---                        "Rush", "Speed", "Quit", "Next", "Replay", "Camp", "Zoom:2" (zoom voulu), "Pan:120,-40"
+--   écran « LevelHud » : "Select:MachineGun" (tour en main), "Bar:MachineGun" (appui sur son bouton de la barre :
+--                        la prendre, ou annuler si elle est déjà en main), "Tap:-23,0" (appui sur ce point local
+--                        du terrain, par le vrai chemin : point de l'écran -> rayon de la caméra -> sol), "Upgrade",
+--                        "Sell", "Speed", "Quit", "Next", "Replay", "Camp", "Zoom:2" (zoom voulu), "Pan:120,-40"
 --                        (glissement de la vue en pixels, comme un doigt), "Pitch:70" (inclinaison imposée de la
 --                        caméra en degrés, 90 = pile au-dessus ; "Pitch:" = de nouveau le réglage normal)
 local function testAction(command: string)
@@ -2192,6 +2242,10 @@ local function testAction(command: string)
 		return
 	elseif name == "Select" then
 		setPlacing(if argument ~= "" and owns(argument) then argument else nil)
+	elseif name == "Bar" then
+		if owns(argument) then
+			barTap(argument)
+		end
 	elseif name == "Tap" then
 		local x, z = string.match(argument, "^(-?[%d%.]+),(-?[%d%.]+)$")
 		local camera = workspace.CurrentCamera
@@ -2215,8 +2269,6 @@ local function testAction(command: string)
 		upgradeSelected()
 	elseif name == "Sell" then
 		sellSelected()
-	elseif name == "Rush" then
-		levelAction:FireServer("Rush")
 	elseif name == "Speed" then
 		toggleSpeed()
 	elseif name == "Quit" then
@@ -2302,7 +2354,7 @@ local function build()
 			if slot then
 				local towerType = state.towers[slot]
 				if towerType then
-					setPlacing(if level.placing == towerType then nil else towerType)
+					barTap(towerType)
 				end
 			elseif input.KeyCode == Enum.KeyCode.E then
 				upgradeSelected()
@@ -2311,8 +2363,6 @@ local function build()
 			elseif input.KeyCode == Enum.KeyCode.Q or input.KeyCode == Enum.KeyCode.Backspace then
 				setPlacing(nil)
 				selectTower(nil)
-			elseif input.KeyCode == Enum.KeyCode.R then
-				levelAction:FireServer("Rush")
 			elseif input.KeyCode == Enum.KeyCode.F then
 				toggleSpeed()
 			end

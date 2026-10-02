@@ -67,19 +67,64 @@ end
 -- Façons de jouer essayées (Bot.play garde la meilleure partie) :
 --   patience = il économise pour son meilleur achat (au lieu de prendre le meilleur achat payable) quand ce
 --              meilleur achat vaut au moins `patience` fois plus par pièce d'or (math.huge = il n'économise jamais) ;
---   archers = nombre d'Archers posés avant tout le reste (des dégâts sûrs dès le début).
+--   archers = nombre d'Archers posés avant tout le reste (des dégâts sûrs dès le début) ;
+--   danger = part du chemin au-delà de laquelle un monstre lui fait tout dépenser tout de suite (Bot.DANGER si
+--            absent ; 2 = jamais : il garde son sang-froid et continue d'économiser pour son meilleur achat).
 Bot.POLICIES = {
 	{ patience = math.huge, archers = 0 },
 	{ patience = 1.2, archers = 3 },
 	{ patience = 1.2, archers = 5 },
 	{ patience = 1.6, archers = 3 },
 	{ patience = 1.6, archers = 5 },
+	{ patience = 1.2, archers = 3, danger = 0.85 },
+	{ patience = 1.2, archers = 3, danger = 2 },
+	{ patience = 1.05, archers = 2, danger = 2 },
+	{ patience = 1.05, archers = 0, danger = 2 },
 }
 
--- profile = { towers = { types débloqués }, training = niveau d'entraînement de toutes les tours (0 à 6) }
+-- Ce qu'un joueur a quand il arrive à chaque niveau, sans rejouer ni attendre :
+--   * tours : Totem (150 pièces) avant le niveau 3, Mage (400) avant le 6, payés avec les pièces de la première
+--     victoire des niveaux d'avant (180 après le niveau 2, 740 après le 5). La Baliste (900) n'est jamais
+--     attendue : elle se paie après le niveau 9, c'est un vrai plus contre le boss ;
+--   * entraînement : 8 XP par victoire pour chaque tour posée, soit le niveau 1 (20 XP) après 3 victoires et le
+--     niveau 2 (60 XP) après 7 ou 8, le camp aidant.
+-- pace = le RYTHME demandé par ce niveau : secondes entre deux achats du joueur de référence, celui pour qui le
+-- niveau est réglé (tune.luau). Le premier niveau laisse un peu de temps, les derniers demandent un achat toutes
+-- les 3,5 secondes (un humain choisit moins bien que le joueur simulé : il doit aller un peu plus vite que ça).
+local MG, BOMB, FROST, TESLA = "MachineGun", "Bomb", "Frost", "Tesla"
+Bot.EXPECTED = {
+	{ towers = { MG, BOMB }, training = 0, pace = 5 },
+	{ towers = { MG, BOMB }, training = 0, pace = 4.5 },
+	{ towers = { MG, BOMB, FROST }, training = 0, pace = 4 },
+	{ towers = { MG, BOMB, FROST }, training = 1, pace = 4 },
+	{ towers = { MG, BOMB, FROST }, training = 1, pace = 4 },
+	{ towers = { MG, BOMB, FROST, TESLA }, training = 1, pace = 3.5 },
+	{ towers = { MG, BOMB, FROST, TESLA }, training = 1, pace = 3.5 },
+	{ towers = { MG, BOMB, FROST, TESLA }, training = 2, pace = 3.5 },
+	{ towers = { MG, BOMB, FROST, TESLA }, training = 2, pace = 3.5 },
+	{ towers = { MG, BOMB, FROST, TESLA }, training = 2, pace = 3.5 },
+}
+Bot.ALL_TOWERS = { "MachineGun", "Frost", "Bomb", "Tesla", "Rocket", "Laser", "Chain", "Orbital" }
+
+-- Profil d'un joueur qui arrive à ce niveau avec les tours attendues. pace = secondes entre deux achats (un achat
+-- à la fois) ; "reference" = le rythme demandé par le niveau ; absent = joueur très actif (il dépense tout, tout
+-- de suite).
+function Bot.profile(level: number, pace: (number | string)?)
+	local expected = Bot.EXPECTED[level]
+	local interval = if pace == "reference" then expected.pace else pace
+	return { towers = expected.towers, training = expected.training, interval = interval, actions = if interval then 1 else nil }
+end
+
+-- profile = { towers = { types débloqués }, training = niveau d'entraînement de toutes les tours (0 à 6),
+--             interval = secondes entre deux décisions (0,4 par défaut : un joueur très actif),
+--             actions = achats au plus par décision (20 par défaut : il dépense tout ce qu'il peut) }
+-- Un joueur « moyen » (interval 3, actions 1) ou « lent » (interval 8, actions 1) sert à vérifier qu'un niveau
+-- oblige à rester actif : il doit s'en sortir bien moins bien que le joueur actif.
 -- Renvoie la meilleure partie parmi Bot.POLICIES : { won, ended, lives, seconds, kills, total, earned, spent,
 --           towers = nombre posé, levels = somme des niveaux, build = texte « 5 MachineGun (3,3,2,2,2) ... » }.
-function Bot.play(level: number, profile)
+-- enough(result) = vrai dès qu'une partie suffit à l'appelant : les autres façons de jouer ne sont pas essayées
+-- (tests : « il gagne avec au moins 8 vies » n'a pas besoin de la meilleure des 9 parties).
+function Bot.play(level: number, profile, enough: ((any) -> boolean)?)
 	local best = nil
 	for _, policy in Bot.POLICIES do
 		local result = Bot.playWith(level, profile, policy)
@@ -89,11 +134,39 @@ function Bot.play(level: number, profile)
 		if better then
 			best = result
 		end
+		if enough and enough(best) then
+			break
+		end
 	end
 	return best
 end
 
-function Bot.playWith(level: number, profile, policy)
+-- Joueur qui pose ces tours dans l'ordre (sur les emplacements conseillés) dès qu'il a l'or, n'améliore jamais
+-- rien, puis attend. towers = toutes les tours posées, celle offerte au niveau 1 comprise (la première de la
+-- liste). Seulement les tours de départ. Renvoie { won, lives, kills, total, seconds }.
+function Bot.playLazy(level: number, towers: { string })
+	local definition = Levels.definition(level)
+	local arena = { index = Levels.arenaIndex(1), folder = Env.fakeInstance("Arena"), cframe = Levels.arenaCFrame(1), map = definition.map }
+	local unlocked = {}
+	for _, towerType in Levels.STARTING_TOWERS do
+		unlocked[towerType] = true
+	end
+	local game = LevelGame.new(arena, { UserId = 1, Parent = {} }, { level = level, unlocked = unlocked, training = {}, startingTower = level == 1 })
+	local spots = Levels.geometry(definition.map).map.spots
+	-- (niveau 1 : la première tour de la liste est l'Archer offert, déjà posé au premier emplacement)
+	local placed = if level == 1 then 1 else 0
+	while game.state == "Running" and game.clock < Bot.MAX_SECONDS do
+		local nextType = towers[placed + 1]
+		if nextType and game.gold >= Levels.placeCost(nextType) and game:placeTower(nextType, spots[placed + 1]) then
+			placed += 1
+		end
+		game:simulate(Bot.DT)
+	end
+	return { won = game.state == "Won", lives = game.lives, kills = game.kills, total = #game.queue, seconds = game.clock }
+end
+
+-- observe(game, dégâts par seconde estimés de ses tours) : appelée après chaque décision (outils de réglage).
+function Bot.playWith(level: number, profile, policy, observe: ((any, number) -> ())?)
 	local definition = Levels.definition(level)
 	local unlocked, training = {}, {}
 	for _, towerType in profile.towers do
@@ -172,7 +245,7 @@ function Bot.playWith(level: number, profile, policy)
 	end
 
 	local function decide()
-		for _ = 1, 20 do
+		for _ = 1, profile.actions or 20 do
 			local total = 0
 			local copies = IdleTowers.countCopies(game.towers)
 			for _, tower in game.towers do
@@ -180,7 +253,7 @@ function Bot.playWith(level: number, profile, policy)
 			end
 			local danger = false
 			for _, enemy in game.enemies do
-				if not enemy.dead and enemy.distance > pathLength * Bot.DANGER then
+				if not enemy.dead and enemy.distance > pathLength * (policy.danger or Bot.DANGER) then
 					danger = true
 					break
 				end
@@ -194,6 +267,9 @@ function Bot.playWith(level: number, profile, policy)
 						if towerType == "Frost" then
 							-- Le Totem ralentit : il renforce toutes les autres tours (le premier surtout).
 							value += total * (if (copies.Frost or 0) == 0 then 0.35 else 0.1)
+						elseif towerType == "Tesla" then
+							-- Le Mage freine très fort, un court instant : les autres tours tirent plus longtemps.
+							value += total * (if (copies.Tesla or 0) == 0 then 0.15 else 0.05)
 						end
 						table.insert(options, { cost = Levels.placeCost(towerType), value = value, place = towerType })
 					end
@@ -242,8 +318,15 @@ function Bot.playWith(level: number, profile, policy)
 
 	while ended == nil and game.clock < Bot.MAX_SECONDS do
 		if game.clock >= nextDecision then
-			nextDecision = game.clock + Bot.DECISION_INTERVAL
+			nextDecision = game.clock + (profile.interval or Bot.DECISION_INTERVAL)
 			decide()
+			if observe then
+				local total = 0
+				for _, tower in game.towers do
+					total += estimate(tower.type, tower.level, training[tower.type])
+				end
+				observe(game, total)
+			end
 		end
 		game:simulate(Bot.DT)
 	end

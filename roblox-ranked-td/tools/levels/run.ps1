@@ -1,13 +1,20 @@
-﻿# Niveaux (nouvelle formule) hors de Studio : le VRAI moteur des niveaux (src\server\Hub\LevelGame.luau, qui hérite du
+# Niveaux (nouvelle formule) hors de Studio : le VRAI moteur des niveaux (src\server\Hub\LevelGame.luau, qui hérite du
 # vrai PlotGame.luau) joué par un joueur simulé, en quelques secondes. Sert à régler la difficulté et à vérifier les
 # règles sans ouvrir Studio. Depuis le dossier roblox-ranked-td :
 #   powershell -ExecutionPolicy Bypass -File tools\levels\run.ps1            (tableau des 10 niveaux, plusieurs joueurs types)
 #   powershell -ExecutionPolicy Bypass -File tools\levels\run.ps1 -Tests     (vérifications des règles : tests.luau)
-#   powershell -ExecutionPolicy Bypass -File tools\levels\run.ps1 -Lazy      (premiers niveaux joués sans presque rien faire : lazy.luau)
-#   powershell -ExecutionPolicy Bypass -File tools\levels\run.ps1 -Regler "Levels.RAMP_END=1.4;Levels.DEFINITIONS.1.health=10"
+#   powershell -ExecutionPolicy Bypass -File tools\levels\run.ps1 -Lazy      (niveaux joués sans presque rien faire : lazy.luau)
+#   powershell -ExecutionPolicy Bypass -File tools\levels\run.ps1 -Tune      (cherche les PV de chaque niveau : tune.luau)
+#   powershell -ExecutionPolicy Bypass -File tools\levels\run.ps1 -Curve     (ce qu'un joueur actif peut se payer au fil d'un niveau : curve.luau)
+#   powershell -ExecutionPolicy Bypass -File tools\levels\run.ps1 -Regler "Levels.STREAM.RAMP_CURVE=1.2;Levels.DEFINITIONS.1.health=40"
 param(
 	[switch]$Tests,
 	[switch]$Lazy,
+	[switch]$Tune,
+	[switch]$Curve,
+	[string]$Niveaux = "", # avec -Tune : seulement ces niveaux, ex. "1,3,6"
+	[string]$Rythme = "", # avec -Tune ou -Curve : secondes entre deux achats du joueur simulé (sinon : le rythme de chaque niveau)
+	[string]$Vies = "", # avec -Tune : vies qu'il doit garder (5 par défaut)
 	[string]$Regler = "" # essais de réglages sans toucher à src : "Levels.CHAMP=valeur;Levels.Autre.champ=valeur"
 )
 $ErrorActionPreference = "Stop"
@@ -47,21 +54,65 @@ foreach ($name in "PlotGame.luau", "LevelGame.luau") {
 	[IO.File]::WriteAllText((Join-Path $genHub $name), $preludeServer + $source, $utf8)
 }
 
+# Arguments passés aux outils : "nom=valeur" (les vides sont ignorés par l'outil).
+$options = @("regler=$Regler", "rythme=$Rythme")
+
 [Console]::OutputEncoding = $utf8
 Push-Location $here
 try {
 	if ($Tests) {
-		& luau tests.luau
-	} elseif ($Lazy -and $Regler -ne "") {
-		& luau --codegen -O2 lazy.luau -a "regler=$Regler"
+		& luau --codegen -O2 tests.luau
+		$code = $LASTEXITCODE
+	} elseif ($Tune) {
+		# Un niveau par processus, tous en même temps (la recherche prend sinon plusieurs minutes), puis les lignes
+		# remises dans l'ordre.
+		$levels = if ($Niveaux -ne "") { $Niveaux -split "[,; ]+" | Where-Object { $_ -ne "" } } else { 1..10 }
+		$temp = Join-Path $gen "tune"
+		New-Item -ItemType Directory -Force $temp | Out-Null
+		$luau = (Get-Command luau).Source
+		$jobs = @()
+		foreach ($level in $levels) {
+			$out = Join-Path $temp "niveau-$level.txt"
+			$arguments = "--codegen -O2 tune.luau -a `"regler=$Regler`" `"niveaux=$level`" `"rythme=$Rythme`" `"vies=$Vies`""
+			$jobs += [pscustomobject]@{
+				Level = $level
+				Out = $out
+				Process = Start-Process -FilePath $luau -ArgumentList $arguments -WorkingDirectory $here -NoNewWindow -PassThru -RedirectStandardOutput $out -RedirectStandardError "$out.err"
+			}
+		}
+		$code = 0
+		$first = $true
+		$healths = @()
+		foreach ($job in $jobs) {
+			$job.Process.WaitForExit()
+			$lines = [IO.File]::ReadAllLines($job.Out, $utf8)
+			$errors = [IO.File]::ReadAllText("$($job.Out).err", $utf8)
+			if ($errors.Trim() -ne "") {
+				Write-Host "Niveau $($job.Level) : $errors"
+				$code = 1
+			}
+			foreach ($line in $lines) {
+				if ($line -match "^\d") {
+					Write-Host $line
+					$healths += ($line -split "\s+")[1]
+				} elseif ($first -and $line -notmatch "^PV trouv" -and $line.Trim() -ne "") {
+					Write-Host $line # (réglages essayés, joueur de référence, en-tête : une seule fois)
+				}
+			}
+			$first = $false
+		}
+		Write-Host ""
+		Write-Host ("PV trouvés : " + ($healths -join ", "))
+	} elseif ($Curve) {
+		& luau --codegen -O2 curve.luau -a @options
+		$code = $LASTEXITCODE
 	} elseif ($Lazy) {
-		& luau --codegen -O2 lazy.luau
-	} elseif ($Regler -ne "") {
-		& luau --codegen -O2 sim.luau -a "regler=$Regler"
+		& luau --codegen -O2 lazy.luau -a @options
+		$code = $LASTEXITCODE
 	} else {
-		& luau --codegen -O2 sim.luau
+		& luau --codegen -O2 sim.luau -a @options
+		$code = $LASTEXITCODE
 	}
-	$code = $LASTEXITCODE
 } finally {
 	Pop-Location
 }

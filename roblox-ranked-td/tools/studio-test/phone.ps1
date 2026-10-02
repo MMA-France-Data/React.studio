@@ -18,11 +18,11 @@
 # Captures : levels_<nom>.png.
 param(
 	[ValidateSet("phone", "levels")][string]$Mode = "phone",
-	[int]$Seconds = 0, # 0 = selon le test : téléphone 420 s, niveaux 360 s
+	[int]$Seconds = 0, # 0 = selon le test : téléphone 420 s, niveaux 480 s
 	[switch]$CloseStudio,
 	[switch]$KeepOpen
 )
-if ($Seconds -le 0) { $Seconds = if ($Mode -eq "levels") { 360 } else { 420 } }
+if ($Seconds -le 0) { $Seconds = if ($Mode -eq "levels") { 480 } else { 420 } }
 $ErrorActionPreference = "Stop"
 $root = $PSScriptRoot
 $out = Join-Path $root "out"

@@ -8,9 +8,10 @@
 -- n'est PAS modifié. Ce qui change ici, ce sont les règles autour du combat :
 --   * le chemin est celui de la carte du niveau (self.layout), pas celui des parcelles ;
 --   * les tours se posent OÙ ON VEUT (Levels.checkPlacement), avec l'OR du niveau, et s'améliorent avec lui ;
---   * les monstres arrivent en continu (Levels.buildQueue) ; un monstre tué donne son or tout de suite ;
+--   * les monstres arrivent en un flot continu, de plus en plus serré et résistant (Levels.buildQueue) ; un
+--     monstre tué donne son or tout de suite ;
 --   * un monstre qui atteint le château coûte des VIES (Levels.ENEMY.leak) ; à 0, le niveau est perdu ;
---   * le niveau est gagné quand toute la vague est éliminée ;
+--   * le niveau est gagné quand tout le flot est éliminé ;
 --   * rien n'est sauvegardé ici : les récompenses sont données par LevelsService (onEnd).
 -- Les seules méthodes de PlotGame utilisées sont celles du combat ; tout ce qui touche à la parcelle (sauvegarde,
 -- emplacements, autel, forge, pièces au sol) est remplacé ou jamais appelé.
@@ -76,7 +77,7 @@ function LevelGame.new(arena, player, options)
 	self.lives = self.definition.lives
 	self.queue = Levels.buildQueue(options.level)
 	self.queueIndex = 1
-	self.queueShift = 0 -- secondes sautées par « envoyer la suite » (rush)
+	self.streamSeconds = math.max(1, self.queue[#self.queue].at) -- heure de sortie du dernier monstre
 	self.leaked = 0
 	self.usedTowers = {} -- [type] = true : types de tours posés pendant ce niveau (entraînement gagné à la fin)
 	self.goldEarned = 0
@@ -97,7 +98,8 @@ function LevelGame.new(arena, player, options)
 end
 
 -- Attributs de la zone, lus par les clients (LevelsUI : or, vies, avancée ; PlotRenderer : Wave = style des monstres,
--- State, SimSpeed).
+-- State, SimSpeed). Progress = avancée du flot dans le temps, en % (0 = début, 100 = le dernier monstre est sorti) :
+-- les monstres sont de plus en plus forts tout du long, la barre du joueur passe du vert au rouge.
 function LevelGame:syncAttributes()
 	local alive = 0
 	for _, enemy in self.enemies do
@@ -113,7 +115,7 @@ function LevelGame:syncAttributes()
 	self:setAttr("Lives", self.lives)
 	self:setAttr("Left", alive + (#self.queue - self.queueIndex + 1))
 	self:setAttr("Total", #self.queue)
-	self:setAttr("RushSeconds", self:rushSeconds())
+	self:setAttr("Progress", math.floor(math.clamp(self.clock / self.streamSeconds, 0, 1) * 100))
 end
 
 -- Point du chemin de la carte (dans le monde) à `distance` studs du départ.
@@ -175,34 +177,6 @@ local function speedFactorOf(enemy, now: number): number
 	return enemy.speedScale * controlFactor
 end
 
--- Secondes d'attente que le bouton « envoyer la suite » ferait sauter maintenant (0 = rien à sauter).
-function LevelGame:rushSeconds(): number
-	if self.state ~= "Running" then
-		return 0
-	end
-	local nextItem = self.queue[self.queueIndex]
-	if not nextItem then
-		return 0
-	end
-	local wait = nextItem.at - self.queueShift - self.clock
-	return if wait >= Levels.RUSH_MIN_SECONDS then math.floor(wait * 10) / 10 else 0
-end
-
--- Bouton « envoyer la suite » : le prochain monstre sort tout de suite (toute la suite avance d'autant), contre un
--- bonus d'or. Renvoie l'or gagné (0 si rien à sauter).
-function LevelGame:rush(): number
-	local seconds = self:rushSeconds()
-	if seconds <= 0 then
-		return 0
-	end
-	local nextItem = self.queue[self.queueIndex]
-	self.queueShift += nextItem.at - self.queueShift - self.clock
-	local bonus = math.floor(seconds * Levels.RUSH_GOLD_PER_SECOND + 0.5)
-	self.gold += bonus
-	self.goldEarned += bonus
-	return bonus
-end
-
 -- Fin du niveau (une seule fois) : plus rien ne bouge, LevelsService donne les récompenses.
 function LevelGame:finish(won: boolean)
 	if self.state ~= "Running" then
@@ -225,7 +199,7 @@ function LevelGame:finish(won: boolean)
 	end
 end
 
--- Part de la vague éliminée (0 à 1) : monstres tués / monstres du niveau.
+-- Part du flot éliminée (0 à 1) : monstres tués / monstres du niveau.
 function LevelGame:progress(): number
 	return if #self.queue > 0 then math.clamp(self.kills / #self.queue, 0, 1) else 0
 end
@@ -238,10 +212,10 @@ function LevelGame:simulate(dt: number)
 	self.clock += dt
 	local now = self.clock
 
-	-- Apparitions : chaque monstre de la file à son heure (avancée par « envoyer la suite »).
+	-- Apparitions : chaque monstre de la file à son heure.
 	while self.queueIndex <= #self.queue and #self.enemies < IdleConfig.MAX_ENEMIES do
 		local item = self.queue[self.queueIndex]
-		if item.at - self.queueShift > now + TIME_EPSILON then
+		if item.at > now + TIME_EPSILON then
 			break
 		end
 		self.queueIndex += 1

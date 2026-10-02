@@ -422,8 +422,6 @@ local function handle(player: Player, action: any, a: any, b: any, c: any): (boo
 			return false, nil
 		end
 		return (game:sellTower(a)), nil
-	elseif action == "Rush" then
-		return game:rush() > 0, nil
 	elseif action == "Speed" then
 		local fast = a == IdleConfig.SPEED_PASS_FACTOR
 		if fast and not Levels.SPEED_FREE and not Monetization.ownsPass(player, "SpeedX2") then

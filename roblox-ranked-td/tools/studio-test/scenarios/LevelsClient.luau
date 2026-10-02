@@ -4,8 +4,11 @@
 -- « TestAction » des deux écrans, qui lance les mêmes fonctions que les boutons et les appuis (un appui sur le
 -- terrain passe par le vrai chemin : point de l'écran -> rayon de la caméra -> sol).
 --   1) à la taille normale de Studio : fenêtre du camp et ses 4 onglets, niveau 1 (vue d'en haut, Archer offert,
---      « + » conseillés, pose libre, amélioration, refus sur le chemin, x2), victoire, « Niveau suivant », abandon ;
---   2) à la taille d'un téléphone (750 x 332) : un niveau et la fenêtre du camp, rien ne sort de l'écran.
+--      « + » conseillés, pose libre, bouton « ANNULER » de la tour en main, amélioration, refus sur le chemin, x2),
+--      DÉFAITE de celui qui pose 4 Archers puis attend, « Réessayer », victoire en posant et en améliorant sans
+--      arrêt, « Niveau suivant », abandon ;
+--   2) à la taille d'un téléphone (750 x 332) : un niveau (dont « ANNULER ») et la fenêtre du camp, rien ne sort
+--      de l'écran.
 -- « SHOT:nom » = capture (out\levels_<nom>.png) ; « PHONE:want=... » = phone.ps1 redimensionne la fenêtre de Studio.
 return function(log)
 	local GuiService = game:GetService("GuiService")
@@ -110,8 +113,9 @@ return function(log)
 	end
 	local function towerAt(x, z)
 		for _, model in towers() do
-			local point = arenaCFrame:PointToObjectSpace(model:GetAttribute("RestCFrame").Position)
-			if math.abs(point.X - x) < 0.6 and math.abs(point.Z - z) < 0.6 then
+			local rest = model:GetAttribute("RestCFrame")
+			local point = if rest then arenaCFrame:PointToObjectSpace(rest.Position) else nil
+			if point and math.abs(point.X - x) < 0.6 and math.abs(point.Z - z) < 0.6 then
 				return model
 			end
 		end
@@ -238,10 +242,11 @@ return function(log)
 	local shopPage = window.Page2
 	local frostCard = shopPage:FindFirstChild("Shop_Frost")
 	local archerCard = shopPage:FindFirstChild("Shop_MachineGun")
+	local bombCard = shopPage:FindFirstChild("Shop_Bomb")
 	check(
-		shopPage.Visible and not page1.Visible and archerCard.Buy.Text == "✓ À TOI" and string.find(frostCard.Buy.Text, "150", 1, true) ~= nil
-			and string.find(frostCard.Buy.Text, "manque", 1, true) ~= nil,
-		`onglet « Boutique » : Archer « {archerCard.Buy.Text} », Totem « {frostCard.Buy.Text} » (prix fixe, aucun hasard)`
+		shopPage.Visible and not page1.Visible and archerCard.Buy.Text == "✓ À TOI" and bombCard.Buy.Text == "✓ À TOI"
+			and string.find(frostCard.Buy.Text, "150", 1, true) ~= nil and string.find(frostCard.Buy.Text, "manque", 1, true) ~= nil,
+		`onglet « Boutique » : Archer « {archerCard.Buy.Text} », Catapulte « {bombCard.Buy.Text} » (les deux tours de départ), Totem « {frostCard.Buy.Text} » (prix fixe, aucun hasard)`
 	)
 	shot("camp_boutique")
 	act(campGui, "Tab:Entraînement")
@@ -250,13 +255,13 @@ return function(log)
 	local archerRow = trainPage.Towers:FindFirstChild("Train_MachineGun")
 	check(
 		trainPage.Visible and slot1 ~= nil and slot2 ~= nil and slot2.Action.Visible and string.find(slot2.Action.Text, "400", 1, true) ~= nil
-			and archerRow.Visible and not trainPage.Towers.Train_Frost.Visible,
-		`onglet « Entraînement » : un emplacement avec l'Archer, le 2e à ouvrir (« {slot2 and slot2.Action.Text} »), seules les tours possédées sont listées`
+			and archerRow.Visible and trainPage.Towers.Train_Bomb.Visible and not trainPage.Towers.Train_Frost.Visible,
+		`onglet « Entraînement » : un emplacement avec l'Archer, le 2e à ouvrir (« {slot2 and slot2.Action.Text} »), seules les tours possédées sont listées (Archer, Catapulte)`
 	)
 	shot("camp_entrainement")
 	act(campGui, "Tab:Mes tours")
 	local towersPage = window.Page4
-	check(towersPage.Visible and towersPage.Towers.Tower_MachineGun.Visible and not towersPage.Towers.Tower_Orbital.Visible, "onglet « Mes tours » : l'inventaire (l'Archer seul pour l'instant)")
+	check(towersPage.Visible and towersPage.Towers.Tower_MachineGun.Visible and towersPage.Towers.Tower_Bomb.Visible and not towersPage.Towers.Tower_Orbital.Visible, "onglet « Mes tours » : l'inventaire (l'Archer et la Catapulte pour l'instant)")
 	shot("camp_tours")
 	act(campGui, "Close")
 	check(not window.Visible, "fenêtre du camp fermée")
@@ -293,16 +298,22 @@ return function(log)
 	check(plus >= 4, `{plus} « + » affichés aux emplacements conseillés encore libres`)
 	local strip = hudGui.TopStrip
 	check(
-		strip.Level.Text == "NIVEAU 1" and string.find(strip.Gold.Text, "25", 1, true) ~= nil and string.find(strip.Lives.Text, "10", 1, true) ~= nil
-			and string.find(strip.Progress.ProgressText.Text, tostring(arena:GetAttribute("Total")), 1, true) ~= nil,
-		`bandeau : « {strip.Level.Text} », « {strip.Lives.Text} », « {strip.Gold.Text} », « {strip.Progress.ProgressText.Text} »`
+		strip.Level.Text == "NIVEAU 1" and string.find(strip.Gold.Text, "60", 1, true) ~= nil and string.find(strip.Lives.Text, "10", 1, true) ~= nil
+			and string.find(strip.Progress.ProgressText.Text, tostring(arena:GetAttribute("Total")), 1, true) ~= nil and strip:FindFirstChild("Rush") == nil,
+		`bandeau : « {strip.Level.Text} », « {strip.Lives.Text} », « {strip.Gold.Text} », « {strip.Progress.ProgressText.Text} » (plus de bouton « envoyer la suite » : le flot est continu)`
 	)
+	local fill = strip.Progress.Fill
+	local fillAtStart = fill.BackgroundColor3
 	local bar = hudGui.TowerBar
-	check(shown(bar.Tower_MachineGun) and not bar.Tower_Frost.Visible and bar.Tower_MachineGun.Cost.Text == "20 💰", `barre rapide : seulement l'Archer (« {bar.Tower_MachineGun.Cost.Text} »)`)
+	check(
+		shown(bar.Tower_MachineGun) and shown(bar.Tower_Bomb) and not bar.Tower_Frost.Visible and bar.Tower_Bomb.Cost.Text == "45 💰"
+			and bar.Tower_MachineGun.Cost.Text == "ANNULER",
+		`barre rapide : deux tours dès le départ, l'Archer (déjà en main : « {bar.Tower_MachineGun.Cost.Text} ») et la Catapulte (« {bar.Tower_Bomb.Cost.Text} »)`
+	)
 	-- L'Archer offert tire tout de suite : un monstre tué en moins de 10 secondes.
 	local startedAt = os.clock()
 	local firstKill = waitFor(function()
-		return (arena:GetAttribute("Gold") or 0) > 25
+		return (arena:GetAttribute("Gold") or 0) > 60
 	end, 12)
 	check(firstKill and os.clock() - startedAt <= 10, string.format("premier monstre tué %.1f s après l'arrivée dans le niveau (l'Archer offert tire seul)", os.clock() - startedAt))
 	waitFor(function()
@@ -327,13 +338,13 @@ return function(log)
 		end, 8),
 		`on entend le combat pendant un niveau : le son des flèches joue dans la zone (caméra à {math.floor((cam().CFrame.Position - arenaCFrame.Position).Magnitude)} studs du centre)`
 	)
-	-- L'or gagné se voit sur le terrain : un « +2 » doré au-dessus d'un monstre tué.
+	-- L'or gagné se voit sur le terrain : un « +6 » doré au-dessus d'un monstre tué.
 	check(
 		waitFor(function()
 			local helpersNow = workspace:FindFirstChild("LevelHelpers")
 			return helpersNow ~= nil and helpersNow:FindFirstChild("GoldPopup") ~= nil
 		end, 8),
-		"un « +2 » doré s'envole au-dessus du monstre tué (or gagné)"
+		"un « +6 » doré s'envole au-dessus du monstre tué (or gagné)"
 	)
 	shot("depart")
 
@@ -350,6 +361,26 @@ return function(log)
 		placed and #towers() == 2 and arena:GetAttribute("Gold") >= goldBefore - 20 and arena:GetAttribute("Gold") < goldBefore + 20
 			and hudGui:GetAttribute("Placing") == "",
 		`un appui près d'un « + » pose un 2e Archer exactement dessus ({#towers()} tours, {tostring(arena:GetAttribute("Gold"))} or), la pose se termine`
+	)
+	-- Retour du propriétaire (02/10/2026) : « quand je clique sur une tour pour la poser, il faut que je puisse annuler
+	-- mon action ». La tour en main : son bouton devient rouge et dit « ANNULER » ; un appui dessus annule tout.
+	local goldHeld, towersHeld = arena:GetAttribute("Gold") or 0, #towers()
+	local heldButton = bar.Tower_Bomb
+	act(hudGui, "Bar:Bomb")
+	task.wait(0.2)
+	local red = heldButton.BackgroundColor3
+	check(
+		hudGui:GetAttribute("Placing") == "Bomb" and heldButton.Cost.Text == "ANNULER" and red.R > red.G * 2 and red.R > red.B * 2
+			and string.find(hudGui.Hint.Text, "Annuler", 1, true) ~= nil and bar.Tower_MachineGun.Cost.Text == "20 💰",
+		`prendre la Catapulte dans la barre : son bouton devient rouge et dit « {heldButton.Cost.Text} », le conseil aussi (« {hudGui.Hint.Text} »)`
+	)
+	shot("annuler")
+	act(hudGui, "Bar:Bomb")
+	task.wait(0.2)
+	check(
+		hudGui:GetAttribute("Placing") == "" and heldButton.Cost.Text == "45 💰" and #towers() == towersHeld and (arena:GetAttribute("Gold") or 0) >= goldHeld
+			and heldButton.BackgroundColor3 ~= red,
+		`un appui sur « ANNULER » : la pose est annulée, rien n'est posé, aucun or dépensé (bouton de nouveau « {heldButton.Cost.Text} »)`
 	)
 	-- Toucher une tour : son petit menu, à côté d'elle.
 	local second = towerAt(map.spots[2].X, map.spots[2].Z)
@@ -461,59 +492,49 @@ return function(log)
 	shot("combat")
 
 	------------------------------------------------------------------
-	-- 4) x2, victoire, écran de fin
+	-- 4) Celui qui attend PERD : conseil « ne garde pas ton or », x2, barre qui rougit, écran de défaite
 	------------------------------------------------------------------
+	-- 4 Archers posés (dont un amélioré), puis plus aucun achat : l'or s'entasse, le conseil le dit.
+	check(
+		waitFor(function()
+			return string.find(hudGui.Hint.Text, "Ne garde pas ton or", 1, true) ~= nil
+		end, 10),
+		`or gardé sans rien acheter ({tostring(arena:GetAttribute("Gold"))} or) : le conseil le dit (« {hudGui.Hint.Text} »)`
+	)
 	act(hudGui, "Speed")
 	check(waitFor(function()
 		return arena:GetAttribute("SimSpeed") == 2 and strip.Speed.Text == "x2"
 	end, 3), "bouton x2 : tout va deux fois plus vite")
-	-- Pendant la vague : dépenser l'or qui arrive (améliorer les tours), comme un joueur.
-	local wonLevel = waitFor(function()
-		local gold = arena:GetAttribute("Gold") or 0
-		for _, model in towers() do
-			local cost = Levels.upgradeCost("MachineGun", model:GetAttribute("Level") or 1)
-			if cost and gold >= cost then
-				levelAction:FireServer("Upgrade", model:GetAttribute("TowerId"))
-				break
-			end
-		end
-		return arena:GetAttribute("State") ~= "Running"
-	end, 120)
+	-- Retour du propriétaire : « si juste 2 Archers gèrent le niveau, je passe mon temps à attendre ». Le flot monte,
+	-- les monstres passent : le niveau est perdu.
 	local endScreen = hudGui.EndScreen
-	local endOk = waitFor(function()
-		return endScreen.Visible
-	end, 5)
 	local panel = endScreen.Panel
-	check(
-		wonLevel and arena:GetAttribute("State") == "Won" and endOk and panel.Title.Text == "VICTOIRE !" and string.find(panel.Reward.Text, "80", 1, true) ~= nil
-			and panel.Next.Text == "Niveau 2 ▶" and shown(panel.Replay) and shown(panel.Camp) and onScreen(panel),
-		`niveau 1 gagné en jouant (état « {tostring(arena:GetAttribute("State"))} », {tostring(arena:GetAttribute("Lives"))} vies) : écran de fin « {panel.Title.Text} », « {panel.Reward.Text} », bouton « {panel.Next.Text} »`
-	)
-	shot("victoire")
-	check(published().best == 1 and published().coins == 80, `pièces de niveau reçues : {tostring(published().coins)}, niveau 2 débloqué`)
-
-	-- « Niveau suivant » : le niveau 2 démarre dans la même zone, sans repasser par le camp.
-	act(hudGui, "Next")
-	local next2 = waitFor(function()
-		return arena:GetAttribute("Level") == 2 and arena:GetAttribute("State") == "Running" and not endScreen.Visible
-	end, 6)
-	task.wait(0.5)
-	check(
-		next2 and #towers() == 0 and string.find(strip.Gold.Text, "45", 1, true) ~= nil and strip.Level.Text == "NIVEAU 2" and hudGui:GetAttribute("Placing") == ""
-			and cam().CameraType == Enum.CameraType.Scriptable,
-		`« Niveau suivant » : niveau 2 en cours, aucune tour gardée, « {strip.Gold.Text} » (l'or repart du montant de départ)`
-	)
-	-- Défaite : sans aucune tour, les monstres arrivent au château (x2 pour aller vite).
-	act(hudGui, "Speed")
-	local lost = waitFor(function()
+	local function levelResult()
+		local ok, decoded = pcall(function()
+			return HttpService:JSONDecode(arena:GetAttribute("Result"))
+		end)
+		return if ok and typeof(decoded) == "table" then decoded else {}
+	end
+	local lostLevel = waitFor(function()
 		return arena:GetAttribute("State") == "Lost" and endScreen.Visible
-	end, 40)
+	end, 90)
+	local lostResult = levelResult()
+	local fillAtEnd = fill.BackgroundColor3
 	check(
-		lost and panel.Title.Text == "DÉFAITE" and panel.Next.Text == "Réessayer" and not panel.Replay.Visible and shown(panel.Camp)
-			and string.find(strip.Lives.Text, "0", 1, true) ~= nil,
-		`niveau 2 sans tour : perdu (« {strip.Lives.Text} »), écran de fin « {panel.Title.Text} », « {panel.Reward.Text} », bouton « {panel.Next.Text} »`
+		lostLevel and panel.Title.Text == "DÉFAITE" and panel.Next.Text == "Réessayer" and not panel.Replay.Visible and shown(panel.Camp) and onScreen(panel)
+			and string.find(strip.Lives.Text, "0", 1, true) ~= nil and string.find(panel.Details.Text, "Il te restait", 1, true) ~= nil and string.find(panel.Details.Text, "sans arrêt", 1, true) ~= nil
+			and lostResult.won == false and (lostResult.kills or 0) < (lostResult.total or 0) * 0.6,
+		`4 Archers puis attendre : niveau 1 PERDU après {tostring(lostResult.kills)}/{tostring(lostResult.total)} monstres (« {strip.Lives.Text} »), écran de fin « {panel.Title.Text} », « {panel.Reward.Text} », bouton « {panel.Next.Text} »`
+	)
+	check(
+		fillAtEnd.R > fillAtStart.R + 0.2 and fillAtEnd.G < fillAtStart.G,
+		string.format("la barre d'avancée passe du vert au rouge pendant le niveau (rouge %.2f -> %.2f, vert %.2f -> %.2f)", fillAtStart.R, fillAtEnd.R, fillAtStart.G, fillAtEnd.G)
 	)
 	shot("defaite")
+	check(
+		published().best == 0 and published().losses == 1 and published().coins == lostResult.reward,
+		`défaite comptée : niveau 1 toujours à faire, {tostring(published().coins)} pièce(s) de niveau pour l'avancée`
+	)
 	-- Pendant le niveau, la parcelle du joueur (sans tour, restée sur la place) a raté sa vague : son message
 	-- « Vague 1 ratée » ne doit PAS s'afficher par-dessus le niveau. Un message du niveau, lui, s'affiche.
 	local function toastWith(word)
@@ -530,12 +551,96 @@ return function(log)
 		toastWith("ratée") == nil and plotFolder ~= nil and plotFolder:GetAttribute("State") ~= nil,
 		`pendant un niveau, les messages de la parcelle restée sur la place ne s'affichent pas (parcelle : état « {tostring(plotFolder and plotFolder:GetAttribute("State"))} », message affiché : {tostring(toastWith("ratée"))})`
 	)
+
+	------------------------------------------------------------------
+	-- 5) « Réessayer », victoire en restant actif, « Niveau suivant »
+	------------------------------------------------------------------
 	act(hudGui, "Next")
 	check(
 		waitFor(function()
-			return arena:GetAttribute("Level") == 2 and arena:GetAttribute("State") == "Running" and not endScreen.Visible
-		end, 6) and arena:GetAttribute("Lives") == 10 and arena:GetAttribute("SimSpeed") == 1,
-		"« Réessayer » : le niveau 2 repart de zéro (10 vies, vitesse x1)"
+			return arena:GetAttribute("Level") == 1 and arena:GetAttribute("State") == "Running" and not endScreen.Visible and #towers() == 1
+		end, 6) and arena:GetAttribute("Lives") == 10 and arena:GetAttribute("SimSpeed") == 1 and (arena:GetAttribute("Gold") or 0) <= 72,
+		`« Réessayer » : le niveau 1 repart de zéro (10 vies, {tostring(arena:GetAttribute("Gold"))} or, vitesse x1, un seul Archer)`
+	)
+	act(hudGui, "Select:")
+	act(hudGui, "Speed")
+	-- Jouer comme il faut, par les mêmes demandes que les boutons : poser ses 5 Archers, ses 4 Catapultes, et
+	-- améliorer sans arrêt la tour la moins chère (une action toutes les 0,25 s, soit 0,5 s de jeu en x2).
+	local nextAct = 0
+	local function playActively()
+		if os.clock() < nextAct then
+			return
+		end
+		nextAct = os.clock() + 0.25
+		local gold = arena:GetAttribute("Gold") or 0
+		local list = towers()
+		local counts = { MachineGun = 0, Bomb = 0 }
+		for _, model in list do
+			local towerType = model:GetAttribute("TowerType")
+			counts[towerType] = (counts[towerType] or 0) + 1
+		end
+		local wanted = if counts.MachineGun < 5 then "MachineGun" elseif counts.Bomb < 4 then "Bomb" else nil
+		if wanted then
+			local free = nil
+			for _, spot in map.spots do
+				if not towerAt(spot.X, spot.Z) then
+					free = spot
+					break
+				end
+			end
+			if free and gold >= Levels.placeCost(wanted) then
+				levelAction:FireServer("Place", wanted, free.X, free.Z)
+				return
+			end
+			if wanted == "MachineGun" then
+				return
+			end
+		end
+		local best, bestCost = nil, math.huge
+		for _, model in list do
+			local cost = Levels.upgradeCost(model:GetAttribute("TowerType"), model:GetAttribute("Level") or 1)
+			if cost and cost < bestCost then
+				best, bestCost = model, cost
+			end
+		end
+		if best and gold >= bestCost then
+			levelAction:FireServer("Upgrade", best:GetAttribute("TowerId"))
+		end
+	end
+	local midShot = false
+	local wonLevel = waitFor(function()
+		playActively()
+		if not midShot and (arena:GetAttribute("Progress") or 0) >= 70 then
+			midShot = true
+			say("SHOT:levels_fin_de_niveau")
+		end
+		return arena:GetAttribute("State") ~= "Running"
+	end, 150)
+	local endOk = waitFor(function()
+		return endScreen.Visible
+	end, 5)
+	local wonResult = levelResult()
+	check(
+		wonLevel and arena:GetAttribute("State") == "Won" and endOk and panel.Title.Text == "VICTOIRE !" and string.find(panel.Reward.Text, "80", 1, true) ~= nil
+			and panel.Next.Text == "Niveau 2 ▶" and shown(panel.Replay) and shown(panel.Camp) and onScreen(panel) and #towers() == 9,
+		`niveau 1 gagné en posant et en améliorant sans arrêt (état « {tostring(arena:GetAttribute("State"))} », {tostring(arena:GetAttribute("Lives"))} vies, {#towers()} tours) : écran de fin « {panel.Title.Text} », « {panel.Reward.Text} », bouton « {panel.Next.Text} »`
+	)
+	shot("victoire")
+	check(
+		published().best == 1 and published().coins == (lostResult.reward or 0) + 80 and wonResult.won == true,
+		`pièces de niveau reçues : {tostring(published().coins)}, niveau 2 débloqué`
+	)
+
+	-- « Niveau suivant » : le niveau 2 démarre dans la même zone, sans repasser par le camp.
+	act(hudGui, "Next")
+	local next2 = waitFor(function()
+		return arena:GetAttribute("Level") == 2 and arena:GetAttribute("State") == "Running" and not endScreen.Visible
+	end, 6)
+	task.wait(0.5)
+	check(
+		next2 and #towers() == 0 and string.find(strip.Gold.Text, "65", 1, true) ~= nil and strip.Level.Text == "NIVEAU 2" and hudGui:GetAttribute("Placing") == ""
+			and arena:GetAttribute("SimSpeed") == 1 and cam().CameraType == Enum.CameraType.Scriptable,
+		`« Niveau suivant » : niveau 2 en cours, aucune tour gardée, « {strip.Gold.Text} » (l'or repart du montant de départ), vitesse x1`
 	)
 	levelAction:FireServer("Place", "Frost", 21, 0) -- (tour pas achetée : le serveur refuse et l'explique)
 	check(
@@ -561,7 +666,8 @@ return function(log)
 	local guisAfter = otherGuis()
 	check(stillIn and left, "« X » : un premier appui demande confirmation, le deuxième abandonne le niveau")
 	check(
-		cam().CameraType ~= Enum.CameraType.Scriptable and #guisAfter >= #guisBefore and window.Visible and string.find(window.Coins.Text, "8", 1, true) ~= nil
+		cam().CameraType ~= Enum.CameraType.Scriptable and #guisAfter >= #guisBefore and window.Visible and string.find(window.Coins.Text, tostring(published().coins), 1, true) ~= nil
+			and published().coins >= 80
 			and window.Page1.Level2.Play.Text == "▶ JOUER" and window.Page1.Level1.Play.Text == "REJOUER",
 		`retour au camp : la caméra revient au personnage, les écrans de la parcelle sont remis ({#guisAfter}), la fenêtre des niveaux s'ouvre (« {window.Coins.Text} », niveau 1 « {window.Page1.Level1.Play.Text} », niveau 2 « {window.Page1.Level2.Play.Text} »)`
 	)
@@ -571,7 +677,7 @@ return function(log)
 	act(campGui, "Close")
 
 	------------------------------------------------------------------
-	-- 5) À la taille d'un téléphone (750 x 332)
+	-- 6) À la taille d'un téléphone (750 x 332)
 	------------------------------------------------------------------
 	local function fitTo(width, height)
 		local stableSince, deadline = nil, os.clock() + 90
@@ -606,10 +712,27 @@ return function(log)
 		end, 15)
 		task.wait(1)
 		checkView("téléphone, niveau 1")
+		-- La tour en main dit « ANNULER », en entier dans l'écran ; un appui dessus annule.
+		act(hudGui, "Bar:Bomb")
+		task.wait(0.3)
+		local phoneHeld = bar.Tower_Bomb
+		check(
+			hudGui:GetAttribute("Placing") == "Bomb" and phoneHeld.Cost.Text == "ANNULER" and onScreen(phoneHeld) and phoneHeld.AbsoluteSize.X >= 60
+				and phoneHeld.AbsoluteSize.Y >= 36 and onScreen(hudGui.Hint) and string.find(hudGui.Hint.Text, "Annuler", 1, true) ~= nil,
+			`téléphone : la tour en main dit « {phoneHeld.Cost.Text} » sur un bouton de {math.floor(phoneHeld.AbsoluteSize.X)} x {math.floor(phoneHeld.AbsoluteSize.Y)} px, conseil « {hudGui.Hint.Text} »`
+		)
+		shot("tel_annuler")
+		act(hudGui, "Bar:Bomb")
+		task.wait(0.3)
+		check(hudGui:GetAttribute("Placing") == "" and phoneHeld.Cost.Text ~= "ANNULER" and #towers() == 1, "téléphone : un appui sur « ANNULER » annule la pose, rien n'est posé")
+		act(hudGui, "Bar:MachineGun")
 		act(hudGui, `Tap:{map.spots[2].X},{map.spots[2].Z}`)
-		waitFor(function()
-			return #towers() == 2
-		end, 4)
+		check(
+			waitFor(function()
+				return #towers() == 2
+			end, 4) and hudGui:GetAttribute("Placing") == "",
+			"téléphone : prendre l'Archer puis toucher un « + » le pose"
+		)
 		act(hudGui, `Tap:{map.spots[1].X},{map.spots[1].Z}`)
 		task.wait(0.6)
 		local outside = {}

@@ -10,26 +10,66 @@ Il faut la commande `luau` ([Luau](https://github.com/luau-lang/luau/releases)).
 powershell -ExecutionPolicy Bypass -File tools\levels\run.ps1
 powershell -ExecutionPolicy Bypass -File tools\levels\run.ps1 -Tests
 powershell -ExecutionPolicy Bypass -File tools\levels\run.ps1 -Lazy
-powershell -ExecutionPolicy Bypass -File tools\levels\run.ps1 -Regler "Levels.RAMP_END=1.4;Levels.DEFINITIONS.1.health=10"
+powershell -ExecutionPolicy Bypass -File tools\levels\run.ps1 -Tune
+powershell -ExecutionPolicy Bypass -File tools\levels\run.ps1 -Curve
+powershell -ExecutionPolicy Bypass -File tools\levels\run.ps1 -Regler "Levels.STREAM.RAMP_CURVE=1;Levels.DEFINITIONS.1.health=60"
 ```
 
-- **sans option** : le tableau de difficulté. Chaque niveau est joué par un joueur simulé, pour 9 profils (l'Archer
-  seul, avec le Totem, avec la Catapulte, entraîné ou non, toutes les tours…). « G 7 » = gagné avec 7 vies, « P 62 % »
-  = perdu après avoir éliminé 62 % de la vague. Environ 25 secondes.
-- **`-Tests`** : 150 vérifications des règles (niveaux, carte, pose libre, récompenses, prix, entraînement, données du
-  joueur, et le moteur : or, vies, victoire, défaite, « envoyer la suite », vitesse x2, paquets réseau).
-- **`-Lazy`** : les premiers niveaux joués par un joueur qui ne fait presque rien (rien du tout, une tour de plus,
-  deux tours de plus). Sert à régler le tout début : au niveau 1, ne rien faire gagne de justesse, agir se voit.
-- **`-Regler`** : essayer des réglages sans toucher à `src` (avec le tableau, ou avec `-Lazy`).
+- **sans option** : le tableau de difficulté. Chaque niveau est joué par des joueurs simulés : très actif, au rythme
+  demandé par le niveau, lent (un achat toutes les 8 s), distrait (toutes les 15 s), sans boutique, tout débloqué.
+  « G 7 » = gagné avec 7 vies, « P 62 % » = perdu après avoir éliminé 62 % des monstres. Environ 45 secondes.
+- **`-Tests`** : 266 vérifications (niveaux, flot continu, carte, pose libre, récompenses, prix, entraînement, données
+  du joueur, le moteur : or, vies, victoire, défaite, vitesse x2, paquets réseau, et **la difficulté de chaque
+  niveau** : voir plus bas). Environ 20 secondes.
+- **`-Lazy`** : les 10 niveaux joués par un joueur qui pose quelques tours puis attend (rien de plus, 2 Archers,
+  3 Archers, 2 Archers et une Catapulte, 4 Archers et 2 Catapultes). Ils doivent tous perdre.
+- **`-Tune`** : cherche, pour chaque niveau, les PV des monstres les plus hauts avec lesquels le joueur de référence
+  gagne encore (un niveau par processus, environ 1 minute). `-Niveaux "1,3"` : seulement ces niveaux. `-Rythme 3` :
+  un autre rythme de référence. `-Vies 8` : il doit garder 8 vies.
+- **`-Curve`** : la pression d'un niveau au fil du temps (les PV qui sortent par seconde, comparés à ce que le joueur
+  peut se payer). Elle doit monter du début à la fin.
+- **`-Regler`** : essayer des réglages sans toucher à `src` (avec toutes les options ci-dessus). `*` = toutes les
+  entrées d'une table : `Levels.DEFINITIONS.*.gold=80`.
+
+## Ce que la difficulté doit respecter
+
+Retour du propriétaire après son premier essai (02/10/2026) : « beaucoup trop facile », « je veux que ce soit en
+continu et de plus en plus dur, que je sois obligé d'être super actif : poser des tours, améliorer », « si juste
+2 Archers gèrent le niveau, je passe mon temps à attendre ». `tests.luau` vérifie donc, pour **chacun des 10 niveaux** :
+
+| Joueur simulé | Doit |
+|---|---|
+| Très actif (il dépense son or tout de suite) | gagner avec au moins 8 vies |
+| Au rythme demandé (un achat toutes les 5 s au niveau 1, toutes les 3,5 s à partir du niveau 6) | gagner avec au moins 5 vies |
+| Lent (un achat toutes les 8 s) | perdre |
+| Distrait (un achat toutes les 15 s) | perdre encore plus tôt |
+| 2 Archers puis attendre | perdre avant 30 % du niveau, mais tenir au moins 35 s |
+| 4 Archers et 2 Catapultes sans rien améliorer | perdre avant 60 % du niveau |
+
+Les tours et l'entraînement « attendus » à chaque niveau, et le rythme demandé, sont dans `Bot.EXPECTED`.
+
+## Comment un niveau est réglé
+
+1. La **forme** du flot est la même partout (`Levels.STREAM`) : les monstres sortent 3 fois plus serrés à la fin et
+   ont 16 fois plus de PV. `-Curve` montre que la pression suit ce qu'un joueur peut se payer : un tiers de ses
+   moyens au début, tous à la fin.
+2. L'**or** des monstres (`Levels.ENEMY`) fixe le nombre d'achats : environ un toutes les 3 secondes pour celui qui
+   dépense tout. C'est ce qui sépare le joueur actif du joueur lent (lui ne peut pas tout dépenser).
+3. Les **PV** de chaque niveau (`health` dans `Levels.DEFINITIONS`) : `-Tune` donne la valeur la plus haute pour le
+   joueur de référence ; on garde environ 5 % de marge en dessous, puis on vérifie avec le tableau et `-Tests`.
 
 | Fichier | Rôle |
 |---|---|
 | `run.ps1` | Copie les vrais modules dans `gen\` (avec les imitations de Roblox ajoutées en tête) et lance le script voulu |
 | `env.luau`, `stubs\` | Imitations de Roblox (objets, services) et des modules du serveur dont le combat n'a pas besoin |
-| `Bot.luau` | Le joueur simulé : à chaque décision, l'achat qui donne le plus de dégâts par pièce d'or ; il essaie plusieurs façons de jouer et garde la meilleure partie |
+| `Bot.luau` | Les joueurs simulés : à chaque décision, l'achat qui donne le plus de dégâts par pièce d'or (plusieurs façons de jouer, la meilleure partie est gardée) ; le joueur qui pose quelques tours puis attend ; ce qui est attendu à chaque niveau |
+| `settings.luau` | Lit les options (`regler=`, `rythme=`…) |
 | `sim.luau` | Le tableau de difficulté |
-| `lazy.luau` | Les premiers niveaux sans presque rien faire |
-| `tests.luau` | Les vérifications des règles |
+| `lazy.luau` | Les niveaux joués sans presque rien faire |
+| `tune.luau` | La recherche des PV de chaque niveau |
+| `curve.luau` | La pression d'un niveau au fil du temps |
+| `tests.luau` | Les vérifications des règles et de la difficulté |
 
 Le joueur simulé n'est ni parfait ni mauvais : il sert à **comparer** des réglages, pas à dire exactement où un vrai
-joueur bloquera. Le dossier `gen\` est refait à chaque lancement (il n'est pas dans git).
+joueur bloquera. Un humain choisit moins bien que lui : pour gagner, il doit aller un peu plus vite que le rythme de
+référence. Le dossier `gen\` est refait à chaque lancement (il n'est pas dans git).
