@@ -27,11 +27,12 @@ local DEFINITIONS = {
 	--   | ("Upgrade", id de la tour) | ("Sell", id) | ("Speed", 1 ou 2)
 	--   | ("Buy", type de tour) : boutique à prix fixes, payée en pièces de niveau
 	--   | ("SlotAssign", emplacement du camp, type de tour ou "") | ("SlotUpgrade", emplacement) | "SlotUnlock"
-	--   | ("Bar", { types de tours }) : ordre de la barre rapide.
+	--   | ("Bar", { types de tours }) : ordre de la barre rapide
+	--   | ("Tutorial", "Skip") : bouton « Passer le tuto ».
 	-- Le serveur vérifie tout (Hub/LevelsService.luau). État publié en attributs :
 	--   du joueur : LevelsState (JSON : best, coins, towers = ses tours dans l'ordre de sa barre rapide, xp, slots,
-	--     wins, losses ; absent tant que ses données ne sont pas chargées), LevelArena (numéro de sa zone de combat
-	--     pendant un niveau, absent sinon) ;
+	--     wins, losses, tutorial = étape du tuto ; absent tant que ses données ne sont pas chargées), LevelArena
+	--     (numéro de sa zone de combat pendant un niveau, absent sinon) ;
 	--   du dossier de sa zone, workspace.Arenas.Arena<n> : Map, Level, State ("Running" | "Won" | "Lost"), Gold,
 	--     Lives, Left, Total, Progress, SimSpeed, Perks, Training, et à la fin Result (JSON : won, level, reward,
 	--     firstClear, coins, kills, total, lives, xp, towers, perks, nextLevel, seconds).

@@ -13,6 +13,7 @@ Depuis le dossier `roblox-ranked-td` :
 ```bat
 powershell -ExecutionPolicy Bypass -File tools\studio-test\run.ps1
 powershell -ExecutionPolicy Bypass -File tools\studio-test\run.ps1 -Test monsters
+powershell -ExecutionPolicy Bypass -File tools\studio-test\run.ps1 -Test tutorial
 ```
 
 **Ne touche pas au PC pendant un test** : la fenêtre de Studio du test bouge et change de taille toute seule ; un clic
@@ -83,6 +84,24 @@ Scénario `scenarios\MonstersClient.luau` (pas de scénario serveur). Captures `
 - **un vrai niveau** : ses monstres sont les vrais modèles (ou les blocs), à leur taille agrandie
   (`monsters_niveau`).
 
+### `run.ps1 -Test tutorial` : le tuto d'un nouveau joueur (environ 4 minutes)
+
+Scénarios `scenarios\TutorialServer.luau` et `scenarios\TutorialClient.luau`. Captures `out\tutorial_<nom>.png`.
+La place de test contient le marqueur `__AutoTestNewPlayer` : le tuto y démarre comme pour un vrai nouveau joueur
+(dans les autres tests, il ne démarre jamais). Le scénario lit ce que la flèche montre (attributs `Target`,
+`TargetPoint` et `Caption` de l'écran « TutorialPointer ») et **fait seulement ce qu'elle dit** :
+
+- à l'arrivée, la fenêtre des niveaux s'ouvre toute seule et la flèche montre « ▶ JOUER » du niveau 1
+  (`tutorial_arrivee`) ; fenêtre fermée ou autre onglet : elle montre comment y revenir (`tutorial_bouton_niveaux`) ;
+- niveau 1 : « POSE-LA ICI », « TOUCHE CETTE TOUR », « AMÉLIORE » (`tutorial_pose`, `tutorial_tour`,
+  `tutorial_ameliore`), puis le scénario suit la flèche jusqu'à la fin : **le niveau doit être gagné** ; à chaque
+  pas, la flèche doit être à côté de ce qu'elle montre, dans l'écran, sans recouvrir « Vendre » ;
+- victoire : « CONTINUE » (`tutorial_victoire`) ; niveau 2 : plus de flèche ; dès que le joueur peut acheter une
+  tour : « NOUVELLE TOUR ! » sur « Retour au camp », l'onglet Boutique, « ACHÈTE-LA » (`tutorial_fin_niveau_boutique`,
+  `tutorial_boutique`) ; l'achat termine le tuto ; les 6 étapes des statistiques des nouveaux joueurs ;
+- « Passer le tuto » : un appui sur ordinateur, deux sur téléphone (`tutorial_tel_passer`) ;
+- à la taille d'un téléphone : la flèche et ses mots restent dans l'écran (`tutorial_tel_*`).
+
 ### Lire le résultat
 
 À la fin, le script affiche chaque ligne `[PASS]` / `[FAIL]`, les erreurs de la Sortie, la liste des captures et le
@@ -104,7 +123,7 @@ powershell -ExecutionPolicy Bypass -File tools\studio-test\check.ps1
 | Fichier | Rôle |
 |---|---|
 | `run.ps1` | Construit la place de test, installe le plugin, ouvre Studio, redimensionne sa fenêtre quand le scénario le demande, prend les captures, affiche les résultats |
-| `mkproj.cjs` | Crée `out\<levels\|monsters>.project.json` : `default.project.json` + le marqueur `__AutoPlayTest` + les scénarios |
+| `mkproj.cjs` | Crée `out\<levels\|monsters\|tutorial>.project.json` : `default.project.json` + le marqueur `__AutoPlayTest` + les scénarios |
 | `awake.ps1` | Garde l'écran du PC allumé pendant un test (voir plus haut) |
 | `AutoPlayTest.lua` | Plugin Studio, copié dans `%LOCALAPPDATA%\Roblox\Plugins` par `run.ps1` |
 | `logserver.cjs` | Petit serveur sur `127.0.0.1:34999` (ce PC uniquement) qui écrit la Sortie dans `out\studio-output.log` |
@@ -113,6 +132,7 @@ powershell -ExecutionPolicy Bypass -File tools\studio-test\check.ps1
 | `scenarios\LevelsServer.luau` | Le jeu côté serveur (pilote la partie avec `ServerStorage.StudioDebug`) |
 | `scenarios\LevelsClient.luau` | Le jeu côté client (la vraie interface, à la taille d'un ordinateur puis d'un téléphone) |
 | `scenarios\MonstersClient.luau` | Les modèles 3D des monstres et la galerie |
+| `scenarios\TutorialServer.luau`, `scenarios\TutorialClient.luau` | Le tuto d'un nouveau joueur |
 
 **Le plugin ne fait rien dans tes places** : sa première vérification est `if not marker then return end`. Il ne
 s'active que si la place contient `ReplicatedStorage.__AutoPlayTest`, un objet que seul `mkproj.cjs` ajoute aux

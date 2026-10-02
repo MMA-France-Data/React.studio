@@ -6,6 +6,8 @@
 --     (paquets PlotSync / PlotShots, numéro de zone à la place du numéro de parcelle) ;
 --   * la fin d'un niveau : pièces de niveau, niveau suivant débloqué, XP d'entraînement des tours posées ;
 --   * la boutique à prix fixes, le camp d'entraînement (emplacements), l'ordre de la barre rapide ;
+--   * le tuto des nouveaux joueurs : son étape (champ `tutorial`, Levels.TUTORIAL), « Passer le tuto », et les
+--     statistiques des nouveaux joueurs (Hub/Funnel.luau) ;
 --   * publier l'état du joueur (attributs LevelsState, LevelArena : voir Remotes.luau, LevelAction).
 -- Le client (LevelsUI.luau) ne décide rien : il envoie des demandes (remote LevelAction), tout est revérifié ici.
 local HttpService = game:GetService("HttpService")
@@ -19,6 +21,7 @@ local IdleTowers = require(Shared.IdleTowers)
 local Levels = require(Shared.Levels)
 local Remotes = require(Shared.Remotes)
 local PlayerData = require(script.Parent.Parent.PlayerData)
+local Funnel = require(script.Parent.Funnel)
 local LevelArena = require(script.Parent.LevelArena)
 local LevelGame = require(script.Parent.LevelGame)
 
@@ -83,6 +86,7 @@ local function publish(player: Player)
 		slots = levels.slots,
 		wins = levels.wins,
 		losses = levels.losses,
+		tutorial = levels.tutorial, -- étape du tuto (Levels.TUTORIAL), lue par TutorialUI
 	}))
 	PlayerData.setLevel(player, levels.best) -- colonne « Level » de la liste des joueurs
 	for _, callback in changedCallbacks do
@@ -126,6 +130,9 @@ local function onLevelEnd(player: Player, game, won: boolean)
 	if won then
 		levels.best = math.max(levels.best, level)
 		levels.wins += 1
+		-- Tuto : le guide du premier niveau est fini, la flèche montrera la boutique dès qu'il pourra acheter une tour.
+		levels.tutorial = math.max(levels.tutorial, Levels.TUTORIAL.SHOP)
+		Funnel.reach(player, Funnel.STEP.Won)
 	else
 		levels.losses += 1
 	end
@@ -230,6 +237,7 @@ local function startLevel(player: Player, level: any): (boolean, string?)
 		end,
 	})
 	sessions[player] = { game = game, slot = slot, syncTimer = 0, shotsTimer = 0 }
+	Funnel.reach(player, Funnel.STEP.Started)
 	player.ReplicationFocus = arena.focus
 	player:SetAttribute("LevelArena", arena.index)
 	publish(player)
@@ -255,6 +263,8 @@ local function buyTower(player: Player, levels, towerType: any): (boolean, strin
 	levels.coins -= price
 	levels.towers[towerType] = true
 	table.insert(levels.bar, towerType)
+	levels.tutorial = Levels.TUTORIAL.DONE -- première tour achetée : le tuto est fini
+	Funnel.reach(player, Funnel.STEP.Bought)
 	notify(player, `Achat réussi : {def.displayName} rejoint ta barre de tours`, "Success")
 	return true, nil
 end
@@ -347,6 +357,15 @@ local function handle(player: Player, action: any, a: any, b: any, c: any): (boo
 		closeLevel(player, false)
 		publish(player)
 		return true, nil
+	elseif action == "Tutorial" then
+		-- Bouton « Passer le tuto » (TutorialUI) : fini pour de bon.
+		if a == "Skip" and levels.tutorial < Levels.TUTORIAL.DONE then
+			Funnel.onSkip(player, levels.tutorial)
+			levels.tutorial = Levels.TUTORIAL.DONE
+			publish(player)
+			print(`[Niveaux] {player.Name} : tuto passé`)
+		end
+		return true, nil
 	end
 
 	-- Camp : boutique, emplacements, barre (l'entraînement est d'abord compté jusqu'à maintenant).
@@ -382,12 +401,19 @@ local function handle(player: Player, action: any, a: any, b: any, c: any): (boo
 			return false, nil
 		end
 		local placed, why = game:placeTower(a, Vector3.new(b, 0, c))
+		if placed then
+			Funnel.reach(player, Funnel.STEP.Placed)
+		end
 		return placed, why
 	elseif action == "Upgrade" then
 		if typeof(a) ~= "number" then
 			return false, nil
 		end
-		return game:upgradeTower(a)
+		local upgraded, why = game:upgradeTower(a)
+		if upgraded then
+			Funnel.reach(player, Funnel.STEP.Upgraded)
+		end
+		return upgraded, why
 	elseif action == "Sell" then
 		if typeof(a) ~= "number" then
 			return false, nil
@@ -411,6 +437,10 @@ function LevelsService.start(plots)
 
 	local function onLoaded(player: Player)
 		train(player) -- entraînement pendant l'absence (première visite : l'heure est seulement notée)
+		local levels = levelsOf(player)
+		if levels then
+			Funnel.onLoaded(player, levels.tutorial)
+		end
 		publish(player)
 	end
 	PlayerData.onLoaded(onLoaded)
@@ -494,6 +524,10 @@ end
 --   Invoke(player, "Levels", "Action", "Start", 1) -> une demande, comme le remote LevelAction (sans l'anti-spam) ;
 --                                                   renvoie (réussie, raison)
 --   Invoke(player, "Levels", "Set", "coins", 500) -> change un champ de data.levels (puis nettoyage et publication)
+--   Invoke(player, "Levels", "Reset")           -> ses données des niveaux redeviennent celles d'un nouveau joueur
+--                                                   (niveau en cours rangé) : le tuto recommence
+--   Invoke(player, "Levels", "Funnel")          -> statistiques des nouveaux joueurs envoyées pendant cette visite
+--                                                   (Hub/Funnel.luau, Funnel.debug)
 --   Invoke(player, "Levels", "Gold", 100)        -> ajoute de l'or au niveau en cours
 --   Invoke(player, "Levels", "Skip", 30)         -> le niveau en cours avance de 30 s d'un coup (pas de 1/30 s)
 --   Invoke(player, "Levels", "KillAll")          -> tue tous les monstres présents ; renvoie leur nombre
@@ -545,6 +579,15 @@ function LevelsService.debug(player: Player, command: string, ...)
 		data.levels = Levels.cleanData(levels)
 		publish(player)
 		return data.levels
+	elseif command == "Reset" and levels then
+		closeLevel(player, false)
+		local data = PlayerData.get(player)
+		data.levels = Levels.defaultData()
+		train(player)
+		publish(player)
+		return data.levels
+	elseif command == "Funnel" then
+		return Funnel.debug(player)
 	elseif command == "Gold" and game then
 		game.gold += ...
 		return game.gold

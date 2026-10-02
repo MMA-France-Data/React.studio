@@ -393,7 +393,8 @@ end
 -- puis acheter d'autres tours. Le Totem de givre est limité à 3 : à 5, le joueur simulé en couvrait tout le chemin
 -- et gagnait tout avec « 5 Archers + 5 Totems » (tools/levels).
 -- Prix réglés pour que chaque tour vaille son or (joueur simulé, tools/levels) : une nouvelle tour rapporte à peu
--- près 2 fois plus de dégâts par pièce d'or qu'une amélioration ; l'Oracle (légendaire) est la meilleure affaire.
+-- près 2 fois plus de dégâts par pièce d'or qu'une amélioration ; les deux légendaires (Oracle, Trébuchet) sont les
+-- meilleures affaires. Ce que chaque tour de la boutique apporte se mesure avec run.ps1 -Worth (voir NIVEAUX.md).
 ----------------------------------------------------------------------
 Levels.TOWER_COST = { MachineGun = 20, Frost = 40, Bomb = 45, Tesla = 40, Rocket = 50, Laser = 90, Chain = 150, Orbital = 100 }
 Levels.MAX_COPIES = { Frost = 3 }
@@ -726,6 +727,107 @@ Levels.CAMP = {
 }
 
 ----------------------------------------------------------------------
+-- TUTO des nouveaux joueurs (affichage : client/TutorialUI.luau ; serveur : Hub/LevelsService.luau). Demande du
+-- propriétaire (02/10/2026) : « fais le tuto bien, je veux un jeu sortable ». Pas d'écran à lire : une flèche montre
+-- quoi toucher. Le champ `tutorial` des données du joueur dit où il en est :
+--   0    = nouveau joueur : la flèche le mène au niveau 1, puis le GUIDE pendant tout ce niveau (coachAdvice) ;
+--   SHOP = il a gagné un niveau : dès qu'il a de quoi acheter une tour, la flèche lui montre la boutique ;
+--   DONE = fini (première tour achetée, ou bouton « Passer le tuto »).
+----------------------------------------------------------------------
+Levels.TUTORIAL = { SHOP = 1, DONE = 2 }
+-- Le guide et l'or en poche : un achat qui coûte moins que cette part de l'or du joueur est compté comme s'il
+-- coûtait cette part. Un joueur lent a beaucoup d'or : le guide lui montre alors de plus gros achats (poser une
+-- Catapulte, améliorer une tour déjà haute) au lieu d'une suite de petites améliorations qu'il n'aurait pas le
+-- temps de faire. Un joueur rapide n'a jamais d'or d'avance : pour lui, rien ne change. 0 = ne jamais en tenir
+-- compte. Réglé avec tools\levels\run.ps1 -Coach.
+Levels.COACH_SPEND = 0.5
+
+-- Dégâts par seconde ESTIMÉS d'une tour, pour comparer deux achats (ordre de grandeur : une zone ou un carreau
+-- perçant comptent plusieurs cibles). Mêmes estimations que le joueur simulé (tools/levels/Bot.luau).
+local function coachValue(towerType: string, level: number, training: number?): number
+	local stats = Levels.towerStats(towerType, level, training)
+	if stats.kind == "Beam" then
+		return stats.damage * 9
+	elseif stats.kind == "Aura" then
+		return stats.damage / stats.cooldown * 3
+	elseif stats.kind == "Chain" then
+		return stats.damage * stats.chains / stats.cooldown
+	elseif stats.kind == "Splash" then
+		return stats.damage / stats.cooldown * (1 + stats.splash / 3)
+	elseif stats.kind == "Pierce" then
+		return stats.damage / stats.cooldown * 2.2
+	end
+	local dps = stats.damage / stats.cooldown
+	if stats.fireRadius then
+		dps += IdleTowers.fireDps(stats) * 2
+	end
+	return dps
+end
+
+-- LE GUIDE du premier niveau : le prochain achat conseillé à un nouveau joueur. La flèche du tuto le lui montre
+-- (TutorialUI.luau) ; celui qui la suit gagne le niveau 1 (vérifié par tools/levels : tests.luau, coach.luau).
+--   owned    = ses types de tours, dans l'ordre de sa barre ;
+--   towers   = ses tours posées, de la plus ancienne à la plus récente : { { type = "MachineGun", level = 1 } } ;
+--   gold     = son or ;
+--   training = { [type] = niveau d'entraînement } (absent : 0 partout).
+-- Renvoie { kind = "Place", tower = type } ou { kind = "Upgrade", index = numéro dans `towers` }, ou nil quand il
+-- n'a pas encore de quoi payer (rien à montrer : l'or arrive, chaque monstre tué en donne).
+-- Ses choix, dans l'ordre :
+--   1. une 2e tour, la première de sa barre (l'Archer) : il apprend à POSER ;
+--   2. une première amélioration, sur sa plus ancienne tour : il apprend à AMÉLIORER ;
+--   3. ensuite, toujours l'achat PAYABLE qui ajoute le plus de dégâts par pièce d'or : poser une tour de plus
+--      (tant que sa limite n'est pas atteinte) ou améliorer une tour posée. À égalité : poser d'abord, puis la tour
+--      la plus ancienne. Il ne garde donc jamais son or : c'est ce que le jeu demande (voir « LE FLOT »). Avec
+--      beaucoup d'or en poche, les gros achats passent devant (COACH_SPEND).
+function Levels.coachAdvice(owned: { string }, towers: { any }, gold: number, training: { [string]: number }?)
+	local trained = training or {}
+	local copies = {}
+	local placed, upgraded = 0, false
+	for _, tower in towers do
+		if IdleTowers.Defs[tower.type] then
+			placed += 1
+			copies[tower.type] = (copies[tower.type] or 0) + 1
+			upgraded = upgraded or (tonumber(tower.level) or 1) >= 2
+		end
+	end
+	local first = owned[1]
+	if placed < 2 and first and Levels.TOWER_COST[first] and (copies[first] or 0) < Levels.maxCopies(first) then
+		return if gold >= Levels.placeCost(first) then { kind = "Place", tower = first } else nil
+	end
+	if not upgraded and placed > 0 then
+		for index, tower in towers do
+			local cost = if IdleTowers.Defs[tower.type] then Levels.upgradeCost(tower.type, tonumber(tower.level) or 1) else nil
+			if cost then
+				return if gold >= cost then { kind = "Upgrade", index = index } else nil
+			end
+		end
+	end
+	local best, bestScore = nil, 0
+	local floor = gold * Levels.COACH_SPEND
+	for _, towerType in owned do
+		local cost = Levels.TOWER_COST[towerType]
+		if cost and gold >= cost and (copies[towerType] or 0) < Levels.maxCopies(towerType) then
+			local score = coachValue(towerType, 1, trained[towerType]) / math.max(cost, floor)
+			if score > bestScore then
+				best, bestScore = { kind = "Place", tower = towerType }, score
+			end
+		end
+	end
+	for index, tower in towers do
+		local level = tonumber(tower.level) or 1
+		local cost = if IdleTowers.Defs[tower.type] then Levels.upgradeCost(tower.type, level) else nil
+		if cost and gold >= cost then
+			local gain = coachValue(tower.type, level + 1, trained[tower.type]) - coachValue(tower.type, level, trained[tower.type])
+			local score = gain / math.max(cost, floor)
+			if score > bestScore then
+				best, bestScore = { kind = "Upgrade", index = index }, score
+			end
+		end
+	end
+	return best
+end
+
+----------------------------------------------------------------------
 -- Données sauvegardées du joueur (data.levels, PlayerData.luau). Toujours propres : cleanData remet tout champ
 -- absent ou abîmé à sa valeur de départ.
 ----------------------------------------------------------------------
@@ -744,6 +846,7 @@ function Levels.defaultData()
 		bar = table.clone(Levels.STARTING_TOWERS), -- tours de la barre rapide, dans l'ordre
 		wins = 0,
 		losses = 0,
+		tutorial = 0, -- étape du tuto (Levels.TUTORIAL) : 0 = nouveau joueur
 	}
 end
 
@@ -788,6 +891,14 @@ function Levels.cleanData(saved: any)
 			table.insert(data.slots, { tower = tower, level = level })
 		end
 	end
+	-- Étape du tuto. Sauvegarde d'avant le tuto (champ absent) : celui qui a déjà gagné un niveau ne revoit pas le
+	-- guide, celui qui a déjà acheté une tour ne revoit rien.
+	local bought = false
+	for towerType in Levels.SHOP do
+		bought = bought or data.towers[towerType] == true
+	end
+	local inferred = if bought then Levels.TUTORIAL.DONE elseif data.best >= 1 then Levels.TUTORIAL.SHOP else 0
+	data.tutorial = if saved.tutorial == nil then inferred else math.floor(cleanNumber(saved.tutorial, 0, Levels.TUTORIAL.DONE, inferred))
 	if typeof(saved.bar) == "table" then
 		local bar, seen = {}, {}
 		for _, towerType in saved.bar do

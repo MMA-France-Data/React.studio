@@ -120,8 +120,9 @@ local BAR_BUTTON_PHONE = Vector2.new(80, 62) -- vignettes compactes, sans masque
 local BAR_GAP = 6
 -- Téléphone tenu en large : le bandeau du haut se range dans la barre de Roblox, à droite de ses boutons.
 local PHONE_STRIP_LEFT = 190
--- Écrans laissés affichés pendant un niveau (les autres sont cachés puis remis).
-local KEEP_GUIS = { LevelHud = true, Toasts = true }
+-- Écrans laissés affichés pendant un niveau (les autres sont cachés puis remis). TutorialPointer = la flèche du tuto
+-- (TutorialUI.luau).
+local KEEP_GUIS = { LevelHud = true, Toasts = true, TutorialPointer = true }
 
 local levelAction = nil -- remote LevelAction (LevelsUI.start)
 
@@ -1113,8 +1114,9 @@ local function buildCamp()
 
 	------------------------------------------------------------------
 	local function refresh()
-		coinsLabel.Text = `{amount(state.coins)} {COIN}`
-		hudCoins.Text = coinsLabel.Text
+		local coins = `{amount(state.coins)} {COIN}`
+		coinsLabel.Text = coins
+		hudCoins.Text = coins
 		for name, button in tabButtons do
 			button.BackgroundColor3 = if name == currentTab then UI.Colors.Accent else UI.Colors.PanelLight
 			pages[name].Visible = name == currentTab
@@ -2194,12 +2196,18 @@ local function buildHud()
 	end
 	quitButton.Activated:Connect(hud.quit)
 
-	-- Mise à jour à chaque image (textes changés seulement quand leur valeur change).
-	local shown = {}
+	-- Mise à jour à chaque image. Une propriété n'est écrite que quand sa valeur change : la dernière valeur écrite est
+	-- gardée ici, jamais relue sur l'objet (un texte peut être affiché en anglais : AutoTranslate.luau le retraduirait
+	-- à chaque image s'il était réécrit en français).
+	local shown = setmetatable({}, { __mode = "k" })
 	local function set(object: any, property: string, value: any)
-		local key = object.Name .. property
-		if shown[key] ~= value then
-			shown[key] = value
+		local cache = shown[object]
+		if not cache then
+			cache = {}
+			shown[object] = cache
+		end
+		if cache[property] ~= value then
+			cache[property] = value
 			object[property] = value
 		end
 	end
@@ -2284,11 +2292,11 @@ local function buildHud()
 				-- La tour en main : son bouton devient rouge et dit « ANNULER » (un appui dessus annule la pose).
 				local held = level.placing == towerType
 				-- (téléphone : pas de ligne « 2/5 » ; à la limite, « MAX » remplace le prix)
-				entry.cost.Text = if held then "ANNULER" else if phoneBar and copies >= limit then "MAX" else `{cost} {GOLD}`
+				set(entry.cost, "Text", if held then "ANNULER" else if phoneBar and copies >= limit then "MAX" else `{cost} {GOLD}`)
 				entry.cost.TextColor3 = if held
 					then Color3.new(1, 1, 1)
 					else if gold >= cost and copies < limit then UI.Colors.Gold else UI.Colors.DangerText
-				entry.copies.Text = `{copies}/{limit}` .. (if UserInputService.KeyboardEnabled then `  [{index}]` else "")
+				set(entry.copies, "Text", `{copies}/{limit}` .. (if UserInputService.KeyboardEnabled then `  [{index}]` else ""))
 				entry.copies.TextColor3 = if held then Color3.new(1, 1, 1) else if copies >= limit then UI.Colors.DangerText else UI.Colors.Muted
 				entry.button.BackgroundColor3 = if held then UI.Colors.Error else entry.color
 				entry.button.BackgroundTransparency = 0
@@ -2338,20 +2346,20 @@ local function buildHud()
 			local cost = Levels.upgradeCost(towerType, towerLevel)
 			local refund = math.floor((model:GetAttribute("Spent") or 0) * Levels.SELL_REFUND)
 			menuPreview.setType(towerType)
-			menuTitle.Text = `{def.displayName} • niv. {towerLevel}`
+			set(menuTitle, "Text", `{def.displayName} • niv. {towerLevel}`)
 			menuTitle.TextColor3 = UI.Colors.Text
 			menu.BackgroundColor3 = TOWER_COLORS[towerType]:Lerp(UI.Colors.Panel, 0.65)
 			if cost then
 				local nextStats = Levels.towerStats(towerType, towerLevel + 1, trainingOf(towerType))
-				menuStats.Text = `{statsLine(stats)}\nNiveau suivant : dégâts {decimal(nextStats.damage)}`
-				upgradeButton.Text = `⬆ Améliorer {amount(cost)} {GOLD}`
+				set(menuStats, "Text", `{statsLine(stats)}\nNiveau suivant : dégâts {decimal(nextStats.damage)}`)
+				set(upgradeButton, "Text", `⬆ Améliorer {amount(cost)} {GOLD}`)
 				upgradeButton.BackgroundTransparency = if gold >= cost then 0 else 0.55
 			else
-				menuStats.Text = statsLine(stats)
-				upgradeButton.Text = "NIVEAU MAX"
+				set(menuStats, "Text", statsLine(stats))
+				set(upgradeButton, "Text", "NIVEAU MAX")
 				upgradeButton.BackgroundTransparency = 0.55
 			end
-			sellButton.Text = `Vendre +{amount(refund)}`
+			set(sellButton, "Text", `Vendre +{amount(refund)}`)
 			-- À côté de la tour : au-dessus d'elle s'il y a la place, sinon en dessous ; jamais hors de l'écran, ni
 			-- sur le bandeau du haut ou la barre des tours. Téléphone : dans un coin du bas (MENU_SIZE_PHONE).
 			local camera = workspace.CurrentCamera
@@ -2972,6 +2980,14 @@ local function build()
 				end
 			end)
 		end
+	end
+end
+
+-- Ouvre la fenêtre du camp sur cet onglet (« Niveaux », « Boutique »...), comme le bouton « ⚔ NIVEAUX ». Pour le tuto
+-- (TutorialUI.luau). Sans effet tant que les écrans ne sont pas construits, ou pendant un niveau.
+function LevelsUI.openCamp(tab: string?)
+	if camp.open and not level.active then
+		camp.open(tab)
 	end
 end
 

@@ -21,7 +21,9 @@ fixes, camp d'entraînement, plus aucun hasard).
 ## Comment y jouer
 
 1. Lance `Play` dans Studio, ou publie le jeu (voir `README.md`).
-2. Tu arrives sur ta parcelle, ton **camp** :
+2. **La toute première fois**, une flèche dorée te montre quoi toucher (voir « Le tuto », plus bas) : tu peux la
+   suivre, ou appuyer sur « Passer le tuto » en bas à gauche.
+   Tu arrives sur ta parcelle, ton **camp** :
    - devant toi, les **socles d'entraînement** : ton Archer est sur le premier et tire sur les cibles. Au-dessus de
      lui : son nom, ses étoiles, son niveau d'entraînement, sa barre d'XP. Approche-toi d'un socle et utilise
      l'invite **« Gérer »** (touche `E`, ou le bouton sur téléphone) pour choisir la tour qui s'y entraîne ;
@@ -123,6 +125,39 @@ acheter le Totem, le Mage et la Baliste (1 750), pas plus. Le reste se gagne en 
 
 Les niveaux 11 à 20 rapporteront plus : les légendaires sont des buts à long terme, pas des tours du premier
 territoire. Chaque prix est un seul chiffre dans `Levels.SHOP`.
+
+### Le tuto des nouveaux joueurs
+
+Pas d'écran à lire : une grosse **flèche dorée** qui rebondit, avec deux ou trois mots, montre à chaque instant quoi
+toucher. Rien n'est bloqué, et le bouton **« Passer le tuto »** (en bas à gauche ; deux appuis sur téléphone)
+l'arrête pour de bon.
+
+| Moment | Ce que la flèche montre |
+|---|---|
+| À l'arrivée | la fenêtre des niveaux s'ouvre toute seule : « JOUE ICI » sur le niveau 1 |
+| Pendant le niveau 1 | **le guide** : « POSE-LA ICI » sur un « + », « TOUCHE CETTE TOUR » puis « AMÉLIORE », « PRENDS UN ARCHER », « PRENDS UNE CATAPULTE »… du début à la fin du niveau |
+| Niveau perdu / gagné | « RÉESSAIE » / « CONTINUE » |
+| Dès que tu peux acheter une tour (après le niveau 2 : le Totem de givre) | « NOUVELLE TOUR ! » sur « Retour au camp », puis l'onglet Boutique, puis « ACHÈTE-LA » |
+
+L'achat de la première tour termine le tuto. Le guide du niveau 1 choisit toujours l'achat payable qui ajoute le
+plus de dégâts par pièce d'or (et de plus gros achats quand le joueur a beaucoup d'or en poche). Mesuré avec un
+joueur simulé qui ne fait que suivre la flèche (`tools\levels\run.ps1 -Coach`) :
+
+| Temps qu'il met à faire chaque achat montré | Niveau 1 |
+|---|---|
+| 1 à 6 secondes | gagné, 10 vies |
+| 7 secondes | gagné, 8 vies |
+| 8 secondes | perdu à 81 % |
+| 10 secondes | perdu à 25 % |
+
+Le niveau 1 n'a pas été rendu plus facile : celui qui traîne perd toujours, et la flèche lui montre « RÉESSAIE ».
+
+Le serveur note où chaque nouveau joueur s'arrête (arrivée, niveau 1 lancé, 1re tour posée, 1re amélioration,
+1er niveau gagné, 1re tour achetée, et « tuto passé ») : dans le Hub Création, **Analytique > Entonnoirs**
+(« Onboarding »), tu verras à quelle étape les nouveaux joueurs partent.
+
+Dans Studio, tes données ne sont pas sauvegardées : la flèche revient à chaque Play. Pour ne plus la voir dans
+Studio : `Config.STUDIO_TUTORIAL = false` (`src/shared/Config.luau`).
 
 ### Ta parcelle : le camp d'entraînement
 
@@ -279,8 +314,8 @@ niveaux du joueur et son réglage du son. Les sauvegardes de l'ancien jeu « Tow
    plusieurs cartes : `Levels.MAPS`, et les modèles des monstres des territoires suivants existent déjà).
 3. **Des passes Robux pour ce jeu ?** Il n'y en a plus aucun. Si tu en veux, il faudra choisir lesquels (jamais un
    avantage qui casse la difficulté des niveaux).
-4. **Avant de rendre le jeu public** : voir `SORTIE.md` (petit tuto, traduction anglaise des nouveaux écrans, essai
-   sur un vrai téléphone, page du jeu).
+4. **Avant de rendre le jeu public** : voir `SORTIE.md` (traduction anglaise des nouveaux écrans, essai sur un vrai
+   téléphone, page du jeu).
 
 ## Technique (pour s'y retrouver)
 
@@ -308,13 +343,14 @@ niveaux du joueur et son réglage du son. Les sauvegardes de l'ancien jeu « Tow
 | `src/server/Hub/IdleTowerModel.luau` | modèles des tours, et leurs marques d'évolution (`addEvolution`) |
 | `src/server/PlayerData.luau` | la sauvegarde |
 | `src/client/LevelsUI.luau` | le bouton, la fenêtre du camp, l'écran d'un niveau |
+| `src/client/TutorialUI.luau`, `src/server/Hub/Funnel.luau` | le tuto (la flèche) ; les statistiques des nouveaux joueurs |
 | `src/client/PlotRenderer.luau`, `Effects.luau`, `CombatVFX.luau` | l'affichage des monstres, des cibles et des tirs |
 | `src/client/SoundManager.luau`, `src/shared/Sounds.luau` | les sons |
 | `tools/levels/` | joueur simulé et vérifications hors Studio |
 | `tools/studio-test/` | tests automatiques dans Studio |
 
 Sauvegarde : `data.levels` dans les données du joueur (niveau le plus haut réussi, pièces de niveau, tours achetées,
-XP, emplacements du camp, ordre de la barre rapide), et `data.soundMode`.
+XP, emplacements du camp, ordre de la barre rapide, étape du tuto), et `data.soundMode`.
 
 ### Vérifier
 
@@ -330,11 +366,12 @@ powershell -ExecutionPolicy Bypass -File tools\levels\run.ps1
 powershell -ExecutionPolicy Bypass -File tools\studio-test\run.ps1
 ```
 
-- le premier : 291 vérifications des règles, de la difficulté de chaque niveau, des évolutions et du camp, sans
-  Studio (20 secondes) ;
+- le premier : 311 vérifications des règles, de la difficulté de chaque niveau, des évolutions, du camp et du tuto,
+  sans Studio (25 secondes) ;
 - le deuxième : le tableau de difficulté des 10 niveaux par les joueurs simulés ;
 - le troisième : le test complet dans Studio (serveur, puis la vraie interface à la taille normale et à la taille
-  d'un téléphone), avec des captures dans `tools/studio-test/out/levels_*.png`.
+  d'un téléphone), avec des captures dans `tools/studio-test/out/levels_*.png`. Avec `-Test tutorial` : le tuto
+  d'un nouveau joueur, suivi flèche après flèche (captures `tutorial_*.png`).
 
 ### Six combats dans le même serveur
 
@@ -365,7 +402,6 @@ print(m.averageMs, m.p99Ms, m.worstMs, m.enemiesPeak)
 
 - Une seule carte (« La vallée du Roi carmin ») pour les 10 niveaux.
 - Les écrans des niveaux et du camp sont en français seulement (voir `README.md`, « Langues »).
-- Pas encore de tuto : au tout premier niveau, un conseil en bas de l'écran guide la pose puis l'amélioration.
 - La difficulté est réglée avec des joueurs simulés et un seul vrai joueur (toi) : avant de rendre le jeu public, il
   faudra voir si un nouveau joueur passe le niveau 1.
 - Les autres joueurs ne voient pas ton combat (ils restent sur la place).

@@ -1,6 +1,6 @@
 // Génère un projet Rojo de test à partir de default.project.json, dans out/.
 // Il ajoute seulement le marqueur __AutoPlayTest (durée du test) et les scénarios de test.
-//   node mkproj.cjs <levels|monsters> <durée en secondes>
+//   node mkproj.cjs <levels|monsters|tutorial> <durée en secondes>
 const fs = require('fs');
 const path = require('path');
 
@@ -13,9 +13,11 @@ const norm = (p) => p.split(path.sep).join('/');
 // Scénarios (dossier scenarios) : [serveur, client]. null = pas de scénario de ce côté.
 //   levels   : le jeu en entier (niveaux, camp d'entraînement, interface à la taille d'un ordinateur puis d'un téléphone)
 //   monsters : les modèles 3D des monstres (assets/EnemyModels) et la galerie Studio
+//   tutorial : le tuto d'un nouveau joueur (la flèche de TutorialUI), du camp à la boutique
 const scenarios = {
 	levels: ['LevelsServer.luau', 'LevelsClient.luau'],
 	monsters: [null, 'MonstersClient.luau'],
+	tutorial: ['TutorialServer.luau', 'TutorialClient.luau'],
 };
 if (!scenarios[mode]) {
 	console.error(`Test inconnu : ${mode} (attendu : ${Object.keys(scenarios).join(', ')})`);
@@ -34,6 +36,11 @@ if (enemyModels && enemyModels.$path && !path.isAbsolute(enemyModels.$path)) {
 	enemyModels.$path = norm(path.join(repo, enemyModels.$path));
 }
 tree.ReplicatedStorage.__AutoPlayTest = { $className: 'NumberValue', $properties: { Value: Number(duration) } };
+// Les tests automatiques se jouent sans le tuto (TutorialUI ne démarre pas), sauf celui du tuto : ce marqueur le
+// laisse démarrer, comme pour un vrai nouveau joueur.
+if (mode === 'tutorial') {
+	tree.ReplicatedStorage.__AutoTestNewPlayer = { $className: 'BoolValue', $properties: { Value: true } };
+}
 const [serverScenario, clientScenario] = scenarios[mode];
 if (serverScenario) {
 	tree.ReplicatedStorage.__AutoTestScript = { $path: norm(path.join(here, 'scenarios', serverScenario)) };

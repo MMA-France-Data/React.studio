@@ -29,6 +29,8 @@ task.spawn(function()
 end)
 -- NIVEAUX : bouton « ⚔ NIVEAUX », fenêtre du camp (niveaux, boutique, entraînement, mes tours) et écran d'un niveau.
 require(script.Parent.LevelsUI).start()
+-- Tuto des nouveaux joueurs : une flèche montre quoi toucher (premier niveau guidé, puis la boutique).
+require(script.Parent.TutorialUI).start()
 -- Galerie des ennemis : seulement dans Studio (Config.STUDIO_ENEMY_GALLERY), jamais dans le jeu publié.
 require(script.Parent.EnemyGallery).start()
 -- Panneau « SONS (Studio) » pour écouter chaque son : seulement dans Studio (Config.STUDIO_SOUND_PANEL).

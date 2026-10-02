@@ -44,9 +44,9 @@ sauvegarde (`Niveaux_PlayerData_v1`) : il ne lit et n'écrase jamais les sauvega
 powershell -ExecutionPolicy Bypass -File tools\levels\run.ps1 -Tests
 ```
 
-291 vérifications des règles, de la difficulté de chaque niveau, des évolutions et du camp. Sans `-Tests` : le tableau
-de difficulté des 10 niveaux joués par des joueurs simulés ; `-Lazy`, `-Tune`, `-Curve`, `-Worth` pour régler la
-difficulté (voir [tools/levels/README.md](tools/levels/README.md)).
+311 vérifications des règles, de la difficulté de chaque niveau, des évolutions, du camp et du tuto. Sans `-Tests` : le
+tableau de difficulté des 10 niveaux joués par des joueurs simulés ; `-Lazy`, `-Tune`, `-Curve`, `-Worth`, `-Coach` pour
+régler la difficulté et le guide du tuto (voir [tools/levels/README.md](tools/levels/README.md)).
 
 ```bash
 powershell -ExecutionPolicy Bypass -File tools\studio-test\check.ps1
@@ -54,7 +54,7 @@ powershell -ExecutionPolicy Bypass -File tools\studio-test\check.ps1
 
 Syntaxe de tous les scripts et construction de la place.
 
-**Dans Studio, tout seul** (environ 6 minutes chacun, voir [tools/studio-test/README.md](tools/studio-test/README.md)) :
+**Dans Studio, tout seul** (4 à 6 minutes chacun, voir [tools/studio-test/README.md](tools/studio-test/README.md)) :
 
 ```bash
 powershell -ExecutionPolicy Bypass -File tools\studio-test\run.ps1
@@ -64,9 +64,14 @@ powershell -ExecutionPolicy Bypass -File tools\studio-test\run.ps1
 powershell -ExecutionPolicy Bypass -File tools\studio-test\run.ps1 -Test monsters
 ```
 
+```bash
+powershell -ExecutionPolicy Bypass -File tools\studio-test\run.ps1 -Test tutorial
+```
+
 Le premier joue le jeu en entier (serveur, puis la vraie interface à la taille d'un ordinateur et d'un téléphone),
-le second vérifie les modèles 3D des monstres. Captures dans `tools/studio-test/out/`. Le test s'ouvre dans sa propre
-fenêtre de Studio : un Studio déjà ouvert n'est pas touché.
+le deuxième vérifie les modèles 3D des monstres, le troisième joue le tuto d'un nouveau joueur en suivant la flèche.
+Captures dans `tools/studio-test/out/`. Le test s'ouvre dans sa propre fenêtre de Studio : un Studio déjà ouvert
+n'est pas touché.
 
 **Outils de Studio** (jamais dans le jeu publié), en haut à gauche pendant un Play :
 
@@ -75,6 +80,8 @@ fenêtre de Studio : un Studio déjà ouvert n'est pas touché.
   construire (`src/client/EnemyGallery.luau`).
 - **« SONS (Studio) »** : la liste de tous les sons, avec « Jouer ». `Config.STUDIO_SOUND_PANEL = false` pour cacher
   le bouton (`src/client/SoundPanel.luau`).
+- **Le tuto** revient à chaque Play (dans Studio, tu es toujours un nouveau joueur) : « Passer le tuto » en bas à
+  gauche, ou `Config.STUDIO_TUTORIAL = false` pour ne plus le voir dans Studio.
 - **`ServerStorage.StudioDebug`** (barre de commande, vue Serveur) : lire les données d'un joueur, lui donner des
   pièces, finir un niveau… Liste en haut de `setupStudioDebug` (`src/server/Hub/init.luau`) et en bas de
   `src/server/Hub/LevelsService.luau`. Exemple :
@@ -187,7 +194,7 @@ que chez le joueur (`src/client/SoundManager.luau`) : aucun coût pour le serveu
 | Vitesses, limites du combat, rythme des envois réseau | `src/shared/IdleConfig.luau` |
 | Les 6 types de monstres (nom, vitesse, taille) | `src/shared/Enemies.luau` |
 | Sons | `src/shared/Sounds.luau` |
-| Outils de Studio, langue dans Studio, sauvegarde | `src/shared/Config.luau` |
+| Outils de Studio, tuto et langue dans Studio, sauvegarde | `src/shared/Config.luau` |
 | Caméra d'un niveau, tailles des fenêtres | en haut de `src/client/LevelsUI.luau` |
 | Style de l'interface (couleurs, polices, contours) | `src/client/UI.luau` |
 
@@ -203,10 +210,10 @@ src/
                                           Lang, LangEN/{Glossary, Game}
   server/   (ServerScriptService.Server)  Main, PlayerData, MockDataStore,
                                           Hub/{init, HubMap, Plots, PlotBoard, PlotIdentity, PlotInterest,
-                                               Combat, LevelGame, LevelArena, LevelsService, Camp, CampGame,
+                                               Combat, LevelGame, LevelArena, LevelsService, Funnel, Camp, CampGame,
                                                IdleTowerModel}
-  client/   (StarterPlayerScripts.Client) Main, UI, LevelsUI, PlotRenderer, PlotAccess, Effects, CombatVFX,
-                                          SoundManager, AutoTranslate, EnemyGallery, SoundPanel
+  client/   (StarterPlayerScripts.Client) Main, UI, LevelsUI, TutorialUI, PlotRenderer, PlotAccess, Effects,
+                                          CombatVFX, SoundManager, AutoTranslate, EnemyGallery, SoundPanel
 assets/
   EnemyModels/   les modèles 3D des monstres utilisés par le jeu (.rbxm, lus par Rojo)
   enemies/       leurs fichiers d'origine (.glb, .fbx), faits avec ChatGPT

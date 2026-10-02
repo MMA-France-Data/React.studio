@@ -12,6 +12,12 @@ Config.STUDIO_ENEMY_GALLERY = true
 -- (src/client/SoundPanel.luau). Jamais dans le jeu publié. Mets false pour ne plus l'afficher.
 Config.STUDIO_SOUND_PANEL = true
 
+-- Tuto des nouveaux joueurs dans Studio (src/client/TutorialUI.luau). Dans Studio, tes données ne sont pas
+-- sauvegardées : tu es un nouveau joueur à chaque Play, et la flèche du tuto revient donc à chaque fois (le bouton
+-- « Passer le tuto » l'arrête pour ce Play). Mets false pour ne plus la voir dans Studio. Ne change rien au jeu
+-- publié : un nouveau joueur y voit toujours le tuto, une seule fois.
+Config.STUDIO_TUTORIAL = true
+
 -- Langue du jeu dans Studio (src/shared/Lang.luau). Dans le jeu publié, un joueur dont la langue Roblox est le
 -- français voit le jeu en français, tous les autres en anglais.
 --   "auto" -> comme dans le jeu publié (d'après la langue de ton Studio / de ton compte Roblox)

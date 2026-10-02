@@ -251,7 +251,7 @@ end
 -- 5) Données du joueur
 ----------------------------------------------------------------------
 local fresh = Levels.defaultData()
-check(fresh.best == 0 and fresh.coins == 0 and fresh.towers.MachineGun == true and fresh.towers.Bomb == true and fresh.towers.Frost == nil and #fresh.slots == 1 and fresh.slots[1].tower == "MachineGun" and table.concat(fresh.bar, ",") == "MachineGun,Bomb", "nouveau joueur : l'Archer et la Catapulte dans sa barre, un emplacement de camp, rien d'autre")
+check(fresh.best == 0 and fresh.coins == 0 and fresh.tutorial == 0 and fresh.towers.MachineGun == true and fresh.towers.Bomb == true and fresh.towers.Frost == nil and #fresh.slots == 1 and fresh.slots[1].tower == "MachineGun" and table.concat(fresh.bar, ",") == "MachineGun,Bomb", "nouveau joueur : l'Archer et la Catapulte dans sa barre, un emplacement de camp, rien d'autre")
 local archerOnly = Levels.cleanData({ best = 3, towers = { MachineGun = true }, bar = { "MachineGun" } })
 check(archerOnly.towers.Bomb == true and table.concat(Levels.ownedTowers(archerOnly), ",") == "MachineGun,Bomb" and archerOnly.best == 3, "ancienne sauvegarde avec le seul Archer : la Catapulte est donnée, le reste est gardé")
 local dirty = Levels.cleanData({
@@ -632,6 +632,74 @@ do
 		plot.folder:GetAttribute("Camp") == nil and plot.folder:GetAttribute("State") == nil and camp.towerFolder.destroyed == true and next(camp.towers) == nil,
 		"camp rangé : la parcelle n'est plus un camp, tours retirées"
 	)
+end
+
+----------------------------------------------------------------------
+-- 9) Le tuto des nouveaux joueurs. Demande du propriétaire (02/10/2026) : « fais le tuto bien, je veux un jeu
+--    sortable ». Son étape dans les données, et le GUIDE du premier niveau (Levels.coachAdvice : ce que la flèche
+--    montre, client/TutorialUI.luau).
+----------------------------------------------------------------------
+check(Levels.TUTORIAL.SHOP == 1 and Levels.TUTORIAL.DONE == 2 and Levels.defaultData().tutorial == 0, "tuto : un nouveau joueur est à l'étape 0 (1 = la boutique, 2 = fini)")
+check(
+	Levels.cleanData(Levels.defaultData()).tutorial == 0 and Levels.cleanData({ best = 0, tutorial = 1 }).tutorial == 1 and Levels.cleanData({ best = 5, tutorial = 0 }).tutorial == 0
+		and Levels.cleanData({ tutorial = 2 }).tutorial == 2,
+	"tuto : l'étape sauvegardée est relue telle quelle"
+)
+check(
+	Levels.cleanData({ best = 3 }).tutorial == Levels.TUTORIAL.SHOP and Levels.cleanData({ best = 0 }).tutorial == 0
+		and Levels.cleanData({ best = 1, towers = { Frost = true } }).tutorial == Levels.TUTORIAL.DONE,
+	"tuto, sauvegarde d'avant le tuto : un niveau déjà gagné = pas de guide, une tour déjà achetée = tuto fini"
+)
+check(
+	Levels.cleanData({ best = 4, tutorial = 99 }).tutorial == 2 and Levels.cleanData({ best = 4, tutorial = -3 }).tutorial == 0
+		and Levels.cleanData({ best = 4, tutorial = "abc" }).tutorial == 1 and Levels.cleanData({ tutorial = 1.7 }).tutorial == 1,
+	"tuto : une étape abîmée est remise dans les clous"
+)
+do
+	local MG, BOMB = "MachineGun", "Bomb"
+	local function placed(...)
+		local list = {}
+		for index = 1, select("#", ...), 2 do
+			table.insert(list, { type = select(index, ...), level = select(index + 1, ...) })
+		end
+		return list
+	end
+	local function advice(towers, gold: number, owned: { string }?)
+		return Levels.coachAdvice(owned or Levels.STARTING_TOWERS, towers, gold)
+	end
+	local function says(result, kind: string, value: any): boolean
+		return result ~= nil and result.kind == kind and (if kind == "Place" then result.tower == value else result.index == value)
+	end
+	-- Les deux premières leçons : poser, puis améliorer.
+	check(says(advice(placed(MG, 1), 60), "Place", MG), "guide : au départ du niveau 1 (l'Archer offert, 60 or), poser un 2e Archer")
+	check(advice(placed(MG, 1), 19) == nil, "guide : pas encore de quoi payer le 2e Archer : rien à montrer")
+	check(says(advice(placed(MG, 1, MG, 1), 40), "Upgrade", 1), "guide : ensuite une première amélioration, sur la plus ancienne tour")
+	check(advice(placed(MG, 1, MG, 1), 14) == nil, "guide : pas encore de quoi payer la première amélioration : rien à montrer")
+	check(says(advice({}, 65), "Place", MG) and says(advice(placed("Dragon", 1), 65), "Place", MG), "guide : aucune tour posée (ou une tour inconnue) : poser la première tour de la barre")
+	check(says(advice(placed(BOMB, 1), 65, { BOMB, MG }), "Place", BOMB), "guide : la 2e tour est la première de la barre du joueur")
+	-- Puis l'achat payable le plus rentable : une tour de plus d'abord (2 fois plus de dégâts par pièce d'or).
+	check(says(advice(placed(MG, 2, MG, 1), 25), "Place", MG), "guide : puis un 3e Archer (20 or) plutôt qu'une autre amélioration")
+	local five = placed(MG, 2, MG, 1, MG, 1, MG, 1, MG, 1)
+	check(says(advice(five, 50), "Place", BOMB), "guide : 5 Archers posés (la limite) et 50 or : poser la Catapulte")
+	check(says(advice(five, 30), "Upgrade", 2), "guide : 5 Archers et 30 or (pas de quoi payer la Catapulte) : améliorer l'Archer le moins cher, sans attendre")
+	check(advice(five, 10) == nil, "guide : rien de payable : rien à montrer, l'or arrive")
+	-- Beaucoup d'or en poche (joueur lent) : les gros achats passent devant (Levels.COACH_SPEND).
+	local full = placed(MG, 2, MG, 2, MG, 2, MG, 2, MG, 2, BOMB, 2, BOMB, 2, BOMB, 2, BOMB, 2)
+	check(
+		says(advice(full, 30), "Upgrade", 1) and says(advice(full, 400), "Upgrade", 6) and Levels.upgradeCost(BOMB, 2) > 2 * Levels.upgradeCost(MG, 2),
+		`guide : avec 30 or, améliorer un Archer ({Levels.upgradeCost(MG, 2)} or) ; avec 400 or, une Catapulte ({Levels.upgradeCost(BOMB, 2)} or) : un plus gros achat`
+	)
+	-- Jamais au-delà des limites.
+	local top = Levels.MAX_TOWER_LEVEL
+	local maxed = placed(MG, top, MG, top, MG, top, MG, top, MG, top, BOMB, top, BOMB, top, BOMB, top, BOMB, top)
+	check(advice(maxed, 1e6) == nil, "guide : toutes les tours posées et au niveau maximum : plus rien à conseiller")
+	local frosts = placed("Frost", 2, "Frost", 1, "Frost", 1)
+	check(says(advice(frosts, 1e6, { "Frost" }), "Upgrade", 1) or says(advice(frosts, 1e6, { "Frost" }), "Upgrade", 2), "guide : jamais une tour de plus que sa limite (3 Totems)")
+	-- Celui qui suit la flèche gagne le niveau 1, même sans se presser ; le niveau demande toujours d'être actif.
+	local quick, slow, asleep = Bot.playCoached(1, 3), Bot.playCoached(1, 6), Bot.playCoached(1, 12)
+	check(quick.won and quick.lives >= 8, `tuto : le joueur qui met 3 s à faire chaque achat montré par la flèche gagne le niveau 1 ({outcome(quick)}, {quick.purchases} achats)`)
+	check(slow.won and slow.lives >= 5, `tuto : celui qui met 6 s par achat gagne aussi ({outcome(slow)}, {slow.purchases} achats)`)
+	check(not asleep.won, `tuto : celui qui met 12 s par achat perd, le niveau demande toujours d'être actif ({outcome(asleep)})`)
 end
 
 print(`{passed} tests réussis, {failed} ratés`)

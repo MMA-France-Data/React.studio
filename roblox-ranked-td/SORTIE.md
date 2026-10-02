@@ -9,8 +9,8 @@ Le jeu sort comme une **nouvelle expérience Roblox** (décision du 02/10/2026) 
 
 - [x] 10 niveaux, camp d'entraînement, évolutions des tours, boutique à prix fixes (voir `NIVEAUX.md`).
 - [x] Tout l'ancien jeu enlevé (classé, autel, forge, vagues infinies, renaissance, défis, passes, ancien tuto).
-- [ ] **Petit tuto** pour un nouveau joueur : aujourd'hui, seul un conseil en bas de l'écran guide la pose puis
-      l'amélioration au niveau 1. Il faudrait au moins dire où cliquer en arrivant (« ⚔ NIVEAUX »).
+- [x] **Tuto** pour un nouveau joueur : une flèche dorée lui montre quoi toucher, du camp à la fin du niveau 1,
+      puis la boutique (voir `NIVEAUX.md`, « Le tuto des nouveaux joueurs »). Celui qui la suit gagne le niveau 1.
 - [ ] **Traduction anglaise** des écrans des niveaux et du camp (ils sont en français pour tout le monde). Le
       mécanisme existe déjà (voir `README.md`, « Langues »).
 - [ ] **Essai sur un vrai téléphone** : boutons, textes, pose d'une tour au doigt, zoom en pinçant, fluidité. (Les
