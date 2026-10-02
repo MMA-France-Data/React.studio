@@ -37,6 +37,25 @@ d'évolution de tour ») :
   sauvegarde : une ligne de réglage (`Config.LEVELS_CAMP_PLOT = false`) remet ta parcelle comme avant, avec tes
   vagues et tes tours.
 
+**Quatrième étape : une interface « plus Roblox » et des monstres plus gros** (ton exemple de jeu, « on va essayer
+de rendre l'interface plus Roblox », puis « fais toi-même les correctifs » et « j'aurais agrandi aussi les monstres
+pour bien les voir ») :
+
+- **ChatGPT a refait le style** des écrans des niveaux et du camp : police ronde à contour noir, gros contours,
+  bandeau bleu, boutons verts et bleus, une couleur par tour, et les **vraies tours dessinées en 3D** sur les cartes
+  (aucune image à importer) ;
+- **retouches faites ensuite** :
+  - sur téléphone, le menu d'une tour est plus petit et se range dans un coin du bas, du côté opposé à la tour : il
+    ne cache plus la tour ni ce qu'elle vise ;
+  - les vignettes des tours sont plus grandes : dans la barre des tours (elles étaient minuscules sur téléphone) et
+    dans les onglets Entraînement et Mes tours, où elles ont un cadre de couleur ;
+  - dans la boutique, la dernière ligne de chaque carte ne touche plus le bouton ;
+  - les tours pas encore achetées apparaissent en gris à la suite des tiennes (onglets Entraînement et Mes tours),
+    avec leur prix et un bouton « BOUTIQUE » : on voit ce qui reste à gagner, et la fenêtre n'est plus à moitié vide ;
+- **les monstres sont affichés plus gros dans les niveaux** : 1,8 fois pour les fantassins et les cavaliers, 2 fois
+  pour les écuyers, 1,6 pour les chevaliers lourds, 1,4 pour le mini-boss et le boss. C'est seulement l'affichage :
+  la difficulté ne change pas. Un chiffre par type dans `Levels.ENEMY_SCALE` (`src/shared/Levels.luau`).
+
 ## En deux mots
 
 - Pour les autres joueurs, le jeu actuel (parcelle infinie, autel, forge, classement) **n'est pas touché**. Il tourne
@@ -70,7 +89,7 @@ d'évolution de tour ») :
      avec sa portée, clique pour poser. Clique une tour posée pour ouvrir son petit menu (**Améliorer** / **Vendre**).
      Raccourcis : `E` améliorer, `X` vendre, `F` vitesse x2 ;
    - **téléphone** : appuie sur la tour dans la barre, puis sur le terrain ; ou fais-la glisser depuis la barre.
-     Appuie sur une tour posée pour son menu ;
+     Appuie sur une tour posée pour son menu (il s'ouvre dans un coin du bas, du côté opposé à la tour) ;
    - **changer d'avis** : la tour que tu as prise devient rouge et dit **« ANNULER »**. Appuie dessus et rien n'est
      posé (ordinateur : aussi le clic droit, ou la touche `Q`) ;
    - **ne garde pas ton or** : les monstres deviennent plus forts sans arrêt. Si tu gardes de l'or sans rien acheter,
@@ -103,6 +122,7 @@ Config.LEVELS_ACCESS = "Owner"   -- "Owner" = toi seul (et toi dans Studio), "Al
 | Le flot | les monstres sortent **un par un, sans aucune pause**, du début à la fin. Ils sortent de plus en plus serrés (3 fois plus par seconde à la fin) et sont de plus en plus résistants (16 fois plus de PV à la fin). Les types se mélangent : fantassins, cavaliers, meutes d'écuyers, chevaliers lourds |
 | Rester actif | l'or des monstres permet un achat toutes les 3 secondes environ. Le niveau est réglé pour qu'il faille acheter ou améliorer quelque chose toutes les 5 secondes au niveau 1, toutes les 3,5 secondes à partir du niveau 6. Celui qui s'arrête est dépassé en une vingtaine de secondes |
 | Vitesse x2 | bouton x1 / x2, pour tout le monde (réglage `Levels.SPEED_FREE`) |
+| Taille des monstres | affichés plus gros que sur une parcelle, pour être vus de haut (fantassin x1,8, boss x1,4). Réglage `Levels.ENEMY_SCALE` ; aucun effet sur le combat |
 | Vue | caméra penchée : on voit les tours et les monstres de côté, et la carte remplit l'écran. **Choisie par toi le 02/10/2026** parmi trois (penchée, plus plongeante, pile au-dessus). Réglage : `CAMERA_PITCH_MIN` et `CAMERA_PITCH_MAX`, en haut de `src/client/LevelsUI.luau` |
 
 Les 8 tours sont celles de la parcelle (mêmes dégâts, mêmes portées, mêmes effets), avec leurs prix en or à elles.

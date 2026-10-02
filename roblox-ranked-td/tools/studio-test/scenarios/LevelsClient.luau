@@ -359,6 +359,13 @@ return function(log)
 			and string.find(trebuchetCard.Buy.Text, NumberFormat.short(15000), 1, true) ~= nil,
 		`boutique : Totem « {frostCard.Role.Text} », Oracle « {oracleCard.Buy.Text} », Trébuchet « {trebuchetCard.Buy.Text} » (les légendaires sont des buts à long terme)`
 	)
+	local limits = frostCard:FindFirstChild("Limits")
+	local limitsGap = if limits then frostCard.Buy.AbsolutePosition.Y - (limits.AbsolutePosition.Y + limits.AbsoluteSize.Y) else -1
+	local frostPreview = frostCard:FindFirstChild("TowerPreview")
+	check(
+		limitsGap >= 6 and frostPreview ~= nil and frostPreview:FindFirstChildOfClass("Model") ~= nil,
+		`boutique : la tour est dessinée en 3D sur sa carte, et la dernière ligne ne touche pas le bouton ({math.floor(limitsGap)} px d'écart)`
+	)
 	shot("camp_boutique")
 	act(campGui, "Tab:Entraînement")
 	local trainPage = window.Page3
@@ -369,10 +376,25 @@ return function(log)
 			and archerRow.Visible and trainPage.Towers.Train_Bomb.Visible and not trainPage.Towers.Train_Frost.Visible,
 		`onglet « Entraînement » : un emplacement avec l'Archer, le 2e à ouvrir (« {slot2 and slot2.Action.Text} »), seules les tours possédées sont listées (Archer, Catapulte)`
 	)
+	local lockedFrost = trainPage.Towers:FindFirstChild("Locked_Frost")
+	local lockedArcher = trainPage.Towers:FindFirstChild("Locked_MachineGun")
+	local archerTile = archerRow:FindFirstChild("PreviewTile")
+	check(
+		lockedFrost ~= nil and lockedFrost.Visible and lockedArcher ~= nil and not lockedArcher.Visible and string.find(lockedFrost.Price.Text, "150", 1, true) ~= nil
+			and archerTile ~= nil and archerTile.AbsoluteSize.X >= 56 and archerTile:FindFirstChild("TowerPreview") ~= nil,
+		`onglet « Entraînement » : vignette de l'Archer dans un cadre de {if archerTile then math.floor(archerTile.AbsoluteSize.X) else "?"} px, les tours à acheter sont en gris à la suite (Totem « {if lockedFrost then lockedFrost.Price.Text else "?"} »)`
+	)
 	shot("camp_entrainement")
 	act(campGui, "Tab:Mes tours")
 	local towersPage = window.Page4
 	check(towersPage.Visible and towersPage.Towers.Tower_MachineGun.Visible and towersPage.Towers.Tower_Bomb.Visible and not towersPage.Towers.Tower_Orbital.Visible, "onglet « Mes tours » : l'inventaire (l'Archer et la Catapulte pour l'instant)")
+	local lockedTrebuchet = towersPage.Towers:FindFirstChild("Locked_Orbital")
+	local lockedBomb = towersPage.Towers:FindFirstChild("Locked_Bomb")
+	check(
+		lockedTrebuchet ~= nil and lockedTrebuchet.Visible and lockedBomb ~= nil and not lockedBomb.Visible
+			and string.find(lockedTrebuchet.Price.Text, NumberFormat.short(15000), 1, true) ~= nil and lockedTrebuchet.Shop.Text == "BOUTIQUE",
+		`onglet « Mes tours » : les tours pas encore achetées sont en gris à la suite (Trébuchet « {if lockedTrebuchet then lockedTrebuchet.Price.Text else "?"} », bouton « {if lockedTrebuchet then lockedTrebuchet.Shop.Text else "?"} »)`
+	)
 	shot("camp_tours")
 	act(campGui, "Close")
 	check(not window.Visible, "fenêtre du camp fermée")
@@ -433,6 +455,21 @@ return function(log)
 	end, 8)
 	local seen, bars = enemies()
 	check(seen >= 1 and bars >= 1, `{seen} monstres affichés sur le chemin de la zone, {bars} barres de vie visibles (personnage resté sur la place)`)
+	-- Monstres grossis dans un niveau (Levels.ENEMY_SCALE) pour être vus de haut : le fantassin fait 1,8 fois sa
+	-- taille de la parcelle.
+	local Enemies = require(ReplicatedStorage:WaitForChild("Shared").Enemies)
+	local footSize = nil
+	local enemyFolder = workspace:FindFirstChild("PlotEnemies")
+	for _, part in if enemyFolder then enemyFolder:GetChildren() else {} do
+		if part:IsA("BasePart") and part:GetAttribute("EnemyType") == "Normal" and (part.Position - arenaCFrame.Position).Magnitude < 90 then
+			footSize = part.Size.X
+			break
+		end
+	end
+	check(
+		footSize ~= nil and Levels.enemyScale("Normal") >= 1.5 and math.abs(footSize - Enemies.Defs.Normal.size * Levels.enemyScale("Normal")) < 0.05,
+		`les monstres d'un niveau sont affichés plus gros pour être vus de haut (fantassin : {if footSize then string.format("%.1f", footSize) else "?"} studs, {Enemies.Defs.Normal.size} sur une parcelle)`
+	)
 	-- Le combat s'entend : un son de flèche (3D) a été joué dans la zone. La caméra est à ~100 studs, plus loin que la
 	-- portée de ce son (70) : LevelsUI place l'écoute près du terrain (SoundManager.setListener).
 	local function arenaSound(name)
@@ -862,6 +899,22 @@ return function(log)
 		end
 		local clashes = overlapping(hudButtons())
 		check(#outside == 0 and #clashes == 0 and menu.Visible and onScreen(menu), `téléphone : tous les boutons du niveau sont dans l'écran et ne se recouvrent pas ({#hudButtons()} boutons ; dehors : {table.concat(outside, ", ")} ; recouvrements : {table.concat(clashes, " ; ")})`)
+		-- Menu de la tour sur téléphone : petit, dans un coin du bas, loin de la tour choisie ; vignettes de la barre
+		-- assez grandes pour reconnaître la tour.
+		local chosen = towerAt(map.spots[1].X, map.spots[1].Z)
+		local rest = chosen and chosen:GetAttribute("RestCFrame")
+		local towerPoint = if rest then cam():WorldToScreenPoint(rest.Position) else nil
+		local ml, mt, mr, mb = rect(menu)
+		check(
+			towerPoint ~= nil and menu.AbsoluteSize.X <= 220 and menu.AbsoluteSize.Y <= 124
+				and (towerPoint.X < ml - 20 or towerPoint.X > mr + 20 or towerPoint.Y < mt - 20 or towerPoint.Y > mb + 20),
+			`téléphone : le menu de la tour est petit ({math.floor(menu.AbsoluteSize.X)} x {math.floor(menu.AbsoluteSize.Y)} px) et ne cache pas la tour choisie (tour à {if towerPoint then math.floor(towerPoint.X) else "?"},{if towerPoint then math.floor(towerPoint.Y) else "?"} ; menu de {math.floor(ml)},{math.floor(mt)} à {math.floor(mr)},{math.floor(mb)})`
+		)
+		local barPreview = bar.Tower_Bomb:FindFirstChild("TowerPreview")
+		check(
+			barPreview ~= nil and barPreview.AbsoluteSize.Y >= 36 and barPreview:FindFirstChildOfClass("Model") ~= nil,
+			`téléphone : la vignette de la barre des tours fait {if barPreview then math.floor(barPreview.AbsoluteSize.Y) else "?"} px de haut`
+		)
 		task.wait(4)
 		shot("tel_combat")
 		for _, degrees in { 70, 90 } do

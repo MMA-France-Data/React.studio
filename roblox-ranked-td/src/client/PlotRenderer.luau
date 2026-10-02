@@ -241,6 +241,20 @@ local function modelTop(root: BasePart): number
 	return top
 end
 
+-- Monstres d'un NIVEAU : la carte est vue de haut et de loin, ils sont affichés plus gros (Levels.ENEMY_SCALE).
+-- Affichage seulement : une copie de la fiche du type, avec sa taille multipliée (modèle, barre de vie, effets,
+-- hauteur au-dessus du chemin en découlent). Le combat, côté serveur, ne connaît que leur place sur le chemin.
+local arenaDefs = {}
+local function arenaDef(enemyType: string, def)
+	local scaled = arenaDefs[enemyType]
+	if not scaled then
+		scaled = table.clone(def)
+		scaled.size = def.size * Levels.enemyScale(enemyType)
+		arenaDefs[enemyType] = scaled
+	end
+	return scaled
+end
+
 -- palier : style du mode solo (voir palierOf). Les ennemis du ranked gardent leur appel sans palier (Match).
 -- camp = parcelle devenue camp d'entraînement (attribut « Camp » de son dossier, Hub/CampGame.luau) : ce qui suit le
 -- chemin n'est pas un monstre mais une CIBLE d'entraînement (mannequin de paille sur un chariot).
@@ -472,6 +486,9 @@ local function onSync(plotIndex: number, packet: buffer, count: number, kind: st
 		if not enemy then
 			local palier = palierOf(plotIndex, state)
 			local camp = state.folder ~= nil and state.folder:GetAttribute("Camp") == true
+			if state.arena then
+				def = arenaDef(enemyType, def)
+			end
 			local part, fill, stroke, custom = createEnemy(enemyType, def, palier, camp)
 			enemy = { def = def, part = part, fill = fill, stroke = stroke, distance = distance, statusFragile = false }
 			enemy.enemyType = enemyType

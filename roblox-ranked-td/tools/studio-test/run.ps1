@@ -52,6 +52,18 @@ $plugins = Join-Path $env:LOCALAPPDATA "Roblox\Plugins"
 New-Item -ItemType Directory -Force $plugins | Out-Null
 Copy-Item (Join-Path $root "AutoPlayTest.lua") $plugins -Force
 
+# Fenêtre de Studio agrandie au début du test : Studio rouvre à la taille de sa dernière fermeture normale. Restée
+# petite (après un test « téléphone » interrompu, par exemple), elle faisait rater le tuto : sur un petit écran, son
+# panneau se cache derrière la fiche de la tour (c'est voulu), alors que ce scénario vérifie le jeu à la taille
+# d'un écran d'ordinateur.
+Add-Type @"
+using System; using System.Runtime.InteropServices;
+public class RunWindow {
+	[DllImport("user32.dll")] public static extern bool IsZoomed(IntPtr h);
+	[DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr h, int c);
+}
+"@
+
 # 3. Serveur qui reçoit la Sortie, puis Studio (ouvert comme par un double-clic : lancé
 #    directement depuis un terminal, Studio peut ne pas réussir à se connecter à Roblox)
 $log = Join-Path $out "studio-output.log"
@@ -64,8 +76,20 @@ try {
 	explorer.exe $placeFile
 	$start = Get-Date
 	$shots = @{}
+	$maximized = $false
 	while ($true) {
 		Start-Sleep -Milliseconds 250
+		if (-not $maximized) {
+			# (la vraie fenêtre de Studio, pas son écran de démarrage : son titre finit par « - Roblox Studio »)
+			$studio = Get-Process RobloxStudioBeta -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowHandle -ne 0 -and $_.MainWindowTitle -match "- Roblox Studio$" } | Select-Object -First 1
+			if ($studio) {
+				if ([RunWindow]::IsZoomed($studio.MainWindowHandle)) {
+					$maximized = $true
+				} else {
+					[RunWindow]::ShowWindow($studio.MainWindowHandle, 3) | Out-Null # 3 = SW_MAXIMIZE
+				}
+			}
+		}
 		$lines = Get-Content $log -Encoding UTF8
 		foreach ($line in $lines) {
 			if ($line -match "SHOT:(\w+)" -and -not $shots.ContainsKey($Matches[1])) {

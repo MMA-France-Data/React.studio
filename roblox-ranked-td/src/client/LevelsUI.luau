@@ -116,7 +116,9 @@ local IDLE_GOLD_SECONDS = 4
 local WINDOW_SIZE = Vector2.new(780, 624)
 local END_SIZE = Vector2.new(460, 372)
 local MENU_SIZE = Vector2.new(300, 152)
-local MENU_PHONE_SCALE = 0.9 -- texte lisible, menu contenu entre les bandeaux
+-- Téléphone : menu plus petit, sans vignette (la tour est sous les yeux), rangé dans un coin du bas du côté opposé à
+-- la tour : il ne cache ni la tour ni ce qu'elle vise, et « Améliorer » reste sous le pouce.
+local MENU_SIZE_PHONE = Vector2.new(220, 120)
 local BAR_BUTTON = Vector2.new(88, 94)
 local BAR_BUTTON_PHONE = Vector2.new(80, 62) -- vignettes compactes, sans masquer la carte
 local BAR_GAP = 6
@@ -200,6 +202,7 @@ local TOWER_COLORS = {
 -- Vignettes 3D statiques des vrais modèles (préparés par Camp). Pas d'animation, de RenderStepped ou de requête
 -- serveur : seules les cartes dont l'écran est ouvert gardent une copie. Un onglet fermé libère ses modèles.
 local previews = {}
+local PREVIEW_MARGIN = 1.08 -- un peu d'air autour de la tour dans sa vignette
 local function previewShown(view: ViewportFrame): boolean
 	local ancestor: Instance? = view
 	while ancestor do
@@ -236,14 +239,26 @@ local function refreshPreview(entry)
 		entry.model = template:Clone()
 		entry.model.Parent = entry.view
 	end
+	-- Cadrage au plus juste : la distance qui fait tenir les 8 coins de la boîte de la tour dans l'image (avec une
+	-- sphère englobante, une tour haute et fine restait toute petite au milieu de sa vignette).
 	local bounds, size = entry.model:GetBoundingBox()
 	local pixels = entry.view.AbsoluteSize
 	local aspect = if pixels.Y > 0 then math.max(0.25, pixels.X / pixels.Y) else 1
-	local vertical = math.rad(entry.camera.FieldOfView / 2)
-	local horizontal = math.atan(math.tan(vertical) * aspect)
-	local distance = size.Magnitude * 0.5 / math.sin(math.min(vertical, horizontal)) * 1.05
+	local tanV = math.tan(math.rad(entry.camera.FieldOfView / 2))
+	local tanH = tanV * aspect
 	local direction = Vector3.new(-0.6, 0.35, 1).Unit
-	entry.camera.CFrame = CFrame.lookAt(bounds.Position + direction * distance, bounds.Position)
+	local axes = CFrame.lookAt(bounds.Position + direction, bounds.Position)
+	local distance = 0
+	for x = -1, 1, 2 do
+		for y = -1, 1, 2 do
+			for z = -1, 1, 2 do
+				-- (repère de la caméra : X à droite, Y en haut, Z vers la caméra)
+				local corner = axes:VectorToObjectSpace(bounds:VectorToWorldSpace(Vector3.new(x * size.X, y * size.Y, z * size.Z) / 2))
+				distance = math.max(distance, corner.Z + math.abs(corner.X) / tanH, corner.Z + math.abs(corner.Y) / tanV)
+			end
+		end
+	end
+	entry.camera.CFrame = CFrame.lookAt(bounds.Position + direction * distance * PREVIEW_MARGIN, bounds.Position)
 end
 
 local function refreshPreviews()
@@ -286,6 +301,25 @@ local function towerPreview(parent: GuiObject, towerType: string?, position: UDi
 		if entry.model then entry.model:Destroy(); entry.model = nil end
 		entry.towerType = value
 		refreshPreview(entry)
+	end
+	return entry
+end
+
+-- Vignette dans un cadre de couleur vive à contour noir (comme les cartes de la boutique) : sur un fond sombre, les
+-- tours de pierre et de bois ne se voyaient pas. tile = le cadre à placer ; setType change aussi sa couleur.
+local function towerTile(parent: GuiObject, towerType: string?, position: UDim2, size: UDim2)
+	local tile = UI.new("Frame", {
+		Name = "PreviewTile", Position = position, Size = size,
+		BackgroundColor3 = if towerType then TOWER_COLORS[towerType] else UI.Colors.PanelLight,
+		ZIndex = parent.ZIndex, Parent = parent,
+	}, { UI.corner(5), UI.stroke(UI.Colors.Ink, 2) })
+	UI.gradient(tile)
+	local entry = towerPreview(tile, towerType, UDim2.fromOffset(2, 2), UDim2.new(1, -4, 1, -4))
+	entry.tile = tile
+	local setType = entry.setType
+	function entry.setType(value: string?)
+		tile.BackgroundColor3 = if value then TOWER_COLORS[value] else UI.Colors.PanelLight
+		setType(value)
 	end
 	return entry
 end
@@ -562,11 +596,11 @@ local function buildCamp()
 			Text = def.displayName,
 			Parent = card,
 		})
-		local preview = towerPreview(card, towerType, UDim2.fromOffset(0, 34), UDim2.new(1, 0, 0, 94))
+		local preview = towerPreview(card, towerType, UDim2.fromOffset(0, 32), UDim2.new(1, 0, 0, 84))
 		local role = UI.label({
 			Name = "Role",
-			Position = UDim2.fromOffset(0, 132),
-			Size = UDim2.new(1, 0, 0, 32),
+			Position = UDim2.fromOffset(0, 120),
+			Size = UDim2.new(1, 0, 0, 30),
 			TextWrapped = true,
 			TextYAlignment = Enum.TextYAlignment.Top,
 			MaxTextSize = 14,
@@ -574,8 +608,9 @@ local function buildCamp()
 			Parent = card,
 		})
 		local description = UI.label({
-			Position = UDim2.fromOffset(0, 166),
-			Size = UDim2.new(1, 0, 0, 24),
+			Name = "Limits",
+			Position = UDim2.fromOffset(0, 152),
+			Size = UDim2.new(1, 0, 0, 30),
 			TextWrapped = true,
 			TextColor3 = UI.Colors.Muted,
 			MaxTextSize = 13,
@@ -601,11 +636,13 @@ local function buildCamp()
 			local height = if phone then 208 else SHOP_H
 			card.Position = UDim2.fromOffset(column * (SHOP_W + GAP), row * (height + GAP))
 			card.Size = UDim2.fromOffset(SHOP_W, height)
-			preview.view.Size = UDim2.new(1, 0, 0, if phone then 60 else 94)
-			role.Position = UDim2.fromOffset(0, if phone then 98 else 132)
-			role.Size = UDim2.new(1, 0, 0, if phone then 30 else 32)
-			description.Position = UDim2.fromOffset(0, if phone then 132 else 166)
-			description.Size = UDim2.new(1, 0, 0, if phone then 26 else 24)
+			-- (la dernière ligne, « 5 au plus », garde au moins 10 px d'air au-dessus du bouton)
+			preview.view.Position = UDim2.fromOffset(0, if phone then 30 else 32)
+			preview.view.Size = UDim2.new(1, 0, 0, if phone then 52 else 84)
+			role.Position = UDim2.fromOffset(0, if phone then 84 else 120)
+			role.Size = UDim2.new(1, 0, 0, if phone then 28 else 30)
+			description.Position = UDim2.fromOffset(0, if phone then 114 else 152)
+			description.Size = UDim2.new(1, 0, 0, 30)
 			button.Size = UDim2.new(1, 0, 0, if phone then 34 else 38)
 			pages.Boutique.CanvasSize = UDim2.fromOffset(0, 2 * height + GAP + 4)
 		end)
@@ -632,6 +669,63 @@ local function buildCamp()
 				button.TextColor3 = UI.Colors.Text
 			end
 		end
+	end
+
+	------------------------------------------------------------------
+	-- Tours pas encore achetées : une ligne grisée à la fin des listes « Entraînement » et « Mes tours ». Le joueur
+	-- voit ce qui l'attend, et la fenêtre n'a plus une moitié vide quand il n'a que deux tours. Le bouton mène à la
+	-- boutique.
+	------------------------------------------------------------------
+	local function lockedRow(parent: Instance, towerType: string)
+		local row = UI.new("Frame", {
+			Name = "Locked_" .. towerType,
+			Size = UDim2.new(1, -8, 0, 64),
+			Visible = false,
+			Parent = parent,
+		}, { UI.corner(5), UI.padding(8) })
+		UI.card(row, UI.Colors.Panel)
+		local preview = towerTile(row, towerType, UDim2.fromOffset(0, 0), UDim2.fromOffset(48, 48))
+		preview.tile.BackgroundColor3 = UI.Colors.PanelLight
+		preview.view.ImageColor3 = Color3.fromRGB(142, 142, 154)
+		UI.label({
+			Position = UDim2.fromOffset(58, 0),
+			Size = UDim2.new(1, -176, 0, 26),
+			Font = Enum.Font.GothamBlack,
+			TextXAlignment = Enum.TextXAlignment.Left,
+			TextColor3 = UI.Colors.Muted,
+			MaxTextSize = 16,
+			Text = "🔒 " .. IdleTowers.Defs[towerType].displayName,
+			Parent = row,
+		})
+		local price = UI.label({
+			Name = "Price",
+			Position = UDim2.fromOffset(58, 26),
+			Size = UDim2.new(1, -176, 0, 22),
+			TextXAlignment = Enum.TextXAlignment.Left,
+			TextColor3 = UI.Colors.Gold,
+			MaxTextSize = 14,
+			Parent = row,
+		})
+		local button = UI.button({
+			Name = "Shop",
+			AnchorPoint = Vector2.new(1, 0.5),
+			Position = UDim2.new(1, 0, 0.5, 0),
+			Size = UDim2.fromOffset(108, 36),
+			BackgroundColor3 = UI.Colors.Purple,
+			Text = "BOUTIQUE",
+			MaxTextSize = 14,
+			Parent = row,
+		})
+		button.Activated:Connect(function()
+			camp.open("Boutique")
+		end)
+		return { row = row, price = price }
+	end
+	local function refreshLocked(entry, towerType: string, order: number)
+		local price = Levels.SHOP[towerType]
+		entry.row.Visible = not owns(towerType)
+		entry.row.LayoutOrder = 200 + order
+		entry.price.Text = if price then `{amount(price)} {COIN} dans la Boutique` else ""
 	end
 
 	------------------------------------------------------------------
@@ -706,7 +800,7 @@ local function buildCamp()
 		Size = UDim2.new(0, SLOT_W, 0, 96),
 		TextWrapped = true,
 		TextXAlignment = Enum.TextXAlignment.Left,
-		TextYAlignment = Enum.TextYAlignment.Bottom,
+		TextYAlignment = Enum.TextYAlignment.Top,
 		TextColor3 = UI.Colors.Muted,
 		MaxTextSize = 13,
 		Text = `Une tour dans un emplacement gagne de l'XP tout le temps, même quand tu es parti ({Levels.TRAINING.OFFLINE_MAX_SECONDS // 3600} h au plus). Chaque niveau joué donne aussi de l'XP aux tours posées. Chaque niveau d'entraînement : +{math.floor(Levels.TRAINING.DAMAGE_PER_LEVEL * 100 + 0.5)} % de dégâts, et de nouvelles améliorations.`,
@@ -735,10 +829,10 @@ local function buildCamp()
 			Parent = trainingList,
 		}, { UI.corner(5), UI.padding(8) })
 		UI.card(row, TOWER_COLORS[towerType]:Lerp(UI.Colors.Panel, 0.72))
-		towerPreview(row, towerType, UDim2.fromOffset(0, 0), UDim2.fromOffset(54, 54))
+		towerTile(row, towerType, UDim2.fromOffset(0, 0), UDim2.fromOffset(72, 72))
 		UI.label({
-			Position = UDim2.fromOffset(60, 0),
-			Size = UDim2.new(1, -60, 0, 28),
+			Position = UDim2.fromOffset(82, 0),
+			Size = UDim2.new(1, -82, 0, 28),
 			Font = Enum.Font.GothamBlack,
 			TextXAlignment = Enum.TextXAlignment.Left,
 			TextColor3 = UI.Colors.Text,
@@ -748,19 +842,19 @@ local function buildCamp()
 		})
 		local levelLabel = UI.label({
 			Name = "Level",
-			Position = UDim2.fromOffset(60, 30),
-			Size = UDim2.new(1, -60, 0, 22),
+			Position = UDim2.fromOffset(82, 30),
+			Size = UDim2.new(1, -82, 0, 22),
 			Font = Enum.Font.GothamBold,
 			TextXAlignment = Enum.TextXAlignment.Left,
 			TextColor3 = UI.Colors.Gold,
 			MaxTextSize = 14,
 			Parent = row,
 		})
-		local bar, setBar = UI.bar({ Position = UDim2.fromOffset(0, 60), Size = UDim2.new(1, 0, 0, 16) }, UI.Colors.Success)
+		local bar, setBar = UI.bar({ Position = UDim2.fromOffset(82, 54), Size = UDim2.new(1, -82, 0, 18) }, UI.Colors.Success)
 		bar.Parent = row
 		local xpLabel = UI.label({
-			Position = UDim2.fromOffset(0, 60),
-			Size = UDim2.new(1, 0, 0, 16),
+			Position = UDim2.fromOffset(82, 54),
+			Size = UDim2.new(1, -82, 0, 18),
 			Font = Enum.Font.GothamBold,
 			TextStrokeTransparency = 0.4,
 			MaxTextSize = 11,
@@ -812,6 +906,10 @@ local function buildCamp()
 		end)
 		trainingRows[towerType] = { row = row, level = levelLabel, setBar = setBar, xp = xpLabel, evolutions = evolutions, detail = detail, button = button }
 	end
+	local lockedTraining = {}
+	for _, towerType in IdleTowers.ORDER do
+		lockedTraining[towerType] = lockedRow(trainingList, towerType)
+	end
 
 	function refreshTraining()
 		if not state.slots[selectedSlot] then
@@ -855,6 +953,7 @@ local function buildCamp()
 			local entry = trainingRows[towerType]
 			entry.row.Visible = owns(towerType)
 			entry.row.LayoutOrder = table.find(state.towers, towerType) or (100 + order)
+			refreshLocked(lockedTraining[towerType], towerType, order)
 			local xp = tonumber(state.xp[towerType]) or 0
 			local trained = Levels.trainingLevel(xp)
 			local done, needed = Levels.trainingProgress(xp)
@@ -931,7 +1030,7 @@ local function buildCamp()
 			Parent = towerList,
 		}, { UI.corner(5), UI.padding(8) })
 		UI.card(row, TOWER_COLORS[towerType]:Lerp(UI.Colors.Panel, 0.7))
-		towerPreview(row, towerType, UDim2.fromOffset(0, 0), UDim2.fromOffset(72, 78))
+		towerTile(row, towerType, UDim2.fromOffset(0, 0), UDim2.fromOffset(72, 78))
 		local title = UI.label({
 			Position = UDim2.fromOffset(82, 0),
 			Size = UDim2.new(1, -182, 0, 36),
@@ -980,6 +1079,10 @@ local function buildCamp()
 		end)
 		towerRows[towerType] = { row = row, title = title, stats = stats }
 	end
+	local lockedTowers = {}
+	for _, towerType in IdleTowers.ORDER do
+		lockedTowers[towerType] = lockedRow(towerList, towerType)
+	end
 
 	local function refreshTowers()
 		for order, towerType in IdleTowers.ORDER do
@@ -987,6 +1090,7 @@ local function buildCamp()
 			local index = table.find(state.towers, towerType)
 			entry.row.Visible = index ~= nil
 			entry.row.LayoutOrder = index or (100 + order)
+			refreshLocked(lockedTowers[towerType], towerType, order)
 			if index then
 				local def = IdleTowers.Defs[towerType]
 				local trained = Levels.trainingLevel(state.xp[towerType])
@@ -1794,8 +1898,8 @@ local function buildHud()
 	UI.gradient(menu)
 	local menuStroke = UI.stroke(UI.Colors.Ink, 3)
 	menuStroke.Parent = menu
-	local menuScale = UI.new("UIScale", { Parent = menu }) :: UIScale
-	local menuPreview = towerPreview(menu, nil, UDim2.fromOffset(0, 0), UDim2.fromOffset(66, 82))
+	local phoneMenu = false -- (menu réduit du téléphone : voir layout)
+	local menuPreview = towerTile(menu, nil, UDim2.fromOffset(0, 0), UDim2.fromOffset(66, 82))
 	local menuTitle = UI.label({
 		Name = "Title",
 		Position = UDim2.fromOffset(76, 0),
@@ -2034,8 +2138,10 @@ local function buildHud()
 		for _, entry in barButtons do
 			entry.button.Size = UDim2.fromOffset(buttonSize.X, buttonSize.Y)
 			entry.name.Size = UDim2.new(1, 0, 0, if phone then 15 else 17)
-			entry.preview.view.Position = UDim2.fromOffset(0, if phone then 14 else 16)
-			entry.preview.view.Size = UDim2.new(1, 0, 0, if phone then 20 else 38)
+			-- La vignette prend presque tout le bouton, le nom et le prix s'écrivent par-dessus (contour noir) : à
+			-- 20 px de haut, sur téléphone, on ne reconnaissait pas la tour.
+			entry.preview.view.Position = UDim2.fromOffset(0, if phone then 5 else 13)
+			entry.preview.view.Size = UDim2.new(1, 0, 0, if phone then 42 else 48)
 			entry.cost.Position = UDim2.fromOffset(0, if phone then 36 else 56)
 			entry.cost.Size = UDim2.new(1, 0, 0, if phone then 16 else 18)
 			entry.copies.Visible = not phone
@@ -2047,7 +2153,25 @@ local function buildHud()
 		local barHeight = buttonSize.Y * barScale.Scale
 		hint.Position = UDim2.new(0.5, 0, 1, -(8 + barHeight + 3))
 		hint.Size = UDim2.fromOffset(math.min(620, screen.X - 16), if phone then 18 else 24)
-		menuScale.Scale = if phone then MENU_PHONE_SCALE else 1
+		-- Menu de la tour : voir MENU_SIZE_PHONE.
+		phoneMenu = phone
+		local menuSize = if phone then MENU_SIZE_PHONE else MENU_SIZE
+		local textLeft = if phone then 0 else 76
+		menu.Size = UDim2.fromOffset(menuSize.X, menuSize.Y)
+		menuPreview.tile.Visible = not phone
+		menuTitle.Position = UDim2.fromOffset(textLeft, 0)
+		menuTitle.Size = UDim2.new(1, -textLeft, 0, if phone then 22 else 34)
+		menuStats.Position = UDim2.fromOffset(textLeft, if phone then 24 else 38)
+		menuStats.Size = UDim2.new(1, -textLeft, 0, if phone then 30 else 48)
+		-- (téléphone : « Améliorer 15 💰 » tient sur une ligne)
+		upgradeButton.Size = UDim2.new(if phone then 0.64 else 0.62, -4, 0, 42)
+		sellButton.Size = UDim2.new(if phone then 0.36 else 0.38, -4, 0, 42)
+		local upgradeText = upgradeButton:FindFirstChildOfClass("UITextSizeConstraint")
+		local sellText = sellButton:FindFirstChildOfClass("UITextSizeConstraint")
+		if upgradeText and sellText then
+			upgradeText.MaxTextSize = if phone then 13 else 15
+			sellText.MaxTextSize = if phone then 13 else 14
+		end
 		-- (bandeau rangé dans la barre de Roblox : la carte peut monter jusque sous lui)
 		topMargin = math.max(4, inset + top + height) + 6
 		bottomMargin = 8 + barHeight + 3 + hint.Size.Y.Offset + 4
@@ -2228,20 +2352,27 @@ local function buildHud()
 			end
 			sellButton.Text = `Vendre +{amount(refund)}`
 			-- À côté de la tour : au-dessus d'elle s'il y a la place, sinon en dessous ; jamais hors de l'écran, ni
-			-- sur le bandeau du haut ou la barre des tours.
+			-- sur le bandeau du haut ou la barre des tours. Téléphone : dans un coin du bas (MENU_SIZE_PHONE).
 			local camera = workspace.CurrentCamera
 			local screen = UI.screenSize(gui)
 			local world = level.cframe:PointToWorldSpace(towerLocal(model))
 			local topPoint = camera:WorldToScreenPoint(world + Vector3.new(0, 7, 0))
 			local footPoint = camera:WorldToScreenPoint(world)
-			local menuSize = MENU_SIZE * menuScale.Scale
+			local menuSize = if phoneMenu then MENU_SIZE_PHONE else MENU_SIZE
 			local topLimit = math.max(2, topMargin - (GuiService:GetGuiInset()).Y)
 			local bottomLimit = screen.Y - bottomMargin
-			local above = topPoint.Y - menuSize.Y - 6 >= topLimit
-			local x = math.clamp(topPoint.X, menuSize.X / 2 + 6, math.max(menuSize.X / 2 + 6, screen.X - menuSize.X / 2 - 6))
-			local y = if above then topPoint.Y - 6 - menuSize.Y else footPoint.Y + 16
-			menu.AnchorPoint = Vector2.new(0.5, 0)
-			menu.Position = UDim2.fromOffset(x, math.clamp(y, topLimit, math.max(topLimit, bottomLimit - menuSize.Y)))
+			if phoneMenu then
+				-- Coin du bas à droite ; à gauche quand la tour est dans la moitié droite de l'écran.
+				local right = footPoint.X < screen.X * 0.55
+				menu.AnchorPoint = Vector2.new(if right then 1 else 0, 0)
+				menu.Position = UDim2.fromOffset(if right then screen.X - 6 else 6, math.max(topLimit, bottomLimit - menuSize.Y))
+			else
+				local above = topPoint.Y - menuSize.Y - 6 >= topLimit
+				local x = math.clamp(topPoint.X, menuSize.X / 2 + 6, math.max(menuSize.X / 2 + 6, screen.X - menuSize.X / 2 - 6))
+				local y = if above then topPoint.Y - 6 - menuSize.Y else footPoint.Y + 16
+				menu.AnchorPoint = Vector2.new(0.5, 0)
+				menu.Position = UDim2.fromOffset(x, math.clamp(y, topLimit, math.max(topLimit, bottomLimit - menuSize.Y)))
+			end
 			menu.Visible = true
 			hud.showRange(world, stats.range)
 		else

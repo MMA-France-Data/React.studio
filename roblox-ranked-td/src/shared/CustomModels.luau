@@ -180,8 +180,10 @@ local folderConnections: { RBXScriptConnection } = {}
 local sourceConnections: { RBXScriptConnection } = {}
 local dirty = true -- dossier modifié : index et modèles préparés à refaire
 local index: { [string]: Instance } = {} -- [nom en minuscules] = modèle d'origine
-local entries = {} -- [modèle d'origine] = modèle préparé (voir prepare), ou false s'il est inutilisable
-local lookups = {} -- [type] = { [palier, -1 = sans palier] = modèle préparé ou false }
+-- Un même modèle peut être demandé à deux tailles (les monstres d'un niveau sont affichés plus gros que ceux d'une
+-- parcelle, Levels.ENEMY_SCALE) : un modèle préparé par taille (clé = taille du type x 100, voir sizeKey).
+local entries = {} -- [modèle d'origine] = { [taille] = modèle préparé (voir prepare), ou false s'il est inutilisable }
+local lookups = {} -- [type] = { [taille] = { [palier, -1 = sans palier] = modèle préparé ou false } }
 local warned: { [string]: boolean } = {} -- un seul avertissement par sujet
 
 local function warnOnce(key: string, message: string)
@@ -242,9 +244,11 @@ end
 local function rebuild()
 	dirty = false
 	disconnectAll(sourceConnections)
-	for _, entry in entries do
-		if entry then
-			entry.template:Destroy() -- les ennemis déjà créés sont des copies : ils ne changent pas
+	for _, bySize in entries do
+		for _, entry in bySize do
+			if entry then
+				entry.template:Destroy() -- les ennemis déjà créés sont des copies : ils ne changent pas
+			end
 		end
 	end
 	table.clear(entries)
@@ -747,19 +751,30 @@ function CustomModels.find(enemyType: string, def, palier: number?)
 		return nil
 	end
 	local key = palierKey(palier)
+	local sizeKey = math.floor(def.size * 100 + 0.5)
 	local byType = lookups[enemyType]
 	if not byType then
 		byType = {}
 		lookups[enemyType] = byType
 	end
-	local cached = byType[key]
+	local byPalier = byType[sizeKey]
+	if not byPalier then
+		byPalier = {}
+		byType[sizeKey] = byPalier
+	end
+	local cached = byPalier[key]
 	if cached ~= nil then
 		return cached or nil
 	end
 	local source = (if key >= 0 then index[string.lower(`{enemyType}_{key}`)] else nil) or index[string.lower(enemyType)]
 	local entry = false
 	if source then
-		entry = entries[source]
+		local bySize = entries[source]
+		if not bySize then
+			bySize = {}
+			entries[source] = bySize
+		end
+		entry = bySize[sizeKey]
 		if entry == nil then
 			-- Modèle imprévu (Toolbox...) qui ferait échouer la préparation : blocs gardés, sans casser
 			-- l'affichage des autres ennemis (appelé pendant la lecture d'un paquet, PlotRenderer).
@@ -768,10 +783,10 @@ function CustomModels.find(enemyType: string, def, palier: number?)
 				warnOnce("error:" .. source.Name, `le modèle « {source.Name} » n'a pas pu être préparé ({prepared}) : blocs gardés.`)
 			end
 			entry = if ok and prepared then prepared else false
-			entries[source] = entry
+			bySize[sizeKey] = entry
 		end
 	end
-	byType[key] = entry
+	byPalier[key] = entry
 	return entry or nil
 end
 

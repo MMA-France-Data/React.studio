@@ -195,6 +195,12 @@ Levels.ENEMY = {
 	Giant = { health = 30, gold = 120, leak = 5 }, -- mini-boss (chevalier colossal)
 	Boss = { health = 60, gold = 300, leak = 10 }, -- boss : s'il passe, c'est perdu
 }
+-- TAILLE AFFICHÉE des monstres dans un niveau (demande du propriétaire, 02/10/2026 : « j'aurais agrandi aussi les
+-- monstres pour bien les voir ») : la carte est vue de haut et de loin, surtout sur téléphone. Multiplie la taille du
+-- modèle, de sa barre de vie et de ses effets (client/PlotRenderer.luau). AFFICHAGE SEULEMENT : le combat ne connaît
+-- que la place du monstre sur le chemin, la difficulté ne change pas. 1 = la taille qu'il a sur une parcelle.
+-- Les gros (colosse, boss) grossissent moins : ils déborderaient trop du chemin (6 studs de large).
+Levels.ENEMY_SCALE = { Normal = 1.8, Fast = 1.8, Swarm = 2, Tank = 1.6, Giant = 1.4, Boss = 1.4 }
 -- Bouton « x2 » pendant un niveau (tout va 2 fois plus vite, comme le pass Vitesse x2 de la parcelle) :
 --   true  -> pour tout le monde (prototype : un niveau doit pouvoir se jouer vite) ;
 --   false -> seulement avec le pass Vitesse x2.
@@ -307,6 +313,11 @@ function Levels.definition(level: number)
 end
 
 -- PV d'un monstre de ce type à ce niveau ; factor = montée du moment (ramp), 1 si absente.
+-- Taille affichée d'un monstre dans un niveau, par rapport à celle de la parcelle (Levels.ENEMY_SCALE).
+function Levels.enemyScale(enemyType: string): number
+	return Levels.ENEMY_SCALE[enemyType] or 1.6
+end
+
 function Levels.enemyHealth(level: number, enemyType: string, factor: number?): number
 	local raw = Levels.DEFINITIONS[level].health * Levels.ENEMY[enemyType].health * (factor or 1)
 	return math.floor(raw * 10 + 0.5) / 10

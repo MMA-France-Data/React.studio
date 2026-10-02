@@ -2550,6 +2550,17 @@ return function(log)
 			end
 			return true
 		end
+		-- (pour le message d'une vérification : sur quels objets de cet écran le tuto a posé un cadre doré)
+		local function ringsIn(object)
+			local root = object and object:FindFirstAncestorWhichIsA("ScreenGui")
+			local parents = {}
+			for _, descendant in (if root then root:GetDescendants() else {}) do
+				if descendant.Name == "TutorialHighlight" then
+					table.insert(parents, if descendant.Parent then descendant.Parent.Name else "?")
+				end
+			end
+			return if #parents > 0 then table.concat(parents, ", ") else "aucun"
+		end
 		-- Rayon doré de la HumanoidRootPart du personnage ACTUEL vers une cible du monde.
 		local function beamOk()
 			local anchor, root = guide(), rootNow()
@@ -2713,7 +2724,7 @@ return function(log)
 		check(
 			step2 and upgradeBeside and titleHas("AMÉLIORE-LA") and stepText.Text == TutorialUI.UPGRADE_TEXT
 				and archerCard ~= nil and archerCard:FindFirstChild("TutorialHighlight") == nil,
-			`tuto : tour posée -> « {title.Text} », « {stepText.Text} », flèche {pointerNow()} à côté du bouton « Améliorer » de sa fiche (côté {upgradeSide} : {upgradeBeside}), entouré d'or`
+			`tuto : tour posée -> « {title.Text} », « {stepText.Text} », flèche {pointerNow()} à côté du bouton « Améliorer » de sa fiche (côté {upgradeSide} : {upgradeBeside}), entouré d'or (cadres dorés de l'écran : {ringsIn(upgradeButton)} ; étape vue à temps : {step2})`
 		)
 		-- Fiche fermée : la flèche montre la tour elle-même, avec le rayon.
 		selectSpot(0)

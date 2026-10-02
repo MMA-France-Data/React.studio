@@ -88,6 +88,9 @@ try {
 	$start = Get-Date
 	$shots = @{}
 	$seen = 0 # lignes « PHONE:want » déjà traitées
+	# Avant la première demande de taille, la fenêtre de Studio est agrandie : la partie « ordinateur » d'un scénario
+	# (niveaux) se joue toujours à la même taille, quelle que soit celle où Studio a été fermé la dernière fois.
+	$maximized = $false
 	$lastResize = Get-Date
 	$lastHave = "" # taille du jeu (« have ») de la dernière correction faite
 	while ($true) {
@@ -104,6 +107,21 @@ try {
 		# ~1 s de retard : une ligne écrite AVANT la dernière correction (même taille « have » que celle déjà
 		# corrigée) est ignorée pendant 5 s, sinon la même correction serait faite deux fois.
 		$wants = @($lines | Where-Object { $_ -match "PHONE:want=(\d+)x(\d+);have=(\d+)x(\d+)" })
+		if (-not $maximized) {
+			if ($wants.Count -gt 0) {
+				$maximized = $true
+			} else {
+				# (la vraie fenêtre de Studio, pas son écran de démarrage : son titre finit par « - Roblox Studio »)
+				$studio = Get-Process RobloxStudioBeta -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowHandle -ne 0 -and $_.MainWindowTitle -match "- Roblox Studio$" } | Select-Object -First 1
+				if ($studio) {
+					if ([PhoneWindow]::IsZoomed($studio.MainWindowHandle)) {
+						$maximized = $true
+					} else {
+						[PhoneWindow]::ShowWindow($studio.MainWindowHandle, 3) | Out-Null # 3 = SW_MAXIMIZE
+					}
+				}
+			}
+		}
 		if ($wants.Count -gt $seen -and ((Get-Date) - $lastResize).TotalSeconds -gt 2.5) {
 			$seen = $wants.Count
 			if ($wants[-1] -match "PHONE:want=(\d+)x(\d+);have=(\d+)x(\d+)") {
