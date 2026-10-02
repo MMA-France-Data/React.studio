@@ -56,6 +56,7 @@ Config.LEVELS_ACCESS = "Owner"   -- "Owner" = toi seul (et toi dans Studio), "Al
 | Vague | les monstres arrivent en continu, par groupes de plus en plus serrés et de plus en plus résistants |
 | « Envoyer la suite » ⏩ | pendant la petite pause entre deux groupes : le groupe suivant arrive tout de suite, contre 5 à 9 pièces d'or |
 | Vitesse x2 | bouton x1 / x2, pour tout le monde (réglage `Levels.SPEED_FREE`) |
+| Vue | caméra penchée : on voit les tours et les monstres de côté, et la carte remplit l'écran. **Choisie par toi le 02/10/2026** parmi trois (penchée, plus plongeante, pile au-dessus). Réglage : `CAMERA_PITCH_MIN` et `CAMERA_PITCH_MAX`, en haut de `src/client/LevelsUI.luau` |
 
 Les 8 tours sont celles de la parcelle (mêmes dégâts, mêmes portées, mêmes effets), avec leurs prix en or à elles :
 
@@ -136,10 +137,6 @@ C'est un premier réglage : à ajuster quand tu y auras joué.
 
 ## Ce qui reste à décider (par toi)
 
-0. **La vue** : pour l'instant la caméra est penchée (on voit les tours et les monstres de côté, et la carte remplit
-   l'écran). Deux autres vues possibles, déjà montrées en images : plus plongeante, ou pile au-dessus (on ne voit
-   alors que le dessus des tours et des monstres, et tout est environ 30 % plus petit). C'est deux nombres en haut de
-   `src/client/LevelsUI.luau` (`CAMERA_PITCH_MIN` et `CAMERA_PITCH_MAX`).
 1. **Le mode infini** : on le garde à côté, ou la parcelle devient seulement le camp d'entraînement ? Et que deviennent
    les progrès des joueurs actuels (vagues, tours, runes) ?
 2. **Les passes Robux** : « Ramassage auto » n'a plus de sens dans les niveaux (l'or tombe tout seul). Le x2 est

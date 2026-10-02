@@ -84,8 +84,8 @@ local HOTKEYS = {
 -- plus plongeante). Champ de vision petit = peu de perspective.
 -- Pour une vue FIXE, mets la même valeur aux deux : 70 et 70 = plus plongeante, 90 et 90 = pile au-dessus (on ne voit
 -- alors que le dessus des tours et des monstres, et la carte est environ 30 % plus petite à l'écran). Les trois
--- vues ont été montrées au propriétaire le 02/10/2026 (« pourquoi la vue n'est pas vraiment au-dessus ? ») : à lui
--- de choisir.
+-- vues ont été montrées au propriétaire le 02/10/2026 (« pourquoi la vue n'est pas vraiment au-dessus ? ») : il a
+-- choisi la première, la vue penchée de ce réglage (« le premier est mieux »). Ne pas la changer sans sa demande.
 local CAMERA_PITCH_MIN = 48
 local CAMERA_PITCH_MAX = 64
 local CAMERA_FOV = 40
