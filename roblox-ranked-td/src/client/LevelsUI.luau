@@ -16,7 +16,9 @@
 -- LevelAction). Les monstres, les tirs et les étiquettes des tours sont affichés par PlotRenderer.
 -- Pendant un niveau, le personnage reste sur sa parcelle : ses commandes sont coupées, les autres écrans du jeu sont
 -- cachés, puis tout est remis au retour.
--- Pas encore traduit en anglais (écrans marqués NoTranslate) : à faire avant de rendre le jeu public.
+-- Anglais : les textes sont écrits en français ici, et traduits à l'affichage pour un joueur non francophone
+-- (AutoTranslate.luau, dictionnaires Shared/LangEN). Ce fichier ne relit donc jamais un .Text, et n'écrit un texte
+-- que quand il change (jamais à chaque image).
 -- Tests automatiques (Studio seulement, un plugin ne peut pas cliquer) : l'attribut « TestAction » de chaque écran
 -- lance les mêmes fonctions que les boutons et les appuis (voir testAction en bas du fichier).
 local GuiService = game:GetService("GuiService")
@@ -352,7 +354,6 @@ local camp = {}
 
 local function buildCamp()
 	local gui = UI.screen("Levels", 23)
-	gui:SetAttribute("NoTranslate", true)
 	camp.gui = gui
 
 	local openButton = UI.button({
@@ -1810,7 +1811,6 @@ end
 
 local function buildHud()
 	local gui = UI.screen("LevelHud", 24)
-	gui:SetAttribute("NoTranslate", true)
 	gui.Enabled = false
 	hud.gui = gui
 

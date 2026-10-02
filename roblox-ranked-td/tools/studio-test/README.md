@@ -14,6 +14,7 @@ Depuis le dossier `roblox-ranked-td` :
 powershell -ExecutionPolicy Bypass -File tools\studio-test\run.ps1
 powershell -ExecutionPolicy Bypass -File tools\studio-test\run.ps1 -Test monsters
 powershell -ExecutionPolicy Bypass -File tools\studio-test\run.ps1 -Test tutorial
+powershell -ExecutionPolicy Bypass -File tools\studio-test\run.ps1 -Test english
 ```
 
 **Ne touche pas au PC pendant un test** : la fenêtre de Studio du test bouge et change de taille toute seule ; un clic
@@ -105,6 +106,17 @@ La place de test contient le marqueur `__AutoTestNewPlayer` : le tuto y démarre
 - « Passer le tuto » : un appui sur ordinateur, deux sur téléphone (`tutorial_tel_passer`) ;
 - à la taille d'un téléphone : la flèche et ses mots restent dans l'écran (`tutorial_tel_*`).
 
+### `run.ps1 -Test english` : la version anglaise (environ 3 minutes)
+
+Scénarios `scenarios\EnglishServer.luau` et `scenarios\EnglishClient.luau`. Captures `out\english_<nom>.png`.
+Le joueur passe en anglais en direct (son attribut `Lang`, comme le serveur le met pour un joueur non
+francophone), puis tous les écrans sont ouverts l'un après l'autre : fenêtre du camp (4 onglets, nouveau joueur
+puis joueur avancé), panneaux et invites de la parcelle, un niveau (conseils, barre des tours, menu d'une tour,
+petits messages), les écrans de fin (défaite, victoire avec une évolution, dernier niveau), les mots de la flèche
+du tuto. À chaque écran, chaque texte qui a encore l'air français (lettre accentuée ou mot français courant) est
+noté, ainsi que les textes que le traducteur n'a pas trouvés. À la fin : la liste « non traduit : ... » (elle doit
+être vide), puis le retour au français (chaque texte doit revenir).
+
 ### Lire le résultat
 
 À la fin, le script affiche chaque ligne `[PASS]` / `[FAIL]`, les erreurs de la Sortie, la liste des captures et le
@@ -126,7 +138,7 @@ powershell -ExecutionPolicy Bypass -File tools\studio-test\check.ps1
 | Fichier | Rôle |
 |---|---|
 | `run.ps1` | Construit la place de test, installe le plugin, ouvre Studio, redimensionne sa fenêtre quand le scénario le demande, prend les captures, affiche les résultats |
-| `mkproj.cjs` | Crée `out\<levels\|monsters\|tutorial>.project.json` : `default.project.json` + le marqueur `__AutoPlayTest` + les scénarios |
+| `mkproj.cjs` | Crée `out\<levels\|monsters\|tutorial\|english>.project.json` : `default.project.json` + le marqueur `__AutoPlayTest` + les scénarios |
 | `awake.ps1` | Garde l'écran du PC allumé pendant un test (voir plus haut) |
 | `AutoPlayTest.lua` | Plugin Studio, copié dans `%LOCALAPPDATA%\Roblox\Plugins` par `run.ps1` |
 | `logserver.cjs` | Petit serveur sur `127.0.0.1:34999` (ce PC uniquement) qui écrit la Sortie dans `out\studio-output.log` |
@@ -136,6 +148,7 @@ powershell -ExecutionPolicy Bypass -File tools\studio-test\check.ps1
 | `scenarios\LevelsClient.luau` | Le jeu côté client (la vraie interface, à la taille d'un ordinateur puis d'un téléphone) |
 | `scenarios\MonstersClient.luau` | Les modèles 3D des monstres et la galerie |
 | `scenarios\TutorialServer.luau`, `scenarios\TutorialClient.luau` | Le tuto d'un nouveau joueur |
+| `scenarios\EnglishServer.luau`, `scenarios\EnglishClient.luau` | La version anglaise |
 
 **Le plugin ne fait rien dans tes places** : sa première vérification est `if not marker then return end`. Il ne
 s'active que si la place contient `ReplicatedStorage.__AutoPlayTest`, un objet que seul `mkproj.cjs` ajoute aux

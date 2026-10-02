@@ -17,8 +17,10 @@
 --
 -- ORDRE DE RECHERCHE d'une traduction (Lang.translate) :
 --   texte exact -> modèles avec {n} (celui qui a le plus de mots fixes gagne) -> même texte sans les espaces du
---   début et de la fin -> texte entier dans une balise (<b>…</b>, <font …>…</font>) : son intérieur -> texte sur
---   plusieurs lignes : chaque ligne -> ligne coupée par « • » ou « · » : chaque morceau. Un texte sans mot (nombres,
+--   début et de la fin -> texte entier dans une balise (<b>…</b>, <font …>…</font>) : son intérieur -> même texte
+--   sans ce qui n'est pas des lettres au début, à la fin, ou des deux côtés (emoji, étoiles, nombres, « » :
+--   « 🔒 Totem de givre », « Archer du rempart ★★ », « 1. Catapulte » : inutile d'écrire une ligne pour chacun) ->
+--   texte sur plusieurs lignes : chaque ligne -> ligne coupée par « • » ou « · » : chaque morceau. Un texte sans mot (nombres,
 --   « 1.5K », « x10 », emoji) n'est jamais cherché : en anglais, seuls ses nombres changent d'écriture (« 7,5 » -> « 7.5 »,
 --   « 2,5 % » -> « 2.5% »). Un texte inconnu reste en français (et, dans Studio, il est noté
 --   dans une liste : Lang.getMisses).
@@ -416,6 +418,43 @@ end
 
 local translateCore: (string, number) -> string?
 
+-- Nombres écrits à la française dans un texte SANS mot (une valeur seule, ex. les chiffres de la fiche d'une tour) : en
+-- anglais, la virgule des nombres devient un point (« 7,5 » -> « 7.5 ») et l'espace avant « % » disparaît
+-- (« 2,5 % » -> « 2.5% »), comme dans les phrases traduites. Pas de dictionnaire ni de mémoire : juste l'écriture.
+local function englishNumbers(text: string): string
+	if string.find(text, "%d,%d") then
+		text = string.gsub(text, "(%d),(%d)", "%1.%2")
+	end
+	if string.find(text, "%d %%") then
+		text = string.gsub(text, "(%d) %%", "%1%%")
+	end
+	return text
+end
+
+-- Place de la première et de la dernière LETTRE du texte (lettres sans accent, ou avec : é, è, à, ç, œ...). Ce qui est
+-- avant et après : symboles, emoji, étoiles, nombres, ponctuation, espaces. nil si le texte n'a aucune lettre.
+local function letterSpan(text: string): (number?, number?)
+	local first = string.find(text, LETTER)
+	if not first then
+		return nil, nil
+	end
+	local last = #text
+	while last > first do
+		local byte = string.byte(text, last)
+		if (byte >= 65 and byte <= 90) or (byte >= 97 and byte <= 122) then
+			break
+		elseif byte >= 128 and byte <= 191 then
+			-- (2e octet d'une lettre accentuée : son 1er octet est 195 ou 197)
+			local lead = string.byte(text, last - 1)
+			if lead == 195 or lead == 197 then
+				break
+			end
+		end
+		last -= 1
+	end
+	return first, last
+end
+
 -- Valeur d'un {n} : traduite si elle a sa traduction (nom de tour, rareté...), sinon gardée, avec ses virgules de
 -- nombres changées en points (« 0,05 » -> « 0.05 »).
 local function translateValue(value: string, depth: number): string
@@ -486,6 +525,37 @@ translateCore = function(text: string, depth: number): string?
 			end
 		end
 	end
+	-- Ce qui n'est pas des lettres au début ou à la fin (emoji, étoiles, nombres, ponctuation : « 🔒 Totem de givre »,
+	-- « Archer du rempart ★★ », « 1. Catapulte ») : on traduit le reste et on les remet, avec leurs nombres écrits à
+	-- l'anglaise. D'abord sans le début seulement (le reste peut être un modèle qui finit par un nombre :
+	-- « 🔒 EMPLACEMENT 2 »), puis sans la fin seulement, puis sans les deux. Jamais pour un texte de plusieurs lignes
+	-- (chaque ligne est traduite à part, voir Lang.translate). La ponctuation qui suit est écrite à l'anglaise, sans
+	-- espace devant (« Rejouer ! » -> « Replay! »).
+	if depth < MAX_DEPTH and not string.find(text, "\n", 1, true) then
+		local first, last = letterSpan(text)
+		if first and last and (first > 1 or last < #text) then
+			local head, tail = string.sub(text, 1, first - 1), string.sub(text, last + 1)
+			tail = string.gsub(tail, "^ ([:!%?;])", "%1")
+			if first > 1 then
+				local inner = translateCore(string.sub(text, first), depth + 1)
+				if inner then
+					return englishNumbers(head) .. inner
+				end
+			end
+			if last < #text then
+				local inner = translateCore(string.sub(text, 1, last), depth + 1)
+				if inner then
+					return inner .. englishNumbers(tail)
+				end
+			end
+			if first > 1 and last < #text then
+				local inner = translateCore(string.sub(text, first, last), depth + 1)
+				if inner then
+					return englishNumbers(head) .. inner .. englishNumbers(tail)
+				end
+			end
+		end
+	end
 	return nil
 end
 
@@ -519,19 +589,6 @@ local function splitSegments(line: string): { string }
 		table.insert(pieces, string.sub(line, first, last))
 		position = last + 1
 	end
-end
-
--- Nombres écrits à la française dans un texte SANS mot (une valeur seule, ex. les chiffres de la fiche d'une tour) : en
--- anglais, la virgule des nombres devient un point (« 7,5 » -> « 7.5 ») et l'espace avant « % » disparaît
--- (« 2,5 % » -> « 2.5% »), comme dans les phrases traduites. Pas de dictionnaire ni de mémoire : juste l'écriture.
-local function englishNumbers(text: string): string
-	if string.find(text, "%d,%d") then
-		text = string.gsub(text, "(%d),(%d)", "%1.%2")
-	end
-	if string.find(text, "%d %%") then
-		text = string.gsub(text, "(%d) %%", "%1%%")
-	end
-	return text
 end
 
 -- Une ligne : entière, sinon morceau par morceau (« • », « · »). Un morceau inconnu reste en français.

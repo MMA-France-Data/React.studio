@@ -12,8 +12,9 @@ Le jeu sort comme une **nouvelle expérience Roblox** (décision du 02/10/2026) 
 - [x] Tout l'ancien jeu enlevé (classé, autel, forge, vagues infinies, renaissance, défis, passes, ancien tuto).
 - [x] **Tuto** pour un nouveau joueur : une flèche dorée lui montre quoi toucher, du camp à la fin du niveau 1,
       puis la boutique (voir `NIVEAUX.md`, « Le tuto des nouveaux joueurs »). Celui qui la suit gagne le niveau 1.
-- [ ] **Traduction anglaise** des écrans des niveaux et du camp (ils sont en français pour tout le monde). Le
-      mécanisme existe déjà (voir `README.md`, « Langues »).
+- [x] **Version anglaise** : tous les écrans, le tuto, les messages et les panneaux sont traduits pour les joueurs
+      non francophones (voir `README.md`, « Langues »). Vérifié par `run.ps1 -Test english` : aucun texte ne reste
+      en français.
 - [ ] **Essai sur un vrai téléphone** : boutons, textes, pose d'une tour au doigt, zoom en pinçant, fluidité. (Les
       tests automatiques ne vérifient que la taille de l'écran, pas le toucher.)
 - [ ] **Un nouveau joueur passe-t-il le niveau 1 ?** La difficulté est réglée avec des joueurs simulés et un seul
@@ -39,14 +40,43 @@ Le jeu sort comme une **nouvelle expérience Roblox** (décision du 02/10/2026) 
 - [ ] Ne pas activer la traduction automatique de Roblox (Hub Création > Localisation).
 - [ ] Page du jeu : nom, description (français et anglais), icône, miniatures, vidéo (Roblox : 30 s au plus, textes
       et son en anglais, compte vérifié de 13 ans et plus pour l'envoyer). Les images et vidéos tournées pour
-      « Tower 22 » montrent l'ancien jeu : à refaire.
+      « Tower 22 » montrent l'ancien jeu : à refaire. Une description prête à coller est plus bas (« Textes pour la
+      page du jeu »).
 - [ ] Public des moins de 16 ans (règles Roblox 2026) : tout nouveau jeu commence en 16+ ; pour Roblox Kids (5-8 ans)
       et Select (9-15 ans) : âge vérifié, double authentification, Roblox Premium 2 mois de suite (ou frais
       remboursables), puis 250 parties de joueurs « très engagés » en 60 jours (tableau « Audience Reach »). Ne pas
       payer l'examen accéléré.
 
+## Textes pour la page du jeu (à coller, à changer comme tu veux)
+
+Le nom du jeu est à toi de choisir. Description en anglais (c'est elle que la plupart des joueurs liront) :
+
+```text
+Defend your castle in fast 2-3 minute levels!
+
+- Place your towers anywhere and upgrade them non-stop: the monsters never stop getting stronger.
+- 20 levels across 2 territories, with mini-bosses and bosses.
+- 8 towers to unlock in the shop: fixed prices, no luck.
+- Your own training camp: your towers train and evolve, even while you're away.
+- Plays on PC and phone. No pay-to-win.
+```
+
+La même en français :
+
+```text
+Défends ton château dans des niveaux rapides de 2 à 3 minutes !
+
+- Pose tes tours où tu veux et améliore-les sans arrêt : les monstres deviennent de plus en plus forts.
+- 20 niveaux dans 2 territoires, avec des mini-boss et des boss.
+- 8 tours à débloquer à la boutique : prix fixes, aucun hasard.
+- Ton camp d'entraînement : tes tours s'entraînent et évoluent, même quand tu es parti.
+- Sur ordinateur et sur téléphone. Rien à acheter pour gagner.
+```
+
 ## Derniers essais dans le jeu publié (encore privé)
 
+- [ ] Le tuto : à ta première visite, la flèche t'emmène au niveau 1 puis à la boutique ; à la deuxième, elle ne
+      revient pas.
 - [ ] La sauvegarde : gagner un niveau, quitter, revenir : le niveau, les pièces et les tours achetées sont là.
 - [ ] L'entraînement pendant l'absence : mettre une tour dans le camp, revenir une heure plus tard.
 - [ ] À deux joueurs : chacun sa parcelle, on voit le camp de l'autre en s'approchant, les invites de l'autre

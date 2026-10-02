@@ -16,6 +16,8 @@ fixes, camp d'entraînement, plus aucun hasard).
 - Ta parcelle est ton **camp d'entraînement** : les tours que tu y mets deviennent plus fortes, même quand tu n'es
   pas là, et elles **évoluent** (★, ★★, ★★★).
 - **Tout le monde y a accès** : il n'y a plus de réglage « seulement pour toi ».
+- Le jeu est **en français et en anglais** : un joueur dont la langue Roblox n'est pas le français voit tout en
+  anglais (voir `README.md`, « Langues »).
 - Il n'y a **plus rien de l'ancien jeu** : ni classé, ni autel, ni forge, ni runes, ni vagues infinies sur la
   parcelle, ni renaissance, ni défis, ni passes Robux, ni ancien tuto (voir « Le grand ménage » plus bas).
 
@@ -346,6 +348,8 @@ arrivent à un niveau) : rien d'autre n'a changé. Les chiffres sont dans `src/s
    tour de la boutique apporte », plus bas.
 7. **Le tuto** (« fais le tuto bien, je veux un jeu sortable ») : voir « Le tuto des nouveaux joueurs ».
 8. **Les niveaux 11 à 20** (« ajoute des niveaux ») : voir « Les deux territoires ».
+9. **La version anglaise** (pour un jeu « sortable ») : tous les écrans, le tuto, les messages et les panneaux sont
+   traduits ; un test Studio vérifie qu'aucun texte ne reste en français.
 
 ### Le grand ménage : ce qui a été enlevé
 
@@ -359,7 +363,7 @@ arrivent à un niveau) : rien d'autre n'a changé. Les chiffres sont dans `src/s
 
 Ce qui a été gardé : les niveaux, le camp d'entraînement, les évolutions, la boutique des tours, les 8 tours et leur
 combat, les monstres et leurs modèles 3D, les effets et les sons, la galerie et le panneau des sons de Studio, le
-mécanisme de traduction (pour la future version anglaise).
+mécanisme de traduction (il sert maintenant à la version anglaise du jeu à niveaux).
 
 **Rien n'est perdu** : l'ancien jeu complet est gardé dans le dépôt, à l'étiquette git `ancien-jeu-complet`.
 
@@ -375,8 +379,7 @@ niveaux du joueur et son réglage du son. Les sauvegardes de l'ancien jeu « Tow
    monstres des territoires suivants existent déjà, il faut une carte et un réglage par territoire.
 3. **Des passes Robux pour ce jeu ?** Il n'y en a plus aucun. Si tu en veux, il faudra choisir lesquels (jamais un
    avantage qui casse la difficulté des niveaux).
-4. **Avant de rendre le jeu public** : voir `SORTIE.md` (traduction anglaise des nouveaux écrans, essai sur un vrai
-   téléphone, page du jeu).
+4. **Avant de rendre le jeu public** : voir `SORTIE.md` (publication, essai sur un vrai téléphone, page du jeu).
 
 ## Technique (pour s'y retrouver)
 
@@ -464,7 +467,7 @@ print(m.averageMs, m.p99Ms, m.worstMs, m.enemiesPeak)
 
 - Deux cartes pour 20 niveaux (une par territoire).
 - Les niveaux 11 à 20 n'ont été joués que par les joueurs simulés.
-- Les écrans des niveaux et du camp sont en français seulement (voir `README.md`, « Langues »).
+- Deux langues : français et anglais. Un joueur espagnol, portugais, etc. voit le jeu en anglais.
 - La difficulté est réglée avec des joueurs simulés et un seul vrai joueur (toi) : avant de rendre le jeu public, il
   faudra voir si un nouveau joueur passe le niveau 1.
 - Les autres joueurs ne voient pas ton combat (ils restent sur la place).

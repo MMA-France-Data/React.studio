@@ -129,6 +129,22 @@ same(
 )
 same("modèle sur 2 lignes", en("Titre A\nDétail B"), "Title A\nDetail B")
 
+-- Symboles, emoji, étoiles ou nombres au début ou à la fin : le milieu est traduit, le reste est remis
+same("emoji devant un nom", en("🔒 Archer du rempart"), "🔒 Rampart Archer")
+same("étoiles derrière un nom", en("Archer du rempart ★★"), "Rampart Archer ★★")
+same("numéro devant, étoiles derrière", en("1. Archer du rempart ★★"), "1. Rampart Archer ★★")
+same("emoji devant un modèle qui finit par un nombre", en("🔒 Vague 5"), "🔒 Wave 5")
+same("guillemets autour d'un mot", en("« Suivant »"), "« Next »")
+same("nombre à virgule devant un mot", en("+0,3 Suivant"), "+0.3 Next")
+same("emoji devant un texte exact qui a déjà sa ligne", en("⚔ JOUER AU NIVEAU"), "⚔ PLAY THE LEVEL")
+same("dans un morceau", en("🔒 Archer du rempart • Vague 3"), "🔒 Rampart Archer • Wave 3")
+same("ponctuation à l'anglaise après le milieu", en("Suivant !"), "Next!")
+same("ponctuation à l'anglaise (2)", en("🔒 Suivant : 3"), "🔒 Next: 3")
+same("plusieurs lignes : chaque ligne à part", en("Suivant :\n+32 🏅"), "Next:\n+32 🏅")
+Lang.clearMisses()
+same("emoji devant un texte inconnu : gardé", en("🔒 Tour inconnue ★"), "🔒 Tour inconnue ★")
+check(hasValue(Lang.getMisses(), "🔒 Tour inconnue ★"), "emoji devant un texte inconnu : noté")
+
 -- Textes sans mot : jamais cherchés, jamais notés
 Lang.clearMisses()
 for _, text in { "1.5K", "💰 1.5K", "x10", "×3", "12:34", "+5", "1e96", "✓", "", "10s" } do

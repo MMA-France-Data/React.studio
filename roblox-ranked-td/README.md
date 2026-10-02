@@ -70,8 +70,13 @@ powershell -ExecutionPolicy Bypass -File tools\studio-test\run.ps1 -Test monster
 powershell -ExecutionPolicy Bypass -File tools\studio-test\run.ps1 -Test tutorial
 ```
 
+```bash
+powershell -ExecutionPolicy Bypass -File tools\studio-test\run.ps1 -Test english
+```
+
 Le premier joue le jeu en entier (serveur, puis la vraie interface à la taille d'un ordinateur et d'un téléphone),
-le deuxième vérifie les modèles 3D des monstres, le troisième joue le tuto d'un nouveau joueur en suivant la flèche.
+le deuxième vérifie les modèles 3D des monstres, le troisième joue le tuto d'un nouveau joueur en suivant la flèche,
+le quatrième vérifie la version anglaise.
 Captures dans `tools/studio-test/out/`. Le test s'ouvre dans sa propre fenêtre de Studio : un Studio déjà ouvert
 n'est pas touché.
 
@@ -167,20 +172,27 @@ que chez le joueur (`src/client/SoundManager.luau`) : aucun coût pour le serveu
 
 ## Langues : français et anglais
 
-- Le jeu est écrit en français. **Les écrans des niveaux et du camp ne sont pas encore traduits** : ils restent en
-  français pour tout le monde (ils sont marqués `NoTranslate`). C'est à faire avant de rendre le jeu public.
-- **Le mécanisme de traduction est en place** (il servait à l'ancien jeu) : le serveur met l'attribut `Lang` (« fr »
-  ou « en ») sur chaque joueur d'après sa langue Roblox (`Lang.startServer`). Chez un joueur non francophone,
-  `src/client/AutoTranslate.luau` remplace chaque texte affiché par sa traduction dès qu'il apparaît ou change, et
-  garde le texte français d'origine. Un joueur francophone ne paie rien. Le code du jeu ne relit donc jamais un
-  `.Text` pour décider quelque chose.
-- **Traductions** : `src/shared/LangEN/` (`Glossary` = les noms des tours et des monstres, `Game` = les autres
-  textes déjà traduits : plaque des parcelles, invite « Ouvrir », bouton « SON », messages d'expulsion), une ligne
-  par texte : `["texte français exact"] = "English",`. Un texte qui change : `{1}`, `{2}`… Mode d'emploi en haut de
+- Le jeu est écrit en français, et **tout est traduit en anglais** : un joueur dont la langue Roblox est le français
+  voit le jeu en français, tous les autres le voient en anglais (fenêtre du camp, niveaux, tuto, petits messages,
+  panneaux et invites de la parcelle).
+- **Comment ça marche** : le serveur met l'attribut `Lang` (« fr » ou « en ») sur chaque joueur d'après sa langue
+  Roblox (`Lang.startServer`). Chez un joueur non francophone, `src/client/AutoTranslate.luau` remplace chaque texte
+  affiché par sa traduction dès qu'il apparaît ou change, et garde le texte français d'origine. Un joueur
+  francophone ne paie rien. Le code du jeu ne relit donc jamais un `.Text` pour décider quelque chose, et n'écrit un
+  texte que quand il change.
+- **Traductions** : `src/shared/LangEN/` (`Glossary` = les noms : tours, monstres, territoires, évolutions ; `Game` =
+  tous les autres textes), une ligne par texte : `["texte français exact"] = "English",`. Un texte qui change :
+  `{1}`, `{2}`… Un texte entouré de symboles ou de nombres (« 🔒 Totem de givre », « Archer du rempart ★★ »,
+  « +0,3 XP ») est traduit par son milieu : pas besoin d'une ligne pour chacun. Mode d'emploi en haut de
   `src/shared/Lang.luau`. Un texte sans traduction reste en français.
-- **Vérifier sans Studio** : `luau tools/lang/check.luau` (traductions chargées, doublons), `luau tools/lang/tests.luau`
-  (le traducteur), `node tools/lang/autotranslate-test.cjs` (la traduction de l'écran, avec un faux Roblox).
-- **Dans Studio** : `Config.STUDIO_LANGUAGE` = `"auto"` (comme le jeu publié), `"fr"` ou `"en"`.
+- **Quand tu ajoutes un texte au jeu** : ajoute sa traduction dans `LangEN/Game.luau`, et une ligne dans
+  `tools/lang/samples.luau` (le texte tel qu'il s'affiche, et l'anglais attendu).
+- **Vérifier sans Studio** : `luau tools/lang/samples.luau` (215 textes du jeu et leur anglais attendu, aucun trou),
+  `luau tools/lang/check.luau` (traductions chargées, doublons), `luau tools/lang/tests.luau` (le traducteur),
+  `node tools/lang/autotranslate-test.cjs` (la traduction de l'écran, avec un faux Roblox).
+- **Vérifier dans Studio** : `tools\studio-test\run.ps1 -Test english` passe le joueur en anglais, ouvre tous les
+  écrans et liste chaque texte resté en français (il ne doit y en avoir aucun).
+- **Voir le jeu en anglais dans Studio** : `Config.STUDIO_LANGUAGE = "en"` (`"auto"` = comme le jeu publié, `"fr"`).
 - **Pas la traduction automatique de Roblox** : ne l'active pas dans le Creator Dashboard, et coupe-la si elle est
   allumée (elle prendrait les textes anglais pour du français). Par sécurité, `AutoTranslate.luau` la coupe déjà sur
   chaque texte qu'il traduit (`AutoLocalize = false`).
