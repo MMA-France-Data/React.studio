@@ -21,6 +21,7 @@ local PlotLayout = require(Shared.PlotLayout)
 local ProximityLabel = require(Shared.ProximityLabel)
 local CampGame = require(script.Parent.CampGame)
 local HubMap = require(script.Parent.HubMap)
+local IdleTowerModel = require(script.Parent.IdleTowerModel)
 
 local Camp = {}
 
@@ -38,7 +39,32 @@ local LABEL_DISTANCE = Config.LabelDistance.Medium + 20 -- lisible depuis le poi
 local LABEL_HEIGHT = 11.5 -- studs au-dessus du socle (la plus haute tour, le Trébuchet, fait ~10 studs)
 local LABEL_HEIGHT_EMPTY = 4
 local OPEN_COLOR, LOCKED_COLOR = Color3.fromRGB(132, 124, 106), Color3.fromRGB(49, 47, 43)
-local GOLD, IVORY, MUTED = Color3.fromRGB(240, 196, 84), Color3.fromRGB(245, 241, 230), Color3.fromRGB(190, 198, 205)
+local GOLD, IVORY, MUTED = Color3.fromRGB(255, 217, 61), Color3.new(1, 1, 1), Color3.fromRGB(220, 229, 244)
+local INK = Color3.fromRGB(10, 12, 21)
+
+-- Les vignettes de la boutique montrent les VRAIES tours, sans images à publier. Huit modèles statiques,
+-- créés une fois, hors du Workspace : aucun tir, cible, évolution, invite ou effet de gameplay.
+local function preparePreviews()
+	if ReplicatedStorage:FindFirstChild("CampTowerPreviews") then
+		return
+	end
+	local folder = Instance.new("Folder")
+	folder.Name = "CampTowerPreviews"
+	for _, towerType in IdleTowers.ORDER do
+		local model = IdleTowerModel.create(towerType, CFrame.new(), folder, {})
+		local parts = 0
+		for _, child in model:GetDescendants() do
+			if child:IsA("BasePart") then
+				parts += 1
+				child.CanCollide = false
+				child.CanTouch = false
+				child.CanQuery = false
+			end
+		end
+		model:SetAttribute("PreviewPartCount", parts)
+	end
+	folder.Parent = ReplicatedStorage
+end
 
 local dressings = {} -- [Player] = { plot, slots = { [i] = { pad, gui, title, sub, bar, fill, xp, prompt } }, buildings, signature }
 
@@ -51,7 +77,8 @@ local function text(parent: Instance, name: string, position: UDim2, size: UDim2
 	label.Font = font
 	label.TextColor3 = color
 	label.TextScaled = true
-	label.TextStrokeTransparency = 0.35
+	label.TextStrokeColor3 = INK
+	label.TextStrokeTransparency = 0
 	label.Text = ""
 	label.Parent = parent
 	return label
@@ -70,29 +97,43 @@ local function dressPad(pad: BasePart, slotIndex: number)
 	local panel = Instance.new("Frame")
 	panel.Name = "Panel"
 	panel.Size = UDim2.fromScale(1, 1)
-	panel.BackgroundColor3 = Color3.fromRGB(20, 26, 36)
-	panel.BackgroundTransparency = 0.25
+	panel.BackgroundColor3 = Color3.fromRGB(35, 38, 53)
+	panel.BackgroundTransparency = 0
 	panel.BorderSizePixel = 0
 	panel.Parent = gui
 	local corner = Instance.new("UICorner")
-	corner.CornerRadius = UDim.new(0, 8)
+	corner.CornerRadius = UDim.new(0, 5)
 	corner.Parent = panel
-	local title = text(panel, "Title", UDim2.fromScale(0.03, 0.05), UDim2.fromScale(0.94, 0.36), IVORY, Enum.Font.GothamBlack)
-	local sub = text(panel, "Sub", UDim2.fromScale(0.03, 0.42), UDim2.fromScale(0.94, 0.25), MUTED, Enum.Font.GothamBold)
+	local edge = Instance.new("UIStroke")
+	edge.Color = INK
+	edge.Thickness = 3
+	edge.Parent = panel
+	local header = Instance.new("Frame")
+	header.Name = "HeaderBand"
+	header.Size = UDim2.fromScale(1, 0.4)
+	header.BackgroundColor3 = Color3.fromRGB(0, 176, 255)
+	header.BorderSizePixel = 0
+	header.Parent = panel
+	local gradient = Instance.new("UIGradient")
+	gradient.Color = ColorSequence.new(Color3.new(1, 1, 1), Color3.fromRGB(134, 164, 213))
+	gradient.Rotation = 90
+	gradient.Parent = header
+	local title = text(panel, "Title", UDim2.fromScale(0.03, 0.025), UDim2.fromScale(0.94, 0.36), IVORY, Enum.Font.FredokaOne)
+	local sub = text(panel, "Sub", UDim2.fromScale(0.03, 0.43), UDim2.fromScale(0.94, 0.24), MUTED, Enum.Font.BuilderSansBold)
 	local bar = Instance.new("Frame")
 	bar.Name = "Bar"
 	bar.Position = UDim2.fromScale(0.04, 0.7)
 	bar.Size = UDim2.fromScale(0.92, 0.22)
-	bar.BackgroundColor3 = Color3.fromRGB(10, 13, 18)
+	bar.BackgroundColor3 = INK
 	bar.BorderSizePixel = 0
 	bar.Parent = panel
 	local fill = Instance.new("Frame")
 	fill.Name = "Fill"
 	fill.Size = UDim2.fromScale(0, 1)
-	fill.BackgroundColor3 = GOLD
+	fill.BackgroundColor3 = Color3.fromRGB(91, 224, 26)
 	fill.BorderSizePixel = 0
 	fill.Parent = bar
-	local xp = text(bar, "Xp", UDim2.new(), UDim2.fromScale(1, 1), IVORY, Enum.Font.GothamBold)
+	local xp = text(bar, "Xp", UDim2.new(), UDim2.fromScale(1, 1), IVORY, Enum.Font.FredokaOne)
 	xp.ZIndex = 2
 	gui.Parent = pad
 
@@ -171,7 +212,7 @@ function Camp.refresh(player: Player, levels)
 				local stars = Levels.stars(Levels.evolutionStage(slot.tower, trained))
 				local done, needed = Levels.trainingProgress(xp)
 				entry.title.Text = if stars ~= "" then `{def.displayName} {stars}` else def.displayName
-				entry.title.TextColor3 = def.color:Lerp(Color3.new(1, 1, 1), 0.45)
+				entry.title.TextColor3 = IVORY
 				entry.sub.Text = `Entraînement {trained}/{Levels.TRAINING.MAX_LEVEL} • +{decimal(rate)} XP/min`
 				entry.bar.Visible = true
 				entry.fill.Size = UDim2.fromScale(if needed > 0 then math.clamp(done / needed, 0, 1) else 1, 1)
@@ -206,6 +247,7 @@ function Camp.start(player: Player, plot, levels)
 	if Camp.games[player] then
 		return
 	end
+	preparePreviews()
 	local dressing = { plot = plot, slots = {}, buildings = {}, signature = nil }
 	-- Socles : ceux du camp reçoivent leur étiquette et leur invite, tous les autres sont cachés.
 	local campSpot = {}

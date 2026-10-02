@@ -113,12 +113,12 @@ local GOLD_POPUPS = 14 -- « +2 » dorés affichés à la fois au plus (or gagn�
 local IDLE_GOLD = 80
 local IDLE_GOLD_SECONDS = 4
 
-local WINDOW_SIZE = Vector2.new(780, 540)
+local WINDOW_SIZE = Vector2.new(780, 624)
 local END_SIZE = Vector2.new(460, 372)
-local MENU_SIZE = Vector2.new(240, 122)
-local MENU_PHONE_SCALE = 0.78 -- téléphone : menu de la tour plus petit (il cacherait trop de carte)
-local BAR_BUTTON = Vector2.new(88, 62)
-local BAR_BUTTON_PHONE = Vector2.new(80, 44) -- téléphone : barre plus basse, la carte a plus de place
+local MENU_SIZE = Vector2.new(300, 152)
+local MENU_PHONE_SCALE = 0.9 -- texte lisible, menu contenu entre les bandeaux
+local BAR_BUTTON = Vector2.new(88, 94)
+local BAR_BUTTON_PHONE = Vector2.new(80, 62) -- vignettes compactes, sans masquer la carte
 local BAR_GAP = 6
 -- Téléphone tenu en large : le bandeau du haut se range dans la barre de Roblox, à droite de ses boutons.
 local PHONE_STRIP_LEFT = 190
@@ -189,6 +189,123 @@ local function statsLine(stats): string
 	return `{damage} • {UI.towerSpeed(stats)} • Portée {decimal(stats.range)}`
 end
 
+-- Palette des CARTES uniquement : les couleurs des modèles et leurs règles restent dans IdleTowers.
+local TOWER_COLORS = {
+	MachineGun = Color3.fromRGB(101, 209, 43), Frost = Color3.fromRGB(37, 204, 244),
+	Bomb = Color3.fromRGB(54, 148, 255), Tesla = Color3.fromRGB(103, 100, 255),
+	Rocket = Color3.fromRGB(204, 79, 246), Laser = Color3.fromRGB(164, 61, 246),
+	Chain = Color3.fromRGB(255, 185, 41), Orbital = Color3.fromRGB(255, 212, 52),
+}
+
+-- Vignettes 3D statiques des vrais modèles (préparés par Camp). Pas d'animation, de RenderStepped ou de requête
+-- serveur : seules les cartes dont l'écran est ouvert gardent une copie. Un onglet fermé libère ses modèles.
+local previews = {}
+local function previewShown(view: ViewportFrame): boolean
+	local ancestor: Instance? = view
+	while ancestor do
+		if ancestor:IsA("GuiObject") and not ancestor.Visible then
+			return false
+		elseif ancestor:IsA("ScreenGui") then
+			return ancestor.Enabled
+		end
+		ancestor = ancestor.Parent
+	end
+	return false
+end
+
+local function refreshPreview(entry)
+	if not entry.view.Parent then
+		return
+	end
+	if not entry.towerType or not previewShown(entry.view) then
+		if entry.model then entry.model:Destroy(); entry.model = nil end
+		return
+	end
+	if not entry.model then
+		local templates = ReplicatedStorage:FindFirstChild("CampTowerPreviews")
+		local template = templates and templates:FindFirstChild(entry.towerType)
+		if not template or not template:IsA("Model") then
+			return -- arrivée des modèles par réplication : on réessaie quand le dossier reçoit ses descendants
+		end
+		local expected = template:GetAttribute("PreviewPartCount")
+		local parts = 0
+		for _, child in template:GetDescendants() do
+			if child:IsA("BasePart") then parts += 1 end
+		end
+		if typeof(expected) ~= "number" or parts < expected or parts == 0 then return end
+		entry.model = template:Clone()
+		entry.model.Parent = entry.view
+	end
+	local bounds, size = entry.model:GetBoundingBox()
+	local pixels = entry.view.AbsoluteSize
+	local aspect = if pixels.Y > 0 then math.max(0.25, pixels.X / pixels.Y) else 1
+	local vertical = math.rad(entry.camera.FieldOfView / 2)
+	local horizontal = math.atan(math.tan(vertical) * aspect)
+	local distance = size.Magnitude * 0.5 / math.sin(math.min(vertical, horizontal)) * 1.05
+	local direction = Vector3.new(-0.6, 0.35, 1).Unit
+	entry.camera.CFrame = CFrame.lookAt(bounds.Position + direction * distance, bounds.Position)
+end
+
+local function refreshPreviews()
+	for _, entry in previews do refreshPreview(entry) end
+end
+
+local previewQueued = false
+local function queuePreviews()
+	if previewQueued then return end
+	previewQueued = true
+	task.defer(function()
+		previewQueued = false
+		refreshPreviews()
+	end)
+end
+
+local function towerPreview(parent: GuiObject, towerType: string?, position: UDim2, size: UDim2)
+	local view = UI.new("ViewportFrame", {
+		Name = "TowerPreview", Position = position, Size = size, BackgroundTransparency = 1,
+		Active = false, ZIndex = parent.ZIndex,
+		Ambient = Color3.fromRGB(190, 193, 212), LightColor = Color3.new(1, 1, 1),
+		LightDirection = Vector3.new(-1, -1, -1), Parent = parent,
+	}) :: ViewportFrame
+	local camera = UI.new("Camera", { Name = "PreviewCamera", FieldOfView = 38, Parent = view }) :: Camera
+	view.CurrentCamera = camera
+	local entry = { view = view, camera = camera, towerType = towerType, model = nil }
+	table.insert(previews, entry)
+	view:GetPropertyChangedSignal("AbsoluteSize"):Connect(function() refreshPreview(entry) end)
+	local ancestor: Instance? = view
+	while ancestor do
+		if ancestor:IsA("GuiObject") then
+			ancestor:GetPropertyChangedSignal("Visible"):Connect(queuePreviews)
+		elseif ancestor:IsA("ScreenGui") then
+			ancestor:GetPropertyChangedSignal("Enabled"):Connect(queuePreviews)
+		end
+		ancestor = ancestor.Parent
+	end
+	function entry.setType(value: string?)
+		if value == entry.towerType then return end
+		if entry.model then entry.model:Destroy(); entry.model = nil end
+		entry.towerType = value
+		refreshPreview(entry)
+	end
+	return entry
+end
+
+local function watchPreviewTemplates(folder: Instance)
+	folder.DescendantAdded:Connect(function(child)
+		if child:IsA("Model") then child:GetAttributeChangedSignal("PreviewPartCount"):Connect(queuePreviews) end
+		queuePreviews()
+	end)
+	for _, child in folder:GetChildren() do
+		if child:IsA("Model") then child:GetAttributeChangedSignal("PreviewPartCount"):Connect(queuePreviews) end
+	end
+	queuePreviews()
+end
+local previewTemplates = ReplicatedStorage:FindFirstChild("CampTowerPreviews")
+if previewTemplates then watchPreviewTemplates(previewTemplates) end
+ReplicatedStorage.ChildAdded:Connect(function(child)
+	if child.Name == "CampTowerPreviews" then watchPreviewTemplates(child) end
+end)
+
 ----------------------------------------------------------------------
 -- Fenêtre du camp : Niveaux, Boutique, Entraînement, Mes tours
 ----------------------------------------------------------------------
@@ -201,7 +318,7 @@ local function buildCamp()
 
 	local openButton = UI.button({
 		Name = "LevelsButton",
-		BackgroundColor3 = Color3.fromRGB(150, 38, 42),
+		BackgroundColor3 = UI.Colors.Accent,
 		Text = "⚔ NIVEAUX",
 		MaxTextSize = 18,
 		Parent = gui,
@@ -218,23 +335,36 @@ local function buildCamp()
 		Parent = gui,
 	})
 	UI.corner(8).Parent = hudCoins
+	UI.stroke(UI.Colors.Ink, 3).Parent = hudCoins
 	local window = UI.new("Frame", {
 		Name = "Window",
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.5),
 		Size = UDim2.fromOffset(WINDOW_SIZE.X, WINDOW_SIZE.Y),
 		BackgroundColor3 = UI.Colors.Panel,
-		BackgroundTransparency = 0.03,
+		BackgroundTransparency = 0,
 		Active = true,
 		Visible = false,
 		Parent = gui,
-	}, { UI.corner(14), UI.padding(12) })
+	}, { UI.corner(6), UI.padding(12) })
 	UI.chrome(window)
+	UI.gradient(window)
+	local header = UI.new("Frame", {
+		Name = "HeaderBand", Position = UDim2.fromOffset(-6, -6), Size = UDim2.new(1, 12, 0, 48),
+		BackgroundColor3 = UI.Colors.Accent, ClipsDescendants = true, Parent = window,
+	}, { UI.corner(4) })
+	UI.gradient(header, 15)
+	for index = 1, 3 do
+		UI.new("Frame", { Name = "HeaderShine" .. index, Position = UDim2.new(0.35 + index * 0.16, 0, 0, -40),
+			Size = UDim2.fromOffset(36, 140), Rotation = 35, BackgroundColor3 = Color3.new(1, 1, 1),
+			BackgroundTransparency = 0.87, Parent = header })
+	end
 	camp.window = window
 	-- Petit écran (téléphone) : la fenêtre est réduite pour tenir en LARGEUR seulement, et son contenu défile de
 	-- haut en bas (pages = ScrollingFrame). Réduite pour tenir aussi en hauteur (comme UI.fitWindow), elle serait à
 	-- moitié de sa taille sur un téléphone tenu en large : cartes et textes trop petits pour le doigt.
 	local windowScale = UI.new("UIScale", { Name = "FitScale", Parent = window }) :: UIScale
+	local cardFits = {}
 
 	-- Bouton d'ouverture : à droite du bouton « 🎁 DONNER » du propriétaire (AdminUI), plus petit sur téléphone.
 	local function placeButton()
@@ -245,9 +375,13 @@ local function buildCamp()
 		hudCoins.Position = if phone then UDim2.fromOffset(244, 48) else UDim2.fromOffset(310, 16)
 		hudCoins.Size = if phone then UDim2.fromOffset(84, 30) else UDim2.fromOffset(110, 38)
 		if screen.X > 0 and screen.Y > 0 then
+			local padding = window:FindFirstChildOfClass("UIPadding") :: UIPadding
+			local edge = UDim.new(0, if phone then 8 else 12)
+			padding.PaddingTop, padding.PaddingBottom, padding.PaddingLeft, padding.PaddingRight = edge, edge, edge, edge
 			local scale = math.clamp((screen.X - 2 * UI.WINDOW_MARGIN) / WINDOW_SIZE.X, UI.MIN_WINDOW_SCALE, 1)
 			windowScale.Scale = scale
 			window.Size = UDim2.fromOffset(WINDOW_SIZE.X, math.min(WINDOW_SIZE.Y, (screen.Y - 2 * UI.WINDOW_MARGIN) / scale))
+			for _, fit in cardFits do fit(phone) end
 		end
 	end
 	placeButton()
@@ -255,18 +389,18 @@ local function buildCamp()
 
 	UI.label({
 		Name = "Title",
-		Size = UDim2.new(1, -230, 0, 30),
+		Size = UDim2.new(1, -230, 0, 36),
 		Font = Enum.Font.GothamBlack,
 		TextXAlignment = Enum.TextXAlignment.Left,
-		MaxTextSize = 22,
+		MaxTextSize = 24,
 		Text = "⚔ NIVEAUX • " .. Levels.MAPS.Valley.displayName,
 		Parent = window,
 	})
 	local coinsLabel = UI.label({
 		Name = "Coins",
 		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, -44, 0, 0),
-		Size = UDim2.fromOffset(180, 30),
+		Position = UDim2.new(1, -52, 0, 0),
+		Size = UDim2.fromOffset(180, 36),
 		Font = Enum.Font.GothamBlack,
 		TextXAlignment = Enum.TextXAlignment.Right,
 		TextColor3 = UI.Colors.Gold,
@@ -276,11 +410,11 @@ local function buildCamp()
 	local closeButton = UI.button({
 		Name = "Close",
 		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, 0, 0, 0),
-		Size = UDim2.fromOffset(36, 30),
+		Position = UDim2.new(1, 2, 0, -4),
+		Size = UDim2.fromOffset(44, 44),
 		BackgroundColor3 = UI.Colors.Error,
 		Text = "X",
-		MaxTextSize = 18,
+		MaxTextSize = 30,
 		Parent = window,
 	})
 
@@ -290,21 +424,21 @@ local function buildCamp()
 	for index, name in TABS do
 		tabButtons[name] = UI.button({
 			Name = "Tab" .. index,
-			Position = UDim2.new((index - 1) / #TABS, 2, 0, 38),
-			Size = UDim2.new(1 / #TABS, -4, 0, 32),
+			Position = UDim2.new((index - 1) / #TABS, 3, 0, 48),
+			Size = UDim2.new(1 / #TABS, -6, 0, 34),
 			Text = name,
-			MaxTextSize = 16,
+			MaxTextSize = 18,
 			Parent = window,
 		})
 		-- (hauteur du contenu = celle d'un écran d'ordinateur : sur un écran plus bas, la page défile)
 		pages[name] = UI.new("ScrollingFrame", {
 			Name = "Page" .. index,
-			Position = UDim2.fromOffset(0, 80),
-			Size = UDim2.new(1, 0, 1, -80),
+			Position = UDim2.fromOffset(0, 92),
+			Size = UDim2.new(1, 0, 1, -92),
 			BackgroundTransparency = 1,
-			ScrollBarThickness = 5,
-			ScrollBarImageColor3 = UI.Colors.Gold,
-			CanvasSize = UDim2.fromOffset(0, WINDOW_SIZE.Y - 24 - 80),
+			ScrollBarThickness = 7,
+			ScrollBarImageColor3 = UI.Colors.Accent,
+			CanvasSize = UDim2.fromOffset(0, WINDOW_SIZE.Y - 24 - 92),
 			ScrollingDirection = Enum.ScrollingDirection.Y,
 			Visible = false,
 			Parent = window,
@@ -325,8 +459,9 @@ local function buildCamp()
 			Size = UDim2.fromOffset(CARD_W, CARD_H),
 			BackgroundColor3 = UI.Colors.PanelLight,
 			Parent = pages.Niveaux,
-		}, { UI.corner(10), UI.padding(8) })
-		local stroke = UI.stroke(UI.Colors.Gold, 2)
+		}, { UI.corner(5), UI.padding(8) })
+		UI.gradient(card)
+		local stroke = UI.stroke(UI.Colors.Ink, 3)
 		stroke.Parent = card
 		UI.label({
 			Size = UDim2.new(1, 0, 0, 24),
@@ -388,10 +523,12 @@ local function buildCamp()
 				else `Victoire :\n+{amount(Levels.firstReward(level))} {COIN}`
 			entry.reward.TextColor3 = if cleared then UI.Colors.Muted else UI.Colors.Gold
 			entry.button.Text = if cleared then "REJOUER" elseif nextOne then "▶ JOUER" else "🔒"
-			entry.button.BackgroundColor3 = if nextOne then UI.Colors.Success elseif cleared then UI.Colors.Accent else UI.Colors.Panel
+			entry.button.BackgroundColor3 = if nextOne or cleared then UI.Colors.Success else UI.Colors.Panel
 			entry.button.AutoButtonColor = cleared or nextOne
-			entry.stroke.Transparency = if nextOne then 0 else 0.8
-			entry.card.BackgroundTransparency = if cleared or nextOne then 0 else 0.55
+			entry.stroke.Color = if nextOne then UI.Colors.Accent else UI.Colors.Ink
+			entry.stroke.Transparency = 0
+			entry.card.BackgroundColor3 = if cleared then Color3.fromRGB(41, 85, 55) elseif nextOne then Color3.fromRGB(38, 91, 133) else UI.Colors.PanelLight
+			entry.card.BackgroundTransparency = 0
 		end
 		summary.Text = `Chaque niveau est un flot de monstres sans pause, de plus en plus forts : pose et améliore tes tours sans arrêt avec l'or qu'ils donnent, protège ton château ({Levels.LIVES} vies). `
 			.. `Gagner rapporte des pièces de niveau {COIN} pour acheter d'autres tours et améliorer ton camp d'entraînement.\n`
@@ -401,7 +538,7 @@ local function buildCamp()
 	------------------------------------------------------------------
 	-- Onglet « Boutique » : les 8 tours, à prix fixes (aucun hasard)
 	------------------------------------------------------------------
-	local SHOP_W, SHOP_H = 182, 206
+	local SHOP_W, SHOP_H = 182, 246
 	local shopCards = {}
 	for index, towerType in IdleTowers.ORDER do
 		local def = IdleTowers.Defs[towerType]
@@ -410,34 +547,35 @@ local function buildCamp()
 			Name = "Shop_" .. towerType,
 			Position = UDim2.fromOffset(column * (SHOP_W + GAP), row * (SHOP_H + GAP)),
 			Size = UDim2.fromOffset(SHOP_W, SHOP_H),
-			BackgroundColor3 = UI.Colors.PanelLight,
+			BackgroundColor3 = TOWER_COLORS[towerType],
 			Parent = pages.Boutique,
-		}, { UI.corner(10), UI.padding(8) })
-		local stroke = UI.stroke(def.color, 2)
-		stroke.Transparency = 0.35
+		}, { UI.corner(5), UI.padding(8) })
+		UI.gradient(card)
+		local stroke = UI.stroke(UI.Colors.Ink, 3)
 		stroke.Parent = card
 		UI.label({
-			Size = UDim2.new(1, 0, 0, 38),
+			Size = UDim2.new(1, 0, 0, 30),
 			Font = Enum.Font.GothamBlack,
 			TextWrapped = true,
-			TextColor3 = def.color:Lerp(Color3.new(1, 1, 1), 0.4),
-			MaxTextSize = 17,
+			TextColor3 = UI.Colors.Text,
+			MaxTextSize = 19,
 			Text = def.displayName,
 			Parent = card,
 		})
-		UI.label({
+		local preview = towerPreview(card, towerType, UDim2.fromOffset(0, 34), UDim2.new(1, 0, 0, 94))
+		local role = UI.label({
 			Name = "Role",
-			Position = UDim2.fromOffset(0, 42),
-			Size = UDim2.new(1, 0, 0, 52),
+			Position = UDim2.fromOffset(0, 132),
+			Size = UDim2.new(1, 0, 0, 32),
 			TextWrapped = true,
 			TextYAlignment = Enum.TextYAlignment.Top,
 			MaxTextSize = 14,
 			Text = ROLES[towerType],
 			Parent = card,
 		})
-		UI.label({
-			Position = UDim2.fromOffset(0, 98),
-			Size = UDim2.new(1, 0, 0, 36),
+		local description = UI.label({
+			Position = UDim2.fromOffset(0, 166),
+			Size = UDim2.new(1, 0, 0, 24),
 			TextWrapped = true,
 			TextColor3 = UI.Colors.Muted,
 			MaxTextSize = 13,
@@ -448,7 +586,7 @@ local function buildCamp()
 			Name = "Buy",
 			AnchorPoint = Vector2.new(0, 1),
 			Position = UDim2.new(0, 0, 1, 0),
-			Size = UDim2.new(1, 0, 0, 40),
+			Size = UDim2.new(1, 0, 0, 38),
 			MaxTextSize = 16,
 			Parent = card,
 		})
@@ -458,7 +596,19 @@ local function buildCamp()
 				levelAction:FireServer("Buy", towerType)
 			end
 		end)
-		shopCards[towerType] = { button = button }
+		shopCards[towerType] = { card = card, button = button }
+		table.insert(cardFits, function(phone)
+			local height = if phone then 208 else SHOP_H
+			card.Position = UDim2.fromOffset(column * (SHOP_W + GAP), row * (height + GAP))
+			card.Size = UDim2.fromOffset(SHOP_W, height)
+			preview.view.Size = UDim2.new(1, 0, 0, if phone then 60 else 94)
+			role.Position = UDim2.fromOffset(0, if phone then 98 else 132)
+			role.Size = UDim2.new(1, 0, 0, if phone then 30 else 32)
+			description.Position = UDim2.fromOffset(0, if phone then 132 else 166)
+			description.Size = UDim2.new(1, 0, 0, if phone then 26 else 24)
+			button.Size = UDim2.new(1, 0, 0, if phone then 34 else 38)
+			pages.Boutique.CanvasSize = UDim2.fromOffset(0, 2 * height + GAP + 4)
+		end)
 	end
 
 	local function refreshShop()
@@ -472,14 +622,14 @@ local function buildCamp()
 				button.TextColor3 = Color3.new(1, 1, 1)
 			elseif price and state.coins >= price then
 				button.Text = `ACHETER {amount(price)} {COIN}`
-				button.BackgroundColor3 = UI.Colors.Warning
+				button.BackgroundColor3 = UI.Colors.Success
 				button.AutoButtonColor = true
 				button.TextColor3 = Color3.new(1, 1, 1)
 			else
 				button.Text = if price then `{amount(price)} {COIN} (il manque {amount(price - state.coins)})` else "—"
-				button.BackgroundColor3 = UI.Colors.Panel
+				button.BackgroundColor3 = UI.Colors.PanelLight
 				button.AutoButtonColor = false
-				button.TextColor3 = UI.Colors.Muted
+				button.TextColor3 = UI.Colors.Text
 			end
 		end
 	end
@@ -500,8 +650,9 @@ local function buildCamp()
 			AutoButtonColor = false,
 			Text = "",
 			Parent = pages["Entraînement"],
-		}, { UI.corner(10), UI.padding(8) })
-		local stroke = UI.stroke(UI.Colors.Gold, 2)
+		}, { UI.corner(5), UI.padding(8) })
+		UI.gradient(row)
+		local stroke = UI.stroke(UI.Colors.Ink, 3)
 		stroke.Parent = row
 		local title = UI.label({
 			Size = UDim2.new(1, 0, 0, 20),
@@ -551,8 +702,7 @@ local function buildCamp()
 	end
 	UI.label({
 		Name = "Help",
-		AnchorPoint = Vector2.new(0, 1),
-		Position = UDim2.new(0, 0, 1, 0),
+		Position = UDim2.fromOffset(0, #Levels.TRAINING.SLOT_UNLOCK_COST * (SLOT_H + 8) + 10),
 		Size = UDim2.new(0, SLOT_W, 0, 96),
 		TextWrapped = true,
 		TextXAlignment = Enum.TextXAlignment.Left,
@@ -579,36 +729,38 @@ local function buildCamp()
 		local def = IdleTowers.Defs[towerType]
 		local row = UI.new("Frame", {
 			Name = "Train_" .. towerType,
-			Size = UDim2.new(1, -8, 0, 116),
+			Size = UDim2.new(1, -8, 0, 158),
 			BackgroundColor3 = UI.Colors.PanelLight,
 			Visible = false,
 			Parent = trainingList,
-		}, { UI.corner(10), UI.padding(8) })
+		}, { UI.corner(5), UI.padding(8) })
+		UI.card(row, TOWER_COLORS[towerType]:Lerp(UI.Colors.Panel, 0.72))
+		towerPreview(row, towerType, UDim2.fromOffset(0, 0), UDim2.fromOffset(54, 54))
 		UI.label({
-			Size = UDim2.new(1, -290, 0, 20),
+			Position = UDim2.fromOffset(60, 0),
+			Size = UDim2.new(1, -60, 0, 28),
 			Font = Enum.Font.GothamBlack,
 			TextXAlignment = Enum.TextXAlignment.Left,
-			TextColor3 = def.color:Lerp(Color3.new(1, 1, 1), 0.4),
-			MaxTextSize = 15,
+			TextColor3 = UI.Colors.Text,
+			MaxTextSize = 18,
 			Text = def.displayName,
 			Parent = row,
 		})
 		local levelLabel = UI.label({
 			Name = "Level",
-			AnchorPoint = Vector2.new(1, 0),
-			Position = UDim2.new(1, -116, 0, 0),
-			Size = UDim2.fromOffset(170, 20),
+			Position = UDim2.fromOffset(60, 30),
+			Size = UDim2.new(1, -60, 0, 22),
 			Font = Enum.Font.GothamBold,
-			TextXAlignment = Enum.TextXAlignment.Right,
+			TextXAlignment = Enum.TextXAlignment.Left,
 			TextColor3 = UI.Colors.Gold,
 			MaxTextSize = 14,
 			Parent = row,
 		})
-		local bar, setBar = UI.bar({ Position = UDim2.fromOffset(0, 24), Size = UDim2.new(1, -116, 0, 12) }, UI.Colors.Gold)
+		local bar, setBar = UI.bar({ Position = UDim2.fromOffset(0, 60), Size = UDim2.new(1, 0, 0, 16) }, UI.Colors.Success)
 		bar.Parent = row
 		local xpLabel = UI.label({
-			Position = UDim2.fromOffset(0, 24),
-			Size = UDim2.new(1, -116, 0, 12),
+			Position = UDim2.fromOffset(0, 60),
+			Size = UDim2.new(1, 0, 0, 16),
 			Font = Enum.Font.GothamBold,
 			TextStrokeTransparency = 0.4,
 			MaxTextSize = 11,
@@ -623,7 +775,7 @@ local function buildCamp()
 			evolutions[index] = UI.label({
 				Name = "Evolution" .. index,
 				-- (les cases se partagent la largeur de la ligne moins le bouton de droite : 116 px)
-				Position = UDim2.new((index - 1) / #perks, -(index - 1) * 116 / #perks, 0, 42),
+				Position = UDim2.new((index - 1) / #perks, -(index - 1) * 116 / #perks, 0, 82),
 				Size = UDim2.new(1 / #perks, -(116 / #perks) - 4, 0, 22),
 				BackgroundColor3 = UI.Colors.Background,
 				BackgroundTransparency = 0.2,
@@ -635,7 +787,7 @@ local function buildCamp()
 		end
 		local detail = UI.label({
 			Name = "NextEvolution",
-			Position = UDim2.fromOffset(0, 68),
+			Position = UDim2.fromOffset(0, 108),
 			Size = UDim2.new(1, -116, 0, 32),
 			TextXAlignment = Enum.TextXAlignment.Left,
 			TextYAlignment = Enum.TextYAlignment.Top,
@@ -647,7 +799,7 @@ local function buildCamp()
 		local button = UI.button({
 			Name = "Train",
 			AnchorPoint = Vector2.new(1, 0.5),
-			Position = UDim2.new(1, 0, 0.5, 0),
+			Position = UDim2.new(1, 0, 0.5, 35),
 			Size = UDim2.fromOffset(108, 40),
 			MaxTextSize = 13,
 			Parent = row,
@@ -677,10 +829,11 @@ local function buildCamp()
 				entry.rate.Text = `+{UI.decimal(rate)} XP par minute`
 				entry.action.Visible = true
 				entry.action.Text = if price then `Améliorer {amount(price)} {COIN}` else "NIVEAU MAX"
-				entry.action.BackgroundColor3 = if price and state.coins >= price then UI.Colors.Warning else UI.Colors.Panel
+				entry.action.BackgroundColor3 = if price and state.coins >= price then UI.Colors.Success else UI.Colors.Panel
 				entry.action.AutoButtonColor = price ~= nil and state.coins >= price
 				entry.row.BackgroundTransparency = 0
-				entry.stroke.Transparency = if index == selectedSlot then 0 else 0.85
+				entry.stroke.Color = if index == selectedSlot then UI.Colors.Accent else UI.Colors.Ink
+				entry.stroke.Transparency = 0
 			else
 				local price = Levels.TRAINING.SLOT_UNLOCK_COST[index]
 				local nextOne = index == #state.slots + 1
@@ -690,10 +843,11 @@ local function buildCamp()
 				entry.rate.Text = ""
 				entry.action.Visible = nextOne
 				entry.action.Text = `Ouvrir {amount(price)} {COIN}`
-				entry.action.BackgroundColor3 = if state.coins >= price then UI.Colors.Warning else UI.Colors.Panel
+				entry.action.BackgroundColor3 = if state.coins >= price then UI.Colors.Success else UI.Colors.Panel
 				entry.action.AutoButtonColor = state.coins >= price
-				entry.row.BackgroundTransparency = 0.55
-				entry.stroke.Transparency = 0.85
+				entry.row.BackgroundTransparency = 0
+				entry.stroke.Color = UI.Colors.Ink
+				entry.stroke.Transparency = 0
 			end
 		end
 		local slot = state.slots[selectedSlot]
@@ -771,22 +925,26 @@ local function buildCamp()
 		local def = IdleTowers.Defs[towerType]
 		local row = UI.new("Frame", {
 			Name = "Tower_" .. towerType,
-			Size = UDim2.new(1, -8, 0, 64),
+			Size = UDim2.new(1, -8, 0, 94),
 			BackgroundColor3 = UI.Colors.PanelLight,
 			Visible = false,
 			Parent = towerList,
-		}, { UI.corner(10), UI.padding(8) })
+		}, { UI.corner(5), UI.padding(8) })
+		UI.card(row, TOWER_COLORS[towerType]:Lerp(UI.Colors.Panel, 0.7))
+		towerPreview(row, towerType, UDim2.fromOffset(0, 0), UDim2.fromOffset(72, 78))
 		local title = UI.label({
-			Size = UDim2.new(1, -100, 0, 20),
+			Position = UDim2.fromOffset(82, 0),
+			Size = UDim2.new(1, -182, 0, 36),
 			Font = Enum.Font.GothamBlack,
 			TextXAlignment = Enum.TextXAlignment.Left,
-			TextColor3 = def.color:Lerp(Color3.new(1, 1, 1), 0.4),
-			MaxTextSize = 15,
+			TextColor3 = UI.Colors.Text,
+			MaxTextSize = 17,
+			TextWrapped = true,
 			Parent = row,
 		})
 		local stats = UI.label({
-			Position = UDim2.fromOffset(0, 22),
-			Size = UDim2.new(1, -100, 0, 26),
+			Position = UDim2.fromOffset(82, 40),
+			Size = UDim2.new(1, -182, 0, 36),
 			TextXAlignment = Enum.TextXAlignment.Left,
 			TextYAlignment = Enum.TextYAlignment.Top,
 			TextWrapped = true,
@@ -851,13 +1009,14 @@ local function buildCamp()
 		coinsLabel.Text = `{amount(state.coins)} {COIN}`
 		hudCoins.Text = coinsLabel.Text
 		for name, button in tabButtons do
-			button.BackgroundColor3 = if name == currentTab then UI.Colors.Accent else UI.Colors.Panel
+			button.BackgroundColor3 = if name == currentTab then UI.Colors.Accent else UI.Colors.PanelLight
 			pages[name].Visible = name == currentTab
 		end
 		refreshLevels()
 		refreshShop()
 		refreshTraining()
 		refreshTowers()
+		queuePreviews()
 	end
 	camp.refresh = refresh
 
@@ -892,6 +1051,7 @@ local function buildCamp()
 		end
 	end)
 	closeButton.Activated:Connect(camp.close)
+	placeButton()
 	refresh()
 end
 
@@ -1514,11 +1674,12 @@ local function buildHud()
 	local strip = UI.new("Frame", {
 		Name = "TopStrip",
 		BackgroundColor3 = UI.Colors.Panel,
-		BackgroundTransparency = 0.1,
+		BackgroundTransparency = 0,
 		Active = true,
 		Parent = gui,
-	}, { UI.corner(10) })
-	UI.stroke(UI.Colors.Gold, 1).Parent = strip
+	}, { UI.corner(5) })
+	UI.stroke(UI.Colors.Ink, 3).Parent = strip
+	UI.gradient(strip)
 	local levelLabel = UI.label({ Name = "Level", Font = Enum.Font.GothamBlack, MaxTextSize = 18, Parent = strip })
 	local livesLabel = UI.label({ Name = "Lives", Font = Enum.Font.GothamBlack, TextColor3 = UI.Colors.DangerText, MaxTextSize = 18, Parent = strip })
 	local goldLabel = UI.label({ Name = "Gold", Font = Enum.Font.GothamBlack, TextColor3 = UI.Colors.Gold, MaxTextSize = 20, Parent = strip })
@@ -1562,13 +1723,14 @@ local function buildHud()
 		local button = UI.button({
 			Name = "Tower_" .. towerType,
 			Size = UDim2.fromOffset(BAR_BUTTON.X, BAR_BUTTON.Y),
-			BackgroundColor3 = def.color:Lerp(UI.Colors.Panel, 0.6),
+			BackgroundColor3 = TOWER_COLORS[towerType],
 			Text = "",
 			Visible = false,
 			Parent = bar,
 		})
 		local stroke = button:FindFirstChildOfClass("UIStroke") :: UIStroke
-		stroke.Thickness = 2
+		stroke.Thickness = 3
+		local preview = towerPreview(button, towerType, UDim2.fromOffset(0, 16), UDim2.new(1, 0, 0, 38))
 		local name = UI.label({
 			Name = "TowerName",
 			Size = UDim2.new(1, 0, 0, 17),
@@ -1579,7 +1741,7 @@ local function buildHud()
 		})
 		local cost = UI.label({
 			Name = "Cost",
-			Position = UDim2.fromOffset(0, 18),
+			Position = UDim2.fromOffset(0, 56),
 			Size = UDim2.new(1, 0, 0, 18),
 			Font = Enum.Font.GothamBold,
 			MaxTextSize = 15,
@@ -1587,7 +1749,7 @@ local function buildHud()
 		})
 		local copies = UI.label({
 			Name = "Copies",
-			Position = UDim2.fromOffset(0, 37),
+			Position = UDim2.fromOffset(0, 74),
 			Size = UDim2.new(1, 0, 0, 13),
 			TextColor3 = UI.Colors.Muted,
 			MaxTextSize = 11,
@@ -1605,7 +1767,7 @@ local function buildHud()
 				drag.input, drag.towerType, drag.origin, drag.active = input, towerType, input.Position, false
 			end
 		end)
-		barButtons[towerType] = { button = button, stroke = stroke, name = name, cost = cost, copies = copies, color = button.BackgroundColor3 }
+		barButtons[towerType] = { button = button, stroke = stroke, name = name, cost = cost, copies = copies, preview = preview, color = button.BackgroundColor3 }
 	end
 
 	local hint = UI.label({
@@ -1624,32 +1786,35 @@ local function buildHud()
 		Name = "TowerMenu",
 		Size = UDim2.fromOffset(MENU_SIZE.X, MENU_SIZE.Y),
 		BackgroundColor3 = UI.Colors.Panel,
-		BackgroundTransparency = 0.05,
+		BackgroundTransparency = 0,
 		Active = true,
 		Visible = false,
 		Parent = gui,
-	}, { UI.corner(10), UI.padding(8) })
-	local menuStroke = UI.stroke(UI.Colors.Gold, 2)
-	menuStroke.Transparency = 0.2
+	}, { UI.corner(5), UI.padding(8) })
+	UI.gradient(menu)
+	local menuStroke = UI.stroke(UI.Colors.Ink, 3)
 	menuStroke.Parent = menu
 	local menuScale = UI.new("UIScale", { Parent = menu }) :: UIScale
+	local menuPreview = towerPreview(menu, nil, UDim2.fromOffset(0, 0), UDim2.fromOffset(66, 82))
 	local menuTitle = UI.label({
 		Name = "Title",
-		Size = UDim2.new(1, 0, 0, 20),
+		Position = UDim2.fromOffset(76, 0),
+		Size = UDim2.new(1, -76, 0, 34),
 		Font = Enum.Font.GothamBlack,
 		TextXAlignment = Enum.TextXAlignment.Left,
-		MaxTextSize = 16,
+		TextWrapped = true,
+		MaxTextSize = 19,
 		Parent = menu,
 	})
 	local menuStats = UI.label({
 		Name = "Stats",
-		Position = UDim2.fromOffset(0, 22),
-		Size = UDim2.new(1, 0, 0, 34),
+		Position = UDim2.fromOffset(76, 38),
+		Size = UDim2.new(1, -76, 0, 48),
 		TextXAlignment = Enum.TextXAlignment.Left,
 		TextYAlignment = Enum.TextYAlignment.Top,
 		TextWrapped = true,
 		TextColor3 = UI.Colors.Muted,
-		MaxTextSize = 13,
+		MaxTextSize = 14,
 		Parent = menu,
 	})
 	local upgradeButton = UI.button({
@@ -1693,8 +1858,9 @@ local function buildHud()
 		BackgroundColor3 = UI.Colors.Panel,
 		ZIndex = 5,
 		Parent = overlay,
-	}, { UI.corner(16), UI.padding(16) })
-	local panelStroke = UI.stroke(UI.Colors.Gold, 3)
+	}, { UI.corner(6), UI.padding(16) })
+	UI.gradient(panel)
+	local panelStroke = UI.stroke(UI.Colors.Ink, 4)
 	panelStroke.Transparency = 0
 	panelStroke.Parent = panel
 	UI.fitWindow(panel, END_SIZE)
@@ -1868,7 +2034,9 @@ local function buildHud()
 		for _, entry in barButtons do
 			entry.button.Size = UDim2.fromOffset(buttonSize.X, buttonSize.Y)
 			entry.name.Size = UDim2.new(1, 0, 0, if phone then 15 else 17)
-			entry.cost.Position = UDim2.fromOffset(0, if phone then 16 else 18)
+			entry.preview.view.Position = UDim2.fromOffset(0, if phone then 14 else 16)
+			entry.preview.view.Size = UDim2.new(1, 0, 0, if phone then 20 else 38)
+			entry.cost.Position = UDim2.fromOffset(0, if phone then 36 else 56)
 			entry.cost.Size = UDim2.new(1, 0, 0, if phone then 16 else 18)
 			entry.copies.Visible = not phone
 		end
@@ -1998,10 +2166,11 @@ local function buildHud()
 				entry.copies.Text = `{copies}/{limit}` .. (if UserInputService.KeyboardEnabled then `  [{index}]` else "")
 				entry.copies.TextColor3 = if held then Color3.new(1, 1, 1) else if copies >= limit then UI.Colors.DangerText else UI.Colors.Muted
 				entry.button.BackgroundColor3 = if held then UI.Colors.Error else entry.color
-				entry.button.BackgroundTransparency = if held or available then 0 else 0.45
-				entry.name.TextTransparency = if held or available then 0 else 0.35
-				entry.stroke.Transparency = if held then 0 else 0.7
-				entry.stroke.Color = if held then Color3.new(1, 1, 1) else UI.Colors.Gold
+				entry.button.BackgroundTransparency = 0
+				entry.preview.view.ImageColor3 = if held or available then Color3.new(1, 1, 1) else Color3.fromRGB(142, 142, 154)
+				entry.name.TextTransparency = 0
+				entry.stroke.Transparency = 0
+				entry.stroke.Color = if held then Color3.new(1, 1, 1) else UI.Colors.Ink
 			end
 		end
 
@@ -2043,8 +2212,10 @@ local function buildHud()
 			local stats = Levels.towerStats(towerType, towerLevel, trainingOf(towerType))
 			local cost = Levels.upgradeCost(towerType, towerLevel)
 			local refund = math.floor((model:GetAttribute("Spent") or 0) * Levels.SELL_REFUND)
+			menuPreview.setType(towerType)
 			menuTitle.Text = `{def.displayName} • niv. {towerLevel}`
-			menuTitle.TextColor3 = def.color:Lerp(Color3.new(1, 1, 1), 0.4)
+			menuTitle.TextColor3 = UI.Colors.Text
+			menu.BackgroundColor3 = TOWER_COLORS[towerType]:Lerp(UI.Colors.Panel, 0.65)
 			if cost then
 				local nextStats = Levels.towerStats(towerType, towerLevel + 1, trainingOf(towerType))
 				menuStats.Text = `{statsLine(stats)}\nNiveau suivant : dégâts {decimal(nextStats.damage)}`

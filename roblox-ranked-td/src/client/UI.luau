@@ -9,19 +9,24 @@ local Lang = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Lang
 local UI = {}
 
 UI.Colors = {
-	Background = Color3.fromRGB(15, 20, 28),
-	Panel = Color3.fromRGB(25, 32, 43),
-	PanelLight = Color3.fromRGB(39, 49, 64),
-	Text = Color3.fromRGB(245, 241, 230),
-	Muted = Color3.fromRGB(179, 190, 205),
-	Accent = Color3.fromRGB(43, 80, 104),
-	Success = Color3.fromRGB(38, 109, 82),
-	Warning = Color3.fromRGB(136, 90, 30),
-	Error = Color3.fromRGB(147, 45, 60),
-	Gold = Color3.fromRGB(236, 192, 105),
-	DangerText = Color3.fromRGB(255, 143, 151),
-	PositiveText = Color3.fromRGB(128, 226, 175),
+	Background = Color3.fromRGB(18, 20, 31),
+	Panel = Color3.fromRGB(35, 38, 53),
+	PanelLight = Color3.fromRGB(57, 62, 80),
+	Text = Color3.fromRGB(255, 255, 255),
+	Muted = Color3.fromRGB(220, 229, 244),
+	Accent = Color3.fromRGB(0, 176, 255),
+	Success = Color3.fromRGB(91, 224, 26),
+	Warning = Color3.fromRGB(255, 169, 30),
+	Error = Color3.fromRGB(242, 47, 58),
+	Gold = Color3.fromRGB(255, 217, 61),
+	DangerText = Color3.fromRGB(255, 132, 145),
+	PositiveText = Color3.fromRGB(160, 255, 103),
+	Ink = Color3.fromRGB(10, 12, 21),
+	Purple = Color3.fromRGB(163, 64, 255),
 }
+
+UI.TitleFont = Enum.Font.FredokaOne
+UI.BodyFont = Enum.Font.BuilderSansBold
 
 -- Colonne de boutons à gauche de la map principale (sous le panneau de rang de 130 px).
 UI.LEFT_COLUMN_TOP = 162
@@ -83,9 +88,9 @@ end
 
 function UI.stroke(color: Color3?, thickness: number?)
 	return UI.new("UIStroke", {
-		Color = color or UI.Colors.Gold,
-		Thickness = thickness or 1,
-		Transparency = 0.7,
+		Color = color or UI.Colors.Ink,
+		Thickness = thickness or 3,
+		Transparency = 0,
 		ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
 	})
 end
@@ -411,14 +416,30 @@ function UI.modalSize(screen: Vector2, design: Vector2): Vector2
 	return Vector2.new(math.min(design.X, math.max(160, screen.X - 16)), math.min(design.Y, math.max(160, screen.Y - 16)))
 end
 
--- Bordure et bande dorée discrètes. Pas d'image, de lumière ou d'animation permanente.
+-- Contour noir et liseré coloré. Pas d'image, de lumière ou d'animation permanente.
 function UI.chrome(frame: GuiObject, accent: Color3?)
 	local edge = frame:FindFirstChildOfClass("UIStroke")
 	if not edge then edge = UI.stroke(accent or UI.Colors.Gold, 1); edge.Parent = frame end
-	edge.Color = accent or UI.Colors.Gold
-	edge.Transparency = 0.58
+	edge.Color = UI.Colors.Ink
+	edge.Thickness = 3
+	edge.Transparency = 0
 	UI.new("Frame", { Name = "HeaderRule", Position = UDim2.fromOffset(0, 0), Size = UDim2.new(1, 0, 0, 2),
-		BackgroundColor3 = accent or UI.Colors.Gold, BackgroundTransparency = 0.3, BorderSizePixel = 0, Parent = frame })
+		BackgroundColor3 = accent or UI.Colors.Accent, BackgroundTransparency = 0, BorderSizePixel = 0, Parent = frame })
+end
+
+-- Décor purement graphique : dégradés statiques, aucun changement d'action ni de texte.
+function UI.gradient(parent: Instance, rotation: number?)
+	return UI.new("UIGradient", {
+		Color = ColorSequence.new(Color3.new(1, 1, 1), Color3.fromRGB(160, 170, 194)),
+		Rotation = rotation or 90,
+		Parent = parent,
+	})
+end
+
+function UI.card(frame: GuiObject, color: Color3?)
+	frame.BackgroundColor3 = color or UI.Colors.PanelLight
+	UI.stroke(UI.Colors.Ink, 3).Parent = frame
+	UI.gradient(frame)
 end
 
 function UI.metric(parent: Instance, title: string, index: number, total: number)
@@ -440,26 +461,43 @@ end
 function UI.label(props: { [string]: any })
 	local defaults = {
 		BackgroundTransparency = 1,
-		Font = Enum.Font.GothamMedium,
+		Font = UI.BodyFont,
 		TextColor3 = UI.Colors.Text,
 		TextScaled = true,
+		TextStrokeColor3 = UI.Colors.Ink,
+		TextStrokeTransparency = 0.45,
 	}
 	for key, value in props do
 		if key ~= "MaxTextSize" then
 			defaults[key] = value
 		end
 	end
-	return UI.new("TextLabel", defaults, { UI.new("UITextSizeConstraint", { MaxTextSize = props.MaxTextSize or 28 }) })
+	-- Les titres déjà marqués gras gardent leur hiérarchie, dans une police arrondie.
+	local title = defaults.Font == Enum.Font.GothamBlack or defaults.Font == Enum.Font.GothamBold or defaults.Font == UI.TitleFont
+	if title then
+		defaults.Font = UI.TitleFont
+		defaults.TextStrokeTransparency = 1
+	elseif defaults.Font == Enum.Font.GothamMedium then
+		defaults.Font = UI.BodyFont
+	end
+	local label = UI.new("TextLabel", defaults, { UI.new("UITextSizeConstraint", { MaxTextSize = props.MaxTextSize or 28 }) })
+	if title then
+		UI.new("UIStroke", { Color = UI.Colors.Ink, Thickness = if (props.MaxTextSize or 28) >= 18 then 2 else 1,
+			ApplyStrokeMode = Enum.ApplyStrokeMode.Contextual, Parent = label })
+	end
+	return label
 end
 
 function UI.button(props: { [string]: any })
 	local defaults = {
 		BackgroundColor3 = UI.Colors.Accent,
 		AutoButtonColor = true,
-		Font = Enum.Font.GothamBold,
+		Font = UI.TitleFont,
 		TextColor3 = Color3.new(1, 1, 1),
 		TextScaled = true,
 		TextWrapped = true,
+		TextStrokeColor3 = UI.Colors.Ink,
+		TextStrokeTransparency = 1,
 	}
 	local maxTextSize = props.MaxTextSize or 24
 	for key, value in props do
@@ -468,16 +506,17 @@ function UI.button(props: { [string]: any })
 		end
 	end
 	return UI.new("TextButton", defaults, {
-		UI.corner(8),
-		UI.padding(6),
-		UI.stroke(UI.Colors.Gold, 1),
+		UI.corner(5),
+		UI.padding(5),
+		UI.stroke(UI.Colors.Ink, 3),
 		UI.new("UIGradient", {
 			Color = ColorSequence.new({
 				ColorSequenceKeypoint.new(0, Color3.new(1, 1, 1)),
-				ColorSequenceKeypoint.new(1, Color3.fromRGB(210, 217, 227)),
+				ColorSequenceKeypoint.new(1, Color3.fromRGB(160, 170, 194)),
 			}),
 			Rotation = 90,
 		}),
+		UI.new("UIStroke", { Color = UI.Colors.Ink, Thickness = 1.5, ApplyStrokeMode = Enum.ApplyStrokeMode.Contextual }),
 		UI.new("UITextSizeConstraint", { MaxTextSize = maxTextSize }),
 	})
 end
