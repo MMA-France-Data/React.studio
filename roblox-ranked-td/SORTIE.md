@@ -36,7 +36,7 @@ Le jeu sort comme une **nouvelle expérience Roblox** (décision du 02/10/2026) 
 ## Publication (Studio et Hub Création)
 
 - [ ] Le fichier à publier : la copie propre préparée par Claude, sur ton PC, dans le dossier du jeu :
-      `A-PUBLIER\Jeu-100-niveaux.rbxl` (refaite à chaque version, son nom dit le nombre de niveaux : prends toujours
+      `A-PUBLIER\Jeu-100-niveaux-v2.rbxl` (refaite à chaque version, avec un nouveau nom : prends toujours
       la plus récente ; elle n'est pas dans git). Ferme les autres fenêtres de Studio avant de publier, pour ne pas
       te tromper de fichier.
 - [ ] Publier comme une **nouvelle expérience** sur ton compte personnel (Fichier > Publier sur Roblox > « Créer une

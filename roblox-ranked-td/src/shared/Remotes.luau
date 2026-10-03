@@ -27,6 +27,7 @@ local DEFINITIONS = {
 	--   | ("Upgrade", id de la tour) | ("Sell", id) | ("Speed", 1 ou 2)
 	--   | ("Buy", type de tour) : boutique à prix fixes, payée en pièces de niveau
 	--   | ("SlotAssign", emplacement du camp, type de tour ou "") | ("SlotUpgrade", emplacement) | "SlotUnlock"
+	--   | ("TrainBuy", type de tour) : entraînement acheté avec des pièces (bouton ⚡ de l'onglet Entraînement)
 	--   | ("Bar", { types de tours }) : ordre de la barre rapide
 	--   | ("Tutorial", "Skip") : bouton « Passer le tuto ».
 	-- Le serveur vérifie tout (Hub/LevelsService.luau). État publié en attributs :

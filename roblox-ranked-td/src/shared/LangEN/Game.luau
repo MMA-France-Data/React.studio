@@ -64,7 +64,8 @@ return {
 	["Une tour de plus à l'entraînement"] = "One more tower in training",
 	["Ouvre d'abord le précédent"] = "Open the previous one first",
 	["Ouvrir {1}"] = "Open {1}",
-	["Une tour dans un emplacement gagne de l'XP tout le temps, même quand tu es parti ({1} h au plus). Chaque niveau joué donne aussi de l'XP aux tours posées. Chaque niveau d'entraînement : +{2} % de dégâts, et de nouvelles améliorations."] = "A tower in a slot earns XP all the time, even while you're away (up to {1} h). Every level you play also gives XP to the towers you placed. Each training level: +{2}% damage, and new upgrades.",
+	["Une tour dans un emplacement gagne de l'XP tout le temps, même quand tu es parti ({1} h au plus). Chaque niveau joué donne aussi de l'XP aux tours posées. Chaque niveau d'entraînement : +{2} % de dégâts, et de nouvelles améliorations. Le bouton ⚡ achète avec tes pièces l'XP qui manque pour le niveau suivant."] = "A tower in a slot earns XP all the time, even while you're away (up to {1} h). Every level you play also gives XP to the towers you placed. Each training level: +{2}% damage, and new upgrades. The ⚡ button buys the XP missing for the next level with your coins.",
+	["NIVEAU"] = "LEVEL", -- « ⚡ +1 NIVEAU » (bouton ⚡ de l'onglet Entraînement)
 	["Entraînement {1}/{2}"] = "Training {1}/{2}",
 	["Prochaine évolution (entraînement {1}) : {2}. {3}"] = "Next evolution (training {1}): {2}. {3}",
 	["Toutes ses évolutions sont débloquées."] = "All its evolutions are unlocked.",
@@ -182,6 +183,7 @@ return {
 	["Achat réussi : {1} rejoint ta barre de tours"] = "Purchased: {1} joins your tower bar",
 	["Emplacement inconnu"] = "Unknown slot",
 	["Cette tour n'est pas encore à toi"] = "You don't own this tower yet",
+	["Cette tour est déjà au maximum de son entraînement"] = "This tower is already fully trained",
 	["Cet emplacement est au niveau maximum"] = "This slot is at max level",
 	["Tous les emplacements du camp sont ouverts"] = "All camp slots are open",
 

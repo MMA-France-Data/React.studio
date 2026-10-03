@@ -411,6 +411,29 @@ check(Levels.RUSH_GOLD_PER_SECOND == nil and Levels.GROUP_PAUSE == nil, "plus de
 -- 4) Entraînement : niveaux, améliorations débloquées, stats
 ----------------------------------------------------------------------
 check(Levels.trainingLevel(0) == 0 and Levels.trainingLevel(19.9) == 0 and Levels.trainingLevel(20) == 1 and Levels.trainingLevel(60) == 2 and Levels.trainingLevel(1e9) == 6 and Levels.trainingLevel("abc") == 0, "niveaux d'entraînement : 20 XP = 1, 60 = 2, jamais plus de 6")
+-- Entraînement acheté avec des pièces (bouton ⚡) : l'XP qui manque pour le niveau suivant, 10 pièces par XP.
+do
+	local t0, p0 = Levels.trainingPurchase(0)
+	local t1, p1 = Levels.trainingPurchase(20)
+	local tHalf, pHalf = Levels.trainingPurchase(59.5)
+	local t5, p5 = Levels.trainingPurchase(600)
+	local tMax, pMax = Levels.trainingPurchase(1200)
+	local tBad, pBad = Levels.trainingPurchase("abc")
+	local total, xp = 0, 0
+	for _ = 1, 10 do
+		local target, price = Levels.trainingPurchase(xp)
+		if not target then
+			break
+		end
+		total += price
+		xp = target
+	end
+	check(
+		t0 == 20 and p0 == 200 and t1 == 60 and p1 == 400 and tHalf == 60 and pHalf == 5 and t5 == 1200 and p5 == 6000 and tMax == nil
+			and pMax == nil and tBad == 20 and pBad == 200 and total == 12000 and Levels.trainingLevel(xp) == Levels.TRAINING.MAX_LEVEL,
+		`entraînement acheté : 200 pièces pour le niveau 1, 400 pour le 2, 6 000 pour le 6, rien au maximum ; {total} pièces de 0 au maximum (★★★)`
+	)
+end
 local done, needed = Levels.trainingProgress(30)
 local maxDone, maxNeeded = Levels.trainingProgress(5000)
 check(done == 10 and needed == 40 and maxDone == 0 and maxNeeded == 0, "progression : 30 XP = 10 sur 40 vers le niveau 2 ; au maximum : rien")

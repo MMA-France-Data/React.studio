@@ -198,8 +198,8 @@ boss du niveau 30 (les 30 premiers niveaux donnent 14 040 pièces, il en faut 12
 
 **Et le Trébuchet ?** Il se paie après le mini-boss du niveau 45 (les 45 premiers niveaux donnent 28 860 pièces, il
 en faut 27 750 pour les six tours), sans compter ce que tu dépenses pour le camp. Les 100 niveaux donnent 134 300
-pièces en tout : après le Trébuchet et le camp au maximum, il en reste beaucoup, sans rien à acheter (à décider :
-voir plus bas). Chaque prix est un seul chiffre dans `Levels.SHOP`.
+pièces en tout : après le Trébuchet et le camp au maximum, le reste sert à **acheter de l'entraînement** (bouton ⚡,
+voir « Ta parcelle : le camp d'entraînement »). Chaque prix est un seul chiffre dans `Levels.SHOP`.
 
 ### Les dix territoires
 
@@ -325,11 +325,16 @@ Studio : `Config.STUDIO_TUTORIAL = false` (`src/shared/Config.luau`).
   1 200 XP).
 - Chaque niveau d'entraînement : **+5 % de dégâts** dans les niveaux, et une **évolution** aux niveaux 2, 4 et 6
   (voir plus bas).
-- L'XP vient de deux endroits :
+- L'XP vient de trois endroits :
   - **les emplacements du camp** : la tour qu'on y met gagne 1 XP par minute, **même quand tu es parti** (12 h au
     plus d'un coup). Un emplacement s'améliore (120, 300, 700, 1 500 pièces : jusqu'à 4,5 XP par minute) et on en
     ouvre d'autres (400 puis 1 500 pièces, 3 au plus) ;
-  - **jouer** : chaque type de tour posé dans un niveau gagne 8 XP si tu gagnes (moins si tu perds).
+  - **jouer** : chaque type de tour posé dans un niveau gagne 8 XP si tu gagnes (moins si tu perds) ;
+  - **les pièces** (ajouté le 03/10/2026, « améliorer en pièces, peut-être pas mal ») : le bouton **⚡** de chaque
+    tour, dans l'onglet Entraînement, achète l'XP qui lui manque pour son prochain niveau d'entraînement, 10 pièces
+    par XP : 200 pièces pour le niveau 1, 400 pour le 2, puis 800, 1 600, 3 000 et 6 000 (12 000 pour mener une tour
+    de 0 au ★★★). Utile quand tu es bloqué (rejouer des niveaux rapporte des pièces), et en fin de jeu, quand tu as
+    tout acheté : monter les huit tours au ★★★ coûte à peu près ce que rapportent les niveaux 51 à 100.
 - Attendre n'est donc jamais la seule façon d'avancer.
 - Quand une tour monte d'un niveau d'entraînement pendant que tu es là, un message te le dit ; quand elle
   **évolue**, elle est refaite sur son socle avec sa nouvelle apparence.
@@ -556,6 +561,8 @@ arrivent à un niveau) : rien d'autre n'a changé. Les chiffres sont dans `src/s
 14. **Les niveaux 61 à 100** (03/10/2026, « fais les 50 derniers ») : la citadelle de la Garde de la tempête, le
     volcan des Chevaliers d'obsidienne, les marais de la Horde gobeline et le repaire de la Couvée du dragon, jusqu'au
     dragon du niveau 100, voir « Les dix territoires ».
+15. **L'entraînement acheté avec des pièces** (« améliorer en pièces, peut-être pas mal ») : le bouton ⚡ de l'onglet
+    Entraînement. Les pièces servent maintenant jusqu'au niveau 100.
 
 ### Le grand ménage : ce qui a été enlevé
 
@@ -585,8 +592,7 @@ niveaux du joueur et son réglage du son. Les sauvegardes de l'ancien jeu « Tow
    dragon ; pour aller plus loin, il faudrait de nouvelles familles de monstres.
    **Les boss des niveaux 60 et 90** n'ont pas encore de modèle 3D (ils sont faits de blocs) : à faire faire par
    ChatGPT, comme les autres (`assets/EnemyModels/Boss_5.rbxm` et `Boss_8.rbxm`).
-   **Les pièces à la fin** : une fois les huit tours achetées et le camp au maximum, les pièces ne servent plus à
-   rien. De nouvelles choses à acheter ?
+   **Jouer en équipe** : défendre le même château à plusieurs (voir ma proposition) : à décider.
 3. **Des passes Robux pour ce jeu ?** Il n'y en a plus aucun. Si tu en veux, il faudra choisir lesquels (jamais un
    avantage qui casse la difficulté des niveaux).
 4. **Avant de rendre le jeu public** : voir `SORTIE.md` (publication, essai sur un vrai téléphone, page du jeu).

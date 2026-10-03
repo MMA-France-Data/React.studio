@@ -321,6 +321,24 @@ local function unlockSlot(levels): (boolean, string?)
 	return true, nil
 end
 
+-- Entraînement acheté avec des pièces (bouton ⚡ de l'onglet Entraînement) : l'XP qui manque à la tour pour son
+-- prochain niveau d'entraînement (Levels.trainingPurchase).
+local function buyTraining(levels, towerType: any): (boolean, string?)
+	if typeof(towerType) ~= "string" or not levels.towers[towerType] then
+		return false, "Cette tour n'est pas encore à toi"
+	end
+	local target, price = Levels.trainingPurchase(levels.xp[towerType])
+	if not target or not price then
+		return false, "Cette tour est déjà au maximum de son entraînement"
+	end
+	if levels.coins < price then
+		return false, `Il te manque {price - levels.coins} pièces de niveau`
+	end
+	levels.coins -= price
+	levels.xp[towerType] = target
+	return true, nil
+end
+
 -- Ordre de la barre rapide : la liste du joueur (tours à lui, sans doublon), puis ses autres tours.
 local function setBar(levels, list: any): (boolean, string?)
 	if typeof(list) ~= "table" then
@@ -381,6 +399,9 @@ local function handle(player: Player, action: any, a: any, b: any, c: any): (boo
 		ok, reason = upgradeSlot(levels, a)
 	elseif action == "SlotUnlock" then
 		ok, reason = unlockSlot(levels)
+	elseif action == "TrainBuy" then
+		train(player)
+		ok, reason = buyTraining(levels, a)
 	elseif action == "Bar" then
 		ok, reason = setBar(levels, a)
 	end

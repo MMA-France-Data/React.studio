@@ -620,6 +620,27 @@ return function(log)
 	check(action("SlotAssign", 1, "Tesla") == false and action("SlotAssign", 9, "Frost") == false, "camp : tour pas possédée ou emplacement inconnu refusés")
 	xp = levels("Clock", 7 * 86400)
 	check(near(xp.Frost, 75 + 12 * 60, 2), `camp : une semaine d'absence ne compte que 12 h ({tostring(xp.Frost)} XP)`)
+	-- Entraînement acheté avec des pièces (bouton ⚡) : l'XP qui manque pour le niveau suivant, 10 pièces par XP.
+	levels("Set", "xp", { MachineGun = 0, Frost = saved().xp.Frost })
+	levels("Set", "coins", 1000)
+	local boughtOk = action("TrainBuy", "MachineGun")
+	local afterFirst = saved()
+	local secondOk = action("TrainBuy", "MachineGun")
+	local afterSecond = saved()
+	local poorOk, poorReason = action("TrainBuy", "MachineGun")
+	check(
+		boughtOk == true and afterFirst.xp.MachineGun == 20 and afterFirst.coins == 800 and secondOk == true and afterSecond.xp.MachineGun == 60
+			and afterSecond.coins == 400 and poorOk == false and poorReason == "Il te manque 400 pièces de niveau",
+		`entraînement acheté : l'Archer passe à 20 XP pour 200 pièces, puis à 60 XP pour 400 (« {tostring(poorReason)} » pour le niveau 3, à 800)`
+	)
+	levels("Set", "xp", { MachineGun = 1200, Frost = saved().xp.Frost })
+	local maxOk, maxReason = action("TrainBuy", "MachineGun")
+	local notOwnedOk = action("TrainBuy", "Orbital")
+	check(
+		maxOk == false and maxReason == "Cette tour est déjà au maximum de son entraînement" and notOwnedOk == false and action("TrainBuy", 5) == false
+			and saved().coins == 400,
+		`entraînement acheté : refusé au maximum (« {tostring(maxReason)} »), pour une tour pas possédée et pour une demande abîmée`
+	)
 
 	------------------------------------------------------------------
 	-- Barre rapide, améliorations d'entraînement dans un niveau

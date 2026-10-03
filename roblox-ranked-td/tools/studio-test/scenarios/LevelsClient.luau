@@ -469,6 +469,16 @@ return function(log)
 			and archerTile ~= nil and archerTile.AbsoluteSize.X >= 56 and archerTile:FindFirstChild("TowerPreview") ~= nil,
 		`onglet « Entraînement » : vignette de l'Archer dans un cadre de {if archerTile then math.floor(archerTile.AbsoluteSize.X) else "?"} px, les tours à acheter sont en gris à la suite (Totem « {if lockedFrost then lockedFrost.Price.Text else "?"} »)`
 	)
+	-- Bouton ⚡ (entraînement acheté avec des pièces) : au-dessus du bouton « ENTRAÎNER », sans le recouvrir.
+	local boost, trainButton = archerRow:FindFirstChild("Boost"), archerRow:FindFirstChild("Train")
+	-- (prix : 200 pièces pour le niveau 1, moins l'XP que l'Archer a déjà gagnée au camp, où il s'entraîne)
+	local shownPrice = if boost then tonumber(string.match(boost.Text, "\n(%d+)")) else nil
+	check(
+		boost ~= nil and trainButton ~= nil and shown(boost) and string.find(boost.Text, "+1 NIVEAU", 1, true) ~= nil
+			and shownPrice ~= nil and shownPrice >= 150 and shownPrice <= 200 and #overlapping({ boost, trainButton }) == 0
+			and boost.AbsolutePosition.Y + boost.AbsoluteSize.Y <= trainButton.AbsolutePosition.Y,
+		`onglet « Entraînement » : bouton ⚡ « {if boost then string.gsub(boost.Text, "\n", " ") else "?"} » au-dessus du bouton « {if trainButton then trainButton.Text else "?"} », sans le recouvrir`
+	)
 	shot("camp_entrainement")
 	act(campGui, "Tab:Mes tours")
 	local towersPage = window.Page4

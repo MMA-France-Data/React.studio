@@ -69,8 +69,8 @@ local SAMPLES = {
 	{ "Ouvre d'abord le précédent", "Open the previous one first" },
 	{ "Ouvrir 1.5K 🏅", "Open 1.5K 🏅" },
 	{
-		"Une tour dans un emplacement gagne de l'XP tout le temps, même quand tu es parti (12 h au plus). Chaque niveau joué donne aussi de l'XP aux tours posées. Chaque niveau d'entraînement : +5 % de dégâts, et de nouvelles améliorations.",
-		"A tower in a slot earns XP all the time, even while you're away (up to 12 h). Every level you play also gives XP to the towers you placed. Each training level: +5% damage, and new upgrades.",
+		"Une tour dans un emplacement gagne de l'XP tout le temps, même quand tu es parti (12 h au plus). Chaque niveau joué donne aussi de l'XP aux tours posées. Chaque niveau d'entraînement : +5 % de dégâts, et de nouvelles améliorations. Le bouton ⚡ achète avec tes pièces l'XP qui manque pour le niveau suivant.",
+		"A tower in a slot earns XP all the time, even while you're away (up to 12 h). Every level you play also gives XP to the towers you placed. Each training level: +5% damage, and new upgrades. The ⚡ button buys the XP missing for the next level with your coins.",
 	},
 	{ "Entraînement 0/6", "Training 0/6" },
 	{ "★★  Entraînement 4/6", "★★  Training 4/6" },
@@ -108,6 +108,9 @@ local SAMPLES = {
 	{ "✓ S'ENTRAÎNE (retirer)", "✓ TRAINING (remove)" },
 	{ "Empl. 1 → 2", "Slot 1 → 2" },
 	{ "ENTRAÎNER", "TRAIN" },
+	{ "⚡ +1 NIVEAU\n3K 🏅", "⚡ +1 LEVEL\n3K 🏅" },
+	{ "⚡ +1 NIVEAU\n200 🏅", "⚡ +1 LEVEL\n200 🏅" },
+	{ "Cette tour est déjà au maximum de son entraînement", "This tower is already fully trained" },
 	-- Mes tours
 	{ "Toutes tes tours peuvent être posées dans un niveau. Cet ordre est celui de ta barre rapide (▲ ▼ pour le changer).", "All your towers can be placed in a level. This is the order of your quick bar (▲ ▼ to change it)." },
 	{ "1. Archer du rempart • 20 💰 • entraînement 0", "1. Rampart Archer • 20 💰 • training 0" },

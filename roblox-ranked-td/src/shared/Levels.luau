@@ -918,6 +918,7 @@ Levels.TRAINING = {
 	OFFLINE_MAX_SECONDS = 12 * 3600,
 	XP_PER_WIN = 8,
 	XP_PER_LOSS = 3,
+	COINS_PER_XP = 10, -- entraînement acheté avec des pièces de niveau (Levels.trainingPurchase)
 }
 
 -- Améliorations débloquées par l'entraînement, par tour : { level (niveau d'entraînement), name, text }.
@@ -1036,6 +1037,26 @@ function Levels.trainingProgress(xp: any): (number, number)
 	end
 	local from = if level == 0 then 0 else Levels.TRAINING.XP[level]
 	return value - from, Levels.TRAINING.XP[level + 1] - from
+end
+
+-- ENTRAÎNEMENT ACHETÉ AVEC DES PIÈCES (bouton ⚡ de l'onglet Entraînement). Demande du propriétaire (03/10/2026) :
+-- « améliorer en pièces, peut-être pas mal ». Vers le niveau 50, un joueur a tout acheté (les 8 tours, le camp au
+-- maximum) : ses pièces ne servaient plus à rien, alors que l'entraînement monte lentement en fin de jeu. Il peut
+-- donc payer l'XP qui manque à une tour pour son prochain niveau d'entraînement, COINS_PER_XP pièces par XP : 200
+-- pièces pour le niveau 1, 400 pour le 2, 800, 1 600, 3 000, puis 6 000 pour le 6 (12 000 pour mener une tour de 0
+-- au maximum, ★★★ ; les huit tours : un peu moins que ce que rapportent les niveaux 51 à 100). Un joueur bloqué
+-- peut aussi rejouer des niveaux, gagner des pièces et rendre ses tours plus fortes.
+-- Renvoie (XP de la tour après l'achat, prix) pour une tour qui a `xp` XP, ou nil si elle est au maximum.
+function Levels.trainingPurchase(xp: any): (number?, number?)
+	local value = tonumber(xp) or 0
+	if value ~= value then
+		value = 0
+	end
+	local target = Levels.TRAINING.XP[Levels.trainingLevel(value) + 1]
+	if not target then
+		return nil, nil
+	end
+	return target, math.ceil((target - math.max(0, value)) * Levels.TRAINING.COINS_PER_XP - 1e-6)
 end
 
 local statsCache = {}

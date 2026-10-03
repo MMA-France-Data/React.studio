@@ -873,7 +873,7 @@ local function buildCamp()
 		TextYAlignment = Enum.TextYAlignment.Top,
 		TextColor3 = UI.Colors.Muted,
 		MaxTextSize = 13,
-		Text = `Une tour dans un emplacement gagne de l'XP tout le temps, même quand tu es parti ({Levels.TRAINING.OFFLINE_MAX_SECONDS // 3600} h au plus). Chaque niveau joué donne aussi de l'XP aux tours posées. Chaque niveau d'entraînement : +{math.floor(Levels.TRAINING.DAMAGE_PER_LEVEL * 100 + 0.5)} % de dégâts, et de nouvelles améliorations.`,
+		Text = `Une tour dans un emplacement gagne de l'XP tout le temps, même quand tu es parti ({Levels.TRAINING.OFFLINE_MAX_SECONDS // 3600} h au plus). Chaque niveau joué donne aussi de l'XP aux tours posées. Chaque niveau d'entraînement : +{math.floor(Levels.TRAINING.DAMAGE_PER_LEVEL * 100 + 0.5)} % de dégâts, et de nouvelles améliorations. Le bouton ⚡ achète avec tes pièces l'XP qui manque pour le niveau suivant.`,
 		Parent = pages["Entraînement"],
 	})
 	local trainingList = UI.new("ScrollingFrame", {
@@ -910,21 +910,22 @@ local function buildCamp()
 			Text = def.displayName,
 			Parent = row,
 		})
+		-- (le niveau d'entraînement et sa barre laissent la place du bouton ⚡ à droite : 116 px)
 		local levelLabel = UI.label({
 			Name = "Level",
 			Position = UDim2.fromOffset(82, 30),
-			Size = UDim2.new(1, -82, 0, 22),
+			Size = UDim2.new(1, -198, 0, 22),
 			Font = Enum.Font.GothamBold,
 			TextXAlignment = Enum.TextXAlignment.Left,
 			TextColor3 = UI.Colors.Gold,
 			MaxTextSize = 14,
 			Parent = row,
 		})
-		local bar, setBar = UI.bar({ Position = UDim2.fromOffset(82, 54), Size = UDim2.new(1, -82, 0, 18) }, UI.Colors.Success)
+		local bar, setBar = UI.bar({ Position = UDim2.fromOffset(82, 54), Size = UDim2.new(1, -198, 0, 18) }, UI.Colors.Success)
 		bar.Parent = row
 		local xpLabel = UI.label({
 			Position = UDim2.fromOffset(82, 54),
-			Size = UDim2.new(1, -82, 0, 18),
+			Size = UDim2.new(1, -198, 0, 18),
 			Font = Enum.Font.GothamBold,
 			TextStrokeTransparency = 0.4,
 			MaxTextSize = 11,
@@ -974,7 +975,22 @@ local function buildCamp()
 				levelAction:FireServer("SlotAssign", selectedSlot, if slot.tower == towerType then "" else towerType)
 			end
 		end)
-		trainingRows[towerType] = { row = row, level = levelLabel, setBar = setBar, xp = xpLabel, evolutions = evolutions, detail = detail, button = button }
+		-- Bouton ⚡ : acheter avec des pièces l'XP qui manque pour le prochain niveau d'entraînement
+		-- (Levels.trainingPurchase). Le serveur décide ; l'annonce « entraînement N » ou « ÉVOLUTION ! » suit.
+		local boost = UI.button({
+			Name = "Boost",
+			AnchorPoint = Vector2.new(1, 0),
+			Position = UDim2.new(1, 0, 0, 30),
+			Size = UDim2.fromOffset(108, 44),
+			MaxTextSize = 13,
+			Parent = row,
+		})
+		boost.Activated:Connect(function()
+			if owns(towerType) then
+				levelAction:FireServer("TrainBuy", towerType)
+			end
+		end)
+		trainingRows[towerType] = { row = row, level = levelLabel, setBar = setBar, xp = xpLabel, evolutions = evolutions, detail = detail, button = button, boost = boost }
 	end
 	local lockedTraining = {}
 	for _, towerType in IdleTowers.ORDER do
@@ -1053,6 +1069,10 @@ local function buildCamp()
 			end
 			entry.button.Text = if here then "✓ S'ENTRAÎNE (retirer)" elseif elsewhere then `Empl. {elsewhere} → {selectedSlot}` else "ENTRAÎNER"
 			entry.button.BackgroundColor3 = if here then UI.Colors.Success else UI.Colors.Accent
+			local _, boostPrice = Levels.trainingPurchase(xp)
+			entry.boost.Text = if boostPrice then `⚡ +1 NIVEAU\n{amount(boostPrice)} {COIN}` else "NIVEAU MAX"
+			entry.boost.BackgroundColor3 = if boostPrice and state.coins >= boostPrice then UI.Colors.Purple else UI.Colors.Panel
+			entry.boost.AutoButtonColor = boostPrice ~= nil and state.coins >= boostPrice
 		end
 	end
 
@@ -2714,7 +2734,8 @@ end
 ----------------------------------------------------------------------
 
 -- Tests automatiques (Studio) : gui:SetAttribute("TestAction", "<commande>#<numéro>") fait comme le joueur.
---   écran « Levels »   : "Open", "Close", "Tab:Boutique", "Slot:2" (invite du socle d'entraînement 2 du camp)
+--   écran « Levels »   : "Open", "Close", "Tab:Boutique", "Slot:2" (invite du socle d'entraînement 2 du camp),
+--                        "TrainBuy:MachineGun" (bouton ⚡ de cette tour dans l'onglet Entraînement)
 --   écran « LevelHud » : "Select:MachineGun" (tour en main), "Bar:MachineGun" (appui sur son bouton de la barre :
 --                        la prendre, ou annuler si elle est déjà en main), "Tap:-23,0" (appui sur ce point local
 --                        du terrain, par le vrai chemin : point de l'écran -> rayon de la caméra -> sol), "Upgrade",
@@ -2732,6 +2753,10 @@ local function testAction(command: string)
 	elseif name == "Slot" then
 		-- (comme l'invite « Gérer » d'un socle d'entraînement de la parcelle)
 		camp.open("Entraînement", tonumber(argument))
+	elseif name == "TrainBuy" then
+		if owns(argument) then
+			levelAction:FireServer("TrainBuy", argument)
+		end
 	elseif not level.active then
 		return
 	elseif name == "Select" then
