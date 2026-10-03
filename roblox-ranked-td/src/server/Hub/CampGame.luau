@@ -60,6 +60,7 @@ function CampGame.new(plot, player, levels)
 	self.gold = 0
 	self.goldEarned = 0
 	self.usedTowers = {}
+	self.members = { self } -- (joueurs d'une partie, LevelGame : ici le camp lui-même, qui reçoit l'or des cibles : 0)
 
 	self.slotTowers = {} -- [numéro d'emplacement d'entraînement] = tour
 	self.nextTargetAt = 0

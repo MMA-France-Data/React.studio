@@ -11,12 +11,18 @@
 #          galerie Studio, un vrai niveau. Captures : monsters_<nom>.png.
 #   powershell -ExecutionPolicy Bypass -File tools\studio-test\run.ps1 -Test tutorial
 #       -> le TUTO d'un nouveau joueur (scenarios\TutorialServer.luau et TutorialClient.luau) : la flèche le mène
-#          au niveau 1, le guide jusqu'à la victoire, puis lui montre la boutique ; « Passer le tuto » ; à la
-#          taille d'un ordinateur puis d'un téléphone. Captures : tutorial_<nom>.png.
+#          au niveau 1, ses deux premiers gestes (poser une tour où il veut, améliorer), puis lui montre la
+#          boutique ; « Passer le tuto » ; à la taille d'un ordinateur puis d'un téléphone. Captures :
+#          tutorial_<nom>.png.
 #   powershell -ExecutionPolicy Bypass -File tools\studio-test\run.ps1 -Test english
 #       -> la VERSION ANGLAISE (scenarios\EnglishServer.luau et EnglishClient.luau) : le joueur passe en anglais,
 #          tous les écrans sont ouverts l'un après l'autre (camp, boutique, niveau, fin de niveau, tuto, panneaux
 #          de la parcelle) et chaque texte resté en français est listé. Captures : english_<nom>.png.
+#   powershell -ExecutionPolicy Bypass -File tools\studio-test\run.ps1 -Test team
+#       -> JOUER EN ÉQUIPE (scenarios\TeamServer.luau et TeamClient.luau), avec des joueurs d'essai (un Play de
+#          Studio n'a qu'un vrai joueur) : invitations, partie à plusieurs, récompenses, départs, équipe de
+#          quatre, puis la vraie interface (page de l'équipe, invitation, écran du niveau, écran de fin), à la
+#          taille d'un ordinateur puis d'un téléphone. Captures : team_<nom>.png.
 #   powershell -ExecutionPolicy Bypass -File tools\studio-test\run.ps1 -Test page
 #       -> pas un test : les captures pour les IMAGES DE LA PAGE ROBLOX du jeu (scenarios\PageClient.luau), que
 #          page.ps1 recadre ensuite dans assets\page (miniatures 1920 x 1080, icône 512 x 512).
@@ -27,7 +33,7 @@
 # seule cette fenêtre est redimensionnée, photographiée puis fermée à la fin (-KeepOpen : elle reste ouverte).
 # -CloseStudio : ferme d'abord tous les Studio ouverts (travail non enregistré perdu).
 param(
-	[ValidateSet("levels", "monsters", "tutorial", "english", "page")][string]$Test = "levels",
+	[ValidateSet("levels", "monsters", "tutorial", "english", "team", "page")][string]$Test = "levels",
 	[int]$Seconds = 0, # durée maximale du Play ; 0 = selon le test : jeu 480 s, monstres 540 s, tuto et anglais 420 s
 	[switch]$CloseStudio,
 	[switch]$KeepOpen
@@ -189,7 +195,7 @@ if (-not $KeepOpen) {
 }
 
 $lines = Read-Log
-$lines | Where-Object { $_ -match "\[LEVELS\]|\[MONSTERS\]|\[TUTO\]|\[EN\]|\[PAGE\]|\[PASS\]|\[FAIL\]|\]\[Error\]" } | Where-Object { $_ -notmatch "PHONE:want" }
+$lines | Where-Object { $_ -match "\[LEVELS\]|\[MONSTERS\]|\[TUTO\]|\[EN\]|\[EQUIPE\]|\[PAGE\]|\[PASS\]|\[FAIL\]|\]\[Error\]" } | Where-Object { $_ -notmatch "PHONE:want" }
 Write-Host ""
 Write-Host ("Captures : " + (($shots.Keys | Sort-Object) -join ", "))
 $passed = @($lines | Where-Object { $_ -match "\[PASS\]" })

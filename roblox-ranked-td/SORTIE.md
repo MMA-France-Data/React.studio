@@ -21,6 +21,10 @@ Le jeu sort comme une **nouvelle expérience Roblox** (décision du 02/10/2026) 
 - [ ] **Un nouveau joueur passe-t-il le niveau 1 ?** La difficulté est réglée avec des joueurs simulés et un seul
       vrai joueur (toi). Le tuto aide : un joueur simulé qui suit seulement la flèche gagne le niveau 1.
 - [ ] **Joue les niveaux 11 à 100** : ils n'ont été essayés que par les joueurs simulés (trop durs ? trop faciles ?).
+- [ ] **Jouer en équipe, à deux pour de vrai** : dans Studio, le test « serveur et clients » avec 2 joueurs ;
+      réussir le niveau 1 dans les deux, puis « 👥 ÉQUIPE » > « Inviter », accepter, lancer un niveau ensemble. À
+      vérifier : chacun pose ses tours, l'or de chacun, l'écran de fin des deux, le niveau suivant ouvert pour les
+      deux. (Le test automatique joue avec des joueurs d'essai, pas avec deux vrais clients.)
 - [x] La Baliste et le Trébuchet renforcés (02/10/2026, voir `NIVEAUX.md`, « Ce que chaque tour de la boutique
       apporte »).
 - [ ] Plus de 100 niveaux : il faudrait de nouvelles familles de monstres (les dix prévues sont utilisées). Après la
@@ -36,7 +40,7 @@ Le jeu sort comme une **nouvelle expérience Roblox** (décision du 02/10/2026) 
 ## Publication (Studio et Hub Création)
 
 - [ ] Le fichier à publier : la copie propre préparée par Claude, sur ton PC, dans le dossier du jeu :
-      `A-PUBLIER\Jeu-100-niveaux-v2.rbxl` (refaite à chaque version, avec un nouveau nom : prends toujours
+      `A-PUBLIER\Jeu-100-niveaux-v3.rbxl` (refaite à chaque version, avec un nouveau nom : prends toujours
       la plus récente ; elle n'est pas dans git). Ferme les autres fenêtres de Studio avant de publier, pour ne pas
       te tromper de fichier.
 - [ ] Publier comme une **nouvelle expérience** sur ton compte personnel (Fichier > Publier sur Roblox > « Créer une

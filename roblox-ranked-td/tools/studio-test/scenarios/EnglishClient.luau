@@ -394,6 +394,42 @@ return function(log)
 	end
 	check(#archerTexts >= 2, `mes tours : {table.concat(archerTexts, " | ")}`)
 	shot("tours_avance")
+	-- Jouer en équipe : la page de l'équipe, une invitation d'un joueur d'essai (« Robin »), la page en équipe et les
+	-- boutons des niveaux d'un coéquipier qui n'est pas chef.
+	act(campGui, "Team")
+	scanScreen("camp, page de l'équipe (seul)")
+	local robin = test:InvokeServer("Fake", "Robin", 5)
+	test:InvokeServer("As", { robin, "TeamInvite", player.UserId })
+	local invitePanel = playerGui:WaitForChild("TeamInvite"):WaitForChild("Panel")
+	waitFor(function()
+		return invitePanel.Visible and invitePanel.Text.Text ~= ""
+	end, 4)
+	task.wait(0.4)
+	scanScreen("invitation à jouer en équipe")
+	check(
+		invitePanel.Text.Text == "Robin invites you to play as a team!" and invitePanel.Accept.Text == "✓ Accept" and invitePanel.Decline.Text == "Decline",
+		`invitation : « {invitePanel.Text.Text} », « {invitePanel.Accept.Text} » / « {invitePanel.Decline.Text} »`
+	)
+	shot("invitation")
+	act(campGui, "TeamAccept")
+	waitFor(function()
+		return player:GetAttribute("Team") ~= nil
+	end, 4)
+	task.wait(1.3)
+	scanScreen("camp, page de l'équipe (en équipe)")
+	local teamPage = window:WaitForChild("PageTeam")
+	check(
+		teamPage.MembersTitle.Text == "Robin's TEAM (2/4)" and window.TeamButton.Text == "👥 TEAM (2)" and teamPage.Leave.Text == "Leave team",
+		`page de l'équipe : « {teamPage.MembersTitle.Text} », « {teamPage.Member1.Label.Text} », bouton « {window.TeamButton.Text} »`
+	)
+	shot("equipe")
+	act(campGui, "Tab:Niveaux")
+	scanScreen("camp, onglet Niveaux (en équipe, pas chef)")
+	act(campGui, "TeamLeave")
+	test:InvokeServer("Gone", robin)
+	waitFor(function()
+		return player:GetAttribute("Team") == nil
+	end, 4)
 	act(campGui, "Close")
 	task.wait(1)
 	scanWorld("panneaux et invites de la parcelle (joueur avancé)")

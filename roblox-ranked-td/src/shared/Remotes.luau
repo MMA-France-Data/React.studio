@@ -29,14 +29,19 @@ local DEFINITIONS = {
 	--   | ("SlotAssign", emplacement du camp, type de tour ou "") | ("SlotUpgrade", emplacement) | "SlotUnlock"
 	--   | ("TrainBuy", type de tour) : entraînement acheté avec des pièces (bouton ⚡ de l'onglet Entraînement)
 	--   | ("Bar", { types de tours }) : ordre de la barre rapide
-	--   | ("Tutorial", "Skip") : bouton « Passer le tuto ».
+	--   | ("Tutorial", "Skip") : bouton « Passer le tuto »
+	--   | ("TeamInvite", UserId) | ("TeamAnswer", UserId de celui qui invite, vrai = accepter) | "TeamLeave" : jouer en
+	--     équipe (Hub/LevelTeams.luau ; en équipe, « Start » ne vient que du chef et lance le niveau pour tous).
 	-- Le serveur vérifie tout (Hub/LevelsService.luau). État publié en attributs :
 	--   du joueur : LevelsState (JSON : best, coins, towers = ses tours dans l'ordre de sa barre rapide, xp, slots,
 	--     wins, losses, tutorial = étape du tuto ; absent tant que ses données ne sont pas chargées), LevelArena
-	--     (numéro de sa zone de combat pendant un niveau, absent sinon) ;
+	--     (numéro de sa zone de combat pendant un niveau, absent sinon), Team (JSON : leader, members = { { id, name,
+	--     best } } ; absent : il joue seul), TeamInvite (JSON : from, name, seconds ; absent : pas d'invitation) ;
 	--   du dossier de sa zone, workspace.Arenas.Arena<n> : Map, Level, State ("Running" | "Won" | "Lost"), Gold,
-	--     Lives, Left, Total, Progress, SimSpeed, Perks, Training, et à la fin Result (JSON : won, level, reward,
-	--     firstClear, coins, kills, total, lives, bigLeaks, xp, towers, perks, nextLevel, seconds).
+	--     Lives, Left, Total, Progress, SimSpeed, Perks, Training, TeamSize, et à la fin Result (JSON : won, level,
+	--     reward, firstClear, coins, kills, total, lives, bigLeaks, xp, towers, perks, nextLevel, seconds, team). En
+	--     équipe, chaque joueur a aussi les siens : Gold_<n°>, Training_<n°>, Result_<n°> (n° = Levels.memberKey de
+	--     son UserId), et Team (JSON : { { id, key, name } }) ; chaque tour posée porte OwnerId (UserId de son joueur).
 	LevelAction = "RemoteEvent",
 	-- serveur -> client : (message, kind, source). source = "Levels" pour un message d'un niveau.
 	Notify = "RemoteEvent",

@@ -7,6 +7,7 @@
 #   powershell -ExecutionPolicy Bypass -File tools\levels\run.ps1 -Tune      (cherche les PV de chaque niveau : tune.luau)
 #   powershell -ExecutionPolicy Bypass -File tools\levels\run.ps1 -Curve     (ce qu'un joueur actif peut se payer au fil d'un niveau : curve.luau)
 #   powershell -ExecutionPolicy Bypass -File tools\levels\run.ps1 -Worth     (ce que chaque tour de la boutique apporte : worth.luau)
+#   powershell -ExecutionPolicy Bypass -File tools\levels\run.ps1 -Equipe    (jouer en équipe : PV des monstres à 2, 3, 4 joueurs : team.luau)
 #   powershell -ExecutionPolicy Bypass -File tools\levels\run.ps1 -Regler "Levels.STREAM.RAMP_CURVE=1.2;Levels.DEFINITIONS.1.health=40"
 param(
 	[switch]$Tests,
@@ -14,10 +15,11 @@ param(
 	[switch]$Tune,
 	[switch]$Curve,
 	[switch]$Worth,
-	[string]$Niveaux = "", # avec -Tune ou -Worth : seulement ces niveaux, ex. "1,3,6"
+	[switch]$Equipe,
+	[string]$Niveaux = "", # avec -Tune, -Worth ou -Equipe : seulement ces niveaux, ex. "1,3,6"
 	[string]$Tours = "", # avec -Worth : seulement ces tours, ex. "Laser,Rocket"
 	[string]$Rythme = "", # avec -Tune ou -Curve : secondes entre deux achats du joueur simulé (sinon : le rythme de chaque niveau)
-	[string]$Vies = "", # avec -Tune : vies qu'il doit garder (5 par défaut)
+	[string]$Vies = "", # avec -Tune ou -Equipe : vies qu'il doit garder (5 par défaut)
 	[string]$Regler = "" # essais de réglages sans toucher à src : "Levels.CHAMP=valeur;Levels.Autre.champ=valeur"
 )
 $ErrorActionPreference = "Stop"
@@ -155,6 +157,52 @@ try {
 				if (-not $best) { continue }
 				$gain = [math]::Round(($best.Health / [math]::Max(1, $base.Health) - 1) * 100)
 				Write-Host ("{0,-7} {1,-8} {2,8} {3,10} {4,6}%   {5} (x{6})" -f $level, $tower, $base.Health, $best.Health, $gain, $best.Build, $bestTaste)
+			}
+		}
+	} elseif ($Equipe) {
+		# Jouer en équipe : un processus par taille d'équipe et par niveau, tous en même temps, puis le tableau et, pour
+		# chaque taille, la médiane des niveaux (le chiffre à mettre dans Levels.TEAM_HEALTH).
+		$levels = if ($Niveaux -ne "") { $Niveaux -split "[,; ]+" | Where-Object { $_ -ne "" } } else { 3, 10, 15, 25, 35, 45, 55, 65, 75, 85, 95, 100 }
+		$temp = Join-Path $gen "equipe"
+		New-Item -ItemType Directory -Force $temp | Out-Null
+		$luau = (Get-Command luau).Source
+		$jobs = @()
+		foreach ($size in 2, 3, 4) {
+			foreach ($level in $levels) {
+				$out = Join-Path $temp "$size-$level.txt"
+				$arguments = "--codegen -O2 team.luau -a `"regler=$Regler`" `"taille=$size`" `"niveaux=$level`" `"vies=$Vies`""
+				$jobs += [pscustomobject]@{
+					Size = $size; Level = $level; Out = $out
+					Process = Start-Process -FilePath $luau -ArgumentList $arguments -WorkingDirectory $here -NoNewWindow -PassThru -RedirectStandardOutput $out -RedirectStandardError "$out.err"
+				}
+			}
+		}
+		$code = 0
+		$found = @{ 2 = @(); 3 = @(); 4 = @() }
+		Write-Host ("{0,-8} {1,-7} {2,-13} {3,-13} {4}" -f "Joueurs", "Niveau", "PV x (juste)", "Très actifs", "Lents (8 s)")
+		foreach ($job in $jobs) {
+			$job.Process.WaitForExit()
+			$errors = [IO.File]::ReadAllText("$($job.Out).err", $utf8)
+			if ($errors.Trim() -ne "") {
+				Write-Host "Équipe de $($job.Size), niveau $($job.Level) : $errors"
+				$code = 1
+			}
+			foreach ($line in [IO.File]::ReadAllLines($job.Out, $utf8)) {
+				$parts = $line -split "`t"
+				if ($parts.Count -ge 5 -and $parts[0] -match "^\d+$") {
+					Write-Host ("{0,-8} {1,-7} {2,-13} {3,-13} {4}" -f $parts[0], $parts[1], $parts[2], $parts[3], $parts[4])
+					$found[[int]$parts[0]] += [double]::Parse($parts[2], [Globalization.CultureInfo]::InvariantCulture)
+				} elseif ($line.Trim() -ne "") {
+					Write-Host $line
+				}
+			}
+		}
+		Write-Host ""
+		foreach ($size in 2, 3, 4) {
+			$sorted = @($found[$size] | Sort-Object)
+			if ($sorted.Count -gt 0) {
+				$median = $sorted[[math]::Floor(($sorted.Count - 1) / 2)]
+				Write-Host ("À {0} joueurs : PV x {1} (médiane des niveaux, pour Levels.TEAM_HEALTH[{0}])" -f $size, $median.ToString("0.00", [Globalization.CultureInfo]::InvariantCulture))
 			}
 		}
 	} elseif ($Curve) {

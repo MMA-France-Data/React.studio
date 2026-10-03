@@ -13,16 +13,19 @@ powershell -ExecutionPolicy Bypass -File tools\levels\run.ps1 -Lazy
 powershell -ExecutionPolicy Bypass -File tools\levels\run.ps1 -Tune
 powershell -ExecutionPolicy Bypass -File tools\levels\run.ps1 -Curve
 powershell -ExecutionPolicy Bypass -File tools\levels\run.ps1 -Worth
+powershell -ExecutionPolicy Bypass -File tools\levels\run.ps1 -Equipe
 powershell -ExecutionPolicy Bypass -File tools\levels\run.ps1 -Regler "Levels.STREAM.RAMP_CURVE=1;Levels.DEFINITIONS.1.health=60"
 ```
 
 - **sans option** : le tableau de difficulté. Chaque niveau est joué par des joueurs simulés : très actif, au rythme
   demandé par le niveau, lent (un achat toutes les 8 s), distrait (toutes les 15 s), sans boutique, tout débloqué.
   « G 7 » = gagné avec 7 vies, « P 62 % » = perdu après avoir éliminé 62 % des monstres. Environ 2 minutes.
-- **`-Tests`** : 1 792 vérifications (100 niveaux, 10 territoires, flot continu, cartes, pose libre, récompenses, prix, entraînement, données
+- **`-Tests`** : 1 819 vérifications (100 niveaux, 10 territoires, flot continu, cartes, pose libre, récompenses, prix, entraînement, données
   du joueur, le moteur : or, vies, victoire, défaite, vitesse x2, paquets réseau, **la difficulté de chaque
   niveau** : voir plus bas, les évolutions des tours, le camp d'entraînement de la parcelle : `CampGame.luau`, et
-  **le tuto** : son étape dans les données, les deux premiers gestes du niveau 1). Environ cinq minutes.
+  **le tuto** : son étape dans les données, les deux premiers gestes du niveau 1 ; **le jeu en équipe** : les règles,
+  une partie à deux (or et tours de chacun, l'or des monstres à chacun, celui qui s'en va), des équipes de 2, 3 et 4
+  joueurs simulés qui doivent gagner les niveaux 10, 50 et 100). Une dizaine de minutes.
 - **`-Lazy`** : les 10 niveaux joués par un joueur qui pose quelques tours puis attend (rien de plus, 2 Archers,
   3 Archers, 2 Archers et une Catapulte, 4 Archers et 2 Catapultes). Ils doivent tous perdre.
 - **`-Tune`** : cherche, pour chaque niveau, les PV des monstres les plus hauts avec lesquels le joueur de référence
@@ -36,6 +39,11 @@ powershell -ExecutionPolicy Bypass -File tools\levels\run.ps1 -Regler "Levels.ST
   et `-Niveaux "10"` pour n'en mesurer que quelques-unes. C'est ce qui a montré que le Sorcier des arcanes est utile
   (+20 à +59 %) et que la Baliste et le Trébuchet ne l'étaient presque pas : ils ont été renforcés le 02/10/2026
   (résultats dans `NIVEAUX.md`).
+- **`-Equipe`** : jouer en équipe. Des équipes de 2, 3 et 4 joueurs simulés de référence jouent quelques niveaux
+  (`-Niveaux "10,50"` pour en choisir) ; pour chacun, le plus haut multiplicateur de PV avec lequel l'équipe gagne
+  encore avec 5 vies (`-Vies 8` : 8 vies), et, avec le réglage actuel (`Levels.TEAM_HEALTH`), ce que font une équipe
+  très active et une équipe lente. À la fin, la médiane pour chaque taille d'équipe. Un processus par mesure, tous
+  en même temps : quelques minutes.
 - **`-Regler`** : essayer des réglages sans toucher à `src` (avec toutes les options ci-dessus). Deux tables se
   règlent : `Levels` et `IdleTowers` (`IdleTowers.Defs.Rocket.damage=120`). `*` = toutes les entrées d'une table :
   `Levels.DEFINITIONS.*.gold=80`.
@@ -100,13 +108,14 @@ un peu plus gros.
 |---|---|
 | `run.ps1` | Copie les vrais modules dans `gen\` (avec les imitations de Roblox ajoutées en tête) et lance le script voulu |
 | `env.luau`, `shim.luau`, `stubs\` | Imitations de Roblox (objets, services, Vector3, CFrame...) et des modules du serveur dont le combat n'a pas besoin |
-| `Bot.luau` | Les joueurs simulés : à chaque décision, l'achat qui donne le plus de dégâts par pièce d'or (plusieurs façons de jouer, la meilleure partie est gardée) ; le joueur qui pose quelques tours puis attend ; ce qui est attendu à chaque niveau |
+| `Bot.luau` | Les joueurs simulés : à chaque décision, l'achat qui donne le plus de dégâts par pièce d'or (plusieurs façons de jouer, la meilleure partie est gardée) ; le joueur qui pose quelques tours puis attend ; les équipes (Bot.playTeam : plusieurs joueurs simulés dans la même partie) ; ce qui est attendu à chaque niveau |
 | `settings.luau` | Lit les options (`regler=`, `rythme=`…) |
 | `sim.luau` | Le tableau de difficulté |
 | `lazy.luau` | Les niveaux joués sans presque rien faire |
 | `tune.luau` | La recherche des PV de chaque niveau |
 | `worth.luau` | Ce qu'une tour de la boutique apporte |
 | `curve.luau` | La pression d'un niveau au fil du temps |
+| `team.luau` | Jouer en équipe : les PV des monstres selon le nombre de joueurs |
 | `tests.luau` | Les vérifications des règles et de la difficulté |
 
 Le joueur simulé n'est ni parfait ni mauvais : il sert à **comparer** des réglages, pas à dire exactement où un vrai

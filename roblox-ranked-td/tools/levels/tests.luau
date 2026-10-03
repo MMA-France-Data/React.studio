@@ -534,7 +534,7 @@ do
 	game.gold = 500
 	ok, reason = game:placeTower("Frost", map.spots[2])
 	check(ok == false and string.find(reason, "boutique", 1, true) ~= nil, "pose refusée pour une tour pas encore achetée")
-	ok, reason = game:placeTower("MachineGun", geometry.pointAt(30))
+	ok, reason = game:placeTower("MachineGun", (geometry.pointAt(30))) -- (pointAt renvoie aussi une direction : gardée hors de l'appel)
 	check(ok == false and reason == "Trop près du chemin", "pose refusée sur le chemin")
 	ok, reason = game:placeTower("MachineGun", map.spots[1] + Vector3.new(1, 0, 1))
 	check(ok == false and reason == "Trop près d'une autre tour", "pose refusée sur une tour déjà posée")
@@ -916,6 +916,130 @@ do
 	check(after == nil and finished == true, "tuto : une tour posée et une tour améliorée : fini, plus rien à montrer, même avec beaucoup d'or")
 	local early, earlyDone = steps(placed(MG, 2), 500)
 	check(says(early, "Place", MG) and earlyDone == false, "tuto : l'Archer offert amélioré avant d'avoir posé une tour : il reste à poser une tour")
+end
+
+----------------------------------------------------------------------
+-- 10) Jouer en équipe. Demande du propriétaire (03/10/2026) : « jouer en équipe », « et même un bonus 10 % pièces,
+--     et on pourrait faire trio et quad aussi avec 30 et 40 % ». Les règles (Levels), une partie à plusieurs
+--     (LevelGame : chacun son or et ses tours), des équipes de joueurs simulés (Bot.playTeam).
+----------------------------------------------------------------------
+check(
+	Levels.TEAM_MAX == 4 and Levels.teamBonus(1) == 0 and Levels.teamBonus(2) == 0.1 and Levels.teamBonus(3) == 0.3 and Levels.teamBonus(4) == 0.4,
+	"équipe : 4 joueurs au plus ; pièces en plus : rien seul, +10 % à deux, +30 % à trois, +40 % à quatre (chiffres du propriétaire)"
+)
+check(
+	Levels.teamReward(1000, 1) == 1000 and Levels.teamReward(1000, 2) == 1100 and Levels.teamReward(1000, 3) == 1300 and Levels.teamReward(1000, 4) == 1400
+		and Levels.teamReward(80, 2) == 88 and Levels.teamReward(1000, nil) == 1000,
+	"équipe : la récompense de chacun avec le bonus (1 000 -> 1 100, 1 300, 1 400 ; 80 -> 88 à deux)"
+)
+check(
+	Levels.teamHealth(1) == 1 and Levels.teamHealth(nil) == 1 and Levels.teamHealth(2) > 1 and Levels.teamHealth(3) > Levels.teamHealth(2)
+		and Levels.teamHealth(4) > Levels.teamHealth(3) and Levels.teamHealth(9) == Levels.teamHealth(4),
+	`équipe : les monstres ont plus de vie à plusieurs (x{Levels.teamHealth(2)} à deux, x{Levels.teamHealth(3)} à trois, x{Levels.teamHealth(4)} à quatre)`
+)
+check(Levels.memberKey(123456) == "123456" and Levels.memberKey(-1001) == "m1001" and Levels.memberKey(nil) == "0", "équipe : n° d'un joueur dans les noms d'attributs (« m » devant un n° négatif)")
+do
+	local solo, duo = Levels.buildQueue(30), Levels.buildQueue(30, 2)
+	local same = #solo == #duo
+	for index, item in solo do
+		local other = duo[index]
+		if not other or other.at ~= item.at or other.enemy ~= item.enemy or other.reward ~= item.reward or math.abs(other.health - item.health * Levels.teamHealth(2)) > 0.06 then
+			same = false
+		end
+	end
+	check(same, "équipe : le même flot de monstres (mêmes heures, mêmes types, même or), PV x teamHealth")
+end
+do
+	-- Une partie à deux : l'hôte (UserId 1) et un coéquipier (UserId 2, Archer entraîné au maximum, Totem acheté).
+	local definition = Levels.definition(12)
+	local arena = { index = Levels.arenaIndex(2), folder = Env.fakeInstance("Arena"), cframe = Levels.arenaCFrame(2), map = definition.map }
+	local friendPlayer = { UserId = 2, Parent = {} }
+	local game = LevelGame.new(arena, { UserId = 1, Parent = {} }, {
+		level = 12,
+		unlocked = { MachineGun = true, Bomb = true },
+		training = { MachineGun = 0 },
+		team = { { player = friendPlayer, unlocked = { MachineGun = true, Bomb = true, Frost = true }, training = { MachineGun = Levels.TRAINING.MAX_LEVEL } } },
+	})
+	local folder = arena.folder
+	local friend = game:memberOf(friendPlayer)
+	check(
+		game.teamSize == 2 and friend ~= nil and friend ~= game and game:memberOf({}) == nil and game.gold == definition.gold and friend.gold == definition.gold,
+		"partie à deux : chacun commence avec l'or du niveau"
+	)
+	check(
+		folder:GetAttribute("TeamSize") == 2 and folder:GetAttribute("Gold_1") == definition.gold and folder:GetAttribute("Gold_2") == definition.gold
+			and folder:GetAttribute("Training_2") == Levels.encodeTraining(friend.training) and string.find(folder:GetAttribute("Perks") or "", "MachineGun:Fire", 1, true) ~= nil,
+		"partie à deux : attributs de la zone (or et entraînement de chacun ; effets des tours des deux joueurs)"
+	)
+	check(game.queue[1].health == Levels.buildQueue(12, 2)[1].health, "partie à deux : les monstres d'une équipe de deux")
+	local spots = Levels.geometry(definition.map).map.spots
+	local placed, _, tower = game:placeTower("MachineGun", spots[1], friend)
+	check(
+		placed and tower.owner == friend and friend.gold == definition.gold - Levels.placeCost("MachineGun") and game.gold == definition.gold
+			and tower.model:GetAttribute("OwnerId") == 2,
+		"partie à deux : le coéquipier pose avec SON or, la tour est à lui"
+	)
+	check(not game:placeTower("Frost", spots[2]) and (game:placeTower("Frost", spots[2], friend)), "partie à deux : chacun ses tours débloquées (le Totem du coéquipier n'est pas à l'hôte)")
+	local upgraded, reason = game:upgradeTower(tower.id)
+	local sold, _, why = game:sellTower(tower.id)
+	check(
+		not upgraded and reason == LevelGame.NOT_YOURS and not sold and why == LevelGame.NOT_YOURS and game.towers[tower.id] ~= nil and tower.level == 1,
+		"partie à deux : l'hôte ne peut ni améliorer ni vendre la tour du coéquipier"
+	)
+	check((game:upgradeTower(tower.id, friend)) and tower.level == 2, "partie à deux : le coéquipier améliore la sienne")
+	check(game:statsOf(tower).damage > Levels.towerStats("MachineGun", 2, 0).damage * 1.2, "partie à deux : sa tour a SON entraînement (l'Archer du coéquipier est entraîné au maximum)")
+	-- Les limites par type valent pour chacun : 5 Archers à l'hôte, en plus de celui du coéquipier.
+	game.gold, friend.gold = 10000, 10000
+	local hostArchers = 0
+	for index = 3, #spots do
+		if game:placeTower("MachineGun", spots[index]) then
+			hostArchers += 1
+		end
+	end
+	check(
+		hostArchers == Levels.maxCopies("MachineGun") and game:copiesOf(game).MachineGun == hostArchers and game:copiesOf(friend).MachineGun == 1,
+		`partie à deux : chacun ses limites par type (l'hôte pose {hostArchers} Archers, en plus de celui du coéquipier)`
+	)
+	-- L'or d'un monstre tué va à chacun.
+	local hostBefore, friendBefore = game.gold, friend.gold
+	game:simulate(1 / 30)
+	local enemy = game.enemies[1]
+	game:damageEnemy(enemy, enemy.health + 1, false)
+	check(game.gold == hostBefore + enemy.reward and friend.gold == friendBefore + enemy.reward, "partie à deux : l'or d'un monstre tué va à chacun, en entier")
+	game:syncAttributes()
+	check(folder:GetAttribute("Gold_2") == math.floor(friend.gold) and folder:GetAttribute("Gold") == math.floor(game.gold), "partie à deux : l'or de chacun est publié")
+	-- Le coéquipier s'en va : il ne reçoit plus d'or et ne pose plus rien ; ses tours restent et tirent toujours.
+	game:removeMember(friend)
+	game:syncAttributes()
+	local friendGold = friend.gold
+	for _ = 1, 30 do
+		game:simulate(1 / 30)
+	end
+	local another = game.enemies[1]
+	if another then
+		game:damageEnemy(another, another.health + 1, false)
+	end
+	local left = 0
+	for _, other in game.towers do
+		if other.owner == friend then
+			left += 1
+		end
+	end
+	check(
+		friend.departed and friend.gold == friendGold and folder:GetAttribute("Gold_2") == nil and left == 2 and not game:placeTower("Bomb", spots[#spots], friend),
+		`partie à deux : celui qui s'en va ne reçoit plus d'or et ne pose plus rien ; ses {left} tours restent`
+	)
+	game:destroy()
+	check(folder:GetAttribute("Gold_1") == nil and folder:GetAttribute("Training_2") == nil and folder:GetAttribute("TeamSize") == nil, "partie à deux rangée : ses attributs sont effacés")
+end
+-- Équipes de joueurs simulés, avec les PV d'équipe : les joueurs de référence gagnent (au moins 5 vies), comme seuls.
+for _, size in { 2, 3, 4 } do
+	for _, level in { 10, 50, 100 } do
+		local reference = Bot.playTeam(level, Bot.teamProfiles(level, size, "reference"), function(best)
+			return best.won and best.lives >= 5
+		end)
+		check(reference.won and reference.lives >= 5, `équipe de {size}, niveau {level} : les joueurs de référence gagnent avec au moins 5 vies ({outcome(reference)})`)
+	end
 end
 
 print(`{passed} tests réussis, {failed} ratés`)

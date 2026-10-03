@@ -45,6 +45,14 @@ return function(log)
 			return levels("Action", table.unpack(a))
 		elseif command == "Skip" then
 			return levels("Skip", a)
+		elseif command == "Fake" then
+			-- Un joueur d'essai (jouer en équipe) : a = son nom, b = niveaux réussis ; renvoie son UserId
+			return levels("TeamFake", a, b)
+		elseif command == "As" then
+			-- a = { UserId du joueur d'essai, demande, arguments... } : une demande faite par lui
+			return levels("TeamAs", table.unpack(a))
+		elseif command == "Gone" then
+			return levels("TeamGone", a)
 		end
 		return nil
 	end

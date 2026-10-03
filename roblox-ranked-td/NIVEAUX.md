@@ -63,6 +63,8 @@ fixes, camp d'entraînement, plus aucun hasard).
    toujours le plus gros.
 6. Une pastille dorée **« ! »** sur le bouton « ⚔ NIVEAUX » et sur l'onglet Boutique veut dire : tu peux acheter
    une tour. (Les niveaux 3, 6 et 11 sont réglés pour un joueur qui a acheté la tour suivante.)
+7. **À plusieurs** : le bouton **« 👥 ÉQUIPE »** de la fenêtre des niveaux montre les joueurs du serveur ; invite-les
+   (jusqu'à 4 dans une équipe), puis lance un niveau : vous le jouez ensemble. Voir « Jouer en équipe ».
 
 ## Les règles
 
@@ -308,6 +310,46 @@ Le serveur note où chaque nouveau joueur s'arrête (arrivée, niveau 1 lancé, 
 
 Dans Studio, tes données ne sont pas sauvegardées : la flèche revient à chaque Play. Pour ne plus la voir dans
 Studio : `Config.STUDIO_TUTORIAL = false` (`src/shared/Config.luau`).
+
+### Jouer en équipe (2 à 4 joueurs)
+
+Ta demande du 03/10/2026 (« jouer en équipe », puis « et même un bonus 10 % pièces, et on pourrait faire trio et
+quad aussi avec 30 et 40 % »). Jusqu'à **4 joueurs** défendent le même château, dans la même partie.
+
+- **Former une équipe** : bouton **« 👥 ÉQUIPE »** dans l'en-tête de la fenêtre des niveaux. La page montre ton
+  équipe et les autres joueurs du serveur, avec un bouton **« Inviter »**. L'invité voit un petit panneau en haut de
+  l'écran (« Robin t'invite à jouer en équipe ! », **Accepter** / **Refuser**, 30 secondes pour répondre), même
+  pendant un niveau. Il faut avoir réussi le niveau 1 (le tuto) pour inviter ou être invité. **« Quitter
+  l'équipe »** sur la même page ; si le chef s'en va, le suivant devient chef.
+- **C'est le chef qui lance les niveaux**, pour toute l'équipe : ses coéquipiers quittent ce qu'ils faisaient et le
+  rejoignent. Le niveau doit être **ouvert pour tous** : sur les cartes des niveaux, le chef voit « 🔒 ÉQUIPE » sur
+  ceux qu'un coéquipier n'a pas encore débloqués ; un coéquipier voit « 👥 LE CHEF ». Sur l'écran de fin, seul le
+  chef a « Niveau suivant » et « Rejouer » ; les autres voient « ⏳ Robin choisit la suite ».
+- **Dans le niveau** : chacun a **son or** (l'or de départ du niveau, et **tout** l'or de chaque monstre tué, quel
+  que soit le tireur), pose **ses tours** (ses limites par type : 5 Archers chacun...), avec **son entraînement**
+  et ses évolutions, et n'améliore ou ne vend que les siennes : toucher la tour d'un autre montre « Tour de Robin »,
+  sans « Améliorer » ni « Vendre ». Sous le bandeau du haut : l'or des autres joueurs. Les **vies du château**, le
+  flot de monstres et la vitesse x2 sont communs.
+- **Les monstres ont plus de vie** : x1,9 à deux, x2,5 à trois, x3,1 à quatre (`Levels.TEAM_HEALTH`).
+- **La récompense** : chacun reçoit SES pièces de niveau (première victoire ou non : selon SES niveaux réussis),
+  **avec le bonus d'équipe : +10 % à deux, +30 % à trois, +40 % à quatre** (tes chiffres, `Levels.TEAM_COIN_BONUS`),
+  et l'XP de SES tours posées. **Une victoire ouvre le niveau suivant à chacun.** L'écran de fin rappelle le bonus.
+- **Celui qui s'en va** (bouton X, ou départ du jeu) abandonne pour lui seul (comme une défaite, selon l'avancée) :
+  ses tours restent et continuent de tirer, les autres continuent. Même le chef : la partie continue sans lui.
+
+**Comment les PV d'équipe ont été choisis** (`tools\levels\run.ps1 -Equipe`) : des équipes de joueurs simulés de
+référence (ceux pour qui chaque niveau est réglé) ont joué 12 à 14 niveaux, du 3 au 100. Le plus haut x où l'équipe
+gagne encore avec 5 vies : de 1,95 à 2,7 à deux (chacun reçoit tout l'or : deux joueurs font un peu plus que deux
+fois un seul), de 2,6 à 3,8 à trois, de 2,7 à 5,3 à quatre. Les chiffres gardés sont un peu en dessous : une équipe
+de joueurs normaux gagne partout (à quatre, le niveau 15 reste le plus dur), et une équipe qui attend (un achat
+toutes les 8 s chacun) perd encore presque toujours (à quatre, elle gagne quelques niveaux : 4 joueurs lents
+achètent ensemble plus souvent qu'un joueur actif).
+
+**Pas encore essayé à plusieurs vrais joueurs** : un Play de Studio n'a qu'un joueur, le test automatique joue avec
+des joueurs d'essai (`tools\studio-test\run.ps1 -Test team`). Pour essayer à deux sur ton PC : le test à
+plusieurs joueurs de Studio (mode **« serveur et clients »**, avec **2 joueurs**, dans le menu des tests) ouvre
+deux fenêtres de joueurs (le niveau 1 doit être réussi dans chacune avant de s'inviter). Ou avec un ami, une fois
+le jeu publié.
 
 ### Ta parcelle : le camp d'entraînement
 
@@ -565,6 +607,9 @@ arrivent à un niveau) : rien d'autre n'a changé. Les chiffres sont dans `src/s
     au niveau 1, la flèche ne montre plus que deux gestes (poser une tour où il veut, améliorer), et les « + » jaunes
     ont disparu de tous les niveaux. Une tour posée près d'un ancien emplacement n'est plus attirée dessus, et aucune
     tour n'est plus mise en main d'office au premier niveau. Voir « Le tuto des nouveaux joueurs ».
+17. **Jouer en équipe** (« jouer en équipe » ; « et même un bonus 10 % pièces, et on pourrait faire trio et quad
+    aussi avec 30 et 40 % ») : jusqu'à 4 joueurs dans le même niveau, chacun son or et ses tours, bonus de pièces.
+    Voir « Jouer en équipe ».
 
 ### Le grand ménage : ce qui a été enlevé
 
@@ -594,7 +639,8 @@ niveaux du joueur et son réglage du son. Les sauvegardes de l'ancien jeu « Tow
    dragon ; pour aller plus loin, il faudrait de nouvelles familles de monstres.
    **Les boss des niveaux 60 et 90** n'ont pas encore de modèle 3D (ils sont faits de blocs) : à faire faire par
    ChatGPT, comme les autres (`assets/EnemyModels/Boss_5.rbxm` et `Boss_8.rbxm`).
-   **Jouer en équipe** : défendre le même château à plusieurs (voir ma proposition) : à décider.
+   **Jouer en équipe** : fait (voir « Jouer en équipe ») ; les bonus sont tes chiffres, les PV d'équipe les miens.
+   À essayer à deux (le test « serveur et clients » de Studio avec 2 joueurs, ou avec un ami).
 3. **Des passes Robux pour ce jeu ?** Il n'y en a plus aucun. Si tu en veux, il faudra choisir lesquels (jamais un
    avantage qui casse la difficulté des niveaux).
 4. **Avant de rendre le jeu public** : voir `SORTIE.md` (publication, essai sur un vrai téléphone, page du jeu).
@@ -611,6 +657,9 @@ niveaux du joueur et son réglage du son. Les sauvegardes de l'ancien jeu « Tow
   compacts, envoyés **au joueur du niveau seulement** ; ceux d'un camp, à son propriétaire et aux joueurs proches.
   L'affichage est le même code pour les deux (`PlotRenderer.luau`).
 - **Le serveur décide de tout** (or, pose, récompenses, achats). Le client envoie des demandes (`LevelAction`).
+- **En équipe**, une seule partie (`LevelGame`) a plusieurs joueurs : le premier est la partie elle-même, les autres
+  sont listés dans `game.members` (chacun son or, ses tours débloquées, son entraînement). Les monstres et les tirs
+  partent à tous les joueurs de la partie. La zone est celle du chef si elle est libre, sinon une autre.
 
 | Fichier | Rôle |
 |---|---|
@@ -619,7 +668,8 @@ niveaux du joueur et son réglage du son. Les sauvegardes de l'ancien jeu « Tow
 | `src/server/Hub/Combat.luau` | le combat des tours contre les monstres, et ses paquets réseau |
 | `src/server/Hub/LevelGame.luau` | un niveau en cours (or, vies, flot de monstres, pose des tours) |
 | `src/server/Hub/LevelArena.luau` | les zones de combat, leur carte et le décor de chaque territoire |
-| `src/server/Hub/LevelsService.luau` | lancement, récompenses, boutique, camp, état publié au joueur |
+| `src/server/Hub/LevelsService.luau` | lancement (seul ou en équipe), récompenses, boutique, camp, état publié au joueur |
+| `src/server/Hub/LevelTeams.luau` | les équipes : invitations, chef, coéquipiers, quitter l'équipe |
 | `src/server/Hub/Camp.luau`, `CampGame.luau` | la parcelle : socles, étiquettes, invites ; les tours du camp et leurs cibles |
 | `src/server/Hub/HubMap.luau`, `Plots.luau`, `PlotBoard.luau`, `PlotIdentity.luau`, `PlotInterest.luau` | la map, l'attribution des parcelles, leurs panneaux, qui reçoit quel camp |
 | `src/server/Hub/IdleTowerModel.luau` | modèles des tours, et leurs marques d'évolution (`addEvolution`) |
@@ -648,12 +698,13 @@ powershell -ExecutionPolicy Bypass -File tools\levels\run.ps1
 powershell -ExecutionPolicy Bypass -File tools\studio-test\run.ps1
 ```
 
-- le premier : 1 792 vérifications des règles, de la difficulté de chacun des 100 niveaux, des évolutions, du camp
-  et du tuto, sans Studio (environ cinq minutes) ;
+- le premier : 1 819 vérifications des règles, de la difficulté de chacun des 100 niveaux, des évolutions, du camp,
+  du tuto et du jeu en équipe, sans Studio (une dizaine de minutes : les équipes de joueurs simulés sont lentes) ;
 - le deuxième : le tableau de difficulté des 100 niveaux par les joueurs simulés ;
 - le troisième : le test complet dans Studio (serveur, puis la vraie interface à la taille normale et à la taille
   d'un téléphone), avec des captures dans `tools/studio-test/out/levels_*.png`. Avec `-Test tutorial` : le tuto
-  d'un nouveau joueur, suivi flèche après flèche (captures `tutorial_*.png`).
+  d'un nouveau joueur, suivi flèche après flèche (captures `tutorial_*.png`). Avec `-Test team` : le jeu en équipe,
+  avec des joueurs d'essai (captures `team_*.png`).
 
 ### Six combats dans le même serveur
 
@@ -685,6 +736,8 @@ print(m.averageMs, m.p99Ms, m.worstMs, m.enemiesPeak)
 ## Limites connues
 
 - Dix cartes pour 100 niveaux (une par territoire).
+- Le jeu en équipe n'a été essayé qu'avec des joueurs d'essai et des joueurs simulés, jamais avec deux vrais
+  joueurs (voir « Jouer en équipe » : comment l'essayer à deux dans Studio).
 - Les niveaux 11 à 100 n'ont été joués que par les joueurs simulés.
 - Les boss des niveaux 60 et 90 n'ont pas encore de modèle 3D : ils sont faits de blocs.
 - Deux langues : français et anglais. Un joueur espagnol, portugais, etc. voit le jeu en anglais.

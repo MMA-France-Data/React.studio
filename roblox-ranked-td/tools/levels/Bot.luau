@@ -5,7 +5,8 @@
 -- par pièce d'or ; s'il n'a pas encore l'or, il économise, sauf quand un monstre approche du château (il prend alors
 -- le meilleur achat payable tout de suite). Il pose ses tours sur les emplacements conseillés de la carte.
 -- Il sert à comparer des réglages et des profils de joueurs (quelles tours débloquées, quel entraînement), pas à
--- trouver la meilleure stratégie possible.
+-- trouver la meilleure stratégie possible. Il joue aussi en ÉQUIPE (Bot.playTeam : plusieurs joueurs simulés dans
+-- la même partie, chacun avec son or et ses tours).
 local Env = require("./env")
 local Levels = require("./gen/shared/Levels")
 local IdleTowers = require("./gen/shared/IdleTowers")
@@ -294,46 +295,33 @@ function Bot.playLazy(level: number, towers: { string })
 	return { won = game.state == "Won", lives = game.lives, kills = game.kills, total = #game.queue, seconds = game.clock }
 end
 
--- observe(game, dégâts par seconde estimés de ses tours) : appelée après chaque décision (outils de réglage).
-function Bot.playWith(level: number, profile, policy, observe: ((any, number) -> ())?)
-	local definition = Levels.definition(level)
-	local unlocked, training = {}, {}
-	for _, towerType in profile.towers do
-		unlocked[towerType] = true
-		training[towerType] = (profile.trainings and profile.trainings[towerType]) or profile.training or 0
-	end
-	local arena = { index = Levels.arenaIndex(1), folder = Env.fakeInstance("Arena"), cframe = Levels.arenaCFrame(1), map = definition.map }
-	local player = { UserId = 1, Parent = {} }
-	local ended: boolean? = nil
-	local game = LevelGame.new(arena, player, {
-		level = level,
-		unlocked = unlocked,
-		training = training,
-		startingTower = level == 1,
-		onEnd = function(_, won)
-			ended = won
-		end,
-	})
-
-	local spots = candidateSpots(definition.map)
+-- Ce qu'il faut aux joueurs simulés pour choisir où poser sur la carte d'un niveau : les emplacements à essayer, dans
+-- l'ordre (candidateSpots), et les points du chemin tous les 2 studs (longueur de chemin à portée d'une tour).
+local function mapContext(definition)
 	local geometry = Levels.geometry(definition.map)
-	local pathLength = geometry.PATH_LENGTH
-	local nextDecision = 0
-
-	-- Points du chemin, tous les 2 studs : sert à choisir où poser (longueur de chemin à portée d'une tour).
 	local samples = {}
-	for distance = 0, pathLength, 2 do
+	for distance = 0, geometry.PATH_LENGTH, 2 do
 		table.insert(samples, (geometry.pointAt(distance)))
 	end
-	local function near(a, b, range: number): boolean
-		local dx, dz = a.X - b.X, a.Z - b.Z
-		return dx * dx + dz * dz <= range * range
-	end
+	return { map = definition.map, spots = candidateSpots(definition.map), samples = samples, pathLength = geometry.PATH_LENGTH }
+end
+
+local function near(a, b, range: number): boolean
+	local dx, dz = a.X - b.X, a.Z - b.Z
+	return dx * dx + dz * dz <= range * range
+end
+
+-- Le cerveau d'un joueur simulé dans une partie : la fonction renvoyée fait ses achats du moment (voir Bot.play),
+-- avec SON or et SES tours. member = lui dans la partie (LevelGame : la partie elle-même pour un joueur seul, un des
+-- game.members en équipe) ; ses tours débloquées et son entraînement sont les siens (member.unlocked, member.training).
+local function makeDecider(game, member, profile, policy, context)
+	local training, unlocked = member.training, member.unlocked
+	local spots, samples, pathLength = context.spots, context.samples, context.pathLength
 
 	local function freeSpot()
 		local positions = game:towerPositions()
 		for _, spot in spots do
-			if Levels.checkPlacement(definition.map, spot, positions) then
+			if Levels.checkPlacement(context.map, spot, positions) then
 				return spot
 			end
 		end
@@ -347,7 +335,7 @@ function Bot.playWith(level: number, profile, policy, observe: ((any, number) ->
 		local range = Levels.towerStats(towerType, 1, training[towerType]).range
 		local best, bestScore = nil, -1
 		for _, spot in spots do
-			if Levels.checkPlacement(definition.map, spot, positions) then
+			if Levels.checkPlacement(context.map, spot, positions) then
 				local score = 0
 				for _, sample in samples do
 					if near(sample, spot, range) then
@@ -373,12 +361,12 @@ function Bot.playWith(level: number, profile, policy, observe: ((any, number) ->
 		return best
 	end
 
-	local function decide()
+	return function()
 		for _ = 1, profile.actions or 20 do
 			local total = 0
-			local copies = IdleTowers.countCopies(game.towers)
+			local copies = game:copiesOf(member)
 			for _, tower in game.towers do
-				total += estimate(tower.type, tower.level, training[tower.type])
+				total += estimate(tower.type, tower.level, tower.owner.training[tower.type])
 			end
 			local danger = false
 			for _, enemy in game.enemies do
@@ -409,7 +397,7 @@ function Bot.playWith(level: number, profile, policy, observe: ((any, number) ->
 				end
 			end
 			for id, tower in game.towers do
-				local cost = Levels.upgradeCost(tower.type, tower.level)
+				local cost = if tower.owner == member then Levels.upgradeCost(tower.type, tower.level) else nil
 				if cost then
 					local value = estimate(tower.type, tower.level + 1, training[tower.type]) - estimate(tower.type, tower.level, training[tower.type])
 					value *= Bot.VALUE_SCALE[tower.type] or 1
@@ -418,10 +406,10 @@ function Bot.playWith(level: number, profile, policy, observe: ((any, number) ->
 			end
 			-- Des Archers d'abord (dégâts sûrs dès le début), si cette façon de jouer le demande.
 			if spot and unlocked.MachineGun and (copies.MachineGun or 0) < math.min(policy.archers, Levels.maxCopies("MachineGun")) then
-				if game.gold < Levels.placeCost("MachineGun") then
+				if member.gold < Levels.placeCost("MachineGun") then
 					return
 				end
-				game:placeTower("MachineGun", bestSpot("MachineGun") or spot)
+				game:placeTower("MachineGun", bestSpot("MachineGun") or spot, member)
 				continue
 			end
 			local best, bestScore = nil, 0
@@ -431,25 +419,79 @@ function Bot.playWith(level: number, profile, policy, observe: ((any, number) ->
 				if score > bestScore then
 					best, bestScore = option, score
 				end
-				if option.cost <= game.gold and score > affordableScore then
+				if option.cost <= member.gold and score > affordableScore then
 					affordable, affordableScore = option, score
 				end
 			end
 			local choice = affordable
-			if best and best.cost > game.gold and not danger and bestScore >= policy.patience * affordableScore then
+			if best and best.cost > member.gold and not danger and bestScore >= policy.patience * affordableScore then
 				return -- il économise pour son meilleur achat
 			end
 			if not choice then
 				return
 			end
 			if choice.place then
-				game:placeTower(choice.place, bestSpot(choice.place) or spot)
+				game:placeTower(choice.place, bestSpot(choice.place) or spot, member)
 			else
-				game:upgradeTower(choice.upgrade)
+				game:upgradeTower(choice.upgrade, member)
 			end
 		end
 	end
+end
 
+-- Tours posées par type (« 5 MachineGun (3,3,2,2,2) ... »), seulement celles de `owner` s'il est donné.
+local function buildText(game, owner): (string, number, number)
+	local levels, count = 0, 0
+	local byType = {}
+	for _, tower in game.towers do
+		if owner == nil or tower.owner == owner then
+			levels += tower.level
+			count += 1
+			byType[tower.type] = byType[tower.type] or {}
+			table.insert(byType[tower.type], tower.level)
+		end
+	end
+	local parts = {}
+	for _, towerType in IdleTowers.ORDER do
+		local list = byType[towerType]
+		if list then
+			table.sort(list, function(a, b)
+				return a > b
+			end)
+			table.insert(parts, `{#list} {towerType} ({table.concat(list, ",")})`)
+		end
+	end
+	return table.concat(parts, " "), count, levels
+end
+
+-- Tours débloquées et entraînement d'un profil (voir Bot.playWith).
+local function profileSetup(profile)
+	local unlocked, training = {}, {}
+	for _, towerType in profile.towers do
+		unlocked[towerType] = true
+		training[towerType] = (profile.trainings and profile.trainings[towerType]) or profile.training or 0
+	end
+	return unlocked, training
+end
+
+-- observe(game, dégâts par seconde estimés de ses tours) : appelée après chaque décision (outils de réglage).
+function Bot.playWith(level: number, profile, policy, observe: ((any, number) -> ())?)
+	local definition = Levels.definition(level)
+	local unlocked, training = profileSetup(profile)
+	local arena = { index = Levels.arenaIndex(1), folder = Env.fakeInstance("Arena"), cframe = Levels.arenaCFrame(1), map = definition.map }
+	local player = { UserId = 1, Parent = {} }
+	local ended: boolean? = nil
+	local game = LevelGame.new(arena, player, {
+		level = level,
+		unlocked = unlocked,
+		training = training,
+		startingTower = level == 1,
+		onEnd = function(_, won)
+			ended = won
+		end,
+	})
+	local decide = makeDecider(game, game, profile, policy, mapContext(definition))
+	local nextDecision = 0
 	while ended == nil and game.clock < Bot.MAX_SECONDS do
 		if game.clock >= nextDecision then
 			nextDecision = game.clock + (profile.interval or Bot.DECISION_INTERVAL)
@@ -464,25 +506,7 @@ function Bot.playWith(level: number, profile, policy, observe: ((any, number) ->
 		end
 		game:simulate(Bot.DT)
 	end
-
-	local levels, count = 0, 0
-	local byType = {}
-	for _, tower in game.towers do
-		levels += tower.level
-		count += 1
-		byType[tower.type] = byType[tower.type] or {}
-		table.insert(byType[tower.type], tower.level)
-	end
-	local parts = {}
-	for _, towerType in IdleTowers.ORDER do
-		local list = byType[towerType]
-		if list then
-			table.sort(list, function(a, b)
-				return a > b
-			end)
-			table.insert(parts, `{#list} {towerType} ({table.concat(list, ",")})`)
-		end
-	end
+	local build, count, levels = buildText(game, nil)
 	return {
 		won = ended == true,
 		ended = ended ~= nil,
@@ -494,8 +518,91 @@ function Bot.playWith(level: number, profile, policy, observe: ((any, number) ->
 		spent = game.goldSpent,
 		towers = count,
 		levels = levels,
-		build = table.concat(parts, " "),
+		build = build,
 	}
+end
+
+-- Une partie EN ÉQUIPE (« JOUER EN ÉQUIPE », Levels.luau) : un joueur simulé par profil, dans la même partie, chacun
+-- avec son or et ses tours, qui décide à son propre rythme (profile.interval). Tous jouent de la même façon (policy).
+-- Les monstres sont ceux d'une équipe de #profiles joueurs (Levels.TEAM_HEALTH). Pas de tour offerte au niveau 1.
+-- Renvoie { won, ended, lives, seconds, kills, total, towers = nombre posé, builds = { texte des tours de chacun } }.
+function Bot.playTeamWith(level: number, profiles, policy)
+	local definition = Levels.definition(level)
+	local unlocked, training = profileSetup(profiles[1])
+	local team = {}
+	for index = 2, #profiles do
+		local otherUnlocked, otherTraining = profileSetup(profiles[index])
+		table.insert(team, { player = { UserId = index, Parent = {} }, unlocked = otherUnlocked, training = otherTraining })
+	end
+	local arena = { index = Levels.arenaIndex(1), folder = Env.fakeInstance("Arena"), cframe = Levels.arenaCFrame(1), map = definition.map }
+	local ended: boolean? = nil
+	local game = LevelGame.new(arena, { UserId = 1, Parent = {} }, {
+		level = level,
+		unlocked = unlocked,
+		training = training,
+		startingTower = level == 1 and #profiles == 1,
+		team = team,
+		onEnd = function(_, won)
+			ended = won
+		end,
+	})
+	local context = mapContext(definition)
+	local bots = {}
+	for index, member in game.members do
+		bots[index] = { decide = makeDecider(game, member, profiles[index], policy, context), interval = profiles[index].interval or Bot.DECISION_INTERVAL, nextDecision = 0 }
+	end
+	while ended == nil and game.clock < Bot.MAX_SECONDS do
+		for _, bot in bots do
+			if game.clock >= bot.nextDecision then
+				bot.nextDecision = game.clock + bot.interval
+				bot.decide()
+			end
+		end
+		game:simulate(Bot.DT)
+	end
+	local builds, count = {}, 0
+	for index, member in game.members do
+		local build, towers = buildText(game, member)
+		builds[index] = build
+		count += towers
+	end
+	return {
+		won = ended == true,
+		ended = ended ~= nil,
+		lives = game.lives,
+		seconds = game.clock,
+		kills = game.kills,
+		total = #game.queue,
+		towers = count,
+		builds = builds,
+	}
+end
+
+-- Comme Bot.play, pour une équipe : la meilleure partie parmi Bot.POLICIES (enough : voir Bot.play).
+function Bot.playTeam(level: number, profiles, enough: ((any) -> boolean)?)
+	local best = nil
+	for _, policy in Bot.POLICIES do
+		local result = Bot.playTeamWith(level, profiles, policy)
+		local better = best == nil
+			or (result.won and not best.won)
+			or (result.won == best.won and (if result.won then result.lives > best.lives else result.kills > best.kills))
+		if better then
+			best = result
+		end
+		if enough and enough(best) then
+			break
+		end
+	end
+	return best
+end
+
+-- Une équipe de `size` joueurs simulés qui ont tous le même profil (Bot.profile : pace = rythme, voir là-bas).
+function Bot.teamProfiles(level: number, size: number, pace: (number | string)?)
+	local profiles = {}
+	for _ = 1, size do
+		table.insert(profiles, Bot.profile(level, pace))
+	end
+	return profiles
 end
 
 return Bot

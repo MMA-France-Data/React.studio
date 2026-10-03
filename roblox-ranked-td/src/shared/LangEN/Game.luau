@@ -176,7 +176,7 @@ return {
 	["Tes données ne sont pas encore chargées"] = "Your data isn't loaded yet",
 	["Ce niveau n'existe pas encore"] = "This level doesn't exist yet",
 	["Réussis d'abord le niveau {1}"] = "Clear level {1} first",
-	["Aucune zone de combat libre pour toi"] = "No battle zone is free for you",
+	["Aucune zone de combat libre pour l'instant"] = "No battle zone is free right now",
 	["Cette tour n'est pas en vente"] = "This tower isn't for sale",
 	["{1} est déjà à toi"] = "{1} is already yours",
 	["Il te manque {1} pièces de niveau"] = "You need {1} more level coins",
@@ -186,6 +186,60 @@ return {
 	["Cette tour est déjà au maximum de son entraînement"] = "This tower is already fully trained",
 	["Cet emplacement est au niveau maximum"] = "This slot is at max level",
 	["Tous les emplacements du camp sont ouverts"] = "All camp slots are open",
+
+	----------------------------------------------------------------------
+	-- Jouer en équipe : client/LevelsUI.luau (bouton et page de l'équipe, invitation, écran du niveau) et messages du
+	-- serveur (Hub/LevelTeams.luau, Hub/LevelsService.luau, Hub/LevelGame.luau)
+	----------------------------------------------------------------------
+	["ÉQUIPE"] = "TEAM", -- « 👥 ÉQUIPE (3) », « 🔒 ÉQUIPE »
+	["LE CHEF"] = "LEADER", -- « 👥 LE CHEF »
+	["Jusqu'à {1} joueurs défendent le même château, dans la même partie."] = "Up to {1} players defend the same castle, in the same game.",
+	["Chacun pose ses tours avec son or, et chaque monstre tué donne son or à tout le monde."] = "Everyone places their own towers with their own gold, and every monster killed gives its gold to everyone.",
+	["Les monstres ont plus de vie, mais chacun gagne plus de pièces : +{1} % à deux, +{2} % à trois, +{3} % à quatre."] = "Monsters have more health, but everyone earns more coins: +{1}% for two, +{2}% for three, +{3}% for four.",
+	["C'est le chef de l'équipe qui lance les niveaux : ils doivent être ouverts pour tous."] = "The team leader starts the levels: they must be unlocked for everyone.",
+	["TON ÉQUIPE ({1}/{2}) : tu es le chef"] = "YOUR TEAM ({1}/{2}): you're the leader",
+	["L'ÉQUIPE DE {1} ({2}/{3})"] = "{1}'s TEAM ({2}/{3})",
+	["TU JOUES SEUL : invite des joueurs ci-dessous"] = "YOU'RE PLAYING SOLO: invite players below",
+	["Réussis d'abord le niveau {1} pour jouer en équipe"] = "Clear level {1} first to play as a team",
+	["{1} (toi) : niveau {2} réussi"] = "{1} (you): level {2} cleared",
+	["{1} : niveau {2} réussi"] = "{1}: level {2} cleared",
+	["{1} : dans ton équipe"] = "{1}: in your team",
+	["{1} : déjà dans une équipe"] = "{1}: already in a team",
+	["{1} : pas encore fini le niveau {2}"] = "{1}: hasn't cleared level {2} yet",
+	["Quitter l'équipe"] = "Leave team",
+	["JOUEURS DE CE SERVEUR"] = "PLAYERS IN THIS SERVER",
+	["Personne d'autre dans ce serveur pour l'instant. Invite des amis à te rejoindre sur Roblox !"] = "Nobody else in this server yet. Invite friends to join you on Roblox!",
+	["Inviter"] = "Invite",
+	["{1} t'invite à jouer en équipe !"] = "{1} invites you to play as a team!",
+	["Accepter"] = "Accept", -- « ✓ Accepter »
+	["Refuser"] = "Decline",
+	["C'est {1}, le chef de ton équipe, qui lance les niveaux"] = "{1}, your team leader, starts the levels",
+	["Tour de {1}"] = "{1}'s tower",
+	["Bonus d'équipe ({1} joueurs) : +{2} % de pièces"] = "Team bonus ({1} players): +{2}% coins", -- « 👥 Bonus d'équipe... »
+	["{1} choisit la suite"] = "{1} picks what's next", -- « ⏳ Robin choisit la suite »
+	["Invitation envoyée à {1}"] = "Invite sent to {1}",
+	["{1} a refusé ton invitation"] = "{1} declined your invite",
+	["{1} rejoint ton équipe !"] = "{1} joins your team!",
+	["Tu joues maintenant dans l'équipe de {1}"] = "You're now playing in {1}'s team",
+	["{1} a quitté l'équipe : tu joues seul"] = "{1} left the team: you're playing solo",
+	["{1} a quitté l'équipe"] = "{1} left the team",
+	["{1} a quitté le niveau : ses tours restent et continuent de tirer"] = "{1} left the level: their towers stay and keep shooting",
+	["{1} lance le niveau {2} pour l'équipe"] = "{1} starts level {2} for the team",
+	["C'est {1}, le chef de ton équipe, qui lance les niveaux (ou quitte l'équipe pour jouer seul)"] = "{1}, your team leader, starts the levels (or leave the team to play solo)",
+	["Le niveau {1} n'est pas encore ouvert pour {2}"] = "Level {1} isn't unlocked yet for {2}",
+	["{1} joue encore un niveau avec d'autres joueurs : attends la fin"] = "{1} is still playing a level with other players: wait until it ends",
+	["Les données de {1} ne sont pas encore chargées"] = "{1}'s data isn't loaded yet",
+	["Seul le chef de l'équipe peut inviter"] = "Only the team leader can invite",
+	["Ton équipe est complète ({1} joueurs au plus)"] = "Your team is full ({1} players max)",
+	["{1} est déjà dans une équipe"] = "{1} is already in a team",
+	["{1} doit d'abord réussir le niveau {2}"] = "{1} must clear level {2} first",
+	["Ce joueur n'est plus là"] = "That player is gone",
+	["Cette invitation n'est plus valable"] = "This invite is no longer valid",
+	["{1} n'est plus là"] = "{1} is gone",
+	["Tu es déjà dans une équipe : quitte-la d'abord"] = "You're already in a team: leave it first",
+	["{1} n'est plus le chef de son équipe"] = "{1} is no longer their team's leader",
+	["L'équipe de {1} est complète"] = "{1}'s team is full",
+	["Ce n'est pas ta tour : seul celui qui l'a posée peut l'améliorer ou la vendre"] = "That's not your tower: only the player who placed it can upgrade or sell it",
 
 	----------------------------------------------------------------------
 	-- Hub/Camp.luau : socles d'entraînement de la parcelle (étiquettes et invites)

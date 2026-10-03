@@ -29,8 +29,10 @@ Levels.LIVES = 10
 
 ----------------------------------------------------------------------
 -- Zones de combat : une par joueur, dans le MÊME serveur que la map principale (pas de téléportation, donc pas
--- d'écran de chargement), loin de la place. Le joueur de la parcelle n joue dans la zone n. Pour l'affichage, une
--- zone est une « parcelle » de plus : son numéro est FIRST_ARENA_INDEX + n (paquets PlotSync / PlotShots).
+-- d'écran de chargement), loin de la place. Le joueur de la parcelle n joue dans la zone n quand elle est libre
+-- (sinon dans une autre zone libre) ; une équipe joue dans une seule zone (voir « JOUER EN ÉQUIPE »). Pour
+-- l'affichage, une zone est une « parcelle » de plus : son numéro est FIRST_ARENA_INDEX + n (paquets PlotSync /
+-- PlotShots).
 ----------------------------------------------------------------------
 Levels.FIRST_ARENA_INDEX = 100
 Levels.ARENA_ORIGIN = Vector3.new(0, 0, -3000)
@@ -738,6 +740,60 @@ function Levels.reward(level: number, won: boolean, firstClear: boolean, progres
 	return math.floor(replay * Levels.DEFEAT_SHARE * math.clamp(progress or 0, 0, 1))
 end
 
+----------------------------------------------------------------------
+-- JOUER EN ÉQUIPE. Demande du propriétaire (03/10/2026) : « jouer en équipe » ; « et même un bonus 10 % pièces, et
+-- on pourrait faire trio et quad aussi avec 30 et 40 % ». Jusqu'à TEAM_MAX joueurs défendent le même château,
+-- dans la même partie (serveur : Hub/LevelTeams.luau pour qui est avec qui, LevelGame.luau pour la partie) :
+--   * chacun a SON or : l'or de départ du niveau, et TOUT l'or de chaque monstre tué, quel que soit le tireur ;
+--   * chacun pose SES tours (ses limites par type, son entraînement, ses évolutions), et n'améliore ou ne vend
+--     que les siennes ;
+--   * les vies du château et le flot de monstres sont communs ; les monstres ont TEAM_HEALTH fois plus de PV
+--     (réglé avec des équipes de joueurs simulés : tools/levels, run.ps1 -Equipe) ;
+--   * à la fin, chacun reçoit SES pièces de niveau (première victoire ou non : selon SES niveaux réussis), avec le
+--     bonus d'équipe TEAM_COIN_BONUS, et l'XP de SES tours posées ; une victoire ouvre le niveau suivant à chacun ;
+--   * c'est le CHEF qui lance les niveaux, et le niveau doit être ouvert pour tous ; il faut avoir fini le
+--     niveau 1 (le tuto) pour jouer en équipe ;
+--   * celui qui s'en va (bouton Quitter, ou départ du jeu) abandonne pour lui seul : ses tours restent et
+--     continuent de tirer, les autres continuent.
+-- Les listes sont rangées par nombre de joueurs : [1] = seul, [2] = à deux, [3] = à trois, [4] = à quatre.
+-- TEAM_HEALTH, mesuré le 03/10/2026 sur 12 niveaux (3 à 100) avec run.ps1 -Equipe : PV x le plus haut où une équipe
+-- de joueurs de référence gagne encore avec 5 vies = 1,95 à 2,7 à deux (médiane 2,15 : chacun reçoit TOUT l'or, deux
+-- joueurs font donc un peu plus que deux fois un seul), 2,6 à 3,8 à trois (2,8), 2,7 à 5,3 à quatre (3,5). Les
+-- chiffres gardés sont un peu en dessous de la médiane : une équipe de joueurs normaux gagne presque partout, une
+-- équipe qui attend perd encore presque toujours.
+----------------------------------------------------------------------
+Levels.TEAM_MAX = 4
+Levels.TEAM_HEALTH = { 1, 1.9, 2.5, 3.1 }
+Levels.TEAM_COIN_BONUS = { 0, 0.1, 0.3, 0.4 } -- (chiffres du propriétaire)
+Levels.TEAM_INVITE_SECONDS = 30 -- une invitation sans réponse disparaît au bout de ce temps
+
+local function teamIndex(size: any): number
+	return math.clamp(math.floor(tonumber(size) or 1), 1, Levels.TEAM_MAX)
+end
+
+-- Multiplicateur des PV des monstres pour une équipe de `size` joueurs (1 = seul).
+function Levels.teamHealth(size: number?): number
+	return Levels.TEAM_HEALTH[teamIndex(size)] or 1
+end
+
+-- Bonus de pièces de niveau d'une équipe de `size` joueurs (0,1 = +10 %).
+function Levels.teamBonus(size: number?): number
+	return Levels.TEAM_COIN_BONUS[teamIndex(size)] or 0
+end
+
+-- Pièces de niveau d'un joueur d'une équipe de `size` joueurs : la récompense normale, plus le bonus d'équipe.
+function Levels.teamReward(reward: number, size: number?): number
+	return math.floor(reward * (1 + Levels.teamBonus(size)) + 0.5)
+end
+
+-- Le n° d'un joueur dans les noms d'attributs de sa zone de combat (« Gold_<n°> », « Training_<n°> »,
+-- « Result_<n°> ») : son UserId, ou « m » et son opposé pour un n° négatif (joueurs d'essai de Studio) : un nom
+-- d'attribut n'accepte que des lettres, des chiffres et « _ ».
+function Levels.memberKey(userId: any): string
+	local id = math.floor(tonumber(userId) or 0)
+	return if id < 0 then "m" .. tostring(-id) else tostring(id)
+end
+
 -- Fiche d'un niveau : { level, territory, map, palier (famille de monstres), gold, lives, boss, miniBoss, reward,
 -- replay }.
 function Levels.definition(level: number)
@@ -784,13 +840,19 @@ local function streamType(source, slot: number, progress: number): string
 end
 
 -- File d'apparition d'un niveau : { { enemy, health, reward (or), at (secondes depuis le début) } }, dans l'ordre
--- des heures. Le flot continu décrit plus haut : toujours la même file pour le même niveau.
-function Levels.buildQueue(level: number)
+-- des heures. Le flot continu décrit plus haut : toujours la même file pour le même niveau. teamSize = nombre de
+-- joueurs de la partie (« JOUER EN ÉQUIPE » : PV x teamHealth ; absent = seul).
+function Levels.buildQueue(level: number, teamSize: number?)
 	local source = Levels.DEFINITIONS[level]
 	assert(source, "Niveau inconnu : " .. tostring(level))
 	local queue = {}
+	local teamScale = Levels.teamHealth(teamSize)
 	local function push(enemyType: string, at: number, factor: number)
-		table.insert(queue, { enemy = enemyType, health = Levels.enemyHealth(level, enemyType, factor), reward = Levels.ENEMY[enemyType].gold, at = at })
+		local health = Levels.enemyHealth(level, enemyType, factor)
+		if teamScale ~= 1 then
+			health = math.floor(health * teamScale * 10 + 0.5) / 10
+		end
+		table.insert(queue, { enemy = enemyType, health = health, reward = Levels.ENEMY[enemyType].gold, at = at })
 	end
 	-- Monstres à part (mini-boss, boss), rangés par heure de sortie.
 	local specials = {}

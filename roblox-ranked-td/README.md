@@ -45,10 +45,10 @@ sauvegarde (`Niveaux_PlayerData_v1`) : il ne lit et n'écrase jamais les sauvega
 powershell -ExecutionPolicy Bypass -File tools\levels\run.ps1 -Tests
 ```
 
-1 792 vérifications des règles, de la difficulté de chacun des 100 niveaux, des évolutions, du camp et du tuto
-(environ cinq minutes). Sans `-Tests` : le tableau de difficulté des 100 niveaux joués par des joueurs simulés ; `-Lazy`,
-`-Tune`, `-Curve`, `-Worth` pour
-régler la difficulté (voir [tools/levels/README.md](tools/levels/README.md)).
+Les vérifications des règles, de la difficulté de chacun des 100 niveaux, des évolutions, du camp, du tuto et du jeu
+en équipe (une dizaine de minutes). Sans `-Tests` : le tableau de difficulté des 100 niveaux joués par des joueurs
+simulés ; `-Lazy`, `-Tune`, `-Curve`, `-Worth`, `-Equipe` pour régler la difficulté (voir
+[tools/levels/README.md](tools/levels/README.md)).
 
 ```bash
 powershell -ExecutionPolicy Bypass -File tools\studio-test\check.ps1
@@ -72,6 +72,10 @@ powershell -ExecutionPolicy Bypass -File tools\studio-test\run.ps1 -Test tutoria
 
 ```bash
 powershell -ExecutionPolicy Bypass -File tools\studio-test\run.ps1 -Test english
+```
+
+```bash
+powershell -ExecutionPolicy Bypass -File tools\studio-test\run.ps1 -Test team
 ```
 
 Le premier joue le jeu en entier (serveur, puis la vraie interface à la taille d'un ordinateur et d'un téléphone),
@@ -231,8 +235,8 @@ src/
                                           Lang, LangEN/{Glossary, Game}
   server/   (ServerScriptService.Server)  Main, PlayerData, MockDataStore,
                                           Hub/{init, HubMap, Plots, PlotBoard, PlotIdentity, PlotInterest,
-                                               Combat, LevelGame, LevelArena, LevelsService, Funnel, Camp, CampGame,
-                                               IdleTowerModel}
+                                               Combat, LevelGame, LevelArena, LevelsService, LevelTeams, Funnel, Camp,
+                                               CampGame, IdleTowerModel}
   client/   (StarterPlayerScripts.Client) Main, UI, LevelsUI, TutorialUI, PlotRenderer, PlotAccess, Effects,
                                           CombatVFX, SoundManager, AutoTranslate, EnemyGallery, SoundPanel
 assets/

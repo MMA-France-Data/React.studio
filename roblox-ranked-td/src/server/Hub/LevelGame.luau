@@ -10,6 +10,8 @@
 --     monstre tué donne son or tout de suite ;
 --   * un monstre qui atteint le château coûte des VIES (Levels.ENEMY.leak) ; à 0, le niveau est perdu ;
 --   * le niveau est gagné quand tout le flot est éliminé ;
+--   * JOUER EN ÉQUIPE (Levels.luau) : plusieurs joueurs dans la même partie, chacun avec son or et ses tours (voir
+--     « Les joueurs de la partie » dans LevelGame.new) ;
 --   * rien n'est sauvegardé ici : les récompenses sont données par LevelsService (onEnd).
 -- Ce fichier tourne aussi hors de Studio (tools/levels, avec ses imitations de Roblox) : pas d'autre objet Roblox
 -- que le dossier des tours et leurs modèles (IdleTowerModel).
@@ -31,6 +33,11 @@ end
 -- Petite marge pour comparer des heures de la simulation.
 local TIME_EPSILON = 1e-6
 
+-- UserId d'un joueur (0 s'il n'en a pas : joueurs simulés de tools/levels sans numéro).
+local function memberId(player): number
+	return if player and tonumber(player.UserId) then player.UserId else 0
+end
+
 local LevelGame = setmetatable({}, { __index = Combat })
 LevelGame.__index = LevelGame
 
@@ -38,7 +45,8 @@ LevelGame.__index = LevelGame
 --           lus par les clients), cframe (centre de la zone), map (nom de la carte) }
 -- options = { level, unlocked = { [type] = true }, training = { [type] = niveau d'entraînement },
 --             startingTower = vrai pour poser la tour de départ offerte (niveau 1),
---             onEnd = function(game, won) appelée une seule fois à la fin }
+--             onEnd = function(game, won) appelée une seule fois à la fin,
+--             team = { { player, unlocked, training } } : les AUTRES joueurs d'une partie en équipe (absent : seul) }
 function LevelGame.new(arena, player, options)
 	local self = setmetatable({}, LevelGame)
 	self.plot = arena
@@ -52,6 +60,35 @@ function LevelGame.new(arena, player, options)
 	self.unlocked = options.unlocked or {}
 	self.training = options.training or {}
 	self.onEnd = options.onEnd
+
+	-- Les joueurs de la partie (« JOUER EN ÉQUIPE », Levels.luau). Le premier, celui qui l'a lancée, est la partie
+	-- elle-même : son or est self.gold, ses tours débloquées self.unlocked, etc. ; une partie à un seul joueur ne
+	-- change donc pas. Les autres sont des tables du même modèle : { player, userId, key, unlocked, training, gold,
+	-- usedTowers, goldEarned, goldSpent, departed }. placeTower, upgradeTower et sellTower agissent pour le joueur
+	-- donné (`member`), le premier s'il est absent. key = son n° dans les noms d'attributs (Levels.memberKey).
+	self.userId = memberId(player)
+	self.key = Levels.memberKey(self.userId)
+	self.departed = false
+	self.members = { self }
+	for _, other in options.team or {} do
+		local userId = memberId(other.player)
+		table.insert(self.members, {
+			player = other.player,
+			userId = userId,
+			key = Levels.memberKey(userId),
+			unlocked = other.unlocked or {},
+			training = other.training or {},
+			gold = self.definition.gold,
+			usedTowers = {},
+			goldEarned = 0,
+			goldSpent = 0,
+			departed = false,
+		})
+	end
+	self.teamSize = #self.members
+	for _, member in self.members do
+		member.goldName = "Gold_" .. member.key -- (attribut de son or, écrit à chaque image : nom gardé)
+	end
 
 	-- Champs du combat (Combat.luau).
 	self.enemies = {}
@@ -70,7 +107,7 @@ function LevelGame.new(arena, player, options)
 	self.state = "Running" -- "Running" | "Won" | "Lost"
 	self.gold = self.definition.gold
 	self.lives = self.definition.lives
-	self.queue = Levels.buildQueue(options.level)
+	self.queue = Levels.buildQueue(options.level, self.teamSize) -- (en équipe : monstres plus résistants)
 	self.queueIndex = 1
 	self.streamSeconds = math.max(1, self.queue[#self.queue].at) -- heure de sortie du dernier monstre
 	self.leaked = 0
@@ -87,15 +124,30 @@ function LevelGame.new(arena, player, options)
 		local spot = self.layout.map.spots[1]
 		self:createTower(Levels.STARTING_TOWER, 1, 0, spot)
 	end
-	self:setAttr("Perks", Levels.perkKeys(self.training))
+	-- Effets débloqués qui changent l'affichage (PlotRenderer) : ceux de tous les joueurs de la partie. Entraînement
+	-- de chacun (« Training_<n°> ») : le client affiche les vraies stats de chaque tour posée, la sienne ou celle d'un
+	-- autre ; « Training » = celui du premier joueur (tuto).
+	local perks, seen = {}, {}
+	for _, member in self.members do
+		for key in string.gmatch(Levels.perkKeys(member.training), "[^,]+") do
+			if not seen[key] then
+				seen[key] = true
+				table.insert(perks, key)
+			end
+		end
+		self:setAttr("Training_" .. member.key, Levels.encodeTraining(member.training))
+	end
+	self:setAttr("Perks", table.concat(perks, ","))
 	self:setAttr("Training", Levels.encodeTraining(self.training))
+	self:setAttr("TeamSize", self.teamSize)
 	self:syncAttributes()
 	return self
 end
 
 -- Attributs de la zone, lus par les clients (LevelsUI : or, vies, avancée ; PlotRenderer : Wave = style des monstres,
 -- State, SimSpeed). Progress = avancée du flot dans le temps, en % (0 = début, 100 = le dernier monstre est sorti) :
--- les monstres sont de plus en plus forts tout du long, la barre du joueur passe du vert au rouge.
+-- les monstres sont de plus en plus forts tout du long, la barre du joueur passe du vert au rouge. Or : « Gold_<n°> »
+-- pour chaque joueur encore là, « Gold » = celui du premier (tuto).
 function LevelGame:syncAttributes()
 	local alive = 0
 	for _, enemy in self.enemies do
@@ -108,6 +160,11 @@ function LevelGame:syncAttributes()
 	self:setAttr("State", self.state)
 	self:setAttr("SimSpeed", self.simSpeed)
 	self:setAttr("Gold", math.floor(self.gold))
+	for _, member in self.members do
+		if not member.departed then
+			self:setAttr(member.goldName, math.floor(member.gold))
+		end
+	end
 	self:setAttr("Lives", self.lives)
 	self:setAttr("Left", alive + (#self.queue - self.queueIndex + 1))
 	self:setAttr("Total", #self.queue)
@@ -147,7 +204,7 @@ end
 
 -- Dégâts sur un monstre. fragile = ces dégâts profitent de la fragilité du Totem de givre (toutes les tours sauf
 -- celles marquées ignoresFragility) : x (1 + fragilité) tant qu'elle dure. Tué, son or va tout de suite dans la
--- bourse du niveau.
+-- bourse du niveau : celle de CHAQUE joueur encore là (en équipe, chacun reçoit tout l'or, quel que soit le tireur).
 function LevelGame:damageEnemy(enemy, amount: number, fragile: boolean?)
 	if enemy.dead then
 		return
@@ -159,13 +216,19 @@ function LevelGame:damageEnemy(enemy, amount: number, fragile: boolean?)
 	if enemy.health <= 0 then
 		enemy.dead = true
 		self.kills += 1
-		self.gold += enemy.reward
-		self.goldEarned += enemy.reward
+		for _, member in self.members do
+			if not member.departed then
+				member.gold += enemy.reward
+				member.goldEarned += enemy.reward
+			end
+		end
 	end
 end
 
+-- Stats d'une tour : avec l'entraînement de SON joueur (une tour sans joueur, celle du camp de la parcelle qui hérite
+-- de LevelGame : CampGame.luau, prend l'entraînement de la partie, relu à chaque tir).
 function LevelGame:statsOf(tower)
-	return Levels.towerStats(tower.type, tower.level, self.training[tower.type])
+	return Levels.towerStats(tower.type, tower.level, (tower.owner or self).training[tower.type])
 end
 
 -- Vitesse actuelle en fraction de la vitesse normale : type x contrôle (0 si étourdi). Même calcul que Combat.
@@ -297,7 +360,9 @@ function LevelGame:towerPositions(): { Vector3 }
 	return positions
 end
 
-function LevelGame:createTower(towerType: string, level: number, spent: number, localPosition: Vector3)
+-- owner = le joueur de la partie à qui est la tour (le premier s'il est absent).
+function LevelGame:createTower(towerType: string, level: number, spent: number, localPosition: Vector3, owner: any?)
+	local member = owner or self
 	local id = self:newId()
 	local ground = Vector3.new(localPosition.X, 0, localPosition.Z)
 	-- Position de combat (portées, départ des tirs) : un peu au-dessus du sol, comme sur une parcelle.
@@ -309,9 +374,10 @@ function LevelGame:createTower(towerType: string, level: number, spent: number, 
 		PlotIndex = self.index,
 		Level = level,
 		Spent = spent,
+		OwnerId = member.userId, -- (en équipe : le client n'améliore et ne vend que ses tours)
 	})
-	-- Tour évoluée par l'entraînement : anneau, fanions, étoiles (Levels.evolutionStage).
-	IdleTowerModel.addEvolution(model, Levels.evolutionStage(towerType, self.training[towerType]))
+	-- Tour évoluée par l'entraînement de son joueur : anneau, fanions, étoiles (Levels.evolutionStage).
+	IdleTowerModel.addEvolution(model, Levels.evolutionStage(towerType, member.training[towerType]))
 	local tower = {
 		id = id,
 		spotIndex = id, -- (Combat : identifie la tour pour ses zones de feu)
@@ -322,55 +388,97 @@ function LevelGame:createTower(towerType: string, level: number, spent: number, 
 		position = combat.Position,
 		cooldown = 0,
 		model = model,
+		owner = member,
 	}
 	self.towers[id] = tower
-	self.usedTowers[towerType] = true
+	member.usedTowers[towerType] = true
 	return tower
 end
 
--- Pose une tour au point local `localPosition`. Renvoie (vrai, nil, la tour) ou (faux, raison).
-function LevelGame:placeTower(towerType: string, localPosition: Vector3): (boolean, string?, any)
-	if self.state ~= "Running" then
+-- Le joueur de la partie qui correspond à ce Player (nil s'il n'y est pas).
+function LevelGame:memberOf(player): any
+	for _, member in self.members do
+		if member.player == player then
+			return member
+		end
+	end
+	return nil
+end
+
+-- Tours posées par ce joueur, par type : { [type] = nombre } (les limites par type valent pour chacun).
+function LevelGame:copiesOf(member): { [string]: number }
+	local copies = {}
+	for _, tower in self.towers do
+		if tower.owner == member then
+			copies[tower.type] = (copies[tower.type] or 0) + 1
+		end
+	end
+	return copies
+end
+
+-- Un joueur quitte la partie pendant que d'autres continuent (en équipe) : il ne reçoit plus d'or ; ses tours
+-- restent et continuent de tirer (plus personne ne peut les améliorer ni les vendre).
+function LevelGame:removeMember(member)
+	if not member or member.departed then
+		return
+	end
+	member.departed = true
+	self:setAttr(member.goldName, nil)
+end
+
+-- Pose une tour au point local `localPosition`, pour le joueur `member` (le premier s'il est absent), avec son or.
+-- Renvoie (vrai, nil, la tour) ou (faux, raison).
+function LevelGame:placeTower(towerType: string, localPosition: Vector3, member: any?): (boolean, string?, any)
+	local buyer = member or self
+	if self.state ~= "Running" or buyer.departed then
 		return false, "Le niveau est terminé"
 	end
 	local def = IdleTowers.Defs[towerType]
 	if not def then
 		return false, "Tour inconnue"
 	end
-	if not self.unlocked[towerType] then
+	if not buyer.unlocked[towerType] then
 		return false, `{def.displayName} n'est pas encore à toi : achète cette tour dans la boutique`
 	end
-	local copies = IdleTowers.countCopies(self.towers)
+	local copies = self:copiesOf(buyer)
 	if (copies[towerType] or 0) >= Levels.maxCopies(towerType) then
 		return false, `Maximum {Levels.maxCopies(towerType)} {def.displayName} par niveau`
 	end
 	local cost = Levels.placeCost(towerType)
-	if self.gold < cost then
+	if buyer.gold < cost then
 		return false, "Pas assez d'or"
 	end
 	local ok, reason = Levels.checkPlacement(self.layout.name, localPosition, self:towerPositions())
 	if not ok then
 		return false, reason
 	end
-	self.gold -= cost
-	self.goldSpent += cost
-	return true, nil, self:createTower(towerType, 1, cost, localPosition)
+	buyer.gold -= cost
+	buyer.goldSpent += cost
+	return true, nil, self:createTower(towerType, 1, cost, localPosition, buyer)
 end
 
-function LevelGame:upgradeTower(towerId: number): (boolean, string?)
+-- Message quand un joueur d'une équipe touche « Améliorer » ou « Vendre » sur la tour d'un autre.
+LevelGame.NOT_YOURS = "Ce n'est pas ta tour : seul celui qui l'a posée peut l'améliorer ou la vendre"
+
+-- Améliore la tour `towerId` du joueur `member` (le premier s'il est absent), avec son or.
+function LevelGame:upgradeTower(towerId: number, member: any?): (boolean, string?)
+	local buyer = member or self
 	local tower = self.towers[towerId]
 	if self.state ~= "Running" or not tower then
 		return false, nil
+	end
+	if tower.owner ~= buyer then
+		return false, LevelGame.NOT_YOURS
 	end
 	local cost = Levels.upgradeCost(tower.type, tower.level)
 	if not cost then
 		return false, "Niveau maximum atteint"
 	end
-	if self.gold < cost then
+	if buyer.gold < cost then
 		return false, "Pas assez d'or"
 	end
-	self.gold -= cost
-	self.goldSpent += cost
+	buyer.gold -= cost
+	buyer.goldSpent += cost
 	tower.level += 1
 	tower.spent += cost
 	tower.model:SetAttribute("Level", tower.level)
@@ -378,11 +486,16 @@ function LevelGame:upgradeTower(towerId: number): (boolean, string?)
 	return true, nil
 end
 
--- Vend la tour : SELL_REFUND de l'or dépensé. Renvoie (vrai, or rendu) ou (faux).
-function LevelGame:sellTower(towerId: number): (boolean, number?)
+-- Vend la tour `towerId` du joueur `member` (le premier s'il est absent) : SELL_REFUND de l'or dépensé, rendu à
+-- lui. Renvoie (vrai, or rendu) ou (faux, nil, raison).
+function LevelGame:sellTower(towerId: number, member: any?): (boolean, number?, string?)
+	local seller = member or self
 	local tower = self.towers[towerId]
 	if self.state ~= "Running" or not tower then
 		return false, nil
+	end
+	if tower.owner ~= seller then
+		return false, nil, LevelGame.NOT_YOURS
 	end
 	local refund = math.floor(tower.spent * Levels.SELL_REFUND)
 	if tower.beamTarget or (tower.beamShownId or 0) ~= 0 then
@@ -390,7 +503,7 @@ function LevelGame:sellTower(towerId: number): (boolean, number?)
 	end
 	self.towers[towerId] = nil
 	tower.model:Destroy()
-	self.gold += refund
+	seller.gold += refund
 	return true, refund
 end
 

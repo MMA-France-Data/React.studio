@@ -1,5 +1,6 @@
 -- NIVEAUX, côté client (règles et chiffres : Shared/Levels.luau, serveur : Hub/LevelsService.luau). Deux écrans :
---   « Levels »   : le bouton « ⚔ NIVEAUX » de la map principale et sa fenêtre à 4 onglets : Niveaux (choisir un
+--   « Levels »   : le bouton « ⚔ NIVEAUX » de la map principale et sa fenêtre à 4 onglets (plus la page de
+--                  l'équipe, bouton « 👥 ÉQUIPE » : jouer à plusieurs, Levels.luau « JOUER EN ÉQUIPE ») : Niveaux (choisir un
 --                  niveau : 10 cartes par territoire, la page défile et s'ouvre sur le territoire du prochain
 --                  niveau), Boutique (tours à prix fixes, en pièces de niveau), Entraînement (emplacements du camp,
 --                  XP et améliorations de chaque tour), Mes tours (l'inventaire et l'ordre de la barre rapide) ;
@@ -11,9 +12,10 @@
 --                  téléphone : appui sur la tour puis appui sur le terrain, ou glisser la tour depuis la barre ; la
 --                  tour en main dit « ANNULER » : un appui dessus annule), petit menu Améliorer / Vendre à côté de
 --                  la tour touchée, bouton x2, écran de fin (Niveau suivant / Rejouer / Retour au camp).
--- Le client ne décide rien : il lit les attributs publiés par le serveur (du joueur : LevelsState, LevelArena ; du
--- dossier de sa zone : Level, State, Gold, Lives..., voir Remotes.luau) et envoie des demandes (remote
--- LevelAction). Les monstres, les tirs et les étiquettes des tours sont affichés par PlotRenderer.
+-- Le client ne décide rien : il lit les attributs publiés par le serveur (du joueur : LevelsState, LevelArena, Team,
+-- TeamInvite ; du dossier de sa zone : Level, State, Gold, Lives..., en équipe Gold_<n°> et Training_<n°> de chaque
+-- joueur, voir Remotes.luau) et envoie des demandes (remote LevelAction). Les monstres, les tirs et les étiquettes
+-- des tours sont affichés par PlotRenderer. « TeamInvite » : un petit écran d'invitation (Accepter / Refuser).
 -- Pendant un niveau, le personnage reste sur sa parcelle : ses commandes sont coupées, les autres écrans du jeu sont
 -- cachés, puis tout est remis au retour.
 -- Anglais : les textes sont écrits en français ici, et traduits à l'affichage pour un joueur non francophone
@@ -122,8 +124,8 @@ local BAR_GAP = 6
 -- Téléphone tenu en large : le bandeau du haut se range dans la barre de Roblox, à droite de ses boutons.
 local PHONE_STRIP_LEFT = 190
 -- Écrans laissés affichés pendant un niveau (les autres sont cachés puis remis). TutorialPointer = la flèche du tuto
--- (TutorialUI.luau).
-local KEEP_GUIS = { LevelHud = true, Toasts = true, TutorialPointer = true }
+-- (TutorialUI.luau) ; TeamInvite = une invitation à jouer en équipe (elle peut arriver pendant un niveau).
+local KEEP_GUIS = { LevelHud = true, Toasts = true, TutorialPointer = true, TeamInvite = true }
 
 local levelAction = nil -- remote LevelAction (LevelsUI.start)
 
@@ -190,6 +192,60 @@ end
 
 local function amount(value: number): string
 	return NumberFormat.short(value)
+end
+
+-- Écrit un texte seulement s'il change (page rafraîchie souvent : un texte affiché en anglais par AutoTranslate serait
+-- sinon réécrit en français, puis retraduit, à chaque fois). La dernière valeur écrite est gardée ici.
+local writtenTexts = setmetatable({}, { __mode = "k" })
+local function setText(object: any, text: string)
+	if writtenTexts[object] ~= text then
+		writtenTexts[object] = text
+		object.Text = text
+	end
+end
+
+----------------------------------------------------------------------
+-- Équipe (« JOUER EN ÉQUIPE », Levels.luau ; serveur : Hub/LevelTeams.luau) : attribut « Team » du joueur
+----------------------------------------------------------------------
+-- { leader = UserId du chef, members = { { id, name, best } } } (le chef en premier) ; nil s'il joue seul.
+local team = nil
+
+local function readTeam()
+	team = nil
+	local raw = player:GetAttribute("Team")
+	if typeof(raw) ~= "string" then
+		return
+	end
+	local ok, decoded = pcall(function()
+		return HttpService:JSONDecode(raw)
+	end)
+	if ok and typeof(decoded) == "table" and typeof(decoded.members) == "table" then
+		team = decoded
+	end
+end
+
+-- Vrai s'il peut lancer un niveau : il joue seul, ou il est le chef de son équipe.
+local function isLeader(): boolean
+	return team == nil or team.leader == player.UserId
+end
+
+local function leaderName(): string
+	for _, member in if team then team.members else {} do
+		if member.id == team.leader then
+			return tostring(member.name)
+		end
+	end
+	return "?"
+end
+
+-- Le premier coéquipier pour qui le niveau `level` n'est pas encore ouvert (son nom) ; nil : ouvert pour tous.
+local function closedFor(level: number): string?
+	for _, member in if team then team.members else {} do
+		if member.id ~= player.UserId and level > (tonumber(member.best) or 0) + 1 then
+			return tostring(member.name)
+		end
+	end
+	return nil
 end
 
 -- Nombre court avec une décimale au plus : 4.05 -> « 4 », 12.34 -> « 12,3 ».
@@ -437,7 +493,7 @@ local function buildCamp()
 
 	UI.label({
 		Name = "Title",
-		Size = UDim2.new(1, -230, 0, 36),
+		Size = UDim2.new(1, -400, 0, 36),
 		Font = Enum.Font.GothamBlack,
 		TextXAlignment = Enum.TextXAlignment.Left,
 		MaxTextSize = 24,
@@ -463,6 +519,17 @@ local function buildCamp()
 		BackgroundColor3 = UI.Colors.Error,
 		Text = "X",
 		MaxTextSize = 30,
+		Parent = window,
+	})
+	-- Bouton « 👥 ÉQUIPE » : la page de l'équipe (jouer à plusieurs : inviter, voir ses coéquipiers, quitter l'équipe).
+	local teamButton = UI.button({
+		Name = "TeamButton",
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.new(1, -238, 0, 0),
+		Size = UDim2.fromOffset(150, 36),
+		BackgroundColor3 = UI.Colors.Purple,
+		Text = "👥 ÉQUIPE",
+		MaxTextSize = 16,
 		Parent = window,
 	})
 
@@ -492,6 +559,19 @@ local function buildCamp()
 			Parent = window,
 		})
 	end
+	-- La page de l'équipe : ouverte par le bouton « 👥 ÉQUIPE » de l'en-tête (pas d'onglet).
+	pages["Équipe"] = UI.new("ScrollingFrame", {
+		Name = "PageTeam",
+		Position = UDim2.fromOffset(0, 92),
+		Size = UDim2.new(1, 0, 1, -92),
+		BackgroundTransparency = 1,
+		ScrollBarThickness = 7,
+		ScrollBarImageColor3 = UI.Colors.Accent,
+		CanvasSize = UDim2.fromOffset(0, WINDOW_SIZE.Y - 24 - 92),
+		ScrollingDirection = Enum.ScrollingDirection.Y,
+		Visible = false,
+		Parent = window,
+	})
 
 	-- Pastille « ! » sur le bouton « ⚔ NIVEAUX » et sur l'onglet Boutique : le joueur a de quoi acheter une tour (sans
 	-- elle, celui qui ne pense pas à la boutique reste bloqué : les niveaux 3, 6 et 11 attendent une nouvelle tour).
@@ -590,8 +670,10 @@ local function buildCamp()
 			Parent = card,
 		})
 		button.Activated:Connect(function()
-			if level <= state.best + 1 then
-				levelAction:FireServer("Start", level)
+			if not isLeader() then
+				UI.toast(`C'est {leaderName()}, le chef de ton équipe, qui lance les niveaux`, "Info")
+			elseif level <= state.best + 1 then
+				levelAction:FireServer("Start", level) -- (en équipe : le serveur vérifie qu'il est ouvert pour tous)
 			end
 		end)
 		levelCards[level] = { card = card, stroke = stroke, reward = reward, button = button }
@@ -624,9 +706,13 @@ local function buildCamp()
 				then `Rejouer :\n+{amount(Levels.reward(level, true, false))} {COIN}`
 				else `Victoire :\n+{amount(Levels.firstReward(level))} {COIN}`
 			entry.reward.TextColor3 = if cleared then UI.Colors.Muted else UI.Colors.Gold
-			entry.button.Text = if cleared then "REJOUER" elseif nextOne then "▶ JOUER" else "🔒"
-			entry.button.BackgroundColor3 = if nextOne or cleared then UI.Colors.Success else UI.Colors.Panel
-			entry.button.AutoButtonColor = cleared or nextOne
+			-- En équipe : seul le chef lance, et seulement un niveau ouvert pour tous (sinon « 🔒 ÉQUIPE »).
+			local blocked = if (cleared or nextOne) and not isLeader() then "👥 LE CHEF"
+				elseif (cleared or nextOne) and closedFor(level) then "🔒 ÉQUIPE"
+				else nil
+			entry.button.Text = blocked or (if cleared then "REJOUER" elseif nextOne then "▶ JOUER" else "🔒")
+			entry.button.BackgroundColor3 = if blocked then UI.Colors.Panel elseif nextOne or cleared then UI.Colors.Success else UI.Colors.Panel
+			entry.button.AutoButtonColor = blocked == nil and (cleared or nextOne)
 			entry.stroke.Color = if nextOne then UI.Colors.Accent else UI.Colors.Ink
 			entry.stroke.Transparency = 0
 			entry.card.BackgroundColor3 = if cleared then Color3.fromRGB(41, 85, 55) elseif nextOne then Color3.fromRGB(38, 91, 133) else UI.Colors.PanelLight
@@ -1197,6 +1283,222 @@ local function buildCamp()
 	end
 
 	------------------------------------------------------------------
+	-- Page « Équipe » (bouton « 👥 ÉQUIPE ») : jouer à plusieurs (« JOUER EN ÉQUIPE », Levels.luau). Les autres joueurs
+	-- du serveur, leur niveau réussi et leur équipe viennent de leurs attributs (LevelsState, Team : publics).
+	------------------------------------------------------------------
+	local teamPage = pages["Équipe"]
+	local TEAM_WORDS = { "seul", "à deux", "à trois", "à quatre" }
+	local bonusParts = {}
+	for size = 2, Levels.TEAM_MAX do
+		table.insert(bonusParts, `+{math.floor(Levels.teamBonus(size) * 100 + 0.5)} % {TEAM_WORDS[size] or `à {size}`}`)
+	end
+	UI.label({
+		Name = "Help",
+		Size = UDim2.new(1, -16, 0, 96),
+		TextWrapped = true,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		TextYAlignment = Enum.TextYAlignment.Top,
+		TextColor3 = UI.Colors.Muted,
+		MaxTextSize = 15,
+		Text = `Jusqu'à {Levels.TEAM_MAX} joueurs défendent le même château, dans la même partie.\n`
+			.. "Chacun pose ses tours avec son or, et chaque monstre tué donne son or à tout le monde.\n"
+			.. `Les monstres ont plus de vie, mais chacun gagne plus de pièces : {table.concat(bonusParts, ", ")}.\n`
+			.. "C'est le chef de l'équipe qui lance les niveaux : ils doivent être ouverts pour tous.",
+		Parent = teamPage,
+	})
+	local ROW_H, MEMBERS_TOP, OTHER_ROWS = 44, 104, 5 -- (serveurs de 6 joueurs : 5 autres au plus)
+	local membersTitle = UI.label({
+		Name = "MembersTitle",
+		Position = UDim2.fromOffset(0, MEMBERS_TOP),
+		Size = UDim2.new(1, -16, 0, 24),
+		Font = Enum.Font.GothamBlack,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		TextColor3 = UI.Colors.Gold,
+		MaxTextSize = 17,
+		Parent = teamPage,
+	})
+	local memberRows = {}
+	for index = 1, Levels.TEAM_MAX do
+		local row = UI.new("Frame", {
+			Name = "Member" .. index,
+			Position = UDim2.fromOffset(0, MEMBERS_TOP + 28 + (index - 1) * ROW_H),
+			Size = UDim2.new(1, -16, 0, ROW_H - 6),
+			Visible = false,
+			Parent = teamPage,
+		}, { UI.corner(5), UI.padding(8) })
+		UI.card(row, UI.Colors.PanelLight)
+		local label = UI.label({
+			Name = "Label",
+			Size = UDim2.fromScale(1, 1),
+			Font = Enum.Font.GothamBold,
+			TextXAlignment = Enum.TextXAlignment.Left,
+			MaxTextSize = 15,
+			Parent = row,
+		})
+		memberRows[index] = { row = row, label = label }
+	end
+	local leaveTop = MEMBERS_TOP + 28 + Levels.TEAM_MAX * ROW_H
+	local leaveButton = UI.button({
+		Name = "Leave",
+		Position = UDim2.fromOffset(0, leaveTop),
+		Size = UDim2.fromOffset(200, 36),
+		BackgroundColor3 = UI.Colors.Error,
+		Text = "Quitter l'équipe",
+		MaxTextSize = 15,
+		Visible = false,
+		Parent = teamPage,
+	})
+	leaveButton.Activated:Connect(function()
+		levelAction:FireServer("TeamLeave")
+	end)
+	local othersTop = leaveTop + 50
+	local othersTitle = UI.label({
+		Name = "OthersTitle",
+		Position = UDim2.fromOffset(0, othersTop),
+		Size = UDim2.new(1, -16, 0, 24),
+		Font = Enum.Font.GothamBlack,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		TextColor3 = UI.Colors.Gold,
+		MaxTextSize = 17,
+		Text = "JOUEURS DE CE SERVEUR",
+		Parent = teamPage,
+	})
+	local othersEmpty = UI.label({
+		Name = "OthersEmpty",
+		Position = UDim2.fromOffset(0, othersTop + 28),
+		Size = UDim2.new(1, -16, 0, 40),
+		TextWrapped = true,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		TextYAlignment = Enum.TextYAlignment.Top,
+		TextColor3 = UI.Colors.Muted,
+		MaxTextSize = 15,
+		Text = "Personne d'autre dans ce serveur pour l'instant. Invite des amis à te rejoindre sur Roblox !",
+		Visible = false,
+		Parent = teamPage,
+	})
+	local otherRows = {}
+	for index = 1, OTHER_ROWS do
+		local row = UI.new("Frame", {
+			Name = "Other" .. index,
+			Position = UDim2.fromOffset(0, othersTop + 28 + (index - 1) * (ROW_H + 4)),
+			Size = UDim2.new(1, -16, 0, ROW_H),
+			Visible = false,
+			Parent = teamPage,
+		}, { UI.corner(5), UI.padding(6) })
+		UI.card(row, UI.Colors.PanelLight)
+		local label = UI.label({
+			Name = "Label",
+			Size = UDim2.new(1, -146, 1, 0),
+			Font = Enum.Font.GothamBold,
+			TextXAlignment = Enum.TextXAlignment.Left,
+			MaxTextSize = 15,
+			Parent = row,
+		})
+		local invite = UI.button({
+			Name = "Invite",
+			AnchorPoint = Vector2.new(1, 0.5),
+			Position = UDim2.new(1, 0, 0.5, 0),
+			Size = UDim2.fromOffset(136, 32),
+			Text = "Inviter",
+			MaxTextSize = 15,
+			Parent = row,
+		})
+		local entry = { row = row, label = label, invite = invite, target = nil :: Player?, canInvite = false }
+		invite.Activated:Connect(function()
+			if entry.target and entry.canInvite then
+				levelAction:FireServer("TeamInvite", entry.target.UserId)
+			end
+		end)
+		otherRows[index] = entry
+	end
+	-- Places selon la taille de l'équipe : la liste des autres joueurs suit les lignes de l'équipe (count = 0 : seul).
+	local function placeRows(count: number)
+		local leaveAt = MEMBERS_TOP + 28 + count * ROW_H
+		local top = if count > 0 then leaveAt + 50 else MEMBERS_TOP + 40
+		leaveButton.Position = UDim2.fromOffset(0, leaveAt)
+		othersTitle.Position = UDim2.fromOffset(0, top)
+		othersEmpty.Position = UDim2.fromOffset(0, top + 28)
+		for index, entry in otherRows do
+			entry.row.Position = UDim2.fromOffset(0, top + 28 + (index - 1) * (ROW_H + 4))
+		end
+		teamPage.CanvasSize = UDim2.fromOffset(0, top + 28 + OTHER_ROWS * (ROW_H + 4) + 8)
+	end
+	placeRows(0)
+
+	-- Plus haut niveau réussi d'un autre joueur, et s'il est déjà dans une équipe (ses attributs publiés).
+	local function otherInfo(other: Player): (number, boolean)
+		local best = 0
+		local raw = other:GetAttribute("LevelsState")
+		if typeof(raw) == "string" then
+			local ok, decoded = pcall(function()
+				return HttpService:JSONDecode(raw)
+			end)
+			if ok and typeof(decoded) == "table" then
+				best = tonumber(decoded.best) or 0
+			end
+		end
+		return best, typeof(other:GetAttribute("Team")) == "string"
+	end
+	local function inMyTeam(userId: number): boolean
+		for _, member in if team then team.members else {} do
+			if member.id == userId then
+				return true
+			end
+		end
+		return false
+	end
+
+	local function refreshTeam()
+		local size = if team then #team.members else 1
+		setText(teamButton, if team then `👥 ÉQUIPE ({size})` else "👥 ÉQUIPE")
+		teamButton.BackgroundColor3 = if currentTab == "Équipe" then UI.Colors.Accent else UI.Colors.Purple
+		setText(membersTitle, if team and isLeader() then `TON ÉQUIPE ({size}/{Levels.TEAM_MAX}) : tu es le chef`
+			elseif team then `L'ÉQUIPE DE {leaderName()} ({size}/{Levels.TEAM_MAX})`
+			elseif state.best < 1 then "Réussis d'abord le niveau 1 pour jouer en équipe"
+			else "TU JOUES SEUL : invite des joueurs ci-dessous")
+		for index, entry in memberRows do
+			local member = team and team.members[index]
+			entry.row.Visible = member ~= nil
+			if member then
+				local name = (if member.id == team.leader then "👑 " else "") .. tostring(member.name)
+				setText(entry.label, if member.id == player.UserId
+					then `{name} (toi) : niveau {tonumber(member.best) or 0} réussi`
+					else `{name} : niveau {tonumber(member.best) or 0} réussi`)
+			end
+		end
+		leaveButton.Visible = team ~= nil
+		placeRows(if team then size else 0)
+		local others = {}
+		for _, other in Players:GetPlayers() do
+			if other ~= player then
+				table.insert(others, other)
+			end
+		end
+		table.sort(others, function(a, b)
+			return a.DisplayName < b.DisplayName
+		end)
+		othersEmpty.Visible = #others == 0
+		local full = size >= Levels.TEAM_MAX
+		for index, entry in otherRows do
+			local other = others[index]
+			entry.target = other
+			entry.row.Visible = other ~= nil
+			if other then
+				local best, busy = otherInfo(other)
+				local mine = inMyTeam(other.UserId)
+				setText(entry.label, if mine then `{other.DisplayName} : dans ton équipe`
+					elseif busy then `{other.DisplayName} : déjà dans une équipe`
+					elseif best < 1 then `{other.DisplayName} : pas encore fini le niveau 1`
+					else `{other.DisplayName} : niveau {best} réussi`)
+				entry.canInvite = not mine and not busy and best >= 1 and state.best >= 1 and isLeader() and not full
+				entry.invite.Visible = not mine
+				entry.invite.BackgroundColor3 = if entry.canInvite then UI.Colors.Success else UI.Colors.Panel
+				entry.invite.AutoButtonColor = entry.canInvite
+			end
+		end
+	end
+
+	------------------------------------------------------------------
 	local function refresh()
 		local coins = `{amount(state.coins)} {COIN}`
 		coinsLabel.Text = coins
@@ -1205,6 +1507,7 @@ local function buildCamp()
 			button.BackgroundColor3 = if name == currentTab then UI.Colors.Accent else UI.Colors.PanelLight
 			pages[name].Visible = name == currentTab
 		end
+		teamPage.Visible = currentTab == "Équipe"
 		local buyable = canBuyTower(state.coins)
 		openBadge.Visible = buyable
 		shopBadge.Visible = buyable and currentTab ~= "Boutique"
@@ -1212,6 +1515,7 @@ local function buildCamp()
 		refreshShop()
 		refreshTraining()
 		refreshTowers()
+		refreshTeam()
 		queuePreviews()
 	end
 	camp.refresh = refresh
@@ -1250,6 +1554,19 @@ local function buildCamp()
 		end
 	end)
 	closeButton.Activated:Connect(camp.close)
+	teamButton.Activated:Connect(function()
+		camp.open("Équipe")
+	end)
+	-- La page de l'équipe suit les autres joueurs (arrivées, départs, niveaux, équipes) : rafraîchie chaque seconde
+	-- tant qu'elle est affichée.
+	task.spawn(function()
+		while true do
+			task.wait(1)
+			if window.Visible and currentTab == "Équipe" then
+				refreshTeam()
+			end
+		end
+	end)
 	placeButton()
 	refresh()
 end
@@ -1258,6 +1575,7 @@ end
 -- Pendant un niveau
 ----------------------------------------------------------------------
 local hud = {}
+local invite = {} -- écran d'invitation à jouer en équipe (buildInvite) : invite.answer(oui)
 -- active = un niveau est affiché ; index / slot / cframe = sa zone de combat ; folder = son dossier (attributs).
 local level = {
 	active = false,
@@ -1285,8 +1603,6 @@ local level = {
 	pitchOverride = nil :: number?, -- essais dans Studio : inclinaison imposée, en degrés (TestAction « Pitch »)
 	quitArmedAt = nil :: number?,
 	resultShown = nil :: string?,
-	training = {} :: { [string]: number },
-	trainingText = nil :: string?,
 }
 local helpers = Instance.new("Folder")
 helpers.Name = "LevelHelpers"
@@ -1323,6 +1639,59 @@ local function numberAttribute(name: string): number
 	return if typeof(value) == "number" and value == value then value else 0
 end
 
+-- Mon n° dans les noms d'attributs de la zone (« Gold_<n°> »... : chacun le sien en équipe, Levels.memberKey).
+local myKey = Levels.memberKey(player.UserId)
+
+-- Attribut de la zone pour MOI : « <nom>_<mon n°> » s'il existe (or, entraînement, résultat), sinon le commun
+-- (seul, c'est le même).
+local function myAttribute(name: string): any
+	local value = attribute(name .. "_" .. myKey)
+	if value == nil then
+		value = attribute(name)
+	end
+	return value
+end
+
+local function myGold(): number
+	local value = myAttribute("Gold")
+	return if typeof(value) == "number" and value == value then value else 0
+end
+
+-- Vrai si cette tour posée est à moi (en équipe, chacun n'améliore et ne vend que les siennes).
+local function isMine(model: Instance): boolean
+	local owner = model:GetAttribute("OwnerId")
+	return owner == nil or owner == player.UserId
+end
+
+-- Joueurs de la partie (attribut « Team » de la zone, en équipe seulement) : { { id, key, name } }.
+local arenaTeamCache = { text = nil :: any, list = {} :: { any } }
+local function arenaTeam(): { any }
+	local text = attribute("Team")
+	if text ~= arenaTeamCache.text then
+		arenaTeamCache.text = text
+		arenaTeamCache.list = {}
+		if typeof(text) == "string" then
+			local ok, decoded = pcall(function()
+				return HttpService:JSONDecode(text)
+			end)
+			if ok and typeof(decoded) == "table" then
+				arenaTeamCache.list = decoded
+			end
+		end
+	end
+	return arenaTeamCache.list
+end
+
+-- Nom du joueur de la partie qui a ce UserId (« ? » s'il est inconnu).
+local function memberName(userId: any): string
+	for _, entry in arenaTeam() do
+		if entry.id == userId then
+			return tostring(entry.name)
+		end
+	end
+	return "?"
+end
+
 local function towersFolder(): Instance?
 	local folder = arenaFolder()
 	return folder and folder:FindFirstChild("Towers")
@@ -1355,23 +1724,45 @@ local function towerPositions(): { Vector3 }
 	return positions
 end
 
+-- Mes tours posées de ce type (en équipe, les limites par type valent pour chacun).
 local function copiesOf(towerType: string): number
 	local count = 0
 	for _, model in towerModels() do
-		if model:GetAttribute("TowerType") == towerType then
+		if model:GetAttribute("TowerType") == towerType and isMine(model) then
 			count += 1
 		end
 	end
 	return count
 end
 
-local function trainingOf(towerType: string): number
-	local text = attribute("Training")
-	if text ~= level.trainingText then
-		level.trainingText = text
-		level.training = Levels.decodeTraining(text)
+-- Entraînements publiés dans la zone (« Training », « Training_<n°> ») : décodés une fois par texte.
+local decodedTrainings = {} -- [nom d'attribut] = { text, levels }
+local function trainingIn(name: string): { [string]: number }
+	local text = attribute(name)
+	local cached = decodedTrainings[name]
+	if not cached or cached.text ~= text then
+		cached = { text = text, levels = Levels.decodeTraining(text) }
+		decodedTrainings[name] = cached
 	end
-	return level.training[towerType] or 0
+	return cached.levels
+end
+
+-- Mon entraînement de ce type de tour (celui du début du niveau).
+local function trainingOf(towerType: string): number
+	local name = "Training_" .. myKey
+	return trainingIn(if attribute(name) ~= nil then name else "Training")[towerType] or 0
+end
+
+-- Entraînement de la tour posée `model` : celui de son joueur (en équipe, pas forcément moi).
+local function trainingOfTower(model: Model, towerType: string): number
+	local owner = model:GetAttribute("OwnerId")
+	if owner ~= nil and owner ~= player.UserId then
+		local name = "Training_" .. Levels.memberKey(owner)
+		if attribute(name) ~= nil then
+			return trainingIn(name)[towerType] or 0
+		end
+	end
+	return trainingOf(towerType)
 end
 
 -- Peut-on poser cette tour ici (point local de la zone) ? Même règle que le serveur, qui a le dernier mot.
@@ -1382,7 +1773,7 @@ local function canPlace(towerType: string, point: Vector3): (boolean, string?)
 	if copiesOf(towerType) >= Levels.maxCopies(towerType) then
 		return false, `Maximum {Levels.maxCopies(towerType)} {IdleTowers.Defs[towerType].displayName} par niveau`
 	end
-	if numberAttribute("Gold") < Levels.placeCost(towerType) then
+	if myGold() < Levels.placeCost(towerType) then
 		return false, "Pas assez d'or"
 	end
 	return Levels.checkPlacement(level.mapName, point, towerPositions())
@@ -1934,6 +2325,20 @@ local function buildHud()
 		barButtons[towerType] = { button = button, stroke = stroke, name = name, cost = cost, copies = copies, preview = preview, color = button.BackgroundColor3 }
 	end
 
+	-- En équipe : les autres joueurs de la partie et leur or, sous le bandeau du haut (❌ = parti). Des noms et des
+	-- nombres seulement : rien à traduire (NoTranslate, AutoTranslate.luau).
+	local teamInfo = UI.label({
+		Name = "TeamInfo",
+		AnchorPoint = Vector2.new(0.5, 0),
+		Font = Enum.Font.GothamBold,
+		TextStrokeTransparency = 0.25,
+		MaxTextSize = 15,
+		Text = "",
+		Visible = false,
+		Parent = gui,
+	})
+	teamInfo:SetAttribute("NoTranslate", true)
+
 	local hint = UI.label({
 		Name = "Hint",
 		AnchorPoint = Vector2.new(0.5, 1),
@@ -2087,16 +2492,16 @@ local function buildHud()
 		ZIndex = 5,
 		Parent = panel,
 	})
-	local endResult = nil -- résultat affiché (table décodée de l'attribut « Result »)
+	local endResult = nil -- résultat affiché (table décodée de l'attribut « Result » : le mien)
 	nextButton.Activated:Connect(function()
-		if endResult and not (endResult.won and not endResult.nextLevel) then
+		if endResult and isLeader() and not (endResult.won and not endResult.nextLevel) then
 			-- Gagné : le niveau suivant. Perdu : le bouton principal relance le même niveau. (Dernier niveau gagné : le
 			-- bouton dit seulement que tout est réussi.)
 			levelAction:FireServer("Start", if endResult.won and endResult.nextLevel then endResult.nextLevel else endResult.level)
 		end
 	end)
 	replayButton.Activated:Connect(function()
-		if endResult then
+		if endResult and isLeader() then
 			levelAction:FireServer("Start", endResult.level)
 		end
 	end)
@@ -2128,7 +2533,7 @@ local function buildHud()
 		else
 			table.insert(lines, `Niveau {result.level} : {result.kills} monstres éliminés sur {result.total}.`)
 			-- Perdu avec de l'or en poche : c'est la raison la plus fréquente, on la dit avec son chiffre.
-			local unspent = numberAttribute("Gold")
+			local unspent = myGold()
 			if unspent >= IDLE_GOLD then
 				table.insert(lines, `Il te restait {amount(unspent)} {GOLD} : dépense ton or au fur et à mesure, les monstres deviennent plus forts sans arrêt.`)
 			else
@@ -2140,6 +2545,11 @@ local function buildHud()
 			else
 				table.insert(lines, "La boutique et le camp d'entraînement aident aussi.")
 			end
+		end
+		-- En équipe : le bonus de pièces (déjà compté dans la récompense affichée).
+		local teamSize = tonumber(result.team) or 1
+		if teamSize > 1 then
+			table.insert(lines, `👥 Bonus d'équipe ({teamSize} joueurs) : +{math.floor(Levels.teamBonus(teamSize) * 100 + 0.5)} % de pièces`)
 		end
 		-- De quoi acheter une tour : on le dit ici, au moment où le joueur choisit entre continuer et rentrer au camp.
 		if canBuyTower(tonumber(result.coins) or state.coins) then
@@ -2160,7 +2570,14 @@ local function buildHud()
 		nextButton.AutoButtonColor = canNext or not won
 		-- (perdu : « Réessayer » est le gros bouton, « Rejouer » ferait double emploi)
 		replayButton.Visible = won
-		campButton.Size = if won then UDim2.new(0.5, -4, 0, 42) else UDim2.new(1, 0, 0, 42)
+		-- En équipe, seul le chef choisit la suite : les autres attendent (ou rentrent au camp).
+		if not isLeader() then
+			nextButton.Text = `⏳ {leaderName()} choisit la suite`
+			nextButton.BackgroundColor3 = UI.Colors.Panel
+			nextButton.AutoButtonColor = false
+			replayButton.Visible = false
+		end
+		campButton.Size = if replayButton.Visible then UDim2.new(0.5, -4, 0, 42) else UDim2.new(1, 0, 0, 42)
 		overlay.Visible = true
 		SoundManager.play(if won then "Victory" else "Defeat")
 	end
@@ -2189,6 +2606,8 @@ local function buildHud()
 		end
 		strip.Position = UDim2.fromOffset(left, top)
 		strip.Size = UDim2.fromOffset(width, height)
+		teamInfo.Position = UDim2.fromOffset(left + width / 2, math.max(4, top + height + 4))
+		teamInfo.Size = UDim2.fromOffset(math.min(width, 620), if phone then 18 else 22)
 		local gap, pad = 6, 6
 		local widths = if phone
 			then { level = 76, lives = 48, gold = 66, speed = 38, quit = 34 }
@@ -2302,7 +2721,7 @@ local function buildHud()
 			end
 		end
 		for _, model in towerModels() do
-			local cost = Levels.upgradeCost(model:GetAttribute("TowerType"), model:GetAttribute("Level") or 1)
+			local cost = if isMine(model) then Levels.upgradeCost(model:GetAttribute("TowerType"), model:GetAttribute("Level") or 1) else nil
 			if cost and gold >= cost then
 				return true
 			end
@@ -2315,7 +2734,7 @@ local function buildHud()
 	end
 
 	function hud.update()
-		local gold = numberAttribute("Gold")
+		local gold = myGold()
 		local total = numberAttribute("Total")
 		local left = numberAttribute("Left")
 		local lives = numberAttribute("Lives")
@@ -2342,6 +2761,20 @@ local function buildHud()
 		set(speedButton, "Text", if fast then "x2" else "x1")
 		set(speedButton, "BackgroundColor3", if fast then UI.Colors.Warning else UI.Colors.Accent)
 		set(quitButton, "Text", if level.quitArmedAt and os.clock() - level.quitArmedAt < QUIT_CONFIRM then "X ?" else "X")
+		-- En équipe : l'or des autres joueurs de la partie (❌ = il est parti).
+		local teamText = ""
+		if numberAttribute("TeamSize") > 1 then
+			local parts = {}
+			for _, entry in arenaTeam() do
+				if entry.id ~= player.UserId then
+					local theirs = attribute("Gold_" .. tostring(entry.key))
+					table.insert(parts, if typeof(theirs) == "number" then `{entry.name} {GOLD} {amount(theirs)}` else `{entry.name} ❌`)
+				end
+			end
+			teamText = "👥 " .. table.concat(parts, "   ")
+		end
+		set(teamInfo, "Text", teamText)
+		set(teamInfo, "Visible", teamText ~= "")
 
 		-- Barre rapide.
 		local order = table.concat(state.towers, ",")
@@ -2414,15 +2847,22 @@ local function buildHud()
 			local towerType = model:GetAttribute("TowerType")
 			local towerLevel = model:GetAttribute("Level") or 1
 			local def = IdleTowers.Defs[towerType]
-			local stats = Levels.towerStats(towerType, towerLevel, trainingOf(towerType))
+			local training = trainingOfTower(model, towerType)
+			local stats = Levels.towerStats(towerType, towerLevel, training)
 			local cost = Levels.upgradeCost(towerType, towerLevel)
 			local refund = math.floor((model:GetAttribute("Spent") or 0) * Levels.SELL_REFUND)
+			-- En équipe, la tour d'un autre joueur : ses stats et à qui elle est, sans « Améliorer » ni « Vendre ».
+			local mine = isMine(model)
+			set(upgradeButton, "Visible", mine)
+			set(sellButton, "Visible", mine)
 			menuPreview.setType(towerType)
 			set(menuTitle, "Text", `{def.displayName} • niv. {towerLevel}`)
 			menuTitle.TextColor3 = UI.Colors.Text
 			menu.BackgroundColor3 = TOWER_COLORS[towerType]:Lerp(UI.Colors.Panel, 0.65)
-			if cost then
-				local nextStats = Levels.towerStats(towerType, towerLevel + 1, trainingOf(towerType))
+			if not mine then
+				set(menuStats, "Text", `{statsLine(stats)}\nTour de {memberName(model:GetAttribute("OwnerId"))}`)
+			elseif cost then
+				local nextStats = Levels.towerStats(towerType, towerLevel + 1, training)
 				set(menuStats, "Text", `{statsLine(stats)}\nNiveau suivant : dégâts {decimal(nextStats.damage)}`)
 				set(upgradeButton, "Text", `⬆ Améliorer {amount(cost)} {GOLD}`)
 				upgradeButton.BackgroundTransparency = if gold >= cost then 0 else 0.55
@@ -2461,8 +2901,8 @@ local function buildHud()
 			selectRing.Parent = nil
 		end
 
-		-- Écran de fin : dès que le serveur publie le résultat.
-		local raw = attribute("Result")
+		-- Écran de fin : dès que le serveur publie le résultat (le mien : « Result_<mon n°> » en équipe).
+		local raw = myAttribute("Result")
 		if typeof(raw) == "string" then
 			if raw ~= level.resultShown then
 				level.resultShown = raw
@@ -2669,7 +3109,9 @@ end
 
 -- Tests automatiques (Studio) : gui:SetAttribute("TestAction", "<commande>#<numéro>") fait comme le joueur.
 --   écran « Levels »   : "Open", "Close", "Tab:Boutique", "Slot:2" (invite du socle d'entraînement 2 du camp),
---                        "TrainBuy:MachineGun" (bouton ⚡ de cette tour dans l'onglet Entraînement)
+--                        "TrainBuy:MachineGun" (bouton ⚡ de cette tour dans l'onglet Entraînement), "Team" (page de
+--                        l'équipe), "TeamInvite:123" (inviter ce joueur), "TeamAccept" / "TeamDecline" (répondre à
+--                        l'invitation affichée), "TeamLeave" (quitter l'équipe)
 --   écran « LevelHud » : "Select:MachineGun" (tour en main), "Bar:MachineGun" (appui sur son bouton de la barre :
 --                        la prendre, ou annuler si elle est déjà en main), "Tap:-23,0" (appui sur ce point local
 --                        du terrain, par le vrai chemin : point de l'écran -> rayon de la caméra -> sol), "Upgrade",
@@ -2691,6 +3133,16 @@ local function testAction(command: string)
 		if owns(argument) then
 			levelAction:FireServer("TrainBuy", argument)
 		end
+	elseif name == "Team" then
+		camp.open("Équipe")
+	elseif name == "TeamInvite" then
+		levelAction:FireServer("TeamInvite", tonumber(argument))
+	elseif name == "TeamAccept" or name == "TeamDecline" then
+		if invite.answer then
+			invite.answer(name == "TeamAccept")
+		end
+	elseif name == "TeamLeave" then
+		levelAction:FireServer("TeamLeave")
 	elseif not level.active then
 		return
 	elseif name == "Select" then
@@ -2728,24 +3180,127 @@ local function testAction(command: string)
 		hud.quit()
 	elseif name == "Next" or name == "Replay" or name == "Camp" then
 		local button = hud.gui.EndScreen.Panel:FindFirstChild(name)
-		local raw = attribute("Result")
+		local raw = myAttribute("Result")
 		local ok, result = pcall(function()
 			return HttpService:JSONDecode(raw)
 		end)
 		if name == "Camp" then
 			levelAction:FireServer("Quit")
-		elseif button and ok and typeof(result) == "table" then
+		elseif button and ok and typeof(result) == "table" and isLeader() then
 			levelAction:FireServer("Start", if name == "Next" and result.won and result.nextLevel then result.nextLevel else result.level)
 		end
 	end
 end
 
+----------------------------------------------------------------------
+-- Invitation à jouer en équipe (attribut « TeamInvite » du joueur, Hub/LevelTeams.luau) : un petit panneau en haut de
+-- l'écran, au camp comme pendant un niveau, avec « Accepter », « Refuser » et le temps qui reste.
+----------------------------------------------------------------------
+local function buildInvite()
+	local gui = UI.screen("TeamInvite", 30)
+	gui.Enabled = false -- (allumé seulement pendant qu'une invitation est affichée)
+	local panel = UI.new("Frame", {
+		Name = "Panel",
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.new(0.5, 0, 0, 64),
+		Size = UDim2.fromOffset(390, 112),
+		BackgroundColor3 = UI.Colors.Panel,
+		Active = true,
+		Visible = false,
+		Parent = gui,
+	}, { UI.corner(6), UI.padding(10) })
+	UI.gradient(panel)
+	UI.stroke(UI.Colors.Gold, 3).Parent = panel
+	local text = UI.label({
+		Name = "Text",
+		Size = UDim2.new(1, -46, 0, 44),
+		Font = Enum.Font.GothamBlack,
+		TextWrapped = true,
+		MaxTextSize = 17,
+		Parent = panel,
+	})
+	local timer = UI.label({
+		Name = "Timer",
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.new(1, 0, 0, 0),
+		Size = UDim2.fromOffset(44, 24),
+		Font = Enum.Font.GothamBold,
+		TextColor3 = UI.Colors.Muted,
+		MaxTextSize = 14,
+		Parent = panel,
+	})
+	local accept = UI.button({
+		Name = "Accept",
+		AnchorPoint = Vector2.new(0, 1),
+		Position = UDim2.new(0, 0, 1, 0),
+		Size = UDim2.new(0.5, -4, 0, 40),
+		BackgroundColor3 = UI.Colors.Success,
+		Text = "✓ Accepter",
+		MaxTextSize = 17,
+		Parent = panel,
+	})
+	local decline = UI.button({
+		Name = "Decline",
+		AnchorPoint = Vector2.new(1, 1),
+		Position = UDim2.new(1, 0, 1, 0),
+		Size = UDim2.new(0.5, -4, 0, 40),
+		BackgroundColor3 = UI.Colors.Error,
+		Text = "Refuser",
+		MaxTextSize = 17,
+		Parent = panel,
+	})
+	local current = nil -- l'invitation affichée : { from = UserId, seconds, at = os.clock() de son arrivée }
+	local function show()
+		current = nil
+		local raw = player:GetAttribute("TeamInvite")
+		if typeof(raw) == "string" then
+			local ok, decoded = pcall(function()
+				return HttpService:JSONDecode(raw)
+			end)
+			if ok and typeof(decoded) == "table" and typeof(decoded.from) == "number" then
+				current = { from = decoded.from, seconds = tonumber(decoded.seconds) or Levels.TEAM_INVITE_SECONDS, at = os.clock() }
+				setText(text, `{tostring(decoded.name or "?")} t'invite à jouer en équipe !`)
+				setText(timer, `⏳ {current.seconds}`)
+			end
+		end
+		panel.Visible = current ~= nil
+		gui.Enabled = current ~= nil
+	end
+	function invite.answer(yes: boolean)
+		if current then
+			levelAction:FireServer("TeamAnswer", current.from, yes)
+			current = nil
+			panel.Visible = false
+			gui.Enabled = false
+		end
+	end
+	accept.Activated:Connect(function()
+		invite.answer(true)
+	end)
+	decline.Activated:Connect(function()
+		invite.answer(false)
+	end)
+	player:GetAttributeChangedSignal("TeamInvite"):Connect(show)
+	show()
+	-- Le temps qui reste (le serveur retire l'invitation à la fin : le panneau se cache alors).
+	task.spawn(function()
+		while true do
+			task.wait(0.5)
+			if current then
+				setText(timer, `⏳ {math.max(0, math.ceil(current.seconds - (os.clock() - current.at)))}`)
+			end
+		end
+	end)
+end
+
 local function build()
 	levelAction = Remotes.get("LevelAction")
 	readState()
+	readTeam()
 	buildHelpers()
 	buildCamp()
 	buildHud()
+	buildInvite()
 	-- Monstre tué dans ma zone de combat : l'or qu'il donne s'affiche au-dessus de lui.
 	PlotRenderer.onEnemyKilled = function(plotIndex: number, enemyType: string, position: Vector3)
 		local enemy = Levels.ENEMY[enemyType]
@@ -2805,6 +3360,11 @@ local function build()
 		end
 		camp.refresh()
 		hud.layout()
+	end)
+	-- Équipe rejointe, quittée ou changée : la fenêtre du camp suit (page de l'équipe, boutons des niveaux).
+	player:GetAttributeChangedSignal("Team"):Connect(function()
+		readTeam()
+		camp.refresh()
 	end)
 
 	-- Sur la parcelle : l'invite d'un socle d'entraînement ouvre l'onglet Entraînement sur cet emplacement, celle de
