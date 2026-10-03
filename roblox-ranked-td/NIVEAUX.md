@@ -6,9 +6,10 @@ fixes, camp d'entraînement, plus aucun hasard).
 
 ## En deux mots
 
-- Le jeu est une suite de **niveaux** : **40 niveaux**, en quatre **territoires** de 10 (la vallée du Roi carmin, le
-  col des Pillards de cuivre, la forêt des Gardiens des ronces, le glacier de la Légion du givre : chacun sa carte et
-  ses monstres). Chaque niveau est une partie de 2 à 3 minutes,
+- Le jeu est une suite de **niveaux** : **60 niveaux**, en six **territoires** de 10 (la vallée du Roi carmin, le
+  col des Pillards de cuivre, la forêt des Gardiens des ronces, le glacier de la Légion du givre, le désert des
+  Gardes des dunes, la nécropole de la Légion des os : chacun sa carte et ses monstres). Chaque niveau est une
+  partie de 2 à 3 minutes,
   vue d'en haut : un flot continu de monstres, de plus en plus forts. Tu poses tes tours **où tu veux** et tu les
   améliores **sans arrêt** avec l'or des monstres (si tu t'arrêtes, tu perds), tu protèges ton château (10 vies).
   Dans chaque territoire : un mini-boss au 5e niveau, un boss au 10e.
@@ -67,9 +68,9 @@ fixes, camp d'entraînement, plus aucun hasard).
 
 | | |
 |---|---|
-| Durée | 2 à 3 minutes (1 min 55 pour le niveau 1, 3 min 15 pour les niveaux à boss : 10, 20, 30 et 40) |
+| Durée | 2 à 3 minutes (1 min 55 pour le niveau 1, environ 3 min 15 pour les niveaux à boss : 10, 20, 30…) |
 | Vies | 10. Un monstre qui atteint le château en coûte 1 (chevalier lourd : 2, mini-boss : 5, boss : 10) |
-| Or de départ | fixe par niveau : 60 au niveau 1 (avec un Archer déjà posé), 65 au niveau 2… 110 au niveau 10, puis de 115 (niveau 11) à 160 (niveau 20), et de 165 (niveau 21) à 260 (niveau 40) |
+| Or de départ | fixe par niveau : 60 au niveau 1 (avec un Archer déjà posé), 65 au niveau 2… 110 au niveau 10, puis de 115 (niveau 11) à 160 (niveau 20), de 165 (niveau 21) à 260 (niveau 40), et de 265 (niveau 41) à 360 (niveau 60) |
 | Or gagné | chaque monstre tué donne son or tout de suite (6 pour un fantassin, 18 pour un chevalier lourd, 120 pour le mini-boss) : un « +6 » doré s'envole au-dessus de lui |
 | Ce qu'on garde d'un niveau à l'autre | **rien** : l'or et les tours posées repartent de zéro. On garde ses tours débloquées, ses pièces de niveau et son entraînement |
 | Le flot | les monstres sortent **un par un, sans aucune pause**, du début à la fin. Ils sortent de plus en plus serrés (3 fois plus par seconde à la fin) et sont de plus en plus résistants (16 fois plus de PV à la fin). Les types se mélangent : fantassins, cavaliers, meutes d'écuyers, chevaliers lourds |
@@ -138,9 +139,30 @@ Améliorer une tour : +35 % de dégâts par niveau, jusqu'au niveau 10. Le prix 
 | 38 | 820 | 328 |
 | 39 | 840 | 336 |
 | 40 (boss) | **2 400** | 960 |
+| 41 | 880 | 352 |
+| 42 | 900 | 360 |
+| 43 | 920 | 368 |
+| 44 | 940 | 376 |
+| 45 (mini-boss) | **1 500** | 600 |
+| 46 | 980 | 392 |
+| 47 | 1 000 | 400 |
+| 48 | 1 020 | 408 |
+| 49 | 1 040 | 416 |
+| 50 (boss) | **3 000** | 1 200 |
+| 51 | 1 080 | 432 |
+| 52 | 1 100 | 440 |
+| 53 | 1 120 | 448 |
+| 54 | 1 140 | 456 |
+| 55 (mini-boss) | **1 800** | 720 |
+| 56 | 1 180 | 472 |
+| 57 | 1 200 | 480 |
+| 58 | 1 220 | 488 |
+| 59 | 1 240 | 496 |
+| 60 (boss) | **3 600** | 1 440 |
 
 Les mini-boss et les boss rapportent de plus en plus à chaque territoire (300 et 600 au premier, 600 et 1 200 au
-deuxième, 900 et 1 800 au troisième, 1 200 et 2 400 au quatrième).
+deuxième, 900 et 1 800 au troisième, 1 200 et 2 400 au quatrième, 1 500 et 3 000 au cinquième, 1 800 et 3 600 au
+sixième).
 
 Perdu ou abandonné : une petite part (la moitié de « en le rejouant », multipliée par la part des monstres éliminés).
 Lancer un niveau et le quitter tout de suite ne donne donc rien.
@@ -168,12 +190,14 @@ acheter le Totem, le Mage et la Baliste (1 750), pas plus.
 Sorcier des arcanes (4 750 pour les quatre tours), mais aucune légendaire.
 
 **Et au niveau 40 ?** Les 40 niveaux réussis une fois donnent 23 720 pièces. L'Oracle de la foudre se paie après le
-boss du niveau 30 (les 30 premiers niveaux donnent 14 040 pièces, il en faut 12 750 pour les cinq tours). Le
-Trébuchet royal reste le but le plus long : après les 40 niveaux, il manque encore 4 030 pièces (5 parties du
-niveau 40, à 960 pièces chacune), sans compter ce que tu dépenses pour le camp. Chaque prix est un seul chiffre
-dans `Levels.SHOP`.
+boss du niveau 30 (les 30 premiers niveaux donnent 14 040 pièces, il en faut 12 750 pour les cinq tours).
 
-### Les quatre territoires
+**Et le Trébuchet ?** Il se paie après le mini-boss du niveau 45 (les 45 premiers niveaux donnent 28 860 pièces, il
+en faut 27 750 pour les six tours), sans compter ce que tu dépenses pour le camp. Les 60 niveaux donnent 50 580
+pièces en tout : après le Trébuchet et le camp au maximum, il en reste beaucoup, sans rien à acheter (à décider :
+voir plus bas). Chaque prix est un seul chiffre dans `Levels.SHOP`.
+
+### Les six territoires
 
 | | Territoire 1 : la vallée du Roi carmin | Territoire 2 : le col des Pillards de cuivre |
 |---|---|---|
@@ -211,10 +235,25 @@ Sur ces deux cartes aussi, une tour posée entre deux couloirs tire sur les deux
 tranche sur les monstres du territoire (terre claire sous les Gardiens verts, glace sombre sous la Légion blanche) :
 on les voit bien.
 
+Les territoires 5 et 6 (ajoutés le même jour, « fais encore 20 ») :
+
+| | Territoire 5 : le désert des Gardes des dunes | Territoire 6 : la nécropole de la Légion des os |
+|---|---|---|
+| Niveaux | 41 à 50 (ouvert quand le niveau 40 est réussi) | 51 à 60 (ouvert quand le niveau 50 est réussi) |
+| Monstres | les Gardes des dunes | la Légion des os (son boss, au niveau 60, n'a pas encore de modèle 3D : il est fait de blocs) |
+| Carte | sable, cactus, rochers de grès, pas un arbre ; le chemin fait le tour du terrain en grand U, avec un crochet, et le château est en bas à gauche, près de la porte d'entrée (252 studs) | herbe morte, arbres sombres, pierres tombales ; le chemin en forme de couronne finit au château, au centre du terrain (252 studs) |
+| Gros monstres | quatre ou cinq colosses par niveau, quatre à la file au niveau 45, le boss au niveau 50 | quatre ou cinq colosses par niveau, un trio puis une paire au niveau 55, cinq colosses puis le boss au niveau 60 |
+| Tours attendues | les sept tours, puis le Trébuchet dès le niveau 46 (les 45 premiers niveaux le paient) | les huit tours, un peu plus entraînées |
+| Pièces (première victoire) | 12 180 en tout | 14 680 en tout |
+
+Le chemin tranche encore sur les monstres : terre brune sous les Gardes couleur sable, ardoise sombre sous la Légion
+couleur os. Ces deux chemins sont plus courts (252 studs) : les monstres y sortent un peu moins serrés au début, pour
+laisser le temps de poser ses premières tours.
+
 Pour ajouter un territoire : sa carte dans `Levels.MAPS`, son nom dans `Levels.TERRITORIES`, ses 10 niveaux dans
 `Levels.DEFINITIONS` (les PV se trouvent avec `tools\levels\run.ps1 -Tune`), ce que le joueur a en y arrivant dans
-`tools/levels/Bot.luau`, son décor dans `LevelArena.luau`. Les modèles 3D des monstres des territoires 5 à 10
-existent déjà (sauf les boss des territoires 6 et 9).
+`tools/levels/Bot.luau`, son décor dans `LevelArena.luau`. Les modèles 3D des monstres des territoires 7 à 10
+existent déjà (sauf le boss du territoire 9).
 
 ### Le tuto des nouveaux joueurs
 
@@ -305,7 +344,7 @@ Temps pour évoluer avec le seul emplacement du camp (sans compter l'XP gagnée 
 
 ### La difficulté, réglée avec des joueurs simulés
 
-`tools/levels` fait jouer les 40 niveaux par des joueurs simulés, avec le vrai moteur du jeu. Chaque niveau est réglé
+`tools/levels` fait jouer les 60 niveaux par des joueurs simulés, avec le vrai moteur du jeu. Chaque niveau est réglé
 pour qu'**attendre fasse perdre** et que **rester actif fasse gagner** :
 
 | Niveau | Très actif (dépense tout, tout de suite) | Au rythme demandé | Un achat toutes les 8 s | 2 Archers puis attendre | 4 Archers et 2 Catapultes, sans améliorer |
@@ -350,22 +389,44 @@ pour qu'**attendre fasse perdre** et que **rester actif fasse gagner** :
 | 38 | gagne, 10 vies | toutes les 3,5 s : gagne, 10 vies | perd à 44 % | perd à 2 % (35 s) | perd à 12 % |
 | 39 | gagne, 10 vies | toutes les 3,5 s : gagne, 10 vies | perd à 84 % | perd à 2 % (35 s) | perd à 10 % |
 | 40 (boss) | gagne, 10 vies | toutes les 3,5 s : gagne, 10 vies | perd à 81 % | perd à 2 % (35 s) | perd à 10 % |
+| 41 | gagne, 10 vies | toutes les 3,5 s : gagne, 10 vies | perd à 81 % | perd à 2 % (35 s) | perd à 6 % |
+| 42 | gagne, 10 vies | toutes les 3,5 s : gagne, 10 vies | perd à 71 % | perd à 3 % (37 s) | perd à 7 % |
+| 43 | gagne, 10 vies | toutes les 3,5 s : gagne, 10 vies | perd à 69 % | perd à 2 % (37 s) | perd à 8 % |
+| 44 | gagne, 10 vies | toutes les 3,5 s : gagne, 10 vies | perd à 91 % | perd à 3 % (38 s) | perd à 9 % |
+| 45 (mini-boss) | gagne, 10 vies | toutes les 3,5 s : gagne, 10 vies | perd à 91 % | perd à 3 % (40 s) | perd à 11 % |
+| 46 | gagne, 10 vies | toutes les 3,5 s : gagne, 10 vies | perd à 89 % | perd à 3 % (38 s) | perd à 9 % |
+| 47 | gagne, 10 vies | toutes les 3,5 s : gagne, 10 vies | perd à 59 % | perd à 3 % (39 s) | perd à 10 % |
+| 48 | gagne, 10 vies | toutes les 3,5 s : gagne, 10 vies | perd à 56 % | perd à 3 % (38 s) | perd à 8 % |
+| 49 | gagne, 10 vies | toutes les 3,5 s : gagne, 10 vies | perd à 51 % | perd à 2 % (37 s) | perd à 7 % |
+| 50 (boss) | gagne, 10 vies | toutes les 3,5 s : gagne, 10 vies | perd à 73 % | perd à 2 % (36 s) | perd à 6 % |
+| 51 | gagne, 10 vies | toutes les 3,5 s : gagne, 10 vies | perd à 95 % | perd à 2 % (35 s) | perd à 11 % |
+| 52 | gagne, 10 vies | toutes les 3,5 s : gagne, 10 vies | perd à 90 % | perd à 2 % (36 s) | perd à 10 % |
+| 53 | gagne, 10 vies | toutes les 3,5 s : gagne, 10 vies | perd à 58 % | perd à 2 % (36 s) | perd à 11 % |
+| 54 | gagne, 10 vies | toutes les 3,5 s : gagne, 10 vies | perd à 62 % | perd à 2 % (36 s) | perd à 11 % |
+| 55 (mini-boss) | gagne, 10 vies | toutes les 3,5 s : gagne, 10 vies | perd à 68 % | perd à 3 % (37 s) | perd à 15 % |
+| 56 | gagne, 10 vies | toutes les 3,5 s : gagne, 10 vies | perd à 54 % | perd à 2 % (36 s) | perd à 11 % |
+| 57 | gagne, 10 vies | toutes les 3,5 s : gagne, 10 vies | perd à 51 % | perd à 2 % (36 s) | perd à 10 % |
+| 58 | gagne, 10 vies | toutes les 3,5 s : gagne, 10 vies | perd à 51 % | perd à 2 % (36 s) | perd à 11 % |
+| 59 | gagne, 10 vies | toutes les 3,5 s : gagne, 10 vies | perd à 51 % | perd à 2 % (36 s) | perd à 11 % |
+| 60 (boss) | gagne, 10 vies | toutes les 3,5 s : gagne, 10 vies | perd à 74 % | perd à 2 % (36 s) | perd à 10 % |
 
 « Perd à 76 % » = le château tombe quand 76 % des monstres du niveau ont été éliminés.
 
 Ce que les joueurs simulés ont en arrivant à chaque niveau : les deux tours de départ aux niveaux 1 et 2, le Totem à
 partir du niveau 3, le Mage à partir du niveau 6, la Baliste à partir du niveau 11, le Sorcier à partir du niveau 18,
-l'Oracle à partir du niveau 31, et l'entraînement que leurs parties donnent (niveau 1 à partir du niveau 4, niveau 2
-à partir du niveau 8, niveau 3 à partir du niveau 18, niveau 4 pour l'Archer et la Catapulte au niveau 39 ; une
-tour qui vient d'être achetée n'est pas encore entraînée). Sans la boutique (Archer et Catapulte seulement), un
-joueur très actif gagne les niveaux 1 et 2, passe ou rate de très peu les niveaux 3 à 5, et perd à partir du
-niveau 6. Le Trébuchet n'est jamais nécessaire pour finir les 40 niveaux.
+l'Oracle à partir du niveau 31, le Trébuchet à partir du niveau 46, et l'entraînement que leurs parties donnent
+(niveau 1 à partir du niveau 4, niveau 2 à partir du niveau 8, niveau 3 à partir du niveau 18, niveau 4 pour presque
+toutes à partir du niveau 44 ; une tour qui vient d'être achetée n'est pas encore entraînée). Sans la boutique
+(Archer et Catapulte seulement), un joueur très actif gagne les niveaux 1 et 2, passe ou rate de très peu les
+niveaux 3 à 5, et perd à partir du niveau 6.
 
-Les niveaux 11 à 40 ont été réglés avec la même méthode que les dix premiers (`run.ps1 -Tune`, puis 5 % de marge),
-mais **aucun vrai joueur ne les a encore essayés** : dis-moi s'ils sont trop durs ou trop faciles. Le boss du
+Les niveaux 11 à 60 ont été réglés avec la même méthode que les dix premiers (`run.ps1 -Tune`, puis 5 % de marge),
+mais **aucun vrai joueur ne les a encore essayés** : dis-moi s'ils sont trop durs ou trop faciles. Aux niveaux 41 à
+60, le joueur de référence doit garder 8 vies au lieu de 5 (`-Tune -Vies 8`) : avec quatre ou cinq colosses par
+niveau, un seul qui passe en coûte 5. Le boss du
 niveau 40 a un peu moins de PV que ce que donnerait son niveau (85 %) : sinon, le joueur simulé très actif le
-laissait passer à la toute fin. Celui du niveau 30 en a un peu plus (110 %) : il reste plus fort que celui du
-niveau 20.
+laissait passer à la toute fin. Ceux des niveaux 30 et 60 en ont un peu plus (110 % et 120 %) : chacun reste plus
+fort que le boss du territoire d'avant.
 
 Un vrai joueur choisit moins bien que le joueur simulé : pour gagner, il doit aller un peu plus vite que le rythme
 indiqué. Tu as joué cette version et dit « ça va » (02/10/2026). Si c'est trop dur ou trop facile un jour, un seul
@@ -415,7 +476,7 @@ arrivent à un niveau) : rien d'autre n'a changé. Les chiffres sont dans `src/s
 6. **La Baliste et le Trébuchet renforcés** (« oui renforce la baliste et le trébuchet ») : voir « Ce que chaque
    tour de la boutique apporte », plus bas.
 7. **Le tuto** (« fais le tuto bien, je veux un jeu sortable ») : voir « Le tuto des nouveaux joueurs ».
-8. **Les niveaux 11 à 20** (« ajoute des niveaux ») : voir « Les quatre territoires ».
+8. **Les niveaux 11 à 20** (« ajoute des niveaux ») : voir « Les six territoires ».
 9. **La version anglaise** (pour un jeu « sortable ») : tous les écrans, le tuto, les messages et les panneaux sont
    traduits ; un test Studio vérifie qu'aucun texte ne reste en français.
 10. **Petites aides** ajoutées en même temps : la pastille « ! » de la boutique, les conseils de l'écran de fin, et
@@ -424,7 +485,9 @@ arrivent à un niveau) : rien d'autre n'a changé. Les chiffres sont dans `src/s
     automatiques » des joueurs, juin 2026). Le jeu l'en empêche pour tous ses textes : il se traduit lui-même, et
     Roblox aurait pris son français pour de l'anglais (ou l'inverse). Voir `README.md`, « Langues ».
 12. **Les niveaux 21 à 40** (03/10/2026, « continue les niveaux jusqu'à 40 ») : la forêt des Gardiens des ronces et
-    le glacier de la Légion du givre, voir « Les quatre territoires ».
+    le glacier de la Légion du givre, voir « Les six territoires ».
+13. **Les niveaux 41 à 60** (03/10/2026, « fais encore 20 ») : le désert des Gardes des dunes et la nécropole de la
+    Légion des os, voir « Les six territoires ».
 
 ### Le grand ménage : ce qui a été enlevé
 
@@ -449,9 +512,13 @@ niveaux du joueur et son réglage du son. Les sauvegardes de l'ancien jeu « Tow
 ## Ce qui reste à décider (par toi)
 
 1. **Les évolutions** de chaque tour (3 par tour) : ce sont mes propositions, à changer comme tu veux.
-2. **Les niveaux 11 à 40** sont faits, mais tu ne les as pas encore joués : leur difficulté, les cartes et le
-   nombre de colosses sont mes choix. Dis-moi ce que tu en penses. **La suite** (niveaux 41 à 50…) : les modèles des
-   monstres du territoire 5 (les Gardes des dunes) existent déjà, il faut une carte et un réglage.
+2. **Les niveaux 11 à 60** sont faits, mais tu ne les as pas encore joués : leur difficulté, les cartes et le
+   nombre de colosses sont mes choix. Dis-moi ce que tu en penses. **La suite** (niveaux 61 à 70…) : les modèles des
+   monstres du territoire 7 (la Garde de la tempête) existent déjà, il faut une carte et un réglage.
+   **Le boss du niveau 60** n'a pas encore de modèle 3D (il est fait de blocs) : à faire faire par ChatGPT, comme
+   les autres (`assets/EnemyModels/Boss_5.rbxm`).
+   **Les pièces à la fin** : une fois les huit tours achetées et le camp au maximum, les pièces ne servent plus à
+   rien. De nouvelles choses à acheter ?
 3. **Des passes Robux pour ce jeu ?** Il n'y en a plus aucun. Si tu en veux, il faudra choisir lesquels (jamais un
    avantage qui casse la difficulté des niveaux).
 4. **Avant de rendre le jeu public** : voir `SORTIE.md` (publication, essai sur un vrai téléphone, page du jeu).
@@ -505,9 +572,9 @@ powershell -ExecutionPolicy Bypass -File tools\levels\run.ps1
 powershell -ExecutionPolicy Bypass -File tools\studio-test\run.ps1
 ```
 
-- le premier : 815 vérifications des règles, de la difficulté de chacun des 40 niveaux, des évolutions, du camp et
-  du tuto, sans Studio (moins de deux minutes) ;
-- le deuxième : le tableau de difficulté des 40 niveaux par les joueurs simulés ;
+- le premier : 1 144 vérifications des règles, de la difficulté de chacun des 60 niveaux, des évolutions, du camp
+  et du tuto, sans Studio (deux à trois minutes) ;
+- le deuxième : le tableau de difficulté des 60 niveaux par les joueurs simulés ;
 - le troisième : le test complet dans Studio (serveur, puis la vraie interface à la taille normale et à la taille
   d'un téléphone), avec des captures dans `tools/studio-test/out/levels_*.png`. Avec `-Test tutorial` : le tuto
   d'un nouveau joueur, suivi flèche après flèche (captures `tutorial_*.png`).
@@ -515,16 +582,16 @@ powershell -ExecutionPolicy Bypass -File tools\studio-test\run.ps1
 ### Six combats dans le même serveur
 
 C'était le point à valider par des mesures (un serveur = 6 joueurs, donc 6 niveaux possibles en même temps, en plus
-des 6 camps). Mesuré dans Studio le 03/10/2026, six niveaux 40 (le dernier : le flot le plus serré) joués en même
+des 6 camps). Mesuré dans Studio le 03/10/2026, six niveaux 60 (le dernier : le flot le plus serré) joués en même
 temps pendant 170 secondes de jeu (presque tout le flot, dont la fin, le moment le plus chargé) :
 
 | Cas | Temps moyen par image | 99 % des images | Monstres en même temps |
 |---|---|---|---|
-| 12 tours par joueur (combat normal) | 0,13 ms | moins de 0,4 ms | jusqu'à 480 |
-| 3 tours par joueur (carte pleine de monstres) | 0,12 ms | moins de 0,35 ms | jusqu'à 480 |
+| 12 tours par joueur (combat normal) | 0,13 ms | moins de 0,4 ms | jusqu'à 438 |
+| 3 tours par joueur (carte pleine de monstres) | 0,12 ms | moins de 0,35 ms | jusqu'à 456 |
 
-(480 = 80 monstres en vie par niveau, le maximum autorisé : à la fin du flot il en sort 3,6 par seconde, et chacun
-met environ 25 secondes à traverser la carte du glacier. La mesure donne des vies infinies et des tours de niveau 1, qui
+(Au plus 80 monstres en vie par niveau, donc 480 pour six : à la fin du flot il en sort 3,7 par seconde, et chacun
+met environ 23 secondes à traverser la carte de la nécropole. La mesure donne des vies infinies et des tours de niveau 1, qui
 ne tuent presque plus rien à la fin : c'est le pire cas possible. Dans une vraie partie, le château tombe bien
 avant.)
 
@@ -540,8 +607,9 @@ print(m.averageMs, m.p99Ms, m.worstMs, m.enemiesPeak)
 
 ## Limites connues
 
-- Quatre cartes pour 40 niveaux (une par territoire).
-- Les niveaux 11 à 40 n'ont été joués que par les joueurs simulés.
+- Six cartes pour 60 niveaux (une par territoire).
+- Les niveaux 11 à 60 n'ont été joués que par les joueurs simulés.
+- Le boss du niveau 60 n'a pas encore de modèle 3D : il est fait de blocs.
 - Deux langues : français et anglais. Un joueur espagnol, portugais, etc. voit le jeu en anglais.
 - La difficulté est réglée avec des joueurs simulés et un seul vrai joueur (toi) : avant de rendre le jeu public, il
   faudra voir si un nouveau joueur passe le niveau 1.

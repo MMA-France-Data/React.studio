@@ -20,7 +20,7 @@ powershell -ExecutionPolicy Bypass -File tools\levels\run.ps1 -Regler "Levels.ST
 - **sans option** : le tableau de difficulté. Chaque niveau est joué par des joueurs simulés : très actif, au rythme
   demandé par le niveau, lent (un achat toutes les 8 s), distrait (toutes les 15 s), sans boutique, tout débloqué.
   « G 7 » = gagné avec 7 vies, « P 62 % » = perdu après avoir éliminé 62 % des monstres. Environ 2 minutes.
-- **`-Tests`** : 815 vérifications (40 niveaux, 4 territoires, flot continu, cartes, pose libre, récompenses, prix, entraînement, données
+- **`-Tests`** : 1 144 vérifications (60 niveaux, 6 territoires, flot continu, cartes, pose libre, récompenses, prix, entraînement, données
   du joueur, le moteur : or, vies, victoire, défaite, vitesse x2, paquets réseau, **la difficulté de chaque
   niveau** : voir plus bas, les évolutions des tours, le camp d'entraînement de la parcelle : `CampGame.luau`, et
   **le tuto** : son étape dans les données, le guide du niveau 1, le joueur qui suit la flèche). Environ une minute
@@ -49,7 +49,7 @@ powershell -ExecutionPolicy Bypass -File tools\levels\run.ps1 -Regler "Levels.ST
 
 Retour du propriétaire après son premier essai (02/10/2026) : « beaucoup trop facile », « je veux que ce soit en
 continu et de plus en plus dur, que je sois obligé d'être super actif : poser des tours, améliorer », « si juste
-2 Archers gèrent le niveau, je passe mon temps à attendre ». `tests.luau` vérifie donc, pour **chacun des 40 niveaux** :
+2 Archers gèrent le niveau, je passe mon temps à attendre ». `tests.luau` vérifie donc, pour **chacun des 60 niveaux** :
 
 | Joueur simulé | Doit |
 |---|---|
@@ -65,8 +65,8 @@ qui vient d'être achetée n'est pas encore entraînée : `trainings`).
 
 ## Ajouter un territoire (10 niveaux)
 
-C'est ce qui a été fait pour les niveaux 11 à 20 (02/10/2026, « ajoute des niveaux »), puis 21 à 40 (03/10/2026,
-« continue les niveaux jusqu'à 40 ») :
+C'est ce qui a été fait pour les niveaux 11 à 20 (02/10/2026, « ajoute des niveaux »), puis 21 à 40 et 41 à 60
+(03/10/2026, « continue les niveaux jusqu'à 40 », « fais encore 20 ») :
 
 1. `src/shared/Levels.luau` : la carte dans `MAPS` (chemin en tronçons droits, château, 12 emplacements conseillés),
    son nom dans `TERRITORIES`, 10 lignes dans `DEFINITIONS` avec des PV provisoires, puis `COUNT`.
@@ -80,7 +80,10 @@ les tours qui visent « le plus avancé » ne le touchent plus, et le joueur sim
 éliminé sauf lui (essayé au niveau 20). Un boss trop résistant pour le joueur très actif, même en fin de flot :
 baisser sa part de PV (`{ "Boss", 1, 0.85 }` au niveau 40) ; un boss plus faible que celui du territoire d'avant :
 la monter (`{ "Boss", 1, 1.1 }` au niveau 30). Les niveaux à boss sont un peu plus courts : le boss doit encore
-traverser la carte, et un niveau dure 200 s au plus.
+traverser la carte, et un niveau dure 200 s au plus. Avec quatre ou cinq colosses par niveau (41 à 60), régler avec
+`-Tune -Vies 8` : sinon le réglage laisse passer un colosse (5 vies d'un coup), même au joueur très actif. Un chemin
+court (252 studs) : faire sortir les premiers monstres moins serrés (écart de 1 s), sinon celui qui pose 2 Archers
+puis attend tombe avant 35 s.
 
 ## Comment un niveau est réglé
 

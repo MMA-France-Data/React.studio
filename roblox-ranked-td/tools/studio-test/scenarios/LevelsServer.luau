@@ -712,34 +712,45 @@ return function(log)
 	end
 
 	------------------------------------------------------------------
-	-- 3e et 4e territoires (niveaux 21 à 40). Demande du propriétaire (03/10/2026) : « continue les niveaux jusqu'à 40 ».
+	-- Territoires 3 à 6 (niveaux 21 à 60). Demandes du propriétaire (03/10/2026) : « continue les niveaux jusqu'à 40 »,
+	-- puis « fais encore 20 ».
 	------------------------------------------------------------------
 	do
 		levels("Set", "towers", { MachineGun = true, Bomb = true, Frost = true, Tesla = true, Rocket = true, Laser = true, Chain = true })
+		-- Le décor de chaque carte (field = le terrain, c = nombre de pièces du décor par nom).
+		local themeChecks = {
+			Forest = function(field, c)
+				return field.Color.G > field.Color.R and (c.TreeCrown or 0) >= 45 -- un vrai bois, terrain vert
+			end,
+			Glacier = function(field, c)
+				return field.Material == Enum.Material.Snow and field.Color.B > 0.8 -- neige
+			end,
+			Desert = function(field, c)
+				return field.Material == Enum.Material.Sand and (c.Cactus or 0) >= 40 and (c.TreeCrown or 0) == 0 -- sable, cactus, aucun arbre
+			end,
+			Necropolis = function(field, c)
+				return (c.Grave or 0) >= 20 and field.Color.R < 0.45 -- pierres tombales, herbe morte et sombre
+			end,
+		}
 		for _, case in {
 			{ level = 21, map = "Forest", name = "forêt", shot = "levels_territoire3" },
 			{ level = 31, map = "Glacier", name = "glacier", shot = "levels_territoire4" },
+			{ level = 41, map = "Desert", name = "désert", shot = "levels_territoire5" },
+			{ level = 51, map = "Necropolis", name = "nécropole", shot = "levels_territoire6" },
 		} do
 			levels("Set", "best", case.level - 1)
 			check(action("Start", case.level) == true, `niveau {case.level} lancé (le territoire d'avant est réussi)`)
 			local built = arena:FindFirstChild("Map")
-			local rocks, crowns = 0, 0
+			local c = {}
 			for _, part in if built then built:GetChildren() else {} do
-				if part.Name == "Rock" then
-					rocks += 1
-				elseif part.Name == "TreeCrown" then
-					crowns += 1
-				end
+				c[part.Name] = (c[part.Name] or 0) + 1
 			end
 			local field = built and built:FindFirstChild("Field")
-			-- (forêt : un vrai bois, terrain vert ; glacier : terrain de neige)
-			local themeOk = if case.map == "Forest"
-				then field ~= nil and field.Color.G > field.Color.R and crowns >= 45
-				else field ~= nil and field.Material == Enum.Material.Snow and field.Color.B > 0.8
+			local themeOk = field ~= nil and themeChecks[case.map](field, c)
 			check(
 				arena:GetAttribute("Map") == case.map and arena:GetAttribute("Level") == case.level and arena:GetAttribute("Gold") == Levels.definition(case.level).gold
-					and #towers() == 0 and arena:GetAttribute("Total") == #Levels.buildQueue(case.level) and rocks >= 10 and themeOk,
-				`niveau {case.level} : la carte du {case.name} (« {tostring(arena:GetAttribute("Map"))} ») est construite avec son décor ({crowns} feuillages d'arbres, {rocks} rochers), {tostring(arena:GetAttribute("Gold"))} or, {tostring(arena:GetAttribute("Total"))} monstres`
+					and #towers() == 0 and arena:GetAttribute("Total") == #Levels.buildQueue(case.level) and (c.Rock or 0) >= 10 and themeOk,
+				`niveau {case.level} : la carte « {tostring(arena:GetAttribute("Map"))} » ({case.name}) est construite avec son décor ({c.TreeCrown or 0} feuillages d'arbres, {c.Rock or 0} rochers, {c.Cactus or 0} morceaux de cactus, {c.Grave or 0} morceaux de tombes), {tostring(arena:GetAttribute("Gold"))} or, {tostring(arena:GetAttribute("Total"))} monstres`
 			)
 			-- Les 12 emplacements conseillés de cette carte sont tous posables, même tous occupés.
 			local spots = Levels.MAPS[case.map].spots
@@ -766,7 +777,7 @@ return function(log)
 				`niveau {case.level} gagné : +{tostring(won.reward)} pièces de niveau, niveau suivant {tostring(won.nextLevel)}`
 			)
 		end
-		-- Le dernier niveau : le boss du glacier ferme le flot, plus de niveau suivant.
+		-- Le dernier niveau : le boss ferme le flot, plus de niveau suivant.
 		levels("Set", "best", Levels.COUNT - 1)
 		local coinsBefore = saved().coins
 		action("Start", Levels.COUNT)

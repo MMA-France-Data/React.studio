@@ -24,8 +24,9 @@ local LevelArena = {}
 local arenas = {} -- [slot] = { slot, index, folder, cframe, focus, map, palier }
 
 -- Décor de chaque territoire (palier = (niveau - 1) // 10) : couleurs et matières du sol, du terrain et du chemin,
--- feuillage des arbres (autumn = roux, foliage = sa couleur), forest = des arbres en plus (un vrai bois), rochers
--- posés autour du terrain. Le chemin contraste avec les monstres du territoire (qu'on les voie bien).
+-- feuillage des arbres (autumn = roux, foliage = sa couleur), forest = des arbres en plus (un vrai bois), noTrees =
+-- aucun arbre, rochers, cactus et pierres tombales (leur couleur) posés autour du terrain. Le chemin contraste avec
+-- les monstres du territoire (qu'on les voie bien).
 local THEMES = {
 	-- La vallée du Roi carmin : prairie verte.
 	[0] = {
@@ -71,6 +72,32 @@ local THEMES = {
 		groundMaterial = Enum.Material.Snow,
 		foliage = Color3.fromRGB(226, 236, 242),
 		rocks = Color3.fromRGB(150, 164, 182),
+	},
+	-- Le désert des Gardes des dunes : sable, cactus, rochers de grès, pas un arbre ; chemin de terre brune et tassée
+	-- (les Gardes sont couleur sable).
+	[4] = {
+		ground = Color3.fromRGB(214, 186, 132),
+		field = Color3.fromRGB(226, 202, 150),
+		path = Color3.fromRGB(112, 84, 60),
+		wall = Color3.fromRGB(196, 168, 120),
+		banner = Color3.fromRGB(176, 64, 40),
+		groundMaterial = Enum.Material.Sand,
+		noTrees = true,
+		cacti = Color3.fromRGB(86, 128, 72),
+		rocks = Color3.fromRGB(190, 150, 104),
+	},
+	-- La nécropole de la Légion des os : herbe morte et grise, arbres sombres, pierres tombales ; chemin d'ardoise
+	-- sombre (la Légion est couleur os).
+	[5] = {
+		ground = Color3.fromRGB(66, 70, 62),
+		field = Color3.fromRGB(92, 98, 84),
+		path = Color3.fromRGB(56, 50, 64),
+		wall = Color3.fromRGB(92, 88, 100),
+		banner = Color3.fromRGB(106, 83, 134),
+		groundMaterial = Enum.Material.Ground,
+		foliage = Color3.fromRGB(68, 58, 78),
+		graves = Color3.fromRGB(150, 146, 156),
+		rocks = Color3.fromRGB(104, 100, 112),
 	},
 }
 
@@ -159,10 +186,10 @@ function LevelArena.build(slot: number, mapName: string, palier: number)
 		end
 	end
 	-- Quelques arbres, seulement au fond et sur les côtés (devant, ils cacheraient le terrain à la caméra).
-	for i = 0, 6 do
+	for i = 0, (if theme.noTrees then -1 else 6) do
 		MedievalModels.tree(folder, origin * CFrame.new(-w / 2 + 6 + i * (w - 12) / 6, 0, -d / 2 - 12 - (i % 2) * 6), 1.1 + (i % 3) * 0.15, theme.foliage or theme.autumn or i % 4 == 1)
 	end
-	for _, side in { -1, 1 } do
+	for _, side in (if theme.noTrees then {} else { -1, 1 }) do
 		MedievalModels.tree(folder, origin * CFrame.new(side * (w / 2 + 14), 0, -6), 1.2, theme.foliage or theme.autumn == true)
 	end
 	-- Un vrai bois : une deuxième rangée d'arbres derrière la première, et d'autres sur les côtés (vers le fond).
@@ -191,6 +218,43 @@ function LevelArena.build(slot: number, mapName: string, palier: number)
 				local size = 3.5 + i
 				local rock = scenery(folder, "Rock", Vector3.new(size * 1.2, size, size), origin * CFrame.new(side * (w / 2 + 6 + i * 2), size * 0.3, -d / 2 + 10 + i * 13) * CFrame.Angles(0, i * 1.3, 0.15), theme.rocks, Enum.Material.Slate)
 				rock.Shape = Enum.PartType.Ball
+			end
+		end
+	end
+
+	-- Cactus (désert) : un tronc et deux bras, en blocs comme le reste du décor ; au fond et sur les côtés.
+	if theme.cacti then
+		local function cactus(cf: CFrame, scale: number)
+			local color = theme.cacti
+			scenery(folder, "Cactus", Vector3.new(1.6, 7, 1.6) * scale, cf * CFrame.new(0, 3.5 * scale, 0), color, Enum.Material.Grass)
+			for _, arm in { { -1, 3.2, 2.2 }, { 1, 4.2, 1.8 } } do
+				local side, height, length = arm[1], arm[2], arm[3]
+				scenery(folder, "Cactus", Vector3.new(1.4, 0.9, 0.9) * scale, cf * CFrame.new(side * 1.3 * scale, height * scale, 0), color, Enum.Material.Grass)
+				scenery(folder, "Cactus", Vector3.new(0.9, length, 0.9) * scale, cf * CFrame.new(side * 1.9 * scale, (height + length / 2 - 0.2) * scale, 0), color:Lerp(Color3.new(0, 0, 0), 0.08), Enum.Material.Grass)
+			end
+		end
+		for i = 0, 6 do
+			cactus(origin * CFrame.new(-w / 2 + 4 + i * (w - 8) / 6, 0, -d / 2 - 10 - (i % 3) * 5) * CFrame.Angles(0, i * 0.8, 0), 1.1 + (i % 2) * 0.25)
+		end
+		for _, side in { -1, 1 } do
+			for i = 0, 1 do
+				cactus(origin * CFrame.new(side * (w / 2 + 9 + i * 8), 0, -d / 2 + 6 + i * 14) * CFrame.Angles(0, i * 1.1, 0), 1)
+			end
+		end
+	end
+	-- Pierres tombales (nécropole) : une dalle et son chapeau, un peu penchées ; au fond et sur les côtés.
+	if theme.graves then
+		for i = 0, 9 do
+			local x = -w / 2 + 2 + i * (w - 4) / 9
+			local z = -d / 2 - 5 - (i % 3) * 2.5
+			local cf = origin * CFrame.new(x, 0, z) * CFrame.Angles(0, (i % 4 - 1.5) * 0.15, (i % 3 - 1) * 0.12)
+			scenery(folder, "Grave", Vector3.new(2.2, 2.8, 0.6), cf * CFrame.new(0, 1.4, 0), theme.graves:Lerp(Color3.new(0, 0, 0), (i % 3) * 0.1), Enum.Material.Slate)
+			scenery(folder, "Grave", Vector3.new(1.5, 0.5, 0.7), cf * CFrame.new(0, 3, 0), theme.graves, Enum.Material.Slate)
+		end
+		for _, side in { -1, 1 } do
+			for i = 0, 2 do
+				local cf = origin * CFrame.new(side * (w / 2 + 5 + i * 3), 0, -d / 2 + 6 + i * 12) * CFrame.Angles(0, math.pi / 2 + i * 0.2, side * 0.1)
+				scenery(folder, "Grave", Vector3.new(2.2, 2.8, 0.6), cf * CFrame.new(0, 1.4, 0), theme.graves, Enum.Material.Slate)
 			end
 		end
 	end

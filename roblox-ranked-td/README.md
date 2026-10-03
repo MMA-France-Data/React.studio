@@ -1,6 +1,6 @@
 # Tower defense à niveaux (Roblox)
 
-Un tower defense médiéval : une suite de **niveaux** de 2 à 3 minutes (40 niveaux, en quatre territoires), vus d'en
+Un tower defense médiéval : une suite de **niveaux** de 2 à 3 minutes (60 niveaux, en six territoires), vus d'en
 haut, où un flot continu de monstres devient de plus en plus fort. On pose ses tours où on veut et on les améliore
 sans arrêt. Entre deux niveaux, on
 retrouve sa parcelle, son **camp d'entraînement** : les tours s'y entraînent (même quand on est parti) et **évoluent**.
@@ -45,8 +45,8 @@ sauvegarde (`Niveaux_PlayerData_v1`) : il ne lit et n'écrase jamais les sauvega
 powershell -ExecutionPolicy Bypass -File tools\levels\run.ps1 -Tests
 ```
 
-815 vérifications des règles, de la difficulté de chacun des 40 niveaux, des évolutions, du camp et du tuto (moins
-de deux minutes). Sans `-Tests` : le tableau de difficulté des 40 niveaux joués par des joueurs simulés ; `-Lazy`,
+1 144 vérifications des règles, de la difficulté de chacun des 60 niveaux, des évolutions, du camp et du tuto (deux
+à trois minutes). Sans `-Tests` : le tableau de difficulté des 60 niveaux joués par des joueurs simulés ; `-Lazy`,
 `-Tune`, `-Curve`, `-Worth`, `-Coach` pour
 régler la difficulté et le guide du tuto (voir [tools/levels/README.md](tools/levels/README.md)).
 

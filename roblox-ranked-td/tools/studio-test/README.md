@@ -51,9 +51,10 @@ Scénarios `scenarios\LevelsServer.luau` puis `scenarios\LevelsClient.luau`. Cap
 - **le 2e territoire** : le niveau 11 fermé tant que le niveau 10 n'est pas réussi, la carte du col construite
   (terre rousse, rochers), ses 12 emplacements, une capture en plein combat (`levels_territoire2`), les récompenses
   (280, 600 au mini-boss, 1 200 au boss), le retour à la carte de la vallée ;
-- **les 3e et 4e territoires** : les cartes de la forêt (un vrai bois) et du glacier (neige) construites, leurs 12
-  emplacements, une capture de chacune en plein combat (`levels_territoire3`, `levels_territoire4`), le boss du
-  dernier niveau (2 400 pièces, plus de niveau suivant).
+- **les territoires 3 à 6** : les cartes de la forêt (un vrai bois), du glacier (neige), du désert (sable, cactus,
+  aucun arbre) et de la nécropole (pierres tombales) construites, leurs 12 emplacements, une capture de chacune en
+  plein combat (`levels_territoire3` à `levels_territoire6`), le boss du dernier niveau (3 600 pièces, plus de
+  niveau suivant).
 
 **Côté client** (avec la vraie interface : l'attribut `TestAction` des écrans « Levels » et « LevelHud » lance les
 mêmes fonctions que les boutons, et un appui sur le terrain passe par le vrai chemin : point de l'écran, rayon de la
@@ -63,7 +64,7 @@ caméra, sol) :
   côté du bouton « ⚔ NIVEAUX », cibles de paille sur la parcelle, son des flèches, onglet Entraînement et évolutions
   (`levels_camp_parcelle`, `levels_camp_evolutions`) ;
 - fenêtre du camp et ses 4 onglets (`levels_camp_niveaux`, `levels_camp_boutique`, `levels_camp_entrainement`,
-  `levels_camp_tours`), les 40 niveaux en 4 territoires dans une page qui défile (`levels_camp_dernier_territoire`) ;
+  `levels_camp_tours`), les 60 niveaux en 6 territoires dans une page qui défile (`levels_camp_dernier_territoire`) ;
 - niveau 1 : vue d'en haut qui remplit l'écran, deux tours dans la barre, Archer offert qui tue en moins de 10 s,
   « + », son du combat, « +6 » doré de l'or gagné, pose près d'un « + », **bouton « ANNULER » de la tour en main**
   (`levels_annuler`), menu de la tour, amélioration, pose libre, zoom et déplacement de la vue, trois inclinaisons

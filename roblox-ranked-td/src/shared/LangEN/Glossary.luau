@@ -39,6 +39,8 @@ return {
 	["Le col des Pillards de cuivre"] = "The Copper Raiders' Pass",
 	["La forêt des Gardiens des ronces"] = "The Bramble Wardens' Forest",
 	["Le glacier de la Légion du givre"] = "The Frost Legion's Glacier",
+	["Le désert des Gardes des dunes"] = "The Dune Guards' Desert",
+	["La nécropole de la Légion des os"] = "The Bone Legion's Necropolis",
 
 	-- Évolutions des tours (Levels.PERKS : name)
 	["Flèches enflammées"] = "Flaming arrows",

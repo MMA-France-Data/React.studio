@@ -311,8 +311,9 @@ return function(log)
 		string.find(page1.Territory1.Text, "TERRITORY 1", 1, true) ~= nil and string.find(page1.Territory1.Text, "The Crimson King's Valley", 1, true) ~= nil
 			and string.find(page1.Territory2.Text, "clear level 10", 1, true) ~= nil and string.find(page1.Territory3.Text, "The Bramble Wardens' Forest", 1, true) ~= nil
 			and string.find(page1.Territory4.Text, "The Frost Legion's Glacier", 1, true) ~= nil and string.find(page1.Territory4.Text, "clear level 30", 1, true) ~= nil
-			and page1.Level1.Play.Text == "▶ PLAY",
-		`onglet des niveaux : « {page1.Territory1.Text} », « {page1.Territory2.Text} », « {page1.Territory3.Text} », « {page1.Territory4.Text} », bouton « {page1.Level1.Play.Text} »`
+			and string.find(page1.Territory5.Text, "The Dune Guards' Desert", 1, true) ~= nil and string.find(page1.Territory6.Text, "The Bone Legion's Necropolis", 1, true) ~= nil
+			and string.find(page1.Territory6.Text, "clear level 50", 1, true) ~= nil and page1.Level1.Play.Text == "▶ PLAY",
+		`onglet des niveaux : « {page1.Territory1.Text} », « {page1.Territory2.Text} », « {page1.Territory3.Text} », « {page1.Territory4.Text} », « {page1.Territory5.Text} », « {page1.Territory6.Text} », bouton « {page1.Level1.Play.Text} »`
 	)
 	scanScreen("camp, onglet Niveaux (nouveau joueur)")
 	shot("niveaux")
