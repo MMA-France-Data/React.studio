@@ -34,8 +34,9 @@ Le jeu sort comme une **nouvelle expérience Roblox** (décision du 02/10/2026) 
 ## Publication (Studio et Hub Création)
 
 - [ ] Le fichier à publier : la copie propre préparée par Claude, sur ton PC, dans le dossier du jeu :
-      `A-PUBLIER\Jeu-20-niveaux.rbxl` (refaite à chaque version ; elle n'est pas dans git). Ferme les autres
-      fenêtres de Studio avant de publier, pour ne pas te tromper de fichier.
+      `A-PUBLIER\Jeu-40-niveaux.rbxl` (refaite à chaque version, son nom dit le nombre de niveaux : prends toujours
+      la plus récente ; elle n'est pas dans git). Ferme les autres fenêtres de Studio avant de publier, pour ne pas
+      te tromper de fichier.
 - [ ] Publier comme une **nouvelle expérience** sur ton compte personnel (Fichier > Publier sur Roblox > « Créer une
       nouvelle expérience »), en privé. Les mises à jour ensuite : ouvrir la nouvelle copie propre,
       Publier sur Roblox > « Mettre à jour l'expérience existante… » > la nouvelle expérience (**pas** « Tower 22 »).
