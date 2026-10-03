@@ -45,10 +45,10 @@ sauvegarde (`Niveaux_PlayerData_v1`) : il ne lit et n'écrase jamais les sauvega
 powershell -ExecutionPolicy Bypass -File tools\levels\run.ps1 -Tests
 ```
 
-1 798 vérifications des règles, de la difficulté de chacun des 100 niveaux, des évolutions, du camp et du tuto
+1 792 vérifications des règles, de la difficulté de chacun des 100 niveaux, des évolutions, du camp et du tuto
 (environ cinq minutes). Sans `-Tests` : le tableau de difficulté des 100 niveaux joués par des joueurs simulés ; `-Lazy`,
-`-Tune`, `-Curve`, `-Worth`, `-Coach` pour
-régler la difficulté et le guide du tuto (voir [tools/levels/README.md](tools/levels/README.md)).
+`-Tune`, `-Curve`, `-Worth` pour
+régler la difficulté (voir [tools/levels/README.md](tools/levels/README.md)).
 
 ```bash
 powershell -ExecutionPolicy Bypass -File tools\studio-test\check.ps1

@@ -7,18 +7,20 @@
 -- Trois moments, d'après l'étape gardée par le serveur (champ `tutorial` de l'état du joueur, Levels.TUTORIAL) :
 --   étape 0 (nouveau joueur), au camp : la fenêtre des niveaux s'ouvre toute seule, la flèche montre « ▶ JOUER » du
 --     niveau 1 (ou le bouton « ⚔ NIVEAUX » s'il a fermé la fenêtre) ;
---   étape 0, pendant le niveau 1 : le GUIDE. La flèche montre le prochain achat conseillé, du début à la fin du
---     niveau (Levels.coachAdvice : poser le 2e Archer sur un « + », améliorer une tour, poser la Catapulte, puis
---     poser et améliorer sans arrêt). Celui qui suit les flèches gagne le niveau (vérifié par tools/levels et par le
---     test Studio « tutorial »). Défaite : la flèche montre « Réessayer ». Victoire : « Niveau 2 ▶ », et le serveur
---     passe à l'étape 1 ;
+--   étape 0, pendant le niveau 1 : ses DEUX PREMIERS GESTES (Levels.firstSteps), puis plus rien. Retour du
+--     propriétaire (03/10/2026) : « juste poser une tour, et pas forcer un positionnement, et améliorer, et fin, le
+--     gars se débrouille ». La flèche montre une tour de la barre (« PRENDS UN ARCHER ») ; tour en main, seuls des
+--     mots disent « POSE-LA OÙ TU VEUX » (aucun endroit n'est montré) ; puis une tour (« TOUCHE CETTE TOUR ») et son
+--     bouton « AMÉLIORE ». Ensuite, plus de flèche jusqu'à la fin du niveau, même s'il le rejoue. Défaite : la
+--     flèche montre « Réessayer ». Victoire : « Niveau 2 ▶ », et le serveur passe à l'étape 1 ;
 --   étape 1 : dès que le joueur a de quoi acheter une tour (en général après le niveau 2 : le Totem de givre), la
 --     flèche montre « Retour au camp » sur l'écran de fin d'un niveau, puis au camp la Boutique et le bouton
 --     « ACHETER ». L'achat termine le tuto (étape 2).
 -- Tout vient de ce que le serveur publie (attributs LevelsState et LevelArena du joueur, attributs de sa zone de
 -- combat) et des écrans construits par LevelsUI (leurs objets gardent leurs noms) : ce module ne décide rien du jeu.
 -- Pour les tests (Studio) : l'écran « TutorialPointer » porte les attributs « Target » (nom de l'objet montré,
--- « World » pour un point du terrain, vide sans flèche), « TargetPoint » (ce point du terrain, dans le monde),
+-- « World » pour un point du terrain, « Note » pour des mots seuls, sans flèche ; vide sans flèche),
+-- « TargetPoint » (ce point du terrain, dans le monde),
 -- « Caption » (ses mots, en français) et « Stage ».
 -- Studio : tes données y sont en mémoire, tu es un nouveau joueur à chaque Play et le tuto revient à chaque fois
 -- (Config.STUDIO_TUTORIAL = false pour ne plus le voir). Tests automatiques (ReplicatedStorage.__AutoPlayTest) :
@@ -45,7 +47,7 @@ TutorialUI.CAPTIONS = {
 	Play = "JOUE ICI",
 	Take = { MachineGun = "PRENDS UN ARCHER", Bomb = "PRENDS UNE CATAPULTE" },
 	TakeOther = "PRENDS CETTE TOUR",
-	Place = "POSE-LA ICI",
+	Place = "POSE-LA OÙ TU VEUX",
 	Tower = "TOUCHE CETTE TOUR",
 	Upgrade = "AMÉLIORE",
 	Next = "CONTINUE",
@@ -76,7 +78,8 @@ local POINTER_EDGE = 24 -- un petit bouton à moins de tant du bord gauche ou dr
 local POINTER_SMALL = Vector2.new(200, 64) -- « petit bouton » : au plus cette taille
 local POINTER_MARGIN = 40 -- cible du terrain hors de l'écran : la pointe de la flèche est à tant du bord
 local POINTER_BOTTOM_STRIP = 40 -- bande du bas de l'écran laissée libre sous une flèche mise SOUS un bouton (« Passer »)
-local TOWER_RADIUS = 22 -- px laissés libres autour d'une tour ou d'un « + » montré sur le terrain
+local TOWER_RADIUS = 22 -- px laissés libres autour d'une tour montrée sur le terrain
+local NOTE_GAP = 6 -- mots seuls (sans flèche) : à tant au-dessus du conseil du jeu, lui-même au-dessus de la barre
 -- Place qu'il faut à la flèche seule, puis à la flèche et à ses mots au bout.
 local POINTER_NEED = 2 * POINTER_TIP + POINTER_BOUNCE + POINTER_GAP
 local POINTER_NEED_WORDS = POINTER_NEED + POINTER_GAP + POINTER_CAPTION_HEIGHT
@@ -255,17 +258,14 @@ function TutorialUI.start()
 		local rest = model:GetAttribute("RestCFrame")
 		return (if typeof(rest) == "CFrame" then rest.Position else model:GetPivot().Position) + Vector3.new(0, 3, 0)
 	end
-	-- Premier « + » affiché sur le terrain (LevelsUI les montre pendant qu'une tour est en main).
-	local function plusPoint(): Vector3?
-		local helpers = workspace:FindFirstChild("LevelHelpers")
-		local plus = helpers and helpers:FindFirstChild("Plus1")
-		return if plus and plus:IsA("BasePart") then plus.Position else nil
-	end
 
 	------------------------------------------------------------------
-	-- Ce que la flèche montre maintenant : { gui = bouton, caption } ou { world = point du terrain, caption }, ou nil.
+	-- Ce que la flèche montre maintenant : { gui = bouton, caption }, { world = point du terrain, caption } ou
+	-- { note = true, caption } (des mots seuls, sans flèche), ou nil.
 	------------------------------------------------------------------
 	local opened = false -- la fenêtre des niveaux a déjà été ouverte une fois pour ce nouveau joueur
+	local guideDone = false -- ses deux premiers gestes du niveau 1 sont faits : plus de flèche pendant ce niveau
+	local guideStage = nil -- étape du tuto quand guideDone a été remis à faux (il y revient si l'étape change)
 
 	local function campTarget()
 		local window = find("Levels", "Window")
@@ -279,7 +279,7 @@ function TutorialUI.start()
 		return button(CAPTIONS.Play, BELOW, "Levels", "Window", "Page1", "Level1", "Play")
 	end
 
-	-- Pendant le niveau 1 : le guide (Levels.coachAdvice dit quoi acheter, ici on montre où appuyer).
+	-- Pendant le niveau 1 : ses deux premiers gestes (Levels.firstSteps dit lequel, ici on montre où appuyer), puis rien.
 	local function levelTarget(arena: Instance)
 		local hud = find("LevelHud")
 		if not hud then
@@ -290,34 +290,38 @@ function TutorialUI.start()
 			local won = arena:GetAttribute("State") == "Won"
 			return button(if won then CAPTIONS.Next else CAPTIONS.Retry, PANEL_SIDE, "LevelHud", "EndScreen", "Panel", "Next")
 		end
-		if arena:GetAttribute("State") ~= "Running" then
+		if arena:GetAttribute("State") ~= "Running" or guideDone then
 			return nil
 		end
 		local gold = tonumber(arena:GetAttribute("Gold")) or 0
 		local placing = hud:GetAttribute("Placing")
 		local selected = hud:GetAttribute("Selected")
 		local towers = levelTowers(arena)
-		-- Une tour en main : la flèche montre où la poser (s'il a de quoi la payer).
+		local advice, done = Levels.firstSteps(state.towers, towers, gold)
+		if done then
+			guideDone = true -- (le gars se débrouille : plus rien jusqu'à la fin du niveau, même s'il le rejoue)
+			return nil
+		end
+		-- Une tour en main, pour le premier geste : des mots seulement, il la pose où il veut (s'il a de quoi la payer).
 		if typeof(placing) == "string" and placing ~= "" then
 			local cost = Levels.TOWER_COST[placing]
-			local point = if cost and gold >= cost then plusPoint() else nil
-			return if point then { world = point, caption = CAPTIONS.Place } else nil
+			return if cost and gold >= cost and #towers < 2 then { note = true, caption = CAPTIONS.Place } else nil
 		end
-		local advice = Levels.coachAdvice(state.towers, towers, gold, Levels.decodeTraining(arena:GetAttribute("Training")))
 		if not advice then
 			return nil -- (pas encore assez d'or : rien à montrer, l'or arrive)
 		end
 		if advice.kind == "Place" then
 			return button(CAPTIONS.Take[advice.tower] or CAPTIONS.TakeOther, nil, "LevelHud", "TowerBar", "Tower_" .. advice.tower)
 		end
+		-- Améliorer : la tour qu'il a touchée, s'il peut la payer ; sinon la flèche montre la moins chère.
+		for _, tower in towers do
+			local cost = if selected == tower.id then Levels.upgradeCost(tower.type, tower.level) else nil
+			if cost and gold >= cost then
+				return button(CAPTIONS.Upgrade, MENU_SIDE, "LevelHud", "TowerMenu", "Upgrade")
+			end
+		end
 		local tower = towers[advice.index]
-		if not tower then
-			return nil
-		end
-		if selected == tower.id then
-			return button(CAPTIONS.Upgrade, MENU_SIDE, "LevelHud", "TowerMenu", "Upgrade")
-		end
-		return { world = towerPoint(tower.model), caption = CAPTIONS.Tower }
+		return if tower then { world = towerPoint(tower.model), caption = CAPTIONS.Tower } else nil
 	end
 
 	-- La tour la moins chère de la boutique que le joueur peut s'offrir (nil : aucune pour l'instant).
@@ -445,7 +449,7 @@ function TutorialUI.start()
 		pointed = target
 		local name, words = "", ""
 		if target then
-			name = if target.gui then target.gui.Name else "World"
+			name = if target.gui then target.gui.Name elseif target.note then "Note" else "World"
 			words = target.caption or ""
 		end
 		if pointerGui:GetAttribute("Target") ~= name then
@@ -475,6 +479,17 @@ function TutorialUI.start()
 		end
 		local screen = pointerGui.AbsoluteSize
 		local origin = pointerGui.AbsolutePosition
+		if target.note then
+			-- Des mots seuls, sans flèche (« POSE-LA OÙ TU VEUX » : aucun endroit montré), au milieu, juste au-dessus du
+			-- conseil du jeu (il est au-dessus de la barre des tours, même quand il n'a pas de texte).
+			arrow.Visible = false
+			local hint = find("LevelHud", "Hint")
+			local bottom = if hint and hint:IsA("GuiObject") then hint.AbsolutePosition.Y - origin.Y else screen.Y - 120
+			local height = caption.AbsoluteSize.Y
+			caption.Position = UDim2.fromOffset(screen.X / 2, math.max(height / 2 + 2, bottom - NOTE_GAP - height / 2))
+			caption.Visible = (target.caption or "") ~= ""
+			return
+		end
 		local tip, direction
 		if target.gui then
 			local object = target.gui :: GuiObject
@@ -626,6 +641,11 @@ function TutorialUI.start()
 		if pointerGui:GetAttribute("Stage") ~= stage then
 			pointerGui:SetAttribute("Stage", stage)
 		end
+		-- (un joueur revenu à l'étape 0, comme après « Reset » dans les tests Studio, refait ses deux gestes)
+		if stage ~= guideStage then
+			guideStage = stage
+			guideDone = false
+		end
 		running = stage < Levels.TUTORIAL.DONE
 		if not running then
 			setPointed(nil)
@@ -642,8 +662,8 @@ function TutorialUI.start()
 		setPointed(target)
 		placePointer() -- (tout de suite : sinon elle resterait une image à son ancienne place)
 		setHighlight(if target then target.gui else nil)
-		-- « Passer » : tant que le guide du niveau 1 n'est pas fini, et pendant que la flèche montre la boutique.
-		skipButton.Visible = stage < Levels.TUTORIAL.SHOP or target ~= nil
+		-- « Passer » : tant que les deux premiers gestes ne sont pas faits, et pendant que la flèche montre quelque chose.
+		skipButton.Visible = (stage < Levels.TUTORIAL.SHOP and not guideDone) or target ~= nil
 	end
 
 	player:GetAttributeChangedSignal("LevelsState"):Connect(function()

@@ -57,7 +57,9 @@ end
 ----------------------------------------------------------------------
 -- Cartes. Coordonnées locales de la zone : X = largeur (les monstres entrent à gauche, le château est à droite),
 -- Z = profondeur. Chemin fait de tronçons droits (RoadGeometry). spots = bons endroits pour une tour, dans l'ordre
--- conseillé : montrés par des « + » au premier niveau (on peut poser ailleurs), et suivis par le joueur simulé.
+-- conseillé : la tour offerte du niveau 1 est posée sur le premier, le joueur simulé les essaie d'abord. Rien ne
+-- les montre au joueur : il pose où il veut (demande du propriétaire, 03/10/2026 : « enlève les emplacements jaunes,
+-- je veux que ce soit libre »).
 ----------------------------------------------------------------------
 Levels.PATH_WIDTH = 6
 Levels.TOWER_CLEARANCE = 5 -- distance mini entre le centre d'une tour et le milieu du chemin
@@ -1203,101 +1205,53 @@ Levels.CAMP = {
 -- TUTO des nouveaux joueurs (affichage : client/TutorialUI.luau ; serveur : Hub/LevelsService.luau). Demande du
 -- propriétaire (02/10/2026) : « fais le tuto bien, je veux un jeu sortable ». Pas d'écran à lire : une flèche montre
 -- quoi toucher. Le champ `tutorial` des données du joueur dit où il en est :
---   0    = nouveau joueur : la flèche le mène au niveau 1, puis le GUIDE pendant tout ce niveau (coachAdvice) ;
+--   0    = nouveau joueur : la flèche le mène au niveau 1, puis lui montre ses deux premiers gestes (firstSteps) ;
 --   SHOP = il a gagné un niveau : dès qu'il a de quoi acheter une tour, la flèche lui montre la boutique ;
 --   DONE = fini (première tour achetée, ou bouton « Passer le tuto »).
 ----------------------------------------------------------------------
 Levels.TUTORIAL = { SHOP = 1, DONE = 2 }
--- Le guide et l'or en poche : un achat qui coûte moins que cette part de l'or du joueur est compté comme s'il
--- coûtait cette part. Un joueur lent a beaucoup d'or : le guide lui montre alors de plus gros achats (poser une
--- Catapulte, améliorer une tour déjà haute) au lieu d'une suite de petites améliorations qu'il n'aurait pas le
--- temps de faire. Un joueur rapide n'a jamais d'or d'avance : pour lui, rien ne change. 0 = ne jamais en tenir
--- compte. Réglé avec tools\levels\run.ps1 -Coach.
-Levels.COACH_SPEND = 0.5
 
--- Dégâts par seconde ESTIMÉS d'une tour, pour comparer deux achats (ordre de grandeur : une zone ou un carreau
--- perçant comptent plusieurs cibles). Mêmes estimations que le joueur simulé (tools/levels/Bot.luau).
-local function coachValue(towerType: string, level: number, training: number?): number
-	local stats = Levels.towerStats(towerType, level, training)
-	if stats.kind == "Beam" then
-		return stats.damage * 9
-	elseif stats.kind == "Aura" then
-		return stats.damage / stats.cooldown * 3
-	elseif stats.kind == "Chain" then
-		return stats.damage * stats.chains / stats.cooldown
-	elseif stats.kind == "Splash" then
-		return stats.damage / stats.cooldown * (1 + stats.splash / 3)
-	elseif stats.kind == "Pierce" then
-		return stats.damage / stats.cooldown * 2.2
-	end
-	local dps = stats.damage / stats.cooldown
-	if stats.fireRadius then
-		dps += IdleTowers.fireDps(stats) * 2
-	end
-	return dps
-end
-
--- LE GUIDE du premier niveau : le prochain achat conseillé à un nouveau joueur. La flèche du tuto le lui montre
--- (TutorialUI.luau) ; celui qui la suit gagne le niveau 1 (vérifié par tools/levels : tests.luau, coach.luau).
---   owned    = ses types de tours, dans l'ordre de sa barre ;
---   towers   = ses tours posées, de la plus ancienne à la plus récente : { { type = "MachineGun", level = 1 } } ;
---   gold     = son or ;
---   training = { [type] = niveau d'entraînement } (absent : 0 partout).
--- Renvoie { kind = "Place", tower = type } ou { kind = "Upgrade", index = numéro dans `towers` }, ou nil quand il
--- n'a pas encore de quoi payer (rien à montrer : l'or arrive, chaque monstre tué en donne).
--- Ses choix, dans l'ordre :
---   1. une 2e tour, la première de sa barre (l'Archer) : il apprend à POSER ;
---   2. une première amélioration, sur sa plus ancienne tour : il apprend à AMÉLIORER ;
---   3. ensuite, toujours l'achat PAYABLE qui ajoute le plus de dégâts par pièce d'or : poser une tour de plus
---      (tant que sa limite n'est pas atteinte) ou améliorer une tour posée. À égalité : poser d'abord, puis la tour
---      la plus ancienne. Il ne garde donc jamais son or : c'est ce que le jeu demande (voir « LE FLOT »). Avec
---      beaucoup d'or en poche, les gros achats passent devant (COACH_SPEND).
-function Levels.coachAdvice(owned: { string }, towers: { any }, gold: number, training: { [string]: number }?)
-	local trained = training or {}
-	local copies = {}
+-- Les DEUX PREMIERS GESTES du niveau 1, montrés par la flèche du tuto (TutorialUI.luau). Retour du propriétaire
+-- (03/10/2026) : « raccourcis le tuto de la première partie, juste poser une tour, et pas forcer un positionnement,
+-- et améliorer, et fin, le gars se débrouille ». Avant, la flèche montrait chaque achat jusqu'à la fin du niveau,
+-- et où poser.
+--   1. POSER une tour, où il veut : tant qu'il n'y a que la tour offerte (ou aucune) ;
+--   2. AMÉLIORER une tour : tant qu'aucune n'est au niveau 2.
+-- owned  = ses types de tours, dans l'ordre de sa barre ;
+-- towers = ses tours posées, de la plus ancienne à la plus récente : { { type = "MachineGun", level = 1 } } ;
+-- gold   = son or.
+-- Renvoie (conseil, fini) :
+--   conseil = { kind = "Place", tower = type } (la première tour de sa barre qu'il peut payer),
+--             { kind = "Upgrade", index = numéro dans `towers` } (la tour la moins chère à améliorer),
+--             ou nil : rien à montrer (pas encore de quoi payer : l'or arrive, chaque monstre tué en donne) ;
+--   fini    = vrai quand les deux gestes sont faits : la flèche ne montre plus rien pendant le niveau.
+function Levels.firstSteps(owned: { string }, towers: { any }, gold: number): (any, boolean)
 	local placed, upgraded = 0, false
 	for _, tower in towers do
 		if IdleTowers.Defs[tower.type] then
 			placed += 1
-			copies[tower.type] = (copies[tower.type] or 0) + 1
 			upgraded = upgraded or (tonumber(tower.level) or 1) >= 2
 		end
 	end
-	local first = owned[1]
-	if placed < 2 and first and Levels.TOWER_COST[first] and (copies[first] or 0) < Levels.maxCopies(first) then
-		return if gold >= Levels.placeCost(first) then { kind = "Place", tower = first } else nil
-	end
-	if not upgraded and placed > 0 then
-		for index, tower in towers do
-			local cost = if IdleTowers.Defs[tower.type] then Levels.upgradeCost(tower.type, tonumber(tower.level) or 1) else nil
-			if cost then
-				return if gold >= cost then { kind = "Upgrade", index = index } else nil
+	if placed < 2 then
+		for _, towerType in owned do
+			if Levels.TOWER_COST[towerType] and gold >= Levels.placeCost(towerType) then
+				return { kind = "Place", tower = towerType }, false
 			end
 		end
+		return nil, false
 	end
-	local best, bestScore = nil, 0
-	local floor = gold * Levels.COACH_SPEND
-	for _, towerType in owned do
-		local cost = Levels.TOWER_COST[towerType]
-		if cost and gold >= cost and (copies[towerType] or 0) < Levels.maxCopies(towerType) then
-			local score = coachValue(towerType, 1, trained[towerType]) / math.max(cost, floor)
-			if score > bestScore then
-				best, bestScore = { kind = "Place", tower = towerType }, score
-			end
-		end
+	if upgraded then
+		return nil, true
 	end
+	local best, bestCost = nil, math.huge
 	for index, tower in towers do
-		local level = tonumber(tower.level) or 1
-		local cost = if IdleTowers.Defs[tower.type] then Levels.upgradeCost(tower.type, level) else nil
-		if cost and gold >= cost then
-			local gain = coachValue(tower.type, level + 1, trained[tower.type]) - coachValue(tower.type, level, trained[tower.type])
-			local score = gain / math.max(cost, floor)
-			if score > bestScore then
-				best, bestScore = { kind = "Upgrade", index = index }, score
-			end
+		local cost = if IdleTowers.Defs[tower.type] then Levels.upgradeCost(tower.type, tonumber(tower.level) or 1) else nil
+		if cost and cost < bestCost then
+			best, bestCost = index, cost
 		end
 	end
-	return best
+	return (if best and gold >= bestCost then { kind = "Upgrade", index = best } else nil), false
 end
 
 ----------------------------------------------------------------------

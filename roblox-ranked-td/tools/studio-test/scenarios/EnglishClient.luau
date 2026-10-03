@@ -407,15 +407,24 @@ return function(log)
 	end, 4)
 	local entered = startLevel(1)
 	waitFor(function()
-		return pointerGui:GetAttribute("Caption") == "POSE-LA ICI"
+		return pointerGui:GetAttribute("Caption") == "PRENDS UN ARCHER"
 	end, 6)
+	task.wait(0.3)
 	scanScreen("niveau 1, départ (conseil, barre, flèche)")
 	local strip = hudGui.TopStrip
+	local startHint, startWords = hudGui.Hint.Text, words.Text
+	act(hudGui, "Bar:MachineGun")
+	waitFor(function()
+		return pointerGui:GetAttribute("Caption") == "POSE-LA OÙ TU VEUX"
+	end, 4)
+	task.wait(0.3)
+	scanScreen("niveau 1, Archer en main (conseil, mots du tuto)")
 	check(
 		entered and strip.Level.Text == "LEVEL 1" and string.find(strip.Progress.ProgressText.Text, "Monsters:", 1, true) ~= nil
 			and hudGui.TowerBar.Tower_MachineGun.Cost.Text == "CANCEL" and hudGui.TowerBar.Tower_Bomb.TowerName.Text == "Catapult"
-			and string.find(hudGui.Hint.Text, "Your Archer is already shooting", 1, true) ~= nil and words.Text == "PLACE IT HERE",
-		`niveau : « {strip.Level.Text} », « {strip.Progress.ProgressText.Text} », barre « {hudGui.TowerBar.Tower_MachineGun.Cost.Text} » / « {hudGui.TowerBar.Tower_Bomb.TowerName.Text} », conseil « {hudGui.Hint.Text} », flèche « {words.Text} »`
+			and string.find(startHint, "Your Archer is already shooting", 1, true) ~= nil and startWords == "TAKE AN ARCHER"
+			and string.find(hudGui.Hint.Text, "Tap the ground to place", 1, true) ~= nil and words.Text == "PLACE IT ANYWHERE",
+		`niveau : « {strip.Level.Text} », « {strip.Progress.ProgressText.Text} », barre « {hudGui.TowerBar.Tower_MachineGun.Cost.Text} » / « {hudGui.TowerBar.Tower_Bomb.TowerName.Text} », conseils « {startHint} » puis « {hudGui.Hint.Text} », flèche « {startWords} » puis « {words.Text} »`
 	)
 	shot("niveau")
 	act(hudGui, `Tap:{map.spots[2].X},{map.spots[2].Z}`)

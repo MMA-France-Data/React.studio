@@ -864,8 +864,8 @@ end
 
 ----------------------------------------------------------------------
 -- 9) Le tuto des nouveaux joueurs. Demande du propriétaire (02/10/2026) : « fais le tuto bien, je veux un jeu
---    sortable ». Son étape dans les données, et le GUIDE du premier niveau (Levels.coachAdvice : ce que la flèche
---    montre, client/TutorialUI.luau).
+--    sortable ». Son étape dans les données, et les DEUX PREMIERS GESTES du niveau 1 (Levels.firstSteps : ce que la
+--    flèche montre, client/TutorialUI.luau ; « juste poser une tour, et améliorer, et fin », 03/10/2026).
 ----------------------------------------------------------------------
 check(Levels.TUTORIAL.SHOP == 1 and Levels.TUTORIAL.DONE == 2 and Levels.defaultData().tutorial == 0, "tuto : un nouveau joueur est à l'étape 0 (1 = la boutique, 2 = fini)")
 check(
@@ -892,42 +892,30 @@ do
 		end
 		return list
 	end
-	local function advice(towers, gold: number, owned: { string }?)
-		return Levels.coachAdvice(owned or Levels.STARTING_TOWERS, towers, gold)
+	local function steps(towers, gold: number, owned: { string }?)
+		return Levels.firstSteps(owned or Levels.STARTING_TOWERS, towers, gold)
 	end
 	local function says(result, kind: string, value: any): boolean
 		return result ~= nil and result.kind == kind and (if kind == "Place" then result.tower == value else result.index == value)
 	end
-	-- Les deux premières leçons : poser, puis améliorer.
-	check(says(advice(placed(MG, 1), 60), "Place", MG), "guide : au départ du niveau 1 (l'Archer offert, 60 or), poser un 2e Archer")
-	check(advice(placed(MG, 1), 19) == nil, "guide : pas encore de quoi payer le 2e Archer : rien à montrer")
-	check(says(advice(placed(MG, 1, MG, 1), 40), "Upgrade", 1), "guide : ensuite une première amélioration, sur la plus ancienne tour")
-	check(advice(placed(MG, 1, MG, 1), 14) == nil, "guide : pas encore de quoi payer la première amélioration : rien à montrer")
-	check(says(advice({}, 65), "Place", MG) and says(advice(placed("Dragon", 1), 65), "Place", MG), "guide : aucune tour posée (ou une tour inconnue) : poser la première tour de la barre")
-	check(says(advice(placed(BOMB, 1), 65, { BOMB, MG }), "Place", BOMB), "guide : la 2e tour est la première de la barre du joueur")
-	-- Puis l'achat payable le plus rentable : une tour de plus d'abord (2 fois plus de dégâts par pièce d'or).
-	check(says(advice(placed(MG, 2, MG, 1), 25), "Place", MG), "guide : puis un 3e Archer (20 or) plutôt qu'une autre amélioration")
-	local five = placed(MG, 2, MG, 1, MG, 1, MG, 1, MG, 1)
-	check(says(advice(five, 50), "Place", BOMB), "guide : 5 Archers posés (la limite) et 50 or : poser la Catapulte")
-	check(says(advice(five, 30), "Upgrade", 2), "guide : 5 Archers et 30 or (pas de quoi payer la Catapulte) : améliorer l'Archer le moins cher, sans attendre")
-	check(advice(five, 10) == nil, "guide : rien de payable : rien à montrer, l'or arrive")
-	-- Beaucoup d'or en poche (joueur lent) : les gros achats passent devant (Levels.COACH_SPEND).
-	local full = placed(MG, 2, MG, 2, MG, 2, MG, 2, MG, 2, BOMB, 2, BOMB, 2, BOMB, 2, BOMB, 2)
+	-- 1er geste : POSER une tour (la flèche montre la première tour de sa barre qu'il peut payer ; il la pose où il veut).
+	check(says(steps(placed(MG, 1), 60), "Place", MG), "tuto, 1er geste : au départ du niveau 1 (l'Archer offert, 60 or), poser une tour : la première de la barre")
+	check(steps(placed(MG, 1), 19) == nil, "tuto, 1er geste : pas encore de quoi payer une tour : rien à montrer, l'or arrive")
 	check(
-		says(advice(full, 30), "Upgrade", 1) and says(advice(full, 400), "Upgrade", 6) and Levels.upgradeCost(BOMB, 2) > 2 * Levels.upgradeCost(MG, 2),
-		`guide : avec 30 or, améliorer un Archer ({Levels.upgradeCost(MG, 2)} or) ; avec 400 or, une Catapulte ({Levels.upgradeCost(BOMB, 2)} or) : un plus gros achat`
+		says(steps(placed(BOMB, 1), 50, { BOMB, MG }), "Place", BOMB) and says(steps(placed(MG, 1), 30, { BOMB, MG }), "Place", MG),
+		"tuto, 1er geste : la première tour de sa barre qu'il peut payer (la Catapulte avec 50 or, l'Archer avec 30)"
 	)
-	-- Jamais au-delà des limites.
-	local top = Levels.MAX_TOWER_LEVEL
-	local maxed = placed(MG, top, MG, top, MG, top, MG, top, MG, top, BOMB, top, BOMB, top, BOMB, top, BOMB, top)
-	check(advice(maxed, 1e6) == nil, "guide : toutes les tours posées et au niveau maximum : plus rien à conseiller")
-	local frosts = placed("Frost", 2, "Frost", 1, "Frost", 1)
-	check(says(advice(frosts, 1e6, { "Frost" }), "Upgrade", 1) or says(advice(frosts, 1e6, { "Frost" }), "Upgrade", 2), "guide : jamais une tour de plus que sa limite (3 Totems)")
-	-- Celui qui suit la flèche gagne le niveau 1, même sans se presser ; le niveau demande toujours d'être actif.
-	local quick, slow, asleep = Bot.playCoached(1, 3), Bot.playCoached(1, 6), Bot.playCoached(1, 12)
-	check(quick.won and quick.lives >= 8, `tuto : le joueur qui met 3 s à faire chaque achat montré par la flèche gagne le niveau 1 ({outcome(quick)}, {quick.purchases} achats)`)
-	check(slow.won and slow.lives >= 5, `tuto : celui qui met 6 s par achat gagne aussi ({outcome(slow)}, {slow.purchases} achats)`)
-	check(not asleep.won, `tuto : celui qui met 12 s par achat perd, le niveau demande toujours d'être actif ({outcome(asleep)})`)
+	check(says(steps({}, 65), "Place", MG) and says(steps(placed("Dragon", 1), 65), "Place", MG), "tuto, 1er geste : aucune tour posée (ou une tour inconnue) : poser une tour")
+	-- 2e geste : AMÉLIORER une tour (la moins chère à améliorer).
+	local second, secondDone = steps(placed(MG, 1, MG, 1), 40)
+	check(says(second, "Upgrade", 1) and secondDone == false, "tuto, 2e geste : une tour posée en plus de l'Archer offert : améliorer une tour (la plus ancienne à prix égal)")
+	check(says(steps(placed(BOMB, 1, MG, 1), 40), "Upgrade", 2), "tuto, 2e geste : la flèche montre la tour la moins chère à améliorer (l'Archer, pas la Catapulte)")
+	check(steps(placed(MG, 1, MG, 1), 14) == nil, "tuto, 2e geste : pas encore de quoi payer l'amélioration : rien à montrer")
+	-- Puis rien : le joueur se débrouille.
+	local after, finished = steps(placed(MG, 2, MG, 1), 500)
+	check(after == nil and finished == true, "tuto : une tour posée et une tour améliorée : fini, plus rien à montrer, même avec beaucoup d'or")
+	local early, earlyDone = steps(placed(MG, 2), 500)
+	check(says(early, "Place", MG) and earlyDone == false, "tuto : l'Archer offert amélioré avant d'avoir posé une tour : il reste à poser une tour")
 end
 
 print(`{passed} tests réussis, {failed} ratés`)

@@ -87,9 +87,9 @@ return {
 	["Monstres : {1} / {2}"] = "Monsters: {1} / {2}",
 	["ANNULER"] = "CANCEL",
 	-- Conseils au-dessus de la barre des tours
-	["Ton Archer tire déjà ! Touche un « + » pour en poser un deuxième"] = "Your Archer is already shooting! Tap a “+” to place a second one",
+	["Ton Archer tire déjà ! Prends une tour dans la barre pour en poser une autre"] = "Your Archer is already shooting! Take a tower from the bar to place another one",
 	["Touche une tour pour l'améliorer avec ton or"] = "Tap a tower to upgrade it with your gold",
-	["Touche le terrain (ou un « + ») pour poser : {1}. Changer d'avis : « Annuler »"] = "Tap the ground (or a “+”) to place: {1}. Changed your mind? “Cancel”",
+	["Touche le terrain pour poser : {1}. Changer d'avis : « Annuler »"] = "Tap the ground to place: {1}. Changed your mind? “Cancel”",
 	["Ne garde pas ton or : pose ou améliore une tour, les monstres deviennent de plus en plus forts !"] = "Don't sit on your gold: place or upgrade a tower, the monsters keep getting stronger!",
 	-- Menu d'une tour posée
 	["niv. {1}"] = "lv. {1}",
@@ -130,7 +130,7 @@ return {
 	["PRENDS UN ARCHER"] = "TAKE AN ARCHER",
 	["PRENDS UNE CATAPULTE"] = "TAKE A CATAPULT",
 	["PRENDS CETTE TOUR"] = "TAKE THIS TOWER",
-	["POSE-LA ICI"] = "PLACE IT HERE",
+	["POSE-LA OÙ TU VEUX"] = "PLACE IT ANYWHERE",
 	["TOUCHE CETTE TOUR"] = "TAP THIS TOWER",
 	["AMÉLIORE"] = "UPGRADE",
 	["CONTINUE"] = "CONTINUE",

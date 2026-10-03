@@ -67,7 +67,8 @@ caméra, sol) :
 - fenêtre du camp et ses 4 onglets (`levels_camp_niveaux`, `levels_camp_boutique`, `levels_camp_entrainement`,
   `levels_camp_tours`), les 100 niveaux en 10 territoires dans une page qui défile (`levels_camp_dernier_territoire`) ;
 - niveau 1 : vue d'en haut qui remplit l'écran, deux tours dans la barre, Archer offert qui tue en moins de 10 s,
-  « + », son du combat, « +6 » doré de l'or gagné, pose près d'un « + », **bouton « ANNULER » de la tour en main**
+  son du combat, « +6 » doré de l'or gagné, **pose libre** (aucun « + », la tour se pose exactement là où on
+  touche, même à côté d'un emplacement conseillé), **bouton « ANNULER » de la tour en main**
   (`levels_annuler`), menu de la tour, amélioration, pose libre, zoom et déplacement de la vue, trois inclinaisons
   de la caméra (`levels_vue_normale`, `levels_vue_70`, `levels_vue_90`), refus sur le chemin, conseil « ne garde pas
   ton or », x2 ;
@@ -102,9 +103,11 @@ La place de test contient le marqueur `__AutoTestNewPlayer` : le tuto y démarre
 
 - à l'arrivée, la fenêtre des niveaux s'ouvre toute seule et la flèche montre « ▶ JOUER » du niveau 1
   (`tutorial_arrivee`) ; fenêtre fermée ou autre onglet : elle montre comment y revenir (`tutorial_bouton_niveaux`) ;
-- niveau 1 : « POSE-LA ICI », « TOUCHE CETTE TOUR », « AMÉLIORE » (`tutorial_pose`, `tutorial_tour`,
-  `tutorial_ameliore`), puis le scénario suit la flèche jusqu'à la fin : **le niveau doit être gagné** ; à chaque
-  pas, la flèche doit être à côté de ce qu'elle montre, dans l'écran, sans recouvrir « Vendre » ;
+- niveau 1 : seulement deux gestes. « PRENDS UN ARCHER » sur la barre (`tutorial_prends`), puis, la tour en main,
+  des mots seuls « POSE-LA OÙ TU VEUX », sans flèche ni « + » (`tutorial_pose_libre`) : le scénario pose loin des
+  emplacements conseillés ; puis « TOUCHE CETTE TOUR » et « AMÉLIORE » (`tutorial_tour`, `tutorial_ameliore`) ;
+  ensuite **plus aucune flèche pendant 10 s** malgré l'or qui monte (`tutorial_seul`) ; la flèche doit toujours être
+  à côté de ce qu'elle montre, dans l'écran, sans recouvrir « Vendre » ; le niveau est ensuite gagné d'un coup ;
 - victoire : « CONTINUE » (`tutorial_victoire`) ; niveau 2 : plus de flèche ; dès que le joueur peut acheter une
   tour : « NOUVELLE TOUR ! » sur « Retour au camp », l'onglet Boutique, « ACHÈTE-LA » (`tutorial_fin_niveau_boutique`,
   `tutorial_boutique`) ; l'achat termine le tuto ; les 6 étapes des statistiques des nouveaux joueurs ;

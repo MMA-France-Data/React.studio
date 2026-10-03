@@ -5,8 +5,10 @@
 -- appuis (attribut « TestAction » des écrans « Levels » et « LevelHud ») :
 --   1) à l'arrivée : la fenêtre des niveaux s'ouvre toute seule, la flèche montre « ▶ JOUER » ; fenêtre fermée ou
 --      autre onglet : elle montre comment y revenir ;
---   2) le niveau 1 : « POSE-LA ICI », « TOUCHE CETTE TOUR », « AMÉLIORE », puis le scénario SUIT LA FLÈCHE jusqu'à la
---      fin du niveau : il doit gagner ;
+--   2) le niveau 1 : ses deux premiers gestes seulement (retour du propriétaire, 03/10/2026 : « juste poser une
+--      tour, et pas forcer un positionnement, et améliorer, et fin ») : « PRENDS UN ARCHER », puis des mots seuls
+--      « POSE-LA OÙ TU VEUX » (aucun endroit montré, aucun « + »), « TOUCHE CETTE TOUR », « AMÉLIORE » ; ensuite plus
+--      aucune flèche pendant le niveau ;
 --   3) la boutique : dès que le joueur peut acheter une tour, « Retour au camp », l'onglet Boutique, « ACHETER » ;
 --      l'achat termine le tuto ; statistiques des nouveaux joueurs (6 étapes dans l'ordre) ;
 --   4) « Passer le tuto » (un appui sur ordinateur) ;
@@ -207,6 +209,46 @@ return function(log)
 		end
 		return list
 	end
+	-- Un point d'herbe où une tour peut être posée, à plus de 6 studs de tous les emplacements conseillés de la carte
+	-- (le joueur pose où il veut), le plus près possible du milieu de la carte.
+	local function freePoint()
+		local positions = {}
+		for _, model in towers() do
+			local rest = model:GetAttribute("RestCFrame")
+			local world = if typeof(rest) == "CFrame" then rest.Position else model:GetPivot().Position
+			local point = arenaCFrame:PointToObjectSpace(world)
+			table.insert(positions, Vector3.new(point.X, 0, point.Z))
+		end
+		local candidates = {}
+		for x = -map.width / 2 + 6, map.width / 2 - 6, 3 do
+			for z = -map.depth / 2 + 6, map.depth / 2 - 6, 3 do
+				local point = Vector3.new(x, 0, z)
+				local far = true
+				for _, spot in map.spots do
+					if (Vector3.new(spot.X, 0, spot.Z) - point).Magnitude < 6 then
+						far = false
+					end
+				end
+				if far and Levels.checkPlacement("Valley", point, positions) then
+					table.insert(candidates, point)
+				end
+			end
+		end
+		table.sort(candidates, function(a, b)
+			return a.Magnitude < b.Magnitude
+		end)
+		return candidates[1] or Vector3.new(map.spots[2].X, 0, map.spots[2].Z)
+	end
+	local function plusCount()
+		local helpers = workspace:FindFirstChild("LevelHelpers")
+		local count = 0
+		for _, child in if helpers then helpers:GetChildren() else {} do
+			if string.sub(child.Name, 1, 4) == "Plus" or child:FindFirstChild("PlusMarker") then
+				count += 1
+			end
+		end
+		return count
+	end
 	-- Un appui sur le point du terrain que la flèche montre.
 	local function tapTargetPoint()
 		local point = pointerGui:GetAttribute("TargetPoint")
@@ -284,31 +326,42 @@ return function(log)
 	check(waitShowing("Play", "JOUE ICI"), `retour sur l'onglet « Niveaux » : la flèche montre de nouveau « ▶ JOUER » ({described()})`)
 
 	------------------------------------------------------------------
-	-- 2) Le niveau 1, guidé du début à la fin
+	-- 2) Le niveau 1 : deux gestes guidés (poser une tour où il veut, améliorer), puis plus rien
 	------------------------------------------------------------------
 	levelAction:FireServer("Start", 1) -- (le bouton « ▶ JOUER » de la carte du niveau 1 envoie cette demande)
 	local entered = waitFor(function()
 		return hudGui.Enabled and arena:GetAttribute("State") == "Running" and #towers() >= 1 and cam().CameraType == Enum.CameraType.Scriptable
 	end, 15)
-	local placeShown = waitShowing("World", "POSE-LA ICI", 6)
+	local bar = hudGui.TowerBar
+	local takeShown = waitShowing("Tower_MachineGun", "PRENDS UN ARCHER", 6)
 	task.wait(0.4)
-	problem = if placeShown then worldArrowProblem() else "pas de flèche"
-	local plusPoint = pointerGui:GetAttribute("TargetPoint")
-	local plusLocal = if typeof(plusPoint) == "Vector3" then arenaCFrame:PointToObjectSpace(plusPoint) else Vector3.zero
+	problem = if takeShown then buttonArrowProblem(bar.Tower_MachineGun) else "pas de flèche"
 	check(
-		entered and placeShown and problem == nil and pointerGui.Enabled and math.abs(plusLocal.X - map.spots[2].X) < 0.1 and math.abs(plusLocal.Z - map.spots[2].Z) < 0.1,
-		`niveau 1 : l'Archer est déjà en main, la flèche montre le premier « + » libre ({described()} ; {problem or "bien placée"}), elle reste affichée pendant le niveau`
+		entered and takeShown and problem == nil and hudGui:GetAttribute("Placing") == "" and pointerGui.Enabled,
+		`niveau 1 : aucune tour n'est prise d'office, la flèche montre l'Archer de la barre ({described()} ; {problem or "bien placée"})`
 	)
-	check(shown(skip) and onScreen(skip) and not overlap(skip, hudGui.TowerBar.Tower_MachineGun), "pendant le niveau : « Passer le tuto » reste affiché, sans recouvrir la barre des tours")
-	shot("pose")
-	tapTargetPoint()
+	check(shown(skip) and onScreen(skip) and not overlap(skip, bar.Tower_MachineGun), "pendant le niveau : « Passer le tuto » reste affiché, sans recouvrir la barre des tours")
+	shot("prends")
+	act(hudGui, "Bar:MachineGun")
+	-- Archer en main : des mots seuls, sans flèche, et aucun « + » jaune (rien ne montre un endroit).
+	local noteShown = waitShowing("Note", "POSE-LA OÙ TU VEUX", 4)
+	task.wait(0.4)
+	local plus = plusCount()
+	check(
+		noteShown and not arrow.Visible and words.Visible and onScreen(words) and not overlap(words, bar) and not overlap(words, hudGui.Hint)
+			and pointerGui:GetAttribute("TargetPoint") == nil and plus == 0,
+		`Archer en main : seulement des mots, sans flèche ni endroit montré ({described()} ; flèche affichée : {tostring(arrow.Visible)} ; « + » sur le terrain : {plus}), au-dessus du conseil et de la barre`
+	)
+	shot("pose_libre")
+	local free = freePoint()
+	act(hudGui, string.format("Tap:%.3f,%.3f", free.X, free.Z))
 	check(
 		waitFor(function()
 			return #towers() == 2
 		end, 4),
-		"un appui là où la flèche pointe pose le 2e Archer"
+		`un appui sur l'herbe, loin des emplacements conseillés ({math.floor(free.X)}, {math.floor(free.Z)}), pose le 2e Archer`
 	)
-	-- Première amélioration : la flèche montre la tour, puis le bouton « Améliorer » de son menu.
+	-- Deuxième geste : la flèche montre une tour, puis le bouton « Améliorer » de son menu.
 	local towerShown = waitShowing("World", "TOUCHE CETTE TOUR", 8)
 	task.wait(0.4)
 	problem = if towerShown then worldArrowProblem() else "pas de flèche"
@@ -333,70 +386,27 @@ return function(log)
 		end, 4),
 		"un appui sur « Améliorer » : la tour passe au niveau 2"
 	)
-
-	-- Le scénario suit maintenant la flèche jusqu'à la fin du niveau (vitesse x2), sans rien décider lui-même.
+	-- Puis plus rien : le joueur se débrouille (vitesse x2, son or monte, aucune flèche ne revient).
 	act(hudGui, "Speed")
-	local steps = { bar = 0, place = 0, tower = 0, upgrade = 0 }
-	local offered = {}
-	local problems = {}
-	local midShot = false
-	local function followArrow()
-		local name, text = target(), caption()
-		if name == "" then
-			return
+	local quiet, richest = true, 0
+	local quietUntil = os.clock() + 10
+	while os.clock() < quietUntil and arena:GetAttribute("State") == "Running" do
+		if target() ~= "" or arrow.Visible or words.Visible then
+			quiet = false
 		end
-		local trouble = nil
-		if string.sub(name, 1, 6) == "Tower_" then
-			local towerType = string.sub(name, 7)
-			trouble = buttonArrowProblem(hudGui.TowerBar:FindFirstChild(name))
-			offered[towerType] = true
-			steps.bar += 1
-			act(hudGui, "Bar:" .. towerType)
-		elseif name == "World" then
-			trouble = worldArrowProblem()
-			if text == "POSE-LA ICI" then
-				steps.place += 1
-			else
-				steps.tower += 1
-			end
-			tapTargetPoint()
-		elseif name == "Upgrade" then
-			trouble = buttonArrowProblem(menu.Upgrade, { menu.Sell })
-			steps.upgrade += 1
-			act(hudGui, "Upgrade")
-		else
-			return
-		end
-		if trouble and #problems < 6 then
-			table.insert(problems, `{name} / {text} : {trouble}`)
-		end
-		task.wait(0.3)
+		richest = math.max(richest, arena:GetAttribute("Gold") or 0)
+		task.wait(0.2)
 	end
-	local ended = waitFor(function()
-		if arena:GetAttribute("State") ~= "Running" then
-			return true
-		end
-		followArrow()
-		if not midShot and (arena:GetAttribute("Progress") or 0) >= 60 then
-			midShot = true
-			say("SHOT:tutorial_guide")
-		end
-		return arena:GetAttribute("State") ~= "Running"
-	end, 150)
+	check(
+		quiet and richest >= Levels.placeCost("MachineGun") and not shown(skip) and arena:GetAttribute("State") == "Running",
+		`les deux gestes faits : plus aucune flèche ni aucun mot pendant 10 s, même avec {richest} or en poche (le joueur se débrouille), « Passer » caché`
+	)
+	shot("seul")
+	test:InvokeServer("Finish", true) -- (le niveau est gagné d'un coup : le scénario ne joue pas tout le niveau)
 	local endScreen = hudGui.EndScreen
 	waitFor(function()
 		return endScreen.Visible
 	end, 5)
-	local lives = arena:GetAttribute("Lives") or 0
-	check(
-		ended and arena:GetAttribute("State") == "Won" and lives >= 8,
-		`en suivant seulement la flèche, le niveau 1 est GAGNÉ avec {lives} vies ({#towers()} tours posées ; la flèche a montré {steps.bar} fois la barre, {steps.place} fois où poser, {steps.tower} fois une tour, {steps.upgrade} fois « Améliorer »)`
-	)
-	check(
-		offered.MachineGun == true and offered.Bomb == true and steps.place >= 6 and steps.upgrade >= 8,
-		`le guide fait poser les deux tours du joueur (Archer : {tostring(offered.MachineGun)}, Catapulte : {tostring(offered.Bomb)}) et améliorer souvent ({steps.upgrade} améliorations)`
-	)
-	check(#problems == 0, `pendant tout le niveau, la flèche est restée à côté de ce qu'elle montrait, dans l'écran ({steps.bar + steps.place + steps.tower + steps.upgrade} vérifications ; soucis : {table.concat(problems, " | ")})`)
 	local nextShown = waitShowing("Next", "CONTINUE", 4)
 	task.wait(0.4)
 	problem = if nextShown then buttonArrowProblem(endScreen.Panel.Next, { endScreen.Panel.Details, endScreen.Panel.Replay, endScreen.Panel.Camp }) else "pas de flèche"
@@ -534,15 +544,24 @@ return function(log)
 		waitFor(function()
 			return hudGui.Enabled and arena:GetAttribute("State") == "Running" and #towers() >= 1
 		end, 15)
-		local phonePlace = waitShowing("World", "POSE-LA ICI", 6)
+		local phoneTake = waitShowing("Tower_MachineGun", "PRENDS UN ARCHER", 6)
 		task.wait(0.5)
-		problem = if phonePlace then worldArrowProblem() else "pas de flèche"
+		problem = if phoneTake then buttonArrowProblem(hudGui.TowerBar.Tower_MachineGun) else "pas de flèche"
 		check(
-			phonePlace and problem == nil and shown(skip) and onScreen(skip) and not overlap(skip, hudGui.TowerBar.Tower_MachineGun),
-			`téléphone, niveau 1 : la flèche montre le premier « + » ({described()} ; {problem or "bien placée"}), « Passer » ne recouvre pas la barre des tours`
+			phoneTake and problem == nil and shown(skip) and onScreen(skip) and not overlap(skip, hudGui.TowerBar.Tower_MachineGun),
+			`téléphone, niveau 1 : la flèche montre l'Archer de la barre ({described()} ; {problem or "bien placée"}), « Passer » ne recouvre pas la barre des tours`
+		)
+		shot("tel_prends")
+		act(hudGui, "Bar:MachineGun")
+		local phoneNote = waitShowing("Note", "POSE-LA OÙ TU VEUX", 4)
+		task.wait(0.4)
+		check(
+			phoneNote and not arrow.Visible and words.Visible and onScreen(words) and not overlap(words, hudGui.TowerBar) and not overlap(words, skip),
+			`téléphone : Archer en main, les mots « {words.Text} » seuls, dans l'écran, sans recouvrir la barre des tours ni « Passer »`
 		)
 		shot("tel_pose")
-		tapTargetPoint()
+		local phoneFree = freePoint()
+		act(hudGui, string.format("Tap:%.3f,%.3f", phoneFree.X, phoneFree.Z))
 		waitFor(function()
 			return #towers() == 2
 		end, 4)

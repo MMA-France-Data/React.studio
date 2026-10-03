@@ -7,7 +7,6 @@
 #   powershell -ExecutionPolicy Bypass -File tools\levels\run.ps1 -Tune      (cherche les PV de chaque niveau : tune.luau)
 #   powershell -ExecutionPolicy Bypass -File tools\levels\run.ps1 -Curve     (ce qu'un joueur actif peut se payer au fil d'un niveau : curve.luau)
 #   powershell -ExecutionPolicy Bypass -File tools\levels\run.ps1 -Worth     (ce que chaque tour de la boutique apporte : worth.luau)
-#   powershell -ExecutionPolicy Bypass -File tools\levels\run.ps1 -Coach     (le tuto : un joueur qui suit la flèche du guide, plus ou moins vite : coach.luau)
 #   powershell -ExecutionPolicy Bypass -File tools\levels\run.ps1 -Regler "Levels.STREAM.RAMP_CURVE=1.2;Levels.DEFINITIONS.1.health=40"
 param(
 	[switch]$Tests,
@@ -15,8 +14,7 @@ param(
 	[switch]$Tune,
 	[switch]$Curve,
 	[switch]$Worth,
-	[switch]$Coach,
-	[string]$Niveaux = "", # avec -Tune, -Worth ou -Coach : seulement ces niveaux, ex. "1,3,6"
+	[string]$Niveaux = "", # avec -Tune ou -Worth : seulement ces niveaux, ex. "1,3,6"
 	[string]$Tours = "", # avec -Worth : seulement ces tours, ex. "Laser,Rocket"
 	[string]$Rythme = "", # avec -Tune ou -Curve : secondes entre deux achats du joueur simulé (sinon : le rythme de chaque niveau)
 	[string]$Vies = "", # avec -Tune : vies qu'il doit garder (5 par défaut)
@@ -159,9 +157,6 @@ try {
 				Write-Host ("{0,-7} {1,-8} {2,8} {3,10} {4,6}%   {5} (x{6})" -f $level, $tower, $base.Health, $best.Health, $gain, $best.Build, $bestTaste)
 			}
 		}
-	} elseif ($Coach) {
-		& luau --codegen -O2 coach.luau -a @options "niveaux=$Niveaux"
-		$code = $LASTEXITCODE
 	} elseif ($Curve) {
 		& luau --codegen -O2 curve.luau -a @options
 		$code = $LASTEXITCODE

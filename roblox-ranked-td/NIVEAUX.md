@@ -51,7 +51,8 @@ fixes, camp d'entraînement, plus aucun hasard).
      posé (ordinateur : aussi le clic droit, ou la touche `Q`) ;
    - **ne garde pas ton or** : les monstres deviennent plus forts sans arrêt. Si tu gardes de l'or sans rien acheter,
      un conseil te le rappelle en bas de l'écran ;
-   - les **« + »** montrent de bons emplacements, mais tu peux poser ailleurs sur l'herbe ;
+   - **pose libre** : tu poses où tu veux sur l'herbe (pas sur le chemin, ni collée à une autre tour ou au
+     château). Aucun emplacement n'est montré ni imposé ;
    - **zoom** : la vue montre toute la carte. Pour voir de plus près : molette de la souris (puis clic droit
      maintenu ou flèches du clavier pour se déplacer) ; sur téléphone, pince avec deux doigts, puis glisse un doigt ;
    - en haut : le niveau, tes vies ❤, ton or 💰, les monstres qui restent (la barre passe du vert au rouge : le
@@ -288,20 +289,16 @@ l'arrête pour de bon.
 | Moment | Ce que la flèche montre |
 |---|---|
 | À l'arrivée | la fenêtre des niveaux s'ouvre toute seule : « JOUE ICI » sur le niveau 1 |
-| Pendant le niveau 1 | **le guide** : « POSE-LA ICI » sur un « + », « TOUCHE CETTE TOUR » puis « AMÉLIORE », « PRENDS UN ARCHER », « PRENDS UNE CATAPULTE »… du début à la fin du niveau |
+| Pendant le niveau 1 | **deux gestes, puis plus rien** : « PRENDS UN ARCHER » sur la barre ; tour en main, seulement des mots, « POSE-LA OÙ TU VEUX » (aucun endroit montré) ; puis « TOUCHE CETTE TOUR » et « AMÉLIORE ». Ensuite, plus de flèche : le joueur se débrouille |
 | Niveau perdu / gagné | « RÉESSAIE » / « CONTINUE » |
 | Dès que tu peux acheter une tour (après le niveau 2 : le Totem de givre) | « NOUVELLE TOUR ! » sur « Retour au camp », puis l'onglet Boutique, puis « ACHÈTE-LA » |
 
-L'achat de la première tour termine le tuto. Le guide du niveau 1 choisit toujours l'achat payable qui ajoute le
-plus de dégâts par pièce d'or (et de plus gros achats quand le joueur a beaucoup d'or en poche). Mesuré avec un
-joueur simulé qui ne fait que suivre la flèche (`tools\levels\run.ps1 -Coach`) :
-
-| Temps qu'il met à faire chaque achat montré | Niveau 1 |
-|---|---|
-| 1 à 6 secondes | gagné, 10 vies |
-| 7 secondes | gagné, 8 vies |
-| 8 secondes | perdu à 81 % |
-| 10 secondes | perdu à 25 % |
+L'achat de la première tour termine le tuto. Le niveau 1 est **court à guider** depuis ton retour du 03/10/2026
+(« raccourcis le tuto de la première partie, juste poser une tour, et pas forcer un positionnement, et améliorer,
+et fin, le gars se débrouille ») : avant, la flèche montrait chaque achat jusqu'à la fin du niveau, et où poser.
+Maintenant, une fois une tour posée et une tour améliorée, plus aucune flèche pendant le niveau (même s'il le
+rejoue). Ce qui reste pour l'aider ensuite : le conseil « ne garde pas ton or » en bas de l'écran quand il garde de
+l'or sans rien acheter, et l'écran de défaite qui dit pourquoi il a perdu.
 
 Le niveau 1 n'a pas été rendu plus facile : celui qui traîne perd toujours, et la flèche lui montre « RÉESSAIE ».
 
@@ -563,6 +560,11 @@ arrivent à un niveau) : rien d'autre n'a changé. Les chiffres sont dans `src/s
     dragon du niveau 100, voir « Les dix territoires ».
 15. **L'entraînement acheté avec des pièces** (« améliorer en pièces, peut-être pas mal ») : le bouton ⚡ de l'onglet
     Entraînement. Les pièces servent maintenant jusqu'au niveau 100.
+16. **Le tuto raccourci et la pose libre** (« raccourcis le tuto de la première partie : juste poser une tour, et pas
+    forcer un positionnement, et améliorer, et fin » ; « enlève les emplacements jaunes, je veux que ce soit libre ») :
+    au niveau 1, la flèche ne montre plus que deux gestes (poser une tour où il veut, améliorer), et les « + » jaunes
+    ont disparu de tous les niveaux. Une tour posée près d'un ancien emplacement n'est plus attirée dessus, et aucune
+    tour n'est plus mise en main d'office au premier niveau. Voir « Le tuto des nouveaux joueurs ».
 
 ### Le grand ménage : ce qui a été enlevé
 
@@ -646,7 +648,7 @@ powershell -ExecutionPolicy Bypass -File tools\levels\run.ps1
 powershell -ExecutionPolicy Bypass -File tools\studio-test\run.ps1
 ```
 
-- le premier : 1 798 vérifications des règles, de la difficulté de chacun des 100 niveaux, des évolutions, du camp
+- le premier : 1 792 vérifications des règles, de la difficulté de chacun des 100 niveaux, des évolutions, du camp
   et du tuto, sans Studio (environ cinq minutes) ;
 - le deuxième : le tableau de difficulté des 100 niveaux par les joueurs simulés ;
 - le troisième : le test complet dans Studio (serveur, puis la vraie interface à la taille normale et à la taille

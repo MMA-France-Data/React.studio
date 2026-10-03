@@ -7,7 +7,7 @@
 --      posée sur son socle, cibles d'entraînement sur le chemin, invite d'un socle -> onglet Entraînement et ses
 --      évolutions, bouton « SON » ;
 --   1) à la taille normale de Studio : fenêtre du camp et ses 4 onglets, niveau 1 (vue d'en haut, Archer offert,
---      « + » conseillés, pose libre, bouton « ANNULER » de la tour en main, amélioration, refus sur le chemin, x2),
+--      pose libre sans « + » ni aimant, bouton « ANNULER » de la tour en main, amélioration, refus sur le chemin, x2),
 --      DÉFAITE de celui qui pose 4 Archers puis attend, « Réessayer », victoire en posant et en améliorant sans
 --      arrêt, « Niveau suivant », abandon ;
 --   2) à la taille d'un téléphone (750 x 332) : un niveau (dont « ANNULER ») et la fenêtre du camp, rien ne sort
@@ -513,22 +513,14 @@ return function(log)
 		"un Archer est déjà posé à l'arrivée, au premier emplacement conseillé"
 	)
 	check(
-		hudGui:GetAttribute("Placing") == "MachineGun" and string.find(hudGui.Hint.Text, "+", 1, true) ~= nil,
-		`premier niveau : l'Archer est déjà choisi dans la barre et le conseil montre les « + » (« {hudGui.Hint.Text} »)`
+		hudGui:GetAttribute("Placing") == "" and string.find(hudGui.Hint.Text, "Prends une tour dans la barre", 1, true) ~= nil,
+		`premier niveau : aucune tour n'est prise d'office, le conseil dit d'en prendre une dans la barre (« {hudGui.Hint.Text} »)`
 	)
 	local shielded, openToRoblox = robloxTranslation()
 	check(
 		shielded >= 10 and #openToRoblox == 0,
 		`joueur français : la traduction automatique de Roblox ne touche aucun texte du jeu ({shielded} écrans, panneaux et invites, tous avec AutoLocalize coupé ; oubliés : {#openToRoblox} {table.concat(openToRoblox, ", ")})`
 	)
-	local helpers = workspace:FindFirstChild("LevelHelpers")
-	local plus = 0
-	for _, child in if helpers then helpers:GetChildren() else {} do
-		if string.sub(child.Name, 1, 4) == "Plus" then
-			plus += 1
-		end
-	end
-	check(plus >= 4, `{plus} « + » affichés aux emplacements conseillés encore libres`)
 	local strip = hudGui.TopStrip
 	check(
 		strip.Level.Text == "NIVEAU 1" and string.find(strip.Gold.Text, "60", 1, true) ~= nil and string.find(strip.Lives.Text, "10", 1, true) ~= nil
@@ -540,8 +532,8 @@ return function(log)
 	local bar = hudGui.TowerBar
 	check(
 		shown(bar.Tower_MachineGun) and shown(bar.Tower_Bomb) and not bar.Tower_Frost.Visible and bar.Tower_Bomb.Cost.Text == "45 💰"
-			and bar.Tower_MachineGun.Cost.Text == "ANNULER",
-		`barre rapide : deux tours dès le départ, l'Archer (déjà en main : « {bar.Tower_MachineGun.Cost.Text} ») et la Catapulte (« {bar.Tower_Bomb.Cost.Text} »)`
+			and bar.Tower_MachineGun.Cost.Text == "20 💰",
+		`barre rapide : deux tours dès le départ, l'Archer (« {bar.Tower_MachineGun.Cost.Text} ») et la Catapulte (« {bar.Tower_Bomb.Cost.Text} »)`
 	)
 	-- L'Archer offert tire tout de suite : un monstre tué en moins de 10 secondes.
 	local startedAt = os.clock()
@@ -600,15 +592,28 @@ return function(log)
 	-- 3) Poser, améliorer, refus
 	------------------------------------------------------------------
 	local goldBefore = arena:GetAttribute("Gold")
-	-- Un appui tout près d'un « + » (à 1,2 stud) pose exactement dessus.
-	act(hudGui, `Tap:{map.spots[2].X + 1.2},{map.spots[2].Z}`)
+	-- Prendre l'Archer dans la barre : aucun « + » jaune n'apparaît (demande du propriétaire, 03/10/2026 : « enlève
+	-- les emplacements jaunes, je veux que ce soit libre »). Un appui à 1,2 stud d'un emplacement conseillé pose la
+	-- tour exactement là où on a touché : plus rien ne l'attire vers l'emplacement.
+	act(hudGui, "Bar:MachineGun")
+	task.wait(0.3)
+	local helpers = workspace:FindFirstChild("LevelHelpers")
+	local plus = 0
+	for _, child in if helpers then helpers:GetChildren() else {} do
+		if string.sub(child.Name, 1, 4) == "Plus" or child:FindFirstChild("PlusMarker") then
+			plus += 1
+		end
+	end
+	check(hudGui:GetAttribute("Placing") == "MachineGun" and plus == 0, `Archer pris dans la barre : aucun « + » sur le terrain ({plus}), la pose est libre`)
+	local freeX, freeZ = map.spots[2].X + 1.2, map.spots[2].Z
+	act(hudGui, `Tap:{freeX},{freeZ}`)
 	local placed = waitFor(function()
-		return towerAt(map.spots[2].X, map.spots[2].Z) ~= nil
+		return towerAt(freeX, freeZ) ~= nil
 	end, 4)
 	check(
-		placed and #towers() == 2 and arena:GetAttribute("Gold") >= goldBefore - 20 and arena:GetAttribute("Gold") < goldBefore + 20
-			and hudGui:GetAttribute("Placing") == "",
-		`un appui près d'un « + » pose un 2e Archer exactement dessus ({#towers()} tours, {tostring(arena:GetAttribute("Gold"))} or), la pose se termine`
+		placed and towerAt(map.spots[2].X, map.spots[2].Z) == nil and #towers() == 2 and arena:GetAttribute("Gold") >= goldBefore - 20
+			and arena:GetAttribute("Gold") < goldBefore + 20 and hudGui:GetAttribute("Placing") == "",
+		`un appui sur l'herbe pose un 2e Archer exactement là où on a touché, pas attiré vers l'emplacement conseillé ({#towers()} tours, {tostring(arena:GetAttribute("Gold"))} or), la pose se termine`
 	)
 	-- Retour du propriétaire (02/10/2026) : « quand je clique sur une tour pour la poser, il faut que je puisse annuler
 	-- mon action ». La tour en main : son bouton devient rouge et dit « ANNULER » ; un appui dessus annule tout.
@@ -631,8 +636,8 @@ return function(log)
 		`un appui sur « ANNULER » : la pose est annulée, rien n'est posé, aucun or dépensé (bouton de nouveau « {heldButton.Cost.Text} »)`
 	)
 	-- Toucher une tour : son petit menu, à côté d'elle.
-	local second = towerAt(map.spots[2].X, map.spots[2].Z)
-	act(hudGui, `Tap:{map.spots[2].X},{map.spots[2].Z}`)
+	local second = towerAt(freeX, freeZ)
+	act(hudGui, `Tap:{freeX},{freeZ}`)
 	local menu = hudGui.TowerMenu
 	check(
 		second ~= nil and hudGui:GetAttribute("Selected") == second:GetAttribute("TowerId") and waitFor(function()
@@ -659,7 +664,7 @@ return function(log)
 	local tagLabel = tag and tag:FindFirstChildOfClass("TextLabel")
 	check(upgraded and tag ~= nil and tag.Enabled and tagLabel ~= nil and tagLabel.Text == "Niv. 2", `« Améliorer » : la tour passe au niveau 2, son étiquette « {if tagLabel then tagLabel.Text else "?"} » est visible d'en haut`)
 	shot("menu_tour")
-	-- Pose libre ailleurs qu'un « + », quand l'or est là.
+	-- Pose libre ailleurs, quand l'or est là.
 	waitFor(function()
 		return (arena:GetAttribute("Gold") or 0) >= 20
 	end, 30)
@@ -988,7 +993,7 @@ return function(log)
 			waitFor(function()
 				return #towers() == 2
 			end, 4) and hudGui:GetAttribute("Placing") == "",
-			"téléphone : prendre l'Archer puis toucher un « + » le pose"
+			"téléphone : prendre l'Archer puis toucher l'herbe le pose"
 		)
 		act(hudGui, `Tap:{map.spots[1].X},{map.spots[1].Z}`)
 		task.wait(0.6)

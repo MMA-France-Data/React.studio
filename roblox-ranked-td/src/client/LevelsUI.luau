@@ -6,11 +6,11 @@
 --   « LevelHud » : pendant un niveau. Vue d'en haut de la zone de combat (caméra réglée pour montrer toute la carte
 --                  entre les bandeaux ; zoom avec la molette ou en pinçant, déplacement en glissant un doigt ou
 --                  avec le clic droit / les flèches), or / vies / avancée du flot de monstres, barre rapide des
---                  tours, pose LIBRE (ordinateur : clic sur une tour de la barre, un aperçu vert ou rouge suit la
---                  souris avec sa portée, clic pour poser ; téléphone : appui sur la tour puis appui sur le terrain,
---                  ou glisser la tour depuis la barre ; la tour en main dit « ANNULER » : un appui dessus annule),
---                  « + » aux emplacements conseillés (on peut poser ailleurs), petit menu Améliorer / Vendre à côté
---                  de la tour touchée, bouton x2, écran de fin (Niveau suivant / Rejouer / Retour au camp).
+--                  tours, pose LIBRE, où on veut sur l'herbe, sans emplacement montré (ordinateur : clic sur une
+--                  tour de la barre, un aperçu vert ou rouge suit la souris avec sa portée, clic pour poser ;
+--                  téléphone : appui sur la tour puis appui sur le terrain, ou glisser la tour depuis la barre ; la
+--                  tour en main dit « ANNULER » : un appui dessus annule), petit menu Améliorer / Vendre à côté de
+--                  la tour touchée, bouton x2, écran de fin (Niveau suivant / Rejouer / Retour au camp).
 -- Le client ne décide rien : il lit les attributs publiés par le serveur (du joueur : LevelsState, LevelArena ; du
 -- dossier de sa zone : Level, State, Gold, Lives..., voir Remotes.luau) et envoie des demandes (remote
 -- LevelAction). Les monstres, les tirs et les étiquettes des tours sont affichés par PlotRenderer.
@@ -101,11 +101,9 @@ local LABEL_RADIUS = 160
 -- Les sons du combat s'entendent depuis un point à cette distance (au plus) du point regardé, pas depuis la caméra.
 local LISTENER_DISTANCE = 32
 local SELECT_RADIUS = 2.8 -- un appui à moins de ça d'une tour la choisit (studs)
-local SNAP_RADIUS = 3 -- un appui à moins de ça d'un « + » pose exactement dessus
 local TAP_MOVE, TAP_TIME = 18, 0.6 -- un appui (téléphone) : moins de 18 px de glissement, moins de 0,6 s
 local DRAG_START = 22 -- px : au-delà, un toucher parti d'une tour de la barre devient un « glisser »
 local QUIT_CONFIRM = 3 -- secondes pour confirmer « Quitter »
-local PLUS_MARKERS = 8 -- « + » affichés au plus (les premiers emplacements conseillés encore libres)
 local GOLD_POPUPS = 14 -- « +2 » dorés affichés à la fois au plus (or gagné au-dessus des monstres tués)
 -- Conseil « ne garde pas ton or » : affiché quand le joueur a au moins IDLE_GOLD d'or, de quoi acheter quelque
 -- chose, et qu'il n'achète rien depuis IDLE_GOLD_SECONDS (un niveau ne se gagne qu'en réinvestissant sans arrêt).
@@ -1295,7 +1293,6 @@ helpers.Name = "LevelHelpers"
 local ghost: Part
 local ghostRing: Part
 local selectRing: Part
-local plusMarkers = {} -- { anchor = Part, billboard = BillboardGui }
 local hiddenGuis = {} -- [ScreenGui] = vrai : écrans cachés pendant le niveau, à remettre
 local savedCamera = nil -- { type, fov, subject }
 local controls = nil
@@ -1389,36 +1386,6 @@ local function canPlace(towerType: string, point: Vector3): (boolean, string?)
 		return false, "Pas assez d'or"
 	end
 	return Levels.checkPlacement(level.mapName, point, towerPositions())
-end
-
--- Emplacements conseillés encore libres (où une tour peut vraiment être posée), dans l'ordre de la carte.
-local function freeSpots(): { Vector3 }
-	local spots = {}
-	if not level.geometry or not level.mapName then
-		return spots
-	end
-	local positions = towerPositions()
-	for _, spot in level.geometry.map.spots do
-		if Levels.checkPlacement(level.mapName, spot, positions) then
-			table.insert(spots, spot)
-			if #spots >= PLUS_MARKERS then
-				break
-			end
-		end
-	end
-	return spots
-end
-
--- Un point tout près d'un « + » : exactement dessus.
-local function snap(point: Vector3): Vector3
-	local best, bestDistance = point, SNAP_RADIUS
-	for _, spot in freeSpots() do
-		local distance = (Vector3.new(spot.X, 0, spot.Z) - Vector3.new(point.X, 0, point.Z)).Magnitude
-		if distance <= bestDistance then
-			best, bestDistance = spot, distance
-		end
-	end
-	return Vector3.new(best.X, 0, best.Z)
 end
 
 -- Point du sol de la zone (à la hauteur `height`) visé par ce rayon, dans le monde ; nil s'il part vers le ciel.
@@ -1638,14 +1605,13 @@ local function tapRay(ray: Ray)
 	end
 	local placing = level.placing
 	if placing then
-		local snapped = snap(point)
-		-- Sur une tour déjà posée (et pas sur un « + ») : on la choisit, on ne pose pas dessus.
-		local model = if snapped == point then towerUnder(ray) else nil
+		-- Sur une tour déjà posée : on la choisit, on ne pose pas dessus.
+		local model = towerUnder(ray)
 		if model then
 			selectTower(model)
 			return
 		end
-		if tryPlace(placing, snapped) and not UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then
+		if tryPlace(placing, point) and not UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then
 			setPlacing(nil)
 		end
 		return
@@ -1853,9 +1819,9 @@ local function onLevelStart(number: number)
 	setView(1, Vector2.zero)
 	hud.resetCounters()
 	selectTower(nil)
-	-- Tout premier niveau : la première tour de la barre est déjà choisie, les « + » sont affichés.
+	-- Tout premier niveau : quelques conseils au-dessus de la barre (hud.update) ; aucune tour n'est prise pour lui.
 	level.firstTime = number == 1 and state.best == 0
-	setPlacing(if level.firstTime then state.towers[1] else nil)
+	setPlacing(nil)
 	hud.hideEnd()
 end
 
@@ -2425,12 +2391,12 @@ local function buildHud()
 		local text = ""
 		if running then
 			local placingDef = level.placing and IdleTowers.Defs[level.placing]
-			if level.firstTime and #towerModels() <= 1 then
-				text = "Ton Archer tire déjà ! Touche un « + » pour en poser un deuxième"
-			elseif level.firstTime and not level.upgraded and not level.selected and not level.placing then
+			if placingDef then
+				text = `Touche le terrain pour poser : {placingDef.displayName}. Changer d'avis : « Annuler »`
+			elseif level.firstTime and #towerModels() <= 1 then
+				text = "Ton Archer tire déjà ! Prends une tour dans la barre pour en poser une autre"
+			elseif level.firstTime and not level.upgraded and not level.selected then
 				text = "Touche une tour pour l'améliorer avec ton or"
-			elseif placingDef then
-				text = `Touche le terrain (ou un « + ») pour poser : {placingDef.displayName}. Changer d'avis : « Annuler »`
 			elseif not level.selected and richSince and os.clock() - richSince > IDLE_GOLD_SECONDS then
 				-- Le niveau ne se gagne qu'en réinvestissant son or sans arrêt : on le dit à celui qui le garde.
 				text = "Ne garde pas ton or : pose ou améliore une tour, les monstres deviennent de plus en plus forts !"
@@ -2517,7 +2483,7 @@ local function buildHud()
 end
 
 ----------------------------------------------------------------------
--- Aperçu de pose, « + » conseillés
+-- Aperçu de pose
 ----------------------------------------------------------------------
 
 local function buildHelpers()
@@ -2559,28 +2525,6 @@ local function buildHelpers()
 	end
 	ghostRing = ring("GhostRange")
 	selectRing = ring("SelectedRange")
-	for index = 1, PLUS_MARKERS do
-		local anchor = helper("Plus" .. index, Enum.PartType.Block, 1)
-		anchor.Size = Vector3.one
-		local billboard = UI.new("BillboardGui", {
-			Name = "PlusMarker",
-			Size = UDim2.fromOffset(30, 30),
-			AlwaysOnTop = true,
-			Adornee = anchor,
-			Parent = anchor,
-		}, {
-			UI.new("TextLabel", {
-				Size = UDim2.fromScale(1, 1),
-				BackgroundColor3 = UI.Colors.Gold,
-				BackgroundTransparency = 0.1,
-				Font = Enum.Font.GothamBlack,
-				Text = "+",
-				TextColor3 = Color3.fromRGB(40, 30, 10),
-				TextScaled = true,
-			}, { UI.corner(15), UI.stroke(Color3.new(1, 1, 1), 2) }),
-		})
-		plusMarkers[index] = { anchor = anchor, billboard = billboard }
-	end
 end
 
 -- Pose un cercle de portée (voir buildHelpers) autour d'un point du sol, à la couleur donnée.
@@ -2696,16 +2640,6 @@ end
 local function updatePlacing()
 	local placing = level.placing
 	local running = attribute("State") == "Running"
-	local spots = if placing and running then freeSpots() else {}
-	for index, marker in plusMarkers do
-		local spot = spots[index]
-		if spot then
-			marker.anchor.CFrame = CFrame.new(level.cframe:PointToWorldSpace(Vector3.new(spot.X, 0.6, spot.Z)))
-			marker.anchor.Parent = helpers
-		else
-			marker.anchor.Parent = nil
-		end
-	end
 	if not placing or not running then
 		hideGhost()
 		return
@@ -2723,7 +2657,7 @@ local function updatePlacing()
 	end
 	local point = ray and localGround(ray)
 	if point then
-		showGhost(placing, snap(point))
+		showGhost(placing, point)
 	else
 		hideGhost()
 	end
@@ -3017,7 +2951,7 @@ local function build()
 					then localGround(camera:ScreenPointToRay(input.Position.X, input.Position.Y))
 					else nil
 				if point and towerType then
-					tryPlace(towerType, snap(point))
+					tryPlace(towerType, point)
 				end
 				setPlacing(nil)
 				-- (le bouton de la barre reçoit encore son « Activated » juste après : il l'ignore)
