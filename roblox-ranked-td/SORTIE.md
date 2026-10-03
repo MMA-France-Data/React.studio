@@ -7,7 +7,7 @@ Le jeu sort comme une **nouvelle expérience Roblox** (décision du 02/10/2026) 
 
 ## Le jeu lui-même
 
-- [x] 60 niveaux en 6 territoires (11 à 20 ajoutés le 02/10/2026, 21 à 60 le 03/10/2026 : une carte et une famille
+- [x] 100 niveaux en 10 territoires (11 à 20 ajoutés le 02/10/2026, 21 à 100 le 03/10/2026 : une carte et une famille
       de monstres par territoire), camp d'entraînement, évolutions des tours, boutique à prix fixes (voir
       `NIVEAUX.md`).
 - [x] Tout l'ancien jeu enlevé (classé, autel, forge, vagues infinies, renaissance, défis, passes, ancien tuto).
@@ -20,23 +20,23 @@ Le jeu sort comme une **nouvelle expérience Roblox** (décision du 02/10/2026) 
       tests automatiques ne vérifient que la taille de l'écran, pas le toucher.)
 - [ ] **Un nouveau joueur passe-t-il le niveau 1 ?** La difficulté est réglée avec des joueurs simulés et un seul
       vrai joueur (toi). Le tuto aide : un joueur simulé qui suit seulement la flèche gagne le niveau 1.
-- [ ] **Joue les niveaux 11 à 60** : ils n'ont été essayés que par les joueurs simulés (trop durs ? trop faciles ?).
+- [ ] **Joue les niveaux 11 à 100** : ils n'ont été essayés que par les joueurs simulés (trop durs ? trop faciles ?).
 - [x] La Baliste et le Trébuchet renforcés (02/10/2026, voir `NIVEAUX.md`, « Ce que chaque tour de la boutique
       apporte »).
-- [ ] Les niveaux 61 et plus (une carte et un réglage par territoire) : après la sortie.
+- [ ] Plus de 100 niveaux : il faudrait de nouvelles familles de monstres (les dix prévues sont utilisées). Après la
+      sortie.
 - [ ] Les autres langues (espagnol, portugais...) : aujourd'hui ces joueurs voient le jeu en anglais. Après la
       sortie, on pourra essayer de laisser Roblox traduire notre anglais dans leur langue (ça ne se teste que sur le
       jeu publié, pas dans Studio).
-- [ ] Monstres : **le boss du niveau 60** (la Légion des os) n'a pas encore de modèle 3D : en attendant, il est fait
-      de blocs, comme un monstre sans modèle. À faire faire par ChatGPT comme les autres
-      (`assets/EnemyModels/Boss_5.rbxm`). Il manque aussi le boss du territoire 9 (niveau 90) et la mort du dragon :
-      sans importance tant que le jeu a 60 niveaux.
+- [ ] Monstres : **les boss des niveaux 60 et 90** (la Légion des os, la Horde gobeline) n'ont pas encore de modèle
+      3D : en attendant, ils sont faits de blocs, comme un monstre sans modèle. À faire faire par ChatGPT comme les
+      autres (`assets/EnemyModels/Boss_5.rbxm` et `Boss_8.rbxm`). Le dragon (niveau 100) n'a pas d'animation de mort.
 - [ ] Des passes Robux pour ce jeu ? Il n'y en a plus aucun.
 
 ## Publication (Studio et Hub Création)
 
 - [ ] Le fichier à publier : la copie propre préparée par Claude, sur ton PC, dans le dossier du jeu :
-      `A-PUBLIER\Jeu-60-niveaux.rbxl` (refaite à chaque version, son nom dit le nombre de niveaux : prends toujours
+      `A-PUBLIER\Jeu-100-niveaux.rbxl` (refaite à chaque version, son nom dit le nombre de niveaux : prends toujours
       la plus récente ; elle n'est pas dans git). Ferme les autres fenêtres de Studio avant de publier, pour ne pas
       te tromper de fichier.
 - [ ] Publier comme une **nouvelle expérience** sur ton compte personnel (Fichier > Publier sur Roblox > « Créer une
@@ -71,7 +71,7 @@ Le nom du jeu est à toi de choisir. Description en anglais (c'est elle que la p
 Defend your castle in fast 2-3 minute levels!
 
 - Place your towers anywhere and upgrade them non-stop: the monsters never stop getting stronger.
-- 60 levels across 6 territories, with mini-bosses and bosses.
+- 100 levels across 10 territories, with mini-bosses and bosses, all the way to the dragon.
 - 8 towers, 6 of them to unlock in the shop: fixed prices, no luck.
 - Your own training camp: your towers train and evolve, even while you're away.
 - Plays on PC and phone. No pay-to-win.
@@ -83,7 +83,7 @@ La même en français :
 Défends ton château dans des niveaux rapides de 2 à 3 minutes !
 
 - Pose tes tours où tu veux et améliore-les sans arrêt : les monstres deviennent de plus en plus forts.
-- 60 niveaux dans 6 territoires, avec des mini-boss et des boss.
+- 100 niveaux dans 10 territoires, avec des mini-boss et des boss, jusqu'au dragon.
 - 8 tours, dont 6 à débloquer à la boutique : prix fixes, aucun hasard.
 - Ton camp d'entraînement : tes tours s'entraînent et évoluent, même quand tu es parti.
 - Sur ordinateur et sur téléphone. Rien à acheter pour gagner.

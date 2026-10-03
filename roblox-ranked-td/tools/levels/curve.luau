@@ -15,7 +15,7 @@ local Settings = require("./settings")
 Settings.apply(Levels, ...)
 local pace = tonumber(Settings.argument("rythme", ...))
 
-for _, level in { 1, 3, 6, 10, 11, 15, 20, 21, 25, 30, 31, 35, 40, 41, 45, 50, 51, 55, 60 } do
+for _, level in { 1, 3, 6, 10, 11, 15, 20, 21, 25, 30, 31, 35, 40, 41, 45, 50, 51, 55, 60, 61, 70, 71, 80, 81, 90, 91, 100 } do
 	local source = Levels.DEFINITIONS[level]
 	-- PV qui sortent par seconde autour de chaque dixième du niveau (fenêtre de 10 % du niveau), vrais réglages.
 	local demand = {}

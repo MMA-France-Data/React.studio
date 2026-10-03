@@ -115,6 +115,8 @@ Bot.POLICIES = {
 --     acheté en arrivant au niveau 46 : toutes les tours sont à lui ;
 --   * entraînement (8 XP par victoire, sans le camp) : le Totem à 4 au niveau 41, le Mage au 44, la Baliste au 49, le
 --     Sorcier au 56 ; l'Oracle à 3 au 49 ; le Trébuchet à 1 au 49, 2 au 54.
+-- Territoires 7 à 10 (niveaux 61 à 100) : toutes les tours ; leur entraînement continue de monter avec les
+-- victoires (8 XP chacune depuis l'achat de la tour, sans le camp : l'Archer et la Catapulte à 5 au niveau 76...).
 local MG, BOMB, FROST, TESLA, ROCKET, LASER, CHAIN, ORBITAL = "MachineGun", "Bomb", "Frost", "Tesla", "Rocket", "Laser", "Chain", "Orbital"
 local SIX = { MG, BOMB, FROST, TESLA, ROCKET, LASER }
 local SEVEN = { MG, BOMB, FROST, TESLA, ROCKET, LASER, CHAIN }
@@ -185,6 +187,50 @@ Bot.EXPECTED = {
 	{ towers = EIGHT, training = 4, trainings = { Chain = 3, Orbital = 2 }, pace = 3.5 },
 	{ towers = EIGHT, training = 4, trainings = { Chain = 3, Orbital = 2 }, pace = 3.5 },
 	{ towers = EIGHT, training = 4, trainings = { Chain = 3, Orbital = 2 }, pace = 3.5 },
+	-- 7e territoire
+	{ towers = EIGHT, training = 4, trainings = { Chain = 3, Orbital = 2 }, pace = 3.5 },
+	{ towers = EIGHT, training = 4, trainings = { Chain = 3, Orbital = 2 }, pace = 3.5 },
+	{ towers = EIGHT, training = 4, trainings = { Chain = 3, Orbital = 2 }, pace = 3.5 },
+	{ towers = EIGHT, training = 4, trainings = { Chain = 3, Orbital = 3 }, pace = 3.5 },
+	{ towers = EIGHT, training = 4, trainings = { Chain = 3, Orbital = 3 }, pace = 3.5 },
+	{ towers = EIGHT, training = 4, trainings = { Chain = 3, Orbital = 3 }, pace = 3.5 },
+	{ towers = EIGHT, training = 4, trainings = { Chain = 3, Orbital = 3 }, pace = 3.5 },
+	{ towers = EIGHT, training = 4, trainings = { Chain = 3, Orbital = 3 }, pace = 3.5 },
+	{ towers = EIGHT, training = 4, trainings = { Orbital = 3 }, pace = 3.5 },
+	{ towers = EIGHT, training = 4, trainings = { Orbital = 3 }, pace = 3.5 },
+	-- 8e territoire
+	{ towers = EIGHT, training = 4, trainings = { Orbital = 3 }, pace = 3.5 },
+	{ towers = EIGHT, training = 4, trainings = { Orbital = 3 }, pace = 3.5 },
+	{ towers = EIGHT, training = 4, trainings = { Orbital = 3 }, pace = 3.5 },
+	{ towers = EIGHT, training = 4, trainings = { Orbital = 3 }, pace = 3.5 },
+	{ towers = EIGHT, training = 4, trainings = { Orbital = 3 }, pace = 3.5 },
+	{ towers = EIGHT, training = 4, trainings = { MachineGun = 5, Bomb = 5, Orbital = 3 }, pace = 3.5 },
+	{ towers = EIGHT, training = 4, trainings = { MachineGun = 5, Bomb = 5, Orbital = 3 }, pace = 3.5 },
+	{ towers = EIGHT, training = 4, trainings = { MachineGun = 5, Bomb = 5, Frost = 5, Orbital = 3 }, pace = 3.5 },
+	{ towers = EIGHT, training = 4, trainings = { MachineGun = 5, Bomb = 5, Frost = 5, Orbital = 3 }, pace = 3.5 },
+	{ towers = EIGHT, training = 4, trainings = { MachineGun = 5, Bomb = 5, Frost = 5, Orbital = 3 }, pace = 3.5 },
+	-- 9e territoire
+	{ towers = EIGHT, training = 4, trainings = { MachineGun = 5, Bomb = 5, Frost = 5, Tesla = 5, Orbital = 3 }, pace = 3.5 },
+	{ towers = EIGHT, training = 4, trainings = { MachineGun = 5, Bomb = 5, Frost = 5, Tesla = 5, Orbital = 3 }, pace = 3.5 },
+	{ towers = EIGHT, training = 4, trainings = { MachineGun = 5, Bomb = 5, Frost = 5, Tesla = 5, Orbital = 3 }, pace = 3.5 },
+	{ towers = EIGHT, training = 4, trainings = { MachineGun = 5, Bomb = 5, Frost = 5, Tesla = 5 }, pace = 3.5 },
+	{ towers = EIGHT, training = 4, trainings = { MachineGun = 5, Bomb = 5, Frost = 5, Tesla = 5 }, pace = 3.5 },
+	{ towers = EIGHT, training = 4, trainings = { MachineGun = 5, Bomb = 5, Frost = 5, Tesla = 5, Rocket = 5 }, pace = 3.5 },
+	{ towers = EIGHT, training = 4, trainings = { MachineGun = 5, Bomb = 5, Frost = 5, Tesla = 5, Rocket = 5 }, pace = 3.5 },
+	{ towers = EIGHT, training = 4, trainings = { MachineGun = 5, Bomb = 5, Frost = 5, Tesla = 5, Rocket = 5 }, pace = 3.5 },
+	{ towers = EIGHT, training = 4, trainings = { MachineGun = 5, Bomb = 5, Frost = 5, Tesla = 5, Rocket = 5 }, pace = 3.5 },
+	{ towers = EIGHT, training = 4, trainings = { MachineGun = 5, Bomb = 5, Frost = 5, Tesla = 5, Rocket = 5 }, pace = 3.5 },
+	-- 10e territoire
+	{ towers = EIGHT, training = 4, trainings = { MachineGun = 5, Bomb = 5, Frost = 5, Tesla = 5, Rocket = 5 }, pace = 3.5 },
+	{ towers = EIGHT, training = 4, trainings = { MachineGun = 5, Bomb = 5, Frost = 5, Tesla = 5, Rocket = 5 }, pace = 3.5 },
+	{ towers = EIGHT, training = 4, trainings = { MachineGun = 5, Bomb = 5, Frost = 5, Tesla = 5, Rocket = 5, Laser = 5 }, pace = 3.5 },
+	{ towers = EIGHT, training = 4, trainings = { MachineGun = 5, Bomb = 5, Frost = 5, Tesla = 5, Rocket = 5, Laser = 5 }, pace = 3.5 },
+	{ towers = EIGHT, training = 4, trainings = { MachineGun = 5, Bomb = 5, Frost = 5, Tesla = 5, Rocket = 5, Laser = 5 }, pace = 3.5 },
+	{ towers = EIGHT, training = 4, trainings = { MachineGun = 5, Bomb = 5, Frost = 5, Tesla = 5, Rocket = 5, Laser = 5 }, pace = 3.5 },
+	{ towers = EIGHT, training = 4, trainings = { MachineGun = 5, Bomb = 5, Frost = 5, Tesla = 5, Rocket = 5, Laser = 5 }, pace = 3.5 },
+	{ towers = EIGHT, training = 4, trainings = { MachineGun = 5, Bomb = 5, Frost = 5, Tesla = 5, Rocket = 5, Laser = 5 }, pace = 3.5 },
+	{ towers = EIGHT, training = 4, trainings = { MachineGun = 5, Bomb = 5, Frost = 5, Tesla = 5, Rocket = 5, Laser = 5 }, pace = 3.5 },
+	{ towers = EIGHT, training = 4, trainings = { MachineGun = 5, Bomb = 5, Frost = 5, Tesla = 5, Rocket = 5, Laser = 5 }, pace = 3.5 },
 }
 Bot.ALL_TOWERS = { "MachineGun", "Frost", "Bomb", "Tesla", "Rocket", "Laser", "Chain", "Orbital" }
 

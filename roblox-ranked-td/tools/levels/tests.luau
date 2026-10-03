@@ -64,12 +64,12 @@ local function towerCount(game): number
 end
 
 ----------------------------------------------------------------------
--- 1) Les niveaux : 60 niveaux en 6 territoires de 10, mini-boss au milieu d'un territoire, boss à la fin, 2 à
+-- 1) Les niveaux : 100 niveaux en 10 territoires de 10, mini-boss au milieu d'un territoire, boss à la fin, 2 à
 --    3 minutes et demie, un FLOT CONTINU qui monte
 ----------------------------------------------------------------------
 check(
-	Levels.COUNT == 60 and #Levels.DEFINITIONS == 60 and #Levels.TERRITORIES == 6 and Levels.TERRITORY_SIZE == 10,
-	`60 niveaux dans le jeu, en 6 territoires de 10 ({Levels.COUNT} niveaux, {#Levels.DEFINITIONS} fiches, {#Levels.TERRITORIES} territoires)`
+	Levels.COUNT == 100 and #Levels.DEFINITIONS == 100 and #Levels.TERRITORIES == 10 and Levels.TERRITORY_SIZE == 10,
+	`100 niveaux dans le jeu, en 10 territoires de 10 ({Levels.COUNT} niveaux, {#Levels.DEFINITIONS} fiches, {#Levels.TERRITORIES} territoires)`
 )
 check(
 	Levels.territoryOf(1) == 1 and Levels.territoryOf(10) == 1 and Levels.territoryOf(11) == 2 and Levels.territoryOf(20) == 2
@@ -78,8 +78,10 @@ check(
 		and Levels.definition(31).map == "Glacier" and Levels.definition(11).palier == 1 and Levels.definition(21).palier == 2
 		and Levels.definition(40).palier == 3 and Levels.territoryOf(41) == 5 and Levels.territoryOf(50) == 5 and Levels.territoryOf(51) == 6
 		and Levels.territoryOf(60) == 6 and Levels.definition(41).map == "Desert" and Levels.definition(51).map == "Necropolis"
-		and Levels.definition(41).palier == 4 and Levels.definition(60).palier == 5,
-	"territoires : niveaux 1 à 10 dans la vallée, 11 à 20 au col, 21 à 30 dans la forêt, 31 à 40 au glacier, 41 à 50 au désert, 51 à 60 à la nécropole (chacun sa carte et la famille de monstres suivante)"
+		and Levels.definition(41).palier == 4 and Levels.definition(60).palier == 5 and Levels.territoryOf(61) == 7
+		and Levels.territoryOf(100) == 10 and Levels.definition(61).map == "Storm" and Levels.definition(71).map == "Obsidian"
+		and Levels.definition(81).map == "Goblin" and Levels.definition(91).map == "Dragon" and Levels.definition(100).palier == 9,
+	"territoires : la vallée, le col, la forêt, le glacier, le désert, la nécropole, la citadelle, le volcan, les marais, le repaire du dragon (10 niveaux chacun, chacun sa carte et la famille de monstres suivante)"
 )
 for level = 1, Levels.COUNT do
 	local definition = Levels.definition(level)
@@ -128,6 +130,10 @@ for level = 1, Levels.COUNT do
 		check(types.Giant == 5 and not types.Boss, "niveau 55 : un trio puis une paire de colosses, pas de boss")
 	elseif level == 60 then
 		check(types.Boss == 1 and types.Giant == 5 and queue[#queue].enemy == "Boss", "niveau 60 : cinq colosses dans le flot, puis le boss le ferme")
+	elseif level % 10 == 5 and level > 60 then
+		check(types.Giant == 5 and not types.Boss, `niveau {level} : cinq colosses (mini-boss), pas de boss`)
+	elseif level % 10 == 0 and level > 60 then
+		check(types.Boss == 1 and types.Giant == 5 and queue[#queue].enemy == "Boss", `niveau {level} : cinq colosses dans le flot, puis le boss le ferme`)
 	end
 	-- Demande du propriétaire : « en continu », jamais par vagues. Aucune pause : l'écart le plus long entre deux
 	-- monstres est l'écart du tout début.
@@ -259,7 +265,18 @@ for territory, mapName in Levels.TERRITORIES do
 	)
 end
 check(Levels.geometry("Pass").PATH_LENGTH == 282 and Levels.geometry("Pass").PATH_LENGTH > geometry.PATH_LENGTH, "le chemin du col est plus long que celui de la vallée (282 studs)")
-check(Levels.geometry("Forest").PATH_LENGTH == 308 and Levels.geometry("Glacier").PATH_LENGTH == 266, "chemins de la forêt (308 studs, le plus long) et du glacier (266 studs)")
+check(Levels.geometry("Forest").PATH_LENGTH == 308 and Levels.geometry("Glacier").PATH_LENGTH == 266, "chemins de la forêt (308 studs) et du glacier (266 studs)")
+do
+	local longest = 0
+	for _, mapName in Levels.TERRITORIES do
+		longest = math.max(longest, Levels.geometry(mapName).PATH_LENGTH)
+	end
+	check(
+		Levels.geometry("Storm").PATH_LENGTH == 252 and Levels.geometry("Obsidian").PATH_LENGTH == 270 and Levels.geometry("Goblin").PATH_LENGTH == 272
+			and Levels.geometry("Dragon").PATH_LENGTH == 330 and longest == 330 and Levels.MAPS.Goblin.path[1].Z == 0,
+		"chemins de la citadelle (252 studs), du volcan (270), des marais (272, entrée au milieu du bord) et du repaire du dragon (330 : le plus long du jeu)"
+	)
+end
 check(
 	Levels.geometry("Desert").PATH_LENGTH == 252 and Levels.geometry("Necropolis").PATH_LENGTH == 252
 		and Levels.MAPS.Desert.base.X < 0 and math.abs(Levels.MAPS.Necropolis.base.X) < 10,
@@ -296,7 +313,12 @@ check(
 check(
 	Levels.firstReward(41) == 880 and Levels.firstReward(45) == 1500 and Levels.firstReward(50) == 3000 and Levels.firstReward(51) == 1080
 		and Levels.firstReward(55) == 1800 and Levels.firstReward(60) == 3600 and Levels.reward(60, true, false) == 1440,
-	"5e et 6e territoires : 880 au niveau 41, 1 500 et 3 000 pour son mini-boss et son boss ; 1 080 au niveau 51, 1 800 et 3 600 (1 440 en rejouant le dernier boss)"
+	"5e et 6e territoires : 880 au niveau 41, 1 500 et 3 000 pour son mini-boss et son boss ; 1 080 au niveau 51, 1 800 et 3 600 (1 440 en le rejouant)"
+)
+check(
+	Levels.firstReward(61) == 1280 and Levels.firstReward(65) == 2100 and Levels.firstReward(70) == 4200 and Levels.firstReward(91) == 1880
+		and Levels.firstReward(95) == 3000 and Levels.firstReward(100) == 6000 and Levels.reward(100, true, false) == 2400,
+	"territoires 7 à 10 : 1 280 au niveau 61, 2 100 et 4 200 pour son mini-boss et son boss... 6 000 pour le dragon du niveau 100 (2 400 en le rejouant)"
 )
 check(Levels.reward(3, true, true) == 120 and Levels.reward(3, true, false) == 48, "niveau 3 : 120 la première fois, 48 en le rejouant (40 %)")
 check(Levels.reward(3, false, false, 0.5) == 12 and Levels.reward(3, false, false, 0) == 0 and Levels.reward(3, false, true, 1) == 24, "défaite : une part de la récompense « rejouer » selon l'avancée (0 si rien n'est éliminé)")
@@ -369,7 +391,7 @@ check(
 	`les 40 premiers niveaux réussis une fois ({firstForty} pièces) ne paient pas le Trébuchet ({allTowers} pour les six tours)`
 )
 check(
-	firstFortyFive >= allTowers and firstFortyFive - Levels.firstReward(45) < allTowers and allFirst == 50580,
+	firstFortyFive >= allTowers and firstFortyFive - Levels.firstReward(45) < allTowers and allFirst == 134300,
 	`les 45 premiers niveaux réussis une fois ({firstFortyFive} pièces) paient le Trébuchet, pas avant le mini-boss du niveau 45 ; les {Levels.COUNT} en donnent {allFirst}`
 )
 -- Ce que le réglage des niveaux attend (Bot.EXPECTED) : la Baliste en arrivant au niveau 11, le Sorcier au 18,
@@ -431,7 +453,7 @@ check(fresh.best == 0 and fresh.coins == 0 and fresh.tutorial == 0 and fresh.tow
 local archerOnly = Levels.cleanData({ best = 3, towers = { MachineGun = true }, bar = { "MachineGun" } })
 check(archerOnly.towers.Bomb == true and table.concat(Levels.ownedTowers(archerOnly), ",") == "MachineGun,Bomb" and archerOnly.best == 3, "ancienne sauvegarde avec le seul Archer : la Catapulte est donnée, le reste est gardé")
 local dirty = Levels.cleanData({
-	best = 99,
+	best = 999,
 	coins = -5,
 	towers = { Frost = true, Dragon = true, Tesla = "oui" },
 	xp = { Frost = 1 / 0, Dragon = 5, MachineGun = "12" },

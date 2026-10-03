@@ -712,8 +712,8 @@ return function(log)
 	end
 
 	------------------------------------------------------------------
-	-- Territoires 3 à 6 (niveaux 21 à 60). Demandes du propriétaire (03/10/2026) : « continue les niveaux jusqu'à 40 »,
-	-- puis « fais encore 20 ».
+	-- Territoires 3 à 10 (niveaux 21 à 100). Demandes du propriétaire (03/10/2026) : « continue les niveaux jusqu'à 40 »,
+	-- « fais encore 20 », puis « fais les 50 derniers ».
 	------------------------------------------------------------------
 	do
 		levels("Set", "towers", { MachineGun = true, Bomb = true, Frost = true, Tesla = true, Rocket = true, Laser = true, Chain = true })
@@ -731,12 +731,28 @@ return function(log)
 			Necropolis = function(field, c)
 				return (c.Grave or 0) >= 20 and field.Color.R < 0.45 -- pierres tombales, herbe morte et sombre
 			end,
+			Storm = function(field, c)
+				return field.Material == Enum.Material.Slate and (c.TreeCrown or 0) >= 20 -- plateau de pierre, arbres
+			end,
+			Obsidian = function(field, c)
+				return field.Material == Enum.Material.Basalt and (c.Lava or 0) >= 6 and (c.TreeCrown or 0) == 0 -- basalte, lave
+			end,
+			Goblin = function(field, c)
+				return field.Material == Enum.Material.Mud and (c.TreeCrown or 0) >= 45 -- boue, bois épais
+			end,
+			Dragon = function(field, c)
+				return (c.Lava or 0) >= 6 and (c.TreeCrown or 0) >= 20 and field.Color.R > field.Color.G -- terre brûlée, lave
+			end,
 		}
 		for _, case in {
 			{ level = 21, map = "Forest", name = "forêt", shot = "levels_territoire3" },
 			{ level = 31, map = "Glacier", name = "glacier", shot = "levels_territoire4" },
 			{ level = 41, map = "Desert", name = "désert", shot = "levels_territoire5" },
 			{ level = 51, map = "Necropolis", name = "nécropole", shot = "levels_territoire6" },
+			{ level = 61, map = "Storm", name = "citadelle", shot = "levels_territoire7" },
+			{ level = 71, map = "Obsidian", name = "volcan", shot = "levels_territoire8" },
+			{ level = 81, map = "Goblin", name = "marais", shot = "levels_territoire9" },
+			{ level = 91, map = "Dragon", name = "repaire du dragon", shot = "levels_territoire10" },
 		} do
 			levels("Set", "best", case.level - 1)
 			check(action("Start", case.level) == true, `niveau {case.level} lancé (le territoire d'avant est réussi)`)
@@ -750,7 +766,7 @@ return function(log)
 			check(
 				arena:GetAttribute("Map") == case.map and arena:GetAttribute("Level") == case.level and arena:GetAttribute("Gold") == Levels.definition(case.level).gold
 					and #towers() == 0 and arena:GetAttribute("Total") == #Levels.buildQueue(case.level) and (c.Rock or 0) >= 10 and themeOk,
-				`niveau {case.level} : la carte « {tostring(arena:GetAttribute("Map"))} » ({case.name}) est construite avec son décor ({c.TreeCrown or 0} feuillages d'arbres, {c.Rock or 0} rochers, {c.Cactus or 0} morceaux de cactus, {c.Grave or 0} morceaux de tombes), {tostring(arena:GetAttribute("Gold"))} or, {tostring(arena:GetAttribute("Total"))} monstres`
+				`niveau {case.level} : la carte « {tostring(arena:GetAttribute("Map"))} » ({case.name}) est construite avec son décor ({c.TreeCrown or 0} feuillages d'arbres, {c.Rock or 0} rochers, {c.Cactus or 0} morceaux de cactus, {c.Grave or 0} morceaux de tombes, {c.Lava or 0} mares de lave), {tostring(arena:GetAttribute("Gold"))} or, {tostring(arena:GetAttribute("Total"))} monstres`
 			)
 			-- Les 12 emplacements conseillés de cette carte sont tous posables, même tous occupés.
 			local spots = Levels.MAPS[case.map].spots

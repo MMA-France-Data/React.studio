@@ -312,8 +312,11 @@ return function(log)
 			and string.find(page1.Territory2.Text, "clear level 10", 1, true) ~= nil and string.find(page1.Territory3.Text, "The Bramble Wardens' Forest", 1, true) ~= nil
 			and string.find(page1.Territory4.Text, "The Frost Legion's Glacier", 1, true) ~= nil and string.find(page1.Territory4.Text, "clear level 30", 1, true) ~= nil
 			and string.find(page1.Territory5.Text, "The Dune Guards' Desert", 1, true) ~= nil and string.find(page1.Territory6.Text, "The Bone Legion's Necropolis", 1, true) ~= nil
-			and string.find(page1.Territory6.Text, "clear level 50", 1, true) ~= nil and page1.Level1.Play.Text == "▶ PLAY",
-		`onglet des niveaux : « {page1.Territory1.Text} », « {page1.Territory2.Text} », « {page1.Territory3.Text} », « {page1.Territory4.Text} », « {page1.Territory5.Text} », « {page1.Territory6.Text} », bouton « {page1.Level1.Play.Text} »`
+			and string.find(page1.Territory6.Text, "clear level 50", 1, true) ~= nil and string.find(page1.Territory7.Text, "The Storm Guard's Citadel", 1, true) ~= nil
+			and string.find(page1.Territory8.Text, "The Obsidian Knights' Volcano", 1, true) ~= nil and string.find(page1.Territory9.Text, "The Goblin Horde's Swamp", 1, true) ~= nil
+			and string.find(page1.Territory10.Text, "The Dragon Brood's Lair", 1, true) ~= nil and string.find(page1.Territory10.Text, "clear level 90", 1, true) ~= nil
+			and page1.Level1.Play.Text == "▶ PLAY",
+		`onglet des niveaux : « {page1.Territory1.Text} », « {page1.Territory2.Text} », « {page1.Territory6.Text} », « {page1.Territory10.Text} », bouton « {page1.Level1.Play.Text} »`
 	)
 	scanScreen("camp, onglet Niveaux (nouveau joueur)")
 	shot("niveaux")

@@ -25,8 +25,8 @@ local arenas = {} -- [slot] = { slot, index, folder, cframe, focus, map, palier 
 
 -- Décor de chaque territoire (palier = (niveau - 1) // 10) : couleurs et matières du sol, du terrain et du chemin,
 -- feuillage des arbres (autumn = roux, foliage = sa couleur), forest = des arbres en plus (un vrai bois), noTrees =
--- aucun arbre, rochers, cactus et pierres tombales (leur couleur) posés autour du terrain. Le chemin contraste avec
--- les monstres du territoire (qu'on les voie bien).
+-- aucun arbre, rochers, cactus, pierres tombales et mares de lave (leur couleur) posés autour du terrain. Le chemin
+-- contraste avec les monstres du territoire (qu'on les voie bien).
 local THEMES = {
 	-- La vallée du Roi carmin : prairie verte.
 	[0] = {
@@ -98,6 +98,57 @@ local THEMES = {
 		foliage = Color3.fromRGB(68, 58, 78),
 		graves = Color3.fromRGB(150, 146, 156),
 		rocks = Color3.fromRGB(104, 100, 112),
+	},
+	-- La citadelle de la Garde de la tempête : plateau de pierre gris, arbres sombres battus par le vent ; chemin clair
+	-- (la Garde est bleue).
+	[6] = {
+		ground = Color3.fromRGB(84, 94, 104),
+		field = Color3.fromRGB(110, 120, 126),
+		path = Color3.fromRGB(200, 188, 150),
+		wall = Color3.fromRGB(126, 132, 146),
+		banner = Color3.fromRGB(75, 91, 179),
+		groundMaterial = Enum.Material.Slate,
+		foliage = Color3.fromRGB(54, 84, 92),
+		rocks = Color3.fromRGB(120, 128, 140),
+	},
+	-- Le volcan des Chevaliers d'obsidienne : basalte noir, mares de lave, pas un arbre ; chemin de cendre claire (les
+	-- chevaliers sont noirs et orange).
+	[7] = {
+		ground = Color3.fromRGB(44, 40, 44),
+		field = Color3.fromRGB(70, 64, 66),
+		path = Color3.fromRGB(190, 172, 150),
+		wall = Color3.fromRGB(60, 56, 62),
+		banner = Color3.fromRGB(209, 75, 40),
+		groundMaterial = Enum.Material.Basalt,
+		noTrees = true,
+		lava = Color3.fromRGB(255, 110, 30),
+		rocks = Color3.fromRGB(56, 50, 56),
+	},
+	-- Les marais de la Horde gobeline : boue verte, bois épais ; chemin de boue sèche (les gobelins sont verts et
+	-- bruns).
+	[8] = {
+		ground = Color3.fromRGB(60, 78, 48),
+		field = Color3.fromRGB(82, 98, 60),
+		path = Color3.fromRGB(178, 160, 118),
+		wall = Color3.fromRGB(96, 100, 80),
+		banner = Color3.fromRGB(130, 71, 41),
+		groundMaterial = Enum.Material.Mud,
+		foliage = Color3.fromRGB(64, 92, 46),
+		forest = true,
+		rocks = Color3.fromRGB(92, 100, 76),
+	},
+	-- Le repaire de la Couvée du dragon : terre brûlée et rougeâtre, arbres calcinés, mares de lave ; chemin d'os pâle
+	-- (les dragons sont rouges).
+	[9] = {
+		ground = Color3.fromRGB(70, 44, 38),
+		field = Color3.fromRGB(96, 62, 50),
+		path = Color3.fromRGB(206, 186, 144),
+		wall = Color3.fromRGB(92, 64, 56),
+		banner = Color3.fromRGB(153, 46, 42),
+		groundMaterial = Enum.Material.Ground,
+		foliage = Color3.fromRGB(40, 34, 30),
+		lava = Color3.fromRGB(255, 120, 40),
+		rocks = Color3.fromRGB(82, 58, 52),
 	},
 }
 
@@ -256,6 +307,18 @@ function LevelArena.build(slot: number, mapName: string, palier: number)
 				local cf = origin * CFrame.new(side * (w / 2 + 5 + i * 3), 0, -d / 2 + 6 + i * 12) * CFrame.Angles(0, math.pi / 2 + i * 0.2, side * 0.1)
 				scenery(folder, "Grave", Vector3.new(2.2, 2.8, 0.6), cf * CFrame.new(0, 1.4, 0), theme.graves, Enum.Material.Slate)
 			end
+		end
+	end
+	-- Mares de lave (volcan, repaire du dragon) : plates et lumineuses, au fond et sur les côtés.
+	if theme.lava then
+		for i = 0, 5 do
+			local size = 6 + (i * 5 % 4) * 2
+			local x = -w / 2 + 8 + i * (w - 16) / 5
+			local z = -d / 2 - 9 - (i % 2) * 6
+			scenery(folder, "Lava", Vector3.new(size * 1.4, 0.2, size), origin * CFrame.new(x, -0.15, z) * CFrame.Angles(0, i * 0.7, 0), theme.lava, Enum.Material.Neon)
+		end
+		for _, side in { -1, 1 } do
+			scenery(folder, "Lava", Vector3.new(7, 0.2, 10), origin * CFrame.new(side * (w / 2 + 9), -0.15, -d / 2 + 14) * CFrame.Angles(0, side * 0.4, 0), theme.lava, Enum.Material.Neon)
 		end
 	end
 

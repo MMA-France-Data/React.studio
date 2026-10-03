@@ -41,6 +41,10 @@ return {
 	["Le glacier de la Légion du givre"] = "The Frost Legion's Glacier",
 	["Le désert des Gardes des dunes"] = "The Dune Guards' Desert",
 	["La nécropole de la Légion des os"] = "The Bone Legion's Necropolis",
+	["La citadelle de la Garde de la tempête"] = "The Storm Guard's Citadel",
+	["Le volcan des Chevaliers d'obsidienne"] = "The Obsidian Knights' Volcano",
+	["Les marais de la Horde gobeline"] = "The Goblin Horde's Swamp",
+	["Le repaire de la Couvée du dragon"] = "The Dragon Brood's Lair",
 
 	-- Évolutions des tours (Levels.PERKS : name)
 	["Flèches enflammées"] = "Flaming arrows",
