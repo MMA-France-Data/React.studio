@@ -309,8 +309,10 @@ return function(log)
 	local page1 = window.Page1
 	check(
 		string.find(page1.Territory1.Text, "TERRITORY 1", 1, true) ~= nil and string.find(page1.Territory1.Text, "The Crimson King's Valley", 1, true) ~= nil
-			and string.find(page1.Territory2.Text, "clear level 10", 1, true) ~= nil and page1.Level1.Play.Text == "▶ PLAY",
-		`onglet des niveaux : « {page1.Territory1.Text} », « {page1.Territory2.Text} », bouton « {page1.Level1.Play.Text} »`
+			and string.find(page1.Territory2.Text, "clear level 10", 1, true) ~= nil and string.find(page1.Territory3.Text, "The Bramble Wardens' Forest", 1, true) ~= nil
+			and string.find(page1.Territory4.Text, "The Frost Legion's Glacier", 1, true) ~= nil and string.find(page1.Territory4.Text, "clear level 30", 1, true) ~= nil
+			and page1.Level1.Play.Text == "▶ PLAY",
+		`onglet des niveaux : « {page1.Territory1.Text} », « {page1.Territory2.Text} », « {page1.Territory3.Text} », « {page1.Territory4.Text} », bouton « {page1.Level1.Play.Text} »`
 	)
 	scanScreen("camp, onglet Niveaux (nouveau joueur)")
 	shot("niveaux")
@@ -509,7 +511,7 @@ return function(log)
 	startLevel(Levels.COUNT)
 	task.wait(1)
 	scanScreen("dernier niveau, départ")
-	shot("niveau_20")
+	shot("dernier_niveau")
 	test:InvokeServer("Finish", true)
 	waitFor(function()
 		return endScreen.Visible and arena:GetAttribute("State") == "Won"
@@ -533,6 +535,19 @@ return function(log)
 		`niveau 10 gagné : « {oneLine(panel.Details.Text)} », bouton « {panel.Next.Text} »`
 	)
 	shot("nouveau_territoire")
+	-- Fin du 3e territoire : le glacier s'ouvre (nom traduit sur l'écran de fin).
+	test:InvokeServer("Set", { best = 29 })
+	startLevel(30)
+	task.wait(0.5)
+	test:InvokeServer("Finish", true)
+	waitFor(function()
+		return endScreen.Visible and arena:GetAttribute("State") == "Won" and panel.Next.Text == "Level 31 ▶"
+	end, 5)
+	scanScreen("écran de fin : niveau 30 gagné (nouveau territoire)")
+	check(
+		panel.Next.Text == "Level 31 ▶" and string.find(panel.Details.Text, "New territory unlocked: The Frost Legion's Glacier!", 1, true) ~= nil,
+		`niveau 30 gagné : « {oneLine(panel.Details.Text)} », bouton « {panel.Next.Text} »`
+	)
 	backToCamp()
 	scanScreen("retour au camp")
 	-- Achat à la boutique : le message du serveur.

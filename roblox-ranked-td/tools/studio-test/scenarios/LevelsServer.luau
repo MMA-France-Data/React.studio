@@ -697,17 +697,87 @@ return function(log)
 		local mini = result()
 		levels("Set", "best", 19)
 		local coinsBefore20 = saved().coins
-		action("Start", Levels.COUNT)
-		local bossQueue = Levels.buildQueue(Levels.COUNT)
+		action("Start", 20)
+		local bossQueue = Levels.buildQueue(20)
 		levels("Finish", true)
-		local last = result()
+		local boss20 = result()
 		check(
-			mini.reward == 600 and last.won == true and last.reward == 1200 and last.nextLevel == nil and saved().best == Levels.COUNT
-				and saved().coins == coinsBefore20 + 1200 and player.leaderstats.Level.Value == Levels.COUNT and bossQueue[#bossQueue].enemy == "Boss",
-			`mini-boss du niveau 15 : +{tostring(mini.reward)} pièces ; boss du niveau {Levels.COUNT} : +{tostring(last.reward)} pièces, plus de niveau suivant, colonne « Level » : {player.leaderstats.Level.Value}`
+			mini.reward == 600 and boss20.won == true and boss20.reward == 1200 and boss20.nextLevel == 21 and saved().best == 20
+				and saved().coins == coinsBefore20 + 1200 and player.leaderstats.Level.Value == 20 and bossQueue[#bossQueue].enemy == "Boss",
+			`mini-boss du niveau 15 : +{tostring(mini.reward)} pièces ; boss du niveau 20 : +{tostring(boss20.reward)} pièces, niveau suivant {tostring(boss20.nextLevel)}, colonne « Level » : {player.leaderstats.Level.Value}`
 		)
 		-- Retour au premier territoire : la carte de la vallée est refaite.
 		check(action("Start", 3) == true and arena:GetAttribute("Map") == "Valley" and arena:FindFirstChild("Map") ~= passMap, "rejouer un niveau du premier territoire : la carte de la vallée revient")
+		action("Quit")
+	end
+
+	------------------------------------------------------------------
+	-- 3e et 4e territoires (niveaux 21 à 40). Demande du propriétaire (03/10/2026) : « continue les niveaux jusqu'à 40 ».
+	------------------------------------------------------------------
+	do
+		levels("Set", "towers", { MachineGun = true, Bomb = true, Frost = true, Tesla = true, Rocket = true, Laser = true, Chain = true })
+		for _, case in {
+			{ level = 21, map = "Forest", name = "forêt", shot = "levels_territoire3" },
+			{ level = 31, map = "Glacier", name = "glacier", shot = "levels_territoire4" },
+		} do
+			levels("Set", "best", case.level - 1)
+			check(action("Start", case.level) == true, `niveau {case.level} lancé (le territoire d'avant est réussi)`)
+			local built = arena:FindFirstChild("Map")
+			local rocks, crowns = 0, 0
+			for _, part in if built then built:GetChildren() else {} do
+				if part.Name == "Rock" then
+					rocks += 1
+				elseif part.Name == "TreeCrown" then
+					crowns += 1
+				end
+			end
+			local field = built and built:FindFirstChild("Field")
+			-- (forêt : un vrai bois, terrain vert ; glacier : terrain de neige)
+			local themeOk = if case.map == "Forest"
+				then field ~= nil and field.Color.G > field.Color.R and crowns >= 45
+				else field ~= nil and field.Material == Enum.Material.Snow and field.Color.B > 0.8
+			check(
+				arena:GetAttribute("Map") == case.map and arena:GetAttribute("Level") == case.level and arena:GetAttribute("Gold") == Levels.definition(case.level).gold
+					and #towers() == 0 and arena:GetAttribute("Total") == #Levels.buildQueue(case.level) and rocks >= 10 and themeOk,
+				`niveau {case.level} : la carte du {case.name} (« {tostring(arena:GetAttribute("Map"))} ») est construite avec son décor ({crowns} feuillages d'arbres, {rocks} rochers), {tostring(arena:GetAttribute("Gold"))} or, {tostring(arena:GetAttribute("Total"))} monstres`
+			)
+			-- Les 12 emplacements conseillés de cette carte sont tous posables, même tous occupés.
+			local spots = Levels.MAPS[case.map].spots
+			levels("Gold", 6000)
+			for index, towerType in { "MachineGun", "MachineGun", "Laser", "Bomb", "Frost", "Rocket", "Chain", "Tesla", "Rocket", "MachineGun", "Bomb", "Laser" } do
+				action("Place", towerType, spots[index].X, spots[index].Z)
+			end
+			for _, model in towers() do
+				for _ = 1, 3 do
+					action("Upgrade", model:GetAttribute("TowerId"))
+				end
+			end
+			check(#towers() == 12, `{case.name} : les 12 emplacements conseillés sont tous posables ({#towers()} tours posées)`)
+			-- (le client du joueur regarde ce niveau : une capture en plein combat)
+			task.wait(1.5)
+			levels("Skip", 70)
+			task.wait(3)
+			log("Info", `[LEVELS] SHOT:{case.shot}`)
+			task.wait(1.8)
+			levels("Finish", true)
+			local won = result()
+			check(
+				won.won == true and won.level == case.level and won.reward == Levels.firstReward(case.level) and won.nextLevel == case.level + 1 and saved().best == case.level,
+				`niveau {case.level} gagné : +{tostring(won.reward)} pièces de niveau, niveau suivant {tostring(won.nextLevel)}`
+			)
+		end
+		-- Le dernier niveau : le boss du glacier ferme le flot, plus de niveau suivant.
+		levels("Set", "best", Levels.COUNT - 1)
+		local coinsBefore = saved().coins
+		action("Start", Levels.COUNT)
+		local lastQueue = Levels.buildQueue(Levels.COUNT)
+		levels("Finish", true)
+		local last = result()
+		check(
+			last.won == true and last.reward == Levels.firstReward(Levels.COUNT) and last.nextLevel == nil and saved().best == Levels.COUNT
+				and saved().coins == coinsBefore + last.reward and player.leaderstats.Level.Value == Levels.COUNT and lastQueue[#lastQueue].enemy == "Boss",
+			`boss du niveau {Levels.COUNT} : +{tostring(last.reward)} pièces, plus de niveau suivant, colonne « Level » : {player.leaderstats.Level.Value}`
+		)
 		action("Quit")
 	end
 

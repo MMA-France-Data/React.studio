@@ -37,6 +37,8 @@ return {
 	-- Territoires : le nom de leur carte (Levels.MAPS)
 	["La vallée du Roi carmin"] = "The Crimson King's Valley",
 	["Le col des Pillards de cuivre"] = "The Copper Raiders' Pass",
+	["La forêt des Gardiens des ronces"] = "The Bramble Wardens' Forest",
+	["Le glacier de la Légion du givre"] = "The Frost Legion's Glacier",
 
 	-- Évolutions des tours (Levels.PERKS : name)
 	["Flèches enflammées"] = "Flaming arrows",

@@ -6,8 +6,9 @@ fixes, camp d'entraînement, plus aucun hasard).
 
 ## En deux mots
 
-- Le jeu est une suite de **niveaux** : **20 niveaux**, en deux **territoires** de 10 (la vallée du Roi carmin, puis
-  le col des Pillards de cuivre : une autre carte, d'autres monstres). Chaque niveau est une partie de 2 à 3 minutes,
+- Le jeu est une suite de **niveaux** : **40 niveaux**, en quatre **territoires** de 10 (la vallée du Roi carmin, le
+  col des Pillards de cuivre, la forêt des Gardiens des ronces, le glacier de la Légion du givre : chacun sa carte et
+  ses monstres). Chaque niveau est une partie de 2 à 3 minutes,
   vue d'en haut : un flot continu de monstres, de plus en plus forts. Tu poses tes tours **où tu veux** et tu les
   améliores **sans arrêt** avec l'or des monstres (si tu t'arrêtes, tu perds), tu protèges ton château (10 vies).
   Dans chaque territoire : un mini-boss au 5e niveau, un boss au 10e.
@@ -66,9 +67,9 @@ fixes, camp d'entraînement, plus aucun hasard).
 
 | | |
 |---|---|
-| Durée | 2 à 3 minutes (1 min 55 pour le niveau 1, 3 min 15 pour les niveaux 10 et 20) |
+| Durée | 2 à 3 minutes (1 min 55 pour le niveau 1, 3 min 15 pour les niveaux à boss : 10, 20, 30 et 40) |
 | Vies | 10. Un monstre qui atteint le château en coûte 1 (chevalier lourd : 2, mini-boss : 5, boss : 10) |
-| Or de départ | fixe par niveau : 60 au niveau 1 (avec un Archer déjà posé), 65 au niveau 2… 110 au niveau 10, puis de 115 (niveau 11) à 160 (niveau 20) |
+| Or de départ | fixe par niveau : 60 au niveau 1 (avec un Archer déjà posé), 65 au niveau 2… 110 au niveau 10, puis de 115 (niveau 11) à 160 (niveau 20), et de 165 (niveau 21) à 260 (niveau 40) |
 | Or gagné | chaque monstre tué donne son or tout de suite (6 pour un fantassin, 18 pour un chevalier lourd, 120 pour le mini-boss) : un « +6 » doré s'envole au-dessus de lui |
 | Ce qu'on garde d'un niveau à l'autre | **rien** : l'or et les tours posées repartent de zéro. On garde ses tours débloquées, ses pièces de niveau et son entraînement |
 | Le flot | les monstres sortent **un par un, sans aucune pause**, du début à la fin. Ils sortent de plus en plus serrés (3 fois plus par seconde à la fin) et sont de plus en plus résistants (16 fois plus de PV à la fin). Les types se mélangent : fantassins, cavaliers, meutes d'écuyers, chevaliers lourds |
@@ -117,9 +118,29 @@ Améliorer une tour : +35 % de dégâts par niveau, jusqu'au niveau 10. Le prix 
 | 18 | 420 | 168 |
 | 19 | 440 | 176 |
 | 20 (boss) | **1 200** | 480 |
+| 21 | 480 | 192 |
+| 22 | 500 | 200 |
+| 23 | 520 | 208 |
+| 24 | 540 | 216 |
+| 25 (mini-boss) | **900** | 360 |
+| 26 | 580 | 232 |
+| 27 | 600 | 240 |
+| 28 | 620 | 248 |
+| 29 | 640 | 256 |
+| 30 (boss) | **1 800** | 720 |
+| 31 | 680 | 272 |
+| 32 | 700 | 280 |
+| 33 | 720 | 288 |
+| 34 | 740 | 296 |
+| 35 (mini-boss) | **1 200** | 480 |
+| 36 | 780 | 312 |
+| 37 | 800 | 320 |
+| 38 | 820 | 328 |
+| 39 | 840 | 336 |
+| 40 (boss) | **2 400** | 960 |
 
 Les mini-boss et les boss rapportent de plus en plus à chaque territoire (300 et 600 au premier, 600 et 1 200 au
-deuxième).
+deuxième, 900 et 1 800 au troisième, 1 200 et 2 400 au quatrième).
 
 Perdu ou abandonné : une petite part (la moitié de « en le rejouant », multipliée par la part des monstres éliminés).
 Lancer un niveau et le quitter tout de suite ne donne donc rien.
@@ -143,12 +164,16 @@ le Mage avant le niveau 6 (740 après cinq niveaux).
 **Est-ce qu'on a tout au niveau 10 ?** Non. Les 10 premiers niveaux réussis une fois donnent 2 180 pièces : de quoi
 acheter le Totem, le Mage et la Baliste (1 750), pas plus.
 
-**Et au niveau 20 ?** Les 20 niveaux réussis une fois donnent 6 860 pièces en tout : de quoi acheter aussi le
-Sorcier des arcanes (4 750 pour les quatre tours), mais aucune légendaire. Les légendaires restent des buts à long
-terme : en rejouant le niveau 20 (480 pièces à chaque fois), il faut 13 parties de plus pour l'Oracle de la foudre,
-et 32 pour le Trébuchet royal. Chaque prix est un seul chiffre dans `Levels.SHOP`.
+**Et au niveau 20 ?** Les 20 premiers niveaux réussis une fois donnent 6 860 pièces : de quoi acheter aussi le
+Sorcier des arcanes (4 750 pour les quatre tours), mais aucune légendaire.
 
-### Les deux territoires
+**Et au niveau 40 ?** Les 40 niveaux réussis une fois donnent 23 720 pièces. L'Oracle de la foudre se paie après le
+boss du niveau 30 (les 30 premiers niveaux donnent 14 040 pièces, il en faut 12 750 pour les cinq tours). Le
+Trébuchet royal reste le but le plus long : après les 40 niveaux, il manque encore 4 030 pièces (5 parties du
+niveau 40, à 960 pièces chacune), sans compter ce que tu dépenses pour le camp. Chaque prix est un seul chiffre
+dans `Levels.SHOP`.
+
+### Les quatre territoires
 
 | | Territoire 1 : la vallée du Roi carmin | Territoire 2 : le col des Pillards de cuivre |
 |---|---|---|
@@ -171,10 +196,25 @@ vise le plus gros, sert enfin à quelque chose. Mesuré avec le joueur simulé, 
 | 15 (deux colosses ensemble) | gagné, 10 vies | perdu à 98 % : les deux colosses passent |
 | 20 (deux colosses, puis le boss) | gagné, 10 vies | perdu à 87 %, même en étant très actif |
 
+Les territoires 3 et 4 (ajoutés le 03/10/2026, « continue les niveaux jusqu'à 40 ») :
+
+| | Territoire 3 : la forêt des Gardiens des ronces | Territoire 4 : le glacier de la Légion du givre |
+|---|---|---|
+| Niveaux | 21 à 30 (ouvert quand le niveau 20 est réussi) | 31 à 40 (ouvert quand le niveau 30 est réussi) |
+| Monstres | les Gardiens des ronces | la Légion du givre |
+| Carte | sous-bois sombre, beaucoup d'arbres, rochers moussus ; le chemin descend le terrain en S (trois longs couloirs), le château en bas à droite (308 studs, le plus long) | neige, arbres enneigés, rochers bleutés ; le chemin serpente de haut en bas en cinq passages serrés, le château au milieu à droite (266 studs) |
+| Gros monstres | deux à quatre colosses par niveau, trois ensemble au niveau 25, le boss au niveau 30 (plus résistant que celui du niveau 20) | deux à quatre colosses par niveau, deux paires au niveau 35, quatre colosses puis le boss au niveau 40 |
+| Tours attendues | les mêmes qu'à la fin du col (avec la Baliste et le Sorcier), un peu plus entraînées | en plus : l'Oracle de la foudre dès le niveau 31 (les 30 premiers niveaux le paient) |
+| Pièces (première victoire) | 7 180 en tout | 9 680 en tout |
+
+Sur ces deux cartes aussi, une tour posée entre deux couloirs tire sur les deux. Le chemin est d'une couleur qui
+tranche sur les monstres du territoire (terre claire sous les Gardiens verts, glace sombre sous la Légion blanche) :
+on les voit bien.
+
 Pour ajouter un territoire : sa carte dans `Levels.MAPS`, son nom dans `Levels.TERRITORIES`, ses 10 niveaux dans
 `Levels.DEFINITIONS` (les PV se trouvent avec `tools\levels\run.ps1 -Tune`), ce que le joueur a en y arrivant dans
-`tools/levels/Bot.luau`, son décor dans `LevelArena.luau`. Les modèles 3D des monstres des territoires 3 à 10
-existent déjà.
+`tools/levels/Bot.luau`, son décor dans `LevelArena.luau`. Les modèles 3D des monstres des territoires 5 à 10
+existent déjà (sauf les boss des territoires 6 et 9).
 
 ### Le tuto des nouveaux joueurs
 
@@ -265,7 +305,7 @@ Temps pour évoluer avec le seul emplacement du camp (sans compter l'XP gagnée 
 
 ### La difficulté, réglée avec des joueurs simulés
 
-`tools/levels` fait jouer les 20 niveaux par des joueurs simulés, avec le vrai moteur du jeu. Chaque niveau est réglé
+`tools/levels` fait jouer les 40 niveaux par des joueurs simulés, avec le vrai moteur du jeu. Chaque niveau est réglé
 pour qu'**attendre fasse perdre** et que **rester actif fasse gagner** :
 
 | Niveau | Très actif (dépense tout, tout de suite) | Au rythme demandé | Un achat toutes les 8 s | 2 Archers puis attendre | 4 Archers et 2 Catapultes, sans améliorer |
@@ -290,18 +330,42 @@ pour qu'**attendre fasse perdre** et que **rester actif fasse gagner** :
 | 18 | gagne, 10 vies | toutes les 3,5 s : gagne, 10 vies | perd à 41 % | perd à 4 % (42 s) | perd à 17 % |
 | 19 | gagne, 10 vies | toutes les 3,5 s : gagne, 10 vies | perd à 40 % | perd à 5 % (43 s) | perd à 19 % |
 | 20 (boss) | gagne, 10 vies | toutes les 3,5 s : gagne, 10 vies | perd à 40 % | perd à 4 % (42 s) | perd à 20 % |
+| 21 | gagne, 10 vies | toutes les 3,5 s : gagne, 7 vies | perd à 34 % | perd à 5 % (44 s) | perd à 17 % |
+| 22 | gagne, 10 vies | toutes les 3,5 s : gagne, 10 vies | perd à 33 % | perd à 5 % (44 s) | perd à 19 % |
+| 23 | gagne, 10 vies | toutes les 3,5 s : gagne, 10 vies | perd à 29 % | perd à 5 % (44 s) | perd à 16 % |
+| 24 | gagne, 10 vies | toutes les 3,5 s : gagne, 10 vies | perd à 35 % | perd à 5 % (44 s) | perd à 18 % |
+| 25 (mini-boss) | gagne, 10 vies | toutes les 3,5 s : gagne, 10 vies | perd à 63 % | perd à 6 % (47 s) | perd à 18 % |
+| 26 | gagne, 10 vies | toutes les 3,5 s : gagne, 10 vies | perd à 35 % | perd à 6 % (46 s) | perd à 17 % |
+| 27 | gagne, 10 vies | toutes les 3,5 s : gagne, 10 vies | perd à 25 % | perd à 5 % (44 s) | perd à 17 % |
+| 28 | gagne, 10 vies | toutes les 3,5 s : gagne, 10 vies | perd à 32 % | perd à 5 % (45 s) | perd à 16 % |
+| 29 | gagne, 10 vies | toutes les 3,5 s : gagne, 10 vies | perd à 34 % | perd à 5 % (45 s) | perd à 16 % |
+| 30 (boss) | gagne, 10 vies | toutes les 3,5 s : gagne, 10 vies | perd à 34 % | perd à 5 % (44 s) | perd à 18 % |
+| 31 | gagne, 10 vies | toutes les 3,5 s : gagne, 10 vies | perd à 87 % | perd à 2 % (35 s) | perd à 13 % |
+| 32 | gagne, 10 vies | toutes les 3,5 s : gagne, 10 vies | perd à 54 % | perd à 2 % (35 s) | perd à 13 % |
+| 33 | gagne, 10 vies | toutes les 3,5 s : gagne, 10 vies | perd à 51 % | perd à 2 % (35 s) | perd à 12 % |
+| 34 | gagne, 10 vies | toutes les 3,5 s : gagne, 10 vies | perd à 50 % | perd à 3 % (35 s) | perd à 13 % |
+| 35 (mini-boss) | gagne, 10 vies | toutes les 3,5 s : gagne, 10 vies | perd à 66 % | perd à 2 % (35 s) | perd à 12 % |
+| 36 | gagne, 10 vies | toutes les 3,5 s : gagne, 10 vies | perd à 67 % | perd à 3 % (35 s) | perd à 13 % |
+| 37 | gagne, 10 vies | toutes les 3,5 s : gagne, 10 vies | perd à 49 % | perd à 3 % (35 s) | perd à 13 % |
+| 38 | gagne, 10 vies | toutes les 3,5 s : gagne, 10 vies | perd à 44 % | perd à 2 % (35 s) | perd à 12 % |
+| 39 | gagne, 10 vies | toutes les 3,5 s : gagne, 10 vies | perd à 84 % | perd à 2 % (35 s) | perd à 10 % |
+| 40 (boss) | gagne, 10 vies | toutes les 3,5 s : gagne, 10 vies | perd à 81 % | perd à 2 % (35 s) | perd à 10 % |
 
 « Perd à 76 % » = le château tombe quand 76 % des monstres du niveau ont été éliminés.
 
 Ce que les joueurs simulés ont en arrivant à chaque niveau : les deux tours de départ aux niveaux 1 et 2, le Totem à
 partir du niveau 3, le Mage à partir du niveau 6, la Baliste à partir du niveau 11, le Sorcier à partir du niveau 18,
-un peu d'entraînement (niveau 1 à partir du niveau 4, niveau 2 à partir du niveau 8, niveau 3 à partir du niveau 18 ;
-une tour qui vient d'être achetée n'est pas encore entraînée). Sans la boutique (Archer et Catapulte seulement), un
+l'Oracle à partir du niveau 31, et l'entraînement que leurs parties donnent (niveau 1 à partir du niveau 4, niveau 2
+à partir du niveau 8, niveau 3 à partir du niveau 18, niveau 4 pour l'Archer et la Catapulte au niveau 39 ; une
+tour qui vient d'être achetée n'est pas encore entraînée). Sans la boutique (Archer et Catapulte seulement), un
 joueur très actif gagne les niveaux 1 et 2, passe ou rate de très peu les niveaux 3 à 5, et perd à partir du
-niveau 6. Les deux légendaires (Oracle, Trébuchet) ne sont jamais nécessaires pour finir les 20 niveaux.
+niveau 6. Le Trébuchet n'est jamais nécessaire pour finir les 40 niveaux.
 
-Les niveaux 11 à 20 ont été réglés avec la même méthode que les dix premiers (`run.ps1 -Tune`, puis 5 % de marge),
-mais **aucun vrai joueur ne les a encore essayés** : dis-moi s'ils sont trop durs ou trop faciles.
+Les niveaux 11 à 40 ont été réglés avec la même méthode que les dix premiers (`run.ps1 -Tune`, puis 5 % de marge),
+mais **aucun vrai joueur ne les a encore essayés** : dis-moi s'ils sont trop durs ou trop faciles. Le boss du
+niveau 40 a un peu moins de PV que ce que donnerait son niveau (85 %) : sinon, le joueur simulé très actif le
+laissait passer à la toute fin. Celui du niveau 30 en a un peu plus (110 %) : il reste plus fort que celui du
+niveau 20.
 
 Un vrai joueur choisit moins bien que le joueur simulé : pour gagner, il doit aller un peu plus vite que le rythme
 indiqué. Tu as joué cette version et dit « ça va » (02/10/2026). Si c'est trop dur ou trop facile un jour, un seul
@@ -351,7 +415,7 @@ arrivent à un niveau) : rien d'autre n'a changé. Les chiffres sont dans `src/s
 6. **La Baliste et le Trébuchet renforcés** (« oui renforce la baliste et le trébuchet ») : voir « Ce que chaque
    tour de la boutique apporte », plus bas.
 7. **Le tuto** (« fais le tuto bien, je veux un jeu sortable ») : voir « Le tuto des nouveaux joueurs ».
-8. **Les niveaux 11 à 20** (« ajoute des niveaux ») : voir « Les deux territoires ».
+8. **Les niveaux 11 à 20** (« ajoute des niveaux ») : voir « Les quatre territoires ».
 9. **La version anglaise** (pour un jeu « sortable ») : tous les écrans, le tuto, les messages et les panneaux sont
    traduits ; un test Studio vérifie qu'aucun texte ne reste en français.
 10. **Petites aides** ajoutées en même temps : la pastille « ! » de la boutique, les conseils de l'écran de fin, et
@@ -359,6 +423,8 @@ arrivent à un niveau) : rien d'autre n'a changé. Les chiffres sont dans `src/s
 11. **Le bouclier** : Roblox traduit maintenant tout seul les textes des jeux (réglage « Traductions
     automatiques » des joueurs, juin 2026). Le jeu l'en empêche pour tous ses textes : il se traduit lui-même, et
     Roblox aurait pris son français pour de l'anglais (ou l'inverse). Voir `README.md`, « Langues ».
+12. **Les niveaux 21 à 40** (03/10/2026, « continue les niveaux jusqu'à 40 ») : la forêt des Gardiens des ronces et
+    le glacier de la Légion du givre, voir « Les quatre territoires ».
 
 ### Le grand ménage : ce qui a été enlevé
 
@@ -383,9 +449,9 @@ niveaux du joueur et son réglage du son. Les sauvegardes de l'ancien jeu « Tow
 ## Ce qui reste à décider (par toi)
 
 1. **Les évolutions** de chaque tour (3 par tour) : ce sont mes propositions, à changer comme tu veux.
-2. **Les niveaux 11 à 20** sont faits, mais tu ne les as pas encore joués : leur difficulté, la carte du col et le
-   nombre de colosses sont mes choix. Dis-moi ce que tu en penses. **La suite** (niveaux 21 à 30…) : les modèles des
-   monstres des territoires suivants existent déjà, il faut une carte et un réglage par territoire.
+2. **Les niveaux 11 à 40** sont faits, mais tu ne les as pas encore joués : leur difficulté, les cartes et le
+   nombre de colosses sont mes choix. Dis-moi ce que tu en penses. **La suite** (niveaux 41 à 50…) : les modèles des
+   monstres du territoire 5 (les Gardes des dunes) existent déjà, il faut une carte et un réglage.
 3. **Des passes Robux pour ce jeu ?** Il n'y en a plus aucun. Si tu en veux, il faudra choisir lesquels (jamais un
    avantage qui casse la difficulté des niveaux).
 4. **Avant de rendre le jeu public** : voir `SORTIE.md` (publication, essai sur un vrai téléphone, page du jeu).
@@ -439,9 +505,9 @@ powershell -ExecutionPolicy Bypass -File tools\levels\run.ps1
 powershell -ExecutionPolicy Bypass -File tools\studio-test\run.ps1
 ```
 
-- le premier : 484 vérifications des règles, de la difficulté de chacun des 20 niveaux, des évolutions, du camp et
-  du tuto, sans Studio (une minute et demie) ;
-- le deuxième : le tableau de difficulté des 20 niveaux par les joueurs simulés ;
+- le premier : 815 vérifications des règles, de la difficulté de chacun des 40 niveaux, des évolutions, du camp et
+  du tuto, sans Studio (moins de deux minutes) ;
+- le deuxième : le tableau de difficulté des 40 niveaux par les joueurs simulés ;
 - le troisième : le test complet dans Studio (serveur, puis la vraie interface à la taille normale et à la taille
   d'un téléphone), avec des captures dans `tools/studio-test/out/levels_*.png`. Avec `-Test tutorial` : le tuto
   d'un nouveau joueur, suivi flèche après flèche (captures `tutorial_*.png`).
@@ -449,16 +515,16 @@ powershell -ExecutionPolicy Bypass -File tools\studio-test\run.ps1
 ### Six combats dans le même serveur
 
 C'était le point à valider par des mesures (un serveur = 6 joueurs, donc 6 niveaux possibles en même temps, en plus
-des 6 camps). Mesuré dans Studio le 02/10/2026, six niveaux 20 (le plus chargé : le chemin le plus long) joués en
-même temps pendant 170 secondes de jeu (presque tout le flot, dont la fin, le moment le plus chargé) :
+des 6 camps). Mesuré dans Studio le 03/10/2026, six niveaux 40 (le dernier : le flot le plus serré) joués en même
+temps pendant 170 secondes de jeu (presque tout le flot, dont la fin, le moment le plus chargé) :
 
 | Cas | Temps moyen par image | 99 % des images | Monstres en même temps |
 |---|---|---|---|
-| 12 tours par joueur (combat normal) | 0,16 ms | moins de 0,5 ms | jusqu'à 474 |
-| 3 tours par joueur (carte pleine de monstres) | 0,16 ms | moins de 0,45 ms | jusqu'à 480 |
+| 12 tours par joueur (combat normal) | 0,13 ms | moins de 0,4 ms | jusqu'à 480 |
+| 3 tours par joueur (carte pleine de monstres) | 0,12 ms | moins de 0,35 ms | jusqu'à 480 |
 
-(480 = 80 monstres en vie par niveau, le maximum autorisé : à la fin du flot il en sort 3,3 par seconde, et chacun
-met environ 26 secondes à traverser la carte du col. La mesure donne des vies infinies et des tours de niveau 1, qui
+(480 = 80 monstres en vie par niveau, le maximum autorisé : à la fin du flot il en sort 3,6 par seconde, et chacun
+met environ 25 secondes à traverser la carte du glacier. La mesure donne des vies infinies et des tours de niveau 1, qui
 ne tuent presque plus rien à la fin : c'est le pire cas possible. Dans une vraie partie, le château tombe bien
 avant.)
 
@@ -474,8 +540,8 @@ print(m.averageMs, m.p99Ms, m.worstMs, m.enemiesPeak)
 
 ## Limites connues
 
-- Deux cartes pour 20 niveaux (une par territoire).
-- Les niveaux 11 à 20 n'ont été joués que par les joueurs simulés.
+- Quatre cartes pour 40 niveaux (une par territoire).
+- Les niveaux 11 à 40 n'ont été joués que par les joueurs simulés.
 - Deux langues : français et anglais. Un joueur espagnol, portugais, etc. voit le jeu en anglais.
 - La difficulté est réglée avec des joueurs simulés et un seul vrai joueur (toi) : avant de rendre le jeu public, il
   faudra voir si un nouveau joueur passe le niveau 1.

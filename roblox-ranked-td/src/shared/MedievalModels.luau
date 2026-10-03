@@ -285,10 +285,11 @@ function MedievalModels.banner(parent: Instance, cf: CFrame, color: Color3, scal
 	end
 end
 
-function MedievalModels.tree(parent: Instance, cf: CFrame, scale: number, autumn: boolean?)
+-- autumn = feuillage roux (vrai) ou vert (faux, absent), ou directement sa couleur (Color3 : forêt sombre, neige...).
+function MedievalModels.tree(parent: Instance, cf: CFrame, scale: number, autumn: (boolean | Color3)?)
 	local bark = scenery(parent, "TreeTrunk", Vector3.new(1.1, 6, 1.1) * scale, cf * CFrame.new(0, 3 * scale, 0), WOOD, Enum.Material.Wood)
 	bark.CastShadow = false
-	local leaf = if autumn then Color3.fromRGB(170, 112, 47) else Color3.fromRGB(58, 100, 69)
+	local leaf = if typeof(autumn) == "Color3" then autumn elseif autumn then Color3.fromRGB(170, 112, 47) else Color3.fromRGB(58, 100, 69)
 	for i, data in {
 		{ Vector3.new(-1.8, 7, 0), Vector3.new(6.5, 6, 6) },
 		{ Vector3.new(1.8, 8.5, 0.7), Vector3.new(6, 7, 6) },

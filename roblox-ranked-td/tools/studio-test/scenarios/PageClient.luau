@@ -188,13 +188,13 @@ return function(log)
 	})
 	test:InvokeServer("Set", {
 		tutorial = Levels.TUTORIAL.DONE,
-		best = Levels.COUNT - 1,
+		best = 19,
 		coins = 4260,
 		xp = { MachineGun = 1250, Bomb = 320, Frost = 320, Tesla = 80, Rocket = 320, Laser = 80, Chain = 650, Orbital = 320 },
 		slots = { { tower = "MachineGun", level = 3 }, { tower = "Chain", level = 2 }, { tower = "Orbital", level = 1 } },
 	})
 	waitFor(function()
-		return published().best == Levels.COUNT - 1
+		return published().best == 19
 	end, 5)
 	act(campGui, "Close")
 
@@ -226,7 +226,7 @@ return function(log)
 	act(hudGui, "Zoom:1")
 
 	-- 3) Le boss du col (niveau 20) : il entre pendant que les derniers monstres du flot passent.
-	startLevel(Levels.COUNT)
+	startLevel(20)
 	build("Pass", { "MachineGun", "Frost", "Bomb", "Rocket", "Chain", "Tesla", "Laser", "Orbital", "MachineGun", "Bomb", "Rocket", "MachineGun" }, 3)
 	task.wait(1)
 	test:InvokeServer("Skip", 146)

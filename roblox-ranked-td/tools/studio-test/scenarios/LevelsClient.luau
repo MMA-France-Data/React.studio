@@ -394,30 +394,39 @@ return function(log)
 		`fenêtre du camp ouverte sur « Niveaux » : niveau 1 « {firstCard and firstCard.Play.Text} », niveau 2 « {secondCard and secondCard.Play.Text} », pièces « {window.Coins.Text} »`
 	)
 	shot("camp_niveaux")
-	-- 20 niveaux en 2 territoires : la page défile, le 2e territoire est fermé tant que le niveau 10 n'est pas réussi.
-	local header1, header2 = page1:FindFirstChild("Territory1"), page1:FindFirstChild("Territory2")
-	local card11, card20 = page1:FindFirstChild("Level11"), page1:FindFirstChild("Level20")
+	-- 40 niveaux en 4 territoires : la page défile, chaque territoire est fermé tant que le dernier niveau du précédent
+	-- n'est pas réussi.
+	local headers, headerTexts = {}, {}
+	for territory in Levels.TERRITORIES do
+		headers[territory] = page1:FindFirstChild("Territory" .. territory)
+	end
+	local headersOk = #headers == #Levels.TERRITORIES
+	for territory, header in headers do
+		local map = Levels.MAPS[Levels.TERRITORIES[territory]]
+		headersOk = headersOk and string.find(header.Text, `TERRITOIRE {territory}`, 1, true) ~= nil and string.find(header.Text, map.displayName, 1, true) ~= nil
+			and (territory == 1 or string.find(header.Text, `réussis le niveau {(territory - 1) * Levels.TERRITORY_SIZE}`, 1, true) ~= nil)
+		table.insert(headerTexts, `« {header.Text} »`)
+	end
+	local card11, cardLast = page1:FindFirstChild("Level11"), page1:FindFirstChild("Level" .. Levels.COUNT)
 	check(
-		header1 ~= nil and header2 ~= nil and card11 ~= nil and card20 ~= nil and page1:FindFirstChild("Level21") == nil
-			and string.find(header1.Text, "TERRITOIRE 1", 1, true) ~= nil and string.find(header1.Text, "La vallée du Roi carmin", 1, true) ~= nil
-			and string.find(header2.Text, "Le col des Pillards de cuivre", 1, true) ~= nil and string.find(header2.Text, "réussis le niveau 10", 1, true) ~= nil
+		headersOk and card11 ~= nil and cardLast ~= nil and page1:FindFirstChild("Level" .. (Levels.COUNT + 1)) == nil
 			and card11.Play.Text == "🔒" and page1.CanvasPosition.Y == 0 and page1.AbsoluteCanvasSize.Y > page1.AbsoluteSize.Y + 100,
-		`onglet « Niveaux » : 20 niveaux en 2 territoires (« {if header1 then header1.Text else "?"} », « {if header2 then header2.Text else "?"} »), la page défile ({math.floor(page1.AbsoluteCanvasSize.Y)} px pour {math.floor(page1.AbsoluteSize.Y)} affichés)`
+		`onglet « Niveaux » : {Levels.COUNT} niveaux en {#Levels.TERRITORIES} territoires ({table.concat(headerTexts, ", ")}), la page défile ({math.floor(page1.AbsoluteCanvasSize.Y)} px pour {math.floor(page1.AbsoluteSize.Y)} affichés)`
 	)
-	page1.CanvasPosition = Vector2.new(0, 2000)
+	page1.CanvasPosition = Vector2.new(0, 5000)
 	task.wait(0.4)
 	local bossLabel = nil
-	for _, child in if card20 then card20:GetChildren() else {} do
+	for _, child in if cardLast then cardLast:GetChildren() else {} do
 		if child:IsA("TextLabel") and string.find(child.Text, "BOSS", 1, true) then
 			bossLabel = child.Text
 		end
 	end
 	check(
-		card20 ~= nil and bossLabel ~= nil and string.find(card20.Reward.Text, NumberFormat.short(1200), 1, true) ~= nil and onScreen(card20)
-			and card20.AbsolutePosition.Y + card20.AbsoluteSize.Y <= page1.AbsolutePosition.Y + page1.AbsoluteSize.Y + 1,
-		`page défilée jusqu'en bas : la carte du niveau 20 est entière dans la fenêtre (« {tostring(bossLabel)} », « {if card20 then string.gsub(card20.Reward.Text, "\n", " ") else "?"} »)`
+		cardLast ~= nil and bossLabel ~= nil and string.find(cardLast.Reward.Text, NumberFormat.short(Levels.firstReward(Levels.COUNT)), 1, true) ~= nil and onScreen(cardLast)
+			and cardLast.AbsolutePosition.Y + cardLast.AbsoluteSize.Y <= page1.AbsolutePosition.Y + page1.AbsoluteSize.Y + 1,
+		`page défilée jusqu'en bas : la carte du niveau {Levels.COUNT} est entière dans la fenêtre (« {tostring(bossLabel)} », « {if cardLast then string.gsub(cardLast.Reward.Text, "\n", " ") else "?"} »)`
 	)
-	shot("camp_territoire2")
+	shot("camp_dernier_territoire")
 	page1.CanvasPosition = Vector2.new(0, 0)
 	act(campGui, "Tab:Boutique")
 	local shopPage = window.Page2

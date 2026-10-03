@@ -7,8 +7,9 @@ Le jeu sort comme une **nouvelle expérience Roblox** (décision du 02/10/2026) 
 
 ## Le jeu lui-même
 
-- [x] 20 niveaux en 2 territoires (les niveaux 11 à 20 ajoutés le 02/10/2026 : autre carte, monstres suivants), camp
-      d'entraînement, évolutions des tours, boutique à prix fixes (voir `NIVEAUX.md`).
+- [x] 40 niveaux en 4 territoires (11 à 20 ajoutés le 02/10/2026, 21 à 40 le 03/10/2026 : une carte et une famille
+      de monstres par territoire), camp d'entraînement, évolutions des tours, boutique à prix fixes (voir
+      `NIVEAUX.md`).
 - [x] Tout l'ancien jeu enlevé (classé, autel, forge, vagues infinies, renaissance, défis, passes, ancien tuto).
 - [x] **Tuto** pour un nouveau joueur : une flèche dorée lui montre quoi toucher, du camp à la fin du niveau 1,
       puis la boutique (voir `NIVEAUX.md`, « Le tuto des nouveaux joueurs »). Celui qui la suit gagne le niveau 1.
@@ -19,15 +20,15 @@ Le jeu sort comme une **nouvelle expérience Roblox** (décision du 02/10/2026) 
       tests automatiques ne vérifient que la taille de l'écran, pas le toucher.)
 - [ ] **Un nouveau joueur passe-t-il le niveau 1 ?** La difficulté est réglée avec des joueurs simulés et un seul
       vrai joueur (toi). Le tuto aide : un joueur simulé qui suit seulement la flèche gagne le niveau 1.
-- [ ] **Joue les niveaux 11 à 20** : ils n'ont été essayés que par les joueurs simulés (trop durs ? trop faciles ?).
+- [ ] **Joue les niveaux 11 à 40** : ils n'ont été essayés que par les joueurs simulés (trop durs ? trop faciles ?).
 - [x] La Baliste et le Trébuchet renforcés (02/10/2026, voir `NIVEAUX.md`, « Ce que chaque tour de la boutique
       apporte »).
-- [ ] Les niveaux 21 et plus (une carte et un réglage par territoire) : après la sortie.
+- [ ] Les niveaux 41 et plus (une carte et un réglage par territoire) : après la sortie.
 - [ ] Les autres langues (espagnol, portugais...) : aujourd'hui ces joueurs voient le jeu en anglais. Après la
       sortie, on pourra essayer de laisser Roblox traduire notre anglais dans leur langue (ça ne se teste que sur le
       jeu publié, pas dans Studio).
 - [ ] Monstres : il manque les boss des territoires 6 et 9 (niveaux 60 et 90) et la mort du dragon. Sans importance
-      tant que le jeu a 20 niveaux.
+      tant que le jeu a 40 niveaux.
 - [ ] Des passes Robux pour ce jeu ? Il n'y en a plus aucun.
 
 ## Publication (Studio et Hub Création)
@@ -67,7 +68,7 @@ Le nom du jeu est à toi de choisir. Description en anglais (c'est elle que la p
 Defend your castle in fast 2-3 minute levels!
 
 - Place your towers anywhere and upgrade them non-stop: the monsters never stop getting stronger.
-- 20 levels across 2 territories, with mini-bosses and bosses.
+- 40 levels across 4 territories, with mini-bosses and bosses.
 - 8 towers, 6 of them to unlock in the shop: fixed prices, no luck.
 - Your own training camp: your towers train and evolve, even while you're away.
 - Plays on PC and phone. No pay-to-win.
@@ -79,7 +80,7 @@ La même en français :
 Défends ton château dans des niveaux rapides de 2 à 3 minutes !
 
 - Pose tes tours où tu veux et améliore-les sans arrêt : les monstres deviennent de plus en plus forts.
-- 20 niveaux dans 2 territoires, avec des mini-boss et des boss.
+- 40 niveaux dans 4 territoires, avec des mini-boss et des boss.
 - 8 tours, dont 6 à débloquer à la boutique : prix fixes, aucun hasard.
 - Ton camp d'entraînement : tes tours s'entraînent et évoluent, même quand tu es parti.
 - Sur ordinateur et sur téléphone. Rien à acheter pour gagner.

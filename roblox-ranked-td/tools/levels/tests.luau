@@ -64,17 +64,20 @@ local function towerCount(game): number
 end
 
 ----------------------------------------------------------------------
--- 1) Les niveaux : 20 niveaux en 2 territoires de 10, mini-boss au milieu d'un territoire, boss à la fin, 2 à
+-- 1) Les niveaux : 40 niveaux en 4 territoires de 10, mini-boss au milieu d'un territoire, boss à la fin, 2 à
 --    3 minutes et demie, un FLOT CONTINU qui monte
 ----------------------------------------------------------------------
 check(
-	Levels.COUNT == 20 and #Levels.DEFINITIONS == 20 and #Levels.TERRITORIES == 2 and Levels.TERRITORY_SIZE == 10,
-	`20 niveaux dans le jeu, en 2 territoires de 10 ({Levels.COUNT} niveaux, {#Levels.DEFINITIONS} fiches, {#Levels.TERRITORIES} territoires)`
+	Levels.COUNT == 40 and #Levels.DEFINITIONS == 40 and #Levels.TERRITORIES == 4 and Levels.TERRITORY_SIZE == 10,
+	`40 niveaux dans le jeu, en 4 territoires de 10 ({Levels.COUNT} niveaux, {#Levels.DEFINITIONS} fiches, {#Levels.TERRITORIES} territoires)`
 )
 check(
 	Levels.territoryOf(1) == 1 and Levels.territoryOf(10) == 1 and Levels.territoryOf(11) == 2 and Levels.territoryOf(20) == 2
-		and Levels.definition(10).map == "Valley" and Levels.definition(11).map == "Pass" and Levels.definition(11).palier == 1,
-	"territoires : niveaux 1 à 10 dans la vallée, 11 à 20 au col (autre carte, famille de monstres suivante)"
+		and Levels.territoryOf(21) == 3 and Levels.territoryOf(30) == 3 and Levels.territoryOf(31) == 4 and Levels.territoryOf(40) == 4
+		and Levels.definition(10).map == "Valley" and Levels.definition(11).map == "Pass" and Levels.definition(21).map == "Forest"
+		and Levels.definition(31).map == "Glacier" and Levels.definition(11).palier == 1 and Levels.definition(21).palier == 2
+		and Levels.definition(40).palier == 3,
+	"territoires : niveaux 1 à 10 dans la vallée, 11 à 20 au col, 21 à 30 dans la forêt, 31 à 40 au glacier (chacun sa carte et la famille de monstres suivante)"
 )
 for level = 1, Levels.COUNT do
 	local definition = Levels.definition(level)
@@ -107,6 +110,14 @@ for level = 1, Levels.COUNT do
 		check(types.Giant == 2 and not types.Boss, "niveau 15 : deux mini-boss ensemble (chevaliers colossaux), pas de boss")
 	elseif level == 20 then
 		check(types.Boss == 1 and types.Giant == 2 and queue[#queue].enemy == "Boss", "niveau 20 : deux colosses dans le flot, puis le boss le ferme")
+	elseif level == 25 then
+		check(types.Giant == 3 and not types.Boss, "niveau 25 : trois colosses ensemble, pas de boss")
+	elseif level == 30 then
+		check(types.Boss == 1 and types.Giant == 3 and queue[#queue].enemy == "Boss", "niveau 30 : trois colosses dans le flot, puis le boss le ferme")
+	elseif level == 35 then
+		check(types.Giant == 4 and not types.Boss, "niveau 35 : deux paires de colosses, pas de boss")
+	elseif level == 40 then
+		check(types.Boss == 1 and types.Giant == 4 and queue[#queue].enemy == "Boss", "niveau 40 : quatre colosses dans le flot, puis le boss le ferme")
 	end
 	-- Demande du propriétaire : « en continu », jamais par vagues. Aucune pause : l'écart le plus long entre deux
 	-- monstres est l'écart du tout début.
@@ -154,7 +165,36 @@ check(
 	Levels.enemyHealth(20, "Boss") > Levels.enemyHealth(10, "Boss") and Levels.enemyHealth(11, "Normal") > Levels.enemyHealth(10, "Normal"),
 	`2e territoire : des monstres plus résistants (fantassin {Levels.enemyHealth(10, "Normal")} PV au niveau 10, {Levels.enemyHealth(11, "Normal")} au niveau 11 ; boss {Levels.enemyHealth(10, "Boss")} puis {Levels.enemyHealth(20, "Boss")} PV)`
 )
-check(not pcall(Levels.definition, 21) and not pcall(Levels.buildQueue, 0), "un niveau inconnu (0, 21) est refusé")
+-- Chaque territoire est plus dur que le précédent : ses monstres sont en moyenne plus résistants, son boss aussi.
+do
+	local function bossHealth(level: number): number
+		for _, item in Levels.buildQueue(level) do
+			if item.enemy == "Boss" then
+				return item.health
+			end
+		end
+		return 0
+	end
+	local averages, bosses, harder = {}, {}, true
+	for territory in Levels.TERRITORIES do
+		local total = 0
+		for level = (territory - 1) * Levels.TERRITORY_SIZE + 1, territory * Levels.TERRITORY_SIZE do
+			total += Levels.DEFINITIONS[level].health
+		end
+		averages[territory] = total / Levels.TERRITORY_SIZE
+		bosses[territory] = bossHealth(territory * Levels.TERRITORY_SIZE)
+		if territory > 1 then
+			harder = harder and averages[territory] > averages[territory - 1] and bosses[territory] > bosses[territory - 1]
+		end
+	end
+	local shown, shownBosses = {}, {}
+	for territory, average in averages do
+		table.insert(shown, `{math.floor(average)}`)
+		table.insert(shownBosses, `{math.floor(bosses[territory])}`)
+	end
+	check(harder, `chaque territoire est plus dur que le précédent (PV moyens du fantassin : {table.concat(shown, ", ")} ; PV des boss : {table.concat(shownBosses, ", ")})`)
+end
+check(not pcall(Levels.definition, Levels.COUNT + 1) and not pcall(Levels.buildQueue, 0), `un niveau inconnu (0, {Levels.COUNT + 1}) est refusé`)
 
 ----------------------------------------------------------------------
 -- 2) La carte : chemin, pose libre
@@ -205,23 +245,23 @@ for territory, mapName in Levels.TERRITORIES do
 	)
 end
 check(Levels.geometry("Pass").PATH_LENGTH == 282 and Levels.geometry("Pass").PATH_LENGTH > geometry.PATH_LENGTH, "le chemin du col est plus long que celui de la vallée (282 studs)")
--- Entre deux couloirs du col, une tour est à portée des deux.
+check(Levels.geometry("Forest").PATH_LENGTH == 308 and Levels.geometry("Glacier").PATH_LENGTH == 266, "chemins de la forêt (308 studs, le plus long) et du glacier (266 studs)")
+-- Sur chaque carte, le premier emplacement conseillé est entre deux couloirs : une tour y est à portée des deux.
 do
-	local pass = Levels.geometry("Pass")
-	local spot = pass.map.spots[1]
-	local reached = 0
-	for distance = 0, pass.PATH_LENGTH, 2 do
-		if (pass.pointAt(distance) - spot).Magnitude <= IdleTowers.Defs.MachineGun.range then
-			reached += 2
+	local seen, allSee = {}, true
+	for _, mapName in Levels.TERRITORIES do
+		local territoryGeometry = Levels.geometry(mapName)
+		local spot = territoryGeometry.map.spots[1]
+		local reached = 0
+		for distance = 0, territoryGeometry.PATH_LENGTH, 2 do
+			if (territoryGeometry.pointAt(distance) - spot).Magnitude <= IdleTowers.Defs.MachineGun.range then
+				reached += 2
+			end
 		end
+		allSee = allSee and reached >= 70
+		table.insert(seen, `{reached} ({mapName})`)
 	end
-	local valleyReached = 0
-	for distance = 0, geometry.PATH_LENGTH, 2 do
-		if (geometry.pointAt(distance) - map.spots[1]).Magnitude <= IdleTowers.Defs.MachineGun.range then
-			valleyReached += 2
-		end
-	end
-	check(reached >= 70 and valleyReached >= 70, `un Archer au premier emplacement conseillé voit {reached} studs de chemin au col (deux couloirs), {valleyReached} dans la vallée`)
+	check(allSee, `un Archer au premier emplacement conseillé voit au moins 70 studs de chemin sur chaque carte : {table.concat(seen, ", ")}`)
 end
 
 ----------------------------------------------------------------------
@@ -229,6 +269,11 @@ end
 ----------------------------------------------------------------------
 check(Levels.firstReward(1) == 80 and Levels.firstReward(4) == 140 and Levels.firstReward(5) == 300 and Levels.firstReward(10) == 600, "première victoire : 80 au niveau 1, 140 au 4, 300 au mini-boss, 600 au boss")
 check(Levels.firstReward(11) == 280 and Levels.firstReward(15) == 600 and Levels.firstReward(20) == 1200 and Levels.reward(20, true, false) == 480, "2e territoire : 280 au niveau 11, 600 au mini-boss, 1 200 au boss (480 en le rejouant)")
+check(
+	Levels.firstReward(21) == 480 and Levels.firstReward(25) == 900 and Levels.firstReward(30) == 1800 and Levels.firstReward(31) == 680
+		and Levels.firstReward(35) == 1200 and Levels.firstReward(40) == 2400 and Levels.reward(40, true, false) == 960,
+	"3e et 4e territoires : 480 au niveau 21, 900 et 1 800 pour son mini-boss et son boss ; 680 au niveau 31, 1 200 et 2 400 (960 en rejouant le dernier boss)"
+)
 check(Levels.reward(3, true, true) == 120 and Levels.reward(3, true, false) == 48, "niveau 3 : 120 la première fois, 48 en le rejouant (40 %)")
 check(Levels.reward(3, false, false, 0.5) == 12 and Levels.reward(3, false, false, 0) == 0 and Levels.reward(3, false, true, 1) == 24, "défaite : une part de la récompense « rejouer » selon l'avancée (0 si rien n'est éliminé)")
 check(Levels.reward(10, true, false) > Levels.reward(4, true, false) and Levels.reward(4, true, false) > Levels.reward(1, true, false), "rejouer un niveau plus haut rapporte plus")
@@ -246,13 +291,19 @@ check(shopOk, "boutique : un prix fixe pour chaque tour sauf les deux de départ
 check(Levels.SHOP.Frost == 150 and Levels.SHOP.Tesla == 400, "boutique : Totem 150 pièces (payable après 2 niveaux), Mage 400")
 -- Retour du propriétaire (02/10/2026) : « les prix des prochaines tours doivent être plus hauts, pas forcément les
 -- basiques mais les légendaires surtout, car au niveau 10 tu les as en gros ? ». Les 10 premiers niveaux réussis
--- une fois paient le Totem, le Mage et la Baliste, pas plus ; les 20, le Sorcier en plus : les légendaires demandent
--- de rejouer longtemps.
-local firstTerritory, allFirst, beforeLevel18, previousPrice, rising = 0, 0, 0, 0, true
+-- une fois paient le Totem, le Mage et la Baliste, pas plus ; les 20, le Sorcier en plus ; les 30, l'Oracle en
+-- plus ; les 40 ne paient pas le Trébuchet : il faut rejouer.
+local firstTerritory, firstTwenty, firstThirty, allFirst, beforeLevel18, previousPrice, rising = 0, 0, 0, 0, 0, 0, true
 for level = 1, Levels.COUNT do
 	allFirst += Levels.firstReward(level)
 	if level <= Levels.TERRITORY_SIZE then
 		firstTerritory += Levels.firstReward(level)
+	end
+	if level <= 20 then
+		firstTwenty += Levels.firstReward(level)
+	end
+	if level <= 30 then
+		firstThirty += Levels.firstReward(level)
 	end
 	if level < 18 then
 		beforeLevel18 += Levels.firstReward(level)
@@ -273,16 +324,26 @@ check(
 )
 local fourTowers = Levels.SHOP.Frost + Levels.SHOP.Tesla + Levels.SHOP.Rocket + Levels.SHOP.Laser
 check(
-	allFirst == 6860 and allFirst >= fourTowers and allFirst < fourTowers + Levels.SHOP.Chain,
-	`les 20 niveaux réussis une fois ({allFirst} pièces) paient aussi le Sorcier ({fourTowers} pour les quatre), mais aucune légendaire`
+	firstTwenty == 6860 and firstTwenty >= fourTowers and firstTwenty < fourTowers + Levels.SHOP.Chain,
+	`les 20 premiers niveaux réussis une fois ({firstTwenty} pièces) paient aussi le Sorcier ({fourTowers} pour les quatre), mais aucune légendaire`
 )
--- Ce que le réglage des niveaux attend (Bot.EXPECTED) : la Baliste en arrivant au niveau 11, le Sorcier au 18.
+local withOracle = fourTowers + Levels.SHOP.Chain
+check(
+	firstThirty == 14040 and firstThirty >= withOracle and firstThirty - Levels.firstReward(30) < withOracle,
+	`les 30 premiers niveaux réussis une fois ({firstThirty} pièces) paient l'Oracle en plus ({withOracle} pour les cinq), pas avant le boss du niveau 30`
+)
+check(
+	allFirst == 23720 and allFirst < withOracle + Levels.SHOP.Orbital,
+	`les 40 niveaux réussis une fois ({allFirst} pièces) ne paient pas le Trébuchet ({withOracle + Levels.SHOP.Orbital} pour les six) : il faut rejouer`
+)
+-- Ce que le réglage des niveaux attend (Bot.EXPECTED) : la Baliste en arrivant au niveau 11, le Sorcier au 18,
+-- l'Oracle au 31.
 check(beforeLevel18 >= fourTowers, `le Sorcier est payable avant le niveau 18 ({beforeLevel18} pièces gagnées du niveau 1 au 17, il en faut {fourTowers})`)
 local replay10 = Levels.reward(10, true, false)
 local replayLast = Levels.reward(Levels.COUNT, true, false)
 check(
 	IdleTowers.Defs.Chain.rarity == "Legendary" and IdleTowers.Defs.Orbital.rarity == "Legendary" and Levels.SHOP.Chain >= 30 * replay10
-		and Levels.SHOP.Orbital >= 60 * replay10 and Levels.SHOP.Chain >= 15 * replayLast and Levels.SHOP.Orbital >= 30 * replayLast,
+		and Levels.SHOP.Orbital >= 60 * replay10 and Levels.SHOP.Orbital >= 15 * replayLast,
 	`tours légendaires : l'Oracle vaut {math.ceil(Levels.SHOP.Chain / replay10)} parties rejouées au niveau 10 ou {math.ceil(Levels.SHOP.Chain / replayLast)} au niveau {Levels.COUNT}, le Trébuchet {math.ceil(Levels.SHOP.Orbital / replay10)} ou {math.ceil(Levels.SHOP.Orbital / replayLast)}`
 )
 check(Levels.ENEMY.Normal.gold == 6 and Levels.ENEMY.Swarm.gold == 2 and Levels.ENEMY.Tank.gold == 18 and Levels.ENEMY.Boss.leak == 10, "or des monstres : 6 le fantassin, 2 l'écuyer, 18 le chevalier lourd")

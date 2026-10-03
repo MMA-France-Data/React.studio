@@ -24,7 +24,8 @@ local LevelArena = {}
 local arenas = {} -- [slot] = { slot, index, folder, cframe, focus, map, palier }
 
 -- Décor de chaque territoire (palier = (niveau - 1) // 10) : couleurs et matières du sol, du terrain et du chemin,
--- feuillage des arbres (autumn = roux), rochers posés autour du terrain.
+-- feuillage des arbres (autumn = roux, foliage = sa couleur), forest = des arbres en plus (un vrai bois), rochers
+-- posés autour du terrain. Le chemin contraste avec les monstres du territoire (qu'on les voie bien).
 local THEMES = {
 	-- La vallée du Roi carmin : prairie verte.
 	[0] = {
@@ -45,6 +46,31 @@ local THEMES = {
 		groundMaterial = Enum.Material.Ground,
 		autumn = true,
 		rocks = Color3.fromRGB(133, 110, 92),
+	},
+	-- La forêt des Gardiens des ronces : sous-bois sombre, beaucoup d'arbres, rochers moussus ; chemin de terre claire
+	-- (les Gardiens sont verts).
+	[2] = {
+		ground = Color3.fromRGB(58, 86, 52),
+		field = Color3.fromRGB(80, 112, 64),
+		path = Color3.fromRGB(176, 148, 104),
+		wall = Color3.fromRGB(104, 118, 92),
+		banner = Color3.fromRGB(52, 104, 57),
+		groundMaterial = Enum.Material.Grass,
+		foliage = Color3.fromRGB(42, 86, 50),
+		forest = true,
+		rocks = Color3.fromRGB(98, 112, 88),
+	},
+	-- Le glacier de la Légion du givre : neige, arbres enneigés, rochers bleutés ; chemin de glace sombre (la Légion
+	-- est blanche et bleu clair).
+	[3] = {
+		ground = Color3.fromRGB(226, 233, 240),
+		field = Color3.fromRGB(196, 210, 222),
+		path = Color3.fromRGB(96, 110, 128),
+		wall = Color3.fromRGB(176, 190, 204),
+		banner = Color3.fromRGB(72, 162, 190),
+		groundMaterial = Enum.Material.Snow,
+		foliage = Color3.fromRGB(226, 236, 242),
+		rocks = Color3.fromRGB(150, 164, 182),
 	},
 }
 
@@ -134,10 +160,22 @@ function LevelArena.build(slot: number, mapName: string, palier: number)
 	end
 	-- Quelques arbres, seulement au fond et sur les côtés (devant, ils cacheraient le terrain à la caméra).
 	for i = 0, 6 do
-		MedievalModels.tree(folder, origin * CFrame.new(-w / 2 + 6 + i * (w - 12) / 6, 0, -d / 2 - 12 - (i % 2) * 6), 1.1 + (i % 3) * 0.15, theme.autumn or i % 4 == 1)
+		MedievalModels.tree(folder, origin * CFrame.new(-w / 2 + 6 + i * (w - 12) / 6, 0, -d / 2 - 12 - (i % 2) * 6), 1.1 + (i % 3) * 0.15, theme.foliage or theme.autumn or i % 4 == 1)
 	end
 	for _, side in { -1, 1 } do
-		MedievalModels.tree(folder, origin * CFrame.new(side * (w / 2 + 14), 0, -6), 1.2, theme.autumn == true)
+		MedievalModels.tree(folder, origin * CFrame.new(side * (w / 2 + 14), 0, -6), 1.2, theme.foliage or theme.autumn == true)
+	end
+	-- Un vrai bois : une deuxième rangée d'arbres derrière la première, et d'autres sur les côtés (vers le fond).
+	if theme.forest then
+		for i = 0, 7 do
+			local x = -w / 2 - 4 + i * (w + 8) / 7
+			MedievalModels.tree(folder, origin * CFrame.new(x, 0, -d / 2 - 24 - (i % 3) * 4), 1.25 + (i % 2) * 0.2, theme.foliage:Lerp(Color3.new(0, 0, 0), (i % 3) * 0.1))
+		end
+		for _, side in { -1, 1 } do
+			for i = 0, 2 do
+				MedievalModels.tree(folder, origin * CFrame.new(side * (w / 2 + 12 + i * 7), 0, -d / 2 + 4 + i * 9), 1.1 + i * 0.1, theme.foliage)
+			end
+		end
 	end
 	-- Rochers autour du terrain (jamais dessus), au fond et sur les côtés.
 	if theme.rocks then

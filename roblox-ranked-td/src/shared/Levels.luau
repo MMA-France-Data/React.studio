@@ -24,7 +24,7 @@ local IdleTowers = require(script.Parent.IdleTowers)
 
 local Levels = {}
 
-Levels.COUNT = 20 -- niveaux jouables : 2 territoires de 10 niveaux (voir « Territoires »)
+Levels.COUNT = 40 -- niveaux jouables : 4 territoires de 10 niveaux (voir « Territoires »)
 Levels.LIVES = 10
 
 ----------------------------------------------------------------------
@@ -130,19 +130,88 @@ Levels.MAPS = {
 			Vector3.new(48, 0, 0),
 		},
 	},
+	-- 3e territoire (niveaux 21 à 30). Le chemin descend le terrain en S : trois longs couloirs (en haut, au milieu,
+	-- en bas), le château dans le coin en bas à droite. Une tour posée entre deux couloirs tire sur les deux.
+	-- 308 studs : le plus long chemin (les monstres sont plus résistants).
+	Forest = {
+		displayName = "La forêt des Gardiens des ronces",
+		width = 112,
+		depth = 52,
+		path = {
+			Vector3.new(-56, 0, -18),
+			Vector3.new(42, 0, -18),
+			Vector3.new(42, 0, 0),
+			Vector3.new(-42, 0, 0),
+			Vector3.new(-42, 0, 18),
+			Vector3.new(48, 0, 18),
+		},
+		base = Vector3.new(52, 0, 18),
+		spots = {
+			Vector3.new(-8, 0, -9),
+			Vector3.new(12, 0, 9),
+			Vector3.new(12, 0, -9),
+			Vector3.new(-8, 0, 9),
+			Vector3.new(30, 0, -9),
+			Vector3.new(-28, 0, 9),
+			Vector3.new(-28, 0, -9),
+			Vector3.new(30, 0, 9),
+			Vector3.new(-46, 0, -9),
+			Vector3.new(48, 0, 9),
+			Vector3.new(48, 0, -9),
+			Vector3.new(-48, 0, 9),
+		},
+	},
+	-- 4e territoire (niveaux 31 à 40). Le chemin serpente de haut en bas : cinq passages verticaux serrés (20 studs
+	-- entre deux), puis le château au milieu à droite. Une tour posée entre deux passages tire sur les deux, et les
+	-- monstres passent devant beaucoup de tours. 266 studs.
+	Glacier = {
+		displayName = "Le glacier de la Légion du givre",
+		width = 112,
+		depth = 52,
+		path = {
+			Vector3.new(-56, 0, -18),
+			Vector3.new(-40, 0, -18),
+			Vector3.new(-40, 0, 18),
+			Vector3.new(-20, 0, 18),
+			Vector3.new(-20, 0, -18),
+			Vector3.new(0, 0, -18),
+			Vector3.new(0, 0, 18),
+			Vector3.new(20, 0, 18),
+			Vector3.new(20, 0, -18),
+			Vector3.new(40, 0, -18),
+			Vector3.new(40, 0, 0),
+			Vector3.new(48, 0, 0),
+		},
+		base = Vector3.new(52, 0, 0),
+		spots = {
+			Vector3.new(-10, 0, 0),
+			Vector3.new(10, 0, 0),
+			Vector3.new(-30, 0, 0),
+			Vector3.new(30, 0, 0),
+			Vector3.new(-10, 0, -10),
+			Vector3.new(10, 0, 10),
+			Vector3.new(-30, 0, 10),
+			Vector3.new(30, 0, -10),
+			Vector3.new(-10, 0, 10),
+			Vector3.new(10, 0, -10),
+			Vector3.new(-48, 0, -6),
+			Vector3.new(48, 0, 10),
+		},
+	},
 }
 
 ----------------------------------------------------------------------
 -- Territoires. Demande du propriétaire (02/10/2026) : « ajoute des niveaux ». Un territoire = TERRITORY_SIZE niveaux
 -- sur la même carte, contre la même famille de monstres (leur apparence suit le territoire : MedievalModels et
 -- CustomModels, palier = territoire - 1 ; le décor de la carte aussi : Hub/LevelArena.luau), avec un mini-boss au
--- milieu et un boss à la fin. Niveaux 1 à 10 : le premier ; 11 à 20 : le deuxième.
+-- milieu et un boss à la fin. Niveaux 1 à 10 : le premier ; 11 à 20 : le deuxième ; 21 à 30 : le troisième ; 31 à
+-- 40 : le quatrième (demande du propriétaire, 03/10/2026 : « continue les niveaux jusqu'à 40 »).
 -- Pour en ajouter un : sa carte dans MAPS, son nom ici, ses 10 niveaux dans DEFINITIONS (PV trouvés avec
 -- tools\levels\run.ps1 -Tune), ce que le joueur a en y arrivant dans tools/levels/Bot.luau (Bot.EXPECTED), son
 -- décor dans LevelArena.luau (THEMES), puis COUNT.
 ----------------------------------------------------------------------
 Levels.TERRITORY_SIZE = 10
-Levels.TERRITORIES = { "Valley", "Pass" } -- carte de chaque territoire (clé de MAPS)
+Levels.TERRITORIES = { "Valley", "Pass", "Forest", "Glacier" } -- carte de chaque territoire (clé de MAPS)
 
 -- Numéro du territoire d'un niveau (1, 2...).
 function Levels.territoryOf(level: number): number
@@ -300,6 +369,11 @@ Levels.STREAM = {
 -- PENDANT le flot, il se faisait doubler par les monstres rapides : les tours qui visent « le plus avancé » ne le
 -- touchaient plus, et le joueur simulé très actif perdait après avoir tout éliminé sauf lui.) Réglés pour un joueur
 -- qui a acheté la Baliste (les 10 premiers niveaux la paient), puis le Sorcier à partir du niveau 18 (Bot.EXPECTED).
+-- NIVEAUX 21 À 40 (3e et 4e territoires, cartes « Forest » et « Glacier ») : même principe, plus de colosses
+-- (trois, puis quatre et cinq), trois colosses ensemble au niveau 25, deux paires au niveau 35, un boss qui ferme
+-- le flot aux niveaux 30 et 40. Réglés pour le joueur qui a la Baliste et le Sorcier, puis l'Oracle à partir du
+-- niveau 31 (les 30 premiers niveaux le paient), avec l'entraînement que ces parties donnent (Bot.EXPECTED). Les
+-- niveaux à boss sont un peu plus courts : le boss doit encore traverser la carte (200 s au plus en tout).
 Levels.DEFINITIONS = {
 	{ gold = 60, seconds = 95, health = 72, gap = { 1.1, 0.34 }, from = { Fast = 0.25 } },
 	{ gold = 65, seconds = 105, health = 88, gap = { 1.1, 0.33 }, from = { Fast = 0.15, Swarm = 0.45 } },
@@ -322,6 +396,28 @@ Levels.DEFINITIONS = {
 	{ gold = 150, seconds = 150, health = 207, gap = { 0.9, 0.3 }, from = { Fast = 0.05, Swarm = 0.1, Tank = 0.15 }, specials = { { "Giant", 0.3, 0.7 }, { "Giant", 0.55, 0.85 }, { "Giant", 0.8 } } },
 	{ gold = 155, seconds = 155, health = 207, gap = { 0.9, 0.3 }, from = { Fast = 0.05, Swarm = 0.1, Tank = 0.15 }, specials = { { "Giant", 0.3, 0.8 }, { "Giant", 0.55 }, { "Giant", 0.8, 1.2 } } },
 	{ gold = 160, seconds = 145, health = 207, gap = { 0.9, 0.3 }, from = { Fast = 0.05, Swarm = 0.1, Tank = 0.15 }, specials = { { "Giant", 0.35, 0.7 }, { "Giant", 0.6, 0.9 }, { "Boss", 1 } } },
+	-- 3e territoire
+	{ gold = 165, seconds = 135, health = 207, gap = { 0.9, 0.3 }, from = { Fast = 0.05, Swarm = 0.1, Tank = 0.15 }, specials = { { "Giant", 0.6, 0.8 } } },
+	{ gold = 170, seconds = 135, health = 194, gap = { 0.9, 0.3 }, from = { Fast = 0.05, Swarm = 0.1, Tank = 0.15 }, specials = { { "Giant", 0.4, 0.7 }, { "Giant", 0.8 } } },
+	{ gold = 175, seconds = 140, health = 207, gap = { 0.9, 0.3 }, from = { Fast = 0.05, Swarm = 0.1, Tank = 0.15 }, specials = { { "Giant", 0.35, 0.7 }, { "Giant", 0.7, 0.9 } } },
+	{ gold = 180, seconds = 140, health = 190, gap = { 0.9, 0.3 }, from = { Fast = 0.05, Swarm = 0.1, Tank = 0.15 }, specials = { { "Giant", 0.3, 0.7 }, { "Giant", 0.55, 0.85 }, { "Giant", 0.85 } } },
+	{ gold = 185, seconds = 145, health = 178, gap = { 0.9, 0.3 }, from = { Fast = 0.05, Swarm = 0.1, Tank = 0.15 }, specials = { { "Giant", 0.7 }, { "Giant", 0.72 }, { "Giant", 0.74 } } },
+	{ gold = 190, seconds = 145, health = 190, gap = { 0.9, 0.3 }, from = { Fast = 0.05, Swarm = 0.1, Tank = 0.15 }, specials = { { "Giant", 0.3, 0.7 }, { "Giant", 0.55, 0.85 }, { "Giant", 0.8 } } },
+	{ gold = 195, seconds = 145, health = 194, gap = { 0.9, 0.3 }, from = { Fast = 0.05, Swarm = 0.1, Tank = 0.15 }, specials = { { "Giant", 0.25, 0.7 }, { "Giant", 0.5, 0.85 }, { "Giant", 0.7 }, { "Giant", 0.9, 1.1 } } },
+	{ gold = 200, seconds = 150, health = 194, gap = { 0.9, 0.3 }, from = { Fast = 0.05, Swarm = 0.1, Tank = 0.15 }, specials = { { "Giant", 0.25, 0.7 }, { "Giant", 0.45, 0.85 }, { "Giant", 0.65 }, { "Giant", 0.85, 1.1 } } },
+	{ gold = 205, seconds = 150, health = 194, gap = { 0.9, 0.3 }, from = { Fast = 0.05, Swarm = 0.1, Tank = 0.15 }, specials = { { "Giant", 0.25, 0.75 }, { "Giant", 0.45, 0.9 }, { "Giant", 0.65 }, { "Giant", 0.85, 1.2 } } },
+	{ gold = 210, seconds = 140, health = 194, gap = { 0.9, 0.3 }, from = { Fast = 0.05, Swarm = 0.1, Tank = 0.15 }, specials = { { "Giant", 0.3, 0.7 }, { "Giant", 0.55, 0.9 }, { "Giant", 0.8 }, { "Boss", 1, 1.1 } } },
+	-- 4e territoire
+	{ gold = 215, seconds = 140, health = 239, gap = { 0.85, 0.28 }, from = { Fast = 0.05, Swarm = 0.08, Tank = 0.12 }, specials = { { "Giant", 0.4, 0.7 }, { "Giant", 0.75, 0.9 } } },
+	{ gold = 220, seconds = 140, health = 247, gap = { 0.85, 0.28 }, from = { Fast = 0.05, Swarm = 0.08, Tank = 0.12 }, specials = { { "Giant", 0.3, 0.7 }, { "Giant", 0.55, 0.85 }, { "Giant", 0.85 } } },
+	{ gold = 225, seconds = 145, health = 247, gap = { 0.85, 0.28 }, from = { Fast = 0.05, Swarm = 0.08, Tank = 0.12 }, specials = { { "Giant", 0.3, 0.7 }, { "Giant", 0.5, 0.85 }, { "Giant", 0.8, 1.1 } } },
+	{ gold = 230, seconds = 145, health = 232, gap = { 0.85, 0.28 }, from = { Fast = 0.05, Swarm = 0.08, Tank = 0.12 }, specials = { { "Giant", 0.25, 0.7 }, { "Giant", 0.45, 0.85 }, { "Giant", 0.65 }, { "Giant", 0.85, 1.1 } } },
+	{ gold = 235, seconds = 150, health = 247, gap = { 0.85, 0.28 }, from = { Fast = 0.05, Swarm = 0.08, Tank = 0.12 }, specials = { { "Giant", 0.45, 0.8 }, { "Giant", 0.47, 0.8 }, { "Giant", 0.8 }, { "Giant", 0.82 } } },
+	{ gold = 240, seconds = 150, health = 232, gap = { 0.85, 0.28 }, from = { Fast = 0.05, Swarm = 0.08, Tank = 0.12 }, specials = { { "Giant", 0.25, 0.7 }, { "Giant", 0.45, 0.85 }, { "Giant", 0.65 }, { "Giant", 0.85, 1.1 } } },
+	{ gold = 245, seconds = 150, health = 232, gap = { 0.85, 0.28 }, from = { Fast = 0.05, Swarm = 0.08, Tank = 0.12 }, specials = { { "Giant", 0.25, 0.75 }, { "Giant", 0.45, 0.9 }, { "Giant", 0.65 }, { "Giant", 0.85, 1.2 } } },
+	{ gold = 250, seconds = 155, health = 247, gap = { 0.85, 0.28 }, from = { Fast = 0.05, Swarm = 0.08, Tank = 0.12 }, specials = { { "Giant", 0.2, 0.7 }, { "Giant", 0.4, 0.85 }, { "Giant", 0.6 }, { "Giant", 0.8, 1.1 } } },
+	{ gold = 255, seconds = 155, health = 268, gap = { 0.85, 0.28 }, from = { Fast = 0.05, Swarm = 0.08, Tank = 0.12 }, specials = { { "Giant", 0.2, 0.7 }, { "Giant", 0.4, 0.85 }, { "Giant", 0.6 }, { "Giant", 0.8, 1.1 } } },
+	{ gold = 260, seconds = 145, health = 268, gap = { 0.85, 0.28 }, from = { Fast = 0.05, Swarm = 0.08, Tank = 0.12 }, specials = { { "Giant", 0.3, 0.7 }, { "Giant", 0.5, 0.85 }, { "Giant", 0.7 }, { "Giant", 0.85, 1.1 }, { "Boss", 1, 0.85 } } },
 }
 
 -- Niveau 1 : cette tour est déjà posée à l'arrivée du joueur (premier emplacement conseillé de la carte), pour
@@ -329,7 +425,8 @@ Levels.DEFINITIONS = {
 Levels.STARTING_TOWER = "MachineGun"
 
 -- Pièces de niveau gagnées : première victoire, puis en rejouant (REPLAY_SHARE). Mini-boss et boss : bien plus, et
--- de plus en plus à chaque territoire (300 et 600 au premier, 600 et 1 200 au deuxième).
+-- de plus en plus à chaque territoire (300 et 600 au premier, 600 et 1 200 au deuxième, 900 et 1 800 au troisième,
+-- 1 200 et 2 400 au quatrième).
 -- Défaite : une petite part de la récompense « en rejouant », selon la part des monstres éliminés.
 Levels.REPLAY_SHARE = 0.4
 Levels.DEFEAT_SHARE = 0.5
