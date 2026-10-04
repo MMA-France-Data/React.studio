@@ -1665,6 +1665,38 @@ function Levels.recordResult(levels, level: number, won: boolean): number
 end
 
 ----------------------------------------------------------------------
+-- LES PANNEAUX DE LA PLACE. Demande du propriétaire (04/10/2026) : « rajoute les panneaux au centre avec les niveaux
+-- des joueurs » (comme le classement solo de l'ancien jeu). Deux panneaux, de chaque côté de la place centrale
+-- (Hub/LevelBoard.luau) : les meilleurs joueurs de tous les serveurs (LevelLeaderboard.luau) et les joueurs du
+-- serveur, rangés par plus haut niveau réussi, puis, à égalité, par nombre de victoires. Un OrderedDataStore ne garde
+-- qu'un nombre entier par joueur : SCORE = niveau x BOARD_WINS + victoires (plafonnées à BOARD_WINS - 1 ; au plus
+-- 101 milliards, loin de la limite des nombres entiers exacts).
+----------------------------------------------------------------------
+Levels.BOARD_WINS = 1e9
+
+-- Score d'un joueur pour le classement (nil tant qu'il n'a réussi aucun niveau : il n'y apparaît pas).
+function Levels.boardScore(best: any, wins: any): number?
+	local level = math.floor(tonumber(best) or 0)
+	if level ~= level or level < 1 then
+		return nil
+	end
+	local count = math.floor(tonumber(wins) or 0)
+	if count ~= count then
+		count = 0
+	end
+	return math.min(level, Levels.COUNT) * Levels.BOARD_WINS + math.clamp(count, 0, Levels.BOARD_WINS - 1)
+end
+
+-- Le niveau et les victoires d'un score (Levels.boardScore).
+function Levels.fromBoardScore(score: any): (number, number)
+	local value = math.floor(tonumber(score) or 0)
+	if value ~= value or value < 0 then
+		return 0, 0
+	end
+	return value // Levels.BOARD_WINS, value % Levels.BOARD_WINS
+end
+
+----------------------------------------------------------------------
 -- TUTO des nouveaux joueurs (affichage : client/TutorialUI.luau ; serveur : Hub/LevelsService.luau). Demande du
 -- propriétaire (02/10/2026) : « fais le tuto bien, je veux un jeu sortable ». Pas d'écran à lire : une flèche montre
 -- quoi toucher. Le champ `tutorial` des données du joueur dit où il en est :

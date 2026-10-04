@@ -1848,6 +1848,33 @@ do
 	check(junk.lossLevel == 0 and junk.lossStreak == 0 and tooFar.lossLevel == Levels.COUNT and tooFar.lossStreak == 0, "« Bloqué ? » : données abîmées remises à zéro (ou dans les bornes)")
 end
 
+----------------------------------------------------------------------
+-- 17) Les panneaux de la place (demande du propriétaire, 04/10/2026 : « rajoute les panneaux au centre avec les
+--     niveaux des joueurs ») : le score du classement range par plus haut niveau réussi, puis par victoires.
+----------------------------------------------------------------------
+do
+	local a = Levels.boardScore(40, 12)
+	local b = Levels.boardScore(40, 30)
+	local c = Levels.boardScore(39, 900000)
+	local best, wins = Levels.fromBoardScore(b)
+	local capped = Levels.boardScore(Levels.COUNT + 50, 1e12)
+	local topBest, topWins = Levels.fromBoardScore(capped)
+	check(
+		b > a and a > c and best == 40 and wins == 30 and topBest == Levels.COUNT and topWins == Levels.BOARD_WINS - 1
+			and capped < 2 ^ 53 and capped == math.floor(capped),
+		`classement : niveau 40 avec 30 victoires > niveau 40 avec 12 > niveau 39 avec 900 000 ; relu : niveau {best}, {wins} victoires ; plafonds : niveau {topBest}, {topWins} victoires (score entier exact)`
+	)
+	local zero = Levels.boardScore(0, 50)
+	local junk = Levels.boardScore("x", "y")
+	local nan = Levels.boardScore(0 / 0, 3)
+	local negativeWins = Levels.boardScore(3, -8)
+	local badBest, badWins = Levels.fromBoardScore(-5)
+	check(
+		zero == nil and junk == nil and nan == nil and negativeWins == 3 * Levels.BOARD_WINS and badBest == 0 and badWins == 0,
+		"classement : pas de score sans niveau réussi (ni avec des valeurs abîmées), victoires négatives comptées 0"
+	)
+end
+
 -- Équipes de joueurs simulés, avec les PV d'équipe : les joueurs de référence gagnent (au moins 5 vies), comme seuls.
 for _, size in { 2, 3, 4 } do
 	for _, level in { 10, 25, Levels.OPEN_COUNT } do

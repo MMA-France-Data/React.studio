@@ -241,8 +241,8 @@ src/
   shared/   (ReplicatedStorage.Shared)    Config, Levels, TeamMaps, IdleTowers, IdleConfig, Enemies, PlotLayout,
                                           RoadGeometry, Remotes, Sounds, NumberFormat, ProximityLabel, MedievalModels,
                                           CustomModels, Lang, LangEN/{Glossary, Game}
-  server/   (ServerScriptService.Server)  Main, PlayerData, MockDataStore,
-                                          Hub/{init, HubMap, Plots, PlotBoard, PlotIdentity, PlotInterest,
+  server/   (ServerScriptService.Server)  Main, PlayerData, MockDataStore, LevelLeaderboard,
+                                          Hub/{init, HubMap, Plots, PlotBoard, PlotIdentity, PlotInterest, LevelBoard,
                                                Combat, LevelGame, LevelArena, LevelsService, LevelTeams, Funnel, Camp,
                                                CampGame, IdleTowerModel}
   client/   (StarterPlayerScripts.Client) Main, UI, LevelsUI, TutorialUI, PlotRenderer, PlotAccess, Effects,

@@ -840,6 +840,7 @@ niveaux du joueur et son réglage du son. Les sauvegardes de l'ancien jeu « Tow
 | `src/server/Hub/LevelTeams.luau` | les équipes : invitations, chef, coéquipiers, quitter l'équipe |
 | `src/server/Hub/Camp.luau`, `CampGame.luau` | la parcelle : socles, couveuses, étiquettes, invites ; les tours du camp et leurs cibles |
 | `src/server/Hub/HubMap.luau`, `Plots.luau`, `PlotBoard.luau`, `PlotIdentity.luau`, `PlotInterest.luau` | la map, l'attribution des parcelles, leurs panneaux, qui reçoit quel camp |
+| `src/server/LevelLeaderboard.luau`, `src/server/Hub/LevelBoard.luau` | les deux panneaux de la place (demande du 04/10/2026) : le classement des niveaux de tous les serveurs (OrderedDataStore, plus haut niveau réussi puis victoires : `Levels.boardScore`) et les joueurs du serveur |
 | `src/server/Hub/IdleTowerModel.luau` | modèles des tours (palier 2 : la silhouette de sa tour de base et sa parure), et leurs marques d'évolution (`addEvolution`) |
 | `src/server/PlayerData.luau` | la sauvegarde |
 | `src/client/LevelsUI.luau` | le bouton, la fenêtre du camp, l'écran d'un niveau |

@@ -1,5 +1,6 @@
 -- Test du JEU (niveaux et camp d'entraînement), côté serveur : tools/studio-test/run.ps1.
--- 0) Le jeu ne contient plus que les niveaux et le camp : données, remotes, map (plus rien de l'ancien jeu).
+-- 0) Le jeu ne contient plus que les niveaux et le camp : données, remotes, map (plus rien de l'ancien jeu) ; les deux
+--    panneaux du classement des niveaux sur la place (le serveur, tous les serveurs, envois limités à un par minute).
 -- 1) La PARCELLE du joueur est son camp d'entraînement : sa tour posée sur un socle tire sur des cibles, étiquettes,
 --    bâtiments, tableau, évolution d'une tour, 2e emplacement ; qui reçoit les cibles et les tirs de quel camp.
 -- 2) Puis, seul (le client attend) : six combats en même temps (mesure), un niveau PERDU par celui qui pose 2 Archers
@@ -127,8 +128,10 @@ return function(log)
 			table.insert(badPlots, folder.Name)
 		end
 	end
-	-- Place centrale : seulement le sol, le décor, la rosace et ses torches (plus de cercle ni de tableaux du classé).
-	local plazaParts = { Ground = true, KingdomDecor = true, Plaza = true, PlazaRosette = true, PlazaRing = true, Torch = true, Flame = true, SpawnLocation = true, Plots = true }
+	-- Place centrale : le sol, le décor, la rosace et ses torches, et les deux panneaux du classement des niveaux (plus de
+	-- cercle ni de tableau du classé de l'ancien jeu).
+	local plazaParts = { Ground = true, KingdomDecor = true, Plaza = true, PlazaRosette = true, PlazaRing = true, Torch = true, Flame = true, SpawnLocation = true, Plots = true,
+		LevelBoardEast = true, LevelBoardWest = true }
 	local oldPlaza = {}
 	for _, child in hub:GetChildren() do
 		if not plazaParts[child.Name] and not table.find(oldPlaza, child.Name) then
@@ -137,8 +140,8 @@ return function(log)
 	end
 	check(
 		plotCount == PlotLayout.COUNT and #badPlots == 0 and #PlotLayout.SPOTS == 3 and hub:FindFirstChild("PlazaRosette") ~= nil and #oldPlaza == 0
-			and workspace:FindFirstChild("Map") == nil,
-		`map : {plotCount} parcelles avec leur bâtiment des œufs, leur porte des niveaux et 3 socles ; place centrale sans cercle ni tableau du classé (objets en trop : {table.concat(oldPlaza, ", ")} ; parcelles à revoir : {table.concat(badPlots, ", ")})`
+			and hub:FindFirstChild("LevelBoardEast") ~= nil and hub:FindFirstChild("LevelBoardWest") ~= nil and workspace:FindFirstChild("Map") == nil,
+		`map : {plotCount} parcelles avec leur bâtiment des œufs, leur porte des niveaux et 3 socles ; place centrale avec la rosace et les deux panneaux du classement des niveaux, sans cercle ni tableau du classé (objets en trop : {table.concat(oldPlaza, ", ")} ; parcelles à revoir : {table.concat(badPlots, ", ")})`
 	)
 	local folders, clean = 0, true
 	for slot = 1, Levels.ARENA_SLOTS do
@@ -153,6 +156,97 @@ return function(log)
 	check(
 		(arena.Focus.Position - Levels.arenaCFrame(plot).Position).Magnitude < 1 and arena.Focus.Position.Magnitude > 2000,
 		`la zone du joueur est loin de la place ({math.floor(arena.Focus.Position.Magnitude)} studs du centre)`
+	)
+
+	------------------------------------------------------------------
+	-- Les PANNEAUX DE LA PLACE. Demande du propriétaire (04/10/2026) : « rajoute les panneaux au centre avec les
+	-- niveaux des joueurs ». Est : « MEILLEURS JOUEURS » (tous les serveurs) vers la place, « SUR CE SERVEUR » au dos ;
+	-- ouest : l'inverse. Dans Studio, le classement de tous les serveurs est en mémoire (vide au départ).
+	------------------------------------------------------------------
+	local function board(...)
+		return dbg:Invoke(player, "Board", ...)
+	end
+	local function boardFace(side, kind)
+		local part = hub:FindFirstChild("LevelBoard" .. side)
+		for _, child in if part then part:GetChildren() else {} do
+			if child:IsA("SurfaceGui") and child:GetAttribute("BoardKind") == kind then
+				return child
+			end
+		end
+		return nil
+	end
+	-- Les lignes affichées d'une face : « nom niveau victoires » séparées par « ; » (et le texte « aucun joueur » s'il est
+	-- affiché).
+	local function boardRows(side, kind)
+		local gui = boardFace(side, kind)
+		local background = gui and gui:FindFirstChild("Background")
+		local list = {}
+		for i = 1, 10 do
+			local row = background and background:FindFirstChild("Row" .. i)
+			if row and row.Visible then
+				table.insert(list, `{row.PlayerName.Text} {row.Level.Text} {row.Wins.Text}`)
+			end
+		end
+		if background and background.Empty.Visible then
+			table.insert(list, "(vide)")
+		end
+		return table.concat(list, " ; ")
+	end
+	local facesOk = true
+	for _, info in { { "East", "Top", Enum.NormalId.Front }, { "East", "Server", Enum.NormalId.Back }, { "West", "Server", Enum.NormalId.Front }, { "West", "Top", Enum.NormalId.Back } } do
+		local gui = boardFace(info[1], info[2])
+		local background = gui and gui:FindFirstChild("Background")
+		facesOk = facesOk and gui ~= nil and gui.Face == info[3] and background.Heading.Text == "CLASSEMENT"
+			and background.Kind.Text == (if info[2] == "Top" then "MEILLEURS JOUEURS" else "SUR CE SERVEUR")
+			and background.NameHeader.Text == "JOUEUR" and background.LevelHeader.Text == "NIVEAU" and background.WinsHeader.Text == "VICTOIRES"
+			and background.Row1.PlayerName:GetAttribute("NoTranslate") == true
+	end
+	local eastLook = hub.LevelBoardEast.CFrame.LookVector
+	check(
+		facesOk and eastLook.X < -0.99 and hub.LevelBoardWest.CFrame.LookVector.X > 0.99 and math.abs(hub.LevelBoardEast.Position.X - 33) < 0.1,
+		"panneaux de la place : est = « MEILLEURS JOUEURS » vers le centre et « SUR CE SERVEUR » au dos, ouest = l'inverse ; titres, colonnes JOUEUR / NIVEAU / VICTOIRES, noms jamais traduits"
+	)
+	board("Tick")
+	board("Refresh")
+	local me = player.DisplayName
+	check(
+		boardRows("West", "Server") == `{me} 0 0` and boardRows("East", "Server") == `{me} 0 0` and boardRows("East", "Top") == "(vide)"
+			and boardRows("West", "Top") == "(vide)" and board("Stored") == nil,
+		`nouveau joueur : sur le panneau du serveur avec 0 niveau et 0 victoire (« {boardRows("West", "Server")} ») ; pas encore dans le classement de tous les serveurs (« {boardRows("East", "Top")} »)`
+	)
+	levels("Set", "best", 3)
+	levels("Set", "wins", 7)
+	board("Tick")
+	local sentFirst = board("Stored")
+	levels("Set", "wins", 9)
+	board("Tick")
+	local tooSoon = board("Stored")
+	board("Clock", 61)
+	board("Tick")
+	local minuteLater = board("Stored")
+	board("Clock", 0)
+	check(
+		sentFirst == Levels.boardScore(3, 7) and tooSoon == sentFirst and minuteLater == Levels.boardScore(3, 9) and boardRows("West", "Server") == `{me} 3 9`,
+		`niveau 3 réussi, 7 victoires : envoyé au classement ({tostring(sentFirst)}) ; 9 victoires 1 s plus tard : pas renvoyé ({tostring(tooSoon)}) ; une minute plus tard : envoyé ({tostring(minuteLater)}) ; panneau du serveur : « {boardRows("West", "Server")} »`
+	)
+	board("Fake", {
+		{ userId = -501, name = "Robin", best = 40, wins = 12 },
+		{ userId = -502, name = "Lina", best = 40, wins = 30 },
+		{ userId = -503, name = "Max", best = 12, wins = 1234 },
+	})
+	board("Refresh")
+	local expectedTop = `Lina 40 30 ; Robin 40 12 ; Max 12 1.23K ; {me} 3 9`
+	check(
+		boardRows("East", "Top") == expectedTop and boardRows("West", "Top") == expectedTop,
+		`classement de tous les serveurs : le plus haut niveau d'abord, puis le plus de victoires (« {boardRows("East", "Top")} »)`
+	)
+	board("ClearFakes")
+	board("Refresh")
+	levels("Reset")
+	board("Tick")
+	check(
+		boardRows("East", "Top") == `{me} 3 9` and boardRows("West", "Server") == `{me} 0 0` and board("Stored") == Levels.boardScore(3, 9),
+		`faux joueurs retirés : « {boardRows("East", "Top")} » ; le classement garde le meilleur score même si les données redescendent (remises à zéro pour la suite du test) ; panneau du serveur : « {boardRows("West", "Server")} »`
 	)
 
 	------------------------------------------------------------------

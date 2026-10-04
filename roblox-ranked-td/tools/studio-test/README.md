@@ -39,6 +39,10 @@ Scénarios `scenarios\LevelsServer.luau` puis `scenarios\LevelsClient.luau`. Cap
 - le jeu ne contient plus que les niveaux et le camp : sauvegarde (niveaux + réglage du son), 5 remotes, une seule
   colonne « Level » dans la liste des joueurs, place centrale sans le cercle du classé, 6 parcelles avec leur
   bâtiment des œufs, leur porte des niveaux et 3 socles ;
+- **les panneaux de la place** : « MEILLEURS JOUEURS » (tous les serveurs) et « SUR CE SERVEUR » des deux côtés,
+  le joueur sur le panneau du serveur, son score envoyé (puis pas renvoyé avant une minute), l'ordre du classement
+  avec de faux joueurs (le plus haut niveau, puis le plus de victoires), le meilleur score gardé (StudioDebug
+  « Board ») ;
 - **le camp d'entraînement** (la parcelle du joueur) : l'Archer posé sur le 1er socle, étiquettes et invites,
   tableau du camp, cibles détruites, tour remplacée, **évolutions** ★★ puis ★★★ (anneau, fanions, halo), 2e
   emplacement (`levels_camp_evolue`) ;

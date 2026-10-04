@@ -364,6 +364,18 @@ return {
 	["En attente d'un propriétaire"] = "Waiting for an owner",
 
 	----------------------------------------------------------------------
+	-- Hub/LevelBoard.luau : les deux panneaux du classement des niveaux, sur la place centrale (« NIVEAU » : plus haut)
+	----------------------------------------------------------------------
+	["CLASSEMENT"] = "LEADERBOARD",
+	["MEILLEURS JOUEURS"] = "TOP PLAYERS",
+	["SUR CE SERVEUR"] = "IN THIS SERVER",
+	["JOUEUR"] = "PLAYER",
+	["VICTOIRES"] = "WINS",
+	["Aucun joueur pour l'instant"] = "No players yet",
+	["Tous les serveurs · mis à jour chaque minute"] = "All servers · updated every minute",
+	["Les joueurs présents en ce moment"] = "Players here right now",
+
+	----------------------------------------------------------------------
 	-- Hub/PlotIdentity.luau : plaque à l'entrée de chaque parcelle (nom et vignette du propriétaire)
 	----------------------------------------------------------------------
 	["FIEF {1}  /  DOMAINE"] = "KEEP {1}  /  DOMAIN", -- {1} = numéro de la parcelle (01 à 06)

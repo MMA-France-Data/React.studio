@@ -126,6 +126,9 @@ Défends ton château dans des niveaux rapides de 2 à 3 minutes !
       ligne ! » arrive en une minute au plus ; « 📨 Inviter » ouvre l'invitation de Roblox ; quand il vient grâce à
       l'invitation, 200 pièces de niveau pour chacun (une seule fois) ; avec un ami sur le serveur, l'écran de fin
       dit « Bonus d'ami sur le serveur : +10 % ».
+- [ ] **Les panneaux de la place** (le classement de tous les serveurs ne marche que dans le jeu publié : dans Studio
+      il est en mémoire) : ton nom tout de suite dans « SUR CE SERVEUR » ; après une victoire, dans « MEILLEURS
+      JOUEURS » en une ou deux minutes.
 - [ ] Les sons et les animations des monstres se chargent (dans une nouvelle expérience, une animation qui ne
       t'appartient pas ne se joue pas : le monstre glisse sans bouger les jambes).
 - [ ] Rendre le jeu public.

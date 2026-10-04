@@ -1,5 +1,6 @@
 -- Map principale : 6 parcelles autour de la place. La parcelle d'un joueur est son CAMP D'ENTRAÎNEMENT (Hub/Camp.luau) ;
--- il joue ses NIVEAUX dans une zone de combat à part (Hub/LevelsService.luau).
+-- il joue ses NIVEAUX dans une zone de combat à part (Hub/LevelsService.luau). Sur la place, les deux panneaux du
+-- classement des niveaux (Hub/LevelBoard.luau, LevelLeaderboard.luau).
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -8,9 +9,11 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local IdleConfig = require(Shared.IdleConfig)
 local PlotLayout = require(Shared.PlotLayout)
 local Remotes = require(Shared.Remotes)
+local LevelLeaderboard = require(script.Parent.LevelLeaderboard)
 local PlayerData = require(script.Parent.PlayerData)
 local Camp = require(script.Camp)
 local HubMap = require(script.HubMap)
+local LevelBoard = require(script.LevelBoard)
 local LevelsService = require(script.LevelsService)
 local PlotInterest = require(script.PlotInterest)
 local Plots = require(script.Plots)
@@ -136,6 +139,9 @@ end
 --                                                  qu'il reçoit }, clears = paquets « Clear » reçus depuis son arrivée }
 --   Invoke(player, "Interest", "Position", pos) -> cette position compte à la place de son personnage (nil : de nouveau
 --                                                  son personnage), au prochain calcul (PlotInterest.REFRESH_INTERVAL)
+--   Invoke(player, "Board", ...)                -> classement des niveaux des panneaux de la place ("State", "Tick",
+--                                                  "Clock", "Stored", "Refresh", "Fake", "ClearFakes" : en bas de
+--                                                  LevelLeaderboard.luau)
 local function setupStudioDebug()
 	if not RunService:IsStudio() then
 		return
@@ -162,6 +168,8 @@ local function setupStudioDebug()
 				kills = if campGame then campGame.kills else 0,
 				clock = if campGame then campGame.clock else 0,
 			}
+		elseif command == "Board" then
+			return LevelLeaderboard.debug(player, ...)
 		elseif command == "Interest" then
 			local action, position = ...
 			if action == "Position" then
@@ -211,8 +219,26 @@ function Hub.start()
 	end
 	-- État du joueur changé (emplacements, XP, pièces) : son camp suit.
 	LevelsService.onChanged(Camp.refresh)
+
+	-- Les panneaux de la place : les meilleurs joueurs de tous les serveurs et les joueurs de ce serveur (plus haut
+	-- niveau réussi, victoires).
+	for _, entry in map.boards do
+		LevelBoard.attach(entry.board, entry.front)
+	end
+	LevelLeaderboard.start(function(player: Player)
+		local data = PlayerData.get(player)
+		if not data then
+			return nil
+		end
+		return data.levels.best, data.levels.wins
+	end, LevelBoard.show)
+
 	PlayerData.onBeforeRelease(function(player)
 		Camp.stop(player)
+		local data = PlayerData.get(player)
+		if data then
+			LevelLeaderboard.leave(player, data.levels.best, data.levels.wins) -- (son dernier score, s'il a monté)
+		end
 	end)
 
 	runCamps()
