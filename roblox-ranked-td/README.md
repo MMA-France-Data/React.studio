@@ -78,9 +78,14 @@ powershell -ExecutionPolicy Bypass -File tools\studio-test\run.ps1 -Test english
 powershell -ExecutionPolicy Bypass -File tools\studio-test\run.ps1 -Test team
 ```
 
+```bash
+powershell -ExecutionPolicy Bypass -File tools\studio-test\run.ps1 -Test eggs
+```
+
 Le premier joue le jeu en entier (serveur, puis la vraie interface à la taille d'un ordinateur et d'un téléphone),
 le deuxième vérifie les modèles 3D des monstres, le troisième joue le tuto d'un nouveau joueur en suivant la flèche,
-le quatrième vérifie la version anglaise.
+le quatrième vérifie la version anglaise, le cinquième le jeu en équipe et les amis, le sixième les œufs et les
+couveuses.
 
 **Images pour la page Roblox du jeu** (icône et miniatures, dans `assets/page`) : elles se refont toutes seules avec
 `run.ps1 -Test page` puis `tools\studio-test\page.ps1` (voir `assets/page/LISEZ-MOI.txt`).

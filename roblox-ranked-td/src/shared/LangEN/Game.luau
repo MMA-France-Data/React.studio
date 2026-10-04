@@ -261,6 +261,58 @@ return {
 	["Tu es venu grâce à l'invitation d'un ami : +{1} pièces de niveau !"] = "You came thanks to a friend's invite: +{1} level coins!",
 
 	----------------------------------------------------------------------
+	-- Les œufs : client/LevelsUI.luau (onglet Œufs, tour sortie, écran de fin), Hub/Camp.luau (couveuses de la
+	-- parcelle) et messages du serveur (Hub/LevelsService.luau)
+	----------------------------------------------------------------------
+	["Œufs"] = "Eggs",
+	["Œuf commun"] = "Common egg",
+	["Œuf rare"] = "Rare egg",
+	["Œuf doré"] = "Golden egg",
+	["Commune"] = "Common",
+	["Rare"] = "Rare",
+	["Épique"] = "Epic",
+	["Légendaire"] = "Legendary",
+	["TES ŒUFS ({1}/{2})"] = "YOUR EGGS ({1}/{2})",
+	["Éclot en {1}"] = "Hatches in {1}",
+	["Chances :"] = "Odds:",
+	["Commune {1} %"] = "Common {1}%",
+	["Rare {1} %"] = "Rare {1}%",
+	["Épique {1} %"] = "Epic {1}%",
+	["Légendaire {1} %"] = "Legendary {1}%",
+	["COUVEUSES"] = "INCUBATORS",
+	["COUVEUSE {1}"] = "INCUBATOR {1}", -- « 🔒 COUVEUSE 2 »
+	["COUVEUSE {1} : {2}"] = "INCUBATOR {1}: {2}",
+	["COUVEUSE {1} (vide)"] = "INCUBATOR {1} (empty)",
+	["Couveuse {1}"] = "Incubator {1}",
+	["Prêt : ouvre-le !"] = "Ready: open it!",
+	["Encore {1}"] = "{1} left",
+	["Pose un œuf :"] = "Place an egg:",
+	["Gagne des niveaux pour avoir des œufs"] = "Win levels to get eggs",
+	["Un œuf de plus en même temps"] = "One more egg at the same time",
+	["Poser : {1}"] = "Place: {1}",
+	["OUVRIR !"] = "OPEN!",
+	["Finir : {1}"] = "Finish: {1}",
+	["Acheter : {1}"] = "Buy: {1}",
+	["Acheter : {1} pièces de niveau"] = "Buy: {1} level coins",
+	["Acheter"] = "Buy",
+	["Vide : pose un œuf"] = "Empty: place an egg",
+	["{1} : prêt !"] = "{1}: ready!",
+	["Chaque victoire donne un œuf : commun, rare au mini-boss, doré au boss (en rejouant : commun, rare au boss)."] = "Every win gives an egg: common, rare on a mini-boss, golden on a boss (when replaying: common, rare on a boss).",
+	["Pose-le dans une couveuse : il éclot même quand tu n'es pas là, puis il donne une tour au hasard."] = "Put it in an incubator: it hatches even while you're away, then it gives a random tower.",
+	["Une tour que tu as déjà donne de l'XP d'entraînement à cette tour."] = "A tower you already have gives training XP to that tower.",
+	["DOUBLON"] = "DUPLICATE",
+	["{1} : elle rejoint ta barre de tours"] = "{1}: it joins your tower bar",
+	["{1} : +{2} XP d'entraînement pour cette tour"] = "{1}: +{2} training XP for this tower",
+	["Super !"] = "Great!",
+	["{1} gagné ! Pose-le dans une couveuse."] = "{1} won! Put it in an incubator.",
+	["Réserve d'œufs pleine : {1} perdu"] = "Egg storage full: {1} lost",
+	["Cette couveuse est déjà occupée"] = "This incubator is already in use",
+	["Tu n'as plus d'œuf de ce type : gagne des niveaux pour en avoir"] = "You have no eggs of this type left: win levels to get more",
+	["Cet œuf n'est pas encore prêt"] = "This egg isn't ready yet",
+	["Tu as déjà toutes les couveuses"] = "You already have all the incubators",
+	["Nouvelle couveuse : {1} œufs peuvent éclore en même temps"] = "New incubator: {1} eggs can hatch at the same time",
+
+	----------------------------------------------------------------------
 	-- Hub/Camp.luau : socles d'entraînement de la parcelle (étiquettes et invites)
 	----------------------------------------------------------------------
 	["Emplacement d'entraînement {1}"] = "Training slot {1}",

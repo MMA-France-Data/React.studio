@@ -1,6 +1,6 @@
 // Génère un projet Rojo de test à partir de default.project.json, dans out/.
 // Il ajoute seulement le marqueur __AutoPlayTest (durée du test) et les scénarios de test.
-//   node mkproj.cjs <levels|monsters|tutorial|english|team|page> <durée en secondes>
+//   node mkproj.cjs <levels|monsters|tutorial|english|team|eggs|page> <durée en secondes>
 const fs = require('fs');
 const path = require('path');
 
@@ -16,12 +16,14 @@ const norm = (p) => p.split(path.sep).join('/');
 //   tutorial : le tuto d'un nouveau joueur (la flèche de TutorialUI), du camp à la boutique
 //   english  : la version anglaise : tous les écrans passés en anglais, aucun texte ne doit rester en français
 //   team     : jouer en équipe, avec des joueurs d'essai (le serveur, puis la vraie interface)
+//   eggs     : les œufs et les couveuses (le serveur, la parcelle, puis la vraie interface)
 const scenarios = {
 	levels: ['LevelsServer.luau', 'LevelsClient.luau'],
 	monsters: [null, 'MonstersClient.luau'],
 	tutorial: ['TutorialServer.luau', 'TutorialClient.luau'],
 	english: ['EnglishServer.luau', 'EnglishClient.luau'],
 	team: ['TeamServer.luau', 'TeamClient.luau'],
+	eggs: ['EggsServer.luau', 'EggsClient.luau'],
 	// (pas un test : les captures pour les images de la page du jeu, voir page.ps1)
 	page: ['EnglishServer.luau', 'PageClient.luau'],
 };

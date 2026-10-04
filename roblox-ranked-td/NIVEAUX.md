@@ -363,6 +363,32 @@ seulement une partie des tours) ; et deux territoires restaient plus durs en éq
 (**le col à deux**, **le désert** à 2, 3 et 4) : leurs cartes d'équipe ont des monstres un peu moins résistants. À
 deux, le niveau 15 (le col, un colosse dans chaque couloir) reste le plus dur.
 
+### Les œufs et les couveuses (étape 1)
+
+Ton idée du 04/10/2026 (« des œufs de tourelle quand tu finis les niveaux en gagnant, et les mettre dans des
+générateurs qui donnent un temps » ; « 16 tours qui te bloquent au niveau 40, comme ça je peux travailler les mises
+à jour petit à petit »). **Étape 1, faite** : les œufs et les couveuses, avec les 8 tours d'aujourd'hui. Les étapes
+suivantes : les 8 nouvelles tours (des versions bien plus fortes des 8 actuelles, Archer → Archer enflammé...),
+surtout par les œufs ; puis le blocage au niveau 40.
+
+- **Un œuf à chaque victoire** : la première fois, un **œuf commun**, un **œuf rare** au mini-boss, un **œuf doré**
+  au boss ; en rejouant, un œuf commun (rare au boss). Une défaite ne donne rien. **30 œufs** au plus en réserve
+  (au-delà, l'œuf est perdu : l'écran de fin le dit).
+- **Les couveuses** : sur ta parcelle, entre ton point d'arrivée et les socles d'entraînement (3 couveuses : la 1re
+  offerte, la 2e à **600** pièces, la 3e à **2 500**), et dans le nouvel onglet **« Œufs »** de la fenêtre. Tu y
+  poses un œuf ; il éclot après son temps (**15 min**, **1 h**, **4 h** selon l'œuf), **même quand tu n'es pas là**.
+  Sur la parcelle, l'œuf a la couleur de son type, le temps qui reste est écrit au-dessus, et il brille quand il est
+  prêt. **« Finir »** l'ouvre tout de suite contre des pièces (5 pièces par minute qui reste).
+- **En l'ouvrant** : une tour **au hasard**, avec les chances de l'œuf écrites dans l'onglet (œuf commun : commune
+  70 %, rare 25 %, épique 5 % ; œuf rare : 35 / 45 / 17 / 3 % de légendaire ; œuf doré : rare 40 %, épique 45 %,
+  légendaire 15 %). Un panneau montre la tour sortie. **Nouvelle**, elle est à toi (dans ta barre) ; **doublon**, elle
+  donne de l'XP d'entraînement à cette tour (20, 40, 80 ou 160 selon sa rareté).
+- Une pastille « ! » sur le bouton « ⚔ NIVEAUX » et l'onglet Œufs : un œuf est prêt, ou une couveuse est vide
+  alors que tu as des œufs.
+
+Les chiffres (temps, chances, prix) sont les miens : `Levels.EGGS`, `HATCHER_COST`, `SKIP_COINS_PER_MINUTE`,
+`DUPLICATE_XP`, `EGG_MAX`. Pas de Robux : les œufs se gagnent seulement en jouant.
+
 ### Les amis : notif, invitations, bonus
 
 Ta demande du 04/10/2026 (« je joue à un jeu où quand quelqu'un a un ami qui se connecte, ça envoie une notif de
@@ -656,6 +682,9 @@ arrivent à un niveau) : rien d'autre n'a changé. Les chiffres sont dans `src/s
 19. **Les amis** (« quand quelqu'un a un ami qui se connecte, ça envoie une notif de l'inviter pour un bonus de
     pièces » ; « oui 1 2 3 ») : la notif quand un ami se connecte, 200 pièces pour chacun quand un ami vient grâce
     à ton invitation, +10 % de pièces avec un ami sur le serveur. Voir « Les amis ».
+20. **Les œufs, étape 1** (« des œufs de tourelle quand tu finis les niveaux en gagnant, et les mettre dans des
+    générateurs qui donnent un temps ») : un œuf à chaque victoire, trois couveuses sur la parcelle et l'onglet
+    Œufs, une tour au hasard à l'ouverture (doublon = XP). Voir « Les œufs et les couveuses ».
 
 ### Le grand ménage : ce qui a été enlevé
 
@@ -721,7 +750,7 @@ niveaux du joueur et son réglage du son. Les sauvegardes de l'ancien jeu « Tow
 | `src/server/Hub/LevelArena.luau` | les zones de combat, leur carte et le décor de chaque territoire |
 | `src/server/Hub/LevelsService.luau` | lancement (seul ou en équipe), récompenses (bonus d'équipe et d'ami, invitations), boutique, camp, état publié au joueur |
 | `src/server/Hub/LevelTeams.luau` | les équipes : invitations, chef, coéquipiers, quitter l'équipe |
-| `src/server/Hub/Camp.luau`, `CampGame.luau` | la parcelle : socles, étiquettes, invites ; les tours du camp et leurs cibles |
+| `src/server/Hub/Camp.luau`, `CampGame.luau` | la parcelle : socles, couveuses, étiquettes, invites ; les tours du camp et leurs cibles |
 | `src/server/Hub/HubMap.luau`, `Plots.luau`, `PlotBoard.luau`, `PlotIdentity.luau`, `PlotInterest.luau` | la map, l'attribution des parcelles, leurs panneaux, qui reçoit quel camp |
 | `src/server/Hub/IdleTowerModel.luau` | modèles des tours, et leurs marques d'évolution (`addEvolution`) |
 | `src/server/PlayerData.luau` | la sauvegarde |
@@ -734,7 +763,8 @@ niveaux du joueur et son réglage du son. Les sauvegardes de l'ancien jeu « Tow
 | `tools/studio-test/` | tests automatiques dans Studio |
 
 Sauvegarde : `data.levels` dans les données du joueur (niveau le plus haut réussi, pièces de niveau, tours achetées,
-XP, emplacements du camp, ordre de la barre rapide, étape du tuto, qui l'a invité et les amis venus grâce à lui), et
+XP, emplacements du camp, ordre de la barre rapide, étape du tuto, qui l'a invité et les amis venus grâce à lui, œufs
+en réserve et couveuses), et
 `data.soundMode`. Les récompenses d'invitation qui attendent un joueur absent sont dans un autre espace
 (`Niveaux_Invites_v1`).
 
@@ -752,13 +782,14 @@ powershell -ExecutionPolicy Bypass -File tools\levels\run.ps1
 powershell -ExecutionPolicy Bypass -File tools\studio-test\run.ps1
 ```
 
-- le premier : 1 832 vérifications des règles, de la difficulté de chacun des 100 niveaux, des évolutions, du camp,
-  du tuto, du jeu en équipe, des 30 cartes d'équipe et des amis, sans Studio (une dizaine de minutes : les équipes de joueurs simulés sont lentes) ;
+- le premier : 1 838 vérifications des règles, de la difficulté de chacun des 100 niveaux, des évolutions, du camp,
+  du tuto, du jeu en équipe, des 30 cartes d'équipe, des amis et des œufs, sans Studio (une dizaine de minutes : les équipes de joueurs simulés sont lentes) ;
 - le deuxième : le tableau de difficulté des 100 niveaux par les joueurs simulés ;
 - le troisième : le test complet dans Studio (serveur, puis la vraie interface à la taille normale et à la taille
   d'un téléphone), avec des captures dans `tools/studio-test/out/levels_*.png`. Avec `-Test tutorial` : le tuto
   d'un nouveau joueur, suivi flèche après flèche (captures `tutorial_*.png`). Avec `-Test team` : le jeu en équipe,
-  avec des joueurs d'essai (captures `team_*.png`).
+  avec des joueurs d'essai (captures `team_*.png`). Avec `-Test eggs` : les œufs et les couveuses (captures
+  `eggs_*.png`).
 
 ### Six combats dans le même serveur
 

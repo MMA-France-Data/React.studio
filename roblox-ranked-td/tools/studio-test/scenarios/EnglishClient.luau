@@ -338,6 +338,9 @@ return function(log)
 	act(campGui, "Tab:Mes tours")
 	scanScreen("camp, onglet Mes tours (nouveau joueur)")
 	shot("tours")
+	act(campGui, "Tab:Œufs")
+	scanScreen("camp, onglet Œufs (nouveau joueur)")
+	shot("oeufs")
 	act(campGui, "Close")
 	scanScreen("camp, fenêtre fermée (flèche sur le bouton)")
 	scanWorld("panneaux et invites de la parcelle (nouveau joueur)")
@@ -352,6 +355,8 @@ return function(log)
 		towers = { MachineGun = true, Bomb = true, Frost = true, Tesla = true },
 		xp = { MachineGun = 70, Bomb = 1300, Frost = 10 },
 		slots = { { tower = "MachineGun", level = 2 }, { tower = "", level = 1 } },
+		eggs = { Common = 2, Gold = 1 },
+		hatchers = { { egg = "Rare", readyAt = 0 }, { egg = "", readyAt = 0 } },
 	})
 	waitFor(function()
 		return published().best == 10 and published().coins == 5000
@@ -394,6 +399,16 @@ return function(log)
 	end
 	check(#archerTexts >= 2, `mes tours : {table.concat(archerTexts, " | ")}`)
 	shot("tours_avance")
+	-- Les œufs : un œuf rare prêt dans la 1re couveuse, la 2e vide, des œufs en réserve.
+	act(campGui, "Tab:Œufs")
+	scanScreen("camp, onglet Œufs (joueur avancé)")
+	local eggsPage = window:WaitForChild("Page5")
+	check(
+		eggsPage.Hatcher1.Title.Text == "INCUBATOR 1: Rare egg" and eggsPage.Hatcher1.Action.Text == "OPEN!" and eggsPage.Hatcher2.Title.Text == "INCUBATOR 2 (empty)"
+			and eggsPage.Egg_Gold.EggName.Text == "Golden egg",
+		`œufs : « {eggsPage.Hatcher1.Title.Text} » « {eggsPage.Hatcher1.Action.Text} », « {eggsPage.Hatcher2.Title.Text} », « {eggsPage.Egg_Gold.EggName.Text} »`
+	)
+	shot("oeufs_avance")
 	-- Jouer en équipe : la page de l'équipe, une invitation d'un joueur d'essai (« Robin »), la page en équipe et les
 	-- boutons des niveaux d'un coéquipier qui n'est pas chef.
 	act(campGui, "Team")

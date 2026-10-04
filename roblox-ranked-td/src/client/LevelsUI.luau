@@ -151,7 +151,7 @@ end
 ----------------------------------------------------------------------
 -- État du joueur (attribut « LevelsState », publié par le serveur)
 ----------------------------------------------------------------------
-local state = { best = 0, coins = 0, towers = table.clone(Levels.STARTING_TOWERS), xp = {}, slots = {}, wins = 0, losses = 0 }
+local state = { best = 0, coins = 0, towers = table.clone(Levels.STARTING_TOWERS), xp = {}, slots = {}, wins = 0, losses = 0, eggs = {}, hatchers = {}, readAt = 0 }
 
 local function readState()
 	local raw = player:GetAttribute("LevelsState")
@@ -178,6 +178,9 @@ local function readState()
 		slots = if typeof(decoded.slots) == "table" then decoded.slots else {},
 		wins = tonumber(decoded.wins) or 0,
 		losses = tonumber(decoded.losses) or 0,
+		eggs = if typeof(decoded.eggs) == "table" then decoded.eggs else {}, -- « LES ŒUFS » : œufs en réserve
+		hatchers = if typeof(decoded.hatchers) == "table" then decoded.hatchers else {}, -- couveuses : { { egg, readyIn } }
+		readAt = os.clock(), -- (les couveuses se décomptent depuis cette lecture)
 	}
 end
 
@@ -197,6 +200,58 @@ end
 
 local function amount(value: number): string
 	return NumberFormat.short(value)
+end
+
+-- « LES ŒUFS » (Levels.luau) : couleurs des raretés, durées et temps qui reste.
+local RARITY_COLORS = {
+	Common = Color3.fromRGB(214, 220, 228),
+	Rare = Color3.fromRGB(86, 156, 236),
+	Epic = Color3.fromRGB(184, 104, 236),
+	Legendary = Color3.fromRGB(255, 196, 52),
+}
+
+-- « 15 min », « 1 h », « 4 h ».
+local function durationText(seconds: number): string
+	if seconds >= 3600 and seconds % 3600 == 0 then
+		return `{seconds // 3600} h`
+	end
+	return `{math.ceil(seconds / 60)} min`
+end
+
+-- « 12:34 », « 1:02:03 ».
+local function clockText(seconds: number): string
+	seconds = math.max(0, math.ceil(seconds))
+	local hours, minutes, rest = seconds // 3600, (seconds % 3600) // 60, seconds % 60
+	return if hours > 0 then string.format("%d:%02d:%02d", hours, minutes, rest) else string.format("%d:%02d", minutes, rest)
+end
+
+-- Secondes qui restent à l'œuf d'une couveuse (décomptées depuis la publication de l'état).
+local function hatchLeft(hatcher): number
+	local readyIn = tonumber(hatcher.readyIn) or 0
+	return math.max(0, math.ceil(readyIn - (os.clock() - state.readAt)))
+end
+
+-- Vrai si l'œuf de cette couveuse peut s'ouvrir : une seconde après la fin du décompte (le serveur compte en
+-- secondes entières : il ne refuse pas un œuf qu'on croit prêt).
+local function hatchReady(hatcher): boolean
+	local readyIn = tonumber(hatcher.readyIn) or 0
+	return hatcher.egg ~= "" and (readyIn <= 0 or os.clock() - state.readAt >= readyIn + 1)
+end
+
+-- Vrai si un œuf attend le joueur : prêt à ouvrir, ou une couveuse vide alors qu'il a des œufs.
+local function eggAlert(): boolean
+	local stock = 0
+	for _, count in state.eggs do
+		stock += tonumber(count) or 0
+	end
+	for _, hatcher in state.hatchers do
+		if hatchReady(hatcher) then
+			return true
+		elseif hatcher.egg == "" and stock > 0 then
+			return true
+		end
+	end
+	return false
 end
 
 -- Écrit un texte seulement s'il change (page rafraîchie souvent : un texte affiché en anglais par AutoTranslate serait
@@ -240,6 +295,7 @@ end
 -- sur ce serveur : bonus de pièces).
 ----------------------------------------------------------------------
 local friendNotice = {} -- panneau « ami en ligne » (buildFriendNotice) : push(id, nom), invite(), close()
+local reveal = {} -- panneau de la tour sortie d'un œuf (buildHatchReveal, « LES ŒUFS ») : close()
 
 -- Ouvre l'invitation de Roblox : pour cet ami (friendId), ou pour choisir parmi ses amis (absent). Un ami qui vient
 -- grâce à elle rapporte FRIENDS.INVITE_REWARD pièces de niveau à chacun (le serveur le voit à son arrivée).
@@ -448,7 +504,7 @@ ReplicatedStorage.ChildAdded:Connect(function(child)
 end)
 
 ----------------------------------------------------------------------
--- Fenêtre du camp : Niveaux, Boutique, Entraînement, Mes tours
+-- Fenêtre du camp : Niveaux, Boutique, Entraînement, Mes tours, Œufs
 ----------------------------------------------------------------------
 local camp = {}
 
@@ -569,7 +625,7 @@ local function buildCamp()
 		Parent = window,
 	})
 
-	local TABS = { "Niveaux", "Boutique", "Entraînement", "Mes tours" }
+	local TABS = { "Niveaux", "Boutique", "Entraînement", "Mes tours", "Œufs" }
 	local tabButtons, pages = {}, {}
 	local currentTab = TABS[1]
 	for index, name in TABS do
@@ -629,6 +685,7 @@ local function buildCamp()
 	end
 	local openBadge = badge(openButton)
 	local shopBadge = badge(tabButtons.Boutique)
+	local eggsBadge = badge(tabButtons["Œufs"]) -- (un œuf prêt, ou une couveuse vide alors qu'il a des œufs)
 
 	------------------------------------------------------------------
 	-- Onglet « Niveaux » : un bandeau par territoire (son numéro et le nom de sa carte), puis ses 10 cartes (5 par
@@ -1319,6 +1376,247 @@ local function buildCamp()
 	end
 
 	------------------------------------------------------------------
+	-- Onglet « Œufs » (« LES ŒUFS », Levels.luau) : les œufs en réserve et leurs chances, puis les couveuses (poser
+	-- un œuf, temps qui reste, finir tout de suite, ouvrir, acheter la suivante). Les couveuses sont aussi sur la
+	-- parcelle (Hub/Camp.luau).
+	------------------------------------------------------------------
+	local eggsPage = pages["Œufs"]
+	local eggsTitle = UI.label({
+		Name = "EggsTitle",
+		Size = UDim2.new(1, -16, 0, 24),
+		Font = Enum.Font.GothamBlack,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		TextColor3 = UI.Colors.Gold,
+		MaxTextSize = 17,
+		Parent = eggsPage,
+	})
+	local EGG_CARD_H = 128
+	local eggCards = {}
+	for index, eggType in Levels.EGG_ORDER do
+		local egg = Levels.EGGS[eggType]
+		local card = UI.new("Frame", {
+			Name = "Egg_" .. eggType,
+			Position = UDim2.new((index - 1) / #Levels.EGG_ORDER, 0, 0, 28),
+			Size = UDim2.new(1 / #Levels.EGG_ORDER, -12, 0, EGG_CARD_H),
+			BackgroundColor3 = UI.Colors.PanelLight,
+			Parent = eggsPage,
+		}, { UI.corner(5), UI.padding(8) })
+		UI.card(card, egg.color:Lerp(UI.Colors.Panel, 0.72))
+		UI.new("Frame", {
+			Name = "Icon",
+			Size = UDim2.fromOffset(32, 42),
+			BackgroundColor3 = egg.color,
+			Parent = card,
+		}, { UI.new("UICorner", { CornerRadius = UDim.new(0.5, 0) }), UI.stroke(UI.Colors.Ink, 2) })
+		UI.label({
+			Name = "EggName", -- (pas « Name » : ce serait la propriété Name de la carte)
+			Position = UDim2.fromOffset(40, 0),
+			Size = UDim2.new(1, -96, 0, 22),
+			Font = Enum.Font.GothamBlack,
+			TextXAlignment = Enum.TextXAlignment.Left,
+			MaxTextSize = 16,
+			Text = egg.displayName,
+			Parent = card,
+		})
+		local count = UI.label({
+			Name = "Count",
+			AnchorPoint = Vector2.new(1, 0),
+			Position = UDim2.new(1, 0, 0, 0),
+			Size = UDim2.fromOffset(54, 26),
+			Font = Enum.Font.GothamBlack,
+			TextColor3 = UI.Colors.Gold,
+			TextXAlignment = Enum.TextXAlignment.Right,
+			MaxTextSize = 22,
+			Parent = card,
+		})
+		UI.label({
+			Name = "Time",
+			Position = UDim2.fromOffset(40, 22),
+			Size = UDim2.new(1, -40, 0, 20),
+			TextXAlignment = Enum.TextXAlignment.Left,
+			TextColor3 = UI.Colors.Muted,
+			MaxTextSize = 13,
+			Text = `Éclot en {durationText(egg.seconds)}`,
+			Parent = card,
+		})
+		local parts = {}
+		for _, rarity in Levels.RARITY_ORDER do
+			local chance = egg.chances[rarity] or 0
+			if chance > 0 then
+				table.insert(parts, `{Levels.RARITY_NAMES[rarity]} {math.floor(chance * 100 + 0.5)} %`)
+			end
+		end
+		UI.label({
+			Name = "Chances",
+			Position = UDim2.fromOffset(0, 48),
+			Size = UDim2.new(1, 0, 1, -48),
+			TextWrapped = true,
+			TextXAlignment = Enum.TextXAlignment.Left,
+			TextYAlignment = Enum.TextYAlignment.Top,
+			MaxTextSize = 13,
+			Text = "Chances :\n" .. table.concat(parts, " • "),
+			Parent = card,
+		})
+		eggCards[eggType] = { count = count }
+	end
+	local HATCH_TOP = 28 + EGG_CARD_H + 14
+	UI.label({
+		Name = "HatchersTitle",
+		Position = UDim2.fromOffset(0, HATCH_TOP),
+		Size = UDim2.new(1, -16, 0, 24),
+		Font = Enum.Font.GothamBlack,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		TextColor3 = UI.Colors.Gold,
+		MaxTextSize = 17,
+		Text = "COUVEUSES",
+		Parent = eggsPage,
+	})
+	local HATCH_ROW_H = 62
+	local hatchRows = {}
+	for index = 1, #Levels.HATCHER_COST do
+		local row = UI.new("Frame", {
+			Name = "Hatcher" .. index,
+			Position = UDim2.fromOffset(0, HATCH_TOP + 28 + (index - 1) * (HATCH_ROW_H + 6)),
+			Size = UDim2.new(1, -16, 0, HATCH_ROW_H),
+			BackgroundColor3 = UI.Colors.PanelLight,
+			Parent = eggsPage,
+		}, { UI.corner(5), UI.padding(8) })
+		UI.card(row, UI.Colors.PanelLight)
+		local icon = UI.new("Frame", {
+			Name = "Icon",
+			AnchorPoint = Vector2.new(0, 0.5),
+			Position = UDim2.new(0, 0, 0.5, 0),
+			Size = UDim2.fromOffset(30, 40),
+			BackgroundColor3 = UI.Colors.Panel,
+			Parent = row,
+		}, { UI.new("UICorner", { CornerRadius = UDim.new(0.5, 0) }), UI.stroke(UI.Colors.Ink, 2) })
+		local title = UI.label({
+			Name = "Title",
+			Position = UDim2.fromOffset(40, 0),
+			Size = UDim2.new(1, -440, 0, 22),
+			Font = Enum.Font.GothamBlack,
+			TextXAlignment = Enum.TextXAlignment.Left,
+			MaxTextSize = 15,
+			Parent = row,
+		})
+		local status = UI.label({
+			Name = "Status",
+			Position = UDim2.fromOffset(40, 24),
+			Size = UDim2.new(1, -440, 0, 20),
+			TextXAlignment = Enum.TextXAlignment.Left,
+			TextColor3 = UI.Colors.Muted,
+			MaxTextSize = 14,
+			Parent = row,
+		})
+		local buttons = {}
+		for typeIndex, eggType in Levels.EGG_ORDER do
+			local button = UI.button({
+				Name = "Put_" .. eggType,
+				AnchorPoint = Vector2.new(1, 0.5),
+				Position = UDim2.new(1, -(#Levels.EGG_ORDER - typeIndex) * 130, 0.5, 0),
+				Size = UDim2.fromOffset(124, 38),
+				BackgroundColor3 = Levels.EGGS[eggType].color:Lerp(UI.Colors.Panel, 0.4),
+				MaxTextSize = 13,
+				Visible = false,
+				Parent = row,
+			})
+			button.Activated:Connect(function()
+				levelAction:FireServer("EggStart", index, eggType)
+			end)
+			buttons[eggType] = button
+		end
+		local action = UI.button({
+			Name = "Action",
+			AnchorPoint = Vector2.new(1, 0.5),
+			Position = UDim2.new(1, 0, 0.5, 0),
+			Size = UDim2.fromOffset(180, 40),
+			MaxTextSize = 15,
+			Visible = false,
+			Parent = row,
+		})
+		action.Activated:Connect(function()
+			local hatcher = state.hatchers[index]
+			if hatcher and hatcher.egg ~= "" then
+				levelAction:FireServer(if hatchReady(hatcher) then "EggOpen" else "EggSkip", index)
+			elseif not hatcher and index == #state.hatchers + 1 then
+				levelAction:FireServer("HatcherBuy")
+			end
+		end)
+		hatchRows[index] = { row = row, icon = icon, title = title, status = status, buttons = buttons, action = action }
+	end
+	local eggsHelpTop = HATCH_TOP + 28 + #Levels.HATCHER_COST * (HATCH_ROW_H + 6) + 4
+	UI.label({
+		Name = "Help",
+		Position = UDim2.fromOffset(0, eggsHelpTop),
+		Size = UDim2.new(1, -16, 0, 80),
+		TextWrapped = true,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		TextYAlignment = Enum.TextYAlignment.Top,
+		TextColor3 = UI.Colors.Muted,
+		MaxTextSize = 13,
+		Text = "Chaque victoire donne un œuf : commun, rare au mini-boss, doré au boss (en rejouant : commun, rare au boss).\n"
+			.. "Pose-le dans une couveuse : il éclot même quand tu n'es pas là, puis il donne une tour au hasard.\n"
+			.. "Une tour que tu as déjà donne de l'XP d'entraînement à cette tour.",
+		Parent = eggsPage,
+	})
+	eggsPage.CanvasSize = UDim2.fromOffset(0, eggsHelpTop + 88)
+
+	local function refreshEggs()
+		local total = 0
+		for _, eggType in Levels.EGG_ORDER do
+			local count = tonumber(state.eggs[eggType]) or 0
+			total += count
+			setText(eggCards[eggType].count, `×{count}`)
+		end
+		setText(eggsTitle, `TES ŒUFS ({total}/{Levels.EGG_MAX})`)
+		for index, entry in hatchRows do
+			local hatcher = state.hatchers[index]
+			local isNext = hatcher == nil and index == #state.hatchers + 1
+			entry.row.Visible = hatcher ~= nil or isNext
+			local egg = if hatcher then Levels.EGGS[hatcher.egg] else nil
+			entry.icon.BackgroundColor3 = if egg then egg.color else UI.Colors.Panel
+			for _, button in entry.buttons do
+				button.Visible = false
+			end
+			entry.action.Visible = false
+			if hatcher and egg then
+				local left, ready = hatchLeft(hatcher), hatchReady(hatcher)
+				setText(entry.title, `COUVEUSE {index} : {egg.displayName}`)
+				setText(entry.status, if ready then "Prêt : ouvre-le !" else `Encore {clockText(left)}`)
+				entry.action.Visible = true
+				if ready then
+					setText(entry.action, "OUVRIR !")
+					entry.action.BackgroundColor3 = UI.Colors.Success
+					entry.action.AutoButtonColor = true
+				else
+					local cost = Levels.skipCost(left)
+					setText(entry.action, `Finir : {amount(cost)} {COIN}`)
+					entry.action.BackgroundColor3 = if state.coins >= cost then UI.Colors.Accent else UI.Colors.Panel
+					entry.action.AutoButtonColor = state.coins >= cost
+				end
+			elseif hatcher then
+				setText(entry.title, `COUVEUSE {index} (vide)`)
+				local any = false
+				for _, eggType in Levels.EGG_ORDER do
+					local has = (tonumber(state.eggs[eggType]) or 0) > 0
+					entry.buttons[eggType].Visible = has
+					setText(entry.buttons[eggType], `Poser : {Levels.EGGS[eggType].displayName}`)
+					any = any or has
+				end
+				setText(entry.status, if any then "Pose un œuf :" else "Gagne des niveaux pour avoir des œufs")
+			elseif isNext then
+				local price = Levels.HATCHER_COST[index] or 0
+				setText(entry.title, `🔒 COUVEUSE {index}`)
+				setText(entry.status, "Un œuf de plus en même temps")
+				entry.action.Visible = true
+				setText(entry.action, `Acheter : {amount(price)} {COIN}`)
+				entry.action.BackgroundColor3 = if state.coins >= price then UI.Colors.Success else UI.Colors.Panel
+				entry.action.AutoButtonColor = state.coins >= price
+			end
+		end
+	end
+
+	------------------------------------------------------------------
 	-- Page « Équipe » (bouton « 👥 ÉQUIPE ») : jouer à plusieurs (« JOUER EN ÉQUIPE », Levels.luau). Les autres joueurs
 	-- du serveur, leur niveau réussi et leur équipe viennent de leurs attributs (LevelsState, Team : publics).
 	------------------------------------------------------------------
@@ -1568,6 +1866,14 @@ local function buildCamp()
 	end
 
 	------------------------------------------------------------------
+	-- Pastilles « ! » : une tour à acheter, ou un œuf qui attend (prêt à ouvrir, ou une couveuse vide).
+	local function refreshBadges()
+		local buyable = canBuyTower(state.coins)
+		local eggWaiting = eggAlert()
+		openBadge.Visible = buyable or eggWaiting
+		shopBadge.Visible = buyable and currentTab ~= "Boutique"
+		eggsBadge.Visible = eggWaiting and currentTab ~= "Œufs"
+	end
 	local function refresh()
 		local coins = `{amount(state.coins)} {COIN}`
 		coinsLabel.Text = coins
@@ -1577,13 +1883,12 @@ local function buildCamp()
 			pages[name].Visible = name == currentTab
 		end
 		teamPage.Visible = currentTab == "Équipe"
-		local buyable = canBuyTower(state.coins)
-		openBadge.Visible = buyable
-		shopBadge.Visible = buyable and currentTab ~= "Boutique"
+		refreshBadges()
 		refreshLevels()
 		refreshShop()
 		refreshTraining()
 		refreshTowers()
+		refreshEggs()
 		refreshTeam()
 		queuePreviews()
 	end
@@ -1634,6 +1939,11 @@ local function buildCamp()
 			if window.Visible and currentTab == "Équipe" then
 				refreshTeam()
 			end
+			-- Couveuses : le temps qui reste (onglet Œufs), et les pastilles quand un œuf devient prêt.
+			if window.Visible and currentTab == "Œufs" then
+				refreshEggs()
+			end
+			refreshBadges()
 		end
 	end)
 	placeButton()
@@ -2620,6 +2930,11 @@ local function buildHud()
 		if teamSize > 1 then
 			table.insert(lines, `👥 Bonus d'équipe ({teamSize} joueurs) : +{math.floor(Levels.teamBonus(teamSize) * 100 + 0.5)} % de pièces`)
 		end
+		-- « LES ŒUFS » : l'œuf gagné (perdu si la réserve était pleine).
+		local wonEgg = if typeof(result.egg) == "string" then Levels.EGGS[result.egg] else nil
+		if wonEgg then
+			table.insert(lines, if result.eggKept == false then `🥚 Réserve d'œufs pleine : {wonEgg.displayName} perdu` else `🥚 {wonEgg.displayName} gagné ! Pose-le dans une couveuse.`)
+		end
 		-- Un ami Roblox sur le serveur (« LES AMIS ») : son bonus aussi.
 		if result.friend == true then
 			table.insert(lines, `🤝 Bonus d'ami sur le serveur : +{math.floor(Levels.FRIENDS.COIN_BONUS * 100 + 0.5)} % de pièces`)
@@ -3186,7 +3501,9 @@ end
 --                        l'équipe), "TeamInvite:123" (inviter ce joueur), "TeamAccept" / "TeamDecline" (répondre à
 --                        l'invitation affichée), "TeamLeave" (quitter l'équipe), "FriendOnline:123:Robin" (comme si
 --                        cet ami venait de se connecter), "FriendInvite" / "FriendClose" (boutons du panneau),
---                        "InviteFriends" (bouton « Inviter des amis » de la page de l'équipe)
+--                        "InviteFriends" (bouton « Inviter des amis » de la page de l'équipe), "EggStart:1:Common"
+--                        (poser cet œuf dans la couveuse 1), "EggOpen:1", "EggSkip:1", "HatcherBuy", "RevealClose"
+--                        (fermer le panneau de la tour sortie)
 --   écran « LevelHud » : "Select:MachineGun" (tour en main), "Bar:MachineGun" (appui sur son bouton de la barre :
 --                        la prendre, ou annuler si elle est déjà en main), "Tap:-23,0" (appui sur ce point local
 --                        du terrain, par le vrai chemin : point de l'écran -> rayon de la caméra -> sol), "Upgrade",
@@ -3229,6 +3546,19 @@ local function testAction(command: string)
 		friendNotice.close()
 	elseif name == "InviteFriends" then
 		promptInvite(nil)
+	elseif name == "EggStart" then
+		local index, eggType = string.match(argument, "^(%d+):(%a+)$")
+		if index then
+			levelAction:FireServer("EggStart", tonumber(index), eggType)
+		end
+	elseif name == "EggOpen" or name == "EggSkip" then
+		levelAction:FireServer(name, tonumber(argument))
+	elseif name == "HatcherBuy" then
+		levelAction:FireServer("HatcherBuy")
+	elseif name == "RevealClose" then
+		if reveal.close then
+			reveal.close()
+		end
 	elseif not level.active then
 		return
 	elseif name == "Select" then
@@ -3503,6 +3833,91 @@ local function buildFriendNotice()
 	end)
 end
 
+----------------------------------------------------------------------
+-- La tour sortie d'un œuf (attribut « Hatch » du joueur, Hub/LevelsService.luau) : un panneau au milieu de l'écran,
+-- avec la vraie tour en vignette : nouvelle tour (elle rejoint sa barre), ou doublon et l'XP qu'il donne.
+----------------------------------------------------------------------
+local function buildHatchReveal()
+	local gui = UI.screen("HatchReveal", 40)
+	gui.Enabled = false
+	local panel = UI.new("Frame", {
+		Name = "Panel",
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5),
+		Size = UDim2.fromOffset(360, 300),
+		BackgroundColor3 = UI.Colors.Panel,
+		Active = true,
+		Parent = gui,
+	}, { UI.corner(8), UI.padding(12) })
+	UI.gradient(panel)
+	local stroke = UI.stroke(UI.Colors.Gold, 4)
+	stroke.Parent = panel
+	local title = UI.label({
+		Name = "Title",
+		Size = UDim2.new(1, 0, 0, 32),
+		Font = Enum.Font.GothamBlack,
+		MaxTextSize = 24,
+		Parent = panel,
+	})
+	local tile = towerTile(panel, nil, UDim2.new(0.5, -60, 0, 40), UDim2.fromOffset(120, 120))
+	local name = UI.label({
+		Name = "TowerName",
+		Position = UDim2.fromOffset(0, 166),
+		Size = UDim2.new(1, 0, 0, 28),
+		Font = Enum.Font.GothamBlack,
+		MaxTextSize = 20,
+		Parent = panel,
+	})
+	local detail = UI.label({
+		Name = "Detail",
+		Position = UDim2.fromOffset(0, 196),
+		Size = UDim2.new(1, 0, 0, 40),
+		TextWrapped = true,
+		TextColor3 = UI.Colors.Muted,
+		MaxTextSize = 15,
+		Parent = panel,
+	})
+	local ok = UI.button({
+		Name = "Ok",
+		AnchorPoint = Vector2.new(0.5, 1),
+		Position = UDim2.new(0.5, 0, 1, 0),
+		Size = UDim2.fromOffset(180, 42),
+		BackgroundColor3 = UI.Colors.Success,
+		Text = "Super !",
+		MaxTextSize = 18,
+		Parent = panel,
+	})
+	function reveal.close()
+		gui.Enabled = false
+	end
+	ok.Activated:Connect(reveal.close)
+	local shown = player:GetAttribute("Hatch") -- (déjà là avant ce client : pas montré)
+	player:GetAttributeChangedSignal("Hatch"):Connect(function()
+		local raw = player:GetAttribute("Hatch")
+		if raw == shown or typeof(raw) ~= "string" then
+			return
+		end
+		shown = raw
+		local decoded, result = pcall(function()
+			return HttpService:JSONDecode(raw)
+		end)
+		local def = if decoded and typeof(result) == "table" then IdleTowers.Defs[result.tower] else nil
+		if not def then
+			return
+		end
+		local color = RARITY_COLORS[def.rarity] or UI.Colors.Text
+		local rarity = Levels.RARITY_NAMES[def.rarity] or def.rarity
+		setText(title, if result.new then "🎉 NOUVELLE TOUR !" else "DOUBLON")
+		tile.setType(result.tower)
+		setText(name, def.displayName)
+		name.TextColor3 = color
+		stroke.Color = color
+		setText(detail, if result.new then `{rarity} : elle rejoint ta barre de tours` else `{rarity} : +{tonumber(result.xp) or 0} XP d'entraînement pour cette tour`)
+		gui.Enabled = true
+		SoundManager.play(if result.new then "Victory" else "TowerUpgraded")
+	end)
+end
+
 local function build()
 	levelAction = Remotes.get("LevelAction")
 	readState()
@@ -3512,6 +3927,7 @@ local function build()
 	buildHud()
 	buildInvite()
 	buildFriendNotice()
+	buildHatchReveal()
 	-- Monstre tué dans ma zone de combat : l'or qu'il donne s'affiche au-dessus de lui.
 	PlotRenderer.onEnemyKilled = function(plotIndex: number, enemyType: string, position: Vector3)
 		local enemy = Levels.ENEMY[enemyType]

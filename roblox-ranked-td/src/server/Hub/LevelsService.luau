@@ -13,6 +13,8 @@
 --   * LES AMIS (Levels.luau) : amis Roblox sur le serveur (attribut « FriendsHere »), récompenses d'invitation (un
 --     ami venu grâce à une invitation : pour lui et pour celui qui l'a invité, tout de suite ou à son retour) ;
 --   * la boutique à prix fixes, le camp d'entraînement (emplacements), l'ordre de la barre rapide ;
+--   * LES ŒUFS (Levels.luau) : un œuf gagné à chaque victoire, les couveuses (poser, ouvrir, finir tout de suite,
+--     acheter), la tour sortie (attribut « Hatch » du joueur) ;
 --   * le tuto des nouveaux joueurs : son étape (champ `tutorial`, Levels.TUTORIAL), « Passer le tuto », et les
 --     statistiques des nouveaux joueurs (Hub/Funnel.luau) ;
 --   * publier l'état du joueur (attributs LevelsState, LevelArena : voir Remotes.luau, LevelAction).
@@ -114,6 +116,11 @@ local function publish(player: Player)
 	for _, towerType in IdleTowers.ORDER do
 		xp[towerType] = round1(levels.xp[towerType] or 0)
 	end
+	-- Couveuses : l'œuf de chacune et le temps qui reste (secondes, à cet instant : le client décompte).
+	local hatchers = {}
+	for index, hatcher in levels.hatchers do
+		hatchers[index] = { egg = hatcher.egg, readyIn = if hatcher.egg ~= "" then math.max(0, hatcher.readyAt - now()) else 0 }
+	end
 	player:SetAttribute("LevelsState", HttpService:JSONEncode({
 		best = levels.best,
 		coins = levels.coins,
@@ -123,17 +130,20 @@ local function publish(player: Player)
 		wins = levels.wins,
 		losses = levels.losses,
 		tutorial = levels.tutorial, -- étape du tuto (Levels.TUTORIAL), lue par TutorialUI
+		eggs = levels.eggs, -- œufs en réserve : { [type] = nombre }
+		hatchers = hatchers, -- couveuses : { { egg, readyIn } }
 	}))
 	if real(player) then
 		PlayerData.setLevel(player, levels.best) -- colonne « Level » de la liste des joueurs
 		for _, callback in changedCallbacks do
-			task.spawn(callback, player, levels)
+			task.spawn(callback, player, levels, now())
 		end
 	end
 	LevelTeams.refresh(player) -- (la fenêtre de l'équipe montre le niveau réussi de chacun)
 end
 
--- callback(player, data.levels) à chaque publication de l'état d'un joueur (emplacements, XP, pièces...).
+-- callback(player, data.levels, heure du serveur) à chaque publication de l'état d'un joueur (emplacements, XP,
+-- pièces, couveuses...). L'heure (os.time, plus le décalage des tests Studio) sert à décompter les couveuses.
 function LevelsService.onChanged(callback: (Player, any) -> ())
 	table.insert(changedCallbacks, callback)
 end
@@ -317,7 +327,11 @@ local function rewardMember(player: Player, game, won: boolean, member, showResu
 	local friendHere = friendCount(player) > 0
 	local reward = Levels.bonusReward(Levels.reward(level, won, firstClear, progress), game.teamSize, friendHere)
 	levels.coins += reward
+	local egg, eggKept = nil, false
 	if won then
+		-- « LES ŒUFS » : un œuf à chaque victoire (perdu si la réserve est pleine).
+		egg = Levels.eggFor(level, firstClear)
+		eggKept = Levels.addEgg(levels, egg)
 		levels.best = math.max(levels.best, level)
 		levels.wins += 1
 		-- Tuto : le guide du premier niveau est fini, la flèche montrera la boutique dès qu'il pourra acheter une tour.
@@ -364,6 +378,8 @@ local function rewardMember(player: Player, game, won: boolean, member, showResu
 		seconds = math.floor(game.clock),
 		team = game.teamSize, -- joueurs de la partie (1 = seul) : l'écran de fin dit le bonus d'équipe
 		friend = friendHere, -- un ami Roblox sur le serveur : l'écran de fin dit le bonus d'ami
+		egg = egg, -- l'œuf gagné (nil : défaite)
+		eggKept = eggKept, -- faux : réserve pleine, l'œuf est perdu
 		})
 		game:setAttr("Result_" .. member.key, result)
 		if member == game then
@@ -583,6 +599,97 @@ local function startLevel(player: Player, level: any): (boolean, string?)
 end
 
 ----------------------------------------------------------------------
+-- Les œufs (« LES ŒUFS », Levels.luau) : les poser dans une couveuse, les ouvrir, finir tout de suite, acheter
+-- une couveuse. Les couveuses sont sur la parcelle du joueur (Hub/Camp.luau) et dans l'onglet Œufs (LevelsUI).
+----------------------------------------------------------------------
+local hatchRandom = Random.new()
+local hatchCount = 0 -- n° de la dernière ouverture (attribut « Hatch » : le client montre la tour sortie)
+local forcedHatch = {} -- [joueur] = tour qui sortira du prochain œuf (tests Studio : debug « EggForce »)
+
+local function hatcherAt(levels, index: any)
+	return if typeof(index) == "number" then levels.hatchers[index] else nil
+end
+
+-- Pose un œuf de sa réserve dans une couveuse vide : il éclot dans EGGS[type].seconds.
+local function startEgg(levels, index: any, eggType: any): (boolean, string?)
+	local hatcher = hatcherAt(levels, index)
+	if not hatcher or typeof(eggType) ~= "string" or not Levels.EGGS[eggType] then
+		return false, nil
+	end
+	if hatcher.egg ~= "" then
+		return false, "Cette couveuse est déjà occupée"
+	end
+	if (levels.eggs[eggType] or 0) < 1 then
+		return false, "Tu n'as plus d'œuf de ce type : gagne des niveaux pour en avoir"
+	end
+	levels.eggs[eggType] -= 1
+	if levels.eggs[eggType] <= 0 then
+		levels.eggs[eggType] = nil
+	end
+	hatcher.egg = eggType
+	hatcher.readyAt = now() + Levels.EGGS[eggType].seconds
+	return true, nil
+end
+
+-- Ouvre l'œuf prêt d'une couveuse : une tour au hasard (chances de l'œuf), nouvelle ou doublon (XP). Le résultat part
+-- dans l'attribut « Hatch » du joueur : son écran le montre.
+local function openEgg(player, levels, index: any): (boolean, string?)
+	local hatcher = hatcherAt(levels, index)
+	if not hatcher or hatcher.egg == "" then
+		return false, nil
+	end
+	if now() < hatcher.readyAt then
+		return false, "Cet œuf n'est pas encore prêt"
+	end
+	local eggType = hatcher.egg
+	local tower = forcedHatch[player] or Levels.rollEgg(eggType, hatchRandom:NextNumber())
+	forcedHatch[player] = nil
+	local isNew, xp = Levels.hatchTower(levels, tower)
+	if isNew then
+		levels.tutorial = Levels.TUTORIAL.DONE -- (une nouvelle tour, comme un achat : le tuto est fini)
+	end
+	hatcher.egg, hatcher.readyAt = "", 0
+	hatchCount += 1
+	player:SetAttribute("Hatch", HttpService:JSONEncode({ n = hatchCount, egg = eggType, tower = tower, new = isNew, xp = xp }))
+	print(`[Niveaux] {player.Name} : {eggType} ouvert -> {tower} ({if isNew then "nouvelle" else `doublon, +{xp} XP`})`)
+	return true, nil
+end
+
+-- Finit tout de suite l'œuf d'une couveuse, avec des pièces de niveau (Levels.skipCost).
+local function skipEgg(levels, index: any): (boolean, string?)
+	local hatcher = hatcherAt(levels, index)
+	if not hatcher or hatcher.egg == "" then
+		return false, nil
+	end
+	local cost = Levels.skipCost(hatcher.readyAt - now())
+	if cost <= 0 then
+		return false, nil
+	end
+	if levels.coins < cost then
+		return false, `Il te manque {cost - levels.coins} pièces de niveau`
+	end
+	levels.coins -= cost
+	hatcher.readyAt = now()
+	return true, nil
+end
+
+-- Achète la couveuse suivante (Levels.HATCHER_COST).
+local function buyHatcher(player, levels): (boolean, string?)
+	local index = #levels.hatchers + 1
+	local price = Levels.HATCHER_COST[index]
+	if not price then
+		return false, "Tu as déjà toutes les couveuses"
+	end
+	if levels.coins < price then
+		return false, `Il te manque {price - levels.coins} pièces de niveau`
+	end
+	levels.coins -= price
+	table.insert(levels.hatchers, { egg = "", readyAt = 0 })
+	notify(player, `Nouvelle couveuse : {index} œufs peuvent éclore en même temps`, "Success")
+	return true, nil
+end
+
+----------------------------------------------------------------------
 -- Boutique, camp d'entraînement, barre rapide
 ----------------------------------------------------------------------
 
@@ -751,6 +858,14 @@ local function handle(player: Player, action: any, a: any, b: any, c: any): (boo
 		ok, reason = buyTraining(levels, a)
 	elseif action == "Bar" then
 		ok, reason = setBar(levels, a)
+	elseif action == "EggStart" then
+		ok, reason = startEgg(levels, a, b)
+	elseif action == "EggOpen" then
+		ok, reason = openEgg(player, levels, a)
+	elseif action == "EggSkip" then
+		ok, reason = skipEgg(levels, a)
+	elseif action == "HatcherBuy" then
+		ok, reason = buyHatcher(player, levels)
 	end
 	if ok ~= nil then
 		if ok then
@@ -929,6 +1044,8 @@ end
 --   Invoke(player, "Levels", "InviteJoin", id)   -> ce joueur d'essai arrive grâce à l'invitation du joueur
 --                                                   (welcomeInvited) ; renvoie vrai si sa récompense est donnée
 --   Invoke(player, "Levels", "InvitePending", 9) -> l'ami 9 est venu grâce au joueur pendant son absence (noté)
+--   Invoke(player, "Levels", "Egg", "Rare", 2)    -> 2 œufs rares de plus dans sa réserve ; renvoie la réserve
+--   Invoke(player, "Levels", "EggForce", "Laser") -> le prochain œuf ouvert donnera cette tour
 --   Invoke(player, "Levels", "InviteClaim")      -> le joueur prend ses récompenses d'invitation en attente ;
 --                                                   renvoie leur nombre
 --   Invoke(player, "Levels", "Bench", 6, 60, 12) -> 6 niveaux 10 joués en même temps pendant 60 s de jeu, 12 tours
@@ -1042,6 +1159,16 @@ function LevelsService.debug(player: Player, command: string, ...)
 		return true
 	elseif command == "InviteClaim" then
 		return claimPendingInvites(player)
+	elseif command == "Egg" and levels then
+		local eggType, count = ...
+		for _ = 1, math.floor(tonumber(count) or 1) do
+			Levels.addEgg(levels, eggType)
+		end
+		publish(player)
+		return table.clone(levels.eggs)
+	elseif command == "EggForce" then
+		forcedHatch[player] = if IdleTowers.Defs[...] then ... else nil
+		return forcedHatch[player]
 	elseif command == "TeamGone" then
 		local fake = fakePlayers[...]
 		if fake then

@@ -1396,6 +1396,69 @@ do
 	)
 end
 
+----------------------------------------------------------------------
+-- 13) Les œufs. Idée du propriétaire (04/10/2026) : « des œufs de tourelle quand tu finis les niveaux en gagnant,
+--     et les mettre dans des générateurs qui donnent un temps ». Les règles (Levels) : œuf gagné, réserve,
+--     chances, tour sortie (nouvelle ou doublon), finir tout de suite, données.
+----------------------------------------------------------------------
+do
+	check(
+		Levels.eggFor(1, true) == "Common" and Levels.eggFor(5, true) == "Rare" and Levels.eggFor(10, true) == "Gold"
+			and Levels.eggFor(1, false) == "Common" and Levels.eggFor(5, false) == "Common" and Levels.eggFor(10, false) == "Rare",
+		"œufs : première victoire = commun, rare au mini-boss, doré au boss ; en rejouant = commun, rare au boss"
+	)
+	local reserve = Levels.defaultData()
+	local kept = 0
+	for _ = 1, Levels.EGG_MAX + 5 do
+		if Levels.addEgg(reserve, "Common") then
+			kept += 1
+		end
+	end
+	check(kept == Levels.EGG_MAX and Levels.eggCount(reserve) == Levels.EGG_MAX and not Levels.addEgg(reserve, "Gold"), `œufs : {Levels.EGG_MAX} au plus en réserve, les suivants sont perdus`)
+	local chancesOk, seen = true, {}
+	for _, eggType in Levels.EGG_ORDER do
+		local sum, rarities = 0, {}
+		for _, entry in Levels.eggChances(eggType) do
+			sum += entry.chance
+			rarities[IdleTowers.Defs[entry.tower].rarity] = true
+		end
+		chancesOk = chancesOk and math.abs(sum - 1) < 1e-9 and Levels.EGGS[eggType].seconds > 0
+		table.insert(seen, `{eggType} {#Levels.eggChances(eggType)} tours`)
+		if eggType == "Common" then
+			chancesOk = chancesOk and not rarities.Legendary
+		elseif eggType == "Gold" then
+			chancesOk = chancesOk and not rarities.Common and rarities.Legendary == true
+		end
+	end
+	local first, last = Levels.rollEgg("Common", 0), Levels.rollEgg("Gold", 0.99999)
+	check(
+		chancesOk and IdleTowers.Defs[first].rarity == "Common" and IdleTowers.Defs[last].rarity == "Legendary"
+			and Levels.EGGS.Common.seconds < Levels.EGGS.Rare.seconds and Levels.EGGS.Rare.seconds < Levels.EGGS.Gold.seconds,
+		`œufs : chances qui font 100 % (un œuf commun ne donne jamais de légendaire, un doré jamais de commune), du plus court au plus long : {table.concat(seen, ", ")}`
+	)
+	local hatcher = Levels.defaultData()
+	local isNew, xp = Levels.hatchTower(hatcher, "Laser")
+	local again, xpAgain = Levels.hatchTower(hatcher, "Laser")
+	local _, startXp = Levels.hatchTower(hatcher, "MachineGun")
+	check(
+		isNew and xp == 0 and hatcher.towers.Laser == true and table.find(hatcher.bar, "Laser") ~= nil and not again
+			and xpAgain == Levels.DUPLICATE_XP.Epic and hatcher.xp.Laser == Levels.DUPLICATE_XP.Epic and startXp == Levels.DUPLICATE_XP.Common,
+		"œufs : une tour nouvelle est au joueur (dans sa barre) ; un doublon donne de l'XP d'entraînement selon sa rareté"
+	)
+	check(Levels.skipCost(0) == 0 and Levels.skipCost(-5) == 0 and Levels.skipCost(15 * 60) == 15 * Levels.SKIP_COINS_PER_MINUTE and Levels.skipCost(61) == 2 * Levels.SKIP_COINS_PER_MINUTE, "œufs : finir tout de suite coûte des pièces par minute qui reste (minute entamée comptée)")
+	local cleaned = Levels.cleanData({
+		eggs = { Common = 3, Rare = -2, Gold = "x", Fake = 9 },
+		hatchers = { { egg = "Rare", readyAt = 123 }, { egg = "Nope", readyAt = 9 }, { egg = "", readyAt = 5 }, { egg = "Gold", readyAt = 1 } },
+	})
+	local fresh = Levels.defaultData()
+	check(
+		cleaned.eggs.Common == 3 and cleaned.eggs.Rare == nil and cleaned.eggs.Gold == nil and cleaned.eggs.Fake == nil and #cleaned.hatchers == #Levels.HATCHER_COST
+			and cleaned.hatchers[1].egg == "Rare" and cleaned.hatchers[1].readyAt == 123 and cleaned.hatchers[2].egg == "" and cleaned.hatchers[2].readyAt == 0
+			and #fresh.hatchers == 1 and fresh.hatchers[1].egg == "" and Levels.HATCHER_COST[1] == 0,
+		"œufs : données propres (réserve, couveuses : la 1re offerte, 3 au plus ; un œuf inconnu est enlevé)"
+	)
+end
+
 -- Équipes de joueurs simulés, avec les PV d'équipe : les joueurs de référence gagnent (au moins 5 vies), comme seuls.
 for _, size in { 2, 3, 4 } do
 	for _, level in { 10, 50, 100 } do

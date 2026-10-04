@@ -65,6 +65,15 @@ PlotLayout.SPOTS = {
 	Vector3.new(5, 0, -31),
 }
 
+-- Couveuses du camp (« LES ŒUFS », Levels.luau ; Hub/Camp.luau) : une rangée entre le point d'arrivée du joueur et
+-- les socles d'entraînement, loin du chemin (x = 0 et plus) et des murets (x = ±31). La couveuse n porte l'œuf de sa
+-- couveuse n (data.levels.hatchers).
+PlotLayout.HATCHERS = {
+	Vector3.new(-26, 0, -42),
+	Vector3.new(-19, 0, -42),
+	Vector3.new(-12, 0, -42),
+}
+
 -- Hauteur (studs) du socle de pierre, posé sur le sol : la tour est posée dessus (Hub/CampGame.luau). Rien ne change
 -- pour le combat (portées et vols se calculent à partir du sol).
 PlotLayout.SPOT_PAD_HEIGHT = 1

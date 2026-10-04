@@ -841,6 +841,8 @@ return function(log)
 		towers = { MachineGun = true, Bomb = true },
 		slots = { { tower = "MachineGun", level = 1 } },
 		bar = { "MachineGun", "Bomb" },
+		eggs = {}, -- (les niveaux gagnés plus haut ont donné des œufs : un nouveau joueur n'en a pas)
+		hatchers = { { egg = "", readyAt = 0 } },
 	} do
 		levels("Set", key, value)
 	end

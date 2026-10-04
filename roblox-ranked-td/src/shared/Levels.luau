@@ -1389,6 +1389,130 @@ Levels.CAMP = {
 }
 
 ----------------------------------------------------------------------
+-- LES ŒUFS. Idée du propriétaire (04/10/2026) : « des œufs de tourelle quand tu finis les niveaux en gagnant, et
+-- les mettre dans des générateurs qui donnent un temps » ; « 16 tours qui te bloquent au niveau 40, comme ça je peux
+-- travailler les mises à jour petit à petit ». Étape 1 : les œufs et les couveuses, avec les tours d'aujourd'hui
+-- (les nouvelles tours viendront ensuite, surtout par les œufs) :
+--   * gagner un niveau donne un ŒUF (Levels.eggFor) : première victoire = commun, rare au mini-boss, doré au boss ;
+--     en rejouant = commun, rare au boss. EGG_MAX œufs au plus en réserve (au-delà, l'œuf est perdu : l'écran de fin
+--     le dit) ;
+--   * un œuf se pose dans une COUVEUSE de sa parcelle (la 1re offerte, les autres achetées : HATCHER_COST) et éclot
+--     après son temps (EGGS[type].seconds), même quand le joueur n'est pas là ; on peut finir tout de suite avec des
+--     pièces de niveau (SKIP_COINS_PER_MINUTE par minute qui reste) ;
+--   * en l'ouvrant : une tour au HASARD, avec les chances de son œuf par rareté (EGGS[type].chances, écrites dans
+--     l'onglet Œufs) ; une tour pas encore à lui devient la sienne ; un doublon donne de l'XP d'entraînement à cette
+--     tour (DUPLICATE_XP selon sa rareté).
+-- Les chiffres sont les miens (temps, chances, prix) : à changer s'il le veut.
+----------------------------------------------------------------------
+Levels.EGGS = {
+	Common = {
+		displayName = "Œuf commun",
+		seconds = 15 * 60,
+		color = Color3.fromRGB(238, 230, 208),
+		chances = { Common = 0.7, Rare = 0.25, Epic = 0.05, Legendary = 0 },
+	},
+	Rare = {
+		displayName = "Œuf rare",
+		seconds = 60 * 60,
+		color = Color3.fromRGB(86, 156, 236),
+		chances = { Common = 0.35, Rare = 0.45, Epic = 0.17, Legendary = 0.03 },
+	},
+	Gold = {
+		displayName = "Œuf doré",
+		seconds = 4 * 3600,
+		color = Color3.fromRGB(255, 196, 52),
+		chances = { Common = 0, Rare = 0.4, Epic = 0.45, Legendary = 0.15 },
+	},
+}
+Levels.EGG_ORDER = { "Common", "Rare", "Gold" }
+Levels.EGG_MAX = 30 -- œufs en réserve au plus (tous types ensemble)
+Levels.HATCHER_COST = { 0, 600, 2500 } -- prix de la 1re (offerte), 2e et 3e couveuse, en pièces de niveau
+Levels.SKIP_COINS_PER_MINUTE = 5 -- finir un œuf tout de suite : pièces de niveau par minute qui reste
+Levels.DUPLICATE_XP = { Common = 20, Rare = 40, Epic = 80, Legendary = 160 } -- XP d'entraînement d'un doublon
+Levels.RARITY_NAMES = { Common = "Commune", Rare = "Rare", Epic = "Épique", Legendary = "Légendaire" }
+Levels.RARITY_ORDER = { "Common", "Rare", "Epic", "Legendary" }
+
+-- L'œuf gagné en remportant ce niveau (première victoire ou non).
+function Levels.eggFor(level: number, firstClear: boolean): string
+	local definition = Levels.definition(level)
+	if firstClear then
+		return if definition.boss then "Gold" elseif definition.miniBoss then "Rare" else "Common"
+	end
+	return if definition.boss then "Rare" else "Common"
+end
+
+-- Œufs en réserve (tous types).
+function Levels.eggCount(levels): number
+	local count = 0
+	for _, eggType in Levels.EGG_ORDER do
+		count += levels.eggs[eggType] or 0
+	end
+	return count
+end
+
+-- Un œuf de plus en réserve ; faux si la réserve est pleine (l'œuf est perdu).
+function Levels.addEgg(levels, eggType: string): boolean
+	if not Levels.EGGS[eggType] or Levels.eggCount(levels) >= Levels.EGG_MAX then
+		return false
+	end
+	levels.eggs[eggType] = (levels.eggs[eggType] or 0) + 1
+	return true
+end
+
+-- Les tours qu'un œuf peut donner et leurs chances : { { tower, chance } } (chance de 0 à 1, total 1). La chance de
+-- chaque rareté est partagée à parts égales entre ses tours.
+function Levels.eggChances(eggType: string): { { tower: string, chance: number } }
+	local byRarity = {}
+	for _, towerType in IdleTowers.ORDER do
+		local rarity = IdleTowers.Defs[towerType].rarity
+		byRarity[rarity] = byRarity[rarity] or {}
+		table.insert(byRarity[rarity], towerType)
+	end
+	local list = {}
+	for _, rarity in Levels.RARITY_ORDER do
+		local chance = Levels.EGGS[eggType].chances[rarity] or 0
+		local towers = byRarity[rarity] or {}
+		if chance > 0 and #towers > 0 then
+			for _, towerType in towers do
+				table.insert(list, { tower = towerType, chance = chance / #towers })
+			end
+		end
+	end
+	return list
+end
+
+-- La tour qui sort de cet œuf pour un tirage `roll` (de 0 à 1, au hasard : Random du serveur).
+function Levels.rollEgg(eggType: string, roll: number): string
+	local list = Levels.eggChances(eggType)
+	local sum = 0
+	for _, entry in list do
+		sum += entry.chance
+		if roll < sum then
+			return entry.tower
+		end
+	end
+	return list[#list].tower
+end
+
+-- Une tour sort d'un œuf : nouvelle, elle est au joueur (dans sa barre rapide) ; doublon : DUPLICATE_XP d'XP
+-- d'entraînement pour elle. Renvoie (nouvelle, XP gagnée).
+function Levels.hatchTower(levels, towerType: string): (boolean, number)
+	if not levels.towers[towerType] then
+		levels.towers[towerType] = true
+		table.insert(levels.bar, towerType)
+		return true, 0
+	end
+	local xp = Levels.DUPLICATE_XP[IdleTowers.Defs[towerType].rarity] or 0
+	levels.xp[towerType] = (levels.xp[towerType] or 0) + xp
+	return false, xp
+end
+
+-- Prix pour finir tout de suite un œuf qui doit encore couver `seconds` secondes (0 s'il est prêt).
+function Levels.skipCost(seconds: number): number
+	return if seconds > 0 then math.ceil(seconds / 60) * Levels.SKIP_COINS_PER_MINUTE else 0
+end
+
+----------------------------------------------------------------------
 -- TUTO des nouveaux joueurs (affichage : client/TutorialUI.luau ; serveur : Hub/LevelsService.luau). Demande du
 -- propriétaire (02/10/2026) : « fais le tuto bien, je veux un jeu sortable ». Pas d'écran à lire : une flèche montre
 -- quoi toucher. Le champ `tutorial` des données du joueur dit où il en est :
@@ -1463,6 +1587,9 @@ function Levels.defaultData()
 		tutorial = 0, -- étape du tuto (Levels.TUTORIAL) : 0 = nouveau joueur
 		invitedBy = 0, -- UserId de l'ami dont l'invitation l'a fait venir (0 = personne) : « LES AMIS »
 		invited = {}, -- UserId des amis venus grâce à ses invitations (récompensés, une fois chacun)
+		eggs = {}, -- [type d'œuf] = nombre en réserve : « LES ŒUFS »
+		hatchers = { { egg = "", readyAt = 0 } }, -- ses couveuses (la 1re offerte) : egg = type d'œuf ("" = vide),
+		-- readyAt = os.time() où il éclot
 	}
 end
 
@@ -1484,6 +1611,23 @@ function Levels.cleanData(saved: any)
 	data.wins = math.floor(cleanNumber(saved.wins, 0, 1e9, 0))
 	data.losses = math.floor(cleanNumber(saved.losses, 0, 1e9, 0))
 	data.trainedAt = math.floor(cleanNumber(saved.trainedAt, 0, 1e11, 0))
+	if typeof(saved.eggs) == "table" then
+		for _, eggType in Levels.EGG_ORDER do
+			local count = math.floor(cleanNumber(saved.eggs[eggType], 0, Levels.EGG_MAX, 0))
+			if count > 0 then
+				data.eggs[eggType] = count
+			end
+		end
+	end
+	if typeof(saved.hatchers) == "table" and #saved.hatchers >= 1 then
+		data.hatchers = {}
+		for index = 1, math.min(#saved.hatchers, #Levels.HATCHER_COST) do
+			local hatcher = saved.hatchers[index]
+			local egg = if typeof(hatcher) == "table" and Levels.EGGS[hatcher.egg] then hatcher.egg else ""
+			local readyAt = if egg ~= "" then math.floor(cleanNumber(hatcher.readyAt, 0, 1e11, 0)) else 0
+			table.insert(data.hatchers, { egg = egg, readyAt = readyAt })
+		end
+	end
 	data.invitedBy = math.floor(cleanNumber(saved.invitedBy, -1e15, 1e15, 0))
 	if typeof(saved.invited) == "table" then
 		for _, friendId in saved.invited do

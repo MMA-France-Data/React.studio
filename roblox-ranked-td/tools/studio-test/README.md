@@ -143,6 +143,22 @@ avec 2 joueurs, ou avec un ami).
   des amis », le bonus d'ami sur l'écran de fin) ; à la taille d'un téléphone (`team_tel_page`,
   `team_tel_invitation`).
 
+### `run.ps1 -Test eggs` : les œufs et les couveuses (environ 2 minutes)
+
+Scénarios `scenarios\EggsServer.luau` et `scenarios\EggsClient.luau`. Captures `out\eggs_<nom>.png`. L'heure du
+serveur avance avec le debug « Clock » (un œuf de 4 h s'ouvre tout de suite), et le debug « EggForce » choisit la
+tour du prochain œuf (le tirage au hasard n'est pas testable autrement).
+
+- **serveur** : un œuf à chaque victoire (doré au boss, commun en rejouant, rien en perdant, perdu si la réserve est
+  pleine), poser un œuf (couveuse vide et œuf en réserve seulement), pas d'ouverture avant son temps, la tour sortie
+  (nouvelle : dans la barre ; doublon : XP d'entraînement ; attribut `Hatch`), « Finir » avec des pièces, les
+  couveuses achetées (pas de 4e), les couveuses de la parcelle (l'œuf de sa couleur, le temps qui reste, l'œuf prêt
+  qui brille, l'invite vers l'onglet Œufs) ;
+- **client** : l'onglet « Œufs » (cartes des œufs et leurs chances, couveuses : `eggs_onglet`), un œuf posé
+  (`eggs_couve`), prêt puis ouvert : nouvelle tour (`eggs_nouvelle_tour`) et doublon (`eggs_doublon`), la 2e couveuse
+  achetée, la pastille « ! » de l'onglet, l'écran de fin qui dit l'œuf gagné (`eggs_fin_de_niveau`), à la taille
+  d'un téléphone (`eggs_tel_onglet`).
+
 ### `run.ps1 -Test english` : la version anglaise (environ 3 minutes)
 
 Scénarios `scenarios\EnglishServer.luau` et `scenarios\EnglishClient.luau`. Captures `out\english_<nom>.png`.
