@@ -13,11 +13,14 @@
 --     (PolicyService : un œuf donne une tour au hasard ; ou si Roblox ne répond pas) ; aucun achat avec un numéro à 0,
 --     ni un produit dont le prix sur Roblox n'est pas celui attendu.
 -- Studio : les achats de Studio sont de faux achats (aucun Robux) ; les tests automatiques passent par StudioDebug
--- (« Levels », « Shop », ... : en bas).
+-- (« Levels », « Shop », ... : en bas). Dans Studio, les pass ne sont PAS demandés à Roblox : le compte du créateur
+-- du jeu les a tous (vu le 05/10/2026 : les tests trouvaient des pièces déjà doublées) ; un achat de test de Studio,
+-- ou le debug « Owned », les donne.
 local MarketplaceService = game:GetService("MarketplaceService")
 local Players = game:GetService("Players")
 local PolicyService = game:GetService("PolicyService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Levels = require(Shared.Levels)
@@ -175,7 +178,7 @@ local function checkPlayer(player: Player, onChecked)
 	end)
 	restricted[player] = not ok or typeof(info) ~= "table" or info.ArePaidRandomItemsRestricted == true or nil
 	for key, id in passIds do
-		if id ~= 0 and player.Parent == Players then
+		if id ~= 0 and player.Parent == Players and not RunService:IsStudio() then
 			local okPass, owns = pcall(function()
 				return MarketplaceService:UserOwnsGamePassAsync(player.UserId, id)
 			end)

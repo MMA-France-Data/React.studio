@@ -10,13 +10,14 @@ local Monetization = {}
 -- Les pass (une fois pour toutes). id = son numéro sur Roblox ; price = le prix mis sur le Hub Création, seulement
 -- affiché (la fenêtre d'achat de Roblox montre toujours le vrai prix).
 Monetization.PASSES = {
-	-- La couveuse royale : la 3e couveuse, dorée, où les œufs éclosent 2 fois plus vite (Levels.ROYAL).
-	Royal = { id = 0, price = 99 },
+	-- La couveuse royale : la 3e couveuse, dorée, où les œufs éclosent 2 fois plus vite (Levels.ROYAL). Sur le Hub
+	-- Création : « Incubateur royal » (créé par le propriétaire le 05/10/2026).
+	Royal = { id = 2006325409, price = 99 },
 	-- XP x2 : toute l'XP d'entraînement gagnée est doublée (camp, niveaux joués, doublons des œufs ; pas l'XP achetée
 	-- avec le bouton ⚡ : Levels.XP_PASS_MULTIPLIER).
-	Xp = { id = 0, price = 99 },
+	Xp = { id = 2006337360, price = 99 },
 	-- Argent x2 : les pièces de niveau gagnées en jouant les niveaux sont doublées (Levels.COINS_PASS_MULTIPLIER).
-	Coins = { id = 0, price = 199 },
+	Coins = { id = 2006229395, price = 199 },
 }
 Monetization.PASS_ORDER = { "Royal", "Xp", "Coins" } -- (l'ordre de la boutique)
 

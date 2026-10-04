@@ -198,6 +198,9 @@ return function(log)
 		`couveuses à pièces : la 2e ({Levels.HATCHER_COST[2]}), pas de 3e (« {tostring(why3)} » : la 3e est la couveuse royale, en Robux)`
 	)
 	levels("Shop", "Restricted", false) -- (achats en Robux d'œufs permis chez lui)
+	for _, key in { "Royal", "Xp", "Coins" } do
+		levels("Shop", "Owned", key, false) -- (au départ, aucun pass : même si le compte de Studio en avait acheté)
+	end
 	levels("Set", "eggs", { Gold = 1 })
 	local royalRefused = action("EggStart", Levels.ROYAL.index, "Gold")
 	check(not royalRefused and (data().eggs.Gold or 0) == 1 and data().royal.egg == "", "la couveuse royale : pas d'œuf sans le pass")
@@ -318,6 +321,11 @@ return function(log)
 	-- d'œufs sont interdits : la couveuse royale n'est pas proposée, ni « Finir » en Robux (XP x2 et Argent x2 : si).
 	action("EggOpen", Levels.ROYAL.index)
 	levels("Shop", "Owned", "Royal", false)
+	-- (numéros de test : les vrais numéros du Hub Création, dans Monetization.luau, ne comptent pas ici ; XP x2 et
+	-- Argent x2 restent à 0 pour la partie du client : « Bientôt »)
+	for _, key in { "Royal", "Xp", "Coins" } do
+		levels("Shop", "Pass", key, 0)
+	end
 	local soon = levels("Shop", "State")
 	levels("Shop", "Restricted", true)
 	local restrictedState = levels("Shop", "State")

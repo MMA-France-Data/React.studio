@@ -42,12 +42,17 @@ Le jeu sort comme une **nouvelle expérience Roblox** (décision du 02/10/2026) 
       l'instant). À faire faire par ChatGPT comme les autres (`assets/EnemyModels/Boss_5.rbxm` et `Boss_8.rbxm`).
       Le dragon (niveau 100) n'a pas d'animation de mort. Le colosse géant (niveaux 15, 25, 35) prend le modèle du
       chevalier colossal en plus grand ; un modèle à lui : `assets/EnemyModels/Colossus.rbxm`.
-- [ ] **Les achats en Robux** (tes demandes du 04/10/2026 ; voir `NIVEAUX.md`, « Les achats en Robux ») : le code
-      est prêt (pass « Couveuse royale » 99, « XP x2 » 99, « Argent x2 » 199, « Finir l'œuf » 1 Robux les 5 min).
-      À toi : sur le Hub Création > ton jeu > **Monétisation**, crée les 3 **pass** (Passes > Créer un pass ; puis
-      Ventes > en vente, au bon prix) et les 7 **produits pour développeurs** « Finish egg 1, 2, 3, 6, 12, 24, 48 »
-      (au prix de leur nombre), avec les images de `assets/page` (voir son `LISEZ-MOI.txt`), puis donne-moi leurs
-      numéros : je les écris dans `src/shared/Monetization.luau` et je refais la copie à publier.
+- [ ] **Les achats en Robux** (tes demandes du 04/10/2026 ; voir `NIVEAUX.md`, « Les achats en Robux ») : pass
+      « Couveuse royale » 99, « XP x2 » 99, « Argent x2 » 199, « Finir l'œuf » 1 Robux les 5 min.
+      - [x] Les 3 **pass** créés par toi le 05/10/2026 (« Incubateur royal » 2006325409, « XP x2 » 2006337360,
+        « Argent x2 » 2006229395) : leurs numéros sont dans `src/shared/Monetization.luau`.
+      - [ ] Leurs **images** (`assets/page` : `couveuse-royale.png`, `pass-xp-x2.png`, `pass-argent-x2.png`) : la
+        page de chaque pass sur le Hub Création. Conseil : des noms en anglais (« Royal Incubator », « Money x2 »),
+        la langue de la page étant l'anglais ; les noms français vont dans Localisation > Traduire > « Produits ».
+      - [ ] Les 7 **produits pour développeurs** « Finish egg 1, 2, 3, 6, 12, 24, 48 » (Monétisation > Produits pour
+        développeurs ; au prix de leur nombre ; image `finir-oeuf.png`), puis donne-moi leurs numéros : je les écris
+        dans `Monetization.luau` et je refais la copie à publier. Tant qu'ils manquent, le bouton « Finir » en
+        Robux n'apparaît pas (le reste marche).
 
 ## Publication (Studio et Hub Création)
 

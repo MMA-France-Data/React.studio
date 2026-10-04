@@ -455,6 +455,10 @@ sauvegarde).
   `assets/page` ; tu me donnes leurs numéros et je les écris dans `src/shared/Monetization.luau`. Tant qu'un numéro
   vaut 0, l'achat affiche « Bientôt » (rien ne casse). Au démarrage, le serveur vérifie que chaque produit a bien
   son prix sur Roblox (sinon il n'est pas proposé).
+- **Dans Studio**, le jeu ne demande pas tes pass à Roblox : ton compte de créateur les a tous (les tests trouvaient
+  des pièces déjà doublées). Pour essayer un pass dans Studio : clique « 99 R$ », Studio fait un achat de test
+  (gratuit). Dans le jeu publié, toi aussi tu as les 3 pass : pour voir le jeu comme un joueur qui ne paie pas,
+  demande à un ami, ou essaie dans Studio.
 - **Les pays où Roblox interdit les objets aléatoires payants** (un œuf donne une tour au hasard) : la couveuse
   royale et « Finir » en Robux n'y sont pas proposés (PolicyService) ; XP x2 et Argent x2 si.
 - Le code : `src/shared/Monetization.luau` (numéros, prix affichés), `src/server/Hub/Shop.luau` (achats, reçus),
