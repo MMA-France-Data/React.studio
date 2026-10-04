@@ -15,7 +15,7 @@ d'entraînement, les œufs de tours).
   améliores **sans arrêt** avec l'or des monstres (si tu t'arrêtes, tu perds), tu protèges ton château (10 vies).
   Dans chaque territoire : un mini-boss au 5e niveau, un boss au 10e. **Les 40 premiers niveaux sont ouverts** ; les
   niveaux 41 à 100 arriveront avec tes mises à jour (« 🔒 BIENTÔT » sur leurs cartes).
-- Gagner donne un **œuf** et des **pièces de niveau** 🏅. **Toutes les tours sortent des œufs** (plus de boutique) :
+- Gagner donne un **œuf** et des **pièces de niveau** 💵. **Toutes les tours sortent des œufs** (plus de boutique) :
   tu commences avec l'Archer seul, et le niveau 1 te donne ton **premier œuf** : un œuf commun qui donne à coup sûr
   la Catapulte (il éclot en 10 secondes). Les
   pièces servent à ton camp, à tes couveuses et à finir un œuf tout de suite.
@@ -40,7 +40,7 @@ d'entraînement, les œufs de tours).
    - derrière toi, à l'entrée, les deux bâtiments sont **LES ŒUFS** et la **PORTE DES NIVEAUX** ; tes couveuses sont
      entre ton point d'arrivée et les socles ;
    - au fond, le grand tableau affiche ton camp (niveaux réussis, tours débloquées, pièces).
-3. En haut à gauche, clique **« ⚔ NIVEAUX »** (tes pièces de niveau 🏅 sont affichées juste à côté, puis le bouton
+3. En haut à gauche, clique **« ⚔ NIVEAUX »** (tes pièces de niveau 💵 sont affichées juste à côté, puis le bouton
    « SON »), puis **« ▶ JOUER »** sur le niveau 1. La liste des niveaux défile : un bandeau par territoire, et elle
    s'ouvre toujours sur le territoire de ton prochain niveau.
 4. Dans le niveau :
@@ -104,7 +104,7 @@ les tours de palier 2 ») :
 Améliorer une tour : +35 % de dégâts par niveau, jusqu'au niveau 10. Le prix monte à chaque fois (Archer : 15, 22,
 32, 46…). Vendre rend 60 % de l'or dépensé.
 
-### Les récompenses (pièces de niveau 🏅)
+### Les récompenses (pièces de niveau 💵)
 
 | Niveau | Première victoire | En le rejouant |
 |---|---|---|
@@ -521,7 +521,7 @@ Ta demande du 04/10/2026 (« je joue à un jeu où quand quelqu'un a un ami qui 
 l'inviter pour un bonus de pièces », puis « oui 1 2 3 ») :
 
 1. **Un ami qui se connecte** : quand un de tes amis Roblox se connecte (et qu'il n'est pas déjà dans le jeu), un
-   petit panneau en haut de l'écran : « 🟢 Robin est en ligne ! Invite-le : +200 🏅 pour vous deux s'il vient. »,
+   petit panneau en haut de l'écran : « 🟢 Robin est en ligne ! Invite-le : +200 💵 pour vous deux s'il vient. »,
    avec **« 📨 Inviter »** (l'invitation de Roblox, pour lui) et « X » pour le fermer. Il reste 15 secondes, au camp comme pendant
    un niveau. Le jeu regarde tes amis en ligne toutes les minutes ; ceux qui l'étaient déjà quand tu es arrivé ne
    sont pas annoncés.

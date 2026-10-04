@@ -476,7 +476,7 @@ end
 -- grande et gêne »), tenu en large dans la barre du haut de Roblox, contre le bord droit (elle ne prend rien sur la
 -- vue) ; barre trop basse ou téléphone debout : en haut à droite de la zone de jeu.
 local BUTTON_WIDTH = 96
-local BUTTON_POSITION = Vector2.new(430, 13)
+local BUTTON_POSITION = Vector2.new(288, 13) -- (à droite des pièces de niveau, sous l'icône de Roblox : LevelsUI)
 local PHONE_SIZE = Vector2.new(40, 34)
 local PHONE_MARGIN = 12
 local MODE_ICONS = { All = "🔊", Effects = "🔉", Mute = "🔇" } -- téléphone : tout, effets seuls (sans musique), muet

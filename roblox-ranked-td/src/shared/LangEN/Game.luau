@@ -33,7 +33,7 @@ return {
 	["Victoire :"] = "Win:",
 	["REJOUER"] = "REPLAY",
 	["JOUER"] = "PLAY", -- « ▶ JOUER »
-	["Chaque niveau est un flot de monstres sans pause, de plus en plus forts : pose et améliore tes tours sans arrêt avec l'or qu'ils donnent, protège ton château ({1} vies). Gagner rapporte un œuf (une tour au hasard) et des pièces de niveau 🏅 pour ton camp et tes couveuses."] = "Each level is a non-stop stream of monsters that keep getting stronger: place and upgrade your towers all the time with the gold they drop, and protect your castle ({1} lives). Winning earns an egg (a random tower) and level coins 🏅 for your camp and your incubators.",
+	["Chaque niveau est un flot de monstres sans pause, de plus en plus forts : pose et améliore tes tours sans arrêt avec l'or qu'ils donnent, protège ton château ({1} vies). Gagner rapporte un œuf (une tour au hasard) et des pièces de niveau 💵 pour ton camp et tes couveuses."] = "Each level is a non-stop stream of monsters that keep getting stronger: place and upgrade your towers all the time with the gold they drop, and protect your castle ({1} lives). Winning earns an egg (a random tower) and level coins 💵 for your camp and your incubators.",
 	["BIENTÔT"] = "SOON", -- « 🔒 BIENTÔT » (niveaux après Levels.OPEN_COUNT)
 	["Bientôt"] = "Soon", -- « TERRITOIRE 5 • ... • 🔒 Bientôt »
 	["Victoires : {1}"] = "Wins: {1}",
@@ -248,11 +248,11 @@ return {
 	-- Roblox) et messages du serveur (Hub/LevelsService.luau)
 	----------------------------------------------------------------------
 	["Un ami Roblox sur le même serveur : +{1} % de pièces en plus, seul ou en équipe."] = "A Roblox friend in the same server: +{1}% more coins, solo or in a team.",
-	["Un ami qui vient grâce à ton invitation : +{1} 🏅 pour vous deux."] = "A friend who comes thanks to your invite: +{1} 🏅 for both of you.",
+	["Un ami qui vient grâce à ton invitation : +{1} 💵 pour vous deux."] = "A friend who comes thanks to your invite: +{1} 💵 for both of you.",
 	["Inviter des amis"] = "Invite friends", -- « 📨 Inviter des amis »
 	["Amis Roblox sur ce serveur : {1} (+{2} % de pièces)"] = "Roblox friends in this server: {1} (+{2}% coins)", -- « 🤝 Amis... »
 	["Aucun ami Roblox sur ce serveur pour l'instant"] = "No Roblox friends in this server yet",
-	["{1} est en ligne ! Invite-le : +{2} 🏅 pour vous deux s'il vient."] = "{1} is online! Invite them: +{2} 🏅 for both of you if they come.", -- « 🟢 Robin est en ligne ! ... »
+	["{1} est en ligne ! Invite-le : +{2} 💵 pour vous deux s'il vient."] = "{1} is online! Invite them: +{2} 💵 for both of you if they come.", -- « 🟢 Robin est en ligne ! ... »
 	["Bonus d'ami sur le serveur : +{1} % de pièces"] = "Friend in the server bonus: +{1}% coins", -- « 🤝 Bonus d'ami... »
 	["Tu ne peux pas envoyer d'invitation depuis cet appareil"] = "You can't send invites from this device",
 	["Invite tes amis : {1} pièces de niveau pour vous deux quand ils arrivent !"] = "Invite your friends: {1} level coins for both of you when they join!",

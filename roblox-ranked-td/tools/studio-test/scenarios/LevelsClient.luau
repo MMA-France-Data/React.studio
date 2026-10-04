@@ -293,7 +293,7 @@ return function(log)
 	task.wait(0.4)
 	local hudCoins = campGui:FindFirstChild("HudCoins")
 	check(
-		hudCoins ~= nil and shown(hudCoins) and onScreen(hudCoins) and string.find(hudCoins.Text, "🏅", 1, true) ~= nil and shown(openButton),
+		hudCoins ~= nil and shown(hudCoins) and onScreen(hudCoins) and string.find(hudCoins.Text, "💵", 1, true) ~= nil and shown(openButton),
 		`pièces de niveau affichées à côté du bouton « ⚔ NIVEAUX » (« {if hudCoins then hudCoins.Text else "?"} »)`
 	)
 	-- Bouton « SON » : à droite des pièces, sans rien recouvrir.

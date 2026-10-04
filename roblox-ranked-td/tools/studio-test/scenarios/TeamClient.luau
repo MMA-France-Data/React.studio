@@ -322,7 +322,7 @@ return function(log)
 	local endPanel = endScreen.Panel
 	local reward = Levels.bonusReward(Levels.reward(3, true, false), 2, true) -- (bonus d'équipe et bonus d'ami)
 	check(
-		endScreen.Visible and endPanel.Reward.Text == `+{NumberFormat.short(reward)} 🏅` and string.find(endPanel.Details.Text, "Bonus d'équipe (2 joueurs) : +10 % de pièces", 1, true) ~= nil
+		endScreen.Visible and endPanel.Reward.Text == `+{NumberFormat.short(reward)} 💵` and string.find(endPanel.Details.Text, "Bonus d'équipe (2 joueurs) : +10 % de pièces", 1, true) ~= nil
 			and string.find(endPanel.Details.Text, "🤝 Bonus d'ami sur le serveur : +10 % de pièces", 1, true) ~= nil,
 		`écran de fin : « {endPanel.Reward.Text} » avec le bonus d'équipe (« {string.gsub(endPanel.Details.Text, "\n", " ⏎ ")} »)`
 	)
@@ -426,7 +426,7 @@ return function(log)
 	end, 3)
 	task.wait(0.3)
 	check(
-		notice ~= nil and notice.Visible and friendGui.Enabled and notice.Text.Text == "🟢 Robin est en ligne ! Invite-le : +200 🏅 pour vous deux s'il vient."
+		notice ~= nil and notice.Visible and friendGui.Enabled and notice.Text.Text == "🟢 Robin est en ligne ! Invite-le : +200 💵 pour vous deux s'il vient."
 			and notice.Invite.Text == "📨 Inviter" and onScreen(notice),
 		`panneau « ami en ligne » : « {notice and notice.Text.Text or "?"} », bouton « {notice and notice.Invite.Text or "?"} », dans l'écran`
 	)

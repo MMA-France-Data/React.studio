@@ -1,7 +1,7 @@
 -- Test des ŒUFS, côté client (la vraie interface) : tools/studio-test/run.ps1 -Test eggs.
 -- Il attend que le serveur (scenarios/EggsServer.luau) ait fini ses vérifications, puis :
 --   1) l'onglet « Œufs » : les trois œufs (nom, nombre, temps, chances), les couveuses (vide : « Poser »), l'aide ;
---   2) poser un œuf commun : la couveuse dit son œuf et le temps qui reste, « Finir : 75 🏅 » ;
+--   2) poser un œuf commun : la couveuse dit son œuf et le temps qui reste, « Finir : 75 💵 » ;
 --   3) l'heure du serveur avance : « Prêt : ouvre-le ! », « OUVRIR ! » ; ouvert (Baliste du dragon, palier 2, nouvelle) :
 --      le panneau de la tour sortie (sa tour de base, ce qu'elle fait) ; un doublon : « DOUBLON » et son XP ;
 --   4) acheter la 2e couveuse : « COUVEUSE 2 (vide) », la 3e à acheter ; la pastille « ! » de l'onglet ;
@@ -116,7 +116,7 @@ return function(log)
 	check(
 		row1.Visible and row1.Title.Text == "COUVEUSE 1 (vide)" and row1.Status.Text == "Pose un œuf :" and row1.Put_Common.Visible and row1.Put_Gold.Visible
 			and not row1.Put_Rare.Visible and row1.Put_Common.Text == "Œuf commun" and row2.Visible and row2.Title.Text == "🔒 COUVEUSE 2"
-			and row2.Action.Text == `Acheter : {Levels.HATCHER_COST[2]} 🏅` and not row3.Visible,
+			and row2.Action.Text == `Acheter : {Levels.HATCHER_COST[2]} 💵` and not row3.Visible,
 		`couveuses : « {row1.Title.Text} » « {row1.Status.Text} » (boutons « {row1.Put_Common.Text} » et « {row1.Put_Gold.Text} », sur une seule ligne : {tostring(row1.Put_Common.TextFits)}), « {row2.Title.Text} » « {row2.Action.Text} », la 3e cachée`
 	)
 	-- L'allure des œufs (demande du propriétaire, 04/10/2026 : « vrai style, les plus rares un peu violets ») : chaque
@@ -155,7 +155,7 @@ return function(log)
 	end, 4)
 	task.wait(1.2)
 	check(
-		placed and string.match(row1.Status.Text, "^Encore 1[45]:%d%d$") ~= nil and row1.Action.Visible and row1.Action.Text == `Finir : {Levels.skipCost(Levels.EGGS.Common.seconds)} 🏅`
+		placed and string.match(row1.Status.Text, "^Encore 1[45]:%d%d$") ~= nil and row1.Action.Visible and row1.Action.Text == `Finir : {Levels.skipCost(Levels.EGGS.Common.seconds)} 💵`
 			and not row1.Put_Common.Visible and common.Count.Text == "×1" and row1.Icon:FindFirstChild("EggArt") ~= nil,
 		`œuf commun posé (dessiné dans la couveuse) : « {row1.Title.Text} », « {row1.Status.Text} », « {row1.Action.Text} »`
 	)
@@ -218,7 +218,7 @@ return function(log)
 		return row2.Title.Text == "COUVEUSE 2 (vide)" and row3.Visible
 	end, 4)
 	check(
-		bought and row3.Title.Text == "🔒 COUVEUSE 3" and string.find(row3.Action.Text, "Acheter : ", 1, true) == 1 and string.find(row3.Action.Text, "🏅", 1, true) ~= nil,
+		bought and row3.Title.Text == "🔒 COUVEUSE 3" and string.find(row3.Action.Text, "Acheter : ", 1, true) == 1 and string.find(row3.Action.Text, "💵", 1, true) ~= nil,
 		`2e couveuse achetée : « {row2.Title.Text} », puis « {row3.Title.Text} » « {row3.Action.Text} »`
 	)
 	act(campGui, "Tab:Entraînement")

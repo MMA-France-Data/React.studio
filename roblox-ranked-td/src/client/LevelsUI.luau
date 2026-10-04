@@ -55,7 +55,9 @@ local LevelsUI = {}
 
 local player = Players.LocalPlayer
 
-local COIN = "🏅" -- pièces de niveau (gardées : camp, couveuses)
+local COIN = "💵" -- pièces de niveau (gardées : camp, couveuses). De l'argent, pas une médaille (demande du propriétaire) ;
+-- pas l'emoji « pièce » (U+1FA99) : Roblox ne sait pas l'afficher (un petit signe illisible à la place), ni 💰 : c'est
+-- l'or des niveaux.
 local GOLD = "💰" -- or d'un niveau (repart du montant de départ à chaque niveau)
 local SHORT_NAMES = {
 	MachineGun = "Archer",
@@ -633,13 +635,15 @@ local function buildCamp()
 	local windowScale = UI.new("UIScale", { Name = "FitScale", Parent = window }) :: UIScale
 	local cardFits = {}
 
-	-- Bouton d'ouverture, en haut à gauche (à droite des boutons de Roblox) : plus petit sur téléphone.
+	-- Bouton d'ouverture et pièces, en haut à gauche, juste sous l'icône de Roblox et collés au bord (demande du
+	-- propriétaire, 04/10/2026 : « le niveau et l'argent bien en haut à gauche sous l'icône Roblox ») : plus petits
+	-- sur téléphone. (Le ScreenGui commence sous la barre du haut de Roblox : IgnoreGuiInset = false.)
 	local function placeButton()
 		local screen = UI.screenSize(gui)
 		local phone = UI.touchLayout(screen)
-		openButton.Position = if phone then UDim2.fromOffset(128, 48) else UDim2.fromOffset(154, 16)
+		openButton.Position = if phone then UDim2.fromOffset(12, 8) else UDim2.fromOffset(16, 16)
 		openButton.Size = if phone then UDim2.fromOffset(110, 30) else UDim2.fromOffset(150, 38)
-		hudCoins.Position = if phone then UDim2.fromOffset(244, 48) else UDim2.fromOffset(310, 16)
+		hudCoins.Position = if phone then UDim2.fromOffset(128, 8) else UDim2.fromOffset(172, 16)
 		hudCoins.Size = if phone then UDim2.fromOffset(84, 30) else UDim2.fromOffset(110, 38)
 		if screen.X > 0 and screen.Y > 0 then
 			local padding = window:FindFirstChildOfClass("UIPadding") :: UIPadding
@@ -1032,18 +1036,17 @@ local function buildCamp()
 		Text = `Une tour dans un emplacement gagne de l'XP tout le temps, même quand tu es parti ({Levels.TRAINING.OFFLINE_MAX_SECONDS // 3600} h au plus). Chaque niveau joué donne aussi de l'XP aux tours posées. Chaque niveau d'entraînement : +{math.floor(Levels.TRAINING.DAMAGE_PER_LEVEL * 100 + 0.5)} % de dégâts, et une étoile aux niveaux {table.concat(Levels.EVOLUTION_LEVELS, ", ")}. Le bouton ⚡ achète avec tes pièces l'XP qui manque pour le niveau suivant.`,
 		Parent = pages["Entraînement"],
 	})
-	local trainingList = UI.new("ScrollingFrame", {
+	-- (comme « Mes tours » : c'est la page qui défile, pas la liste toute seule)
+	local trainingList = UI.new("Frame", {
 		Name = "Towers",
 		Position = UDim2.fromOffset(SLOT_W + 12, 0),
-		Size = UDim2.new(1, -(SLOT_W + 12), 1, 0),
+		Size = UDim2.new(1, -(SLOT_W + 12), 0, 0),
+		AutomaticSize = Enum.AutomaticSize.Y,
 		BackgroundTransparency = 1,
-		ScrollBarThickness = 4,
-		ScrollBarImageColor3 = UI.Colors.Gold,
-		CanvasSize = UDim2.new(),
-		AutomaticCanvasSize = Enum.AutomaticSize.Y,
-		ScrollingDirection = Enum.ScrollingDirection.Y,
 		Parent = pages["Entraînement"],
 	}, { UI.new("UIListLayout", { Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder }) })
+	pages["Entraînement"].CanvasSize = UDim2.new()
+	pages["Entraînement"].AutomaticCanvasSize = Enum.AutomaticSize.Y
 	local trainingRows = {}
 	for _, towerType in IdleTowers.ORDER do
 		local def = IdleTowers.Defs[towerType]
@@ -1245,18 +1248,18 @@ local function buildCamp()
 		Text = `Tes {Levels.BAR_MAX} premières tours vont dans ta barre rapide pour les niveaux, les autres attendent en réserve (▲ ▼ pour changer l'ordre).`,
 		Parent = pages["Mes tours"],
 	})
-	local towerList = UI.new("ScrollingFrame", {
+	-- (la liste ne défile pas toute seule : c'est la page qui défile, de l'aide à la dernière tour. Une liste qui
+	-- défilait DANS la page qui défile bloquait le doigt sur téléphone : impossible d'aller tout en bas.)
+	local towerList = UI.new("Frame", {
 		Name = "Towers",
 		Position = UDim2.fromOffset(0, 26),
-		Size = UDim2.new(1, 0, 1, -26),
+		Size = UDim2.new(1, 0, 0, 0),
+		AutomaticSize = Enum.AutomaticSize.Y,
 		BackgroundTransparency = 1,
-		ScrollBarThickness = 4,
-		ScrollBarImageColor3 = UI.Colors.Gold,
-		CanvasSize = UDim2.new(),
-		AutomaticCanvasSize = Enum.AutomaticSize.Y,
-		ScrollingDirection = Enum.ScrollingDirection.Y,
 		Parent = pages["Mes tours"],
 	}, { UI.new("UIListLayout", { Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder }) })
+	pages["Mes tours"].CanvasSize = UDim2.new()
+	pages["Mes tours"].AutomaticCanvasSize = Enum.AutomaticSize.Y
 	local towerRows = {}
 	local function moveInBar(towerType: string, direction: number)
 		local order = table.clone(state.towers)
@@ -1741,7 +1744,7 @@ local function buildCamp()
 			.. `Les monstres ont plus de vie, mais chacun gagne plus de pièces : {table.concat(bonusParts, ", ")}.\n`
 			.. "C'est le chef de l'équipe qui lance les niveaux : ils doivent être ouverts pour tous.\n"
 			.. `Un ami Roblox sur le même serveur : +{math.floor(Levels.FRIENDS.COIN_BONUS * 100 + 0.5)} % de pièces en plus, seul ou en équipe.\n`
-			.. `Un ami qui vient grâce à ton invitation : +{Levels.FRIENDS.INVITE_REWARD} 🏅 pour vous deux.`,
+			.. `Un ami qui vient grâce à ton invitation : +{Levels.FRIENDS.INVITE_REWARD} 💵 pour vous deux.`,
 		Parent = teamPage,
 	})
 	-- « LES AMIS » : inviter des amis Roblox (au choix), et ceux qui sont déjà sur ce serveur (bonus de pièces).
@@ -3897,7 +3900,7 @@ local function buildFriendNotice()
 		current = table.remove(queue, 1)
 		if current then
 			current.hideAt = os.clock() + Levels.FRIENDS.NOTICE_SECONDS
-			setText(text, `🟢 {current.name} est en ligne ! Invite-le : +{Levels.FRIENDS.INVITE_REWARD} 🏅 pour vous deux s'il vient.`)
+			setText(text, `🟢 {current.name} est en ligne ! Invite-le : +{Levels.FRIENDS.INVITE_REWARD} 💵 pour vous deux s'il vient.`)
 		end
 		panel.Visible = current ~= nil
 		gui.Enabled = current ~= nil

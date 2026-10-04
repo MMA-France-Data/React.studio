@@ -140,7 +140,7 @@ same("emoji devant un texte exact qui a déjà sa ligne", en("⚔ JOUER AU NIVEA
 same("dans un morceau", en("🔒 Archer du rempart • Vague 3"), "🔒 Rampart Archer • Wave 3")
 same("ponctuation à l'anglaise après le milieu", en("Suivant !"), "Next!")
 same("ponctuation à l'anglaise (2)", en("🔒 Suivant : 3"), "🔒 Next: 3")
-same("plusieurs lignes : chaque ligne à part", en("Suivant :\n+32 🏅"), "Next:\n+32 🏅")
+same("plusieurs lignes : chaque ligne à part", en("Suivant :\n+32 💵"), "Next:\n+32 💵")
 Lang.clearMisses()
 same("emoji devant un texte inconnu : gardé", en("🔒 Tour inconnue ★"), "🔒 Tour inconnue ★")
 check(hasValue(Lang.getMisses(), "🔒 Tour inconnue ★"), "emoji devant un texte inconnu : noté")
