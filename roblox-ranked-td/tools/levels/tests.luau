@@ -1353,6 +1353,49 @@ do
 	game3:destroy()
 end
 
+----------------------------------------------------------------------
+-- 12) Les amis. Demande du propriétaire (04/10/2026) : « quand quelqu'un a un ami qui se connecte, ça envoie une
+--     notif pour l'inviter, pour un bonus de pièces » ; « oui 1 2 3 ». Les règles (Levels) : bonus d'ami sur le
+--     serveur, récompenses d'invitation (une fois par ami), données.
+----------------------------------------------------------------------
+do
+	local friend = Levels.FRIENDS
+	check(
+		friend.INVITE_REWARD == 200 and friend.COIN_BONUS == 0.1 and Levels.bonusReward(1000, 1, false) == 1000 and Levels.bonusReward(1000, 1, true) == 1100
+			and Levels.bonusReward(1000, 2, true) == 1200 and Levels.bonusReward(1000, 4, false) == Levels.teamReward(1000, 4) and Levels.bonusReward(80, nil, true) == 88,
+		"amis : +10 % de pièces avec un ami sur le serveur, en plus du bonus d'équipe (1 000 -> 1 100 seul, 1 200 à deux) ; 200 pièces par ami invité"
+	)
+	local newcomer = Levels.defaultData()
+	local first = Levels.claimArrival(newcomer, 50, 7)
+	local again = Levels.claimArrival(newcomer, 50, 8)
+	local selfInvite = Levels.claimArrival(Levels.defaultData(), 50, 50)
+	check(
+		first and not again and not selfInvite and newcomer.invitedBy == 7 and newcomer.coins == friend.INVITE_REWARD and not Levels.claimArrival(Levels.defaultData(), 50, 0),
+		"amis : un joueur venu grâce à une invitation reçoit sa récompense une seule fois (jamais en s'invitant lui-même)"
+	)
+	local inviter = Levels.defaultData()
+	local given = 0
+	for friendId = 1, friend.INVITE_MAX + 3 do
+		if Levels.claimInvite(inviter, 99, friendId) then
+			given += 1
+		end
+	end
+	check(
+		given == friend.INVITE_MAX and inviter.coins == friend.INVITE_MAX * friend.INVITE_REWARD and not Levels.claimInvite(Levels.defaultData(), 99, 99)
+			and (function()
+				local twice = Levels.defaultData()
+				return Levels.claimInvite(twice, 99, 5) and not Levels.claimInvite(twice, 99, 5) and twice.coins == friend.INVITE_REWARD
+			end)(),
+		`amis : celui qui invite est récompensé une fois par ami venu, {friend.INVITE_MAX} amis au plus`
+	)
+	local cleaned = Levels.cleanData({ invitedBy = 42, invited = { 3, 3, "x", 0, 9 } })
+	local fresh = Levels.cleanData({})
+	check(
+		cleaned.invitedBy == 42 and #cleaned.invited == 2 and cleaned.invited[1] == 3 and cleaned.invited[2] == 9 and fresh.invitedBy == 0 and #fresh.invited == 0,
+		"amis : données sauvegardées propres (qui l'a invité, amis venus grâce à lui sans doublon ; anciennes sauvegardes : rien)"
+	)
+end
+
 -- Équipes de joueurs simulés, avec les PV d'équipe : les joueurs de référence gagnent (au moins 5 vies), comme seuls.
 for _, size in { 2, 3, 4 } do
 	for _, level in { 10, 50, 100 } do

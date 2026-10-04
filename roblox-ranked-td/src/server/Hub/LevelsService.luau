@@ -8,23 +8,28 @@
 --     celui qui s'en va abandonne pour lui seul ;
 --   * faire avancer les parties à chaque image et envoyer monstres et tirs AUX JOUEURS DE LA PARTIE SEULEMENT
 --     (paquets PlotSync / PlotShots, numéro de zone à la place du numéro de parcelle) ;
---   * la fin d'un niveau, pour chaque joueur : pièces de niveau (bonus d'équipe), niveau suivant débloqué, XP
---     d'entraînement des tours qu'il a posées ;
+--   * la fin d'un niveau, pour chaque joueur : pièces de niveau (bonus d'équipe, bonus d'ami sur le serveur), niveau
+--     suivant débloqué, XP d'entraînement des tours qu'il a posées ;
+--   * LES AMIS (Levels.luau) : amis Roblox sur le serveur (attribut « FriendsHere »), récompenses d'invitation (un
+--     ami venu grâce à une invitation : pour lui et pour celui qui l'a invité, tout de suite ou à son retour) ;
 --   * la boutique à prix fixes, le camp d'entraînement (emplacements), l'ordre de la barre rapide ;
 --   * le tuto des nouveaux joueurs : son étape (champ `tutorial`, Levels.TUTORIAL), « Passer le tuto », et les
 --     statistiques des nouveaux joueurs (Hub/Funnel.luau) ;
 --   * publier l'état du joueur (attributs LevelsState, LevelArena : voir Remotes.luau, LevelAction).
 -- Le client (LevelsUI.luau) ne décide rien : il envoie des demandes (remote LevelAction), tout est revérifié ici.
+local DataStoreService = game:GetService("DataStoreService")
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
+local Config = require(Shared.Config)
 local IdleConfig = require(Shared.IdleConfig)
 local IdleTowers = require(Shared.IdleTowers)
 local Levels = require(Shared.Levels)
 local Remotes = require(Shared.Remotes)
+local MockDataStore = require(script.Parent.Parent.MockDataStore)
 local PlayerData = require(script.Parent.Parent.PlayerData)
 local Funnel = require(script.Parent.Funnel)
 local LevelArena = require(script.Parent.LevelArena)
@@ -53,6 +58,11 @@ local plotOf: (Player) -> number? = function()
 	return nil
 end
 local clockOffset = 0 -- tests Studio : secondes ajoutées à l'heure (entraînement pendant une absence)
+-- « LES AMIS » (Levels.luau).
+local friendsHere = {} -- [Player] = { [Player] = true } : ses amis Roblox sur ce serveur (joueurs d'essai compris)
+-- Récompenses d'invitation en attente : clé « Inviter_<UserId> » = { UserId des amis venus grâce à lui pendant son
+-- absence }, prises à sa prochaine arrivée. Dans Studio : en mémoire, comme la sauvegarde (Config.Data).
+local inviteStore = if RunService:IsStudio() and Config.Data.MOCK_IN_STUDIO then MockDataStore.new() else DataStoreService:GetDataStore(Config.Data.INVITES_DATASTORE_NAME)
 
 local changedCallbacks = {} -- appelées quand l'état d'un joueur est publié (Hub/init.luau : son camp suit)
 
@@ -138,11 +148,162 @@ local function train(player: Player): boolean
 end
 
 ----------------------------------------------------------------------
+-- Les amis (« LES AMIS », Levels.luau) : bonus d'ami sur le serveur, récompenses d'invitation
+----------------------------------------------------------------------
+
+-- Nombre d'amis Roblox de ce joueur sur ce serveur (attribut « FriendsHere » : son écran le montre).
+local function friendCount(player): number
+	local count = 0
+	for other in friendsHere[player] or {} do
+		if other.Parent then
+			count += 1
+		end
+	end
+	return count
+end
+
+local function setFriends(a, b)
+	friendsHere[a] = friendsHere[a] or {}
+	friendsHere[b] = friendsHere[b] or {}
+	friendsHere[a][b] = true
+	friendsHere[b][a] = true
+	for _, player in { a, b } do
+		if player.Parent then
+			player:SetAttribute("FriendsHere", friendCount(player))
+		end
+	end
+end
+
+-- Un joueur arrive : est-il ami Roblox avec ceux qui sont déjà là ? (IsFriendsWith demande à Roblox : en tâche à
+-- part, une réponse ratée = pas amis.)
+local function findFriends(player: Player)
+	for _, other in Players:GetPlayers() do
+		if other ~= player then
+			local ok, friends = pcall(player.IsFriendsWith, player, other.UserId)
+			if ok and friends and player.Parent and other.Parent then
+				setFriends(player, other)
+			end
+		end
+	end
+	if player.Parent then
+		player:SetAttribute("FriendsHere", friendCount(player))
+	end
+end
+
+local function forgetFriends(player)
+	for other in friendsHere[player] or {} do
+		if friendsHere[other] then
+			friendsHere[other][player] = nil
+			if other.Parent then
+				other:SetAttribute("FriendsHere", friendCount(other))
+			end
+		end
+	end
+	friendsHere[player] = nil
+end
+
+local function inviteKey(userId: number): string
+	return "Inviter_" .. userId
+end
+
+-- Un ami (friendId) est venu grâce à `inviterId`, qui n'est pas sur ce serveur : noté pour sa prochaine arrivée.
+local function storePendingInvite(inviterId: number, friendId: number)
+	local ok, err = pcall(function()
+		inviteStore:UpdateAsync(inviteKey(inviterId), function(list)
+			list = if typeof(list) == "table" then list else {}
+			if not table.find(list, friendId) and #list < Levels.FRIENDS.INVITE_MAX then
+				table.insert(list, friendId)
+			end
+			return list
+		end)
+	end)
+	if not ok then
+		warn("[Niveaux] Récompense d'invitation pas notée :", err)
+	end
+end
+
+-- Celui qui a invité reçoit sa récompense pour chaque ami venu grâce à lui (friendName : le nom de l'ami, s'il n'y
+-- en a qu'un et qu'il est sur ce serveur). Renvoie le nombre de récompenses données.
+local function rewardInviter(inviter: Player, friendIds: { number }, friendName: string?): number
+	local levels = levelsOf(inviter)
+	if not levels then
+		return 0
+	end
+	local given = 0
+	for _, friendId in friendIds do
+		if Levels.claimInvite(levels, inviter.UserId, friendId) then
+			given += 1
+		end
+	end
+	local reward = Levels.FRIENDS.INVITE_REWARD
+	if given == 1 and friendName then
+		notify(inviter, `🎁 Ton ami {friendName} est venu grâce à ton invitation : +{reward} pièces de niveau !`, "Success")
+	elseif given == 1 then
+		notify(inviter, `🎁 Un ami est venu grâce à ton invitation : +{reward} pièces de niveau !`, "Success")
+	elseif given > 1 then
+		notify(inviter, `🎁 {given} amis sont venus grâce à tes invitations : +{given * reward} pièces de niveau !`, "Success")
+	end
+	if given > 0 then
+		publish(inviter)
+		print(`[Niveaux] {inviter.Name} : {given} ami(s) venu(s) grâce à ses invitations -> +{given * reward} pièces de niveau`)
+	end
+	return given
+end
+
+-- Amis venus grâce à ce joueur pendant qu'il n'était pas sur ce serveur (DataStore) : ses récompenses.
+local function claimPendingInvites(player: Player): number
+	local pending = {}
+	local ok, err = pcall(function()
+		inviteStore:UpdateAsync(inviteKey(player.UserId), function(list)
+			pending = if typeof(list) == "table" then list else {}
+			return if #pending > 0 then {} else nil -- (rien en attente : rien à écrire)
+		end)
+	end)
+	if not ok then
+		warn("[Niveaux] Récompenses d'invitation pas lues :", err)
+		return 0
+	end
+	return rewardInviter(player, pending)
+end
+
+-- Un joueur arrive grâce à l'invitation de `inviterId` : sa récompense (une seule fois), puis celle de celui qui l'a
+-- invité : tout de suite s'il est sur ce serveur (ses données chargées), sinon à sa prochaine arrivée.
+local function welcomeInvited(player, inviterId: number): boolean
+	local levels = levelsOf(player)
+	if not levels or not Levels.claimArrival(levels, player.UserId, inviterId) then
+		return false
+	end
+	local inviter = playerById(inviterId)
+	local reward = Levels.FRIENDS.INVITE_REWARD
+	notify(player, if inviter then `🎁 Tu es venu grâce à l'invitation de {inviter.DisplayName} : +{reward} pièces de niveau !` else `🎁 Tu es venu grâce à l'invitation d'un ami : +{reward} pièces de niveau !`, "Success")
+	publish(player)
+	print(`[Niveaux] {player.Name} : venu grâce à l'invitation de {inviterId} -> +{reward} pièces de niveau`)
+	if inviter and levelsOf(inviter) then
+		rewardInviter(inviter, { player.UserId }, player.DisplayName)
+	else
+		storePendingInvite(inviterId, player.UserId)
+	end
+	return true
+end
+
+-- Arrivée d'un vrai joueur (données chargées) : ses amis sur le serveur, les récompenses d'invitation qui
+-- l'attendent, et la sienne s'il vient d'une invitation (Roblox : GetJoinData().ReferredByPlayerId).
+local function onArrival(player: Player)
+	findFriends(player)
+	claimPendingInvites(player)
+	local ok, joinData = pcall(player.GetJoinData, player)
+	local inviterId = if ok and typeof(joinData) == "table" then math.floor(tonumber(joinData.ReferredByPlayerId) or 0) else 0
+	if inviterId ~= 0 then
+		welcomeInvited(player, inviterId)
+	end
+end
+
+----------------------------------------------------------------------
 -- Un niveau : lancer, finir, ranger
 ----------------------------------------------------------------------
 
 -- Fin d'un niveau pour UN joueur de la partie (victoire, défaite ou abandon), une seule fois : pièces de niveau (avec
--- le bonus d'équipe), niveau suivant débloqué, XP d'entraînement des types de tours qu'IL a posés. member = lui dans
+-- le bonus d'équipe et le bonus d'ami sur le serveur), niveau suivant débloqué, XP d'entraînement des types de tours qu'IL a posés. member = lui dans
 -- la partie (LevelGame). showResult : le résumé part dans l'attribut « Result_<n°> » de la zone (« Result » aussi
 -- pour le premier joueur) : l'écran de fin de son client. (Pas pour celui qui s'en va pendant que d'autres jouent.)
 local function rewardMember(player: Player, game, won: boolean, member, showResult: boolean)
@@ -153,7 +314,8 @@ local function rewardMember(player: Player, game, won: boolean, member, showResu
 	local level = game.level
 	local firstClear = won and level > levels.best
 	local progress = game:progress()
-	local reward = Levels.teamReward(Levels.reward(level, won, firstClear, progress), game.teamSize)
+	local friendHere = friendCount(player) > 0
+	local reward = Levels.bonusReward(Levels.reward(level, won, firstClear, progress), game.teamSize, friendHere)
 	levels.coins += reward
 	if won then
 		levels.best = math.max(levels.best, level)
@@ -201,6 +363,7 @@ local function rewardMember(player: Player, game, won: boolean, member, showResu
 		nextLevel = if won and level < Levels.COUNT then level + 1 else nil,
 		seconds = math.floor(game.clock),
 		team = game.teamSize, -- joueurs de la partie (1 = seul) : l'écran de fin dit le bonus d'équipe
+		friend = friendHere, -- un ami Roblox sur le serveur : l'écran de fin dit le bonus d'ami
 		})
 		game:setAttr("Result_" .. member.key, result)
 		if member == game then
@@ -651,6 +814,7 @@ function LevelsService.start(plots)
 			Funnel.onLoaded(player, levels.tutorial)
 		end
 		publish(player)
+		task.spawn(onArrival, player) -- (amis, invitations : réponses de Roblox et DataStore, en tâche à part)
 	end
 	PlayerData.onLoaded(onLoaded)
 	for _, player in Players:GetPlayers() do
@@ -673,6 +837,7 @@ function LevelsService.start(plots)
 		lastAction[player] = nil
 		lastSave[player] = nil
 		LevelTeams.removePlayer(player)
+		forgetFriends(player)
 	end)
 
 	Remotes.get("LevelAction").OnServerEvent:Connect(function(player, action, a, b, c)
@@ -759,6 +924,13 @@ end
 --   Invoke(player, "Levels", "TeamAs", id, "Start", 3) -> une demande faite par ce joueur d'essai (comme LevelAction)
 --   Invoke(player, "Levels", "TeamFakeState", id) -> { levels, attributes, active } d'un joueur d'essai
 --   Invoke(player, "Levels", "TeamGone", id)     -> ce joueur d'essai quitte le jeu (sa partie, son équipe)
+--   Invoke(player, "Levels", "FriendFake", id)   -> ce joueur d'essai devient un ami Roblox du joueur ; renvoie
+--                                                   FriendsHere du joueur
+--   Invoke(player, "Levels", "InviteJoin", id)   -> ce joueur d'essai arrive grâce à l'invitation du joueur
+--                                                   (welcomeInvited) ; renvoie vrai si sa récompense est donnée
+--   Invoke(player, "Levels", "InvitePending", 9) -> l'ami 9 est venu grâce au joueur pendant son absence (noté)
+--   Invoke(player, "Levels", "InviteClaim")      -> le joueur prend ses récompenses d'invitation en attente ;
+--                                                   renvoie leur nombre
 --   Invoke(player, "Levels", "Bench", 6, 60, 12) -> 6 niveaux 10 joués en même temps pendant 60 s de jeu, 12 tours
 --                                                   chacun, hors de la carte : { games, steps, enemiesPeak, averageMs,
 --                                                   p99Ms, worstMs } (coût du serveur par image pour les 6 combats)
@@ -856,11 +1028,26 @@ function LevelsService.debug(player: Player, command: string, ...)
 	elseif command == "TeamFakeState" then
 		local fake = fakePlayers[...]
 		return if fake then { levels = fakeData[fake], attributes = table.clone(fake.attributes), active = describeMatch(fake) } else nil
+	elseif command == "FriendFake" then
+		local fake = fakePlayers[...]
+		if fake then
+			setFriends(player, fake)
+		end
+		return friendCount(player)
+	elseif command == "InviteJoin" then
+		local fake = fakePlayers[...]
+		return fake ~= nil and welcomeInvited(fake, player.UserId)
+	elseif command == "InvitePending" then
+		storePendingInvite(player.UserId, math.floor(tonumber((...)) or 0))
+		return true
+	elseif command == "InviteClaim" then
+		return claimPendingInvites(player)
 	elseif command == "TeamGone" then
 		local fake = fakePlayers[...]
 		if fake then
 			leaveMatch(fake)
 			LevelTeams.removePlayer(fake)
+			forgetFriends(fake)
 			fake.Parent = nil
 			fakePlayers[fake.UserId] = nil
 			fakeData[fake] = nil

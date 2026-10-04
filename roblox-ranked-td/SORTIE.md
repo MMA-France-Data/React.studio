@@ -102,6 +102,10 @@ Défends ton château dans des niveaux rapides de 2 à 3 minutes !
 - [ ] L'entraînement pendant l'absence : mettre une tour dans le camp, revenir une heure plus tard.
 - [ ] À deux joueurs : chacun sa parcelle, on voit le camp de l'autre en s'approchant, les invites de l'autre
       parcelle ne marchent pas, deux niveaux joués en même temps.
+- [ ] **Les amis** (impossible à essayer dans Studio) : quand un ami Roblox se connecte, le panneau « Robin est en
+      ligne ! » arrive en une minute au plus ; « 📨 Inviter » ouvre l'invitation de Roblox ; quand il vient grâce à
+      l'invitation, 200 pièces de niveau pour chacun (une seule fois) ; avec un ami sur le serveur, l'écran de fin
+      dit « Bonus d'ami sur le serveur : +10 % ».
 - [ ] Les sons et les animations des monstres se chargent (dans une nouvelle expérience, une animation qui ne
       t'appartient pas ne se joue pas : le monstre glisse sans bouger les jambes).
 - [ ] Rendre le jeu public.

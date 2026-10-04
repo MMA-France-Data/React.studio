@@ -6,7 +6,8 @@
 --    ouvert pour tous), partie à deux (or de chacun, tours de chacun, monstres plus résistants, l'or des monstres à
 --    chacun), fin (pièces avec le bonus, niveau suivant ouvert pour chacun), départs (celui qui s'en va abandonne pour
 --    lui seul, les autres continuent ; le dernier range la partie), équipe de quatre (PV, bonus de 40 %, équipe
---    complète), départ du jeu d'un joueur d'essai, le chef qui quitte l'équipe.
+--    complète), départ du jeu d'un joueur d'essai, le chef qui quitte l'équipe ; LES AMIS : bonus d'un ami Roblox sur
+--    le serveur, ami venu grâce à une invitation (une seule fois), amis venus pendant son absence.
 -- 2) Il donne la main au client (attribut TeamTestPhase = "Client" de ReplicatedStorage) et répond à ses demandes par
 --    la RemoteFunction ReplicatedStorage.__TeamTest (joueurs d'essai, fin d'un niveau, données).
 -- StudioDebug n'existe que dans Studio.
@@ -252,6 +253,54 @@ return function(log)
 	check(fake(robin).levels == nil and state().team == nil, "joueurs d'essai partis")
 
 	------------------------------------------------------------------
+	-- Les amis (« LES AMIS », Levels.luau)
+	------------------------------------------------------------------
+	for key, value in { best = 5, coins = 0, invitedBy = 0, invited = {} } do
+		levels("Set", key, value)
+	end
+	-- Un ami Roblox sur le serveur : +10 % de pièces à la fin d'un niveau, même seul.
+	local lou2 = levels("TeamFake", "Lou", 3)
+	local friendsCount = levels("FriendFake", lou2)
+	check(friendsCount == 1 and player:GetAttribute("FriendsHere") == 1, `un ami Roblox sur le serveur : attribut FriendsHere = {tostring(player:GetAttribute("FriendsHere"))}`)
+	ok = action("Start", 3)
+	levels("Finish", true)
+	result = decode(arenaFolder() and arenaFolder():GetAttribute("Result_" .. myKey)) or {}
+	local plain = Levels.reward(3, true, false)
+	local withFriend = Levels.bonusReward(plain, 1, true)
+	check(
+		ok and result.friend == true and result.team == 1 and result.reward == withFriend and withFriend > plain,
+		`niveau 3 gagné seul avec un ami sur le serveur : {tostring(result.reward)} pièces au lieu de {plain} (bonus d'ami de 10 %)`
+	)
+	action("Quit")
+	levels("TeamGone", lou2)
+	check(player:GetAttribute("FriendsHere") == 0, "l'ami s'en va : plus d'ami sur le serveur (FriendsHere = 0)")
+	-- Un ami qui arrive grâce à l'invitation du joueur : 200 pièces pour chacun, une seule fois.
+	local coinsBefore = state().levels.coins
+	local nina = levels("TeamFake", "Nina", 0)
+	local welcomed = levels("InviteJoin", nina)
+	local ninaLevels = fake(nina).levels or {}
+	local mine = state().levels
+	check(
+		welcomed == true and ninaLevels.coins == Levels.FRIENDS.INVITE_REWARD and ninaLevels.invitedBy == me and mine.coins == coinsBefore + Levels.FRIENDS.INVITE_REWARD
+			and table.find(mine.invited, nina) ~= nil,
+		`Nina arrive grâce à l'invitation du joueur : {tostring(ninaLevels.coins)} pièces pour elle, +{mine.coins - coinsBefore} pour le joueur`
+	)
+	local twice = levels("InviteJoin", nina)
+	check(twice == false and state().levels.coins == coinsBefore + Levels.FRIENDS.INVITE_REWARD and (fake(nina).levels or {}).coins == Levels.FRIENDS.INVITE_REWARD, "une seule récompense par ami")
+	levels("TeamGone", nina)
+	-- Des amis venus grâce à lui pendant qu'il n'était pas là (noté dans le DataStore des invitations) : leurs
+	-- récompenses à son arrivée, une fois.
+	levels("InvitePending", 777001)
+	levels("InvitePending", 777002)
+	levels("InvitePending", 777001)
+	local claimed = levels("InviteClaim")
+	local claimedAgain = levels("InviteClaim")
+	check(
+		claimed == 2 and claimedAgain == 0 and state().levels.coins == coinsBefore + 3 * Levels.FRIENDS.INVITE_REWARD,
+		`deux amis venus pendant son absence : {tostring(claimed)} récompenses à son retour, puis plus rien ({tostring(claimedAgain)})`
+	)
+
+	------------------------------------------------------------------
 	-- Le client prend la main
 	------------------------------------------------------------------
 	for key, value in { best = 5, coins = 0, wins = 0, losses = 0, towers = { MachineGun = true, Bomb = true }, bar = { "MachineGun", "Bomb" } } do
@@ -271,6 +320,8 @@ return function(log)
 			return levels("TeamFakeState", ...)
 		elseif command == "Gone" then
 			return levels("TeamGone", ...)
+		elseif command == "Friend" then
+			return levels("FriendFake", ...)
 		elseif command == "Finish" then
 			return levels("Finish", ... == true)
 		elseif command == "Set" then

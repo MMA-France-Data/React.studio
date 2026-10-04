@@ -242,6 +242,25 @@ return {
 	["Ce n'est pas ta tour : seul celui qui l'a posée peut l'améliorer ou la vendre"] = "That's not your tower: only the player who placed it can upgrade or sell it",
 
 	----------------------------------------------------------------------
+	-- Les amis : client/LevelsUI.luau (page de l'équipe, panneau « ami en ligne », écran de fin, invitation de
+	-- Roblox) et messages du serveur (Hub/LevelsService.luau)
+	----------------------------------------------------------------------
+	["Un ami Roblox sur le même serveur : +{1} % de pièces en plus, seul ou en équipe."] = "A Roblox friend in the same server: +{1}% more coins, solo or in a team.",
+	["Un ami qui vient grâce à ton invitation : +{1} 🏅 pour vous deux."] = "A friend who comes thanks to your invite: +{1} 🏅 for both of you.",
+	["Inviter des amis"] = "Invite friends", -- « 📨 Inviter des amis »
+	["Amis Roblox sur ce serveur : {1} (+{2} % de pièces)"] = "Roblox friends in this server: {1} (+{2}% coins)", -- « 🤝 Amis... »
+	["Aucun ami Roblox sur ce serveur pour l'instant"] = "No Roblox friends in this server yet",
+	["{1} est en ligne ! Invite-le : +{2} 🏅 pour vous deux s'il vient."] = "{1} is online! Invite them: +{2} 🏅 for both of you if they come.", -- « 🟢 Robin est en ligne ! ... »
+	["Bonus d'ami sur le serveur : +{1} % de pièces"] = "Friend in the server bonus: +{1}% coins", -- « 🤝 Bonus d'ami... »
+	["Tu ne peux pas envoyer d'invitation depuis cet appareil"] = "You can't send invites from this device",
+	["Invite tes amis : {1} pièces de niveau pour vous deux quand ils arrivent !"] = "Invite your friends: {1} level coins for both of you when they join!",
+	["Ton ami {1} est venu grâce à ton invitation : +{2} pièces de niveau !"] = "Your friend {1} came thanks to your invite: +{2} level coins!", -- « 🎁 ... »
+	["Un ami est venu grâce à ton invitation : +{1} pièces de niveau !"] = "A friend came thanks to your invite: +{1} level coins!",
+	["{1} amis sont venus grâce à tes invitations : +{2} pièces de niveau !"] = "{1} friends came thanks to your invites: +{2} level coins!",
+	["Tu es venu grâce à l'invitation de {1} : +{2} pièces de niveau !"] = "You came thanks to {1}'s invite: +{2} level coins!",
+	["Tu es venu grâce à l'invitation d'un ami : +{1} pièces de niveau !"] = "You came thanks to a friend's invite: +{1} level coins!",
+
+	----------------------------------------------------------------------
 	-- Hub/Camp.luau : socles d'entraînement de la parcelle (étiquettes et invites)
 	----------------------------------------------------------------------
 	["Emplacement d'entraînement {1}"] = "Training slot {1}",

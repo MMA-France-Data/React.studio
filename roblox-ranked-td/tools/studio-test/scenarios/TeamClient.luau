@@ -11,7 +11,9 @@
 --      entre ; il quitte : retour au camp, Robin continue seul ;
 --   5) le joueur chef d'une équipe : « 🔒 ÉQUIPE » sur un niveau pas encore ouvert pour son coéquipier, il lance un
 --      niveau, son écran de fin garde « Niveau suivant », qui emmène l'équipe ; quitter l'équipe ;
---   6) à la taille d'un téléphone (750 x 332) : la page de l'équipe et le panneau d'invitation tiennent dans l'écran.
+--   6) à la taille d'un téléphone (750 x 332) : la page de l'équipe et le panneau d'invitation tiennent dans l'écran ;
+--   7) les amis : le panneau « ami en ligne » et son « Inviter », le bouton « Inviter des amis » ; Robin est un ami
+--      Roblox (sur le serveur) pendant le niveau à deux : l'écran de fin dit aussi le bonus d'ami.
 -- « SHOT:nom » = capture (out\team_<nom>.png) ; « PHONE:want=... » = run.ps1 redimensionne la fenêtre de Studio.
 return function(log)
 	local GuiService = game:GetService("GuiService")
@@ -197,6 +199,14 @@ return function(log)
 		`« Accepter » : « {page.MembersTitle.Text} », « {page.Member1.Label.Text} », « {page.Member2.Label.Text} », bouton « {teamButton.Text} »`
 	)
 	shot("page_equipe")
+	-- Robin est aussi un ami Roblox du joueur : bonus d'ami sur le serveur.
+	test:InvokeServer("Friend", robin)
+	check(
+		waitFor(function()
+			return page.FriendsHere.Text == "🤝 Amis Roblox sur ce serveur : 1 (+10 % de pièces)"
+		end, 3),
+		`Robin est un ami Roblox : « {page.FriendsHere.Text} »`
+	)
 	act(campGui, "Tab:Niveaux")
 	task.wait(0.3)
 	local cards = window.Page1
@@ -310,9 +320,10 @@ return function(log)
 	end, 5)
 	task.wait(0.5)
 	local endPanel = endScreen.Panel
-	local reward = Levels.teamReward(Levels.reward(3, true, false), 2)
+	local reward = Levels.bonusReward(Levels.reward(3, true, false), 2, true) -- (bonus d'équipe et bonus d'ami)
 	check(
-		endScreen.Visible and endPanel.Reward.Text == `+{NumberFormat.short(reward)} 🏅` and string.find(endPanel.Details.Text, "Bonus d'équipe (2 joueurs) : +10 % de pièces", 1, true) ~= nil,
+		endScreen.Visible and endPanel.Reward.Text == `+{NumberFormat.short(reward)} 🏅` and string.find(endPanel.Details.Text, "Bonus d'équipe (2 joueurs) : +10 % de pièces", 1, true) ~= nil
+			and string.find(endPanel.Details.Text, "🤝 Bonus d'ami sur le serveur : +10 % de pièces", 1, true) ~= nil,
 		`écran de fin : « {endPanel.Reward.Text} » avec le bonus d'équipe (« {string.gsub(endPanel.Details.Text, "\n", " ⏎ ")} »)`
 	)
 	check(
@@ -399,6 +410,49 @@ return function(log)
 			return player:GetAttribute("Team") == nil and page.MembersTitle.Text == "TU JOUES SEUL : invite des joueurs ci-dessous"
 		end, 4) and not page.Leave.Visible and teamButton.Text == "👥 ÉQUIPE",
 		"« Quitter l'équipe » : le joueur joue de nouveau seul"
+	)
+	act(campGui, "Close")
+
+	------------------------------------------------------------------
+	-- 7) Les amis : le panneau « ami en ligne » (comme si Robin venait de se connecter), son bouton « Inviter », le
+	--    bouton « Inviter des amis » de la page de l'équipe (l'invitation de Roblox ne s'ouvre pas dans Studio : le
+	--    test lit l'attribut LastInvite de l'écran « Levels »)
+	------------------------------------------------------------------
+	act(campGui, "FriendOnline:123456:Robin")
+	local friendGui = playerGui:WaitForChild("FriendOnline", 5)
+	local notice = friendGui and friendGui:FindFirstChild("Panel")
+	waitFor(function()
+		return notice ~= nil and notice.Visible
+	end, 3)
+	task.wait(0.3)
+	check(
+		notice ~= nil and notice.Visible and friendGui.Enabled and notice.Text.Text == "🟢 Robin est en ligne ! Invite-le : +200 🏅 pour vous deux s'il vient."
+			and notice.Invite.Text == "📨 Inviter" and onScreen(notice),
+		`panneau « ami en ligne » : « {notice and notice.Text.Text or "?"} », bouton « {notice and notice.Invite.Text or "?"} », dans l'écran`
+	)
+	shot("ami_en_ligne")
+	act(campGui, "FriendInvite")
+	check(
+		waitFor(function()
+			return not notice.Visible and not friendGui.Enabled
+		end, 3) and campGui:GetAttribute("LastInvite") == 123456,
+		"« Inviter » : l'invitation de Roblox pour Robin, et le panneau se ferme"
+	)
+	act(campGui, "FriendOnline:654321:Sam")
+	act(campGui, "FriendClose")
+	check(
+		waitFor(function()
+			return not notice.Visible
+		end, 3) and campGui:GetAttribute("LastInvite") == 123456,
+		"« X » : le panneau se ferme sans inviter"
+	)
+	act(campGui, "Team")
+	task.wait(0.4)
+	act(campGui, "InviteFriends")
+	check(
+		page.InviteFriends.Visible and page.InviteFriends.Text == "📨 Inviter des amis" and campGui:GetAttribute("LastInvite") == 0
+			and page.FriendsHere.Text == "🤝 Amis Roblox sur ce serveur : 1 (+10 % de pièces)" and not overlap(page.InviteFriends, page.Help),
+		`page de l'équipe : « {page.InviteFriends.Text} » ouvre l'invitation de Roblox (au choix) ; Robin, encore sur le serveur : « {page.FriendsHere.Text} »`
 	)
 	act(campGui, "Close")
 

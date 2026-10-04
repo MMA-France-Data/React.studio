@@ -16,6 +16,8 @@
 -- TeamInvite ; du dossier de sa zone : Level, State, Gold, Lives..., en équipe Gold_<n°> et Training_<n°> de chaque
 -- joueur, voir Remotes.luau) et envoie des demandes (remote LevelAction). Les monstres, les tirs et les étiquettes
 -- des tours sont affichés par PlotRenderer. « TeamInvite » : un petit écran d'invitation (Accepter / Refuser).
+-- « FriendOnline » : un ami Roblox vient de se connecter (« Inviter ») ; attribut FriendsHere du joueur : ses amis
+-- sur ce serveur (bonus de pièces, « LES AMIS » de Levels.luau).
 -- Pendant un niveau, le personnage reste sur sa parcelle : ses commandes sont coupées, les autres écrans du jeu sont
 -- cachés, puis tout est remis au retour.
 -- Anglais : les textes sont écrits en français ici, et traduits à l'affichage pour un joueur non francophone
@@ -29,6 +31,7 @@ local Players = game:GetService("Players")
 local ProximityPromptService = game:GetService("ProximityPromptService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+local SocialService = game:GetService("SocialService")
 local StarterGui = game:GetService("StarterGui")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
@@ -36,6 +39,7 @@ local UserInputService = game:GetService("UserInputService")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local IdleConfig = require(Shared.IdleConfig)
 local IdleTowers = require(Shared.IdleTowers)
+local Lang = require(Shared.Lang)
 local Levels = require(Shared.Levels)
 local NumberFormat = require(Shared.NumberFormat)
 local ProximityLabel = require(Shared.ProximityLabel)
@@ -124,8 +128,9 @@ local BAR_GAP = 6
 -- Téléphone tenu en large : le bandeau du haut se range dans la barre de Roblox, à droite de ses boutons.
 local PHONE_STRIP_LEFT = 190
 -- Écrans laissés affichés pendant un niveau (les autres sont cachés puis remis). TutorialPointer = la flèche du tuto
--- (TutorialUI.luau) ; TeamInvite = une invitation à jouer en équipe (elle peut arriver pendant un niveau).
-local KEEP_GUIS = { LevelHud = true, Toasts = true, TutorialPointer = true, TeamInvite = true }
+-- (TutorialUI.luau) ; TeamInvite = une invitation à jouer en équipe, FriendOnline = un ami qui vient de se connecter
+-- (ils peuvent arriver pendant un niveau).
+local KEEP_GUIS = { LevelHud = true, Toasts = true, TutorialPointer = true, TeamInvite = true, FriendOnline = true }
 
 local levelAction = nil -- remote LevelAction (LevelsUI.start)
 
@@ -227,6 +232,37 @@ end
 -- Vrai s'il peut lancer un niveau : il joue seul, ou il est le chef de son équipe.
 local function isLeader(): boolean
 	return team == nil or team.leader == player.UserId
+end
+
+----------------------------------------------------------------------
+-- Les amis (« LES AMIS », Levels.luau ; serveur : Hub/LevelsService.luau) : inviter des amis Roblox (l'invitation de
+-- Roblox), le panneau « ami en ligne » (buildFriendNotice), et l'attribut « FriendsHere » du joueur (ses amis Roblox
+-- sur ce serveur : bonus de pièces).
+----------------------------------------------------------------------
+local friendNotice = {} -- panneau « ami en ligne » (buildFriendNotice) : push(id, nom), invite(), close()
+
+-- Ouvre l'invitation de Roblox : pour cet ami (friendId), ou pour choisir parmi ses amis (absent). Un ami qui vient
+-- grâce à elle rapporte FRIENDS.INVITE_REWARD pièces de niveau à chacun (le serveur le voit à son arrivée).
+-- L'attribut « LastInvite » de l'écran « Levels » garde le dernier ami invité (0 = au choix) : l'invitation de Roblox
+-- ne s'ouvre pas dans Studio, les tests le lisent.
+local function promptInvite(friendId: number?)
+	local campGui = player:FindFirstChildOfClass("PlayerGui") and player.PlayerGui:FindFirstChild("Levels")
+	if campGui then
+		campGui:SetAttribute("LastInvite", friendId or 0)
+	end
+	task.spawn(function()
+		local ok, can = pcall(SocialService.CanSendGameInviteAsync, SocialService, player, friendId or 0)
+		if not ok or not can then
+			UI.toast("Tu ne peux pas envoyer d'invitation depuis cet appareil", "Error")
+			return
+		end
+		local options = Instance.new("ExperienceInviteOptions")
+		if friendId then
+			options.InviteUser = friendId
+		end
+		options.PromptMessage = Lang.translate(`Invite tes amis : {Levels.FRIENDS.INVITE_REWARD} pièces de niveau pour vous deux quand ils arrivent !`, Lang.current())
+		pcall(SocialService.PromptGameInvite, SocialService, player, options)
+	end)
 end
 
 local function leaderName(): string
@@ -1294,7 +1330,7 @@ local function buildCamp()
 	end
 	UI.label({
 		Name = "Help",
-		Size = UDim2.new(1, -16, 0, 96),
+		Size = UDim2.new(1, -16, 0, 132),
 		TextWrapped = true,
 		TextXAlignment = Enum.TextXAlignment.Left,
 		TextYAlignment = Enum.TextYAlignment.Top,
@@ -1303,10 +1339,43 @@ local function buildCamp()
 		Text = `Jusqu'à {Levels.TEAM_MAX} joueurs défendent le même château, dans la même partie.\n`
 			.. "Chacun pose ses tours avec son or, et chaque monstre tué donne son or à tout le monde.\n"
 			.. `Les monstres ont plus de vie, mais chacun gagne plus de pièces : {table.concat(bonusParts, ", ")}.\n`
-			.. "C'est le chef de l'équipe qui lance les niveaux : ils doivent être ouverts pour tous.",
+			.. "C'est le chef de l'équipe qui lance les niveaux : ils doivent être ouverts pour tous.\n"
+			.. `Un ami Roblox sur le même serveur : +{math.floor(Levels.FRIENDS.COIN_BONUS * 100 + 0.5)} % de pièces en plus, seul ou en équipe.\n`
+			.. `Un ami qui vient grâce à ton invitation : +{Levels.FRIENDS.INVITE_REWARD} 🏅 pour vous deux.`,
 		Parent = teamPage,
 	})
-	local ROW_H, MEMBERS_TOP, OTHER_ROWS = 44, 104, 5 -- (serveurs de 6 joueurs : 5 autres au plus)
+	-- « LES AMIS » : inviter des amis Roblox (au choix), et ceux qui sont déjà sur ce serveur (bonus de pièces).
+	local inviteFriends = UI.button({
+		Name = "InviteFriends",
+		Position = UDim2.fromOffset(0, 136),
+		Size = UDim2.fromOffset(220, 34),
+		BackgroundColor3 = UI.Colors.Success,
+		Text = "📨 Inviter des amis",
+		MaxTextSize = 15,
+		Parent = teamPage,
+	})
+	inviteFriends.Activated:Connect(function()
+		promptInvite(nil)
+	end)
+	local friendsHere = UI.label({
+		Name = "FriendsHere",
+		Position = UDim2.fromOffset(232, 136),
+		Size = UDim2.new(1, -248, 0, 34),
+		TextWrapped = true,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		TextColor3 = UI.Colors.Muted,
+		MaxTextSize = 14,
+		Parent = teamPage,
+	})
+	local function refreshFriendsHere()
+		local count = tonumber(player:GetAttribute("FriendsHere")) or 0
+		setText(friendsHere, if count > 0
+			then `🤝 Amis Roblox sur ce serveur : {count} (+{math.floor(Levels.FRIENDS.COIN_BONUS * 100 + 0.5)} % de pièces)`
+			else "Aucun ami Roblox sur ce serveur pour l'instant")
+	end
+	player:GetAttributeChangedSignal("FriendsHere"):Connect(refreshFriendsHere)
+	refreshFriendsHere()
+	local ROW_H, MEMBERS_TOP, OTHER_ROWS = 44, 182, 5 -- (serveurs de 6 joueurs : 5 autres au plus)
 	local membersTitle = UI.label({
 		Name = "MembersTitle",
 		Position = UDim2.fromOffset(0, MEMBERS_TOP),
@@ -2551,6 +2620,10 @@ local function buildHud()
 		if teamSize > 1 then
 			table.insert(lines, `👥 Bonus d'équipe ({teamSize} joueurs) : +{math.floor(Levels.teamBonus(teamSize) * 100 + 0.5)} % de pièces`)
 		end
+		-- Un ami Roblox sur le serveur (« LES AMIS ») : son bonus aussi.
+		if result.friend == true then
+			table.insert(lines, `🤝 Bonus d'ami sur le serveur : +{math.floor(Levels.FRIENDS.COIN_BONUS * 100 + 0.5)} % de pièces`)
+		end
 		-- De quoi acheter une tour : on le dit ici, au moment où le joueur choisit entre continuer et rentrer au camp.
 		if canBuyTower(tonumber(result.coins) or state.coins) then
 			table.insert(lines, `{COIN} Tu peux acheter une nouvelle tour à la boutique !`)
@@ -3111,7 +3184,9 @@ end
 --   écran « Levels »   : "Open", "Close", "Tab:Boutique", "Slot:2" (invite du socle d'entraînement 2 du camp),
 --                        "TrainBuy:MachineGun" (bouton ⚡ de cette tour dans l'onglet Entraînement), "Team" (page de
 --                        l'équipe), "TeamInvite:123" (inviter ce joueur), "TeamAccept" / "TeamDecline" (répondre à
---                        l'invitation affichée), "TeamLeave" (quitter l'équipe)
+--                        l'invitation affichée), "TeamLeave" (quitter l'équipe), "FriendOnline:123:Robin" (comme si
+--                        cet ami venait de se connecter), "FriendInvite" / "FriendClose" (boutons du panneau),
+--                        "InviteFriends" (bouton « Inviter des amis » de la page de l'équipe)
 --   écran « LevelHud » : "Select:MachineGun" (tour en main), "Bar:MachineGun" (appui sur son bouton de la barre :
 --                        la prendre, ou annuler si elle est déjà en main), "Tap:-23,0" (appui sur ce point local
 --                        du terrain, par le vrai chemin : point de l'écran -> rayon de la caméra -> sol), "Upgrade",
@@ -3143,6 +3218,17 @@ local function testAction(command: string)
 		end
 	elseif name == "TeamLeave" then
 		levelAction:FireServer("TeamLeave")
+	elseif name == "FriendOnline" then
+		local id, friendName = string.match(argument, "^(-?%d+):(.*)$")
+		if id then
+			friendNotice.push(tonumber(id) :: number, friendName)
+		end
+	elseif name == "FriendInvite" then
+		friendNotice.invite()
+	elseif name == "FriendClose" then
+		friendNotice.close()
+	elseif name == "InviteFriends" then
+		promptInvite(nil)
 	elseif not level.active then
 		return
 	elseif name == "Select" then
@@ -3293,6 +3379,130 @@ local function buildInvite()
 	end)
 end
 
+----------------------------------------------------------------------
+-- Panneau « ami en ligne » (« LES AMIS », Levels.luau) : un ami Roblox qui se connecte, et qui n'est pas déjà dans
+-- le jeu, avec « Inviter » (l'invitation de Roblox, pour lui). Le client regarde ses amis en ligne toutes les
+-- FRIENDS.ONLINE_CHECK_SECONDS (Player:GetFriendsOnline) : ceux qui l'étaient déjà à son arrivée ne sont pas
+-- annoncés. Un panneau à la fois, FRIENDS.NOTICE_SECONDS chacun, au camp comme pendant un niveau. Dans Studio, pas
+-- de vrais amis : les tests passent par friendNotice.push (TestAction « FriendOnline:id:nom »).
+----------------------------------------------------------------------
+local function buildFriendNotice()
+	local gui = UI.screen("FriendOnline", 29)
+	gui.Enabled = false -- (allumé seulement pendant qu'un panneau est affiché)
+	-- (sous la place des messages du jeu, en haut au milieu : un message ne cache pas le panneau)
+	local panel = UI.new("Frame", {
+		Name = "Panel",
+		AnchorPoint = Vector2.new(0.5, 0),
+		Position = UDim2.new(0.5, 0, 0, 132),
+		Size = UDim2.fromOffset(390, 112),
+		BackgroundColor3 = UI.Colors.Panel,
+		Active = true,
+		Visible = false,
+		Parent = gui,
+	}, { UI.corner(6), UI.padding(10) })
+	UI.gradient(panel)
+	UI.stroke(UI.Colors.Success, 3).Parent = panel
+	local text = UI.label({
+		Name = "Text",
+		Size = UDim2.new(1, -40, 0, 44),
+		Font = Enum.Font.GothamBlack,
+		TextWrapped = true,
+		MaxTextSize = 16,
+		Parent = panel,
+	})
+	local close = UI.button({
+		Name = "Close",
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.new(1, 0, 0, 0),
+		Size = UDim2.fromOffset(32, 32),
+		BackgroundColor3 = UI.Colors.Error,
+		Text = "X",
+		MaxTextSize = 16,
+		Parent = panel,
+	})
+	local inviteButton = UI.button({
+		Name = "Invite",
+		AnchorPoint = Vector2.new(0, 1),
+		Position = UDim2.new(0, 0, 1, 0),
+		Size = UDim2.new(1, 0, 0, 40),
+		BackgroundColor3 = UI.Colors.Success,
+		Text = "📨 Inviter",
+		MaxTextSize = 17,
+		Parent = panel,
+	})
+	local queue = {} -- amis à annoncer : { { id, name } }
+	local current = nil -- l'ami annoncé : { id, name, hideAt }
+	local function showNext()
+		current = table.remove(queue, 1)
+		if current then
+			current.hideAt = os.clock() + Levels.FRIENDS.NOTICE_SECONDS
+			setText(text, `🟢 {current.name} est en ligne ! Invite-le : +{Levels.FRIENDS.INVITE_REWARD} 🏅 pour vous deux s'il vient.`)
+		end
+		panel.Visible = current ~= nil
+		gui.Enabled = current ~= nil
+	end
+	function friendNotice.push(id: number, name: string)
+		if current and current.id == id then
+			return
+		end
+		for _, waiting in queue do
+			if waiting.id == id then
+				return
+			end
+		end
+		table.insert(queue, { id = id, name = name })
+		if not current then
+			showNext()
+		end
+	end
+	function friendNotice.invite()
+		if current then
+			promptInvite(current.id)
+			showNext()
+		end
+	end
+	function friendNotice.close()
+		if current then
+			showNext()
+		end
+	end
+	inviteButton.Activated:Connect(friendNotice.invite)
+	close.Activated:Connect(friendNotice.close)
+	task.spawn(function()
+		while true do
+			task.wait(0.5)
+			if current and os.clock() >= current.hideAt then
+				showNext()
+			end
+		end
+	end)
+	if RunService:IsStudio() then
+		return
+	end
+	-- Amis Roblox en ligne. PlaceId = l'endroit où chacun joue : déjà dans ce jeu = rien à annoncer.
+	task.spawn(function()
+		local known = nil -- [UserId] = vrai : amis en ligne au dernier coup d'œil (nil = pas encore regardé)
+		while true do
+			local ok, list = pcall(player.GetFriendsOnline, player, 200)
+			if ok and typeof(list) == "table" then
+				local online = {}
+				for _, friend in list do
+					local id = tonumber(friend.VisitorId)
+					if id then
+						online[id] = true
+						local here = friend.PlaceId == game.PlaceId or Players:GetPlayerByUserId(id) ~= nil
+						if known and not known[id] and not here then
+							friendNotice.push(id, tostring(friend.DisplayName or friend.UserName or "?"))
+						end
+					end
+				end
+				known = online
+			end
+			task.wait(Levels.FRIENDS.ONLINE_CHECK_SECONDS)
+		end
+	end)
+end
+
 local function build()
 	levelAction = Remotes.get("LevelAction")
 	readState()
@@ -3301,6 +3511,7 @@ local function build()
 	buildCamp()
 	buildHud()
 	buildInvite()
+	buildFriendNotice()
 	-- Monstre tué dans ma zone de combat : l'or qu'il donne s'affiche au-dessus de lui.
 	PlotRenderer.onEnemyKilled = function(plotIndex: number, enemyType: string, position: Vector3)
 		local enemy = Levels.ENEMY[enemyType]

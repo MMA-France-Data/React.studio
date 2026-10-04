@@ -129,7 +129,9 @@ avec 2 joueurs, ou avec un ami).
   x1,85, tours de chacun : on ne peut ni améliorer ni vendre celle d'un autre, l'or des monstres à chacun),
   victoire (pièces avec le bonus de 10 %, niveau suivant ouvert pour les deux), départs (celui qui s'en va abandonne
   pour lui seul, ses tours restent ; le dernier range la partie ; le chef qui part), équipe de quatre (monstres x2,95,
-  bonus de 40 %), départ du jeu d'un joueur d'essai, le chef qui quitte l'équipe ;
+  bonus de 40 %), départ du jeu d'un joueur d'essai, le chef qui quitte l'équipe ; les amis (un ami Roblox sur le
+  serveur : +10 % de pièces ; un ami venu grâce à une invitation : 200 pièces chacun, une seule fois ; amis venus
+  pendant l'absence du joueur : leurs récompenses à son retour) ;
 - **client** : le bouton « 👥 ÉQUIPE » et sa page (`team_page_seul`, `team_page_equipe`), le panneau d'invitation
   (`team_invitation` : « Refuser », « Accepter »), les boutons des niveaux d'un coéquipier (« 👥 LE CHEF ») et du
   chef (« 🔒 ÉQUIPE », `team_niveaux_chef`), un niveau lancé par Robin sur la carte d'équipe (deux portes, « Robin »
@@ -137,7 +139,9 @@ avec 2 joueurs, ou avec un ami).
   de Robin sous le bandeau, la tour de Robin sans « Améliorer » ni « Vendre » : `team_tour_de_robin`,
   `team_niveau_a_deux`), l'écran de fin (bonus, « ⏳ Robin choisit la suite » : `team_fin_coequipier`), la suite
   lancée par Robin, le joueur qui quitte, le chef dont l'écran de fin garde « Niveau suivant », « Quitter
-  l'équipe » ; à la taille d'un téléphone (`team_tel_page`, `team_tel_invitation`).
+  l'équipe » ; les amis (le panneau « ami en ligne » : `team_ami_en_ligne`, son « Inviter », le bouton « Inviter
+  des amis », le bonus d'ami sur l'écran de fin) ; à la taille d'un téléphone (`team_tel_page`,
+  `team_tel_invitation`).
 
 ### `run.ps1 -Test english` : la version anglaise (environ 3 minutes)
 

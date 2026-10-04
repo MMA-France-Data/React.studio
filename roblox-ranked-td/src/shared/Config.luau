@@ -37,6 +37,9 @@ Config.Data = {
 	-- Nom de la sauvegarde. Ce n'est PAS celui de l'ancien jeu (« RankedTD_PlayerData_v1 », jeu infini et classé) :
 	-- même publié par erreur sur l'ancienne expérience, ce jeu ne lit et n'écrase jamais ses sauvegardes.
 	DATASTORE_NAME = "Niveaux_PlayerData_v1",
+	-- Récompenses d'invitation en attente (« LES AMIS », Levels.luau) : un ami est venu grâce à un joueur qui n'était
+	-- pas sur le même serveur ; il les reçoit à sa prochaine arrivée (Hub/LevelsService.luau).
+	INVITES_DATASTORE_NAME = "Niveaux_Invites_v1",
 	-- Dans Studio, utilise des DataStores en mémoire (rien n'est sauvegardé pour de vrai).
 	MOCK_IN_STUDIO = true,
 	AUTOSAVE_INTERVAL = 60,

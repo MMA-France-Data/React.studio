@@ -833,7 +833,8 @@ function Levels.teamBonus(size: number?): number
 	return Levels.TEAM_COIN_BONUS[teamIndex(size)] or 0
 end
 
--- Pièces de niveau d'un joueur d'une équipe de `size` joueurs : la récompense normale, plus le bonus d'équipe.
+-- Pièces de niveau d'un joueur d'une équipe de `size` joueurs : la récompense normale, plus le bonus d'équipe (sans
+-- ami sur le serveur : voir Levels.bonusReward, « LES AMIS »).
 function Levels.teamReward(reward: number, size: number?): number
 	return math.floor(reward * (1 + Levels.teamBonus(size)) + 0.5)
 end
@@ -844,6 +845,58 @@ end
 function Levels.memberKey(userId: any): string
 	local id = math.floor(tonumber(userId) or 0)
 	return if id < 0 then "m" .. tostring(-id) else tostring(id)
+end
+
+----------------------------------------------------------------------
+-- LES AMIS. Demande du propriétaire (04/10/2026), d'après un autre jeu : « quand quelqu'un a un ami qui se connecte,
+-- ça envoie une notif pour l'inviter, pour un bonus de pièces » ; « oui 1 2 3 » aux trois propositions :
+--   1) un ami Roblox qui se connecte (et qui n'est pas déjà dans le jeu) : un petit panneau « Robin est en ligne ! »
+--      avec « Inviter » : l'invitation de Roblox, pour lui (client/LevelsUI.luau) ;
+--   2) un ami qui arrive grâce à une invitation (Roblox le dit : GetJoinData().ReferredByPlayerId) : INVITE_REWARD
+--      pièces de niveau pour lui ET pour celui qui l'a invité. Règle de Roblox : récompenser seulement un ami qui
+--      vient vraiment, pas l'envoi d'une invitation. Une seule fois par ami (claimArrival, claimInvite), INVITE_MAX
+--      amis au plus par joueur. Celui qui a invité est récompensé tout de suite s'il est sur le même serveur, sinon à
+--      sa prochaine arrivée dans le jeu (Hub/LevelsService.luau) ;
+--   3) tant qu'un ami Roblox est sur le même serveur : COIN_BONUS de pièces en plus à chaque fin de niveau (en plus
+--      du bonus d'équipe : Levels.bonusReward).
+----------------------------------------------------------------------
+Levels.FRIENDS = {
+	INVITE_REWARD = 200, -- pièces de niveau pour chacun des deux
+	INVITE_MAX = 20, -- amis récompensés au plus, par joueur
+	COIN_BONUS = 0.1, -- +10 % de pièces avec un ami sur le serveur
+	ONLINE_CHECK_SECONDS = 60, -- le client regarde quels amis sont en ligne toutes les ... secondes
+	NOTICE_SECONDS = 15, -- un panneau « ami en ligne » reste ... secondes
+}
+
+-- Pièces de niveau d'un joueur à la fin d'un niveau : la récompense normale, avec le bonus d'équipe (`size` joueurs)
+-- et le bonus d'ami (un ami Roblox sur le même serveur).
+function Levels.bonusReward(reward: number, size: number?, friendHere: boolean?): number
+	local bonus = Levels.teamBonus(size) + (if friendHere then Levels.FRIENDS.COIN_BONUS else 0)
+	return math.floor(reward * (1 + bonus) + 0.5)
+end
+
+-- Récompense d'arrivée d'un joueur (ses données des niveaux, son UserId) venu grâce à l'invitation de `inviterId` :
+-- une seule fois par joueur, jamais pour lui-même. Renvoie vrai si elle est donnée.
+function Levels.claimArrival(levels, selfId: number, inviterId: any): boolean
+	local inviter = math.floor(tonumber(inviterId) or 0)
+	if levels.invitedBy ~= 0 or inviter == 0 or inviter == selfId then
+		return false
+	end
+	levels.invitedBy = inviter
+	levels.coins += Levels.FRIENDS.INVITE_REWARD
+	return true
+end
+
+-- Récompense de celui qui a invité (ses données, son UserId) pour l'ami `friendId` venu grâce à lui : une fois par ami,
+-- INVITE_MAX amis au plus. Renvoie vrai si elle est donnée.
+function Levels.claimInvite(levels, selfId: number, friendId: any): boolean
+	local friend = math.floor(tonumber(friendId) or 0)
+	if friend == 0 or friend == selfId or table.find(levels.invited, friend) or #levels.invited >= Levels.FRIENDS.INVITE_MAX then
+		return false
+	end
+	table.insert(levels.invited, friend)
+	levels.coins += Levels.FRIENDS.INVITE_REWARD
+	return true
 end
 
 -- Fiche d'un niveau : { level, territory, map, palier (famille de monstres), gold, lives, boss, miniBoss, reward,
@@ -1408,6 +1461,8 @@ function Levels.defaultData()
 		wins = 0,
 		losses = 0,
 		tutorial = 0, -- étape du tuto (Levels.TUTORIAL) : 0 = nouveau joueur
+		invitedBy = 0, -- UserId de l'ami dont l'invitation l'a fait venir (0 = personne) : « LES AMIS »
+		invited = {}, -- UserId des amis venus grâce à ses invitations (récompensés, une fois chacun)
 	}
 end
 
@@ -1429,6 +1484,15 @@ function Levels.cleanData(saved: any)
 	data.wins = math.floor(cleanNumber(saved.wins, 0, 1e9, 0))
 	data.losses = math.floor(cleanNumber(saved.losses, 0, 1e9, 0))
 	data.trainedAt = math.floor(cleanNumber(saved.trainedAt, 0, 1e11, 0))
+	data.invitedBy = math.floor(cleanNumber(saved.invitedBy, -1e15, 1e15, 0))
+	if typeof(saved.invited) == "table" then
+		for _, friendId in saved.invited do
+			local id = math.floor(cleanNumber(friendId, -1e15, 1e15, 0))
+			if id ~= 0 and not table.find(data.invited, id) and #data.invited < Levels.FRIENDS.INVITE_MAX then
+				table.insert(data.invited, id)
+			end
+		end
+	end
 	if typeof(saved.towers) == "table" then
 		for towerType, owned in saved.towers do
 			if IdleTowers.Defs[towerType] and owned == true then

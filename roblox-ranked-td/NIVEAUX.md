@@ -363,6 +363,28 @@ seulement une partie des tours) ; et deux territoires restaient plus durs en éq
 (**le col à deux**, **le désert** à 2, 3 et 4) : leurs cartes d'équipe ont des monstres un peu moins résistants. À
 deux, le niveau 15 (le col, un colosse dans chaque couloir) reste le plus dur.
 
+### Les amis : notif, invitations, bonus
+
+Ta demande du 04/10/2026 (« je joue à un jeu où quand quelqu'un a un ami qui se connecte, ça envoie une notif de
+l'inviter pour un bonus de pièces », puis « oui 1 2 3 ») :
+
+1. **Un ami qui se connecte** : quand un de tes amis Roblox se connecte (et qu'il n'est pas déjà dans le jeu), un
+   petit panneau en haut de l'écran : « 🟢 Robin est en ligne ! Invite-le : +200 🏅 pour vous deux s'il vient. »,
+   avec **« 📨 Inviter »** (l'invitation de Roblox, pour lui) et « X » pour le fermer. Il reste 15 secondes, au camp comme pendant
+   un niveau. Le jeu regarde tes amis en ligne toutes les minutes ; ceux qui l'étaient déjà quand tu es arrivé ne
+   sont pas annoncés.
+2. **Un ami qui vient grâce à ton invitation** : **200 pièces de niveau pour lui ET pour toi**, une seule fois par
+   ami (20 amis au plus). C'est la règle de Roblox : on récompense un ami qui vient vraiment, jamais le simple
+   envoi d'une invitation. Si tu n'es pas sur le même serveur que lui à son arrivée, tu reçois tes pièces à ta
+   prochaine visite. La page « 👥 ÉQUIPE » a aussi un bouton **« 📨 Inviter des amis »** (au choix parmi tes amis).
+3. **Un ami Roblox sur le même serveur** : **+10 % de pièces** à chaque fin de niveau, seul ou en équipe (en plus du
+   bonus d'équipe). La page « 👥 ÉQUIPE » dit combien de tes amis sont sur le serveur ; l'écran de fin rappelle le
+   bonus.
+
+Les chiffres sont dans `Levels.FRIENDS` (200 pièces, 20 amis, +10 %, une minute, 15 secondes). **À essayer dans le
+jeu publié** : dans Studio, il n'y a ni vrais amis ni vraies invitations (les tests jouent avec des joueurs d'essai
+et un faux ami).
+
 **Pas encore essayé à plusieurs vrais joueurs** : un Play de Studio n'a qu'un joueur, le test automatique joue avec
 des joueurs d'essai (`tools\studio-test\run.ps1 -Test team`). Pour essayer à deux sur ton PC : le test à
 plusieurs joueurs de Studio (mode **« serveur et clients »**, avec **2 joueurs**, dans le menu des tests) ouvre
@@ -631,6 +653,9 @@ arrivent à un niveau) : rien d'autre n'a changé. Les chiffres sont dans `src/s
 18. **Chacun son couloir en équipe** (« tu peux me modifier les maps en équipe ? le principe : chacun a son couloir
     qui se rejoint ensuite ») : 30 cartes d'équipe (10 territoires x 2, 3 et 4 joueurs), le nom de chacun au-dessus
     de sa porte, les monstres partagés entre les couloirs. Voir « Jouer en équipe ».
+19. **Les amis** (« quand quelqu'un a un ami qui se connecte, ça envoie une notif de l'inviter pour un bonus de
+    pièces » ; « oui 1 2 3 ») : la notif quand un ami se connecte, 200 pièces pour chacun quand un ami vient grâce
+    à ton invitation, +10 % de pièces avec un ami sur le serveur. Voir « Les amis ».
 
 ### Le grand ménage : ce qui a été enlevé
 
@@ -694,7 +719,7 @@ niveaux du joueur et son réglage du son. Les sauvegardes de l'ancien jeu « Tow
 | `src/server/Hub/Combat.luau` | le combat des tours contre les monstres, et ses paquets réseau |
 | `src/server/Hub/LevelGame.luau` | un niveau en cours (or, vies, flot de monstres, pose des tours) |
 | `src/server/Hub/LevelArena.luau` | les zones de combat, leur carte et le décor de chaque territoire |
-| `src/server/Hub/LevelsService.luau` | lancement (seul ou en équipe), récompenses, boutique, camp, état publié au joueur |
+| `src/server/Hub/LevelsService.luau` | lancement (seul ou en équipe), récompenses (bonus d'équipe et d'ami, invitations), boutique, camp, état publié au joueur |
 | `src/server/Hub/LevelTeams.luau` | les équipes : invitations, chef, coéquipiers, quitter l'équipe |
 | `src/server/Hub/Camp.luau`, `CampGame.luau` | la parcelle : socles, étiquettes, invites ; les tours du camp et leurs cibles |
 | `src/server/Hub/HubMap.luau`, `Plots.luau`, `PlotBoard.luau`, `PlotIdentity.luau`, `PlotInterest.luau` | la map, l'attribution des parcelles, leurs panneaux, qui reçoit quel camp |
@@ -709,7 +734,9 @@ niveaux du joueur et son réglage du son. Les sauvegardes de l'ancien jeu « Tow
 | `tools/studio-test/` | tests automatiques dans Studio |
 
 Sauvegarde : `data.levels` dans les données du joueur (niveau le plus haut réussi, pièces de niveau, tours achetées,
-XP, emplacements du camp, ordre de la barre rapide, étape du tuto), et `data.soundMode`.
+XP, emplacements du camp, ordre de la barre rapide, étape du tuto, qui l'a invité et les amis venus grâce à lui), et
+`data.soundMode`. Les récompenses d'invitation qui attendent un joueur absent sont dans un autre espace
+(`Niveaux_Invites_v1`).
 
 ### Vérifier
 
@@ -725,8 +752,8 @@ powershell -ExecutionPolicy Bypass -File tools\levels\run.ps1
 powershell -ExecutionPolicy Bypass -File tools\studio-test\run.ps1
 ```
 
-- le premier : 1 828 vérifications des règles, de la difficulté de chacun des 100 niveaux, des évolutions, du camp,
-  du tuto, du jeu en équipe et des 30 cartes d'équipe, sans Studio (une dizaine de minutes : les équipes de joueurs simulés sont lentes) ;
+- le premier : 1 832 vérifications des règles, de la difficulté de chacun des 100 niveaux, des évolutions, du camp,
+  du tuto, du jeu en équipe, des 30 cartes d'équipe et des amis, sans Studio (une dizaine de minutes : les équipes de joueurs simulés sont lentes) ;
 - le deuxième : le tableau de difficulté des 100 niveaux par les joueurs simulés ;
 - le troisième : le test complet dans Studio (serveur, puis la vraie interface à la taille normale et à la taille
   d'un téléphone), avec des captures dans `tools/studio-test/out/levels_*.png`. Avec `-Test tutorial` : le tuto
