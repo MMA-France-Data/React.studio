@@ -246,7 +246,6 @@ local SAMPLES = {
 	{ "Pose un œuf :", "Place an egg:" },
 	{ "Gagne des niveaux pour avoir des œufs", "Win levels to get eggs" },
 	{ "Un œuf de plus en même temps", "One more egg at the same time" },
-	{ "Poser : Œuf commun", "Place: Common egg" },
 	{ "OUVRIR !", "OPEN!" },
 	{ "Finir : 75 🏅", "Finish: 75 🏅" },
 	{ "Acheter : 600 🏅", "Buy: 600 🏅" },

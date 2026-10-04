@@ -110,9 +110,9 @@ return function(log)
 	)
 	check(
 		row1.Visible and row1.Title.Text == "COUVEUSE 1 (vide)" and row1.Status.Text == "Pose un œuf :" and row1.Put_Common.Visible and row1.Put_Gold.Visible
-			and not row1.Put_Rare.Visible and row1.Put_Common.Text == "Poser : Œuf commun" and row2.Visible and row2.Title.Text == "🔒 COUVEUSE 2"
+			and not row1.Put_Rare.Visible and row1.Put_Common.Text == "Œuf commun" and row2.Visible and row2.Title.Text == "🔒 COUVEUSE 2"
 			and row2.Action.Text == `Acheter : {Levels.HATCHER_COST[2]} 🏅` and not row3.Visible,
-		`couveuses : « {row1.Title.Text} » (poser un œuf commun ou doré), « {row2.Title.Text} » « {row2.Action.Text} », la 3e cachée`
+		`couveuses : « {row1.Title.Text} » « {row1.Status.Text} » (boutons « {row1.Put_Common.Text} » et « {row1.Put_Gold.Text} », sur une seule ligne : {tostring(row1.Put_Common.TextFits)}), « {row2.Title.Text} » « {row2.Action.Text} », la 3e cachée`
 	)
 	shot("onglet")
 

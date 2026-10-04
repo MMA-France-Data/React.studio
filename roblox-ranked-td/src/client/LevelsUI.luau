@@ -1519,7 +1519,7 @@ local function buildCamp()
 				for _, eggType in Levels.EGG_ORDER do
 					local has = (tonumber(state.eggs[eggType]) or 0) > 0
 					entry.buttons[eggType].Visible = has
-					setText(entry.buttons[eggType], `Poser : {Levels.EGGS[eggType].displayName}`)
+					setText(entry.buttons[eggType], Levels.EGGS[eggType].displayName) -- (« Pose un œuf : » est écrit à côté)
 					any = any or has
 				end
 				setText(entry.status, if any then "Pose un œuf :" else "Gagne des niveaux pour avoir des œufs")

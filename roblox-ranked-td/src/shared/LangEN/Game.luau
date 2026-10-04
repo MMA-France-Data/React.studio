@@ -281,7 +281,6 @@ return {
 	["Pose un œuf :"] = "Place an egg:",
 	["Gagne des niveaux pour avoir des œufs"] = "Win levels to get eggs",
 	["Un œuf de plus en même temps"] = "One more egg at the same time",
-	["Poser : {1}"] = "Place: {1}",
 	["OUVRIR !"] = "OPEN!",
 	["Finir : {1}"] = "Finish: {1}",
 	["Acheter : {1}"] = "Buy: {1}",
