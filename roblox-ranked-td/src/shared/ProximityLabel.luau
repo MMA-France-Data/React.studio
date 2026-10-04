@@ -1,9 +1,12 @@
 -- Textes flottants visibles seulement quand le personnage du joueur s'approche : l'écran reste lisible.
 --
--- ProximityLabel.register(billboard, distance) marque un BillboardGui (serveur ou client : l'attribut
+-- ProximityLabel.register(billboard, distance, hideNear) marque un BillboardGui (serveur ou client : les attributs
 -- et le tag sont répliqués). Chaque client allume ou éteint ensuite les étiquettes selon la distance
 -- entre SON personnage et le support de l'étiquette (Adornee, sinon le parent). Les distances
 -- sont réglées dans Config.LabelDistance.
+-- hideNear (studs, facultatif) : l'étiquette s'éteint aussi quand la CAMÉRA est à moins de hideNear studs d'elle.
+-- Pour les étiquettes dont la taille est en studs (celles du camp : socles, couveuses) : la caméra juste dessus,
+-- elles remplissaient la moitié de l'écran (vu au point d'arrivée de la parcelle, caméra tournée vers l'entrée).
 local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
 
@@ -23,17 +26,20 @@ function ProximityLabel.setFocus(position: Vector3?, radius: number?)
 	focusRadius = radius or 0
 end
 
-function ProximityLabel.register(billboard: BillboardGui, distance: number)
+function ProximityLabel.register(billboard: BillboardGui, distance: number, hideNear: number?)
 	billboard:SetAttribute("ShowWithin", distance)
+	if hideNear then
+		billboard:SetAttribute("HideNearCamera", hideNear)
+	end
 	CollectionService:AddTag(billboard, TAG)
 end
 
-local function anchorPosition(billboard: BillboardGui): Vector3?
+local function anchorFrame(billboard: BillboardGui): CFrame?
 	local anchor = billboard.Adornee or billboard.Parent
 	if anchor and anchor:IsA("BasePart") then
-		return anchor.Position
+		return anchor.CFrame
 	elseif anchor and anchor:IsA("Model") then
-		return anchor:GetPivot().Position
+		return anchor:GetPivot()
 	end
 	return nil
 end
@@ -45,12 +51,21 @@ function ProximityLabel.start()
 		while true do
 			local character = player.Character
 			local root = character and character:FindFirstChild("HumanoidRootPart")
+			local camera = workspace.CurrentCamera
 			for _, billboard in CollectionService:GetTagged(TAG) do
 				local within = billboard:GetAttribute("ShowWithin")
-				local position = anchorPosition(billboard)
-				if typeof(within) == "number" and position then
-					billboard.Enabled = (root ~= nil and (root.Position - position).Magnitude <= within)
+				local frame = anchorFrame(billboard)
+				if typeof(within) == "number" and frame then
+					local position = frame.Position
+					local shown = (root ~= nil and (root.Position - position).Magnitude <= within)
 						or (focusPosition ~= nil and (focusPosition - position).Magnitude <= focusRadius)
+					local hideNear = billboard:GetAttribute("HideNearCamera")
+					if shown and typeof(hideNear) == "number" and camera then
+						-- (StudsOffsetWorldSpace suit l'orientation du support : l'étiquette est là)
+						local labelAt = frame:PointToWorldSpace(billboard.StudsOffsetWorldSpace)
+						shown = (camera.CFrame.Position - labelAt).Magnitude >= hideNear
+					end
+					billboard.Enabled = shown
 				end
 			end
 			task.wait(REFRESH)

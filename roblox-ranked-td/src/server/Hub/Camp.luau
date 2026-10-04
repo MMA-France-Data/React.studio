@@ -32,6 +32,9 @@ local Camp = {}
 Camp.games = {}
 
 local LABEL_DISTANCE = Config.LabelDistance.Medium + 20 -- lisible depuis le point d'arrivée du joueur
+-- Étiquettes en studs (socles, couveuses) : cachées quand la caméra est à moins de ça d'elles (ProximityLabel), sinon
+-- elles remplissaient la moitié de l'écran.
+local LABEL_HIDE_NEAR = 10
 local LABEL_HEIGHT = 11.5 -- studs au-dessus du socle (la plus haute tour, le Trébuchet, fait ~10 studs)
 local LABEL_HEIGHT_EMPTY = 4
 local OPEN_COLOR, LOCKED_COLOR = Color3.fromRGB(132, 124, 106), Color3.fromRGB(49, 47, 43)
@@ -91,7 +94,7 @@ local function dressPad(pad: BasePart, slotIndex: number)
 	gui.Size = UDim2.fromScale(8.4, 2.7)
 	gui.DistanceLowerLimit = 18
 	gui.AlwaysOnTop = true
-	ProximityLabel.register(gui, LABEL_DISTANCE)
+	ProximityLabel.register(gui, LABEL_DISTANCE, LABEL_HIDE_NEAR)
 	local panel = Instance.new("Frame")
 	panel.Name = "Panel"
 	panel.Size = UDim2.fromScale(1, 1)
@@ -205,7 +208,7 @@ local function buildHatcher(plot, index: number)
 	gui.DistanceLowerLimit = 18
 	gui.AlwaysOnTop = true
 	gui.StudsOffsetWorldSpace = Vector3.new(0, 5.4, 0)
-	ProximityLabel.register(gui, LABEL_DISTANCE)
+	ProximityLabel.register(gui, LABEL_DISTANCE, LABEL_HIDE_NEAR)
 	local panel = Instance.new("Frame")
 	panel.Name = "Panel"
 	panel.Size = UDim2.fromScale(1, 1)
