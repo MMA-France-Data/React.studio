@@ -53,6 +53,9 @@ return function(log)
 			return levels("TeamAs", table.unpack(a))
 		elseif command == "Gone" then
 			return levels("TeamGone", a)
+		elseif command == "Shop" then
+			-- a = { commande, arguments... } : les achats en Robux (Hub/Shop.luau, faux numéros)
+			return levels("Shop", table.unpack(a))
 		end
 		return nil
 	end

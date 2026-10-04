@@ -29,20 +29,24 @@ local DEFINITIONS = {
 	--   | ("TrainBuy", type de tour) : entraînement acheté avec des pièces (bouton ⚡ de l'onglet Entraînement)
 	--   | ("Bar", { types de tours }) : ordre de la barre rapide
 	--   | ("EggStart", couveuse, type d'œuf) | ("EggOpen", couveuse) | ("EggSkip", couveuse) | "HatcherBuy" : les œufs
-	--     (toutes les tours en sortent ; plus de boutique)
+	--     (toutes les tours en sortent ; plus de boutique de tours ; couveuse 3 = la couveuse royale)
+	--   | ("EggSkipRobux", couveuse) | ("PassBuy", "Royal" | "Xp" | "Coins") : achats en Robux, la fenêtre d'achat de
+	--     Roblox s'ouvre (Hub/Shop.luau)
 	--   | ("Tutorial", "Skip") : bouton « Passer le tuto »
 	--   | ("TeamInvite", UserId) | ("TeamAnswer", UserId de celui qui invite, vrai = accepter) | "TeamLeave" : jouer en
 	--     équipe (Hub/LevelTeams.luau ; en équipe, « Start » ne vient que du chef et lance le niveau pour tous).
 	-- Le serveur vérifie tout (Hub/LevelsService.luau). État publié en attributs :
 	--   du joueur : LevelsState (JSON : best, coins, towers = ses tours dans l'ordre de sa barre rapide, xp, slots,
-	--     wins, losses, tutorial = étape du tuto, eggs, hatchers ; absent tant que ses données ne sont pas chargées),
+	--     wins, losses, tutorial = étape du tuto, eggs, hatchers, royal = la couveuse royale, shop = { passes = { [clé] =
+	--     "owned" | "buy" | "soon" | "no" }, prices = prix de « Finir l'œuf » } ; absent tant que ses données ne sont pas
+	--     chargées), RoyalHatcher (état du pass de la couveuse royale), XpBoost (1 ou 2 : pass XP x2),
 	--     Hatch (JSON : la dernière tour sortie d'un œuf), LevelArena
 	--     (numéro de sa zone de combat pendant un niveau, absent sinon), Team (JSON : leader, members = { { id, name,
 	--     best } } ; absent : il joue seul), TeamInvite (JSON : from, name, seconds ; absent : pas d'invitation) ;
 	--   du dossier de sa zone, workspace.Arenas.Arena<n> : Map, Level, State ("Running" | "Won" | "Lost"), Gold,
 	--     Lives, Left, Total, Progress, SimSpeed, Training, TeamSize, et à la fin Result (JSON : won, level, reward,
 	--     firstClear, coins, kills, total, lives, bigLeaks, xp, towers, evolutions, nextLevel, seconds, team, friend,
-	--     egg, eggKept, eggPlaced). En
+	--     coinsX2, xpX2, egg, eggKept, eggPlaced). En
 	--     équipe, chaque joueur a aussi les siens : Gold_<n°>, Training_<n°>, Result_<n°> (n° = Levels.memberKey de
 	--     son UserId), et Team (JSON : { { id, key, name } }) ; chaque tour posée porte OwnerId (UserId de son joueur).
 	LevelAction = "RemoteEvent",

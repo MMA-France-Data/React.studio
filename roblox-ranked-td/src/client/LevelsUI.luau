@@ -42,6 +42,7 @@ local IdleConfig = require(Shared.IdleConfig)
 local IdleTowers = require(Shared.IdleTowers)
 local Lang = require(Shared.Lang)
 local Levels = require(Shared.Levels)
+local Monetization = require(Shared.Monetization)
 local NumberFormat = require(Shared.NumberFormat)
 local ProximityLabel = require(Shared.ProximityLabel)
 local Remotes = require(Shared.Remotes)
@@ -59,6 +60,7 @@ local COIN = "💵" -- pièces de niveau (gardées : camp, couveuses). De l'arge
 -- pas l'emoji « pièce » (U+1FA99) : Roblox ne sait pas l'afficher (un petit signe illisible à la place), ni 💰 : c'est
 -- l'or des niveaux.
 local GOLD = "💰" -- or d'un niveau (repart du montant de départ à chaque niveau)
+local ROBUX_GREEN = Color3.fromRGB(0, 176, 111) -- les boutons d'achat en Robux (comme ceux de Roblox)
 local SHORT_NAMES = {
 	MachineGun = "Archer",
 	Frost = "Totem",
@@ -183,7 +185,8 @@ end
 ----------------------------------------------------------------------
 -- État du joueur (attribut « LevelsState », publié par le serveur)
 ----------------------------------------------------------------------
-local state = { best = 0, coins = 0, towers = table.clone(Levels.STARTING_TOWERS), xp = {}, slots = {}, wins = 0, losses = 0, eggs = {}, hatchers = {}, readAt = 0 }
+local state = { best = 0, coins = 0, towers = table.clone(Levels.STARTING_TOWERS), xp = {}, slots = {}, wins = 0, losses = 0, eggs = {}, hatchers = {},
+	royal = { egg = "", readyIn = 0 }, shop = { passes = {}, prices = {} }, readAt = 0 }
 
 local function readState()
 	local raw = player:GetAttribute("LevelsState")
@@ -212,6 +215,8 @@ local function readState()
 		losses = tonumber(decoded.losses) or 0,
 		eggs = if typeof(decoded.eggs) == "table" then decoded.eggs else {}, -- « LES ŒUFS » : œufs en réserve
 		hatchers = if typeof(decoded.hatchers) == "table" then decoded.hatchers else {}, -- couveuses : { { egg, readyIn } }
+		royal = if typeof(decoded.royal) == "table" then decoded.royal else { egg = "", readyIn = 0 }, -- la couveuse royale
+		shop = if typeof(decoded.shop) == "table" then decoded.shop else { passes = {}, prices = {} }, -- achats en Robux
 		readAt = os.clock(), -- (les couveuses se décomptent depuis cette lecture)
 	}
 end
@@ -261,13 +266,49 @@ local function hatchReady(hatcher): boolean
 	return hatcher.egg ~= "" and (readyIn <= 0 or os.clock() - state.readAt >= readyIn + 1)
 end
 
+-- Achats en Robux (Hub/Shop.luau) : l'état d'un pass ("Royal", "Xp", "Coins") : "owned", "buy", "soon" ou "no".
+local function passState(key: string): string
+	local passes = if typeof(state.shop) == "table" and typeof(state.shop.passes) == "table" then state.shop.passes else {}
+	return if typeof(passes[key]) == "string" then passes[key] else "no"
+end
+
+-- La couveuse `index` du joueur, comme le serveur : 1 et 2 = ses couveuses achetées, 3 = la couveuse royale (s'il a le
+-- pass, ou si un œuf y couve encore). nil : pas à lui.
+local function hatcherAt(index: number)
+	if index == Levels.ROYAL.index then
+		local royal = state.royal
+		return if passState("Royal") == "owned" or (typeof(royal) == "table" and royal.egg ~= "") then royal else nil
+	end
+	return state.hatchers[index]
+end
+
+-- Toutes ses couveuses, dans l'ordre : { { index, hatcher } } (la royale à la fin).
+local function ownedHatchers()
+	local list = {}
+	for index, hatcher in state.hatchers do
+		table.insert(list, { index = index, hatcher = hatcher })
+	end
+	local royal = hatcherAt(Levels.ROYAL.index)
+	if royal then
+		table.insert(list, { index = Levels.ROYAL.index, hatcher = royal })
+	end
+	return list
+end
+
+-- Prix en Robux de « Finir l'œuf » pour un œuf qui doit encore couver `seconds` s (0 : pas proposé).
+local function robuxSkipPrice(seconds: number): number
+	local prices = if typeof(state.shop) == "table" and typeof(state.shop.prices) == "table" then state.shop.prices else {}
+	return if #prices > 0 then Levels.robuxSkipPrice(seconds, prices) else 0
+end
+
 -- Vrai si un œuf attend le joueur : prêt à ouvrir, ou une couveuse vide alors qu'il a des œufs.
 local function eggAlert(): boolean
 	local stock = 0
 	for _, count in state.eggs do
 		stock += tonumber(count) or 0
 	end
-	for _, hatcher in state.hatchers do
+	for _, entry in ownedHatchers() do
+		local hatcher = entry.hatcher
 		if hatchReady(hatcher) then
 			return true
 		elseif hatcher.egg == "" and stock > 0 then
@@ -660,7 +701,7 @@ local function buildCamp()
 
 	UI.label({
 		Name = "Title",
-		Size = UDim2.new(1, -400, 0, 36),
+		Size = UDim2.new(1, -560, 0, 36),
 		Font = Enum.Font.GothamBlack,
 		TextXAlignment = Enum.TextXAlignment.Left,
 		MaxTextSize = 24,
@@ -699,6 +740,18 @@ local function buildCamp()
 		MaxTextSize = 16,
 		Parent = window,
 	})
+	-- Bouton « 🛒 BOUTIQUE » : les achats en Robux (demandes du propriétaire, 04/10/2026 : couveuse royale, XP x2,
+	-- argent x2 ; Shared/Monetization.luau).
+	local shopButton = UI.button({
+		Name = "StoreButton",
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.new(1, -396, 0, 0),
+		Size = UDim2.fromOffset(150, 36),
+		BackgroundColor3 = ROBUX_GREEN,
+		Text = "🛒 BOUTIQUE",
+		MaxTextSize = 16,
+		Parent = window,
+	})
 
 	local TABS = { "Niveaux", "Entraînement", "Mes tours", "Œufs" }
 	local tabButtons, pages = {}, {}
@@ -726,6 +779,20 @@ local function buildCamp()
 			Parent = window,
 		})
 	end
+	-- La page de la boutique : ouverte par le bouton « 🛒 BOUTIQUE » de l'en-tête (pas d'onglet).
+	pages["Boutique"] = UI.new("ScrollingFrame", {
+		Name = "PageShop",
+		Position = UDim2.fromOffset(0, 92),
+		Size = UDim2.new(1, 0, 1, -92),
+		BackgroundTransparency = 1,
+		ScrollBarThickness = 7,
+		ScrollBarImageColor3 = UI.Colors.Accent,
+		CanvasSize = UDim2.new(),
+		AutomaticCanvasSize = Enum.AutomaticSize.Y,
+		ScrollingDirection = Enum.ScrollingDirection.Y,
+		Visible = false,
+		Parent = window,
+	})
 	-- La page de l'équipe : ouverte par le bouton « 👥 ÉQUIPE » de l'en-tête (pas d'onglet).
 	pages["Équipe"] = UI.new("ScrollingFrame", {
 		Name = "PageTeam",
@@ -868,13 +935,14 @@ local function buildCamp()
 			header.Text = `TERRITOIRE {territory} • {map.displayName}` .. (if soon then " • 🔒 Bientôt" elseif open then "" else ` • 🔒 réussis le niveau {before}`)
 			header.TextColor3 = if open then UI.Colors.Gold else UI.Colors.Muted
 		end
+		local coinBoost = if passState("Coins") == "owned" then Levels.COINS_PASS_MULTIPLIER else 1 -- (pass Argent x2)
 		for level, entry in levelCards do
 			local soon = not Levels.isOpen(level)
 			local cleared = level <= state.best and not soon
 			local nextOne = level == state.best + 1 and not soon
 			entry.reward.Text = if cleared
-				then `Rejouer :\n+{amount(Levels.reward(level, true, false))} {COIN}`
-				else `Victoire :\n+{amount(Levels.firstReward(level))} {COIN}`
+				then `Rejouer :\n+{amount(Levels.reward(level, true, false) * coinBoost)} {COIN}`
+				else `Victoire :\n+{amount(Levels.firstReward(level) * coinBoost)} {COIN}`
 			entry.reward.TextColor3 = if cleared then UI.Colors.Muted else UI.Colors.Gold
 			-- En équipe : seul le chef lance, et seulement un niveau ouvert pour tous (sinon « 🔒 ÉQUIPE »).
 			local blocked = if (cleared or nextOne) and not isLeader() then "👥 LE CHEF"
@@ -1169,7 +1237,8 @@ local function buildCamp()
 				entry.title.Text = `EMPLACEMENT {index} • niveau {slot.level}`
 				entry.tower.Text = if def then def.displayName else "Vide : choisis une tour à droite"
 				entry.tower.TextColor3 = if def then def.color:Lerp(Color3.new(1, 1, 1), 0.4) else UI.Colors.Muted
-				entry.rate.Text = `+{UI.decimal(rate)} XP par minute`
+				local xpBoost = if passState("Xp") == "owned" then Levels.XP_PASS_MULTIPLIER else 1 -- (pass XP x2)
+				entry.rate.Text = `+{UI.decimal(rate * xpBoost)} XP par minute`
 				entry.action.Visible = true
 				entry.action.Text = if price then `Améliorer {amount(price)} {COIN}` else "NIVEAU MAX"
 				entry.action.BackgroundColor3 = if price and state.coins >= price then UI.Colors.Success else UI.Colors.Panel
@@ -1458,9 +1527,9 @@ local function buildCamp()
 		if (tonumber(state.eggs[eggType]) or 0) < 1 then
 			return
 		end
-		for hatcherIndex, hatcher in state.hatchers do
-			if hatcher.egg == "" then
-				levelAction:FireServer("EggStart", hatcherIndex, eggType)
+		for _, entry in ownedHatchers() do
+			if entry.hatcher.egg == "" then
+				levelAction:FireServer("EggStart", entry.index, eggType)
 				return
 			end
 		end
@@ -1547,7 +1616,7 @@ local function buildCamp()
 	})
 	local HATCH_ROW_H = 62
 	local hatchRows = {}
-	for index = 1, #Levels.HATCHER_COST do
+	for index = 1, Levels.ROYAL.index do
 		local row = UI.new("Frame", {
 			Name = "Hatcher" .. index,
 			Position = UDim2.fromOffset(0, HATCH_TOP + 28 + (index - 1) * (HATCH_ROW_H + 6)),
@@ -1555,7 +1624,8 @@ local function buildCamp()
 			BackgroundColor3 = UI.Colors.PanelLight,
 			Parent = eggsPage,
 		}, { UI.corner(5), UI.padding(8) })
-		UI.card(row, UI.Colors.PanelLight)
+		-- (la couveuse royale : dorée)
+		UI.card(row, if index == Levels.ROYAL.index then Color3.fromRGB(214, 164, 52):Lerp(UI.Colors.Panel, 0.5) else UI.Colors.PanelLight)
 		-- (l'œuf de la couveuse, dessiné : EggArt ; un ovale sombre quand elle est vide)
 		local icon = UI.new("Frame", {
 			Name = "Icon",
@@ -1610,16 +1680,34 @@ local function buildCamp()
 			Parent = row,
 		})
 		action.Activated:Connect(function()
-			local hatcher = state.hatchers[index]
+			local hatcher = hatcherAt(index)
 			if hatcher and hatcher.egg ~= "" then
 				levelAction:FireServer(if hatchReady(hatcher) then "EggOpen" else "EggSkip", index)
+			elseif index == Levels.ROYAL.index then
+				if passState("Royal") == "buy" then
+					levelAction:FireServer("PassBuy", "Royal")
+				end
 			elseif not hatcher and index == #state.hatchers + 1 then
 				levelAction:FireServer("HatcherBuy")
 			end
 		end)
-		hatchRows[index] = { row = row, icon = icon, iconType = nil, title = title, status = status, buttons = buttons, action = action }
+		-- « Finir » en Robux (1 Robux les 5 min, Levels.robuxSkipPrice) : à gauche du « Finir » en pièces.
+		local robux = UI.button({
+			Name = "RobuxSkip",
+			AnchorPoint = Vector2.new(1, 0.5),
+			Position = UDim2.new(1, -188, 0.5, 0),
+			Size = UDim2.fromOffset(130, 40),
+			BackgroundColor3 = ROBUX_GREEN,
+			MaxTextSize = 15,
+			Visible = false,
+			Parent = row,
+		})
+		robux.Activated:Connect(function()
+			levelAction:FireServer("EggSkipRobux", index)
+		end)
+		hatchRows[index] = { row = row, icon = icon, iconType = nil, title = title, status = status, buttons = buttons, action = action, robux = robux }
 	end
-	local eggsHelpTop = HATCH_TOP + 28 + #Levels.HATCHER_COST * (HATCH_ROW_H + 6) + 4
+	local eggsHelpTop = HATCH_TOP + 28 + Levels.ROYAL.index * (HATCH_ROW_H + 6) + 4
 	UI.label({
 		Name = "Help",
 		Position = UDim2.fromOffset(0, eggsHelpTop),
@@ -1647,8 +1735,8 @@ local function buildCamp()
 		end
 		setText(eggsTitle, `TES ŒUFS ({total}/{Levels.EGG_MAX})`)
 		local emptyHatcher, anySpecial = false, false
-		for _, hatcher in state.hatchers do
-			emptyHatcher = emptyHatcher or hatcher.egg == ""
+		for _, entry in ownedHatchers() do
+			emptyHatcher = emptyHatcher or entry.hatcher.egg == ""
 		end
 		for _, eggType in Levels.SPECIAL_EGG_ORDER do
 			local entry = specialCards[eggType]
@@ -1661,10 +1749,16 @@ local function buildCamp()
 			entry.put.BackgroundColor3 = if usable then Levels.EGGS[eggType].art.frame:Lerp(UI.Colors.Panel, 0.3) else UI.Colors.Panel
 			entry.put.AutoButtonColor = usable
 		end
+		local royalState = passState("Royal")
 		for index, entry in hatchRows do
-			local hatcher = state.hatchers[index]
-			local isNext = hatcher == nil and index == #state.hatchers + 1
-			entry.row.Visible = hatcher ~= nil or isNext
+			local royalRow = index == Levels.ROYAL.index
+			local hatcher = hatcherAt(index)
+			local isNext = not royalRow and hatcher == nil and index == #state.hatchers + 1
+			-- (la couveuse royale à acheter : toujours là, sauf là où les achats en Robux d'œufs sont interdits)
+			local forSale = royalRow and hatcher == nil and (royalState == "buy" or royalState == "soon")
+			entry.row.Visible = hatcher ~= nil or isNext or forSale
+			entry.robux.Visible = false
+			local name = if royalRow then "👑 COUVEUSE ROYALE" else `COUVEUSE {index}`
 			local egg = if hatcher then Levels.EGGS[hatcher.egg] else nil
 			local iconType = if egg then hatcher.egg else ""
 			if entry.iconType ~= iconType then
@@ -1685,7 +1779,7 @@ local function buildCamp()
 			entry.action.Visible = false
 			if hatcher and egg then
 				local left, ready = hatchLeft(hatcher), hatchReady(hatcher)
-				setText(entry.title, `COUVEUSE {index} : {egg.displayName}`)
+				setText(entry.title, `{name} : {egg.displayName}`)
 				setText(entry.status, if ready then "Prêt : ouvre-le !" else `Encore {clockText(left)}`)
 				entry.action.Visible = true
 				if ready then
@@ -1697,9 +1791,12 @@ local function buildCamp()
 					setText(entry.action, `Finir : {amount(cost)} {COIN}`)
 					entry.action.BackgroundColor3 = if state.coins >= cost then UI.Colors.Accent else UI.Colors.Panel
 					entry.action.AutoButtonColor = state.coins >= cost
+					local robuxPrice = robuxSkipPrice(left)
+					entry.robux.Visible = robuxPrice > 0
+					setText(entry.robux, `Finir : {robuxPrice} R$`)
 				end
 			elseif hatcher then
-				setText(entry.title, `COUVEUSE {index} (vide)`)
+				setText(entry.title, `{name} (vide)`)
 				local any = false
 				for _, eggType in Levels.EGG_ORDER do
 					local has = (tonumber(state.eggs[eggType]) or 0) > 0
@@ -1709,6 +1806,19 @@ local function buildCamp()
 				end
 				-- (un œuf spécial se pose avec le bouton de sa carte, plus haut)
 				setText(entry.status, if any then "Pose un œuf :" elseif anySpecial then "Ton œuf spécial : son bouton COUVER, plus haut" else "Gagne des niveaux pour avoir des œufs")
+			elseif forSale then
+				setText(entry.title, "👑 COUVEUSE ROYALE")
+				setText(entry.status, "Tes œufs y éclosent 2 fois plus vite")
+				entry.action.Visible = true
+				if royalState == "buy" then
+					setText(entry.action, `Acheter : {Monetization.PASSES.Royal.price} R$`)
+					entry.action.BackgroundColor3 = ROBUX_GREEN
+					entry.action.AutoButtonColor = true
+				else
+					setText(entry.action, "Bientôt")
+					entry.action.BackgroundColor3 = UI.Colors.Panel
+					entry.action.AutoButtonColor = false
+				end
 			elseif isNext then
 				local price = Levels.HATCHER_COST[index] or 0
 				setText(entry.title, `🔒 COUVEUSE {index}`)
@@ -1971,6 +2081,91 @@ local function buildCamp()
 	end
 
 	------------------------------------------------------------------
+	-- Page « 🛒 BOUTIQUE » : les pass en Robux (Shared/Monetization.luau ; Hub/Shop.luau ouvre la fenêtre d'achat de
+	-- Roblox). Un pass déjà à lui : « ✓ À TOI » ; pas encore créé sur le Hub Création : « Bientôt ».
+	------------------------------------------------------------------
+	local shopPage = pages["Boutique"]
+	local SHOP_CARDS = {
+		Royal = { icon = "👑", title = "Couveuse royale", text = "Une 3e couveuse, dorée : tes œufs y éclosent 2 fois plus vite." },
+		Xp = { icon = "⭐", title = "XP x2", text = "Toute l'XP d'entraînement de tes tours est doublée : camp, niveaux joués, doublons des œufs." },
+		Coins = { icon = "💵", title = "Argent x2", text = "Les pièces de niveau gagnées en jouant les niveaux sont doublées." },
+	}
+	local SHOP_CARD_H = 104
+	local shopRows = {}
+	for order, key in Monetization.PASS_ORDER do
+		local info = SHOP_CARDS[key]
+		local card = UI.new("Frame", {
+			Name = "Pass_" .. key,
+			Position = UDim2.fromOffset(0, (order - 1) * (SHOP_CARD_H + 8)),
+			Size = UDim2.new(1, -16, 0, SHOP_CARD_H),
+			BackgroundColor3 = UI.Colors.PanelLight,
+			Parent = shopPage,
+		}, { UI.corner(5), UI.padding(10) })
+		UI.card(card, if key == "Royal" then Color3.fromRGB(214, 164, 52):Lerp(UI.Colors.Panel, 0.5) else UI.Colors.PanelLight)
+		UI.label({ Name = "Icon", Size = UDim2.fromOffset(64, 84), Text = info.icon, MaxTextSize = 46, Parent = card })
+		UI.label({
+			Name = "Title",
+			Position = UDim2.fromOffset(76, 2),
+			Size = UDim2.new(1, -290, 0, 30),
+			Font = Enum.Font.GothamBlack,
+			TextXAlignment = Enum.TextXAlignment.Left,
+			MaxTextSize = 20,
+			Text = info.title,
+			Parent = card,
+		})
+		UI.label({
+			Name = "Text",
+			Position = UDim2.fromOffset(76, 36),
+			Size = UDim2.new(1, -290, 0, 48),
+			TextWrapped = true,
+			TextXAlignment = Enum.TextXAlignment.Left,
+			TextYAlignment = Enum.TextYAlignment.Top,
+			TextColor3 = UI.Colors.Muted,
+			MaxTextSize = 14,
+			Text = info.text,
+			Parent = card,
+		})
+		local buy = UI.button({
+			Name = "Buy",
+			AnchorPoint = Vector2.new(1, 0.5),
+			Position = UDim2.new(1, 0, 0.5, 0),
+			Size = UDim2.fromOffset(190, 46),
+			BackgroundColor3 = ROBUX_GREEN,
+			MaxTextSize = 18,
+			Parent = card,
+		})
+		buy.Activated:Connect(function()
+			if passState(key) == "buy" then
+				levelAction:FireServer("PassBuy", key)
+			end
+		end)
+		shopRows[key] = { card = card, buy = buy }
+	end
+	UI.label({
+		Name = "Help",
+		Position = UDim2.fromOffset(0, #Monetization.PASS_ORDER * (SHOP_CARD_H + 8) + 2),
+		Size = UDim2.new(1, -16, 0, 44),
+		TextWrapped = true,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		TextYAlignment = Enum.TextYAlignment.Top,
+		TextColor3 = UI.Colors.Muted,
+		MaxTextSize = 13,
+		Text = "Un pass s'achète une fois pour toutes, avec des Robux. Tu peux aussi finir un œuf tout de suite avec des Robux (onglet Œufs).",
+		Parent = shopPage,
+	})
+	local function refreshShop()
+		for key, entry in shopRows do
+			local passNow = passState(key)
+			-- (la couveuse royale n'est pas proposée là où les achats en Robux d'œufs sont interdits)
+			entry.card.Visible = not (key == "Royal" and passNow == "no" and typeof(state.shop.passes) == "table" and state.shop.passes.Xp ~= "no")
+			setText(entry.buy, if passNow == "owned" then "✓ À TOI" elseif passNow == "buy" then `{Monetization.PASSES[key].price} R$`
+				elseif passNow == "soon" then "Bientôt" else "…")
+			entry.buy.BackgroundColor3 = if passNow == "buy" then ROBUX_GREEN elseif passNow == "owned" then UI.Colors.Success else UI.Colors.Panel
+			entry.buy.AutoButtonColor = passNow == "buy"
+		end
+	end
+
+	------------------------------------------------------------------
 	-- Pastilles « ! » : un œuf qui attend (prêt à ouvrir, ou une couveuse vide alors qu'il a des œufs).
 	local function refreshBadges()
 		local eggWaiting = eggAlert()
@@ -1986,6 +2181,9 @@ local function buildCamp()
 			pages[name].Visible = name == currentTab
 		end
 		teamPage.Visible = currentTab == "Équipe"
+		pages["Boutique"].Visible = currentTab == "Boutique"
+		shopButton.BackgroundColor3 = if currentTab == "Boutique" then UI.Colors.Accent else ROBUX_GREEN
+		refreshShop()
 		refreshBadges()
 		refreshLevels()
 		refreshTraining()
@@ -2032,6 +2230,9 @@ local function buildCamp()
 	closeButton.Activated:Connect(camp.close)
 	teamButton.Activated:Connect(function()
 		camp.open("Équipe")
+	end)
+	shopButton.Activated:Connect(function()
+		camp.open("Boutique")
 	end)
 	-- La page de l'équipe suit les autres joueurs (arrivées, départs, niveaux, équipes) : rafraîchie chaque seconde
 	-- tant qu'elle est affichée.
@@ -3059,6 +3260,13 @@ local function buildHud()
 		if result.friend == true then
 			table.insert(lines, `🤝 Bonus d'ami sur le serveur : +{math.floor(Levels.FRIENDS.COIN_BONUS * 100 + 0.5)} % de pièces`)
 		end
+		-- Les pass en Robux (déjà comptés dans la récompense et l'XP affichées).
+		if result.coinsX2 == true then
+			table.insert(lines, "💵 Pass Argent x2 : pièces doublées")
+		end
+		if result.xpX2 == true then
+			table.insert(lines, "⭐ Pass XP x2 : XP doublée")
+		end
 		local xp = tonumber(result.xp) or 0
 		if xp > 0 and typeof(result.towers) == "table" and #result.towers > 0 then
 			table.insert(lines, `Tes tours posées gagnent +{UI.decimal(xp)} XP d'entraînement.`)
@@ -3628,7 +3836,7 @@ end
 --                        "InviteFriends" (bouton « Inviter des amis » de la page de l'équipe), "EggStart:1:Common"
 --                        (poser cet œuf dans la couveuse 1), "EggOpen:1", "EggSkip:1", "HatcherBuy", "RevealClose"
 --                        (fermer le panneau de la tour sortie), "SpecialPut:Crimson" (bouton « COUVER » de la carte
---                        de cet œuf spécial)
+--                        de cet œuf spécial), "Tab:Boutique" (la page de la boutique : bouton « 🛒 BOUTIQUE »)
 --   écran « LevelHud » : "Select:MachineGun" (tour en main), "Bar:MachineGun" (appui sur son bouton de la barre :
 --                        la prendre, ou annuler si elle est déjà en main), "Tap:-23,0" (appui sur ce point local
 --                        du terrain, par le vrai chemin : point de l'écran -> rayon de la caméra -> sol), "Upgrade",

@@ -19,6 +19,11 @@ ouvrir le jeu, tu pourras en mettre de plus belles plus tard.
   miniature_oeufs.jpg     1920 x 1080  l'onglet des œufs, des œufs spéciaux et des couveuses
   miniature_niveaux.jpg   1920 x 1080  la liste des niveaux
 
+Pour les achats en Robux (dessinées par Claude, pas des captures) :
+  couveuse-royale.png     512 x 512    l'image du pass « Couveuse royale » (un œuf violet sur un socle doré, « 2x »)
+  finir-oeuf.png          512 x 512    l'image des 7 produits « Finish egg » (un œuf fendu, une double flèche)
+  Hub Création > ton expérience > Monétisation > Passes (et Produits pour développeurs) > l'image de chacun.
+
 OÙ LES METTRE
   Hub Création (create.roblox.com) > ton expérience > Configurer > « Icône » et « Miniatures ».
   Roblox vérifie chaque image avant de l'afficher (quelques minutes).

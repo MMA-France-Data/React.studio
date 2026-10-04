@@ -39,6 +39,10 @@ Scénarios `scenarios\LevelsServer.luau` puis `scenarios\LevelsClient.luau`. Cap
 - le jeu ne contient plus que les niveaux et le camp : sauvegarde (niveaux + réglage du son), 5 remotes, une seule
   colonne « Level » dans la liste des joueurs, place centrale sans le cercle du classé, 6 parcelles avec leur
   bâtiment des œufs, leur porte des niveaux et 3 socles ;
+- **les achats en Robux** (test `eggs`, faux numéros, aucune vraie fenêtre d'achat ; StudioDebug « Levels », « Shop »)
+  : la couveuse royale (pas d'œuf sans le pass, dorée et couronnée, 2 fois plus rapide), « Finir » en Robux au bon
+  prix, les reçus imités (l'œuf prêt, un reçu compté une fois, un œuf déjà fini, un produit inconnu), XP x2 et Argent
+  x2 à la fin d'un niveau, les états des pass, la page « 🛒 BOUTIQUE » (et ses textes en anglais : test `english`) ;
 - **les panneaux de la place** : « MEILLEURS JOUEURS » (tous les serveurs) et « SUR CE SERVEUR » des deux côtés,
   le joueur sur le panneau du serveur, son score envoyé (puis pas renvoyé avant une minute), l'ordre du classement
   avec de faux joueurs (le plus haut niveau, puis le plus de victoires), le meilleur score gardé (StudioDebug

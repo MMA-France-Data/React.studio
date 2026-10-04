@@ -5,7 +5,12 @@
 --    une tour de palier 2 prend la place de sa tour de base dans la barre ; doublon : XP d'entraînement ; attribut
 --    « Hatch » du joueur ; au hasard, un œuf commun : toujours une tour de palier 1), finir tout de suite avec des
 --    pièces, acheter
---    les couveuses, et les couveuses de la parcelle (l'œuf de sa couleur, l'étiquette, l'invite vers l'onglet Œufs).
+--    la 2e couveuse, et les couveuses de la parcelle (l'œuf de sa couleur, l'étiquette, l'invite vers l'onglet Œufs).
+--    LA COUVEUSE ROYALE et LES ACHATS EN ROBUX (Hub/Shop.luau, faux numéros, aucune vraie fenêtre d'achat : debug
+--    « Shop ») : pas d'œuf sans le pass, dorée et couronnée sur la parcelle, 2 fois plus rapide ; « Finir » en Robux au
+--    bon prix, l'achat confirmé par Roblox (debug « Receipt ») : l'œuf prêt, un reçu compté une fois, un œuf déjà fini
+--    (le temps va à un autre œuf, sinon des pièces), un produit inconnu refusé ; XP x2 et Argent x2 à la fin d'un
+--    niveau ; les états des pass (bientôt, pas proposé, à acheter).
 --    Les ŒUFS SPÉCIAUX : l'œuf carmin en plus de l'œuf doré au boss du niveau 10 (la 1re fois ; en rejouant : debug
 --    « BonusForce »), jamais perdu même réserve pleine, il donne l'Arc carmin ; ses motifs en 3D (œuf des ronces).
 -- 2) Il donne la main au client (attribut EggsTestPhase = "Client" de ReplicatedStorage) et répond à ses demandes par
@@ -182,17 +187,21 @@ return function(log)
 	)
 
 	------------------------------------------------------------------
-	-- Acheter des couveuses
+	-- Acheter des couveuses : la 2e avec des pièces ; la 3e est la COUVEUSE ROYALE (pass en Robux)
 	------------------------------------------------------------------
 	coinsBefore = data().coins
 	local bought2 = action("HatcherBuy")
-	local bought3 = action("HatcherBuy")
-	local bought4, why4 = action("HatcherBuy")
+	local bought3, why3 = action("HatcherBuy")
 	check(
-		bought2 and bought3 and not bought4 and why4 == "Tu as déjà toutes les couveuses" and #data().hatchers == 3
-			and data().coins == coinsBefore - Levels.HATCHER_COST[2] - Levels.HATCHER_COST[3],
-		`couveuses achetées : la 2e ({Levels.HATCHER_COST[2]}), la 3e ({Levels.HATCHER_COST[3]}), pas de 4e (« {tostring(why4)} »)`
+		bought2 and not bought3 and why3 == "Tu as déjà toutes les couveuses" and #data().hatchers == 2 and #Levels.HATCHER_COST == 2
+			and data().coins == coinsBefore - Levels.HATCHER_COST[2],
+		`couveuses à pièces : la 2e ({Levels.HATCHER_COST[2]}), pas de 3e (« {tostring(why3)} » : la 3e est la couveuse royale, en Robux)`
 	)
+	levels("Shop", "Restricted", false) -- (achats en Robux d'œufs permis chez lui)
+	levels("Set", "eggs", { Gold = 1 })
+	local royalRefused = action("EggStart", Levels.ROYAL.index, "Gold")
+	check(not royalRefused and (data().eggs.Gold or 0) == 1 and data().royal.egg == "", "la couveuse royale : pas d'œuf sans le pass")
+	levels("Shop", "Owned", "Royal", true) -- (comme s'il avait acheté le pass « Couveuse royale »)
 
 	------------------------------------------------------------------
 	-- Les couveuses de la parcelle
@@ -232,6 +241,22 @@ return function(log)
 			and (kinds.Thorn or 0) > 0 and (kinds.Leaf or 0) > 0 and model3.HatcherLabel.Panel.Sub.Text == "Œuf des ronces",
 		`l'œuf des ronces dans la 3e couveuse de la parcelle : vert, avec ses ronces en 3D ({kinds.EggStripe or 0} traits, {kinds.Thorn or 0} épines, {kinds.Leaf or 0} feuilles)`
 	)
+	-- La 3e couveuse est la couveuse royale : dorée, couronnée ; l'œuf y couve 2 fois moins longtemps.
+	local function published()
+		return decode(player:GetAttribute("LevelsState")) or {}
+	end
+	local crowns = 0
+	for _, part in if model3 then model3:GetChildren() else {} do
+		if part.Name == "RoyalCrownPoint" then
+			crowns += 1
+		end
+	end
+	local royalNow = published().royal or {}
+	check(
+		model3 ~= nil and model3.HatcherLabel.Panel.Title.Text == "👑 COUVEUSE ROYALE" and model3.HatcherPedestal.Color == Color3.fromRGB(214, 164, 52)
+			and crowns == 6 and royalNow.egg == "Bramble" and math.abs((tonumber(royalNow.readyIn) or 0) - Levels.EGGS.Bramble.seconds / 2) <= 5,
+		`la 3e couveuse de la parcelle est la couveuse royale (dorée, {crowns} pointes de couronne) : l'œuf des ronces y couve {math.floor((tonumber(royalNow.readyIn) or 0) / 60)} min au lieu de {Levels.EGGS.Bramble.seconds // 60}`
+	)
 	levels("Clock", Levels.EGGS.Rare.seconds + 1)
 	task.wait(1.5)
 	check(
@@ -241,6 +266,72 @@ return function(log)
 	action("EggOpen", 2)
 	task.wait(0.5)
 	check(egg2 ~= nil and egg2.Transparency == 1 and label2.Panel.Sub.Text == "Vide : pose un œuf", "ouvert : la couveuse de la parcelle est vide")
+
+	------------------------------------------------------------------
+	-- Les ACHATS EN ROBUX (Hub/Shop.luau ; faux numéros de produits, aucune vraie fenêtre d'achat ; les confirmations
+	-- de Roblox sont imitées par le debug « Receipt »)
+	------------------------------------------------------------------
+	levels("Shop", "Products", { ["1"] = 101, ["2"] = 102, ["3"] = 103, ["6"] = 106, ["12"] = 112, ["24"] = 124, ["48"] = 148 })
+	levels("Set", "eggs", { Gold = 1, Rare = 1 })
+	action("EggOpen", Levels.ROYAL.index) -- (l'œuf des ronces, prêt depuis l'heure avancée)
+	action("EggStart", Levels.ROYAL.index, "Gold")
+	local goldIn = tonumber((published().royal or {}).readyIn) or 0
+	local prompt = levels("Shop", "Prompt", Levels.ROYAL.index, goldIn)
+	local coinsNow = data().coins
+	local firstReceipt = levels("Shop", "Receipt", 124, "TEST-1")
+	local finishedIn = tonumber((published().royal or {}).readyIn) or -1
+	local again = levels("Shop", "Receipt", 124, "TEST-1")
+	check(
+		math.abs(goldIn - 2 * 3600) <= 5 and prompt.ok and prompt.price == 24 and prompt.product == 124 and firstReceipt == "PurchaseGranted" and finishedIn == 0
+			and again == "PurchaseGranted" and table.find(data().receipts, "TEST-1") ~= nil and data().coins == coinsNow,
+		`œuf doré dans la couveuse royale ({math.floor(goldIn / 60)} min) : « Finir » à {tostring(prompt.price)} Robux (produit {tostring(prompt.product)}) ; achat confirmé : prêt ({finishedIn} s) ; le même reçu encore : « {tostring(again)} », rien de plus`
+	)
+	-- Un reçu pour un œuf déjà fini : le temps payé avance l'œuf qui a le plus à attendre ; plus aucun œuf qui couve :
+	-- rendu en pièces de niveau. Un produit inconnu : pas accepté (Roblox le renverra).
+	action("EggStart", 2, "Rare")
+	local rareBefore = tonumber(((published().hatchers or {})[2] or {}).readyIn) or 0
+	levels("Shop", "Prompt", Levels.ROYAL.index, 1800) -- (prix 6, pour la couveuse royale, déjà prête)
+	local moved = levels("Shop", "Receipt", 106, "TEST-2")
+	local rareAfter = tonumber(((published().hatchers or {})[2] or {}).readyIn) or 0
+	action("EggSkip", 2) -- (en pièces : prêt)
+	local coinsBefore3 = data().coins
+	local refunded = levels("Shop", "Receipt", 101, "TEST-3")
+	local unknown = levels("Shop", "Receipt", 999, "TEST-4")
+	check(
+		moved == "PurchaseGranted" and math.abs((rareBefore - rareAfter) - 6 * Levels.ROBUX_SKIP_SECONDS) <= 3 and refunded == "PurchaseGranted"
+			and data().coins == coinsBefore3 + Levels.skipCost(Levels.ROBUX_SKIP_SECONDS) and unknown == "NotProcessedYet",
+		`reçu d'un œuf déjà fini : l'œuf rare avance de {math.floor((rareBefore - rareAfter) / 60)} min ; plus aucun œuf : +{data().coins - coinsBefore3} pièces ; produit inconnu : « {tostring(unknown)} »`
+	)
+	-- Pass XP x2 et Argent x2 : la fin d'un niveau (pièces et XP doublées, dit sur l'écran de fin).
+	local plain = win(5, true)
+	levels("Shop", "Owned", "Coins", true)
+	levels("Shop", "Owned", "Xp", true)
+	local boosted = win(5, true)
+	levels("Shop", "Owned", "Coins", false)
+	levels("Shop", "Owned", "Xp", false)
+	check(
+		(tonumber(plain.reward) or 0) > 0 and boosted.reward == plain.reward * 2 and boosted.xp == (plain.xp or 0) * 2 and boosted.coinsX2 == true
+			and boosted.xpX2 == true and plain.coinsX2 == false,
+		`pass Argent x2 et XP x2 : niveau 5 rejoué, {tostring(plain.reward)} pièces et {tostring(plain.xp)} XP sans les pass, {tostring(boosted.reward)} et {tostring(boosted.xp)} avec`
+	)
+	-- Les états des pass : pas encore créés sur le Hub Création (numéro 0) : « bientôt » ; là où les achats en Robux
+	-- d'œufs sont interdits : la couveuse royale n'est pas proposée, ni « Finir » en Robux (XP x2 et Argent x2 : si).
+	action("EggOpen", Levels.ROYAL.index)
+	levels("Shop", "Owned", "Royal", false)
+	local soon = levels("Shop", "State")
+	levels("Shop", "Restricted", true)
+	local restrictedState = levels("Shop", "State")
+	levels("Shop", "Restricted", false)
+	levels("Shop", "Pass", "Royal", 777)
+	local buyable = levels("Shop", "State")
+	task.wait(1)
+	local sale = model3 and model3.HatcherLabel.Panel.Sub.Text
+	check(
+		soon.passes.Royal == "soon" and soon.passes.Xp == "soon" and soon.passes.Coins == "soon" and restrictedState.passes.Royal == "no"
+			and #restrictedState.prices == 0 and restrictedState.passes.Xp == "soon" and buyable.passes.Royal == "buy" and #buyable.prices == 7
+			and model3 ~= nil and model3.HatcherPedestal.Transparency == 0 and sale == "2 fois plus rapide • 99 R$",
+		`pass : pas encore créés « {tostring(soon.passes.Royal)} », achats d'œufs interdits « {tostring(restrictedState.passes.Royal)} » ({#restrictedState.prices} prix), à acheter « {tostring(buyable.passes.Royal)} » ; la couveuse royale reste sur la parcelle : « {tostring(sale)} »`
+	)
 
 	------------------------------------------------------------------
 	-- Le client prend la main
@@ -290,6 +381,8 @@ return function(log)
 			return action("Quit")
 		elseif command == "State" then
 			return data()
+		elseif command == "Shop" then
+			return levels("Shop", ...)
 		end
 		return nil
 	end

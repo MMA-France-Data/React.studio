@@ -116,8 +116,9 @@ return function(log)
 	check(
 		row1.Visible and row1.Title.Text == "COUVEUSE 1 (vide)" and row1.Status.Text == "Pose un œuf :" and row1.Put_Common.Visible and row1.Put_Gold.Visible
 			and not row1.Put_Rare.Visible and row1.Put_Common.Text == "Œuf commun" and row2.Visible and row2.Title.Text == "🔒 COUVEUSE 2"
-			and row2.Action.Text == `Acheter : {Levels.HATCHER_COST[2]} 💵` and not row3.Visible,
-		`couveuses : « {row1.Title.Text} » « {row1.Status.Text} » (boutons « {row1.Put_Common.Text} » et « {row1.Put_Gold.Text} », sur une seule ligne : {tostring(row1.Put_Common.TextFits)}), « {row2.Title.Text} » « {row2.Action.Text} », la 3e cachée`
+			and row2.Action.Text == `Acheter : {Levels.HATCHER_COST[2]} 💵` and row3.Visible and row3.Title.Text == "👑 COUVEUSE ROYALE"
+			and row3.Status.Text == "Tes œufs y éclosent 2 fois plus vite" and row3.Action.Text == "Acheter : 99 R$",
+		`couveuses : « {row1.Title.Text} » « {row1.Status.Text} » (boutons « {row1.Put_Common.Text} » et « {row1.Put_Gold.Text} », sur une seule ligne : {tostring(row1.Put_Common.TextFits)}), « {row2.Title.Text} » « {row2.Action.Text} », la couveuse royale « {row3.Title.Text} » « {row3.Action.Text} »`
 	)
 	-- L'allure des œufs (demande du propriétaire, 04/10/2026 : « vrai style, les plus rares un peu violets ») : chaque
 	-- carte a la vignette de son œuf dessiné ; des rayons derrière l'œuf rare et l'œuf doré, pas derrière le commun.
@@ -156,8 +157,9 @@ return function(log)
 	task.wait(1.2)
 	check(
 		placed and string.match(row1.Status.Text, "^Encore 1[45]:%d%d$") ~= nil and row1.Action.Visible and row1.Action.Text == `Finir : {Levels.skipCost(Levels.EGGS.Common.seconds)} 💵`
-			and not row1.Put_Common.Visible and common.Count.Text == "×1" and row1.Icon:FindFirstChild("EggArt") ~= nil,
-		`œuf commun posé (dessiné dans la couveuse) : « {row1.Title.Text} », « {row1.Status.Text} », « {row1.Action.Text} »`
+			and not row1.Put_Common.Visible and common.Count.Text == "×1" and row1.Icon:FindFirstChild("EggArt") ~= nil
+			and row1.RobuxSkip.Visible and row1.RobuxSkip.Text == "Finir : 3 R$",
+		`œuf commun posé (dessiné dans la couveuse) : « {row1.Title.Text} », « {row1.Status.Text} », « {row1.Action.Text} », en Robux « {row1.RobuxSkip.Text} »`
 	)
 	shot("couve")
 	-- Sur la parcelle : la couveuse 1 et son œuf, devant le point d'arrivée (fenêtre fermée).
@@ -218,8 +220,8 @@ return function(log)
 		return row2.Title.Text == "COUVEUSE 2 (vide)" and row3.Visible
 	end, 4)
 	check(
-		bought and row3.Title.Text == "🔒 COUVEUSE 3" and string.find(row3.Action.Text, "Acheter : ", 1, true) == 1 and string.find(row3.Action.Text, "💵", 1, true) ~= nil,
-		`2e couveuse achetée : « {row2.Title.Text} », puis « {row3.Title.Text} » « {row3.Action.Text} »`
+		bought and row3.Title.Text == "👑 COUVEUSE ROYALE" and row3.Action.Text == "Acheter : 99 R$",
+		`2e couveuse achetée : « {row2.Title.Text} », puis la couveuse royale « {row3.Title.Text} » « {row3.Action.Text} » (en Robux)`
 	)
 	act(campGui, "Tab:Entraînement")
 	local badge = tab and tab:FindFirstChild("Badge")
@@ -285,6 +287,44 @@ return function(log)
 	)
 	shot("tour_speciale")
 	act(campGui, "RevealClose")
+
+	-- La COUVEUSE ROYALE (pass en Robux, faux numéros : debug « Shop » du serveur) : un œuf doré y couve 2 h, « Finir »
+	-- en Robux à 24 ; la page « 🛒 BOUTIQUE » : les 3 pass.
+	test:InvokeServer("Shop", "Owned", "Royal", true)
+	local royalOwned = waitFor(function()
+		return row3.Title.Text == "👑 COUVEUSE ROYALE (vide)"
+	end, 4)
+	act(campGui, "EggStart:3:Gold")
+	local royalGold = waitFor(function()
+		return row3.Title.Text == "👑 COUVEUSE ROYALE : Œuf doré"
+	end, 4)
+	task.wait(1.2)
+	check(
+		royalOwned and royalGold and string.match(row3.Status.Text, "^Encore [12]:%d%d:%d%d$") ~= nil and row3.RobuxSkip.Visible and row3.RobuxSkip.Text == "Finir : 24 R$",
+		`couveuse royale : « {row3.Title.Text} », « {row3.Status.Text} » (2 h au lieu de 4), « {row3.RobuxSkip.Text} »`
+	)
+	shot("couveuse_royale")
+	act(campGui, "Tab:Boutique")
+	local shopPage = window:WaitForChild("PageShop")
+	task.wait(0.5)
+	local royalCard, xpCard, coinsCard = shopPage:WaitForChild("Pass_Royal"), shopPage:WaitForChild("Pass_Xp"), shopPage:WaitForChild("Pass_Coins")
+	check(
+		shopPage.Visible and royalCard.Buy.Text == "✓ À TOI" and xpCard.Buy.Text == "Bientôt" and coinsCard.Buy.Text == "Bientôt" and xpCard.Title.Text == "XP x2"
+			and coinsCard.Title.Text == "Argent x2" and window.StoreButton.Text == "🛒 BOUTIQUE" and onScreen(coinsCard),
+		`boutique : « {royalCard.Title.Text} » « {royalCard.Buy.Text} », « {xpCard.Title.Text} » « {xpCard.Buy.Text} », « {coinsCard.Title.Text} » « {coinsCard.Buy.Text} »`
+	)
+	test:InvokeServer("Shop", "Pass", "Xp", 778)
+	local xpBuyable = waitFor(function()
+		return xpCard.Buy.Text == "99 R$"
+	end, 4)
+	test:InvokeServer("Shop", "Owned", "Coins", true)
+	local coinsOwned = waitFor(function()
+		return coinsCard.Buy.Text == "✓ À TOI"
+	end, 4)
+	check(xpBuyable and coinsOwned, `boutique : un pass créé sur le Hub Création « {xpCard.Buy.Text} », un pass à lui « {coinsCard.Buy.Text} »`)
+	shot("boutique")
+	test:InvokeServer("Shop", "Owned", "Coins", false)
+	test:InvokeServer("Shop", "Pass", "Xp", 0)
 	act(campGui, "Close")
 
 	------------------------------------------------------------------

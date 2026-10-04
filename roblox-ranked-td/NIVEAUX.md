@@ -192,7 +192,8 @@ Ta décision du 04/10/2026 : « ça serait mieux pas de tour en boutique, et le 
   œufs communs donnent les 8 tours de palier 1, les œufs rares et dorés aussi des tours de palier 2.
 
 Les **pièces de niveau** servent maintenant à : ouvrir et améliorer les emplacements du camp (400 et 1 500 pièces ;
-120 à 1 500 pour les améliorer), acheter les couveuses (600 et 2 500), finir un œuf tout de suite (5 pièces par
+120 à 1 500 pour les améliorer), acheter la 2e couveuse (600 ; la 3e est la couveuse royale, en Robux), finir un
+œuf tout de suite (5 pièces par
 minute qui reste : 75 pour un œuf commun, 1 200 pour un œuf doré), et acheter de l'entraînement (bouton ⚡). Les
 10 premiers niveaux réussis une fois donnent 2 180 pièces, les 20 premiers 6 860, les 40 ouverts 23 720.
 
@@ -411,7 +412,8 @@ jour), et les niveaux 1 à 40 sont réglés pour ces œufs (les boss demandent d
   mêmes motifs (taches, bande, couronne violette et étincelles), et l'œuf doré prêt brille en violet. Rien à publier
   sur Roblox : tout est dessiné par le jeu (`src/client/EggArt.luau`, couleurs dans `Levels.EGGS`).
 - **Les couveuses** : sur ta parcelle, entre ton point d'arrivée et les socles d'entraînement (3 couveuses : la 1re
-  offerte, la 2e à **600** pièces, la 3e à **2 500**), et dans le nouvel onglet **« Œufs »** de la fenêtre. Tu y
+  offerte, la 2e à **600** pièces, la 3e est la **couveuse royale**, dorée, en Robux : voir « Les achats en Robux »),
+  et dans le nouvel onglet **« Œufs »** de la fenêtre. Tu y
   poses un œuf ; il éclot après son temps (**15 min**, **1 h**, **4 h** selon l'œuf), **même quand tu n'es pas là**.
   Sur la parcelle, l'œuf a la couleur de son type, le temps qui reste est écrit au-dessus, et il brille quand il est
   prêt. **« Finir »** l'ouvre tout de suite contre des pièces (5 pièces par minute qui reste).
@@ -426,7 +428,38 @@ jour), et les niveaux 1 à 40 sont réglés pour ces œufs (les boss demandent d
   alors que tu as des œufs.
 
 Les chiffres (temps, chances, prix) sont les miens : `Levels.EGGS`, `HATCHER_COST`, `SKIP_COINS_PER_MINUTE`,
-`DUPLICATE_XP`, `EGG_MAX`. Pas de Robux : les œufs se gagnent seulement en jouant.
+`DUPLICATE_XP`, `EGG_MAX`. Les œufs se gagnent seulement en jouant (jamais achetés) ; les Robux servent à aller plus
+vite : voir « Les achats en Robux ».
+
+### Les achats en Robux
+
+Tes demandes du 04/10/2026 : « passer le temps des couveuses en Robux aussi, 1 Robux les 5 min », « une 3e couveuse
+d'une autre couleur, incubation 2 fois plus rapide, à payer en Robux, pas cher, disons 99 Robux » (elle remplace la
+3e couveuse à pièces : ta réponse), « la couveuse 3 est invisible, mets-la en or », « x2 XP 99 Robux aussi, et x2
+argent 199 Robux ». Le bouton **« 🛒 BOUTIQUE »** de la fenêtre (en haut, à côté de « 👥 ÉQUIPE ») montre les pass.
+
+| Achat | Prix | Ce qu'il fait |
+|---|---|---|
+| Pass « Couveuse royale » | 99 Robux, une fois | la 3e couveuse de ta parcelle, **dorée** et couronnée (toujours visible, « 99 R$ » écrit dessus tant que tu ne l'as pas) : tes œufs y éclosent **2 fois plus vite** (œuf doré : 2 h au lieu de 4) |
+| Pass « XP x2 » | 99 Robux, une fois | toute l'XP d'entraînement de tes tours est doublée : le camp (et les « XP/min » affichés), les niveaux joués, les doublons des œufs ; pas l'XP achetée avec le bouton ⚡ |
+| Pass « Argent x2 » | 199 Robux, une fois | les pièces de niveau gagnées en jouant les niveaux sont doublées (les cartes des niveaux affichent le double ; l'écran de fin le dit) |
+| « Finir » en Robux | 1 Robux par 5 min qui reste | un bouton vert à côté du « Finir » en pièces : l'œuf est prêt tout de suite |
+
+Un produit Roblox a un **prix fixe** : il y en a 7 (1, 2, 3, 6, 12, 24 et 48 Robux), et le bouton prend le plus
+grand prix qui ne dépasse pas 1 Robux par tranche de 5 min (15 min : 3 ; 1 h : 12 ; 3 h : 24 ; 4 h : 48). Si l'œuf
+finit tout seul pendant que tu payes, le temps payé avance ton œuf qui a le plus à attendre ; s'il n'y en a plus,
+il est rendu en pièces de niveau. Chaque achat n'est compté qu'une fois (le numéro du reçu est gardé dans ta
+sauvegarde).
+
+- **C'est toi qui crées les pass et les produits** sur le Hub Création (ton jeu > Monétisation), avec les images de
+  `assets/page` ; tu me donnes leurs numéros et je les écris dans `src/shared/Monetization.luau`. Tant qu'un numéro
+  vaut 0, l'achat affiche « Bientôt » (rien ne casse). Au démarrage, le serveur vérifie que chaque produit a bien
+  son prix sur Roblox (sinon il n'est pas proposé).
+- **Les pays où Roblox interdit les objets aléatoires payants** (un œuf donne une tour au hasard) : la couveuse
+  royale et « Finir » en Robux n'y sont pas proposés (PolicyService) ; XP x2 et Argent x2 si.
+- Le code : `src/shared/Monetization.luau` (numéros, prix affichés), `src/server/Hub/Shop.luau` (achats, reçus),
+  `Hub/LevelsService.luau` (leurs effets), `Levels.ROYAL`, `Levels.robuxSkipPrice`, `XP_PASS_MULTIPLIER`,
+  `COINS_PASS_MULTIPLIER`.
 
 **Les 8 tours de palier 2.** Chacune est la version forte d'une tour de palier 1 : même rôle, même rareté, même
 silhouette, à ses couleurs, avec un anneau lumineux et quatre cristaux autour du socle. Sans aucun entraînement,
@@ -837,6 +870,7 @@ niveaux du joueur et son réglage du son. Les sauvegardes de l'ancien jeu « Tow
 | `src/server/Hub/LevelGame.luau` | un niveau en cours (or, vies, flot de monstres, pose des tours) |
 | `src/server/Hub/LevelArena.luau` | les zones de combat, leur carte et le décor de chaque territoire |
 | `src/server/Hub/LevelsService.luau` | lancement (seul ou en équipe), récompenses (œufs, bonus d'équipe et d'ami, invitations), couveuses, camp, état publié au joueur |
+| `src/shared/Monetization.luau`, `src/server/Hub/Shop.luau` | les achats en Robux : numéros des pass et des produits, fenêtres d'achat, reçus, pays où ils sont interdits |
 | `src/server/Hub/LevelTeams.luau` | les équipes : invitations, chef, coéquipiers, quitter l'équipe |
 | `src/server/Hub/Camp.luau`, `CampGame.luau` | la parcelle : socles, couveuses, étiquettes, invites ; les tours du camp et leurs cibles |
 | `src/server/Hub/HubMap.luau`, `Plots.luau`, `PlotBoard.luau`, `PlotIdentity.luau`, `PlotInterest.luau` | la map, l'attribution des parcelles, leurs panneaux, qui reçoit quel camp |

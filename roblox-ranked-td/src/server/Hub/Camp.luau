@@ -5,7 +5,8 @@
 --     XP par minute) et une invite « Gérer » qui ouvre l'onglet Entraînement de sa fenêtre (LevelsUI lit l'attribut
 --     CampSlot de l'invite) ;
 --   * trois COUVEUSES (« LES ŒUFS », Levels.luau ; PlotLayout.HATCHERS) : l'œuf de chacune et le temps qui reste,
---     une invite qui ouvre l'onglet Œufs ;
+--     une invite qui ouvre l'onglet Œufs ; la 3e est la COUVEUSE ROYALE (Levels.ROYAL), dorée et couronnée, toujours
+--     visible : à acheter en Robux tant qu'il n'a pas le pass (attribut RoyalHatcher du joueur, Hub/LevelsService) ;
 --   * devant l'entrée, LES ŒUFS et la PORTE DES NIVEAUX (construites par Hub/HubMap.luau) : leur invite
 --     ouvre l'onglet de ce nom (attribut CampTab) ;
 --   * le tableau du fond affiche le camp (Hub/PlotBoard.luau lit les attributs Camp... de la parcelle).
@@ -18,6 +19,7 @@ local Config = require(Shared.Config)
 local IdleTowers = require(Shared.IdleTowers)
 local Levels = require(Shared.Levels)
 local MedievalModels = require(Shared.MedievalModels)
+local Monetization = require(Shared.Monetization)
 local NumberFormat = require(Shared.NumberFormat)
 local PlotLayout = require(Shared.PlotLayout)
 local ProximityLabel = require(Shared.ProximityLabel)
@@ -39,6 +41,8 @@ local LABEL_HEIGHT = 11.5 -- studs au-dessus du socle (la plus haute tour, le Tr
 local LABEL_HEIGHT_EMPTY = 4
 local OPEN_COLOR, LOCKED_COLOR = Color3.fromRGB(132, 124, 106), Color3.fromRGB(49, 47, 43)
 local GOLD, IVORY, MUTED = Color3.fromRGB(255, 217, 61), Color3.new(1, 1, 1), Color3.fromRGB(220, 229, 244)
+-- La couveuse royale : « mets-la en or » (demande du propriétaire, 04/10/2026).
+local ROYAL_GOLD, ROYAL_RIM = Color3.fromRGB(214, 164, 52), Color3.fromRGB(255, 214, 102)
 local INK = Color3.fromRGB(10, 12, 21)
 
 -- Les vignettes des fenêtres montrent les VRAIES tours, sans images à publier. Un modèle statique par tour (16),
@@ -330,8 +334,22 @@ local function buildHatcher(plot, index: number)
 	pedestal.TopSurface = Enum.SurfaceType.Smooth
 	pedestal.BottomSurface = Enum.SurfaceType.Smooth
 	pedestal.Parent = model
-	local rim = MedievalModels.sceneryPart(model, "HatcherRim", Vector3.new(0.3, 4.8, 4.8), origin * CFrame.new(0, 1.25, 0) * CFrame.Angles(0, 0, math.rad(90)), GOLD, Enum.Material.Metal)
+	local royal = index == Levels.ROYAL.index
+	if royal then
+		pedestal.Material = Enum.Material.Metal
+		pedestal.Color = ROYAL_GOLD
+	end
+	local rim = MedievalModels.sceneryPart(model, "HatcherRim", Vector3.new(0.3, 4.8, 4.8), origin * CFrame.new(0, 1.25, 0) * CFrame.Angles(0, 0, math.rad(90)), if royal then ROYAL_RIM else GOLD, Enum.Material.Metal)
 	rim.Shape = Enum.PartType.Cylinder
+	if royal then
+		-- (une couronne : 6 pointes dorées autour du bord)
+		for point = 0, 5 do
+			local angle = point / 6 * math.pi * 2
+			local spike = MedievalModels.sceneryPart(model, "RoyalCrownPoint", Vector3.new(0.5, 1, 0.5),
+				origin * CFrame.new(math.cos(angle) * 2.25, 1.85, math.sin(angle) * 2.25) * CFrame.Angles(0, -angle, 0), ROYAL_RIM, Enum.Material.Metal)
+			spike.CanCollide = false
+		end
+	end
 	local nest = MedievalModels.sceneryPart(model, "HatcherNest", Vector3.new(0.7, 3.2, 3.2), origin * CFrame.new(0, 1.6, 0) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(120, 86, 52), Enum.Material.Wood)
 	nest.Shape = Enum.PartType.Cylinder
 	-- L'œuf : une sphère étirée (SpecialMesh : une pièce « Ball » reste ronde).
@@ -383,7 +401,7 @@ local function buildHatcher(plot, index: number)
 	prompt:SetAttribute("CampTab", "Œufs")
 	prompt.Parent = pedestal
 	model.Parent = plot.folder
-	return { model = model, pedestal = pedestal, egg = egg, decor = decor, decorType = "", light = light, panel = panel, title = title, sub = sub, timer = timer, prompt = prompt, eggType = "", readyAt = 0 }
+	return { model = model, pedestal = pedestal, egg = egg, decor = decor, decorType = "", light = light, panel = panel, title = title, sub = sub, timer = timer, prompt = prompt, eggType = "", readyAt = 0, royal = royal }
 end
 
 -- Temps qui reste sur l'étiquette d'une couveuse occupée (appelé chaque seconde) ; l'œuf brille quand il est prêt.
@@ -400,14 +418,21 @@ local function tickHatcher(entry, clockDelta: number)
 	setIfChanged(entry.egg, "Material", if ready then Enum.Material.Neon else Enum.Material.SmoothPlastic)
 end
 
--- Remet les couveuses d'accord avec les données du joueur.
-local function refreshHatchers(dressing, levels)
+-- Remet les couveuses d'accord avec les données du joueur. royalState = état de son pass « Couveuse royale »
+-- ("owned", "buy", "soon", "no" : Hub/Shop.luau).
+local function refreshHatchers(dressing, levels, royalState: string?)
 	for index, entry in dressing.hatchers do
-		local owned = levels.hatchers[index]
-		local isNext = owned == nil and index == #levels.hatchers + 1
-		local shown = owned ~= nil or isNext
-		entry.pedestal.Transparency = if owned then 0 elseif isNext then 0.45 else 1
-		entry.pedestal.Color = if owned then OPEN_COLOR else LOCKED_COLOR
+		local owned
+		if entry.royal then
+			owned = if royalState == "owned" or levels.royal.egg ~= "" then levels.royal else nil
+		else
+			owned = levels.hatchers[index]
+		end
+		local isNext = not entry.royal and owned == nil and index == #levels.hatchers + 1
+		local forSale = entry.royal and owned == nil and (royalState == "buy" or royalState == "soon")
+		local shown = owned ~= nil or isNext or forSale
+		entry.pedestal.Transparency = if owned or forSale then 0 elseif isNext then 0.45 else 1
+		entry.pedestal.Color = if entry.royal then ROYAL_GOLD elseif owned then OPEN_COLOR else LOCKED_COLOR
 		entry.pedestal.CanCollide = shown
 		entry.pedestal.CanQuery = shown
 		for _, child in entry.model:GetChildren() do
@@ -417,8 +442,8 @@ local function refreshHatchers(dressing, levels)
 		end
 		entry.panel.Visible = shown
 		entry.prompt.Enabled = shown
-		entry.prompt.ObjectText = `Couveuse {index}`
-		entry.prompt.ActionText = if owned then "Ouvrir" else "Acheter"
+		entry.prompt.ObjectText = if entry.royal then "Couveuse royale" else `Couveuse {index}`
+		entry.prompt.ActionText = if owned then "Ouvrir" elseif royalState == "soon" and forSale then "Voir" else "Acheter"
 		entry.eggType = if owned then owned.egg else ""
 		entry.readyAt = if owned then owned.readyAt else 0
 		local egg = Levels.EGGS[entry.eggType]
@@ -431,9 +456,11 @@ local function refreshHatchers(dressing, levels)
 		decorateEgg(entry, if egg then entry.eggType else "")
 		entry.light.Enabled = false
 		entry.egg.Material = Enum.Material.SmoothPlastic
-		entry.title.Text = if owned then `COUVEUSE {index}` else `🔒 COUVEUSE {index}`
+		entry.title.Text = if entry.royal then "👑 COUVEUSE ROYALE" elseif owned then `COUVEUSE {index}` else `🔒 COUVEUSE {index}`
 		entry.timer.Text = ""
-		if isNext then
+		if forSale then
+			entry.sub.Text = if royalState == "buy" then `2 fois plus rapide • {Monetization.PASSES.Royal.price} R$` else "2 fois plus rapide • bientôt"
+		elseif isNext then
 			entry.sub.Text = `Acheter : {NumberFormat.short(Levels.HATCHER_COST[index] or 0)} pièces de niveau`
 		elseif owned and not egg then
 			entry.sub.Text = "Vide : pose un œuf"
@@ -457,7 +484,10 @@ function Camp.refresh(player: Player, levels, serverNow: number?)
 		return
 	end
 	dressing.clockDelta = (serverNow or os.time()) - os.time()
-	local parts = { tostring(levels.best), tostring(levels.coins), tostring(#levels.slots) }
+	local royalState = player:GetAttribute("RoyalHatcher")
+	local xpBoost = tonumber(player:GetAttribute("XpBoost")) or 1 -- (pass XP x2 : l'XP par minute des socles)
+	local parts = { tostring(levels.best), tostring(levels.coins), tostring(#levels.slots),
+		`royal:{levels.royal.egg}:{levels.royal.readyAt}:{tostring(royalState)}:{xpBoost}` }
 	for index, hatcher in levels.hatchers do
 		table.insert(parts, `h{index}:{hatcher.egg}:{hatcher.readyAt}`)
 	end
@@ -475,7 +505,7 @@ function Camp.refresh(player: Player, levels, serverNow: number?)
 	end
 	dressing.signature = signature
 
-	refreshHatchers(dressing, levels)
+	refreshHatchers(dressing, levels, if typeof(royalState) == "string" then royalState else nil)
 	game:refresh(levels)
 	local training = Levels.trainingLevels(levels)
 	local summary = {}
@@ -504,7 +534,7 @@ function Camp.refresh(player: Player, levels, serverNow: number?)
 				local done, needed = Levels.trainingProgress(xp)
 				entry.title.Text = if stars ~= "" then `{def.displayName} {stars}` else def.displayName
 				entry.title.TextColor3 = IVORY
-				entry.sub.Text = `Entraînement {trained}/{Levels.TRAINING.MAX_LEVEL} • +{decimal(rate)} XP/min`
+				entry.sub.Text = `Entraînement {trained}/{Levels.TRAINING.MAX_LEVEL} • +{decimal(rate * xpBoost)} XP/min`
 				entry.bar.Visible = true
 				entry.fill.Size = UDim2.fromScale(if needed > 0 then math.clamp(done / needed, 0, 1) else 1, 1)
 				entry.xp.Text = if needed > 0 then `{math.floor(done)} / {needed} XP` else "ENTRAÎNEMENT MAX"

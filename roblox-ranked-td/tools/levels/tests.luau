@@ -1485,10 +1485,10 @@ do
 	})
 	local fresh = Levels.defaultData()
 	check(
-		cleaned.eggs.Common == 3 and cleaned.eggs.Rare == nil and cleaned.eggs.Gold == nil and cleaned.eggs.Fake == nil and #cleaned.hatchers == #Levels.HATCHER_COST
+		cleaned.eggs.Common == 3 and cleaned.eggs.Rare == nil and cleaned.eggs.Gold == 1 and cleaned.eggs.Fake == nil and #cleaned.hatchers == #Levels.HATCHER_COST
 			and cleaned.hatchers[1].egg == "Rare" and cleaned.hatchers[1].readyAt == 123 and cleaned.hatchers[2].egg == "" and cleaned.hatchers[2].readyAt == 0
 			and #fresh.hatchers == 1 and fresh.hatchers[1].egg == "" and Levels.HATCHER_COST[1] == 0,
-		"œufs : données propres (réserve, couveuses : la 1re offerte, 3 au plus ; un œuf inconnu est enlevé)"
+		"œufs : données propres (réserve, couveuses : la 1re offerte, 2 à pièces ; l'œuf d'une couveuse en trop revient dans la réserve ; un œuf inconnu est enlevé)"
 	)
 end
 
@@ -1872,6 +1872,58 @@ do
 	check(
 		zero == nil and junk == nil and nan == nil and negativeWins == 3 * Levels.BOARD_WINS and badBest == 0 and badWins == 0,
 		"classement : pas de score sans niveau réussi (ni avec des valeurs abîmées), victoires négatives comptées 0"
+	)
+end
+
+----------------------------------------------------------------------
+-- 18) Les achats en Robux (demandes du propriétaire, 04/10/2026 : « passer le temps des couveuses en Robux, 1 Robux
+--     les 5 min », « une 3e couveuse d'une autre couleur, incubation 2 fois plus rapide, 99 Robux », « x2 XP 99 Robux,
+--     x2 argent 199 Robux ») : les règles (les achats eux-mêmes : Hub/Shop.luau, test Studio « eggs »).
+----------------------------------------------------------------------
+do
+	local p = Levels.robuxSkipPrice
+	check(
+		p(0) == 0 and p(-3) == 0 and p(1) == 1 and p(300) == 1 and p(301) == 2 and p(15 * 60) == 3 and p(20 * 60) == 3 and p(3600) == 12
+			and p(3 * 3600) == 24 and p(4 * 3600) == 48 and p(5 * 3600) == 48,
+		`finir en Robux : 1 Robux par tranche de 5 min, ramené au prix au-dessous (5 min : {p(300)}, 15 min : {p(900)}, 20 min : {p(1200)}, 1 h : {p(3600)}, 3 h : {p(10800)}, 4 h : {p(14400)})`
+	)
+	check(
+		p(600, { 6, 24 }) == 6 and p(3600, { 6, 24 }) == 6 and p(2 * 3600, { 6, 24 }) == 24 and p(600, {}) == 0,
+		"finir en Robux : seulement les prix des produits qui existent (moins de temps que le plus petit : le plus petit)"
+	)
+	check(
+		Levels.hatchSeconds("Gold", true) == 2 * 3600 and Levels.hatchSeconds("Gold") == 4 * 3600 and Levels.hatchSeconds("Common", true) == 450
+			and #Levels.HATCHER_COST == 2 and Levels.ROYAL.index == 3 and Levels.ROYAL.speed == 2,
+		"couveuse royale : la 3e couveuse, les œufs y éclosent 2 fois plus vite (œuf doré : 2 h) ; plus que 2 couveuses à pièces"
+	)
+	-- XP x2 : le camp et les doublons des œufs (l'XP d'un niveau joué : LevelsService, multipliée de même).
+	local camp = Levels.defaultData()
+	camp.trainedAt = 1000
+	local single = Levels.accrueTraining(Levels.cleanData(camp), 1000 + 600)
+	local double = Levels.accrueTraining(camp, 1000 + 600, Levels.XP_PASS_MULTIPLIER)
+	local owner = Levels.defaultData()
+	Levels.hatchTower(owner, "Laser")
+	local _, duplicateXp = Levels.hatchTower(owner, "Laser", Levels.XP_PASS_MULTIPLIER)
+	check(
+		single.MachineGun ~= nil and double.MachineGun == single.MachineGun * 2 and duplicateXp == Levels.DUPLICATE_XP.Epic * 2
+			and Levels.XP_PASS_MULTIPLIER == 2 and Levels.COINS_PASS_MULTIPLIER == 2,
+		`pass XP x2 : 10 min de camp = {single.MachineGun} XP, {double.MachineGun} avec le pass ; un doublon : {duplicateXp} XP`
+	)
+	-- La sauvegarde : l'œuf de la couveuse royale, les reçus des achats (chacun compté une fois).
+	local receipts = {}
+	for index = 1, Levels.RECEIPTS_MAX + 5 do
+		table.insert(receipts, `R{index}`)
+	end
+	table.insert(receipts, 42)
+	table.insert(receipts, "R60")
+	local saved = Levels.cleanData({ royal = { egg = "Gold", readyAt = 777 }, receipts = receipts })
+	local starter = Levels.cleanData({ royal = { egg = "Starter", readyAt = 5 } })
+	local junk = Levels.cleanData({ royal = "x", receipts = "y" })
+	check(
+		saved.royal.egg == "Gold" and saved.royal.readyAt == 777 and #saved.receipts == Levels.RECEIPTS_MAX and saved.receipts[1] == "R7"
+			and saved.receipts[#saved.receipts] == "R60" and starter.royal.egg == "" and junk.royal.egg == "" and #junk.receipts == 0
+			and Levels.defaultData().royal.egg == "",
+		`achats : l'œuf de la couveuse royale gardé, les {Levels.RECEIPTS_MAX} derniers reçus (sans doublon, que du texte), données abîmées remises à zéro`
 	)
 end
 

@@ -1355,9 +1355,10 @@ Levels.CAMP = {
 --   * gagner un niveau donne un ŒUF (Levels.eggFor) : première victoire = commun, rare au mini-boss, doré au boss
 --     (niveau 1 : le PREMIER ŒUF, Starter) ; en rejouant = commun, rare au boss. EGG_MAX œufs au plus en réserve
 --     (au-delà, l'œuf est perdu : l'écran de fin le dit) ;
---   * un œuf se pose dans une COUVEUSE de sa parcelle (la 1re offerte, les autres achetées : HATCHER_COST) et éclot
---     après son temps (EGGS[type].seconds), même quand le joueur n'est pas là ; on peut finir tout de suite avec des
---     pièces de niveau (SKIP_COINS_PER_MINUTE par minute qui reste) ;
+--   * un œuf se pose dans une COUVEUSE de sa parcelle (la 1re offerte, la 2e achetée : HATCHER_COST ; la 3e est la
+--     COUVEUSE ROYALE, dorée, achetée en Robux : ROYAL) et éclot après son temps (EGGS[type].seconds, 2 fois moins
+--     dans la couveuse royale), même quand le joueur n'est pas là ; on peut finir tout de suite avec des pièces de
+--     niveau (SKIP_COINS_PER_MINUTE par minute qui reste) ou avec des Robux (robuxSkipPrice) ;
 --   * en l'ouvrant : une tour au HASARD, avec les chances de son œuf (écrites dans l'onglet Œufs) : par rareté
 --     (EGGS[type].chances), et la part des tours de palier 2 (EGGS[type].tier2 : 0 dans un œuf commun, 25 % dans un
 --     œuf rare, 75 % dans un œuf doré) ; une tour pas encore à lui devient la sienne (Levels.addTower : une tour de
@@ -1464,8 +1465,25 @@ Levels.EGG_ORDER = { "Common", "Rare", "Gold" } -- (les œufs de la réserve ; l
 Levels.SPECIAL_EGG_ORDER = { "Crimson", "Copper", "Bramble", "Rime" } -- (dans l'ordre des territoires)
 Levels.SPECIAL_REPLAY_CHANCE = 0.1 -- en rejouant le boss d'un territoire : 1 chance sur 10 de regagner son œuf spécial
 Levels.EGG_MAX = 30 -- œufs en réserve au plus (tous types ensemble)
-Levels.HATCHER_COST = { 0, 600, 2500 } -- prix de la 1re (offerte), 2e et 3e couveuse, en pièces de niveau
+Levels.HATCHER_COST = { 0, 600 } -- prix de la 1re (offerte) et de la 2e couveuse, en pièces de niveau (la 3e : ROYAL)
 Levels.SKIP_COINS_PER_MINUTE = 5 -- finir un œuf tout de suite : pièces de niveau par minute qui reste
+-- LA COUVEUSE ROYALE (demandes du propriétaire, 04/10/2026 : « une 3e couveuse d'une autre couleur, incubation 2 fois
+-- plus rapide, à payer en Robux, 99 Robux », qui remplace la 3e couveuse à pièces, « mets-la en or ») : la 3e couveuse
+-- de la parcelle (index), dorée, à vie avec le pass « Couveuse royale » (Shared/Monetization.luau, Hub/Shop.luau) ;
+-- ses œufs éclosent `speed` fois plus vite. Son œuf est gardé à part (data.royal, pas data.hatchers) : on peut
+-- l'avoir sans avoir acheté la 2e.
+Levels.ROYAL = { index = 3, speed = 2 }
+-- FINIR UN ŒUF EN ROBUX (« 1 Robux les 5 min ») : 1 Robux par tranche de ROBUX_SKIP_SECONDS qui reste, ramené au
+-- plus grand de ces prix qui ne le dépasse pas (un produit Roblox a un prix fixe : un produit par prix, créé par le
+-- propriétaire ; 7 prix arrondis : sa réponse à ma question).
+Levels.ROBUX_SKIP_SECONDS = 5 * 60
+Levels.ROBUX_SKIP_PRICES = { 1, 2, 3, 6, 12, 24, 48 }
+Levels.RECEIPTS_MAX = 50 -- numéros des derniers achats en Robux gardés dans la sauvegarde (un achat compté une fois)
+-- LES PASS « XP x2 » et « ARGENT x2 » (demande du propriétaire, 04/10/2026 : « x2 XP 99 Robux aussi, et x2 argent 199
+-- Robux » ; Shared/Monetization.luau) : toute l'XP d'entraînement gagnée (camp, niveaux joués, doublons des œufs ;
+-- pas celle achetée avec le bouton ⚡), et les pièces de niveau gagnées en jouant les niveaux, multipliées par ça.
+Levels.XP_PASS_MULTIPLIER = 2
+Levels.COINS_PASS_MULTIPLIER = 2
 Levels.DUPLICATE_XP = { Common = 20, Rare = 40, Epic = 80, Legendary = 160, Special = 200 } -- XP d'entraînement d'un doublon
 Levels.RARITY_NAMES = { Common = "Commune", Rare = "Rare", Epic = "Épique", Legendary = "Légendaire", Special = "Spéciale" }
 -- Raretés des œufs au hasard (les tours spéciales n'y sont jamais : elles sortent de leur œuf spécial).
@@ -1620,13 +1638,13 @@ function Levels.rollEgg(eggType: string, roll: number): string
 end
 
 -- Une tour sort d'un œuf : nouvelle, elle est au joueur (Levels.addTower : dans sa barre rapide) ; doublon :
--- DUPLICATE_XP d'XP d'entraînement pour elle. Renvoie (nouvelle, XP gagnée).
-function Levels.hatchTower(levels, towerType: string): (boolean, number)
+-- DUPLICATE_XP d'XP d'entraînement pour elle, fois `multiplier` (pass XP x2). Renvoie (nouvelle, XP gagnée).
+function Levels.hatchTower(levels, towerType: string, multiplier: number?): (boolean, number)
 	if not levels.towers[towerType] then
 		Levels.addTower(levels, towerType)
 		return true, 0
 	end
-	local xp = Levels.DUPLICATE_XP[IdleTowers.Defs[towerType].rarity] or 0
+	local xp = (Levels.DUPLICATE_XP[IdleTowers.Defs[towerType].rarity] or 0) * (multiplier or 1)
 	levels.xp[towerType] = (levels.xp[towerType] or 0) + xp
 	return false, xp
 end
@@ -1634,6 +1652,31 @@ end
 -- Prix pour finir tout de suite un œuf qui doit encore couver `seconds` secondes (0 s'il est prêt).
 function Levels.skipCost(seconds: number): number
 	return if seconds > 0 then math.ceil(seconds / 60) * Levels.SKIP_COINS_PER_MINUTE else 0
+end
+
+-- Prix en Robux pour finir tout de suite un œuf qui doit encore couver `seconds` secondes : 1 Robux par tranche de
+-- 5 min qui reste, ramené au plus grand des prix de `prices` qui ne le dépasse pas (par défaut ROBUX_SKIP_PRICES ;
+-- le serveur donne seulement les produits qui existent). 0 s'il est prêt (ou aucun prix).
+function Levels.robuxSkipPrice(seconds: number, prices: { number }?): number
+	if seconds <= 0 then
+		return 0
+	end
+	local exact = math.ceil(seconds / Levels.ROBUX_SKIP_SECONDS)
+	local best, smallest = 0, math.huge
+	for _, price in prices or Levels.ROBUX_SKIP_PRICES do
+		smallest = math.min(smallest, price)
+		if price <= exact and price > best then
+			best = price
+		end
+	end
+	-- (moins de temps que le plus petit prix : le plus petit prix)
+	return if best > 0 then best elseif smallest < math.huge then smallest else 0
+end
+
+-- Temps de couvaison d'un œuf (secondes) : la couveuse royale va ROYAL.speed fois plus vite.
+function Levels.hatchSeconds(eggType: string, royal: boolean?): number
+	local seconds = Levels.EGGS[eggType].seconds
+	return if royal then math.ceil(seconds / Levels.ROYAL.speed) else seconds
 end
 
 ----------------------------------------------------------------------
@@ -1775,6 +1818,8 @@ function Levels.defaultData()
 		eggs = {}, -- [type d'œuf] = nombre en réserve : « LES ŒUFS »
 		hatchers = { { egg = "", readyAt = 0 } }, -- ses couveuses (la 1re offerte) : egg = type d'œuf ("" = vide),
 		-- readyAt = os.time() où il éclot
+		royal = { egg = "", readyAt = 0 }, -- l'œuf de la couveuse royale (Levels.ROYAL : pass en Robux)
+		receipts = {}, -- numéros des derniers achats en Robux déjà comptés (Hub/Shop.luau)
 		lossLevel = 0, -- « BLOQUÉ ? » : le niveau de ses dernières défaites de suite (0 = aucun)...
 		lossStreak = 0, -- ... et leur nombre (Levels.recordResult)
 	}
@@ -1817,6 +1862,28 @@ function Levels.cleanData(saved: any)
 			local egg = if typeof(hatcher) == "table" and Levels.EGGS[hatcher.egg] then hatcher.egg else ""
 			local readyAt = if egg ~= "" then math.floor(cleanNumber(hatcher.readyAt, 0, 1e11, 0)) else 0
 			table.insert(data.hatchers, { egg = egg, readyAt = readyAt })
+		end
+		-- La 3e couveuse à pièces d'avant la couveuse royale : son œuf revient dans la réserve.
+		for index = #Levels.HATCHER_COST + 1, #saved.hatchers do
+			local hatcher = saved.hatchers[index]
+			local egg = if typeof(hatcher) == "table" then hatcher.egg else nil
+			if typeof(egg) == "string" and Levels.EGGS[egg] and not Levels.EGGS[egg].autoHatch then
+				data.eggs[egg] = math.min((data.eggs[egg] or 0) + 1, Levels.EGG_MAX)
+			end
+		end
+	end
+	local royal = saved.royal
+	if typeof(royal) == "table" and typeof(royal.egg) == "string" and Levels.EGGS[royal.egg] and not Levels.EGGS[royal.egg].autoHatch then
+		data.royal = { egg = royal.egg, readyAt = math.floor(cleanNumber(royal.readyAt, 0, 1e11, 0)) }
+	end
+	if typeof(saved.receipts) == "table" then
+		for _, receiptId in saved.receipts do
+			if typeof(receiptId) == "string" and #receiptId <= 100 and not table.find(data.receipts, receiptId) then
+				table.insert(data.receipts, receiptId)
+			end
+		end
+		while #data.receipts > Levels.RECEIPTS_MAX do
+			table.remove(data.receipts, 1)
 		end
 	end
 	data.invitedBy = math.floor(cleanNumber(saved.invitedBy, -1e15, 1e15, 0))
@@ -1875,9 +1942,9 @@ function Levels.cleanData(saved: any)
 end
 
 -- Entraînement du camp jusqu'à `now` (os.time()) : chaque emplacement donne à sa tour SLOT_RATE XP par minute depuis
--- le dernier calcul, OFFLINE_MAX_SECONDS au plus d'un coup. Premier calcul (trainedAt = 0) : rien, l'heure est notée.
--- Renvoie l'XP gagnée par type : { [type] = XP } (vide si rien).
-function Levels.accrueTraining(data, now: number): { [string]: number }
+-- le dernier calcul (fois `multiplier` : pass XP x2), OFFLINE_MAX_SECONDS au plus d'un coup. Premier calcul
+-- (trainedAt = 0) : rien, l'heure est notée. Renvoie l'XP gagnée par type : { [type] = XP } (vide si rien).
+function Levels.accrueTraining(data, now: number, multiplier: number?): { [string]: number }
 	local gained = {}
 	local last = data.trainedAt
 	data.trainedAt = now
@@ -1887,7 +1954,7 @@ function Levels.accrueTraining(data, now: number): { [string]: number }
 	local minutes = math.min(now - last, Levels.TRAINING.OFFLINE_MAX_SECONDS) / 60
 	for _, slot in data.slots do
 		if slot.tower ~= "" and data.towers[slot.tower] then
-			local amount = minutes * Levels.TRAINING.SLOT_RATE[slot.level]
+			local amount = minutes * Levels.TRAINING.SLOT_RATE[slot.level] * (multiplier or 1)
 			data.xp[slot.tower] = (data.xp[slot.tower] or 0) + amount
 			gained[slot.tower] = (gained[slot.tower] or 0) + amount
 		end

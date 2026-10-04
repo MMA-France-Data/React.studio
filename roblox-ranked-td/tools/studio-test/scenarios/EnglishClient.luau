@@ -612,6 +612,27 @@ return function(log)
 	task.wait(0.8)
 	scanScreen("couveuses achetées (petits messages)")
 	scanWorld("panneaux de la parcelle après les niveaux")
+	-- Les achats en Robux (faux numéros : debug « Shop » du serveur) : la couveuse royale à acheter, « Finir » en Robux,
+	-- la page « 🛒 BOUTIQUE », un pass à lui.
+	test:InvokeServer("Shop", { "Restricted", false })
+	test:InvokeServer("Shop", { "Pass", "Royal", 777 })
+	test:InvokeServer("Shop", { "Products", { ["1"] = 101, ["2"] = 102, ["3"] = 103, ["6"] = 106, ["12"] = 112, ["24"] = 124, ["48"] = 148 } })
+	test:InvokeServer("Set", { eggs = { Common = 1 }, hatchers = { { egg = "", readyAt = 0 }, { egg = "", readyAt = 0 } } })
+	test:InvokeServer("Do", { "EggStart", 1, "Common" })
+	act(campGui, "Tab:Œufs")
+	task.wait(0.8)
+	scanScreen("onglet Œufs : la couveuse royale à acheter, « Finir » en Robux")
+	scanWorld("la couveuse royale sur la parcelle")
+	act(campGui, "Tab:Boutique")
+	task.wait(0.6)
+	scanScreen("la boutique (pass en Robux)")
+	test:InvokeServer("Shop", { "Owned", "Royal", true })
+	task.wait(0.6)
+	scanScreen("la boutique : un pass à lui")
+	act(campGui, "Tab:Œufs")
+	task.wait(0.6)
+	scanScreen("onglet Œufs : la couveuse royale à lui")
+	act(campGui, "Close")
 
 	------------------------------------------------------------------
 	-- 6) Bilan

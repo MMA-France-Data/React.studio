@@ -376,6 +376,40 @@ return {
 	["Les joueurs présents en ce moment"] = "Players here right now",
 
 	----------------------------------------------------------------------
+	-- Achats en Robux : la page « 🛒 BOUTIQUE », la couveuse royale, « Finir » en Robux (client/LevelsUI.luau,
+	-- Hub/Camp.luau, Hub/Shop.luau, Hub/LevelsService.luau)
+	----------------------------------------------------------------------
+	["BOUTIQUE"] = "SHOP", -- « 🛒 BOUTIQUE »
+	["Couveuse royale"] = "Royal incubator",
+	["Une 3e couveuse, dorée : tes œufs y éclosent 2 fois plus vite."] = "A 3rd golden incubator: your eggs hatch 2 times faster there.",
+	["XP x2"] = "XP x2",
+	["Toute l'XP d'entraînement de tes tours est doublée : camp, niveaux joués, doublons des œufs."] = "All your towers' training XP is doubled: camp, levels played, duplicate eggs.",
+	["Argent x2"] = "Money x2",
+	["Les pièces de niveau gagnées en jouant les niveaux sont doublées."] = "The level coins you earn by playing levels are doubled.",
+	["À TOI"] = "YOURS", -- « ✓ À TOI »
+	["{1} R$"] = "{1} R$",
+	["Un pass s'achète une fois pour toutes, avec des Robux. Tu peux aussi finir un œuf tout de suite avec des Robux (onglet Œufs)."] = "A pass is bought once and for all, with Robux. You can also finish an egg right away with Robux (Eggs tab).",
+	["COUVEUSE ROYALE"] = "ROYAL INCUBATOR", -- « 👑 COUVEUSE ROYALE »
+	["COUVEUSE ROYALE : {1}"] = "ROYAL INCUBATOR: {1}",
+	["COUVEUSE ROYALE (vide)"] = "ROYAL INCUBATOR (empty)",
+	["Tes œufs y éclosent 2 fois plus vite"] = "Your eggs hatch 2 times faster here",
+	["Acheter : {1} R$"] = "Buy: {1} R$",
+	["Finir : {1} R$"] = "Finish: {1} R$",
+	["2 fois plus rapide • {1} R$"] = "2 times faster • {1} R$",
+	["2 fois plus rapide • bientôt"] = "2 times faster • soon",
+	["Voir"] = "See",
+	["Couveuse royale débloquée : tes œufs y éclosent 2 fois plus vite !"] = "Royal incubator unlocked: your eggs hatch 2 times faster there!", -- « 👑 ... »
+	["XP x2 : toute l'XP d'entraînement de tes tours est doublée !"] = "XP x2: all your towers' training XP is doubled!", -- « ⭐ ... »
+	["Argent x2 : les pièces des niveaux sont doublées !"] = "Money x2: level coins are doubled!", -- « 💵 ... »
+	["Merci !"] = "Thank you!",
+	["Tu as déjà ce pass"] = "You already have this pass",
+	["Œuf fini : ouvre-le !"] = "Egg done: open it!", -- « ⏩ ... »
+	["Le temps acheté avance ton œuf qui a le plus à attendre"] = "The time you bought speeds up the egg with the longest wait", -- « ⏩ ... »
+	["Aucun œuf à finir : +{1} pièces de niveau à la place"] = "No egg to finish: +{1} level coins instead",
+	["Pass Argent x2 : pièces doublées"] = "Money x2 pass: coins doubled", -- « 💵 ... » (écran de fin)
+	["Pass XP x2 : XP doublée"] = "XP x2 pass: XP doubled", -- « ⭐ ... » (écran de fin)
+
+	----------------------------------------------------------------------
 	-- Hub/PlotIdentity.luau : plaque à l'entrée de chaque parcelle (nom et vignette du propriétaire)
 	----------------------------------------------------------------------
 	["FIEF {1}  /  DOMAINE"] = "KEEP {1}  /  DOMAIN", -- {1} = numéro de la parcelle (01 à 06)

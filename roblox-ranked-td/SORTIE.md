@@ -42,7 +42,12 @@ Le jeu sort comme une **nouvelle expérience Roblox** (décision du 02/10/2026) 
       l'instant). À faire faire par ChatGPT comme les autres (`assets/EnemyModels/Boss_5.rbxm` et `Boss_8.rbxm`).
       Le dragon (niveau 100) n'a pas d'animation de mort. Le colosse géant (niveaux 15, 25, 35) prend le modèle du
       chevalier colossal en plus grand ; un modèle à lui : `assets/EnemyModels/Colossus.rbxm`.
-- [ ] Des passes Robux pour ce jeu ? Il n'y en a plus aucun.
+- [ ] **Les achats en Robux** (tes demandes du 04/10/2026 ; voir `NIVEAUX.md`, « Les achats en Robux ») : le code
+      est prêt (pass « Couveuse royale » 99, « XP x2 » 99, « Argent x2 » 199, « Finir l'œuf » 1 Robux les 5 min).
+      À toi : sur le Hub Création > ton jeu > **Monétisation**, crée les 3 **pass** (Passes > Créer un pass ; puis
+      Ventes > en vente, au bon prix) et les 7 **produits pour développeurs** « Finish egg 1, 2, 3, 6, 12, 24, 48 »
+      (au prix de leur nombre), avec les images de `assets/page` (voir son `LISEZ-MOI.txt`), puis donne-moi leurs
+      numéros : je les écris dans `src/shared/Monetization.luau` et je refais la copie à publier.
 
 ## Publication (Studio et Hub Création)
 
@@ -61,8 +66,9 @@ Le jeu sort comme une **nouvelle expérience Roblox** (décision du 02/10/2026) 
 - [ ] Taille des serveurs : **6 joueurs** (une parcelle par joueur) : Hub Création > Lieux > le lieu > Accès.
 - [ ] Appareils : **ordinateur, téléphone, tablette**. Décoche la console et la réalité virtuelle : le jeu n'a pas de
       commandes à la manette (Hub Création > l'expérience > Accès).
-- [ ] Questionnaire sur le contenu : violence légère répétée -> « Léger » ; objets aléatoires payants : **non**
-      (plus aucun tirage, plus aucun achat) ; tout le reste : non.
+- [ ] Questionnaire sur le contenu : violence légère répétée -> « Léger » ; objets aléatoires payants : **oui** dès
+      que les achats en Robux sont en ligne (« Finir l'œuf » et la couveuse royale font avoir plus vite une tour au
+      hasard ; le jeu les cache là où Roblox les interdit) ; tout le reste : non.
 - [ ] Langue de la page (Hub Création > l'expérience > Audience > Localisation > Langues) : la **langue source** doit
       être celle de la description que tu colles sur la page (**English** si tu colles la description anglaise).
       Tu peux ajouter « Français » dans les langues prises en charge et y coller le nom et la description en
@@ -95,7 +101,7 @@ Defend your castle in fast 2-3 minute levels!
 - 20 towers: win an egg with every victory, hatch it in your incubators and get a new tower, or its much stronger tier 2 version. Beat a territory's boss for its special egg and its special tower.
 - Play together: teams of 2 to 4 players, everyone defends their own lane, and everyone earns bonus coins.
 - Your own training camp: your towers train and earn stars, even while you're away.
-- Plays on PC and phone. No pay-to-win.
+- Plays on PC and phone. Free to play.
 ```
 
 La même en français :
@@ -108,7 +114,7 @@ Défends ton château dans des niveaux rapides de 2 à 3 minutes !
 - 20 tours : un œuf à chaque victoire, à faire éclore dans tes couveuses, pour une nouvelle tour ou sa version de palier 2, bien plus forte. Bats le boss d'un territoire pour son œuf spécial et sa tour spéciale.
 - Joue en équipe : de 2 à 4 joueurs, chacun défend son couloir, et tout le monde gagne plus de pièces.
 - Ton camp d'entraînement : tes tours s'entraînent et gagnent des étoiles, même quand tu es parti.
-- Sur ordinateur et sur téléphone. Rien à acheter pour gagner.
+- Sur ordinateur et sur téléphone. Gratuit.
 ```
 
 ## Derniers essais dans le jeu publié (encore privé)
