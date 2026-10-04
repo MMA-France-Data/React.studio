@@ -22,6 +22,8 @@ ouvrir le jeu, tu pourras en mettre de plus belles plus tard.
 Pour les achats en Robux (dessinées par Claude, pas des captures) :
   couveuse-royale.png     512 x 512    l'image du pass « Couveuse royale » (un œuf violet sur un socle doré, « 2x »)
   finir-oeuf.png          512 x 512    l'image des 7 produits « Finish egg » (un œuf fendu, une double flèche)
+  pass-xp-x2.png          512 x 512    l'image du pass « XP x2 » (une étoile dorée « XP », « 2x »)
+  pass-argent-x2.png      512 x 512    l'image du pass « Argent x2 » (des billets et des pièces, « 2x »)
   Hub Création > ton expérience > Monétisation > Passes (et Produits pour développeurs) > l'image de chacun.
 
 OÙ LES METTRE
