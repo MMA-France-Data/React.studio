@@ -169,7 +169,9 @@ l'œuf spécial d'un boss rejoué (1 fois sur 10 sinon).
   cartes des œufs spéciaux (« COUVER », « 🔒 Boss du niveau 10 », leurs dessins), le bouton « COUVER »
   (`eggs_oeuf_special_couve`, et en 3D sur la parcelle : `eggs_parcelle_oeuf_special`), la tour spéciale sortie (« 🌟 TOUR SPÉCIALE ! » : `eggs_tour_speciale`), une tour
   spéciale pas encore à lui dans « Mes tours », l'œuf carmin sur l'écran de fin du boss, les 4 tours spéciales dans
-  un niveau avec leur parure (`eggs_speciales_niveau`, `eggs_speciales_pres`).
+  un niveau avec leur parure (`eggs_speciales_niveau`, `eggs_speciales_pres`) ; « Bloqué ? » : le niveau 11 perdu une
+  fois (rien de plus), puis une 2e fois de suite : le conseil (rejouer un niveau réussi, ses œufs qui attendent) et le
+  bouton « ◀ Rejouer le niveau 10 », qui le relance (`eggs_bloque`).
 
 ### `run.ps1 -Test english` : la version anglaise (environ 3 minutes)
 

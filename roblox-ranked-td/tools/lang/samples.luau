@@ -187,6 +187,14 @@ local SAMPLES = {
 	{ "Bientôt de nouveaux niveaux !", "New levels coming soon!" },
 	{ "Réessayer", "Try again" },
 	{ "Rejouer", "Replay" },
+	-- « Bloqué ? » (2 défaites de suite au même niveau)
+	{
+		"Niveau 20 : 280 monstres éliminés sur 301.\nUn gros monstre est passé : la Baliste lourde et le Sorcier des arcanes visent toujours le plus gros.\n🔁 Bloqué ? Rejoue un niveau déjà réussi : chaque victoire donne un œuf et des pièces.\n👑 Ce boss demande une tour de palier 2 (œufs rares et dorés) : rejouer un boss donne un œuf rare.\nTes tours posées gagnent +2,8 XP d'entraînement.",
+		"Level 20: 280 of 301 monsters defeated.\nA big monster got through: the Heavy Ballista and the Arcane Sorcerer always aim at the biggest one.\n🔁 Stuck? Replay a level you've already cleared: every win gives an egg and coins.\n👑 This boss needs a tier 2 tower (rare and golden eggs): replaying a boss gives a rare egg.\nYour placed towers gain +2.8 training XP.",
+	},
+	{ "🥚 Des œufs t'attendent : ouvre-les dans l'onglet Œufs pour avoir de nouvelles tours.", "🥚 Eggs are waiting for you: open them in the Eggs tab to get new towers." },
+	{ "⛺ Mets tes tours au camp d'entraînement : elles deviennent plus fortes même quand tu n'es pas là.", "⛺ Put your towers in the training camp: they get stronger even while you're away." },
+	{ "◀ Rejouer le niveau 9", "◀ Replay level 9" },
 	{ "⛺ Retour au camp", "⛺ Back to camp" },
 	-- Petits messages du client
 	{ "Appuie encore sur X pour abandonner ce niveau", "Tap X again to give up this level" },

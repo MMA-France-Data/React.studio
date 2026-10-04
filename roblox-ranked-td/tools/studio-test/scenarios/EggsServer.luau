@@ -271,6 +271,11 @@ return function(log)
 			action("Start", level)
 			levels("Finish", true)
 			return true
+		elseif command == "Lose" then
+			local level = ...
+			action("Start", level)
+			levels("Finish", false)
+			return true
 		elseif command == "Play" then
 			-- (un niveau lancé pour de vrai, avec de quoi tout poser)
 			local level = ...

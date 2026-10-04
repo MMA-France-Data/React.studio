@@ -275,6 +275,48 @@ local function eggAlert(): boolean
 	return false
 end
 
+-- « BLOQUÉ ? » (Levels.STUCK_LOSSES) : vrai si ce résultat est une défaite et qu'il a perdu ce niveau assez de fois
+-- de suite (champ lossStreak du résultat, Levels.recordResult).
+local function stuckIn(result): boolean
+	return result.won ~= true and (tonumber(result.lossStreak) or 0) >= Levels.STUCK_LOSSES
+end
+
+-- Le niveau que relance le bouton « Rejouer » de l'écran de fin : gagné, le même ; bloqué, le niveau d'avant
+-- (« ◀ Rejouer le niveau N » : il est réussi, il donne un œuf et des pièces) ; sinon aucun (perdu : « Réessayer »,
+-- le gros bouton, relance le même).
+local function replayLevelOf(result): number?
+	local levelNumber = tonumber(result.level)
+	if not levelNumber then
+		return nil
+	end
+	if result.won == true then
+		return levelNumber
+	end
+	return if stuckIn(result) and levelNumber > 1 then levelNumber - 1 else nil
+end
+
+-- Le conseil « Bloqué ? » de l'écran de fin : rejouer un niveau réussi (pas au niveau 1 : il n'y en a pas), puis UNE
+-- aide selon sa situation : des œufs qui l'attendent ; un boss (20, 30, 40) qui demande une tour de palier 2 alors
+-- qu'il n'en a aucune ; sinon le camp d'entraînement.
+local function stuckTips(levelNumber: number): { string }
+	local tips = {}
+	if levelNumber > 1 then
+		table.insert(tips, "🔁 Bloqué ? Rejoue un niveau déjà réussi : chaque victoire donne un œuf et des pièces.")
+	end
+	local strong = false
+	for _, towerType in state.towers do
+		strong = strong or IdleTowers.tierOf(towerType) >= 2
+	end
+	if eggAlert() then
+		table.insert(tips, "🥚 Des œufs t'attendent : ouvre-les dans l'onglet Œufs pour avoir de nouvelles tours.")
+	elseif Levels.definition(levelNumber).boss and levelNumber > Levels.TERRITORY_SIZE and not strong then
+		table.insert(tips, "👑 Ce boss demande une tour de palier 2 (œufs rares et dorés) : rejouer un boss donne un œuf rare.")
+	else
+		table.insert(tips, "⛺ Mets tes tours au camp d'entraînement : elles deviennent plus fortes même quand tu n'es pas là.")
+	end
+	return tips
+end
+
 -- Écrit un texte seulement s'il change (page rafraîchie souvent : un texte affiché en anglais par AutoTranslate serait
 -- sinon réécrit en français, puis retraduit, à chaque fois). La dernière valeur écrite est gardée ici.
 local writtenTexts = setmetatable({}, { __mode = "k" })
@@ -2937,8 +2979,9 @@ local function buildHud()
 		end
 	end)
 	replayButton.Activated:Connect(function()
-		if endResult and isLeader() then
-			levelAction:FireServer("Start", endResult.level)
+		local replayLevel = if endResult then replayLevelOf(endResult) else nil
+		if replayLevel and isLeader() then
+			levelAction:FireServer("Start", replayLevel)
 		end
 	end)
 	campButton.Activated:Connect(function()
@@ -2967,19 +3010,28 @@ local function buildHud()
 				table.insert(lines, `🗺 Nouveau territoire ouvert : {map.displayName} !`)
 			end
 		else
+			local levelNumber = tonumber(result.level) or 1
+			-- « BLOQUÉ ? » : perdu Levels.STUCK_LOSSES fois de suite à ce niveau : le conseil pour devenir plus fort remplace
+			-- les conseils généraux (déjà lus aux défaites d'avant).
+			local stuck = stuckIn(result)
 			table.insert(lines, `Niveau {result.level} : {result.kills} monstres éliminés sur {result.total}.`)
 			-- Perdu avec de l'or en poche : c'est la raison la plus fréquente, on la dit avec son chiffre.
 			local unspent = myGold()
 			if unspent >= IDLE_GOLD then
 				table.insert(lines, `Il te restait {amount(unspent)} {GOLD} : dépense ton or au fur et à mesure, les monstres deviennent plus forts sans arrêt.`)
-			else
+			elseif not stuck or levelNumber == 1 then
 				table.insert(lines, "Les monstres deviennent plus forts sans arrêt : pose et améliore tes tours du début à la fin, sans garder ton or.")
 			end
 			-- Un colosse ou un boss est arrivé au château : les deux tours qui visent toujours le plus gros.
 			if (tonumber(result.bigLeaks) or 0) > 0 then
 				table.insert(lines, "Un gros monstre est passé : la Baliste lourde et le Sorcier des arcanes visent toujours le plus gros.")
-			else
+			elseif not stuck then
 				table.insert(lines, "Les œufs et le camp d'entraînement aident aussi.")
+			end
+			if stuck then
+				for _, tip in stuckTips(levelNumber) do
+					table.insert(lines, tip)
+				end
 			end
 		end
 		-- En équipe : le bonus de pièces (déjà compté dans la récompense affichée).
@@ -3019,8 +3071,11 @@ local function buildHud()
 		nextButton.Text = if canNext then `Niveau {result.nextLevel} ▶` elseif soon then "Bientôt de nouveaux niveaux !" elseif won then "Tous les niveaux sont réussis !" else "Réessayer"
 		nextButton.BackgroundColor3 = if canNext or not won then UI.Colors.Success else UI.Colors.Panel
 		nextButton.AutoButtonColor = canNext or not won
-		-- (perdu : « Réessayer » est le gros bouton, « Rejouer » ferait double emploi)
-		replayButton.Visible = won
+		-- (perdu : « Réessayer » est le gros bouton, « Rejouer » ferait double emploi ; bloqué : « ◀ Rejouer le niveau N »,
+		-- le niveau d'avant)
+		local replayLevel = replayLevelOf(result)
+		replayButton.Visible = replayLevel ~= nil
+		replayButton.Text = if won or not replayLevel then "Rejouer" else `◀ Rejouer le niveau {replayLevel}`
 		-- En équipe, seul le chef choisit la suite : les autres attendent (ou rentrent au camp).
 		if not isLeader() then
 			nextButton.Text = `⏳ {leaderName()} choisit la suite`
@@ -3674,7 +3729,12 @@ local function testAction(command: string)
 		if name == "Camp" then
 			levelAction:FireServer("Quit")
 		elseif button and ok and typeof(result) == "table" and isLeader() then
-			levelAction:FireServer("Start", if name == "Next" and result.won and result.nextLevel then result.nextLevel else result.level)
+			local target = if name == "Replay" then replayLevelOf(result)
+				elseif result.won and result.nextLevel then result.nextLevel
+				else result.level
+			if target then
+				levelAction:FireServer("Start", target)
+			end
 		end
 	end
 end

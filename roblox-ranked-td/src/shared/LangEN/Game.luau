@@ -128,6 +128,12 @@ return {
 	["Bientôt de nouveaux niveaux !"] = "New levels coming soon!",
 	["Réessayer"] = "Try again",
 	["Rejouer"] = "Replay",
+	-- « Bloqué ? » : après 2 défaites de suite au même niveau (Levels.STUCK_LOSSES)
+	["Bloqué ? Rejoue un niveau déjà réussi : chaque victoire donne un œuf et des pièces."] = "Stuck? Replay a level you've already cleared: every win gives an egg and coins.", -- « 🔁 ... »
+	["Des œufs t'attendent : ouvre-les dans l'onglet Œufs pour avoir de nouvelles tours."] = "Eggs are waiting for you: open them in the Eggs tab to get new towers.", -- « 🥚 ... »
+	["Ce boss demande une tour de palier 2 (œufs rares et dorés) : rejouer un boss donne un œuf rare."] = "This boss needs a tier 2 tower (rare and golden eggs): replaying a boss gives a rare egg.", -- « 👑 ... »
+	["Mets tes tours au camp d'entraînement : elles deviennent plus fortes même quand tu n'es pas là."] = "Put your towers in the training camp: they get stronger even while you're away.", -- « ⛺ ... »
+	["Rejouer le niveau {1}"] = "Replay level {1}", -- « ◀ Rejouer le niveau 9 » (bouton de l'écran de fin, bloqué)
 	["Retour au camp"] = "Back to camp", -- « ⛺ Retour au camp »
 	-- Petits messages
 	["Appuie encore sur X pour abandonner ce niveau"] = "Tap X again to give up this level",

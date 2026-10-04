@@ -351,6 +351,8 @@ local function rewardMember(player: Player, game, won: boolean, member, showResu
 	local progress = game:progress()
 	local friendHere = friendCount(player) > 0
 	local reward = Levels.bonusReward(Levels.reward(level, won, firstClear, progress), game.teamSize, friendHere)
+	-- « BLOQUÉ ? » : ses défaites de suite à ce niveau (seulement une vraie fin de niveau : un abandon ne compte pas).
+	local lossStreak = if showResult then Levels.recordResult(levels, level, won) else 0
 	levels.coins += reward
 	local egg, eggKept, eggPlaced = nil, false, false
 	local bonusEgg, bonusKept = nil, false
@@ -426,6 +428,7 @@ local function rewardMember(player: Player, game, won: boolean, member, showResu
 		eggKept = eggKept, -- faux : réserve pleine, l'œuf est perdu
 		eggPlaced = eggPlaced, -- vrai : l'œuf couve déjà dans une couveuse (le premier œuf)
 		bonusEgg = bonusEgg, -- l'œuf spécial gagné en plus (boss d'un territoire), nil sinon
+		lossStreak = lossStreak, -- défaites de suite à ce niveau (Levels.STUCK_LOSSES : le conseil « Bloqué ? »)
 		bonusKept = bonusKept, -- faux : il y en avait déjà EGG_MAX, celui-ci est perdu
 		})
 		game:setAttr("Result_" .. member.key, result)

@@ -11,6 +11,8 @@
 -- Les ŒUFS SPÉCIAUX : leurs cartes (l'œuf de cuivre en réserve, « COUVER » ; les autres « 🔒 Boss du niveau N »), le
 -- bouton « COUVER », la tour spéciale sortie (« 🌟 TOUR SPÉCIALE ! »), l'écran de fin du boss (l'œuf carmin en plus),
 -- les 4 tours spéciales dans un niveau (leur parure ; captures speciales_niveau et speciales_pres).
+-- « BLOQUÉ ? » : deux défaites de suite au même niveau : le conseil de l'écran de fin et le bouton qui relance le
+-- niveau d'avant (capture bloque).
 -- « SHOT:nom » = capture (out\eggs_<nom>.png) ; « PHONE:want=... » = run.ps1 redimensionne la fenêtre de Studio.
 return function(log)
 	local GuiService = game:GetService("GuiService")
@@ -301,6 +303,51 @@ return function(log)
 		`écran de fin du niveau 10 : « {string.gsub(endScreen.Panel.Details.Text, "\n", " ⏎ ")} »`
 	)
 	shot("fin_de_niveau")
+	test:InvokeServer("Quit")
+	waitFor(function()
+		return player:GetAttribute("LevelArena") == nil
+	end, 5)
+	task.wait(0.8)
+
+	-- « BLOQUÉ ? » (Levels.STUCK_LOSSES) : le niveau 11 perdu une fois, rien de plus ; perdu une 2e fois de suite :
+	-- l'écran de fin dit comment devenir plus fort (ici : ses œufs qui attendent) et propose de rejouer le niveau 10.
+	local function currentLevel()
+		local index = player:GetAttribute("LevelArena")
+		local arenas = workspace:FindFirstChild("Arenas")
+		local arena = if typeof(index) == "number" and arenas then arenas:FindFirstChild("Arena" .. Levels.slotOf(index)) else nil
+		return if arena then arena:GetAttribute("Level") else nil, if arena then arena:GetAttribute("State") else nil
+	end
+	local function loseOnce(levelNumber)
+		test:InvokeServer("Lose", levelNumber)
+		waitFor(function()
+			return endScreen.Visible and endScreen.Panel.Title.Text == "DÉFAITE"
+		end, 8)
+		task.wait(0.6)
+		return endScreen.Panel.Details.Text, endScreen.Panel.Replay.Visible
+	end
+	local firstLoss, firstReplay = loseOnce(11)
+	test:InvokeServer("Quit")
+	waitFor(function()
+		return player:GetAttribute("LevelArena") == nil
+	end, 5)
+	task.wait(0.8)
+	local stuckDetails = loseOnce(11)
+	local endPanel = endScreen.Panel
+	check(
+		string.find(firstLoss, "Bloqué", 1, true) == nil and not firstReplay
+			and string.find(stuckDetails, "🔁 Bloqué ? Rejoue un niveau déjà réussi : chaque victoire donne un œuf et des pièces.", 1, true) ~= nil
+			and string.find(stuckDetails, "🥚 Des œufs t'attendent : ouvre-les dans l'onglet Œufs pour avoir de nouvelles tours.", 1, true) ~= nil
+			and string.find(stuckDetails, "Les œufs et le camp d'entraînement aident aussi.", 1, true) == nil
+			and endPanel.Replay.Visible and endPanel.Replay.Text == "◀ Rejouer le niveau 10" and endPanel.Next.Text == "Réessayer" and endPanel.Details.TextFits,
+		`« Bloqué ? » : 1re défaite au niveau 11 sans conseil ; 2e de suite : « {string.gsub(stuckDetails, "\n", " ⏎ ")} », bouton « {endPanel.Replay.Text} »`
+	)
+	shot("bloque")
+	act(hudGui, "Replay")
+	local replayed = waitFor(function()
+		local levelNumber, levelState = currentLevel()
+		return levelNumber == 10 and levelState == "Running" and not endScreen.Visible
+	end, 8)
+	check(replayed, `« ◀ Rejouer le niveau 10 » relance le niveau 10 (niveau en cours : {tostring((currentLevel()))})`)
 	test:InvokeServer("Quit")
 	waitFor(function()
 		return player:GetAttribute("LevelArena") == nil

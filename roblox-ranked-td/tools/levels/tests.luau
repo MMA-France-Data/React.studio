@@ -1822,6 +1822,32 @@ do
 	check(frostOk and blizzardOk and frozen > 0 and family and near(strongest, 0.5),`Totem de givre + Totem du blizzard : un seul ralentissement, le plus fort ({math.floor(strongest * 100 + 0.5)} %)`)
 end
 
+----------------------------------------------------------------------
+-- 16) « Bloqué ? » : les défaites de suite au même niveau (ma proposition du 03/10/2026, « oui » du propriétaire le
+--     04/10/2026). À Levels.STUCK_LOSSES, l'écran de fin dit comment devenir plus fort.
+----------------------------------------------------------------------
+do
+	local data = Levels.defaultData()
+	local fresh = data.lossLevel == 0 and data.lossStreak == 0
+	local first = Levels.recordResult(data, 5, false)
+	local second = Levels.recordResult(data, 5, false)
+	local elsewhere = Levels.recordResult(data, 3, true) -- (rejouer un niveau réussi : le compte du niveau 5 reste)
+	local third = Levels.recordResult(data, 5, false)
+	local kept = Levels.cleanData(data)
+	local cleared = Levels.recordResult(data, 5, true)
+	local afterWin = data.lossLevel == 0 and data.lossStreak == 0
+	Levels.recordResult(data, 6, false)
+	local switched = Levels.recordResult(data, 7, false)
+	check(
+		fresh and Levels.STUCK_LOSSES == 2 and first == 1 and second == 2 and elsewhere == 0 and third == 3 and kept.lossLevel == 5
+			and kept.lossStreak == 3 and cleared == 0 and afterWin and switched == 1 and data.lossLevel == 7,
+		`« Bloqué ? » : défaites de suite au même niveau ({first}, {second}, puis {third} après une victoire AILLEURS), gardées dans la sauvegarde, remises à zéro par une victoire à ce niveau ; un autre niveau perdu repart de 1`
+	)
+	local junk = Levels.cleanData({ lossLevel = "x", lossStreak = 9 })
+	local tooFar = Levels.cleanData({ lossLevel = 5000, lossStreak = -3 })
+	check(junk.lossLevel == 0 and junk.lossStreak == 0 and tooFar.lossLevel == Levels.COUNT and tooFar.lossStreak == 0, "« Bloqué ? » : données abîmées remises à zéro (ou dans les bornes)")
+end
+
 -- Équipes de joueurs simulés, avec les PV d'équipe : les joueurs de référence gagnent (au moins 5 vies), comme seuls.
 for _, size in { 2, 3, 4 } do
 	for _, level in { 10, 25, Levels.OPEN_COUNT } do

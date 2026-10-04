@@ -1637,6 +1637,34 @@ function Levels.skipCost(seconds: number): number
 end
 
 ----------------------------------------------------------------------
+-- « BLOQUÉ ? ». Ma proposition du 03/10/2026, acceptée par le propriétaire le 04/10/2026 (« oui ») : « un conseil
+-- plus clair après deux défaites de suite au même niveau ». Les données du joueur comptent ses défaites DE SUITE à un
+-- niveau, sans l'avoir réussi entre-temps (lossLevel, lossStreak) : une victoire à un AUTRE niveau ne remet pas le
+-- compte à zéro (rejouer un niveau réussi pour devenir plus fort est justement le conseil) ; un abandon ne compte pas.
+-- À STUCK_LOSSES défaites, l'écran de fin (client/LevelsUI.luau) dit comment devenir plus fort : rejouer un niveau
+-- réussi (un bouton relance le niveau d'avant), puis UNE aide selon sa situation (des œufs qui attendent, un boss qui
+-- demande une tour de palier 2, sinon le camp d'entraînement).
+----------------------------------------------------------------------
+Levels.STUCK_LOSSES = 2
+
+-- Note une vraie fin de niveau (victoire ou défaite, pas un abandon) dans les données du joueur. Renvoie ses défaites
+-- de suite à ce niveau (0 après une victoire).
+function Levels.recordResult(levels, level: number, won: boolean): number
+	if won then
+		if levels.lossLevel == level then
+			levels.lossLevel, levels.lossStreak = 0, 0
+		end
+		return 0
+	end
+	if levels.lossLevel == level then
+		levels.lossStreak += 1
+	else
+		levels.lossLevel, levels.lossStreak = level, 1
+	end
+	return levels.lossStreak
+end
+
+----------------------------------------------------------------------
 -- TUTO des nouveaux joueurs (affichage : client/TutorialUI.luau ; serveur : Hub/LevelsService.luau). Demande du
 -- propriétaire (02/10/2026) : « fais le tuto bien, je veux un jeu sortable ». Pas d'écran à lire : une flèche montre
 -- quoi toucher. Le champ `tutorial` des données du joueur dit où il en est :
@@ -1715,6 +1743,8 @@ function Levels.defaultData()
 		eggs = {}, -- [type d'œuf] = nombre en réserve : « LES ŒUFS »
 		hatchers = { { egg = "", readyAt = 0 } }, -- ses couveuses (la 1re offerte) : egg = type d'œuf ("" = vide),
 		-- readyAt = os.time() où il éclot
+		lossLevel = 0, -- « BLOQUÉ ? » : le niveau de ses dernières défaites de suite (0 = aucun)...
+		lossStreak = 0, -- ... et leur nombre (Levels.recordResult)
 	}
 end
 
@@ -1736,6 +1766,8 @@ function Levels.cleanData(saved: any)
 	data.wins = math.floor(cleanNumber(saved.wins, 0, 1e9, 0))
 	data.losses = math.floor(cleanNumber(saved.losses, 0, 1e9, 0))
 	data.trainedAt = math.floor(cleanNumber(saved.trainedAt, 0, 1e11, 0))
+	data.lossLevel = math.floor(cleanNumber(saved.lossLevel, 0, Levels.COUNT, 0))
+	data.lossStreak = if data.lossLevel > 0 then math.floor(cleanNumber(saved.lossStreak, 0, 1e6, 0)) else 0
 	if typeof(saved.eggs) == "table" then
 		for _, list in { Levels.EGG_ORDER, Levels.SPECIAL_EGG_ORDER } do
 			for _, eggType in list do

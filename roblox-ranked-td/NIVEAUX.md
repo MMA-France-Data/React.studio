@@ -222,6 +222,21 @@ rechercher les tourelles »). Mesuré avec le joueur simulé, au rythme demandé
 Sans aucune chance aux œufs (l'Archer et la Catapulte seulement, au même entraînement), un joueur très actif gagne
 les niveaux 1 à 10 et perd tous les niveaux 11 à 40 : il rejoue des niveaux, chaque victoire donne encore un œuf.
 
+**« Bloqué ? » : le conseil après 2 défaites de suite** (ma proposition du 03/10/2026, ton « oui » du 04/10/2026).
+Le jeu compte tes défaites de suite au même niveau (une victoire à un AUTRE niveau ne remet pas le compte à zéro :
+rejouer pour devenir plus fort, c'est justement le conseil ; un abandon ne compte pas). À la 2e défaite, l'écran de
+fin remplace ses conseils généraux par :
+
+- « 🔁 Bloqué ? Rejoue un niveau déjà réussi : chaque victoire donne un œuf et des pièces. » (pas au niveau 1) ;
+- puis UNE aide selon ta situation : « 🥚 Des œufs t'attendent... » (un œuf prêt, ou une couveuse vide alors que
+  tu as des œufs) ; sinon, au boss d'un territoire (20, 30, 40) sans aucune tour de palier 2 : « 👑 Ce boss
+  demande une tour de palier 2 (œufs rares et dorés) : rejouer un boss donne un œuf rare. » ; sinon « ⛺ Mets tes
+  tours au camp d'entraînement... » ;
+- et le bouton **« ◀ Rejouer le niveau N »** (le niveau d'avant) à côté de « Réessayer ».
+
+Le conseil « Il te restait X 💰 : dépense ton or » reste quand c'est le cas (la raison la plus fréquente d'une
+défaite), comme celui d'un gros monstre passé. Le nombre de défaites : `Levels.STUCK_LOSSES` (2).
+
 Les territoires 3 et 4 (ajoutés le 03/10/2026, « continue les niveaux jusqu'à 40 ») :
 
 | | Territoire 3 : la forêt des Gardiens des ronces | Territoire 4 : le glacier de la Légion du givre |
@@ -789,6 +804,9 @@ niveaux du joueur et son réglage du son. Les sauvegardes de l'ancien jeu « Tow
 4. **Avant de rendre le jeu public** : voir `SORTIE.md` (publication, essai sur un vrai téléphone, page du jeu).
 5. **Les tours de palier 2** : leurs noms, leurs pouvoirs et leurs chiffres sont les miens (voir « Les œufs, les
    couveuses et les tours de palier 2 »). L'étape 3 est faite.
+6. **Les tours spéciales** : leur force (les niveaux ne sont pas re-réglés avec elles : la suite devient plus
+   facile pour qui les a), leurs noms et le poison sont mes choix (voir « Les tours spéciales et les œufs
+   spéciaux »).
 
 ## Technique (pour s'y retrouver)
 
@@ -852,7 +870,7 @@ powershell -ExecutionPolicy Bypass -File tools\levels\run.ps1
 powershell -ExecutionPolicy Bypass -File tools\studio-test\run.ps1
 ```
 
-- le premier : 1 428 vérifications des règles, de la difficulté de chacun des 40 niveaux ouverts, de l'entraînement,
+- le premier : 1 430 vérifications des règles, de la difficulté de chacun des 40 niveaux ouverts, de l'entraînement,
   du camp, du tuto, du jeu en équipe, des 30 cartes d'équipe, des amis, des œufs, des tours de palier 2, du
   colosse géant et des tours spéciales, sans Studio (une dizaine de minutes : les équipes de joueurs simulés sont
   lentes) ;
