@@ -56,9 +56,15 @@ return {
 	["Rayon du néant : il fait fondre les boss."] = "Void beam: it melts bosses.",
 	["Un éclair qui rebondit sur {1} monstres."] = "A bolt that bounces across {1} monsters.",
 	["Une pierre céleste sur le plus gros groupe."] = "A celestial stone on the biggest group.",
+	-- (tours spéciales)
+	["Grosses flèches rapides : très fort contre un monstre à la fois."] = "Big fast arrows: very strong against one monster at a time.",
+	["Ses carreaux transpercent {1} monstres alignés."] = "Its bolts pierce {1} monsters in a line.",
+	["Ses ronces empoisonnent les monstres qui marchent dessus."] = "Its thorns poison the monsters that walk on them.",
+	["Blocs de glace : grosse zone, et ralentit de {1} %."] = "Ice blocks: a big area, and slows by {1}%.",
 	-- Tours pas encore à lui, dans les listes « Entraînement » et « Mes tours » (« Rare • dans les œufs »)
 	["Palier 2 de : {1}"] = "Tier 2 of: {1}", -- « Palier 2 de : Catapulte • dans les œufs » (et la tour sortie d'un œuf)
 	["dans les œufs"] = "in eggs",
+	["boss du niveau {1}"] = "level {1} boss", -- « Spéciale • Œuf carmin • boss du niveau 10 » (tour spéciale)
 	["ŒUFS"] = "EGGS",
 	-- Onglet « Entraînement »
 	["EMPLACEMENT {1}"] = "SLOT {1}",
@@ -262,6 +268,19 @@ return {
 	["Rare"] = "Rare",
 	["Épique"] = "Epic",
 	["Légendaire"] = "Legendary",
+	["Spéciale"] = "Special", -- (rareté des tours spéciales)
+	["Œuf carmin"] = "Crimson egg",
+	["Œuf de cuivre"] = "Copper egg",
+	["Œuf des ronces"] = "Thorn egg",
+	["Œuf de givre"] = "Frost egg",
+	["ŒUFS SPÉCIAUX"] = "SPECIAL EGGS",
+	["Boss du niveau {1}"] = "Level {1} boss", -- « 🔒 Boss du niveau 10 » (carte d'un œuf spécial pas encore gagné)
+	["COUVER"] = "HATCH",
+	["Couveuses pleines"] = "Incubators full",
+	["Ton œuf spécial : son bouton COUVER, plus haut"] = "Your special egg: its HATCH button, above",
+	["Battre le boss d'un territoire donne aussi son œuf spécial (la première fois, puis 1 fois sur 10) : il donne toujours sa tour spéciale."] = "Beating a territory's boss also gives its special egg (the first time, then 1 time in 10): it always gives its special tower.",
+	["Œuf spécial gagné : {1} (tour : {2})"] = "Special egg won: {1} (tower: {2})", -- « 🌟 ... » (écran de fin)
+	["TOUR SPÉCIALE !"] = "SPECIAL TOWER!", -- « 🌟 TOUR SPÉCIALE ! » (panneau de la tour sortie d'un œuf)
 	["TES ŒUFS ({1}/{2})"] = "YOUR EGGS ({1}/{2})",
 	["Éclot en {1}"] = "Hatches in {1}",
 	["Chances :"] = "Odds:",

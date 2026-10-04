@@ -434,13 +434,71 @@ d'or dans un niveau.
 Leurs ralentissements et étourdissements comptent comme ceux de leur tour de base : un Totem du blizzard et un
 Totem de givre ne s'additionnent pas (le plus fort des deux gagne), et la fatigue du Mage vaut pour l'Archimage.
 
-**La barre rapide garde 8 tours.** Avec 16 tours, une barre de 16 boutons ne tenait plus sur un téléphone : les
+**La barre rapide garde 8 tours.** Avec 20 tours, une barre de 20 boutons ne tiendrait pas sur un téléphone : les
 **8 premières** de « Mes tours » vont dans la barre des niveaux (touches 1 à 8), les autres attendent **en réserve**
 (▲ ▼ pour changer l'ordre). Une nouvelle tour entre dans la barre (une tour de palier 2 à la place de sa tour de
 base, qui passe au bout). Rien ne change pour un joueur qui n'a pas encore de tour de palier 2.
 
 Les chiffres des tours de palier 2 sont les miens (`src/shared/IdleTowers.luau`, prix en or dans `Levels.TOWER_COST`) ;
 les niveaux 1 à 40 sont réglés avec eux.
+
+### Les tours spéciales et les œufs spéciaux
+
+Ton idée du 04/10/2026 (« des œufs spéciaux carmin, ensuite spéciaux orc », « une tour spéciale ? exemple carmin =
+arc + couleur carmin + fort », « slow mieux pour le monde de givre », « pas forcément arc de givre mais par exemple
+catapulte de givre », puis « oui »). **Une tour spéciale par territoire**, dans **l'œuf spécial** de son territoire :
+
+| Tour spéciale | Œuf (boss) | Ce qu'elle fait | Or dans un niveau |
+|---|---|---|---|
+| Arc carmin | œuf carmin (niveau 10) | un archer rouge et or : de grosses flèches rapides, très fort contre un monstre à la fois | 60 |
+| Arbalète de cuivre | œuf de cuivre (niveau 20) | des carreaux de 90 qui transpercent 3 monstres alignés, une fois par seconde | 90 |
+| Lance-ronces | œuf des ronces (niveau 30) | un druide qui lance des graines : des ronces poussent au sol et **empoisonnent** les monstres qui marchent dessus (ils perdent de la vie encore 3 s après en être sortis) ; **ne ralentit pas** | 90 |
+| Catapulte de givre | œuf de givre (niveau 40) | des blocs de glace : une grande zone, et elle **ralentit** de 40 % les monstres touchés | 100 |
+
+- **Comment on les gagne** : la première fois que tu bats le boss d'un territoire, tu gagnes son œuf spécial **en
+  plus** de l'œuf doré (le réglage des niveaux ne change donc pas : les boss demandent toujours les tours de palier 2
+  des œufs dorés). En rejouant ce boss : **1 chance sur 10** de le regagner. L'œuf spécial couve **1 h** et donne
+  **toujours** sa tour ; si tu l'as déjà, elle gagne **200 XP** d'entraînement. Il n'est **jamais perdu**, même
+  quand ta réserve de 30 œufs est pleine (il n'y compte pas).
+- **Leur force** : un peu plus fortes qu'une tour de palier 2, chacune dans son rôle (l'Arc carmin tire plus fort
+  que l'Archer enflammé, l'Arbalète plus que la Baliste du dragon sur un monstre, la Catapulte de givre plus que la
+  Catapulte de magma, le poison fait plus que deux fois le feu de la Catapulte de magma). **2 au plus** par niveau.
+  Mesuré avec le joueur simulé : voir le tableau plus bas (« Ce qu'apportent les tours spéciales »).
+- **Leur allure** : la silhouette de la tour la plus proche (l'Archer pour l'Arc carmin, la Baliste pour
+  l'Arbalète, le Mage pour le druide du Lance-ronces, la Catapulte pour la Catapulte de givre), aux couleurs de son
+  territoire, avec une **parure spéciale** : un anneau d'or et un anneau de lumière autour du socle, quatre joyaux,
+  et la sienne (couronne et arc d'or de l'archer carmin ; cuivre riveté et engrenage de l'arbalète ; robe verte,
+  couronne de feuilles et ronces du druide ; catapulte givrée, bloc de glace et glaçons). Leurs tirs : flèches
+  rouges à traînée dorée, carreaux de cuivre, graines qui font pousser des ronces (avec des bulles vertes sur les
+  monstres empoisonnés), blocs de glace et le cercle bleu de la zone ralentie.
+- **Les œufs spéciaux** ont les dessins que je t'avais montrés : carmin à bande dorée en zigzag, cuivre à bande
+  rivetée, vert à ronces, bleu glacé à flocons, avec des rayons derrière. Dans l'onglet Œufs, une carte par œuf
+  spécial (même avant de l'avoir : le boss qui le donne est écrit) ; son bouton **« COUVER »** le pose dans ta
+  première couveuse vide. Sur ta parcelle, l'œuf en 3D a les mêmes motifs.
+- **Leurs contrôles** : la Catapulte de givre ralentit comme un Totem de givre (« aucun cumul de ralentissement » :
+  avec un Totem, un seul ralentissement, le plus fort des deux). Le poison du Lance-ronces n'est pas un contrôle :
+  deux poisons ne s'additionnent pas (le plus fort gagne).
+- **Plus tard** : les territoires suivants auront les leurs avec leurs mises à jour (tes idées : orc, obsidienne,
+  dragon...). Pour en ajouter une : sa tour dans `IdleTowers.SPECIAL` (à la fin de `IdleTowers.ORDER`), son œuf dans
+  `Levels.EGGS` et `Levels.SPECIAL_EGG_ORDER`, son dessin dans `client/EggArt.luau` et `Hub/Camp.luau`, sa parure
+  dans `Hub/IdleTowerModel.luau`.
+
+Les chiffres sont les miens (`IdleTowers.luau` : « TOURS SPÉCIALES » ; `Levels.TOWER_COST`, `Levels.EGGS`,
+`SPECIAL_REPLAY_CHANCE`, `DUPLICATE_XP`) : à changer si tu veux.
+
+**Ce qu'apportent les tours spéciales** (mesuré le 04/10/2026 avec le joueur simulé de référence : les PV des
+monstres les plus résistants qu'il bat en gardant au moins 5 vies ; `run.ps1 -Worth` et des essais à la main) :
+
+| Niveau | Sans | Avec la tour spéciale | Pour comparer |
+|---|---|---|---|
+| 16 | 218 PV | Arc carmin en plus : **338** (+55 %) | Archer enflammé en plus : 318 (+46 %) |
+| 26 | 260 PV | Arbalète de cuivre en plus : **368** (+42 %) ; l'Arc carmin et l'Arbalète : **414** (+59 %) | Baliste du dragon en plus : 348 (+34 %) |
+| 36 | 414 PV | Lance-ronces ou Catapulte de givre à la place de la Catapulte de magma : 414 (autant, avec 2 tours au lieu de 4) ; Catapulte de givre en plus : 439 (+6 %) | Catapulte de magma en plus : +6 % |
+
+Au niveau 36, le joueur simulé a déjà beaucoup de tours de zone et de ralentissements (ils ne s'additionnent
+pas) : une tour de plus y change peu, quelle qu'elle soit. Les niveaux restent réglés **sans** les tours spéciales :
+celui qui les a trouve les niveaux suivants un peu plus faciles (c'est la récompense). Si c'est trop facile, on
+peut les affaiblir (leurs dégâts dans `IdleTowers.luau`).
 
 ### Les amis : notif, invitations, bonus
 
@@ -756,7 +814,7 @@ niveaux du joueur et son réglage du son. Les sauvegardes de l'ancien jeu « Tow
 |---|---|
 | `src/shared/Levels.luau` | toutes les règles et tous les chiffres (niveaux, territoires et cartes, monstres, prix, œufs, entraînement, tuto) |
 | `src/shared/TeamMaps.luau` | les 30 cartes d'équipe (écrit par `tools/team-maps/generer.py`, à ne pas modifier à la main) |
-| `src/shared/IdleTowers.luau`, `IdleConfig.luau`, `Enemies.luau` | les 16 tours (8 de palier 1, 8 de palier 2), les réglages du combat, les 7 types de monstres (dont le colosse géant) |
+| `src/shared/IdleTowers.luau`, `IdleConfig.luau`, `Enemies.luau` | les 20 tours (8 de palier 1, 8 de palier 2, 4 tours spéciales), les réglages du combat, les 7 types de monstres (dont le colosse géant) |
 | `src/server/Hub/Combat.luau` | le combat des tours contre les monstres, et ses paquets réseau |
 | `src/server/Hub/LevelGame.luau` | un niveau en cours (or, vies, flot de monstres, pose des tours) |
 | `src/server/Hub/LevelArena.luau` | les zones de combat, leur carte et le décor de chaque territoire |
@@ -794,9 +852,10 @@ powershell -ExecutionPolicy Bypass -File tools\levels\run.ps1
 powershell -ExecutionPolicy Bypass -File tools\studio-test\run.ps1
 ```
 
-- le premier : 1 417 vérifications des règles, de la difficulté de chacun des 40 niveaux ouverts, de l'entraînement,
-  du camp, du tuto, du jeu en équipe, des 30 cartes d'équipe, des amis, des œufs, des tours de palier 2 et du
-  colosse géant, sans Studio (une dizaine de minutes : les équipes de joueurs simulés sont lentes) ;
+- le premier : 1 428 vérifications des règles, de la difficulté de chacun des 40 niveaux ouverts, de l'entraînement,
+  du camp, du tuto, du jeu en équipe, des 30 cartes d'équipe, des amis, des œufs, des tours de palier 2, du
+  colosse géant et des tours spéciales, sans Studio (une dizaine de minutes : les équipes de joueurs simulés sont
+  lentes) ;
 - le deuxième : le tableau de difficulté des 40 niveaux ouverts par les joueurs simulés ;
 - le troisième : le test complet dans Studio (serveur, puis la vraie interface à la taille normale et à la taille
   d'un téléphone), avec des captures dans `tools/studio-test/out/levels_*.png`. Avec `-Test tutorial` : le tuto

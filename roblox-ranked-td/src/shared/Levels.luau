@@ -1066,7 +1066,7 @@ function Levels.duration(level: number): number
 end
 
 ----------------------------------------------------------------------
--- Tours pendant un niveau : les 16 tours de IdleTowers (dégâts, portée, effets) ; leurs prix, en OR, sont ici.
+-- Tours pendant un niveau : les 20 tours de IdleTowers (dégâts, portée, effets) ; leurs prix, en OR, sont ici.
 --   poser : TOWER_COST ; améliorer du niveau n à n + 1 : prix de pose x UPGRADE_FACTOR x UPGRADE_GROWTH ^ (n - 1),
 --   pour +35 % de dégâts (IdleConfig.UPGRADE_DAMAGE) ; revendre : SELL_REFUND de l'or dépensé.
 -- Limite de tours identiques : selon leur rareté (IdleTowers.maxCopies : 5 communes, 4 rares, 3 épiques,
@@ -1078,12 +1078,14 @@ end
 -- meilleures affaires. Ce que chaque tour apporte se mesure avec run.ps1 -Worth (voir NIVEAUX.md).
 -- Les tours de PALIER 2 (œufs) coûtent deux fois le prix de leur tour de base, pour 2,3 à 3,5 fois ses dégâts : la
 -- tour de base devient presque inutile (demande du propriétaire, IdleTowers.luau). Le Totem du blizzard est limité
--- à 3, comme le Totem de givre.
+-- à 3, comme le Totem de givre. Les tours SPÉCIALES (une par territoire) : un peu plus fortes qu'une tour de palier 2
+-- pour leur prix, 2 au plus par niveau (rareté « Special »).
 ----------------------------------------------------------------------
 Levels.TOWER_COST = {
 	MachineGun = 20, Frost = 40, Bomb = 45, Tesla = 40, Rocket = 50, Laser = 90, Chain = 150, Orbital = 100,
 	FireArcher = 40, BlizzardTotem = 80, MagmaCatapult = 90, StormArchmage = 80, DragonBallista = 100, VoidSorcerer = 180,
 	ThunderOracle = 300, CelestialTrebuchet = 200,
+	CrimsonBow = 60, CopperCrossbow = 90, ThornSpitter = 90, FrostCatapult = 100,
 }
 Levels.MAX_COPIES = { Frost = 3, BlizzardTotem = 3 }
 -- Stats changées par rapport à IdleTowers : { [type] = { champ = valeur } }.
@@ -1131,7 +1133,7 @@ Levels.STARTING_TOWERS = { "MachineGun" }
 
 -- BARRE RAPIDE : les BAR_MAX premières tours de la liste du joueur (Levels.ownedTowers, dans l'ordre qu'il choisit
 -- dans l'onglet « Mes tours ») sont celles qu'il peut poser dans un niveau (touches 1 à 8 du clavier) ; les autres
--- attendent en RÉSERVE. Avec les œufs, un joueur peut avoir 16 tours : une barre de 16 boutons ne tenait plus sur un
+-- attendent en RÉSERVE. Avec les œufs, un joueur peut avoir 20 tours : une barre de 20 boutons ne tiendrait pas sur un
 -- téléphone. 8 = toutes les tours d'avant les œufs : rien ne change pour un joueur sans tour de palier 2.
 Levels.BAR_MAX = 8
 
@@ -1368,7 +1370,16 @@ Levels.CAMP = {
 --     plus rares un peu violets ») : color = sa coquille ; art = { pattern = son motif ("spots" des taches, "cross"
 --     deux traînées en croix, "crown" une couronne et des étincelles), detail = la couleur du motif, frame = la
 --     couleur de sa vignette (sa rareté : gris, bleu, violet pour le plus rare), rays = des rayons derrière lui }.
---     Dessinés par client/EggArt.luau (l'onglet Œufs) et Hub/Camp.luau (les couveuses en 3D).
+--     Dessinés par client/EggArt.luau (l'onglet Œufs) et Hub/Camp.luau (les couveuses en 3D) ;
+--   * les ŒUFS SPÉCIAUX (idée du propriétaire, 04/10/2026 : « des œufs spéciaux carmin, ensuite spéciaux orc... »,
+--     « une tour spéciale ? ») : un par territoire, qui donne toujours la TOUR SPÉCIALE de ce territoire
+--     (IdleTowers.SPECIAL). Battre le boss du territoire (niveaux 10, 20, 30, 40) la première fois le donne EN PLUS
+--     de l'œuf doré ; en rejouant ce boss, il revient SPECIAL_REPLAY_CHANCE fois (Levels.bonusEggFor). L'œuf doré reste
+--     donc là : le réglage des niveaux ne change pas (les boss demandent les tours de palier 2 des œufs dorés). Un
+--     œuf spécial n'est jamais perdu quand la réserve est pleine (il ne compte pas dans EGG_MAX). Un doublon donne
+--     DUPLICATE_XP.Special d'XP à sa tour. Leurs dessins : ceux montrés au propriétaire (carmin à bande dorée en
+--     zigzag, cuivre à rivets, vert à ronces, bleu glacé à flocons). Les territoires suivants (orc, obsidienne,
+--     dragon...) auront les leurs avec leurs mises à jour.
 -- Les chiffres sont les miens (temps, chances, prix) : à changer s'il le veut.
 ----------------------------------------------------------------------
 local COMMON_COLOR = Color3.fromRGB(246, 242, 232)
@@ -1410,13 +1421,54 @@ Levels.EGGS = {
 		tower = "Bomb",
 		autoHatch = true,
 	},
+	-- Les ŒUFS SPÉCIAUX (voir plus haut) : territory = la carte du territoire dont le boss le donne, tower = sa tour
+	-- spéciale (toujours la même). art.accent = une 2e couleur de motif (les rivets, les feuilles).
+	Crimson = {
+		displayName = "Œuf carmin",
+		seconds = 60 * 60,
+		color = Color3.fromRGB(200, 36, 60),
+		art = { pattern = "zigzag", detail = Color3.fromRGB(245, 197, 66), frame = Color3.fromRGB(178, 30, 54), rays = true },
+		tower = "CrimsonBow",
+		territory = "Valley",
+		special = true,
+	},
+	Copper = {
+		displayName = "Œuf de cuivre",
+		seconds = 60 * 60,
+		color = Color3.fromRGB(199, 123, 58),
+		art = { pattern = "rivets", detail = Color3.fromRGB(126, 69, 32), accent = Color3.fromRGB(242, 192, 138), frame = Color3.fromRGB(176, 102, 46), rays = true },
+		tower = "CopperCrossbow",
+		territory = "Pass",
+		special = true,
+	},
+	Bramble = {
+		displayName = "Œuf des ronces",
+		seconds = 60 * 60,
+		color = Color3.fromRGB(62, 142, 65),
+		art = { pattern = "thorns", detail = Color3.fromRGB(28, 74, 32), accent = Color3.fromRGB(139, 209, 124), frame = Color3.fromRGB(48, 132, 58), rays = true },
+		tower = "ThornSpitter",
+		territory = "Forest",
+		special = true,
+	},
+	Rime = {
+		displayName = "Œuf de givre",
+		seconds = 60 * 60,
+		color = Color3.fromRGB(159, 216, 245),
+		art = { pattern = "flakes", detail = Color3.fromRGB(255, 255, 255), frame = Color3.fromRGB(70, 150, 222), rays = true },
+		tower = "FrostCatapult",
+		territory = "Glacier",
+		special = true,
+	},
 }
 Levels.EGG_ORDER = { "Common", "Rare", "Gold" } -- (les œufs de la réserve ; le premier œuf n'y va jamais)
+Levels.SPECIAL_EGG_ORDER = { "Crimson", "Copper", "Bramble", "Rime" } -- (dans l'ordre des territoires)
+Levels.SPECIAL_REPLAY_CHANCE = 0.1 -- en rejouant le boss d'un territoire : 1 chance sur 10 de regagner son œuf spécial
 Levels.EGG_MAX = 30 -- œufs en réserve au plus (tous types ensemble)
 Levels.HATCHER_COST = { 0, 600, 2500 } -- prix de la 1re (offerte), 2e et 3e couveuse, en pièces de niveau
 Levels.SKIP_COINS_PER_MINUTE = 5 -- finir un œuf tout de suite : pièces de niveau par minute qui reste
-Levels.DUPLICATE_XP = { Common = 20, Rare = 40, Epic = 80, Legendary = 160 } -- XP d'entraînement d'un doublon
-Levels.RARITY_NAMES = { Common = "Commune", Rare = "Rare", Epic = "Épique", Legendary = "Légendaire" }
+Levels.DUPLICATE_XP = { Common = 20, Rare = 40, Epic = 80, Legendary = 160, Special = 200 } -- XP d'entraînement d'un doublon
+Levels.RARITY_NAMES = { Common = "Commune", Rare = "Rare", Epic = "Épique", Legendary = "Légendaire", Special = "Spéciale" }
+-- Raretés des œufs au hasard (les tours spéciales n'y sont jamais : elles sortent de leur œuf spécial).
 Levels.RARITY_ORDER = { "Common", "Rare", "Epic", "Legendary" }
 
 -- L'œuf gagné en remportant ce niveau (première victoire ou non).
@@ -1431,7 +1483,47 @@ function Levels.eggFor(level: number, firstClear: boolean): string
 	return if definition.boss then "Rare" else "Common"
 end
 
--- Œufs en réserve (tous types).
+-- L'œuf spécial du territoire dont la carte est `mapName` (nil si ce territoire n'en a pas encore).
+function Levels.territoryEgg(mapName: string): string?
+	for _, eggType in Levels.SPECIAL_EGG_ORDER do
+		if Levels.EGGS[eggType].territory == mapName then
+			return eggType
+		end
+	end
+	return nil
+end
+
+-- L'œuf spécial qui donne cette tour (nil pour une tour qui n'est pas spéciale).
+function Levels.towerEgg(towerType: string): string?
+	for _, eggType in Levels.SPECIAL_EGG_ORDER do
+		if Levels.EGGS[eggType].tower == towerType then
+			return eggType
+		end
+	end
+	return nil
+end
+
+-- Le niveau du boss qui donne cet œuf spécial (10 pour l'œuf carmin, 20, 30, 40).
+function Levels.specialBossLevel(eggType: string): number
+	return (table.find(Levels.TERRITORIES, Levels.EGGS[eggType].territory) or 1) * Levels.TERRITORY_SIZE
+end
+
+-- L'ŒUF SPÉCIAL gagné EN PLUS de l'œuf du niveau (Levels.eggFor) en remportant ce niveau, ou nil : celui du
+-- territoire, à son boss ; à la première victoire, toujours ; en rejouant, si roll < SPECIAL_REPLAY_CHANCE (roll =
+-- un tirage de 0 à 1, au hasard : Random du serveur).
+function Levels.bonusEggFor(level: number, firstClear: boolean, roll: number): string?
+	local definition = Levels.definition(level)
+	if not definition.boss then
+		return nil
+	end
+	local eggType = Levels.territoryEgg(definition.map)
+	if eggType and (firstClear or roll < Levels.SPECIAL_REPLAY_CHANCE) then
+		return eggType
+	end
+	return nil
+end
+
+-- Œufs en réserve (communs, rares et dorés : les œufs spéciaux ne comptent pas, ils ne sont jamais perdus).
 function Levels.eggCount(levels): number
 	local count = 0
 	for _, eggType in Levels.EGG_ORDER do
@@ -1441,10 +1533,14 @@ function Levels.eggCount(levels): number
 end
 
 -- Un œuf de plus en réserve ; faux si la réserve est pleine (l'œuf est perdu), ou pour le premier œuf (il ne va
--- jamais dans la réserve : Levels.giveEgg).
+-- jamais dans la réserve : Levels.giveEgg). Un œuf spécial ne compte pas dans la réserve (EGG_MAX de chaque au plus).
 function Levels.addEgg(levels, eggType: string): boolean
 	local egg = Levels.EGGS[eggType]
-	if not egg or egg.autoHatch or Levels.eggCount(levels) >= Levels.EGG_MAX then
+	if not egg or egg.autoHatch then
+		return false
+	end
+	local full = if egg.special then (levels.eggs[eggType] or 0) >= Levels.EGG_MAX else Levels.eggCount(levels) >= Levels.EGG_MAX
+	if full then
 		return false
 	end
 	levels.eggs[eggType] = (levels.eggs[eggType] or 0) + 1
@@ -1641,10 +1737,12 @@ function Levels.cleanData(saved: any)
 	data.losses = math.floor(cleanNumber(saved.losses, 0, 1e9, 0))
 	data.trainedAt = math.floor(cleanNumber(saved.trainedAt, 0, 1e11, 0))
 	if typeof(saved.eggs) == "table" then
-		for _, eggType in Levels.EGG_ORDER do
-			local count = math.floor(cleanNumber(saved.eggs[eggType], 0, Levels.EGG_MAX, 0))
-			if count > 0 then
-				data.eggs[eggType] = count
+		for _, list in { Levels.EGG_ORDER, Levels.SPECIAL_EGG_ORDER } do
+			for _, eggType in list do
+				local count = math.floor(cleanNumber(saved.eggs[eggType], 0, Levels.EGG_MAX, 0))
+				if count > 0 then
+					data.eggs[eggType] = count
+				end
 			end
 		end
 	end

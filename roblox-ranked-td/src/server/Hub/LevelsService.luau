@@ -314,6 +314,8 @@ end
 local hatchRandom = Random.new()
 local hatchCount = 0 -- n° de la dernière ouverture (attribut « Hatch » : le client montre la tour sortie)
 local forcedHatch = {} -- [joueur] = tour qui sortira du prochain œuf (tests Studio : debug « EggForce »)
+-- [joueur] = vrai / faux : le prochain tirage de l'œuf spécial d'un boss rejoué (tests Studio : debug « BonusForce »)
+local forcedBonus = {}
 
 -- La tour `tower` sort de l'œuf `eggType` : nouvelle (Levels.addTower) ou doublon (XP d'entraînement). Le résultat part
 -- dans l'attribut « Hatch » du joueur : son écran le montre. Une nouvelle tour finit le tuto (sa dernière étape :
@@ -351,6 +353,7 @@ local function rewardMember(player: Player, game, won: boolean, member, showResu
 	local reward = Levels.bonusReward(Levels.reward(level, won, firstClear, progress), game.teamSize, friendHere)
 	levels.coins += reward
 	local egg, eggKept, eggPlaced = nil, false, false
+	local bonusEgg, bonusKept = nil, false
 	if won then
 		-- « LES ŒUFS » : un œuf à chaque victoire (perdu si la réserve est pleine). Le premier œuf (première victoire
 		-- du niveau 1) couve tout de suite dans sa couveuse ; sans couveuse vide, sa tour sort tout de suite.
@@ -360,6 +363,15 @@ local function rewardMember(player: Player, game, won: boolean, member, showResu
 		if not placed and Levels.EGGS[egg].tower then
 			hatchEgg(player, levels, egg, Levels.EGGS[egg].tower)
 			eggKept = true
+		end
+		-- L'ŒUF SPÉCIAL du territoire, en plus (Levels.bonusEggFor) : au boss du territoire, la première fois toujours,
+		-- en rejouant SPECIAL_REPLAY_CHANCE fois. Il va dans la réserve (jamais perdu, sauf EGG_MAX de ce même œuf).
+		local forced = forcedBonus[player]
+		forcedBonus[player] = nil
+		local roll = if forced == true then 0 elseif forced == false then 1 else hatchRandom:NextNumber()
+		bonusEgg = Levels.bonusEggFor(level, firstClear, roll)
+		if bonusEgg then
+			bonusKept = Levels.giveEgg(levels, bonusEgg, now()) ~= nil
 		end
 		levels.best = math.max(levels.best, level)
 		levels.wins += 1
@@ -413,6 +425,8 @@ local function rewardMember(player: Player, game, won: boolean, member, showResu
 		egg = egg, -- l'œuf gagné (nil : défaite)
 		eggKept = eggKept, -- faux : réserve pleine, l'œuf est perdu
 		eggPlaced = eggPlaced, -- vrai : l'œuf couve déjà dans une couveuse (le premier œuf)
+		bonusEgg = bonusEgg, -- l'œuf spécial gagné en plus (boss d'un territoire), nil sinon
+		bonusKept = bonusKept, -- faux : il y en avait déjà EGG_MAX, celui-ci est perdu
 		})
 		game:setAttr("Result_" .. member.key, result)
 		if member == game then
@@ -421,7 +435,8 @@ local function rewardMember(player: Player, game, won: boolean, member, showResu
 	end
 	publish(player)
 	local teamText = if game.teamSize > 1 then ` (équipe de {game.teamSize})` else ""
-	print(`[Niveaux] {player.Name} : niveau {level} {if won then "gagné" else "perdu"}{teamText} ({game.kills}/{#game.queue} monstres, {game.lives} vies, {math.floor(game.clock)} s) -> +{reward} pièces de niveau`)
+	local bonusText = if bonusEgg then `, œuf spécial : {bonusEgg}` else ""
+	print(`[Niveaux] {player.Name} : niveau {level} {if won then "gagné" else "perdu"}{teamText} ({game.kills}/{#game.queue} monstres, {game.lives} vies, {math.floor(game.clock)} s) -> +{reward} pièces de niveau{bonusText}`)
 	local clock = os.clock()
 	if real(player) and savingAllowed and clock - (lastSave[player] or -math.huge) >= SAVE_INTERVAL then
 		lastSave[player] = clock
@@ -1047,6 +1062,8 @@ end
 --   Invoke(player, "Levels", "InvitePending", 9) -> l'ami 9 est venu grâce au joueur pendant son absence (noté)
 --   Invoke(player, "Levels", "Egg", "Rare", 2)    -> 2 œufs rares de plus dans sa réserve ; renvoie la réserve
 --   Invoke(player, "Levels", "EggForce", "Laser") -> le prochain œuf ouvert donnera cette tour
+--   Invoke(player, "Levels", "BonusForce", true) -> le prochain boss de territoire REJOUÉ et gagné donnera (true) ou
+--                                                   pas (false) son œuf spécial ; rien = au hasard (1 fois sur 10)
 --   Invoke(player, "Levels", "InviteClaim")      -> le joueur prend ses récompenses d'invitation en attente ;
 --                                                   renvoie leur nombre
 --   Invoke(player, "Levels", "Bench", 6, 60, 12) -> 6 niveaux 10 joués en même temps pendant 60 s de jeu, 12 tours
@@ -1170,6 +1187,10 @@ function LevelsService.debug(player: Player, command: string, ...)
 	elseif command == "EggForce" then
 		forcedHatch[player] = if IdleTowers.Defs[...] then ... else nil
 		return forcedHatch[player]
+	elseif command == "BonusForce" then
+		local value = ...
+		forcedBonus[player] = if typeof(value) == "boolean" then value else nil
+		return forcedBonus[player]
 	elseif command == "TeamGone" then
 		local fake = fakePlayers[...]
 		if fake then

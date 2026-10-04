@@ -24,7 +24,12 @@
 -- (format dans Hub/Combat.luau). Effets distincts : brume et éclats de givre aux pieds, étincelles de foudre,
 -- étoiles dorées au-dessus d'un ennemi étourdi, motes violettes quand il est fragile. Le contour violet de
 -- la barre de vie est conservé. Les ancres sont créées une fois, soudées, et nettoyées avec l'ennemi.
+-- Poison (ronces du Lance-ronces) : des octets « effets » après les octets « contrôle » (seulement quand un ennemi
+-- est empoisonné) : des bulles vertes sur l'ennemi empoisonné.
 -- Baliste du dragon : à l'impact de son carreau perçant, une traînée montre la ligne touchée (largeur du serveur).
+-- Tours spéciales (IdleTowers.SPECIAL) : elles tirent avec l'animation de leur silhouette (IdleTowers.shapeOf) et
+-- l'allure de leur projectile (def.shot : flèche carmin, graine de ronces, bloc de glace ; Effects.playTowerShot) ;
+-- les ronces au sol s'affichent comme les zones de feu (addFire), avec des épines à la place des flammes.
 -- Modèles perso (CustomModels.luau) : si le propriétaire a mis un modèle pour ce type (et ce palier) dans
 -- ReplicatedStorage.EnemyModels, l'ennemi est une copie de ce modèle soudée à la même racine invisible que les
 -- blocs (déplacée pareil). Sa marche (Animation « Marche ») n'est jouée que près de la caméra, avec un nombre
@@ -68,6 +73,8 @@ local SHOT_SOUNDS = {
 	Rocket = { launch = "BallistaShot", impact = "BallistaImpact" },
 	Chain = { strike = "OracleChain" },
 	Orbital = { launch = "TrebuchetLaunch", impact = "TrebuchetImpact" },
+	-- (une tour spéciale a les sons de sa silhouette, sauf ici : le Lance-ronces a la silhouette du Mage, pas sa foudre)
+	ThornSpitter = { launch = "ArcherShot" },
 }
 -- Mort d'un ennemi (les autres types : EnemyDeath).
 local DEATH_SOUNDS = { Boss = "BossDeath", Giant = "BigDeath", Colossus = "BigDeath", Tank = "BigDeath" }
@@ -81,6 +88,8 @@ local ENEMY_BYTES = 11
 -- = fragile.
 local CONTROL_SOURCE_MASK = 128 -- control % 128 = bits 0-6
 local CONTROL_FRAGILE_FLAG = 128
+-- Octet « effets » (après les octets « contrôle », seulement si un ennemi est empoisonné) : bit 0 = empoisonné.
+local EFFECT_POISON_FLAG = 1
 local FRAGILE_COLOR = Color3.fromRGB(196, 130, 255) -- fragile (aura du Totem du blizzard)
 local SHOT_BYTES = 27 -- départ 3xf32, arrivée 3xf32, type u8, rayon u8, vol restant u8 (centièmes de s)
 -- Après les count x SHOT_BYTES octets : l'id u32 de la cible suivie par chaque tir (0 = aucune), même ordre.
@@ -396,19 +405,20 @@ local function createStatusRing(enemy): BasePart
 	return Effects.createStatusVisual(enemy.part, enemy.def.size, if enemy.custom then enemy.custom.top else nil)
 end
 
--- Contrôle en cours (type de tour, nil = aucun) et fragilité, lus dans l'octet « contrôle » du paquet.
--- Ne touche aux pièces que si quelque chose change.
-local function setStatus(enemy, source: string?, fragile: boolean)
-	if enemy.statusSource == source and enemy.statusFragile == fragile then
+-- Contrôle en cours (type de tour, nil = aucun) et fragilité, lus dans l'octet « contrôle » du paquet ; poison, lu
+-- dans l'octet « effets ». Ne touche aux pièces que si quelque chose change.
+local function setStatus(enemy, source: string?, fragile: boolean, poisoned: boolean)
+	if enemy.statusSource == source and enemy.statusFragile == fragile and enemy.statusPoisoned == poisoned then
 		return
 	end
 	enemy.statusSource = source
 	enemy.statusFragile = fragile
-	if source or fragile then
+	enemy.statusPoisoned = poisoned
+	if source or fragile or poisoned then
 		enemy.ring = enemy.ring or createStatusRing(enemy)
-		Effects.setStatusVisual(enemy.ring, source, fragile)
+		Effects.setStatusVisual(enemy.ring, source, fragile, poisoned)
 	elseif enemy.ring then
-		Effects.setStatusVisual(enemy.ring, nil, false)
+		Effects.setStatusVisual(enemy.ring, nil, false, false)
 	end
 	enemy.stroke.Transparency = if fragile then 0 else 1
 end
@@ -458,6 +468,9 @@ local function onSync(plotIndex: number, packet: buffer, count: number, kind: st
 	-- Octets « contrôle » après les positions (absents d'un ancien paquet : aucun contrôle).
 	local controlStart = count * ENEMY_BYTES
 	local hasControl = buffer.len(packet) >= controlStart + count
+	-- Octets « effets » après les octets « contrôle » (absents : aucun ennemi empoisonné).
+	local effectStart = controlStart + count
+	local hasEffects = buffer.len(packet) >= effectStart + count
 	local seen = {}
 	for i = 0, count - 1 do
 		local offset = i * ENEMY_BYTES
@@ -481,7 +494,7 @@ local function onSync(plotIndex: number, packet: buffer, count: number, kind: st
 				def = arenaDef(enemyType, def)
 			end
 			local part, fill, stroke, custom = createEnemy(enemyType, def, palier, camp)
-			enemy = { def = def, part = part, fill = fill, stroke = stroke, distance = distance, statusFragile = false }
+			enemy = { def = def, part = part, fill = fill, stroke = stroke, distance = distance, statusFragile = false, statusPoisoned = false }
 			enemy.lane = typeByte // Enemies.LANE_STEP + 1 -- (son couloir : cartes d'équipe)
 			enemy.enemyType = enemyType
 			enemy.camp = camp -- cible d'entraînement : détruite sans cri ni or
@@ -509,7 +522,8 @@ local function onSync(plotIndex: number, packet: buffer, count: number, kind: st
 		enemy.speedFactor = speedFactor
 		enemy.fill.Size = UDim2.fromScale(health, 1)
 		local control = if hasControl then buffer.readu8(packet, controlStart + i) else 0
-		setStatus(enemy, IdleTowers.ORDER[control % CONTROL_SOURCE_MASK], control >= CONTROL_FRAGILE_FLAG)
+		local effects = if hasEffects then buffer.readu8(packet, effectStart + i) else 0
+		setStatus(enemy, IdleTowers.ORDER[control % CONTROL_SOURCE_MASK], control >= CONTROL_FRAGILE_FLAG, effects % 2 == EFFECT_POISON_FLAG)
 	end
 
 	-- Absents du paquet = tués, ou retirés (niveau perdu ; le départ du joueur et un camp dont on s'éloigne envoient
@@ -640,8 +654,8 @@ local function nearestTower(plotIndex: number, towerType: string, from: Vector3)
 end
 
 ----------------------------------------------------------------------
--- Zones de feu (Archer enflammé, Catapulte de magma, Baliste du dragon : seulement l'affichage, les dégâts sont
--- calculés par le serveur)
+-- Zones de feu (Archer enflammé, Catapulte de magma, Baliste du dragon) et ronces (Lance-ronces) : seulement
+-- l'affichage, les dégâts sont calculés par le serveur
 ----------------------------------------------------------------------
 
 local function horizontalDistance(a: Vector3, b: Vector3): number
@@ -650,13 +664,15 @@ local function horizontalDistance(a: Vector3, b: Vector3): number
 end
 
 -- Une flèche enflammée touche le sol : même règle que le serveur (Combat:addFirePatch), une flèche qui
--- tombe dans une zone la ravive au lieu d'en créer une autre. Durée en secondes réelles (/ SimSpeed).
+-- tombe dans une zone la ravive au lieu d'en créer une autre. Durée en secondes réelles (/ SimSpeed). Les ronces
+-- (def.poisonDuration) ont leur propre allure, et ne ravivent que des ronces (le feu, que du feu).
 local function addFire(plotIndex: number, position: Vector3, def)
 	local state = plotState(plotIndex)
 	local now = os.clock()
 	local expiresAt = now + def.fireDuration / simSpeedOf(plotIndex, state)
+	local thorns = def.poisonDuration ~= nil
 	for _, fire in state.fires do
-		if horizontalDistance(fire.position, position) <= def.fireRadius then
+		if fire.thorns == thorns and horizontalDistance(fire.position, position) <= def.fireRadius then
 			fire.expiresAt = math.max(fire.expiresAt, expiresAt)
 			return
 		end
@@ -664,7 +680,8 @@ local function addFire(plotIndex: number, position: Vector3, def)
 	if #state.fires >= MAX_FIRE_VISUALS then
 		Effects.fadeOut(table.remove(state.fires, 1).part, FIRE_FADE_TIME)
 	end
-	table.insert(state.fires, { part = Effects.firePatch(position, def.fireRadius), position = position, expiresAt = expiresAt })
+	local part = if thorns then Effects.thornPatch(position, def.fireRadius) else Effects.firePatch(position, def.fireRadius)
+	table.insert(state.fires, { part = part, position = position, expiresAt = expiresAt, thorns = thorns })
 end
 
 -- Éteint les zones de feu arrivées au bout (toutes, si le combat est fini : le serveur les a effacées).
@@ -744,11 +761,12 @@ local function onShots(plotIndex: number, packet: buffer, count: number)
 		end
 		local targetId = if hasTargets then buffer.readu32(packet, targetStart + i * SHOT_TARGET_BYTES) else 0
 		local follow = if targetId ~= 0 and flight > 0 then followTarget(state, targetId, to, IdleTowers.followDistance(def)) else nil
-		-- (une tour de palier 2 tire comme sa tour de base, à ses couleurs)
-		local look = IdleTowers.baseOf(towerType)
-		Effects.playTowerShot(from, to, look, radius, def.color, def.kind, nearestTower(plotIndex, towerType, from), flight, follow)
+		-- (une tour de palier 2 tire comme sa tour de base, à ses couleurs ; une tour spéciale, avec l'animation de sa
+		-- silhouette et l'allure de son projectile : def.shot)
+		local look = IdleTowers.shapeOf(towerType)
+		Effects.playTowerShot(from, to, look, radius, def.color, def.kind, nearestTower(plotIndex, towerType, from), flight, follow, def.shot)
 		-- Sons : ignorés tout de suite loin de la caméra ; l'impact n'est programmé que s'il sera entendu.
-		local sounds = SHOT_SOUNDS[look]
+		local sounds = SHOT_SOUNDS[towerType] or SHOT_SOUNDS[look]
 		if sounds then
 			if sounds.launch then
 				SoundManager.playAt(sounds.launch, from)
@@ -760,7 +778,7 @@ local function onShots(plotIndex: number, packet: buffer, count: number)
 				task.delay(flight, SoundManager.playAt, sounds.impact, to)
 			end
 		end
-		-- Pouvoirs des tours de palier 2 : feu au sol, carreau perçant.
+		-- Pouvoirs des tours de palier 2 et des tours spéciales : feu au sol (ou ronces), carreau perçant.
 		if def.fireRadius then
 			task.delay(flight, landFire, plotIndex, state.generation, to, def, follow)
 		end

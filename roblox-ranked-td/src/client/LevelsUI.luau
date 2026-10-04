@@ -75,6 +75,11 @@ local SHORT_NAMES = {
 	VoidSorcerer = "Néant",
 	ThunderOracle = "Tonnerre",
 	CelestialTrebuchet = "Céleste",
+	-- tours spéciales (œufs des territoires)
+	CrimsonBow = "Carmin",
+	CopperCrossbow = "Cuivre",
+	ThornSpitter = "Ronces",
+	FrostCatapult = "Givre",
 }
 local ROLES = {
 	MachineGun = "Tireur rapide à longue portée. Ta tour de base.",
@@ -94,6 +99,11 @@ local ROLES = {
 	VoidSorcerer = "Rayon du néant : il fait fondre les boss.",
 	ThunderOracle = `Un éclair qui rebondit sur {IdleTowers.Defs.ThunderOracle.chains} monstres.`,
 	CelestialTrebuchet = "Une pierre céleste sur le plus gros groupe.",
+	-- tours spéciales (œufs des territoires)
+	CrimsonBow = "Grosses flèches rapides : très fort contre un monstre à la fois.",
+	CopperCrossbow = `Ses carreaux transpercent {IdleTowers.Defs.CopperCrossbow.pierceMax} monstres alignés.`,
+	ThornSpitter = "Ses ronces empoisonnent les monstres qui marchent dessus.",
+	FrostCatapult = `Blocs de glace : grosse zone, et ralentit de {math.floor(Levels.towerStats("FrostCatapult", 1, 0).slow * 100 + 0.5)} %.`,
 }
 local HOTKEYS = {
 	[Enum.KeyCode.One] = 1,
@@ -218,6 +228,7 @@ local RARITY_COLORS = {
 	Rare = Color3.fromRGB(86, 156, 236),
 	Epic = Color3.fromRGB(184, 104, 236),
 	Legendary = Color3.fromRGB(255, 196, 52),
+	Special = Color3.fromRGB(255, 120, 84), -- (les tours spéciales des territoires)
 }
 
 -- « 15 min », « 1 h », « 4 h ».
@@ -375,6 +386,9 @@ local TOWER_COLORS = {
 	MagmaCatapult = Color3.fromRGB(255, 82, 44), StormArchmage = Color3.fromRGB(60, 214, 255),
 	DragonBallista = Color3.fromRGB(236, 48, 92), VoidSorcerer = Color3.fromRGB(120, 52, 232),
 	ThunderOracle = Color3.fromRGB(70, 128, 255), CelestialTrebuchet = Color3.fromRGB(255, 232, 120),
+	-- tours spéciales : les couleurs de leur territoire
+	CrimsonBow = Color3.fromRGB(226, 40, 66), CopperCrossbow = Color3.fromRGB(222, 132, 60),
+	ThornSpitter = Color3.fromRGB(84, 186, 72), FrostCatapult = Color3.fromRGB(128, 214, 255),
 }
 
 -- Vignettes 3D statiques des vrais modèles (préparés par Camp). Pas d'animation, de RenderStepped ou de requête
@@ -891,7 +905,10 @@ local function buildCamp()
 		entry.row.Visible = not owns(towerType)
 		entry.row.LayoutOrder = 200 + order
 		local def = IdleTowers.Defs[towerType]
-		entry.price.Text = if def.base then `Palier 2 de : {IdleTowers.Defs[def.base].displayName} • dans les œufs`
+		local specialEgg = Levels.towerEgg(towerType)
+		-- (une tour spéciale : son œuf, et le boss qui le donne)
+		entry.price.Text = if specialEgg then `{Levels.RARITY_NAMES.Special} • {Levels.EGGS[specialEgg].displayName} • boss du niveau {Levels.specialBossLevel(specialEgg)}`
+			elseif def.base then `Palier 2 de : {IdleTowers.Defs[def.base].displayName} • dans les œufs`
 			else `{Levels.RARITY_NAMES[def.rarity] or def.rarity} • dans les œufs`
 	end
 
@@ -1374,7 +1391,104 @@ local function buildCamp()
 		})
 		eggCards[eggType] = { count = count }
 	end
-	local HATCH_TOP = 28 + EGG_CARD_H + 14
+	-- LES ŒUFS SPÉCIAUX (un par territoire, Levels.SPECIAL_EGG_ORDER) : une carte chacun, même avant de l'avoir (le
+	-- boss qui le donne est écrit : un but à atteindre). Son bouton le pose dans la première couveuse vide.
+	local SPECIAL_TOP = 28 + EGG_CARD_H + 14
+	local SPECIAL_CARD_H = 100
+	UI.label({
+		Name = "SpecialTitle",
+		Position = UDim2.fromOffset(0, SPECIAL_TOP),
+		Size = UDim2.new(1, -16, 0, 24),
+		Font = Enum.Font.GothamBlack,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		TextColor3 = UI.Colors.Gold,
+		MaxTextSize = 17,
+		Text = "ŒUFS SPÉCIAUX",
+		Parent = eggsPage,
+	})
+	local specialCards = {}
+	local specialCount = #Levels.SPECIAL_EGG_ORDER
+	-- Pose cet œuf spécial dans la première couveuse vide (bouton de sa carte ; TestAction « SpecialPut »).
+	function camp.putSpecial(eggType: string)
+		if (tonumber(state.eggs[eggType]) or 0) < 1 then
+			return
+		end
+		for hatcherIndex, hatcher in state.hatchers do
+			if hatcher.egg == "" then
+				levelAction:FireServer("EggStart", hatcherIndex, eggType)
+				return
+			end
+		end
+	end
+	for index, eggType in Levels.SPECIAL_EGG_ORDER do
+		local egg = Levels.EGGS[eggType]
+		local card = UI.new("Frame", {
+			Name = "Special_" .. eggType,
+			Position = UDim2.new((index - 1) / specialCount, 0, 0, SPECIAL_TOP + 28),
+			Size = UDim2.new(1 / specialCount, -12, 0, SPECIAL_CARD_H),
+			BackgroundColor3 = UI.Colors.PanelLight,
+			Parent = eggsPage,
+		}, { UI.corner(5), UI.padding(8) })
+		UI.card(card, egg.art.frame:Lerp(UI.Colors.Panel, 0.62))
+		local tile = EggArt.tile(eggType, { Name = "Icon", Size = UDim2.fromOffset(52, 52), Parent = card })
+		-- (assombrie tant qu'il n'en a aucun)
+		local shadow = UI.new("Frame", {
+			Name = "Locked",
+			Size = UDim2.fromScale(1, 1),
+			BackgroundColor3 = UI.Colors.Ink,
+			BackgroundTransparency = 0.45,
+			ZIndex = 8,
+			Parent = tile,
+		})
+		local count = UI.label({
+			Name = "Count",
+			AnchorPoint = Vector2.new(1, 1),
+			Position = UDim2.fromOffset(60, 55),
+			Size = UDim2.fromOffset(44, 26),
+			Font = Enum.Font.GothamBlack,
+			TextColor3 = UI.Colors.Gold,
+			TextXAlignment = Enum.TextXAlignment.Right,
+			MaxTextSize = 22,
+			ZIndex = 9,
+			Parent = card,
+		})
+		UI.label({
+			Name = "EggName",
+			Position = UDim2.fromOffset(58, 0),
+			Size = UDim2.new(1, -58, 0, 22),
+			Font = Enum.Font.GothamBlack,
+			TextXAlignment = Enum.TextXAlignment.Left,
+			MaxTextSize = 15,
+			Text = egg.displayName,
+			Parent = card,
+		})
+		UI.label({
+			Name = "Tower",
+			Position = UDim2.fromOffset(58, 24),
+			Size = UDim2.new(1, -58, 0, 26),
+			TextWrapped = true,
+			TextXAlignment = Enum.TextXAlignment.Left,
+			TextYAlignment = Enum.TextYAlignment.Top,
+			TextColor3 = UI.Colors.Muted,
+			MaxTextSize = 13,
+			Text = IdleTowers.Defs[egg.tower].displayName,
+			Parent = card,
+		})
+		local put = UI.button({
+			Name = "Put",
+			AnchorPoint = Vector2.new(0, 1),
+			Position = UDim2.new(0, 0, 1, 0),
+			Size = UDim2.new(1, 0, 0, 28),
+			Text = "",
+			MaxTextSize = 13,
+			Parent = card,
+		})
+		put.Activated:Connect(function()
+			camp.putSpecial(eggType)
+		end)
+		specialCards[eggType] = { count = count, shadow = shadow, put = put }
+	end
+	local HATCH_TOP = SPECIAL_TOP + 28 + SPECIAL_CARD_H + 14
 	UI.label({
 		Name = "HatchersTitle",
 		Position = UDim2.fromOffset(0, HATCH_TOP),
@@ -1464,7 +1578,7 @@ local function buildCamp()
 	UI.label({
 		Name = "Help",
 		Position = UDim2.fromOffset(0, eggsHelpTop),
-		Size = UDim2.new(1, -16, 0, 100),
+		Size = UDim2.new(1, -16, 0, 120),
 		TextWrapped = true,
 		TextXAlignment = Enum.TextXAlignment.Left,
 		TextYAlignment = Enum.TextYAlignment.Top,
@@ -1473,10 +1587,11 @@ local function buildCamp()
 		Text = "Chaque victoire donne un œuf : commun, rare au mini-boss, doré au boss (en rejouant : commun, rare au boss).\n"
 			.. "Pose-le dans une couveuse : il éclot même quand tu n'es pas là, puis il donne une tour au hasard.\n"
 			.. "Toutes les tours sortent des œufs. Les œufs rares et dorés donnent aussi des tours de palier 2, bien plus fortes.\n"
+			.. "Battre le boss d'un territoire donne aussi son œuf spécial (la première fois, puis 1 fois sur 10) : il donne toujours sa tour spéciale.\n"
 			.. "Une tour que tu as déjà donne de l'XP d'entraînement à cette tour.",
 		Parent = eggsPage,
 	})
-	eggsPage.CanvasSize = UDim2.fromOffset(0, eggsHelpTop + 108)
+	eggsPage.CanvasSize = UDim2.fromOffset(0, eggsHelpTop + 128)
 
 	local function refreshEggs()
 		local total = 0
@@ -1486,6 +1601,21 @@ local function buildCamp()
 			setText(eggCards[eggType].count, `×{count}`)
 		end
 		setText(eggsTitle, `TES ŒUFS ({total}/{Levels.EGG_MAX})`)
+		local emptyHatcher, anySpecial = false, false
+		for _, hatcher in state.hatchers do
+			emptyHatcher = emptyHatcher or hatcher.egg == ""
+		end
+		for _, eggType in Levels.SPECIAL_EGG_ORDER do
+			local entry = specialCards[eggType]
+			local count = tonumber(state.eggs[eggType]) or 0
+			anySpecial = anySpecial or count > 0
+			setText(entry.count, if count > 0 then `×{count}` else "")
+			entry.shadow.Visible = count <= 0
+			local usable = count > 0 and emptyHatcher
+			setText(entry.put, if count <= 0 then `🔒 Boss du niveau {Levels.specialBossLevel(eggType)}` elseif emptyHatcher then "COUVER" else "Couveuses pleines")
+			entry.put.BackgroundColor3 = if usable then Levels.EGGS[eggType].art.frame:Lerp(UI.Colors.Panel, 0.3) else UI.Colors.Panel
+			entry.put.AutoButtonColor = usable
+		end
 		for index, entry in hatchRows do
 			local hatcher = state.hatchers[index]
 			local isNext = hatcher == nil and index == #state.hatchers + 1
@@ -1532,7 +1662,8 @@ local function buildCamp()
 					setText(entry.buttons[eggType], Levels.EGGS[eggType].displayName) -- (« Pose un œuf : » est écrit à côté)
 					any = any or has
 				end
-				setText(entry.status, if any then "Pose un œuf :" else "Gagne des niveaux pour avoir des œufs")
+				-- (un œuf spécial se pose avec le bouton de sa carte, plus haut)
+				setText(entry.status, if any then "Pose un œuf :" elseif anySpecial then "Ton œuf spécial : son bouton COUVER, plus haut" else "Gagne des niveaux pour avoir des œufs")
 			elseif isNext then
 				local price = Levels.HATCHER_COST[index] or 0
 				setText(entry.title, `🔒 COUVEUSE {index}`)
@@ -2863,6 +2994,12 @@ local function buildHud()
 				elseif result.eggPlaced == true then `🥚 {wonEgg.displayName} : il couve déjà dans ta couveuse !`
 				else `🥚 {wonEgg.displayName} gagné ! Pose-le dans une couveuse.`)
 		end
+		-- L'œuf spécial du territoire, en plus (boss d'un territoire) : il donne toujours sa tour spéciale.
+		local bonusEgg = if typeof(result.bonusEgg) == "string" then Levels.EGGS[result.bonusEgg] else nil
+		if bonusEgg and bonusEgg.tower then
+			table.insert(lines, if result.bonusKept == false then `🌟 Réserve d'œufs pleine : {bonusEgg.displayName} perdu`
+				else `🌟 Œuf spécial gagné : {bonusEgg.displayName} (tour : {IdleTowers.Defs[bonusEgg.tower].displayName})`)
+		end
 		-- Un ami Roblox sur le serveur (« LES AMIS ») : son bonus aussi.
 		if result.friend == true then
 			table.insert(lines, `🤝 Bonus d'ami sur le serveur : +{math.floor(Levels.FRIENDS.COIN_BONUS * 100 + 0.5)} % de pièces`)
@@ -3432,7 +3569,8 @@ end
 --                        cet ami venait de se connecter), "FriendInvite" / "FriendClose" (boutons du panneau),
 --                        "InviteFriends" (bouton « Inviter des amis » de la page de l'équipe), "EggStart:1:Common"
 --                        (poser cet œuf dans la couveuse 1), "EggOpen:1", "EggSkip:1", "HatcherBuy", "RevealClose"
---                        (fermer le panneau de la tour sortie)
+--                        (fermer le panneau de la tour sortie), "SpecialPut:Crimson" (bouton « COUVER » de la carte
+--                        de cet œuf spécial)
 --   écran « LevelHud » : "Select:MachineGun" (tour en main), "Bar:MachineGun" (appui sur son bouton de la barre :
 --                        la prendre, ou annuler si elle est déjà en main), "Tap:-23,0" (appui sur ce point local
 --                        du terrain, par le vrai chemin : point de l'écran -> rayon de la caméra -> sol), "Upgrade",
@@ -3484,6 +3622,10 @@ local function testAction(command: string)
 		levelAction:FireServer(name, tonumber(argument))
 	elseif name == "HatcherBuy" then
 		levelAction:FireServer("HatcherBuy")
+	elseif name == "SpecialPut" then
+		if camp.putSpecial then
+			camp.putSpecial(argument)
+		end
 	elseif name == "RevealClose" then
 		if reveal.close then
 			reveal.close()
@@ -3836,7 +3978,7 @@ local function buildHatchReveal()
 		end
 		local color = RARITY_COLORS[def.rarity] or UI.Colors.Text
 		local rarity = Levels.RARITY_NAMES[def.rarity] or def.rarity
-		setText(title, if result.new then "🎉 NOUVELLE TOUR !" else "DOUBLON")
+		setText(title, if result.new and def.special then "🌟 TOUR SPÉCIALE !" elseif result.new then "🎉 NOUVELLE TOUR !" else "DOUBLON")
 		tile.setType(result.tower)
 		setText(name, def.displayName)
 		name.TextColor3 = color
@@ -3845,6 +3987,10 @@ local function buildHatchReveal()
 		-- Tour de palier 2 : de quelle tour elle est la version forte, et ce qu'elle fait.
 		if def.base then
 			line = `Palier 2 de : {IdleTowers.Defs[def.base].displayName}\n{ROLES[result.tower] or ""}\n{line}`
+		elseif def.special then
+			-- Tour spéciale : son territoire, et ce qu'elle fait.
+			local map = Levels.MAPS[def.special]
+			line = `{if map then map.displayName else ""}\n{ROLES[result.tower] or ""}\n{line}`
 		end
 		setText(detail, line)
 		gui.Enabled = true

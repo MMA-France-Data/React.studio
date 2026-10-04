@@ -25,6 +25,11 @@ return {
 	["Sorcier du néant"] = "Void Sorcerer",
 	["Oracle du tonnerre"] = "Thunder Oracle",
 	["Trébuchet céleste"] = "Celestial Trebuchet",
+	-- Tours spéciales (une par territoire, dans son œuf spécial)
+	["Arc carmin"] = "Crimson Bow",
+	["Arbalète de cuivre"] = "Copper Crossbow",
+	["Lance-ronces"] = "Thorn Thrower",
+	["Catapulte de givre"] = "Frost Catapult",
 
 	-- Noms courts des tours, sur la barre d'un niveau (client/LevelsUI.luau, SHORT_NAMES ; « Catapulte » : plus haut)
 	["Archer"] = "Archer",
@@ -42,6 +47,10 @@ return {
 	["Néant"] = "Void",
 	["Tonnerre"] = "Thunder",
 	["Céleste"] = "Celestial",
+	["Carmin"] = "Crimson",
+	["Cuivre"] = "Copper",
+	["Ronces"] = "Thorns",
+	["Givre"] = "Frost",
 
 	-- Monstres (Enemies.luau)
 	["Écuyer"] = "Squire",

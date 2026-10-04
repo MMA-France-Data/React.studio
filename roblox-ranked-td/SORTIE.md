@@ -8,8 +8,9 @@ Le jeu sort comme une **nouvelle expérience Roblox** (décision du 02/10/2026) 
 ## Le jeu lui-même
 
 - [x] 100 niveaux en 10 territoires (11 à 20 ajoutés le 02/10/2026, 21 à 100 le 03/10/2026 : une carte et une famille
-      de monstres par territoire), camp d'entraînement, évolutions des tours, les œufs et les 16 tours (voir
-      `NIVEAUX.md`). Depuis le 04/10/2026 : plus de boutique, les niveaux 1 à 40 ouverts (41 à 100 : « Bientôt »).
+      de monstres par territoire), camp d'entraînement, évolutions des tours, les œufs et les 20 tours (voir
+      `NIVEAUX.md`). Depuis le 04/10/2026 : plus de boutique, les niveaux 1 à 40 ouverts (41 à 100 : « Bientôt »),
+      une tour spéciale par territoire (son œuf spécial au boss du territoire).
 - [x] Tout l'ancien jeu enlevé (classé, autel, forge, vagues infinies, renaissance, défis, passes, ancien tuto).
 - [x] **Tuto** pour un nouveau joueur : une flèche dorée lui montre quoi toucher, du camp à la fin du niveau 1,
       puis son premier œuf à ouvrir (un œuf commun qui donne la Catapulte ; voir `NIVEAUX.md`, « Le tuto des
@@ -46,7 +47,7 @@ Le jeu sort comme une **nouvelle expérience Roblox** (décision du 02/10/2026) 
 ## Publication (Studio et Hub Création)
 
 - [ ] Le fichier à publier : la copie propre préparée par Claude, sur ton PC, dans le dossier du jeu :
-      `A-PUBLIER\Jeu-100-niveaux-v8.rbxl` (refaite à chaque version, avec un nouveau nom : prends toujours
+      `A-PUBLIER\Jeu-100-niveaux-v10.rbxl` (refaite à chaque version, avec un nouveau nom : prends toujours
       la plus récente ; elle n'est pas dans git). Ferme les autres fenêtres de Studio avant de publier, pour ne pas
       te tromper de fichier.
 - [ ] Publier comme une **nouvelle expérience** sur ton compte personnel (Fichier > Publier sur Roblox > « Créer une
@@ -82,8 +83,8 @@ Defend your castle in fast 2-3 minute levels!
 
 - Place your towers anywhere and upgrade them non-stop: the monsters never stop getting stronger.
 - 40 levels across 4 territories, with mini-bosses and bosses (more coming soon).
-- 16 towers: win an egg with every victory, hatch it in your incubators and get a new tower, or its much stronger
-  tier 2 version.
+- 20 towers: win an egg with every victory, hatch it in your incubators and get a new tower, or its much stronger
+  tier 2 version. Beat a territory's boss for its special egg and its special tower.
 - Your own training camp: your towers train and earn stars, even while you're away.
 - Plays on PC and phone. No pay-to-win.
 ```
@@ -95,8 +96,8 @@ Défends ton château dans des niveaux rapides de 2 à 3 minutes !
 
 - Pose tes tours où tu veux et améliore-les sans arrêt : les monstres deviennent de plus en plus forts.
 - 40 niveaux dans 4 territoires, avec des mini-boss et des boss (la suite arrive bientôt).
-- 16 tours : un œuf à chaque victoire, à faire éclore dans tes couveuses, pour une nouvelle tour ou sa version de
-  palier 2, bien plus forte.
+- 20 tours : un œuf à chaque victoire, à faire éclore dans tes couveuses, pour une nouvelle tour ou sa version de
+  palier 2, bien plus forte. Bats le boss d'un territoire pour son œuf spécial et sa tour spéciale.
 - Ton camp d'entraînement : tes tours s'entraînent et gagnent des étoiles, même quand tu es parti.
 - Sur ordinateur et sur téléphone. Rien à acheter pour gagner.
 ```
@@ -107,6 +108,8 @@ Défends ton château dans des niveaux rapides de 2 à 3 minutes !
       ouvert (ou le tuto passé avec « Passer le tuto »), elle ne revient plus, même à la visite suivante.
 - [ ] La sauvegarde : gagner un niveau, quitter, revenir : le niveau, les pièces, les tours et les œufs sont là.
 - [ ] Les œufs pendant l'absence : poser un œuf commun (15 min), quitter, revenir plus tard : il est prêt.
+- [ ] Les tours spéciales : battre le boss du niveau 10, l'œuf carmin arrive en plus de l'œuf doré ; « COUVER »,
+      1 h plus tard l'Arc carmin ; le poser dans un niveau (ses flèches rouges et dorées).
 - [ ] L'entraînement pendant l'absence : mettre une tour dans le camp, revenir une heure plus tard.
 - [ ] À deux joueurs : chacun sa parcelle, on voit le camp de l'autre en s'approchant, les invites de l'autre
       parcelle ne marchent pas, deux niveaux joués en même temps.

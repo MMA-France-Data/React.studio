@@ -239,7 +239,7 @@ return function(log)
 	task.wait(0.3)
 	check(
 		boardPanel.Heading.Text == "CAMP D'ENTRAÎNEMENT" and boardPanel.WaveCard.Title.Text == "NIVEAUX RÉUSSIS" and boardPanel.WaveCard.Value.Text == `0 / {Levels.COUNT}`
-			and boardPanel.RecordCard.Value.Text == "1 / 16" and string.find(boardPanel.BattleState.Text, "1 tour", 1, true) ~= nil,
+			and boardPanel.RecordCard.Value.Text == "1 / 20" and string.find(boardPanel.BattleState.Text, "1 tour", 1, true) ~= nil,
 		`tableau de la parcelle : « {boardPanel.Heading.Text} », « {boardPanel.WaveCard.Title.Text} {boardPanel.WaveCard.Value.Text} », tours « {boardPanel.RecordCard.Value.Text} », « {boardPanel.BattleState.Text} »`
 	)
 	-- Les tours s'entraînent pour de vrai : des cibles roulent sur le chemin, l'Archer les détruit.

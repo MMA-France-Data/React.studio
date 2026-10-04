@@ -1,6 +1,8 @@
--- Modèles 3D médiévaux des 16 tours (niveaux, camp d'entraînement, vignettes des fenêtres).
+-- Modèles 3D médiévaux des 20 tours (niveaux, camp d'entraînement, vignettes des fenêtres).
 -- Chaque silhouette reste simple, mais doit être identifiable au premier regard. Une tour de palier 2
 -- (IdleTowers.TIER2) garde la silhouette de sa tour de base, à ses couleurs, avec une parure en plus (plus bas).
+-- Une tour spéciale (IdleTowers.SPECIAL) reprend la silhouette d'une tour de palier 1 (IdleTowers.shapeOf) aux
+-- couleurs de son territoire, avec sa parure spéciale (plus bas : « PARURE DES TOURS SPÉCIALES »).
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local IdleTowers = require(ReplicatedStorage:WaitForChild("Shared").IdleTowers)
@@ -54,8 +56,9 @@ function IdleTowerModel.create(towerType: string, cframe: CFrame, parent: Instan
 	cframe = cframe * CFrame.Angles(0, math.pi, 0)
 	local def = IdleTowers.Defs[towerType]
 	local accent = def.color
-	-- Silhouette : celle de la tour de palier 1 (une tour de palier 2 la garde, avec sa parure).
-	local shape = IdleTowers.baseOf(towerType)
+	-- Silhouette : celle de la tour de palier 1 (une tour de palier 2 la garde, avec sa parure ; une tour spéciale
+	-- prend celle de shape).
+	local shape = IdleTowers.shapeOf(towerType)
 	local model = Instance.new("Model")
 	model.Name = towerType
 
@@ -382,6 +385,126 @@ function IdleTowerModel.create(towerType: string, cframe: CFrame, parent: Instan
 				child.Material = Enum.Material.Neon
 				child.Color = glow
 				child.Transparency = 0
+			end
+		end
+	end
+
+	-- PARURE DES TOURS SPÉCIALES : une tour d'un territoire se reconnaît de loin. Autour du socle, un anneau d'or et
+	-- un anneau de lumière aux couleurs de son territoire, quatre joyaux taillés ; puis sa propre parure (les pièces de
+	-- sa silhouette repeintes, et quelques pièces en plus). Pièces fixes, sans lumière ni émetteur, comme le reste.
+	if def.special then
+		local glow = accent:Lerp(Color3.new(1, 1, 1), 0.25)
+		cylinder("SpecialRing", Vector3.new(0.18, 4.35, 4.35), Vector3.new(0, 0.55, 0), gold, Enum.Material.Metal, VERTICAL_CYLINDER)
+		cylinder("SpecialGlow", Vector3.new(0.1, 4.05, 4.05), Vector3.new(0, 0.66, 0), glow, Enum.Material.Neon, VERTICAL_CYLINDER)
+		for i = 1, 4 do
+			local angle = (i - 0.5) * math.pi / 2
+			local gem = block("SpecialGem", Vector3.new(0.4, 0.4, 0.4), Vector3.new(math.cos(angle) * 2, 1, math.sin(angle) * 2), glow, Enum.Material.Neon, CFrame.Angles(math.rad(45), -angle, math.rad(45)))
+			gem.CastShadow = false
+		end
+		-- Pièces de la silhouette repeintes : { [nom] = { couleur, matière } }.
+		local recolor = {}
+		if towerType == "CrimsonBow" then
+			-- Arc carmin : l'archer du Roi carmin, rouge et or (arc d'or, pointe dorée, épaulières d'or, couronne).
+			recolor = {
+				LongbowLimb = { gold, Enum.Material.Metal },
+				BowGrip = { accent:Lerp(darkStone, 0.4), Enum.Material.Fabric },
+				ArrowHead = { Color3.fromRGB(255, 206, 84), Enum.Material.Neon },
+				ShoulderGuard = { gold, Enum.Material.Metal },
+				Crenel = { accent:Lerp(darkStone, 0.35), Enum.Material.Brick },
+				Quiver = { accent:Lerp(darkWood, 0.5), Enum.Material.Fabric },
+			}
+			cylinder("CrimsonCrown", Vector3.new(0.16, 0.82, 0.82), Vector3.new(0, 6.42, 0.08), gold, Enum.Material.Metal, VERTICAL_CYLINDER)
+			for i = 0, 4 do
+				local angle = i * math.pi * 2 / 5
+				block("CrownPoint", Vector3.new(0.11, 0.24, 0.11), Vector3.new(math.cos(angle) * 0.36, 6.6, 0.08 + math.sin(angle) * 0.36), gold, Enum.Material.Metal)
+			end
+			ball("CrownJewel", 0.16, Vector3.new(0, 6.44, -0.34), Color3.fromRGB(255, 70, 90), Enum.Material.Neon)
+		elseif towerType == "CopperCrossbow" then
+			-- Arbalète de cuivre : la baliste des Pillards de cuivre, son bois remplacé par du cuivre riveté.
+			local copper = accent
+			local darkCopper = accent:Lerp(darkIron, 0.45)
+			recolor = {
+				StockRail = { copper, Enum.Material.Metal },
+				TorsionPost = { darkCopper, Enum.Material.Metal },
+				TorsionLintel = { copper, Enum.Material.Metal },
+				WoodenBowLimb = { copper, Enum.Material.Metal },
+				StockBed = { darkCopper, Enum.Material.Metal },
+				Trestle = { darkCopper, Enum.Material.Metal },
+				RailBinding = { gold, Enum.Material.Metal },
+				BoltHead = { accent:Lerp(Color3.new(1, 1, 1), 0.3), Enum.Material.Neon },
+				WinchDrum = { darkCopper, Enum.Material.Metal },
+			}
+			for _, side in { -1, 1 } do
+				for _, z in { -2.2, -0.9, 0.4, 1.6 } do
+					ball("Rivet", 0.17, Vector3.new(side * 0.28, 3.24, z), Color3.fromRGB(242, 192, 138), Enum.Material.Metal)
+				end
+			end
+			cylinder("CopperGear", Vector3.new(0.14, 1.05, 1.05), Vector3.new(-0.6, 2.96, 1.8), copper, Enum.Material.Metal)
+			for i = 0, 5 do
+				local angle = i * math.pi / 3
+				block("GearTooth", Vector3.new(0.14, 0.2, 0.2), Vector3.new(-0.6, 2.96 + math.cos(angle) * 0.56, 1.8 + math.sin(angle) * 0.56), copper, Enum.Material.Metal, CFrame.Angles(angle, 0, 0))
+			end
+		elseif towerType == "ThornSpitter" then
+			-- Lance-ronces : un druide des Gardiens des ronces (robe verte, couronne de feuilles, bâton à bulbe épineux), des
+			-- ronces autour de son estrade.
+			local leaf = Color3.fromRGB(139, 209, 124)
+			local thorn = Color3.fromRGB(40, 84, 36)
+			recolor = {
+				Robe = { Color3.fromRGB(42, 74, 38), Enum.Material.Fabric },
+				RobePleat = { Color3.fromRGB(48, 84, 42), Enum.Material.Fabric },
+				Hood = { Color3.fromRGB(56, 98, 46), Enum.Material.Fabric },
+				StormGem = { Color3.fromRGB(120, 214, 84), Enum.Material.Neon },
+				ForkL = { thorn, Enum.Material.Wood },
+				ForkR = { thorn, Enum.Material.Wood },
+				AltarRune = { leaf, Enum.Material.Grass },
+				StoleClasp = { leaf, Enum.Material.Grass },
+				Dais = { Color3.fromRGB(78, 70, 52), Enum.Material.Slate },
+			}
+			for i = 0, 5 do
+				local angle = i * math.pi / 3
+				block("LeafCrown", Vector3.new(0.32, 0.08, 0.5), Vector3.new(math.cos(angle) * 0.5, 4.98, math.sin(angle) * 0.5), leaf, Enum.Material.Grass, CFrame.Angles(0, -angle, math.rad(25)))
+			end
+			for i = 0, 7 do
+				local angle = i * math.pi / 4 + 0.2
+				wedge(model, "BrambleThorn", { Size = Vector3.new(0.14, 0.75, 0.5), CFrame = cf(Vector3.new(math.cos(angle) * 1.32, 1.5, math.sin(angle) * 1.32), CFrame.Angles(0, -angle, 0)), Color = thorn, Material = Enum.Material.Grass })
+			end
+			for i = 0, 3 do
+				local angle = i * math.pi / 2 + 0.4
+				wedge(model, "GemThorn", { Size = Vector3.new(0.08, 0.32, 0.2), CFrame = cf(Vector3.new(1.15 + math.cos(angle) * 0.38, 5.65 + math.sin(angle) * 0.38, -0.1), CFrame.Angles(0, 0, angle - math.pi / 2)), Color = thorn, Material = Enum.Material.Grass })
+			end
+		elseif towerType == "FrostCatapult" then
+			-- Catapulte de givre : la catapulte de la Légion du givre, givrée, avec un bloc de glace dans sa cuillère et des
+			-- glaçons qui pendent.
+			local frost = Color3.fromRGB(196, 228, 246)
+			local deepFrost = Color3.fromRGB(86, 132, 168)
+			recolor = {
+				Chassis = { frost, Enum.Material.WoodPlanks },
+				Upright = { deepFrost, Enum.Material.Wood },
+				ThrowingArm = { frost, Enum.Material.Wood },
+				Spoon = { Color3.fromRGB(150, 210, 245), Enum.Material.Ice },
+				Wheel = { deepFrost, Enum.Material.Wood },
+				WheelFace = { frost, Enum.Material.Wood },
+				ReserveStone = { Color3.fromRGB(176, 226, 252), Enum.Material.Ice },
+			}
+			local boulder = model:FindFirstChild("Boulder")
+			if boulder and boulder:IsA("Part") then
+				boulder.Shape = Enum.PartType.Block
+				boulder.Size = Vector3.one * 0.95
+				boulder.Color = Color3.fromRGB(196, 236, 255)
+				boulder.Material = Enum.Material.Ice
+				boulder.Transparency = 0.1
+			end
+			for _, data in { { -1.3, -0.9 }, { -0.45, -0.95 }, { 0.45, -0.95 }, { 1.3, -0.9 }, { -1.3, 1.3 }, { 1.3, 1.3 } } do
+				local icicle = wedge(model, "Icicle", { Size = Vector3.new(0.18, 0.55, 0.22), CFrame = cf(Vector3.new(data[1], 0.62, data[2]), CFrame.Angles(math.pi, 0, 0)), Color = Color3.fromRGB(214, 242, 255), Material = Enum.Material.Ice })
+				icicle.Transparency = 0.15
+			end
+			block("SnowCap", Vector3.new(3.2, 0.12, 2.75), Vector3.new(0, 1.32, 0.2), Color3.fromRGB(240, 248, 255), Enum.Material.Snow)
+		end
+		for _, child in model:GetChildren() do
+			local paint = recolor[child.Name]
+			if paint and child:IsA("BasePart") then
+				child.Color = paint[1]
+				child.Material = paint[2]
 			end
 		end
 	end

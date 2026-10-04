@@ -8,6 +8,9 @@
 --   5) gagner un niveau : l'écran de fin dit l'œuf gagné ; puis les 8 tours de palier 2 posées dans un niveau (la barre
 --      de 8 tours, les autres en réserve ; leur parure ; captures palier2_niveau et palier2_pres) ;
 --   6) à la taille d'un téléphone (750 x 332) : l'onglet Œufs tient dans la fenêtre.
+-- Les ŒUFS SPÉCIAUX : leurs cartes (l'œuf de cuivre en réserve, « COUVER » ; les autres « 🔒 Boss du niveau N »), le
+-- bouton « COUVER », la tour spéciale sortie (« 🌟 TOUR SPÉCIALE ! »), l'écran de fin du boss (l'œuf carmin en plus),
+-- les 4 tours spéciales dans un niveau (leur parure ; captures speciales_niveau et speciales_pres).
 -- « SHOT:nom » = capture (out\eggs_<nom>.png) ; « PHONE:want=... » = run.ps1 redimensionne la fenêtre de Studio.
 return function(log)
 	local GuiService = game:GetService("GuiService")
@@ -126,6 +129,19 @@ return function(log)
 		"cartes des œufs : chaque œuf est dessiné sur sa vignette (taches pour le commun, couronne violette pour le doré), rayons derrière le rare et le doré"
 	)
 	check(row1.Icon:FindFirstChild("Empty") ~= nil and row1.Icon:FindFirstChild("EggArt") == nil, "couveuse vide : un ovale sombre à la place de l'œuf")
+	-- Les œufs spéciaux : une carte chacun (l'œuf de cuivre, en réserve : « COUVER » ; les autres, assombris, disent le
+	-- boss qui les donne) ; chacun son dessin (zigzag doré, rivets, ronces, flocons), des rayons derrière.
+	local crimsonCard, copperCard = page:WaitForChild("Special_Crimson"), page:WaitForChild("Special_Copper")
+	local brambleCard, rimeCard = page:WaitForChild("Special_Bramble"), page:WaitForChild("Special_Rime")
+	check(
+		page.SpecialTitle.Text == "ŒUFS SPÉCIAUX" and copperCard.Count.Text == "×1" and copperCard.Put.Text == "COUVER" and not copperCard.Icon.Locked.Visible
+			and copperCard.EggName.Text == "Œuf de cuivre" and copperCard.Tower.Text == "Arbalète de cuivre" and crimsonCard.Count.Text == ""
+			and crimsonCard.Put.Text == "🔒 Boss du niveau 10" and crimsonCard.Icon.Locked.Visible and rimeCard.Put.Text == "🔒 Boss du niveau 40"
+			and crimsonCard.Icon.EggArt:FindFirstChild("Zigzag") ~= nil and copperCard.Icon.EggArt:FindFirstChild("Rivet") ~= nil
+			and brambleCard.Icon.EggArt:FindFirstChild("Vine") ~= nil and rimeCard.Icon.EggArt:FindFirstChild("Flake") ~= nil
+			and crimsonCard.Icon:FindFirstChild("Rays") ~= nil and row1.AbsolutePosition.Y > copperCard.AbsolutePosition.Y + copperCard.AbsoluteSize.Y,
+		`œufs spéciaux : « {copperCard.EggName.Text} » {copperCard.Count.Text} « {copperCard.Put.Text} » ; « {crimsonCard.Put.Text} », « {rimeCard.Put.Text} » ; les couveuses en dessous`
+	)
 	shot("onglet")
 
 	------------------------------------------------------------------
@@ -225,6 +241,48 @@ return function(log)
 		`« Mes tours » : « {dragonText} » ; pas encore à lui : « {lockedFire and lockedFire.Price.Text or "?"} » « {lockedFire and lockedFire.Eggs.Text or "?"} »`
 	)
 	shot("mes_tours_palier2")
+	-- Une tour spéciale pas encore à lui : son œuf et le boss qui le donne.
+	local lockedCrimson = towerList:FindFirstChild("Locked_CrimsonBow")
+	check(
+		lockedCrimson ~= nil and lockedCrimson.Visible and lockedCrimson.Price.Text == "Spéciale • Œuf carmin • boss du niveau 10",
+		`« Mes tours », tour spéciale pas encore à lui : « {lockedCrimson and lockedCrimson.Price.Text or "?"} »`
+	)
+	-- Le bouton « COUVER » de l'œuf de cuivre : dans la première couveuse vide ; 1 h plus tard, l'Arbalète de cuivre.
+	act(campGui, "Tab:Œufs")
+	local copperCard = page.Special_Copper
+	act(campGui, "SpecialPut:Copper")
+	local copperPlaced = waitFor(function()
+		return row1.Title.Text == "COUVEUSE 1 : Œuf de cuivre" or row2.Title.Text == "COUVEUSE 2 : Œuf de cuivre"
+		end, 4)
+	task.wait(0.6)
+	local copperRow = if row1.Title.Text == "COUVEUSE 1 : Œuf de cuivre" then 1 else 2
+	check(
+		copperPlaced and copperCard.Count.Text == "" and copperCard.Put.Text == "🔒 Boss du niveau 20" and copperCard.Icon.Locked.Visible,
+		`« COUVER » : l'œuf de cuivre couve dans la couveuse {copperRow} ; sa carte : « {copperCard.Put.Text} »`
+	)
+	shot("oeuf_special_couve")
+	-- Sur la parcelle : l'œuf de cuivre en 3D (sa bande rivetée), fenêtre fermée.
+	act(campGui, "Close")
+	task.wait(1.5)
+	shot("parcelle_oeuf_special")
+	act(campGui, "Tab:Œufs")
+	test:InvokeServer("Clock", Levels.EGGS.Copper.seconds + 1)
+	waitFor(function()
+		return (if copperRow == 1 then row1 else row2).Action.Text == "OUVRIR !"
+	end, 5)
+	act(campGui, `EggOpen:{copperRow}`)
+	local specialRevealed = waitFor(function()
+		return revealGui.Enabled
+	end, 5)
+	task.wait(0.6)
+	local copperRole = `Ses carreaux transpercent {IdleTowers.Defs.CopperCrossbow.pierceMax} monstres alignés.`
+	check(
+		specialRevealed and panel.Title.Text == "🌟 TOUR SPÉCIALE !" and panel.TowerName.Text == "Arbalète de cuivre"
+			and panel.Detail.Text == `Le col des Pillards de cuivre\n{copperRole}\nSpéciale : elle rejoint ta barre de tours` and panel.Detail.TextFits,
+		`la tour spéciale sortie : « {panel.Title.Text} », « {panel.TowerName.Text} », « {string.gsub(panel.Detail.Text, "\n", " ⏎ ")} »`
+	)
+	shot("tour_speciale")
+	act(campGui, "RevealClose")
 	act(campGui, "Close")
 
 	------------------------------------------------------------------
@@ -238,7 +296,8 @@ return function(log)
 	end, 8)
 	task.wait(0.6)
 	check(
-		endScreen.Visible and string.find(endScreen.Panel.Details.Text, "🥚 Œuf doré gagné ! Pose-le dans une couveuse.", 1, true) ~= nil,
+		endScreen.Visible and string.find(endScreen.Panel.Details.Text, "🥚 Œuf doré gagné ! Pose-le dans une couveuse.", 1, true) ~= nil
+			and string.find(endScreen.Panel.Details.Text, "🌟 Œuf spécial gagné : Œuf carmin (tour : Arc carmin)", 1, true) ~= nil,
 		`écran de fin du niveau 10 : « {string.gsub(endScreen.Panel.Details.Text, "\n", " ⏎ ")} »`
 	)
 	shot("fin_de_niveau")
@@ -299,6 +358,60 @@ return function(log)
 	act(hudGui, "Zoom:2.5")
 	task.wait(1.5)
 	shot("palier2_pres")
+	act(hudGui, "Zoom:1")
+	test:InvokeServer("Quit")
+	waitFor(function()
+		return player:GetAttribute("LevelArena") == nil
+	end, 5)
+	task.wait(0.8)
+
+	-- Les 4 tours spéciales dans un niveau : dans la barre, leur parure (anneau d'or et joyaux), leurs tirs (flèches
+	-- carmin, carreaux de cuivre, ronces au sol, blocs de glace).
+	local specialOrder = table.clone(IdleTowers.SPECIAL)
+	for _, towerType in IdleTowers.TIER1 do
+		table.insert(specialOrder, towerType)
+	end
+	test:InvokeServer("Set", "bar", specialOrder)
+	test:InvokeServer("Play", 10)
+	local inSpecialLevel = waitFor(function()
+		return player:GetAttribute("LevelArena") ~= nil
+	end, 8)
+	task.wait(1)
+	local specialPlaced, specialSpot = 0, 3
+	for _, towerType in IdleTowers.SPECIAL do
+		while specialSpot <= #spots do
+			local spot = spots[specialSpot]
+			specialSpot += 1
+			if test:InvokeServer("Place", towerType, spot.X, spot.Z) then
+				specialPlaced += 1
+				break
+			end
+		end
+	end
+	task.wait(1.5)
+	local specialBar = towerBar ~= nil
+	for _, towerType in IdleTowers.SPECIAL do
+		local button = towerBar and towerBar:FindFirstChild("Tower_" .. towerType)
+		specialBar = specialBar and button ~= nil and button.Visible
+	end
+	local specialAdorned = 0
+	for _, model in (if arenas then arenas:GetDescendants() else {}) do
+		if model:IsA("Model") and IdleTowers.isSpecial(tostring(model:GetAttribute("TowerType"))) and model:FindFirstChild("SpecialRing") and model:FindFirstChild("SpecialGem") then
+			specialAdorned += 1
+		end
+	end
+	check(
+		inSpecialLevel and specialPlaced == 4 and specialBar and specialAdorned == 4,
+		`niveau 10 avec les 4 tours spéciales : {specialPlaced} posées, {specialAdorned} avec leur parure, dans la barre : {specialBar}`
+	)
+	-- (le niveau avance de 40 s d'un coup : les monstres sont sur tout le chemin, les tours tirent : ronces au sol,
+	-- blocs de glace, carreaux, flèches carmin)
+	test:InvokeServer("Skip", 40)
+	task.wait(4)
+	shot("speciales_niveau")
+	act(hudGui, "Zoom:1.7")
+	task.wait(1.5)
+	shot("speciales_pres")
 	act(hudGui, "Zoom:1")
 	test:InvokeServer("Quit")
 	waitFor(function()

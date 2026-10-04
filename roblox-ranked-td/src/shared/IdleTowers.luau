@@ -1,4 +1,4 @@
--- Les 16 TOURS du jeu : leurs stats de combat. Leur prix en or, les œufs d'où elles sortent et leur entraînement sont
+-- Les 20 TOURS du jeu : leurs stats de combat. Leur prix en or, les œufs d'où elles sortent et leur entraînement sont
 -- dans Levels.luau ; le combat lui-même est dans Hub/Combat.luau.
 -- (Ce fichier garde le nom qu'il avait dans l'ancien jeu.)
 --
@@ -9,6 +9,7 @@
 --     rôle, même rareté, même silhouette (avec une parure en plus, Hub/IdleTowerModel.luau), mais 2,3 à 3,5 fois ses
 --     dégâts par seconde, et elle seule a les POUVOIRS (feu au sol, fragilité, carreau perçant). Ses effets, ses sons
 --     et ses contrôles sont ceux de sa tour de base (IdleTowers.baseOf).
+--   * TOURS SPÉCIALES (SPECIAL) : une par territoire, plus bas (« TOURS SPÉCIALES »).
 -- Toutes les tours sortent des œufs (« LES ŒUFS », Levels.luau : plus de boutique, décision du propriétaire du
 -- 04/10/2026), sauf l'Archer, donné au départ. L'entraînement ne donne que des dégâts (Levels.TRAINING : « le
 -- terrain d'entraînement encore là mais pour du niveau dégâts »).
@@ -54,21 +55,26 @@
 -- Effets : slow + slowDuration = ralentissement (contrôle) ; stunDuration = étourdissement (contrôle, vitesse
 -- 0) ; slowImmunity / stunImmunity = contrôle COURT : jamais prolongé, puis immunité (fatigue, voir plus haut) ;
 -- fragilityBase/PerLevel/Max = fragilité du Totem du blizzard ; ignoresFragility = ses dégâts ne profitent pas de
--- la fragilité ; fireRadius... = feu au sol (Archer enflammé, Catapulte de magma, Baliste du dragon).
+-- la fragilité ; fireRadius... = feu au sol (Archer enflammé, Catapulte de magma, Baliste du dragon) ;
+-- poisonDuration = ces zones sont des RONCES qui empoisonnent (Lance-ronces, voir plus bas).
 -- Changer un chiffre ici change la difficulté des niveaux : relancer tools\levels\run.ps1 -Tests, et au besoin
 -- -Tune pour refaire les PV des niveaux.
 local IdleConfig = require(script.Parent.IdleConfig)
 
 local IdleTowers = {}
 
--- Toutes les tours : les 8 de palier 1, puis leurs 8 versions de palier 2 dans le même ordre. Leur numéro dans cette
--- liste voyage dans les paquets des tirs et des contrôles (Combat.luau) : ne jamais changer l'ordre, ajouter à la fin.
+-- Toutes les tours : les 8 de palier 1, puis leurs 8 versions de palier 2 dans le même ordre, puis les tours
+-- spéciales. Leur numéro dans cette liste voyage dans les paquets des tirs et des contrôles (Combat.luau) : ne jamais
+-- changer l'ordre, ajouter à la fin.
 IdleTowers.ORDER = {
 	"MachineGun", "Frost", "Bomb", "Tesla", "Rocket", "Laser", "Chain", "Orbital",
 	"FireArcher", "BlizzardTotem", "MagmaCatapult", "StormArchmage", "DragonBallista", "VoidSorcerer", "ThunderOracle", "CelestialTrebuchet",
+	"CrimsonBow", "CopperCrossbow", "ThornSpitter", "FrostCatapult",
 }
 IdleTowers.TIER1 = { "MachineGun", "Frost", "Bomb", "Tesla", "Rocket", "Laser", "Chain", "Orbital" }
 IdleTowers.TIER2 = { "FireArcher", "BlizzardTotem", "MagmaCatapult", "StormArchmage", "DragonBallista", "VoidSorcerer", "ThunderOracle", "CelestialTrebuchet" }
+-- Les tours spéciales, dans l'ordre des territoires (voir « TOURS SPÉCIALES »).
+IdleTowers.SPECIAL = { "CrimsonBow", "CopperCrossbow", "ThornSpitter", "FrostCatapult" }
 
 -- Temps de vol maximal d'un projectile, en secondes de simulation : il voyage sur 1 octet (en centièmes
 -- de seconde, 2,55 s au plus) dans le paquet des tirs (Combat.luau). Un réglage plus long est coupé ici.
@@ -98,8 +104,11 @@ IdleTowers.BALLISTA_MAX_CANDIDATES = 12
 -- countPierced.
 IdleTowers.BALLISTA_PIERCE_MAX = 3
 -- LIMITE DE TOURS IDENTIQUES posées dans un niveau, selon la rareté de la tour (Levels.MAX_COPIES peut fixer une
--- autre limite pour une tour précise). Voir maxCopies.
-IdleTowers.MAX_COPIES = { Common = 5, Rare = 4, Epic = 3, Legendary = 2 }
+-- autre limite pour une tour précise). Voir maxCopies. Les tours spéciales (rareté « Special ») : 2 au plus.
+IdleTowers.MAX_COPIES = { Common = 5, Rare = 4, Epic = 3, Legendary = 2, Special = 2 }
+-- Poison des ronces (Lance-ronces) : un monstre empoisonné perd des PV toutes les POISON_TICK secondes (voir
+-- poisonDuration plus bas, et Combat:burnFires).
+IdleTowers.POISON_TICK = 0.5
 
 IdleTowers.Defs = {
 	MachineGun = {
@@ -401,6 +410,108 @@ IdleTowers.Defs = {
 		projectileSpeed = 45,
 		projectileMinFlight = 0.8,
 	},
+
+	----------------------------------------------------------------------
+	-- TOURS SPÉCIALES. Idée du propriétaire (04/10/2026) : « une tour spéciale ? exemple carmin = arc + couleur carmin
+	-- + fort », puis « slow mieux pour le monde de givre » et « pas forcément arc de givre mais par exemple catapulte de
+	-- givre ». Une par territoire, dans l'œuf spécial de son territoire (Levels.EGGS : gagné en plus de l'œuf doré en
+	-- battant le boss du territoire, voir Levels.bonusEggFor). Chacune a :
+	--   special = la carte de son territoire (Levels.TERRITORIES) ;
+	--   rarity = "Special" (jamais dans les œufs au hasard ; 2 exemplaires au plus dans un niveau : MAX_COPIES) ;
+	--   shape = la silhouette qu'elle reprend (celle d'une tour de palier 1 : Hub/IdleTowerModel.luau, à ses couleurs,
+	--     avec sa parure spéciale), qui donne aussi son animation de tir (client/Effects.luau) ;
+	--   shot = l'allure de son projectile quand ce n'est pas celui de sa silhouette (client/Effects.luau) ;
+	--   family = la famille de ses contrôles, quand elle en a (la Catapulte de givre ralentit comme un Totem de givre :
+	--     « aucun cumul de ralentissement », voir « CONTRÔLES »).
+	-- Un peu plus fortes qu'une tour de palier 2 (une vraie récompense), mais 2 au plus par niveau. Les chiffres sont les
+	-- miens : ils se règlent avec tools\levels\run.ps1 -Worth, comme les autres. Mesuré le 04/10/2026 avec le joueur
+	-- simulé (PV des monstres qu'il bat ; voir NIVEAUX.md, « Ce qu'apportent les tours spéciales ») : au niveau 16,
+	-- l'Arc carmin avec la Catapulte de magma bat des monstres plus résistants que l'Archer enflammé avec elle ; au
+	-- niveau 26, l'Arbalète de cuivre fait mieux que la Baliste du dragon ; au niveau 36, le Lance-ronces et la Catapulte
+	-- de givre (2 au plus) valent la Catapulte de magma (4).
+	----------------------------------------------------------------------
+	CrimsonBow = {
+		special = "Valley",
+		shape = "MachineGun",
+		shot = "Crimson",
+		rarity = "Special",
+		displayName = "Arc carmin",
+		-- L'archer du Roi carmin (la vallée) : rouge et or, de grosses flèches rapides, très fort contre un monstre à la
+		-- fois (une cible, pas de zone ni de feu).
+		kind = "Single",
+		targeting = "First",
+		color = Color3.fromRGB(196, 22, 48),
+		damage = 32,
+		range = 26,
+		cooldown = 0.4,
+		projectileSpeed = 110,
+	},
+	CopperCrossbow = {
+		special = "Pass",
+		shape = "Rocket",
+		rarity = "Special",
+		displayName = "Arbalète de cuivre",
+		-- L'arbalète des Pillards de cuivre (le col) : de gros carreaux qui TRANSPERCENT 3 monstres alignés (sa cible, le
+		-- plus avancé, et les premiers que le carreau rencontre : Combat:hitLine). Bien plus rapide que les Balistes.
+		kind = "Pierce",
+		targeting = "First",
+		color = Color3.fromRGB(200, 112, 52),
+		damage = 90,
+		range = 28,
+		cooldown = 1,
+		pierceWidth = 1.6,
+		pierceMax = 3,
+		projectileSpeed = 120,
+	},
+	ThornSpitter = {
+		special = "Forest",
+		shape = "Tesla",
+		shot = "Thorn",
+		rarity = "Special",
+		displayName = "Lance-ronces",
+		-- Le druide des Gardiens des ronces (la forêt) : il lance des graines qui font pousser des RONCES au sol. Les
+		-- monstres qui marchent dessus sont EMPOISONNÉS : ils perdent des PV pendant poisonDuration s, même sortis des
+		-- ronces (dégâts du poison par seconde = fireDamageRatio x dégâts de la graine). Pas de ralentissement : décision
+		-- du propriétaire, « slow mieux pour le monde de givre ». Deux poisons ne s'additionnent pas (le plus fort gagne).
+		-- Les ronces suivent les règles des zones de feu (fireRadius, fireDuration, fireTick, fireMaxPatches).
+		kind = "Splash",
+		targeting = "First",
+		color = Color3.fromRGB(64, 150, 58),
+		damage = 30,
+		range = 18,
+		cooldown = 1.4,
+		splash = 3,
+		projectileSpeed = 30,
+		projectileMinFlight = 0.5,
+		fireRadius = 4,
+		fireDuration = 4,
+		fireDamageRatio = 0.8,
+		fireTick = 0.5,
+		fireMaxPatches = 3,
+		poisonDuration = 3,
+	},
+	FrostCatapult = {
+		special = "Glacier",
+		shape = "Bomb",
+		shot = "Ice",
+		family = "Frost",
+		rarity = "Special",
+		displayName = "Catapulte de givre",
+		-- La catapulte de la Légion du givre (le glacier) : des blocs de glace qui frappent une grande zone et RALENTISSENT
+		-- tous les monstres touchés. Ses ralentissements comptent comme ceux du Totem de givre (family : un seul à la fois,
+		-- le plus fort des deux reste, ils ne s'additionnent jamais).
+		kind = "Splash",
+		targeting = "First",
+		color = Color3.fromRGB(150, 218, 255),
+		damage = 65,
+		range = 18,
+		cooldown = 1.8,
+		splash = 8,
+		slow = 0.4,
+		slowDuration = 2.5,
+		projectileSpeed = 26,
+		projectileMinFlight = 0.45,
+	},
 }
 
 -- Tour de palier 1 d'une tour (elle-même pour une tour de palier 1, ou un type inconnu). Une tour de palier 2 a les
@@ -411,10 +522,23 @@ function IdleTowers.baseOf(towerType: string): string
 	return (def and def.base) or towerType
 end
 
--- Palier d'une tour : 1 (l'Archer de départ, les œufs) ou 2 (les œufs rares et dorés).
+-- Palier d'une tour : 1 (l'Archer de départ, les œufs), 2 (les œufs rares et dorés) ou 3 (une tour spéciale).
 function IdleTowers.tierOf(towerType: string): number
 	local def = IdleTowers.Defs[towerType]
-	return if def and def.base then 2 else 1
+	return if def and def.special then 3 elseif def and def.base then 2 else 1
+end
+
+-- Vrai pour une tour spéciale (celle d'un territoire, voir « TOURS SPÉCIALES »).
+function IdleTowers.isSpecial(towerType: string): boolean
+	local def = IdleTowers.Defs[towerType]
+	return def ~= nil and def.special ~= nil
+end
+
+-- Silhouette d'une tour : la tour de palier 1 dont elle a la forme (Hub/IdleTowerModel.luau) et l'animation de tir
+-- (client/Effects.luau). Une tour de palier 2 : sa tour de base ; une tour spéciale : sa silhouette (shape).
+function IdleTowers.shapeOf(towerType: string): string
+	local def = IdleTowers.Defs[towerType]
+	return (def and (def.shape or def.base)) or towerType
 end
 
 -- La version de palier 2 d'une tour de palier 1 (nil s'il n'y en a pas).
@@ -440,8 +564,9 @@ function IdleTowers.fragilityAt(def, level: number): number
 end
 
 -- Stats d'une tour à un niveau donné (dégâts multipliés par le niveau : IdleConfig.UPGRADE_DAMAGE). En plus des
--- champs de sa définition : towerType (sa clé, ex. "Frost"), family (sa tour de palier 1, baseOf : la règle des
--- contrôles compare les familles, un Totem du blizzard compte comme un Totem de givre), level, et fragility (Totem
+-- champs de sa définition : towerType (sa clé, ex. "Frost"), family (sa tour de palier 1, baseOf, ou la famille d'une
+-- tour spéciale : la règle des contrôles compare les familles, un Totem du blizzard et la Catapulte de givre comptent
+-- comme un Totem de givre), level, et fragility (Totem
 -- de givre, voir fragilityAt). Le tableau renvoyé ne doit jamais être modifié (il est partagé) : Levels.towerStats en
 -- fait une copie avant d'y ajouter l'entraînement et les évolutions.
 function IdleTowers.stats(towerType: string, level: number)
@@ -453,7 +578,7 @@ function IdleTowers.stats(towerType: string, level: number)
 	local def = IdleTowers.Defs[towerType]
 	local stats = table.clone(def)
 	stats.towerType = towerType
-	stats.family = def.base or towerType
+	stats.family = def.family or def.base or towerType
 	stats.level = level
 	stats.damage = def.damage * IdleConfig.UPGRADE_DAMAGE ^ (level - 1)
 	if def.fragilityBase then
@@ -523,7 +648,8 @@ end
 -- Limite de tours identiques (MAX_COPIES, voir en haut du fichier)
 ----------------------------------------------------------------------
 
--- Nombre maximal d'exemplaires de cette tour, selon sa rareté : 5 (Commune), 4 (Rare), 3 (Épique), 2 (Légendaire).
+-- Nombre maximal d'exemplaires de cette tour, selon sa rareté : 5 (Commune), 4 (Rare), 3 (Épique), 2 (Légendaire,
+-- Spéciale).
 function IdleTowers.maxCopies(towerType: string): number
 	local def = IdleTowers.Defs[towerType]
 	return (def and IdleTowers.MAX_COPIES[def.rarity]) or math.huge

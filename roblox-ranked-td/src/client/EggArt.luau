@@ -2,7 +2,8 @@
 -- propriétaire (04/10/2026, avec l'image d'un autre jeu en exemple) : un œuf à motifs, un gros contour sombre, un
 -- reflet blanc, posé sur une vignette de la couleur de sa rareté, avec des rayons qui tournent derrière les plus
 -- rares ; « les plus rares, un peu violets » : l'œuf doré a une couronne et des taches violettes, sur une vignette
--- violette.
+-- violette. Les ŒUFS SPÉCIAUX des territoires (Levels.SPECIAL_EGG_ORDER) ont les dessins montrés au propriétaire :
+-- carmin à bande dorée en zigzag, cuivre à bande rivetée, vert à ronces, bleu glacé à flocons.
 -- Rien à publier sur Roblox (aucune image) : tout est fait de cadres de l'interface. La FORME d'œuf (plus étroite en
 -- haut) est une rangée de ronds qui se chevauchent, d'un petit rond en haut à un grand en bas : ensemble, ils
 -- dessinent exactement la forme qui joint les deux (bords lisses, comme un vrai ovale). Le contour : la même forme,
@@ -63,6 +64,23 @@ local function sparkle(parent: Instance, x: number, y: number, size: number, zIn
 	put(parent, "Sparkle", x, y, size, size * 0.22, WHITE, zIndex, -45)
 end
 
+-- Une ligne brisée d'épaisseur `thickness` qui passe par les points { { x, y } } : une barre ronde aux bouts par
+-- segment (elles se chevauchent aux coudes : la ligne reste continue).
+local function line(parent: Instance, name: string, points: { { number } }, thickness: number, color: Color3, zIndex: number)
+	for index = 2, #points do
+		local a, b = points[index - 1], points[index]
+		local dx, dy = b[1] - a[1], b[2] - a[2]
+		put(parent, name, (a[1] + b[1]) / 2, (a[2] + b[2]) / 2, math.sqrt(dx * dx + dy * dy) + thickness, thickness, color, zIndex, math.deg(math.atan2(dy, dx)))
+	end
+end
+
+-- Un flocon : trois barres qui se croisent (0°, 60°, -60°), de longueur `size`.
+local function flake(parent: Instance, x: number, y: number, size: number, color: Color3, zIndex: number)
+	for _, angle in { 90, 30, -30 } do
+		put(parent, "Flake", x, y, size, size * 0.16, color, zIndex, angle)
+	end
+end
+
 -- Les motifs (art.pattern), dans l'œuf (unités d'œuf : x de 0 à 1, y de 0 en haut à EGG_H en bas).
 local PATTERNS = {}
 
@@ -95,6 +113,43 @@ function PATTERNS.crown(holder: Instance, art, zIndex: number)
 	sparkle(holder, 0.36, 0.46, 0.2, zIndex)
 	sparkle(holder, 0.7, 0.34, 0.13, zIndex)
 	sparkle(holder, 0.62, 0.64, 0.1, zIndex)
+end
+
+-- Une bande dorée en zigzag et des points dorés (œuf carmin, la vallée du Roi carmin).
+function PATTERNS.zigzag(holder: Instance, art, zIndex: number)
+	line(holder, "Zigzag", { { 0.12, 0.6 }, { 0.24, 0.48 }, { 0.37, 0.6 }, { 0.5, 0.48 }, { 0.63, 0.6 }, { 0.76, 0.48 }, { 0.88, 0.6 } }, 0.075, art.detail, zIndex)
+	for _, spot in { { 0.33, 0.9, 0.095 }, { 0.64, 1.0, 0.083 }, { 0.8, 0.78, 0.07 }, { 0.19, 0.75, 0.07 } } do
+		dot(holder, "Spot", spot[1], spot[2], spot[3], art.detail, zIndex)
+	end
+end
+
+-- Une bande sombre à rivets clairs et deux points sombres (œuf de cuivre, le col des Pillards de cuivre).
+function PATTERNS.rivets(holder: Instance, art, zIndex: number)
+	put(holder, "Band", 0.5, 0.8, 0.88, 0.13, art.detail, zIndex)
+	for _, x in { 0.19, 0.39, 0.61, 0.81 } do
+		dot(holder, "Rivet", x, if x < 0.3 or x > 0.7 then 0.785 else 0.8, 0.062, art.accent or WHITE, zIndex + 1)
+	end
+	dot(holder, "Spot", 0.36, 0.36, 0.071, art.detail, zIndex)
+	dot(holder, "Spot", 0.69, 1.04, 0.083, art.detail, zIndex)
+end
+
+-- Deux ronces ondulées avec leurs épines, et deux feuilles claires (œuf des ronces, la forêt des Gardiens des ronces).
+function PATTERNS.thorns(holder: Instance, art, zIndex: number)
+	line(holder, "Vine", { { 0.13, 0.44 }, { 0.26, 0.5 }, { 0.4, 0.45 }, { 0.56, 0.52 }, { 0.7, 0.56 }, { 0.82, 0.48 }, { 0.87, 0.4 } }, 0.055, art.detail, zIndex)
+	line(holder, "Vine", { { 0.1, 0.93 }, { 0.24, 0.99 }, { 0.4, 0.93 }, { 0.57, 0.99 }, { 0.73, 1.05 }, { 0.86, 1 }, { 0.9, 0.92 } }, 0.055, art.detail, zIndex)
+	for _, thorn in { { 0.31, 0.43 }, { 0.71, 0.5 }, { 0.42, 0.88 }, { 0.78, 1.0 } } do
+		put(holder, "Thorn", thorn[1], thorn[2], 0.075, 0.075, art.detail, zIndex, 45, true)
+	end
+	put(holder, "Leaf", 0.5, 0.45, 0.12, 0.07, art.accent or WHITE, zIndex + 1, -15)
+	put(holder, "Leaf", 0.22, 1.04, 0.12, 0.07, art.accent or WHITE, zIndex + 1, 20)
+end
+
+-- Deux flocons blancs et deux points (œuf de givre, le glacier de la Légion du givre).
+function PATTERNS.flakes(holder: Instance, art, zIndex: number)
+	flake(holder, 0.38, 0.51, 0.31, art.detail, zIndex)
+	flake(holder, 0.67, 0.9, 0.22, art.detail, zIndex)
+	dot(holder, "Spot", 0.21, 0.95, 0.071, art.detail, zIndex)
+	dot(holder, "Spot", 0.74, 0.4, 0.06, art.detail, zIndex)
 end
 
 -- Un œuf dessiné, sans vignette. props = { Name, Size, Position, AnchorPoint, ZIndex (celui de l'œuf entier), Parent }.

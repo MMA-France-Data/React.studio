@@ -12,6 +12,8 @@ local SPARK = "rbxasset://textures/particles/sparkles_main.dds"
 local WARM = Color3.fromRGB(255, 151, 46)
 local WHITE = Color3.fromRGB(255, 243, 210)
 local PURPLE = Color3.fromRGB(196, 130, 255)
+local POISON = Color3.fromRGB(128, 230, 92) -- bulles du poison des ronces (Lance-ronces)
+local THORN = Color3.fromRGB(46, 96, 40) -- épines des ronces
 local MAX_TRANSIENT = 96
 local FIRE_LIMIT = 16
 local STATUS_LIMIT = 48
@@ -175,7 +177,7 @@ RunService.Heartbeat:Connect(function(dt)
 		end
 		for _, setting in entry.emitters do
 			local show = allowed and (setting.mode == nil or setting.mode == entry.source
-				or (setting.mode == "Fragile" and entry.fragile))
+				or (setting.mode == "Fragile" and entry.fragile) or (setting.mode == "Poison" and entry.poisoned))
 			setting.emitter.Enabled = show
 			setting.emitter.Rate = setting.rate * (if candidate.distance > 75 then 0.5 else 1)
 		end
@@ -216,19 +218,21 @@ local function trail(root: BasePart, color: Color3, width: number, life: number)
 	return ribbon
 end
 
-function VFX.decorateArrow(root: BasePart, heavy: boolean, flaming: boolean)
+-- tint = flèche d'une tour spéciale (l'Arc carmin) : bois rouge sombre, pointe dorée, plumes et traînée de la teinte.
+function VFX.decorateArrow(root: BasePart, heavy: boolean, flaming: boolean, tint: Color3?)
 	if not claim(root) then return end -- conserve la flèche simple quand le budget est atteint
 	local length = root.Size.Z
 	root.Material = Enum.Material.Wood
-	root.Color = Color3.fromRGB(114, 76, 43)
+	root.Color = if tint then Color3.fromRGB(110, 26, 32) else Color3.fromRGB(114, 76, 43)
 	weldVisual(root, "ArrowTip", Vector3.new(root.Size.X * 2, root.Size.Y * 2, length * 0.22),
-		CFrame.new(0, 0, -length * 0.45), Color3.fromRGB(179, 183, 186), Enum.Material.Metal)
+		CFrame.new(0, 0, -length * 0.45), if tint then tint else Color3.fromRGB(179, 183, 186), Enum.Material.Metal)
 	for i = 0, 1 do
 		weldVisual(root, "Fletching", Vector3.new(0.055, if heavy then 0.5 else 0.32, length * 0.2),
 			CFrame.new(0, 0, length * 0.35) * CFrame.Angles(0, 0, i * math.pi / 2),
-			Color3.fromRGB(225, 209, 170), Enum.Material.SmoothPlastic)
+			if tint then Color3.fromRGB(214, 36, 58) else Color3.fromRGB(225, 209, 170), Enum.Material.SmoothPlastic)
 	end
-	trail(root, if flaming then WARM else Color3.fromRGB(213, 190, 135), if flaming then 0.36 else 0.1, if flaming then 0.2 else 0.09)
+	trail(root, if flaming then WARM elseif tint then tint else Color3.fromRGB(213, 190, 135),
+		if flaming then 0.36 elseif tint then 0.3 else 0.1, if flaming or tint then 0.2 else 0.09)
 	if flaming then
 		local tip = attachment(root, "BurningArrowTip", Vector3.new(0, 0, -length * 0.5))
 		local flame = emitter(tip, "ArrowFlame", FIRE, WARM, 22, 0.25)
@@ -367,6 +371,48 @@ function VFX.firePatch(parent: Instance, position: Vector3, radius: number): Bas
 	return root
 end
 
+-- Ronces au sol (Lance-ronces) : des épines vert sombre qui sortent du sol (chacune : deux triangles croisés, pièces
+-- fixes, sans physique), et des bulles de poison vertes qui montent. Elles comptent dans le budget des zones de feu
+-- (FIRE_LIMIT) et s'effacent comme elles (fadeOut).
+function VFX.thornPatch(parent: Instance, position: Vector3, radius: number): BasePart
+	radius = math.max(0.2, radius)
+	local origin = ground(position, parent)
+	local root = part(parent, "ThornGround", Vector3.new(radius * 2, 0.1, radius * 2), CFrame.new(origin), POISON, 1)
+	for i = 0, 6 do
+		local angle = i * 2.4
+		local spread = if i == 0 then 0 else radius * (0.3 + (i % 3) * 0.2)
+		local height = 0.8 + (i % 3) * 0.35
+		local foot = origin + Vector3.new(math.cos(angle) * spread, height / 2, math.sin(angle) * spread)
+		for turn = 0, 1 do
+			local spike = Instance.new("WedgePart")
+			spike.Name = "Thorn"
+			spike.Size = Vector3.new(0.12, height, 0.55)
+			spike.CFrame = CFrame.new(foot) * CFrame.Angles(0, angle + turn * math.pi / 2, math.rad(10))
+			spike.Color = if turn == 0 then THORN else THORN:Lerp(POISON, 0.25)
+			spike.Material = Enum.Material.Grass
+			spike.Anchored = true
+			spike.CanCollide = false
+			spike.CanTouch = false
+			spike.CanQuery = false
+			spike.CastShadow = false
+			spike.Parent = root
+		end
+	end
+	local bubbles = emitter(root, "PoisonBubbles", SPARK, POISON, 7, 0.9)
+	bubbles.Size = sequence(0.12, 0.22, 0)
+	bubbles.Speed = NumberRange.new(0.6, 1.4)
+	bubbles.SpreadAngle = Vector2.new(40, 40)
+	bubbles.Acceleration = Vector3.new(0, 1, 0)
+	bubbles.LightEmission = 0.5
+	local haze = emitter(root, "PoisonHaze", SMOKE, POISON:Lerp(THORN, 0.4), 3, 0.9)
+	haze.Size = sequence(0.5, math.clamp(radius * 0.5, 1, 2), 2.2)
+	haze.Transparency = sequence(0.8, 0.86, 1)
+	haze.LightEmission = 0.1
+	haze.Speed = NumberRange.new(0.3, 0.8)
+	register(root, "fire", { settings(bubbles, nil), settings(haze, nil) })
+	return root
+end
+
 function VFX.fadeOut(root: BasePart, duration: number)
 	if not root.Parent then return end
 	local entry = persistent[root]
@@ -423,21 +469,28 @@ function VFX.statusAnchor(enemy: BasePart, size: number, top: number?): BasePart
 	fragile.Size = sequence(0.12, 0.19, 0)
 	fragile.Speed = NumberRange.new(0.3, 0.8)
 	fragile.LockedToPart = true
+	-- Empoisonné (ronces du Lance-ronces) : des bulles vertes qui montent de lui.
+	local poison = emitter(body, "PoisonBubbles", SPARK, POISON, 5, 0.7)
+	poison.Size = sequence(0.12, 0.2, 0)
+	poison.Speed = NumberRange.new(0.6, 1.2)
+	poison.SpreadAngle = Vector2.new(50, 50)
+	poison.LockedToPart = true
 	local entry = register(anchor, "status", { settings(frost, "Frost"), settings(ice, "Frost"),
-		settings(static, "Tesla"), settings(stars, "Orbital"), settings(fragile, "Fragile") })
+		settings(static, "Tesla"), settings(stars, "Orbital"), settings(fragile, "Fragile"), settings(poison, "Poison") })
 	entry.active = false
 	return anchor
 end
 
-function VFX.setStatus(anchor: BasePart, source: string?, fragile: boolean)
+function VFX.setStatus(anchor: BasePart, source: string?, fragile: boolean, poisoned: boolean?)
 	local entry = persistent[anchor]
 	if not entry then return end
 	entry.source = source
 	entry.fragile = fragile
-	entry.active = source ~= nil or fragile
+	entry.poisoned = poisoned == true
+	entry.active = source ~= nil or fragile or entry.poisoned
 	-- Coupe immédiatement le contrôle terminé, sans attendre le prochain contrôle de budget.
 	for _, setting in entry.emitters do
-		if setting.mode ~= source and not (setting.mode == "Fragile" and fragile) then
+		if setting.mode ~= source and not (setting.mode == "Fragile" and fragile) and not (setting.mode == "Poison" and entry.poisoned) then
 			setting.emitter.Enabled = false
 			setting.emitter:Clear()
 		end

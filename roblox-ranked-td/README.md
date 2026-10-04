@@ -223,7 +223,7 @@ que chez le joueur (`src/client/SoundManager.luau`) : aucun coût pour le serveu
 |---|---|
 | Niveaux (et combien sont ouverts : `OPEN_COUNT`), territoires et cartes, monstres, or, prix, œufs, entraînement, évolutions | `src/shared/Levels.luau` |
 | Décor de chaque territoire (couleurs du sol, rochers, arbres) | `THEMES`, en haut de `src/server/Hub/LevelArena.luau` |
-| Les 16 tours (dégâts, portée, effets ; 8 de palier 1, 8 de palier 2) | `src/shared/IdleTowers.luau` |
+| Les 20 tours (dégâts, portée, effets ; 8 de palier 1, 8 de palier 2, 4 tours spéciales) | `src/shared/IdleTowers.luau` |
 | Vitesses, limites du combat, rythme des envois réseau | `src/shared/IdleConfig.luau` |
 | Les 7 types de monstres (nom, vitesse, taille ; dont le colosse géant) | `src/shared/Enemies.luau` |
 | Sons | `src/shared/Sounds.luau` |

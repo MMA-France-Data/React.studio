@@ -145,11 +145,12 @@ avec 2 joueurs, ou avec un ami).
   des amis », le bonus d'ami sur l'écran de fin) ; à la taille d'un téléphone (`team_tel_page`,
   `team_tel_invitation`).
 
-### `run.ps1 -Test eggs` : les œufs et les couveuses (environ 2 minutes)
+### `run.ps1 -Test eggs` : les œufs, les couveuses et les tours spéciales (environ 3 minutes)
 
 Scénarios `scenarios\EggsServer.luau` et `scenarios\EggsClient.luau`. Captures `out\eggs_<nom>.png`. L'heure du
 serveur avance avec le debug « Clock » (un œuf de 4 h s'ouvre tout de suite), et le debug « EggForce » choisit la
-tour du prochain œuf (le tirage au hasard n'est pas testable autrement).
+tour du prochain œuf (le tirage au hasard n'est pas testable autrement) ; le debug « BonusForce » décide du tirage de
+l'œuf spécial d'un boss rejoué (1 fois sur 10 sinon).
 
 - **serveur** : un œuf à chaque victoire (doré au boss, commun en rejouant, rien en perdant, perdu si la réserve est
   pleine), poser un œuf (couveuse vide et œuf en réserve seulement), pas d'ouverture avant son temps, la tour sortie
@@ -157,12 +158,18 @@ tour du prochain œuf (le tirage au hasard n'est pas testable autrement).
   attribut `Hatch` ; au hasard, un œuf commun : toujours une tour de palier 1), « Finir » avec des pièces, les
   couveuses achetées
   (pas de 4e), les couveuses de la parcelle (l'œuf de sa couleur, le temps qui reste, l'œuf prêt qui brille,
-  l'invite vers l'onglet Œufs) ;
+  l'invite vers l'onglet Œufs) ; les ŒUFS SPÉCIAUX : l'œuf carmin en plus de l'œuf doré au boss du niveau 10, gardé
+  même réserve pleine quand le boss est rejoué, rien quand le tirage est perdu ; il donne l'Arc carmin ; l'œuf des
+  ronces en 3D sur la parcelle (ses ronces, épines et feuilles) ;
 - **client** : l'onglet « Œufs » (cartes des œufs et leurs chances, couveuses : `eggs_onglet`), un œuf posé
   (`eggs_couve`), prêt puis ouvert : nouvelle tour de palier 2, sa tour de base et ce qu'elle fait
   (`eggs_nouvelle_tour`), et doublon (`eggs_doublon`), « Mes tours » avec la tour de palier 2 et celles qui
   attendent « dans les œufs » (`eggs_mes_tours_palier2`), la 2e couveuse achetée, la pastille « ! » de l'onglet,
-  l'écran de fin qui dit l'œuf gagné (`eggs_fin_de_niveau`), à la taille d'un téléphone (`eggs_tel_onglet`).
+  l'écran de fin qui dit l'œuf gagné (`eggs_fin_de_niveau`), à la taille d'un téléphone (`eggs_tel_onglet`) ; les
+  cartes des œufs spéciaux (« COUVER », « 🔒 Boss du niveau 10 », leurs dessins), le bouton « COUVER »
+  (`eggs_oeuf_special_couve`, et en 3D sur la parcelle : `eggs_parcelle_oeuf_special`), la tour spéciale sortie (« 🌟 TOUR SPÉCIALE ! » : `eggs_tour_speciale`), une tour
+  spéciale pas encore à lui dans « Mes tours », l'œuf carmin sur l'écran de fin du boss, les 4 tours spéciales dans
+  un niveau avec leur parure (`eggs_speciales_niveau`, `eggs_speciales_pres`).
 
 ### `run.ps1 -Test english` : la version anglaise (environ 3 minutes)
 

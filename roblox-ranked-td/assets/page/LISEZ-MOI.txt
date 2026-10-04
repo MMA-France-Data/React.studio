@@ -16,7 +16,7 @@ ouvrir le jeu, tu pourras en mettre de plus belles plus tard.
   miniature_zoom.jpg      1920 x 1080  un combat vu de près, sans l'interface
   miniature_camp.jpg      1920 x 1080  le camp d'entraînement : trois tours évoluées
   miniature_victoire.jpg  1920 x 1080  l'écran de victoire
-  miniature_oeufs.jpg     1920 x 1080  l'onglet des œufs et des couveuses
+  miniature_oeufs.jpg     1920 x 1080  l'onglet des œufs, des œufs spéciaux et des couveuses
   miniature_niveaux.jpg   1920 x 1080  la liste des niveaux
 
 OÙ LES METTRE

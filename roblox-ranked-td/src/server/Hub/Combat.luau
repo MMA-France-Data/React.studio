@@ -28,7 +28,8 @@
 --     (IdleTowers.BALLISTA_PIERCE_MAX : sa cible et les premiers rencontrés, hitLine) ; elle vise le plus
 --     résistant, et entre ennemis presque aussi résistants, celui qui en aligne le plus (pickPierceTarget) ;
 --   Trébuchet royal : vise le plus gros groupe (pickCrowdTarget) et étourdit la zone ;
---   flèches enflammées : zones de feu au sol (self.firePatches) ;
+--   flèches enflammées : zones de feu au sol (self.firePatches) ; les ronces du Lance-ronces sont des zones du même
+--     genre qui EMPOISONNENT (poison : des dégâts qui continuent après la sortie des ronces, burnFires) ;
 --   rayon continu : Sorcier des arcanes (beamStep), publié aux clients par les attributs « BeamTarget »
 --     (id de l'ennemi visé, 0 = éteint) et « BeamRamp » (montée actuelle, arrondie à 0,5) de sa tour ;
 --   CONTRÔLES (ralentissements, étourdissement) : un seul à la fois par ennemi, et fatigue des contrôles courts
@@ -42,6 +43,8 @@
 --     Trébuchet, ou par leur version de palier 2), bit 7
 --     (valeur 128) = fragile (dans l'aura d'un Totem de givre : prend plus de dégâts). Un client qui ne lit que
 --     les count x ENEMY_BYTES premiers octets marche toujours (ces octets sont à la fin).
+--     PUIS, seulement si au moins un ennemi est empoisonné, count octets « effets » (même ordre) : bit 0 (valeur 1)
+--     = empoisonné (ronces du Lance-ronces). Absents : aucun ennemi empoisonné.
 --   PlotShots (tirs)      = count x SHOT_BYTES octets (voir SHOT_BYTES), PUIS count x SHOT_TARGET_BYTES octets :
 --     l'id u32 de la cible de chaque tir, même ordre (0 = aucune : tir instantané, aura, Trébuchet). Un id =
 --     projectile qui suit sa cible (Archer, Catapulte, Baliste : IdleTowers.followsTarget) : le client le fait
@@ -71,6 +74,8 @@ end
 local ENEMY_BYTES = 11
 -- Octet « contrôle » : bit 7 = ennemi fragile (Totem de givre).
 local CONTROL_FRAGILE_FLAG = 128
+-- Octet « effets » (après les octets « contrôle », seulement si un ennemi est empoisonné) : bit 0 = empoisonné.
+local EFFECT_POISON_FLAG = 1
 -- Taille d'un tir : départ 3xf32, arrivée 3xf32, type u8, rayon u8, vol u8 (même format dans PlotRenderer).
 -- « vol » = temps de vol qui RESTE quand le paquet part, en centièmes de seconde de simulation (0 = tir
 -- instantané, 255 = 2,55 s au plus, voir IdleTowers.MAX_FLIGHT_TIME). Les tirs partent par paquets
@@ -176,6 +181,29 @@ local function applyFragility(enemy, fragility: number, duration: number, now: n
 		enemy.fragileUntil = now + duration
 	elseif fragility == enemy.fragility then
 		enemy.fragileUntil = math.max(enemy.fragileUntil, now + duration)
+	end
+end
+
+-- POISON des ronces (Lance-ronces, IdleTowers.ThornSpitter) : un ennemi touché par les ronces est empoisonné
+-- `duration` s ; il perd dps x POISON_TICK PV toutes les POISON_TICK s (burnFires), même sorti des ronces. Ce n'est
+-- PAS un contrôle (il ne ralentit pas). Deux poisons ne s'additionnent pas (comme la fragilité) : un plus fort
+-- remplace l'actuel, un égal le prolonge, un plus faible est ignoré tant que l'actuel dure. fragile = ses dégâts
+-- profitent de la fragilité du Totem du blizzard. Champs de l'ennemi : poisonDps, poisonUntil (nil = pas
+-- empoisonné), poisonNext (heure du prochain coup), poisonFragile.
+local function applyPoison(enemy, dps: number, duration: number, fragile: boolean, now: number)
+	if dps <= 0 or duration <= 0 then
+		return
+	end
+	local poisoned = enemy.poisonUntil ~= nil and now < enemy.poisonUntil
+	if not poisoned then
+		enemy.poisonNext = now + IdleTowers.POISON_TICK
+	end
+	if not poisoned or dps > enemy.poisonDps then
+		enemy.poisonDps = dps
+		enemy.poisonFragile = fragile
+		enemy.poisonUntil = now + duration
+	elseif dps == enemy.poisonDps then
+		enemy.poisonUntil = math.max(enemy.poisonUntil, now + duration)
 	end
 end
 
@@ -605,6 +633,7 @@ function Combat:addFirePatch(spot: number, position: Vector3, stats, now: number
 		position = position,
 		radius = stats.fireRadius,
 		fragile = not stats.ignoresFragility, -- le feu de l'Archer profite de la fragilité du Totem
+		poison = stats.poisonDuration, -- ronces : durée du poison (nil = du feu, qui brûle seulement dedans)
 		dps = dps,
 		tick = stats.fireTick,
 		expiresAt = now + stats.fireDuration,
@@ -613,7 +642,9 @@ function Combat:addFirePatch(spot: number, position: Vector3, stats, now: number
 end
 
 -- Les zones de feu brûlent tous les ennemis dedans : dps x fireTick à chaque coup, tant qu'elles durent
--- (une zone de 2 s donne 4 coups de 0,5 s). Puis elles s'éteignent.
+-- (une zone de 2 s donne 4 coups de 0,5 s). Puis elles s'éteignent. Les RONCES (patch.poison), elles, empoisonnent
+-- les ennemis dedans à chaque coup (applyPoison) ; puis le poison de chaque ennemi empoisonné frappe, toutes les
+-- IdleTowers.POISON_TICK s, jusqu'à sa fin.
 function Combat:burnFires(now: number)
 	local patches = self.firePatches
 	for i = #patches, 1, -1 do
@@ -622,13 +653,30 @@ function Combat:burnFires(now: number)
 			local amount = patch.dps * patch.tick
 			for _, enemy in self.enemies do
 				if not enemy.dead and horizontalDistance(patch.position, enemy.position) <= patch.radius then
-					self:damageEnemy(enemy, amount, patch.fragile)
+					if patch.poison then
+						applyPoison(enemy, patch.dps, patch.poison, patch.fragile, patch.nextTick)
+					else
+						self:damageEnemy(enemy, amount, patch.fragile)
+					end
 				end
 			end
 			patch.nextTick += patch.tick
 		end
 		if patch.nextTick > patch.expiresAt + TIME_EPSILON then
 			table.remove(patches, i)
+		end
+	end
+	local tick = IdleTowers.POISON_TICK
+	for _, enemy in self.enemies do
+		local untilTime = enemy.poisonUntil
+		if untilTime and not enemy.dead then
+			while not enemy.dead and enemy.poisonNext <= now + TIME_EPSILON and enemy.poisonNext <= untilTime + TIME_EPSILON do
+				self:damageEnemy(enemy, enemy.poisonDps * tick, enemy.poisonFragile)
+				enemy.poisonNext += tick
+			end
+			if enemy.poisonNext > untilTime + TIME_EPSILON then
+				enemy.poisonUntil = nil -- (fini)
+			end
 		end
 	end
 end
@@ -789,7 +837,8 @@ local function controlByte(enemy, now: number): number
 end
 
 -- Positions de tous les ennemis vivants, encodées dans un buffer. nil si rien à envoyer.
--- count x ENEMY_BYTES octets, puis count octets « contrôle » (même ordre).
+-- count x ENEMY_BYTES octets, puis count octets « contrôle » (même ordre), puis, si au moins un ennemi est
+-- empoisonné, count octets « effets » (voir en haut du fichier).
 function Combat:buildSyncPacket(): (buffer?, number)
 	local count = #self.enemies
 	if count == 0 then
@@ -803,7 +852,15 @@ function Combat:buildSyncPacket(): (buffer?, number)
 
 	local now = self.clock
 	local controlStart = count * ENEMY_BYTES
-	local packet = buffer.create(controlStart + count)
+	local poisoned = false
+	for _, enemy in self.enemies do
+		if enemy.poisonUntil and now < enemy.poisonUntil then
+			poisoned = true
+			break
+		end
+	end
+	local effectStart = controlStart + count
+	local packet = buffer.create(if poisoned then effectStart + count else effectStart)
 	for i, enemy in self.enemies do
 		local offset = (i - 1) * ENEMY_BYTES
 		local speedFactor = speedFactorOf(enemy, now)
@@ -813,6 +870,9 @@ function Combat:buildSyncPacket(): (buffer?, number)
 		buffer.writeu8(packet, offset + 9, math.clamp(math.ceil(enemy.health / enemy.maxHealth * 255), 0, 255))
 		buffer.writeu8(packet, offset + 10, math.clamp(math.floor(speedFactor * 100 + 0.5), 0, 255))
 		buffer.writeu8(packet, controlStart + i - 1, controlByte(enemy, now))
+		if poisoned then
+			buffer.writeu8(packet, effectStart + i - 1, if enemy.poisonUntil and now < enemy.poisonUntil then EFFECT_POISON_FLAG else 0)
+		end
 	end
 	return packet, count
 end

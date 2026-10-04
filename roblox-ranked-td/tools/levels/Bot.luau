@@ -51,7 +51,7 @@ local function candidateSpots(mapName: string)
 end
 
 -- Dégâts par seconde estimés d'une tour (ordre de grandeur : zones et carreaux comptent plusieurs cibles ; le feu
--- au sol, deux).
+-- au sol, deux ; les ronces du Lance-ronces, plus : leur poison continue après).
 local function estimate(towerType: string, level: number, training: number): number
 	local stats = Levels.towerStats(towerType, level, training)
 	local dps
@@ -69,7 +69,7 @@ local function estimate(towerType: string, level: number, training: number): num
 		dps = stats.damage / stats.cooldown
 	end
 	if stats.fireRadius then
-		dps += IdleTowers.fireDps(stats) * 2
+		dps += IdleTowers.fireDps(stats) * (if stats.poisonDuration then 2 + stats.poisonDuration * 0.5 else 2)
 	end
 	return dps
 end
@@ -237,7 +237,7 @@ Bot.EXPECTED = {
 	{ towers = EIGHT, training = 4, trainings = { MachineGun = 5, Bomb = 5, Frost = 5, Tesla = 5, Rocket = 5, Laser = 5 }, pace = 3.5 },
 	{ towers = EIGHT, training = 4, trainings = { MachineGun = 5, Bomb = 5, Frost = 5, Tesla = 5, Rocket = 5, Laser = 5 }, pace = 3.5 },
 }
--- Toutes les tours du jeu (les 16 : « tout débloqué »).
+-- Toutes les tours du jeu (les 20, tours spéciales comprises : « tout débloqué »).
 Bot.ALL_TOWERS = table.clone(IdleTowers.ORDER)
 -- Ce qu'a un joueur sans aucune chance aux œufs : l'Archer (donné) et la Catapulte (l'œuf du niveau 1).
 Bot.NO_EGG_TOWERS = { "MachineGun", "Bomb" }
@@ -425,6 +425,14 @@ local function makeDecider(game, member, profile, policy, context)
 						elseif family == "Tesla" then
 							-- Le Mage freine très fort, un court instant : les autres tours tirent plus longtemps.
 							value += total * (if familyCopies(copies, family) == 0 then 0.15 else 0.05)
+						else
+							-- Catapulte de givre : elle ralentit les monstres qu'elle frappe (comme un Totem, mais seulement dans
+							-- sa zone d'impact) : la moitié du gain d'un Totem.
+							local stats = Levels.towerStats(towerType, 1, training[towerType])
+							if stats.family == "Frost" and stats.slow then
+								local gain = stats.slow / math.max(0.05, 1 - stats.slow) * Bot.FROST_GAIN * 0.5
+								value += total * gain * (if (copies[towerType] or 0) == 0 then 1 else 0.3)
+							end
 						end
 						value *= Bot.VALUE_SCALE[towerType] or 1
 						table.insert(options, { cost = Levels.placeCost(towerType), value = value, place = towerType })

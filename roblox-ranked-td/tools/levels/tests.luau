@@ -355,9 +355,11 @@ check(Levels.maxCopies("Frost") == 3 and Levels.maxCopies("MachineGun") == 5 and
 -- catapulte qui éclot en 10 s ». L'Archer seul au départ ; toutes les autres tours sortent des œufs.
 check(#Levels.STARTING_TOWERS == 1 and Levels.STARTING_TOWERS[1] == "MachineGun" and Levels.SHOP == nil, "départ : l'Archer seul, plus de boutique")
 local inEggs, missingTowers = {}, {}
-for _, eggType in Levels.EGG_ORDER do
-	for _, entry in Levels.eggChances(eggType) do
-		inEggs[entry.tower] = true
+for _, list in { Levels.EGG_ORDER, Levels.SPECIAL_EGG_ORDER } do
+	for _, eggType in list do
+		for _, entry in Levels.eggChances(eggType) do
+			inEggs[entry.tower] = true
+		end
 	end
 end
 for _, towerType in IdleTowers.ORDER do
@@ -756,7 +758,7 @@ local evolvingTowers = true
 for _, towerType in IdleTowers.ORDER do
 	evolvingTowers = evolvingTowers and Levels.evolutionStage(towerType, Levels.TRAINING.MAX_LEVEL) == #Levels.EVOLUTION_NAMES
 end
-check(evolvingTowers, "chacune des 16 tours a ses 3 évolutions (ses étoiles d'entraînement)")
+check(evolvingTowers, `chacune des {#IdleTowers.ORDER} tours a ses 3 évolutions (ses étoiles d'entraînement)`)
 do
 	local level2 = newGame(2, Levels.STARTING_TOWERS, 4)
 	level2.gold = 1e6
@@ -1498,10 +1500,12 @@ end
 do
 	local firstEight = table.concat(table.move(IdleTowers.ORDER, 1, 8, 1, {}), ",")
 	local lastEight = table.concat(table.move(IdleTowers.ORDER, 9, 16, 1, {}), ",")
+	local specials = table.concat(table.move(IdleTowers.ORDER, 17, #IdleTowers.ORDER, 1, {}), ",")
 	check(
-		#IdleTowers.ORDER == 16 and firstEight == "MachineGun,Frost,Bomb,Tesla,Rocket,Laser,Chain,Orbital"
-			and firstEight == table.concat(IdleTowers.TIER1, ",") and lastEight == table.concat(IdleTowers.TIER2, ","),
-		"16 tours : les 8 de palier 1 d'abord (mêmes numéros qu'avant dans les paquets), puis leurs 8 versions de palier 2"
+		#IdleTowers.ORDER == 20 and firstEight == "MachineGun,Frost,Bomb,Tesla,Rocket,Laser,Chain,Orbital"
+			and firstEight == table.concat(IdleTowers.TIER1, ",") and lastEight == table.concat(IdleTowers.TIER2, ",")
+			and specials == table.concat(IdleTowers.SPECIAL, ",") and specials == "CrimsonBow,CopperCrossbow,ThornSpitter,FrostCatapult",
+		"20 tours : les 8 de palier 1 d'abord (mêmes numéros qu'avant dans les paquets), puis leurs 8 versions de palier 2, puis les 4 tours spéciales"
 	)
 	local pairsOk, bases = true, {}
 	for index, towerType in IdleTowers.TIER2 do
@@ -1546,8 +1550,8 @@ do
 		"palier 2 : ses contrôles comptent comme ceux de sa tour de base (même famille)"
 	)
 
-	-- Les œufs donnent toutes les tours : chacune des 16 peut sortir ; la part des tours de palier 2 : aucune dans un
-	-- œuf commun, 25 % dans un œuf rare, 75 % dans un œuf doré.
+	-- Les œufs au hasard donnent les 16 tours des deux paliers (les tours spéciales : seulement leur œuf spécial) ; la
+	-- part des tours de palier 2 : aucune dans un œuf commun, 25 % dans un œuf rare, 75 % dans un œuf doré.
 	local tier2Share, obtainable = {}, {}
 	for _, eggType in Levels.EGG_ORDER do
 		tier2Share[eggType] = 0
@@ -1560,11 +1564,11 @@ do
 	end
 	local everyOne = true
 	for _, towerType in IdleTowers.ORDER do
-		everyOne = everyOne and obtainable[towerType] == true
+		everyOne = everyOne and obtainable[towerType] == (not IdleTowers.isSpecial(towerType) or nil)
 	end
 	check(
 		everyOne and tier2Share.Common == 0 and near(tier2Share.Rare, 0.25) and near(tier2Share.Gold, 0.75),
-		`œufs : chacune des 16 tours peut sortir ; tours de palier 2 : {math.floor(tier2Share.Common * 100 + 0.5)} % d'un œuf commun, {math.floor(tier2Share.Rare * 100 + 0.5)} % d'un rare, {math.floor(tier2Share.Gold * 100 + 0.5)} % d'un doré`
+		`œufs au hasard : chacune des 16 tours des deux paliers peut sortir, jamais une tour spéciale ; tours de palier 2 : {math.floor(tier2Share.Common * 100 + 0.5)} % d'un œuf commun, {math.floor(tier2Share.Rare * 100 + 0.5)} % d'un rare, {math.floor(tier2Share.Gold * 100 + 0.5)} % d'un doré`
 	)
 	local starter = Levels.eggChances("Starter")
 	check(#starter == 1 and starter[1].tower == "Bomb" and starter[1].chance == 1 and Levels.rollEgg("Starter", 0.99) == "Bomb", "premier œuf : la Catapulte à coup sûr")
@@ -1635,6 +1639,165 @@ do
 		burnt = math.max(burnt, #game.firePatches)
 	end
 	check(burnt > 0 and game.kills > 0, `niveau : la Catapulte de magma tue et laisse du feu au sol sans entraînement ({game.kills} monstres, {burnt} zones de feu à la fois)`)
+end
+
+----------------------------------------------------------------------
+-- 15) Les tours spéciales et les œufs spéciaux. Idée du propriétaire (04/10/2026) : « une tour spéciale ? exemple
+--     carmin = arc + couleur carmin + fort », « slow mieux pour le monde de givre », « catapulte de givre ». Une par
+--     territoire, dans son œuf spécial, gagné en plus de l'œuf doré en battant le boss du territoire.
+----------------------------------------------------------------------
+do
+	local shapesOk = true
+	for index, towerType in IdleTowers.SPECIAL do
+		local def = IdleTowers.Defs[towerType]
+		local eggType = Levels.towerEgg(towerType)
+		shapesOk = shapesOk and def.special == Levels.TERRITORIES[index] and def.rarity == "Special" and IdleTowers.tierOf(towerType) == 3
+			and IdleTowers.isSpecial(towerType) and table.find(IdleTowers.TIER1, IdleTowers.shapeOf(towerType)) ~= nil and def.base == nil
+			and IdleTowers.baseOf(towerType) == towerType and Levels.maxCopies(towerType) == 2 and Levels.TOWER_COST[towerType] ~= nil
+			and string.match(towerType, "^%a+$") ~= nil and eggType == Levels.SPECIAL_EGG_ORDER[index]
+			and Levels.EGGS[eggType].tower == towerType and Levels.EGGS[eggType].territory == def.special
+			and Levels.specialBossLevel(eggType) == index * Levels.TERRITORY_SIZE
+	end
+	check(
+		shapesOk and not IdleTowers.isSpecial("FireArcher") and IdleTowers.shapeOf("FireArcher") == "MachineGun" and IdleTowers.shapeOf("Bomb") == "Bomb"
+			and IdleTowers.shapeOf("CrimsonBow") == "MachineGun" and IdleTowers.shapeOf("CopperCrossbow") == "Rocket" and IdleTowers.shapeOf("FrostCatapult") == "Bomb",
+		"tours spéciales : une par territoire (vallée, col, forêt, glacier), la silhouette d'une tour de palier 1, 2 au plus par niveau, son œuf spécial au boss du territoire (10, 20, 30, 40)"
+	)
+	-- « Un peu plus forte qu'une tour de palier 2 », chacune dans son rôle : l'Arc carmin tire plus fort que l'Archer
+	-- enflammé, l'Arbalète de cuivre plus que la Baliste du dragon sur une cible, la Catapulte de givre frappe plus que la
+	-- Catapulte de magma (et ralentit), le poison du Lance-ronces fait plus que deux fois le feu de la Catapulte de magma.
+	local function dps(towerType)
+		return IdleTowers.dpsOf(Levels.towerStats(towerType, 1, 0))
+	end
+	local crimson, copper = Levels.towerStats("CrimsonBow", 1, 0), Levels.towerStats("CopperCrossbow", 1, 0)
+	local thorns, frost = Levels.towerStats("ThornSpitter", 1, 0), Levels.towerStats("FrostCatapult", 1, 0)
+	check(
+		dps("CrimsonBow") > dps("FireArcher") and crimson.kind == "Single" and crimson.fireRadius == nil
+			and dps("CopperCrossbow") >= dps("DragonBallista") and copper.kind == "Pierce" and copper.pierceMax == 3
+			and dps("FrostCatapult") >= dps("MagmaCatapult") and frost.kind == "Splash" and frost.slow ~= nil and frost.family == "Frost"
+			and IdleTowers.fireDps(thorns) >= 2 * IdleTowers.fireDps(Levels.towerStats("MagmaCatapult", 1, 0)) and thorns.poisonDuration ~= nil
+			and thorns.slow == nil and thorns.stunDuration == nil,
+		string.format("tours spéciales : un peu plus fortes que les tours de palier 2 (Arc carmin %.0f/s contre %.0f, Arbalète %.0f contre %.0f, Catapulte de givre %.0f contre %.0f, poison %.0f/s) ; le Lance-ronces ne ralentit pas",
+			dps("CrimsonBow"), dps("FireArcher"), dps("CopperCrossbow"), dps("DragonBallista"), dps("FrostCatapult"), dps("MagmaCatapult"), IdleTowers.fireDps(thorns))
+	)
+
+	-- L'œuf spécial : au boss du territoire, la première fois toujours, en rejouant 1 fois sur 10 ; rien ailleurs.
+	check(
+		Levels.bonusEggFor(10, true, 0.99) == "Crimson" and Levels.bonusEggFor(20, true, 0.5) == "Copper" and Levels.bonusEggFor(30, true, 0.5) == "Bramble"
+			and Levels.bonusEggFor(40, true, 0.5) == "Rime" and Levels.bonusEggFor(10, false, 0.99) == nil and Levels.bonusEggFor(10, false, 0.05) == "Crimson"
+			and Levels.bonusEggFor(9, true, 0) == nil and Levels.bonusEggFor(15, true, 0) == nil and Levels.bonusEggFor(50, true, 0) == nil
+			and Levels.SPECIAL_REPLAY_CHANCE == 0.1 and Levels.eggFor(10, true) == "Gold",
+		"œufs spéciaux : au boss du territoire, en plus de l'œuf doré (la 1re fois toujours, en rejouant 1 fois sur 10) ; rien aux autres niveaux, ni au désert (pas encore d'œuf)"
+	)
+	local fixed = Levels.eggChances("Crimson")
+	local data = Levels.defaultData()
+	for _ = 1, Levels.EGG_MAX do
+		Levels.addEgg(data, "Common")
+	end
+	local commonRefused = Levels.giveEgg(data, "Common", 0) == nil
+	local specialKept = Levels.giveEgg(data, "Crimson", 0) == "reserve"
+	check(
+		#fixed == 1 and fixed[1].tower == "CrimsonBow" and fixed[1].chance == 1 and commonRefused and specialKept and data.eggs.Crimson == 1
+			and Levels.eggCount(data) == Levels.EGG_MAX and Levels.cleanData(data).eggs.Crimson == 1,
+		"œufs spéciaux : l'Arc carmin à coup sûr ; jamais perdu quand la réserve est pleine (il n'y compte pas), gardé dans la sauvegarde"
+	)
+	local artOk = true
+	for _, eggType in Levels.SPECIAL_EGG_ORDER do
+		local egg = Levels.EGGS[eggType]
+		artOk = artOk and egg.special == true and egg.art.rays == true and egg.art.frame.R ~= nil and egg.seconds > 0
+			and table.find(Levels.EGG_ORDER, eggType) == nil
+	end
+	local patterns = {}
+	for _, eggType in Levels.SPECIAL_EGG_ORDER do
+		table.insert(patterns, Levels.EGGS[eggType].art.pattern)
+	end
+	check(artOk and table.concat(patterns, ",") == "zigzag,rivets,thorns,flakes", "œufs spéciaux : les dessins montrés au propriétaire (zigzag doré, rivets, ronces, flocons), avec des rayons")
+	-- Une tour spéciale arrive à la fin de la barre (elle ne remplace pas l'Archer) ; un doublon : 200 XP.
+	local owner = Levels.defaultData()
+	for _, towerType in { "Bomb", "Frost", "Tesla", "Rocket", "Laser", "Chain", "Orbital" } do
+		Levels.addTower(owner, towerType)
+	end
+	local isNew = Levels.hatchTower(owner, "CrimsonBow")
+	local again, xp = Levels.hatchTower(owner, "CrimsonBow")
+	local ownedList = Levels.ownedTowers(owner)
+	check(
+		isNew and not again and xp == 200 and owner.xp.CrimsonBow == 200 and ownedList[1] == "MachineGun" and ownedList[8] == "CrimsonBow" and ownedList[9] == "Orbital",
+		"tour spéciale : nouvelle, à la dernière place de la barre pleine (l'Archer reste) ; un doublon donne 200 XP d'entraînement"
+	)
+
+	-- Dans un niveau : elles tuent, avec leurs pouvoirs.
+	local function placeAlone(towerType, level)
+		local game = newGame(level, { "MachineGun", towerType })
+		game.gold = 1e6
+		game.lives = math.huge
+		local ok = game:placeTower(towerType, map.spots[1])
+		return game, ok
+	end
+	local bow, bowOk = placeAlone("CrimsonBow", 3)
+	run(bow, 25)
+	local crossbow, crossbowOk = placeAlone("CopperCrossbow", 3)
+	run(crossbow, 25)
+	check(bowOk and crossbowOk and bow.kills > 0 and crossbow.kills > 0, `niveau : l'Arc carmin et l'Arbalète de cuivre tuent ({bow.kills} et {crossbow.kills} monstres en 25 s)`)
+	-- Le POISON des ronces : des ronces au sol ; un monstre touché reste empoisonné quelque temps après en être sorti ;
+	-- jamais ralenti par elles.
+	local spitter, spitterOk = placeAlone("ThornSpitter", 3)
+	local brambles, lingering, slowed = 0, 0, false
+	for _ = 1, 30 * 30 do
+		spitter:simulate(1 / 30)
+		local count = 0
+		for _, patch in spitter.firePatches do
+			count += if patch.poison then 1 else 0
+		end
+		brambles = math.max(brambles, count)
+		for _, enemy in spitter.enemies do
+			if not enemy.dead and enemy.poisonUntil and spitter.clock < enemy.poisonUntil then
+				local inside = false
+				for _, patch in spitter.firePatches do
+					local dx, dz = patch.position.X - enemy.position.X, patch.position.Z - enemy.position.Z
+					inside = inside or dx * dx + dz * dz <= patch.radius * patch.radius
+				end
+				lingering += if inside then 0 else 1
+			end
+			slowed = slowed or enemy.controlSource == "ThornSpitter"
+		end
+	end
+	check(
+		spitterOk and spitter.kills > 0 and brambles > 0 and brambles <= IdleTowers.Defs.ThornSpitter.fireMaxPatches and lingering > 0 and not slowed,
+		`niveau : le Lance-ronces tue ({spitter.kills} monstres), ses ronces empoisonnent (des monstres encore empoisonnés hors des ronces), sans ralentir`
+	)
+	-- Catapulte de givre : elle ralentit, et ses ralentissements comptent comme ceux du Totem (avec le Totem du blizzard :
+	-- un seul ralentissement, le plus fort des deux, jamais plus). Au niveau 38 : au niveau 3, chaque bloc de glace tue
+	-- les monstres qu'il touche (aucun ne reste ralenti).
+	local glacierSpots = Levels.geometry(Levels.definition(38).map).map.spots
+	local icy = newGame(38, { "MachineGun", "FrostCatapult", "BlizzardTotem" })
+	icy.gold = 1e6
+	icy.lives = math.huge
+	local icyOk = icy:placeTower("FrostCatapult", glacierSpots[1])
+	local frozenAlone, strongestAlone = 0, 0
+	for _ = 1, 30 * 30 do -- (les premiers monstres arrivent à sa portée vers 13 s)
+		icy:simulate(1 / 30)
+		for _, enemy in icy.enemies do
+			if not enemy.dead and icy.clock < enemy.controlUntil and enemy.controlSource == "Frost" then
+				frozenAlone += 1
+				strongestAlone = math.max(strongestAlone, enemy.controlFactor)
+			end
+		end
+	end
+	local blizzardOk = icy:placeTower("BlizzardTotem", glacierSpots[2])
+	local strongest, family = 0, true
+	for _ = 1, 15 * 30 do
+		icy:simulate(1 / 30)
+		for _, enemy in icy.enemies do
+			if not enemy.dead and icy.clock < enemy.controlUntil then
+				family = family and enemy.controlSource == "Frost"
+				strongest = math.max(strongest, enemy.controlFactor)
+			end
+		end
+	end
+	check(
+		icyOk and blizzardOk and frozenAlone > 0 and near(strongestAlone, 0.4) and family and near(strongest, 0.5) and icy.kills > 0,
+		`niveau : la Catapulte de givre ralentit de {math.floor(strongestAlone * 100 + 0.5)} % ; avec le Totem du blizzard, un seul ralentissement, le plus fort ({math.floor(strongest * 100 + 0.5)} %)`
+	)
 end
 
 do

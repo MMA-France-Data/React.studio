@@ -167,8 +167,9 @@ local function clockText(seconds: number): string
 end
 
 -- Les MOTIFS des œufs en 3D (Levels.EGGS[type].art : les mêmes que les œufs dessinés de l'onglet, client/EggArt.luau) :
--- des pastilles posées sur la coquille, une bande autour, une couronne violette et des étincelles pour l'œuf doré. La
--- coquille est une ellipse de demi-axes EGG_A (largeur) et EGG_B (hauteur).
+-- des pastilles posées sur la coquille, une bande autour, une couronne violette et des étincelles pour l'œuf doré ; et
+-- pour les œufs spéciaux : un zigzag doré (carmin), une bande rivetée (cuivre), des ronces (ronces), des flocons
+-- (givre). La coquille est une ellipse de demi-axes EGG_A (largeur) et EGG_B (hauteur).
 local EGG_A, EGG_B = 1.15, 1.5
 
 -- Point de la coquille (theta : le tour, de 0 à 2 pi ; phi : du haut, 0, au bas, pi) et sa normale (repère de l'œuf).
@@ -197,6 +198,23 @@ local function eggBand(folder: Instance, center: CFrame, y: number, thickness: n
 	return band
 end
 
+-- Un trait posé sur la coquille, du point (thetaA, phiA) au point (thetaB, phiB) (les segments des zigzags et des
+-- ronces : courts, ils suivent la coquille).
+local function eggSegment(folder: Instance, center: CFrame, thetaA: number, phiA: number, thetaB: number, phiB: number, width: number, color: Color3)
+	local a, normalA = eggSurface(thetaA, phiA)
+	local b, normalB = eggSurface(thetaB, phiB)
+	local normal = (normalA + normalB).Unit
+	local middle = (a + b) / 2 + normal * 0.03
+	return MedievalModels.sceneryPart(folder, "EggStripe", Vector3.new(width, 0.08, (b - a).Magnitude + width * 0.5),
+		center * CFrame.lookAt(middle, b, normal), color, Enum.Material.SmoothPlastic)
+end
+
+-- Un petit objet posé sur la coquille au point (theta, phi), tourné de `spin` autour de la normale (flocons, épines).
+local function eggPiece(folder: Instance, center: CFrame, name: string, theta: number, phi: number, size: Vector3, spin: number, color: Color3, material: Enum.Material)
+	local point, normal = eggSurface(theta, phi)
+	return MedievalModels.sceneryPart(folder, name, size, center * CFrame.lookAt(point + normal * 0.03, point + normal * 2) * CFrame.Angles(0, 0, spin), color, material)
+end
+
 local EGG_DECOR = {}
 -- Des taches (œuf commun).
 function EGG_DECOR.spots(folder: Instance, center: CFrame, art)
@@ -223,6 +241,58 @@ function EGG_DECOR.crown(folder: Instance, center: CFrame, art)
 	for _, sparkle in { { 0.8, 0.8 }, { 2.9, 0.6 }, { 4.7, 1 } } do
 		local glint = MedievalModels.sceneryPart(folder, "Sparkle", Vector3.new(0.18, 0.18, 0.18), center * CFrame.new((eggSurface(sparkle[1], sparkle[2]))), Color3.new(1, 1, 1), Enum.Material.Neon)
 		glint.Shape = Enum.PartType.Ball
+	end
+end
+-- Une bande dorée en zigzag tout autour, et des points dorés (œuf carmin).
+function EGG_DECOR.zigzag(folder: Instance, center: CFrame, art)
+	local points = 16
+	for index = 0, points - 1 do
+		local thetaA, thetaB = index / points * math.pi * 2, (index + 1) / points * math.pi * 2
+		local phiA, phiB = if index % 2 == 0 then 1.3 else 1.62, if index % 2 == 0 then 1.62 else 1.3
+		eggSegment(folder, center, thetaA, phiA, thetaB, phiB, 0.22, art.detail)
+	end
+	for _, spot in { { 0.5, 2.1 }, { 1.9, 2.3 }, { 3.3, 2.05 }, { 4.6, 2.35 }, { 5.7, 2.15 }, { 2.6, 0.75 } } do
+		eggDisk(folder, center, spot[1], spot[2], 0.32, art.detail)
+	end
+end
+-- Une bande sombre tout autour, ses rivets clairs, et deux points sombres (œuf de cuivre).
+function EGG_DECOR.rivets(folder: Instance, center: CFrame, art)
+	eggBand(folder, center, -0.25, 0.42, art.detail)
+	local phi = math.acos(-0.25 / EGG_B)
+	for index = 0, 7 do
+		local point = eggSurface(index * math.pi / 4, phi)
+		local rivet = MedievalModels.sceneryPart(folder, "Rivet", Vector3.new(0.22, 0.22, 0.22), center * CFrame.new(point * 1.05), art.accent or Color3.new(1, 1, 1), Enum.Material.Metal)
+		rivet.Shape = Enum.PartType.Ball
+	end
+	eggDisk(folder, center, 1, 0.75, 0.34, art.detail)
+	eggDisk(folder, center, 3.9, 2.4, 0.38, art.detail)
+end
+-- Deux ronces ondulées tout autour, leurs épines et des feuilles claires (œuf des ronces).
+function EGG_DECOR.thorns(folder: Instance, center: CFrame, art)
+	local points = 10
+	for _, vine in { { 1, 0 }, { 2.1, 1.4 } } do
+		for index = 0, points - 1 do
+			local thetaA, thetaB = index / points * math.pi * 2, (index + 1) / points * math.pi * 2
+			eggSegment(folder, center, thetaA, vine[1] + math.sin(thetaA * 3 + vine[2]) * 0.16, thetaB, vine[1] + math.sin(thetaB * 3 + vine[2]) * 0.16, 0.13, art.detail)
+		end
+		for index = 0, 2 do
+			local theta = index * math.pi * 2 / 3 + 0.5 + vine[2]
+			eggPiece(folder, center, "Thorn", theta, vine[1] + math.sin(theta * 3 + vine[2]) * 0.16 - 0.12, Vector3.new(0.2, 0.2, 0.12), math.pi / 4, art.detail, Enum.Material.SmoothPlastic)
+		end
+	end
+	for _, leaf in { { 0.3, 1.25 }, { 2.4, 1.75 }, { 4.2, 1.3 }, { 5.4, 2.4 } } do
+		eggPiece(folder, center, "Leaf", leaf[1], leaf[2], Vector3.new(0.42, 0.22, 0.06), 0.4, art.accent or Color3.new(1, 1, 1), Enum.Material.SmoothPlastic)
+	end
+end
+-- Trois flocons blancs et des points blancs (œuf de givre).
+function EGG_DECOR.flakes(folder: Instance, center: CFrame, art)
+	for _, spot in { { 0.4, 1.1, 0.7 }, { 2.5, 1.9, 0.55 }, { 4.4, 1.3, 0.62 } } do
+		for _, angle in { 0, math.pi / 3, -math.pi / 3 } do
+			eggPiece(folder, center, "Flake", spot[1], spot[2], Vector3.new(spot[3], 0.08, 0.06), angle, art.detail, Enum.Material.SmoothPlastic)
+		end
+	end
+	for _, spot in { { 1.5, 0.8 }, { 3.5, 2.3 }, { 5.6, 2 }, { 1.2, 2.4 } } do
+		eggDisk(folder, center, spot[1], spot[2], 0.2, art.detail)
 	end
 end
 

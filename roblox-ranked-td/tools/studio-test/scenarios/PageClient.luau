@@ -261,8 +261,8 @@ return function(log)
 	cam().CFrame = before
 	task.wait(0.4)
 
-	-- 6) La fenêtre du camp d'un joueur en cours de route : ses œufs (un prêt, un qui couve), le 2e territoire tout juste
-	-- ouvert.
+	-- 6) La fenêtre du camp d'un joueur en cours de route : ses œufs (un prêt, un qui couve ; l'œuf carmin du boss du
+	-- niveau 10, tout juste battu), le 2e territoire tout juste ouvert.
 	test:InvokeServer("Set", {
 		best = 10,
 		coins = 1350,
@@ -270,7 +270,7 @@ return function(log)
 	})
 	test:InvokeServer("Set", {
 		towers = { MachineGun = true, Bomb = true, Frost = true, Tesla = true },
-		eggs = { Common = 3, Rare = 1, Gold = 1 },
+		eggs = { Common = 3, Rare = 1, Gold = 1, Crimson = 1 },
 		hatchers = { { egg = "Rare", readyAt = 0 }, { egg = "Common", readyAt = os.time() + 9 * 60 } },
 	})
 	waitFor(function()

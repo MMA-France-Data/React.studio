@@ -6,6 +6,8 @@
 --    « Hatch » du joueur ; au hasard, un œuf commun : toujours une tour de palier 1), finir tout de suite avec des
 --    pièces, acheter
 --    les couveuses, et les couveuses de la parcelle (l'œuf de sa couleur, l'étiquette, l'invite vers l'onglet Œufs).
+--    Les ŒUFS SPÉCIAUX : l'œuf carmin en plus de l'œuf doré au boss du niveau 10 (la 1re fois ; en rejouant : debug
+--    « BonusForce »), jamais perdu même réserve pleine, il donne l'Arc carmin ; ses motifs en 3D (œuf des ronces).
 -- 2) Il donne la main au client (attribut EggsTestPhase = "Client" de ReplicatedStorage) et répond à ses demandes par
 --    la RemoteFunction ReplicatedStorage.__EggsTest.
 -- StudioDebug n'existe que dans Studio.
@@ -83,6 +85,10 @@ return function(log)
 	------------------------------------------------------------------
 	local result = win(10, true)
 	check(result.egg == "Gold" and result.eggKept == true and eggs("Gold") == 1, `niveau 10 (boss) réussi pour la première fois : un œuf doré ({tostring(result.egg)})`)
+	check(
+		result.bonusEgg == "Crimson" and result.bonusKept == true and eggs("Crimson") == 1,
+		`... et, en plus, l'œuf spécial du territoire : l'œuf carmin ({tostring(result.bonusEgg)}, {eggs("Crimson")} en réserve)`
+	)
 	result = win(3, true)
 	check(result.egg == "Common" and eggs("Common") == 1, `niveau 3 rejoué : un œuf commun ({tostring(result.egg)})`)
 	result = win(3, false)
@@ -90,6 +96,15 @@ return function(log)
 	levels("Egg", "Common", Levels.EGG_MAX)
 	result = win(3, true)
 	check(result.egg == "Common" and result.eggKept == false and Levels.eggCount(data()) == Levels.EGG_MAX, `réserve pleine ({Levels.EGG_MAX} œufs) : l'œuf gagné est perdu, et l'écran de fin le dira`)
+	levels("BonusForce", true)
+	result = win(10, true)
+	check(
+		result.egg == "Rare" and result.eggKept == false and result.bonusEgg == "Crimson" and result.bonusKept == true and eggs("Crimson") == 2,
+		`boss du niveau 10 rejoué (le tirage de 1 sur 10 gagné) : l'œuf carmin, gardé même réserve pleine ({eggs("Crimson")} en réserve) ; l'œuf rare, lui, est perdu`
+	)
+	levels("BonusForce", false)
+	result = win(10, true)
+	check(result.bonusEgg == nil and eggs("Crimson") == 2, "boss du niveau 10 rejoué (tirage perdu) : pas d'œuf spécial")
 	levels("Set", "eggs", { Gold = 1, Common = 3 })
 
 	------------------------------------------------------------------
@@ -153,6 +168,18 @@ return function(log)
 		tierOne = tierOne and IdleTowers.tierOf(hatch.tower or "") == 1 and IdleTowers.Defs[hatch.tower] ~= nil
 	end
 	check(tierOne, "6 œufs communs ouverts au hasard : toujours une tour de palier 1")
+	-- L'œuf carmin donne toujours l'Arc carmin (une tour spéciale : à la fin de la barre).
+	levels("Set", "eggs", { Crimson = 1 })
+	local crimsonStarted = action("EggStart", 1, "Crimson")
+	levels("Clock", Levels.EGGS.Crimson.seconds + 1)
+	local crimsonOpened = action("EggOpen", 1)
+	hatch = decode(player:GetAttribute("Hatch")) or {}
+	local crimsonBar = Levels.ownedTowers(data())
+	check(
+		crimsonStarted and crimsonOpened and hatch.tower == "CrimsonBow" and hatch.new == true and hatch.egg == "Crimson" and data().towers.CrimsonBow == true
+			and table.find(crimsonBar, "CrimsonBow") ~= nil and (data().eggs.Crimson or 0) == 0,
+		`l'œuf carmin couve 1 h puis donne l'Arc carmin (attribut Hatch : {tostring(hatch.tower)}) ; barre : {table.concat(crimsonBar, ", ")}`
+	)
 
 	------------------------------------------------------------------
 	-- Acheter des couveuses
@@ -170,8 +197,9 @@ return function(log)
 	------------------------------------------------------------------
 	-- Les couveuses de la parcelle
 	------------------------------------------------------------------
-	levels("Set", "eggs", { Rare = 1, Common = 2 })
+	levels("Set", "eggs", { Rare = 1, Common = 2, Bramble = 1 })
 	action("EggStart", 2, "Rare")
+	action("EggStart", 3, "Bramble")
 	task.wait(1.5)
 	local plots = workspace:FindFirstChild("Hub") and workspace.Hub:FindFirstChild("Plots")
 	local plot = plots and plots:FindFirstChild("Plot" .. player:GetAttribute("Plot"))
@@ -193,6 +221,17 @@ return function(log)
 		decor1 ~= nil and decor2 ~= nil and #decor1:GetChildren() == 0 and #decor2:GetChildren() > 0,
 		`l'œuf rare de la parcelle a ses motifs ({decor2 and #decor2:GetChildren() or 0} pièces : bande et points) ; la couveuse vide n'en a pas`
 	)
+	local model3 = hatcherModel(3)
+	local decor3 = model3 and model3:FindFirstChild("EggDecor")
+	local kinds = {}
+	for _, piece in if decor3 then decor3:GetChildren() else {} do
+		kinds[piece.Name] = (kinds[piece.Name] or 0) + 1
+	end
+	check(
+		model3 ~= nil and model3.Egg.Transparency == 0 and model3.Egg.Color == Levels.EGGS.Bramble.color and (kinds.EggStripe or 0) >= 10
+			and (kinds.Thorn or 0) > 0 and (kinds.Leaf or 0) > 0 and model3.HatcherLabel.Panel.Sub.Text == "Œuf des ronces",
+		`l'œuf des ronces dans la 3e couveuse de la parcelle : vert, avec ses ronces en 3D ({kinds.EggStripe or 0} traits, {kinds.Thorn or 0} épines, {kinds.Leaf or 0} feuilles)`
+	)
 	levels("Clock", Levels.EGGS.Rare.seconds + 1)
 	task.wait(1.5)
 	check(
@@ -208,7 +247,7 @@ return function(log)
 	------------------------------------------------------------------
 	for key, value in {
 		coins = 10000,
-		eggs = { Common = 2, Gold = 1 },
+		eggs = { Common = 2, Gold = 1, Copper = 1 },
 		hatchers = { { egg = "", readyAt = 0 } },
 		towers = { MachineGun = true, Bomb = true },
 		bar = { "MachineGun", "Bomb" },
@@ -240,6 +279,8 @@ return function(log)
 			return true
 		elseif command == "Place" then
 			return action("Place", ...)
+		elseif command == "Skip" then
+			return levels("Skip", ...)
 		elseif command == "Quit" then
 			return action("Quit")
 		elseif command == "State" then

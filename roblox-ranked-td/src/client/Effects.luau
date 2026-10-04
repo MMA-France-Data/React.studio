@@ -1,5 +1,5 @@
--- Effets visuels purement côté client : tirs des tours, zones de feu, rayon, marques des contrôles
--- (appelés par PlotRenderer).
+-- Effets visuels purement côté client : tirs des tours, zones de feu et ronces, rayon, marques des contrôles et du
+-- poison (appelés par PlotRenderer).
 local Debris = game:GetService("Debris")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -161,7 +161,8 @@ end
 -- impactRadius > 0 = petite explosion à l'arrivée (carreau de la Baliste) ;
 -- follow = projectile qui suit sa cible (voir playTowerShot) : à chaque image, il vole vers le
 -- point que renvoie follow() au lieu de `to`, et l'explosion a lieu là où il arrive.
-local function linearProjectile(from: Vector3, to: Vector3, color: Color3, heavy: boolean, travel: number?, impactRadius: number?, follow: (() -> Vector3)?, flaming: boolean?)
+-- tint = flèche aux couleurs d'une tour spéciale (l'Arc carmin) : sa traînée, ses plumes, et un éclat à l'arrivée.
+local function linearProjectile(from: Vector3, to: Vector3, color: Color3, heavy: boolean, travel: number?, impactRadius: number?, follow: (() -> Vector3)?, flaming: boolean?, tint: Color3?)
 	local delta = to - from
 	if delta.Magnitude < 0.1 then
 		return
@@ -169,7 +170,7 @@ local function linearProjectile(from: Vector3, to: Vector3, color: Color3, heavy
 	local projectile = projectilePart(color, if heavy then Vector3.new(0.22, 0.22, 2.8) else Vector3.new(0.12, 0.12, 1.8), Enum.Material.Metal)
 	local direction = delta.Unit
 	projectile.CFrame = CFrame.lookAt(from, from + direction)
-	CombatVFX.decorateArrow(projectile, heavy, flaming == true)
+	CombatVFX.decorateArrow(projectile, heavy, flaming == true, tint)
 	local duration = travel or math.clamp(delta.Magnitude / (if heavy then 90 else 125), 0.12, 0.55)
 	Debris:AddItem(projectile, duration + 0.5) -- garde-fou même si la cible suivie disparaît
 	if follow then
@@ -193,6 +194,8 @@ local function linearProjectile(from: Vector3, to: Vector3, color: Color3, heavy
 					Effects.burst(landing, math.max(1.2, impactRadius), color, 0.2)
 				elseif flaming then
 					Effects.burst(landing, 0.9, Color3.fromRGB(255, 151, 46), 0.16)
+				elseif tint then
+					Effects.burst(landing, 1, tint, 0.18)
 				end
 			end
 		end)
@@ -204,6 +207,8 @@ local function linearProjectile(from: Vector3, to: Vector3, color: Color3, heavy
 		task.delay(duration, Effects.burst, to, math.max(1.2, impactRadius), color, 0.2)
 	elseif flaming then
 		task.delay(duration, Effects.burst, to, 0.9, Color3.fromRGB(255, 151, 46), 0.16)
+	elseif tint then
+		task.delay(duration, Effects.burst, to, 1, tint, 0.18)
 	end
 end
 
@@ -215,9 +220,10 @@ local STUN_COLOR = Color3.fromRGB(255, 212, 90)
 -- size / material / onImpact : grosse pierre du Trébuchet royal (sinon rocher de 0,9 et petite explosion).
 -- follow = rocher qui suit sa cible (Catapulte, voir playTowerShot) : à chaque image, la cloche
 -- (même hauteur) retombe sur le point que renvoie follow() au lieu de `to`, et l'explosion a lieu là.
-local function arcingProjectile(from: Vector3, to: Vector3, color: Color3, radius: number, travel: number?, size: number?, material: Enum.Material?, onImpact: ((Vector3) -> ())?, follow: (() -> Vector3)?)
+-- shape = forme du projectile (une boule sinon) : le bloc de glace de la Catapulte de givre.
+local function arcingProjectile(from: Vector3, to: Vector3, color: Color3, radius: number, travel: number?, size: number?, material: Enum.Material?, onImpact: ((Vector3) -> ())?, follow: (() -> Vector3)?, shape: Enum.PartType?)
 	local projectile = projectilePart(color, Vector3.one * (size or 0.9), material or Enum.Material.Rock)
-	projectile.Shape = Enum.PartType.Ball
+	projectile.Shape = shape or Enum.PartType.Ball
 	CombatVFX.decorateStone(projectile, color)
 	local distance = (to - from).Magnitude
 	local duration = travel or math.clamp(distance / 55, 0.42, 0.9)
@@ -299,6 +305,12 @@ local function stormStrike(from: Vector3, to: Vector3, color: Color3, radius: nu
 	Effects.burst(to + Vector3.new(0, 0.6, 0), math.max(1.2, radius), color, 0.22)
 end
 
+-- Projectiles des tours spéciales (def.shot, IdleTowers.luau) : la traînée dorée de l'Arc carmin, la graine épineuse
+-- du Lance-ronces, le bloc de glace de la Catapulte de givre.
+local CRIMSON_GOLD = Color3.fromRGB(255, 196, 70)
+local THORN_SEED = Color3.fromRGB(70, 118, 44)
+local ICE_BLOCK = Color3.fromRGB(196, 236, 255)
+
 local ARROW_TYPES = { MachineGun = true, Rocket = true }
 local SIEGE_TYPES = { Bomb = true, Orbital = true }
 
@@ -365,7 +377,9 @@ end
 -- à chaque image, le point où le projectile doit tomber (l'ennemi visé tel qu'il est affiché, ou le point prévu
 -- s'il a disparu, voir PlotRenderer) : il arrive là où le serveur fait tomber les dégâts. La tour vise quand
 -- même le point prévu au départ. Sans follow, le projectile va tout droit à `to`.
-function Effects.playTowerShot(from: Vector3, to: Vector3, towerType: string, radius: number, color: Color3, kind: string, towerModel: Model?, flightTime: number?, follow: (() -> Vector3)?)
+-- towerType = la SILHOUETTE de la tour (IdleTowers.shapeOf : son animation, d'où part le tir) ; style = l'allure du
+-- projectile d'une tour spéciale (def.shot : "Crimson", "Thorn", "Ice"), nil = celui de la silhouette.
+function Effects.playTowerShot(from: Vector3, to: Vector3, towerType: string, radius: number, color: Color3, kind: string, towerModel: Model?, flightTime: number?, follow: (() -> Vector3)?, style: string?)
 	if not CombatVFX.isNear(from) and not CombatVFX.isNear(to) then return end
 	aimTower(towerModel, to)
 	from = muzzlePosition(towerModel, towerType, from)
@@ -380,6 +394,21 @@ function Effects.playTowerShot(from: Vector3, to: Vector3, towerType: string, ra
 		if kind == "Aura" then
 			-- Totem de givre : le cercle bleu simple d'origine (demande du propriétaire, 30/09/2026).
 			Effects.circle(to, radius, color)
+		elseif style == "Crimson" then
+			-- Arc carmin : une grosse flèche rouge, traînée dorée, un éclat à l'arrivée.
+			linearProjectile(from, to, color, true, travel, nil, follow, false, CRIMSON_GOLD)
+		elseif style == "Thorn" then
+			-- Lance-ronces : une graine épineuse en cloche ; les ronces poussent là où elle tombe (PlotRenderer : addFire).
+			arcingProjectile(from, to, THORN_SEED, radius, travel, 0.6, Enum.Material.Grass, function(at)
+				Effects.burst(at, 1.4, color, 0.2)
+			end, follow)
+		elseif style == "Ice" then
+			-- Catapulte de givre : un bloc de glace en cloche ; à l'impact, des éclats et le cercle bleu de sa zone (les
+			-- monstres dedans sont ralentis).
+			arcingProjectile(from, to, ICE_BLOCK, radius, travel, 1, Enum.Material.Ice, function(at)
+				CombatVFX.stoneImpact(effectsFolder, at, math.max(1.8, radius * 0.5), ICE_BLOCK)
+				Effects.circle(at, radius, color)
+			end, follow, Enum.PartType.Block)
 		elseif towerType == "Orbital" and flightTime then
 			-- Trébuchet royal : grosse pierre runique, onde dorée (étourdissement) de la taille de sa zone.
 			arcingProjectile(from, to, Color3.fromRGB(96, 92, 86):Lerp(color, 0.3), radius, travel, 1.7, Enum.Material.Slate, function(at)
@@ -422,6 +451,11 @@ function Effects.firePatch(position: Vector3, radius: number): BasePart
 	return CombatVFX.firePatch(effectsFolder, position, radius)
 end
 
+-- Ronces au sol (Lance-ronces) : des épines et des bulles de poison. Même durée et même fin que le feu.
+function Effects.thornPatch(position: Vector3, radius: number): BasePart
+	return CombatVFX.thornPatch(effectsFolder, position, radius)
+end
+
 -- Rayon continu du Sorcier des arcanes : deux couches de Beam et des étincelles au contact.
 -- Une seule paire d'ancres par tour, déplacée par PlotRenderer (updateBeam), cachée quand le rayon
 -- s'éteint (hideBeam) : pas de création ni de destruction à chaque tir, pas de clignotement.
@@ -446,8 +480,8 @@ function Effects.createStatusVisual(root: BasePart, size: number, top: number?):
 	return CombatVFX.statusAnchor(root, size, top)
 end
 
-function Effects.setStatusVisual(anchor: BasePart, source: string?, fragile: boolean)
-	CombatVFX.setStatus(anchor, source, fragile)
+function Effects.setStatusVisual(anchor: BasePart, source: string?, fragile: boolean, poisoned: boolean?)
+	CombatVFX.setStatus(anchor, source, fragile, poisoned == true)
 end
 
 return Effects
