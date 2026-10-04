@@ -84,15 +84,16 @@ Le jeu sort comme une **nouvelle expérience Roblox** (décision du 02/10/2026) 
 
 ## Textes pour la page du jeu (à coller, à changer comme tu veux)
 
-Le nom du jeu est à toi de choisir. Description en anglais (c'est elle que la plupart des joueurs liront) :
+Le nom du jeu est à toi de choisir. Description en anglais (c'est elle que la plupart des joueurs liront ; une
+ligne par point, pour que le collage dans Roblox ne coupe pas les phrases) :
 
 ```text
 Defend your castle in fast 2-3 minute levels!
 
 - Place your towers anywhere and upgrade them non-stop: the monsters never stop getting stronger.
 - 40 levels across 4 territories, with mini-bosses and bosses (more coming soon).
-- 20 towers: win an egg with every victory, hatch it in your incubators and get a new tower, or its much stronger
-  tier 2 version. Beat a territory's boss for its special egg and its special tower.
+- 20 towers: win an egg with every victory, hatch it in your incubators and get a new tower, or its much stronger tier 2 version. Beat a territory's boss for its special egg and its special tower.
+- Play together: teams of 2 to 4 players, everyone defends their own lane, and everyone earns bonus coins.
 - Your own training camp: your towers train and earn stars, even while you're away.
 - Plays on PC and phone. No pay-to-win.
 ```
@@ -104,8 +105,8 @@ Défends ton château dans des niveaux rapides de 2 à 3 minutes !
 
 - Pose tes tours où tu veux et améliore-les sans arrêt : les monstres deviennent de plus en plus forts.
 - 40 niveaux dans 4 territoires, avec des mini-boss et des boss (la suite arrive bientôt).
-- 20 tours : un œuf à chaque victoire, à faire éclore dans tes couveuses, pour une nouvelle tour ou sa version de
-  palier 2, bien plus forte. Bats le boss d'un territoire pour son œuf spécial et sa tour spéciale.
+- 20 tours : un œuf à chaque victoire, à faire éclore dans tes couveuses, pour une nouvelle tour ou sa version de palier 2, bien plus forte. Bats le boss d'un territoire pour son œuf spécial et sa tour spéciale.
+- Joue en équipe : de 2 à 4 joueurs, chacun défend son couloir, et tout le monde gagne plus de pièces.
 - Ton camp d'entraînement : tes tours s'entraînent et gagnent des étoiles, même quand tu es parti.
 - Sur ordinateur et sur téléphone. Rien à acheter pour gagner.
 ```
