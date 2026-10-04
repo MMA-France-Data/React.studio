@@ -74,9 +74,9 @@ Le jeu sort comme une **nouvelle expérience Roblox** (décision du 02/10/2026) 
       `LISEZ-MOI.txt`), et la VIDÉO de 16 s (ta demande du 04/10/2026 : « des rushs de 3/4 s ») dans `A-PUBLIER` :
       `video-16s.mp4` (le jeu seul) ou `video-16s-titres.mp4` (avec un titre en anglais sur chaque plan) : le colosse
       géant, un niveau du glacier, l'œuf carmin qui s'ouvre, le boss de glace, la victoire, enchaînés par des
-      transitions, sur une musique à nous (fabriquée par `musique.py`, libre de droits ; plus le son du jeu).
-      Refaite par `tools\studio-test\video.ps1` (OBS filme le vrai jeu, ffmpeg monte ; voir
-      `tools/studio-test/README.md`).
+      transitions, sur la musique du jeu « Courtly Dances » d'un seul morceau. Cette musique est sous licence
+      Roblox : la vidéo est pour la page du jeu sur Roblox, pas pour YouTube ou TikTok. Refaite par
+      `tools\studio-test\video.ps1` (OBS filme le vrai jeu, ffmpeg monte ; voir `tools/studio-test/README.md`).
 - [ ] Public des moins de 16 ans (règles Roblox 2026) : tout nouveau jeu commence en 16+ ; pour Roblox Kids (5-8 ans)
       et Select (9-15 ans) : âge vérifié, double authentification, Roblox Premium 2 mois de suite (ou frais
       remboursables), puis 250 parties de joueurs « très engagés » en 60 jours (tableau « Audience Reach »). Ne pas

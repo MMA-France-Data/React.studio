@@ -4,8 +4,8 @@
 --   « CALIBRATE »        : un écran magenta plein cadre : OBS repère la vue 3D de Studio (obs.cjs calibrate) ;
 --   « REC:START »        : OBS commence un plan ; « REC:STOP:<nom> » : il l'arrête, rangé dans out/video/<nom>.mp4 ;
 --   « VIDEO:done »       : fini (video.ps1 ferme Studio et OBS, puis montage.py coupe et colle les plans).
--- Les plans (chacun enregistré environ 6 s ; montage.py en garde 3,2 s, plus 0,2 s de chaque côté pour les
--- transitions ; le son du jeu n'est pas gardé : la vidéo a sa propre musique, musique.py) :
+-- Les plans (chacun enregistré environ 6 s ; montage.py en garde environ 3,2 s, plus 0,2 s de chaque côté pour
+-- les transitions ; le son filmé n'est pas gardé : la vidéo a une musique du jeu d'un seul morceau) :
 --   r1 : le colosse géant (niveau 15, le col) qui avance sous les tirs des tours spéciales, de près, sans l'interface ;
 --   r2 : un niveau du glacier (38) en entier, avec l'interface : plein de tours et de monstres, deux améliorées ;
 --   r3 : le boss du glacier (niveau 40), de près (retour du propriétaire : « filme un autre boss, comme celui de

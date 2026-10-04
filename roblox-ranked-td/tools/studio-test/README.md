@@ -203,7 +203,8 @@ l'icône (512 x 512). À refaire quand le jeu change d'allure.
 ### `video.ps1` : la vidéo de la page Roblox du jeu (environ 6 minutes)
 
 Ce n'est pas un test. Demandes du propriétaire (04/10/2026) : « une vidéo de 16 s avec des rushs de 3/4 s », puis
-« fais des transitions, enlève le volume du jeu et mets ta propre musique ».
+« fais des transitions, enlève le volume du jeu » et « une musique du jeu » (d'un seul morceau : le son filmé
+sautait à chaque plan ; une musique fabriquée note par note a été essayée, il ne l'a pas aimée).
 
 ```bat
 powershell -ExecutionPolicy Bypass -File tools\studio-test\video.ps1
@@ -216,19 +217,21 @@ powershell -ExecutionPolicy Bypass -File tools\studio-test\video.ps1
    tirs des tours spéciales, de près), `r2` (un niveau du glacier en entier, avec l'interface), `r3` (le boss du
    glacier, niveau 40 : « il rend mieux » que celui de la forêt), `r4` (l'œuf carmin qui s'ouvre : « 🌟 SPECIAL
    TOWER! »), `r5` (la victoire au boss du niveau 20). Au montage, l'œuf passe entre les deux plans du glacier.
-2. `montage.py` garde 3,2 s de chaque plan (pour l'œuf et la victoire : le panneau apparaît un temps après le début
-   du plan ; ffmpeg trouve le moment où il apparaît, le plus grand changement d'image) et les enchaîne avec des
-   **transitions** de 0,4 s (filtre `xfade` de ffmpeg : l'image glisse à gauche, vers le haut, un flash blanc pour
-   l'arrivée du boss, à gauche). Le son du jeu est enlevé (il sautait à chaque changement de plan) : à la place,
-   **notre propre musique**, fabriquée note par note par `musique.py` (numpy ; rien n'est pris ailleurs, donc
-   libre de droits) : 150 battements par minute, chaque plan dure 2 mesures, chaque changement de plan tombe sur
-   un premier temps avec un « whoosh », un boum pour le début, le boss et la fin, un scintillement quand l'œuf
-   s'ouvre, un accord majeur pour la victoire ; remise au niveau habituel des vidéos (-16 LUFS). Sorties :
-   `video-16s.mp4` (le jeu seul) et `video-16s-titres.mp4` (un titre en anglais sur chaque plan, en fondu), 16 s
-   pile, 1920 x 1080, 60 images/s, H.264 + AAC, copiées dans `A-PUBLIER` ; `out\video\apercu.png` montre le
-   milieu de chaque plan et de chaque transition, `out\video\musique.wav` la musique seule. Refaire seulement le
-   montage : `video.ps1 -MontageSeulement` (la musique seule : `python tools\studio-test\musique.py --sortie
-   musique.wav`, avec `--niveaux` pour le volume de chaque groupe d'instruments).
+2. `montage.py` garde environ 3,2 s de chaque plan (pour l'œuf et la victoire : le panneau apparaît 0,4 s après le
+   début du plan ; ffmpeg trouve le moment où il apparaît, le plus grand changement d'image) et les enchaîne avec
+   des **transitions** de 0,4 s (filtre `xfade` de ffmpeg : l'image glisse à gauche, vers le haut, un flash blanc
+   pour l'arrivée du boss, à gauche). Le son filmé est enlevé (il sautait à chaque changement de plan) : à la
+   place, **une musique du jeu d'un seul morceau**, « Courtly Dances » (« Map : danses de la cour », APM Music,
+   sous licence Roblox), la plus rythmée des 4 ; chaque changement de plan est calé sur une attaque de la musique
+   (une note, 0,2 s au plus de décalage), elle est remise au niveau habituel des vidéos (-16 LUFS) et s'éteint à
+   la fin. Studio garde les sons qu'il a joués dans `%TEMP%\Roblox\sounds` (sous des noms au hasard) :
+   `montage.py` l'y trouve par sa durée (2 min 31,8) et la copie dans `out\video\musique-jeu.ogg` ; si elle n'y
+   est pas, ouvre le jeu dans Studio et laisse jouer la musique ; `--musique fichier` en prend une autre. La
+   musique est sous licence Roblox : la vidéo est pour la page du jeu sur Roblox, pas pour YouTube ou TikTok.
+   Sorties : `video-16s.mp4` (le jeu seul) et `video-16s-titres.mp4` (un titre en anglais sur chaque plan, en
+   fondu), 16 s pile, 1920 x 1080, 60 images/s, H.264 + AAC, copiées dans `A-PUBLIER` ; `out\video\apercu.png`
+   montre le milieu de chaque plan et de chaque transition. Refaire seulement le montage :
+   `video.ps1 -MontageSeulement`.
 
 OBS doit être fermé : il est lancé sur son profil « Tower 22 » (1920 x 1080, 60 images/s, le son de Studio seulement
 (pas gardé au montage),
