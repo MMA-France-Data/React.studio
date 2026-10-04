@@ -89,7 +89,8 @@ Défends ton château dans des niveaux rapides de 2 à 3 minutes !
 
 - Pose tes tours où tu veux et améliore-les sans arrêt : les monstres deviennent de plus en plus forts.
 - 100 niveaux dans 10 territoires, avec des mini-boss et des boss, jusqu'au dragon.
-- 8 tours, dont 6 à débloquer à la boutique : prix fixes, aucun hasard.
+- 16 tours : 8 à la boutique (dont 6 à débloquer, prix fixes, aucun hasard) et leurs 8 versions de palier 2, bien
+  plus fortes, qui sortent des œufs (une à chaque victoire, à faire éclore dans les couveuses).
 - Ton camp d'entraînement : tes tours s'entraînent et évoluent, même quand tu es parti.
 - Sur ordinateur et sur téléphone. Rien à acheter pour gagner.
 ```

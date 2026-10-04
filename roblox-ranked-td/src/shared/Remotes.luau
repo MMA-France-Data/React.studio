@@ -12,7 +12,7 @@ local DEFINITIONS = {
 	-- La vitesse de chaque monstre dans le paquet ne compte PAS le x2 : le client la multiplie par l'attribut
 	-- « SimSpeed » du dossier de la zone (1 ou 2).
 	-- Après les count x 11 octets des monstres : count octets « contrôle », un par monstre dans le même ordre :
-	-- bits 0-3 = numéro dans IdleTowers.ORDER de la tour dont le contrôle est en cours (0 = aucun ; Frost =
+	-- bits 0-6 = numéro dans IdleTowers.ORDER de la famille de la tour (sa tour de palier 1) dont le contrôle est en cours (0 = aucun ; Frost =
 	-- ralenti par un Totem de givre, Tesla = ralenti par un Mage des tempêtes, Orbital = étourdi par le
 	-- Trébuchet royal), bit 7 (128) = fragile (aura d'un Totem de givre). Voir le haut de Combat.luau.
 	PlotSync = "RemoteEvent",

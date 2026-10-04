@@ -76,9 +76,10 @@ local ARRIVAL_SOUNDS = { Boss = "BossArrival", Giant = "GiantArrival" }
 local ARRIVAL_DISTANCE = 15
 
 local ENEMY_BYTES = 11
--- Octet « contrôle » (un par ennemi, après les count x ENEMY_BYTES octets, même ordre) : bits 0-3 = numéro
--- (IdleTowers.ORDER) de la tour dont le contrôle est en cours (0 = aucun), bit 7 = fragile.
-local CONTROL_SOURCE_MASK = 16 -- control % 16 = bits 0-3
+-- Octet « contrôle » (un par ennemi, après les count x ENEMY_BYTES octets, même ordre) : bits 0-6 = numéro
+-- (IdleTowers.ORDER) de la famille de la tour dont le contrôle est en cours (sa tour de palier 1 ; 0 = aucun), bit 7
+-- = fragile.
+local CONTROL_SOURCE_MASK = 128 -- control % 128 = bits 0-6
 local CONTROL_FRAGILE_FLAG = 128
 local FRAGILE_COLOR = Color3.fromRGB(196, 130, 255) -- fragile (aura du Totem de givre)
 local SHOT_BYTES = 27 -- départ 3xf32, arrivée 3xf32, type u8, rayon u8, vol restant u8 (centièmes de s)
@@ -726,7 +727,8 @@ local function onShots(plotIndex: number, packet: buffer, count: number)
 	end
 	local simSpeed = simSpeedOf(plotIndex, state)
 	-- Le feu des flèches et le carreau perçant ne s'affichent que s'ils sont débloqués par l'entraînement (attribut
-	-- « Perks » de la zone, niveau ou camp, ex. « MachineGun:Fire,Rocket:Pierce » : Levels.perkKeys).
+	-- « Perks » de la zone, niveau ou camp, ex. « MachineGun:Fire,Rocket:Pierce » : Levels.perkKeys). Une tour de
+	-- palier 2 (IdleTowers.TIER2) a déjà ses pouvoirs : toujours affichés.
 	local perks = nil
 	if state.arena or (state.folder ~= nil and state.folder:GetAttribute("Camp") == true) then
 		local value = state.folder and state.folder:GetAttribute("Perks")
@@ -749,9 +751,11 @@ local function onShots(plotIndex: number, packet: buffer, count: number)
 		end
 		local targetId = if hasTargets then buffer.readu32(packet, targetStart + i * SHOT_TARGET_BYTES) else 0
 		local follow = if targetId ~= 0 and flight > 0 then followTarget(state, targetId, to, IdleTowers.followDistance(def)) else nil
-		Effects.playTowerShot(from, to, towerType, radius, def.color, def.kind, nearestTower(plotIndex, towerType, from), flight, follow)
+		-- (une tour de palier 2 tire comme sa tour de base, à ses couleurs)
+		local look = IdleTowers.baseOf(towerType)
+		Effects.playTowerShot(from, to, look, radius, def.color, def.kind, nearestTower(plotIndex, towerType, from), flight, follow)
 		-- Sons : ignorés tout de suite loin de la caméra ; l'impact n'est programmé que s'il sera entendu.
-		local sounds = SHOT_SOUNDS[towerType]
+		local sounds = SHOT_SOUNDS[look]
 		if sounds then
 			if sounds.launch then
 				SoundManager.playAt(sounds.launch, from)
@@ -763,10 +767,11 @@ local function onShots(plotIndex: number, packet: buffer, count: number)
 				task.delay(flight, SoundManager.playAt, sounds.impact, to)
 			end
 		end
-		if def.fireRadius and (not perks or string.find(perks, towerType .. ":Fire", 1, true)) then
+		local builtIn = not perks or def.base ~= nil
+		if def.fireRadius and (builtIn or string.find(perks, towerType .. ":Fire", 1, true)) then
 			task.delay(flight, landFire, plotIndex, state.generation, to, def, follow)
 		end
-		if def.kind == "Pierce" and def.pierceWidth and (not perks or string.find(perks, towerType .. ":Pierce", 1, true)) then
+		if def.kind == "Pierce" and def.pierceWidth and (builtIn or string.find(perks, towerType .. ":Pierce", 1, true)) then
 			task.delay(flight, landPierce, plotIndex, state.generation, from, to, def, follow)
 		end
 	end

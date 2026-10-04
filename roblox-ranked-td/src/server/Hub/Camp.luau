@@ -38,7 +38,7 @@ local OPEN_COLOR, LOCKED_COLOR = Color3.fromRGB(132, 124, 106), Color3.fromRGB(4
 local GOLD, IVORY, MUTED = Color3.fromRGB(255, 217, 61), Color3.new(1, 1, 1), Color3.fromRGB(220, 229, 244)
 local INK = Color3.fromRGB(10, 12, 21)
 
--- Les vignettes de la boutique montrent les VRAIES tours, sans images à publier. Huit modèles statiques,
+-- Les vignettes de la boutique montrent les VRAIES tours, sans images à publier. Un modèle statique par tour (16),
 -- créés une fois, hors du Workspace : aucun tir, cible, évolution, invite ou effet de gameplay.
 local function preparePreviews()
 	if ReplicatedStorage:FindFirstChild("CampTowerPreviews") then

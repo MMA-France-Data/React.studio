@@ -1,5 +1,6 @@
--- Modèles 3D médiévaux des 8 tours (niveaux, camp d'entraînement, vignettes de la boutique).
--- Chaque silhouette reste simple, mais doit être identifiable au premier regard.
+-- Modèles 3D médiévaux des 16 tours (niveaux, camp d'entraînement, vignettes de la boutique).
+-- Chaque silhouette reste simple, mais doit être identifiable au premier regard. Une tour de palier 2
+-- (IdleTowers.TIER2) garde la silhouette de sa tour de base, à ses couleurs, avec une parure en plus (plus bas).
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local IdleTowers = require(ReplicatedStorage:WaitForChild("Shared").IdleTowers)
@@ -35,12 +36,26 @@ end
 
 local VERTICAL_CYLINDER = CFrame.Angles(0, 0, math.rad(90))
 
+-- Tour de palier 2 : les pièces qui « portent » son pouvoir s'allument à ses couleurs (pointe de la flèche enflammée,
+-- rocher de magma, pointe du carreau du dragon, cristal du blizzard, éclats du néant, pierre céleste). Noms des pièces
+-- de la silhouette de sa tour de base (plus bas).
+local TIER_GLOW_PARTS = {
+	MachineGun = { ArrowHead = true },
+	Frost = { CrystalCore = true },
+	Bomb = { Boulder = true },
+	Rocket = { BoltHead = true },
+	Laser = { ArcaneShard1 = true, ArcaneShard2 = true, ArcaneShard3 = true },
+	Orbital = { RunicStone = true },
+}
+
 -- cframe : position au sol de la tour, orientée comme sa zone (niveau ou parcelle).
 function IdleTowerModel.create(towerType: string, cframe: CFrame, parent: Instance, attributes: { [string]: any }): Model
 	-- Les armes regardent -Z ; sur une parcelle, les cibles arrivent du fond (+Z).
 	cframe = cframe * CFrame.Angles(0, math.pi, 0)
 	local def = IdleTowers.Defs[towerType]
 	local accent = def.color
+	-- Silhouette : celle de la tour de palier 1 (une tour de palier 2 la garde, avec sa parure).
+	local shape = IdleTowers.baseOf(towerType)
 	local model = Instance.new("Model")
 	model.Name = towerType
 
@@ -106,7 +121,7 @@ function IdleTowerModel.create(towerType: string, cframe: CFrame, parent: Instan
 	cylinder("Plinth", Vector3.new(0.32, 3.25, 3.25), Vector3.new(0, 0.7, 0), paleStone, Enum.Material.Slate, VERTICAL_CYLINDER)
 	cylinder("FoundationTrim", Vector3.new(0.12, 3.88, 3.88), Vector3.new(0, 0.49, 0), iron, Enum.Material.Metal, VERTICAL_CYLINDER)
 
-	if towerType == "MachineGun" then
+	if shape == "MachineGun" then
 		-- Archer sur une petite tour crénelée.
 		block("Keep", Vector3.new(2.65, 2.2, 2.65), Vector3.new(0, 1.9, 0), stone, Enum.Material.Brick)
 		block("Platform", Vector3.new(3.35, 0.28, 3.35), Vector3.new(0, 3.14, 0), wood, Enum.Material.WoodPlanks)
@@ -161,7 +176,7 @@ function IdleTowerModel.create(towerType: string, cframe: CFrame, parent: Instan
 			block("QuiverFeather", Vector3.new(0.17, 0.28, 0.06), Vector3.new(x + 0.11, 5.92 + i * 0.06, 0.5), paleStone, Enum.Material.Fabric)
 		end
 
-	elseif towerType == "Frost" then
+	elseif shape == "Frost" then
 		-- Totem glacé : cercle de menhirs et cristaux effilés.
 		for index, offset in {
 			Vector3.new(-1.08, 1.65, 0.55), Vector3.new(1.08, 1.65, 0.55), Vector3.new(0, 1.65, -1.05),
@@ -178,7 +193,7 @@ function IdleTowerModel.create(towerType: string, cframe: CFrame, parent: Instan
 			shard.Transparency = 0.2
 		end
 
-	elseif towerType == "Bomb" then
+	elseif shape == "Bomb" then
 		-- Catapulte avec roues, montants, treuil et cuillère.
 		block("Chassis", Vector3.new(3.15, 0.42, 2.7), Vector3.new(0, 1.05, 0.2), wood, Enum.Material.WoodPlanks)
 		for _, x in { -1.62, 1.62 } do
@@ -192,7 +207,7 @@ function IdleTowerModel.create(towerType: string, cframe: CFrame, parent: Instan
 		ball("Boulder", 1.05, Vector3.new(0, 6.15, -1.55), Color3.fromRGB(72, 71, 67), Enum.Material.Rock)
 		cylinder("Winch", Vector3.new(2.2, 0.55, 0.55), Vector3.new(0, 1.45, 1.1), iron, Enum.Material.Metal)
 
-	elseif towerType == "Tesla" then
+	elseif shape == "Tesla" then
 		-- Mage des tempêtes, avec l'énergie concentrée dans un petit sceptre.
 		block("Dais", Vector3.new(2.5, 0.35, 2.5), Vector3.new(0, 1.02, 0), darkStone, Enum.Material.Slate)
 		block("Robe", Vector3.new(1.55, 2.6, 1.25), Vector3.new(0, 2.45, 0), Color3.fromRGB(49, 45, 82), Enum.Material.Fabric)
@@ -204,7 +219,7 @@ function IdleTowerModel.create(towerType: string, cframe: CFrame, parent: Instan
 		block("ForkL", Vector3.new(0.15, 1.05, 0.15), Vector3.new(0.9, 5.9, -0.1), gold, Enum.Material.Metal, CFrame.Angles(0, 0, math.rad(-35)))
 		block("ForkR", Vector3.new(0.15, 1.05, 0.15), Vector3.new(1.4, 5.9, -0.1), gold, Enum.Material.Metal, CFrame.Angles(0, 0, math.rad(35)))
 
-	elseif towerType == "Laser" then
+	elseif shape == "Laser" then
 		-- Obélisque arcanique, sans grosse sphère néon.
 		block("Pedestal", Vector3.new(2.25, 0.65, 2.25), Vector3.new(0, 1.15, 0), darkStone, Enum.Material.Slate)
 		block("Obelisk", Vector3.new(1.35, 3.8, 1.35), Vector3.new(0, 3.35, 0), Color3.fromRGB(57, 53, 69), Enum.Material.Slate, CFrame.Angles(0, math.rad(45), 0))
@@ -222,7 +237,7 @@ function IdleTowerModel.create(towerType: string, cframe: CFrame, parent: Instan
 			block("ArcaneFrame" .. index, Vector3.new(1.75, 0.12, 0.12), data[1], gold, Enum.Material.Metal, CFrame.Angles(0, 0, math.rad(data[2])))
 		end
 
-	elseif towerType == "Chain" then
+	elseif shape == "Chain" then
 		-- Oracle de la foudre, encadré par deux paratonnerres.
 		block("Shrine", Vector3.new(2.65, 1.15, 2.65), Vector3.new(0, 1.45, 0), darkStone, Enum.Material.Brick)
 		block("OracleRobe", Vector3.new(1.35, 2.25, 1.1), Vector3.new(0, 3.15, 0), Color3.fromRGB(57, 48, 76), Enum.Material.Fabric)
@@ -235,7 +250,7 @@ function IdleTowerModel.create(towerType: string, cframe: CFrame, parent: Instan
 		end
 		block("LightningRune", Vector3.new(0.12, 1.5, 0.38), Vector3.new(0, 1.55, -1.35), accent, Enum.Material.Neon, CFrame.Angles(0, 0, math.rad(-18)))
 
-	elseif towerType == "Orbital" then
+	elseif shape == "Orbital" then
 		-- Trébuchet royal construit comme une véritable machine de siège.
 		block("Bed", Vector3.new(3.4, 0.38, 3), Vector3.new(0, 1.02, 0.25), darkWood, Enum.Material.WoodPlanks)
 		for _, x in { -1.7, 1.7 } do
@@ -286,7 +301,7 @@ function IdleTowerModel.create(towerType: string, cframe: CFrame, parent: Instan
 	end
 
 	-- Détails structurels : un budget fixe par tour, sans lumières ni émetteurs permanents.
-	if towerType == "MachineGun" then
+	if shape == "MachineGun" then
 		for _, x in { -1.22, 1.22 } do
 			block("CornerButtress", Vector3.new(0.4, 2.1, 0.48), Vector3.new(x, 1.9, -1.3), paleStone, Enum.Material.Limestone)
 		end
@@ -298,9 +313,9 @@ function IdleTowerModel.create(towerType: string, cframe: CFrame, parent: Instan
 			ball("ShoulderGuard", 0.42, Vector3.new(x, 5.24, 0), iron, Enum.Material.Metal)
 		end
 		MedievalModels.banner(model, cf(Vector3.new(1.75, 0.8, 0.5)), accent, 0.55)
-	elseif towerType == "Bomb" or towerType == "Orbital" then
-		local wheelX = if towerType == "Bomb" then 1.62 else 1.7
-		local diameter = if towerType == "Bomb" then 1.85 else 2.05
+	elseif shape == "Bomb" or shape == "Orbital" then
+		local wheelX = if shape == "Bomb" then 1.62 else 1.7
+		local diameter = if shape == "Bomb" then 1.85 else 2.05
 		for _, side in { -1, 1 } do
 			-- Faces métalliques et rayons contrastés sur l'extérieur de chaque roue.
 			cylinder("WheelTyre", Vector3.new(0.12, diameter + 0.12, diameter + 0.12), Vector3.new(side * (wheelX + 0.23), 1.05, 0.3), darkIron, Enum.Material.Metal)
@@ -312,13 +327,13 @@ function IdleTowerModel.create(towerType: string, cframe: CFrame, parent: Instan
 			block("IronBrace", Vector3.new(0.48, 0.22, 2.7), Vector3.new(side * 1.2, 1.28, 0.25), darkIron, Enum.Material.Metal)
 		end
 		ball("ReserveStone", 0.65, Vector3.new(0.85, 1.62, -0.8), darkStone, Enum.Material.Rock)
-		MedievalModels.banner(model, cf(Vector3.new(-1.1, 1.2, 1.3)), accent, if towerType == "Orbital" then 0.68 else 0.45)
-	elseif towerType == "Rocket" then
+		MedievalModels.banner(model, cf(Vector3.new(-1.1, 1.2, 1.3)), accent, if shape == "Orbital" then 0.68 else 0.45)
+	elseif shape == "Rocket" then
 		for i = 1, 3 do
 			block("ReserveBolt", Vector3.new(0.12, 0.12, 2.4), Vector3.new(-1.1 + i * 0.2, 1.5, 0.1), wood, Enum.Material.Wood)
 		end
-	elseif towerType == "Tesla" or towerType == "Chain" then
-		local oracle = towerType == "Chain"
+	elseif shape == "Tesla" or shape == "Chain" then
+		local oracle = shape == "Chain"
 		local torsoY = if oracle then 3.15 else 2.45
 		local hoodY = if oracle then 4.72 else 4.35
 		block("MageStole", Vector3.new(0.35, 2.1, 0.12), Vector3.new(0, torsoY, -0.67), accent, Enum.Material.Fabric)
@@ -336,17 +351,38 @@ function IdleTowerModel.create(towerType: string, cframe: CFrame, parent: Instan
 			local a = i * math.pi / 3
 			block("AltarRune", Vector3.new(0.45, 0.06, 0.12), Vector3.new(math.cos(a) * 1.4, 0.89, math.sin(a) * 1.4), gold, Enum.Material.Metal, CFrame.Angles(0, -a, 0))
 		end
-	elseif towerType == "Frost" then
+	elseif shape == "Frost" then
 		for i = 1, 5 do
 			local a = i / 5 * math.pi * 2
 			wedge(model, "IceOutcrop", { Size = Vector3.new(0.55, 1.1, 0.7), CFrame = cf(Vector3.new(math.cos(a) * 1.45, 1.05, math.sin(a) * 1.45), CFrame.Angles(0, -a, 0)), Color = accent:Lerp(Color3.new(1, 1, 1), 0.4), Material = Enum.Material.Ice })
 		end
-	elseif towerType == "Laser" then
+	elseif shape == "Laser" then
 		for _, y in { 1.55, 4.9 } do
 			block("ObeliskBand", Vector3.new(1.48, 0.18, 1.48), Vector3.new(0, y, 0), gold, Enum.Material.Metal, CFrame.Angles(0, math.pi / 4, 0))
 		end
 		for _, side in { -1, 1 } do
 			wedge(model, "ObeliskFoot", { Size = Vector3.new(0.6, 1.8, 1.2), CFrame = cf(Vector3.new(side * 0.9, 1.7, 0), CFrame.Angles(0, side * math.pi / 2, 0)), Color = paleStone, Material = Enum.Material.Limestone })
+		end
+	end
+
+	-- PARURE DU PALIER 2 : une tour sortie d'un œuf se reconnaît de loin, en plus de ses couleurs. Un anneau de
+	-- lumière à ses couleurs autour du socle, quatre cristaux lumineux posés dessus, et les pièces de son pouvoir qui
+	-- s'allument (TIER_GLOW_PARTS) ; pièces fixes, sans lumière ni émetteur permanent, comme le reste du modèle.
+	if def.base then
+		local glow = accent:Lerp(Color3.new(1, 1, 1), 0.3)
+		cylinder("TierRing", Vector3.new(0.14, 4.25, 4.25), Vector3.new(0, 0.62, 0), glow, Enum.Material.Neon, VERTICAL_CYLINDER)
+		for i = 1, 4 do
+			local angle = (i - 0.5) * math.pi / 2
+			local crystal = block("TierCrystal", Vector3.new(0.3, 0.75, 0.3), Vector3.new(math.cos(angle) * 1.95, 0.95, math.sin(angle) * 1.95), glow, Enum.Material.Neon, CFrame.Angles(0, -angle, math.rad(14)))
+			crystal.CastShadow = false
+		end
+		local glowing = TIER_GLOW_PARTS[shape] or {}
+		for _, child in model:GetChildren() do
+			if glowing[child.Name] and child:IsA("BasePart") then
+				child.Material = Enum.Material.Neon
+				child.Color = glow
+				child.Transparency = 0
+			end
 		end
 	end
 

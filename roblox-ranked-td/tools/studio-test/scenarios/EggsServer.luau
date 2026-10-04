@@ -2,8 +2,9 @@
 -- 1) Seul (le client attend) : un œuf gagné à chaque victoire (doré au boss, commun en rejouant, rien en perdant,
 --    perdu si la réserve est pleine), poser un œuf (couveuse vide et œuf en réserve seulement), pas d'ouverture avant
 --    son temps (l'heure du serveur avance avec le debug « Clock »), la tour sortie (nouvelle : debug « EggForce » ;
---    doublon : XP d'entraînement ; attribut « Hatch » du joueur), finir tout de suite avec des pièces, acheter les
---    couveuses, et les couveuses de la parcelle (l'œuf de sa couleur, l'étiquette, l'invite vers l'onglet Œufs).
+--    une tour de palier 2 prend la place de sa tour de base dans la barre ; doublon : XP d'entraînement ; attribut
+--    « Hatch » du joueur ; au hasard : toujours une tour de palier 2), finir tout de suite avec des pièces, acheter
+--    les couveuses, et les couveuses de la parcelle (l'œuf de sa couleur, l'étiquette, l'invite vers l'onglet Œufs).
 -- 2) Il donne la main au client (attribut EggsTestPhase = "Client" de ReplicatedStorage) et répond à ses demandes par
 --    la RemoteFunction ReplicatedStorage.__EggsTest.
 -- StudioDebug n'existe que dans Studio.
@@ -13,6 +14,7 @@ return function(log)
 	local ReplicatedStorage = game:GetService("ReplicatedStorage")
 	local dbg = game:GetService("ServerStorage"):WaitForChild("StudioDebug", 30)
 	local Levels = require(ReplicatedStorage:WaitForChild("Shared").Levels)
+	local IdleTowers = require(ReplicatedStorage.Shared.IdleTowers)
 
 	local function check(ok, message)
 		log(if ok then "Info" else "Error", `[{if ok then "PASS" else "FAIL"}] œufs (serveur) : {message}`)
@@ -102,33 +104,52 @@ return function(log)
 	ok = action("EggOpen", 1)
 	check(not ok and data().hatchers[1].egg == "Gold", "une minute avant : toujours pas prêt")
 	levels("Clock", 61)
-	levels("EggForce", "Laser")
+	levels("EggForce", "VoidSorcerer")
 	ok = action("EggOpen", 1)
 	local hatch = decode(player:GetAttribute("Hatch")) or {}
 	local mine = data()
 	check(
-		ok and hatch.tower == "Laser" and hatch.new == true and hatch.egg == "Gold" and mine.towers.Laser == true and table.find(mine.bar, "Laser") ~= nil
-			and mine.hatchers[1].egg == "",
-		`4 h plus tard, l'œuf doré s'ouvre : une nouvelle tour, le Sorcier des arcanes (attribut Hatch : {tostring(hatch.tower)}, nouvelle : {tostring(hatch.new)}), dans sa barre`
+		ok and hatch.tower == "VoidSorcerer" and hatch.new == true and hatch.egg == "Gold" and mine.towers.VoidSorcerer == true
+			and table.find(mine.bar, "VoidSorcerer") ~= nil and mine.hatchers[1].egg == "",
+		`4 h plus tard, l'œuf doré s'ouvre : une nouvelle tour de palier 2, le Sorcier du néant (attribut Hatch : {tostring(hatch.tower)}, nouvelle : {tostring(hatch.new)}), dans sa barre`
 	)
+	-- Une tour de palier 2 prend la place de sa tour de base dans la barre (l'Archer passe au bout).
 	action("EggStart", 1, "Common")
 	levels("Clock", Levels.EGGS.Common.seconds + 1)
-	levels("EggForce", "MachineGun")
-	-- (XP lue après le saut d'heure : l'Archer s'entraîne aussi dans le camp pendant ce temps)
-	local xpBefore = data().xp.MachineGun or 0
+	levels("EggForce", "FireArcher")
 	action("EggOpen", 1)
 	hatch = decode(player:GetAttribute("Hatch")) or {}
+	local bar = Levels.ownedTowers(data())
 	check(
-		hatch.tower == "MachineGun" and hatch.new == false and hatch.xp == Levels.DUPLICATE_XP.Common
-			and math.abs((data().xp.MachineGun or 0) - xpBefore - Levels.DUPLICATE_XP.Common) < 1,
-		`un doublon (l'Archer, déjà à lui) : +{tostring(hatch.xp)} XP d'entraînement pour l'Archer`
+		hatch.tower == "FireArcher" and hatch.new == true and bar[1] == "FireArcher" and bar[#bar] == "MachineGun" and data().towers.MachineGun == true,
+		`l'Archer enflammé prend la place de l'Archer dans la barre : {table.concat(bar, ", ")}`
 	)
+	-- Un doublon donne de l'XP d'entraînement à cette tour ; « Finir » tout de suite.
 	local coinsBefore = data().coins
+	local xpBefore = data().xp.FireArcher or 0
 	action("EggStart", 1, "Common")
 	ok = action("EggSkip", 1)
 	local skipCost = Levels.skipCost(Levels.EGGS.Common.seconds)
+	levels("EggForce", "FireArcher")
 	local opened = action("EggOpen", 1)
+	hatch = decode(player:GetAttribute("Hatch")) or {}
+	check(
+		hatch.tower == "FireArcher" and hatch.new == false and hatch.xp == Levels.DUPLICATE_XP.Common
+			and math.abs((data().xp.FireArcher or 0) - xpBefore - Levels.DUPLICATE_XP.Common) < 1e-6,
+		`un doublon (l'Archer enflammé, déjà à lui) : +{tostring(hatch.xp)} XP d'entraînement pour lui`
+	)
 	check(ok and opened and data().coins == coinsBefore - skipCost, `« Finir » tout de suite : {skipCost} pièces, puis l'œuf s'ouvre`)
+	-- Un œuf ouvert au hasard donne toujours une tour de palier 2.
+	levels("Egg", "Common", 6)
+	local tierTwo = true
+	for _ = 1, 6 do
+		action("EggStart", 1, "Common")
+		action("EggSkip", 1)
+		action("EggOpen", 1)
+		hatch = decode(player:GetAttribute("Hatch")) or {}
+		tierTwo = tierTwo and IdleTowers.tierOf(hatch.tower or "") == 2 and IdleTowers.Defs[hatch.tower] ~= nil
+	end
+	check(tierTwo, "6 œufs ouverts au hasard : toujours une tour de palier 2")
 
 	------------------------------------------------------------------
 	-- Acheter des couveuses
@@ -203,6 +224,14 @@ return function(log)
 			action("Start", level)
 			levels("Finish", true)
 			return true
+		elseif command == "Play" then
+			-- (un niveau lancé pour de vrai, avec de quoi tout poser)
+			local level = ...
+			action("Start", level)
+			levels("Gold", 1e6)
+			return true
+		elseif command == "Place" then
+			return action("Place", ...)
 		elseif command == "Quit" then
 			return action("Quit")
 		elseif command == "State" then

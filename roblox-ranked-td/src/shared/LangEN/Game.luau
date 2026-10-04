@@ -46,6 +46,15 @@ return {
 	["Rayon qui chauffe : terrible contre les boss."] = "A beam that heats up: deadly against bosses.",
 	["Un éclair qui rebondit sur 4 monstres."] = "A bolt that bounces across 4 monsters.",
 	["Une pierre géante sur le plus gros groupe."] = "A giant stone on the biggest group.",
+	-- (tours de palier 2 : « Mes tours » et la tour sortie d'un œuf)
+	["L'Archer en bien plus fort : ses flèches laissent du feu."] = "A much stronger Archer: its arrows leave fire.",
+	["Ralentit de {1} % et rend les monstres bien plus fragiles."] = "Slows by {1}% and makes monsters much more fragile.",
+	["Rochers de magma : grosse zone, et le sol brûle."] = "Magma rocks: a big area, and the ground burns.",
+	["Grosse foudre de zone, coup de frein immense."] = "Big area lightning, and a huge brake.",
+	["Carreau géant qui transperce {1} monstres et brûle le sol."] = "A giant bolt that pierces {1} monsters and burns the ground.",
+	["Rayon du néant : il fait fondre les boss."] = "Void beam: it melts bosses.",
+	["Un éclair qui rebondit sur {1} monstres."] = "A bolt that bounces across {1} monsters.",
+	["Une pierre céleste sur le plus gros groupe."] = "A celestial stone on the biggest group.",
 	["En niveau : {1}"] = "In a level: {1}",
 	["{1} au plus"] = "{1} max",
 	["✓ À TOI"] = "✓ OWNED",
@@ -54,6 +63,9 @@ return {
 	-- Tours pas encore achetées, dans les listes « Entraînement » et « Mes tours »
 	["{1} dans la Boutique"] = "{1} in the Shop",
 	["BOUTIQUE"] = "SHOP",
+	["Palier 2 de : {1}"] = "Tier 2 of: {1}", -- « Palier 2 de : Catapulte • dans les œufs » (et la tour sortie d'un œuf)
+	["dans les œufs"] = "in eggs",
+	["ŒUFS"] = "EGGS",
 	-- Onglet « Entraînement »
 	["EMPLACEMENT {1}"] = "SLOT {1}",
 	["niveau {1}"] = "level {1}",
@@ -69,11 +81,13 @@ return {
 	["Entraînement {1}/{2}"] = "Training {1}/{2}",
 	["Prochaine évolution (entraînement {1}) : {2}. {3}"] = "Next evolution (training {1}): {2}. {3}",
 	["Toutes ses évolutions sont débloquées."] = "All its evolutions are unlocked.",
+	["Palier 2 : ses pouvoirs sont déjà là. L'entraînement monte ses dégâts."] = "Tier 2: its powers are already there. Training raises its damage.",
 	["✓ S'ENTRAÎNE (retirer)"] = "✓ TRAINING (remove)",
 	["Empl. {1} → {2}"] = "Slot {1} → {2}",
 	["ENTRAÎNER"] = "TRAIN",
 	-- Onglet « Mes tours »
-	["Toutes tes tours peuvent être posées dans un niveau. Cet ordre est celui de ta barre rapide (▲ ▼ pour le changer)."] = "All your towers can be placed in a level. This is the order of your quick bar (▲ ▼ to change it).",
+	["Tes {1} premières tours vont dans ta barre rapide pour les niveaux, les autres attendent en réserve (▲ ▼ pour changer l'ordre)."] = "Your first {1} towers go in your quick bar for levels, the others wait in reserve (▲ ▼ to change the order).",
+	["Réserve"] = "Reserve", -- « Réserve • Catapulte • 45 💰 • entraînement 3 »
 	["entraînement {1}"] = "training {1}",
 	-- Ligne de stats d'une tour (statsLine, UI.towerSpeed)
 	["Dégâts {1}"] = "Damage {1}",
@@ -300,6 +314,7 @@ return {
 	["Chaque victoire donne un œuf : commun, rare au mini-boss, doré au boss (en rejouant : commun, rare au boss)."] = "Every win gives an egg: common, rare on a mini-boss, golden on a boss (when replaying: common, rare on a boss).",
 	["Pose-le dans une couveuse : il éclot même quand tu n'es pas là, puis il donne une tour au hasard."] = "Put it in an incubator: it hatches even while you're away, then it gives a random tower.",
 	["Une tour que tu as déjà donne de l'XP d'entraînement à cette tour."] = "A tower you already have gives training XP to that tower.",
+	["Les œufs donnent les tours de palier 2 : des versions bien plus fortes des tours de la boutique."] = "Eggs give tier 2 towers: much stronger versions of the shop towers.",
 	["DOUBLON"] = "DUPLICATE",
 	["{1} : elle rejoint ta barre de tours"] = "{1}: it joins your tower bar",
 	["{1} : +{2} XP d'entraînement pour cette tour"] = "{1}: +{2} training XP for this tower",

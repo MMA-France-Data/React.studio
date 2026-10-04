@@ -37,8 +37,9 @@
 --
 -- Paquets réseau (lus par PlotRenderer.luau) :
 --   PlotSync (positions)  = count x ENEMY_BYTES octets, PUIS count octets « contrôle » (un par ennemi, même
---     ordre) : bits 0-3 = numéro (IdleTowers.ORDER) du type de tour dont le contrôle est en cours (0 = aucun ;
---     Frost = ralenti par un Totem, Tesla = ralenti par un Mage, Orbital = étourdi par le Trébuchet), bit 7
+--     ordre) : bits 0-6 = numéro (IdleTowers.ORDER) de la FAMILLE de la tour dont le contrôle est en cours (sa tour
+--     de palier 1 ; 0 = aucun ; Frost = ralenti par un Totem, Tesla = ralenti par un Mage, Orbital = étourdi par le
+--     Trébuchet, ou par leur version de palier 2), bit 7
 --     (valeur 128) = fragile (dans l'aura d'un Totem de givre : prend plus de dégâts). Un client qui ne lit que
 --     les count x ENEMY_BYTES premiers octets marche toujours (ces octets sont à la fin).
 --   PlotShots (tirs)      = count x SHOT_BYTES octets (voir SHOT_BYTES), PUIS count x SHOT_TARGET_BYTES octets :
@@ -127,7 +128,11 @@ end
 -- que slowDuration s sur (slowDuration + slowImmunity) s au plus (0,6 s sur 1,4 s avec les réglages actuels),
 -- les Trébuchets l'étourdir que 0,5 s sur 2 s, quel que soit le nombre de ces tours.
 -- L'immunité ne bloque que ce type de tour : le Totem peut geler un ennemi immunisé contre le Mage.
--- source = clé de la tour (stats.towerType), strength = 0 à 1 (1 = étourdi : vitesse 0), immunity = secondes
+-- « Type » = FAMILLE de la tour (stats.family : sa tour de palier 1). Une tour de palier 2 compte comme sa tour de
+-- base : un Totem du blizzard prolonge le gel d'un Totem de givre (le plus fort des deux ralentissements reste, ils
+-- ne s'additionnent jamais), et la fatigue du Mage vaut aussi pour l'Archimage (sinon, en les mélangeant, un
+-- monstre serait ralenti sans fin).
+-- source = famille de la tour (stats.family), strength = 0 à 1 (1 = étourdi : vitesse 0), immunity = secondes
 -- (nil ou 0 = contrôle qui dure, comme le Totem).
 -- Renvoie vrai si l'effet s'applique (ou prolonge le sien), faux s'il est refusé. Les dégâts, eux, tombent
 -- toujours (voir hitEnemy).
@@ -138,6 +143,7 @@ local function applyControl(enemy, source: string, strength: number, duration: n
 			return false
 		end
 		enemy.controlUntil = math.max(enemy.controlUntil, now + duration)
+		enemy.controlFactor = math.max(enemy.controlFactor, math.clamp(strength, 0, 1))
 		return true
 	end
 	local fatigue = enemy.fatigue
@@ -227,10 +233,10 @@ end
 -- dégâts tombent toujours.
 function Combat:hitEnemy(enemy, stats, now: number)
 	if stats.slow then
-		applyControl(enemy, stats.towerType, stats.slow, stats.slowDuration, stats.slowImmunity, now)
+		applyControl(enemy, stats.family or stats.towerType, stats.slow, stats.slowDuration, stats.slowImmunity, now)
 	end
 	if stats.stunDuration then
-		applyControl(enemy, stats.towerType, 1, stats.stunDuration, stats.stunImmunity, now)
+		applyControl(enemy, stats.family or stats.towerType, 1, stats.stunDuration, stats.stunImmunity, now)
 	end
 	self:damageEnemy(enemy, stats.damage, not stats.ignoresFragility)
 end
@@ -270,7 +276,8 @@ local function byAlongThenIndex(a, b): boolean
 end
 
 -- Carreau perçant (Baliste lourde). Il transperce AU PLUS IdleTowers.BALLISTA_PIERCE_MAX ennemis (« transperce
--- 3 max », décision du propriétaire) : sa cible si elle vit encore (touchée où qu'elle soit, comme une flèche :
+-- 3 max », décision du propriétaire ; stats.pierceMax pour une tour qui a sa propre limite, comme la Baliste du
+-- dragon) : sa cible si elle vit encore (touchée où qu'elle soit, comme une flèche :
 -- un ralentissement arrivé pendant le vol ne lui fait pas éviter le carreau), plus les PREMIERS ennemis vivants
 -- que le carreau rencontre à moins de stats.pierceWidth studs du segment origine (la tour) -> point d'impact :
 -- les plus proches de la tour le long du trait (alongSegment) ; à égalité, le premier de la liste des ennemis.
@@ -285,7 +292,7 @@ function Combat:hitLine(origin: Vector3, impactPoint: Vector3, stats, target, no
 		end
 	end
 	-- Places pour eux : la cible vivante prend toujours la sienne.
-	local places = math.max(0, IdleTowers.BALLISTA_PIERCE_MAX - (if target.dead then 0 else 1))
+	local places = math.max(0, (stats.pierceMax or IdleTowers.BALLISTA_PIERCE_MAX) - (if target.dead then 0 else 1))
 	if #onLine > places then
 		-- Trop d'ennemis sur la ligne : seulement les premiers que le carreau rencontre.
 		table.sort(onLine, byAlongThenIndex)
@@ -416,7 +423,7 @@ end
 -- ou plus, c'est pareil pour sa visée (à égalité, le plus résistant, voir pickPierceTarget).
 function Combat:countPierced(candidate, origin: Vector3, aim: Vector3, flight: number, stats, now: number): number
 	local width = stats.pierceWidth
-	local limit = IdleTowers.BALLISTA_PIERCE_MAX
+	local limit = stats.pierceMax or IdleTowers.BALLISTA_PIERCE_MAX
 	local count = 1 -- sa cible : toujours touchée (hitLine)
 	for _, other in self.enemies do
 		if count >= limit then
@@ -685,7 +692,7 @@ function Combat:towerAttack(tower, stats, now: number): boolean
 				-- autre tour contrôle déjà l'ennemi) et le rend fragile (toujours), puis de petits dégâts (qui, eux,
 				-- ne profitent pas de la fragilité : ignoresFragility, voir IdleTowers.luau).
 				if stats.slow then
-					applyControl(enemy, stats.towerType, stats.slow, stats.slowDuration, stats.slowImmunity, now)
+					applyControl(enemy, stats.family or stats.towerType, stats.slow, stats.slowDuration, stats.slowImmunity, now)
 				end
 				applyFragility(enemy, stats.fragility or 0, stats.fragilityDuration or stats.slowDuration or 0, now)
 				self:damageEnemy(enemy, stats.damage, not stats.ignoresFragility)

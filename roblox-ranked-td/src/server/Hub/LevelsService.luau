@@ -551,12 +551,12 @@ local function startLevel(player: Player, level: any): (boolean, string?)
 	local others = {}
 	for index = 2, #group do
 		local data = levelsOf(group[index])
-		table.insert(others, { player = group[index], unlocked = table.clone(data.towers), training = Levels.trainingLevels(data) })
+		table.insert(others, { player = group[index], unlocked = Levels.barTowers(data), training = Levels.trainingLevels(data) })
 	end
 	local match = { slot = slot, players = group, syncTimer = 0, shotsTimer = 0 }
 	match.game = LevelGame.new(arena, player, {
 		level = level,
-		unlocked = table.clone(levels.towers),
+		unlocked = Levels.barTowers(levels), -- (les tours de sa barre rapide : les autres sont en réserve)
 		training = Levels.trainingLevels(levels),
 		startingTower = level == 1 and #group == 1,
 		team = others,
@@ -706,8 +706,7 @@ local function buyTower(player: Player, levels, towerType: any): (boolean, strin
 		return false, `Il te manque {price - levels.coins} pièces de niveau`
 	end
 	levels.coins -= price
-	levels.towers[towerType] = true
-	table.insert(levels.bar, towerType)
+	Levels.addTower(levels, towerType)
 	levels.tutorial = Levels.TUTORIAL.DONE -- première tour achetée : le tuto est fini
 	if real(player) then
 		Funnel.reach(player, Funnel.STEP.Bought)

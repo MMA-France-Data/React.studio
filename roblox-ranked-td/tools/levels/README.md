@@ -20,7 +20,7 @@ powershell -ExecutionPolicy Bypass -File tools\levels\run.ps1 -Regler "Levels.ST
 - **sans option** : le tableau de difficulté. Chaque niveau est joué par des joueurs simulés : très actif, au rythme
   demandé par le niveau, lent (un achat toutes les 8 s), distrait (toutes les 15 s), sans boutique, tout débloqué.
   « G 7 » = gagné avec 7 vies, « P 62 % » = perdu après avoir éliminé 62 % des monstres. Environ 2 minutes.
-- **`-Tests`** : 1 838 vérifications (100 niveaux, 10 territoires, flot continu, cartes, pose libre, récompenses, prix, entraînement, données
+- **`-Tests`** : 1 853 vérifications (100 niveaux, 10 territoires, flot continu, cartes, pose libre, récompenses, prix, entraînement, données
   du joueur, le moteur : or, vies, victoire, défaite, vitesse x2, paquets réseau, **la difficulté de chaque
   niveau** : voir plus bas, les évolutions des tours, le camp d'entraînement de la parcelle : `CampGame.luau`, et
   **le tuto** : son étape dans les données, les deux premiers gestes du niveau 1 ; **le jeu en équipe** : les règles,
@@ -28,7 +28,10 @@ powershell -ExecutionPolicy Bypass -File tools\levels\run.ps1 -Regler "Levels.ST
   d'équipe** (mêmes règles que les cartes seules, couloirs qui restent ensemble après leur rencontre, écarts, dalles
   du chemin), le flot partagé entre les couloirs, chaque monstre sur son couloir, des équipes de 2, 3 et 4
   joueurs simulés qui doivent gagner les niveaux 10, 50 et 100 ; **les amis** : bonus d'ami sur le serveur,
-  récompenses d'invitation une fois par ami ; **les œufs** : œuf gagné, réserve, chances, tour sortie, données).
+  récompenses d'invitation une fois par ami ; **les œufs** : œuf gagné, réserve, chances, tour sortie, données ;
+  **les tours de palier 2** : chacune et sa tour de base, prix, bien plus fortes même face à une tour de base
+  entraînée au maximum, pouvoirs déjà là, seulement dans les œufs, la barre de 8 tours et la réserve, la Catapulte de
+  magma posée dans un niveau, Totem de givre + Totem du blizzard qui ne s'additionnent pas).
   Une dizaine de minutes.
 - **`-Lazy`** : les 10 niveaux joués par un joueur qui pose quelques tours puis attend (rien de plus, 2 Archers,
   3 Archers, 2 Archers et une Catapulte, 4 Archers et 2 Catapultes). Ils doivent tous perdre.

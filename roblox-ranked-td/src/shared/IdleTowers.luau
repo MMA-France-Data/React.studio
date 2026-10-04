@@ -1,8 +1,18 @@
--- Les 8 TOURS du jeu : leurs stats de combat. Leur prix en or, leur prix à la boutique et leurs évolutions sont
+-- Les 16 TOURS du jeu : leurs stats de combat. Leur prix en or, leur prix à la boutique et leurs évolutions sont
 -- dans Levels.luau ; le combat lui-même est dans Hub/Combat.luau.
 -- (Ce fichier garde le nom qu'il avait dans l'ancien jeu.)
 --
--- Chacune a son rôle :
+-- DEUX PALIERS. Demande du propriétaire (04/10/2026) : « archer, archer enflammé, déjà pas les mêmes » ; « la
+-- première tour quasi obsolète après, une claire différence de niveau entre chaque tour de palier ».
+--   * PALIER 1 (TIER1) : les 8 tours de départ et de la boutique (décrites juste en dessous) ;
+--   * PALIER 2 (TIER2) : leurs 8 versions fortes, qu'on n'a QUE dans les œufs (« LES ŒUFS », Levels.luau). Une tour
+--     de palier 2 a un champ base = sa tour de palier 1 : même rôle, même rareté, même silhouette (avec une parure
+--     en plus, Hub/IdleTowerModel.luau), mais 2,3 à 3,5 fois ses dégâts par seconde, et ses pouvoirs (feu,
+--     fragilité, carreau perçant...) sont déjà là : elle n'a pas d'améliorations d'entraînement (Levels.PERKS),
+--     l'entraînement ne lui donne que des dégâts. Ses effets, ses sons et ses contrôles sont ceux de sa tour de base
+--     (IdleTowers.baseOf).
+--
+-- Chaque tour de palier 1 a son rôle :
 --   Archer du rempart   -> tireur rapide à longue portée (21) : fort contre les files de monstres ; ses flèches
 --                          enflammées (évolution ★) laissent des zones de feu
 --   Totem de givre      -> tour de CONTRÔLE : ralentit tout ce qui passe dans son aura et rend ces monstres
@@ -53,7 +63,14 @@ local IdleConfig = require(script.Parent.IdleConfig)
 
 local IdleTowers = {}
 
-IdleTowers.ORDER = { "MachineGun", "Frost", "Bomb", "Tesla", "Rocket", "Laser", "Chain", "Orbital" }
+-- Toutes les tours : les 8 de palier 1, puis leurs 8 versions de palier 2 dans le même ordre. Leur numéro dans cette
+-- liste voyage dans les paquets des tirs et des contrôles (Combat.luau) : ne jamais changer l'ordre, ajouter à la fin.
+IdleTowers.ORDER = {
+	"MachineGun", "Frost", "Bomb", "Tesla", "Rocket", "Laser", "Chain", "Orbital",
+	"FireArcher", "BlizzardTotem", "MagmaCatapult", "StormArchmage", "DragonBallista", "VoidSorcerer", "ThunderOracle", "CelestialTrebuchet",
+}
+IdleTowers.TIER1 = { "MachineGun", "Frost", "Bomb", "Tesla", "Rocket", "Laser", "Chain", "Orbital" }
+IdleTowers.TIER2 = { "FireArcher", "BlizzardTotem", "MagmaCatapult", "StormArchmage", "DragonBallista", "VoidSorcerer", "ThunderOracle", "CelestialTrebuchet" }
 
 -- Temps de vol maximal d'un projectile, en secondes de simulation : il voyage sur 1 octet (en centièmes
 -- de seconde, 2,55 s au plus) dans le paquet des tirs (Combat.luau). Un réglage plus long est coupé ici.
@@ -79,7 +96,8 @@ IdleTowers.BALLISTA_TIE_RATIO = 0.85
 IdleTowers.BALLISTA_MAX_CANDIDATES = 12
 -- Le carreau de la Baliste transperce AU PLUS ce nombre de monstres (décision du propriétaire : « transperce 3
 -- max »). Sa cible est toujours touchée, plus les premiers monstres que le carreau rencontre sur sa ligne (les
--- plus proches de la tour). Voir Combat:hitLine et countPierced.
+-- plus proches de la tour). Voir Combat:hitLine et countPierced. Une tour peut avoir sa propre limite : pierceMax
+-- (la Baliste du dragon, palier 2 : 4).
 IdleTowers.BALLISTA_PIERCE_MAX = 3
 -- LIMITE DE TOURS IDENTIQUES posées dans un niveau, selon la rareté de la tour (Levels.MAX_COPIES peut fixer une
 -- autre limite pour une tour précise). Voir maxCopies.
@@ -250,7 +268,181 @@ IdleTowers.Defs = {
 		projectileSpeed = 45,
 		projectileMinFlight = 0.8,
 	},
+
+	----------------------------------------------------------------------
+	-- PALIER 2 : seulement dans les œufs. base = la tour de palier 1 dont c'est la version forte (même rareté). Les
+	-- chiffres sont les miens (2,3 à 3,5 fois les dégâts par seconde de la tour de base, ses pouvoirs déjà là) : ils
+	-- se règlent avec tools\levels\run.ps1 -Worth, comme ceux du palier 1.
+	----------------------------------------------------------------------
+	FireArcher = {
+		base = "MachineGun",
+		rarity = "Common",
+		displayName = "Archer enflammé",
+		kind = "Single",
+		targeting = "First",
+		color = Color3.fromRGB(232, 98, 38),
+		-- L'Archer du rempart avec tous ses pouvoirs (flèches enflammées, longue-vue, tir rapide) et des flèches 2,3 fois
+		-- plus fortes : ~2,7 fois ses dégâts par seconde, et un feu plus large qui dure plus longtemps.
+		damage = 7,
+		range = 24,
+		cooldown = 0.17,
+		projectileSpeed = 100,
+		fireRadius = 3,
+		fireDuration = 2.5,
+		fireDamageRatio = 0.5,
+		fireTick = 0.5,
+		fireMaxPatches = 6,
+	},
+	BlizzardTotem = {
+		base = "Frost",
+		rarity = "Common",
+		displayName = "Totem du blizzard",
+		kind = "Aura",
+		color = Color3.fromRGB(96, 178, 255),
+		-- Le Totem de givre en bien plus fort : ralentit de 50 % (le Totem : 40 % dans un niveau), une aura plus grande,
+		-- et une fragilité deux fois plus forte dès le début (+20 %, +3 % par niveau). Ses contrôles comptent comme ceux
+		-- du Totem de givre (Combat.luau : un seul ralentissement à la fois, le plus fort des deux).
+		damage = 6,
+		range = 13,
+		cooldown = 1,
+		slow = 0.5,
+		slowDuration = 2.5,
+		fragilityBase = 0.2,
+		fragilityPerLevel = 0.03,
+		fragilityMax = 3,
+		fragilityDuration = 2.5,
+		ignoresFragility = true,
+	},
+	MagmaCatapult = {
+		base = "Bomb",
+		rarity = "Rare",
+		displayName = "Catapulte de magma",
+		kind = "Splash",
+		targeting = "First",
+		color = Color3.fromRGB(255, 92, 28),
+		-- Rochers de magma : 2,5 fois les dégâts de la Catapulte, plus loin, une zone plus large, et le sol BRÛLE là où
+		-- ils tombent (une zone de feu, comme les flèches enflammées).
+		damage = 42,
+		range = 17,
+		cooldown = 1.6,
+		splash = 8.5,
+		projectileSpeed = 26,
+		projectileMinFlight = 0.45,
+		fireRadius = 4,
+		fireDuration = 2,
+		fireDamageRatio = 0.25,
+		fireTick = 0.5,
+		fireMaxPatches = 3,
+	},
+	StormArchmage = {
+		base = "Tesla",
+		rarity = "Rare",
+		displayName = "Archimage des tempêtes",
+		kind = "Splash",
+		targeting = "First",
+		color = Color3.fromRGB(140, 228, 255),
+		-- Le Mage des tempêtes en bien plus fort : 2,6 fois ses dégâts, zone et portée plus grandes, éclairs plus
+		-- rapides. Ses ralentissements comptent comme ceux du Mage (même fatigue, voir « CONTRÔLES »).
+		damage = 26,
+		range = 19,
+		cooldown = 0.7,
+		splash = 4,
+		slow = 0.9,
+		slowDuration = 0.7,
+		slowImmunity = 0.8,
+		ignoresFragility = true,
+	},
+	DragonBallista = {
+		base = "Rocket",
+		rarity = "Epic",
+		displayName = "Baliste du dragon",
+		kind = "Pierce",
+		targeting = "Strongest",
+		color = Color3.fromRGB(224, 44, 58),
+		-- Un carreau de 300 (la Baliste lourde : 120) qui transperce jusqu'à 4 monstres (pierceMax ; la Baliste : 3) et
+		-- enflamme le sol là où il arrive.
+		damage = 300,
+		range = 35,
+		cooldown = 3.4,
+		pierceWidth = 1.5,
+		pierceMax = 4,
+		projectileSpeed = 85,
+		fireRadius = 3,
+		fireDuration = 3,
+		fireDamageRatio = 0.1,
+		fireTick = 0.5,
+		fireMaxPatches = 2,
+	},
+	VoidSorcerer = {
+		base = "Laser",
+		rarity = "Epic",
+		displayName = "Sorcier du néant",
+		kind = "Beam",
+		targeting = "Strongest",
+		color = Color3.fromRGB(134, 58, 255),
+		-- Rayon du néant : 2,3 fois le Sorcier des arcanes au départ, il chauffe plus vite (+3 par seconde) et monte plus
+		-- haut (x30).
+		damage = 16,
+		range = 17,
+		beamRampRate = 3,
+		beamRampMax = 30,
+	},
+	ThunderOracle = {
+		base = "Chain",
+		rarity = "Legendary",
+		displayName = "Oracle du tonnerre",
+		kind = "Chain",
+		targeting = "First",
+		color = Color3.fromRGB(86, 146, 255),
+		-- Un éclair de 130 (l'Oracle de la foudre : 60) qui rebondit sur 6 monstres (l'Oracle : 4).
+		damage = 130,
+		range = 23,
+		cooldown = 1.1,
+		chains = 6,
+	},
+	CelestialTrebuchet = {
+		base = "Orbital",
+		rarity = "Legendary",
+		displayName = "Trébuchet céleste",
+		kind = "Splash",
+		targeting = "Crowd",
+		color = Color3.fromRGB(255, 226, 128),
+		-- Une pierre céleste de 240 (le Trébuchet royal : 100), une zone plus grande (12), et un étourdissement plus long
+		-- (1,3 s ; même fatigue que le Trébuchet royal : ses étourdissements comptent comme les siens).
+		damage = 240,
+		range = 70,
+		cooldown = 4.5,
+		splash = 12,
+		stunDuration = 1.3,
+		stunImmunity = 2,
+		projectileSpeed = 45,
+		projectileMinFlight = 0.8,
+	},
 }
+
+-- Tour de palier 1 d'une tour (elle-même pour une tour de palier 1, ou un type inconnu). Une tour de palier 2 a les
+-- effets, les sons et la silhouette de sa tour de base (Effects, PlotRenderer, IdleTowerModel), et ses contrôles
+-- comptent comme les siens (stats.family, Combat.luau).
+function IdleTowers.baseOf(towerType: string): string
+	local def = IdleTowers.Defs[towerType]
+	return (def and def.base) or towerType
+end
+
+-- Palier d'une tour : 1 (départ, boutique) ou 2 (œufs).
+function IdleTowers.tierOf(towerType: string): number
+	local def = IdleTowers.Defs[towerType]
+	return if def and def.base then 2 else 1
+end
+
+-- La version de palier 2 d'une tour de palier 1 (nil s'il n'y en a pas).
+function IdleTowers.upgradeOf(towerType: string): string?
+	for _, other in IdleTowers.TIER2 do
+		if IdleTowers.Defs[other].base == towerType then
+			return other
+		end
+	end
+	return nil
+end
 
 local statsCache = {}
 
@@ -265,9 +457,10 @@ function IdleTowers.fragilityAt(def, level: number): number
 end
 
 -- Stats d'une tour à un niveau donné (dégâts multipliés par le niveau : IdleConfig.UPGRADE_DAMAGE). En plus des
--- champs de sa définition : towerType (sa clé, ex. "Frost" : la règle des contrôles compare les types de tours),
--- level, et fragility (Totem de givre, voir fragilityAt). Le tableau renvoyé ne doit jamais être modifié (il est
--- partagé) : Levels.towerStats en fait une copie avant d'y ajouter l'entraînement et les évolutions.
+-- champs de sa définition : towerType (sa clé, ex. "Frost"), family (sa tour de palier 1, baseOf : la règle des
+-- contrôles compare les familles, un Totem du blizzard compte comme un Totem de givre), level, et fragility (Totem
+-- de givre, voir fragilityAt). Le tableau renvoyé ne doit jamais être modifié (il est partagé) : Levels.towerStats en
+-- fait une copie avant d'y ajouter l'entraînement et les évolutions.
 function IdleTowers.stats(towerType: string, level: number)
 	local key = towerType .. ":" .. level
 	local cached = statsCache[key]
@@ -277,6 +470,7 @@ function IdleTowers.stats(towerType: string, level: number)
 	local def = IdleTowers.Defs[towerType]
 	local stats = table.clone(def)
 	stats.towerType = towerType
+	stats.family = def.base or towerType
 	stats.level = level
 	stats.damage = def.damage * IdleConfig.UPGRADE_DAMAGE ^ (level - 1)
 	if def.fragilityBase then

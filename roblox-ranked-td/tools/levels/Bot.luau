@@ -50,21 +50,24 @@ local function candidateSpots(mapName: string)
 	return spots
 end
 
--- Dégâts par seconde estimés d'une tour (ordre de grandeur : zones et carreaux comptent plusieurs cibles).
+-- Dégâts par seconde estimés d'une tour (ordre de grandeur : zones et carreaux comptent plusieurs cibles ; le feu
+-- au sol, deux).
 local function estimate(towerType: string, level: number, training: number): number
 	local stats = Levels.towerStats(towerType, level, training)
+	local dps
 	if stats.kind == "Beam" then
-		return stats.damage * 9
+		dps = stats.damage * 9
 	elseif stats.kind == "Aura" then
-		return stats.damage / stats.cooldown * 3
+		dps = stats.damage / stats.cooldown * 3
 	elseif stats.kind == "Chain" then
-		return stats.damage * stats.chains / stats.cooldown
+		dps = stats.damage * stats.chains / stats.cooldown
 	elseif stats.kind == "Splash" then
-		return stats.damage / stats.cooldown * (1 + stats.splash / 3)
+		dps = stats.damage / stats.cooldown * (1 + stats.splash / 3)
 	elseif stats.kind == "Pierce" then
-		return stats.damage / stats.cooldown * 2.2
+		dps = stats.damage / stats.cooldown * 2.2
+	else
+		dps = stats.damage / stats.cooldown
 	end
-	local dps = stats.damage / stats.cooldown
 	if stats.fireRadius then
 		dps += IdleTowers.fireDps(stats) * 2
 	end
@@ -312,6 +315,17 @@ local function mapContext(mapName: string)
 	return { map = mapName, spots = candidateSpots(mapName), laneSamples = laneSamples, pathLength = geometry.PATH_LENGTH }
 end
 
+-- Tours posées d'une famille (une tour de palier 1 et sa version de palier 2 : IdleTowers.baseOf).
+local function familyCopies(copies, family: string): number
+	local count = 0
+	for towerType, number in copies do
+		if IdleTowers.baseOf(towerType) == family then
+			count += number
+		end
+	end
+	return count
+end
+
 local function near(a, b, range: number): boolean
 	local dx, dz = a.X - b.X, a.Z - b.Z
 	return dx * dx + dz * dz <= range * range
@@ -344,7 +358,8 @@ local function makeDecider(game, member, profile, policy, context)
 	end
 
 	-- Meilleur emplacement libre pour cette tour, comme le ferait un joueur attentif : celui d'où elle voit le plus
-	-- de chemin. Totem de givre : le plus de chemin déjà couvert par les autres tours (il les renforce).
+	-- de chemin. Totem de givre (et Totem du blizzard) : le plus de chemin déjà couvert par les autres tours (il les
+	-- renforce).
 	local function bestSpot(towerType: string)
 		local positions = game:towerPositions()
 		local range = Levels.towerStats(towerType, 1, training[towerType]).range
@@ -354,10 +369,10 @@ local function makeDecider(game, member, profile, policy, context)
 				local score = 0
 				for _, sample in samples do
 					if near(sample.point, spot, range) then
-						if towerType == "Frost" then
+						if IdleTowers.baseOf(towerType) == "Frost" then
 							local covered = false
 							for _, tower in game.towers do
-								if tower.type ~= "Frost" and near(sample.point, tower.localPosition, game:statsOf(tower).range) then
+								if IdleTowers.baseOf(tower.type) ~= "Frost" and near(sample.point, tower.localPosition, game:statsOf(tower).range) then
 									covered = true
 									break
 								end
@@ -396,15 +411,16 @@ local function makeDecider(game, member, profile, policy, context)
 				for _, towerType in profile.towers do
 					if (copies[towerType] or 0) < Levels.maxCopies(towerType) then
 						local value = estimate(towerType, 1, training[towerType])
-						if towerType == "Frost" then
+						local family = IdleTowers.baseOf(towerType)
+						if family == "Frost" then
 							-- Le Totem ralentit : il renforce toutes les autres tours (le premier surtout). Un monstre
 							-- ralenti de s reste 1 / (1 - s) fois plus longtemps sous les tirs : le gain suit s / (1 - s).
-							local slow = Levels.towerStats("Frost", 1, training.Frost).slow or 0
+							local slow = Levels.towerStats(towerType, 1, training[towerType]).slow or 0
 							local gain = slow / math.max(0.05, 1 - slow) * Bot.FROST_GAIN
-							value += total * gain * (if (copies.Frost or 0) == 0 then 1 else 0.3)
-						elseif towerType == "Tesla" then
+							value += total * gain * (if familyCopies(copies, family) == 0 then 1 else 0.3)
+						elseif family == "Tesla" then
 							-- Le Mage freine très fort, un court instant : les autres tours tirent plus longtemps.
-							value += total * (if (copies.Tesla or 0) == 0 then 0.15 else 0.05)
+							value += total * (if familyCopies(copies, family) == 0 then 0.15 else 0.05)
 						end
 						value *= Bot.VALUE_SCALE[towerType] or 1
 						table.insert(options, { cost = Levels.placeCost(towerType), value = value, place = towerType })

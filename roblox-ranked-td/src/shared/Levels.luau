@@ -1026,7 +1026,7 @@ function Levels.duration(level: number): number
 end
 
 ----------------------------------------------------------------------
--- Tours pendant un niveau : les 8 tours de IdleTowers (dégâts, portée, effets) ; leurs prix, en OR, sont ici.
+-- Tours pendant un niveau : les 16 tours de IdleTowers (dégâts, portée, effets) ; leurs prix, en OR, sont ici.
 --   poser : TOWER_COST ; améliorer du niveau n à n + 1 : prix de pose x UPGRADE_FACTOR x UPGRADE_GROWTH ^ (n - 1),
 --   pour +35 % de dégâts (IdleConfig.UPGRADE_DAMAGE) ; revendre : SELL_REFUND de l'or dépensé.
 -- Limite de tours identiques : selon leur rareté (IdleTowers.maxCopies : 5 communes, 4 rares, 3 épiques,
@@ -1036,9 +1036,16 @@ end
 -- Prix réglés pour que chaque tour vaille son or (joueur simulé, tools/levels) : une nouvelle tour rapporte à peu
 -- près 2 fois plus de dégâts par pièce d'or qu'une amélioration ; les deux légendaires (Oracle, Trébuchet) sont les
 -- meilleures affaires. Ce que chaque tour de la boutique apporte se mesure avec run.ps1 -Worth (voir NIVEAUX.md).
+-- Les tours de PALIER 2 (œufs) coûtent deux fois le prix de leur tour de base, pour 2,3 à 3,5 fois ses dégâts : la
+-- tour de base devient presque inutile (demande du propriétaire, IdleTowers.luau). Le Totem du blizzard est limité
+-- à 3, comme le Totem de givre.
 ----------------------------------------------------------------------
-Levels.TOWER_COST = { MachineGun = 20, Frost = 40, Bomb = 45, Tesla = 40, Rocket = 50, Laser = 90, Chain = 150, Orbital = 100 }
-Levels.MAX_COPIES = { Frost = 3 }
+Levels.TOWER_COST = {
+	MachineGun = 20, Frost = 40, Bomb = 45, Tesla = 40, Rocket = 50, Laser = 90, Chain = 150, Orbital = 100,
+	FireArcher = 40, BlizzardTotem = 80, MagmaCatapult = 90, StormArchmage = 80, DragonBallista = 100, VoidSorcerer = 180,
+	ThunderOracle = 300, CelestialTrebuchet = 200,
+}
+Levels.MAX_COPIES = { Frost = 3, BlizzardTotem = 3 }
 -- Stats changées par rapport à IdleTowers : { [type] = { champ = valeur } }.
 -- Totem de givre : -40 % de vitesse au lieu de -60 %. Retour du propriétaire après avoir joué la 2e version
 -- (02/10/2026) : « le ralentissement du givre est un peu cheaté quand même ». Mesuré avec le joueur simulé : à
@@ -1083,7 +1090,46 @@ Levels.STARTING_TOWERS = { "MachineGun", "Bomb" }
 -- prochaines tours doivent être plus hauts, pas forcément les basiques mais les légendaires surtout » : avant, les
 -- 10 niveaux réussis (2 180 pièces) puis 13 parties rejouées au niveau 10 (240 pièces chacune) suffisaient pour
 -- l'Oracle (3 000), et 21 pour le Trébuchet (5 000). Maintenant : 34 parties pour l'Oracle, 63 pour le Trébuchet.
+-- (Seulement les tours de palier 1 : celles de palier 2 sortent des œufs, « LES ŒUFS ».)
 Levels.SHOP = { Frost = 150, Tesla = 400, Rocket = 1200, Laser = 3000, Chain = 8000, Orbital = 15000 }
+
+-- BARRE RAPIDE : les BAR_MAX premières tours de la liste du joueur (Levels.ownedTowers, dans l'ordre qu'il choisit
+-- dans l'onglet « Mes tours ») sont celles qu'il peut poser dans un niveau (touches 1 à 8 du clavier) ; les autres
+-- attendent en RÉSERVE. Avec les œufs, un joueur peut avoir 16 tours : une barre de 16 boutons ne tenait plus sur un
+-- téléphone. 8 = toutes les tours d'avant les œufs : rien ne change pour un joueur sans tour de palier 2.
+Levels.BAR_MAX = 8
+
+-- Tours de sa barre rapide, celles qu'il peut poser dans un niveau : { [type] = true }.
+function Levels.barTowers(data): { [string]: boolean }
+	local set = {}
+	for index, towerType in Levels.ownedTowers(data) do
+		if index > Levels.BAR_MAX then
+			break
+		end
+		set[towerType] = true
+	end
+	return set
+end
+
+-- Une NOUVELLE tour pour le joueur (achetée à la boutique ou sortie d'un œuf) : elle est à lui et entre dans sa barre
+-- rapide :
+--   * une tour de palier 2 prend la place de sa tour de base si celle-ci est dans la barre (la tour de base passe à la
+--     fin de la liste : en réserve si la barre est pleine) ;
+--   * sinon, à la fin de la barre, ou à sa dernière place si la barre est pleine (la tour qui y était passe en
+--     réserve).
+function Levels.addTower(data, towerType: string)
+	local list = Levels.ownedTowers(data)
+	data.towers[towerType] = true
+	local baseType = IdleTowers.baseOf(towerType)
+	local baseIndex = if baseType ~= towerType then table.find(list, baseType) else nil
+	if baseIndex and baseIndex <= Levels.BAR_MAX then
+		list[baseIndex] = towerType
+		table.insert(list, baseType)
+	else
+		table.insert(list, math.min(#list + 1, Levels.BAR_MAX), towerType)
+	end
+	data.bar = list
+end
 
 ----------------------------------------------------------------------
 -- Camp d'entraînement. Chaque type de tour a de l'expérience (XP), qui donne un niveau d'entraînement (0 à
@@ -1114,6 +1160,7 @@ Levels.TRAINING = {
 -- on(stats) = effet quand elle est débloquée ; off(stats) = ce qui est retiré tant qu'elle ne l'est pas (les effets
 -- qui existent déjà dans IdleTowers : feu de l'Archer, fragilité du Totem, carreau perçant de la Baliste).
 -- key = nom court publié aux clients (attribut « Perks » de la zone) pour n'afficher que les effets débloqués.
+-- Les tours de palier 2 n'en ont pas : leurs pouvoirs sont déjà là, l'entraînement ne leur donne que des dégâts.
 Levels.PERKS = {
 	MachineGun = {
 		{ level = 2, key = "Fire", name = "Flèches enflammées", text = "Chaque flèche laisse une petite zone de feu.", off = function(stats)
@@ -1391,17 +1438,18 @@ Levels.CAMP = {
 ----------------------------------------------------------------------
 -- LES ŒUFS. Idée du propriétaire (04/10/2026) : « des œufs de tourelle quand tu finis les niveaux en gagnant, et
 -- les mettre dans des générateurs qui donnent un temps » ; « 16 tours qui te bloquent au niveau 40, comme ça je peux
--- travailler les mises à jour petit à petit ». Étape 1 : les œufs et les couveuses, avec les tours d'aujourd'hui
--- (les nouvelles tours viendront ensuite, surtout par les œufs) :
+-- travailler les mises à jour petit à petit ». Étape 1 : les œufs et les couveuses ; étape 2 : les 8 tours de
+-- PALIER 2, qu'on n'a que dans les œufs (IdleTowers.TIER2 : des versions bien plus fortes des 8 tours de la boutique) :
 --   * gagner un niveau donne un ŒUF (Levels.eggFor) : première victoire = commun, rare au mini-boss, doré au boss ;
 --     en rejouant = commun, rare au boss. EGG_MAX œufs au plus en réserve (au-delà, l'œuf est perdu : l'écran de fin
 --     le dit) ;
 --   * un œuf se pose dans une COUVEUSE de sa parcelle (la 1re offerte, les autres achetées : HATCHER_COST) et éclot
 --     après son temps (EGGS[type].seconds), même quand le joueur n'est pas là ; on peut finir tout de suite avec des
 --     pièces de niveau (SKIP_COINS_PER_MINUTE par minute qui reste) ;
---   * en l'ouvrant : une tour au HASARD, avec les chances de son œuf par rareté (EGGS[type].chances, écrites dans
---     l'onglet Œufs) ; une tour pas encore à lui devient la sienne ; un doublon donne de l'XP d'entraînement à cette
---     tour (DUPLICATE_XP selon sa rareté).
+--   * en l'ouvrant : une tour de palier 2 au HASARD, avec les chances de son œuf par rareté (EGGS[type].chances,
+--     écrites dans l'onglet Œufs) ; une tour pas encore à lui devient la sienne (Levels.addTower : elle prend la place
+--     de sa tour de base dans la barre) ; un doublon donne de l'XP d'entraînement à cette tour (DUPLICATE_XP selon sa
+--     rareté).
 -- Les chiffres sont les miens (temps, chances, prix) : à changer s'il le veut.
 ----------------------------------------------------------------------
 Levels.EGGS = {
@@ -1459,11 +1507,12 @@ function Levels.addEgg(levels, eggType: string): boolean
 	return true
 end
 
--- Les tours qu'un œuf peut donner et leurs chances : { { tower, chance } } (chance de 0 à 1, total 1). La chance de
--- chaque rareté est partagée à parts égales entre ses tours.
+-- Les tours qu'un œuf peut donner et leurs chances : { { tower, chance } } (chance de 0 à 1, total 1). Seulement les
+-- tours de PALIER 2 (celles de palier 1 s'achètent à la boutique). La chance de chaque rareté est partagée à parts
+-- égales entre ses tours.
 function Levels.eggChances(eggType: string): { { tower: string, chance: number } }
 	local byRarity = {}
-	for _, towerType in IdleTowers.ORDER do
+	for _, towerType in IdleTowers.TIER2 do
 		local rarity = IdleTowers.Defs[towerType].rarity
 		byRarity[rarity] = byRarity[rarity] or {}
 		table.insert(byRarity[rarity], towerType)
@@ -1494,12 +1543,11 @@ function Levels.rollEgg(eggType: string, roll: number): string
 	return list[#list].tower
 end
 
--- Une tour sort d'un œuf : nouvelle, elle est au joueur (dans sa barre rapide) ; doublon : DUPLICATE_XP d'XP
--- d'entraînement pour elle. Renvoie (nouvelle, XP gagnée).
+-- Une tour sort d'un œuf : nouvelle, elle est au joueur (Levels.addTower : dans sa barre rapide) ; doublon :
+-- DUPLICATE_XP d'XP d'entraînement pour elle. Renvoie (nouvelle, XP gagnée).
 function Levels.hatchTower(levels, towerType: string): (boolean, number)
 	if not levels.towers[towerType] then
-		levels.towers[towerType] = true
-		table.insert(levels.bar, towerType)
+		Levels.addTower(levels, towerType)
 		return true, 0
 	end
 	local xp = Levels.DUPLICATE_XP[IdleTowers.Defs[towerType].rarity] or 0
@@ -1714,7 +1762,8 @@ function Levels.trainingLevels(data): { [string]: number }
 end
 
 -- Tours de la barre rapide et de l'inventaire, dans l'ordre : d'abord la barre du joueur, puis ses autres tours
--- (ordre de IdleTowers.ORDER). Toutes les tours débloquées peuvent être posées dans un niveau.
+-- (ordre de IdleTowers.ORDER). Les BAR_MAX premières peuvent être posées dans un niveau (Levels.barTowers), les
+-- autres sont en réserve.
 function Levels.ownedTowers(data): { string }
 	local list, seen = {}, {}
 	for _, towerType in data.bar do

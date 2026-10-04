@@ -334,11 +334,11 @@ check(Levels.maxCopies("Frost") == 3 and Levels.maxCopies("MachineGun") == 5 and
 -- Demande du propriétaire : « commencer avec au moins deux tours, juste l'Archer c'est ennuyant ».
 check(#Levels.STARTING_TOWERS == 2 and Levels.STARTING_TOWERS[1] == "MachineGun" and Levels.STARTING_TOWERS[2] == "Bomb", "deux tours possédées dès le départ : l'Archer et la Catapulte")
 local shopOk = true
-for _, towerType in IdleTowers.ORDER do
+for _, towerType in IdleTowers.TIER1 do
 	local starting = table.find(Levels.STARTING_TOWERS, towerType) ~= nil
 	shopOk = shopOk and Levels.TOWER_COST[towerType] ~= nil and (if starting then Levels.SHOP[towerType] == nil else Levels.SHOP[towerType] > 0)
 end
-check(shopOk, "boutique : un prix fixe pour chaque tour sauf les deux de départ (déjà possédées), et un prix en or pour toutes")
+check(shopOk, "boutique : un prix fixe pour chaque tour de palier 1 sauf les deux de départ (déjà possédées), et un prix en or pour toutes")
 check(Levels.SHOP.Frost == 150 and Levels.SHOP.Tesla == 400, "boutique : Totem 150 pièces (payable après 2 niveaux), Mage 400")
 -- Retour du propriétaire (02/10/2026) : « les prix des prochaines tours doivent être plus hauts, pas forcément les
 -- basiques mais les légendaires surtout, car au niveau 10 tu les as en gros ? ». Les 10 premiers niveaux réussis
@@ -462,7 +462,7 @@ check(decoded.MachineGun == 2 and decoded.Orbital == 6 and decoded.Frost == 0 an
 check(Levels.playXp(true) == 8 and Levels.playXp(false, 0.5) == 1.5 and Levels.playXp(false, 0) == 0 and Levels.playXp(false, 7) == 3, "XP d'une partie : 8 gagnée, 3 x l'avancée perdue (0 si on quitte tout de suite)")
 local gainedPerks = Levels.perksBetween("MachineGun", 1, 4)
 check(#gainedPerks == 2 and gainedPerks[1].name == "Flèches enflammées" and #Levels.perksBetween("MachineGun", 2, 2) == 0, "perksBetween : les améliorations gagnées entre deux niveaux d'entraînement")
-for _, towerType in IdleTowers.ORDER do
+for _, towerType in IdleTowers.TIER1 do
 	local perks = Levels.PERKS[towerType]
 	local fine = perks ~= nil and #perks == 3
 	for _, perk in perks or {} do
@@ -762,10 +762,10 @@ check(
 )
 check(Levels.stars(0) == "" and Levels.stars(2) == "★★" and Levels.stars(9) == "★★★", "étoiles : une par évolution, trois au plus")
 local evolvingTowers = true
-for _, towerType in IdleTowers.ORDER do
+for _, towerType in IdleTowers.TIER1 do
 	evolvingTowers = evolvingTowers and Levels.evolutionStage(towerType, Levels.TRAINING.MAX_LEVEL) == #Levels.EVOLUTION_NAMES
 end
-check(evolvingTowers, "chacune des 8 tours a ses 3 évolutions")
+check(evolvingTowers, "chacune des 8 tours de palier 1 a ses 3 évolutions")
 do
 	local level2 = newGame(2, Levels.STARTING_TOWERS, 4)
 	level2.gold = 1e6
@@ -1457,6 +1457,147 @@ do
 			and #fresh.hatchers == 1 and fresh.hatchers[1].egg == "" and Levels.HATCHER_COST[1] == 0,
 		"œufs : données propres (réserve, couveuses : la 1re offerte, 3 au plus ; un œuf inconnu est enlevé)"
 	)
+end
+
+----------------------------------------------------------------------
+-- 14) Les tours de palier 2. Demande du propriétaire (04/10/2026) : « archer, archer enflammé, déjà pas les mêmes »,
+--     « la première tour quasi obsolète après, une claire différence de niveau entre chaque tour de palier ». Elles
+--     ne sortent que des œufs ; la barre rapide garde 8 tours (les autres en réserve).
+----------------------------------------------------------------------
+do
+	local firstEight = table.concat(table.move(IdleTowers.ORDER, 1, 8, 1, {}), ",")
+	local lastEight = table.concat(table.move(IdleTowers.ORDER, 9, 16, 1, {}), ",")
+	check(
+		#IdleTowers.ORDER == 16 and firstEight == "MachineGun,Frost,Bomb,Tesla,Rocket,Laser,Chain,Orbital"
+			and firstEight == table.concat(IdleTowers.TIER1, ",") and lastEight == table.concat(IdleTowers.TIER2, ","),
+		"16 tours : les 8 de palier 1 d'abord (mêmes numéros qu'avant dans les paquets), puis leurs 8 versions de palier 2"
+	)
+	local pairsOk, bases = true, {}
+	for index, towerType in IdleTowers.TIER2 do
+		local def, base = IdleTowers.Defs[towerType], IdleTowers.TIER1[index]
+		pairsOk = pairsOk and def.base == base and IdleTowers.baseOf(towerType) == base and IdleTowers.upgradeOf(base) == towerType
+			and IdleTowers.tierOf(towerType) == 2 and IdleTowers.tierOf(base) == 1 and IdleTowers.baseOf(base) == base
+			and def.rarity == IdleTowers.Defs[base].rarity and def.kind == IdleTowers.Defs[base].kind and not bases[base]
+			and string.match(towerType, "^%a+$") ~= nil -- (Levels.decodeTraining ne lit que des lettres)
+		bases[base] = true
+	end
+	check(pairsOk and IdleTowers.upgradeOf("FireArcher") == nil, "palier 2 : chaque tour a sa tour de base (dans le même ordre), sa rareté et sa façon de toucher")
+	local priceOk = true
+	for _, towerType in IdleTowers.TIER2 do
+		local base = IdleTowers.baseOf(towerType)
+		priceOk = priceOk and Levels.TOWER_COST[towerType] == 2 * Levels.TOWER_COST[base] and Levels.SHOP[towerType] == nil
+			and Levels.PERKS[towerType] == nil and Levels.evolutionStage(towerType, Levels.TRAINING.MAX_LEVEL) == 0
+			and Levels.maxCopies(towerType) == Levels.maxCopies(base)
+	end
+	check(priceOk, "palier 2 : deux fois le prix en or de sa tour de base, pas à la boutique, pas d'améliorations d'entraînement, même limite par niveau")
+	-- La claire différence : sans entraînement, au moins 2,2 fois les dégâts par seconde de sa tour de base, et au moins
+	-- 1,6 fois ceux de sa tour de base entraînée au maximum (toutes ses évolutions).
+	local stronger, ratios = true, {}
+	for _, towerType in IdleTowers.TIER2 do
+		local base = IdleTowers.baseOf(towerType)
+		local mine = IdleTowers.dpsOf(Levels.towerStats(towerType, 1, 0))
+		local plain = IdleTowers.dpsOf(Levels.towerStats(base, 1, 0))
+		local trained = IdleTowers.dpsOf(Levels.towerStats(base, 1, Levels.TRAINING.MAX_LEVEL))
+		stronger = stronger and mine >= 2.2 * plain and mine >= 1.6 * trained
+		table.insert(ratios, string.format("%s x%.1f (x%.1f)", towerType, mine / plain, mine / trained))
+	end
+	check(stronger, `palier 2 : bien plus fort que sa tour de base, même entraînée au maximum : {table.concat(ratios, ", ")}`)
+	local blizzard, frost = Levels.towerStats("BlizzardTotem", 1, 0), Levels.towerStats("Frost", 1, Levels.TRAINING.MAX_LEVEL)
+	local dragon = Levels.towerStats("DragonBallista", 1, 0)
+	check(
+		Levels.towerStats("FireArcher", 1, 0).fireRadius ~= nil and Levels.towerStats("MagmaCatapult", 1, 0).fireRadius ~= nil
+			and blizzard.fragility > frost.fragility and blizzard.slow >= frost.slow and dragon.kind == "Pierce" and dragon.pierceMax == 4
+			and dragon.fireRadius ~= nil,
+		"palier 2 : les pouvoirs sont là sans entraînement (feu, fragilité plus forte, carreau qui transperce 4 monstres)"
+	)
+	check(
+		blizzard.family == "Frost" and Levels.towerStats("StormArchmage", 1, 0).family == "Tesla" and Levels.towerStats("Frost", 1, 0).family == "Frost",
+		"palier 2 : ses contrôles comptent comme ceux de sa tour de base (même famille)"
+	)
+
+	-- Les œufs ne donnent que des tours de palier 2, et chacune des 8 peut sortir.
+	local onlyTier2, obtainable = true, {}
+	for _, eggType in Levels.EGG_ORDER do
+		for _, entry in Levels.eggChances(eggType) do
+			onlyTier2 = onlyTier2 and IdleTowers.tierOf(entry.tower) == 2
+			obtainable[entry.tower] = true
+		end
+	end
+	local everyOne = true
+	for _, towerType in IdleTowers.TIER2 do
+		everyOne = everyOne and obtainable[towerType] == true
+	end
+	check(onlyTier2 and everyOne, "œufs : seulement des tours de palier 2, et chacune des 8 peut sortir")
+
+	-- Barre rapide (Levels.BAR_MAX = 8) : une tour achetée arrive à la fin ; une tour de palier 2 prend la place de sa
+	-- tour de base, qui passe en réserve quand la barre est pleine.
+	local data = Levels.defaultData()
+	for _, towerType in IdleTowers.TIER1 do
+		if not data.towers[towerType] then
+			Levels.addTower(data, towerType)
+		end
+	end
+	check(Levels.BAR_MAX == 8 and table.concat(Levels.ownedTowers(data), ",") == "MachineGun,Bomb,Frost,Tesla,Rocket,Laser,Chain,Orbital", "barre : une tour achetée arrive à la fin de la barre")
+	local isNew = Levels.hatchTower(data, "MagmaCatapult")
+	local list, bar = Levels.ownedTowers(data), Levels.barTowers(data)
+	check(
+		isNew and #list == 9 and list[2] == "MagmaCatapult" and list[9] == "Bomb" and bar.MagmaCatapult and not bar.Bomb and bar.MachineGun,
+		"barre : la Catapulte de magma prend la place de la Catapulte, qui passe en réserve (barre pleine)"
+	)
+	local cleaned = Levels.cleanData(data)
+	check(table.concat(Levels.ownedTowers(cleaned), ",") == table.concat(list, ",") and cleaned.towers.MagmaCatapult == true, "barre : l'ordre et les tours de palier 2 restent après une sauvegarde")
+	local small = Levels.defaultData()
+	Levels.hatchTower(small, "VoidSorcerer")
+	check(table.concat(Levels.ownedTowers(small), ",") == "MachineGun,Bomb,VoidSorcerer", "barre : sans sa tour de base, la tour de palier 2 arrive à la fin de la barre")
+	local full = Levels.defaultData()
+	for _, towerType in { "Frost", "Tesla", "Rocket", "Chain", "Orbital" } do
+		Levels.addTower(full, towerType)
+	end
+	Levels.hatchTower(full, "FireArcher")
+	Levels.hatchTower(full, "VoidSorcerer")
+	local fullList, fullBar = Levels.ownedTowers(full), Levels.barTowers(full)
+	check(
+		fullList[1] == "FireArcher" and fullList[8] == "VoidSorcerer" and fullList[9] == "MachineGun" and fullBar.VoidSorcerer and not fullBar.MachineGun,
+		"barre pleine : la nouvelle tour prend la dernière place de la barre (l'Archer, remplacé par l'Archer enflammé, est en réserve)"
+	)
+
+	-- Dans un niveau : une tour en réserve ne se pose pas ; une tour de palier 2 se pose, tire avec ses pouvoirs.
+	local definition = Levels.definition(3)
+	local arena = { index = Levels.arenaIndex(1), folder = Env.fakeInstance("Arena"), cframe = Levels.arenaCFrame(1), map = definition.map }
+	local game = LevelGame.new(arena, { UserId = 1, Parent = {} }, { level = 3, unlocked = Levels.barTowers(data), training = Levels.trainingLevels(data) })
+	game.gold = 1e6
+	game.lives = math.huge
+	local reserveOk = game:placeTower("Bomb", map.spots[1])
+	local magmaOk, _, magma = game:placeTower("MagmaCatapult", map.spots[1])
+	check(not reserveOk and magmaOk and magma.model:GetAttribute("TowerType") == "MagmaCatapult" and game.gold == 1e6 - 90, "niveau : la Catapulte en réserve ne se pose pas, la Catapulte de magma se pose (90 or)")
+	local burnt = 0
+	for _ = 1, 25 * 30 do
+		game:simulate(1 / 30)
+		burnt = math.max(burnt, #game.firePatches)
+	end
+	check(burnt > 0 and game.kills > 0, `niveau : la Catapulte de magma tue et laisse du feu au sol sans entraînement ({game.kills} monstres, {burnt} zones de feu à la fois)`)
+end
+
+do
+	-- Contrôles d'une famille : le Totem du blizzard prolonge le gel d'un Totem de givre et garde le plus fort des
+	-- deux ralentissements (jamais plus) ; la fatigue du Mage vaut pour l'Archimage.
+	local game = newGame(3, { "MachineGun", "Bomb", "Frost", "BlizzardTotem", "Tesla", "StormArchmage" })
+	game.gold = 1e6
+	game.lives = math.huge
+	local frostOk = game:placeTower("Frost", Vector3.new(-45, 0, -8))
+	local blizzardOk = game:placeTower("BlizzardTotem", Vector3.new(-45, 0, 8))
+	local strongest, frozen, family = 0, 0, true
+	for _ = 1, 20 * 30 do
+		game:simulate(1 / 30)
+		for _, enemy in game.enemies do
+			if not enemy.dead and game.clock < enemy.controlUntil then
+				frozen += 1
+				family = family and enemy.controlSource == "Frost"
+				strongest = math.max(strongest, enemy.controlFactor)
+			end
+		end
+	end
+	check(frostOk and blizzardOk and frozen > 0 and family and near(strongest, 0.5),`Totem de givre + Totem du blizzard : un seul ralentissement, le plus fort ({math.floor(strongest * 100 + 0.5)} %)`)
 end
 
 -- Équipes de joueurs simulés, avec les PV d'équipe : les joueurs de référence gagnent (au moins 5 vies), comme seuls.

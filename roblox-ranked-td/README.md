@@ -84,8 +84,8 @@ powershell -ExecutionPolicy Bypass -File tools\studio-test\run.ps1 -Test eggs
 
 Le premier joue le jeu en entier (serveur, puis la vraie interface à la taille d'un ordinateur et d'un téléphone),
 le deuxième vérifie les modèles 3D des monstres, le troisième joue le tuto d'un nouveau joueur en suivant la flèche,
-le quatrième vérifie la version anglaise, le cinquième le jeu en équipe et les amis, le sixième les œufs et les
-couveuses.
+le quatrième vérifie la version anglaise, le cinquième le jeu en équipe et les amis, le sixième les œufs, les
+couveuses et les tours de palier 2.
 
 **Images pour la page Roblox du jeu** (icône et miniatures, dans `assets/page`) : elles se refont toutes seules avec
 `run.ps1 -Test page` puis `tools\studio-test\page.ps1` (voir `assets/page/LISEZ-MOI.txt`).
@@ -220,7 +220,7 @@ que chez le joueur (`src/client/SoundManager.luau`) : aucun coût pour le serveu
 |---|---|
 | Niveaux, territoires et cartes, monstres, or, prix, boutique, entraînement, évolutions | `src/shared/Levels.luau` |
 | Décor de chaque territoire (couleurs du sol, rochers, arbres) | `THEMES`, en haut de `src/server/Hub/LevelArena.luau` |
-| Les 8 tours (dégâts, portée, effets) | `src/shared/IdleTowers.luau` |
+| Les 16 tours (dégâts, portée, effets ; 8 de la boutique, 8 de palier 2 dans les œufs) | `src/shared/IdleTowers.luau` |
 | Vitesses, limites du combat, rythme des envois réseau | `src/shared/IdleConfig.luau` |
 | Les 6 types de monstres (nom, vitesse, taille) | `src/shared/Enemies.luau` |
 | Sons | `src/shared/Sounds.luau` |

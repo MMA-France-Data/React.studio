@@ -83,7 +83,9 @@ fixes, camp d'entraînement, plus aucun hasard).
 | Taille des monstres | affichés plus gros que leur taille de base, pour être vus de haut (fantassin x1,8, boss x1,4). Réglage `Levels.ENEMY_SCALE` ; aucun effet sur le combat |
 | Vue | caméra penchée : on voit les tours et les monstres de côté, et la carte remplit l'écran. **Choisie par toi le 02/10/2026** parmi trois (penchée, plus plongeante, pile au-dessus). Réglage : `CAMERA_PITCH_MIN` et `CAMERA_PITCH_MAX`, en haut de `src/client/LevelsUI.luau` |
 
-Les 8 tours (dégâts, portées, effets : `src/shared/IdleTowers.luau`) et leurs prix en or :
+Les 8 tours de la boutique (dégâts, portées, effets : `src/shared/IdleTowers.luau`) et leurs prix en or (les 8 tours
+de palier 2, qui sortent des œufs, coûtent deux fois le prix de leur tour de base : voir « Les œufs, les couveuses et
+les tours de palier 2 ») :
 
 | Tour | Prix en or | Maximum par niveau |
 |---|---|---|
@@ -189,6 +191,9 @@ Lancer un niveau et le quitter tout de suite ne donne donc rien.
 
 Les pièces des premières victoires suffisent pour le Totem avant le niveau 3 (180 pièces après deux niveaux) et pour
 le Mage avant le niveau 6 (740 après cinq niveaux).
+
+Les 8 tours de **palier 2** ne sont pas à la boutique : elles sortent des œufs (voir « Les œufs, les couveuses et les
+tours de palier 2 »).
 
 **Est-ce qu'on a tout au niveau 10 ?** Non. Les 10 premiers niveaux réussis une fois donnent 2 180 pièces : de quoi
 acheter le Totem, le Mage et la Baliste (1 750), pas plus.
@@ -363,13 +368,16 @@ seulement une partie des tours) ; et deux territoires restaient plus durs en éq
 (**le col à deux**, **le désert** à 2, 3 et 4) : leurs cartes d'équipe ont des monstres un peu moins résistants. À
 deux, le niveau 15 (le col, un colosse dans chaque couloir) reste le plus dur.
 
-### Les œufs et les couveuses (étape 1)
+### Les œufs, les couveuses et les tours de palier 2
 
 Ton idée du 04/10/2026 (« des œufs de tourelle quand tu finis les niveaux en gagnant, et les mettre dans des
 générateurs qui donnent un temps » ; « 16 tours qui te bloquent au niveau 40, comme ça je peux travailler les mises
-à jour petit à petit »). **Étape 1, faite** : les œufs et les couveuses, avec les 8 tours d'aujourd'hui. Les étapes
-suivantes : les 8 nouvelles tours (des versions bien plus fortes des 8 actuelles, Archer → Archer enflammé...),
-surtout par les œufs ; puis le blocage au niveau 40.
+à jour petit à petit » ; « archer, archer enflammé, déjà pas les mêmes », « la première tour quasi obsolète après,
+une claire différence de niveau entre chaque tour de palier »). **Étape 1, faite** : les œufs et les couveuses.
+**Étape 2, faite** : les 8 tours de palier 2, qu'on n'a que dans les œufs. **Étape 3, à venir** : l'entraînement ne
+donnera plus que des dégâts (les pouvoirs des tours de la boutique passeront aux tours de palier 2), le jeu
+s'arrêtera au niveau 40 (les niveaux 41 à 100 fermés en attendant tes mises à jour), et les niveaux 1 à 40 seront
+réglés pour qu'il faille des tours de palier 2.
 
 - **Un œuf à chaque victoire** : la première fois, un **œuf commun**, un **œuf rare** au mini-boss, un **œuf doré**
   au boss ; en rejouant, un œuf commun (rare au boss). Une défaite ne donne rien. **30 œufs** au plus en réserve
@@ -379,15 +387,45 @@ surtout par les œufs ; puis le blocage au niveau 40.
   poses un œuf ; il éclot après son temps (**15 min**, **1 h**, **4 h** selon l'œuf), **même quand tu n'es pas là**.
   Sur la parcelle, l'œuf a la couleur de son type, le temps qui reste est écrit au-dessus, et il brille quand il est
   prêt. **« Finir »** l'ouvre tout de suite contre des pièces (5 pièces par minute qui reste).
-- **En l'ouvrant** : une tour **au hasard**, avec les chances de l'œuf écrites dans l'onglet (œuf commun : commune
-  70 %, rare 25 %, épique 5 % ; œuf rare : 35 / 45 / 17 / 3 % de légendaire ; œuf doré : rare 40 %, épique 45 %,
-  légendaire 15 %). Un panneau montre la tour sortie. **Nouvelle**, elle est à toi (dans ta barre) ; **doublon**, elle
-  donne de l'XP d'entraînement à cette tour (20, 40, 80 ou 160 selon sa rareté).
+- **En l'ouvrant** : une tour **de palier 2 au hasard**, avec les chances de l'œuf écrites dans l'onglet (œuf
+  commun : commune 70 %, rare 25 %, épique 5 % ; œuf rare : 35 / 45 / 17 / 3 % de légendaire ; œuf doré : rare 40 %,
+  épique 45 %, légendaire 15 % ; deux tours par rareté, chacune la moitié). Un panneau montre la tour sortie, de
+  quelle tour elle est la version forte et ce qu'elle fait. **Nouvelle**, elle est à toi : elle prend la place de sa
+  tour de base dans ta barre ; **doublon**, elle donne de l'XP d'entraînement à cette tour (20, 40, 80 ou 160 selon
+  sa rareté).
 - Une pastille « ! » sur le bouton « ⚔ NIVEAUX » et l'onglet Œufs : un œuf est prêt, ou une couveuse est vide
   alors que tu as des œufs.
 
 Les chiffres (temps, chances, prix) sont les miens : `Levels.EGGS`, `HATCHER_COST`, `SKIP_COINS_PER_MINUTE`,
 `DUPLICATE_XP`, `EGG_MAX`. Pas de Robux : les œufs se gagnent seulement en jouant.
+
+**Les 8 tours de palier 2.** Chacune est la version forte d'une tour de la boutique : même rôle, même rareté, même
+silhouette, à ses couleurs, avec un anneau lumineux et quatre cristaux autour du socle. Sans aucun entraînement,
+elle fait **2,3 à 3,5 fois** les dégâts par seconde de sa tour de base, et **1,7 à 2,3 fois** ceux de sa tour de
+base entraînée au maximum ; ses pouvoirs sont déjà là (pas d'évolutions : l'entraînement lui donne seulement +5 %
+de dégâts par niveau). Elle coûte deux fois plus d'or dans un niveau.
+
+| Tour de palier 2 | Version forte de | Ce qu'elle a | Or dans un niveau |
+|---|---|---|---|
+| Archer enflammé (commune) | Archer du rempart | des flèches 2,3 fois plus fortes, plus rapides, plus loin ; du feu au sol dès le début | 40 |
+| Totem du blizzard (commune) | Totem de givre | ralentit de 50 %, une aura plus grande, une fragilité deux fois plus forte | 80 (3 au plus) |
+| Catapulte de magma (rare) | Catapulte | 2,5 fois les dégâts, une zone plus large, et le sol brûle | 90 |
+| Archimage des tempêtes (rare) | Mage des tempêtes | 2,6 fois les dégâts, zone et portée plus grandes | 80 |
+| Baliste du dragon (épique) | Baliste lourde | un carreau de 300 qui transperce 4 monstres et enflamme le sol | 100 |
+| Sorcier du néant (épique) | Sorcier des arcanes | un rayon 2,3 fois plus fort, qui chauffe plus vite et monte plus haut | 180 |
+| Oracle du tonnerre (légendaire) | Oracle de la foudre | un éclair de 130 qui rebondit sur 6 monstres | 300 |
+| Trébuchet céleste (légendaire) | Trébuchet royal | une pierre de 240, une zone de 12, étourdit 1,3 s | 200 |
+
+Leurs ralentissements et étourdissements comptent comme ceux de leur tour de base : un Totem du blizzard et un
+Totem de givre ne s'additionnent pas (le plus fort des deux gagne), et la fatigue du Mage vaut pour l'Archimage.
+
+**La barre rapide garde 8 tours.** Avec 16 tours, une barre de 16 boutons ne tenait plus sur un téléphone : les
+**8 premières** de « Mes tours » vont dans la barre des niveaux (touches 1 à 8), les autres attendent **en réserve**
+(▲ ▼ pour changer l'ordre). Une nouvelle tour entre dans la barre (une tour de palier 2 à la place de sa tour de
+base, qui passe au bout). Rien ne change pour un joueur qui n'a pas encore de tour de palier 2.
+
+Les chiffres des tours de palier 2 sont les miens (`src/shared/IdleTowers.luau`, prix en or dans `Levels.TOWER_COST`) :
+ils seront réglés avec les niveaux à l'étape 3.
 
 ### Les amis : notif, invitations, bonus
 
@@ -684,7 +722,10 @@ arrivent à un niveau) : rien d'autre n'a changé. Les chiffres sont dans `src/s
     à ton invitation, +10 % de pièces avec un ami sur le serveur. Voir « Les amis ».
 20. **Les œufs, étape 1** (« des œufs de tourelle quand tu finis les niveaux en gagnant, et les mettre dans des
     générateurs qui donnent un temps ») : un œuf à chaque victoire, trois couveuses sur la parcelle et l'onglet
-    Œufs, une tour au hasard à l'ouverture (doublon = XP). Voir « Les œufs et les couveuses ».
+    Œufs, une tour au hasard à l'ouverture (doublon = XP). Voir « Les œufs, les couveuses et les tours de palier 2 ».
+21. **Les tours de palier 2** (« archer, archer enflammé, déjà pas les mêmes » ; « oui les deux go étape 2 ») : 8
+    versions bien plus fortes des tours de la boutique, seulement dans les œufs ; la barre rapide garde 8 tours, les
+    autres en réserve. Voir « Les œufs, les couveuses et les tours de palier 2 ».
 
 ### Le grand ménage : ce qui a été enlevé
 
@@ -719,6 +760,9 @@ niveaux du joueur et son réglage du son. Les sauvegardes de l'ancien jeu « Tow
 3. **Des passes Robux pour ce jeu ?** Il n'y en a plus aucun. Si tu en veux, il faudra choisir lesquels (jamais un
    avantage qui casse la difficulté des niveaux).
 4. **Avant de rendre le jeu public** : voir `SORTIE.md` (publication, essai sur un vrai téléphone, page du jeu).
+5. **Les tours de palier 2** : leurs noms, leurs pouvoirs et leurs chiffres sont les miens (voir « Les œufs, les
+   couveuses et les tours de palier 2 »). À l'étape 3 (déjà d'accord) : l'entraînement seulement pour les dégâts, le
+   jeu qui s'arrête au niveau 40, les niveaux 1 à 40 réglés pour qu'il faille des tours de palier 2.
 
 ## Technique (pour s'y retrouver)
 
@@ -744,7 +788,7 @@ niveaux du joueur et son réglage du son. Les sauvegardes de l'ancien jeu « Tow
 |---|---|
 | `src/shared/Levels.luau` | toutes les règles et tous les chiffres (niveaux, territoires et cartes, monstres, prix, boutique, entraînement, tuto) |
 | `src/shared/TeamMaps.luau` | les 30 cartes d'équipe (écrit par `tools/team-maps/generer.py`, à ne pas modifier à la main) |
-| `src/shared/IdleTowers.luau`, `IdleConfig.luau`, `Enemies.luau` | les 8 tours, les réglages du combat, les 6 types de monstres |
+| `src/shared/IdleTowers.luau`, `IdleConfig.luau`, `Enemies.luau` | les 16 tours (8 de la boutique, 8 de palier 2), les réglages du combat, les 6 types de monstres |
 | `src/server/Hub/Combat.luau` | le combat des tours contre les monstres, et ses paquets réseau |
 | `src/server/Hub/LevelGame.luau` | un niveau en cours (or, vies, flot de monstres, pose des tours) |
 | `src/server/Hub/LevelArena.luau` | les zones de combat, leur carte et le décor de chaque territoire |
@@ -752,7 +796,7 @@ niveaux du joueur et son réglage du son. Les sauvegardes de l'ancien jeu « Tow
 | `src/server/Hub/LevelTeams.luau` | les équipes : invitations, chef, coéquipiers, quitter l'équipe |
 | `src/server/Hub/Camp.luau`, `CampGame.luau` | la parcelle : socles, couveuses, étiquettes, invites ; les tours du camp et leurs cibles |
 | `src/server/Hub/HubMap.luau`, `Plots.luau`, `PlotBoard.luau`, `PlotIdentity.luau`, `PlotInterest.luau` | la map, l'attribution des parcelles, leurs panneaux, qui reçoit quel camp |
-| `src/server/Hub/IdleTowerModel.luau` | modèles des tours, et leurs marques d'évolution (`addEvolution`) |
+| `src/server/Hub/IdleTowerModel.luau` | modèles des tours (palier 2 : la silhouette de sa tour de base et sa parure), et leurs marques d'évolution (`addEvolution`) |
 | `src/server/PlayerData.luau` | la sauvegarde |
 | `src/client/LevelsUI.luau` | le bouton, la fenêtre du camp, l'écran d'un niveau |
 | `src/client/TutorialUI.luau`, `src/server/Hub/Funnel.luau` | le tuto (la flèche) ; les statistiques des nouveaux joueurs |
@@ -782,8 +826,9 @@ powershell -ExecutionPolicy Bypass -File tools\levels\run.ps1
 powershell -ExecutionPolicy Bypass -File tools\studio-test\run.ps1
 ```
 
-- le premier : 1 838 vérifications des règles, de la difficulté de chacun des 100 niveaux, des évolutions, du camp,
-  du tuto, du jeu en équipe, des 30 cartes d'équipe, des amis et des œufs, sans Studio (une dizaine de minutes : les équipes de joueurs simulés sont lentes) ;
+- le premier : 1 853 vérifications des règles, de la difficulté de chacun des 100 niveaux, des évolutions, du camp,
+  du tuto, du jeu en équipe, des 30 cartes d'équipe, des amis, des œufs et des tours de palier 2, sans Studio (une
+  dizaine de minutes : les équipes de joueurs simulés sont lentes) ;
 - le deuxième : le tableau de difficulté des 100 niveaux par les joueurs simulés ;
 - le troisième : le test complet dans Studio (serveur, puis la vraie interface à la taille normale et à la taille
   d'un téléphone), avec des captures dans `tools/studio-test/out/levels_*.png`. Avec `-Test tutorial` : le tuto

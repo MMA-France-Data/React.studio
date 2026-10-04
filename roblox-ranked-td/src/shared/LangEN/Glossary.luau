@@ -16,6 +16,15 @@ return {
 	["Sorcier des arcanes"] = "Arcane Sorcerer",
 	["Oracle de la foudre"] = "Lightning Oracle",
 	["Trébuchet royal"] = "Royal Trebuchet",
+	-- Tours de palier 2 (œufs)
+	["Archer enflammé"] = "Flaming Archer",
+	["Totem du blizzard"] = "Blizzard Totem",
+	["Catapulte de magma"] = "Magma Catapult",
+	["Archimage des tempêtes"] = "Storm Archmage",
+	["Baliste du dragon"] = "Dragon Ballista",
+	["Sorcier du néant"] = "Void Sorcerer",
+	["Oracle du tonnerre"] = "Thunder Oracle",
+	["Trébuchet céleste"] = "Celestial Trebuchet",
 
 	-- Noms courts des tours, sur la barre d'un niveau (client/LevelsUI.luau, SHORT_NAMES ; « Catapulte » : plus haut)
 	["Archer"] = "Archer",
@@ -25,6 +34,14 @@ return {
 	["Sorcier"] = "Sorcerer",
 	["Oracle"] = "Oracle",
 	["Trébuchet"] = "Trebuchet",
+	["Enflammé"] = "Flaming",
+	["Blizzard"] = "Blizzard",
+	["Magma"] = "Magma",
+	["Archimage"] = "Archmage",
+	["Dragon"] = "Dragon",
+	["Néant"] = "Void",
+	["Tonnerre"] = "Thunder",
+	["Céleste"] = "Celestial",
 
 	-- Monstres (Enemies.luau)
 	["Écuyer"] = "Squire",

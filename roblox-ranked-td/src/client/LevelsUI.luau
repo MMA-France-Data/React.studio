@@ -64,6 +64,15 @@ local SHORT_NAMES = {
 	Laser = "Sorcier",
 	Chain = "Oracle",
 	Orbital = "Trébuchet",
+	-- palier 2 (œufs)
+	FireArcher = "Enflammé",
+	BlizzardTotem = "Blizzard",
+	MagmaCatapult = "Magma",
+	StormArchmage = "Archimage",
+	DragonBallista = "Dragon",
+	VoidSorcerer = "Néant",
+	ThunderOracle = "Tonnerre",
+	CelestialTrebuchet = "Céleste",
 }
 local ROLES = {
 	MachineGun = "Tireur rapide à longue portée. Ta tour de base.",
@@ -74,6 +83,15 @@ local ROLES = {
 	Laser = "Rayon qui chauffe : terrible contre les boss.",
 	Chain = "Un éclair qui rebondit sur 4 monstres.",
 	Orbital = "Une pierre géante sur le plus gros groupe.",
+	-- palier 2 (œufs) : montré dans « Mes tours » et quand la tour sort d'un œuf
+	FireArcher = "L'Archer en bien plus fort : ses flèches laissent du feu.",
+	BlizzardTotem = `Ralentit de {math.floor(Levels.towerStats("BlizzardTotem", 1, 0).slow * 100 + 0.5)} % et rend les monstres bien plus fragiles.`,
+	MagmaCatapult = "Rochers de magma : grosse zone, et le sol brûle.",
+	StormArchmage = "Grosse foudre de zone, coup de frein immense.",
+	DragonBallista = `Carreau géant qui transperce {IdleTowers.Defs.DragonBallista.pierceMax} monstres et brûle le sol.`,
+	VoidSorcerer = "Rayon du néant : il fait fondre les boss.",
+	ThunderOracle = `Un éclair qui rebondit sur {IdleTowers.Defs.ThunderOracle.chains} monstres.`,
+	CelestialTrebuchet = "Une pierre céleste sur le plus gros groupe.",
 }
 local HOTKEYS = {
 	[Enum.KeyCode.One] = 1,
@@ -360,6 +378,11 @@ local TOWER_COLORS = {
 	Bomb = Color3.fromRGB(54, 148, 255), Tesla = Color3.fromRGB(103, 100, 255),
 	Rocket = Color3.fromRGB(204, 79, 246), Laser = Color3.fromRGB(164, 61, 246),
 	Chain = Color3.fromRGB(255, 185, 41), Orbital = Color3.fromRGB(255, 212, 52),
+	-- palier 2 (œufs) : plus vives
+	FireArcher = Color3.fromRGB(255, 122, 36), BlizzardTotem = Color3.fromRGB(64, 148, 255),
+	MagmaCatapult = Color3.fromRGB(255, 82, 44), StormArchmage = Color3.fromRGB(60, 214, 255),
+	DragonBallista = Color3.fromRGB(236, 48, 92), VoidSorcerer = Color3.fromRGB(120, 52, 232),
+	ThunderOracle = Color3.fromRGB(70, 128, 255), CelestialTrebuchet = Color3.fromRGB(255, 232, 120),
 }
 
 -- Vignettes 3D statiques des vrais modèles (préparés par Camp). Pas d'animation, de RenderStepped ou de requête
@@ -817,11 +840,11 @@ local function buildCamp()
 	end
 
 	------------------------------------------------------------------
-	-- Onglet « Boutique » : les 8 tours, à prix fixes (aucun hasard)
+	-- Onglet « Boutique » : les 8 tours de palier 1, à prix fixes (aucun hasard ; celles de palier 2 : les œufs)
 	------------------------------------------------------------------
 	local SHOP_W, SHOP_H = 182, 246
 	local shopCards = {}
-	for index, towerType in IdleTowers.ORDER do
+	for index, towerType in IdleTowers.TIER1 do
 		local def = IdleTowers.Defs[towerType]
 		local column, row = (index - 1) % 4, math.floor((index - 1) / 4)
 		local card = UI.new("Frame", {
@@ -921,9 +944,10 @@ local function buildCamp()
 	------------------------------------------------------------------
 	-- Tours pas encore achetées : une ligne grisée à la fin des listes « Entraînement » et « Mes tours ». Le joueur
 	-- voit ce qui l'attend, et la fenêtre n'a plus une moitié vide quand il n'a que deux tours. Le bouton mène à la
-	-- boutique.
+	-- boutique (tours de palier 2 : à l'onglet Œufs).
 	------------------------------------------------------------------
 	local function lockedRow(parent: Instance, towerType: string)
+		local fromEggs = IdleTowers.tierOf(towerType) == 2
 		local row = UI.new("Frame", {
 			Name = "Locked_" .. towerType,
 			Size = UDim2.new(1, -8, 0, 64),
@@ -959,12 +983,12 @@ local function buildCamp()
 			Position = UDim2.new(1, 0, 0.5, 0),
 			Size = UDim2.fromOffset(108, 36),
 			BackgroundColor3 = UI.Colors.Purple,
-			Text = "BOUTIQUE",
+			Text = if fromEggs then "ŒUFS" else "BOUTIQUE",
 			MaxTextSize = 14,
 			Parent = row,
 		})
 		button.Activated:Connect(function()
-			camp.open("Boutique")
+			camp.open(if fromEggs then "Œufs" else "Boutique")
 		end)
 		return { row = row, price = price }
 	end
@@ -972,7 +996,9 @@ local function buildCamp()
 		local price = Levels.SHOP[towerType]
 		entry.row.Visible = not owns(towerType)
 		entry.row.LayoutOrder = 200 + order
-		entry.price.Text = if price then `{amount(price)} {COIN} dans la Boutique` else ""
+		entry.price.Text = if price then `{amount(price)} {COIN} dans la Boutique`
+			elseif IdleTowers.tierOf(towerType) == 2 then `Palier 2 de : {IdleTowers.Defs[IdleTowers.baseOf(towerType)].displayName} • dans les œufs`
+			else ""
 	end
 
 	------------------------------------------------------------------
@@ -1236,6 +1262,7 @@ local function buildCamp()
 			end
 			entry.detail.Text = if nextPerk
 				then `Prochaine évolution (entraînement {nextPerk.level}) : {nextPerk.name}. {nextPerk.text}`
+				elseif IdleTowers.tierOf(towerType) == 2 then "Palier 2 : ses pouvoirs sont déjà là. L'entraînement monte ses dégâts."
 				else "Toutes ses évolutions sont débloquées."
 			local here = slot ~= nil and slot.tower == towerType
 			local elsewhere = nil
@@ -1262,7 +1289,7 @@ local function buildCamp()
 		TextXAlignment = Enum.TextXAlignment.Left,
 		TextColor3 = UI.Colors.Muted,
 		MaxTextSize = 14,
-		Text = "Toutes tes tours peuvent être posées dans un niveau. Cet ordre est celui de ta barre rapide (▲ ▼ pour le changer).",
+		Text = `Tes {Levels.BAR_MAX} premières tours vont dans ta barre rapide pour les niveaux, les autres attendent en réserve (▲ ▼ pour changer l'ordre).`,
 		Parent = pages["Mes tours"],
 	})
 	local towerList = UI.new("ScrollingFrame", {
@@ -1368,9 +1395,12 @@ local function buildCamp()
 					end
 				end
 				local stars = Levels.stars(Levels.evolutionStage(towerType, trained))
-				entry.title.Text = `{index}. {def.displayName}{if stars ~= "" then " " .. stars else ""} • {Levels.placeCost(towerType)} {GOLD} • entraînement {trained}`
-				entry.stats.Text = statsLine(Levels.towerStats(towerType, 1, trained))
-					.. (if #unlocked > 0 then "\n" .. table.concat(unlocked, " • ") else "")
+				-- (au-delà de Levels.BAR_MAX : en réserve, pas dans la barre d'un niveau)
+				local place = if index <= Levels.BAR_MAX then `{index}.` else "Réserve •"
+				entry.title.Text = `{place} {def.displayName}{if stars ~= "" then " " .. stars else ""} • {Levels.placeCost(towerType)} {GOLD} • entraînement {trained}`
+				entry.title.TextColor3 = if index <= Levels.BAR_MAX then UI.Colors.Text else UI.Colors.Muted
+				local extra = if def.base then ROLES[towerType] elseif #unlocked > 0 then table.concat(unlocked, " • ") else nil
+				entry.stats.Text = statsLine(Levels.towerStats(towerType, 1, trained)) .. (if extra then "\n" .. extra else "")
 			end
 		end
 	end
@@ -1548,7 +1578,7 @@ local function buildCamp()
 	UI.label({
 		Name = "Help",
 		Position = UDim2.fromOffset(0, eggsHelpTop),
-		Size = UDim2.new(1, -16, 0, 80),
+		Size = UDim2.new(1, -16, 0, 100),
 		TextWrapped = true,
 		TextXAlignment = Enum.TextXAlignment.Left,
 		TextYAlignment = Enum.TextYAlignment.Top,
@@ -1556,10 +1586,11 @@ local function buildCamp()
 		MaxTextSize = 13,
 		Text = "Chaque victoire donne un œuf : commun, rare au mini-boss, doré au boss (en rejouant : commun, rare au boss).\n"
 			.. "Pose-le dans une couveuse : il éclot même quand tu n'es pas là, puis il donne une tour au hasard.\n"
+			.. "Les œufs donnent les tours de palier 2 : des versions bien plus fortes des tours de la boutique.\n"
 			.. "Une tour que tu as déjà donne de l'XP d'entraînement à cette tour.",
 		Parent = eggsPage,
 	})
-	eggsPage.CanvasSize = UDim2.fromOffset(0, eggsHelpTop + 88)
+	eggsPage.CanvasSize = UDim2.fromOffset(0, eggsHelpTop + 108)
 
 	local function refreshEggs()
 		local total = 0
@@ -3029,7 +3060,7 @@ local function buildHud()
 			entry.copies.Visible = not phone
 		end
 		bar.Size = UDim2.fromOffset(0, buttonSize.Y)
-		local count = math.max(1, #state.towers)
+		local count = math.clamp(#state.towers, 1, Levels.BAR_MAX)
 		local barWidth = count * buttonSize.X + (count - 1) * BAR_GAP
 		barScale.Scale = math.clamp((screen.X - 16) / barWidth, 0.5, 1)
 		local barHeight = buttonSize.Y * barScale.Scale
@@ -3103,7 +3134,10 @@ local function buildHud()
 	local richSince: number? = nil
 	local nextRichCheck = 0
 	local function canBuySomething(gold: number): boolean
-		for _, towerType in state.towers do
+		for index, towerType in state.towers do
+			if index > Levels.BAR_MAX then
+				break -- (en réserve : pas dans la barre)
+			end
 			if gold >= Levels.placeCost(towerType) and copiesOf(towerType) < Levels.maxCopies(towerType) then
 				return true
 			end
@@ -3164,20 +3198,20 @@ local function buildHud()
 		set(teamInfo, "Text", teamText)
 		set(teamInfo, "Visible", teamText ~= "")
 
-		-- Barre rapide.
+		-- Barre rapide : les Levels.BAR_MAX premières tours de sa liste (les autres sont en réserve).
 		local order = table.concat(state.towers, ",")
 		if order ~= barOrder then
 			barOrder = order
 			for _, towerType in IdleTowers.ORDER do
 				local entry = barButtons[towerType]
 				local index = table.find(state.towers, towerType)
-				entry.button.Visible = index ~= nil
+				entry.button.Visible = index ~= nil and index <= Levels.BAR_MAX
 				entry.button.LayoutOrder = index or 99
 			end
 			layout()
 		end
 		for index, towerType in state.towers do
-			local entry = barButtons[towerType]
+			local entry = if index <= Levels.BAR_MAX then barButtons[towerType] else nil
 			if entry then
 				local cost = Levels.placeCost(towerType)
 				local copies, limit = copiesOf(towerType), Levels.maxCopies(towerType)
@@ -3844,7 +3878,7 @@ local function buildHatchReveal()
 		Name = "Panel",
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Position = UDim2.fromScale(0.5, 0.5),
-		Size = UDim2.fromOffset(360, 300),
+		Size = UDim2.fromOffset(380, 340),
 		BackgroundColor3 = UI.Colors.Panel,
 		Active = true,
 		Parent = gui,
@@ -3871,7 +3905,7 @@ local function buildHatchReveal()
 	local detail = UI.label({
 		Name = "Detail",
 		Position = UDim2.fromOffset(0, 196),
-		Size = UDim2.new(1, 0, 0, 40),
+		Size = UDim2.new(1, 0, 0, 72),
 		TextWrapped = true,
 		TextColor3 = UI.Colors.Muted,
 		MaxTextSize = 15,
@@ -3912,7 +3946,12 @@ local function buildHatchReveal()
 		setText(name, def.displayName)
 		name.TextColor3 = color
 		stroke.Color = color
-		setText(detail, if result.new then `{rarity} : elle rejoint ta barre de tours` else `{rarity} : +{tonumber(result.xp) or 0} XP d'entraînement pour cette tour`)
+		local line = if result.new then `{rarity} : elle rejoint ta barre de tours` else `{rarity} : +{tonumber(result.xp) or 0} XP d'entraînement pour cette tour`
+		-- Tour de palier 2 : de quelle tour elle est la version forte, et ce qu'elle fait.
+		if def.base then
+			line = `Palier 2 de : {IdleTowers.Defs[def.base].displayName}\n{ROLES[result.tower] or ""}\n{line}`
+		end
+		setText(detail, line)
 		gui.Enabled = true
 		SoundManager.play(if result.new then "Victory" else "TowerUpgraded")
 	end)

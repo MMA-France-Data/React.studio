@@ -151,13 +151,15 @@ tour du prochain œuf (le tirage au hasard n'est pas testable autrement).
 
 - **serveur** : un œuf à chaque victoire (doré au boss, commun en rejouant, rien en perdant, perdu si la réserve est
   pleine), poser un œuf (couveuse vide et œuf en réserve seulement), pas d'ouverture avant son temps, la tour sortie
-  (nouvelle : dans la barre ; doublon : XP d'entraînement ; attribut `Hatch`), « Finir » avec des pièces, les
-  couveuses achetées (pas de 4e), les couveuses de la parcelle (l'œuf de sa couleur, le temps qui reste, l'œuf prêt
-  qui brille, l'invite vers l'onglet Œufs) ;
+  (nouvelle : dans la barre, une tour de palier 2 à la place de sa tour de base ; doublon : XP d'entraînement ;
+  attribut `Hatch` ; au hasard : toujours une tour de palier 2), « Finir » avec des pièces, les couveuses achetées
+  (pas de 4e), les couveuses de la parcelle (l'œuf de sa couleur, le temps qui reste, l'œuf prêt qui brille,
+  l'invite vers l'onglet Œufs) ;
 - **client** : l'onglet « Œufs » (cartes des œufs et leurs chances, couveuses : `eggs_onglet`), un œuf posé
-  (`eggs_couve`), prêt puis ouvert : nouvelle tour (`eggs_nouvelle_tour`) et doublon (`eggs_doublon`), la 2e couveuse
-  achetée, la pastille « ! » de l'onglet, l'écran de fin qui dit l'œuf gagné (`eggs_fin_de_niveau`), à la taille
-  d'un téléphone (`eggs_tel_onglet`).
+  (`eggs_couve`), prêt puis ouvert : nouvelle tour de palier 2, sa tour de base et ce qu'elle fait
+  (`eggs_nouvelle_tour`), et doublon (`eggs_doublon`), « Mes tours » avec la tour de palier 2 et celles qui
+  attendent « dans les œufs » (`eggs_mes_tours_palier2`), la 2e couveuse achetée, la pastille « ! » de l'onglet,
+  l'écran de fin qui dit l'œuf gagné (`eggs_fin_de_niveau`), à la taille d'un téléphone (`eggs_tel_onglet`).
 
 ### `run.ps1 -Test english` : la version anglaise (environ 3 minutes)
 
