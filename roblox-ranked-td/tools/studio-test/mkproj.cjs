@@ -1,6 +1,6 @@
 // Génère un projet Rojo de test à partir de default.project.json, dans out/.
 // Il ajoute seulement le marqueur __AutoPlayTest (durée du test) et les scénarios de test.
-//   node mkproj.cjs <levels|monsters|tutorial|english|team|eggs|page> <durée en secondes>
+//   node mkproj.cjs <levels|monsters|tutorial|english|team|eggs|page|video> <durée en secondes>
 const fs = require('fs');
 const path = require('path');
 
@@ -26,6 +26,8 @@ const scenarios = {
 	eggs: ['EggsServer.luau', 'EggsClient.luau'],
 	// (pas un test : les captures pour les images de la page du jeu, voir page.ps1)
 	page: ['EnglishServer.luau', 'PageClient.luau'],
+	// (pas un test : les plans de la vidéo de la page du jeu, filmés par OBS, voir video.ps1)
+	video: ['VideoServer.luau', 'VideoClient.luau'],
 };
 if (!scenarios[mode]) {
 	console.error(`Test inconnu : ${mode} (attendu : ${Object.keys(scenarios).join(', ')})`);

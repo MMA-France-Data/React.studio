@@ -69,9 +69,12 @@ Le jeu sort comme une **nouvelle expérience Roblox** (décision du 02/10/2026) 
       français. Pour les textes **dans** le jeu, rien à régler : le jeu se traduit lui-même (français ou anglais)
       et empêche Roblox d'y toucher (voir `README.md`, « Langues »).
 - [ ] Page du jeu : nom, description (français et anglais), icône, miniatures, vidéo (Roblox : 30 s au plus, textes
-      et son en anglais, compte vérifié de 13 ans et plus pour l'envoyer). Les images et vidéos tournées pour
-      « Tower 22 » montrent l'ancien jeu : à refaire. Une description prête à coller est plus bas (« Textes pour la
-      page du jeu »), et des images du nouveau jeu sont prêtes dans `assets/page` (voir son `LISEZ-MOI.txt`).
+      et son en anglais, compte vérifié de 13 ans et plus pour l'envoyer). Une description prête à coller est plus
+      bas (« Textes pour la page du jeu »), des images du nouveau jeu sont prêtes dans `assets/page` (voir son
+      `LISEZ-MOI.txt`), et la VIDÉO de 16 s (ta demande du 04/10/2026 : « des rushs de 3/4 s ») dans `A-PUBLIER` :
+      `video-16s.mp4` (le jeu seul) ou `video-16s-titres.mp4` (avec un titre en anglais sur chaque plan) : le colosse
+      géant, un niveau du glacier, l'œuf carmin qui s'ouvre, le boss de glace, la victoire. Refaite par
+      `tools\studio-test\video.ps1` (OBS filme le vrai jeu, ffmpeg monte ; voir `tools/studio-test/README.md`).
 - [ ] Public des moins de 16 ans (règles Roblox 2026) : tout nouveau jeu commence en 16+ ; pour Roblox Kids (5-8 ans)
       et Select (9-15 ans) : âge vérifié, double authentification, Roblox Premium 2 mois de suite (ou frais
       remboursables), puis 250 parties de joueurs « très engagés » en 60 jours (tableau « Audience Reach »). Ne pas

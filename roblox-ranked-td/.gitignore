@@ -1,4 +1,6 @@
 *.rbxl
+# La vidéo de la page du jeu, refaite par tools/studio-test/video.ps1 (comme les copies à publier : pas dans git)
+A-PUBLIER/*.mp4
 *.rbxlx
 *.rbxl.lock
 *.rbxlx.lock

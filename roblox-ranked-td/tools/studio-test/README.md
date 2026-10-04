@@ -200,6 +200,33 @@ découpe l'image du jeu dans chaque capture (sans les menus de Studio : il la tr
 `page_calibrage`, un écran rose plein cadre) et enregistre dans `assets\page` les miniatures (1920 x 1080) et
 l'icône (512 x 512). À refaire quand le jeu change d'allure.
 
+### `video.ps1` : la vidéo de la page Roblox du jeu (environ 6 minutes)
+
+Ce n'est pas un test. Demande du propriétaire (04/10/2026) : « une vidéo de 16 s avec des rushs de 3/4 s ».
+
+```bat
+powershell -ExecutionPolicy Bypass -File tools\studio-test\video.ps1
+```
+
+1. Le scénario `scenarios\VideoClient.luau` (serveur : `VideoServer.luau`) met en scène de vraies parties, en
+   anglais, et pilote **OBS** par la Sortie (`obs.cjs`, repris de l'ancien jeu) : un écran magenta pour que OBS
+   trouve l'image du jeu dans Studio (`CALIBRATE` ; image gardée en 16:9, au centre, mise en 1920 x 1080), puis un
+   enregistrement par plan (`REC:START`, `REC:STOP:<nom>`) : `out\video\r1.mp4` (le colosse géant du col sous les
+   tirs des tours spéciales, de près), `r2` (un niveau du glacier en entier, avec l'interface), `r3` (le boss du
+   glacier, niveau 40 : « il rend mieux » que celui de la forêt), `r4` (l'œuf carmin qui s'ouvre : « 🌟 SPECIAL
+   TOWER! »), `r5` (la victoire au boss du niveau 20). Au montage, l'œuf passe entre les deux plans du glacier.
+2. `montage.py` coupe 3 à 4 s de chaque plan (pour l'œuf et la victoire : juste avant le plus grand changement
+   d'image, l'apparition du panneau) et les colle avec **ffmpeg** : `video-16s.mp4` (le jeu seul) et
+   `video-16s-titres.mp4` (un titre en anglais sur chaque plan), 16 s pile, 1920 x 1080, 60 images/s, H.264 + AAC,
+   copiées dans `A-PUBLIER` ; `out\video\apercu.png` montre une image de chaque plan. Refaire seulement le montage :
+   `video.ps1 -MontageSeulement`.
+
+OBS doit être fermé : il est lancé sur son profil « Tower 22 » (1920 x 1080, 60 images/s, le son de Studio seulement,
+jamais le micro ; jamais le profil du propriétaire et son chat Twitch), puis refermé, et son profil et ses scènes
+habituels sont remis. ffmpeg : celui du PATH, sinon celui de l'application Medal déjà installée. Un Studio déjà
+ouvert n'est pas touché : la fenêtre du tournage est mise devant et en plein écran (cachée, Studio ne dessine plus
+sa vue 3D) : ne touche pas au PC pendant le tournage.
+
 ### Lire le résultat
 
 À la fin, le script affiche chaque ligne `[PASS]` / `[FAIL]`, les erreurs de la Sortie, la liste des captures et le
