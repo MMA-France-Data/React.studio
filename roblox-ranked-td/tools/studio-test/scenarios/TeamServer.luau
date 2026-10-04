@@ -134,7 +134,20 @@ return function(log)
 		`la zone publie l'or et l'entraînement de chacun, et les noms des joueurs ({#names} joueurs)`
 	)
 	check(active.firstHealth == Levels.buildQueue(3, 2)[1].health and active.firstHealth > Levels.buildQueue(3)[1].health, `monstres d'une équipe de deux : {active.firstHealth} PV au lieu de {Levels.buildQueue(3)[1].health}`)
-	local spots = Levels.MAPS[Levels.definition(3).map].spots
+	-- La carte d'équipe : un couloir chacun, une porte et le nom du joueur à l'entrée de chaque couloir.
+	local mapFolder = arena and arena:FindFirstChild("Map")
+	local laneNames = mapFolder and mapFolder:FindFirstChild("LaneNames")
+	local signs = {}
+	for index = 1, 2 do
+		local anchor = laneNames and laneNames:FindFirstChild("Lane" .. index)
+		local sign = anchor and anchor:FindFirstChild("Sign")
+		signs[index] = if sign then sign.Label.Text else "?"
+	end
+	check(
+		arena:GetAttribute("Map") == Levels.mapFor(3, 2) and arena:GetAttribute("Map") == "Valley_2" and signs[1] == "Robin" and signs[2] == name and #laneNames:GetChildren() == 2,
+		`partie à deux sur la carte d'équipe « {tostring(arena:GetAttribute("Map"))} » : « {signs[1]} » à l'entrée du premier couloir, « {signs[2]} » du second`
+	)
+	local spots = Levels.MAPS[Levels.mapFor(3, 2)].spots
 	ok = as(robin, "Place", "MachineGun", spots[1].X, spots[1].Z)
 	local robinTowers = towersOf(arena, robin)
 	check(ok and #robinTowers == 1 and fake(robin).active.gold == gold3 - 20 and state().active.gold == gold3, "Robin pose une tour avec SON or : elle est à lui (OwnerId)")
@@ -218,6 +231,11 @@ return function(log)
 	ok = action("Start", 5)
 	active = state().active
 	check(ok and active and active.team == 4 and active.players == 4 and active.firstHealth == Levels.buildQueue(5, 4)[1].health, `niveau 5 à quatre : monstres x{Levels.teamHealth(4)} ({active and active.firstHealth or "?"} PV)`)
+	local quadLanes = arenaFolder() and arenaFolder().Map:FindFirstChild("LaneNames")
+	check(
+		arenaFolder():GetAttribute("Map") == "Valley_4" and quadLanes ~= nil and #quadLanes:GetChildren() == 4 and quadLanes.Lane1.Sign.Label.Text == name,
+		`à quatre : la carte d'équipe à quatre couloirs (« {tostring(arenaFolder():GetAttribute("Map"))} »), un nom à chaque entrée (le chef, qui a lancé : le premier)`
+	)
 	levels("Finish", true)
 	result = decode(arenaFolder():GetAttribute("Result_" .. myKey)) or {}
 	check(result.reward == Levels.teamReward(Levels.reward(5, true, false), 4) and result.team == 4, `victoire à quatre : bonus de 40 % ({tostring(result.reward)} pièces au lieu de {Levels.reward(5, true, false)})`)

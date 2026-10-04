@@ -295,15 +295,21 @@ function Bot.playLazy(level: number, towers: { string })
 	return { won = game.state == "Won", lives = game.lives, kills = game.kills, total = #game.queue, seconds = game.clock }
 end
 
--- Ce qu'il faut aux joueurs simulés pour choisir où poser sur la carte d'un niveau : les emplacements à essayer, dans
--- l'ordre (candidateSpots), et les points du chemin tous les 2 studs (longueur de chemin à portée d'une tour).
-local function mapContext(definition)
-	local geometry = Levels.geometry(definition.map)
-	local samples = {}
-	for distance = 0, geometry.PATH_LENGTH, 2 do
-		table.insert(samples, (geometry.pointAt(distance)))
+-- Ce qu'il faut aux joueurs simulés pour choisir où poser sur une carte : les emplacements à essayer, dans l'ordre
+-- (candidateSpots), et les points de chaque couloir tous les 2 studs (longueur de chemin à portée d'une tour ; sur
+-- une carte d'équipe, la partie commune est dans tous les couloirs : elle compte autant de fois qu'elle voit passer
+-- de monstres).
+local function mapContext(mapName: string)
+	local geometry = Levels.geometry(mapName)
+	local laneSamples = {}
+	for index, lane in geometry.lanes do
+		local samples = {}
+		for distance = 0, lane.PATH_LENGTH, 2 do
+			table.insert(samples, (lane.pointAt(distance)))
+		end
+		laneSamples[index] = samples
 	end
-	return { map = definition.map, spots = candidateSpots(definition.map), samples = samples, pathLength = geometry.PATH_LENGTH }
+	return { map = mapName, spots = candidateSpots(mapName), laneSamples = laneSamples, pathLength = geometry.PATH_LENGTH }
 end
 
 local function near(a, b, range: number): boolean
@@ -314,9 +320,18 @@ end
 -- Le cerveau d'un joueur simulé dans une partie : la fonction renvoyée fait ses achats du moment (voir Bot.play),
 -- avec SON or et SES tours. member = lui dans la partie (LevelGame : la partie elle-même pour un joueur seul, un des
 -- game.members en équipe) ; ses tours débloquées et son entraînement sont les siens (member.unlocked, member.training).
+-- Sur une carte d'équipe, il tient d'abord à SON couloir (celui de son rang dans la partie : il compte double),
+-- comme un vrai joueur qui voit son nom à l'entrée ; la partie commune compte pour tous les couloirs à la fois.
 local function makeDecider(game, member, profile, policy, context)
 	local training, unlocked = member.training, member.unlocked
-	local spots, samples, pathLength = context.spots, context.samples, context.pathLength
+	local spots, pathLength = context.spots, context.pathLength
+	local ownLane = table.find(game.members, member) or 1
+	local samples = {} -- { { point, weight } }
+	for index, laneSamples in context.laneSamples do
+		for _, point in laneSamples do
+			table.insert(samples, { point = point, weight = if index == ownLane then 2 else 1 })
+		end
+	end
 
 	local function freeSpot()
 		local positions = game:towerPositions()
@@ -338,18 +353,18 @@ local function makeDecider(game, member, profile, policy, context)
 			if Levels.checkPlacement(context.map, spot, positions) then
 				local score = 0
 				for _, sample in samples do
-					if near(sample, spot, range) then
+					if near(sample.point, spot, range) then
 						if towerType == "Frost" then
 							local covered = false
 							for _, tower in game.towers do
-								if tower.type ~= "Frost" and near(sample, tower.localPosition, game:statsOf(tower).range) then
+								if tower.type ~= "Frost" and near(sample.point, tower.localPosition, game:statsOf(tower).range) then
 									covered = true
 									break
 								end
 							end
-							score += if covered then 1 else 0.25
+							score += sample.weight * (if covered then 1 else 0.25)
 						else
-							score += 1
+							score += sample.weight
 						end
 					end
 				end
@@ -370,7 +385,7 @@ local function makeDecider(game, member, profile, policy, context)
 			end
 			local danger = false
 			for _, enemy in game.enemies do
-				if not enemy.dead and enemy.distance > pathLength * (policy.danger or Bot.DANGER) then
+				if not enemy.dead and enemy.distance + (enemy.laneOffset or 0) > pathLength * (policy.danger or Bot.DANGER) then
 					danger = true
 					break
 				end
@@ -490,7 +505,7 @@ function Bot.playWith(level: number, profile, policy, observe: ((any, number) ->
 			ended = won
 		end,
 	})
-	local decide = makeDecider(game, game, profile, policy, mapContext(definition))
+	local decide = makeDecider(game, game, profile, policy, mapContext(definition.map))
 	local nextDecision = 0
 	while ended == nil and game.clock < Bot.MAX_SECONDS do
 		if game.clock >= nextDecision then
@@ -524,7 +539,8 @@ end
 
 -- Une partie EN ÉQUIPE (« JOUER EN ÉQUIPE », Levels.luau) : un joueur simulé par profil, dans la même partie, chacun
 -- avec son or et ses tours, qui décide à son propre rythme (profile.interval). Tous jouent de la même façon (policy).
--- Les monstres sont ceux d'une équipe de #profiles joueurs (Levels.TEAM_HEALTH). Pas de tour offerte au niveau 1.
+-- Les monstres sont ceux d'une équipe de #profiles joueurs (Levels.TEAM_HEALTH), sur la carte d'équipe du territoire
+-- (un couloir chacun : Levels.mapFor). Pas de tour offerte au niveau 1.
 -- Renvoie { won, ended, lives, seconds, kills, total, towers = nombre posé, builds = { texte des tours de chacun } }.
 function Bot.playTeamWith(level: number, profiles, policy)
 	local definition = Levels.definition(level)
@@ -534,7 +550,8 @@ function Bot.playTeamWith(level: number, profiles, policy)
 		local otherUnlocked, otherTraining = profileSetup(profiles[index])
 		table.insert(team, { player = { UserId = index, Parent = {} }, unlocked = otherUnlocked, training = otherTraining })
 	end
-	local arena = { index = Levels.arenaIndex(1), folder = Env.fakeInstance("Arena"), cframe = Levels.arenaCFrame(1), map = definition.map }
+	local mapName = Levels.mapFor(level, #profiles)
+	local arena = { index = Levels.arenaIndex(1), folder = Env.fakeInstance("Arena"), cframe = Levels.arenaCFrame(1), map = mapName }
 	local ended: boolean? = nil
 	local game = LevelGame.new(arena, { UserId = 1, Parent = {} }, {
 		level = level,
@@ -546,7 +563,7 @@ function Bot.playTeamWith(level: number, profiles, policy)
 			ended = won
 		end,
 	})
-	local context = mapContext(definition)
+	local context = mapContext(mapName)
 	local bots = {}
 	for index, member in game.members do
 		bots[index] = { decide = makeDecider(game, member, profiles[index], policy, context), interval = profiles[index].interval or Bot.DECISION_INTERVAL, nextDecision = 0 }

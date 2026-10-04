@@ -119,7 +119,8 @@ folder.Name = "PlotEnemies"
 
 local plotsFolder: Instance? = nil -- workspace.Hub.Plots (trouvé dans start)
 -- [plotIndex] = { cframe, folder, enemies = { [id] = enemy }, fires = { zone de feu }, generation, cleared,
---                 pointAt, pathLength (son chemin), arena (zone de combat d'un niveau), mapName (carte de la zone) }
+--                 lanes = { { pointAt, PATH_LENGTH } } (ses couloirs : un seul, sauf sur une carte d'équipe),
+--                 arena (zone de combat d'un niveau), mapName (carte de la zone) }
 -- (generation et cleared : voir clearPlot)
 local plots = {}
 local beams = {} -- [modèle de tour à rayon] = { plotIndex, def, muzzle, targetId, ramp, heat, handle }
@@ -130,15 +131,22 @@ local dying = {} -- corps qui jouent leur animation de mort : { part, track, rat
 local movedParts: { BasePart } = {}
 local movedCFrames: { CFrame } = {}
 
+-- Le chemin des parcelles (camp d'entraînement) : un seul couloir.
+local PARCEL_LANES = { { pointAt = PlotLayout.pointAt, PATH_LENGTH = PlotLayout.PATH_LENGTH } }
+
+-- Le couloir que suit un monstre affiché (le premier s'il n'existe pas sur cette carte).
+local function laneOf(state, enemy)
+	return state.lanes[enemy.lane] or state.lanes[1]
+end
+
 local function plotState(plotIndex: number)
 	local state = plots[plotIndex]
 	if not state then
 		local arena = Levels.isArena(plotIndex)
 		state = {
 			cframe = if arena then Levels.arenaCFrame(Levels.slotOf(plotIndex)) else PlotLayout.cframe(plotIndex),
-			-- Chemin : celui des parcelles ; pour une zone de combat, celui de sa carte (refreshLayout).
-			pointAt = PlotLayout.pointAt,
-			pathLength = PlotLayout.PATH_LENGTH,
+			-- Chemin : celui des parcelles ; pour une zone de combat, les couloirs de sa carte (refreshLayout).
+			lanes = PARCEL_LANES,
 			arena = arena,
 			mapName = nil,
 			enemies = {},
@@ -176,10 +184,8 @@ local function refreshLayout(plotIndex: number, state): boolean
 	local arenaFolder = folderOf(plotIndex, state)
 	local mapName = arenaFolder and arenaFolder:GetAttribute("Map")
 	if typeof(mapName) == "string" and mapName ~= state.mapName and Levels.MAPS[mapName] then
-		local geometry = Levels.geometry(mapName)
 		state.mapName = mapName
-		state.pointAt = geometry.pointAt
-		state.pathLength = geometry.PATH_LENGTH
+		state.lanes = Levels.geometry(mapName).lanes
 	end
 	return state.mapName ~= nil
 end
@@ -455,7 +461,8 @@ local function onSync(plotIndex: number, packet: buffer, count: number, kind: st
 	for i = 0, count - 1 do
 		local offset = i * ENEMY_BYTES
 		local id = buffer.readu32(packet, offset)
-		local enemyType = Enemies.ORDER[buffer.readu8(packet, offset + 4)]
+		local typeByte = buffer.readu8(packet, offset + 4) -- (numéro du type + couloir : Enemies.LANE_STEP)
+		local enemyType = Enemies.ORDER[typeByte % Enemies.LANE_STEP]
 		local def = Enemies.Defs[enemyType]
 		local distance = buffer.readf32(packet, offset + 5)
 		local health = buffer.readu8(packet, offset + 9) / 255
@@ -474,6 +481,7 @@ local function onSync(plotIndex: number, packet: buffer, count: number, kind: st
 			end
 			local part, fill, stroke, custom = createEnemy(enemyType, def, palier, camp)
 			enemy = { def = def, part = part, fill = fill, stroke = stroke, distance = distance, statusFragile = false }
+			enemy.lane = typeByte // Enemies.LANE_STEP + 1 -- (son couloir : cartes d'équipe)
 			enemy.enemyType = enemyType
 			enemy.camp = camp -- cible d'entraînement : détruite sans cri ni or
 			enemy.plotIndex = plotIndex -- (son corps, s'il joue sa mort, est effacé avec la parcelle : clearPlot)
@@ -513,7 +521,7 @@ local function onSync(plotIndex: number, packet: buffer, count: number, kind: st
 			local died = runState == "Running" or (state.arena and runState == "Won")
 			-- Disparu au bout du chemin pendant que le combat continue : il est parti (monstre arrivé au château,
 			-- cible sortie du camp), pas mort.
-			if died and enemy.distance >= state.pathLength - EXIT_DISTANCE then
+			if died and enemy.distance >= laneOf(state, enemy).PATH_LENGTH - EXIT_DISTANCE then
 				died = false
 			end
 			enemy.simSpeed = simSpeed
@@ -928,8 +936,9 @@ function PlotRenderer.start()
 			-- Même vitesse que la simulation du serveur : x2 si le bouton x2 du niveau est allumé.
 			local simDt = dt * simSpeedOf(plotIndex, state)
 			for _, enemy in state.enemies do
-				enemy.distance = math.min(state.pathLength, enemy.distance + enemy.def.speed * IdleConfig.ENEMY_SPEED_MULTIPLIER * (enemy.speedFactor or 1) * simDt)
-				local localPosition, direction = state.pointAt(enemy.distance)
+				local path = laneOf(state, enemy)
+				enemy.distance = math.min(path.PATH_LENGTH, enemy.distance + enemy.def.speed * IdleConfig.ENEMY_SPEED_MULTIPLIER * (enemy.speedFactor or 1) * simDt)
+				local localPosition, direction = path.pointAt(enemy.distance)
 				local position = state.cframe:PointToWorldSpace(localPosition) + Vector3.new(0, enemy.def.size / 2, 0)
 				local worldDirection = state.cframe:VectorToWorldSpace(direction)
 				-- Modèle perso que son animation retourne (CustomModels.measureFlip) : racine tournée d'un demi-tour

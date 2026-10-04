@@ -4,8 +4,9 @@
 --   1) la fenêtre du camp : le bouton « 👥 ÉQUIPE » et sa page (texte, « TU JOUES SEUL », personne d'autre) ;
 --   2) une invitation de Robin : le panneau, son texte, son temps ; « Refuser » ; une 2e invitation, « Accepter » ;
 --      la page de l'équipe (Robin chef), les boutons des niveaux (« 👥 LE CHEF ») ;
---   3) Robin lance un niveau : le joueur y entre ; son or à lui (pas celui de Robin), l'or de Robin sous le bandeau,
---      la tour de Robin (son menu dit à qui elle est, sans « Améliorer » ni « Vendre »), le joueur pose sa tour ;
+--   3) Robin lance un niveau : le joueur y entre, sur la carte d'équipe (un couloir chacun : le nom de chacun au-dessus
+--      de sa porte, des monstres dans les deux couloirs) ; son or à lui (pas celui de Robin), l'or de Robin sous le
+--      bandeau, la tour de Robin (son menu dit à qui elle est, sans « Améliorer » ni « Vendre »), le joueur pose sa tour ;
 --   4) l'écran de fin : la récompense avec le bonus, « Robin choisit la suite » ; Robin lance la suite : le joueur y
 --      entre ; il quitte : retour au camp, Robin continue seul ;
 --   5) le joueur chef d'une équipe : « 🔒 ÉQUIPE » sur un niveau pas encore ouvert pour son coéquipier, il lance un
@@ -214,7 +215,50 @@ return function(log)
 	task.wait(0.8)
 	check(entered and not window.Visible, "Robin lance le niveau 3 : le joueur y entre (fenêtre du camp fermée, écran du niveau)")
 	local arena = arenaFolder()
-	local spots = Levels.MAPS[Levels.definition(3).map].spots
+	local teamMap = Levels.mapFor(3, 2)
+	local spots = Levels.MAPS[teamMap].spots
+	-- La carte d'équipe : deux couloirs (Robin, le chef, a le premier), une porte et un nom à l'entrée de chacun.
+	local mapFolder = arena and arena:FindFirstChild("Map")
+	local gates = 0
+	for _, child in if mapFolder then mapFolder:GetChildren() else {} do
+		if child.Name == "GateTower" then
+			gates += 1
+		end
+	end
+	local laneNames = mapFolder and mapFolder:FindFirstChild("LaneNames")
+	local function signText(index)
+		local anchor = laneNames and laneNames:FindFirstChild("Lane" .. index)
+		local sign = anchor and anchor:FindFirstChild("Sign")
+		return if sign and sign.Enabled and sign:GetAttribute("NoTranslate") == true then sign.Label.Text else nil
+	end
+	check(
+		arena:GetAttribute("Map") == teamMap and teamMap == "Valley_2" and gates == 4 and signText(1) == "Robin" and signText(2) == name and signText(3) == nil,
+		`carte d'équipe « {tostring(arena:GetAttribute("Map"))} » : {gates / 2} portes, « {tostring(signText(1))} » au-dessus du premier couloir, « {tostring(signText(2))} » au-dessus du second`
+	)
+	-- Des monstres affichés dans les deux couloirs (celui du haut : Robin, celui du bas : le joueur ; ils se rejoignent
+	-- au milieu du terrain).
+	local arenaCFrame = Levels.arenaCFrame(Levels.slotOf(player:GetAttribute("LevelArena")))
+	local function corridors()
+		local top, bottom = 0, 0
+		local enemies = workspace:FindFirstChild("PlotEnemies")
+		for _, part in if enemies then enemies:GetChildren() else {} do
+			if part:IsA("BasePart") then
+				local at = arenaCFrame:PointToObjectSpace(part.Position)
+				if math.abs(at.X) < 70 and at.X < -4 then
+					top += if at.Z < -5 then 1 else 0
+					bottom += if at.Z > 5 then 1 else 0
+				end
+			end
+		end
+		return top, bottom
+	end
+	local bothCorridors = waitFor(function()
+		local top, bottom = corridors()
+		return top > 0 and bottom > 0
+	end, 20)
+	local top, bottom = corridors()
+	check(bothCorridors, `des monstres dans les deux couloirs avant leur rencontre ({top} en haut, {bottom} en bas)`)
+	shot("carte_equipe")
 	as(robin, "Place", "MachineGun", spots[1].X, spots[1].Z)
 	waitFor(function()
 		return #towersOf(robin) == 1

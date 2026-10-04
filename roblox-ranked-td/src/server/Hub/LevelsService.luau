@@ -367,7 +367,8 @@ local function startLevel(player: Player, level: any): (boolean, string?)
 		train(member)
 	end
 	local definition = Levels.definition(level)
-	local arena = LevelArena.build(slot, definition.map, definition.palier)
+	-- En équipe : la carte d'équipe du territoire, un couloir par joueur (Levels.mapFor).
+	local arena = LevelArena.build(slot, Levels.mapFor(level, #group), definition.palier)
 	local others = {}
 	for index = 2, #group do
 		local data = levelsOf(group[index])
@@ -394,6 +395,14 @@ local function startLevel(player: Player, level: any): (boolean, string?)
 		end
 		match.game:setAttr("Team", HttpService:JSONEncode(names))
 	end
+	-- Le nom de chacun au-dessus de la porte de son couloir (le joueur n défend le couloir n ; seul : aucun nom).
+	local laneNames = {}
+	if #group > 1 then
+		for _, member in group do
+			table.insert(laneNames, member.DisplayName)
+		end
+	end
+	LevelArena.setLaneNames(slot, laneNames)
 	matches[match] = true
 	for _, member in group do
 		sessions[member] = match

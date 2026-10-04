@@ -62,6 +62,9 @@ end
 -- conseillé : la tour offerte du niveau 1 est posée sur le premier, le joueur simulé les essaie d'abord. Rien ne
 -- les montre au joueur : il pose où il veut (demande du propriétaire, 03/10/2026 : « enlève les emplacements jaunes,
 -- je veux que ce soit libre »).
+-- Les cartes d'ÉQUIPE (une par territoire et par nombre de joueurs : Shared/TeamMaps.luau) ont plusieurs couloirs
+-- (lanes : un par joueur, de son entrée au château) ; une carte seule n'en a qu'un, son chemin (path). Après le
+-- tableau MAPS, toutes les cartes ont les deux : lanes, et path = le premier couloir.
 ----------------------------------------------------------------------
 Levels.PATH_WIDTH = 6
 Levels.TOWER_CLEARANCE = 5 -- distance mini entre le centre d'une tour et le milieu du chemin
@@ -410,6 +413,15 @@ Levels.MAPS = {
 	},
 }
 
+-- Les cartes d'équipe rejoignent les autres (« Valley_2 », « Valley_3 », « Valley_4 »... : voir Levels.mapFor).
+for name, map in require(script.Parent.TeamMaps) do
+	Levels.MAPS[name] = map
+end
+for _, map in Levels.MAPS do
+	map.lanes = map.lanes or { map.path }
+	map.path = map.lanes[1]
+end
+
 ----------------------------------------------------------------------
 -- Territoires. Demande du propriétaire (02/10/2026) : « ajoute des niveaux ». Un territoire = TERRITORY_SIZE niveaux
 -- sur la même carte, contre la même famille de monstres (leur apparence suit le territoire : MedievalModels et
@@ -436,23 +448,15 @@ end
 
 local geometries = {}
 
--- Géométrie d'une carte : { map, PATH_LENGTH, pointAt(distance) -> (point local, direction),
--- distanceToPath(point local) -> studs }. La même table à chaque appel.
-function Levels.geometry(mapName: string)
-	local geometry = geometries[mapName]
-	if geometry then
-		return geometry
-	end
-	local map = Levels.MAPS[mapName]
-	assert(map, "Carte inconnue : " .. tostring(mapName))
-	local path = map.path
+-- Un couloir : { points, PATH_LENGTH, pointAt(distance) -> (point local, direction) }.
+local function lanePath(path: { Vector3 })
 	local cumulative = { 0 }
 	for i = 2, #path do
 		cumulative[i] = cumulative[i - 1] + (path[i] - path[i - 1]).Magnitude
 	end
-	geometry = { map = map, name = mapName, PATH_LENGTH = cumulative[#cumulative] }
+	local lane = { points = path, PATH_LENGTH = cumulative[#cumulative] }
 
-	function geometry.pointAt(distance: number): (Vector3, Vector3)
+	function lane.pointAt(distance: number): (Vector3, Vector3)
 		if distance <= 0 then
 			return path[1], (path[2] - path[1]).Unit
 		end
@@ -465,11 +469,42 @@ function Levels.geometry(mapName: string)
 		return path[#path], (path[#path] - path[#path - 1]).Unit
 	end
 
+	return lane
+end
+
+-- Géométrie d'une carte : { map, name, lanes (ses couloirs, voir lanePath ; un seul pour une carte seule),
+-- PATH_LENGTH (le plus long couloir), pointAt(distance) -> (point local, direction) (celui du premier couloir),
+-- segments = { { a, b } } (les bouts de chemin, chacun une seule fois : des couloirs qui se rejoignent partagent
+-- les leurs), distanceToPath(point local) -> studs (jusqu'au chemin le plus proche, tous couloirs confondus) }.
+-- La même table à chaque appel.
+function Levels.geometry(mapName: string)
+	local geometry = geometries[mapName]
+	if geometry then
+		return geometry
+	end
+	local map = Levels.MAPS[mapName]
+	assert(map, "Carte inconnue : " .. tostring(mapName))
+	local lanes, longest = {}, 0
+	local segments, seen = {}, {}
+	for index, points in map.lanes do
+		lanes[index] = lanePath(points)
+		longest = math.max(longest, lanes[index].PATH_LENGTH)
+		for i = 2, #points do
+			local a, b = points[i - 1], points[i]
+			local key = `{a.X},{a.Z}>{b.X},{b.Z}`
+			if not seen[key] then
+				seen[key] = true
+				table.insert(segments, { a = a, b = b })
+			end
+		end
+	end
+	geometry = { map = map, name = mapName, lanes = lanes, PATH_LENGTH = longest, pointAt = lanes[1].pointAt, segments = segments }
+
 	function geometry.distanceToPath(localPosition: Vector3): number
 		local p = flat(localPosition)
 		local best = math.huge
-		for i = 2, #path do
-			local a, b = path[i - 1], path[i]
+		for _, segment in segments do
+			local a, b = segment.a, segment.b
 			local ab = b - a
 			local t = math.clamp((p - a):Dot(ab) / ab:Dot(ab), 0, 1)
 			best = math.min(best, (p - (a + ab * t)).Magnitude)
@@ -749,6 +784,10 @@ end
 --     que les siennes ;
 --   * les vies du château et le flot de monstres sont communs ; les monstres ont TEAM_HEALTH fois plus de PV
 --     (réglé avec des équipes de joueurs simulés : tools/levels, run.ps1 -Equipe) ;
+--   * chacun a SON COULOIR (demande du propriétaire, 03/10/2026 : « chacun a son couloir qui se rejoint ensuite ») :
+--     la partie se joue sur la carte d'équipe du territoire à ce nombre de joueurs (Shared/TeamMaps.luau,
+--     Levels.mapFor), le joueur n défend le couloir n, son nom est écrit à l'entrée (Hub/LevelArena.luau) ; le flot
+--     est partagé entre les couloirs (Levels.buildQueue), qui se rejoignent avant le château ;
 --   * à la fin, chacun reçoit SES pièces de niveau (première victoire ou non : selon SES niveaux réussis), avec le
 --     bonus d'équipe TEAM_COIN_BONUS, et l'XP de SES tours posées ; une victoire ouvre le niveau suivant à chacun ;
 --   * c'est le CHEF qui lance les niveaux, et le niveau doit être ouvert pour tous ; il faut avoir fini le
@@ -756,14 +795,17 @@ end
 --   * celui qui s'en va (bouton Quitter, ou départ du jeu) abandonne pour lui seul : ses tours restent et
 --     continuent de tirer, les autres continuent.
 -- Les listes sont rangées par nombre de joueurs : [1] = seul, [2] = à deux, [3] = à trois, [4] = à quatre.
--- TEAM_HEALTH, mesuré le 03/10/2026 sur 12 niveaux (3 à 100) avec run.ps1 -Equipe : PV x le plus haut où une équipe
--- de joueurs de référence gagne encore avec 5 vies = 1,95 à 2,7 à deux (médiane 2,15 : chacun reçoit TOUT l'or, deux
--- joueurs font donc un peu plus que deux fois un seul), 2,6 à 3,8 à trois (2,8), 2,7 à 5,3 à quatre (3,5). Les
--- chiffres gardés sont un peu en dessous de la médiane : une équipe de joueurs normaux gagne presque partout, une
--- équipe qui attend perd encore presque toujours.
+-- TEAM_HEALTH, mesuré le 04/10/2026 sur les cartes d'équipe (14 à 16 niveaux, du 3 au 100) avec run.ps1 -Equipe :
+-- PV x le plus haut où une équipe de joueurs de référence gagne encore avec 5 vies = 1,9 à 2,4 à deux (médiane 2,15 :
+-- chacun reçoit TOUT l'or, deux joueurs font donc un peu plus que deux fois un seul), 2,3 à 3,4 à trois (2,75), 2,7
+-- à 4 à quatre (3,45). Les chiffres gardés sont un peu en dessous de la médiane (x0,86) : une équipe de joueurs
+-- normaux gagne presque partout, une équipe qui attend perd encore presque toujours. Deux territoires sont plus
+-- durs en équipe sur plusieurs niveaux mesurés (le col à deux : 1,6 à 1,9 ; le désert : 1,9 à deux, 2,45 à trois,
+-- 2,7 à quatre) : leurs cartes d'équipe ont des monstres un peu moins résistants (TEAM_MAP_HEALTH).
 ----------------------------------------------------------------------
 Levels.TEAM_MAX = 4
-Levels.TEAM_HEALTH = { 1, 1.9, 2.5, 3.1 }
+Levels.TEAM_HEALTH = { 1, 1.85, 2.35, 2.95 }
+Levels.TEAM_MAP_HEALTH = { Pass_2 = 0.82, Desert_2 = 0.92, Desert_3 = 0.92, Desert_4 = 0.8 } -- PV x ce chiffre en plus
 Levels.TEAM_COIN_BONUS = { 0, 0.1, 0.3, 0.4 } -- (chiffres du propriétaire)
 Levels.TEAM_INVITE_SECONDS = 30 -- une invitation sans réponse disparaît au bout de ce temps
 
@@ -774,6 +816,16 @@ end
 -- Multiplicateur des PV des monstres pour une équipe de `size` joueurs (1 = seul).
 function Levels.teamHealth(size: number?): number
 	return Levels.TEAM_HEALTH[teamIndex(size)] or 1
+end
+
+-- Le BOSS est un seul monstre énorme qui ne passe que dans UN couloir d'une carte d'équipe : seules les tours de ce
+-- couloir et celles de la partie commune le touchent. Ses PV d'équipe sont donc moins multipliés : 1 + (teamHealth
+-- - 1) x TEAM_BOSS_SHARE. Mesuré avec run.ps1 -Equipe : avec les mêmes PV que le flot, le niveau 10 (son boss)
+-- était bien plus dur en équipe que les autres. Les colosses, eux, viennent à plusieurs et se répartissent entre les
+-- couloirs : leurs PV suivent ceux du flot (les alléger aussi rendait les derniers territoires trop faciles).
+Levels.TEAM_BOSS_SHARE = 0.5
+function Levels.teamBossHealth(size: number?): number
+	return 1 + (Levels.teamHealth(size) - 1) * Levels.TEAM_BOSS_SHARE
 end
 
 -- Bonus de pièces de niveau d'une équipe de `size` joueurs (0,1 = +10 %).
@@ -814,6 +866,15 @@ function Levels.definition(level: number)
 	}
 end
 
+-- Carte d'un niveau joué à `teamSize` joueurs : en équipe, la carte d'équipe de son territoire (« Valley_2 »... :
+-- un couloir par joueur) ; seul (ou sans carte d'équipe à ce nombre), celle du territoire.
+function Levels.mapFor(level: number, teamSize: number?): string
+	local map = Levels.definition(level).map
+	local size = teamIndex(teamSize)
+	local team = `{map}_{size}`
+	return if size > 1 and Levels.MAPS[team] then team else map
+end
+
 -- PV d'un monstre de ce type à ce niveau ; factor = montée du moment (ramp), 1 si absente.
 -- Taille affichée d'un monstre dans un niveau, par rapport à celle de la parcelle (Levels.ENEMY_SCALE).
 function Levels.enemyScale(enemyType: string): number
@@ -839,20 +900,31 @@ local function streamType(source, slot: number, progress: number): string
 	return "Normal"
 end
 
--- File d'apparition d'un niveau : { { enemy, health, reward (or), at (secondes depuis le début) } }, dans l'ordre
--- des heures. Le flot continu décrit plus haut : toujours la même file pour le même niveau. teamSize = nombre de
--- joueurs de la partie (« JOUER EN ÉQUIPE » : PV x teamHealth ; absent = seul).
+-- File d'apparition d'un niveau : { { enemy, health, reward (or), at (secondes depuis le début), lane (couloir) } },
+-- dans l'ordre des heures. Le flot continu décrit plus haut : toujours la même file pour le même niveau. teamSize =
+-- nombre de joueurs de la partie (« JOUER EN ÉQUIPE » : PV x teamHealth, x TEAM_MAP_HEALTH de sa carte d'équipe ;
+-- absent = seul). En équipe, chacun a son couloir (cartes d'équipe, Levels.mapFor) et le flot est partagé entre les
+-- couloirs, chacun son tour, type par type : autant de monstres de chaque type dans chaque couloir. Le premier de
+-- chaque type va dans le couloir n° du territoire (territoire 1 : couloir 1, territoire 2 : couloir 2...) : le boss
+-- ne tombe pas toujours sur le même.
 function Levels.buildQueue(level: number, teamSize: number?)
 	local source = Levels.DEFINITIONS[level]
 	assert(source, "Niveau inconnu : " .. tostring(level))
 	local queue = {}
-	local teamScale = Levels.teamHealth(teamSize)
+	local mapScale = if teamIndex(teamSize) > 1 then Levels.TEAM_MAP_HEALTH[Levels.mapFor(level, teamSize)] or 1 else 1
+	local teamScale, bossScale = Levels.teamHealth(teamSize) * mapScale, Levels.teamBossHealth(teamSize) * mapScale
+	local lanes = teamIndex(teamSize)
+	local firstLane = (Levels.territoryOf(level) - 1) % lanes
+	local turns = {} -- [type] = nombre de monstres de ce type déjà placés (+ firstLane)
 	local function push(enemyType: string, at: number, factor: number)
 		local health = Levels.enemyHealth(level, enemyType, factor)
-		if teamScale ~= 1 then
-			health = math.floor(health * teamScale * 10 + 0.5) / 10
+		local scale = if enemyType == "Boss" then bossScale else teamScale
+		if scale ~= 1 then
+			health = math.floor(health * scale * 10 + 0.5) / 10
 		end
-		table.insert(queue, { enemy = enemyType, health = health, reward = Levels.ENEMY[enemyType].gold, at = at })
+		local turn = turns[enemyType] or firstLane
+		turns[enemyType] = turn + 1
+		table.insert(queue, { enemy = enemyType, health = health, reward = Levels.ENEMY[enemyType].gold, at = at, lane = turn % lanes + 1 })
 	end
 	-- Monstres à part (mini-boss, boss), rangés par heure de sortie.
 	local specials = {}

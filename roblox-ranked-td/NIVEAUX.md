@@ -330,20 +330,38 @@ quad aussi avec 30 et 40 % »). Jusqu'à **4 joueurs** défendent le même chât
   et ses évolutions, et n'améliore ou ne vend que les siennes : toucher la tour d'un autre montre « Tour de Robin »,
   sans « Améliorer » ni « Vendre ». Sous le bandeau du haut : l'or des autres joueurs. Les **vies du château**, le
   flot de monstres et la vitesse x2 sont communs.
-- **Les monstres ont plus de vie** : x1,9 à deux, x2,5 à trois, x3,1 à quatre (`Levels.TEAM_HEALTH`).
+- **Chacun son couloir** (ta demande du 03/10/2026 : « chacun a son couloir qui se rejoint ensuite, exemple à 2 ça
+  fait une map un peu en Y, adapté à chaque monde ») : en équipe, le niveau se joue sur la **carte d'équipe** de son
+  territoire, une par nombre de joueurs (30 cartes : 10 territoires x 2, 3 et 4 joueurs). Chaque joueur a **son
+  couloir**, avec **son nom au-dessus de la porte** ; les couloirs se rejoignent avant le château. À deux : un Y (deux
+  couloirs depuis la gauche, en haut et en bas) ; à trois : un couloir par la gauche, un par le haut, un par le bas ;
+  à quatre : les deux couloirs de gauche se rejoignent d'abord, ceux du haut et du bas plus loin. Chaque monde garde
+  sa forme : les créneaux de la vallée, les épingles du col, les S de la forêt, les passages serrés du glacier, le
+  crochet du désert, la couronne de la nécropole, les dents de la citadelle, le long couloir du volcan, les marais
+  (à deux, on y entre par le haut et par le bas), la spirale du dragon. Les monstres sont **partagés entre les
+  couloirs, chacun son tour** (autant de chaque type dans chaque couloir), et le boss change de couloir d'un
+  territoire à l'autre. On pose toujours ses tours **où on veut**, même près du couloir d'un autre pour l'aider.
+  Les dessins des 30 cartes : `tools/team-maps/apercus/toutes-les-cartes.png` (tout d'un coup), et une image par
+  monde dans le même dossier (couloirs J1, J2... : J1 = le chef, qui lance le niveau).
+- **Les monstres ont plus de vie** : x1,85 à deux, x2,35 à trois, x2,95 à quatre (`Levels.TEAM_HEALTH`). Le boss
+  un peu moins (x1,4 / x1,7 / x2) : il ne passe que dans un couloir (`Levels.TEAM_BOSS_SHARE`). Sur les cartes
+  d'équipe du col (à deux) et du désert, un peu moins encore (`Levels.TEAM_MAP_HEALTH`) : elles sont plus dures.
 - **La récompense** : chacun reçoit SES pièces de niveau (première victoire ou non : selon SES niveaux réussis),
   **avec le bonus d'équipe : +10 % à deux, +30 % à trois, +40 % à quatre** (tes chiffres, `Levels.TEAM_COIN_BONUS`),
   et l'XP de SES tours posées. **Une victoire ouvre le niveau suivant à chacun.** L'écran de fin rappelle le bonus.
 - **Celui qui s'en va** (bouton X, ou départ du jeu) abandonne pour lui seul (comme une défaite, selon l'avancée) :
   ses tours restent et continuent de tirer, les autres continuent. Même le chef : la partie continue sans lui.
 
-**Comment les PV d'équipe ont été choisis** (`tools\levels\run.ps1 -Equipe`) : des équipes de joueurs simulés de
-référence (ceux pour qui chaque niveau est réglé) ont joué 12 à 14 niveaux, du 3 au 100. Le plus haut x où l'équipe
-gagne encore avec 5 vies : de 1,95 à 2,7 à deux (chacun reçoit tout l'or : deux joueurs font un peu plus que deux
-fois un seul), de 2,6 à 3,8 à trois, de 2,7 à 5,3 à quatre. Les chiffres gardés sont un peu en dessous : une équipe
-de joueurs normaux gagne partout (à quatre, le niveau 15 reste le plus dur), et une équipe qui attend (un achat
-toutes les 8 s chacun) perd encore presque toujours (à quatre, elle gagne quelques niveaux : 4 joueurs lents
-achètent ensemble plus souvent qu'un joueur actif).
+**Comment les PV d'équipe ont été choisis** (`tools\levels\run.ps1 -Equipe`, refait le 04/10/2026 sur les cartes
+d'équipe) : des équipes de joueurs simulés de référence (ceux pour qui chaque niveau est réglé) ont joué 14 à 16
+niveaux, du 3 au 100. Le plus haut x où l'équipe gagne encore avec 5 vies : environ 2,15 à deux (chacun reçoit tout
+l'or : deux joueurs font un peu plus que deux fois un seul), 2,75 à trois, 3,45 à quatre. Les chiffres gardés sont
+un peu en dessous : une équipe de joueurs normaux gagne presque partout, une équipe qui attend (un achat toutes les
+8 s chacun) perd encore presque toujours. Deux choses ont été corrigées en mesurant : avec les mêmes PV que le reste
+du flot, **le boss** rendait les niveaux 10, 20... bien plus durs en équipe (il ne passe que dans un couloir, avec
+seulement une partie des tours) ; et deux territoires restaient plus durs en équipe sur tous leurs niveaux mesurés
+(**le col à deux**, **le désert** à 2, 3 et 4) : leurs cartes d'équipe ont des monstres un peu moins résistants. À
+deux, le niveau 15 (le col, un colosse dans chaque couloir) reste le plus dur.
 
 **Pas encore essayé à plusieurs vrais joueurs** : un Play de Studio n'a qu'un joueur, le test automatique joue avec
 des joueurs d'essai (`tools\studio-test\run.ps1 -Test team`). Pour essayer à deux sur ton PC : le test à
@@ -610,6 +628,9 @@ arrivent à un niveau) : rien d'autre n'a changé. Les chiffres sont dans `src/s
 17. **Jouer en équipe** (« jouer en équipe » ; « et même un bonus 10 % pièces, et on pourrait faire trio et quad
     aussi avec 30 et 40 % ») : jusqu'à 4 joueurs dans le même niveau, chacun son or et ses tours, bonus de pièces.
     Voir « Jouer en équipe ».
+18. **Chacun son couloir en équipe** (« tu peux me modifier les maps en équipe ? le principe : chacun a son couloir
+    qui se rejoint ensuite ») : 30 cartes d'équipe (10 territoires x 2, 3 et 4 joueurs), le nom de chacun au-dessus
+    de sa porte, les monstres partagés entre les couloirs. Voir « Jouer en équipe ».
 
 ### Le grand ménage : ce qui a été enlevé
 
@@ -659,11 +680,16 @@ niveaux du joueur et son réglage du son. Les sauvegardes de l'ancien jeu « Tow
 - **Le serveur décide de tout** (or, pose, récompenses, achats). Le client envoie des demandes (`LevelAction`).
 - **En équipe**, une seule partie (`LevelGame`) a plusieurs joueurs : le premier est la partie elle-même, les autres
   sont listés dans `game.members` (chacun son or, ses tours débloquées, son entraînement). Les monstres et les tirs
-  partent à tous les joueurs de la partie. La zone est celle du chef si elle est libre, sinon une autre.
+  partent à tous les joueurs de la partie. La zone est celle du chef si elle est libre, sinon une autre. La carte
+  est celle de l'équipe (`Levels.mapFor`) : chaque monstre a son couloir (`lane`, choisi par `Levels.buildQueue`),
+  le serveur le fait avancer le long du sien, et le paquet réseau le dit au client (`Enemies.LANE_STEP`). Pour
+  changer une carte d'équipe : `tools/team-maps/cartes.py`, puis `python tools/team-maps/generer.py` (il vérifie
+  les 30 cartes, refait les dessins et réécrit `src/shared/TeamMaps.luau`).
 
 | Fichier | Rôle |
 |---|---|
 | `src/shared/Levels.luau` | toutes les règles et tous les chiffres (niveaux, territoires et cartes, monstres, prix, boutique, entraînement, tuto) |
+| `src/shared/TeamMaps.luau` | les 30 cartes d'équipe (écrit par `tools/team-maps/generer.py`, à ne pas modifier à la main) |
 | `src/shared/IdleTowers.luau`, `IdleConfig.luau`, `Enemies.luau` | les 8 tours, les réglages du combat, les 6 types de monstres |
 | `src/server/Hub/Combat.luau` | le combat des tours contre les monstres, et ses paquets réseau |
 | `src/server/Hub/LevelGame.luau` | un niveau en cours (or, vies, flot de monstres, pose des tours) |
@@ -679,6 +705,7 @@ niveaux du joueur et son réglage du son. Les sauvegardes de l'ancien jeu « Tow
 | `src/client/PlotRenderer.luau`, `Effects.luau`, `CombatVFX.luau` | l'affichage des monstres, des cibles et des tirs |
 | `src/client/SoundManager.luau`, `src/shared/Sounds.luau` | les sons |
 | `tools/levels/` | joueur simulé et vérifications hors Studio |
+| `tools/team-maps/` | les cartes d'équipe : leur dessin (`cartes.py`), leur vérification et leurs aperçus (`generer.py`, Python) |
 | `tools/studio-test/` | tests automatiques dans Studio |
 
 Sauvegarde : `data.levels` dans les données du joueur (niveau le plus haut réussi, pièces de niveau, tours achetées,
@@ -698,8 +725,8 @@ powershell -ExecutionPolicy Bypass -File tools\levels\run.ps1
 powershell -ExecutionPolicy Bypass -File tools\studio-test\run.ps1
 ```
 
-- le premier : 1 819 vérifications des règles, de la difficulté de chacun des 100 niveaux, des évolutions, du camp,
-  du tuto et du jeu en équipe, sans Studio (une dizaine de minutes : les équipes de joueurs simulés sont lentes) ;
+- le premier : 1 828 vérifications des règles, de la difficulté de chacun des 100 niveaux, des évolutions, du camp,
+  du tuto, du jeu en équipe et des 30 cartes d'équipe, sans Studio (une dizaine de minutes : les équipes de joueurs simulés sont lentes) ;
 - le deuxième : le tableau de difficulté des 100 niveaux par les joueurs simulés ;
 - le troisième : le test complet dans Studio (serveur, puis la vraie interface à la taille normale et à la taille
   d'un téléphone), avec des captures dans `tools/studio-test/out/levels_*.png`. Avec `-Test tutorial` : le tuto
@@ -735,7 +762,8 @@ print(m.averageMs, m.p99Ms, m.worstMs, m.enemiesPeak)
 
 ## Limites connues
 
-- Dix cartes pour 100 niveaux (une par territoire).
+- Dix cartes pour 100 niveaux (une par territoire), plus 30 cartes d'équipe (une par territoire et par nombre de
+  joueurs).
 - Le jeu en équipe n'a été essayé qu'avec des joueurs d'essai et des joueurs simulés, jamais avec deux vrais
   joueurs (voir « Jouer en équipe » : comment l'essayer à deux dans Studio).
 - Les niveaux 11 à 100 n'ont été joués que par les joueurs simulés.

@@ -124,14 +124,16 @@ client : `LevelsService.debug` « TeamFake », « TeamAs »), qui passent par le
 avec 2 joueurs, ou avec un ami).
 
 - **serveur** : invitations (refus, acceptation, conditions : niveau 1 réussi, chef seulement, équipe complète),
-  lancement par le chef d'un niveau ouvert pour tous, partie à deux (or et entraînement de chacun publiés, monstres
-  x1,9, tours de chacun : on ne peut ni améliorer ni vendre celle d'un autre, l'or des monstres à chacun),
+  lancement par le chef d'un niveau ouvert pour tous, partie à deux sur la carte d'équipe (« Valley_2 » : le nom de
+  chacun au-dessus de la porte de son couloir ; à quatre : « Valley_4 », quatre noms), or et entraînement de chacun publiés, monstres
+  x1,85, tours de chacun : on ne peut ni améliorer ni vendre celle d'un autre, l'or des monstres à chacun),
   victoire (pièces avec le bonus de 10 %, niveau suivant ouvert pour les deux), départs (celui qui s'en va abandonne
-  pour lui seul, ses tours restent ; le dernier range la partie ; le chef qui part), équipe de quatre (monstres x3,1,
+  pour lui seul, ses tours restent ; le dernier range la partie ; le chef qui part), équipe de quatre (monstres x2,95,
   bonus de 40 %), départ du jeu d'un joueur d'essai, le chef qui quitte l'équipe ;
 - **client** : le bouton « 👥 ÉQUIPE » et sa page (`team_page_seul`, `team_page_equipe`), le panneau d'invitation
   (`team_invitation` : « Refuser », « Accepter »), les boutons des niveaux d'un coéquipier (« 👥 LE CHEF ») et du
-  chef (« 🔒 ÉQUIPE », `team_niveaux_chef`), un niveau lancé par Robin (l'or du joueur et pas celui de Robin, l'or
+  chef (« 🔒 ÉQUIPE », `team_niveaux_chef`), un niveau lancé par Robin sur la carte d'équipe (deux portes, « Robin »
+  et le nom du joueur au-dessus, des monstres affichés dans les deux couloirs : `team_carte_equipe`), l'or du joueur et pas celui de Robin, l'or
   de Robin sous le bandeau, la tour de Robin sans « Améliorer » ni « Vendre » : `team_tour_de_robin`,
   `team_niveau_a_deux`), l'écran de fin (bonus, « ⏳ Robin choisit la suite » : `team_fin_coequipier`), la suite
   lancée par Robin, le joueur qui quitte, le chef dont l'écran de fin garde « Niveau suivant », « Quitter

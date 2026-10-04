@@ -225,6 +225,11 @@ check(geometry.PATH_LENGTH == 204, `chemin de la vallée : {geometry.PATH_LENGTH
 check((geometry.pointAt(0) - map.path[1]).Magnitude < 1e-6 and (geometry.pointAt(1e9) - map.path[#map.path]).Magnitude < 1e-6, "pointAt : départ et bout du chemin")
 check(near(geometry.distanceToPath(geometry.pointAt(77)), 0) and near(geometry.distanceToPath(Vector3.new(-23, 0, 0)), 11), "distanceToPath : 0 sur le chemin, 11 au premier emplacement conseillé")
 check(Levels.geometry("Valley") == geometry and not pcall(Levels.geometry, "Nulle part"), "geometry : la même table à chaque appel, carte inconnue refusée")
+check(
+	#map.lanes == 1 and map.lanes[1] == map.path and #geometry.lanes == 1 and geometry.lanes[1].PATH_LENGTH == 204 and geometry.pointAt == geometry.lanes[1].pointAt
+		and Levels.mapFor(5) == "Valley" and Levels.mapFor(5, 1) == "Valley" and Levels.mapFor(5, 2) == "Valley_2" and Levels.mapFor(95, 4) == "Dragon_4",
+	"une carte seule a un seul couloir (son chemin) ; Levels.mapFor : la carte du territoire seul, sa carte d'équipe à 2, 3 ou 4"
+)
 local function refused(point, towers, expected: string): boolean
 	local ok, reason = Levels.checkPlacement("Valley", point, towers or {})
 	return ok == false and reason == expected
@@ -940,19 +945,27 @@ check(
 check(Levels.memberKey(123456) == "123456" and Levels.memberKey(-1001) == "m1001" and Levels.memberKey(nil) == "0", "équipe : n° d'un joueur dans les noms d'attributs (« m » devant un n° négatif)")
 do
 	local solo, duo = Levels.buildQueue(30), Levels.buildQueue(30, 2)
-	local same = #solo == #duo
+	local same, bosses = #solo == #duo, 0
 	for index, item in solo do
 		local other = duo[index]
-		if not other or other.at ~= item.at or other.enemy ~= item.enemy or other.reward ~= item.reward or math.abs(other.health - item.health * Levels.teamHealth(2)) > 0.06 then
+		-- (le boss : PV moins multipliés, il ne passe que dans un couloir)
+		local boss = item.enemy == "Boss"
+		local scale = if boss then Levels.teamBossHealth(2) else Levels.teamHealth(2)
+		bosses += if boss then 1 else 0
+		if not other or other.at ~= item.at or other.enemy ~= item.enemy or other.reward ~= item.reward or math.abs(other.health - item.health * scale) > 0.06 then
 			same = false
 		end
 	end
-	check(same, "équipe : le même flot de monstres (mêmes heures, mêmes types, même or), PV x teamHealth")
+	check(
+		same and bosses == 1 and Levels.teamBossHealth(1) == 1 and Levels.teamBossHealth(2) > 1 and Levels.teamBossHealth(2) < Levels.teamHealth(2),
+		`équipe : le même flot de monstres (mêmes heures, mêmes types, même or), PV x teamHealth ; le boss x{Levels.teamBossHealth(2)} seulement à deux (il ne passe que dans un couloir)`
+	)
 end
 do
-	-- Une partie à deux : l'hôte (UserId 1) et un coéquipier (UserId 2, Archer entraîné au maximum, Totem acheté).
+	-- Une partie à deux : l'hôte (UserId 1) et un coéquipier (UserId 2, Archer entraîné au maximum, Totem acheté), sur la
+	-- carte d'équipe du col (un couloir chacun).
 	local definition = Levels.definition(12)
-	local arena = { index = Levels.arenaIndex(2), folder = Env.fakeInstance("Arena"), cframe = Levels.arenaCFrame(2), map = definition.map }
+	local arena = { index = Levels.arenaIndex(2), folder = Env.fakeInstance("Arena"), cframe = Levels.arenaCFrame(2), map = Levels.mapFor(12, 2) }
 	local friendPlayer = { UserId = 2, Parent = {} }
 	local game = LevelGame.new(arena, { UserId = 1, Parent = {} }, {
 		level = 12,
@@ -972,7 +985,7 @@ do
 		"partie à deux : attributs de la zone (or et entraînement de chacun ; effets des tours des deux joueurs)"
 	)
 	check(game.queue[1].health == Levels.buildQueue(12, 2)[1].health, "partie à deux : les monstres d'une équipe de deux")
-	local spots = Levels.geometry(definition.map).map.spots
+	local spots = Levels.geometry(arena.map).map.spots
 	local placed, _, tower = game:placeTower("MachineGun", spots[1], friend)
 	check(
 		placed and tower.owner == friend and friend.gold == definition.gold - Levels.placeCost("MachineGun") and game.gold == definition.gold
@@ -1032,6 +1045,314 @@ do
 	game:destroy()
 	check(folder:GetAttribute("Gold_1") == nil and folder:GetAttribute("Training_2") == nil and folder:GetAttribute("TeamSize") == nil, "partie à deux rangée : ses attributs sont effacés")
 end
+----------------------------------------------------------------------
+-- 11) Les cartes d'équipe. Demande du propriétaire (03/10/2026) : « chacun a son couloir qui se rejoint ensuite,
+--     exemple à 2 ça fait une map un peu en Y, adapté à chaque monde ». Une carte par territoire et par nombre de
+--     joueurs (Shared/TeamMaps.luau, écrit par tools/team-maps/generer.py), avec les mêmes règles que les cartes
+--     seules ; le flot partagé entre les couloirs (Levels.buildQueue) ; chaque monstre suit son couloir (LevelGame).
+----------------------------------------------------------------------
+local RoadGeometry = require("./gen/shared/RoadGeometry")
+local Enemies = require("./gen/shared/Enemies")
+local MIN_GAP = 14 -- écart mini entre deux bouts de chemin qui ne se touchent pas (milieu à milieu)
+
+local function same(a, b): boolean
+	return (a - b).Magnitude < 1e-6
+end
+local function pointSegment(p, a, b): number
+	local ab = b - a
+	local t = math.clamp((p - a):Dot(ab) / ab:Dot(ab), 0, 1)
+	return (p - (a + ab * t)).Magnitude
+end
+-- Écart entre deux tronçons droits (horizontaux ou verticaux) : 0 s'ils se coupent ou se chevauchent.
+local function segmentGap(a1, b1, a2, b2): number
+	local flat1, flat2 = a1.Z == b1.Z, a2.Z == b2.Z
+	if flat1 ~= flat2 then
+		local ha, hb = if flat1 then a1 else a2, if flat1 then b1 else b2
+		local va, vb = if flat1 then a2 else a1, if flat1 then b2 else b1
+		if va.X >= math.min(ha.X, hb.X) and va.X <= math.max(ha.X, hb.X) and ha.Z >= math.min(va.Z, vb.Z) and ha.Z <= math.max(va.Z, vb.Z) then
+			return 0
+		end
+	end
+	return math.min(pointSegment(a1, a2, b2), pointSegment(b1, a2, b2), pointSegment(a2, a1, b1), pointSegment(b2, a1, b1))
+end
+
+do
+	local allOk, seen = true, {}
+	for territory, soloName in Levels.TERRITORIES do
+		local level = (territory - 1) * Levels.TERRITORY_SIZE + 1
+		for size = 2, Levels.TEAM_MAX do
+			local name = Levels.mapFor(level, size)
+			local map = Levels.MAPS[name]
+			local problems = {}
+			local function problem(text: string)
+				table.insert(problems, text)
+			end
+			if name ~= `{soloName}_{size}` or not map then
+				allOk = false
+				print(`  carte d'équipe absente : {soloName}_{size}`)
+				continue
+			end
+			local geometry = Levels.geometry(name)
+			local w, d = map.width, map.depth
+			if #map.lanes ~= size or map.path ~= map.lanes[1] or #geometry.lanes ~= size then
+				problem(`{#map.lanes} couloirs`)
+			end
+			local finish = map.lanes[1][#map.lanes[1]]
+			local shortest, longest = math.huge, 0
+			for index, lane in map.lanes do
+				local entry, second = lane[1], lane[2]
+				local inward = (entry.X == -w / 2 and second.X > entry.X)
+					or (entry.X == w / 2 and second.X < entry.X)
+					or (entry.Z == -d / 2 and second.Z > entry.Z)
+					or (entry.Z == d / 2 and second.Z < entry.Z)
+				if not inward then
+					problem(`entrée du couloir {index} pas sur un bord`)
+				end
+				for i = 2, #lane do
+					local delta = lane[i] - lane[i - 1]
+					if not ((delta.X == 0 or delta.Z == 0) and delta.Magnitude >= Levels.PATH_WIDTH) then
+						problem(`couloir {index} : tronçon {i - 1} pas droit ou trop court`)
+					end
+					if math.abs(lane[i].X) > w / 2 - 5 or math.abs(lane[i].Z) > d / 2 - 5 then
+						problem(`couloir {index} : point {i} trop près du bord`)
+					end
+				end
+				if not same(lane[#lane], finish) then
+					problem(`couloir {index} : il ne finit pas au même endroit`)
+				end
+				-- Deux couloirs qui se rejoignent restent ensemble jusqu'au château.
+				for otherIndex, other in map.lanes do
+					if otherIndex ~= index then
+						local meetI, meetJ = nil, nil
+						for i, point in lane do
+							for j, otherPoint in other do
+								if same(point, otherPoint) then
+									meetI, meetJ = i, j
+									break
+								end
+							end
+							if meetI then
+								break
+							end
+						end
+						local together = meetI ~= nil and #lane - meetI == #other - meetJ
+						if together then
+							for k = 0, #lane - meetI do
+								together = together and same(lane[meetI + k], other[meetJ + k])
+							end
+						end
+						if not together then
+							problem(`couloirs {index} et {otherIndex} : ils ne restent pas ensemble après leur rencontre`)
+						end
+					end
+				end
+				shortest = math.min(shortest, geometry.lanes[index].PATH_LENGTH)
+				longest = math.max(longest, geometry.lanes[index].PATH_LENGTH)
+			end
+			local lane1 = map.lanes[1]
+			local direction = (lane1[#lane1] - lane1[#lane1 - 1]).Unit
+			if not same(lane1[#lane1] + direction * 4, map.base) or math.abs(map.base.X) > w / 2 - 5 or math.abs(map.base.Z) > d / 2 - 5 then
+				problem("château pas au bout du chemin, ou trop près du bord")
+			end
+			if longest > shortest * 1.15 or geometry.PATH_LENGTH ~= longest then
+				problem(`couloirs de longueurs trop différentes ({math.floor(shortest)} à {math.floor(longest)})`)
+			end
+			local soloLength = Levels.geometry(soloName).PATH_LENGTH
+			if longest < soloLength * 0.8 or longest > soloLength * 1.2 then
+				problem(`longueur {math.floor(longest)} loin de la carte seule ({soloLength})`)
+			end
+			-- Écarts : deux bouts de chemin qui ne se touchent pas sont à au moins MIN_GAP studs (une tour tient entre
+			-- les deux) ; deux bouts qui partent du même point ne repassent pas l'un sur l'autre.
+			local segments = geometry.segments
+			for i = 1, #segments do
+				for j = i + 1, #segments do
+					local s1, s2 = segments[i], segments[j]
+					local shared = nil
+					for _, p in { s1.a, s1.b } do
+						for _, q in { s2.a, s2.b } do
+							if same(p, q) then
+								shared = p
+							end
+						end
+					end
+					if shared then
+						local far1 = if same(s1.a, shared) then s1.b else s1.a
+						local far2 = if same(s2.a, shared) then s2.b else s2.a
+						if (far1 - shared).Unit:Dot((far2 - shared).Unit) > 0.999 then
+							problem("deux bouts de chemin l'un sur l'autre")
+						end
+					elseif segmentGap(s1.a, s1.b, s2.a, s2.b) < MIN_GAP - 1e-6 then
+						problem(`chemins trop proches ({math.floor(segmentGap(s1.a, s1.b, s2.a, s2.b) * 10) / 10} studs)`)
+					end
+				end
+			end
+			for i = 1, #map.lanes do
+				for j = i + 1, #map.lanes do
+					if (map.lanes[i][1] - map.lanes[j][1]).Magnitude < MIN_GAP then
+						problem("deux entrées trop proches")
+					end
+				end
+			end
+			-- Les emplacements conseillés : tous posables, même tous occupés à la fois.
+			local placed = {}
+			for _, spot in map.spots do
+				if Levels.checkPlacement(name, spot, placed) ~= true then
+					problem("emplacement conseillé pas posable")
+				end
+				table.insert(placed, spot)
+			end
+			if #map.spots < 12 then
+				problem(`{#map.spots} emplacements conseillés`)
+			end
+			-- Le chemin dessiné (LevelArena) : aucune dalle n'en recouvre une autre.
+			local slabs = RoadGeometry.network(map.lanes, Levels.PATH_WIDTH)
+			for i = 1, #slabs do
+				for j = i + 1, #slabs do
+					local a, b = slabs[i], slabs[j]
+					local overlapX = math.min(a.center.X + a.size.X / 2, b.center.X + b.size.X / 2) - math.max(a.center.X - a.size.X / 2, b.center.X - b.size.X / 2)
+					local overlapZ = math.min(a.center.Z + a.size.Z / 2, b.center.Z + b.size.Z / 2) - math.max(a.center.Z - a.size.Z / 2, b.center.Z - b.size.Z / 2)
+					if overlapX > 1e-3 and overlapZ > 1e-3 then
+						problem("deux dalles du chemin se recouvrent")
+					end
+				end
+			end
+			table.insert(seen, `{name} {math.floor(longest + 0.5)}`)
+			if #problems > 0 then
+				allOk = false
+				print(`  {name} : {table.concat(problems, " ; ")}`)
+			end
+		end
+	end
+	check(
+		allOk and #seen == #Levels.TERRITORIES * (Levels.TEAM_MAX - 1),
+		`{#seen} cartes d'équipe (une par territoire à 2, 3 et 4 joueurs), mêmes règles que les cartes seules (tronçons droits, entrée sur un bord, couloirs qui restent ensemble après leur rencontre, à {MIN_GAP} studs l'un de l'autre, même château, longueurs proches de la carte seule, emplacements posables, dalles sans recouvrement) : {table.concat(seen, ", ")}`
+	)
+end
+-- Le flot partagé entre les couloirs : chacun son tour, type par type.
+do
+	local fair, onlyOne = true, true
+	for _, size in { 2, 3, 4 } do
+		for _, level in { 10, 35, 100 } do
+			local counts = {}
+			for _, item in Levels.buildQueue(level, size) do
+				if item.lane < 1 or item.lane > size then
+					fair = false
+				end
+				counts[item.enemy] = counts[item.enemy] or {}
+				counts[item.enemy][item.lane] = (counts[item.enemy][item.lane] or 0) + 1
+			end
+			for _, byLane in counts do
+				local low, high = math.huge, 0
+				for lane = 1, size do
+					low = math.min(low, byLane[lane] or 0)
+					high = math.max(high, byLane[lane] or 0)
+				end
+				fair = fair and high - low <= 1
+			end
+		end
+	end
+	for _, item in Levels.buildQueue(35) do
+		onlyOne = onlyOne and item.lane == 1
+	end
+	local function bossLane(level: number, size: number): number?
+		for _, item in Levels.buildQueue(level, size) do
+			if item.enemy == "Boss" then
+				return item.lane
+			end
+		end
+		return nil
+	end
+	check(
+		fair and onlyOne and bossLane(10, 2) == 1 and bossLane(20, 2) == 2 and bossLane(30, 2) == 1 and bossLane(30, 3) == 3 and bossLane(40, 4) == 4 and bossLane(50, 4) == 1,
+		"en équipe, le flot est partagé entre les couloirs chacun son tour, type par type (même nombre de chaque type à 1 près) ; seul, tout passe par le seul couloir ; le boss change de couloir d'un territoire à l'autre"
+	)
+	-- Les cartes d'équipe plus dures (mesuré) : leurs monstres ont un peu moins de PV.
+	local factorsOk = true
+	for name, factor in Levels.TEAM_MAP_HEALTH do
+		factorsOk = factorsOk and Levels.MAPS[name] ~= nil and #Levels.MAPS[name].lanes > 1 and factor >= 0.5 and factor < 1
+	end
+	local passTeam, passSolo = Levels.buildQueue(12, 2)[1], Levels.buildQueue(12)[1]
+	check(
+		factorsOk and math.abs(passTeam.health - passSolo.health * Levels.teamHealth(2) * Levels.TEAM_MAP_HEALTH.Pass_2) <= 0.06
+			and Levels.buildQueue(3, 2)[1].health == math.floor(Levels.buildQueue(3)[1].health * Levels.teamHealth(2) * 10 + 0.5) / 10,
+		`cartes d'équipe plus dures : PV x{Levels.TEAM_MAP_HEALTH.Pass_2} en plus sur le col à deux ; rien sur les autres (la vallée à deux)`
+	)
+end
+-- Le moteur : chaque monstre suit son couloir, un monstre au bout du sien coûte des vies, le paquet réseau dit son
+-- couloir, « le plus avancé » se compare d'un couloir à l'autre.
+do
+	local mapName = Levels.mapFor(12, 2)
+	local geometry = Levels.geometry(mapName)
+	local arena = { index = Levels.arenaIndex(3), folder = Env.fakeInstance("Arena"), cframe = Levels.arenaCFrame(3), map = mapName }
+	local game = LevelGame.new(arena, { UserId = 1, Parent = {} }, {
+		level = 12,
+		unlocked = { MachineGun = true },
+		training = {},
+		team = { { player = { UserId = 2, Parent = {} }, unlocked = { MachineGun = true }, training = {} } },
+	})
+	local seenLanes = {}
+	for _ = 1, 900 do
+		game:simulate(1 / 30)
+		for _, enemy in game.enemies do
+			seenLanes[enemy.lane] = true
+		end
+		if seenLanes[1] and seenLanes[2] and #game.enemies >= 3 then
+			break
+		end
+	end
+	local onLane = #game.enemies > 0
+	for _, enemy in game.enemies do
+		local expected = game.cframe:PointToWorldSpace((geometry.lanes[enemy.lane].pointAt(enemy.distance)))
+		onLane = onLane and (expected - enemy.position).Magnitude < 1e-3
+	end
+	check(seenLanes[1] and seenLanes[2] and onLane and not seenLanes[3], `carte d'équipe à deux ({mapName}) : des monstres dans les deux couloirs, chacun sur le sien`)
+	check(
+		same(game:pathPoint(0, 2), game.cframe:PointToWorldSpace(geometry.map.lanes[2][1]))
+			and same(game:pathPoint(0), game.cframe:PointToWorldSpace(geometry.map.lanes[1][1]))
+			and same(game:pathPoint(1e9, 2), game:pathPoint(1e9, 1)),
+		"pathPoint : le départ du couloir demandé (le premier s'il est absent), le même château au bout"
+	)
+	local packet, count = game:buildSyncPacket()
+	local packetOk = packet ~= nil and count == #game.enemies
+	for i = 0, count - 1 do
+		local byte = buffer.readu8(packet, i * 11 + 4) -- (11 octets par monstre : Combat.luau, ENEMY_BYTES)
+		local enemy = game.enemies[i + 1]
+		packetOk = packetOk and byte % Enemies.LANE_STEP == enemy.typeIndex and byte // Enemies.LANE_STEP + 1 == enemy.lane
+	end
+	check(packetOk, "paquet PlotSync : l'octet du type porte aussi le couloir du monstre")
+	local walker = nil
+	for _, enemy in game.enemies do
+		if enemy.lane == 2 then
+			walker = enemy
+		end
+	end
+	local livesBefore = game.lives
+	if walker then
+		walker.distance = geometry.lanes[2].PATH_LENGTH - 0.01
+	end
+	game:simulate(1 / 30)
+	check(walker ~= nil and walker.dead and game.lives < livesBefore, "un monstre au bout de SON couloir arrive au château : il coûte des vies")
+	game:destroy()
+
+	-- « Le plus avancé » : celui qui est le plus près du château, d'un couloir à l'autre (couloirs de longueurs
+	-- différentes : le col à trois, 250 / 246 / 250 studs).
+	local arena3 = { index = Levels.arenaIndex(4), folder = Env.fakeInstance("Arena"), cframe = Levels.arenaCFrame(4), map = "Pass_3" }
+	local game3 = LevelGame.new(arena3, { UserId = 1, Parent = {} }, { level = 12, unlocked = { MachineGun = true }, training = {} })
+	game3.gold = 1000
+	local _, _, tower = game3:placeTower("MachineGun", Levels.MAPS.Pass_3.spots[1])
+	game3:spawnEnemy({ enemy = "Normal", health = 50, reward = 0, lane = 1 })
+	game3:spawnEnemy({ enemy = "Normal", health = 50, reward = 0, lane = 2 })
+	local first, second = game3.enemies[1], game3.enemies[2]
+	first.distance, second.distance = 100, 97
+	first.position, second.position = tower.position, tower.position
+	local offset = Levels.geometry("Pass_3").PATH_LENGTH - Levels.geometry("Pass_3").lanes[2].PATH_LENGTH
+	check(
+		offset > 3 and second.laneOffset == offset and first.laneOffset == 0 and game3:pickTarget(tower, game3:statsOf(tower), false) == second,
+		`« le plus avancé » se compare d'un couloir à l'autre : à 97 studs d'un couloir plus court de {offset} studs, il est plus près du château qu'à 100 studs d'un autre`
+	)
+	game3:destroy()
+end
+
 -- Équipes de joueurs simulés, avec les PV d'équipe : les joueurs de référence gagnent (au moins 5 vies), comme seuls.
 for _, size in { 2, 3, 4 } do
 	for _, level in { 10, 50, 100 } do

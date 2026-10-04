@@ -4,7 +4,8 @@
 --
 -- LevelGame HÉRITE de Combat (Hub/Combat.luau : visée, projectiles, zones, carreau perçant, rayon, contrôles,
 -- fragilité, feu des flèches, paquets réseau PlotSync / PlotShots). Ici, les règles autour du combat :
---   * le chemin est celui de la carte du niveau (self.layout) ;
+--   * le chemin est celui de la carte du niveau (self.layout) ; une carte d'équipe a plusieurs couloirs : chaque
+--     monstre suit le sien (enemy.lane, choisi par Levels.buildQueue), jusqu'au même château ;
 --   * les tours se posent OÙ ON VEUT (Levels.checkPlacement), avec l'OR du niveau, et s'améliorent avec lui ;
 --   * les monstres arrivent en un flot continu, de plus en plus serré et résistant (Levels.buildQueue) ; un
 --     monstre tué donne son or tout de suite ;
@@ -42,7 +43,7 @@ local LevelGame = setmetatable({}, { __index = Combat })
 LevelGame.__index = LevelGame
 
 -- arena = { index (numéro pour les paquets : Levels.arenaIndex), folder (dossier de la zone : ses attributs sont
---           lus par les clients), cframe (centre de la zone), map (nom de la carte) }
+--           lus par les clients), cframe (centre de la zone), map (nom de la carte : Levels.mapFor) }
 -- options = { level, unlocked = { [type] = true }, training = { [type] = niveau d'entraînement },
 --             startingTower = vrai pour poser la tour de départ offerte (niveau 1),
 --             onEnd = function(game, won) appelée une seule fois à la fin,
@@ -171,13 +172,17 @@ function LevelGame:syncAttributes()
 	self:setAttr("Progress", math.floor(math.clamp(self.clock / self.streamSeconds, 0, 1) * 100))
 end
 
--- Point du chemin de la carte (dans le monde) à `distance` studs du départ.
-function LevelGame:pathPoint(distance: number): Vector3
-	return self.cframe:PointToWorldSpace((self.layout.pointAt(math.min(distance, self.layout.PATH_LENGTH))))
+-- Point du chemin de la carte (dans le monde) à `distance` studs du départ du couloir `lane` (le premier s'il est
+-- absent).
+function LevelGame:pathPoint(distance: number, lane: number?): Vector3
+	local path = self.layout.lanes[lane or 1] or self.layout.lanes[1]
+	return self.cframe:PointToWorldSpace((path.pointAt(math.min(distance, path.PATH_LENGTH))))
 end
 
 function LevelGame:spawnEnemy(item)
 	local def = Enemies.Defs[item.enemy]
+	local lanes = self.layout.lanes
+	local lane = math.clamp(item.lane or 1, 1, #lanes) -- (son couloir : le premier sur une carte qui n'en a qu'un)
 	table.insert(self.enemies, {
 		id = self:newId(),
 		typeIndex = ENEMY_INDEX[item.enemy],
@@ -187,8 +192,10 @@ function LevelGame:spawnEnemy(item)
 		health = item.health,
 		maxHealth = item.health,
 		reward = item.reward,
+		lane = lane,
+		laneOffset = self.layout.PATH_LENGTH - lanes[lane].PATH_LENGTH, -- (Combat : avancée comparable d'un couloir à l'autre)
 		distance = 0,
-		position = self:pathPoint(0),
+		position = self:pathPoint(0, lane),
 		controlSource = nil,
 		controlFactor = 0,
 		controlUntil = 0,
@@ -282,15 +289,16 @@ function LevelGame:simulate(dt: number)
 		self:spawnEnemy(item)
 	end
 
-	-- Déplacements. Un monstre au bout du chemin coûte des vies.
-	local pathLength = self.layout.PATH_LENGTH
+	-- Déplacements, chacun le long de son couloir. Un monstre au bout du chemin coûte des vies.
+	local lanes = self.layout.lanes
 	for _, enemy in self.enemies do
 		if enemy.dead then
 			continue
 		end
+		local path = lanes[enemy.lane]
 		local speed = enemy.def.speed * IdleConfig.ENEMY_SPEED_MULTIPLIER * speedFactorOf(enemy, now)
 		enemy.distance += speed * dt
-		if enemy.distance >= pathLength then
+		if enemy.distance >= path.PATH_LENGTH then
 			enemy.dead = true
 			local cost = Levels.ENEMY[enemy.enemyType].leak
 			self.leaked += 1
@@ -304,7 +312,7 @@ function LevelGame:simulate(dt: number)
 			end
 			continue
 		end
-		enemy.position = self.cframe:PointToWorldSpace((self.layout.pointAt(enemy.distance)))
+		enemy.position = self.cframe:PointToWorldSpace((path.pointAt(enemy.distance)))
 	end
 
 	-- Projectiles qui arrivent, tours, zones de feu : Combat.luau.

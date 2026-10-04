@@ -20,11 +20,13 @@ powershell -ExecutionPolicy Bypass -File tools\levels\run.ps1 -Regler "Levels.ST
 - **sans option** : le tableau de difficulté. Chaque niveau est joué par des joueurs simulés : très actif, au rythme
   demandé par le niveau, lent (un achat toutes les 8 s), distrait (toutes les 15 s), sans boutique, tout débloqué.
   « G 7 » = gagné avec 7 vies, « P 62 % » = perdu après avoir éliminé 62 % des monstres. Environ 2 minutes.
-- **`-Tests`** : 1 819 vérifications (100 niveaux, 10 territoires, flot continu, cartes, pose libre, récompenses, prix, entraînement, données
+- **`-Tests`** : 1 828 vérifications (100 niveaux, 10 territoires, flot continu, cartes, pose libre, récompenses, prix, entraînement, données
   du joueur, le moteur : or, vies, victoire, défaite, vitesse x2, paquets réseau, **la difficulté de chaque
   niveau** : voir plus bas, les évolutions des tours, le camp d'entraînement de la parcelle : `CampGame.luau`, et
   **le tuto** : son étape dans les données, les deux premiers gestes du niveau 1 ; **le jeu en équipe** : les règles,
-  une partie à deux (or et tours de chacun, l'or des monstres à chacun, celui qui s'en va), des équipes de 2, 3 et 4
+  une partie à deux (or et tours de chacun, l'or des monstres à chacun, celui qui s'en va), **les 30 cartes
+  d'équipe** (mêmes règles que les cartes seules, couloirs qui restent ensemble après leur rencontre, écarts, dalles
+  du chemin), le flot partagé entre les couloirs, chaque monstre sur son couloir, des équipes de 2, 3 et 4
   joueurs simulés qui doivent gagner les niveaux 10, 50 et 100). Une dizaine de minutes.
 - **`-Lazy`** : les 10 niveaux joués par un joueur qui pose quelques tours puis attend (rien de plus, 2 Archers,
   3 Archers, 2 Archers et une Catapulte, 4 Archers et 2 Catapultes). Ils doivent tous perdre.

@@ -5,6 +5,9 @@ local Enemies = {}
 
 -- Ordre fixe : sert à encoder le type de monstre sur 1 octet dans les paquets réseau.
 Enemies.ORDER = { "Normal", "Fast", "Tank", "Boss", "Swarm", "Giant" }
+-- Cet octet porte aussi le COULOIR du monstre (cartes d'équipe : Levels.luau) : octet = numéro dans ORDER +
+-- (couloir - 1) x LANE_STEP. Couloir 1 (et partout ailleurs qu'en équipe) : l'octet est le numéro seul.
+Enemies.LANE_STEP = 64
 
 -- displayName = son nom ; visual = sa silhouette en blocs (MedievalModels) ; speed = studs par seconde avant les
 -- facteurs ; size = taille de base en studs (les niveaux l'affichent plus gros : Levels.ENEMY_SCALE) ; color = sa

@@ -24,8 +24,13 @@ local TIME_EPSILON = 1e-6
 local CampGame = setmetatable({}, { __index = LevelGame })
 CampGame.__index = CampGame
 
--- Le chemin d'un camp est celui de la parcelle (LevelGame le lit dans self.layout).
-local LAYOUT = { name = "Camp", PATH_LENGTH = PlotLayout.PATH_LENGTH, pointAt = PlotLayout.pointAt }
+-- Le chemin d'un camp est celui de la parcelle (LevelGame le lit dans self.layout : un seul couloir).
+local LAYOUT = {
+	name = "Camp",
+	PATH_LENGTH = PlotLayout.PATH_LENGTH,
+	pointAt = PlotLayout.pointAt,
+	lanes = { { PATH_LENGTH = PlotLayout.PATH_LENGTH, pointAt = PlotLayout.pointAt } },
+}
 
 -- Vitesse actuelle en fraction de la vitesse normale : type x contrôle (0 si étourdi). Même calcul que Combat.
 local function speedFactorOf(enemy, now: number): number

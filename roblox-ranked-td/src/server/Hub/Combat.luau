@@ -8,8 +8,11 @@
 --   ses champs : plot.folder (dossier dont les attributs sont lus par les clients), cframe (centre de la zone),
 --     enemies, towers, shots, impacts, firePatches (listes), nextId, attributeCache, lastSyncEmpty, clock (horloge de
 --     la simulation, en secondes) ;
---   trois méthodes : pathPoint(distance) = point du chemin dans le monde, statsOf(tour) = ses stats du moment,
---     damageEnemy(monstre, dégâts, fragile) = dégâts infligés (et ce que rapporte sa mort).
+--   trois méthodes : pathPoint(distance, couloir) = point du chemin dans le monde (couloir : celui du monstre,
+--     cartes d'équipe ; absent = le premier), statsOf(tour) = ses stats du moment, damageEnemy(monstre, dégâts,
+--     fragile) = dégâts infligés (et ce que rapporte sa mort).
+--   Un monstre peut avoir lane (son couloir) et laneOffset (ce qui manque à son couloir pour faire la longueur du
+--     plus long : ajouté à sa distance, il dit qui est le plus près du château, tous couloirs confondus).
 -- Les monstres n'existent que sous forme de données côté serveur. Les clients reçoivent leur position quelques fois
 -- par seconde (paquet binaire compact) et les affichent eux-mêmes (client/PlotRenderer.luau).
 -- Les temps (impacts, ralentissements, feu) se comptent sur l'horloge de la simulation, self.clock, pas sur
@@ -49,6 +52,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
+local Enemies = require(Shared.Enemies)
 local IdleConfig = require(Shared.IdleConfig)
 local IdleTowers = require(Shared.IdleTowers)
 
@@ -58,6 +62,7 @@ for index, name in IdleTowers.ORDER do
 end
 
 -- Taille d'un ennemi dans le paquet : id u32, type u8, distance f32, PV % u8, vitesse % u8.
+-- « type » = numéro dans Enemies.ORDER + (couloir - 1) x Enemies.LANE_STEP (distance = le long de SON couloir).
 -- « vitesse % » = facteur de son type (IdleConfig.ENEMY_SPEED_FACTORS) x contrôle (ralentissement ; 0 s'il
 -- est étourdi), en % : le client avance l'ennemi à vitesse de Enemies.luau x ENEMY_SPEED_MULTIPLIER x ce
 -- facteur x l'attribut « SimSpeed » de la zone. Le paquet ne contient PAS le x2 : le client multiplie.
@@ -183,6 +188,11 @@ function Combat:addShot(from: Vector3, to: Vector3, towerType: string, radius: n
 	end
 end
 
+-- Avancée d'un ennemi vers le château, comparable d'un couloir à l'autre (plus grande = plus près du château).
+local function progressOf(enemy): number
+	return enemy.distance + (enemy.laneOffset or 0)
+end
+
 -- Condamné : les projectiles déjà en vol vers lui suffiront à le tuer.
 local function isDoomed(enemy): boolean
 	return enemy.pending >= enemy.health
@@ -199,7 +209,7 @@ function Combat:pickTarget(tower, stats, allowDoomed: boolean): any
 	local fallback, fallbackScore = nil, -math.huge
 	for _, enemy in self.enemies do
 		if not enemy.dead and horizontalDistance(tower.position, enemy.position) <= stats.range then
-			local score = if strongest then enemy.health else enemy.distance
+			local score = if strongest then enemy.health else progressOf(enemy)
 			if not isDoomed(enemy) then
 				if score > bestScore then
 					best, bestScore = enemy, score
@@ -324,10 +334,10 @@ end
 function Combat:predictImpact(target, from: Vector3, stats, now: number): (Vector3, number)
 	local flight = IdleTowers.flightTime(stats, (target.position - from).Magnitude)
 	for _ = 1, 2 do
-		local aim = self:pathPoint(target.distance + travelDistance(target, now, flight))
+		local aim = self:pathPoint(target.distance + travelDistance(target, now, flight), target.lane)
 		flight = IdleTowers.flightTime(stats, (aim - from).Magnitude)
 	end
-	return self:pathPoint(target.distance + travelDistance(target, now, flight)), flight
+	return self:pathPoint(target.distance + travelDistance(target, now, flight), target.lane), flight
 end
 
 -- Trébuchet royal (« Crowd ») : vise le point du chemin où sa zone touchera le PLUS d'ennemis. Chaque ennemi
@@ -370,7 +380,7 @@ function Combat:pickCrowdTarget(tower, stats, muzzle: Vector3, now: number): (an
 		end
 		local at = positions[other]
 		if not at then
-			at = self:pathPoint(other.distance + travelDistance(other, now, step * CROWD_FLIGHT_STEP))
+			at = self:pathPoint(other.distance + travelDistance(other, now, step * CROWD_FLIGHT_STEP), other.lane)
 			positions[other] = at
 		end
 		return at
@@ -388,7 +398,7 @@ function Combat:pickCrowdTarget(tower, stats, muzzle: Vector3, now: number): (an
 				end
 			end
 		end
-		local ahead = candidate.distance + travelDistance(candidate, now, flight)
+		local ahead = progressOf(candidate) + travelDistance(candidate, now, flight)
 		if count > bestCount or (count == bestCount and count > 0 and ahead > bestAhead) then
 			best, bestAim, bestFlight, bestCount, bestAhead = candidate, aim, flight, count, ahead
 		end
@@ -416,7 +426,7 @@ function Combat:countPierced(candidate, origin: Vector3, aim: Vector3, flight: n
 			-- Distance parcourue au plus pendant le vol : sa vitesse normale (un ralentissement ne fait qu'en retirer).
 			local reach = other.def.speed * IdleConfig.ENEMY_SPEED_MULTIPLIER * other.speedScale * flight
 			if segmentDistance(other.position, origin, aim) - reach <= width then
-				local at = self:pathPoint(other.distance + travelDistance(other, now, flight))
+				local at = self:pathPoint(other.distance + travelDistance(other, now, flight), other.lane)
 				if segmentDistance(at, origin, aim) <= width then
 					count += 1
 				end
@@ -699,7 +709,7 @@ function Combat:towerAttack(tower, stats, now: number): boolean
 			return false
 		end
 		table.sort(inRange, function(a, b)
-			return a.distance > b.distance
+			return progressOf(a) > progressOf(b)
 		end)
 		local from = muzzle
 		for i = 1, math.min(stats.chains, #inRange) do
@@ -791,7 +801,7 @@ function Combat:buildSyncPacket(): (buffer?, number)
 		local offset = (i - 1) * ENEMY_BYTES
 		local speedFactor = speedFactorOf(enemy, now)
 		buffer.writeu32(packet, offset, enemy.id)
-		buffer.writeu8(packet, offset + 4, enemy.typeIndex)
+		buffer.writeu8(packet, offset + 4, enemy.typeIndex + ((enemy.lane or 1) - 1) * Enemies.LANE_STEP)
 		buffer.writef32(packet, offset + 5, enemy.distance)
 		buffer.writeu8(packet, offset + 9, math.clamp(math.ceil(enemy.health / enemy.maxHealth * 255), 0, 255))
 		buffer.writeu8(packet, offset + 10, math.clamp(math.floor(speedFactor * 100 + 0.5), 0, 255))

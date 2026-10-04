@@ -230,9 +230,9 @@ difficulté d'un niveau est cassée.
 
 ```
 src/
-  shared/   (ReplicatedStorage.Shared)    Config, Levels, IdleTowers, IdleConfig, Enemies, PlotLayout, RoadGeometry,
-                                          Remotes, Sounds, NumberFormat, ProximityLabel, MedievalModels, CustomModels,
-                                          Lang, LangEN/{Glossary, Game}
+  shared/   (ReplicatedStorage.Shared)    Config, Levels, TeamMaps, IdleTowers, IdleConfig, Enemies, PlotLayout,
+                                          RoadGeometry, Remotes, Sounds, NumberFormat, ProximityLabel, MedievalModels,
+                                          CustomModels, Lang, LangEN/{Glossary, Game}
   server/   (ServerScriptService.Server)  Main, PlayerData, MockDataStore,
                                           Hub/{init, HubMap, Plots, PlotBoard, PlotIdentity, PlotInterest,
                                                Combat, LevelGame, LevelArena, LevelsService, LevelTeams, Funnel, Camp,
@@ -245,6 +245,7 @@ assets/
   page/          icône et miniatures pour la page Roblox du jeu (pas dans le jeu lui-même)
 tools/
   levels/        joueurs simulés et vérifications hors Studio
+  team-maps/     les 30 cartes d'équipe : dessin, vérification, aperçus (Python : python tools/team-maps/generer.py)
   studio-test/   tests automatiques dans Studio
   lang/          vérifications de la traduction
   studio-helper/ plugin Studio pour ranger les modèles de monstres

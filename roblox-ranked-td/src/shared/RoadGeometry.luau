@@ -25,4 +25,20 @@ function RoadGeometry.rectangles(path: { Vector3 }, width: number)
 	return rectangles
 end
 
+-- Plusieurs chemins qui se rejoignent (couloirs d'une carte d'équipe) : chaque dalle une seule fois (les couloirs
+-- partagent les mêmes points après leur rencontre), pour qu'aucune dalle n'en recouvre une autre.
+function RoadGeometry.network(paths: { { Vector3 } }, width: number)
+	local rectangles, seen = {}, {}
+	for _, path in paths do
+		for _, slab in RoadGeometry.rectangles(path, width) do
+			local key = `{slab.center.X},{slab.center.Z}:{slab.size.X},{slab.size.Z}`
+			if not seen[key] then
+				seen[key] = true
+				table.insert(rectangles, slab)
+			end
+		end
+	end
+	return rectangles
+end
+
 return RoadGeometry
