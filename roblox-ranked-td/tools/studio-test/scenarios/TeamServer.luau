@@ -161,7 +161,7 @@ return function(log)
 	)
 	ok = action("Place", "Frost", spots[2].X, spots[2].Z)
 	local robinFrost, whyFrost = as(robin, "Place", "Frost", spots[3].X, spots[3].Z)
-	check(ok and not robinFrost and whyFrost ~= nil and string.find(whyFrost, "boutique", 1, true) ~= nil, "chacun ses tours achetées : le joueur pose son Totem, pas Robin")
+	check(ok and not robinFrost and whyFrost ~= nil and string.find(whyFrost, "barre", 1, true) ~= nil, "chacun ses tours : le joueur pose son Totem, pas Robin (il n'est pas dans sa barre)")
 	levels("Skip", 3)
 	local myBefore, robinBefore = state().active.gold, fake(robin).active.gold
 	local killed = levels("KillAll")

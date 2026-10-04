@@ -74,14 +74,25 @@ Env.serverScript = {
 	}),
 }
 
+-- Random de Roblox, en REPRODUCTIBLE : chaque Random.new(graine) donne toujours la même suite (graine absente : la
+-- même pour tous). Les tests et les réglages rejouent ainsi exactement les mêmes parties (couloir des gros monstres
+-- en équipe : Levels.buildQueue). Générateur « minimal standard » (Park-Miller) : calculs exacts en nombres Luau.
 local randomMeta = {}
 randomMeta.__index = randomMeta
 function randomMeta:NextNumber()
-	return math.random()
+	self.state = (self.state * 48271) % 2147483647
+	return self.state / 2147483647
+end
+function randomMeta:NextInteger(min: number, max: number): number
+	return math.min(max, min + math.floor(self:NextNumber() * (max - min + 1)))
 end
 Env.Random = {
-	new = function()
-		return setmetatable({}, randomMeta)
+	new = function(seed: number?)
+		local random = setmetatable({ state = math.floor(tonumber(seed) or 20261004) % 2147483646 + 1 }, randomMeta)
+		for _ = 1, 4 do
+			random:NextNumber() -- (une petite graine donne d'abord de tout petits nombres : ils sont passés)
+		end
+		return random
 	end,
 }
 

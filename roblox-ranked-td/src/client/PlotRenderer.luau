@@ -24,7 +24,7 @@
 -- (format dans Hub/Combat.luau). Effets distincts : brume et éclats de givre aux pieds, étincelles de foudre,
 -- étoiles dorées au-dessus d'un ennemi étourdi, motes violettes quand il est fragile. Le contour violet de
 -- la barre de vie est conservé. Les ancres sont créées une fois, soudées, et nettoyées avec l'ennemi.
--- Baliste lourde : à l'impact de son carreau perçant, une traînée montre la ligne touchée (largeur du serveur).
+-- Baliste du dragon : à l'impact de son carreau perçant, une traînée montre la ligne touchée (largeur du serveur).
 -- Modèles perso (CustomModels.luau) : si le propriétaire a mis un modèle pour ce type (et ce palier) dans
 -- ReplicatedStorage.EnemyModels, l'ennemi est une copie de ce modèle soudée à la même racine invisible que les
 -- blocs (déplacée pareil). Sa marche (Animation « Marche ») n'est jouée que près de la caméra, avec un nombre
@@ -70,9 +70,9 @@ local SHOT_SOUNDS = {
 	Orbital = { launch = "TrebuchetLaunch", impact = "TrebuchetImpact" },
 }
 -- Mort d'un ennemi (les autres types : EnemyDeath).
-local DEATH_SOUNDS = { Boss = "BossDeath", Giant = "BigDeath", Tank = "BigDeath" }
+local DEATH_SOUNDS = { Boss = "BossDeath", Giant = "BigDeath", Colossus = "BigDeath", Tank = "BigDeath" }
 -- Boss ou colosse qui vient d'apparaître (à moins de ça du début du chemin) dans TON niveau : son 2D.
-local ARRIVAL_SOUNDS = { Boss = "BossArrival", Giant = "GiantArrival" }
+local ARRIVAL_SOUNDS = { Boss = "BossArrival", Giant = "GiantArrival", Colossus = "GiantArrival" }
 local ARRIVAL_DISTANCE = 15
 
 local ENEMY_BYTES = 11
@@ -81,7 +81,7 @@ local ENEMY_BYTES = 11
 -- = fragile.
 local CONTROL_SOURCE_MASK = 128 -- control % 128 = bits 0-6
 local CONTROL_FRAGILE_FLAG = 128
-local FRAGILE_COLOR = Color3.fromRGB(196, 130, 255) -- fragile (aura du Totem de givre)
+local FRAGILE_COLOR = Color3.fromRGB(196, 130, 255) -- fragile (aura du Totem du blizzard)
 local SHOT_BYTES = 27 -- départ 3xf32, arrivée 3xf32, type u8, rayon u8, vol restant u8 (centièmes de s)
 -- Après les count x SHOT_BYTES octets : l'id u32 de la cible suivie par chaque tir (0 = aucune), même ordre.
 local SHOT_TARGET_BYTES = 4
@@ -113,7 +113,7 @@ local DEATH_MAX_TIME = 3
 local DEATH_DEFAULT_TIME = 1.2 -- animation pas encore chargée : durée inconnue
 local DEATH_FADE_TIME = 0.6
 local DEATH_HOLD_MARGIN = 0.05 -- figée juste avant sa fin (sinon Roblox remet la pose de départ)
-local DEATH_ALWAYS = { Boss = true, Giant = true }
+local DEATH_ALWAYS = { Boss = true, Giant = true, Colossus = true }
 
 local folder = Instance.new("Folder")
 folder.Name = "PlotEnemies"
@@ -640,7 +640,8 @@ local function nearestTower(plotIndex: number, towerType: string, from: Vector3)
 end
 
 ----------------------------------------------------------------------
--- Zones de feu des flèches enflammées (seulement l'affichage : les dégâts sont calculés par le serveur)
+-- Zones de feu (Archer enflammé, Catapulte de magma, Baliste du dragon : seulement l'affichage, les dégâts sont
+-- calculés par le serveur)
 ----------------------------------------------------------------------
 
 local function horizontalDistance(a: Vector3, b: Vector3): number
@@ -710,7 +711,7 @@ local function landFire(plotIndex: number, generation: number, predicted: Vector
 	addFire(plotIndex, if follow then follow() else predicted, def)
 end
 
--- Arrivée d'un carreau perçant (Baliste lourde) : la ligne touchée par le serveur, de la tour (sous le départ du
+-- Arrivée d'un carreau perçant (Baliste du dragon) : la ligne touchée par le serveur, de la tour (sous le départ du
 -- tir) au point d'impact (sa cible si elle la suit), sur toute sa largeur (2 x pierceWidth). Pas de traînée si
 -- la parcelle a été effacée pendant le vol (generation, comme landFire).
 local function landPierce(plotIndex: number, generation: number, from: Vector3, predicted: Vector3, def, follow: (() -> Vector3)?)
@@ -726,14 +727,6 @@ local function onShots(plotIndex: number, packet: buffer, count: number)
 		return -- paquet arrivé après le « Clear » de cette parcelle (voir clearPlot)
 	end
 	local simSpeed = simSpeedOf(plotIndex, state)
-	-- Le feu des flèches et le carreau perçant ne s'affichent que s'ils sont débloqués par l'entraînement (attribut
-	-- « Perks » de la zone, niveau ou camp, ex. « MachineGun:Fire,Rocket:Pierce » : Levels.perkKeys). Une tour de
-	-- palier 2 (IdleTowers.TIER2) a déjà ses pouvoirs : toujours affichés.
-	local perks = nil
-	if state.arena or (state.folder ~= nil and state.folder:GetAttribute("Camp") == true) then
-		local value = state.folder and state.folder:GetAttribute("Perks")
-		perks = if typeof(value) == "string" then value else ""
-	end
 	-- Ids des cibles suivies, après les tirs (absents d'un ancien paquet : aucun projectile ne suit sa cible).
 	local targetStart = count * SHOT_BYTES
 	local hasTargets = buffer.len(packet) >= targetStart + count * SHOT_TARGET_BYTES
@@ -767,11 +760,11 @@ local function onShots(plotIndex: number, packet: buffer, count: number)
 				task.delay(flight, SoundManager.playAt, sounds.impact, to)
 			end
 		end
-		local builtIn = not perks or def.base ~= nil
-		if def.fireRadius and (builtIn or string.find(perks, towerType .. ":Fire", 1, true)) then
+		-- Pouvoirs des tours de palier 2 : feu au sol, carreau perçant.
+		if def.fireRadius then
 			task.delay(flight, landFire, plotIndex, state.generation, to, def, follow)
 		end
-		if def.kind == "Pierce" and def.pierceWidth and (builtIn or string.find(perks, towerType .. ":Pierce", 1, true)) then
+		if def.kind == "Pierce" and def.pierceWidth then
 			task.delay(flight, landPierce, plotIndex, state.generation, from, to, def, follow)
 		end
 	end

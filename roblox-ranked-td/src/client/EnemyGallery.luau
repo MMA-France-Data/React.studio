@@ -43,7 +43,7 @@ local UI = require(script.Parent.UI)
 local EnemyGallery = {}
 
 -- Colonnes, de gauche à droite.
-local TYPES = { "Normal", "Fast", "Tank", "Swarm", "Giant", "Boss" }
+local TYPES = { "Normal", "Fast", "Tank", "Swarm", "Giant", "Colossus", "Boss" }
 local LEVELS_PER_STYLE = 10 -- un style par territoire de 10 niveaux (même calcul que PlotRenderer)
 
 -- Emplacement : direction depuis le centre de la map (même convention que PlotLayout.cframe : 0° = +Z,

@@ -1,4 +1,4 @@
--- Modèles 3D médiévaux des 16 tours (niveaux, camp d'entraînement, vignettes de la boutique).
+-- Modèles 3D médiévaux des 16 tours (niveaux, camp d'entraînement, vignettes des fenêtres).
 -- Chaque silhouette reste simple, mais doit être identifiable au premier regard. Une tour de palier 2
 -- (IdleTowers.TIER2) garde la silhouette de sa tour de base, à ses couleurs, avec une parure en plus (plus bas).
 local ReplicatedStorage = game:GetService("ReplicatedStorage")

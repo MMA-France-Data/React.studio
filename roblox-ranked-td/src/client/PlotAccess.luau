@@ -1,6 +1,6 @@
 -- Camps des autres joueurs : on les voit, mais on ne peut interagir qu'avec le sien (demande du propriétaire du
 -- jeu). Ici, côté client, on ne montre donc pas ce qui ne servirait à rien : les invites (ProximityPrompt) des
--- socles d'entraînement, de la boutique des tours et de la porte des niveaux ne sont allumées que sur TA parcelle ;
+-- socles d'entraînement, du bâtiment des œufs et de la porte des niveaux ne sont allumées que sur TA parcelle ;
 -- celles des autres parcelles et des parcelles libres sont éteintes. (LevelsUI n'écoute de toute façon que celles
 -- de ta parcelle, et le serveur revérifie tout.)
 -- Tenu à jour quand ta parcelle t'est donnée (attribut « Plot » du joueur) et quand des invites apparaissent (un

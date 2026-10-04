@@ -22,7 +22,6 @@ return {
 	----------------------------------------------------------------------
 	["NIVEAUX"] = "LEVELS", -- « ⚔ NIVEAUX »
 	["Niveaux"] = "Levels",
-	["Boutique"] = "Shop",
 	["Entraînement"] = "Training",
 	["Mes tours"] = "My towers",
 	-- Onglet « Niveaux »
@@ -34,10 +33,12 @@ return {
 	["Victoire :"] = "Win:",
 	["REJOUER"] = "REPLAY",
 	["JOUER"] = "PLAY", -- « ▶ JOUER »
-	["Chaque niveau est un flot de monstres sans pause, de plus en plus forts : pose et améliore tes tours sans arrêt avec l'or qu'ils donnent, protège ton château ({1} vies). Gagner rapporte des pièces de niveau 🏅 pour acheter d'autres tours et améliorer ton camp d'entraînement."] = "Each level is a non-stop stream of monsters that keep getting stronger: place and upgrade your towers all the time with the gold they drop, and protect your castle ({1} lives). Winning earns level coins 🏅 to buy more towers and upgrade your training camp.",
+	["Chaque niveau est un flot de monstres sans pause, de plus en plus forts : pose et améliore tes tours sans arrêt avec l'or qu'ils donnent, protège ton château ({1} vies). Gagner rapporte un œuf (une tour au hasard) et des pièces de niveau 🏅 pour ton camp et tes couveuses."] = "Each level is a non-stop stream of monsters that keep getting stronger: place and upgrade your towers all the time with the gold they drop, and protect your castle ({1} lives). Winning earns an egg (a random tower) and level coins 🏅 for your camp and your incubators.",
+	["BIENTÔT"] = "SOON", -- « 🔒 BIENTÔT » (niveaux après Levels.OPEN_COUNT)
+	["Bientôt"] = "Soon", -- « TERRITOIRE 5 • ... • 🔒 Bientôt »
 	["Victoires : {1}"] = "Wins: {1}",
 	["Défaites : {1}"] = "Losses: {1}",
-	-- Onglet « Boutique » (rôles des tours : ROLES)
+	-- Rôles des tours (ROLES : « Mes tours » et la tour sortie d'un œuf)
 	["Tireur rapide à longue portée. Ta tour de base."] = "Fast long-range shooter. Your basic tower.",
 	["Ralentit de {1} % tout ce qui passe près de lui."] = "Slows everything near it by {1}%.",
 	["Ses rochers écrasent les groupes serrés."] = "Its rocks crush tight groups.",
@@ -46,7 +47,7 @@ return {
 	["Rayon qui chauffe : terrible contre les boss."] = "A beam that heats up: deadly against bosses.",
 	["Un éclair qui rebondit sur 4 monstres."] = "A bolt that bounces across 4 monsters.",
 	["Une pierre géante sur le plus gros groupe."] = "A giant stone on the biggest group.",
-	-- (tours de palier 2 : « Mes tours » et la tour sortie d'un œuf)
+	-- (tours de palier 2)
 	["L'Archer en bien plus fort : ses flèches laissent du feu."] = "A much stronger Archer: its arrows leave fire.",
 	["Ralentit de {1} % et rend les monstres bien plus fragiles."] = "Slows by {1}% and makes monsters much more fragile.",
 	["Rochers de magma : grosse zone, et le sol brûle."] = "Magma rocks: a big area, and the ground burns.",
@@ -55,14 +56,7 @@ return {
 	["Rayon du néant : il fait fondre les boss."] = "Void beam: it melts bosses.",
 	["Un éclair qui rebondit sur {1} monstres."] = "A bolt that bounces across {1} monsters.",
 	["Une pierre céleste sur le plus gros groupe."] = "A celestial stone on the biggest group.",
-	["En niveau : {1}"] = "In a level: {1}",
-	["{1} au plus"] = "{1} max",
-	["✓ À TOI"] = "✓ OWNED",
-	["ACHETER {1}"] = "BUY {1}",
-	["{1} (il manque {2})"] = "{1} (need {2} more)",
-	-- Tours pas encore achetées, dans les listes « Entraînement » et « Mes tours »
-	["{1} dans la Boutique"] = "{1} in the Shop",
-	["BOUTIQUE"] = "SHOP",
+	-- Tours pas encore à lui, dans les listes « Entraînement » et « Mes tours » (« Rare • dans les œufs »)
 	["Palier 2 de : {1}"] = "Tier 2 of: {1}", -- « Palier 2 de : Catapulte • dans les œufs » (et la tour sortie d'un œuf)
 	["dans les œufs"] = "in eggs",
 	["ŒUFS"] = "EGGS",
@@ -76,12 +70,11 @@ return {
 	["Une tour de plus à l'entraînement"] = "One more tower in training",
 	["Ouvre d'abord le précédent"] = "Open the previous one first",
 	["Ouvrir {1}"] = "Open {1}",
-	["Une tour dans un emplacement gagne de l'XP tout le temps, même quand tu es parti ({1} h au plus). Chaque niveau joué donne aussi de l'XP aux tours posées. Chaque niveau d'entraînement : +{2} % de dégâts, et de nouvelles améliorations. Le bouton ⚡ achète avec tes pièces l'XP qui manque pour le niveau suivant."] = "A tower in a slot earns XP all the time, even while you're away (up to {1} h). Every level you play also gives XP to the towers you placed. Each training level: +{2}% damage, and new upgrades. The ⚡ button buys the XP missing for the next level with your coins.",
+	["Une tour dans un emplacement gagne de l'XP tout le temps, même quand tu es parti ({1} h au plus). Chaque niveau joué donne aussi de l'XP aux tours posées. Chaque niveau d'entraînement : +{2} % de dégâts, et une étoile aux niveaux {3}. Le bouton ⚡ achète avec tes pièces l'XP qui manque pour le niveau suivant."] = "A tower in a slot earns XP all the time, even while you're away (up to {1} h). Every level you play also gives XP to the towers you placed. Each training level: +{2}% damage, and a star at levels {3}. The ⚡ button buys the XP missing for the next level with your coins.",
 	["NIVEAU"] = "LEVEL", -- « ⚡ +1 NIVEAU » (bouton ⚡ de l'onglet Entraînement)
 	["Entraînement {1}/{2}"] = "Training {1}/{2}",
-	["Prochaine évolution (entraînement {1}) : {2}. {3}"] = "Next evolution (training {1}): {2}. {3}",
-	["Toutes ses évolutions sont débloquées."] = "All its evolutions are unlocked.",
-	["Palier 2 : ses pouvoirs sont déjà là. L'entraînement monte ses dégâts."] = "Tier 2: its powers are already there. Training raises its damage.",
+	["Dégâts : +{1} %. Prochaine étoile à l'entraînement {2}."] = "Damage: +{1}%. Next star at training {2}.",
+	["Dégâts : +{1} %. Toutes ses étoiles sont gagnées."] = "Damage: +{1}%. All its stars are earned.",
 	["✓ S'ENTRAÎNE (retirer)"] = "✓ TRAINING (remove)",
 	["Empl. {1} → {2}"] = "Slot {1} → {2}",
 	["ENTRAÎNER"] = "TRAIN",
@@ -118,15 +111,15 @@ return {
 	["Niveau {1} : {2} monstres éliminés sur {3}."] = "Level {1}: {2} of {3} monsters defeated.",
 	["Il te restait {1} : dépense ton or au fur et à mesure, les monstres deviennent plus forts sans arrêt."] = "You had {1} left: spend your gold as you go, the monsters never stop getting stronger.",
 	["Les monstres deviennent plus forts sans arrêt : pose et améliore tes tours du début à la fin, sans garder ton or."] = "The monsters never stop getting stronger: place and upgrade towers from start to finish, and don't sit on your gold.",
-	["La boutique et le camp d'entraînement aident aussi."] = "The shop and the training camp help too.",
+	["Les œufs et le camp d'entraînement aident aussi."] = "Eggs and the training camp help too.",
 	["Un gros monstre est passé : la Baliste lourde et le Sorcier des arcanes visent toujours le plus gros."] = "A big monster got through: the Heavy Ballista and the Arcane Sorcerer always aim at the biggest one.",
-	["Tu peux acheter une nouvelle tour à la boutique !"] = "You can buy a new tower in the shop!", -- « 🏅 Tu peux... »
 	["Nouveau territoire ouvert : {1} !"] = "New territory unlocked: {1}!", -- « 🗺 Nouveau territoire... »
 	["Tes tours posées gagnent +{1} XP d'entraînement."] = "Your placed towers gain +{1} training XP.",
-	["ÉVOLUTION ! {1} : {2}"] = "EVOLUTION! {1}: {2}", -- « ⭐ ÉVOLUTION ! Archer du rempart : Flèches enflammées »
+	["ÉVOLUTION ! {1} : {2}"] = "EVOLUTION! {1}: {2}", -- « ⭐ ÉVOLUTION ! Archer du rempart : ★★ »
 	["Tour"] = "Tower",
 	["Niveau {1} ▶"] = "Level {1} ▶",
 	["Tous les niveaux sont réussis !"] = "All levels cleared!",
+	["Bientôt de nouveaux niveaux !"] = "New levels coming soon!",
 	["Réessayer"] = "Try again",
 	["Rejouer"] = "Replay",
 	["Retour au camp"] = "Back to camp", -- « ⛺ Retour au camp »
@@ -149,28 +142,13 @@ return {
 	["AMÉLIORE"] = "UPGRADE",
 	["CONTINUE"] = "CONTINUE",
 	["RÉESSAIE"] = "TRY AGAIN",
-	["NOUVELLE TOUR !"] = "NEW TOWER!",
-	["LA BOUTIQUE"] = "THE SHOP",
-	["ACHÈTE-LA"] = "BUY IT",
+	["TON ŒUF !"] = "YOUR EGG!",
+	["LES ŒUFS"] = "THE EGGS", -- (aussi : le bâtiment des œufs, à l'entrée de la parcelle)
+	["OUVRE-LE !"] = "OPEN IT!",
+	["IL ÉCLOT BIENTÔT"] = "HATCHING SOON",
 	["Passer le tuto"] = "Skip tutorial",
 	["Confirmer ?"] = "Confirm?",
 	["Tuto passé : bonne partie !"] = "Tutorial skipped: have fun!",
-
-	----------------------------------------------------------------------
-	-- Shared/Levels.luau : évolutions des tours (PERKS : text ; leurs noms sont dans le Glossaire)
-	----------------------------------------------------------------------
-	["Chaque flèche laisse une petite zone de feu."] = "Each arrow leaves a small patch of fire.",
-	["+{1} de portée."] = "+{1} range.",
-	["+{1} % de vitesse d'attaque."] = "+{1}% attack speed.",
-	["Les ennemis ralentis prennent plus de dégâts des autres tours."] = "Slowed enemies take more damage from other towers.",
-	["Ralentit de 50 % au lieu de 40 %."] = "Slows by 50% instead of 40%.",
-	["Zone d'impact plus large (+{1})."] = "Wider impact area (+{1}).",
-	["Zone de foudre plus large (+{1})."] = "Wider lightning area (+{1}).",
-	["Le carreau transperce jusqu'à 3 ennemis alignés."] = "The bolt pierces up to 3 enemies in a line.",
-	["Le rayon chauffe 50 % plus vite."] = "The beam heats up 50% faster.",
-	["Le rayon monte 20 % plus haut."] = "The beam ramps up 20% higher.",
-	["Un ennemi de plus par éclair (5)."] = "One more enemy per bolt (5).",
-	["Étourdit plus longtemps (+{1} s)."] = "Stuns longer (+{1} s).",
 
 	----------------------------------------------------------------------
 	-- Refus et messages du serveur (Shared/Levels.luau : checkPlacement ; Hub/LevelGame.luau ; Hub/LevelsService.luau),
@@ -183,18 +161,16 @@ return {
 	["Trop près d'une autre tour"] = "Too close to another tower",
 	["Le niveau est terminé"] = "The level is over",
 	["Tour inconnue"] = "Unknown tower",
-	["{1} n'est pas encore à toi : achète cette tour dans la boutique"] = "{1} isn't yours yet: buy this tower in the shop",
+	["{1} n'est pas dans ta barre de tours"] = "{1} isn't in your tower bar",
 	["Maximum {1} {2} par niveau"] = "Max {1} {2} per level",
 	["Pas assez d'or"] = "Not enough gold",
 	["Niveau maximum atteint"] = "Max level reached",
 	["Tes données ne sont pas encore chargées"] = "Your data isn't loaded yet",
 	["Ce niveau n'existe pas encore"] = "This level doesn't exist yet",
+	["Bientôt : les niveaux après le {1} arrivent avec les prochaines mises à jour"] = "Coming soon: levels after {1} arrive with the next updates",
 	["Réussis d'abord le niveau {1}"] = "Clear level {1} first",
 	["Aucune zone de combat libre pour l'instant"] = "No battle zone is free right now",
-	["Cette tour n'est pas en vente"] = "This tower isn't for sale",
-	["{1} est déjà à toi"] = "{1} is already yours",
 	["Il te manque {1} pièces de niveau"] = "You need {1} more level coins",
-	["Achat réussi : {1} rejoint ta barre de tours"] = "Purchased: {1} joins your tower bar",
 	["Emplacement inconnu"] = "Unknown slot",
 	["Cette tour n'est pas encore à toi"] = "You don't own this tower yet",
 	["Cette tour est déjà au maximum de son entraînement"] = "This tower is already fully trained",
@@ -282,6 +258,7 @@ return {
 	["Œuf commun"] = "Common egg",
 	["Œuf rare"] = "Rare egg",
 	["Œuf doré"] = "Golden egg",
+	["Œuf de catapulte"] = "Catapult egg",
 	["Commune"] = "Common",
 	["Rare"] = "Rare",
 	["Épique"] = "Epic",
@@ -293,6 +270,7 @@ return {
 	["Rare {1} %"] = "Rare {1}%",
 	["Épique {1} %"] = "Epic {1}%",
 	["Légendaire {1} %"] = "Legendary {1}%",
+	["Palier 2 : {1} %"] = "Tier 2: {1}%",
 	["COUVEUSES"] = "INCUBATORS",
 	["COUVEUSE {1}"] = "INCUBATOR {1}", -- « 🔒 COUVEUSE 2 »
 	["COUVEUSE {1} : {2}"] = "INCUBATOR {1}: {2}",
@@ -314,12 +292,14 @@ return {
 	["Chaque victoire donne un œuf : commun, rare au mini-boss, doré au boss (en rejouant : commun, rare au boss)."] = "Every win gives an egg: common, rare on a mini-boss, golden on a boss (when replaying: common, rare on a boss).",
 	["Pose-le dans une couveuse : il éclot même quand tu n'es pas là, puis il donne une tour au hasard."] = "Put it in an incubator: it hatches even while you're away, then it gives a random tower.",
 	["Une tour que tu as déjà donne de l'XP d'entraînement à cette tour."] = "A tower you already have gives training XP to that tower.",
-	["Les œufs donnent les tours de palier 2 : des versions bien plus fortes des tours de la boutique."] = "Eggs give tier 2 towers: much stronger versions of the shop towers.",
+	["Toutes les tours sortent des œufs. Les œufs rares et dorés donnent aussi des tours de palier 2, bien plus fortes."] = "All towers come from eggs. Rare and golden eggs also give tier 2 towers, much stronger.",
+	["NOUVELLE TOUR !"] = "NEW TOWER!", -- « 🎉 NOUVELLE TOUR ! » (panneau de la tour sortie d'un œuf)
 	["DOUBLON"] = "DUPLICATE",
 	["{1} : elle rejoint ta barre de tours"] = "{1}: it joins your tower bar",
 	["{1} : +{2} XP d'entraînement pour cette tour"] = "{1}: +{2} training XP for this tower",
 	["Super !"] = "Great!",
 	["{1} gagné ! Pose-le dans une couveuse."] = "{1} won! Put it in an incubator.",
+	["{1} : il couve déjà dans ta couveuse !"] = "{1}: it's already in your incubator!", -- « 🥚 Œuf de catapulte : ... »
 	["Réserve d'œufs pleine : {1} perdu"] = "Egg storage full: {1} lost",
 	["Cette couveuse est déjà occupée"] = "This incubator is already in use",
 	["Tu n'as plus d'œuf de ce type : gagne des niveaux pour en avoir"] = "You have no eggs of this type left: win levels to get more",
@@ -341,7 +321,6 @@ return {
 	----------------------------------------------------------------------
 	-- Hub/HubMap.luau : les deux bâtiments à l'entrée de la parcelle
 	----------------------------------------------------------------------
-	["BOUTIQUE DES TOURS"] = "TOWER SHOP",
 	["PORTE DES NIVEAUX"] = "LEVEL GATE",
 
 	----------------------------------------------------------------------

@@ -1,6 +1,6 @@
 -- Construit la map principale : la place centrale et 6 parcelles. Chaque parcelle est le camp d'entraînement de son
--- joueur (Hub/Camp.luau) : 3 socles d'entraînement, un chemin où roulent les cibles, et devant l'entrée la boutique
--- des tours et la porte des niveaux.
+-- joueur (Hub/Camp.luau) : 3 socles d'entraînement, un chemin où roulent les cibles, et devant l'entrée le bâtiment
+-- des œufs et la porte des niveaux.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Lighting = game:GetService("Lighting")
 
@@ -30,7 +30,7 @@ HubMap.PAD_COLOR = Color3.fromRGB(118, 111, 96)
 
 -- Les deux bâtiments devant l'entrée de chaque parcelle. tab = onglet de la fenêtre du joueur que leur invite ouvre.
 HubMap.BUILDINGS = {
-	{ key = "Shop", x = -20, title = "BOUTIQUE DES TOURS", tab = "Boutique", color = Color3.fromRGB(118, 73, 145) },
+	{ key = "Eggs", x = -20, title = "LES ŒUFS", tab = "Œufs", color = Color3.fromRGB(196, 140, 52) }, -- (plus de boutique)
 	{ key = "Levels", x = 20, title = "PORTE DES NIVEAUX", tab = "Niveaux", color = Color3.fromRGB(205, 151, 52) },
 }
 

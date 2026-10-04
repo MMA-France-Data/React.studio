@@ -2,8 +2,9 @@
 --   « Levels »   : le bouton « ⚔ NIVEAUX » de la map principale et sa fenêtre à 4 onglets (plus la page de
 --                  l'équipe, bouton « 👥 ÉQUIPE » : jouer à plusieurs, Levels.luau « JOUER EN ÉQUIPE ») : Niveaux (choisir un
 --                  niveau : 10 cartes par territoire, la page défile et s'ouvre sur le territoire du prochain
---                  niveau), Boutique (tours à prix fixes, en pièces de niveau), Entraînement (emplacements du camp,
---                  XP et améliorations de chaque tour), Mes tours (l'inventaire et l'ordre de la barre rapide) ;
+--                  niveau ; après Levels.OPEN_COUNT : « Bientôt »), Entraînement (emplacements du camp, XP et étoiles
+--                  de chaque tour), Mes tours (l'inventaire et l'ordre de la barre rapide), Œufs (réserve et
+--                  couveuses : toutes les tours sortent des œufs, plus de boutique) ;
 --   « LevelHud » : pendant un niveau. Vue d'en haut de la zone de combat (caméra réglée pour montrer toute la carte
 --                  entre les bandeaux ; zoom avec la molette ou en pinçant, déplacement en glissant un doigt ou
 --                  avec le clic droit / les flèches), or / vies / avancée du flot de monstres, barre rapide des
@@ -53,7 +54,7 @@ local LevelsUI = {}
 
 local player = Players.LocalPlayer
 
-local COIN = "🏅" -- pièces de niveau (gardées : boutique, camp)
+local COIN = "🏅" -- pièces de niveau (gardées : camp, couveuses)
 local GOLD = "💰" -- or d'un niveau (repart du montant de départ à chaque niveau)
 local SHORT_NAMES = {
 	MachineGun = "Archer",
@@ -204,16 +205,6 @@ end
 
 local function owns(towerType: string): boolean
 	return table.find(state.towers, towerType) ~= nil
-end
-
--- Vrai si le joueur a de quoi acheter une tour de la boutique avec `coins` pièces de niveau.
-local function canBuyTower(coins: number): boolean
-	for towerType, price in Levels.SHOP do
-		if not owns(towerType) and coins >= price then
-			return true
-		end
-	end
-	return false
 end
 
 local function amount(value: number): string
@@ -491,7 +482,7 @@ local function towerPreview(parent: GuiObject, towerType: string?, position: UDi
 	return entry
 end
 
--- Vignette dans un cadre de couleur vive à contour noir (comme les cartes de la boutique) : sur un fond sombre, les
+-- Vignette dans un cadre de couleur vive à contour noir : sur un fond sombre, les
 -- tours de pierre et de bois ne se voyaient pas. tile = le cadre à placer ; setType change aussi sa couleur.
 local function towerTile(parent: GuiObject, towerType: string?, position: UDim2, size: UDim2)
 	local tile = UI.new("Frame", {
@@ -527,7 +518,7 @@ ReplicatedStorage.ChildAdded:Connect(function(child)
 end)
 
 ----------------------------------------------------------------------
--- Fenêtre du camp : Niveaux, Boutique, Entraînement, Mes tours, Œufs
+-- Fenêtre du camp : Niveaux, Entraînement, Mes tours, Œufs
 ----------------------------------------------------------------------
 local camp = {}
 
@@ -648,7 +639,7 @@ local function buildCamp()
 		Parent = window,
 	})
 
-	local TABS = { "Niveaux", "Boutique", "Entraînement", "Mes tours", "Œufs" }
+	local TABS = { "Niveaux", "Entraînement", "Mes tours", "Œufs" }
 	local tabButtons, pages = {}, {}
 	local currentTab = TABS[1]
 	for index, name in TABS do
@@ -688,8 +679,8 @@ local function buildCamp()
 		Parent = window,
 	})
 
-	-- Pastille « ! » sur le bouton « ⚔ NIVEAUX » et sur l'onglet Boutique : le joueur a de quoi acheter une tour (sans
-	-- elle, celui qui ne pense pas à la boutique reste bloqué : les niveaux 3, 6 et 11 attendent une nouvelle tour).
+	-- Pastille « ! » sur le bouton « ⚔ NIVEAUX » et sur l'onglet Œufs : un œuf attend le joueur (sans elle, celui qui
+	-- ne pense pas aux couveuses reste bloqué : ses nouvelles tours sortent des œufs).
 	local function badge(parent: GuiObject): TextLabel
 		return UI.new("TextLabel", {
 			Name = "Badge",
@@ -707,7 +698,6 @@ local function buildCamp()
 		}, { UI.new("UICorner", { CornerRadius = UDim.new(0.5, 0) }), UI.stroke(UI.Colors.Ink, 2) }) :: TextLabel
 	end
 	local openBadge = badge(openButton)
-	local shopBadge = badge(tabButtons.Boutique)
 	local eggsBadge = badge(tabButtons["Œufs"]) -- (un œuf prêt, ou une couveuse vide alors qu'il a des œufs)
 
 	------------------------------------------------------------------
@@ -807,17 +797,20 @@ local function buildCamp()
 	})
 
 	local function refreshLevels()
-		-- Un territoire s'ouvre quand le dernier niveau du précédent est réussi.
+		-- Un territoire s'ouvre quand le dernier niveau du précédent est réussi. Après Levels.OPEN_COUNT : « Bientôt »
+		-- (les mises à jour du propriétaire les ouvriront).
 		for territory, header in territoryHeaders do
 			local map = Levels.MAPS[Levels.TERRITORIES[territory]]
 			local before = (territory - 1) * Levels.TERRITORY_SIZE
-			local open = state.best >= before
-			header.Text = `TERRITOIRE {territory} • {map.displayName}` .. (if open then "" else ` • 🔒 réussis le niveau {before}`)
+			local soon = before >= Levels.OPEN_COUNT
+			local open = state.best >= before and not soon
+			header.Text = `TERRITOIRE {territory} • {map.displayName}` .. (if soon then " • 🔒 Bientôt" elseif open then "" else ` • 🔒 réussis le niveau {before}`)
 			header.TextColor3 = if open then UI.Colors.Gold else UI.Colors.Muted
 		end
 		for level, entry in levelCards do
-			local cleared = level <= state.best
-			local nextOne = level == state.best + 1
+			local soon = not Levels.isOpen(level)
+			local cleared = level <= state.best and not soon
+			local nextOne = level == state.best + 1 and not soon
 			entry.reward.Text = if cleared
 				then `Rejouer :\n+{amount(Levels.reward(level, true, false))} {COIN}`
 				else `Victoire :\n+{amount(Levels.firstReward(level))} {COIN}`
@@ -826,7 +819,11 @@ local function buildCamp()
 			local blocked = if (cleared or nextOne) and not isLeader() then "👥 LE CHEF"
 				elseif (cleared or nextOne) and closedFor(level) then "🔒 ÉQUIPE"
 				else nil
-			entry.button.Text = blocked or (if cleared then "REJOUER" elseif nextOne then "▶ JOUER" else "🔒")
+			entry.button.Text = blocked or (if cleared then "REJOUER" elseif nextOne then "▶ JOUER" elseif soon then "🔒 BIENTÔT" else "🔒")
+			if soon then
+				entry.reward.Text = "Bientôt"
+				entry.reward.TextColor3 = UI.Colors.Muted
+			end
 			entry.button.BackgroundColor3 = if blocked then UI.Colors.Panel elseif nextOne or cleared then UI.Colors.Success else UI.Colors.Panel
 			entry.button.AutoButtonColor = blocked == nil and (cleared or nextOne)
 			entry.stroke.Color = if nextOne then UI.Colors.Accent else UI.Colors.Ink
@@ -835,119 +832,16 @@ local function buildCamp()
 			entry.card.BackgroundTransparency = 0
 		end
 		summary.Text = `Chaque niveau est un flot de monstres sans pause, de plus en plus forts : pose et améliore tes tours sans arrêt avec l'or qu'ils donnent, protège ton château ({Levels.LIVES} vies). `
-			.. `Gagner rapporte des pièces de niveau {COIN} pour acheter d'autres tours et améliorer ton camp d'entraînement.\n`
+			.. `Gagner rapporte un œuf (une tour au hasard) et des pièces de niveau {COIN} pour ton camp et tes couveuses.\n`
 			.. `Victoires : {state.wins} • Défaites : {state.losses}`
 	end
 
 	------------------------------------------------------------------
-	-- Onglet « Boutique » : les 8 tours de palier 1, à prix fixes (aucun hasard ; celles de palier 2 : les œufs)
-	------------------------------------------------------------------
-	local SHOP_W, SHOP_H = 182, 246
-	local shopCards = {}
-	for index, towerType in IdleTowers.TIER1 do
-		local def = IdleTowers.Defs[towerType]
-		local column, row = (index - 1) % 4, math.floor((index - 1) / 4)
-		local card = UI.new("Frame", {
-			Name = "Shop_" .. towerType,
-			Position = UDim2.fromOffset(column * (SHOP_W + GAP), row * (SHOP_H + GAP)),
-			Size = UDim2.fromOffset(SHOP_W, SHOP_H),
-			BackgroundColor3 = TOWER_COLORS[towerType],
-			Parent = pages.Boutique,
-		}, { UI.corner(5), UI.padding(8) })
-		UI.gradient(card)
-		local stroke = UI.stroke(UI.Colors.Ink, 3)
-		stroke.Parent = card
-		UI.label({
-			Size = UDim2.new(1, 0, 0, 30),
-			Font = Enum.Font.GothamBlack,
-			TextWrapped = true,
-			TextColor3 = UI.Colors.Text,
-			MaxTextSize = 19,
-			Text = def.displayName,
-			Parent = card,
-		})
-		local preview = towerPreview(card, towerType, UDim2.fromOffset(0, 32), UDim2.new(1, 0, 0, 84))
-		local role = UI.label({
-			Name = "Role",
-			Position = UDim2.fromOffset(0, 120),
-			Size = UDim2.new(1, 0, 0, 30),
-			TextWrapped = true,
-			TextYAlignment = Enum.TextYAlignment.Top,
-			MaxTextSize = 14,
-			Text = ROLES[towerType],
-			Parent = card,
-		})
-		local description = UI.label({
-			Name = "Limits",
-			Position = UDim2.fromOffset(0, 152),
-			Size = UDim2.new(1, 0, 0, 30),
-			TextWrapped = true,
-			TextColor3 = UI.Colors.Muted,
-			MaxTextSize = 13,
-			Text = `En niveau : {Levels.placeCost(towerType)} {GOLD}\n{Levels.maxCopies(towerType)} au plus`,
-			Parent = card,
-		})
-		local button = UI.button({
-			Name = "Buy",
-			AnchorPoint = Vector2.new(0, 1),
-			Position = UDim2.new(0, 0, 1, 0),
-			Size = UDim2.new(1, 0, 0, 38),
-			MaxTextSize = 16,
-			Parent = card,
-		})
-		button.Activated:Connect(function()
-			local price = Levels.SHOP[towerType]
-			if price and not owns(towerType) and state.coins >= price then
-				levelAction:FireServer("Buy", towerType)
-			end
-		end)
-		shopCards[towerType] = { card = card, button = button }
-		table.insert(cardFits, function(phone)
-			local height = if phone then 208 else SHOP_H
-			card.Position = UDim2.fromOffset(column * (SHOP_W + GAP), row * (height + GAP))
-			card.Size = UDim2.fromOffset(SHOP_W, height)
-			-- (la dernière ligne, « 5 au plus », garde au moins 10 px d'air au-dessus du bouton)
-			preview.view.Position = UDim2.fromOffset(0, if phone then 30 else 32)
-			preview.view.Size = UDim2.new(1, 0, 0, if phone then 52 else 84)
-			role.Position = UDim2.fromOffset(0, if phone then 84 else 120)
-			role.Size = UDim2.new(1, 0, 0, if phone then 28 else 30)
-			description.Position = UDim2.fromOffset(0, if phone then 114 else 152)
-			description.Size = UDim2.new(1, 0, 0, 30)
-			button.Size = UDim2.new(1, 0, 0, if phone then 34 else 38)
-			pages.Boutique.CanvasSize = UDim2.fromOffset(0, 2 * height + GAP + 4)
-		end)
-	end
-
-	local function refreshShop()
-		for towerType, entry in shopCards do
-			local price = Levels.SHOP[towerType]
-			local button = entry.button
-			if owns(towerType) then
-				button.Text = "✓ À TOI"
-				button.BackgroundColor3 = UI.Colors.Success
-				button.AutoButtonColor = false
-				button.TextColor3 = Color3.new(1, 1, 1)
-			elseif price and state.coins >= price then
-				button.Text = `ACHETER {amount(price)} {COIN}`
-				button.BackgroundColor3 = UI.Colors.Success
-				button.AutoButtonColor = true
-				button.TextColor3 = Color3.new(1, 1, 1)
-			else
-				button.Text = if price then `{amount(price)} {COIN} (il manque {amount(price - state.coins)})` else "—"
-				button.BackgroundColor3 = UI.Colors.PanelLight
-				button.AutoButtonColor = false
-				button.TextColor3 = UI.Colors.Text
-			end
-		end
-	end
-
-	------------------------------------------------------------------
-	-- Tours pas encore achetées : une ligne grisée à la fin des listes « Entraînement » et « Mes tours ». Le joueur
-	-- voit ce qui l'attend, et la fenêtre n'a plus une moitié vide quand il n'a que deux tours. Le bouton mène à la
-	-- boutique (tours de palier 2 : à l'onglet Œufs).
+	-- Tours pas encore à lui : une ligne grisée à la fin des listes « Entraînement » et « Mes tours ». Le joueur voit
+	-- ce qui l'attend, et la fenêtre n'a plus une moitié vide quand il n'a que deux tours. Le bouton mène à l'onglet
+	-- Œufs (toutes les tours en sortent).
 	------------------------------------------------------------------
 	local function lockedRow(parent: Instance, towerType: string)
-		local fromEggs = IdleTowers.tierOf(towerType) == 2
 		local row = UI.new("Frame", {
 			Name = "Locked_" .. towerType,
 			Size = UDim2.new(1, -8, 0, 64),
@@ -978,27 +872,26 @@ local function buildCamp()
 			Parent = row,
 		})
 		local button = UI.button({
-			Name = "Shop",
+			Name = "Eggs",
 			AnchorPoint = Vector2.new(1, 0.5),
 			Position = UDim2.new(1, 0, 0.5, 0),
 			Size = UDim2.fromOffset(108, 36),
 			BackgroundColor3 = UI.Colors.Purple,
-			Text = if fromEggs then "ŒUFS" else "BOUTIQUE",
+			Text = "ŒUFS",
 			MaxTextSize = 14,
 			Parent = row,
 		})
 		button.Activated:Connect(function()
-			camp.open(if fromEggs then "Œufs" else "Boutique")
+			camp.open("Œufs")
 		end)
 		return { row = row, price = price }
 	end
 	local function refreshLocked(entry, towerType: string, order: number)
-		local price = Levels.SHOP[towerType]
 		entry.row.Visible = not owns(towerType)
 		entry.row.LayoutOrder = 200 + order
-		entry.price.Text = if price then `{amount(price)} {COIN} dans la Boutique`
-			elseif IdleTowers.tierOf(towerType) == 2 then `Palier 2 de : {IdleTowers.Defs[IdleTowers.baseOf(towerType)].displayName} • dans les œufs`
-			else ""
+		local def = IdleTowers.Defs[towerType]
+		entry.price.Text = if def.base then `Palier 2 de : {IdleTowers.Defs[def.base].displayName} • dans les œufs`
+			else `{Levels.RARITY_NAMES[def.rarity] or def.rarity} • dans les œufs`
 	end
 
 	------------------------------------------------------------------
@@ -1076,7 +969,7 @@ local function buildCamp()
 		TextYAlignment = Enum.TextYAlignment.Top,
 		TextColor3 = UI.Colors.Muted,
 		MaxTextSize = 13,
-		Text = `Une tour dans un emplacement gagne de l'XP tout le temps, même quand tu es parti ({Levels.TRAINING.OFFLINE_MAX_SECONDS // 3600} h au plus). Chaque niveau joué donne aussi de l'XP aux tours posées. Chaque niveau d'entraînement : +{math.floor(Levels.TRAINING.DAMAGE_PER_LEVEL * 100 + 0.5)} % de dégâts, et de nouvelles améliorations. Le bouton ⚡ achète avec tes pièces l'XP qui manque pour le niveau suivant.`,
+		Text = `Une tour dans un emplacement gagne de l'XP tout le temps, même quand tu es parti ({Levels.TRAINING.OFFLINE_MAX_SECONDS // 3600} h au plus). Chaque niveau joué donne aussi de l'XP aux tours posées. Chaque niveau d'entraînement : +{math.floor(Levels.TRAINING.DAMAGE_PER_LEVEL * 100 + 0.5)} % de dégâts, et une étoile aux niveaux {table.concat(Levels.EVOLUTION_LEVELS, ", ")}. Le bouton ⚡ achète avec tes pièces l'XP qui manque pour le niveau suivant.`,
 		Parent = pages["Entraînement"],
 	})
 	local trainingList = UI.new("ScrollingFrame", {
@@ -1135,16 +1028,16 @@ local function buildCamp()
 			ZIndex = 2,
 			Parent = row,
 		})
-		-- ÉVOLUTIONS de la tour (Levels.PERKS : aux niveaux d'entraînement 2, 4 et 6) : une case par évolution, dorée
-		-- quand elle est débloquée, et le détail de la prochaine en dessous.
+		-- ÉVOLUTIONS de la tour (Levels.EVOLUTION_LEVELS : aux niveaux d'entraînement 2, 4 et 6) : une case par étoile,
+		-- dorée quand elle est gagnée (avec les dégâts qu'elle marque), et la prochaine en dessous.
 		local evolutions = {}
-		local perks = Levels.PERKS[towerType] or {}
-		for index, _ in perks do
+		local steps = Levels.EVOLUTION_LEVELS
+		for index, _ in steps do
 			evolutions[index] = UI.label({
 				Name = "Evolution" .. index,
 				-- (les cases se partagent la largeur de la ligne moins le bouton de droite : 116 px)
-				Position = UDim2.new((index - 1) / #perks, -(index - 1) * 116 / #perks, 0, 82),
-				Size = UDim2.new(1 / #perks, -(116 / #perks) - 4, 0, 22),
+				Position = UDim2.new((index - 1) / #steps, -(index - 1) * 116 / #steps, 0, 82),
+				Size = UDim2.new(1 / #steps, -(116 / #steps) - 4, 0, 22),
 				BackgroundColor3 = UI.Colors.Background,
 				BackgroundTransparency = 0.2,
 				Font = Enum.Font.GothamBold,
@@ -1250,20 +1143,20 @@ local function buildCamp()
 			entry.level.Text = `{if stars ~= "" then stars .. "  " else ""}Entraînement {trained}/{Levels.TRAINING.MAX_LEVEL}`
 			entry.setBar(if needed > 0 then done / needed else 1)
 			entry.xp.Text = if needed > 0 then `{math.floor(done)} / {needed} XP` else "MAX"
-			local nextPerk = nil
-			for index, candidate in Levels.PERKS[towerType] or {} do
-				local unlocked = trained >= candidate.level
+			local nextStep = nil
+			local perLevel = Levels.TRAINING.DAMAGE_PER_LEVEL * 100
+			for index, needed in Levels.EVOLUTION_LEVELS do
+				local reached = trained >= needed
 				local chip = entry.evolutions[index]
-				chip.Text = `{if unlocked then string.rep("★", index) else "🔒"} {candidate.name}`
-				chip.TextColor3 = if unlocked then UI.Colors.Gold else UI.Colors.Muted
-				if not unlocked and not nextPerk then
-					nextPerk = candidate
+				setText(chip, `{if reached then string.rep("★", index) else "🔒"} +{math.floor(needed * perLevel + 0.5)} %`)
+				chip.TextColor3 = if reached then UI.Colors.Gold else UI.Colors.Muted
+				if not reached and not nextStep then
+					nextStep = needed
 				end
 			end
-			entry.detail.Text = if nextPerk
-				then `Prochaine évolution (entraînement {nextPerk.level}) : {nextPerk.name}. {nextPerk.text}`
-				elseif IdleTowers.tierOf(towerType) == 2 then "Palier 2 : ses pouvoirs sont déjà là. L'entraînement monte ses dégâts."
-				else "Toutes ses évolutions sont débloquées."
+			setText(entry.detail, if nextStep
+				then `Dégâts : +{math.floor(trained * perLevel + 0.5)} %. Prochaine étoile à l'entraînement {nextStep}.`
+				else `Dégâts : +{math.floor(trained * perLevel + 0.5)} %. Toutes ses étoiles sont gagnées.`)
 			local here = slot ~= nil and slot.tower == towerType
 			local elsewhere = nil
 			for index, other in state.slots do
@@ -1388,19 +1281,13 @@ local function buildCamp()
 			if index then
 				local def = IdleTowers.Defs[towerType]
 				local trained = Levels.trainingLevel(state.xp[towerType])
-				local unlocked = {}
-				for _, perk in Levels.PERKS[towerType] or {} do
-					if trained >= perk.level then
-						table.insert(unlocked, perk.name)
-					end
-				end
 				local stars = Levels.stars(Levels.evolutionStage(towerType, trained))
 				-- (au-delà de Levels.BAR_MAX : en réserve, pas dans la barre d'un niveau)
 				local place = if index <= Levels.BAR_MAX then `{index}.` else "Réserve •"
 				entry.title.Text = `{place} {def.displayName}{if stars ~= "" then " " .. stars else ""} • {Levels.placeCost(towerType)} {GOLD} • entraînement {trained}`
 				entry.title.TextColor3 = if index <= Levels.BAR_MAX then UI.Colors.Text else UI.Colors.Muted
-				local extra = if def.base then ROLES[towerType] elseif #unlocked > 0 then table.concat(unlocked, " • ") else nil
-				entry.stats.Text = statsLine(Levels.towerStats(towerType, 1, trained)) .. (if extra then "\n" .. extra else "")
+				local role = ROLES[towerType]
+				entry.stats.Text = statsLine(Levels.towerStats(towerType, 1, trained)) .. (if role then "\n" .. role else "")
 			end
 		end
 	end
@@ -1476,6 +1363,7 @@ local function buildCamp()
 				table.insert(parts, `{Levels.RARITY_NAMES[rarity]} {math.floor(chance * 100 + 0.5)} %`)
 			end
 		end
+		local tier2 = math.floor((egg.tier2 or 0) * 100 + 0.5)
 		UI.label({
 			Name = "Chances",
 			Position = UDim2.fromOffset(0, 48),
@@ -1484,7 +1372,7 @@ local function buildCamp()
 			TextXAlignment = Enum.TextXAlignment.Left,
 			TextYAlignment = Enum.TextYAlignment.Top,
 			MaxTextSize = 13,
-			Text = "Chances :\n" .. table.concat(parts, " • "),
+			Text = "Chances :\n" .. table.concat(parts, " • ") .. (if tier2 > 0 then `\nPalier 2 : {tier2} %` else ""),
 			Parent = card,
 		})
 		eggCards[eggType] = { count = count }
@@ -1586,7 +1474,7 @@ local function buildCamp()
 		MaxTextSize = 13,
 		Text = "Chaque victoire donne un œuf : commun, rare au mini-boss, doré au boss (en rejouant : commun, rare au boss).\n"
 			.. "Pose-le dans une couveuse : il éclot même quand tu n'es pas là, puis il donne une tour au hasard.\n"
-			.. "Les œufs donnent les tours de palier 2 : des versions bien plus fortes des tours de la boutique.\n"
+			.. "Toutes les tours sortent des œufs. Les œufs rares et dorés donnent aussi des tours de palier 2, bien plus fortes.\n"
 			.. "Une tour que tu as déjà donne de l'XP d'entraînement à cette tour.",
 		Parent = eggsPage,
 	})
@@ -1897,12 +1785,10 @@ local function buildCamp()
 	end
 
 	------------------------------------------------------------------
-	-- Pastilles « ! » : une tour à acheter, ou un œuf qui attend (prêt à ouvrir, ou une couveuse vide).
+	-- Pastilles « ! » : un œuf qui attend (prêt à ouvrir, ou une couveuse vide alors qu'il a des œufs).
 	local function refreshBadges()
-		local buyable = canBuyTower(state.coins)
 		local eggWaiting = eggAlert()
-		openBadge.Visible = buyable or eggWaiting
-		shopBadge.Visible = buyable and currentTab ~= "Boutique"
+		openBadge.Visible = eggWaiting
 		eggsBadge.Visible = eggWaiting and currentTab ~= "Œufs"
 	end
 	local function refresh()
@@ -1916,7 +1802,6 @@ local function buildCamp()
 		teamPage.Visible = currentTab == "Équipe"
 		refreshBadges()
 		refreshLevels()
-		refreshShop()
 		refreshTraining()
 		refreshTowers()
 		refreshEggs()
@@ -2579,7 +2464,7 @@ local function exitLevel()
 		end
 	end
 	savedCamera = nil
-	-- Retour au camp : la fenêtre des niveaux s'ouvre (pièces gagnées, boutique, niveau suivant).
+	-- Retour au camp : la fenêtre des niveaux s'ouvre (pièces gagnées, niveau suivant).
 	camp.open("Niveaux")
 end
 
@@ -2953,7 +2838,7 @@ local function buildHud()
 			if (tonumber(result.bigLeaks) or 0) > 0 then
 				table.insert(lines, "Un gros monstre est passé : la Baliste lourde et le Sorcier des arcanes visent toujours le plus gros.")
 			else
-				table.insert(lines, "La boutique et le camp d'entraînement aident aussi.")
+				table.insert(lines, "Les œufs et le camp d'entraînement aident aussi.")
 			end
 		end
 		-- En équipe : le bonus de pièces (déjà compté dans la récompense affichée).
@@ -2964,27 +2849,27 @@ local function buildHud()
 		-- « LES ŒUFS » : l'œuf gagné (perdu si la réserve était pleine).
 		local wonEgg = if typeof(result.egg) == "string" then Levels.EGGS[result.egg] else nil
 		if wonEgg then
-			table.insert(lines, if result.eggKept == false then `🥚 Réserve d'œufs pleine : {wonEgg.displayName} perdu` else `🥚 {wonEgg.displayName} gagné ! Pose-le dans une couveuse.`)
+			table.insert(lines, if result.eggKept == false then `🥚 Réserve d'œufs pleine : {wonEgg.displayName} perdu`
+				elseif result.eggPlaced == true then `🥚 {wonEgg.displayName} : il couve déjà dans ta couveuse !`
+				else `🥚 {wonEgg.displayName} gagné ! Pose-le dans une couveuse.`)
 		end
 		-- Un ami Roblox sur le serveur (« LES AMIS ») : son bonus aussi.
 		if result.friend == true then
 			table.insert(lines, `🤝 Bonus d'ami sur le serveur : +{math.floor(Levels.FRIENDS.COIN_BONUS * 100 + 0.5)} % de pièces`)
 		end
-		-- De quoi acheter une tour : on le dit ici, au moment où le joueur choisit entre continuer et rentrer au camp.
-		if canBuyTower(tonumber(result.coins) or state.coins) then
-			table.insert(lines, `{COIN} Tu peux acheter une nouvelle tour à la boutique !`)
-		end
 		local xp = tonumber(result.xp) or 0
 		if xp > 0 and typeof(result.towers) == "table" and #result.towers > 0 then
 			table.insert(lines, `Tes tours posées gagnent +{UI.decimal(xp)} XP d'entraînement.`)
 		end
-		for _, perk in if typeof(result.perks) == "table" then result.perks else {} do
-			local def = IdleTowers.Defs[perk.tower]
-			table.insert(lines, `⭐ ÉVOLUTION ! {if def then def.displayName else "Tour"} : {perk.name}`)
+		for _, evolution in if typeof(result.evolutions) == "table" then result.evolutions else {} do
+			local def = IdleTowers.Defs[evolution.tower]
+			table.insert(lines, `⭐ ÉVOLUTION ! {if def then def.displayName else "Tour"} : {Levels.stars(tonumber(evolution.stage) or 1)}`)
 		end
 		endDetails.Text = table.concat(lines, "\n")
 		local canNext = won and result.nextLevel ~= nil
-		nextButton.Text = if canNext then `Niveau {result.nextLevel} ▶` else if won then "Tous les niveaux sont réussis !" else "Réessayer"
+		-- (le dernier niveau ouvert gagné : les suivants arrivent avec les mises à jour)
+		local soon = won and not canNext and (tonumber(result.level) or 0) >= Levels.OPEN_COUNT and Levels.OPEN_COUNT < Levels.COUNT
+		nextButton.Text = if canNext then `Niveau {result.nextLevel} ▶` elseif soon then "Bientôt de nouveaux niveaux !" elseif won then "Tous les niveaux sont réussis !" else "Réessayer"
 		nextButton.BackgroundColor3 = if canNext or not won then UI.Colors.Success else UI.Colors.Panel
 		nextButton.AutoButtonColor = canNext or not won
 		-- (perdu : « Réessayer » est le gros bouton, « Rejouer » ferait double emploi)
@@ -3530,7 +3415,7 @@ end
 ----------------------------------------------------------------------
 
 -- Tests automatiques (Studio) : gui:SetAttribute("TestAction", "<commande>#<numéro>") fait comme le joueur.
---   écran « Levels »   : "Open", "Close", "Tab:Boutique", "Slot:2" (invite du socle d'entraînement 2 du camp),
+--   écran « Levels »   : "Open", "Close", "Tab:Œufs", "Slot:2" (invite du socle d'entraînement 2 du camp),
 --                        "TrainBuy:MachineGun" (bouton ⚡ de cette tour dans l'onglet Entraînement), "Team" (page de
 --                        l'équipe), "TeamInvite:123" (inviter ce joueur), "TeamAccept" / "TeamDecline" (répondre à
 --                        l'invitation affichée), "TeamLeave" (quitter l'équipe), "FriendOnline:123:Robin" (comme si
@@ -3971,7 +3856,7 @@ local function build()
 	PlotRenderer.onEnemyKilled = function(plotIndex: number, enemyType: string, position: Vector3)
 		local enemy = Levels.ENEMY[enemyType]
 		if level.active and plotIndex == level.index and enemy then
-			goldPopup(position, enemy.gold, enemyType == "Giant" or enemyType == "Boss")
+			goldPopup(position, enemy.gold, enemyType == "Giant" or enemyType == "Colossus" or enemyType == "Boss")
 		end
 	end
 
@@ -3993,9 +3878,9 @@ local function build()
 			local newLevel = Levels.trainingLevel(after.xp[towerType])
 			if newLevel > oldLevel and table.find(before.towers, towerType) and not level.active then
 				local def = IdleTowers.Defs[towerType]
-				local gained = Levels.perksBetween(towerType, oldLevel, newLevel)
-				if #gained > 0 then
-					UI.toast(`⭐ ÉVOLUTION ! {def.displayName} : {gained[#gained].name}`, "Success")
+				local stage = Levels.evolutionStage(towerType, newLevel)
+				if stage > Levels.evolutionStage(towerType, oldLevel) then
+					UI.toast(`⭐ ÉVOLUTION ! {def.displayName} : {Levels.stars(stage)}`, "Success")
 					SoundManager.play("Victory")
 				else
 					UI.toast(`{def.displayName} : entraînement {newLevel} (+{math.floor(Levels.TRAINING.DAMAGE_PER_LEVEL * 100 + 0.5)} % de dégâts)`, "Success")
@@ -4034,7 +3919,7 @@ local function build()
 	end)
 
 	-- Sur la parcelle : l'invite d'un socle d'entraînement ouvre l'onglet Entraînement sur cet emplacement, celle de
-	-- la boutique ou de la porte des niveaux ouvre son onglet (attributs CampSlot / CampTab, Hub/Camp.luau).
+	-- des œufs ou de la porte des niveaux ouvre son onglet (attributs CampSlot / CampTab, Hub/Camp.luau).
 	ProximityPromptService.PromptTriggered:Connect(function(prompt, who)
 		local plot = myPlotFolder()
 		if who ~= player or level.active or not plot or not prompt:IsDescendantOf(plot) then
@@ -4254,7 +4139,7 @@ local function build()
 	end
 end
 
--- Ouvre la fenêtre du camp sur cet onglet (« Niveaux », « Boutique »...), comme le bouton « ⚔ NIVEAUX ». Pour le tuto
+-- Ouvre la fenêtre du camp sur cet onglet (« Niveaux », « Œufs »...), comme le bouton « ⚔ NIVEAUX ». Pour le tuto
 -- (TutorialUI.luau). Sans effet tant que les écrans ne sont pas construits, ou pendant un niveau.
 function LevelsUI.openCamp(tab: string?)
 	if camp.open and not level.active then

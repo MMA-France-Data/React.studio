@@ -6,7 +6,7 @@
 --     CampSlot de l'invite) ;
 --   * trois COUVEUSES (« LES ŒUFS », Levels.luau ; PlotLayout.HATCHERS) : l'œuf de chacune et le temps qui reste,
 --     une invite qui ouvre l'onglet Œufs ;
---   * devant l'entrée, la BOUTIQUE DES TOURS et la PORTE DES NIVEAUX (construites par Hub/HubMap.luau) : leur invite
+--   * devant l'entrée, LES ŒUFS et la PORTE DES NIVEAUX (construites par Hub/HubMap.luau) : leur invite
 --     ouvre l'onglet de ce nom (attribut CampTab) ;
 --   * le tableau du fond affiche le camp (Hub/PlotBoard.luau lit les attributs Camp... de la parcelle).
 -- Rien n'est sauvegardé ici : tout vient de data.levels (Hub/LevelsService.luau), relu à chaque changement
@@ -41,7 +41,7 @@ local OPEN_COLOR, LOCKED_COLOR = Color3.fromRGB(132, 124, 106), Color3.fromRGB(4
 local GOLD, IVORY, MUTED = Color3.fromRGB(255, 217, 61), Color3.new(1, 1, 1), Color3.fromRGB(220, 229, 244)
 local INK = Color3.fromRGB(10, 12, 21)
 
--- Les vignettes de la boutique montrent les VRAIES tours, sans images à publier. Un modèle statique par tour (16),
+-- Les vignettes des fenêtres montrent les VRAIES tours, sans images à publier. Un modèle statique par tour (16),
 -- créés une fois, hors du Workspace : aucun tir, cible, évolution, invite ou effet de gameplay.
 local function preparePreviews()
 	if ReplicatedStorage:FindFirstChild("CampTowerPreviews") then

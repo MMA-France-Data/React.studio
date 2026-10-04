@@ -3,7 +3,7 @@
 -- serveur d'après sa langue Roblox, voir Shared/Lang.luau), ce module remplace chaque texte affiché par sa
 -- traduction anglaise (dictionnaires Shared/LangEN) :
 --   * les TextLabel et TextButton de son écran (PlayerGui) et des panneaux du monde (SurfaceGui, BillboardGui) ;
---   * les invites ProximityPrompt (ActionText « Ouvrir », ObjectText « BOUTIQUE DES TOURS »...).
+--   * les invites ProximityPrompt (ActionText « Ouvrir », ObjectText « LES ŒUFS »...).
 -- Jamais les TextBox (où le joueur écrit). Un texte est traduit quand il apparaît, puis à chaque fois que le jeu (ou
 -- le serveur) le change : le jeu continue d'écrire en français, sans rien savoir de l'anglais. Pour chaque texte, on
 -- garde le texte français d'origine : retour au français en direct si la langue change (attribut « Lang »).

@@ -1,10 +1,12 @@
 # Tower defense à niveaux (Roblox)
 
-Un tower defense médiéval : une suite de **niveaux** de 2 à 3 minutes (100 niveaux, en dix territoires), vus d'en
+Un tower defense médiéval : une suite de **niveaux** de 2 à 3 minutes (100 niveaux en dix territoires, les 40
+premiers ouverts), vus d'en
 haut, où un flot continu de monstres devient de plus en plus fort. On pose ses tours où on veut et on les améliore
 sans arrêt. Entre deux niveaux, on
-retrouve sa parcelle, son **camp d'entraînement** : les tours s'y entraînent (même quand on est parti) et **évoluent**.
-Les pièces gagnées servent à acheter les tours suivantes dans une **boutique à prix fixes** (aucun hasard).
+retrouve sa parcelle, son **camp d'entraînement** : les tours s'y entraînent (même quand on est parti) et gagnent
+des étoiles. Chaque victoire donne un **œuf** : toutes les tours en sortent (plus de boutique), à faire éclore dans
+les couveuses de la parcelle.
 
 - **Les règles, les chiffres et les décisions** : [NIVEAUX.md](NIVEAUX.md).
 - **Ce qui reste à faire avant de rendre le jeu public** : [SORTIE.md](SORTIE.md).
@@ -45,8 +47,9 @@ sauvegarde (`Niveaux_PlayerData_v1`) : il ne lit et n'écrase jamais les sauvega
 powershell -ExecutionPolicy Bypass -File tools\levels\run.ps1 -Tests
 ```
 
-Les vérifications des règles, de la difficulté de chacun des 100 niveaux, des évolutions, du camp, du tuto et du jeu
-en équipe (une dizaine de minutes). Sans `-Tests` : le tableau de difficulté des 100 niveaux joués par des joueurs
+Les vérifications des règles, de la difficulté de chacun des 40 niveaux ouverts, de l'entraînement, du camp, du tuto,
+du jeu en équipe et des œufs (une dizaine de minutes). Sans `-Tests` : le tableau de difficulté des 40 niveaux joués
+par des joueurs
 simulés ; `-Lazy`, `-Tune`, `-Curve`, `-Worth`, `-Equipe` pour régler la difficulté (voir
 [tools/levels/README.md](tools/levels/README.md)).
 
@@ -94,7 +97,7 @@ n'est pas touché.
 
 **Outils de Studio** (jamais dans le jeu publié), en haut à gauche pendant un Play :
 
-- **« GALERIE (Studio) »** : t'emmène voir les 6 types de monstres dans les 10 styles (une rangée par territoire de
+- **« GALERIE (Studio) »** : t'emmène voir les 7 types de monstres dans les 10 styles (une rangée par territoire de
   10 niveaux), construits comme en jeu ; « ← RETOUR » te ramène. `Config.STUDIO_ENEMY_GALLERY = false` pour ne plus la
   construire (`src/client/EnemyGallery.luau`).
 - **« SONS (Studio) »** : la liste de tous les sons, avec « Jouer ». `Config.STUDIO_SOUND_PANEL = false` pour cacher
@@ -218,11 +221,11 @@ que chez le joueur (`src/client/SoundManager.luau`) : aucun coût pour le serveu
 
 | Quoi | Où |
 |---|---|
-| Niveaux, territoires et cartes, monstres, or, prix, boutique, entraînement, évolutions | `src/shared/Levels.luau` |
+| Niveaux (et combien sont ouverts : `OPEN_COUNT`), territoires et cartes, monstres, or, prix, œufs, entraînement, évolutions | `src/shared/Levels.luau` |
 | Décor de chaque territoire (couleurs du sol, rochers, arbres) | `THEMES`, en haut de `src/server/Hub/LevelArena.luau` |
-| Les 16 tours (dégâts, portée, effets ; 8 de la boutique, 8 de palier 2 dans les œufs) | `src/shared/IdleTowers.luau` |
+| Les 16 tours (dégâts, portée, effets ; 8 de palier 1, 8 de palier 2) | `src/shared/IdleTowers.luau` |
 | Vitesses, limites du combat, rythme des envois réseau | `src/shared/IdleConfig.luau` |
-| Les 6 types de monstres (nom, vitesse, taille) | `src/shared/Enemies.luau` |
+| Les 7 types de monstres (nom, vitesse, taille ; dont le colosse géant) | `src/shared/Enemies.luau` |
 | Sons | `src/shared/Sounds.luau` |
 | Outils de Studio, tuto et langue dans Studio, sauvegarde | `src/shared/Config.luau` |
 | Caméra d'un niveau, tailles des fenêtres | en haut de `src/client/LevelsUI.luau` |

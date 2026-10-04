@@ -8,11 +8,12 @@ Le jeu sort comme une **nouvelle expérience Roblox** (décision du 02/10/2026) 
 ## Le jeu lui-même
 
 - [x] 100 niveaux en 10 territoires (11 à 20 ajoutés le 02/10/2026, 21 à 100 le 03/10/2026 : une carte et une famille
-      de monstres par territoire), camp d'entraînement, évolutions des tours, boutique à prix fixes (voir
-      `NIVEAUX.md`).
+      de monstres par territoire), camp d'entraînement, évolutions des tours, les œufs et les 16 tours (voir
+      `NIVEAUX.md`). Depuis le 04/10/2026 : plus de boutique, les niveaux 1 à 40 ouverts (41 à 100 : « Bientôt »).
 - [x] Tout l'ancien jeu enlevé (classé, autel, forge, vagues infinies, renaissance, défis, passes, ancien tuto).
 - [x] **Tuto** pour un nouveau joueur : une flèche dorée lui montre quoi toucher, du camp à la fin du niveau 1,
-      puis la boutique (voir `NIVEAUX.md`, « Le tuto des nouveaux joueurs »). Celui qui la suit gagne le niveau 1.
+      puis l'œuf de catapulte à ouvrir (voir `NIVEAUX.md`, « Le tuto des nouveaux joueurs »). Celui qui la suit
+      gagne le niveau 1.
 - [x] **Version anglaise** : tous les écrans, le tuto, les messages et les panneaux sont traduits pour les joueurs
       non francophones (voir `README.md`, « Langues »). Vérifié par `run.ps1 -Test english` : aucun texte ne reste
       en français.
@@ -20,28 +21,31 @@ Le jeu sort comme une **nouvelle expérience Roblox** (décision du 02/10/2026) 
       tests automatiques ne vérifient que la taille de l'écran, pas le toucher.)
 - [ ] **Un nouveau joueur passe-t-il le niveau 1 ?** La difficulté est réglée avec des joueurs simulés et un seul
       vrai joueur (toi). Le tuto aide : un joueur simulé qui suit seulement la flèche gagne le niveau 1.
-- [ ] **Joue les niveaux 11 à 100** : ils n'ont été essayés que par les joueurs simulés (trop durs ? trop faciles ?).
+- [ ] **Joue les niveaux 11 à 40** : ils n'ont été essayés que par les joueurs simulés (trop durs ? trop faciles ?).
+      Les boss 20, 30 et 40 demandent des tours de palier 2 (les œufs dorés des boss d'avant en donnent souvent).
 - [ ] **Jouer en équipe, à deux pour de vrai** : dans Studio, le test « serveur et clients » avec 2 joueurs ;
       réussir le niveau 1 dans les deux, puis « 👥 ÉQUIPE » > « Inviter », accepter, lancer un niveau ensemble. À
       vérifier : chacun son couloir (son nom au-dessus de sa porte, des monstres dans les deux couloirs), chacun
       pose ses tours, l'or de chacun, l'écran de fin des deux, le niveau suivant ouvert pour les deux. (Le test
       automatique joue avec des joueurs d'essai, pas avec deux vrais clients.)
-- [x] La Baliste et le Trébuchet renforcés (02/10/2026, voir `NIVEAUX.md`, « Ce que chaque tour de la boutique
-      apporte »).
-- [ ] Plus de 100 niveaux : il faudrait de nouvelles familles de monstres (les dix prévues sont utilisées). Après la
-      sortie.
+- [x] La Baliste et le Trébuchet renforcés (02/10/2026, voir `NIVEAUX.md`, « Ce que chaque tour apporte »).
+- [ ] Ouvrir les niveaux 41 à 100 (tes mises à jour) : les régler de nouveau pour les œufs, puis
+      `Levels.OPEN_COUNT`. Plus de 100 niveaux : il faudrait de nouvelles familles de monstres (les dix prévues sont
+      utilisées).
 - [ ] Les autres langues (espagnol, portugais...) : aujourd'hui ces joueurs voient le jeu en anglais. Après la
       sortie, on pourra essayer de laisser Roblox traduire notre anglais dans leur langue (ça ne se teste que sur le
       jeu publié, pas dans Studio).
 - [ ] Monstres : **les boss des niveaux 60 et 90** (la Légion des os, la Horde gobeline) n'ont pas encore de modèle
-      3D : en attendant, ils sont faits de blocs, comme un monstre sans modèle. À faire faire par ChatGPT comme les
-      autres (`assets/EnemyModels/Boss_5.rbxm` et `Boss_8.rbxm`). Le dragon (niveau 100) n'a pas d'animation de mort.
+      3D : en attendant, ils sont faits de blocs, comme un monstre sans modèle (ces niveaux sont fermés pour
+      l'instant). À faire faire par ChatGPT comme les autres (`assets/EnemyModels/Boss_5.rbxm` et `Boss_8.rbxm`).
+      Le dragon (niveau 100) n'a pas d'animation de mort. Le colosse géant (niveaux 15, 25, 35) prend le modèle du
+      chevalier colossal en plus grand ; un modèle à lui : `assets/EnemyModels/Colossus.rbxm`.
 - [ ] Des passes Robux pour ce jeu ? Il n'y en a plus aucun.
 
 ## Publication (Studio et Hub Création)
 
 - [ ] Le fichier à publier : la copie propre préparée par Claude, sur ton PC, dans le dossier du jeu :
-      `A-PUBLIER\Jeu-100-niveaux-v4.rbxl` (refaite à chaque version, avec un nouveau nom : prends toujours
+      `A-PUBLIER\Jeu-100-niveaux-v8.rbxl` (refaite à chaque version, avec un nouveau nom : prends toujours
       la plus récente ; elle n'est pas dans git). Ferme les autres fenêtres de Studio avant de publier, pour ne pas
       te tromper de fichier.
 - [ ] Publier comme une **nouvelle expérience** sur ton compte personnel (Fichier > Publier sur Roblox > « Créer une
@@ -76,9 +80,10 @@ Le nom du jeu est à toi de choisir. Description en anglais (c'est elle que la p
 Defend your castle in fast 2-3 minute levels!
 
 - Place your towers anywhere and upgrade them non-stop: the monsters never stop getting stronger.
-- 100 levels across 10 territories, with mini-bosses and bosses, all the way to the dragon.
-- 8 towers, 6 of them to unlock in the shop: fixed prices, no luck.
-- Your own training camp: your towers train and evolve, even while you're away.
+- 40 levels across 4 territories, with mini-bosses and bosses (more coming soon).
+- 16 towers: win an egg with every victory, hatch it in your incubators and get a new tower, or its much stronger
+  tier 2 version.
+- Your own training camp: your towers train and earn stars, even while you're away.
 - Plays on PC and phone. No pay-to-win.
 ```
 
@@ -88,18 +93,19 @@ La même en français :
 Défends ton château dans des niveaux rapides de 2 à 3 minutes !
 
 - Pose tes tours où tu veux et améliore-les sans arrêt : les monstres deviennent de plus en plus forts.
-- 100 niveaux dans 10 territoires, avec des mini-boss et des boss, jusqu'au dragon.
-- 16 tours : 8 à la boutique (dont 6 à débloquer, prix fixes, aucun hasard) et leurs 8 versions de palier 2, bien
-  plus fortes, qui sortent des œufs (une à chaque victoire, à faire éclore dans les couveuses).
-- Ton camp d'entraînement : tes tours s'entraînent et évoluent, même quand tu es parti.
+- 40 niveaux dans 4 territoires, avec des mini-boss et des boss (la suite arrive bientôt).
+- 16 tours : un œuf à chaque victoire, à faire éclore dans tes couveuses, pour une nouvelle tour ou sa version de
+  palier 2, bien plus forte.
+- Ton camp d'entraînement : tes tours s'entraînent et gagnent des étoiles, même quand tu es parti.
 - Sur ordinateur et sur téléphone. Rien à acheter pour gagner.
 ```
 
 ## Derniers essais dans le jeu publié (encore privé)
 
-- [ ] Le tuto : à ta première visite, la flèche t'emmène au niveau 1 puis à la boutique. Une fois ta première tour
-      achetée (ou le tuto passé avec « Passer le tuto »), elle ne revient plus, même à la visite suivante.
-- [ ] La sauvegarde : gagner un niveau, quitter, revenir : le niveau, les pièces et les tours achetées sont là.
+- [ ] Le tuto : à ta première visite, la flèche t'emmène au niveau 1 puis à l'œuf de catapulte. Une fois l'œuf
+      ouvert (ou le tuto passé avec « Passer le tuto »), elle ne revient plus, même à la visite suivante.
+- [ ] La sauvegarde : gagner un niveau, quitter, revenir : le niveau, les pièces, les tours et les œufs sont là.
+- [ ] Les œufs pendant l'absence : poser un œuf commun (15 min), quitter, revenir plus tard : il est prêt.
 - [ ] L'entraînement pendant l'absence : mettre une tour dans le camp, revenir une heure plus tard.
 - [ ] À deux joueurs : chacun sa parcelle, on voit le camp de l'autre en s'approchant, les invites de l'autre
       parcelle ne marchent pas, deux niveaux joués en même temps.

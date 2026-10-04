@@ -97,9 +97,9 @@ return function(log)
 	-- 1) L'onglet « Œufs »
 	------------------------------------------------------------------
 	act(campGui, "Tab:Œufs")
-	local page = window:WaitForChild("Page5")
+	local page = window:WaitForChild("Page4")
 	task.wait(0.4)
-	local tab = window:FindFirstChild("Tab5")
+	local tab = window:FindFirstChild("Tab4")
 	local common, gold = page:WaitForChild("Egg_Common"), page:WaitForChild("Egg_Gold")
 	local row1, row2, row3 = page:WaitForChild("Hatcher1"), page:WaitForChild("Hatcher2"), page:WaitForChild("Hatcher3")
 	check(
@@ -191,14 +191,14 @@ return function(log)
 		bought and row3.Title.Text == "🔒 COUVEUSE 3" and string.find(row3.Action.Text, "Acheter : ", 1, true) == 1 and string.find(row3.Action.Text, "🏅", 1, true) ~= nil,
 		`2e couveuse achetée : « {row2.Title.Text} », puis « {row3.Title.Text} » « {row3.Action.Text} »`
 	)
-	act(campGui, "Tab:Boutique")
+	act(campGui, "Tab:Entraînement")
 	local badge = tab and tab:FindFirstChild("Badge")
 	check(badge ~= nil and badge.Visible, "dans un autre onglet : la pastille « ! » de l'onglet Œufs dit qu'un œuf attend (couveuse vide, œuf en réserve)")
 	-- « Mes tours » : la tour de palier 2 sortie de l'œuf (sa vignette 3D, ce qu'elle fait) ; celles qu'il n'a pas encore
 	-- attendent « dans les œufs », avec un bouton vers l'onglet Œufs.
 	act(campGui, "Tab:Mes tours")
 	task.wait(1)
-	local towerList = window.Page4.Towers
+	local towerList = window.Page3.Towers
 	local dragonRow, lockedFire = towerList:FindFirstChild("Tower_DragonBallista"), towerList:FindFirstChild("Locked_FireArcher")
 	local dragonTexts = {}
 	for _, child in (if dragonRow then dragonRow:GetDescendants() else {}) do
@@ -209,8 +209,8 @@ return function(log)
 	local dragonText = table.concat(dragonTexts, " | ")
 	check(
 		dragonRow ~= nil and dragonRow.Visible and string.find(dragonText, "Baliste du dragon", 1, true) ~= nil and string.find(dragonText, role, 1, true) ~= nil
-			and lockedFire ~= nil and lockedFire.Visible and lockedFire.Price.Text == "Palier 2 de : Archer du rempart • dans les œufs" and lockedFire.Shop.Text == "ŒUFS",
-		`« Mes tours » : « {dragonText} » ; pas encore à lui : « {lockedFire and lockedFire.Price.Text or "?"} » « {lockedFire and lockedFire.Shop.Text or "?"} »`
+			and lockedFire ~= nil and lockedFire.Visible and lockedFire.Price.Text == "Palier 2 de : Archer du rempart • dans les œufs" and lockedFire.Eggs.Text == "ŒUFS",
+		`« Mes tours » : « {dragonText} » ; pas encore à lui : « {lockedFire and lockedFire.Price.Text or "?"} » « {lockedFire and lockedFire.Eggs.Text or "?"} »`
 	)
 	shot("mes_tours_palier2")
 	act(campGui, "Close")
@@ -236,8 +236,8 @@ return function(log)
 	end, 5)
 	task.wait(0.8)
 
-	-- Les 8 tours de palier 2 dans un niveau : seulement elles dans la barre (les 8 tours de la boutique, après elles,
-	-- sont en réserve), leurs silhouettes à leurs couleurs avec leur parure, leurs tirs.
+	-- Les 8 tours de palier 2 dans un niveau : seulement elles dans la barre (les 8 tours de palier 1, après elles, sont
+	-- en réserve), leurs silhouettes à leurs couleurs avec leur parure, leurs tirs.
 	local everything, order = {}, table.clone(IdleTowers.TIER2)
 	for _, towerType in IdleTowers.ORDER do
 		everything[towerType] = true
@@ -280,7 +280,7 @@ return function(log)
 	end
 	check(
 		inLevel and placed == 8 and barOk and adorned == 8,
-		`niveau 10 avec les 8 tours de palier 2 : {placed} posées, {adorned} avec leur parure, barre des 8 tours de palier 2 (celles de la boutique en réserve : {barOk})`
+		`niveau 10 avec les 8 tours de palier 2 : {placed} posées, {adorned} avec leur parure, barre des 8 tours de palier 2 (celles de palier 1 en réserve : {barOk})`
 	)
 	task.wait(6) -- (les monstres arrivent, les tours tirent)
 	shot("palier2_niveau")

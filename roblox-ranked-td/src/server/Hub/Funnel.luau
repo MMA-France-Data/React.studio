@@ -7,7 +7,7 @@
 --   3. 1re tour posée (en plus de l'Archer offert) ;
 --   4. 1re amélioration ;
 --   5. 1er niveau gagné ;
---   6. 1re tour achetée à la boutique (fin du tuto).
+--   6. 1er œuf ouvert : l'œuf de catapulte du niveau 1 (fin du tuto).
 -- Chaque étape n'est envoyée qu'une fois par visite, dans l'ordre : atteindre une étape envoie aussi celles d'avant
 -- qui ne l'étaient pas encore (l'entonnoir dit « est arrivé au moins jusque-là »).
 -- « Passer le tuto » : un événement à part, « TutoPasse », dont la valeur est l'étape du tuto (Levels.TUTORIAL) où le
@@ -23,9 +23,9 @@ local Levels = require(ReplicatedStorage:WaitForChild("Shared").Levels)
 
 local Funnel = {}
 
-Funnel.STEP = { Arrived = 1, Started = 2, Placed = 3, Upgraded = 4, Won = 5, Bought = 6 }
+Funnel.STEP = { Arrived = 1, Started = 2, Placed = 3, Upgraded = 4, Won = 5, Hatched = 6 }
 -- Noms des étapes dans les statistiques (sans accents : ils sont affichés tels quels dans le Hub Création).
-Funnel.STEPS = { "Arrivee", "Niveau 1 lance", "1re tour posee", "1re amelioration", "1er niveau gagne", "1re tour achetee" }
+Funnel.STEPS = { "Arrivee", "Niveau 1 lance", "1re tour posee", "1re amelioration", "1er niveau gagne", "1er oeuf ouvert" }
 Funnel.SKIP_EVENT = "TutoPasse"
 
 local reached = {} -- [Player] = numéro de la dernière étape envoyée ; nil = joueur pas suivi (tuto déjà fini en arrivant)
@@ -59,14 +59,14 @@ function Funnel.reach(player: Player, step: number)
 end
 
 -- Données chargées. tutorial = l'étape du tuto du joueur (Levels.TUTORIAL) : un nouveau joueur (0) est suivi depuis
--- l'étape 1 ; celui qui revient après avoir gagné un niveau reprend où il en était (seule la 1re tour achetée lui
+-- l'étape 1 ; celui qui revient après avoir gagné le niveau 1 reprend où il en était (seul le 1er œuf ouvert lui
 -- manque) ; celui qui a fini le tuto n'est pas suivi.
 function Funnel.onLoaded(player: Player, tutorial: number)
 	if reached[player] or tutorial >= Levels.TUTORIAL.DONE then
 		return
 	end
 	history[player] = { steps = {}, skipped = nil }
-	if tutorial >= Levels.TUTORIAL.SHOP then
+	if tutorial >= Levels.TUTORIAL.EGG then
 		reached[player] = Funnel.STEP.Won
 	else
 		reached[player] = 0

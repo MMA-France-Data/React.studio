@@ -8,7 +8,8 @@
 --   boss      : niveau 20 (le col), le boss entre pendant que les derniers monstres passent ;
 --   victoire  : l'écran de victoire ;
 --   camp      : la parcelle du joueur, trois tours évoluées à l'entraînement ;
---   boutique, niveaux : la fenêtre du camp d'un joueur en cours de route (des tours à acheter, le 2e territoire ouvert).
+--   oeufs, niveaux : la fenêtre du camp d'un joueur en cours de route (ses œufs et ses couveuses, le 2e territoire
+--   ouvert).
 -- Les commandes viennent du serveur de test (scenarios/EnglishServer.luau, RemoteFunction __EnglishTest).
 return function(log)
 	local HttpService = game:GetService("HttpService")
@@ -260,7 +261,8 @@ return function(log)
 	cam().CFrame = before
 	task.wait(0.4)
 
-	-- 6) La fenêtre du camp d'un joueur en cours de route : des tours à acheter, le 2e territoire tout juste ouvert.
+	-- 6) La fenêtre du camp d'un joueur en cours de route : ses œufs (un prêt, un qui couve), le 2e territoire tout juste
+	-- ouvert.
 	test:InvokeServer("Set", {
 		best = 10,
 		coins = 1350,
@@ -268,14 +270,16 @@ return function(log)
 	})
 	test:InvokeServer("Set", {
 		towers = { MachineGun = true, Bomb = true, Frost = true, Tesla = true },
+		eggs = { Common = 3, Rare = 1, Gold = 1 },
+		hatchers = { { egg = "Rare", readyAt = 0 }, { egg = "Common", readyAt = os.time() + 9 * 60 } },
 	})
 	waitFor(function()
 		return published().coins == 1350 and #(published().towers or {}) == 4
 	end, 5)
-	act(campGui, "Tab:Boutique")
+	act(campGui, "Tab:Œufs")
 	hidePlayerList()
 	task.wait(1.2)
-	shot("boutique")
+	shot("oeufs")
 	act(campGui, "Tab:Niveaux")
 	local page1 = campGui.Window.Page1
 	page1.CanvasPosition = Vector2.new(0, 0)

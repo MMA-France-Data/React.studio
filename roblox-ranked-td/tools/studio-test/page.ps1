@@ -61,7 +61,7 @@ function Save-Crop([string]$capture, [System.Drawing.Rectangle]$source, [int]$wi
 }
 
 # Miniatures : la plus grande zone 16:9 au milieu de l'image du jeu.
-$names = "combat", "zoom", "boss", "victoire", "camp", "boutique", "niveaux"
+$names = "combat", "zoom", "boss", "victoire", "camp", "oeufs", "niveaux"
 foreach ($name in $names) {
 	$capture = Join-Path $out "page_$name.png"
 	if (-not (Test-Path $capture)) { Write-Host "  (capture page_$name.png absente)"; continue }

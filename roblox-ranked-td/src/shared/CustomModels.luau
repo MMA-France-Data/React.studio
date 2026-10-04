@@ -15,7 +15,8 @@
 --   2. sinon « <Type> » : tous les niveaux ;
 --   3. sinon les blocs habituels.
 --   Types (clés de Enemies.ORDER) : Normal = Fantassin, Fast = Cavalier, Tank = Chevalier lourd,
---   Boss = Seigneur de guerre, Swarm = Écuyer, Giant = Chevalier colossal.
+--   Boss = Seigneur de guerre, Swarm = Écuyer, Giant = Chevalier colossal, Colossus = Colosse géant (sans modèle à
+--   lui : celui du Chevalier colossal, en plus grand).
 -- Attributs facultatifs, à mettre sur le modèle dans Studio (Propriétés > Attributs > +, type Number) :
 --   FacingOffset (degrés) : le devant attendu est -Z du pivot du modèle (son LookVector, comme partout dans
 --       Roblox) ; s'il marche à reculons, mets 180 ; de côté : 90 ou -90. Personnage à os (Mixamo, Meshy,
@@ -149,7 +150,9 @@ local PALIER_COUNT = MedievalModels.ENEMY_STYLE_COUNT or 10
 
 -- Hauteur visée = taille du type (Enemies.Defs[type].size) x ce facteur : à peu près la hauteur des modèles
 -- en blocs (fantassin 2,3 studs, écuyer 1,4, colosse 6, Seigneur de guerre 8).
-local HEIGHT_FACTORS = { Normal = 1.15, Fast = 1.35, Tank = 1.15, Boss = 1.6, Swarm = 1.15, Giant = 1.35 }
+local HEIGHT_FACTORS = { Normal = 1.15, Fast = 1.35, Tank = 1.15, Boss = 1.6, Swarm = 1.15, Giant = 1.35, Colossus = 1.35 }
+-- Type dont le modèle sert quand celui-ci n'a pas le sien.
+local MODEL_FALLBACK = { Colossus = "Giant" }
 local DEFAULT_HEIGHT_FACTOR = 1.15
 local MIN_HEIGHT = 0.05 -- modèle plus plat que ça (ou vide) : inutilisable, on garde les blocs
 
@@ -765,7 +768,10 @@ function CustomModels.find(enemyType: string, def, palier: number?)
 	if cached ~= nil then
 		return cached or nil
 	end
-	local source = (if key >= 0 then index[string.lower(`{enemyType}_{key}`)] else nil) or index[string.lower(enemyType)]
+	local function sourceFor(name: string)
+		return (if key >= 0 then index[string.lower(`{name}_{key}`)] else nil) or index[string.lower(name)]
+	end
+	local source = sourceFor(enemyType) or (if MODEL_FALLBACK[enemyType] then sourceFor(MODEL_FALLBACK[enemyType]) else nil)
 	local entry = false
 	if source then
 		local bySize = entries[source]

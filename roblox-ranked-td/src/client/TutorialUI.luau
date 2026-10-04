@@ -12,10 +12,10 @@
 --     gars se débrouille ». La flèche montre une tour de la barre (« PRENDS UN ARCHER ») ; tour en main, seuls des
 --     mots disent « POSE-LA OÙ TU VEUX » (aucun endroit n'est montré) ; puis une tour (« TOUCHE CETTE TOUR ») et son
 --     bouton « AMÉLIORE ». Ensuite, plus de flèche jusqu'à la fin du niveau, même s'il le rejoue. Défaite : la
---     flèche montre « Réessayer ». Victoire : « Niveau 2 ▶ », et le serveur passe à l'étape 1 ;
---   étape 1 : dès que le joueur a de quoi acheter une tour (en général après le niveau 2 : le Totem de givre), la
---     flèche montre « Retour au camp » sur l'écran de fin d'un niveau, puis au camp la Boutique et le bouton
---     « ACHETER ». L'achat termine le tuto (étape 2).
+--     flèche montre « Réessayer ». Victoire : le serveur passe à l'étape 1 ;
+--   étape 1 (EGG) : sa victoire lui a donné l'ŒUF DE CATAPULTE, qui couve dans sa couveuse (10 s). La flèche montre
+--     « Retour au camp » sur l'écran de fin, puis au camp le bouton « ⚔ NIVEAUX », l'onglet Œufs et le bouton
+--     « OUVRIR ! » de sa couveuse. Ouvrir l'œuf (sa deuxième tour : la Catapulte) termine le tuto (étape 2).
 -- Tout vient de ce que le serveur publie (attributs LevelsState et LevelArena du joueur, attributs de sa zone de
 -- combat) et des écrans construits par LevelsUI (leurs objets gardent leurs noms) : ce module ne décide rien du jeu.
 -- Pour les tests (Studio) : l'écran « TutorialPointer » porte les attributs « Target » (nom de l'objet montré,
@@ -52,9 +52,10 @@ TutorialUI.CAPTIONS = {
 	Upgrade = "AMÉLIORE",
 	Next = "CONTINUE",
 	Retry = "RÉESSAIE",
-	ShopOpen = "NOUVELLE TOUR !",
-	ShopTab = "LA BOUTIQUE",
-	Buy = "ACHÈTE-LA",
+	Egg = "TON ŒUF !",
+	EggsTab = "LES ŒUFS",
+	EggOpen = "OUVRE-LE !",
+	EggWait = "IL ÉCLOT BIENTÔT",
 }
 TutorialUI.SKIP_TEXT = "Passer le tuto"
 TutorialUI.SKIP_CONFIRM_TEXT = "Confirmer ?"
@@ -185,7 +186,7 @@ function TutorialUI.start()
 	------------------------------------------------------------------
 	-- Ce que le tuto regarde
 	------------------------------------------------------------------
-	local state = { tutorial = Levels.TUTORIAL.DONE, coins = 0, towers = {} :: { string } }
+	local state = { tutorial = Levels.TUTORIAL.DONE, coins = 0, towers = {} :: { string }, hatchers = {} :: { any }, readAt = 0 }
 	local function readState()
 		local raw = player:GetAttribute("LevelsState")
 		local ok, decoded = pcall(function()
@@ -198,6 +199,8 @@ function TutorialUI.start()
 			tutorial = tonumber(decoded.tutorial) or Levels.TUTORIAL.DONE,
 			coins = tonumber(decoded.coins) or 0,
 			towers = if typeof(decoded.towers) == "table" then decoded.towers else {},
+			hatchers = if typeof(decoded.hatchers) == "table" then decoded.hatchers else {}, -- { { egg, readyIn } }
+			readAt = os.clock(),
 		}
 	end
 
@@ -324,32 +327,34 @@ function TutorialUI.start()
 		return if tower then { world = towerPoint(tower.model), caption = CAPTIONS.Tower } else nil
 	end
 
-	-- La tour la moins chère de la boutique que le joueur peut s'offrir (nil : aucune pour l'instant).
-	local function affordableTower(): string?
-		local wanted, wantedPrice = nil, math.huge
-		for towerType, price in Levels.SHOP do
-			if not table.find(state.towers, towerType) and price <= state.coins and price < wantedPrice then
-				wanted, wantedPrice = towerType, price
+	-- La couveuse où couve l'œuf de catapulte (nil : aucune), et s'il peut s'ouvrir (une seconde après la fin du
+	-- décompte, comme le bouton de LevelsUI : le serveur compte en secondes entières).
+	local function starterHatcher(): (number?, boolean)
+		for index, hatcher in state.hatchers do
+			if typeof(hatcher) == "table" and hatcher.egg == "Starter" then
+				local readyIn = tonumber(hatcher.readyIn) or 0
+				return index, readyIn <= 0 or os.clock() - state.readAt >= readyIn + 1
 			end
 		end
-		return wanted
+		return nil, false
 	end
 
-	-- Étape 1, au camp : de quoi acheter une tour -> la boutique.
-	local function shopTarget()
-		local wanted = affordableTower()
-		if not wanted then
+	-- Étape EGG, au camp : l'œuf de catapulte couve -> le bouton « ⚔ NIVEAUX », l'onglet Œufs, puis « OUVRIR ! » (avant
+	-- la fin du décompte, la flèche montre déjà le bouton : il finit l'œuf tout de suite contre quelques pièces).
+	local function eggTarget()
+		local index, ready = starterHatcher()
+		if not index then
 			return nil
 		end
 		local window = find("Levels", "Window")
 		if not (window and window:IsA("GuiObject")) or not shown(window) then
-			return button(CAPTIONS.ShopOpen, nil, "Levels", "LevelsButton")
+			return button(CAPTIONS.Egg, nil, "Levels", "LevelsButton")
 		end
-		local page = find("Levels", "Window", "Page2")
+		local page = find("Levels", "Window", "Page4")
 		if not (page and page:IsA("GuiObject") and page.Visible) then
-			return button(CAPTIONS.ShopTab, nil, "Levels", "Window", "Tab2")
+			return button(CAPTIONS.EggsTab, nil, "Levels", "Window", "Tab4")
 		end
-		return button(CAPTIONS.Buy, BELOW, "Levels", "Window", "Page2", "Shop_" .. wanted, "Buy")
+		return button(if ready then CAPTIONS.EggOpen else CAPTIONS.EggWait, { "left", "top" }, "Levels", "Window", "Page4", "Hatcher" .. index, "Action")
 	end
 
 	local function resolve()
@@ -357,28 +362,21 @@ function TutorialUI.start()
 			return nil
 		end
 		local arena = arenaFolder()
-		if state.tutorial < Levels.TUTORIAL.SHOP then
+		if state.tutorial < Levels.TUTORIAL.EGG then
 			if arena then
 				return if arena:GetAttribute("Level") == 1 then levelTarget(arena) else nil
 			end
 			return campTarget()
 		end
-		-- Étape 1, sur l'écran de fin d'un niveau : de quoi acheter une tour -> « Retour au camp » (la boutique l'y
-		-- attend) ; sinon, juste après la victoire du niveau 1, la flèche montre encore « Niveau 2 ▶ ».
+		-- Étape EGG, sur l'écran de fin d'un niveau : « Retour au camp » (son œuf de catapulte l'y attend).
 		if arena then
 			local endScreen = find("LevelHud", "EndScreen")
-			if not (endScreen and endScreen:IsA("GuiObject") and endScreen.Visible) then
+			if not (endScreen and endScreen:IsA("GuiObject") and endScreen.Visible) or not starterHatcher() then
 				return nil
 			end
-			if affordableTower() then
-				return button(CAPTIONS.ShopOpen, PANEL_SIDE, "LevelHud", "EndScreen", "Panel", "Camp")
-			end
-			if arena:GetAttribute("Level") == 1 and arena:GetAttribute("State") == "Won" then
-				return button(CAPTIONS.Next, PANEL_SIDE, "LevelHud", "EndScreen", "Panel", "Next")
-			end
-			return nil
+			return button(CAPTIONS.Egg, PANEL_SIDE, "LevelHud", "EndScreen", "Panel", "Camp")
 		end
-		return shopTarget()
+		return eggTarget()
 	end
 
 	------------------------------------------------------------------
@@ -654,7 +652,7 @@ function TutorialUI.start()
 			return
 		end
 		-- Nouveau joueur qui arrive au camp : la fenêtre des niveaux s'ouvre toute seule, une seule fois.
-		if stage < Levels.TUTORIAL.SHOP and not opened and not arenaFolder() and find("Levels", "Window") then
+		if stage < Levels.TUTORIAL.EGG and not opened and not arenaFolder() and find("Levels", "Window") then
 			opened = true
 			LevelsUI.openCamp("Niveaux")
 		end
@@ -663,7 +661,7 @@ function TutorialUI.start()
 		placePointer() -- (tout de suite : sinon elle resterait une image à son ancienne place)
 		setHighlight(if target then target.gui else nil)
 		-- « Passer » : tant que les deux premiers gestes ne sont pas faits, et pendant que la flèche montre quelque chose.
-		skipButton.Visible = (stage < Levels.TUTORIAL.SHOP and not guideDone) or target ~= nil
+		skipButton.Visible = (stage < Levels.TUTORIAL.EGG and not guideDone) or target ~= nil
 	end
 
 	player:GetAttributeChangedSignal("LevelsState"):Connect(function()

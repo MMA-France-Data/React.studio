@@ -38,7 +38,7 @@ Scénarios `scenarios\LevelsServer.luau` puis `scenarios\LevelsClient.luau`. Cap
 
 - le jeu ne contient plus que les niveaux et le camp : sauvegarde (niveaux + réglage du son), 5 remotes, une seule
   colonne « Level » dans la liste des joueurs, place centrale sans le cercle du classé, 6 parcelles avec leur
-  boutique, leur porte des niveaux et 3 socles ;
+  bâtiment des œufs, leur porte des niveaux et 3 socles ;
 - **le camp d'entraînement** (la parcelle du joueur) : l'Archer posé sur le 1er socle, étiquettes et invites,
   tableau du camp, cibles détruites, tour remplacée, **évolutions** ★★ puis ★★★ (anneau, fanions, halo), 2e
   emplacement (`levels_camp_evolue`) ;
@@ -46,17 +46,16 @@ Scénarios `scenarios\LevelsServer.luau` puis `scenarios\LevelsClient.luau`. Cap
   s'en approchent, avec de fausses positions puis avec le vrai joueur ;
 - **six niveaux joués en même temps** : temps du serveur par image (voir `NIVEAUX.md`) ;
 - demandes refusées, le niveau 1 **perdu** par celui qui pose 2 Archers puis attend (pose libre, refus, x2, défaite,
-  petite récompense), puis gagné avec toutes ses tours posées et améliorées (victoire, récompense, XP), « Niveau
-  suivant » dans la même zone, abandon, « Rejouer », boutique à prix fixes, camp (emplacements, absence d'une heure
-  puis d'une semaine), ordre de la barre rapide, flèches enflammées débloquées par l'entraînement ;
+  petite récompense), puis gagné avec ses 5 Archers posés et améliorés (victoire, récompense, XP, **l'œuf de
+  catapulte** dans la 1re couveuse, ouvert 11 s plus tard : la Catapulte), « Niveau suivant » dans la même zone,
+  abandon, « Rejouer », plus de boutique, camp (emplacements, absence d'une heure puis d'une semaine), ordre de la
+  barre rapide, entraînement publié dans un niveau ;
 - **le 2e territoire** : le niveau 11 fermé tant que le niveau 10 n'est pas réussi, la carte du col construite
   (terre rousse, rochers), ses 12 emplacements, une capture en plein combat (`levels_territoire2`), les récompenses
   (280, 600 au mini-boss, 1 200 au boss), le retour à la carte de la vallée ;
-- **les territoires 3 à 10** : les cartes de la forêt (un vrai bois), du glacier (neige), du désert (sable, cactus,
-  aucun arbre), de la nécropole (pierres tombales), de la citadelle (pierre), du volcan (basalte, lave), des marais
-  (boue, bois épais) et du repaire du dragon (lave, arbres calcinés) construites, leurs 12 emplacements, une capture
-  de chacune en plein combat (`levels_territoire3` à `levels_territoire10`), le dragon du dernier niveau (6 000
-  pièces, plus de niveau suivant).
+- **les territoires 3 et 4** : les cartes de la forêt (un vrai bois) et du glacier (neige) construites, leurs 12
+  emplacements, une capture de chacune en plein combat (`levels_territoire3`, `levels_territoire4`), le boss du
+  niveau 40, le dernier ouvert (2 400 pièces, pas de niveau suivant), le niveau 41 refusé (« Bientôt »).
 
 **Côté client** (avec la vraie interface : l'attribut `TestAction` des écrans « Levels » et « LevelHud » lance les
 mêmes fonctions que les boutons, et un appui sur le terrain passe par le vrai chemin : point de l'écran, rayon de la
@@ -65,16 +64,18 @@ caméra, sol) :
 - plus aucun écran de l'ancien jeu, la place vue d'en haut (`levels_place`), pièces de niveau et bouton « SON » à
   côté du bouton « ⚔ NIVEAUX », cibles de paille sur la parcelle, son des flèches, onglet Entraînement et évolutions
   (`levels_camp_parcelle`, `levels_camp_evolutions`) ;
-- fenêtre du camp et ses 4 onglets (`levels_camp_niveaux`, `levels_camp_boutique`, `levels_camp_entrainement`,
-  `levels_camp_tours`), les 100 niveaux en 10 territoires dans une page qui défile (`levels_camp_dernier_territoire`) ;
-- niveau 1 : vue d'en haut qui remplit l'écran, deux tours dans la barre, Archer offert qui tue en moins de 10 s,
+- fenêtre du camp et ses 4 onglets (`levels_camp_niveaux`, `levels_camp_oeufs`, `levels_camp_entrainement`,
+  `levels_camp_tours`), les 100 niveaux en 10 territoires dans une page qui défile, « 🔒 BIENTÔT » après le niveau 40
+  (`levels_camp_dernier_territoire`) ;
+- niveau 1 : vue d'en haut qui remplit l'écran, l'Archer seul dans la barre, Archer offert qui tue en moins de 10 s,
   son du combat, « +6 » doré de l'or gagné, **pose libre** (aucun « + », la tour se pose exactement là où on
   touche, même à côté d'un emplacement conseillé), **bouton « ANNULER » de la tour en main**
   (`levels_annuler`), menu de la tour, amélioration, pose libre, zoom et déplacement de la vue, trois inclinaisons
   de la caméra (`levels_vue_normale`, `levels_vue_70`, `levels_vue_90`), refus sur le chemin, conseil « ne garde pas
   ton or », x2 ;
 - **défaite de celui qui pose 4 Archers puis attend** (`levels_defaite`), « Réessayer », **victoire en posant et en
-  améliorant sans arrêt** (`levels_fin_de_niveau`, `levels_victoire`), « Niveau suivant », abandon en deux appuis,
+  améliorant sans arrêt** (`levels_fin_de_niveau`, `levels_victoire` : l'œuf de catapulte annoncé), « Niveau
+  suivant », abandon en deux appuis,
   retour au camp ;
 - puis **à la taille d'un téléphone** (750 x 332 : le scénario écrit « PHONE:want=750x332;have=... » et `run.ps1`
   redimensionne la fenêtre de Studio jusqu'à ce que l'écran du jeu fasse cette taille) : boutons dans l'écran et
@@ -109,9 +110,10 @@ La place de test contient le marqueur `__AutoTestNewPlayer` : le tuto y démarre
   emplacements conseillés ; puis « TOUCHE CETTE TOUR » et « AMÉLIORE » (`tutorial_tour`, `tutorial_ameliore`) ;
   ensuite **plus aucune flèche pendant 10 s** malgré l'or qui monte (`tutorial_seul`) ; la flèche doit toujours être
   à côté de ce qu'elle montre, dans l'écran, sans recouvrir « Vendre » ; le niveau est ensuite gagné d'un coup ;
-- victoire : « CONTINUE » (`tutorial_victoire`) ; niveau 2 : plus de flèche ; dès que le joueur peut acheter une
-  tour : « NOUVELLE TOUR ! » sur « Retour au camp », l'onglet Boutique, « ACHÈTE-LA » (`tutorial_fin_niveau_boutique`,
-  `tutorial_boutique`) ; l'achat termine le tuto ; les 6 étapes des statistiques des nouveaux joueurs ;
+- victoire : l'œuf de catapulte couve déjà, « TON ŒUF ! » sur « Retour au camp » (`tutorial_victoire`) ; au camp :
+  l'onglet Œufs (`tutorial_onglet_oeufs`), « TON ŒUF ! » sur « ⚔ NIVEAUX » si la fenêtre est fermée, la couveuse
+  (`tutorial_couveuse`), « OUVRE-LE ! » au bout de 10 s (`tutorial_oeuf_pret`) ; la Catapulte sortie termine le tuto
+  (`tutorial_fini`) ; les 6 étapes des statistiques des nouveaux joueurs ;
 - « Passer le tuto » : un appui sur ordinateur, deux sur téléphone (`tutorial_tel_passer`) ;
 - à la taille d'un téléphone : la flèche et ses mots restent dans l'écran (`tutorial_tel_*`).
 
@@ -152,7 +154,8 @@ tour du prochain œuf (le tirage au hasard n'est pas testable autrement).
 - **serveur** : un œuf à chaque victoire (doré au boss, commun en rejouant, rien en perdant, perdu si la réserve est
   pleine), poser un œuf (couveuse vide et œuf en réserve seulement), pas d'ouverture avant son temps, la tour sortie
   (nouvelle : dans la barre, une tour de palier 2 à la place de sa tour de base ; doublon : XP d'entraînement ;
-  attribut `Hatch` ; au hasard : toujours une tour de palier 2), « Finir » avec des pièces, les couveuses achetées
+  attribut `Hatch` ; au hasard, un œuf commun : toujours une tour de palier 1), « Finir » avec des pièces, les
+  couveuses achetées
   (pas de 4e), les couveuses de la parcelle (l'œuf de sa couleur, le temps qui reste, l'œuf prêt qui brille,
   l'invite vers l'onglet Œufs) ;
 - **client** : l'onglet « Œufs » (cartes des œufs et leurs chances, couveuses : `eggs_onglet`), un œuf posé
@@ -176,7 +179,8 @@ noté, ainsi que les textes que le traducteur n'a pas trouvés. À la fin : la l
 
 Ce n'est pas un test. Le scénario `scenarios\PageClient.luau` met en scène de vraies parties, en anglais (un combat
 dans la vallée avec les 8 tours et un colosse, la même partie vue de près sans l'interface, le boss du col, l'écran
-de victoire, le camp avec trois tours évoluées, la boutique, les niveaux) et prend les captures `out\page_<nom>.png`.
+de victoire, le camp avec trois tours évoluées, l'onglet des œufs, les niveaux) et prend les captures
+`out\page_<nom>.png`.
 Puis :
 
 ```bat

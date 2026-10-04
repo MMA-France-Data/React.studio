@@ -28,7 +28,7 @@ local function defaultData()
 	return {
 		-- Bouton « SON » : "All" (musique + effets), "Effects" (effets seuls) ou "Mute" (Sounds.MODES).
 		soundMode = "All",
-		-- NIVEAUX : plus haut niveau réussi, pièces de niveau, tours achetées à la boutique, entraînement du camp
+		-- NIVEAUX : plus haut niveau réussi, pièces de niveau, tours sorties des œufs, entraînement du camp
 		-- (format : Shared/Levels.luau, « Données sauvegardées »).
 		levels = Levels.defaultData(),
 	}

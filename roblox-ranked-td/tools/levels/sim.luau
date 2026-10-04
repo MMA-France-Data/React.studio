@@ -8,7 +8,8 @@
 --                   niveau, 5 s au niveau 1, 3 s au niveau 10) : il doit GAGNER, de peu ;
 --   Lent          = les mêmes tours, un achat toutes les 8 s : il doit PERDRE (sinon on peut attendre) ;
 --   Distrait      = un achat toutes les 15 s : il doit PERDRE tôt ;
---   Sans boutique = seulement les 2 tours de départ, joueur actif : dit à partir de quand la boutique devient nécessaire ;
+--   Sans œuf      = seulement l'Archer et la Catapulte (aucune chance aux œufs), joueur actif : dit à partir de quand
+--                   les tours des œufs deviennent nécessaires ;
 --   Tout entr.6   = toutes les tours, entraînées à fond, joueur actif : la récompense de celui qui a tout débloqué.
 -- (Les joueurs qui posent quelques tours puis attendent : run.ps1 -Lazy.)
 --   luau sim.luau -a "regler=Levels.DEFINITIONS.3.health=20;Levels.DEFINITIONS.3.gap.2=0.45"   (essai de réglages)
@@ -31,8 +32,8 @@ local COLUMNS = {
 	{ name = "Distrait (15 s)", make = function(level)
 		return Bot.profile(level, 15)
 	end },
-	{ name = "Sans boutique", make = function()
-		return { towers = Levels.STARTING_TOWERS, training = 0 }
+	{ name = "Sans œuf", make = function()
+		return { towers = Bot.NO_EGG_TOWERS, training = 0 }
 	end },
 	{ name = "Tout entr.6", make = function()
 		return { towers = Bot.ALL_TOWERS, training = 6 }
@@ -54,7 +55,7 @@ for _, column in COLUMNS do
 end
 print(header)
 local builds = {}
-for level = 1, Levels.COUNT do
+for level = 1, Levels.OPEN_COUNT do
 	local definition = Levels.definition(level)
 	local queue = Levels.buildQueue(level)
 	local gold = definition.gold

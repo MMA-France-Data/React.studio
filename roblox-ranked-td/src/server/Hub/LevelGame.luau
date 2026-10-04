@@ -5,7 +5,8 @@
 -- LevelGame HÉRITE de Combat (Hub/Combat.luau : visée, projectiles, zones, carreau perçant, rayon, contrôles,
 -- fragilité, feu des flèches, paquets réseau PlotSync / PlotShots). Ici, les règles autour du combat :
 --   * le chemin est celui de la carte du niveau (self.layout) ; une carte d'équipe a plusieurs couloirs : chaque
---     monstre suit le sien (enemy.lane, choisi par Levels.buildQueue), jusqu'au même château ;
+--     monstre suit le sien (enemy.lane, choisi par Levels.buildQueue ; celui des gros monstres est tiré au sort à
+--     chaque partie avec self.random), jusqu'au même château ;
 --   * les tours se posent OÙ ON VEUT (Levels.checkPlacement), avec l'OR du niveau, et s'améliorent avec lui ;
 --   * les monstres arrivent en un flot continu, de plus en plus serré et résistant (Levels.buildQueue) ; un
 --     monstre tué donne son or tout de suite ;
@@ -47,6 +48,7 @@ LevelGame.__index = LevelGame
 -- options = { level, unlocked = { [type] = true }, training = { [type] = niveau d'entraînement },
 --             startingTower = vrai pour poser la tour de départ offerte (niveau 1),
 --             onEnd = function(game, won) appelée une seule fois à la fin,
+--             random = Random des tirages (le couloir des gros monstres en équipe ; absent : un nouveau),
 --             team = { { player, unlocked, training } } : les AUTRES joueurs d'une partie en équipe (absent : seul) }
 function LevelGame.new(arena, player, options)
 	local self = setmetatable({}, LevelGame)
@@ -108,11 +110,13 @@ function LevelGame.new(arena, player, options)
 	self.state = "Running" -- "Running" | "Won" | "Lost"
 	self.gold = self.definition.gold
 	self.lives = self.definition.lives
-	self.queue = Levels.buildQueue(options.level, self.teamSize) -- (en équipe : monstres plus résistants)
+	self.random = options.random or Random.new()
+	-- (en équipe : monstres plus résistants, et le couloir de chaque gros monstre tiré au sort)
+	self.queue = Levels.buildQueue(options.level, self.teamSize, if self.teamSize > 1 then self.random else nil)
 	self.queueIndex = 1
 	self.streamSeconds = math.max(1, self.queue[#self.queue].at) -- heure de sortie du dernier monstre
 	self.leaked = 0
-	self.leakedBig = 0 -- dont les gros monstres (colosse, boss : 5 vies ou plus) : l'écran de défaite donne un conseil
+	self.leakedBig = 0 -- dont les gros monstres (colosses, boss : 5 vies ou plus) : l'écran de défaite donne un conseil
 	self.usedTowers = {} -- [type] = true : types de tours posés pendant ce niveau (entraînement gagné à la fin)
 	self.goldEarned = 0
 	self.goldSpent = 0
@@ -125,20 +129,11 @@ function LevelGame.new(arena, player, options)
 		local spot = self.layout.map.spots[1]
 		self:createTower(Levels.STARTING_TOWER, 1, 0, spot)
 	end
-	-- Effets débloqués qui changent l'affichage (PlotRenderer) : ceux de tous les joueurs de la partie. Entraînement
-	-- de chacun (« Training_<n°> ») : le client affiche les vraies stats de chaque tour posée, la sienne ou celle d'un
-	-- autre ; « Training » = celui du premier joueur (tuto).
-	local perks, seen = {}, {}
+	-- Entraînement de chacun (« Training_<n°> ») : le client affiche les vraies stats de chaque tour posée, la sienne ou
+	-- celle d'un autre ; « Training » = celui du premier joueur (tuto).
 	for _, member in self.members do
-		for key in string.gmatch(Levels.perkKeys(member.training), "[^,]+") do
-			if not seen[key] then
-				seen[key] = true
-				table.insert(perks, key)
-			end
-		end
 		self:setAttr("Training_" .. member.key, Levels.encodeTraining(member.training))
 	end
-	self:setAttr("Perks", table.concat(perks, ","))
 	self:setAttr("Training", Levels.encodeTraining(self.training))
 	self:setAttr("TeamSize", self.teamSize)
 	self:syncAttributes()
@@ -446,7 +441,7 @@ function LevelGame:placeTower(towerType: string, localPosition: Vector3, member:
 		return false, "Tour inconnue"
 	end
 	if not buyer.unlocked[towerType] then
-		return false, `{def.displayName} n'est pas encore à toi : achète cette tour dans la boutique`
+		return false, `{def.displayName} n'est pas dans ta barre de tours`
 	end
 	local copies = self:copiesOf(buyer)
 	if (copies[towerType] or 0) >= Levels.maxCopies(towerType) then

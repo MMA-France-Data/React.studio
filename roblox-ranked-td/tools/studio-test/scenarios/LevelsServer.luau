@@ -4,9 +4,10 @@
 --    bâtiments, tableau, évolution d'une tour, 2e emplacement ; qui reçoit les cibles et les tirs de quel camp.
 -- 2) Puis, seul (le client attend) : six combats en même temps (mesure), un niveau PERDU par celui qui pose 2 Archers
 --    puis attend, le même niveau gagné en posant et en améliorant tout, récompenses, « Rejouer », niveau suivant,
---    abandon, boutique à prix fixes, camp d'entraînement (emplacements, absence), ordre de la barre rapide,
---    améliorations débloquées par l'entraînement, le 2e TERRITOIRE (niveaux 11 à 20 : autre carte, autres monstres,
---    plus de pièces). Tout passe par les mêmes demandes que le remote LevelAction (StudioDebug « Levels », « Action »).
+--    abandon, l'œuf de catapulte du niveau 1, plus de boutique, camp d'entraînement (emplacements, absence), ordre
+--    de la barre rapide, le 2e TERRITOIRE (niveaux 11 à 20 : autre carte, autres monstres, plus de pièces), les
+--    niveaux après Levels.OPEN_COUNT fermés (« Bientôt »). Tout passe par les mêmes demandes que le remote
+--    LevelAction (StudioDebug « Levels », « Action »).
 -- 3) Il remet le joueur à zéro et donne la main au client (attribut LevelsTestPhase = "Client" de
 --    ReplicatedStorage) : scenarios/LevelsClient.luau joue avec la vraie interface.
 -- 4) Quand le client a fini (« LEVELS:client=done » dans son journal), il vérifie ce que le serveur a gardé.
@@ -73,9 +74,9 @@ return function(log)
 	------------------------------------------------------------------
 	local start = levels("State")
 	check(
-		start.levels.best == 0 and start.levels.coins == 0 and start.levels.towers.MachineGun == true and start.levels.towers.Bomb == true
-			and #start.levels.slots == 1 and published().best == 0 and table.concat(published().towers, ",") == "MachineGun,Bomb" and start.active == nil,
-		`nouveau joueur : aucun niveau réussi, 0 pièce de niveau, deux tours (l'Archer et la Catapulte), un emplacement de camp (publié : {tostring(player:GetAttribute("LevelsState"))})`
+		start.levels.best == 0 and start.levels.coins == 0 and start.levels.towers.MachineGun == true and start.levels.towers.Bomb == nil
+			and #start.levels.slots == 1 and published().best == 0 and table.concat(published().towers, ",") == "MachineGun" and start.active == nil,
+		`nouveau joueur : aucun niveau réussi, 0 pièce de niveau, une tour (l'Archer), un emplacement de camp (publié : {tostring(player:GetAttribute("LevelsState"))})`
 	)
 	local data = dbg:Invoke(player, "Data")
 	local dataKeys = {}
@@ -120,7 +121,7 @@ return function(log)
 	for _, folder in hub.Plots:GetChildren() do
 		plotCount += 1
 		local spots = folder:FindFirstChild("Spots")
-		if not folder:FindFirstChild("ShopBuilding") or not folder:FindFirstChild("LevelsBuilding") or folder:FindFirstChild("TowerMachine")
+		if not folder:FindFirstChild("EggsBuilding") or folder:FindFirstChild("ShopBuilding") or not folder:FindFirstChild("LevelsBuilding") or folder:FindFirstChild("TowerMachine")
 			or folder:FindFirstChild("BonusMachine") or not spots or #spots:GetChildren() ~= #PlotLayout.SPOTS
 		then
 			table.insert(badPlots, folder.Name)
@@ -137,7 +138,7 @@ return function(log)
 	check(
 		plotCount == PlotLayout.COUNT and #badPlots == 0 and #PlotLayout.SPOTS == 3 and hub:FindFirstChild("PlazaRosette") ~= nil and #oldPlaza == 0
 			and workspace:FindFirstChild("Map") == nil,
-		`map : {plotCount} parcelles avec leur boutique, leur porte des niveaux et 3 socles ; place centrale sans cercle ni tableau du classé (objets en trop : {table.concat(oldPlaza, ", ")} ; parcelles à revoir : {table.concat(badPlots, ", ")})`
+		`map : {plotCount} parcelles avec leur bâtiment des œufs, leur porte des niveaux et 3 socles ; place centrale sans cercle ni tableau du classé (objets en trop : {table.concat(oldPlaza, ", ")} ; parcelles à revoir : {table.concat(badPlots, ", ")})`
 	)
 	local folders, clean = 0, true
 	for slot = 1, Levels.ARENA_SLOTS do
@@ -228,17 +229,17 @@ return function(log)
 			and pad(3).CampPrompt.Enabled == false and padLabel(3).shown == false and label2.shown == true,
 		`étiquette du 2e socle : « {tostring(label2.title)} », « {tostring(label2.sub)} » ; invites « Gérer » et « Ouvrir »`
 	)
-	local shopTitle, shopTab = buildingTitle("ShopBuilding")
+	local eggsTitle, eggsTab = buildingTitle("EggsBuilding")
 	local gateTitle, gateTab = buildingTitle("LevelsBuilding")
 	check(
-		shopTitle == "BOUTIQUE DES TOURS" and shopTab == "Boutique" and gateTitle == "PORTE DES NIVEAUX" and gateTab == "Niveaux",
-		`les deux bâtiments de l'entrée : « {tostring(shopTitle)} » et « {tostring(gateTitle)} »`
+		eggsTitle == "LES ŒUFS" and eggsTab == "Œufs" and gateTitle == "PORTE DES NIVEAUX" and gateTab == "Niveaux",
+		`les deux bâtiments de l'entrée (plus de boutique) : « {tostring(eggsTitle)} » (onglet {tostring(eggsTab)}) et « {tostring(gateTitle)} »`
 	)
 	local boardPanel = plotFolder.Decor.FiefBoard.FiefDisplay.Panel
 	task.wait(0.3)
 	check(
 		boardPanel.Heading.Text == "CAMP D'ENTRAÎNEMENT" and boardPanel.WaveCard.Title.Text == "NIVEAUX RÉUSSIS" and boardPanel.WaveCard.Value.Text == `0 / {Levels.COUNT}`
-			and boardPanel.RecordCard.Value.Text == "2 / 16" and string.find(boardPanel.BattleState.Text, "1 tour", 1, true) ~= nil,
+			and boardPanel.RecordCard.Value.Text == "1 / 16" and string.find(boardPanel.BattleState.Text, "1 tour", 1, true) ~= nil,
 		`tableau de la parcelle : « {boardPanel.Heading.Text} », « {boardPanel.WaveCard.Title.Text} {boardPanel.WaveCard.Value.Text} », tours « {boardPanel.RecordCard.Value.Text} », « {boardPanel.BattleState.Text} »`
 	)
 	-- Les tours s'entraînent pour de vrai : des cibles roulent sur le chemin, l'Archer les détruit.
@@ -248,7 +249,9 @@ return function(log)
 	end
 	camp = campState()
 	check(camp.kills >= 2 and camp.targets >= 5, `l'Archer du camp tire sur les cibles d'entraînement : {camp.kills} détruites, {camp.targets} sur le chemin`)
-	-- Une autre tour dans l'emplacement : elle remplace la première sur le socle.
+	-- Une autre tour dans l'emplacement : elle remplace la première sur le socle (la Catapulte, comme sortie de l'œuf
+	-- du niveau 1 : le test la donne).
+	levels("Set", "towers", { MachineGun = true, Bomb = true })
 	check(
 		action("SlotAssign", 1, "Bomb") == true and campState().towers[1].type == "Bomb" and campTower(1) ~= archerModel and campTower(1):GetAttribute("TowerType") == "Bomb"
 			and string.find(padLabel(1).title, "Catapulte", 1, true) ~= nil,
@@ -287,7 +290,12 @@ return function(log)
 	levels("Set", "xp", {})
 	levels("Set", "coins", 0)
 	levels("Set", "slots", { { tower = "MachineGun", level = 1 } })
-	check(campState().towers[1].stage == 0 and campState().towers[2] == nil and pad(2).Transparency > 0, "camp remis à zéro pour la suite du test (un Archer sans évolution)")
+	levels("Set", "towers", { MachineGun = true })
+	levels("Set", "bar", { "MachineGun" })
+	check(
+		campState().towers[1].stage == 0 and campState().towers[2] == nil and pad(2).Transparency > 0 and table.concat(published().towers, ",") == "MachineGun",
+		"camp remis à zéro pour la suite du test (un Archer sans évolution, l'Archer seul)"
+	)
 
 	------------------------------------------------------------------
 	-- Camps reçus (Hub/PlotInterest.luau) : les cibles et les tirs d'un camp ne vont qu'à son propriétaire (toujours)
@@ -335,9 +343,9 @@ return function(log)
 		for _, spot in {
 			{ "coin vers la parcelle 1", Vector3.new(-PlotLayout.WIDTH / 2, 3, -half) },
 			{ "coin vers la parcelle 3", Vector3.new(PlotLayout.WIDTH / 2, 3, -half) },
-			{ "boutique", Vector3.new(-20, 3, -half - 8) },
+			{ "bâtiment des œufs", Vector3.new(-20, 3, -half - 8) },
 			{ "porte des niveaux", Vector3.new(20, 3, -half - 8) },
-			{ "devant la boutique (12 studs)", Vector3.new(-20, 3, -half - 20) },
+			{ "devant le bâtiment des œufs (12 studs)", Vector3.new(-20, 3, -half - 20) },
 			{ "château", PlotLayout.BASE_POSITION + Vector3.new(0, 3, 0) },
 		} do
 			r = step(at(4, Vector3.new(0, 3, 0)), at(2, spot[2]), nil)
@@ -350,7 +358,7 @@ return function(log)
 				table.insert(wrong, `{spot[1]} : pas la sienne`)
 			end
 		end
-		check(#wrong == 0, `camps reçus : B chez lui (coins de sa parcelle, boutique, porte des niveaux, château) ne reçoit que la sienne ({table.concat(wrong, " ; ")})`)
+		check(#wrong == 0, `camps reçus : B chez lui (coins de sa parcelle, bâtiment des œufs, porte des niveaux, château) ne reçoit que la sienne ({table.concat(wrong, " ; ")})`)
 
 		-- B marche sur la parcelle 1 : il la reçoit (et toujours la sienne).
 		r, leaving = step(at(4, Vector3.new(0, 3, 0)), at(1, Vector3.new(0, 3, 0)), nil)
@@ -479,12 +487,17 @@ return function(log)
 		`niveau 1 : en cours, {tostring(arena:GetAttribute("Gold"))} or, {tostring(arena:GetAttribute("Lives"))} vies, {tostring(arena:GetAttribute("Total"))} monstres, {#towers()} Archer déjà posé`
 	)
 	local frostOk, frostReason = action("Place", "Frost", -1, 0)
-	check(frostOk == false and string.find(tostring(frostReason), "boutique", 1, true) ~= nil, `une tour pas achetée ne se pose pas (« {tostring(frostReason)} »)`)
+	local bombOk = action("Place", "Bomb", -1, 0)
+	check(
+		frostOk == false and bombOk == false and string.find(tostring(frostReason), "barre", 1, true) ~= nil,
+		`une tour qui n'est pas dans sa barre ne se pose pas, ni le Totem ni la Catapulte (« {tostring(frostReason)} »)`
+	)
 	local pathOk, pathReason = action("Place", "MachineGun", -34, 0)
 	check(pathOk == false and pathReason == "Trop près du chemin", "poser sur le chemin est refusé")
 	check(action("Place", "MachineGun", -1, 0) == true and #towers() == 2 and levels("State").active.gold == 40, "pose libre : un 2e Archer à l'endroit choisi, 20 or dépensés")
-	local poorOk, poorReason = action("Place", "Bomb", 21, 0)
-	check(poorOk == false and poorReason == "Pas assez d'or" and #towers() == 2, "40 or : pas assez pour une Catapulte (45), la pose est refusée")
+	levels("Gold", -25)
+	local poorOk, poorReason = action("Place", "MachineGun", 21, 0)
+	check(poorOk == false and poorReason == "Pas assez d'or" and #towers() == 2, "15 or : pas assez pour un 3e Archer (20), la pose est refusée")
 	check(action("Speed", 2) == true and levels("State").active.simSpeed == 2 and action("Speed", 1) == true, "x2 allumé puis éteint (pour tout le monde, sans pass)")
 	-- Retour du propriétaire (02/10/2026) : « si juste 2 Archers gèrent le niveau, je passe mon temps à attendre ».
 	-- 2 Archers, puis plus rien : le flot monte, le niveau est PERDU.
@@ -507,8 +520,8 @@ return function(log)
 	)
 	check(action("Place", "MachineGun", 21, 0) == false, "niveau fini : plus aucune pose")
 
-	-- « Réessayer » : le même niveau, joué comme il faut. Toutes les tours posées et améliorées (l'or est donné par
-	-- le test : ici on vérifie la victoire et ses récompenses, pas la difficulté, réglée dans tools/levels).
+	-- « Réessayer » : le même niveau, joué comme il faut. Ses 5 Archers posés et améliorés (l'or est donné par le test :
+	-- ici on vérifie la victoire et ses récompenses, pas la difficulté, réglée dans tools/levels).
 	check(
 		action("Start", 1) == true and arena:FindFirstChild("Map") == map and arena:GetAttribute("Level") == 1 and arena:GetAttribute("Result") == nil
 			and #towers() == 1 and arena:GetAttribute("Gold") == 60 and arena:GetAttribute("Lives") == 10,
@@ -519,19 +532,16 @@ return function(log)
 	for index = 2, 5 do
 		action("Place", "MachineGun", spots[index].X, spots[index].Z)
 	end
-	for index = 6, 9 do
-		action("Place", "Bomb", spots[index].X, spots[index].Z)
-	end
 	local upgrades = 0
 	for _, model in towers() do
-		for _ = 1, 4 do
+		for _ = 1, 6 do
 			if action("Upgrade", model:GetAttribute("TowerId")) then
 				upgrades += 1
 			end
 		end
 	end
-	check(#towers() == 9 and upgrades == 36, `5 Archers et 4 Catapultes posés, tous améliorés au niveau 5 ({#towers()} tours, {upgrades} améliorations)`)
-	local limitOk, limitReason = action("Place", "MachineGun", spots[10].X, spots[10].Z)
+	check(#towers() == 5 and upgrades == 30, `5 Archers posés, tous améliorés au niveau 7 ({#towers()} tours, {upgrades} améliorations)`)
+	local limitOk, limitReason = action("Place", "MachineGun", spots[6].X, spots[6].Z)
 	check(limitOk == false and string.find(tostring(limitReason), "Maximum 5", 1, true) ~= nil, `6e Archer refusé (« {tostring(limitReason)} »)`)
 	state = levels("Skip", 200)
 	local won = result()
@@ -544,8 +554,26 @@ return function(log)
 	)
 	check(
 		after.best == 1 and after.coins == lost.reward + 80 and after.wins == 1 and near(after.xp.MachineGun, Levels.playXp(false, lostProgress) + 8, 0.5)
-			and near(after.xp.Bomb, 8, 0.5) and player.leaderstats.Level.Value == 1,
-		`sauvegarde : niveau 1 réussi, {after.coins} pièces, {tostring(after.xp.MachineGun)} XP pour l'Archer, {tostring(after.xp.Bomb)} pour la Catapulte ; colonne « Level » de la liste des joueurs : {player.leaderstats.Level.Value}`
+			and player.leaderstats.Level.Value == 1,
+		`sauvegarde : niveau 1 réussi, {after.coins} pièces, {tostring(after.xp.MachineGun)} XP pour l'Archer ; colonne « Level » de la liste des joueurs : {player.leaderstats.Level.Value}`
+	)
+	-- Demande du propriétaire (04/10/2026) : « le niveau 1 te donne un œuf de catapulte qui éclot en 10 s ». Il se pose
+	-- tout seul dans la 1re couveuse, le tuto passe à l'étape de l'œuf.
+	local starterHatcher = after.hatchers[1]
+	check(
+		won.egg == "Starter" and won.eggPlaced == true and starterHatcher ~= nil and starterHatcher.egg == "Starter" and after.tutorial == Levels.TUTORIAL.EGG
+			and (after.eggs.Starter or 0) == 0 and after.towers.Bomb == nil,
+		`niveau 1 gagné la première fois : l'œuf de catapulte couve déjà dans la 1re couveuse (« {tostring(won.egg)} », posé : {tostring(won.eggPlaced)}, tuto à l'étape {tostring(after.tutorial)})`
+	)
+	local hatchOk = action("EggOpen", 1)
+	local waitOk = saved().hatchers[1].egg == "Starter"
+	levels("Clock", 11)
+	local openOk = action("EggOpen", 1)
+	local opened = saved()
+	check(
+		hatchOk == false and waitOk and openOk == true and opened.towers.Bomb == true and opened.hatchers[1].egg == "" and opened.tutorial == Levels.TUTORIAL.DONE
+			and table.concat(published().towers, ",") == "MachineGun,Bomb",
+		"l'œuf de catapulte ne s'ouvre pas avant ses 10 s ; 11 s plus tard il donne la Catapulte (dans la barre), le tuto est fini"
 	)
 
 	-- « Niveau suivant » sans repasser par le camp : la carte reste (pas de clignotement).
@@ -577,27 +605,11 @@ return function(log)
 	action("Quit")
 
 	------------------------------------------------------------------
-	-- Boutique à prix fixes
+	-- Plus de boutique. Demande du propriétaire (04/10/2026) : « ça serait mieux pas de tour en boutique ».
 	------------------------------------------------------------------
 	levels("Set", "coins", 1000)
 	local buyOk = action("Buy", "Frost")
-	after = saved()
-	check(buyOk == true and after.coins == 850 and after.towers.Frost == true and table.concat(published().towers, ",") == "MachineGun,Bomb,Frost", "boutique : Totem de givre acheté 150 pièces, ajouté au bout de la barre")
-	local againOk, againReason = action("Buy", "Frost")
-	local richOk, richReason = action("Buy", "Orbital")
-	check(againOk == false and string.find(tostring(againReason), "déjà", 1, true) ~= nil and richOk == false and string.find(tostring(richReason), "manque", 1, true) ~= nil and saved().coins == 850, `boutique : déjà possédée (« {tostring(againReason)} ») ou trop chère (« {tostring(richReason)} ») : refusé, rien n'est dépensé`)
-	check(action("Buy", "MachineGun") == false and action("Buy", "Bomb") == false and action("Buy", "Dragon") == false and action("Buy", 5) == false and saved().coins == 850, "boutique : les deux tours de départ et les tours inconnues ne sont pas en vente")
-	-- Retour du propriétaire (02/10/2026) : les tours légendaires doivent coûter bien plus cher que les premières,
-	-- et le ralentissement du Totem de givre était « un peu cheaté » (-40 % au lieu de -60 %).
-	levels("Set", "coins", 7999)
-	local oracleOk, oracleReason = action("Buy", "Chain")
-	levels("Set", "coins", 8000)
-	local oracleBought = action("Buy", "Chain")
-	check(
-		oracleOk == false and string.find(tostring(oracleReason), "manque 1 ", 1, true) ~= nil and oracleBought == true and saved().coins == 0
-			and saved().towers.Chain == true and Levels.SHOP.Orbital == 15000,
-		`boutique : l'Oracle (légendaire) coûte 8 000 pièces (« {tostring(oracleReason)} » avec 7 999), le Trébuchet 15 000`
-	)
+	check(buyOk == false and saved().coins == 1000 and saved().towers.Frost == nil and Levels.SHOP == nil, "plus de boutique : la demande « Buy » ne fait rien, aucune pièce dépensée")
 	local frostStats = Levels.towerStats("Frost", 1, 0)
 	check(math.abs(frostStats.slow - 0.4) < 1e-6, `Totem de givre : ralentit de {frostStats.slow * 100} %`)
 	levels("Set", "towers", { MachineGun = true, Bomb = true, Frost = true })
@@ -643,18 +655,18 @@ return function(log)
 	)
 
 	------------------------------------------------------------------
-	-- Barre rapide, améliorations d'entraînement dans un niveau
+	-- Barre rapide, entraînement dans un niveau
 	------------------------------------------------------------------
 	check(action("Bar", { "Frost", "MachineGun" }) == true and table.concat(published().towers, ",") == "Frost,MachineGun,Bomb", "barre rapide : nouvel ordre gardé (Totem, Archer, puis le reste)")
 	check(action("Bar", { "Dragon" }) == false and action("Bar", "Frost") == false and published().towers[1] == "Frost", "barre rapide : liste invalide refusée")
 	levels("Set", "xp", { MachineGun = 60, Frost = 0 })
 	action("Start", 1)
 	check(
-		arena:GetAttribute("Perks") == "MachineGun:Fire" and string.find(tostring(arena:GetAttribute("Training")), "MachineGun=2", 1, true) ~= nil,
-		`Archer à l'entraînement 2 : flèches enflammées débloquées dans le niveau (« {tostring(arena:GetAttribute("Perks"))} »)`
+		arena:GetAttribute("Perks") == nil and string.find(tostring(arena:GetAttribute("Training")), "MachineGun=2", 1, true) ~= nil,
+		`Archer à l'entraînement 2 : son entraînement est publié dans le niveau (« {tostring(arena:GetAttribute("Training"))} » ; plus d'effets à débloquer)`
 	)
 	levels("Gold", 100)
-	check(action("Place", "Frost", -1, 0) == true and levels("State").active.gold == 160 - Levels.placeCost("Frost"), "le Totem acheté à la boutique se pose dans le niveau (40 or)")
+	check(action("Place", "Frost", -1, 0) == true and levels("State").active.gold == 160 - Levels.placeCost("Frost"), "le Totem (sorti d'un œuf) se pose dans le niveau (40 or)")
 	action("Quit")
 
 	------------------------------------------------------------------
@@ -733,11 +745,12 @@ return function(log)
 	end
 
 	------------------------------------------------------------------
-	-- Territoires 3 à 10 (niveaux 21 à 100). Demandes du propriétaire (03/10/2026) : « continue les niveaux jusqu'à 40 »,
-	-- « fais encore 20 », puis « fais les 50 derniers ».
+	-- Territoires 3 et 4 (niveaux 21 à 40). Demandes du propriétaire (03/10/2026) : « continue les niveaux jusqu'à 40 » ;
+	-- puis (04/10/2026) « 16 tours qui te bloquent au niveau 40, comme ça je peux travailler les mises à jour petit à
+	-- petit » : les niveaux 41 à 100 existent (cartes, monstres) mais sont fermés (Levels.OPEN_COUNT, « Bientôt »).
 	------------------------------------------------------------------
 	do
-		levels("Set", "towers", { MachineGun = true, Bomb = true, Frost = true, Tesla = true, Rocket = true, Laser = true, Chain = true })
+		levels("Set", "towers", { MachineGun = true, Bomb = true, Frost = true, Tesla = true, Rocket = true, Laser = true, Chain = true, MagmaCatapult = true })
 		-- Le décor de chaque carte (field = le terrain, c = nombre de pièces du décor par nom).
 		local themeChecks = {
 			Forest = function(field, c)
@@ -746,34 +759,10 @@ return function(log)
 			Glacier = function(field, c)
 				return field.Material == Enum.Material.Snow and field.Color.B > 0.8 -- neige
 			end,
-			Desert = function(field, c)
-				return field.Material == Enum.Material.Sand and (c.Cactus or 0) >= 40 and (c.TreeCrown or 0) == 0 -- sable, cactus, aucun arbre
-			end,
-			Necropolis = function(field, c)
-				return (c.Grave or 0) >= 20 and field.Color.R < 0.45 -- pierres tombales, herbe morte et sombre
-			end,
-			Storm = function(field, c)
-				return field.Material == Enum.Material.Slate and (c.TreeCrown or 0) >= 20 -- plateau de pierre, arbres
-			end,
-			Obsidian = function(field, c)
-				return field.Material == Enum.Material.Basalt and (c.Lava or 0) >= 6 and (c.TreeCrown or 0) == 0 -- basalte, lave
-			end,
-			Goblin = function(field, c)
-				return field.Material == Enum.Material.Mud and (c.TreeCrown or 0) >= 45 -- boue, bois épais
-			end,
-			Dragon = function(field, c)
-				return (c.Lava or 0) >= 6 and (c.TreeCrown or 0) >= 20 and field.Color.R > field.Color.G -- terre brûlée, lave
-			end,
 		}
 		for _, case in {
 			{ level = 21, map = "Forest", name = "forêt", shot = "levels_territoire3" },
 			{ level = 31, map = "Glacier", name = "glacier", shot = "levels_territoire4" },
-			{ level = 41, map = "Desert", name = "désert", shot = "levels_territoire5" },
-			{ level = 51, map = "Necropolis", name = "nécropole", shot = "levels_territoire6" },
-			{ level = 61, map = "Storm", name = "citadelle", shot = "levels_territoire7" },
-			{ level = 71, map = "Obsidian", name = "volcan", shot = "levels_territoire8" },
-			{ level = 81, map = "Goblin", name = "marais", shot = "levels_territoire9" },
-			{ level = 91, map = "Dragon", name = "repaire du dragon", shot = "levels_territoire10" },
 		} do
 			levels("Set", "best", case.level - 1)
 			check(action("Start", case.level) == true, `niveau {case.level} lancé (le territoire d'avant est réussi)`)
@@ -814,19 +803,24 @@ return function(log)
 				`niveau {case.level} gagné : +{tostring(won.reward)} pièces de niveau, niveau suivant {tostring(won.nextLevel)}`
 			)
 		end
-		-- Le dernier niveau : le boss ferme le flot, plus de niveau suivant.
-		levels("Set", "best", Levels.COUNT - 1)
+		-- Le dernier niveau ouvert : le boss ferme le flot, pas de niveau suivant (les suivants arrivent avec les mises à jour).
+		levels("Set", "best", Levels.OPEN_COUNT - 1)
 		local coinsBefore = saved().coins
-		action("Start", Levels.COUNT)
-		local lastQueue = Levels.buildQueue(Levels.COUNT)
+		action("Start", Levels.OPEN_COUNT)
+		local lastQueue = Levels.buildQueue(Levels.OPEN_COUNT)
 		levels("Finish", true)
 		local last = result()
 		check(
-			last.won == true and last.reward == Levels.firstReward(Levels.COUNT) and last.nextLevel == nil and saved().best == Levels.COUNT
-				and saved().coins == coinsBefore + last.reward and player.leaderstats.Level.Value == Levels.COUNT and lastQueue[#lastQueue].enemy == "Boss",
-			`boss du niveau {Levels.COUNT} : +{tostring(last.reward)} pièces, plus de niveau suivant, colonne « Level » : {player.leaderstats.Level.Value}`
+			last.won == true and last.reward == Levels.firstReward(Levels.OPEN_COUNT) and last.nextLevel == nil and saved().best == Levels.OPEN_COUNT
+				and saved().coins == coinsBefore + last.reward and player.leaderstats.Level.Value == Levels.OPEN_COUNT and lastQueue[#lastQueue].enemy == "Boss",
+			`boss du niveau {Levels.OPEN_COUNT} (le dernier ouvert) : +{tostring(last.reward)} pièces, pas de niveau suivant, colonne « Level » : {player.leaderstats.Level.Value}`
 		)
 		action("Quit")
+		local soonOk, soonReason = action("Start", Levels.OPEN_COUNT + 1)
+		check(
+			soonOk == false and string.find(tostring(soonReason), "Bientôt", 1, true) ~= nil and levels("State").active == nil,
+			`le niveau {Levels.OPEN_COUNT + 1} est fermé même après le niveau {Levels.OPEN_COUNT} (« {tostring(soonReason)} »)`
+		)
 	end
 
 	------------------------------------------------------------------
@@ -838,16 +832,17 @@ return function(log)
 		wins = 0,
 		losses = 0,
 		xp = {},
-		towers = { MachineGun = true, Bomb = true },
+		towers = { MachineGun = true },
 		slots = { { tower = "MachineGun", level = 1 } },
-		bar = { "MachineGun", "Bomb" },
+		bar = { "MachineGun" },
+		tutorial = Levels.TUTORIAL.DONE, -- (le tuto a son propre test : scenarios/TutorialClient.luau)
 		eggs = {}, -- (les niveaux gagnés plus haut ont donné des œufs : un nouveau joueur n'en a pas)
 		hatchers = { { egg = "", readyAt = 0 } },
 	} do
 		levels("Set", key, value)
 	end
 	local reset = saved()
-	check(reset.best == 0 and reset.coins == 0 and reset.losses == 0 and reset.towers.Frost == nil and reset.towers.Bomb == true and #reset.slots == 1, "joueur remis à zéro pour le test de l'interface")
+	check(reset.best == 0 and reset.coins == 0 and reset.losses == 0 and reset.towers.Frost == nil and reset.towers.Bomb == nil and #reset.slots == 1, "joueur remis à zéro pour le test de l'interface (l'Archer seul)")
 	local clientDone = false
 	local relay = ReplicatedStorage:WaitForChild("__AutoTestLog", 10)
 	if relay then
@@ -868,7 +863,7 @@ return function(log)
 	local final = levels("State")
 	check(
 		clientDone and final.levels.best >= 1 and final.levels.wins >= 1 and final.levels.losses >= 1 and final.levels.coins >= 80
-			and (final.levels.xp.MachineGun or 0) >= 8 and (final.levels.xp.Bomb or 0) >= 8,
-		`après le test de l'interface : niveau {final.levels.best} réussi, {final.levels.wins} victoire(s), {final.levels.losses} défaite(s), {final.levels.coins} pièces de niveau, {tostring(final.levels.xp.MachineGun)} XP pour l'Archer, {tostring(final.levels.xp.Bomb)} pour la Catapulte`
+			and (final.levels.xp.MachineGun or 0) >= 8 and final.levels.hatchers[1].egg == "Starter",
+		`après le test de l'interface : niveau {final.levels.best} réussi, {final.levels.wins} victoire(s), {final.levels.losses} défaite(s), {final.levels.coins} pièces de niveau, {tostring(final.levels.xp.MachineGun)} XP pour l'Archer, l'œuf de catapulte dans la couveuse (« {tostring(final.levels.hatchers[1].egg)} »)`
 	)
 end

@@ -8,11 +8,15 @@
 --   * dans un niveau : vue d'en haut, une base d'OR fixe au départ, l'or tombe tout seul à chaque monstre tué, on
 --     pose ses tours OÙ ON VEUT et on les améliore sans arrêt (il le faut : sinon on perd), 10 vies ;
 --   * à chaque niveau on repart avec seulement ses tours DÉBLOQUÉES (l'or et les tours posées ne se gardent pas) ;
---   * gagner un niveau rapporte des PIÈCES DE NIVEAU (plus la première fois, bien plus sur les boss ; on peut rejouer
---     un niveau réussi pour en regagner un peu) ; elles servent à acheter les tours suivantes dans une BOUTIQUE À
---     PRIX FIXES (aucun hasard) et à améliorer le CAMP D'ENTRAÎNEMENT ;
+--   * gagner un niveau rapporte un ŒUF (une tour au hasard, à faire éclore dans une couveuse : « LES ŒUFS ») et des
+--     PIÈCES DE NIVEAU (plus la première fois, bien plus sur les boss ; on peut rejouer un niveau réussi pour en
+--     regagner un peu). Plus de boutique (décision du propriétaire, 04/10/2026) : toutes les tours sortent des œufs,
+--     sauf l'Archer, donné au départ (le niveau 1 donne l'œuf de la Catapulte). Les pièces servent au CAMP
+--     D'ENTRAÎNEMENT, aux couveuses et à finir un œuf plus vite ;
 --   * le camp d'entraînement : les tours qu'on y met s'entraînent, même quand le joueur est absent, et en jouant ;
---     l'entraînement débloque des améliorations par paliers (ex. les flèches enflammées de l'Archer).
+--     l'entraînement ne donne que des dégâts, avec une étoile aux niveaux 2, 4 et 6 (« ÉVOLUTIONS ») ;
+--   * pour l'instant, le jeu s'arrête au niveau OPEN_COUNT (40) : les niveaux suivants existent, ils seront ouverts
+--     par les mises à jour du propriétaire (« comme ça je peux travailler les mises à jour petit à petit »).
 -- Deux monnaies bien séparées : l'OR ne vit que le temps d'un niveau ; les PIÈCES DE NIVEAU se gardent.
 --
 -- Ce module ne contient que des règles et des chiffres (aucun objet Roblox en dehors de Vector3 / CFrame) : le
@@ -24,7 +28,16 @@ local IdleTowers = require(script.Parent.IdleTowers)
 
 local Levels = {}
 
-Levels.COUNT = 100 -- niveaux jouables : 10 territoires de 10 niveaux (voir « Territoires »)
+Levels.COUNT = 100 -- niveaux du jeu : 10 territoires de 10 niveaux (voir « Territoires »)
+-- Niveaux OUVERTS pour l'instant (décision du propriétaire, 04/10/2026 : « 16 tours qui te bloquent au niveau 40,
+-- comme ça je peux travailler les mises à jour petit à petit »). Les niveaux suivants s'affichent « Bientôt » et ne
+-- se lancent pas. Pour en ouvrir d'autres : ce chiffre (puis régler leur difficulté : tools/levels, run.ps1 -Tune).
+Levels.OPEN_COUNT = 40
+
+-- Vrai si ce niveau existe et peut se jouer (pas encore « Bientôt »).
+function Levels.isOpen(level: any): boolean
+	return typeof(level) == "number" and level >= 1 and level <= Levels.OPEN_COUNT and level % 1 == 0
+end
 Levels.LIVES = 10
 
 ----------------------------------------------------------------------
@@ -555,15 +568,16 @@ Levels.ENEMY = {
 	Fast = { health = 0.6, gold = 6, leak = 1 },
 	Swarm = { health = 0.35, gold = 2, leak = 1 },
 	Tank = { health = 4.5, gold = 18, leak = 2 },
-	Giant = { health = 30, gold = 120, leak = 5 }, -- mini-boss (chevalier colossal)
+	Giant = { health = 30, gold = 120, leak = 5 }, -- chevalier colossal
+	Colossus = { health = 75, gold = 300, leak = 10 }, -- colosse géant (mini-boss des niveaux 15, 25, 35) : s'il passe, c'est perdu
 	Boss = { health = 60, gold = 300, leak = 10 }, -- boss : s'il passe, c'est perdu
 }
 -- TAILLE AFFICHÉE des monstres dans un niveau (demande du propriétaire, 02/10/2026 : « j'aurais agrandi aussi les
 -- monstres pour bien les voir ») : la carte est vue de haut et de loin, surtout sur téléphone. Multiplie la taille du
 -- modèle, de sa barre de vie et de ses effets (client/PlotRenderer.luau). AFFICHAGE SEULEMENT : le combat ne connaît
 -- que la place du monstre sur le chemin, la difficulté ne change pas. 1 = sa taille de base (Enemies.luau).
--- Les gros (colosse, boss) grossissent moins : ils déborderaient trop du chemin (6 studs de large).
-Levels.ENEMY_SCALE = { Normal = 1.8, Fast = 1.8, Swarm = 2, Tank = 1.6, Giant = 1.4, Boss = 1.4 }
+-- Les gros (colosse, colosse géant, boss) grossissent moins : ils déborderaient trop du chemin (6 studs de large).
+Levels.ENEMY_SCALE = { Normal = 1.8, Fast = 1.8, Swarm = 2, Tank = 1.6, Giant = 1.4, Colossus = 1.35, Boss = 1.4 }
 
 ----------------------------------------------------------------------
 -- LE FLOT. Retour du propriétaire après son premier essai (02/10/2026) : « beaucoup trop facile, et ils sortent
@@ -588,8 +602,10 @@ Levels.ENEMY_SCALE = { Normal = 1.8, Fast = 1.8, Swarm = 2, Tank = 1.6, Giant = 
 -- fantassins. Chaque type n'entre qu'à partir d'une avancée du niveau (from = { Fast = 0.2 } : après 20 %).
 -- specials = monstres à part : { type, avancée du niveau où il sort (1 = tout à la fin, il ferme le flot), part de
 -- ses PV (1 si absente : il ne suit pas la montée ; plus petite quand il sort tôt, face à des tours encore
--- faibles) } : mini-boss du niveau 5, colosses des niveaux 8 et 10, boss du niveau 10.
--- Rien n'est tiré au hasard : le même niveau donne toujours exactement le même flot.
+-- faibles) } : mini-boss du niveau 5, colosses des niveaux 8 et 10, boss du niveau 10, colosse géant des niveaux
+-- 15, 25 et 35.
+-- Rien n'est tiré au hasard : le même niveau donne toujours exactement le même flot. Seule exception, en équipe :
+-- le couloir de chaque gros monstre (colosse, colosse géant, boss) est tiré au sort à chaque partie (Levels.buildQueue).
 ----------------------------------------------------------------------
 Levels.STREAM = {
 	FAST_EVERY = 4,
@@ -607,73 +623,75 @@ Levels.STREAM = {
 -- C'est LE réglage de la difficulté d'un niveau, trouvé avec les joueurs simulés (tools/levels, run.ps1 -Tune, puis
 -- 5 % de marge) : avec les tours attendues à ce niveau, celui qui achète au rythme demandé (un achat toutes les 5 s
 -- au niveau 1, toutes les 3,5 s à partir du niveau 6) gagne ; celui qui n'achète que toutes les 8 s perd ; celui qui
--- pose 2 Archers puis attend perd avant 30 % du niveau (tests.luau le vérifie pour les 10 niveaux). Trop dur ou
+-- pose 2 Archers puis attend perd avant 30 % du niveau (tests.luau le vérifie pour les niveaux ouverts). Trop dur ou
 -- trop facile pour de vrais joueurs : baisser ou monter ce chiffre, rien d'autre.
 -- Les niveaux à colosse (5, 8) et à boss (10) ont un flot un peu moins résistant : le gros monstre fait le reste.
 -- NIVEAUX 11 À 20 (2e territoire, carte « Pass ») : plus d'or au départ, des niveaux un peu plus longs, tous les
 -- types de monstres dès le début, et des COLOSSES dans presque tous les niveaux (un, puis deux, puis trois). Niveau
--- 15 : deux colosses ensemble. Niveau 20 : deux colosses, puis le boss, qui ferme le flot comme au niveau 10. (Sorti
--- PENDANT le flot, il se faisait doubler par les monstres rapides : les tours qui visent « le plus avancé » ne le
--- touchaient plus, et le joueur simulé très actif perdait après avoir tout éliminé sauf lui.) Réglés pour un joueur
--- qui a acheté la Baliste (les 10 premiers niveaux la paient), puis le Sorcier à partir du niveau 18 (Bot.EXPECTED).
+-- 15 : le COLOSSE GÉANT (mini-boss : un seul monstre, bien plus résistant). Niveau 20 : deux colosses, puis le boss,
+-- qui ferme le flot comme au niveau 10. (Sorti PENDANT le flot, il se faisait doubler par les monstres rapides : les
+-- tours qui visent « le plus avancé » ne le touchaient plus, et le joueur simulé très actif perdait après avoir tout
+-- éliminé sauf lui.) Réglés pour le joueur qui a les tours des premiers œufs (le Totem et le Mage), puis une tour
+-- de PALIER 2 à partir du niveau 16 : le boss du niveau 20 la demande vraiment (Bot.EXPECTED).
 -- NIVEAUX 21 À 40 (3e et 4e territoires, cartes « Forest » et « Glacier ») : même principe, plus de colosses
--- (trois, puis quatre et cinq), trois colosses ensemble au niveau 25, deux paires au niveau 35, un boss qui ferme
--- le flot aux niveaux 30 et 40. Réglés pour le joueur qui a la Baliste et le Sorcier, puis l'Oracle à partir du
--- niveau 31 (les 30 premiers niveaux le paient), avec l'entraînement que ces parties donnent (Bot.EXPECTED). Les
--- niveaux à boss sont un peu plus courts : le boss doit encore traverser la carte (200 s au plus en tout).
+-- (trois, puis quatre), le colosse géant au niveau 25, deux colosses géants au niveau 35, un boss qui ferme le flot
+-- aux niveaux 30 et 40. Réglés pour le joueur qui a deux, puis trois tours de palier 2, avec l'entraînement que
+-- ces parties donnent (Bot.EXPECTED). Les niveaux à boss sont un peu plus courts : le boss doit encore traverser la
+-- carte (200 s au plus en tout).
+-- NIVEAUX 41 À 100 : FERMÉS pour l'instant (Levels.OPEN_COUNT) ; leurs chiffres datent de la boutique (réglés pour
+-- les huit tours de palier 1) : à régler de nouveau avant de les ouvrir. Ce qu'ils contiennent :
 -- NIVEAUX 41 À 60 (5e et 6e territoires, cartes « Desert » et « Necropolis ») : quatre ou cinq colosses par niveau,
 -- quatre à la file au niveau 45, un trio puis une paire au niveau 55, un boss qui ferme le flot aux niveaux 50 et
--- 60. Réglés pour le joueur qui a les sept tours, puis aussi le Trébuchet à partir du niveau 46 (les 45 premiers
--- niveaux le paient). Leurs chemins sont plus courts (252 studs) : les monstres sortent un peu moins serrés au
+-- 60. Leurs chemins sont plus courts (252 studs) : les monstres sortent un peu moins serrés au
 -- début (1 s), pour laisser le temps de poser ses premières tours.
 -- NIVEAUX 61 À 100 (territoires 7 à 10, cartes « Storm », « Obsidian », « Goblin », « Dragon ») : cinq colosses par
 -- niveau ; mini-boss : cinq colosses à la file (65), un gros colosse parmi quatre autres (75), deux paires et un géant
 -- (85), un groupe autour d'un gros (95) ; un boss ferme le flot aux niveaux 70, 80, 90 et 100 (le dragon, plus
--- résistant). Le joueur a toutes ses tours ; seul leur entraînement monte encore (Bot.EXPECTED).
+-- résistant).
 Levels.DEFINITIONS = {
-	{ gold = 60, seconds = 95, health = 72, gap = { 1.1, 0.34 }, from = { Fast = 0.25 } },
+	{ gold = 60, seconds = 95, health = 58, gap = { 1.1, 0.34 }, from = { Fast = 0.25 } },
 	{ gold = 65, seconds = 105, health = 88, gap = { 1.1, 0.33 }, from = { Fast = 0.15, Swarm = 0.45 } },
-	{ gold = 70, seconds = 115, health = 86, gap = { 1.05, 0.32 }, from = { Fast = 0.15, Swarm = 0.3, Tank = 0.6 } },
-	{ gold = 75, seconds = 120, health = 88, gap = { 1.05, 0.31 }, from = { Fast = 0.1, Swarm = 0.25, Tank = 0.45 } },
-	{ gold = 80, seconds = 130, health = 77, gap = { 1, 0.3 }, from = { Fast = 0.1, Swarm = 0.25, Tank = 0.4 }, specials = { { "Giant", 0.75 } } },
-	{ gold = 85, seconds = 130, health = 115, gap = { 1, 0.3 }, from = { Fast = 0.1, Swarm = 0.2, Tank = 0.35 } },
-	{ gold = 90, seconds = 135, health = 122, gap = { 1, 0.29 }, from = { Fast = 0.1, Swarm = 0.2, Tank = 0.3 } },
-	{ gold = 95, seconds = 140, health = 145, gap = { 0.95, 0.29 }, from = { Fast = 0.1, Swarm = 0.2, Tank = 0.3 }, specials = { { "Giant", 0.6, 0.8 } } },
-	{ gold = 100, seconds = 145, health = 158, gap = { 0.95, 0.28 }, from = { Fast = 0.1, Swarm = 0.2, Tank = 0.25 } },
-	{ gold = 110, seconds = 155, health = 126, gap = { 0.95, 0.28 }, from = { Fast = 0.1, Swarm = 0.2, Tank = 0.25 }, specials = { { "Giant", 0.5, 0.7 }, { "Boss", 1 } } },
+	{ gold = 70, seconds = 115, health = 66, gap = { 1.05, 0.32 }, from = { Fast = 0.15, Swarm = 0.3, Tank = 0.6 } },
+	{ gold = 75, seconds = 120, health = 72, gap = { 1.05, 0.31 }, from = { Fast = 0.1, Swarm = 0.25, Tank = 0.45 } },
+	{ gold = 80, seconds = 130, health = 62, gap = { 1, 0.3 }, from = { Fast = 0.1, Swarm = 0.25, Tank = 0.4 }, specials = { { "Giant", 0.75 } } },
+	{ gold = 85, seconds = 130, health = 86, gap = { 1, 0.3 }, from = { Fast = 0.1, Swarm = 0.2, Tank = 0.35 } },
+	{ gold = 90, seconds = 135, health = 86, gap = { 1, 0.29 }, from = { Fast = 0.1, Swarm = 0.2, Tank = 0.3 } },
+	{ gold = 95, seconds = 140, health = 80, gap = { 0.95, 0.29 }, from = { Fast = 0.1, Swarm = 0.2, Tank = 0.3 }, specials = { { "Giant", 0.6, 0.8 } } },
+	{ gold = 100, seconds = 145, health = 99, gap = { 0.95, 0.28 }, from = { Fast = 0.1, Swarm = 0.2, Tank = 0.25 } },
+	{ gold = 110, seconds = 155, health = 86, gap = { 0.95, 0.28 }, from = { Fast = 0.1, Swarm = 0.2, Tank = 0.25 }, specials = { { "Giant", 0.5, 0.7 }, { "Boss", 1 } } },
 	-- 2e territoire
-	{ gold = 115, seconds = 130, health = 190, gap = { 0.95, 0.3 }, from = { Fast = 0.1, Swarm = 0.2, Tank = 0.25 } },
-	{ gold = 120, seconds = 135, health = 178, gap = { 0.95, 0.3 }, from = { Fast = 0.1, Swarm = 0.2, Tank = 0.25 }, specials = { { "Giant", 0.75, 0.8 } } },
-	{ gold = 125, seconds = 135, health = 178, gap = { 0.95, 0.3 }, from = { Fast = 0.1, Swarm = 0.15, Tank = 0.25 }, specials = { { "Giant", 0.6, 0.8 } } },
-	{ gold = 130, seconds = 140, health = 178, gap = { 0.95, 0.3 }, from = { Fast = 0.1, Swarm = 0.15, Tank = 0.2 }, specials = { { "Giant", 0.45, 0.7 }, { "Giant", 0.85 } } },
-	{ gold = 135, seconds = 145, health = 169, gap = { 0.95, 0.3 }, from = { Fast = 0.1, Swarm = 0.15, Tank = 0.2 }, specials = { { "Giant", 0.7 }, { "Giant", 0.73 } } },
+	{ gold = 115, seconds = 130, health = 158, gap = { 0.95, 0.3 }, from = { Fast = 0.1, Swarm = 0.2, Tank = 0.25 } },
+	{ gold = 120, seconds = 135, health = 150, gap = { 0.95, 0.3 }, from = { Fast = 0.1, Swarm = 0.2, Tank = 0.25 }, specials = { { "Giant", 0.75, 0.8 } } },
+	{ gold = 125, seconds = 135, health = 145, gap = { 0.95, 0.3 }, from = { Fast = 0.1, Swarm = 0.15, Tank = 0.25 }, specials = { { "Giant", 0.6, 0.8 } } },
+	{ gold = 130, seconds = 140, health = 150, gap = { 0.95, 0.3 }, from = { Fast = 0.1, Swarm = 0.15, Tank = 0.2 }, specials = { { "Giant", 0.45, 0.7 }, { "Giant", 0.85 } } },
+	{ gold = 135, seconds = 145, health = 120, gap = { 0.95, 0.3 }, from = { Fast = 0.1, Swarm = 0.15, Tank = 0.2 }, specials = { { "Colossus", 0.71, 0.6 } } },
 	{ gold = 140, seconds = 145, health = 190, gap = { 0.9, 0.3 }, from = { Fast = 0.05, Swarm = 0.15, Tank = 0.2 }, specials = { { "Giant", 0.4, 0.7 }, { "Giant", 0.8 } } },
 	{ gold = 145, seconds = 150, health = 178, gap = { 0.9, 0.3 }, from = { Fast = 0.05, Swarm = 0.1, Tank = 0.2 }, specials = { { "Giant", 0.35, 0.7 }, { "Giant", 0.6, 0.85 }, { "Giant", 0.85 } } },
-	{ gold = 150, seconds = 150, health = 207, gap = { 0.9, 0.3 }, from = { Fast = 0.05, Swarm = 0.1, Tank = 0.15 }, specials = { { "Giant", 0.3, 0.7 }, { "Giant", 0.55, 0.85 }, { "Giant", 0.8 } } },
-	{ gold = 155, seconds = 155, health = 207, gap = { 0.9, 0.3 }, from = { Fast = 0.05, Swarm = 0.1, Tank = 0.15 }, specials = { { "Giant", 0.3, 0.8 }, { "Giant", 0.55 }, { "Giant", 0.8, 1.2 } } },
-	{ gold = 160, seconds = 145, health = 207, gap = { 0.9, 0.3 }, from = { Fast = 0.05, Swarm = 0.1, Tank = 0.15 }, specials = { { "Giant", 0.35, 0.7 }, { "Giant", 0.6, 0.9 }, { "Boss", 1 } } },
+	{ gold = 150, seconds = 150, health = 178, gap = { 0.9, 0.3 }, from = { Fast = 0.05, Swarm = 0.1, Tank = 0.15 }, specials = { { "Giant", 0.3, 0.7 }, { "Giant", 0.55, 0.85 }, { "Giant", 0.8 } } },
+	{ gold = 155, seconds = 155, health = 169, gap = { 0.9, 0.3 }, from = { Fast = 0.05, Swarm = 0.1, Tank = 0.15 }, specials = { { "Giant", 0.3, 0.8 }, { "Giant", 0.55 }, { "Giant", 0.8, 1.2 } } },
+	{ gold = 160, seconds = 145, health = 125, gap = { 0.9, 0.3 }, from = { Fast = 0.05, Swarm = 0.1, Tank = 0.15 }, specials = { { "Giant", 0.35, 0.7 }, { "Giant", 0.6, 0.9 }, { "Boss", 1 } } },
 	-- 3e territoire
-	{ gold = 165, seconds = 135, health = 207, gap = { 0.9, 0.3 }, from = { Fast = 0.05, Swarm = 0.1, Tank = 0.15 }, specials = { { "Giant", 0.6, 0.8 } } },
+	{ gold = 165, seconds = 135, health = 236, gap = { 0.9, 0.3 }, from = { Fast = 0.05, Swarm = 0.1, Tank = 0.15 }, specials = { { "Giant", 0.6, 0.8 } } },
 	{ gold = 170, seconds = 135, health = 194, gap = { 0.9, 0.3 }, from = { Fast = 0.05, Swarm = 0.1, Tank = 0.15 }, specials = { { "Giant", 0.4, 0.7 }, { "Giant", 0.8 } } },
 	{ gold = 175, seconds = 140, health = 207, gap = { 0.9, 0.3 }, from = { Fast = 0.05, Swarm = 0.1, Tank = 0.15 }, specials = { { "Giant", 0.35, 0.7 }, { "Giant", 0.7, 0.9 } } },
-	{ gold = 180, seconds = 140, health = 190, gap = { 0.9, 0.3 }, from = { Fast = 0.05, Swarm = 0.1, Tank = 0.15 }, specials = { { "Giant", 0.3, 0.7 }, { "Giant", 0.55, 0.85 }, { "Giant", 0.85 } } },
-	{ gold = 185, seconds = 145, health = 178, gap = { 0.9, 0.3 }, from = { Fast = 0.05, Swarm = 0.1, Tank = 0.15 }, specials = { { "Giant", 0.7 }, { "Giant", 0.72 }, { "Giant", 0.74 } } },
-	{ gold = 190, seconds = 145, health = 190, gap = { 0.9, 0.3 }, from = { Fast = 0.05, Swarm = 0.1, Tank = 0.15 }, specials = { { "Giant", 0.3, 0.7 }, { "Giant", 0.55, 0.85 }, { "Giant", 0.8 } } },
-	{ gold = 195, seconds = 145, health = 194, gap = { 0.9, 0.3 }, from = { Fast = 0.05, Swarm = 0.1, Tank = 0.15 }, specials = { { "Giant", 0.25, 0.7 }, { "Giant", 0.5, 0.85 }, { "Giant", 0.7 }, { "Giant", 0.9, 1.1 } } },
-	{ gold = 200, seconds = 150, health = 194, gap = { 0.9, 0.3 }, from = { Fast = 0.05, Swarm = 0.1, Tank = 0.15 }, specials = { { "Giant", 0.25, 0.7 }, { "Giant", 0.45, 0.85 }, { "Giant", 0.65 }, { "Giant", 0.85, 1.1 } } },
-	{ gold = 205, seconds = 150, health = 194, gap = { 0.9, 0.3 }, from = { Fast = 0.05, Swarm = 0.1, Tank = 0.15 }, specials = { { "Giant", 0.25, 0.75 }, { "Giant", 0.45, 0.9 }, { "Giant", 0.65 }, { "Giant", 0.85, 1.2 } } },
-	{ gold = 210, seconds = 140, health = 194, gap = { 0.9, 0.3 }, from = { Fast = 0.05, Swarm = 0.1, Tank = 0.15 }, specials = { { "Giant", 0.3, 0.7 }, { "Giant", 0.55, 0.9 }, { "Giant", 0.8 }, { "Boss", 1, 1.1 } } },
+	{ gold = 180, seconds = 140, health = 207, gap = { 0.9, 0.3 }, from = { Fast = 0.05, Swarm = 0.1, Tank = 0.15 }, specials = { { "Giant", 0.3, 0.7 }, { "Giant", 0.55, 0.85 }, { "Giant", 0.85 } } },
+	{ gold = 185, seconds = 145, health = 232, gap = { 0.9, 0.3 }, from = { Fast = 0.05, Swarm = 0.1, Tank = 0.15 }, specials = { { "Colossus", 0.72, 0.5 } } },
+	{ gold = 190, seconds = 145, health = 219, gap = { 0.9, 0.3 }, from = { Fast = 0.05, Swarm = 0.1, Tank = 0.15 }, specials = { { "Giant", 0.3, 0.7 }, { "Giant", 0.55, 0.85 }, { "Giant", 0.8 } } },
+	{ gold = 195, seconds = 145, health = 207, gap = { 0.9, 0.3 }, from = { Fast = 0.05, Swarm = 0.1, Tank = 0.15 }, specials = { { "Giant", 0.25, 0.7 }, { "Giant", 0.5, 0.85 }, { "Giant", 0.7 }, { "Giant", 0.9, 1.1 } } },
+	{ gold = 200, seconds = 150, health = 219, gap = { 0.9, 0.3 }, from = { Fast = 0.05, Swarm = 0.1, Tank = 0.15 }, specials = { { "Giant", 0.25, 0.7 }, { "Giant", 0.45, 0.85 }, { "Giant", 0.65 }, { "Giant", 0.85, 1.1 } } },
+	{ gold = 205, seconds = 150, health = 219, gap = { 0.9, 0.3 }, from = { Fast = 0.05, Swarm = 0.1, Tank = 0.15 }, specials = { { "Giant", 0.25, 0.75 }, { "Giant", 0.45, 0.9 }, { "Giant", 0.65 }, { "Giant", 0.85, 1.2 } } },
+	{ gold = 210, seconds = 140, health = 207, gap = { 0.9, 0.3 }, from = { Fast = 0.05, Swarm = 0.1, Tank = 0.15 }, specials = { { "Giant", 0.3, 0.7 }, { "Giant", 0.55, 0.9 }, { "Giant", 0.8 }, { "Boss", 1, 1.1 } } },
 	-- 4e territoire
-	{ gold = 215, seconds = 140, health = 239, gap = { 0.85, 0.28 }, from = { Fast = 0.05, Swarm = 0.08, Tank = 0.12 }, specials = { { "Giant", 0.4, 0.7 }, { "Giant", 0.75, 0.9 } } },
-	{ gold = 220, seconds = 140, health = 247, gap = { 0.85, 0.28 }, from = { Fast = 0.05, Swarm = 0.08, Tank = 0.12 }, specials = { { "Giant", 0.3, 0.7 }, { "Giant", 0.55, 0.85 }, { "Giant", 0.85 } } },
-	{ gold = 225, seconds = 145, health = 247, gap = { 0.85, 0.28 }, from = { Fast = 0.05, Swarm = 0.08, Tank = 0.12 }, specials = { { "Giant", 0.3, 0.7 }, { "Giant", 0.5, 0.85 }, { "Giant", 0.8, 1.1 } } },
-	{ gold = 230, seconds = 145, health = 232, gap = { 0.85, 0.28 }, from = { Fast = 0.05, Swarm = 0.08, Tank = 0.12 }, specials = { { "Giant", 0.25, 0.7 }, { "Giant", 0.45, 0.85 }, { "Giant", 0.65 }, { "Giant", 0.85, 1.1 } } },
-	{ gold = 235, seconds = 150, health = 247, gap = { 0.85, 0.28 }, from = { Fast = 0.05, Swarm = 0.08, Tank = 0.12 }, specials = { { "Giant", 0.45, 0.8 }, { "Giant", 0.47, 0.8 }, { "Giant", 0.8 }, { "Giant", 0.82 } } },
-	{ gold = 240, seconds = 150, health = 232, gap = { 0.85, 0.28 }, from = { Fast = 0.05, Swarm = 0.08, Tank = 0.12 }, specials = { { "Giant", 0.25, 0.7 }, { "Giant", 0.45, 0.85 }, { "Giant", 0.65 }, { "Giant", 0.85, 1.1 } } },
-	{ gold = 245, seconds = 150, health = 232, gap = { 0.85, 0.28 }, from = { Fast = 0.05, Swarm = 0.08, Tank = 0.12 }, specials = { { "Giant", 0.25, 0.75 }, { "Giant", 0.45, 0.9 }, { "Giant", 0.65 }, { "Giant", 0.85, 1.2 } } },
-	{ gold = 250, seconds = 155, health = 247, gap = { 0.85, 0.28 }, from = { Fast = 0.05, Swarm = 0.08, Tank = 0.12 }, specials = { { "Giant", 0.2, 0.7 }, { "Giant", 0.4, 0.85 }, { "Giant", 0.6 }, { "Giant", 0.8, 1.1 } } },
-	{ gold = 255, seconds = 155, health = 268, gap = { 0.85, 0.28 }, from = { Fast = 0.05, Swarm = 0.08, Tank = 0.12 }, specials = { { "Giant", 0.2, 0.7 }, { "Giant", 0.4, 0.85 }, { "Giant", 0.6 }, { "Giant", 0.8, 1.1 } } },
-	{ gold = 260, seconds = 145, health = 268, gap = { 0.85, 0.28 }, from = { Fast = 0.05, Swarm = 0.08, Tank = 0.12 }, specials = { { "Giant", 0.3, 0.7 }, { "Giant", 0.5, 0.85 }, { "Giant", 0.7 }, { "Giant", 0.85, 1.1 }, { "Boss", 1, 0.85 } } },
+	{ gold = 215, seconds = 140, health = 349, gap = { 0.95, 0.28 }, from = { Fast = 0.05, Swarm = 0.08, Tank = 0.12 }, specials = { { "Giant", 0.4, 0.7 }, { "Giant", 0.75, 0.9 } } },
+	{ gold = 220, seconds = 140, health = 321, gap = { 0.95, 0.28 }, from = { Fast = 0.05, Swarm = 0.08, Tank = 0.12 }, specials = { { "Giant", 0.3, 0.7 }, { "Giant", 0.55, 0.85 }, { "Giant", 0.85 } } },
+	{ gold = 225, seconds = 145, health = 321, gap = { 0.95, 0.28 }, from = { Fast = 0.05, Swarm = 0.08, Tank = 0.12 }, specials = { { "Giant", 0.3, 0.7 }, { "Giant", 0.5, 0.85 }, { "Giant", 0.8, 1.1 } } },
+	{ gold = 230, seconds = 145, health = 331, gap = { 0.95, 0.28 }, from = { Fast = 0.05, Swarm = 0.08, Tank = 0.12 }, specials = { { "Giant", 0.25, 0.7 }, { "Giant", 0.45, 0.85 }, { "Giant", 0.65 }, { "Giant", 0.85, 1.1 } } },
+	{ gold = 235, seconds = 150, health = 350, gap = { 0.95, 0.28 }, from = { Fast = 0.05, Swarm = 0.08, Tank = 0.12 }, specials = { { "Colossus", 0.46, 0.64 }, { "Colossus", 0.81, 0.8 } } },
+	{ gold = 240, seconds = 150, health = 330, gap = { 0.95, 0.28 }, from = { Fast = 0.05, Swarm = 0.08, Tank = 0.12 }, specials = { { "Giant", 0.25, 0.7 }, { "Giant", 0.45, 0.85 }, { "Giant", 0.65 }, { "Giant", 0.85, 1.1 } } },
+	{ gold = 245, seconds = 150, health = 360, gap = { 0.95, 0.28 }, from = { Fast = 0.05, Swarm = 0.08, Tank = 0.12 }, specials = { { "Giant", 0.25, 0.75 }, { "Giant", 0.45, 0.9 }, { "Giant", 0.65 }, { "Giant", 0.85, 1.2 } } },
+	{ gold = 250, seconds = 155, health = 349, gap = { 0.95, 0.28 }, from = { Fast = 0.05, Swarm = 0.08, Tank = 0.12 }, specials = { { "Giant", 0.2, 0.7 }, { "Giant", 0.4, 0.85 }, { "Giant", 0.6 }, { "Giant", 0.8, 1.1 } } },
+	{ gold = 255, seconds = 155, health = 371, gap = { 0.95, 0.28 }, from = { Fast = 0.05, Swarm = 0.08, Tank = 0.12 }, specials = { { "Giant", 0.2, 0.7 }, { "Giant", 0.4, 0.85 }, { "Giant", 0.6 }, { "Giant", 0.8, 1.1 } } },
+	{ gold = 260, seconds = 145, health = 378, gap = { 0.95, 0.28 }, from = { Fast = 0.05, Swarm = 0.08, Tank = 0.12 }, specials = { { "Giant", 0.3, 0.7 }, { "Giant", 0.5, 0.85 }, { "Giant", 0.7 }, { "Giant", 0.85, 1.1 }, { "Boss", 1, 0.85 } } },
 	-- 5e territoire
 	{ gold = 265, seconds = 140, health = 349, gap = { 1.0, 0.28 }, from = { Fast = 0.1, Swarm = 0.12, Tank = 0.15 }, specials = { { "Giant", 0.3, 0.7 }, { "Giant", 0.6, 0.85 }, { "Giant", 0.85 } } },
 	{ gold = 270, seconds = 140, health = 302, gap = { 1.0, 0.28 }, from = { Fast = 0.1, Swarm = 0.12, Tank = 0.15 }, specials = { { "Giant", 0.25, 0.7 }, { "Giant", 0.45, 0.85 }, { "Giant", 0.65 }, { "Giant", 0.85, 1.1 } } },
@@ -787,7 +805,9 @@ end
 --   * chacun a SON COULOIR (demande du propriétaire, 03/10/2026 : « chacun a son couloir qui se rejoint ensuite ») :
 --     la partie se joue sur la carte d'équipe du territoire à ce nombre de joueurs (Shared/TeamMaps.luau,
 --     Levels.mapFor), le joueur n défend le couloir n, son nom est écrit à l'entrée (Hub/LevelArena.luau) ; le flot
---     est partagé entre les couloirs (Levels.buildQueue), qui se rejoignent avant le château ;
+--     est partagé entre les couloirs (Levels.buildQueue), qui se rejoignent avant le château ; chaque GROS monstre
+--     (colosse, colosse géant, boss) sort dans un couloir TIRÉ AU SORT à chaque partie (idée du propriétaire,
+--     04/10/2026 : « un gros colosse plus fort qui apparaît à un couloir aléatoire », « pareil pour les boss ») ;
 --   * à la fin, chacun reçoit SES pièces de niveau (première victoire ou non : selon SES niveaux réussis), avec le
 --     bonus d'équipe TEAM_COIN_BONUS, et l'XP de SES tours posées ; une victoire ouvre le niveau suivant à chacun ;
 --   * c'est le CHEF qui lance les niveaux, et le niveau doit être ouvert pour tous ; il faut avoir fini le
@@ -818,11 +838,12 @@ function Levels.teamHealth(size: number?): number
 	return Levels.TEAM_HEALTH[teamIndex(size)] or 1
 end
 
--- Le BOSS est un seul monstre énorme qui ne passe que dans UN couloir d'une carte d'équipe : seules les tours de ce
--- couloir et celles de la partie commune le touchent. Ses PV d'équipe sont donc moins multipliés : 1 + (teamHealth
--- - 1) x TEAM_BOSS_SHARE. Mesuré avec run.ps1 -Equipe : avec les mêmes PV que le flot, le niveau 10 (son boss)
--- était bien plus dur en équipe que les autres. Les colosses, eux, viennent à plusieurs et se répartissent entre les
--- couloirs : leurs PV suivent ceux du flot (les alléger aussi rendait les derniers territoires trop faciles).
+-- Le BOSS et le COLOSSE GÉANT sont chacun un seul monstre énorme qui ne passe que dans UN couloir d'une carte
+-- d'équipe : seules les tours de ce couloir et celles de la partie commune le touchent. Leurs PV d'équipe sont donc
+-- moins multipliés : 1 + (teamHealth - 1) x TEAM_BOSS_SHARE. Mesuré avec run.ps1 -Equipe : avec les mêmes PV que le
+-- flot, le niveau 10 (son boss) était bien plus dur en équipe que les autres, et le niveau 25 (alors trois colosses
+-- ensemble) aussi. Les colosses, eux, viennent à plusieurs et se répartissent entre les couloirs : leurs PV suivent
+-- ceux du flot (les alléger aussi rendait les derniers territoires trop faciles).
 Levels.TEAM_BOSS_SHARE = 0.5
 function Levels.teamBossHealth(size: number?): number
 	return 1 + (Levels.teamHealth(size) - 1) * Levels.TEAM_BOSS_SHARE
@@ -958,9 +979,16 @@ end
 -- nombre de joueurs de la partie (« JOUER EN ÉQUIPE » : PV x teamHealth, x TEAM_MAP_HEALTH de sa carte d'équipe ;
 -- absent = seul). En équipe, chacun a son couloir (cartes d'équipe, Levels.mapFor) et le flot est partagé entre les
 -- couloirs, chacun son tour, type par type : autant de monstres de chaque type dans chaque couloir. Le premier de
--- chaque type va dans le couloir n° du territoire (territoire 1 : couloir 1, territoire 2 : couloir 2...) : le boss
--- ne tombe pas toujours sur le même.
-function Levels.buildQueue(level: number, teamSize: number?)
+-- chaque type va dans le couloir n° du territoire (territoire 1 : couloir 1, territoire 2 : couloir 2...).
+-- random = le Random de la partie (LevelGame) : en équipe, chaque GROS monstre (BIG_ENEMIES : colosse, colosse
+-- géant, boss) sort alors dans un couloir tiré au sort : les couloirs sont rangés dans un ordre au hasard au début
+-- de la partie, puis chaque gros monstre prend le suivant (personne n'en a deux tant qu'un coéquipier n'en a eu
+-- aucun, et le boss ne suit pas de près un colosse dans le même couloir) ; sans lui (tests, aperçus), il suit le
+-- partage ci-dessus.
+local BIG_ENEMIES = { Giant = true, Colossus = true, Boss = true }
+-- (seuls dans leur couloir : PV d'équipe allégés, voir teamBossHealth)
+local LONE_ENEMIES = { Colossus = true, Boss = true }
+function Levels.buildQueue(level: number, teamSize: number?, random: any?)
 	local source = Levels.DEFINITIONS[level]
 	assert(source, "Niveau inconnu : " .. tostring(level))
 	local queue = {}
@@ -969,15 +997,27 @@ function Levels.buildQueue(level: number, teamSize: number?)
 	local lanes = teamIndex(teamSize)
 	local firstLane = (Levels.territoryOf(level) - 1) % lanes
 	local turns = {} -- [type] = nombre de monstres de ce type déjà placés (+ firstLane)
+	local bigLanes, bigNext = nil, 0 -- couloirs des gros monstres : un ordre tiré au sort, puis chacun son tour
 	local function push(enemyType: string, at: number, factor: number)
 		local health = Levels.enemyHealth(level, enemyType, factor)
-		local scale = if enemyType == "Boss" then bossScale else teamScale
+		local scale = if LONE_ENEMIES[enemyType] then bossScale else teamScale
 		if scale ~= 1 then
 			health = math.floor(health * scale * 10 + 0.5) / 10
 		end
 		local turn = turns[enemyType] or firstLane
 		turns[enemyType] = turn + 1
-		table.insert(queue, { enemy = enemyType, health = health, reward = Levels.ENEMY[enemyType].gold, at = at, lane = turn % lanes + 1 })
+		local lane = turn % lanes + 1
+		if random and lanes > 1 and BIG_ENEMIES[enemyType] then
+			if not bigLanes then
+				bigLanes = {}
+				for index = 1, lanes do
+					table.insert(bigLanes, random:NextInteger(1, index), index) -- (un ordre au hasard, chacun aussi probable)
+				end
+			end
+			bigNext = bigNext % lanes + 1
+			lane = bigLanes[bigNext]
+		end
+		table.insert(queue, { enemy = enemyType, health = health, reward = Levels.ENEMY[enemyType].gold, at = at, lane = lane })
 	end
 	-- Monstres à part (mini-boss, boss), rangés par heure de sortie.
 	local specials = {}
@@ -1031,11 +1071,11 @@ end
 --   pour +35 % de dégâts (IdleConfig.UPGRADE_DAMAGE) ; revendre : SELL_REFUND de l'or dépensé.
 -- Limite de tours identiques : selon leur rareté (IdleTowers.maxCopies : 5 communes, 4 rares, 3 épiques,
 -- 2 légendaires), sauf MAX_COPIES ci-dessous. Avec le seul Archer, on en pose 5 au plus : il faut les améliorer,
--- puis acheter d'autres tours. Le Totem de givre est limité à 3 : à 5, le joueur simulé en couvrait tout le chemin
+-- puis avoir d'autres tours (les œufs). Le Totem de givre est limité à 3 : à 5, le joueur simulé en couvrait tout le chemin
 -- et gagnait tout avec « 5 Archers + 5 Totems » (tools/levels).
 -- Prix réglés pour que chaque tour vaille son or (joueur simulé, tools/levels) : une nouvelle tour rapporte à peu
 -- près 2 fois plus de dégâts par pièce d'or qu'une amélioration ; les deux légendaires (Oracle, Trébuchet) sont les
--- meilleures affaires. Ce que chaque tour de la boutique apporte se mesure avec run.ps1 -Worth (voir NIVEAUX.md).
+-- meilleures affaires. Ce que chaque tour apporte se mesure avec run.ps1 -Worth (voir NIVEAUX.md).
 -- Les tours de PALIER 2 (œufs) coûtent deux fois le prix de leur tour de base, pour 2,3 à 3,5 fois ses dégâts : la
 -- tour de base devient presque inutile (demande du propriétaire, IdleTowers.luau). Le Totem du blizzard est limité
 -- à 3, comme le Totem de givre.
@@ -1078,20 +1118,15 @@ function Levels.upgradeCost(towerType: string, level: number): number?
 end
 
 ----------------------------------------------------------------------
--- Boutique : les tours s'achètent à PRIX FIXES avec les pièces de niveau (aucun hasard, décision du propriétaire).
--- DEUX tours sont possédées dès le départ (retour du propriétaire, 02/10/2026 : « il faudrait commencer avec au
--- moins deux tours, juste l'Archer c'est ennuyant ») : l'Archer (une cible, rapide, pas cher) et la Catapulte (une
--- zone : utile quand les monstres arrivent serrés, à la fin d'un niveau). Un joueur qui n'avait que l'Archer
--- reçoit la Catapulte tout seul (cleanData). Pour changer la 2e tour : cette liste, et SHOP.
+-- TOURS DE DÉPART. Plus de boutique : décision du propriétaire (04/10/2026) : « ça serait mieux pas de tour en
+-- boutique, et le niveau 1 te donne un œuf de catapulte qui éclot en 10 s ». Le joueur commence avec l'Archer seul
+-- (une cible, rapide, pas cher ; déjà posé au niveau 1 : STARTING_TOWER) ; sa première victoire au niveau 1 lui
+-- donne l'ŒUF DE CATAPULTE (EGGS.Starter), qui couve tout seul dans sa première couveuse : 10 s plus tard, il a sa
+-- deuxième tour (le tuto le guide). Toutes les autres tours sortent des œufs (« LES ŒUFS »). (Le 02/10 : « il
+-- faudrait commencer avec au moins deux tours, juste l'Archer c'est ennuyant » : la Catapulte arrive après le
+-- niveau 1, qui dure moins de 2 minutes.)
 ----------------------------------------------------------------------
-Levels.STARTING_TOWERS = { "MachineGun", "Bomb" }
--- Prix : les deux premières tours se paient avec les pièces des premiers niveaux (Totem avant le niveau 3, Mage
--- avant le niveau 6). Les suivantes sont des buts à long terme. Retour du propriétaire (02/10/2026) : « les prix des
--- prochaines tours doivent être plus hauts, pas forcément les basiques mais les légendaires surtout » : avant, les
--- 10 niveaux réussis (2 180 pièces) puis 13 parties rejouées au niveau 10 (240 pièces chacune) suffisaient pour
--- l'Oracle (3 000), et 21 pour le Trébuchet (5 000). Maintenant : 34 parties pour l'Oracle, 63 pour le Trébuchet.
--- (Seulement les tours de palier 1 : celles de palier 2 sortent des œufs, « LES ŒUFS ».)
-Levels.SHOP = { Frost = 150, Tesla = 400, Rocket = 1200, Laser = 3000, Chain = 8000, Orbital = 15000 }
+Levels.STARTING_TOWERS = { "MachineGun" }
 
 -- BARRE RAPIDE : les BAR_MAX premières tours de la liste du joueur (Levels.ownedTowers, dans l'ordre qu'il choisit
 -- dans l'onglet « Mes tours ») sont celles qu'il peut poser dans un niveau (touches 1 à 8 du clavier) ; les autres
@@ -1111,8 +1146,7 @@ function Levels.barTowers(data): { [string]: boolean }
 	return set
 end
 
--- Une NOUVELLE tour pour le joueur (achetée à la boutique ou sortie d'un œuf) : elle est à lui et entre dans sa barre
--- rapide :
+-- Une NOUVELLE tour pour le joueur (sortie d'un œuf) : elle est à lui et entre dans sa barre rapide :
 --   * une tour de palier 2 prend la place de sa tour de base si celle-ci est dans la barre (la tour de base passe à la
 --     fin de la liste : en réserve si la barre est pleine) ;
 --   * sinon, à la fin de la barre, ou à sa dernière place si la barre est pleine (la tour qui y était passe en
@@ -1133,8 +1167,9 @@ end
 
 ----------------------------------------------------------------------
 -- Camp d'entraînement. Chaque type de tour a de l'expérience (XP), qui donne un niveau d'entraînement (0 à
--- MAX_LEVEL). Chaque niveau : +DAMAGE_PER_LEVEL de dégâts en niveau, et des améliorations débloquées par paliers
--- (PERKS). L'XP vient de deux endroits :
+-- MAX_LEVEL). Chaque niveau : +DAMAGE_PER_LEVEL de dégâts en niveau, rien d'autre (décision du propriétaire,
+-- 04/10/2026 : « le terrain d'entraînement encore là mais pour du niveau dégâts » ; les pouvoirs, eux, sont ceux des
+-- tours de palier 2), et une étoile aux niveaux EVOLUTION_LEVELS (« ÉVOLUTIONS »). L'XP vient de deux endroits :
 --   * les emplacements du camp : la tour qu'on y met gagne SLOT_RATE XP par minute, même joueur absent (au plus
 --     OFFLINE_MAX_SECONDS d'un coup) ; un emplacement s'améliore (SLOT_UPGRADE_COST) et on en débloque d'autres
 --     (SLOT_UNLOCK_COST) avec les pièces de niveau ;
@@ -1146,7 +1181,7 @@ end
 Levels.TRAINING = {
 	MAX_LEVEL = 6,
 	XP = { 20, 60, 140, 300, 600, 1200 }, -- XP total pour atteindre le niveau 1, 2, ... 6
-	DAMAGE_PER_LEVEL = 0.05, -- +5 % de dégâts par niveau d'entraînement (+30 % au plus)
+	DAMAGE_PER_LEVEL = 0.1, -- +10 % de dégâts par niveau d'entraînement (+60 % au plus)
 	SLOT_RATE = { 1, 1.5, 2.2, 3.2, 4.5 }, -- XP par minute selon le niveau de l'emplacement
 	SLOT_UPGRADE_COST = { 120, 300, 700, 1500 }, -- prix pour passer au niveau 2, 3, 4, 5
 	SLOT_UNLOCK_COST = { 0, 400, 1500 }, -- prix du 1er (offert), 2e et 3e emplacement
@@ -1154,102 +1189,6 @@ Levels.TRAINING = {
 	XP_PER_WIN = 8,
 	XP_PER_LOSS = 3,
 	COINS_PER_XP = 10, -- entraînement acheté avec des pièces de niveau (Levels.trainingPurchase)
-}
-
--- Améliorations débloquées par l'entraînement, par tour : { level (niveau d'entraînement), name, text }.
--- on(stats) = effet quand elle est débloquée ; off(stats) = ce qui est retiré tant qu'elle ne l'est pas (les effets
--- qui existent déjà dans IdleTowers : feu de l'Archer, fragilité du Totem, carreau perçant de la Baliste).
--- key = nom court publié aux clients (attribut « Perks » de la zone) pour n'afficher que les effets débloqués.
--- Les tours de palier 2 n'en ont pas : leurs pouvoirs sont déjà là, l'entraînement ne leur donne que des dégâts.
-Levels.PERKS = {
-	MachineGun = {
-		{ level = 2, key = "Fire", name = "Flèches enflammées", text = "Chaque flèche laisse une petite zone de feu.", off = function(stats)
-			stats.fireRadius = nil
-		end },
-		{ level = 4, name = "Longue-vue", text = "+3 de portée.", on = function(stats)
-			stats.range += 3
-		end },
-		{ level = 6, name = "Tir rapide", text = "+20 % de vitesse d'attaque.", on = function(stats)
-			stats.cooldown /= 1.2
-		end },
-	},
-	Frost = {
-		{ level = 2, key = "Fragile", name = "Givre mordant", text = "Les ennemis ralentis prennent plus de dégâts des autres tours.", off = function(stats)
-			stats.fragility = 0
-		end },
-		{ level = 4, name = "Grande aura", text = "+2 de portée.", on = function(stats)
-			stats.range += 2
-		end },
-		{ level = 6, name = "Gel profond", text = "Ralentit de 50 % au lieu de 40 %.", on = function(stats)
-			stats.slow += 0.1
-		end },
-	},
-	Bomb = {
-		{ level = 2, name = "Gros rochers", text = "Zone d'impact plus large (+1,5).", on = function(stats)
-			stats.splash += 1.5
-		end },
-		{ level = 4, name = "Bras long", text = "+3 de portée.", on = function(stats)
-			stats.range += 3
-		end },
-		{ level = 6, name = "Rechargement rapide", text = "+20 % de vitesse d'attaque.", on = function(stats)
-			stats.cooldown /= 1.2
-		end },
-	},
-	Tesla = {
-		{ level = 2, name = "Éclair large", text = "Zone de foudre plus large (+1).", on = function(stats)
-			stats.splash += 1
-		end },
-		{ level = 4, name = "Long regard", text = "+3 de portée.", on = function(stats)
-			stats.range += 3
-		end },
-		{ level = 6, name = "Tempête", text = "+20 % de vitesse d'attaque.", on = function(stats)
-			stats.cooldown /= 1.2
-		end },
-	},
-	Rocket = {
-		{ level = 2, key = "Pierce", name = "Carreau perçant", text = "Le carreau transperce jusqu'à 3 ennemis alignés.", off = function(stats)
-			stats.kind = "Single"
-		end },
-		{ level = 4, name = "Tir tendu", text = "+5 de portée.", on = function(stats)
-			stats.range += 5
-		end },
-		{ level = 6, name = "Treuil graissé", text = "+20 % de vitesse d'attaque.", on = function(stats)
-			stats.cooldown /= 1.2
-		end },
-	},
-	Laser = {
-		{ level = 2, name = "Concentration", text = "Le rayon chauffe 50 % plus vite.", on = function(stats)
-			stats.beamRampRate *= 1.5
-		end },
-		{ level = 4, name = "Long rayon", text = "+3 de portée.", on = function(stats)
-			stats.range += 3
-		end },
-		{ level = 6, name = "Surchauffe", text = "Le rayon monte 20 % plus haut.", on = function(stats)
-			stats.beamRampMax *= 1.2
-		end },
-	},
-	Chain = {
-		{ level = 2, name = "Éclair bondissant", text = "Un ennemi de plus par éclair (5).", on = function(stats)
-			stats.chains += 1
-		end },
-		{ level = 4, name = "Vision lointaine", text = "+3 de portée.", on = function(stats)
-			stats.range += 3
-		end },
-		{ level = 6, name = "Orage", text = "+20 % de vitesse d'attaque.", on = function(stats)
-			stats.cooldown /= 1.2
-		end },
-	},
-	Orbital = {
-		{ level = 2, name = "Pierre géante", text = "Zone d'impact plus large (+2).", on = function(stats)
-			stats.splash += 2
-		end },
-		{ level = 4, name = "Onde de choc", text = "Étourdit plus longtemps (+0,3 s).", on = function(stats)
-			stats.stunDuration += 0.3
-		end },
-		{ level = 6, name = "Contrepoids", text = "+20 % de vitesse d'attaque.", on = function(stats)
-			stats.cooldown /= 1.2
-		end },
-	},
 }
 
 -- Niveau d'entraînement (0 à MAX_LEVEL) pour ce total d'XP.
@@ -1276,12 +1215,10 @@ function Levels.trainingProgress(xp: any): (number, number)
 end
 
 -- ENTRAÎNEMENT ACHETÉ AVEC DES PIÈCES (bouton ⚡ de l'onglet Entraînement). Demande du propriétaire (03/10/2026) :
--- « améliorer en pièces, peut-être pas mal ». Vers le niveau 50, un joueur a tout acheté (les 8 tours, le camp au
--- maximum) : ses pièces ne servaient plus à rien, alors que l'entraînement monte lentement en fin de jeu. Il peut
--- donc payer l'XP qui manque à une tour pour son prochain niveau d'entraînement, COINS_PER_XP pièces par XP : 200
--- pièces pour le niveau 1, 400 pour le 2, 800, 1 600, 3 000, puis 6 000 pour le 6 (12 000 pour mener une tour de 0
--- au maximum, ★★★ ; les huit tours : un peu moins que ce que rapportent les niveaux 51 à 100). Un joueur bloqué
--- peut aussi rejouer des niveaux, gagner des pièces et rendre ses tours plus fortes.
+-- « améliorer en pièces, peut-être pas mal ». Il peut payer l'XP qui manque à une tour pour son prochain niveau
+-- d'entraînement, COINS_PER_XP pièces par XP : 200 pièces pour le niveau 1, 400 pour le 2, 800, 1 600, 3 000, puis
+-- 6 000 pour le 6 (12 000 pour mener une tour de 0 au maximum, ★★★). Un joueur bloqué peut donc rejouer des
+-- niveaux (pièces et œufs), et rendre ses tours plus fortes.
 -- Renvoie (XP de la tour après l'achat, prix) pour une tour qui a `xp` XP, ou nil si elle est au maximum.
 function Levels.trainingPurchase(xp: any): (number?, number?)
 	local value = tonumber(xp) or 0
@@ -1297,8 +1234,8 @@ end
 
 local statsCache = {}
 
--- Stats d'une tour posée dans un niveau : son niveau de combat (acheté avec l'or), son entraînement (+5 % de dégâts
--- par niveau) et ses améliorations débloquées. Le tableau renvoyé ne doit jamais être modifié (il est partagé).
+-- Stats d'une tour posée dans un niveau : son niveau de combat (acheté avec l'or) et son entraînement
+-- (DAMAGE_PER_LEVEL de dégâts par niveau). Le tableau renvoyé ne doit jamais être modifié (il est partagé).
 function Levels.towerStats(towerType: string, level: number, training: number?)
 	local trained = math.clamp(math.floor(tonumber(training) or 0), 0, Levels.TRAINING.MAX_LEVEL)
 	local key = `{towerType}:{level}:{trained}`
@@ -1311,31 +1248,8 @@ function Levels.towerStats(towerType: string, level: number, training: number?)
 		stats[field] = value
 	end
 	stats.damage *= 1 + Levels.TRAINING.DAMAGE_PER_LEVEL * trained
-	for _, perk in Levels.PERKS[towerType] or {} do
-		if trained >= perk.level then
-			if perk.on then
-				perk.on(stats)
-			end
-		elseif perk.off then
-			perk.off(stats)
-		end
-	end
 	statsCache[key] = stats
 	return stats
-end
-
--- Effets débloqués qui changent l'affichage, pour les tours données : texte « MachineGun:Fire,Rocket:Pierce »
--- (attribut « Perks » de la zone de combat, lu par PlotRenderer). training = { [type] = niveau d'entraînement }.
-function Levels.perkKeys(training: { [string]: number }): string
-	local keys = {}
-	for _, towerType in IdleTowers.ORDER do
-		for _, perk in Levels.PERKS[towerType] or {} do
-			if perk.key and (training[towerType] or 0) >= perk.level then
-				table.insert(keys, `{towerType}:{perk.key}`)
-			end
-		end
-	end
-	return table.concat(keys, ",")
 end
 
 -- Niveaux d'entraînement en texte, pour l'attribut « Training » de la zone de combat (ceux du DÉBUT du niveau :
@@ -1370,34 +1284,27 @@ function Levels.playXp(won: boolean, progress: number?): number
 	return math.floor(Levels.TRAINING.XP_PER_LOSS * math.clamp(progress or 0, 0, 1) * 10 + 0.5) / 10
 end
 
--- Améliorations débloquées en passant du niveau d'entraînement `before` à `after` : { { level, name, text } }.
-function Levels.perksBetween(towerType: string, before: number, after: number)
-	local list = {}
-	for _, perk in Levels.PERKS[towerType] or {} do
-		if perk.level > before and perk.level <= after then
-			table.insert(list, perk)
-		end
-	end
-	return list
-end
-
 ----------------------------------------------------------------------
 -- ÉVOLUTIONS. Demande du propriétaire (02/10/2026) : « tu peux gérer toute la parcelle et le système d'évolution de
--- tour ». L'entraînement fait ÉVOLUER chaque tour par paliers : chaque amélioration de PERKS est une évolution
--- (1re, 2e, 3e : aux niveaux d'entraînement 2, 4 et 6). Une tour évoluée se reconnaît :
+-- tour ». Aux niveaux d'entraînement EVOLUTION_LEVELS (2, 4 et 6), une tour ÉVOLUE : 1re, 2e, 3e évolution. Depuis
+-- le 04/10/2026, l'entraînement ne donne plus que des dégâts : une évolution est la marque de ces dégâts gagnés
+-- (+20 %, +40 %, +60 %). Une tour évoluée se reconnaît :
 --   * à ses étoiles (★ à ★★★) sur son étiquette, au camp comme dans un niveau ;
 --   * à son apparence : anneau de bronze, d'argent puis d'or autour de son socle, fanions, joyaux
---     (Hub/IdleTowerModel.luau, addEvolution) ;
---   * à son nouveau pouvoir (PERKS), qu'on la voit utiliser au camp, sur les cibles d'entraînement.
+--     (Hub/IdleTowerModel.luau, addEvolution).
 ----------------------------------------------------------------------
+Levels.EVOLUTION_LEVELS = { 2, 4, 6 }
 Levels.EVOLUTION_NAMES = { "1re évolution", "2e évolution", "3e évolution" }
 
--- Nombre d'évolutions débloquées (0 à 3) d'une tour à ce niveau d'entraînement.
+-- Nombre d'évolutions (0 à 3) d'une tour à ce niveau d'entraînement (0 pour une tour inconnue).
 function Levels.evolutionStage(towerType: string, training: any): number
+	if not IdleTowers.Defs[towerType] then
+		return 0
+	end
 	local trained = tonumber(training) or 0
 	local stage = 0
-	for _, perk in Levels.PERKS[towerType] or {} do
-		if trained >= perk.level then
+	for _, needed in Levels.EVOLUTION_LEVELS do
+		if trained >= needed then
 			stage += 1
 		end
 	end
@@ -1438,18 +1345,22 @@ Levels.CAMP = {
 ----------------------------------------------------------------------
 -- LES ŒUFS. Idée du propriétaire (04/10/2026) : « des œufs de tourelle quand tu finis les niveaux en gagnant, et
 -- les mettre dans des générateurs qui donnent un temps » ; « 16 tours qui te bloquent au niveau 40, comme ça je peux
--- travailler les mises à jour petit à petit ». Étape 1 : les œufs et les couveuses ; étape 2 : les 8 tours de
--- PALIER 2, qu'on n'a que dans les œufs (IdleTowers.TIER2 : des versions bien plus fortes des 8 tours de la boutique) :
---   * gagner un niveau donne un ŒUF (Levels.eggFor) : première victoire = commun, rare au mini-boss, doré au boss ;
---     en rejouant = commun, rare au boss. EGG_MAX œufs au plus en réserve (au-delà, l'œuf est perdu : l'écran de fin
---     le dit) ;
+-- travailler les mises à jour petit à petit » ; puis « ça serait mieux pas de tour en boutique, et le niveau 1 te
+-- donne un œuf de catapulte qui éclot en 10 s ». TOUTES les tours sortent des œufs (sauf l'Archer, donné au départ) :
+-- les 8 de palier 1 et leurs 8 versions de palier 2 (IdleTowers.TIER2 : bien plus fortes).
+--   * gagner un niveau donne un ŒUF (Levels.eggFor) : première victoire = commun, rare au mini-boss, doré au boss
+--     (niveau 1 : l'ŒUF DE CATAPULTE, Starter) ; en rejouant = commun, rare au boss. EGG_MAX œufs au plus en réserve
+--     (au-delà, l'œuf est perdu : l'écran de fin le dit) ;
 --   * un œuf se pose dans une COUVEUSE de sa parcelle (la 1re offerte, les autres achetées : HATCHER_COST) et éclot
 --     après son temps (EGGS[type].seconds), même quand le joueur n'est pas là ; on peut finir tout de suite avec des
 --     pièces de niveau (SKIP_COINS_PER_MINUTE par minute qui reste) ;
---   * en l'ouvrant : une tour de palier 2 au HASARD, avec les chances de son œuf par rareté (EGGS[type].chances,
---     écrites dans l'onglet Œufs) ; une tour pas encore à lui devient la sienne (Levels.addTower : elle prend la place
---     de sa tour de base dans la barre) ; un doublon donne de l'XP d'entraînement à cette tour (DUPLICATE_XP selon sa
---     rareté).
+--   * en l'ouvrant : une tour au HASARD, avec les chances de son œuf (écrites dans l'onglet Œufs) : par rareté
+--     (EGGS[type].chances), et la part des tours de palier 2 (EGGS[type].tier2 : 0 dans un œuf commun, 25 % dans un
+--     œuf rare, 75 % dans un œuf doré) ; une tour pas encore à lui devient la sienne (Levels.addTower : une tour de
+--     palier 2 prend la place de sa tour de base dans la barre) ; un doublon donne de l'XP d'entraînement à cette tour
+--     (DUPLICATE_XP selon sa rareté) ;
+--   * l'ŒUF DE CATAPULTE (Starter, première victoire du niveau 1) se pose tout seul dans la première couveuse et
+--     éclot en 10 s : il donne toujours la Catapulte (tower), le tuto montre comment l'ouvrir.
 -- Les chiffres sont les miens (temps, chances, prix) : à changer s'il le veut.
 ----------------------------------------------------------------------
 Levels.EGGS = {
@@ -1458,21 +1369,33 @@ Levels.EGGS = {
 		seconds = 15 * 60,
 		color = Color3.fromRGB(238, 230, 208),
 		chances = { Common = 0.7, Rare = 0.25, Epic = 0.05, Legendary = 0 },
+		tier2 = 0, -- part des tours de palier 2 (un œuf commun : seulement des tours de palier 1)
 	},
 	Rare = {
 		displayName = "Œuf rare",
 		seconds = 60 * 60,
 		color = Color3.fromRGB(86, 156, 236),
 		chances = { Common = 0.35, Rare = 0.45, Epic = 0.17, Legendary = 0.03 },
+		tier2 = 0.25,
 	},
 	Gold = {
 		displayName = "Œuf doré",
 		seconds = 4 * 3600,
 		color = Color3.fromRGB(255, 196, 52),
 		chances = { Common = 0, Rare = 0.4, Epic = 0.45, Legendary = 0.15 },
+		tier2 = 0.75,
+	},
+	-- L'œuf de catapulte : la première victoire du niveau 1 (TOURS DE DÉPART). Il ne va pas dans la réserve : il se
+	-- pose tout seul dans la première couveuse vide (autoHatch, Levels.giveEgg), et donne toujours la même tour.
+	Starter = {
+		displayName = "Œuf de catapulte",
+		seconds = 10,
+		color = Color3.fromRGB(240, 130, 50),
+		tower = "Bomb",
+		autoHatch = true,
 	},
 }
-Levels.EGG_ORDER = { "Common", "Rare", "Gold" }
+Levels.EGG_ORDER = { "Common", "Rare", "Gold" } -- (les œufs de la réserve ; l'œuf de catapulte n'y va jamais)
 Levels.EGG_MAX = 30 -- œufs en réserve au plus (tous types ensemble)
 Levels.HATCHER_COST = { 0, 600, 2500 } -- prix de la 1re (offerte), 2e et 3e couveuse, en pièces de niveau
 Levels.SKIP_COINS_PER_MINUTE = 5 -- finir un œuf tout de suite : pièces de niveau par minute qui reste
@@ -1482,6 +1405,9 @@ Levels.RARITY_ORDER = { "Common", "Rare", "Epic", "Legendary" }
 
 -- L'œuf gagné en remportant ce niveau (première victoire ou non).
 function Levels.eggFor(level: number, firstClear: boolean): string
+	if level == 1 and firstClear then
+		return "Starter" -- (l'œuf de catapulte)
+	end
 	local definition = Levels.definition(level)
 	if firstClear then
 		return if definition.boss then "Gold" elseif definition.miniBoss then "Rare" else "Common"
@@ -1498,32 +1424,70 @@ function Levels.eggCount(levels): number
 	return count
 end
 
--- Un œuf de plus en réserve ; faux si la réserve est pleine (l'œuf est perdu).
+-- Un œuf de plus en réserve ; faux si la réserve est pleine (l'œuf est perdu), ou pour l'œuf de catapulte (il ne va
+-- jamais dans la réserve : Levels.giveEgg).
 function Levels.addEgg(levels, eggType: string): boolean
-	if not Levels.EGGS[eggType] or Levels.eggCount(levels) >= Levels.EGG_MAX then
+	local egg = Levels.EGGS[eggType]
+	if not egg or egg.autoHatch or Levels.eggCount(levels) >= Levels.EGG_MAX then
 		return false
 	end
 	levels.eggs[eggType] = (levels.eggs[eggType] or 0) + 1
 	return true
 end
 
--- Les tours qu'un œuf peut donner et leurs chances : { { tower, chance } } (chance de 0 à 1, total 1). Seulement les
--- tours de PALIER 2 (celles de palier 1 s'achètent à la boutique). La chance de chaque rareté est partagée à parts
--- égales entre ses tours.
-function Levels.eggChances(eggType: string): { { tower: string, chance: number } }
-	local byRarity = {}
-	for _, towerType in IdleTowers.TIER2 do
-		local rarity = IdleTowers.Defs[towerType].rarity
-		byRarity[rarity] = byRarity[rarity] or {}
-		table.insert(byRarity[rarity], towerType)
+-- Un œuf gagné : dans la réserve (EGG_MAX au plus : au-delà, il est perdu) ; l'œuf de catapulte (autoHatch) se pose
+-- tout seul dans la première couveuse vide et éclot EGGS[type].seconds plus tard (now = l'heure du serveur, os.time).
+-- Renvoie "reserve", "hatcher", ou nil : perdu (réserve pleine ; ou l'œuf de catapulte sans couveuse vide : le
+-- serveur donne alors sa tour tout de suite).
+function Levels.giveEgg(levels, eggType: string, now: number): string?
+	local egg = Levels.EGGS[eggType]
+	if not egg then
+		return nil
 	end
+	if egg.autoHatch then
+		for _, hatcher in levels.hatchers do
+			if hatcher.egg == "" then
+				hatcher.egg = eggType
+				hatcher.readyAt = now + egg.seconds
+				return "hatcher"
+			end
+		end
+		return nil
+	end
+	return if Levels.addEgg(levels, eggType) then "reserve" else nil
+end
+
+-- Tours d'un palier (IdleTowers.TIER1 ou TIER2) qui ont cette rareté, dans l'ordre de la liste.
+local function towersOf(list: { string }, rarity: string): { string }
+	local found = {}
+	for _, towerType in list do
+		if IdleTowers.Defs[towerType].rarity == rarity then
+			table.insert(found, towerType)
+		end
+	end
+	return found
+end
+
+-- Les tours qu'un œuf peut donner et leurs chances : { { tower, chance } } (chance de 0 à 1, total 1). La chance de
+-- chaque rareté est partagée entre les tours de palier 1 (1 - tier2) et celles de palier 2 (tier2), puis à parts
+-- égales entre les tours de chaque palier. L'œuf de catapulte : sa tour, à coup sûr.
+function Levels.eggChances(eggType: string): { { tower: string, chance: number } }
+	local egg = Levels.EGGS[eggType]
+	if egg.tower then
+		return { { tower = egg.tower, chance = 1 } }
+	end
+	local tier2 = egg.tier2 or 0
 	local list = {}
 	for _, rarity in Levels.RARITY_ORDER do
-		local chance = Levels.EGGS[eggType].chances[rarity] or 0
-		local towers = byRarity[rarity] or {}
-		if chance > 0 and #towers > 0 then
-			for _, towerType in towers do
-				table.insert(list, { tower = towerType, chance = chance / #towers })
+		local chance = egg.chances[rarity] or 0
+		if chance > 0 then
+			for tier, towers in { towersOf(IdleTowers.TIER1, rarity), towersOf(IdleTowers.TIER2, rarity) } do
+				local share = if tier == 1 then 1 - tier2 else tier2
+				if share > 0 and #towers > 0 then
+					for _, towerType in towers do
+						table.insert(list, { tower = towerType, chance = chance * share / #towers })
+					end
+				end
 			end
 		end
 	end
@@ -1565,10 +1529,11 @@ end
 -- propriétaire (02/10/2026) : « fais le tuto bien, je veux un jeu sortable ». Pas d'écran à lire : une flèche montre
 -- quoi toucher. Le champ `tutorial` des données du joueur dit où il en est :
 --   0    = nouveau joueur : la flèche le mène au niveau 1, puis lui montre ses deux premiers gestes (firstSteps) ;
---   SHOP = il a gagné un niveau : dès qu'il a de quoi acheter une tour, la flèche lui montre la boutique ;
---   DONE = fini (première tour achetée, ou bouton « Passer le tuto »).
+--   EGG  = il a gagné le niveau 1 : son œuf de catapulte couve dans sa couveuse, la flèche lui montre comment
+--          l'ouvrir (onglet Œufs) ;
+--   DONE = fini (œuf de catapulte ouvert, ou bouton « Passer le tuto »).
 ----------------------------------------------------------------------
-Levels.TUTORIAL = { SHOP = 1, DONE = 2 }
+Levels.TUTORIAL = { EGG = 1, DONE = 2 }
 
 -- Les DEUX PREMIERS GESTES du niveau 1, montrés par la flèche du tuto (TutorialUI.luau). Retour du propriétaire
 -- (03/10/2026) : « raccourcis le tuto de la première partie, juste poser une tour, et pas forcer un positionnement,
@@ -1708,13 +1673,13 @@ function Levels.cleanData(saved: any)
 			table.insert(data.slots, { tower = tower, level = level })
 		end
 	end
-	-- Étape du tuto. Sauvegarde d'avant le tuto (champ absent) : celui qui a déjà gagné un niveau ne revoit pas le
-	-- guide, celui qui a déjà acheté une tour ne revoit rien.
-	local bought = false
-	for towerType in Levels.SHOP do
-		bought = bought or data.towers[towerType] == true
+	-- Étape du tuto. Sauvegarde d'avant le tuto (champ absent) : celui qui a déjà gagné un niveau, ou qui a d'autres
+	-- tours que celles du départ, ne revoit rien.
+	local others = false
+	for towerType in data.towers do
+		others = others or table.find(Levels.STARTING_TOWERS, towerType) == nil
 	end
-	local inferred = if bought then Levels.TUTORIAL.DONE elseif data.best >= 1 then Levels.TUTORIAL.SHOP else 0
+	local inferred = if others or data.best >= 1 then Levels.TUTORIAL.DONE else 0
 	data.tutorial = if saved.tutorial == nil then inferred else math.floor(cleanNumber(saved.tutorial, 0, Levels.TUTORIAL.DONE, inferred))
 	if typeof(saved.bar) == "table" then
 		local bar, seen = {}, {}

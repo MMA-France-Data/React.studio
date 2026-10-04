@@ -13,9 +13,11 @@ IdleConfig.ENEMY_SPEED_FACTORS = {
 	Fast = 0.7, -- cavaliers : toujours les plus rapides, mais plus des éclairs (13 studs/s au lieu de 22)
 	-- écuyers : 13 studs/s au lieu de 19. Pas plus de 0,81 : les cavaliers doivent rester les plus rapides.
 	Swarm = 0.8,
-	-- Chevaliers lourds, colosse et Seigneur de guerre : freinés moins que les autres (7,4 / 4,7 / 5,4 studs/s).
+	-- Chevaliers lourds, colosse, colosse géant et Seigneur de guerre : freinés moins que les autres (7,4 / 4,7 / 4,2 /
+	-- 5,4 studs/s).
 	Tank = 1.1,
 	Giant = 1.15,
+	Colossus = 1.15,
 	Boss = 1.15,
 }
 -- Doit rester entre 0 et 2,5 : le facteur voyage sur 1 octet dans le paquet des positions (Hub/Combat.luau).

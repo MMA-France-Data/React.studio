@@ -18,20 +18,22 @@ powershell -ExecutionPolicy Bypass -File tools\levels\run.ps1 -Regler "Levels.ST
 ```
 
 - **sans option** : le tableau de difficulté. Chaque niveau est joué par des joueurs simulés : très actif, au rythme
-  demandé par le niveau, lent (un achat toutes les 8 s), distrait (toutes les 15 s), sans boutique, tout débloqué.
+  demandé par le niveau, lent (un achat toutes les 8 s), distrait (toutes les 15 s), sans œuf (l'Archer et la
+  Catapulte seulement), tout débloqué.
   « G 7 » = gagné avec 7 vies, « P 62 % » = perdu après avoir éliminé 62 % des monstres. Environ 2 minutes.
-- **`-Tests`** : 1 853 vérifications (100 niveaux, 10 territoires, flot continu, cartes, pose libre, récompenses, prix, entraînement, données
+- **`-Tests`** : 1 417 vérifications (100 niveaux dont 40 ouverts, 10 territoires, flot continu, cartes, pose libre, récompenses, prix, entraînement, données
   du joueur, le moteur : or, vies, victoire, défaite, vitesse x2, paquets réseau, **la difficulté de chaque
   niveau** : voir plus bas, les évolutions des tours, le camp d'entraînement de la parcelle : `CampGame.luau`, et
   **le tuto** : son étape dans les données, les deux premiers gestes du niveau 1 ; **le jeu en équipe** : les règles,
   une partie à deux (or et tours de chacun, l'or des monstres à chacun, celui qui s'en va), **les 30 cartes
   d'équipe** (mêmes règles que les cartes seules, couloirs qui restent ensemble après leur rencontre, écarts, dalles
   du chemin), le flot partagé entre les couloirs, chaque monstre sur son couloir, des équipes de 2, 3 et 4
-  joueurs simulés qui doivent gagner les niveaux 10, 50 et 100 ; **les amis** : bonus d'ami sur le serveur,
-  récompenses d'invitation une fois par ami ; **les œufs** : œuf gagné, réserve, chances, tour sortie, données ;
-  **les tours de palier 2** : chacune et sa tour de base, prix, bien plus fortes même face à une tour de base
-  entraînée au maximum, pouvoirs déjà là, seulement dans les œufs, la barre de 8 tours et la réserve, la Catapulte de
-  magma posée dans un niveau, Totem de givre + Totem du blizzard qui ne s'additionnent pas).
+  joueurs simulés qui doivent gagner les niveaux 10, 25 et 40, les gros monstres dans un couloir tiré au sort ;
+  **les amis** : bonus d'ami sur le serveur, récompenses d'invitation une fois par ami ; **les œufs** : l'œuf de
+  catapulte, œuf gagné, réserve, chances et part des tours de palier 2, tour sortie, données ; **les tours de palier
+  2** : chacune et sa tour de base, prix, bien plus fortes même face à une tour de base entraînée au maximum,
+  pouvoirs déjà là, la barre de 8 tours et la réserve, la Catapulte de magma posée dans un niveau, Totem de givre +
+  Totem du blizzard qui ne s'additionnent pas ; **le colosse géant**).
   Une dizaine de minutes.
 - **`-Lazy`** : les 10 niveaux joués par un joueur qui pose quelques tours puis attend (rien de plus, 2 Archers,
   3 Archers, 2 Archers et une Catapulte, 4 Archers et 2 Catapultes). Ils doivent tous perdre.
@@ -41,7 +43,7 @@ powershell -ExecutionPolicy Bypass -File tools\levels\run.ps1 -Regler "Levels.ST
   rythme de référence. `-Vies 8` : il doit garder 8 vies.
 - **`-Curve`** : la pression d'un niveau au fil du temps (les PV qui sortent par seconde, comparés à ce que le joueur
   peut se payer). Elle doit monter du début à la fin.
-- **`-Worth`** : ce que chaque tour de la boutique APPORTE (de combien les monstres peuvent être plus résistants
+- **`-Worth`** : ce que chaque tour APPORTE (de combien les monstres peuvent être plus résistants
   quand on la possède), aux niveaux 6, 8 et 10 : un processus par mesure, environ 6 minutes. `-Tours "Laser,Rocket"`
   et `-Niveaux "10"` pour n'en mesurer que quelques-unes. C'est ce qui a montré que le Sorcier des arcanes est utile
   (+20 à +59 %) et que la Baliste et le Trébuchet ne l'étaient presque pas : ils ont été renforcés le 02/10/2026
@@ -59,7 +61,8 @@ powershell -ExecutionPolicy Bypass -File tools\levels\run.ps1 -Regler "Levels.ST
 
 Retour du propriétaire après son premier essai (02/10/2026) : « beaucoup trop facile », « je veux que ce soit en
 continu et de plus en plus dur, que je sois obligé d'être super actif : poser des tours, améliorer », « si juste
-2 Archers gèrent le niveau, je passe mon temps à attendre ». `tests.luau` vérifie donc, pour **chacun des 100 niveaux** :
+2 Archers gèrent le niveau, je passe mon temps à attendre ». `tests.luau` vérifie donc, pour **chacun des 40 niveaux
+ouverts** (`Levels.OPEN_COUNT`) :
 
 | Joueur simulé | Doit |
 |---|---|
@@ -120,7 +123,7 @@ un peu plus gros.
 | `sim.luau` | Le tableau de difficulté |
 | `lazy.luau` | Les niveaux joués sans presque rien faire |
 | `tune.luau` | La recherche des PV de chaque niveau |
-| `worth.luau` | Ce qu'une tour de la boutique apporte |
+| `worth.luau` | Ce qu'une tour apporte |
 | `curve.luau` | La pression d'un niveau au fil du temps |
 | `team.luau` | Jouer en équipe : les PV des monstres selon le nombre de joueurs |
 | `tests.luau` | Les vérifications des règles et de la difficulté |

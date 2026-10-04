@@ -1,7 +1,7 @@
 --!optimize 2
 -- Réglage des PV de chaque niveau (run.ps1 -Tune) : pour chaque niveau, cherche les PV du fantassin les plus hauts
 -- avec lesquels le joueur simulé de RÉFÉRENCE gagne encore avec au moins `vies` vies. Puis montre, avec ces PV, ce
--- que deviennent les autres joueurs : très actif, lent, distrait, sans boutique, tout débloqué, et ceux qui posent
+-- que deviennent les autres joueurs : très actif, lent, distrait, sans œuf, tout débloqué, et ceux qui posent
 -- quelques tours puis attendent.
 -- C'est la réponse à la demande du propriétaire (02/10/2026) : « beaucoup trop facile », « obligé d'être super
 -- actif », « si juste 2 Archers gèrent le niveau, je passe mon temps à attendre ».
@@ -42,7 +42,7 @@ local function lazy(level: number, towers: { string }): string
 end
 
 print(`Le joueur de référence doit garder {targetLives} vies au moins.`)
-print(string.format("%-6s %5s %5s %5s %5s | %-7s | %-11s | %-9s | %-9s | %-10s | %-9s | %-9s | %-9s | %-9s | %s", "Niveau", "PV", "monst", "durée", "or", "Actif", "Référence", "Moyen 3s", "Lent 8s", "Distr. 15s", "Sans bout", "Tout e.6", "2 Archers", "4A + 2C", "achats du joueur actif"))
+print(string.format("%-6s %5s %5s %5s %5s | %-7s | %-11s | %-9s | %-9s | %-10s | %-9s | %-9s | %-9s | %-9s | %s", "Niveau", "PV", "monst", "durée", "or", "Actif", "Référence", "Moyen 3s", "Lent 8s", "Distr. 15s", "Sans œuf", "Tout e.6", "2 Archers", "4A + 2C", "achats du joueur actif"))
 local found = {}
 for level = 1, Levels.COUNT do
 	if onlyLevels and not onlyLevels[level] then
@@ -100,7 +100,7 @@ for level = 1, Levels.COUNT do
 	local medium = Bot.play(level, Bot.profile(level, 3))
 	local slow = Bot.play(level, Bot.profile(level, 8))
 	local distracted = Bot.play(level, Bot.profile(level, 15))
-	local noShop = Bot.play(level, { towers = Levels.STARTING_TOWERS, training = 0 })
+	local noEgg = Bot.play(level, { towers = Bot.NO_EGG_TOWERS, training = 0 })
 	local everything = Bot.play(level, { towers = Bot.ALL_TOWERS, training = 6 })
 	-- Achats du joueur actif : chaque tour posée et chaque amélioration compte pour un.
 	local purchases = active.levels - (if level == 1 then 1 else 0)
@@ -116,7 +116,7 @@ for level = 1, Levels.COUNT do
 		cell(medium),
 		cell(slow),
 		cell(distracted),
-		cell(noShop),
+		cell(noEgg),
 		cell(everything),
 		lazy(level, { "MachineGun", "MachineGun" }),
 		lazy(level, { "MachineGun", "MachineGun", "Bomb", "MachineGun", "MachineGun", "Bomb" }),

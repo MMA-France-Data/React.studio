@@ -363,13 +363,13 @@ return function(log)
 	shot("camp_parcelle")
 	-- L'invite « Gérer » du socle ouvre l'onglet Entraînement sur cet emplacement ; chaque tour y montre ses évolutions.
 	act(campGui, "Slot:1")
-	local trainingPage = window.Page3
+	local trainingPage = window.Page2
 	local archerTraining = trainingPage.Towers:FindFirstChild("Train_MachineGun")
 	check(
-		window.Visible and trainingPage.Visible and archerTraining ~= nil and string.find(archerTraining.Evolution1.Text, "Flèches enflammées", 1, true) ~= nil
-			and string.find(archerTraining.Evolution1.Text, "🔒", 1, true) ~= nil and string.find(archerTraining.Evolution3.Text, "Tir rapide", 1, true) ~= nil
+		window.Visible and trainingPage.Visible and archerTraining ~= nil and string.find(archerTraining.Evolution1.Text, "+20 %", 1, true) ~= nil
+			and string.find(archerTraining.Evolution1.Text, "🔒", 1, true) ~= nil and string.find(archerTraining.Evolution3.Text, "+60 %", 1, true) ~= nil
 			and string.find(archerTraining.NextEvolution.Text, "entraînement 2", 1, true) ~= nil and string.find(archerTraining.Level.Text, "Entraînement 0/6", 1, true) ~= nil,
-		`invite du socle : onglet « Entraînement », évolutions de l'Archer « {archerTraining and archerTraining.Evolution1.Text} », « {archerTraining and archerTraining.Evolution2.Text} », « {archerTraining and archerTraining.Evolution3.Text} » ; « {archerTraining and archerTraining.NextEvolution.Text} »`
+		`invite du socle : onglet « Entraînement », étoiles de l'Archer (des dégâts) « {archerTraining and archerTraining.Evolution1.Text} », « {archerTraining and archerTraining.Evolution2.Text} », « {archerTraining and archerTraining.Evolution3.Text} » ; « {archerTraining and archerTraining.NextEvolution.Text} »`
 	)
 	shot("camp_evolutions")
 
@@ -381,7 +381,7 @@ return function(log)
 	local openBadge = openButton:FindFirstChild("Badge")
 	check(
 		shown(openButton) and not window.Visible and openButton.Text == "⚔ NIVEAUX" and onScreen(openButton) and openBadge ~= nil and not openBadge.Visible,
-		"bouton « ⚔ NIVEAUX » affiché sur la map principale, fenêtre fermée, sans pastille « ! » (0 pièce : rien à acheter)"
+		"bouton « ⚔ NIVEAUX » affiché sur la map principale, fenêtre fermée, sans pastille « ! » (aucun œuf à poser ni à ouvrir)"
 	)
 	local guisBefore = otherGuis()
 	act(campGui, "Open")
@@ -394,8 +394,8 @@ return function(log)
 		`fenêtre du camp ouverte sur « Niveaux » : niveau 1 « {firstCard and firstCard.Play.Text} », niveau 2 « {secondCard and secondCard.Play.Text} », pièces « {window.Coins.Text} »`
 	)
 	shot("camp_niveaux")
-	-- 40 niveaux en 4 territoires : la page défile, chaque territoire est fermé tant que le dernier niveau du précédent
-	-- n'est pas réussi.
+	-- 100 niveaux en 10 territoires : la page défile, chaque territoire est fermé tant que le dernier niveau du précédent
+	-- n'est pas réussi ; après Levels.OPEN_COUNT : « Bientôt » (les mises à jour les ouvriront).
 	local headers, headerTexts = {}, {}
 	for territory in Levels.TERRITORIES do
 		headers[territory] = page1:FindFirstChild("Territory" .. territory)
@@ -403,15 +403,18 @@ return function(log)
 	local headersOk = #headers == #Levels.TERRITORIES
 	for territory, header in headers do
 		local map = Levels.MAPS[Levels.TERRITORIES[territory]]
+		local soon = (territory - 1) * Levels.TERRITORY_SIZE >= Levels.OPEN_COUNT
 		headersOk = headersOk and string.find(header.Text, `TERRITOIRE {territory}`, 1, true) ~= nil and string.find(header.Text, map.displayName, 1, true) ~= nil
-			and (territory == 1 or string.find(header.Text, `réussis le niveau {(territory - 1) * Levels.TERRITORY_SIZE}`, 1, true) ~= nil)
+			and (territory == 1 or string.find(header.Text, if soon then "Bientôt" else `réussis le niveau {(territory - 1) * Levels.TERRITORY_SIZE}`, 1, true) ~= nil)
 		table.insert(headerTexts, `« {header.Text} »`)
 	end
 	local card11, cardLast = page1:FindFirstChild("Level11"), page1:FindFirstChild("Level" .. Levels.COUNT)
+	local cardSoon = page1:FindFirstChild("Level" .. (Levels.OPEN_COUNT + 1))
 	check(
-		headersOk and card11 ~= nil and cardLast ~= nil and page1:FindFirstChild("Level" .. (Levels.COUNT + 1)) == nil
+		headersOk and card11 ~= nil and cardLast ~= nil and page1:FindFirstChild("Level" .. (Levels.COUNT + 1)) == nil and cardSoon ~= nil
+			and cardSoon.Play.Text == "🔒 BIENTÔT" and cardLast.Play.Text == "🔒 BIENTÔT"
 			and card11.Play.Text == "🔒" and page1.CanvasPosition.Y == 0 and page1.AbsoluteCanvasSize.Y > page1.AbsoluteSize.Y + 100,
-		`onglet « Niveaux » : {Levels.COUNT} niveaux en {#Levels.TERRITORIES} territoires ({table.concat(headerTexts, ", ")}), la page défile ({math.floor(page1.AbsoluteCanvasSize.Y)} px pour {math.floor(page1.AbsoluteSize.Y)} affichés)`
+		`onglet « Niveaux » : {Levels.COUNT} niveaux en {#Levels.TERRITORIES} territoires, {Levels.OPEN_COUNT} ouverts (niveau {Levels.OPEN_COUNT + 1} : « {cardSoon and cardSoon.Play.Text} » ; {table.concat(headerTexts, ", ")}), la page défile ({math.floor(page1.AbsoluteCanvasSize.Y)} px pour {math.floor(page1.AbsoluteSize.Y)} affichés)`
 	)
 	page1.CanvasPosition = Vector2.new(0, 5000)
 	task.wait(0.4)
@@ -422,52 +425,37 @@ return function(log)
 		end
 	end
 	check(
-		cardLast ~= nil and bossLabel ~= nil and string.find(cardLast.Reward.Text, NumberFormat.short(Levels.firstReward(Levels.COUNT)), 1, true) ~= nil and onScreen(cardLast)
+		cardLast ~= nil and bossLabel ~= nil and cardLast.Reward.Text == "Bientôt" and onScreen(cardLast)
 			and cardLast.AbsolutePosition.Y + cardLast.AbsoluteSize.Y <= page1.AbsolutePosition.Y + page1.AbsoluteSize.Y + 1,
 		`page défilée jusqu'en bas : la carte du niveau {Levels.COUNT} est entière dans la fenêtre (« {tostring(bossLabel)} », « {if cardLast then string.gsub(cardLast.Reward.Text, "\n", " ") else "?"} »)`
 	)
 	shot("camp_dernier_territoire")
 	page1.CanvasPosition = Vector2.new(0, 0)
-	act(campGui, "Tab:Boutique")
-	local shopPage = window.Page2
-	local frostCard = shopPage:FindFirstChild("Shop_Frost")
-	local archerCard = shopPage:FindFirstChild("Shop_MachineGun")
-	local bombCard = shopPage:FindFirstChild("Shop_Bomb")
+	act(campGui, "Tab:Œufs")
+	local eggsPage = window.Page4
+	local firstHatcher = eggsPage:FindFirstChild("Hatcher1")
 	check(
-		shopPage.Visible and not page1.Visible and archerCard.Buy.Text == "✓ À TOI" and bombCard.Buy.Text == "✓ À TOI"
-			and string.find(frostCard.Buy.Text, "150", 1, true) ~= nil and string.find(frostCard.Buy.Text, "manque", 1, true) ~= nil,
-		`onglet « Boutique » : Archer « {archerCard.Buy.Text} », Catapulte « {bombCard.Buy.Text} » (les deux tours de départ), Totem « {frostCard.Buy.Text} » (prix fixe, aucun hasard)`
+		eggsPage.Visible and not page1.Visible and window:FindFirstChild("Tab4") ~= nil and window:FindFirstChild("Tab5") == nil and firstHatcher ~= nil
+			and window:FindFirstChild("Page5") == nil,
+		`4 onglets (plus de boutique : toutes les tours sortent des œufs) ; onglet « Œufs » : la 1re couveuse est là ({if firstHatcher then "Hatcher1" else "?"})`
 	)
-	local oracleCard, trebuchetCard = shopPage:FindFirstChild("Shop_Chain"), shopPage:FindFirstChild("Shop_Orbital")
-	check(
-		string.find(frostCard.Role.Text, "40 %", 1, true) ~= nil and string.find(oracleCard.Buy.Text, NumberFormat.short(8000), 1, true) ~= nil
-			and string.find(trebuchetCard.Buy.Text, NumberFormat.short(15000), 1, true) ~= nil,
-		`boutique : Totem « {frostCard.Role.Text} », Oracle « {oracleCard.Buy.Text} », Trébuchet « {trebuchetCard.Buy.Text} » (les légendaires sont des buts à long terme)`
-	)
-	local limits = frostCard:FindFirstChild("Limits")
-	local limitsGap = if limits then frostCard.Buy.AbsolutePosition.Y - (limits.AbsolutePosition.Y + limits.AbsoluteSize.Y) else -1
-	local frostPreview = frostCard:FindFirstChild("TowerPreview")
-	check(
-		limitsGap >= 6 and frostPreview ~= nil and frostPreview:FindFirstChildOfClass("Model") ~= nil,
-		`boutique : la tour est dessinée en 3D sur sa carte, et la dernière ligne ne touche pas le bouton ({math.floor(limitsGap)} px d'écart)`
-	)
-	shot("camp_boutique")
+	shot("camp_oeufs")
 	act(campGui, "Tab:Entraînement")
-	local trainPage = window.Page3
+	local trainPage = window.Page2
 	local slot1, slot2 = trainPage:FindFirstChild("Slot1"), trainPage:FindFirstChild("Slot2")
 	local archerRow = trainPage.Towers:FindFirstChild("Train_MachineGun")
 	check(
 		trainPage.Visible and slot1 ~= nil and slot2 ~= nil and slot2.Action.Visible and string.find(slot2.Action.Text, "400", 1, true) ~= nil
-			and archerRow.Visible and trainPage.Towers.Train_Bomb.Visible and not trainPage.Towers.Train_Frost.Visible,
-		`onglet « Entraînement » : un emplacement avec l'Archer, le 2e à ouvrir (« {slot2 and slot2.Action.Text} »), seules les tours possédées sont listées (Archer, Catapulte)`
+			and archerRow.Visible and not trainPage.Towers.Train_Bomb.Visible and not trainPage.Towers.Train_Frost.Visible,
+		`onglet « Entraînement » : un emplacement avec l'Archer, le 2e à ouvrir (« {slot2 and slot2.Action.Text} »), seules les tours possédées sont listées (l'Archer)`
 	)
 	local lockedFrost = trainPage.Towers:FindFirstChild("Locked_Frost")
 	local lockedArcher = trainPage.Towers:FindFirstChild("Locked_MachineGun")
 	local archerTile = archerRow:FindFirstChild("PreviewTile")
 	check(
-		lockedFrost ~= nil and lockedFrost.Visible and lockedArcher ~= nil and not lockedArcher.Visible and string.find(lockedFrost.Price.Text, "150", 1, true) ~= nil
+		lockedFrost ~= nil and lockedFrost.Visible and lockedArcher ~= nil and not lockedArcher.Visible and string.find(lockedFrost.Price.Text, "dans les œufs", 1, true) ~= nil
 			and archerTile ~= nil and archerTile.AbsoluteSize.X >= 56 and archerTile:FindFirstChild("TowerPreview") ~= nil,
-		`onglet « Entraînement » : vignette de l'Archer dans un cadre de {if archerTile then math.floor(archerTile.AbsoluteSize.X) else "?"} px, les tours à acheter sont en gris à la suite (Totem « {if lockedFrost then lockedFrost.Price.Text else "?"} »)`
+		`onglet « Entraînement » : vignette de l'Archer dans un cadre de {if archerTile then math.floor(archerTile.AbsoluteSize.X) else "?"} px, les tours pas encore à lui sont en gris à la suite (Totem « {if lockedFrost then lockedFrost.Price.Text else "?"} »)`
 	)
 	-- Bouton ⚡ (entraînement acheté avec des pièces) : au-dessus du bouton « ENTRAÎNER », sans le recouvrir.
 	local boost, trainButton = archerRow:FindFirstChild("Boost"), archerRow:FindFirstChild("Train")
@@ -481,14 +469,14 @@ return function(log)
 	)
 	shot("camp_entrainement")
 	act(campGui, "Tab:Mes tours")
-	local towersPage = window.Page4
-	check(towersPage.Visible and towersPage.Towers.Tower_MachineGun.Visible and towersPage.Towers.Tower_Bomb.Visible and not towersPage.Towers.Tower_Orbital.Visible, "onglet « Mes tours » : l'inventaire (l'Archer et la Catapulte pour l'instant)")
+	local towersPage = window.Page3
+	check(towersPage.Visible and towersPage.Towers.Tower_MachineGun.Visible and not towersPage.Towers.Tower_Bomb.Visible and not towersPage.Towers.Tower_Orbital.Visible, "onglet « Mes tours » : l'inventaire (l'Archer seul pour l'instant)")
 	local lockedTrebuchet = towersPage.Towers:FindFirstChild("Locked_Orbital")
 	local lockedBomb = towersPage.Towers:FindFirstChild("Locked_Bomb")
 	check(
-		lockedTrebuchet ~= nil and lockedTrebuchet.Visible and lockedBomb ~= nil and not lockedBomb.Visible
-			and string.find(lockedTrebuchet.Price.Text, NumberFormat.short(15000), 1, true) ~= nil and lockedTrebuchet.Shop.Text == "BOUTIQUE",
-		`onglet « Mes tours » : les tours pas encore achetées sont en gris à la suite (Trébuchet « {if lockedTrebuchet then lockedTrebuchet.Price.Text else "?"} », bouton « {if lockedTrebuchet then lockedTrebuchet.Shop.Text else "?"} »)`
+		lockedTrebuchet ~= nil and lockedTrebuchet.Visible and lockedBomb ~= nil and lockedBomb.Visible
+			and string.find(lockedTrebuchet.Price.Text, "dans les œufs", 1, true) ~= nil and lockedTrebuchet.Eggs.Text == "ŒUFS",
+		`onglet « Mes tours » : les tours pas encore à lui sont en gris à la suite, la Catapulte comprise (Trébuchet « {if lockedTrebuchet then lockedTrebuchet.Price.Text else "?"} », bouton « {if lockedTrebuchet then lockedTrebuchet.Eggs.Text else "?"} »)`
 	)
 	shot("camp_tours")
 	act(campGui, "Close")
@@ -531,9 +519,8 @@ return function(log)
 	local fillAtStart = fill.BackgroundColor3
 	local bar = hudGui.TowerBar
 	check(
-		shown(bar.Tower_MachineGun) and shown(bar.Tower_Bomb) and not bar.Tower_Frost.Visible and bar.Tower_Bomb.Cost.Text == "45 💰"
-			and bar.Tower_MachineGun.Cost.Text == "20 💰",
-		`barre rapide : deux tours dès le départ, l'Archer (« {bar.Tower_MachineGun.Cost.Text} ») et la Catapulte (« {bar.Tower_Bomb.Cost.Text} »)`
+		shown(bar.Tower_MachineGun) and not bar.Tower_Bomb.Visible and not bar.Tower_Frost.Visible and bar.Tower_MachineGun.Cost.Text == "20 💰",
+		`barre rapide : l'Archer seul au départ (« {bar.Tower_MachineGun.Cost.Text} » ; la Catapulte sort de l'œuf du niveau 1)`
 	)
 	-- L'Archer offert tire tout de suite : un monstre tué en moins de 10 secondes.
 	local startedAt = os.clock()
@@ -618,20 +605,20 @@ return function(log)
 	-- Retour du propriétaire (02/10/2026) : « quand je clique sur une tour pour la poser, il faut que je puisse annuler
 	-- mon action ». La tour en main : son bouton devient rouge et dit « ANNULER » ; un appui dessus annule tout.
 	local goldHeld, towersHeld = arena:GetAttribute("Gold") or 0, #towers()
-	local heldButton = bar.Tower_Bomb
-	act(hudGui, "Bar:Bomb")
+	local heldButton = bar.Tower_MachineGun
+	act(hudGui, "Bar:MachineGun")
 	task.wait(0.2)
 	local red = heldButton.BackgroundColor3
 	check(
-		hudGui:GetAttribute("Placing") == "Bomb" and heldButton.Cost.Text == "ANNULER" and red.R > red.G * 2 and red.R > red.B * 2
-			and string.find(hudGui.Hint.Text, "Annuler", 1, true) ~= nil and bar.Tower_MachineGun.Cost.Text == "20 💰",
-		`prendre la Catapulte dans la barre : son bouton devient rouge et dit « {heldButton.Cost.Text} », le conseil aussi (« {hudGui.Hint.Text} »)`
+		hudGui:GetAttribute("Placing") == "MachineGun" and heldButton.Cost.Text == "ANNULER" and red.R > red.G * 2 and red.R > red.B * 2
+			and string.find(hudGui.Hint.Text, "Annuler", 1, true) ~= nil,
+		`prendre l'Archer dans la barre : son bouton devient rouge et dit « {heldButton.Cost.Text} », le conseil aussi (« {hudGui.Hint.Text} »)`
 	)
 	shot("annuler")
-	act(hudGui, "Bar:Bomb")
+	act(hudGui, "Bar:MachineGun")
 	task.wait(0.2)
 	check(
-		hudGui:GetAttribute("Placing") == "" and heldButton.Cost.Text == "45 💰" and #towers() == towersHeld and (arena:GetAttribute("Gold") or 0) >= goldHeld
+		hudGui:GetAttribute("Placing") == "" and heldButton.Cost.Text == "20 💰" and #towers() == towersHeld and (arena:GetAttribute("Gold") or 0) >= goldHeld
 			and heldButton.BackgroundColor3 ~= red,
 		`un appui sur « ANNULER » : la pose est annulée, rien n'est posé, aucun or dépensé (bouton de nouveau « {heldButton.Cost.Text} »)`
 	)
@@ -811,8 +798,8 @@ return function(log)
 	)
 	act(hudGui, "Select:")
 	act(hudGui, "Speed")
-	-- Jouer comme il faut, par les mêmes demandes que les boutons : poser ses 5 Archers, ses 4 Catapultes, et
-	-- améliorer sans arrêt la tour la moins chère (une action toutes les 0,25 s, soit 0,5 s de jeu en x2).
+	-- Jouer comme il faut, par les mêmes demandes que les boutons : poser ses 5 Archers et améliorer sans arrêt la
+	-- tour la moins chère (une action toutes les 0,25 s, soit 0,5 s de jeu en x2).
 	local nextAct = 0
 	local function playActively()
 		if os.clock() < nextAct then
@@ -821,12 +808,12 @@ return function(log)
 		nextAct = os.clock() + 0.25
 		local gold = arena:GetAttribute("Gold") or 0
 		local list = towers()
-		local counts = { MachineGun = 0, Bomb = 0 }
+		local counts = { MachineGun = 0 }
 		for _, model in list do
 			local towerType = model:GetAttribute("TowerType")
 			counts[towerType] = (counts[towerType] or 0) + 1
 		end
-		local wanted = if counts.MachineGun < 5 then "MachineGun" elseif counts.Bomb < 4 then "Bomb" else nil
+		local wanted = if counts.MachineGun < 5 then "MachineGun" else nil
 		if wanted then
 			local free = nil
 			for _, spot in map.spots do
@@ -869,8 +856,9 @@ return function(log)
 	local wonResult = levelResult()
 	check(
 		wonLevel and arena:GetAttribute("State") == "Won" and endOk and panel.Title.Text == "VICTOIRE !" and string.find(panel.Reward.Text, "80", 1, true) ~= nil
-			and panel.Next.Text == "Niveau 2 ▶" and shown(panel.Replay) and shown(panel.Camp) and onScreen(panel) and #towers() == 9,
-		`niveau 1 gagné en posant et en améliorant sans arrêt (état « {tostring(arena:GetAttribute("State"))} », {tostring(arena:GetAttribute("Lives"))} vies, {#towers()} tours) : écran de fin « {panel.Title.Text} », « {panel.Reward.Text} », bouton « {panel.Next.Text} »`
+			and panel.Next.Text == "Niveau 2 ▶" and shown(panel.Replay) and shown(panel.Camp) and onScreen(panel) and #towers() == 5
+			and string.find(panel.Details.Text, "Œuf de catapulte : il couve déjà dans ta couveuse", 1, true) ~= nil,
+		`niveau 1 gagné en posant et en améliorant sans arrêt (état « {tostring(arena:GetAttribute("State"))} », {tostring(arena:GetAttribute("Lives"))} vies, {#towers()} tours) : écran de fin « {panel.Title.Text} », « {panel.Reward.Text} », bouton « {panel.Next.Text} », l'œuf de catapulte annoncé`
 	)
 	shot("victoire")
 	check(
@@ -889,12 +877,12 @@ return function(log)
 			and arena:GetAttribute("SimSpeed") == 1 and cam().CameraType == Enum.CameraType.Scriptable,
 		`« Niveau suivant » : niveau 2 en cours, aucune tour gardée, « {strip.Gold.Text} » (l'or repart du montant de départ), vitesse x1`
 	)
-	levelAction:FireServer("Place", "Frost", 21, 0) -- (tour pas achetée : le serveur refuse et l'explique)
+	levelAction:FireServer("Place", "Frost", 21, 0) -- (tour pas à lui : le serveur refuse et l'explique)
 	check(
 		waitFor(function()
-			return toastWith("boutique") ~= nil
+			return toastWith("barre") ~= nil
 		end, 3),
-		`pendant un niveau, les messages du niveau s'affichent (« {tostring(toastWith("boutique"))} »)`
+		`pendant un niveau, les messages du niveau s'affichent (« {tostring(toastWith("barre"))} »)`
 	)
 	-- « Quitter » : un premier appui demande confirmation, le deuxième abandonne.
 	act(hudGui, "Select:MachineGun")
@@ -975,16 +963,16 @@ return function(log)
 		task.wait(1)
 		checkView("téléphone, niveau 1")
 		-- La tour en main dit « ANNULER », en entier dans l'écran ; un appui dessus annule.
-		act(hudGui, "Bar:Bomb")
+		act(hudGui, "Bar:MachineGun")
 		task.wait(0.3)
-		local phoneHeld = bar.Tower_Bomb
+		local phoneHeld = bar.Tower_MachineGun
 		check(
-			hudGui:GetAttribute("Placing") == "Bomb" and phoneHeld.Cost.Text == "ANNULER" and onScreen(phoneHeld) and phoneHeld.AbsoluteSize.X >= 60
+			hudGui:GetAttribute("Placing") == "MachineGun" and phoneHeld.Cost.Text == "ANNULER" and onScreen(phoneHeld) and phoneHeld.AbsoluteSize.X >= 60
 				and phoneHeld.AbsoluteSize.Y >= 36 and onScreen(hudGui.Hint) and string.find(hudGui.Hint.Text, "Annuler", 1, true) ~= nil,
 			`téléphone : la tour en main dit « {phoneHeld.Cost.Text} » sur un bouton de {math.floor(phoneHeld.AbsoluteSize.X)} x {math.floor(phoneHeld.AbsoluteSize.Y)} px, conseil « {hudGui.Hint.Text} »`
 		)
 		shot("tel_annuler")
-		act(hudGui, "Bar:Bomb")
+		act(hudGui, "Bar:MachineGun")
 		task.wait(0.3)
 		check(hudGui:GetAttribute("Placing") == "" and phoneHeld.Cost.Text ~= "ANNULER" and #towers() == 1, "téléphone : un appui sur « ANNULER » annule la pose, rien n'est posé")
 		act(hudGui, "Bar:MachineGun")
@@ -1016,7 +1004,7 @@ return function(log)
 				and (towerPoint.X < ml - 20 or towerPoint.X > mr + 20 or towerPoint.Y < mt - 20 or towerPoint.Y > mb + 20),
 			`téléphone : le menu de la tour est petit ({math.floor(menu.AbsoluteSize.X)} x {math.floor(menu.AbsoluteSize.Y)} px) et ne cache pas la tour choisie (tour à {if towerPoint then math.floor(towerPoint.X) else "?"},{if towerPoint then math.floor(towerPoint.Y) else "?"} ; menu de {math.floor(ml)},{math.floor(mt)} à {math.floor(mr)},{math.floor(mb)})`
 		)
-		local barPreview = bar.Tower_Bomb:FindFirstChild("TowerPreview")
+		local barPreview = bar.Tower_MachineGun:FindFirstChild("TowerPreview")
 		check(
 			barPreview ~= nil and barPreview.AbsoluteSize.Y >= 36 and barPreview:FindFirstChildOfClass("Model") ~= nil,
 			`téléphone : la vignette de la barre des tours fait {if barPreview then math.floor(barPreview.AbsoluteSize.Y) else "?"} px de haut`

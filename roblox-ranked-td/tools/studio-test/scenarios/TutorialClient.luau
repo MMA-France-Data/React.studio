@@ -9,8 +9,9 @@
 --      tour, et pas forcer un positionnement, et améliorer, et fin ») : « PRENDS UN ARCHER », puis des mots seuls
 --      « POSE-LA OÙ TU VEUX » (aucun endroit montré, aucun « + »), « TOUCHE CETTE TOUR », « AMÉLIORE » ; ensuite plus
 --      aucune flèche pendant le niveau ;
---   3) la boutique : dès que le joueur peut acheter une tour, « Retour au camp », l'onglet Boutique, « ACHETER » ;
---      l'achat termine le tuto ; statistiques des nouveaux joueurs (6 étapes dans l'ordre) ;
+--   3) l'œuf de catapulte (demande du propriétaire, 04/10/2026 : « le niveau 1 te donne un œuf de catapulte qui
+--      éclot en 10 s ») : « Retour au camp », l'onglet Œufs, « OUVRE-LE ! » ; la Catapulte sortie de l'œuf termine le
+--      tuto ; statistiques des nouveaux joueurs (6 étapes dans l'ordre) ;
 --   4) « Passer le tuto » (un appui sur ordinateur) ;
 --   5) à la taille d'un téléphone (750 x 332) : la flèche et ses mots restent dans l'écran, « Passer » en deux appuis.
 -- « SHOT:nom » = capture (out\tutorial_<nom>.png) ; « PHONE:want=... » = run.ps1 redimensionne la fenêtre de Studio.
@@ -320,7 +321,7 @@ return function(log)
 	problem = buttonArrowProblem(openButton)
 	check(problem == nil and playButton:FindFirstChild("TutorialHighlight") == nil, `flèche à côté du bouton « ⚔ NIVEAUX », le cadre doré a quitté « ▶ JOUER » ({problem or "rien à redire"})`)
 	shot("bouton_niveaux")
-	act(campGui, "Tab:Boutique")
+	act(campGui, "Tab:Entraînement")
 	check(waitShowing("Tab1", "LES NIVEAUX"), `fenêtre ouverte sur un autre onglet : la flèche montre l'onglet « Niveaux » ({described()})`)
 	act(campGui, "Tab:Niveaux")
 	check(waitShowing("Play", "JOUE ICI"), `retour sur l'onglet « Niveaux » : la flèche montre de nouveau « ▶ JOUER » ({described()})`)
@@ -407,68 +408,64 @@ return function(log)
 	waitFor(function()
 		return endScreen.Visible
 	end, 5)
-	local nextShown = waitShowing("Next", "CONTINUE", 4)
+	local wonAt = os.clock()
+	-- Demande du propriétaire (04/10/2026) : « le niveau 1 te donne un œuf de catapulte qui éclot en 10 s ». Il couve
+	-- déjà dans la 1re couveuse : la flèche montre « Retour au camp ».
+	local campShown = waitShowing("Camp", "TON ŒUF !", 4)
 	task.wait(0.4)
-	problem = if nextShown then buttonArrowProblem(endScreen.Panel.Next, { endScreen.Panel.Details, endScreen.Panel.Replay, endScreen.Panel.Camp }) else "pas de flèche"
+	problem = if campShown then buttonArrowProblem(endScreen.Panel.Camp, { endScreen.Panel.Details, endScreen.Panel.Next, endScreen.Panel.Replay }) else "pas de flèche"
+	local hatcher = (published().hatchers or {})[1]
 	check(
-		nextShown and problem == nil and published().tutorial == Levels.TUTORIAL.SHOP and published().best == 1,
-		`victoire : la flèche montre « {endScreen.Panel.Next.Text} » par le côté, sans cacher le texte ni les autres boutons ({described()} ; {problem or "bien placée"}), le tuto passe à l'étape {tostring(published().tutorial)}`
+		campShown and problem == nil and published().tutorial == Levels.TUTORIAL.EGG and published().best == 1 and hatcher ~= nil and hatcher.egg == "Starter"
+			and string.find(endScreen.Panel.Details.Text, "Œuf de catapulte", 1, true) ~= nil,
+		`victoire : l'œuf de catapulte couve déjà, la flèche montre « {endScreen.Panel.Camp.Text} » par le côté, sans cacher le texte ni les autres boutons ({described()} ; {problem or "bien placée"}), le tuto passe à l'étape {tostring(published().tutorial)}`
 	)
 	shot("victoire")
 
 	------------------------------------------------------------------
-	-- 3) La boutique : dès que le joueur peut acheter une tour
+	-- 3) L'œuf de catapulte : au camp, l'onglet Œufs, « OUVRE-LE ! »
 	------------------------------------------------------------------
-	act(hudGui, "Next")
-	local level2 = waitFor(function()
-		return arena:GetAttribute("Level") == 2 and arena:GetAttribute("State") == "Running" and not endScreen.Visible
-	end, 6)
-	task.wait(1)
-	check(
-		level2 and target() == "" and not arrow.Visible and not shown(skip),
-		`niveau 2 : plus de guide ni de bouton « Passer » (le joueur sait jouer), la flèche est cachée ({described()})`
-	)
-	test:InvokeServer("Finish", true) -- (niveau 2 gagné d'un coup : 80 + 100 pièces, de quoi acheter le Totem de givre)
-	local campShown = waitShowing("Camp", "NOUVELLE TOUR !", 6)
-	task.wait(0.4)
-	problem = if campShown then buttonArrowProblem(endScreen.Panel.Camp, { endScreen.Panel.Next, endScreen.Panel.Replay }) else "pas de flèche"
-	check(
-		campShown and problem == nil and (published().coins or 0) >= Levels.SHOP.Frost,
-		`niveau 2 gagné, {tostring(published().coins)} pièces : la flèche montre « {endScreen.Panel.Camp.Text} » sans recouvrir « {endScreen.Panel.Next.Text} » ({described()} ; {problem or "bien placée"})`
-	)
-	shot("fin_niveau_boutique")
 	act(hudGui, "Camp")
 	waitFor(function()
 		return player:GetAttribute("LevelArena") == nil and not hudGui.Enabled
 	end, 5)
-	check(waitShowing("Tab2", "LA BOUTIQUE", 5) and window.Visible, `retour au camp : la flèche montre l'onglet « Boutique » ({described()})`)
+	check(waitShowing("Tab4", "LES ŒUFS", 5) and window.Visible, `retour au camp : la fenêtre s'ouvre, la flèche montre l'onglet « Œufs » ({described()})`)
 	task.wait(0.3)
-	problem = buttonArrowProblem(window.Tab2)
-	check(problem == nil, `flèche à côté de l'onglet « Boutique » ({problem or "rien à redire"})`)
-	act(campGui, "Tab:Boutique")
-	local buyButton = window.Page2.Shop_Frost.Buy
-	local buyShown = waitShowing("Buy", "ACHÈTE-LA", 4)
+	problem = buttonArrowProblem(window.Tab4)
+	check(problem == nil, `flèche à côté de l'onglet « Œufs » ({problem or "rien à redire"})`)
+	shot("onglet_oeufs")
+	act(campGui, "Close")
+	check(waitShowing("LevelsButton", "TON ŒUF !", 4), `fenêtre fermée : la flèche montre le bouton « ⚔ NIVEAUX » ({described()})`)
+	act(campGui, "Tab:Œufs")
+	local hatcherAction = window.Page4.Hatcher1.Action
+	local eggShown = waitFor(function()
+		return showing("Action", "IL ÉCLOT BIENTÔT") or showing("Action", "OUVRE-LE !")
+	end, 4)
 	task.wait(0.4)
-	local frostCard = window.Page2.Shop_Frost
-	problem = if buyShown then buttonArrowProblem(buyButton, { frostCard.Role, frostCard.Limits }) else "pas de flèche"
-	check(buyShown and problem == nil, `onglet « Boutique » : la flèche montre « {buyButton.Text} » du Totem de givre, la tour la moins chère, sans cacher sa description ({described()} ; {problem or "bien placée"})`)
-	shot("boutique")
-	levelAction:FireServer("Buy", "Frost") -- (le bouton « ACHETER » envoie cette demande)
+	problem = if eggShown then buttonArrowProblem(hatcherAction) else "pas de flèche"
+	check(eggShown and problem == nil, `onglet « Œufs » : la flèche montre le bouton de la couveuse (« {hatcherAction.Text} » ; {described()} ; {problem or "bien placée"})`)
+	shot("couveuse")
+	local readyShown = waitShowing("Action", "OUVRE-LE !", 15)
+	local readyAfter = os.clock() - wonAt
+	check(readyShown and readyAfter >= 9, string.format("l'œuf de catapulte est prêt %.0f s après la victoire (il éclot en 10 s) : la flèche dit « OUVRE-LE ! »", readyAfter))
+	shot("oeuf_pret")
+	act(campGui, "EggOpen:1") -- (le bouton de la couveuse envoie cette demande)
 	local done = waitFor(function()
 		return published().tutorial == Levels.TUTORIAL.DONE
 	end, 4)
 	task.wait(0.6)
 	check(
 		done and target() == "" and not arrow.Visible and not words.Visible and not shown(skip) and pointerGui:GetAttribute("Stage") == Levels.TUTORIAL.DONE
-			and buyButton:FindFirstChild("TutorialHighlight") == nil,
-		`première tour achetée : le tuto est fini (étape {tostring(published().tutorial)}), plus de flèche, plus de cadre doré, plus de bouton « Passer »`
-	)
-	local funnel = test:InvokeServer("Funnel")
-	check(
-		table.concat(funnel.steps, " > ") == "Arrivee > Niveau 1 lance > 1re tour posee > 1re amelioration > 1er niveau gagne > 1re tour achetee" and funnel.skipped == nil,
-		`statistiques des nouveaux joueurs : 6 étapes, dans l'ordre (« {table.concat(funnel.steps, " > ")} »)`
+			and table.find(published().towers or {}, "Bomb") ~= nil and hatcherAction:FindFirstChild("TutorialHighlight") == nil,
+		`l'œuf ouvert : la Catapulte rejoint sa barre, le tuto est fini (étape {tostring(published().tutorial)}), plus de flèche, plus de cadre doré, plus de bouton « Passer »`
 	)
 	shot("fini")
+	act(campGui, "RevealClose")
+	local funnel = test:InvokeServer("Funnel")
+	check(
+		table.concat(funnel.steps, " > ") == "Arrivee > Niveau 1 lance > 1re tour posee > 1re amelioration > 1er niveau gagne > 1er oeuf ouvert" and funnel.skipped == nil,
+		`statistiques des nouveaux joueurs : 6 étapes, dans l'ordre (« {table.concat(funnel.steps, " > ")} »)`
+	)
 
 	------------------------------------------------------------------
 	-- 4) « Passer le tuto »

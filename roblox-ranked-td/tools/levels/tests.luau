@@ -111,15 +111,15 @@ for level = 1, Levels.COUNT do
 	elseif level == 10 then
 		check(types.Boss == 1 and queue[#queue].enemy == "Boss", "niveau 10 : le boss ferme le flot")
 	elseif level == 15 then
-		check(types.Giant == 2 and not types.Boss, "niveau 15 : deux mini-boss ensemble (chevaliers colossaux), pas de boss")
+		check(types.Colossus == 1 and not types.Giant and not types.Boss, "niveau 15 : le mini-boss est un colosse géant (un seul gros monstre), pas de boss")
 	elseif level == 20 then
 		check(types.Boss == 1 and types.Giant == 2 and queue[#queue].enemy == "Boss", "niveau 20 : deux colosses dans le flot, puis le boss le ferme")
 	elseif level == 25 then
-		check(types.Giant == 3 and not types.Boss, "niveau 25 : trois colosses ensemble, pas de boss")
+		check(types.Colossus == 1 and not types.Giant and not types.Boss, "niveau 25 : un colosse géant (à la place de trois colosses ensemble), pas de boss")
 	elseif level == 30 then
 		check(types.Boss == 1 and types.Giant == 3 and queue[#queue].enemy == "Boss", "niveau 30 : trois colosses dans le flot, puis le boss le ferme")
 	elseif level == 35 then
-		check(types.Giant == 4 and not types.Boss, "niveau 35 : deux paires de colosses, pas de boss")
+		check(types.Colossus == 2 and not types.Giant and not types.Boss, "niveau 35 : deux colosses géants (à la place de deux paires de colosses), pas de boss")
 	elseif level == 40 then
 		check(types.Boss == 1 and types.Giant == 4 and queue[#queue].enemy == "Boss", "niveau 40 : quatre colosses dans le flot, puis le boss le ferme")
 	elseif level == 45 then
@@ -163,7 +163,7 @@ for level = 1, Levels.COUNT do
 	local early = true
 	for _, item in queue do
 		local from = (source.from or {})[item.enemy]
-		if item.enemy ~= "Normal" and item.enemy ~= "Giant" and item.enemy ~= "Boss" then
+		if item.enemy ~= "Normal" and item.enemy ~= "Giant" and item.enemy ~= "Colossus" and item.enemy ~= "Boss" then
 			early = early and from ~= nil and item.at >= from * source.seconds - 1e-6
 		end
 	end
@@ -177,6 +177,24 @@ for level = 1, Levels.COUNT do
 	check(same and #again == #queue, `niveau {level} : toujours exactement le même flot`)
 end
 check(Levels.enemyHealth(10, "Boss") > Levels.enemyHealth(5, "Giant"), "le boss du niveau 10 est plus résistant que le mini-boss du niveau 5")
+-- Idée du propriétaire (04/10/2026) : « un gros colosse plus fort qui apparaît à un couloir aléatoire ».
+do
+	local Enemies = require("./gen/shared/Enemies")
+	local colossus, giant = Enemies.Defs.Colossus, Enemies.Defs.Giant
+	local function specialHealth(level: number, enemyType: string): number
+		for _, item in Levels.buildQueue(level) do
+			if item.enemy == enemyType then
+				return item.health
+			end
+		end
+		return 0
+	end
+	check(
+		colossus ~= nil and table.find(Enemies.ORDER, "Colossus") == 7 and colossus.size > giant.size and colossus.speed < giant.speed
+			and Levels.ENEMY.Colossus.leak == 10 and specialHealth(25, "Colossus") > specialHealth(24, "Giant") * 1.2,
+		`colosse géant : plus grand et plus lent qu'un colosse, plus résistant ({specialHealth(25, "Colossus")} PV au niveau 25, un colosse du niveau 24 : {specialHealth(24, "Giant")}), il coûte toutes les vies s'il passe`
+	)
+end
 check(
 	Levels.enemyHealth(20, "Boss") > Levels.enemyHealth(10, "Boss") and Levels.enemyHealth(11, "Normal") > Levels.enemyHealth(10, "Normal"),
 	`2e territoire : des monstres plus résistants (fantassin {Levels.enemyHealth(10, "Normal")} PV au niveau 10, {Levels.enemyHealth(11, "Normal")} au niveau 11 ; boss {Levels.enemyHealth(10, "Boss")} puis {Levels.enemyHealth(20, "Boss")} PV)`
@@ -184,6 +202,8 @@ check(
 -- Chaque territoire est plus dur que le précédent : un de ses niveaux a en moyenne plus de PV en tout (tous ses
 -- monstres, colosses compris), et son boss en a plus. (Les PV du seul fantassin ne suffisent pas : aux niveaux 51
 -- à 60, cinq colosses par niveau demandent des fantassins un peu moins résistants qu'aux niveaux 41 à 50.)
+-- Seulement les territoires OUVERTS (Levels.OPEN_COUNT) : ceux d'après datent de la boutique, ils seront réglés de
+-- nouveau avant d'ouvrir.
 do
 	local function bossHealth(level: number): number
 		for _, item in Levels.buildQueue(level) do
@@ -203,7 +223,7 @@ do
 		end
 		averages[territory] = total / Levels.TERRITORY_SIZE
 		bosses[territory] = bossHealth(territory * Levels.TERRITORY_SIZE)
-		if territory > 1 then
+		if territory > 1 and (territory - 1) * Levels.TERRITORY_SIZE < Levels.OPEN_COUNT then
 			harder = harder and averages[territory] > averages[territory - 1] and bosses[territory] > bosses[territory - 1]
 		end
 	end
@@ -212,7 +232,7 @@ do
 		table.insert(shown, `{math.floor(average)}`)
 		table.insert(shownBosses, `{math.floor(bosses[territory])}`)
 	end
-	check(harder, `chaque territoire est plus dur que le précédent (PV de tous les monstres d'un niveau, en moyenne : {table.concat(shown, ", ")} ; PV des boss : {table.concat(shownBosses, ", ")})`)
+	check(harder, `chaque territoire ouvert est plus dur que le précédent (PV de tous les monstres d'un niveau, en moyenne : {table.concat(shown, ", ")} ; PV des boss : {table.concat(shownBosses, ", ")})`)
 end
 check(not pcall(Levels.definition, Levels.COUNT + 1) and not pcall(Levels.buildQueue, 0), `un niveau inconnu (0, {Levels.COUNT + 1}) est refusé`)
 
@@ -331,89 +351,51 @@ check(Levels.reward(10, true, false) > Levels.reward(4, true, false) and Levels.
 check(Levels.placeCost("MachineGun") == 20 and Levels.upgradeCost("MachineGun", 1) == 15 and Levels.upgradeCost("MachineGun", 2) == 22, "Archer : 20 or, puis 15 et 22 pour ses deux premières améliorations")
 check(Levels.upgradeCost("MachineGun", Levels.MAX_TOWER_LEVEL) == nil and Levels.upgradeCost("MachineGun", Levels.MAX_TOWER_LEVEL - 1) ~= nil, "pas d'amélioration au-delà du niveau maximum")
 check(Levels.maxCopies("Frost") == 3 and Levels.maxCopies("MachineGun") == 5 and Levels.maxCopies("Orbital") == 2, "limites : 3 Totems, 5 Archers, 2 Trébuchets par niveau")
--- Demande du propriétaire : « commencer avec au moins deux tours, juste l'Archer c'est ennuyant ».
-check(#Levels.STARTING_TOWERS == 2 and Levels.STARTING_TOWERS[1] == "MachineGun" and Levels.STARTING_TOWERS[2] == "Bomb", "deux tours possédées dès le départ : l'Archer et la Catapulte")
-local shopOk = true
-for _, towerType in IdleTowers.TIER1 do
-	local starting = table.find(Levels.STARTING_TOWERS, towerType) ~= nil
-	shopOk = shopOk and Levels.TOWER_COST[towerType] ~= nil and (if starting then Levels.SHOP[towerType] == nil else Levels.SHOP[towerType] > 0)
-end
-check(shopOk, "boutique : un prix fixe pour chaque tour de palier 1 sauf les deux de départ (déjà possédées), et un prix en or pour toutes")
-check(Levels.SHOP.Frost == 150 and Levels.SHOP.Tesla == 400, "boutique : Totem 150 pièces (payable après 2 niveaux), Mage 400")
--- Retour du propriétaire (02/10/2026) : « les prix des prochaines tours doivent être plus hauts, pas forcément les
--- basiques mais les légendaires surtout, car au niveau 10 tu les as en gros ? ». Les 10 premiers niveaux réussis
--- une fois paient le Totem, le Mage et la Baliste, pas plus ; les 20, le Sorcier en plus ; les 30, l'Oracle en
--- plus ; les 40 ne paient pas le Trébuchet ; les 45, si.
-local firstTerritory, firstTwenty, firstThirty, allFirst, beforeLevel18, previousPrice, rising = 0, 0, 0, 0, 0, 0, true
-local firstForty, firstFortyFive = 0, 0
-for level = 1, Levels.COUNT do
-	allFirst += Levels.firstReward(level)
-	if level <= Levels.TERRITORY_SIZE then
-		firstTerritory += Levels.firstReward(level)
-	end
-	if level <= 20 then
-		firstTwenty += Levels.firstReward(level)
-	end
-	if level <= 30 then
-		firstThirty += Levels.firstReward(level)
-	end
-	if level <= 40 then
-		firstForty += Levels.firstReward(level)
-	end
-	if level <= 45 then
-		firstFortyFive += Levels.firstReward(level)
-	end
-	if level < 18 then
-		beforeLevel18 += Levels.firstReward(level)
+-- Décision du propriétaire (04/10/2026) : « ça serait mieux pas de tour en boutique, et le niveau 1 te donne un œuf de
+-- catapulte qui éclot en 10 s ». L'Archer seul au départ ; toutes les autres tours sortent des œufs.
+check(#Levels.STARTING_TOWERS == 1 and Levels.STARTING_TOWERS[1] == "MachineGun" and Levels.SHOP == nil, "départ : l'Archer seul, plus de boutique")
+local inEggs, missingTowers = {}, {}
+for _, eggType in Levels.EGG_ORDER do
+	for _, entry in Levels.eggChances(eggType) do
+		inEggs[entry.tower] = true
 	end
 end
 for _, towerType in IdleTowers.ORDER do
-	local price = Levels.SHOP[towerType]
-	if price then
-		rising = rising and price > previousPrice
-		previousPrice = price
+	if not inEggs[towerType] or not Levels.TOWER_COST[towerType] then
+		table.insert(missingTowers, towerType)
 	end
 end
-check(rising, "boutique : chaque tour coûte plus cher que la précédente")
+check(#missingTowers == 0, `toutes les tours sortent des œufs et ont un prix en or (manquent : {table.concat(missingTowers, ", ")})`)
 check(
-	firstTerritory == 2180 and firstTerritory >= Levels.SHOP.Frost + Levels.SHOP.Tesla + Levels.SHOP.Rocket
-		and firstTerritory < Levels.SHOP.Frost + Levels.SHOP.Tesla + Levels.SHOP.Laser,
-	`les 10 premiers niveaux réussis une fois ({firstTerritory} pièces) paient le Totem, le Mage et la Baliste, mais pas le Sorcier`
+	Levels.eggFor(1, true) == "Starter" and Levels.EGGS.Starter.tower == "Bomb" and Levels.EGGS.Starter.seconds == 10 and Levels.eggFor(1, false) == "Common",
+	"niveau 1 gagné la première fois : l'œuf de catapulte (10 s, la Catapulte à coup sûr) ; en le rejouant : un œuf commun"
 )
-local fourTowers = Levels.SHOP.Frost + Levels.SHOP.Tesla + Levels.SHOP.Rocket + Levels.SHOP.Laser
+-- Pièces de niveau : les premières victoires (les tours ne s'achètent plus : elles servent au camp, aux couveuses et à
+-- finir les œufs).
+local firstTerritory, firstTwenty, firstThirty, firstForty, allFirst = 0, 0, 0, 0, 0
+for level = 1, Levels.COUNT do
+	local reward = Levels.firstReward(level)
+	allFirst += reward
+	firstTerritory += if level <= Levels.TERRITORY_SIZE then reward else 0
+	firstTwenty += if level <= 20 then reward else 0
+	firstThirty += if level <= 30 then reward else 0
+	firstForty += if level <= 40 then reward else 0
+end
 check(
-	firstTwenty == 6860 and firstTwenty >= fourTowers and firstTwenty < fourTowers + Levels.SHOP.Chain,
-	`les 20 premiers niveaux réussis une fois ({firstTwenty} pièces) paient aussi le Sorcier ({fourTowers} pour les quatre), mais aucune légendaire`
+	firstTerritory == 2180 and firstTwenty == 6860 and firstThirty == 14040 and firstForty == 23720 and allFirst == 134300,
+	`pièces des premières victoires : {firstTerritory} pour les 10 premiers niveaux, {firstTwenty} pour 20, {firstThirty} pour 30, {firstForty} pour 40`
 )
-local withOracle = fourTowers + Levels.SHOP.Chain
+-- De quoi finir ses œufs : les pièces du niveau 2 paient un œuf commun tout de suite (75), celles des 10 premiers niveaux
+-- l'œuf doré du boss (1 200).
 check(
-	firstThirty == 14040 and firstThirty >= withOracle and firstThirty - Levels.firstReward(30) < withOracle,
-	`les 30 premiers niveaux réussis une fois ({firstThirty} pièces) paient l'Oracle en plus ({withOracle} pour les cinq), pas avant le boss du niveau 30`
-)
-local allTowers = withOracle + Levels.SHOP.Orbital
-check(
-	firstForty == 23720 and firstForty < allTowers,
-	`les 40 premiers niveaux réussis une fois ({firstForty} pièces) ne paient pas le Trébuchet ({allTowers} pour les six tours)`
-)
-check(
-	firstFortyFive >= allTowers and firstFortyFive - Levels.firstReward(45) < allTowers and allFirst == 134300,
-	`les 45 premiers niveaux réussis une fois ({firstFortyFive} pièces) paient le Trébuchet, pas avant le mini-boss du niveau 45 ; les {Levels.COUNT} en donnent {allFirst}`
-)
--- Ce que le réglage des niveaux attend (Bot.EXPECTED) : la Baliste en arrivant au niveau 11, le Sorcier au 18,
--- l'Oracle au 31, le Trébuchet au 46.
-check(beforeLevel18 >= fourTowers, `le Sorcier est payable avant le niveau 18 ({beforeLevel18} pièces gagnées du niveau 1 au 17, il en faut {fourTowers})`)
-local replay10 = Levels.reward(10, true, false)
-local replayLast = Levels.reward(Levels.COUNT, true, false)
-check(
-	IdleTowers.Defs.Chain.rarity == "Legendary" and IdleTowers.Defs.Orbital.rarity == "Legendary" and Levels.SHOP.Chain >= 30 * replay10
-		and Levels.SHOP.Orbital >= 60 * replay10,
-	`tours légendaires : l'Oracle vaut {math.ceil(Levels.SHOP.Chain / replay10)} parties rejouées au niveau 10 ou {math.ceil(Levels.SHOP.Chain / replayLast)} au niveau {Levels.COUNT}, le Trébuchet {math.ceil(Levels.SHOP.Orbital / replay10)} ou {math.ceil(Levels.SHOP.Orbital / replayLast)}`
+	Levels.firstReward(2) >= Levels.skipCost(Levels.EGGS.Common.seconds) and firstTerritory >= Levels.skipCost(Levels.EGGS.Gold.seconds),
+	`finir un œuf : un œuf commun ({Levels.skipCost(Levels.EGGS.Common.seconds)}) coûte moins que le niveau 2 n'en donne, l'œuf doré ({Levels.skipCost(Levels.EGGS.Gold.seconds)}) moins que les 10 premiers niveaux`
 )
 check(Levels.ENEMY.Normal.gold == 6 and Levels.ENEMY.Swarm.gold == 2 and Levels.ENEMY.Tank.gold == 18 and Levels.ENEMY.Boss.leak == 10, "or des monstres : 6 le fantassin, 2 l'écuyer, 18 le chevalier lourd")
 check(Levels.RUSH_GOLD_PER_SECOND == nil and Levels.GROUP_PAUSE == nil, "plus de pauses entre des groupes ni de bouton « envoyer la suite »")
 
 ----------------------------------------------------------------------
--- 4) Entraînement : niveaux, améliorations débloquées, stats
+-- 4) Entraînement : niveaux, dégâts, stats
 ----------------------------------------------------------------------
 check(Levels.trainingLevel(0) == 0 and Levels.trainingLevel(19.9) == 0 and Levels.trainingLevel(20) == 1 and Levels.trainingLevel(60) == 2 and Levels.trainingLevel(1e9) == 6 and Levels.trainingLevel("abc") == 0, "niveaux d'entraînement : 20 XP = 1, 60 = 2, jamais plus de 6")
 -- Entraînement acheté avec des pièces (bouton ⚡) : l'XP qui manque pour le niveau suivant, 10 pièces par XP.
@@ -442,44 +424,36 @@ end
 local done, needed = Levels.trainingProgress(30)
 local maxDone, maxNeeded = Levels.trainingProgress(5000)
 check(done == 10 and needed == 40 and maxDone == 0 and maxNeeded == 0, "progression : 30 XP = 10 sur 40 vers le niveau 2 ; au maximum : rien")
-local archer0, archer2, archer4, archer6 = Levels.towerStats("MachineGun", 1, 0), Levels.towerStats("MachineGun", 1, 2), Levels.towerStats("MachineGun", 1, 4), Levels.towerStats("MachineGun", 1, 6)
-check(archer0.fireRadius == nil and archer2.fireRadius ~= nil, "flèches enflammées : seulement à partir de l'entraînement 2")
-check(near(archer0.damage, 3) and near(archer2.damage, 3.3) and near(archer6.damage, 3.9), "+5 % de dégâts par niveau d'entraînement (3 -> 3,3 -> 3,9)")
-check(archer4.range == archer0.range + 3 and near(archer6.cooldown, archer0.cooldown / 1.2), "Archer : +3 de portée à l'entraînement 4, +20 % de vitesse au 6")
-check(Levels.towerStats("Rocket", 1, 0).kind == "Single" and Levels.towerStats("Rocket", 1, 2).kind == "Pierce", "Baliste : carreau perçant à partir de l'entraînement 2")
-check(Levels.towerStats("Frost", 3, 0).fragility == 0 and Levels.towerStats("Frost", 3, 2).fragility > 0, "Totem : fragilité à partir de l'entraînement 2")
+local archer0, archer2, archer6 = Levels.towerStats("MachineGun", 1, 0), Levels.towerStats("MachineGun", 1, 2), Levels.towerStats("MachineGun", 1, 6)
+-- Décision du propriétaire (04/10/2026) : « le terrain d'entraînement encore là mais pour du niveau dégâts » ; les
+-- pouvoirs (feu, fragilité, carreau perçant) sont ceux des tours de palier 2.
+check(near(archer0.damage, 3) and near(archer2.damage, 3.6) and near(archer6.damage, 4.8), "+10 % de dégâts par niveau d'entraînement (3 -> 3,6 -> 4,8)")
+check(archer6.range == archer0.range and archer6.cooldown == archer0.cooldown, "l'entraînement ne donne que des dégâts (portée et vitesse inchangées)")
+local noPowers = true
+for _, towerType in IdleTowers.TIER1 do
+	local trained = Levels.towerStats(towerType, 1, Levels.TRAINING.MAX_LEVEL)
+	noPowers = noPowers and trained.fireRadius == nil and (trained.fragility or 0) == 0 and trained.kind ~= "Pierce"
+end
+check(noPowers, "tours de palier 1 : aucun pouvoir, même entraînées au maximum (ni feu, ni fragilité, ni carreau perçant)")
+check(Levels.PERKS == nil and Levels.perkKeys == nil and Levels.perksBetween == nil, "plus d'améliorations d'entraînement")
 -- Retour du propriétaire (02/10/2026) : « le ralentissement du givre est un peu cheaté » : -40 % dans les niveaux.
 check(
-	near(Levels.towerStats("Frost", 1, 0).slow, 0.4) and near(Levels.towerStats("Frost", 5, 5).slow, 0.4) and near(Levels.towerStats("Frost", 1, 6).slow, 0.5)
-		and IdleTowers.stats("Frost", 1).slow == 0.6,
-	"Totem : ralentit de 40 % dans les niveaux (50 % à l'entraînement 6), toujours 60 % sur la parcelle"
+	near(Levels.towerStats("Frost", 1, 0).slow, 0.4) and near(Levels.towerStats("Frost", 5, 6).slow, 0.4) and IdleTowers.stats("Frost", 1).slow == 0.6,
+	"Totem : ralentit de 40 % dans les niveaux, quel que soit son entraînement (60 % sur la parcelle)"
 )
 check(near(Levels.towerStats("MachineGun", 3, 0).damage, 3 * IdleConfig.UPGRADE_DAMAGE ^ 2), "une amélioration en niveau : dégâts x1,35")
-check(Levels.towerStats("MachineGun", 1, 2) == archer2 and IdleTowers.stats("MachineGun", 1).fireRadius ~= nil, "towerStats garde ses tableaux et ne touche pas aux stats de la parcelle")
-check(Levels.perkKeys({ MachineGun = 2, Rocket = 1, Frost = 6 }) == "MachineGun:Fire,Frost:Fragile" and Levels.perkKeys({}) == "", "perkKeys : seulement les effets débloqués")
+check(Levels.towerStats("MachineGun", 1, 2) == archer2 and IdleTowers.stats("MachineGun", 1).damage == 3, "towerStats garde ses tableaux et ne touche pas aux stats de la parcelle")
 local decoded = Levels.decodeTraining(Levels.encodeTraining({ MachineGun = 2, Orbital = 6, Inconnue = 3 }))
 check(decoded.MachineGun == 2 and decoded.Orbital == 6 and decoded.Frost == 0 and decoded.Inconnue == nil and next(Levels.decodeTraining(nil)) == nil, "encodeTraining / decodeTraining : aller-retour, tour inconnue ignorée")
 check(Levels.playXp(true) == 8 and Levels.playXp(false, 0.5) == 1.5 and Levels.playXp(false, 0) == 0 and Levels.playXp(false, 7) == 3, "XP d'une partie : 8 gagnée, 3 x l'avancée perdue (0 si on quitte tout de suite)")
-local gainedPerks = Levels.perksBetween("MachineGun", 1, 4)
-check(#gainedPerks == 2 and gainedPerks[1].name == "Flèches enflammées" and #Levels.perksBetween("MachineGun", 2, 2) == 0, "perksBetween : les améliorations gagnées entre deux niveaux d'entraînement")
-for _, towerType in IdleTowers.TIER1 do
-	local perks = Levels.PERKS[towerType]
-	local fine = perks ~= nil and #perks == 3
-	for _, perk in perks or {} do
-		fine = fine and perk.level >= 1 and perk.level <= Levels.TRAINING.MAX_LEVEL and perk.name ~= "" and perk.text ~= "" and (perk.on ~= nil or perk.off ~= nil)
-	end
-	-- (aucune amélioration ne plante sur les stats de sa tour)
-	fine = fine and pcall(Levels.towerStats, towerType, 1, Levels.TRAINING.MAX_LEVEL)
-	check(fine, `{towerType} : 3 améliorations d'entraînement, toutes applicables`)
-end
 
 ----------------------------------------------------------------------
 -- 5) Données du joueur
 ----------------------------------------------------------------------
 local fresh = Levels.defaultData()
-check(fresh.best == 0 and fresh.coins == 0 and fresh.tutorial == 0 and fresh.towers.MachineGun == true and fresh.towers.Bomb == true and fresh.towers.Frost == nil and #fresh.slots == 1 and fresh.slots[1].tower == "MachineGun" and table.concat(fresh.bar, ",") == "MachineGun,Bomb", "nouveau joueur : l'Archer et la Catapulte dans sa barre, un emplacement de camp, rien d'autre")
-local archerOnly = Levels.cleanData({ best = 3, towers = { MachineGun = true }, bar = { "MachineGun" } })
-check(archerOnly.towers.Bomb == true and table.concat(Levels.ownedTowers(archerOnly), ",") == "MachineGun,Bomb" and archerOnly.best == 3, "ancienne sauvegarde avec le seul Archer : la Catapulte est donnée, le reste est gardé")
+check(fresh.best == 0 and fresh.coins == 0 and fresh.tutorial == 0 and fresh.towers.MachineGun == true and fresh.towers.Bomb == nil and #fresh.slots == 1 and fresh.slots[1].tower == "MachineGun" and table.concat(fresh.bar, ",") == "MachineGun", "nouveau joueur : l'Archer dans sa barre, un emplacement de camp, rien d'autre")
+local archerOnly = Levels.cleanData({ best = 3, towers = { MachineGun = true, Bomb = true }, bar = { "MachineGun", "Bomb" } })
+check(archerOnly.towers.Bomb == true and table.concat(Levels.ownedTowers(archerOnly), ",") == "MachineGun,Bomb" and archerOnly.best == 3, "ancienne sauvegarde (l'Archer et la Catapulte) : tout est gardé")
 local dirty = Levels.cleanData({
 	best = 999,
 	coins = -5,
@@ -490,7 +464,7 @@ local dirty = Levels.cleanData({
 	trainedAt = "hier",
 })
 check(dirty.best == Levels.COUNT and dirty.coins == 0 and dirty.trainedAt == 0, "sauvegarde abîmée : niveau, pièces et heure remis dans les clous")
-check(dirty.towers.Frost and dirty.towers.MachineGun and dirty.towers.Bomb and not dirty.towers.Dragon and not dirty.towers.Tesla, "sauvegarde abîmée : seules les vraies tours possédées restent (celles de départ toujours)")
+check(dirty.towers.Frost and dirty.towers.MachineGun and not dirty.towers.Dragon and not dirty.towers.Tesla, "sauvegarde abîmée : seules les vraies tours possédées restent (l'Archer toujours)")
 check(dirty.xp.Dragon == nil and dirty.xp.MachineGun == 12 and dirty.xp.Frost == 1e9, "sauvegarde abîmée : XP des vraies tours seulement, bornée")
 check(#dirty.slots == 3 and dirty.slots[1].tower == "" and dirty.slots[1].level == 5 and dirty.slots[2].tower == "" and dirty.slots[3].tower == "Frost" and dirty.slots[3].level == 2, "sauvegarde abîmée : 3 emplacements au plus, tour non possédée retirée, niveau borné")
 check(#dirty.bar == 2 and dirty.bar[1] == "Frost" and dirty.bar[2] == "MachineGun", "sauvegarde abîmée : barre sans doublon ni tour inconnue")
@@ -525,7 +499,7 @@ do
 	check(towerCount(game) == 1 and starter.type == "MachineGun" and (starter.localPosition - map.spots[1]).Magnitude < 1e-6, "niveau 1 : un Archer offert au premier emplacement conseillé")
 	check(game.gold == 60 and game.lives == 10 and game.state == "Running" and arena.folder:GetAttribute("State") == "Running" and arena.folder:GetAttribute("Level") == 1, "niveau 1 : 60 or, 10 vies, en cours (attributs publiés)")
 	check(arena.folder:GetAttribute("Total") == #Levels.buildQueue(1) and arena.folder:GetAttribute("Left") == arena.folder:GetAttribute("Total") and arena.folder:GetAttribute("Progress") == 0, "niveau 1 : avancée publiée (tous les monstres restent, flot à 0 %)")
-	check(arena.folder:GetAttribute("Perks") == "" and arena.folder:GetAttribute("Training") == Levels.encodeTraining({}), "niveau 1 sans entraînement : aucun effet débloqué publié")
+	check(arena.folder:GetAttribute("Perks") == nil and arena.folder:GetAttribute("Training") == Levels.encodeTraining({}), "niveau 1 : l'entraînement publié (aucun)")
 	run(game, 12)
 	game:syncAttributes()
 	check(game.kills >= 5 and game.gold == 60 + 6 * game.kills and game.lives == 10, `l'Archer offert tue seul : {game.kills} monstres en 12 s, 6 or chacun, aucune vie perdue`)
@@ -538,7 +512,7 @@ do
 	check(ok == false and reason == "Pas assez d'or" and game.gold == 5, "pose refusée sans assez d'or, rien n'est dépensé")
 	game.gold = 500
 	ok, reason = game:placeTower("Frost", map.spots[2])
-	check(ok == false and string.find(reason, "boutique", 1, true) ~= nil, "pose refusée pour une tour pas encore achetée")
+	check(ok == false and string.find(reason, "barre", 1, true) ~= nil, "pose refusée pour une tour qui n'est pas dans sa barre")
 	ok, reason = game:placeTower("MachineGun", (geometry.pointAt(30))) -- (pointAt renvoie aussi une direction : gardée hors de l'appel)
 	check(ok == false and reason == "Trop près du chemin", "pose refusée sur le chemin")
 	ok, reason = game:placeTower("MachineGun", map.spots[1] + Vector3.new(1, 0, 1))
@@ -654,7 +628,7 @@ end
 local function outcome(result): string
 	return if result.won then `gagné avec {result.lives} vies` else `perdu à {math.floor(result.kills / result.total * 100 + 0.5)} %`
 end
-for level = 1, Levels.COUNT do
+for level = 1, Levels.OPEN_COUNT do
 	-- Celui qui réinvestit son or sans arrêt gagne, avec presque toutes ses vies.
 	local active = Bot.play(level, Bot.profile(level), function(result)
 		return result.won and result.lives >= 8
@@ -679,29 +653,48 @@ for level = 1, Levels.COUNT do
 	check(two.seconds >= 35, `niveau {level} : celui qui pose 2 Archers puis attend tient au moins 35 s ({math.floor(two.seconds)} s)`)
 end
 do
-	-- Sans la boutique, le joueur très actif passe les premiers niveaux ; à partir du niveau 6 il faut ses tours.
-	-- Tout débloquer et tout entraîner rend le boss facile.
-	local startOnly = { towers = Levels.STARTING_TOWERS, training = 0 }
-	check(Bot.play(1, startOnly).won and Bot.play(2, startOnly).won, "sans boutique : les niveaux 1 et 2 se gagnent")
-	local stuck = true
-	for level = 6, Levels.COUNT do
-		stuck = stuck and not Bot.play(level, startOnly).won
+	-- Les œufs (« LES ŒUFS ») : sans aucune chance (l'Archer et la Catapulte de l'œuf du niveau 1), le joueur très actif
+	-- passe le 1er territoire ; ensuite il lui faut les tours des œufs. Un boss demande des tours de PALIER 2 (blocage
+	-- voulu par le propriétaire : « que des niveaux tu sois vraiment bloqué, obligé de rechercher les tourelles »).
+	check(Bot.play(1, { towers = { "MachineGun" }, training = 0 }).won, "l'Archer seul (offert) gagne le niveau 1")
+	-- (le même joueur très actif, au même entraînement, sans les tours des œufs)
+	local firstOk, laterLost, beaten = true, true, {}
+	for level = 1, Levels.OPEN_COUNT do
+		local result = Bot.play(level, { towers = Bot.NO_EGG_TOWERS, training = Bot.EXPECTED[level].training })
+		if level <= Levels.TERRITORY_SIZE then
+			firstOk = firstOk and result.won
+		elseif result.won then
+			laterLost = false
+			table.insert(beaten, tostring(level))
+		end
 	end
-	check(stuck, `sans boutique : les niveaux 6 à {Levels.COUNT} sont perdus, même en étant très actif`)
-	-- Le Totem aide sans tout faire : au niveau 5, le joueur de référence gagne avec lui et perd sans lui.
-	local withTotem = Bot.play(5, Bot.profile(5, "reference"))
-	local withoutTotem = Bot.play(5, { towers = Levels.STARTING_TOWERS, training = 1, interval = Bot.EXPECTED[5].pace, actions = 1 })
-	check(withTotem.won and not withoutTotem.won and withoutTotem.kills / withoutTotem.total >= 0.6, `niveau 5 au rythme demandé : {outcome(withTotem)} avec le Totem, {outcome(withoutTotem)} sans lui (il aide, il ne fait pas tout)`)
-	local alone = Bot.play(10, startOnly)
+	check(
+		firstOk and laterLost,
+		`sans chance aux œufs (l'Archer et la Catapulte) : les niveaux 1 à 10 se gagnent, les niveaux 11 à {Levels.OPEN_COUNT} non (gagnés quand même : {table.concat(beaten, ", ")})`
+	)
+	local function profileWithout(level: number, missing: { string })
+		local profile = Bot.profile(level, "reference")
+		local towers = {}
+		for _, towerType in profile.towers do
+			if not table.find(missing, towerType) then
+				table.insert(towers, towerType)
+			end
+		end
+		profile.towers = towers
+		return profile
+	end
+	local boss20 = Bot.play(20, Bot.profile(20, "reference"))
+	local boss20Without = Bot.play(20, profileWithout(20, { "MagmaCatapult" }))
+	check(boss20.won and not boss20Without.won, `boss du niveau 20 au rythme demandé : {outcome(boss20)} avec la Catapulte de magma, {outcome(boss20Without)} sans tour de palier 2`)
+	local boss30 = Bot.play(30, Bot.profile(30, "reference"))
+	local boss30Without = Bot.play(30, profileWithout(30, { "StormArchmage" }))
+	check(boss30.won and not boss30Without.won, `boss du niveau 30 : {outcome(boss30)} avec deux tours de palier 2, {outcome(boss30Without)} avec une seule`)
+	local boss40 = Bot.play(40, Bot.profile(40, "reference"))
+	local boss40Without = Bot.play(40, profileWithout(40, { "DragonBallista" }))
+	check(boss40.won and not boss40Without.won, `boss du niveau 40 : {outcome(boss40)} avec trois tours de palier 2, {outcome(boss40Without)} avec deux`)
 	local full = Bot.play(10, { towers = Bot.ALL_TOWERS, training = 6 })
-	check(not alone.won and full.won and full.lives == 10, "niveau 10 : perdu avec les deux tours de départ, gagné sans perdre de vie avec toutes les tours entraînées")
-	local lastFull = Bot.play(Levels.COUNT, { towers = Bot.ALL_TOWERS, training = 6 })
-	check(lastFull.won and lastFull.lives == 10, `niveau {Levels.COUNT} : gagné sans perdre de vie avec toutes les tours entraînées ({outcome(lastFull)})`)
-	-- 2e territoire : la Baliste est attendue (les 10 premiers niveaux la paient). Sans elle, le niveau 12 (son
-	-- premier colosse) se perd au rythme demandé.
-	local noBallista = Bot.play(12, { towers = { "MachineGun", "Bomb", "Frost", "Tesla" }, training = 2, interval = Bot.EXPECTED[12].pace, actions = 1 })
-	local withBallista = Bot.play(12, Bot.profile(12, "reference"))
-	check(withBallista.won and (not noBallista.won or noBallista.lives < withBallista.lives), `niveau 12 au rythme demandé : {outcome(withBallista)} avec la Baliste, {outcome(noBallista)} sans elle`)
+	local lastFull = Bot.play(Levels.OPEN_COUNT, { towers = Bot.ALL_TOWERS, training = 6 })
+	check(full.won and full.lives == 10 and lastFull.won and lastFull.lives == 10, `toutes les tours entraînées : les niveaux 10 et {Levels.OPEN_COUNT} gagnés sans perdre de vie ({outcome(lastFull)})`)
 end
 
 do
@@ -733,22 +726,20 @@ do
 end
 
 do
-	-- Entraînement : les flèches enflammées n'existent dans un niveau qu'à partir de l'entraînement 2.
-	local plain = newGame(2, Levels.STARTING_TOWERS, 0)
-	local trained, trainedArena = newGame(2, Levels.STARTING_TOWERS, 2)
+	-- Le feu au sol : l'Archer du rempart n'en a jamais (même entraîné au maximum) ; l'Archer enflammé, toujours.
+	local plain = newGame(2, { "MachineGun", "FireArcher" }, Levels.TRAINING.MAX_LEVEL)
+	local flaming = newGame(2, { "MachineGun", "FireArcher" }, 0)
 	local most = {}
-	for _, game in { plain, trained } do
+	for game, towerType in { [plain] = "MachineGun", [flaming] = "FireArcher" } do
 		game.gold = 1e6
-		game:placeTower("MachineGun", map.spots[1])
+		game:placeTower(towerType, map.spots[1])
 		most[game] = 0
 		for _ = 1, 20 * 30 do
 			game:simulate(1 / 30)
 			most[game] = math.max(most[game], #game.firePatches)
 		end
 	end
-	check(most[plain] == 0 and most[trained] > 0, `feu des flèches : aucune zone sans entraînement ({most[plain]}), des zones à l'entraînement 2 ({most[trained]} à la fois au plus)`)
-	check(trainedArena.folder:GetAttribute("Perks") == "MachineGun:Fire", "effet débloqué publié pour l'affichage (« MachineGun:Fire »)")
-	check(trained.kills >= plain.kills, `l'Archer entraîné tue au moins autant ({trained.kills} contre {plain.kills} en 20 s)`)
+	check(most[plain] == 0 and most[flaming] > 0, `feu au sol : aucun pour l'Archer entraîné au maximum ({most[plain]}), des zones pour l'Archer enflammé ({most[flaming]} à la fois au plus)`)
 end
 
 ----------------------------------------------------------------------
@@ -762,10 +753,10 @@ check(
 )
 check(Levels.stars(0) == "" and Levels.stars(2) == "★★" and Levels.stars(9) == "★★★", "étoiles : une par évolution, trois au plus")
 local evolvingTowers = true
-for _, towerType in IdleTowers.TIER1 do
+for _, towerType in IdleTowers.ORDER do
 	evolvingTowers = evolvingTowers and Levels.evolutionStage(towerType, Levels.TRAINING.MAX_LEVEL) == #Levels.EVOLUTION_NAMES
 end
-check(evolvingTowers, "chacune des 8 tours de palier 1 a ses 3 évolutions")
+check(evolvingTowers, "chacune des 16 tours a ses 3 évolutions (ses étoiles d'entraînement)")
 do
 	local level2 = newGame(2, Levels.STARTING_TOWERS, 4)
 	level2.gold = 1e6
@@ -793,8 +784,8 @@ do
 	)
 	check(
 		plot.folder:GetAttribute("Camp") == true and plot.folder:GetAttribute("State") == "Running" and plot.folder:GetAttribute("OwnerUserId") == 7
-			and plot.folder:GetAttribute("Wave") == 1 and plot.folder:GetAttribute("Perks") == "",
-		"camp : la parcelle publie qu'elle est un camp (attributs Camp, State, OwnerUserId) et aucun effet débloqué"
+			and plot.folder:GetAttribute("Wave") == 1 and plot.folder:GetAttribute("Perks") == nil,
+		"camp : la parcelle publie qu'elle est un camp (attributs Camp, State, OwnerUserId)"
 	)
 	local coinsBefore, xpBefore, most = levels.coins, levels.xp.MachineGun, 0
 	camp:step(1 / 30)
@@ -821,28 +812,24 @@ do
 	local shots, shotCount = camp:takeShotsPacket()
 	check(packet ~= nil and count == #camp.enemies and shots ~= nil and shotCount > 0, `camp : mêmes paquets réseau qu'une parcelle ({count} cibles, {shotCount} tirs)`)
 
-	-- L'entraînement fait évoluer la tour : au niveau 2 (60 XP), l'Archer du camp est refait avec sa 1re évolution et
-	-- se sert de son nouveau pouvoir (flèches enflammées) sur les cibles.
+	-- L'entraînement fait évoluer la tour : au niveau 2 (60 XP), l'Archer du camp est refait avec sa 1re évolution (1
+	-- étoile, +20 % de dégâts ; plus de pouvoir : les flèches enflammées sont celles de l'Archer enflammé).
 	local oldModel = archer.model
 	levels.xp.MachineGun = 60
 	local changed = camp:refresh(levels)
 	local evolved = camp.slotTowers[1]
-	local fires = 0
-	for _ = 1, 30 * 30 do
-		camp:step(1 / 30)
-		fires = math.max(fires, #camp.firePatches)
-	end
 	check(
-		changed and evolved ~= archer and evolved.stage == 1 and evolved.model:GetAttribute("Stars") == 1 and oldModel.destroyed == true and fires > 0
-			and plot.folder:GetAttribute("Perks") == "MachineGun:Fire",
-		`camp : à 60 XP l'Archer évolue (1 étoile) et ses flèches enflammées brûlent les cibles ({fires} zones de feu à la fois)`
+		changed and evolved ~= archer and evolved.stage == 1 and evolved.model:GetAttribute("Stars") == 1 and oldModel.destroyed == true
+			and near(camp:statsOf(evolved).damage, 3 * 1.2),
+		"camp : à 60 XP l'Archer évolue (1 étoile, +20 % de dégâts)"
 	)
 	check(camp:refresh(levels) == false and camp.slotTowers[1] == evolved, "camp : rien n'est refait quand rien ne change")
-	-- +5 % de dégâts par niveau d'entraînement, sans refaire le modèle.
+	-- +10 % de dégâts par niveau d'entraînement, sans refaire le modèle.
 	levels.xp.MachineGun = 140
-	check(camp:refresh(levels) == false and near(camp:statsOf(evolved).damage, 3 * 1.15), "camp : au niveau d'entraînement 3, +15 % de dégâts, même tour (pas de nouvelle évolution)")
+	check(camp:refresh(levels) == false and near(camp:statsOf(evolved).damage, 3 * 1.3), "camp : au niveau d'entraînement 3, +30 % de dégâts, même tour (pas de nouvelle évolution)")
 
 	-- Emplacements : une 2e tour, puis l'emplacement 1 vidé.
+	levels.towers.Bomb = true
 	table.insert(levels.slots, { tower = "Bomb", level = 1 })
 	camp:refresh(levels)
 	local catapult = camp.slotTowers[2]
@@ -872,20 +859,20 @@ end
 --    sortable ». Son étape dans les données, et les DEUX PREMIERS GESTES du niveau 1 (Levels.firstSteps : ce que la
 --    flèche montre, client/TutorialUI.luau ; « juste poser une tour, et améliorer, et fin », 03/10/2026).
 ----------------------------------------------------------------------
-check(Levels.TUTORIAL.SHOP == 1 and Levels.TUTORIAL.DONE == 2 and Levels.defaultData().tutorial == 0, "tuto : un nouveau joueur est à l'étape 0 (1 = la boutique, 2 = fini)")
+check(Levels.TUTORIAL.EGG == 1 and Levels.TUTORIAL.DONE == 2 and Levels.defaultData().tutorial == 0, "tuto : un nouveau joueur est à l'étape 0 (1 = ouvrir l'œuf de catapulte, 2 = fini)")
 check(
 	Levels.cleanData(Levels.defaultData()).tutorial == 0 and Levels.cleanData({ best = 0, tutorial = 1 }).tutorial == 1 and Levels.cleanData({ best = 5, tutorial = 0 }).tutorial == 0
 		and Levels.cleanData({ tutorial = 2 }).tutorial == 2,
 	"tuto : l'étape sauvegardée est relue telle quelle"
 )
 check(
-	Levels.cleanData({ best = 3 }).tutorial == Levels.TUTORIAL.SHOP and Levels.cleanData({ best = 0 }).tutorial == 0
-		and Levels.cleanData({ best = 1, towers = { Frost = true } }).tutorial == Levels.TUTORIAL.DONE,
-	"tuto, sauvegarde d'avant le tuto : un niveau déjà gagné = pas de guide, une tour déjà achetée = tuto fini"
+	Levels.cleanData({ best = 3 }).tutorial == Levels.TUTORIAL.DONE and Levels.cleanData({ best = 0 }).tutorial == 0
+		and Levels.cleanData({ best = 0, towers = { Frost = true } }).tutorial == Levels.TUTORIAL.DONE,
+	"tuto, sauvegarde d'avant le tuto : un niveau déjà gagné ou une tour en plus de l'Archer = tuto fini"
 )
 check(
 	Levels.cleanData({ best = 4, tutorial = 99 }).tutorial == 2 and Levels.cleanData({ best = 4, tutorial = -3 }).tutorial == 0
-		and Levels.cleanData({ best = 4, tutorial = "abc" }).tutorial == 1 and Levels.cleanData({ tutorial = 1.7 }).tutorial == 1,
+		and Levels.cleanData({ best = 4, tutorial = "abc" }).tutorial == 2 and Levels.cleanData({ tutorial = 1.7 }).tutorial == 1,
 	"tuto : une étape abîmée est remise dans les clous"
 )
 do
@@ -948,8 +935,8 @@ do
 	local same, bosses = #solo == #duo, 0
 	for index, item in solo do
 		local other = duo[index]
-		-- (le boss : PV moins multipliés, il ne passe que dans un couloir)
-		local boss = item.enemy == "Boss"
+		-- (le boss et le colosse géant : PV moins multipliés, ils ne passent que dans un couloir)
+		local boss = item.enemy == "Boss" or item.enemy == "Colossus"
 		local scale = if boss then Levels.teamBossHealth(2) else Levels.teamHealth(2)
 		bosses += if boss then 1 else 0
 		if not other or other.at ~= item.at or other.enemy ~= item.enemy or other.reward ~= item.reward or math.abs(other.health - item.health * scale) > 0.06 then
@@ -981,8 +968,8 @@ do
 	)
 	check(
 		folder:GetAttribute("TeamSize") == 2 and folder:GetAttribute("Gold_1") == definition.gold and folder:GetAttribute("Gold_2") == definition.gold
-			and folder:GetAttribute("Training_2") == Levels.encodeTraining(friend.training) and string.find(folder:GetAttribute("Perks") or "", "MachineGun:Fire", 1, true) ~= nil,
-		"partie à deux : attributs de la zone (or et entraînement de chacun ; effets des tours des deux joueurs)"
+			and folder:GetAttribute("Training_2") == Levels.encodeTraining(friend.training),
+		"partie à deux : attributs de la zone (or et entraînement de chacun)"
 	)
 	check(game.queue[1].health == Levels.buildQueue(12, 2)[1].health, "partie à deux : les monstres d'une équipe de deux")
 	local spots = Levels.geometry(arena.map).map.spots
@@ -1266,6 +1253,50 @@ do
 		fair and onlyOne and bossLane(10, 2) == 1 and bossLane(20, 2) == 2 and bossLane(30, 2) == 1 and bossLane(30, 3) == 3 and bossLane(40, 4) == 4 and bossLane(50, 4) == 1,
 		"en équipe, le flot est partagé entre les couloirs chacun son tour, type par type (même nombre de chaque type à 1 près) ; seul, tout passe par le seul couloir ; le boss change de couloir d'un territoire à l'autre"
 	)
+	-- Idée du propriétaire (04/10/2026) : « un gros colosse plus fort qui apparaît à un couloir aléatoire », « pareil
+	-- pour les boss ». Avec le Random de la partie (LevelGame), chaque gros monstre (colosse, colosse géant, boss) sort
+	-- dans un couloir tiré au sort ; les autres gardent le partage chacun son tour ; la file reste la même sinon.
+	local bossLanes, colossusLanes, giantLanes, othersSame, balanced = {}, {}, {}, true, true
+	for seed = 1, 16 do
+		local random = Env.Random.new(seed)
+		for _, size in { 3, 4 } do
+			local bigs = {}
+			for _, item in Levels.buildQueue(40, size, random) do
+				if item.enemy == "Giant" or item.enemy == "Boss" then
+					bigs[item.lane] = (bigs[item.lane] or 0) + 1
+				end
+			end
+			local low, high = math.huge, 0
+			for lane = 1, size do
+				low, high = math.min(low, bigs[lane] or 0), math.max(high, bigs[lane] or 0)
+			end
+			balanced = balanced and high - low <= 1
+		end
+		for _, level in { 10, 25 } do
+			local plain = Levels.buildQueue(level, 2)
+			for index, item in Levels.buildQueue(level, 2, random) do
+				local other = plain[index]
+				othersSame = othersSame and other.enemy == item.enemy and other.at == item.at and other.health == item.health
+				if item.enemy == "Boss" then
+					bossLanes[item.lane] = true
+				elseif item.enemy == "Colossus" then
+					colossusLanes[item.lane] = true
+				elseif item.enemy == "Giant" then
+					giantLanes[item.lane] = true
+				else
+					othersSame = othersSame and other.lane == item.lane
+				end
+			end
+		end
+	end
+	local soloSame = true
+	for _, item in Levels.buildQueue(25, 1, Env.Random.new(3)) do
+		soloSame = soloSame and item.lane == 1
+	end
+	check(
+		othersSame and soloSame and balanced and bossLanes[1] and bossLanes[2] and colossusLanes[1] and colossusLanes[2] and giantLanes[1] and giantLanes[2],
+		"en équipe, le boss, le colosse géant et les colosses sortent dans un couloir tiré au sort à chaque partie (les deux couloirs vus en 16 parties), chacun son tour dans un ordre au hasard (niveau 40 à 3 et 4 : jamais deux de plus dans un couloir que dans un autre) ; les autres monstres, les heures et les PV ne changent pas ; seul : toujours le seul couloir"
+	)
 	-- Les cartes d'équipe plus dures (mesuré) : leurs monstres ont un peu moins de PV.
 	local factorsOk = true
 	for name, factor in Levels.TEAM_MAP_HEALTH do
@@ -1403,9 +1434,9 @@ end
 ----------------------------------------------------------------------
 do
 	check(
-		Levels.eggFor(1, true) == "Common" and Levels.eggFor(5, true) == "Rare" and Levels.eggFor(10, true) == "Gold"
+		Levels.eggFor(2, true) == "Common" and Levels.eggFor(5, true) == "Rare" and Levels.eggFor(10, true) == "Gold"
 			and Levels.eggFor(1, false) == "Common" and Levels.eggFor(5, false) == "Common" and Levels.eggFor(10, false) == "Rare",
-		"œufs : première victoire = commun, rare au mini-boss, doré au boss ; en rejouant = commun, rare au boss"
+		"œufs : première victoire = commun, rare au mini-boss, doré au boss (niveau 1 : l'œuf de catapulte) ; en rejouant = commun, rare au boss"
 	)
 	local reserve = Levels.defaultData()
 	local kept = 0
@@ -1477,19 +1508,19 @@ do
 		local def, base = IdleTowers.Defs[towerType], IdleTowers.TIER1[index]
 		pairsOk = pairsOk and def.base == base and IdleTowers.baseOf(towerType) == base and IdleTowers.upgradeOf(base) == towerType
 			and IdleTowers.tierOf(towerType) == 2 and IdleTowers.tierOf(base) == 1 and IdleTowers.baseOf(base) == base
-			and def.rarity == IdleTowers.Defs[base].rarity and def.kind == IdleTowers.Defs[base].kind and not bases[base]
+			and def.rarity == IdleTowers.Defs[base].rarity and not bases[base]
+			-- (même façon de toucher, sauf le carreau qui transperce de la Baliste du dragon : son pouvoir de palier 2)
+			and (def.kind == IdleTowers.Defs[base].kind or (towerType == "DragonBallista" and def.kind == "Pierce"))
 			and string.match(towerType, "^%a+$") ~= nil -- (Levels.decodeTraining ne lit que des lettres)
 		bases[base] = true
 	end
-	check(pairsOk and IdleTowers.upgradeOf("FireArcher") == nil, "palier 2 : chaque tour a sa tour de base (dans le même ordre), sa rareté et sa façon de toucher")
+	check(pairsOk and IdleTowers.upgradeOf("FireArcher") == nil, "palier 2 : chaque tour a sa tour de base (dans le même ordre), sa rareté et sa façon de toucher (la Baliste du dragon transperce)")
 	local priceOk = true
 	for _, towerType in IdleTowers.TIER2 do
 		local base = IdleTowers.baseOf(towerType)
-		priceOk = priceOk and Levels.TOWER_COST[towerType] == 2 * Levels.TOWER_COST[base] and Levels.SHOP[towerType] == nil
-			and Levels.PERKS[towerType] == nil and Levels.evolutionStage(towerType, Levels.TRAINING.MAX_LEVEL) == 0
-			and Levels.maxCopies(towerType) == Levels.maxCopies(base)
+		priceOk = priceOk and Levels.TOWER_COST[towerType] == 2 * Levels.TOWER_COST[base] and Levels.maxCopies(towerType) == Levels.maxCopies(base)
 	end
-	check(priceOk, "palier 2 : deux fois le prix en or de sa tour de base, pas à la boutique, pas d'améliorations d'entraînement, même limite par niveau")
+	check(priceOk, "palier 2 : deux fois le prix en or de sa tour de base, même limite par niveau")
 	-- La claire différence : sans entraînement, au moins 2,2 fois les dégâts par seconde de sa tour de base, et au moins
 	-- 1,6 fois ceux de sa tour de base entraînée au maximum (toutes ses évolutions).
 	local stronger, ratios = true, {}
@@ -1506,28 +1537,37 @@ do
 	local dragon = Levels.towerStats("DragonBallista", 1, 0)
 	check(
 		Levels.towerStats("FireArcher", 1, 0).fireRadius ~= nil and Levels.towerStats("MagmaCatapult", 1, 0).fireRadius ~= nil
-			and blizzard.fragility > frost.fragility and blizzard.slow >= frost.slow and dragon.kind == "Pierce" and dragon.pierceMax == 4
+			and blizzard.fragility > (frost.fragility or 0) and blizzard.slow >= frost.slow and dragon.kind == "Pierce" and dragon.pierceMax == 4
 			and dragon.fireRadius ~= nil,
-		"palier 2 : les pouvoirs sont là sans entraînement (feu, fragilité plus forte, carreau qui transperce 4 monstres)"
+		"palier 2 : les pouvoirs sont là sans entraînement (feu, fragilité, carreau qui transperce 4 monstres)"
 	)
 	check(
 		blizzard.family == "Frost" and Levels.towerStats("StormArchmage", 1, 0).family == "Tesla" and Levels.towerStats("Frost", 1, 0).family == "Frost",
 		"palier 2 : ses contrôles comptent comme ceux de sa tour de base (même famille)"
 	)
 
-	-- Les œufs ne donnent que des tours de palier 2, et chacune des 8 peut sortir.
-	local onlyTier2, obtainable = true, {}
+	-- Les œufs donnent toutes les tours : chacune des 16 peut sortir ; la part des tours de palier 2 : aucune dans un
+	-- œuf commun, 25 % dans un œuf rare, 75 % dans un œuf doré.
+	local tier2Share, obtainable = {}, {}
 	for _, eggType in Levels.EGG_ORDER do
+		tier2Share[eggType] = 0
 		for _, entry in Levels.eggChances(eggType) do
-			onlyTier2 = onlyTier2 and IdleTowers.tierOf(entry.tower) == 2
+			if IdleTowers.tierOf(entry.tower) == 2 then
+				tier2Share[eggType] += entry.chance
+			end
 			obtainable[entry.tower] = true
 		end
 	end
 	local everyOne = true
-	for _, towerType in IdleTowers.TIER2 do
+	for _, towerType in IdleTowers.ORDER do
 		everyOne = everyOne and obtainable[towerType] == true
 	end
-	check(onlyTier2 and everyOne, "œufs : seulement des tours de palier 2, et chacune des 8 peut sortir")
+	check(
+		everyOne and tier2Share.Common == 0 and near(tier2Share.Rare, 0.25) and near(tier2Share.Gold, 0.75),
+		`œufs : chacune des 16 tours peut sortir ; tours de palier 2 : {math.floor(tier2Share.Common * 100 + 0.5)} % d'un œuf commun, {math.floor(tier2Share.Rare * 100 + 0.5)} % d'un rare, {math.floor(tier2Share.Gold * 100 + 0.5)} % d'un doré`
+	)
+	local starter = Levels.eggChances("Starter")
+	check(#starter == 1 and starter[1].tower == "Bomb" and starter[1].chance == 1 and Levels.rollEgg("Starter", 0.99) == "Bomb", "œuf de catapulte : la Catapulte à coup sûr")
 
 	-- Barre rapide (Levels.BAR_MAX = 8) : une tour achetée arrive à la fin ; une tour de palier 2 prend la place de sa
 	-- tour de base, qui passe en réserve quand la barre est pleine.
@@ -1537,20 +1577,20 @@ do
 			Levels.addTower(data, towerType)
 		end
 	end
-	check(Levels.BAR_MAX == 8 and table.concat(Levels.ownedTowers(data), ",") == "MachineGun,Bomb,Frost,Tesla,Rocket,Laser,Chain,Orbital", "barre : une tour achetée arrive à la fin de la barre")
+	check(Levels.BAR_MAX == 8 and table.concat(Levels.ownedTowers(data), ",") == "MachineGun,Frost,Bomb,Tesla,Rocket,Laser,Chain,Orbital", "barre : une nouvelle tour arrive à la fin de la barre")
 	local isNew = Levels.hatchTower(data, "MagmaCatapult")
 	local list, bar = Levels.ownedTowers(data), Levels.barTowers(data)
 	check(
-		isNew and #list == 9 and list[2] == "MagmaCatapult" and list[9] == "Bomb" and bar.MagmaCatapult and not bar.Bomb and bar.MachineGun,
+		isNew and #list == 9 and list[3] == "MagmaCatapult" and list[9] == "Bomb" and bar.MagmaCatapult and not bar.Bomb and bar.MachineGun,
 		"barre : la Catapulte de magma prend la place de la Catapulte, qui passe en réserve (barre pleine)"
 	)
 	local cleaned = Levels.cleanData(data)
 	check(table.concat(Levels.ownedTowers(cleaned), ",") == table.concat(list, ",") and cleaned.towers.MagmaCatapult == true, "barre : l'ordre et les tours de palier 2 restent après une sauvegarde")
 	local small = Levels.defaultData()
 	Levels.hatchTower(small, "VoidSorcerer")
-	check(table.concat(Levels.ownedTowers(small), ",") == "MachineGun,Bomb,VoidSorcerer", "barre : sans sa tour de base, la tour de palier 2 arrive à la fin de la barre")
+	check(table.concat(Levels.ownedTowers(small), ",") == "MachineGun,VoidSorcerer", "barre : sans sa tour de base, la tour de palier 2 arrive à la fin de la barre")
 	local full = Levels.defaultData()
-	for _, towerType in { "Frost", "Tesla", "Rocket", "Chain", "Orbital" } do
+	for _, towerType in { "Bomb", "Frost", "Tesla", "Rocket", "Chain", "Orbital" } do
 		Levels.addTower(full, towerType)
 	end
 	Levels.hatchTower(full, "FireArcher")
@@ -1602,7 +1642,7 @@ end
 
 -- Équipes de joueurs simulés, avec les PV d'équipe : les joueurs de référence gagnent (au moins 5 vies), comme seuls.
 for _, size in { 2, 3, 4 } do
-	for _, level in { 10, 50, 100 } do
+	for _, level in { 10, 25, Levels.OPEN_COUNT } do
 		local reference = Bot.playTeam(level, Bot.teamProfiles(level, size, "reference"), function(best)
 			return best.won and best.lives >= 5
 		end)

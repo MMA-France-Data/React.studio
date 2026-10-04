@@ -290,7 +290,7 @@ return function(log)
 	end, 5)
 	task.wait(0.5)
 	check(
-		english and window.Tab1.Text == "Levels" and window.Tab2.Text == "Shop" and window.Tab3.Text == "Training" and window.Tab4.Text == "My towers"
+		english and window.Tab1.Text == "Levels" and window.Tab2.Text == "Training" and window.Tab3.Text == "My towers" and window.Tab4.Text == "Eggs"
 			and ask("Original", openButton) == "⚔ NIVEAUX" and (ask("Tracked") or 0) > 100,
 		`passage en anglais en direct : « {openButton.Text} », onglets « {window.Tab1.Text} », « {window.Tab2.Text} », « {window.Tab3.Text} », « {window.Tab4.Text} » ({tostring(ask("Tracked"))} textes suivis, le français d'origine est gardé)`
 	)
@@ -312,28 +312,24 @@ return function(log)
 			and string.find(page1.Territory2.Text, "clear level 10", 1, true) ~= nil and string.find(page1.Territory3.Text, "The Bramble Wardens' Forest", 1, true) ~= nil
 			and string.find(page1.Territory4.Text, "The Frost Legion's Glacier", 1, true) ~= nil and string.find(page1.Territory4.Text, "clear level 30", 1, true) ~= nil
 			and string.find(page1.Territory5.Text, "The Dune Guards' Desert", 1, true) ~= nil and string.find(page1.Territory6.Text, "The Bone Legion's Necropolis", 1, true) ~= nil
-			and string.find(page1.Territory6.Text, "clear level 50", 1, true) ~= nil and string.find(page1.Territory7.Text, "The Storm Guard's Citadel", 1, true) ~= nil
+			and string.find(page1.Territory6.Text, "🔒 Soon", 1, true) ~= nil and string.find(page1.Territory7.Text, "The Storm Guard's Citadel", 1, true) ~= nil
 			and string.find(page1.Territory8.Text, "The Obsidian Knights' Volcano", 1, true) ~= nil and string.find(page1.Territory9.Text, "The Goblin Horde's Swamp", 1, true) ~= nil
-			and string.find(page1.Territory10.Text, "The Dragon Brood's Lair", 1, true) ~= nil and string.find(page1.Territory10.Text, "clear level 90", 1, true) ~= nil
-			and page1.Level1.Play.Text == "▶ PLAY",
-		`onglet des niveaux : « {page1.Territory1.Text} », « {page1.Territory2.Text} », « {page1.Territory6.Text} », « {page1.Territory10.Text} », bouton « {page1.Level1.Play.Text} »`
+			and string.find(page1.Territory10.Text, "The Dragon Brood's Lair", 1, true) ~= nil and string.find(page1.Territory10.Text, "🔒 Soon", 1, true) ~= nil
+			and page1.Level1.Play.Text == "▶ PLAY" and page1["Level" .. (Levels.OPEN_COUNT + 1)].Play.Text == "🔒 SOON",
+		`onglet des niveaux : « {page1.Territory1.Text} », « {page1.Territory2.Text} », « {page1.Territory6.Text} », « {page1.Territory10.Text} », bouton « {page1.Level1.Play.Text} », niveau {Levels.OPEN_COUNT + 1} « {page1["Level" .. (Levels.OPEN_COUNT + 1)].Play.Text} »`
 	)
 	scanScreen("camp, onglet Niveaux (nouveau joueur)")
 	shot("niveaux")
 	page1.CanvasPosition = Vector2.new(0, 2000)
 	scanScreen("camp, onglet Niveaux (bas de la page)")
 	page1.CanvasPosition = Vector2.new(0, 0)
-	act(campGui, "Tab:Boutique")
-	scanScreen("camp, onglet Boutique (nouveau joueur)")
-	local frost = window.Page2.Shop_Frost
-	check(
-		string.find(frost.Role.Text, "Slows everything near it by 40%", 1, true) ~= nil and string.find(frost.Buy.Text, "need 150 more", 1, true) ~= nil
-			and window.Page2.Shop_MachineGun.Buy.Text == "✓ OWNED",
-		`boutique : « {frost.Role.Text} », « {frost.Buy.Text} », « {window.Page2.Shop_MachineGun.Buy.Text} »`
-	)
-	shot("boutique")
 	act(campGui, "Tab:Entraînement")
 	scanScreen("camp, onglet Entraînement (nouveau joueur)")
+	local lockedFrost = window.Page2.Towers.Locked_Frost
+	check(
+		string.find(lockedFrost.Price.Text, "in eggs", 1, true) ~= nil and lockedFrost.Eggs.Text == "EGGS",
+		`tour pas encore à lui : « {lockedFrost.Price.Text} », bouton « {lockedFrost.Eggs.Text} » (plus de boutique)`
+	)
 	shot("entrainement")
 	act(campGui, "Tab:Mes tours")
 	scanScreen("camp, onglet Mes tours (nouveau joueur)")
@@ -368,21 +364,18 @@ return function(log)
 			and page1.CanvasPosition.Y > 100,
 		`joueur au niveau 11 : la page s'ouvre sur le 2e territoire (« {page1.Territory2.Text} », niveau 1 « {page1.Level1.Play.Text} », niveau 11 « {page1.Level11.Play.Text} »)`
 	)
-	local openBadge, shopBadge = openButton:FindFirstChild("Badge"), window.Tab2:FindFirstChild("Badge")
+	local openBadge, eggsBadge = openButton:FindFirstChild("Badge"), window.Tab4:FindFirstChild("Badge")
 	check(
-		openBadge ~= nil and shopBadge ~= nil and openBadge.Visible and shopBadge.Visible and openBadge.Text == "!",
-		"5 000 pièces et des tours à acheter : une pastille « ! » sur le bouton des niveaux et sur l'onglet de la boutique"
+		openBadge ~= nil and eggsBadge ~= nil and openBadge.Visible and eggsBadge.Visible and openBadge.Text == "!",
+		"un œuf prêt et des œufs en réserve : une pastille « ! » sur le bouton des niveaux et sur l'onglet des œufs"
 	)
 	shot("niveaux_territoire2")
-	act(campGui, "Tab:Boutique")
-	scanScreen("camp, onglet Boutique (joueur avancé)")
-	check(string.find(window.Page2.Shop_Rocket.Buy.Text, "BUY", 1, true) ~= nil, `boutique : « {window.Page2.Shop_Rocket.Buy.Text} »`)
 	act(campGui, "Slot:2")
 	scanScreen("camp, onglet Entraînement (joueur avancé, emplacement 2 choisi)")
-	local archerRow = window.Page3.Towers.Train_MachineGun
+	local archerRow = window.Page2.Towers.Train_MachineGun
 	check(
-		string.find(archerRow.Level.Text, "Training 2/6", 1, true) ~= nil and string.find(archerRow.Evolution1.Text, "Flaming arrows", 1, true) ~= nil
-			and string.find(archerRow.NextEvolution.Text, "Next evolution (training 4): Spyglass. +3 range.", 1, true) ~= nil,
+		string.find(archerRow.Level.Text, "Training 2/6", 1, true) ~= nil and string.find(archerRow.Evolution1.Text, "★", 1, true) ~= nil
+			and string.find(archerRow.NextEvolution.Text, "Damage: +20%. Next star at training 4.", 1, true) ~= nil,
 		`entraînement : « {archerRow.Level.Text} », « {archerRow.Evolution1.Text} », « {archerRow.NextEvolution.Text} », bouton « {archerRow.Train.Text} »`
 	)
 	shot("entrainement_avance")
@@ -390,7 +383,7 @@ return function(log)
 	scanScreen("camp, onglet Entraînement (joueur avancé, emplacement 1 choisi)")
 	act(campGui, "Tab:Mes tours")
 	scanScreen("camp, onglet Mes tours (joueur avancé)")
-	local archerTower = window.Page4.Towers.Tower_MachineGun
+	local archerTower = window.Page3.Towers.Tower_MachineGun
 	local archerTexts = {}
 	for _, child in archerTower:GetChildren() do
 		if child:IsA("TextLabel") then
@@ -402,7 +395,7 @@ return function(log)
 	-- Les œufs : un œuf rare prêt dans la 1re couveuse, la 2e vide, des œufs en réserve.
 	act(campGui, "Tab:Œufs")
 	scanScreen("camp, onglet Œufs (joueur avancé)")
-	local eggsPage = window:WaitForChild("Page5")
+	local eggsPage = window:WaitForChild("Page4")
 	check(
 		eggsPage.Hatcher1.Title.Text == "INCUBATOR 1: Rare egg" and eggsPage.Hatcher1.Action.Text == "OPEN!" and eggsPage.Hatcher2.Title.Text == "INCUBATOR 2 (empty)"
 			and eggsPage.Egg_Gold.EggName.Text == "Golden egg",
@@ -472,10 +465,10 @@ return function(log)
 	scanScreen("niveau 1, Archer en main (conseil, mots du tuto)")
 	check(
 		entered and strip.Level.Text == "LEVEL 1" and string.find(strip.Progress.ProgressText.Text, "Monsters:", 1, true) ~= nil
-			and hudGui.TowerBar.Tower_MachineGun.Cost.Text == "CANCEL" and hudGui.TowerBar.Tower_Bomb.TowerName.Text == "Catapult"
+			and hudGui.TowerBar.Tower_MachineGun.Cost.Text == "CANCEL" and not hudGui.TowerBar.Tower_Bomb.Visible
 			and string.find(startHint, "Your Archer is already shooting", 1, true) ~= nil and startWords == "TAKE AN ARCHER"
 			and string.find(hudGui.Hint.Text, "Tap the ground to place", 1, true) ~= nil and words.Text == "PLACE IT ANYWHERE",
-		`niveau : « {strip.Level.Text} », « {strip.Progress.ProgressText.Text} », barre « {hudGui.TowerBar.Tower_MachineGun.Cost.Text} » / « {hudGui.TowerBar.Tower_Bomb.TowerName.Text} », conseils « {startHint} » puis « {hudGui.Hint.Text} », flèche « {startWords} » puis « {words.Text} »`
+		`niveau : « {strip.Level.Text} », « {strip.Progress.ProgressText.Text} », barre « {hudGui.TowerBar.Tower_MachineGun.Cost.Text} » (l'Archer seul), conseils « {startHint} » puis « {hudGui.Hint.Text} », flèche « {startWords} » puis « {words.Text} »`
 	)
 	shot("niveau")
 	act(hudGui, `Tap:{map.spots[2].X},{map.spots[2].Z}`)
@@ -509,10 +502,6 @@ return function(log)
 		shielded >= 10 and #openToRoblox == 0,
 		`en anglais, pendant un niveau : la traduction automatique de Roblox ne touche aucun texte du jeu ({shielded} écrans, panneaux et invites ; oubliés : {#openToRoblox} {table.concat(openToRoblox, ", ")})`
 	)
-	act(hudGui, "Bar:Bomb")
-	scanScreen("niveau 1, Catapulte en main (conseil de pose)")
-	check(string.find(hudGui.Hint.Text, "to place: Catapult", 1, true) ~= nil, `conseil de pose : « {hudGui.Hint.Text} »`)
-	act(hudGui, "Bar:Bomb")
 	-- Petits messages : refus sur le chemin, abandon à confirmer.
 	test:InvokeServer("Gold", 600)
 	act(hudGui, "Select:MachineGun")
@@ -567,12 +556,13 @@ return function(log)
 	check(
 		panel.Title.Text == "VICTORY!" and panel.Next.Text == "Level 2 ▶" and panel.Replay.Text == "Replay"
 			and string.find(panel.Details.Text, "cleared for the first time", 1, true) ~= nil and string.find(panel.Details.Text, "Lives left: 10/10", 1, true) ~= nil
-			and string.find(panel.Details.Text, "EVOLUTION! Rampart Archer: Flaming arrows", 1, true) ~= nil,
+			and string.find(panel.Details.Text, "EVOLUTION! Rampart Archer: ★", 1, true) ~= nil
+			and string.find(panel.Details.Text, "Catapult egg: it's already in your incubator!", 1, true) ~= nil,
 		`victoire : « {panel.Title.Text} », « {oneLine(panel.Details.Text)} », « {panel.Next.Text} », « {panel.Replay.Text} » ; flèche « {words.Text} »`
 	)
 	shot("victoire")
-	test:InvokeServer("Set", { best = Levels.COUNT - 1, tutorial = Levels.TUTORIAL.DONE })
-	startLevel(Levels.COUNT)
+	test:InvokeServer("Set", { best = Levels.OPEN_COUNT - 1, tutorial = Levels.TUTORIAL.DONE })
+	startLevel(Levels.OPEN_COUNT)
 	task.wait(1)
 	scanScreen("dernier niveau, départ")
 	shot("dernier_niveau")
@@ -580,10 +570,10 @@ return function(log)
 	waitFor(function()
 		return endScreen.Visible and arena:GetAttribute("State") == "Won"
 	end, 5)
-	scanScreen("écran de fin : dernier niveau gagné")
+	scanScreen("écran de fin : dernier niveau ouvert gagné")
 	check(
-		panel.Next.Text == "All levels cleared!" and string.find(panel.Details.Text, "You can buy a new tower in the shop!", 1, true) ~= nil,
-		`dernier niveau gagné : « {panel.Next.Text} », « {oneLine(panel.Details.Text)} »`
+		panel.Next.Text == "New levels coming soon!" and string.find(panel.Details.Text, "Golden egg won! Put it in an incubator.", 1, true) ~= nil,
+		`dernier niveau ouvert gagné : « {panel.Next.Text} », « {oneLine(panel.Details.Text)} »`
 	)
 	-- Fin du premier territoire : le suivant s'ouvre, l'écran de fin le dit.
 	test:InvokeServer("Set", { best = 9 })
@@ -614,13 +604,13 @@ return function(log)
 	)
 	backToCamp()
 	scanScreen("retour au camp")
-	-- Achat à la boutique : le message du serveur.
-	test:InvokeServer("Set", { coins = 500 })
-	levelAction:FireServer("Buy", "Frost")
+	-- Une couveuse achetée, puis une de trop chère : les messages du serveur.
+	test:InvokeServer("Set", { coins = 700 })
+	levelAction:FireServer("HatcherBuy")
 	task.wait(0.8)
-	levelAction:FireServer("Buy", "Frost")
+	levelAction:FireServer("HatcherBuy")
 	task.wait(0.8)
-	scanScreen("achat à la boutique (petits messages)")
+	scanScreen("couveuses achetées (petits messages)")
 	scanWorld("panneaux de la parcelle après les niveaux")
 
 	------------------------------------------------------------------

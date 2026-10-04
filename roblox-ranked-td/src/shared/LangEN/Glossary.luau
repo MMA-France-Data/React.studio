@@ -49,6 +49,7 @@ return {
 	["Cavalier"] = "Rider",
 	["Chevalier lourd"] = "Heavy Knight",
 	["Chevalier colossal"] = "Colossal Knight",
+	["Colosse géant"] = "Giant Colossus",
 	["Seigneur de guerre"] = "Warlord",
 
 	-- Territoires : le nom de leur carte (Levels.MAPS)
@@ -62,30 +63,4 @@ return {
 	["Le volcan des Chevaliers d'obsidienne"] = "The Obsidian Knights' Volcano",
 	["Les marais de la Horde gobeline"] = "The Goblin Horde's Swamp",
 	["Le repaire de la Couvée du dragon"] = "The Dragon Brood's Lair",
-
-	-- Évolutions des tours (Levels.PERKS : name)
-	["Flèches enflammées"] = "Flaming arrows",
-	["Longue-vue"] = "Spyglass",
-	["Tir rapide"] = "Rapid fire",
-	["Givre mordant"] = "Biting frost",
-	["Grande aura"] = "Wide aura",
-	["Gel profond"] = "Deep freeze",
-	["Gros rochers"] = "Big rocks",
-	["Bras long"] = "Long arm",
-	["Rechargement rapide"] = "Quick reload",
-	["Éclair large"] = "Wide bolt",
-	["Long regard"] = "Far sight",
-	["Tempête"] = "Tempest",
-	["Carreau perçant"] = "Piercing bolt",
-	["Tir tendu"] = "Flat shot",
-	["Treuil graissé"] = "Greased winch",
-	["Concentration"] = "Focus",
-	["Long rayon"] = "Long beam",
-	["Surchauffe"] = "Overheat",
-	["Éclair bondissant"] = "Leaping bolt",
-	["Vision lointaine"] = "Distant vision",
-	["Orage"] = "Thunderstorm",
-	["Pierre géante"] = "Giant stone",
-	["Onde de choc"] = "Shockwave",
-	["Contrepoids"] = "Counterweight",
 }

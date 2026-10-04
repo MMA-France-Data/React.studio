@@ -136,9 +136,6 @@ end
 -- statsOf lit self.training à chaque tir). Renvoie vrai si une tour a été posée, retirée ou refaite.
 function CampGame:refresh(levels): boolean
 	self.training = Levels.trainingLevels(levels)
-	-- Effets débloqués par l'entraînement, pour l'affichage (PlotRenderer : feu des flèches, carreau perçant), comme
-	-- dans un niveau.
-	self:setAttr("Perks", Levels.perkKeys(self.training))
 	local changed = false
 	for slotIndex = 1, #Levels.CAMP.SPOTS do
 		local slot = levels.slots[slotIndex]

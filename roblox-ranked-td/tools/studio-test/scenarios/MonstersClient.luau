@@ -83,9 +83,14 @@ return function(log)
 			realModels[string.lower(child.Name)] = child.Name
 		end
 	end
-	-- Nom du vrai modèle attendu pour ce type et ce palier (nil = blocs).
+	-- Nom du vrai modèle attendu pour ce type et ce palier (nil = blocs). Le colosse géant prend celui du chevalier
+	-- colossal quand il n'a pas le sien (CustomModels, MODEL_FALLBACK).
+	local MODEL_FALLBACK = { Colossus = "Giant" }
 	local function realModelFor(enemyType, palier)
-		return realModels[string.lower(`{enemyType}_{palier % 10}`)] or realModels[string.lower(enemyType)]
+		local function own(name)
+			return realModels[string.lower(`{name}_{palier % 10}`)] or realModels[string.lower(name)]
+		end
+		return own(enemyType) or (if MODEL_FALLBACK[enemyType] then own(MODEL_FALLBACK[enemyType]) else nil)
 	end
 	-- Vrais écuyers du projet (Swarm_0, Swarm_1...) : ils passeraient avant le modèle « Swarm » de test (nom
 	-- exact du palier). Mis de côté pendant ses vérifications, remis dans le dossier pour celles des vrais

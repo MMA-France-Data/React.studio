@@ -3,7 +3,8 @@
 --    perdu si la réserve est pleine), poser un œuf (couveuse vide et œuf en réserve seulement), pas d'ouverture avant
 --    son temps (l'heure du serveur avance avec le debug « Clock »), la tour sortie (nouvelle : debug « EggForce » ;
 --    une tour de palier 2 prend la place de sa tour de base dans la barre ; doublon : XP d'entraînement ; attribut
---    « Hatch » du joueur ; au hasard : toujours une tour de palier 2), finir tout de suite avec des pièces, acheter
+--    « Hatch » du joueur ; au hasard, un œuf commun : toujours une tour de palier 1), finir tout de suite avec des
+--    pièces, acheter
 --    les couveuses, et les couveuses de la parcelle (l'œuf de sa couleur, l'étiquette, l'invite vers l'onglet Œufs).
 -- 2) Il donne la main au client (attribut EggsTestPhase = "Client" de ReplicatedStorage) et répond à ses demandes par
 --    la RemoteFunction ReplicatedStorage.__EggsTest.
@@ -62,7 +63,8 @@ return function(log)
 		return data().eggs[eggType] or 0
 	end
 
-	-- Le joueur a réussi 9 niveaux, a 10 000 pièces, les deux tours de départ, aucun œuf, une couveuse.
+	-- Le joueur a réussi 9 niveaux, a 10 000 pièces, l'Archer et la Catapulte (sortie de l'œuf du niveau 1), aucun œuf,
+	-- une couveuse.
 	for key, value in {
 		best = 9,
 		coins = 10000,
@@ -139,17 +141,18 @@ return function(log)
 		`un doublon (l'Archer enflammé, déjà à lui) : +{tostring(hatch.xp)} XP d'entraînement pour lui`
 	)
 	check(ok and opened and data().coins == coinsBefore - skipCost, `« Finir » tout de suite : {skipCost} pièces, puis l'œuf s'ouvre`)
-	-- Un œuf ouvert au hasard donne toujours une tour de palier 2.
+	-- Un œuf commun ouvert au hasard donne toujours une tour de palier 1 (les tours de palier 2 sortent des œufs rares
+	-- et dorés : Levels.EGGS[type].tier2).
 	levels("Egg", "Common", 6)
-	local tierTwo = true
+	local tierOne = true
 	for _ = 1, 6 do
 		action("EggStart", 1, "Common")
 		action("EggSkip", 1)
 		action("EggOpen", 1)
 		hatch = decode(player:GetAttribute("Hatch")) or {}
-		tierTwo = tierTwo and IdleTowers.tierOf(hatch.tower or "") == 2 and IdleTowers.Defs[hatch.tower] ~= nil
+		tierOne = tierOne and IdleTowers.tierOf(hatch.tower or "") == 1 and IdleTowers.Defs[hatch.tower] ~= nil
 	end
-	check(tierTwo, "6 œufs ouverts au hasard : toujours une tour de palier 2")
+	check(tierOne, "6 œufs communs ouverts au hasard : toujours une tour de palier 1")
 
 	------------------------------------------------------------------
 	-- Acheter des couveuses

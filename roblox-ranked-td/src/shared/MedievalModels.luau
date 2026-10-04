@@ -134,7 +134,15 @@ local function tierEnemy(root: BasePart, def, index: number)
 		end
 		p("ClubHandle", Vector3.new(0.18, 1.75, 0.18), Vector3.new(1.18, 0.4, -0.35), WOOD, Enum.Material.Wood)
 		p("MaceHead", Vector3.new(0.62, 0.68, 0.62), Vector3.new(1.18, 1.26, -0.35), style.armor, Enum.Material.Metal)
-		if not boss then return end -- colosse : 15 pièces, racine comprise
+		if not boss and def.size >= 5 then
+			-- Colosse géant (Enemies.Colossus) : le colosse en plus massif, cornes au casque, pointes aux épaules, plastron.
+			for _, side in { -1, 1 } do
+				spike("ColossusHorn", Vector3.new(0.2, 0.62, 0.24), Vector3.new(side * 0.42, 1.82, -0.1), bone, CFrame.Angles(0.2, 0, side * -0.45))
+				spike("ShoulderSpike", Vector3.new(0.2, 0.45, 0.22), Vector3.new(side * 0.95, 1.05, 0), style.armor, CFrame.Angles(0, 0, side * -0.25))
+			end
+			p("ChestPlate", Vector3.new(1.1, 0.8, 0.12), Vector3.new(0, 0.38, -0.5), style.armor, Enum.Material.Metal)
+		end
+		if not boss then return end -- colosse : 15 pièces, racine comprise (colosse géant : 20)
 		p("RoyalCape", Vector3.new(1.35, 1.9, 0.14), Vector3.new(0, 0.1, 0.55), style.cloth, Enum.Material.Fabric, CFrame.Angles(-0.13, 0, 0))
 		p("CrownBand", Vector3.new(1.03, 0.16, 0.88), Vector3.new(0, 1.73, -0.04), GOLD, Enum.Material.Metal)
 		for _, x in { -0.36, 0, 0.36 } do

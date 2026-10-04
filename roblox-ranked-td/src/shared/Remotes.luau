@@ -14,32 +14,35 @@ local DEFINITIONS = {
 	-- Après les count x 11 octets des monstres : count octets « contrôle », un par monstre dans le même ordre :
 	-- bits 0-6 = numéro dans IdleTowers.ORDER de la famille de la tour (sa tour de palier 1) dont le contrôle est en cours (0 = aucun ; Frost =
 	-- ralenti par un Totem de givre, Tesla = ralenti par un Mage des tempêtes, Orbital = étourdi par le
-	-- Trébuchet royal), bit 7 (128) = fragile (aura d'un Totem de givre). Voir le haut de Combat.luau.
+	-- Trébuchet royal), bit 7 (128) = fragile (aura d'un Totem du blizzard). Voir le haut de Combat.luau.
 	PlotSync = "RemoteEvent",
 	-- serveur -> clients : (numéro, buffer, count) tirs, count x 27 octets, puis count x 4 octets : l'id u32 de
 	-- la cible que suit chaque projectile (0 = aucune ; format : Combat.luau, takeShotsPacket).
-	-- Baliste lourde (type Rocket) : carreau perçant du départ au point d'arrivée, rayon 0 ; Trébuchet royal
+	-- Baliste du dragon (type DragonBallista) : carreau perçant du départ au point d'arrivée, rayon 0 ; Trébuchet royal
 	-- (type Orbital) : rayon = sa grande zone.
 	PlotShots = "UnreliableRemoteEvent",
 	-- NIVEAUX (règles : Shared/Levels.luau), client -> serveur :
 	--   ("Start", niveau) | "Quit" (retour au camp ; pendant un niveau : abandon)
 	--   | ("Place", type de tour, x, z) : pose libre, point de la zone de combat en coordonnées locales
 	--   | ("Upgrade", id de la tour) | ("Sell", id) | ("Speed", 1 ou 2)
-	--   | ("Buy", type de tour) : boutique à prix fixes, payée en pièces de niveau
 	--   | ("SlotAssign", emplacement du camp, type de tour ou "") | ("SlotUpgrade", emplacement) | "SlotUnlock"
 	--   | ("TrainBuy", type de tour) : entraînement acheté avec des pièces (bouton ⚡ de l'onglet Entraînement)
 	--   | ("Bar", { types de tours }) : ordre de la barre rapide
+	--   | ("EggStart", couveuse, type d'œuf) | ("EggOpen", couveuse) | ("EggSkip", couveuse) | "HatcherBuy" : les œufs
+	--     (toutes les tours en sortent ; plus de boutique)
 	--   | ("Tutorial", "Skip") : bouton « Passer le tuto »
 	--   | ("TeamInvite", UserId) | ("TeamAnswer", UserId de celui qui invite, vrai = accepter) | "TeamLeave" : jouer en
 	--     équipe (Hub/LevelTeams.luau ; en équipe, « Start » ne vient que du chef et lance le niveau pour tous).
 	-- Le serveur vérifie tout (Hub/LevelsService.luau). État publié en attributs :
 	--   du joueur : LevelsState (JSON : best, coins, towers = ses tours dans l'ordre de sa barre rapide, xp, slots,
-	--     wins, losses, tutorial = étape du tuto ; absent tant que ses données ne sont pas chargées), LevelArena
+	--     wins, losses, tutorial = étape du tuto, eggs, hatchers ; absent tant que ses données ne sont pas chargées),
+	--     Hatch (JSON : la dernière tour sortie d'un œuf), LevelArena
 	--     (numéro de sa zone de combat pendant un niveau, absent sinon), Team (JSON : leader, members = { { id, name,
 	--     best } } ; absent : il joue seul), TeamInvite (JSON : from, name, seconds ; absent : pas d'invitation) ;
 	--   du dossier de sa zone, workspace.Arenas.Arena<n> : Map, Level, State ("Running" | "Won" | "Lost"), Gold,
-	--     Lives, Left, Total, Progress, SimSpeed, Perks, Training, TeamSize, et à la fin Result (JSON : won, level,
-	--     reward, firstClear, coins, kills, total, lives, bigLeaks, xp, towers, perks, nextLevel, seconds, team). En
+	--     Lives, Left, Total, Progress, SimSpeed, Training, TeamSize, et à la fin Result (JSON : won, level, reward,
+	--     firstClear, coins, kills, total, lives, bigLeaks, xp, towers, evolutions, nextLevel, seconds, team, friend,
+	--     egg, eggKept, eggPlaced). En
 	--     équipe, chaque joueur a aussi les siens : Gold_<n°>, Training_<n°>, Result_<n°> (n° = Levels.memberKey de
 	--     son UserId), et Team (JSON : { { id, key, name } }) ; chaque tour posée porte OwnerId (UserId de son joueur).
 	LevelAction = "RemoteEvent",

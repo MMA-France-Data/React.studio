@@ -92,83 +92,84 @@ Bot.POLICIES = {
 	{ patience = 1.05, archers = 0, danger = 2 },
 }
 
--- Ce qu'un joueur a quand il arrive à chaque niveau, sans rejouer ni attendre :
---   * tours : Totem (150 pièces) avant le niveau 3, Mage (400) avant le 6, payés avec les pièces de la première
---     victoire des niveaux d'avant (180 après le niveau 2, 740 après le 5). La Baliste (1 200) n'est jamais
---     attendue : elle se paie après le niveau 10 (ou en rejouant), comme toutes les tours suivantes ;
---   * entraînement : 8 XP par victoire pour chaque tour posée, soit le niveau 1 (20 XP) après 3 victoires et le
---     niveau 2 (60 XP) après 7 ou 8, le camp aidant.
+-- Ce qu'un joueur a quand il arrive à chaque niveau (le joueur de RÉFÉRENCE, pour qui les niveaux 1 à
+-- Levels.OPEN_COUNT sont réglés : tune.luau). Depuis le 04/10/2026, plus de boutique : toutes les tours sortent des
+-- ŒUFS (« LES ŒUFS », Levels.luau), au hasard. On attend donc les tours les PLUS PROBABLES pour un joueur qui gagne
+-- chaque niveau une fois, dans l'ordre, et ouvre ses œufs (en les finissant avec ses pièces quand il le peut) :
+--   * 1er territoire : l'Archer (donné), puis la Catapulte (l'œuf de catapulte du niveau 1). Les tours des premiers
+--     œufs communs (Totem, Mage...) sont un bonus : un nouveau joueur n'est jamais bloqué par la chance ;
+--   * 2e territoire : le Totem de givre et le Mage des tempêtes, les tours les plus fréquentes des œufs communs (7 œufs
+--     communs et 1 rare avant le niveau 11 : 3 joueurs sur 4 ont les deux) ; puis, à partir du niveau 16, une tour de
+--     PALIER 2 : la Catapulte de magma (l'œuf doré du niveau 10 : 3 chances sur 4 d'une tour de palier 2). Le boss du
+--     niveau 20 la demande vraiment (blocage voulu par le propriétaire : « que des niveaux tu sois vraiment bloqué,
+--     obligé de rechercher les tourelles ») ;
+--   * 3e territoire : une 2e tour de palier 2, l'Archimage des tempêtes (l'œuf doré du niveau 20), puis la Baliste
+--     lourde (au fil des œufs) à partir du niveau 26 ;
+--   * 4e territoire : une 3e tour de palier 2, la Baliste du dragon (l'œuf doré du niveau 30) : 8 tours, la barre
+--     rapide est pleine.
+-- Un joueur moins chanceux rejoue des niveaux : chaque victoire donne encore un œuf (et des pièces pour les finir).
+--   * entraînement : 8 XP par victoire pour chaque tour posée (+10 % de dégâts par niveau d'entraînement), sans
+--     compter le camp ; trainings = entraînement d'une tour à part (une tour qui vient de sortir d'un œuf n'est pas
+--     encore entraînée).
 -- pace = le RYTHME demandé par ce niveau : secondes entre deux achats du joueur de référence, celui pour qui le
 -- niveau est réglé (tune.luau). Le premier niveau laisse un peu de temps, les derniers demandent un achat toutes
 -- les 3,5 secondes (un humain choisit moins bien que le joueur simulé : il doit aller un peu plus vite que ça).
--- 2e territoire (niveaux 11 à 20) :
---   * la Baliste (1 200 pièces) est achetée en arrivant : les 10 premiers niveaux donnent 2 180 pièces, moins le
---     Totem et le Mage (550) ;
---   * le Sorcier (3 000) avant le niveau 18, avec les pièces des niveaux 11 à 17 (2 620) ;
---   * trainings = entraînement d'une tour à part : une tour qui vient d'être achetée n'est pas encore entraînée
---     (la Baliste n'a donc pas encore son carreau perçant, qui vient à l'entraînement 2).
--- 3e et 4e territoires (niveaux 21 à 40) :
---   * il reste 2 110 pièces en arrivant au niveau 21 ; les niveaux 21 à 30 en donnent 7 180 : l'Oracle (8 000) est
---     acheté en arrivant au niveau 31. Le Trébuchet (15 000) n'est jamais attendu : les 40 niveaux réussis une fois
---     ne le paient pas (il faut rejouer) ;
---   * entraînement : 8 XP par victoire pour chaque tour posée, sans compter le camp. La Baliste (achetée au niveau
---     11) passe à l'entraînement 3 au niveau 29 ; le Sorcier (niveau 18) à 1 au 21, 2 au 26, 3 au 36 ; l'Oracle
---     (niveau 31) à 1 au 34, 2 au 39 ; l'Archer et la Catapulte (dès le niveau 1) à 4 au 39 ; les autres restent à 3.
--- 5e et 6e territoires (niveaux 41 à 60) :
---   * il reste 10 970 pièces en arrivant au niveau 41 ; avec les niveaux 41 à 45 (5 140), le Trébuchet (15 000) est
---     acheté en arrivant au niveau 46 : toutes les tours sont à lui ;
---   * entraînement (8 XP par victoire, sans le camp) : le Totem à 4 au niveau 41, le Mage au 44, la Baliste au 49, le
---     Sorcier au 56 ; l'Oracle à 3 au 49 ; le Trébuchet à 1 au 49, 2 au 54.
--- Territoires 7 à 10 (niveaux 61 à 100) : toutes les tours ; leur entraînement continue de monter avec les
--- victoires (8 XP chacune depuis l'achat de la tour, sans le camp : l'Archer et la Catapulte à 5 au niveau 76...).
+-- Niveaux 41 à 100 : fermés pour l'instant (Levels.OPEN_COUNT) ; leurs lignes datent de la boutique (les sept puis
+-- huit tours de palier 1) : à refaire avant de les ouvrir.
 local MG, BOMB, FROST, TESLA, ROCKET, LASER, CHAIN, ORBITAL = "MachineGun", "Bomb", "Frost", "Tesla", "Rocket", "Laser", "Chain", "Orbital"
-local SIX = { MG, BOMB, FROST, TESLA, ROCKET, LASER }
+local MAGMA, STORM, DRAGON = "MagmaCatapult", "StormArchmage", "DragonBallista"
 local SEVEN = { MG, BOMB, FROST, TESLA, ROCKET, LASER, CHAIN }
 local EIGHT = { MG, BOMB, FROST, TESLA, ROCKET, LASER, CHAIN, ORBITAL }
+local CONTROL = { MG, BOMB, FROST, TESLA }
+local MAGMA5 = { MG, BOMB, FROST, TESLA, MAGMA }
+local STORM6 = { MG, BOMB, FROST, TESLA, MAGMA, STORM }
+local ROCKET7 = { MG, BOMB, FROST, TESLA, ROCKET, MAGMA, STORM }
+local DRAGON8 = { MG, BOMB, FROST, TESLA, ROCKET, MAGMA, STORM, DRAGON }
 Bot.EXPECTED = {
-	{ towers = { MG, BOMB }, training = 0, pace = 5 },
+	-- 1er territoire
+	{ towers = { MG }, training = 0, pace = 5 },
 	{ towers = { MG, BOMB }, training = 0, pace = 4.5 },
-	{ towers = { MG, BOMB, FROST }, training = 0, pace = 4 },
-	{ towers = { MG, BOMB, FROST }, training = 1, pace = 4 },
-	{ towers = { MG, BOMB, FROST }, training = 1, pace = 4 },
-	{ towers = { MG, BOMB, FROST, TESLA }, training = 1, pace = 3.5 },
-	{ towers = { MG, BOMB, FROST, TESLA }, training = 1, pace = 3.5 },
-	{ towers = { MG, BOMB, FROST, TESLA }, training = 2, pace = 3.5 },
-	{ towers = { MG, BOMB, FROST, TESLA }, training = 2, pace = 3.5 },
-	{ towers = { MG, BOMB, FROST, TESLA }, training = 2, pace = 3.5 },
+	{ towers = { MG, BOMB }, training = 0, pace = 4 },
+	{ towers = { MG, BOMB }, training = 1, pace = 4 },
+	{ towers = { MG, BOMB }, training = 1, pace = 4 },
+	{ towers = { MG, BOMB }, training = 1, pace = 3.5 },
+	{ towers = { MG, BOMB }, training = 1, pace = 3.5 },
+	{ towers = { MG, BOMB }, training = 2, pace = 3.5 },
+	{ towers = { MG, BOMB }, training = 2, pace = 3.5 },
+	{ towers = { MG, BOMB }, training = 2, pace = 3.5 },
 	-- 2e territoire
-	{ towers = { MG, BOMB, FROST, TESLA, ROCKET }, training = 2, trainings = { Rocket = 0 }, pace = 3.5 },
-	{ towers = { MG, BOMB, FROST, TESLA, ROCKET }, training = 2, trainings = { Rocket = 0 }, pace = 3.5 },
-	{ towers = { MG, BOMB, FROST, TESLA, ROCKET }, training = 2, trainings = { Rocket = 0 }, pace = 3.5 },
-	{ towers = { MG, BOMB, FROST, TESLA, ROCKET }, training = 2, trainings = { Rocket = 1 }, pace = 3.5 },
-	{ towers = { MG, BOMB, FROST, TESLA, ROCKET }, training = 2, trainings = { Rocket = 1 }, pace = 3.5 },
-	{ towers = { MG, BOMB, FROST, TESLA, ROCKET }, training = 2, trainings = { Rocket = 1 }, pace = 3.5 },
-	{ towers = { MG, BOMB, FROST, TESLA, ROCKET }, training = 2, trainings = { Rocket = 1 }, pace = 3.5 },
-	{ towers = { MG, BOMB, FROST, TESLA, ROCKET, LASER }, training = 3, trainings = { Rocket = 2, Laser = 0 }, pace = 3.5 },
-	{ towers = { MG, BOMB, FROST, TESLA, ROCKET, LASER }, training = 3, trainings = { Rocket = 2, Laser = 0 }, pace = 3.5 },
-	{ towers = { MG, BOMB, FROST, TESLA, ROCKET, LASER }, training = 3, trainings = { Rocket = 2, Laser = 0 }, pace = 3.5 },
+	{ towers = CONTROL, training = 2, trainings = { Frost = 0, Tesla = 0 }, pace = 3.5 },
+	{ towers = CONTROL, training = 2, trainings = { Frost = 0, Tesla = 0 }, pace = 3.5 },
+	{ towers = CONTROL, training = 2, trainings = { Frost = 0, Tesla = 0 }, pace = 3.5 },
+	{ towers = CONTROL, training = 2, trainings = { Frost = 1, Tesla = 1 }, pace = 3.5 },
+	{ towers = CONTROL, training = 2, trainings = { Frost = 1, Tesla = 1 }, pace = 3.5 },
+	{ towers = MAGMA5, training = 2, trainings = { Frost = 1, Tesla = 1, MagmaCatapult = 0 }, pace = 3.5 },
+	{ towers = MAGMA5, training = 2, trainings = { Frost = 1, Tesla = 1, MagmaCatapult = 0 }, pace = 3.5 },
+	{ towers = MAGMA5, training = 2, trainings = { Frost = 1, Tesla = 1, MagmaCatapult = 0 }, pace = 3.5 },
+	{ towers = MAGMA5, training = 2, trainings = { Frost = 1, Tesla = 1, MagmaCatapult = 1 }, pace = 3.5 },
+	{ towers = MAGMA5, training = 2, trainings = { Frost = 1, Tesla = 1, MagmaCatapult = 1 }, pace = 3.5 },
 	-- 3e territoire
-	{ towers = SIX, training = 3, trainings = { Rocket = 2, Laser = 1 }, pace = 3.5 },
-	{ towers = SIX, training = 3, trainings = { Rocket = 2, Laser = 1 }, pace = 3.5 },
-	{ towers = SIX, training = 3, trainings = { Rocket = 2, Laser = 1 }, pace = 3.5 },
-	{ towers = SIX, training = 3, trainings = { Rocket = 2, Laser = 1 }, pace = 3.5 },
-	{ towers = SIX, training = 3, trainings = { Rocket = 2, Laser = 1 }, pace = 3.5 },
-	{ towers = SIX, training = 3, trainings = { Rocket = 2, Laser = 2 }, pace = 3.5 },
-	{ towers = SIX, training = 3, trainings = { Rocket = 2, Laser = 2 }, pace = 3.5 },
-	{ towers = SIX, training = 3, trainings = { Rocket = 2, Laser = 2 }, pace = 3.5 },
-	{ towers = SIX, training = 3, trainings = { Rocket = 3, Laser = 2 }, pace = 3.5 },
-	{ towers = SIX, training = 3, trainings = { Rocket = 3, Laser = 2 }, pace = 3.5 },
+	{ towers = STORM6, training = 3, trainings = { Frost = 2, Tesla = 2, MagmaCatapult = 1, StormArchmage = 0 }, pace = 3.5 },
+	{ towers = STORM6, training = 3, trainings = { Frost = 2, Tesla = 2, MagmaCatapult = 1, StormArchmage = 0 }, pace = 3.5 },
+	{ towers = STORM6, training = 3, trainings = { Frost = 2, Tesla = 2, MagmaCatapult = 1, StormArchmage = 0 }, pace = 3.5 },
+	{ towers = STORM6, training = 3, trainings = { Frost = 2, Tesla = 2, MagmaCatapult = 2, StormArchmage = 1 }, pace = 3.5 },
+	{ towers = STORM6, training = 3, trainings = { Frost = 2, Tesla = 2, MagmaCatapult = 2, StormArchmage = 1 }, pace = 3.5 },
+	{ towers = ROCKET7, training = 3, trainings = { Frost = 2, Tesla = 2, Rocket = 0, MagmaCatapult = 2, StormArchmage = 1 }, pace = 3.5 },
+	{ towers = ROCKET7, training = 3, trainings = { Frost = 2, Tesla = 2, Rocket = 0, MagmaCatapult = 2, StormArchmage = 1 }, pace = 3.5 },
+	{ towers = ROCKET7, training = 3, trainings = { Frost = 2, Tesla = 2, Rocket = 0, MagmaCatapult = 2, StormArchmage = 1 }, pace = 3.5 },
+	{ towers = ROCKET7, training = 3, trainings = { Frost = 2, Tesla = 2, Rocket = 1, MagmaCatapult = 2, StormArchmage = 2 }, pace = 3.5 },
+	{ towers = ROCKET7, training = 3, trainings = { Frost = 2, Tesla = 2, Rocket = 1, MagmaCatapult = 2, StormArchmage = 2 }, pace = 3.5 },
 	-- 4e territoire
-	{ towers = SEVEN, training = 3, trainings = { Rocket = 3, Laser = 2, Chain = 0 }, pace = 3.5 },
-	{ towers = SEVEN, training = 3, trainings = { Rocket = 3, Laser = 2, Chain = 0 }, pace = 3.5 },
-	{ towers = SEVEN, training = 3, trainings = { Rocket = 3, Laser = 2, Chain = 0 }, pace = 3.5 },
-	{ towers = SEVEN, training = 3, trainings = { Rocket = 3, Laser = 2, Chain = 1 }, pace = 3.5 },
-	{ towers = SEVEN, training = 3, trainings = { Rocket = 3, Laser = 2, Chain = 1 }, pace = 3.5 },
-	{ towers = SEVEN, training = 3, trainings = { Rocket = 3, Laser = 3, Chain = 1 }, pace = 3.5 },
-	{ towers = SEVEN, training = 3, trainings = { Rocket = 3, Laser = 3, Chain = 1 }, pace = 3.5 },
-	{ towers = SEVEN, training = 3, trainings = { Rocket = 3, Laser = 3, Chain = 1 }, pace = 3.5 },
-	{ towers = SEVEN, training = 3, trainings = { MachineGun = 4, Bomb = 4, Rocket = 3, Laser = 3, Chain = 2 }, pace = 3.5 },
-	{ towers = SEVEN, training = 3, trainings = { MachineGun = 4, Bomb = 4, Rocket = 3, Laser = 3, Chain = 2 }, pace = 3.5 },
+	{ towers = DRAGON8, training = 3, trainings = { Rocket = 1, MagmaCatapult = 2, StormArchmage = 2, DragonBallista = 0 }, pace = 3.5 },
+	{ towers = DRAGON8, training = 3, trainings = { Rocket = 1, MagmaCatapult = 2, StormArchmage = 2, DragonBallista = 0 }, pace = 3.5 },
+	{ towers = DRAGON8, training = 3, trainings = { Rocket = 1, MagmaCatapult = 2, StormArchmage = 2, DragonBallista = 0 }, pace = 3.5 },
+	{ towers = DRAGON8, training = 3, trainings = { Rocket = 2, MagmaCatapult = 3, StormArchmage = 2, DragonBallista = 1 }, pace = 3.5 },
+	{ towers = DRAGON8, training = 3, trainings = { Rocket = 2, MagmaCatapult = 3, StormArchmage = 2, DragonBallista = 1 }, pace = 3.5 },
+	{ towers = DRAGON8, training = 3, trainings = { Rocket = 2, MagmaCatapult = 3, StormArchmage = 2, DragonBallista = 1 }, pace = 3.5 },
+	{ towers = DRAGON8, training = 3, trainings = { Rocket = 2, MagmaCatapult = 3, StormArchmage = 3, DragonBallista = 1 }, pace = 3.5 },
+	{ towers = DRAGON8, training = 3, trainings = { Rocket = 2, MagmaCatapult = 3, StormArchmage = 3, DragonBallista = 1 }, pace = 3.5 },
+	{ towers = DRAGON8, training = 3, trainings = { Rocket = 2, MagmaCatapult = 3, StormArchmage = 3, DragonBallista = 2 }, pace = 3.5 },
+	{ towers = DRAGON8, training = 3, trainings = { Rocket = 2, MagmaCatapult = 3, StormArchmage = 3, DragonBallista = 2 }, pace = 3.5 },
 	-- 5e territoire
 	{ towers = SEVEN, training = 3, trainings = { MachineGun = 4, Bomb = 4, Frost = 4, Rocket = 3, Laser = 3, Chain = 2 }, pace = 3.5 },
 	{ towers = SEVEN, training = 3, trainings = { MachineGun = 4, Bomb = 4, Frost = 4, Rocket = 3, Laser = 3, Chain = 2 }, pace = 3.5 },
@@ -236,7 +237,10 @@ Bot.EXPECTED = {
 	{ towers = EIGHT, training = 4, trainings = { MachineGun = 5, Bomb = 5, Frost = 5, Tesla = 5, Rocket = 5, Laser = 5 }, pace = 3.5 },
 	{ towers = EIGHT, training = 4, trainings = { MachineGun = 5, Bomb = 5, Frost = 5, Tesla = 5, Rocket = 5, Laser = 5 }, pace = 3.5 },
 }
-Bot.ALL_TOWERS = { "MachineGun", "Frost", "Bomb", "Tesla", "Rocket", "Laser", "Chain", "Orbital" }
+-- Toutes les tours du jeu (les 16 : « tout débloqué »).
+Bot.ALL_TOWERS = table.clone(IdleTowers.ORDER)
+-- Ce qu'a un joueur sans aucune chance aux œufs : l'Archer (donné) et la Catapulte (l'œuf du niveau 1).
+Bot.NO_EGG_TOWERS = { "MachineGun", "Bomb" }
 
 -- Profil d'un joueur qui arrive à ce niveau avec les tours attendues. pace = secondes entre deux achats (un achat
 -- à la fois) ; "reference" = le rythme demandé par le niveau ; absent = joueur très actif (il dépense tout, tout
@@ -276,12 +280,12 @@ end
 
 -- Joueur qui pose ces tours dans l'ordre (sur les emplacements conseillés) dès qu'il a l'or, n'améliore jamais
 -- rien, puis attend. towers = toutes les tours posées, celle offerte au niveau 1 comprise (la première de la
--- liste). Seulement les tours de départ. Renvoie { won, lives, kills, total, seconds }.
+-- liste). Renvoie { won, lives, kills, total, seconds }.
 function Bot.playLazy(level: number, towers: { string })
 	local definition = Levels.definition(level)
 	local arena = { index = Levels.arenaIndex(1), folder = Env.fakeInstance("Arena"), cframe = Levels.arenaCFrame(1), map = definition.map }
 	local unlocked = {}
-	for _, towerType in Levels.STARTING_TOWERS do
+	for _, towerType in towers do
 		unlocked[towerType] = true
 	end
 	local game = LevelGame.new(arena, { UserId = 1, Parent = {} }, { level = level, unlocked = unlocked, training = {}, startingTower = level == 1 })

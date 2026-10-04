@@ -1,28 +1,25 @@
--- Les 16 TOURS du jeu : leurs stats de combat. Leur prix en or, leur prix à la boutique et leurs évolutions sont
+-- Les 16 TOURS du jeu : leurs stats de combat. Leur prix en or, les œufs d'où elles sortent et leur entraînement sont
 -- dans Levels.luau ; le combat lui-même est dans Hub/Combat.luau.
 -- (Ce fichier garde le nom qu'il avait dans l'ancien jeu.)
 --
 -- DEUX PALIERS. Demande du propriétaire (04/10/2026) : « archer, archer enflammé, déjà pas les mêmes » ; « la
 -- première tour quasi obsolète après, une claire différence de niveau entre chaque tour de palier ».
---   * PALIER 1 (TIER1) : les 8 tours de départ et de la boutique (décrites juste en dessous) ;
---   * PALIER 2 (TIER2) : leurs 8 versions fortes, qu'on n'a QUE dans les œufs (« LES ŒUFS », Levels.luau). Une tour
---     de palier 2 a un champ base = sa tour de palier 1 : même rôle, même rareté, même silhouette (avec une parure
---     en plus, Hub/IdleTowerModel.luau), mais 2,3 à 3,5 fois ses dégâts par seconde, et ses pouvoirs (feu,
---     fragilité, carreau perçant...) sont déjà là : elle n'a pas d'améliorations d'entraînement (Levels.PERKS),
---     l'entraînement ne lui donne que des dégâts. Ses effets, ses sons et ses contrôles sont ceux de sa tour de base
---     (IdleTowers.baseOf).
+--   * PALIER 1 (TIER1) : les 8 tours de base (décrites juste en dessous), sans pouvoir spécial ;
+--   * PALIER 2 (TIER2) : leurs 8 versions fortes. Une tour de palier 2 a un champ base = sa tour de palier 1 : même
+--     rôle, même rareté, même silhouette (avec une parure en plus, Hub/IdleTowerModel.luau), mais 2,3 à 3,5 fois ses
+--     dégâts par seconde, et elle seule a les POUVOIRS (feu au sol, fragilité, carreau perçant). Ses effets, ses sons
+--     et ses contrôles sont ceux de sa tour de base (IdleTowers.baseOf).
+-- Toutes les tours sortent des œufs (« LES ŒUFS », Levels.luau : plus de boutique, décision du propriétaire du
+-- 04/10/2026), sauf l'Archer, donné au départ. L'entraînement ne donne que des dégâts (Levels.TRAINING : « le
+-- terrain d'entraînement encore là mais pour du niveau dégâts »).
 --
 -- Chaque tour de palier 1 a son rôle :
---   Archer du rempart   -> tireur rapide à longue portée (21) : fort contre les files de monstres ; ses flèches
---                          enflammées (évolution ★) laissent des zones de feu
---   Totem de givre      -> tour de CONTRÔLE : ralentit tout ce qui passe dans son aura et rend ces monstres
---                          FRAGILES (+X % de dégâts reçus des autres tours, sauf le Mage des tempêtes ; X monte
---                          avec son niveau) ; ses propres dégâts restent faibles
+--   Archer du rempart   -> tireur rapide à longue portée (21) : fort contre les files de monstres
+--   Totem de givre      -> tour de CONTRÔLE : ralentit tout ce qui passe dans son aura ; ses propres dégâts restent
+--                          faibles
 --   Catapulte           -> grosse zone contre les foules tassées
 --   Mage des tempêtes   -> contrôle : petite zone (3) + ralentissement TRÈS fort (-90 %) mais court
---   Baliste lourde      -> gros carreaux PERÇANTS à longue portée (30) : vise le plus résistant (entre monstres
---                          presque aussi résistants, celui qui en aligne le plus), et le carreau transperce
---                          jusqu'à 3 monstres sur sa ligne (BALLISTA_PIERCE_MAX)
+--   Baliste lourde      -> gros carreau à longue portée (30) : vise le plus résistant
 --   Sorcier des arcanes -> rayon qui monte : très fort contre les lents (boss, colosse, chevaliers lourds),
 --                          faible contre les rapides
 --   Oracle de la foudre -> un éclair qui touche 4 monstres
@@ -37,7 +34,8 @@
 -- de contrôle à la fois (ralentissement du Totem de givre, ralentissement du Mage des tempêtes,
 -- étourdissement du Trébuchet royal), et sa force ne se multiplie jamais. Un autre type de tour ne peut rien
 -- tant que l'effet en cours dure (premier arrivé, premier servi). Totem de givre et Mage des tempêtes ne se
--- cumulent donc pas : le joueur choisit. La fragilité du Totem n'est PAS un contrôle (elle s'applique toujours).
+-- cumulent donc pas : le joueur choisit. La fragilité du Totem du blizzard n'est PAS un contrôle (elle s'applique
+-- toujours).
 -- FATIGUE des contrôles courts : le Mage et le Trébuchet ne prolongent JAMAIS leur effet en cours, et quand il
 -- se termine, le monstre est immunisé contre ce type de tour pendant slowImmunity / stunImmunity secondes
 -- (sinon beaucoup de Mages gèlent tout). Le Totem de givre (aura faite pour durer) n'a pas d'immunité : un
@@ -46,7 +44,7 @@
 -- Façons de toucher (kind) :
 --   "Single" : une cible ; "Splash" : une zone autour du point d'impact (rayon `splash`) ;
 --   "Pierce" : un carreau qui transperce les monstres sur la ligne tour -> point d'impact (demi-largeur
---   `pierceWidth`), BALLISTA_PIERCE_MAX au plus ;
+--   `pierceWidth`), pierceMax au plus (Baliste du dragon) ;
 --   "Aura" : tous les monstres à portée ; "Chain" : un éclair qui rebondit ; "Beam" : rayon continu.
 -- Façons de viser (targeting) : "First" = le plus avancé, "Strongest" = le plus résistant (avec un carreau
 -- perçant : entre monstres presque aussi résistants, celui qui en aligne le plus, voir BALLISTA_TIE_RATIO),
@@ -55,8 +53,8 @@
 -- sans, elle touche tout de suite.
 -- Effets : slow + slowDuration = ralentissement (contrôle) ; stunDuration = étourdissement (contrôle, vitesse
 -- 0) ; slowImmunity / stunImmunity = contrôle COURT : jamais prolongé, puis immunité (fatigue, voir plus haut) ;
--- fragilityBase/PerLevel/Max = fragilité du Totem ; ignoresFragility = ses dégâts ne profitent pas de la
--- fragilité.
+-- fragilityBase/PerLevel/Max = fragilité du Totem du blizzard ; ignoresFragility = ses dégâts ne profitent pas de
+-- la fragilité ; fireRadius... = feu au sol (Archer enflammé, Catapulte de magma, Baliste du dragon).
 -- Changer un chiffre ici change la difficulté des niveaux : relancer tools\levels\run.ps1 -Tests, et au besoin
 -- -Tune pour refaire les PV des niveaux.
 local IdleConfig = require(script.Parent.IdleConfig)
@@ -85,19 +83,19 @@ IdleTowers.PROJECTILE_CATCH_RADIUS = 1.5
 IdleTowers.PROJECTILE_FOLLOW_MARGIN = 6
 -- Zones de feu actives au plus dans une zone de combat (toutes tours confondues) : au-delà, la plus vieille s'éteint.
 IdleTowers.FIRE_MAX_PER_PLOT = 30
--- Baliste lourde (demande du propriétaire : « viser le plus gros monstre ok, mais si plusieurs monstres sont
--- pareils, essayer de faire la meilleure zone »). Parmi les monstres qu'elle peut viser, ceux qui ont au moins
+-- Carreau perçant (Baliste du dragon ; demande du propriétaire pour la Baliste : « viser le plus gros monstre ok, mais
+-- si plusieurs monstres sont pareils, essayer de faire la meilleure zone »). Parmi les monstres qu'elle peut viser, ceux qui ont au moins
 -- BALLISTA_TIE_RATIO fois les PV du plus résistant sont « pareils » (0,85 : 85 % de ses PV ou plus) ; elle vise
 -- celui dont le carreau en transpercera le PLUS. À nombre égal : le plus résistant. Un monstre bien plus
 -- résistant que les autres reste donc toujours sa cible. Voir Combat:pickPierceTarget.
 IdleTowers.BALLISTA_TIE_RATIO = 0.85
--- Nombre de « pareils » comparés au plus à chaque tir de Baliste (le plus résistant compris) : le calcul reste
+-- Nombre de « pareils » comparés au plus à chaque tir de carreau perçant (le plus résistant compris) : le calcul reste
 -- léger même devant une foule d'écuyers qui ont tous les mêmes PV.
 IdleTowers.BALLISTA_MAX_CANDIDATES = 12
--- Le carreau de la Baliste transperce AU PLUS ce nombre de monstres (décision du propriétaire : « transperce 3
--- max »). Sa cible est toujours touchée, plus les premiers monstres que le carreau rencontre sur sa ligne (les
--- plus proches de la tour). Voir Combat:hitLine et countPierced. Une tour peut avoir sa propre limite : pierceMax
--- (la Baliste du dragon, palier 2 : 4).
+-- Un carreau perçant transperce AU PLUS ce nombre de monstres (décision du propriétaire pour la Baliste : « transperce
+-- 3 max »), sauf limite de la tour (pierceMax : 4 pour la Baliste du dragon). Sa cible est toujours touchée, plus les
+-- premiers monstres que le carreau rencontre sur sa ligne (les plus proches de la tour). Voir Combat:hitLine et
+-- countPierced.
 IdleTowers.BALLISTA_PIERCE_MAX = 3
 -- LIMITE DE TOURS IDENTIQUES posées dans un niveau, selon la rareté de la tour (Levels.MAX_COPIES peut fixer une
 -- autre limite pour une tour précise). Voir maxCopies.
@@ -114,24 +112,14 @@ IdleTowers.Defs = {
 		range = 21,
 		cooldown = 0.2,
 		projectileSpeed = 90, -- flèche rapide : ~0,1 à 0,25 s de vol
-		-- Flèches enflammées (évolution ★ de l'Archer dans les niveaux, Levels.PERKS) : chaque flèche laisse au
-		-- sol, là où elle tombe, une petite zone de feu qui brûle tous les monstres dedans. Dégâts du feu par
-		-- seconde = fireDamageRatio x dégâts de la flèche, un coup toutes les fireTick s. Une flèche qui tombe
-		-- dans une zone de la même tour la ravive (elle repart pour fireDuration s) au lieu d'en créer une autre ;
-		-- fireMaxPatches zones par tour au plus (la plus vieille s'éteint).
-		fireRadius = 2.5,
-		fireDuration = 2,
-		fireDamageRatio = 0.4,
-		fireTick = 0.5,
-		fireMaxPatches = 5,
 	},
 	Frost = {
 		rarity = "Common",
 		displayName = "Totem de givre",
 		kind = "Aura",
 		color = Color3.fromRGB(150, 230, 255),
-		-- Tour de CONTRÔLE d'abord : elle touche tous les monstres proches à chaque impulsion, mais ses dégâts
-		-- restent faibles. Sa force vient de la fragilité, qui renforce les AUTRES tours.
+		-- Tour de CONTRÔLE : elle touche tous les monstres proches à chaque impulsion, mais ses dégâts restent faibles.
+		-- Sa force : les monstres ralentis restent plus longtemps sous les tirs des autres tours.
 		damage = 2,
 		range = 11,
 		cooldown = 1,
@@ -140,16 +128,7 @@ IdleTowers.Defs = {
 		-- après. C'est un CONTRÔLE : un seul à la fois par monstre ; deux Totems ne s'additionnent pas.
 		slow = 0.6,
 		slowDuration = 2.5,
-		-- FRAGILITÉ : les monstres dans l'aura prennent +X % de dégâts de TOUTES les AUTRES tours sauf le Mage des
-		-- tempêtes. X monte avec le niveau du Totem :
-		--   X = min(fragilityMax, fragilityBase + fragilityPerLevel x (niveau - 1))
-		-- Deux Totems ne s'additionnent pas : le plus fort gagne. Elle suit l'aura : elle dure encore
-		-- fragilityDuration s après la sortie (comme le ralentissement).
-		fragilityBase = 0.1,
-		fragilityPerLevel = 0.02,
-		fragilityMax = 3,
-		fragilityDuration = 2.5,
-		-- Les dégâts des Totems ne profitent pas de la fragilité (ni la sienne, ni celle d'un autre Totem).
+		-- Les dégâts des Totems ne profitent pas de la fragilité (celle du Totem du blizzard).
 		ignoresFragility = true,
 	},
 	Bomb = {
@@ -188,17 +167,14 @@ IdleTowers.Defs = {
 		-- tombent toujours). Donc 0,6 s ralenti sur 1,4 s au plus, quel que soit le nombre de Mages. Durée +
 		-- immunité = 1,4 s, exprès pas un multiple de 0,8 s (le temps entre deux éclairs).
 		slowImmunity = 0.8,
-		-- Ses dégâts ne profitent pas de la fragilité du Totem de givre (pas de synergie Givre + Mage).
+		-- Ses dégâts ne profitent pas de la fragilité du Totem du blizzard (pas de synergie Totem + Mage).
 		ignoresFragility = true,
 	},
 	Rocket = {
 		rarity = "Epic",
 		displayName = "Baliste lourde",
-		-- Carreau PERÇANT : la Baliste vise le monstre le plus résistant, mais à l'impact, les monstres à moins de
-		-- pierceWidth studs du segment tour -> point d'impact prennent aussi les dégâts, BALLISTA_PIERCE_MAX au
-		-- plus (3) : sa cible (touchée même si un ralentissement l'a fait dévier) et les premiers que le carreau
-		-- rencontre.
-		kind = "Pierce",
+		-- Un gros carreau sur le monstre le plus résistant (le carreau PERÇANT : la Baliste du dragon).
+		kind = "Single",
 		targeting = "Strongest",
 		color = Color3.fromRGB(200, 60, 60),
 		-- RENFORCÉE (accord du propriétaire, 02/10/2026) : 120 dégâts au lieu de 50. Mesuré avec le joueur simulé
@@ -208,7 +184,6 @@ IdleTowers.Defs = {
 		damage = 120,
 		range = 30,
 		cooldown = 4, -- tire rarement : excellente contre les gros
-		pierceWidth = 1.25, -- demi-largeur du carreau perçant, en studs
 		projectileSpeed = 75, -- carreau lourd, tir tendu : ~0,15 à 0,45 s de vol
 	},
 	Laser = {
@@ -253,7 +228,7 @@ IdleTowers.Defs = {
 		-- 0,5 s (immunité 2 s au lieu de 1,5 s : un monstre reste arrêté au plus 1 s sur 3). Mesuré avec le joueur
 		-- simulé (tools\levels\run.ps1 -Worth) : avant, l'avoir apportait +12 %, 0 et +12 % aux niveaux 6, 8 et 10 ;
 		-- maintenant +55 %, +34 % et +46 % : un peu plus que l'Oracle de la foudre (+47 %, +42 %, +29 %), l'autre
-		-- tour légendaire, qui coûte deux fois moins cher à la boutique.
+		-- tour légendaire, qui coûtait alors deux fois moins cher à la boutique (avant les œufs).
 		damage = 100,
 		range = 70,
 		cooldown = 5,
@@ -281,8 +256,11 @@ IdleTowers.Defs = {
 		kind = "Single",
 		targeting = "First",
 		color = Color3.fromRGB(232, 98, 38),
-		-- L'Archer du rempart avec tous ses pouvoirs (flèches enflammées, longue-vue, tir rapide) et des flèches 2,3 fois
-		-- plus fortes : ~2,7 fois ses dégâts par seconde, et un feu plus large qui dure plus longtemps.
+		-- L'Archer du rempart en bien plus fort (plus loin, plus vite, des flèches 2,3 fois plus fortes : ~2,7 fois ses
+		-- dégâts par seconde), et ses flèches sont ENFLAMMÉES : chaque flèche laisse au sol, là où elle tombe, une zone de
+		-- feu qui brûle tous les monstres dedans. Dégâts du feu par seconde = fireDamageRatio x dégâts de la flèche, un
+		-- coup toutes les fireTick s. Une flèche qui tombe dans une zone de la même tour la ravive (elle repart pour
+		-- fireDuration s) au lieu d'en créer une autre ; fireMaxPatches zones par tour au plus (la plus vieille s'éteint).
 		damage = 7,
 		range = 24,
 		cooldown = 0.17,
@@ -300,8 +278,11 @@ IdleTowers.Defs = {
 		kind = "Aura",
 		color = Color3.fromRGB(96, 178, 255),
 		-- Le Totem de givre en bien plus fort : ralentit de 50 % (le Totem : 40 % dans un niveau), une aura plus grande,
-		-- et une fragilité deux fois plus forte dès le début (+20 %, +3 % par niveau). Ses contrôles comptent comme ceux
-		-- du Totem de givre (Combat.luau : un seul ralentissement à la fois, le plus fort des deux).
+		-- et la FRAGILITÉ : les monstres dans l'aura prennent +X % de dégâts de TOUTES les AUTRES tours sauf les Mages.
+		-- X monte avec le niveau du Totem : X = min(fragilityMax, fragilityBase + fragilityPerLevel x (niveau - 1)).
+		-- Deux Totems ne s'additionnent pas : le plus fort gagne. Elle suit l'aura : elle dure encore fragilityDuration s
+		-- après la sortie (comme le ralentissement). Ses contrôles comptent comme ceux du Totem de givre (Combat.luau :
+		-- un seul ralentissement à la fois, le plus fort des deux).
 		damage = 6,
 		range = 13,
 		cooldown = 1,
@@ -359,8 +340,10 @@ IdleTowers.Defs = {
 		kind = "Pierce",
 		targeting = "Strongest",
 		color = Color3.fromRGB(224, 44, 58),
-		-- Un carreau de 300 (la Baliste lourde : 120) qui transperce jusqu'à 4 monstres (pierceMax ; la Baliste : 3) et
-		-- enflamme le sol là où il arrive.
+		-- Un carreau de 300 (la Baliste lourde : 120), PERÇANT : il vise le monstre le plus résistant, mais à l'impact,
+		-- les monstres à moins de pierceWidth studs du segment tour -> point d'impact prennent aussi les dégâts, pierceMax
+		-- au plus (4) : sa cible (touchée même si un ralentissement l'a fait dévier) et les premiers que le carreau
+		-- rencontre. Il enflamme aussi le sol là où il arrive.
 		damage = 300,
 		range = 35,
 		cooldown = 3.4,
@@ -380,9 +363,9 @@ IdleTowers.Defs = {
 		kind = "Beam",
 		targeting = "Strongest",
 		color = Color3.fromRGB(134, 58, 255),
-		-- Rayon du néant : 2,3 fois le Sorcier des arcanes au départ, il chauffe plus vite (+3 par seconde) et monte plus
-		-- haut (x30).
-		damage = 16,
+		-- Rayon du néant : 2,7 fois le Sorcier des arcanes au départ (encore 1,7 fois le Sorcier entraîné au maximum), il
+		-- chauffe plus vite (+3 par seconde) et monte plus haut (x30).
+		damage = 19,
 		range = 17,
 		beamRampRate = 3,
 		beamRampMax = 30,
@@ -428,7 +411,7 @@ function IdleTowers.baseOf(towerType: string): string
 	return (def and def.base) or towerType
 end
 
--- Palier d'une tour : 1 (départ, boutique) ou 2 (œufs).
+-- Palier d'une tour : 1 (l'Archer de départ, les œufs) ou 2 (les œufs rares et dorés).
 function IdleTowers.tierOf(towerType: string): number
 	local def = IdleTowers.Defs[towerType]
 	return if def and def.base then 2 else 1
