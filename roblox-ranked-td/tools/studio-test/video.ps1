@@ -3,8 +3,9 @@
 #   1. Construit une place avec les scénarios VideoServer / VideoClient (de vraies parties, en anglais), l'ouvre dans
 #      Studio, lance Play et pilote OBS (obs.cjs) : repérage de la vue 3D, puis un enregistrement par plan
 #      (out\video\r1.mp4 à r5.mp4) ;
-#   2. montage.py coupe les plans et les colle (ffmpeg) : out\video\video-16s.mp4 (et video-16s-titres.mp4, avec des
-#      titres en anglais), copiées dans A-PUBLIER.
+#   2. montage.py coupe les plans, les enchaîne avec des transitions (ffmpeg) et pose dessus notre propre musique
+#      (musique.py, à la place du son du jeu) : out\video\video-16s.mp4 (et video-16s-titres.mp4, avec des titres
+#      en anglais), copiées dans A-PUBLIER.
 #   powershell -ExecutionPolicy Bypass -File tools\studio-test\video.ps1
 #   powershell -ExecutionPolicy Bypass -File tools\studio-test\video.ps1 -MontageSeulement   (refait seulement le
 #                                                  montage, avec les plans déjà filmés)

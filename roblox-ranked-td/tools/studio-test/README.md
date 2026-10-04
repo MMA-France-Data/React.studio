@@ -202,7 +202,8 @@ l'icône (512 x 512). À refaire quand le jeu change d'allure.
 
 ### `video.ps1` : la vidéo de la page Roblox du jeu (environ 6 minutes)
 
-Ce n'est pas un test. Demande du propriétaire (04/10/2026) : « une vidéo de 16 s avec des rushs de 3/4 s ».
+Ce n'est pas un test. Demandes du propriétaire (04/10/2026) : « une vidéo de 16 s avec des rushs de 3/4 s », puis
+« fais des transitions, enlève le volume du jeu et mets ta propre musique ».
 
 ```bat
 powershell -ExecutionPolicy Bypass -File tools\studio-test\video.ps1
@@ -215,13 +216,22 @@ powershell -ExecutionPolicy Bypass -File tools\studio-test\video.ps1
    tirs des tours spéciales, de près), `r2` (un niveau du glacier en entier, avec l'interface), `r3` (le boss du
    glacier, niveau 40 : « il rend mieux » que celui de la forêt), `r4` (l'œuf carmin qui s'ouvre : « 🌟 SPECIAL
    TOWER! »), `r5` (la victoire au boss du niveau 20). Au montage, l'œuf passe entre les deux plans du glacier.
-2. `montage.py` coupe 3 à 4 s de chaque plan (pour l'œuf et la victoire : juste avant le plus grand changement
-   d'image, l'apparition du panneau) et les colle avec **ffmpeg** : `video-16s.mp4` (le jeu seul) et
-   `video-16s-titres.mp4` (un titre en anglais sur chaque plan), 16 s pile, 1920 x 1080, 60 images/s, H.264 + AAC,
-   copiées dans `A-PUBLIER` ; `out\video\apercu.png` montre une image de chaque plan. Refaire seulement le montage :
-   `video.ps1 -MontageSeulement`.
+2. `montage.py` garde 3,2 s de chaque plan (pour l'œuf et la victoire : le panneau apparaît un temps après le début
+   du plan ; ffmpeg trouve le moment où il apparaît, le plus grand changement d'image) et les enchaîne avec des
+   **transitions** de 0,4 s (filtre `xfade` de ffmpeg : l'image glisse à gauche, vers le haut, un flash blanc pour
+   l'arrivée du boss, à gauche). Le son du jeu est enlevé (il sautait à chaque changement de plan) : à la place,
+   **notre propre musique**, fabriquée note par note par `musique.py` (numpy ; rien n'est pris ailleurs, donc
+   libre de droits) : 150 battements par minute, chaque plan dure 2 mesures, chaque changement de plan tombe sur
+   un premier temps avec un « whoosh », un boum pour le début, le boss et la fin, un scintillement quand l'œuf
+   s'ouvre, un accord majeur pour la victoire ; remise au niveau habituel des vidéos (-16 LUFS). Sorties :
+   `video-16s.mp4` (le jeu seul) et `video-16s-titres.mp4` (un titre en anglais sur chaque plan, en fondu), 16 s
+   pile, 1920 x 1080, 60 images/s, H.264 + AAC, copiées dans `A-PUBLIER` ; `out\video\apercu.png` montre le
+   milieu de chaque plan et de chaque transition, `out\video\musique.wav` la musique seule. Refaire seulement le
+   montage : `video.ps1 -MontageSeulement` (la musique seule : `python tools\studio-test\musique.py --sortie
+   musique.wav`, avec `--niveaux` pour le volume de chaque groupe d'instruments).
 
-OBS doit être fermé : il est lancé sur son profil « Tower 22 » (1920 x 1080, 60 images/s, le son de Studio seulement,
+OBS doit être fermé : il est lancé sur son profil « Tower 22 » (1920 x 1080, 60 images/s, le son de Studio seulement
+(pas gardé au montage),
 jamais le micro ; jamais le profil du propriétaire et son chat Twitch), puis refermé, et son profil et ses scènes
 habituels sont remis. ffmpeg : celui du PATH, sinon celui de l'application Medal déjà installée. Un Studio déjà
 ouvert n'est pas touché : la fenêtre du tournage est mise devant et en plein écran (cachée, Studio ne dessine plus
