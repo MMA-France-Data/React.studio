@@ -46,6 +46,7 @@ local NumberFormat = require(Shared.NumberFormat)
 local ProximityLabel = require(Shared.ProximityLabel)
 local Remotes = require(Shared.Remotes)
 local CombatVFX = require(script.Parent.CombatVFX)
+local EggArt = require(script.Parent.EggArt)
 local PlotRenderer = require(script.Parent.PlotRenderer)
 local SoundManager = require(script.Parent.SoundManager)
 local UI = require(script.Parent.UI)
@@ -1307,7 +1308,7 @@ local function buildCamp()
 		MaxTextSize = 17,
 		Parent = eggsPage,
 	})
-	local EGG_CARD_H = 128
+	local EGG_CARD_H = 136
 	local eggCards = {}
 	for index, eggType in Levels.EGG_ORDER do
 		local egg = Levels.EGGS[eggType]
@@ -1318,17 +1319,13 @@ local function buildCamp()
 			BackgroundColor3 = UI.Colors.PanelLight,
 			Parent = eggsPage,
 		}, { UI.corner(5), UI.padding(8) })
-		UI.card(card, egg.color:Lerp(UI.Colors.Panel, 0.72))
-		UI.new("Frame", {
-			Name = "Icon",
-			Size = UDim2.fromOffset(32, 42),
-			BackgroundColor3 = egg.color,
-			Parent = card,
-		}, { UI.new("UICorner", { CornerRadius = UDim.new(0.5, 0) }), UI.stroke(UI.Colors.Ink, 2) })
+		-- (la carte prend la couleur de la rareté de l'œuf : gris, bleu, violet pour le plus rare)
+		UI.card(card, egg.art.frame:Lerp(UI.Colors.Panel, 0.62))
+		EggArt.tile(eggType, { Name = "Icon", Size = UDim2.fromOffset(56, 56), Parent = card })
 		UI.label({
 			Name = "EggName", -- (pas « Name » : ce serait la propriété Name de la carte)
-			Position = UDim2.fromOffset(40, 0),
-			Size = UDim2.new(1, -96, 0, 22),
+			Position = UDim2.fromOffset(64, 2),
+			Size = UDim2.new(1, -120, 0, 22),
 			Font = Enum.Font.GothamBlack,
 			TextXAlignment = Enum.TextXAlignment.Left,
 			MaxTextSize = 16,
@@ -1348,8 +1345,8 @@ local function buildCamp()
 		})
 		UI.label({
 			Name = "Time",
-			Position = UDim2.fromOffset(40, 22),
-			Size = UDim2.new(1, -40, 0, 20),
+			Position = UDim2.fromOffset(64, 28),
+			Size = UDim2.new(1, -64, 0, 20),
 			TextXAlignment = Enum.TextXAlignment.Left,
 			TextColor3 = UI.Colors.Muted,
 			MaxTextSize = 13,
@@ -1366,8 +1363,8 @@ local function buildCamp()
 		local tier2 = math.floor((egg.tier2 or 0) * 100 + 0.5)
 		UI.label({
 			Name = "Chances",
-			Position = UDim2.fromOffset(0, 48),
-			Size = UDim2.new(1, 0, 1, -48),
+			Position = UDim2.fromOffset(0, 62),
+			Size = UDim2.new(1, 0, 1, -62),
 			TextWrapped = true,
 			TextXAlignment = Enum.TextXAlignment.Left,
 			TextYAlignment = Enum.TextYAlignment.Top,
@@ -1400,14 +1397,15 @@ local function buildCamp()
 			Parent = eggsPage,
 		}, { UI.corner(5), UI.padding(8) })
 		UI.card(row, UI.Colors.PanelLight)
+		-- (l'œuf de la couveuse, dessiné : EggArt ; un ovale sombre quand elle est vide)
 		local icon = UI.new("Frame", {
 			Name = "Icon",
 			AnchorPoint = Vector2.new(0, 0.5),
 			Position = UDim2.new(0, 0, 0.5, 0),
-			Size = UDim2.fromOffset(30, 40),
-			BackgroundColor3 = UI.Colors.Panel,
+			Size = UDim2.fromOffset(32, 42),
+			BackgroundTransparency = 1,
 			Parent = row,
-		}, { UI.new("UICorner", { CornerRadius = UDim.new(0.5, 0) }), UI.stroke(UI.Colors.Ink, 2) })
+		})
 		local title = UI.label({
 			Name = "Title",
 			Position = UDim2.fromOffset(40, 0),
@@ -1433,7 +1431,7 @@ local function buildCamp()
 				AnchorPoint = Vector2.new(1, 0.5),
 				Position = UDim2.new(1, -(#Levels.EGG_ORDER - typeIndex) * 130, 0.5, 0),
 				Size = UDim2.fromOffset(124, 38),
-				BackgroundColor3 = Levels.EGGS[eggType].color:Lerp(UI.Colors.Panel, 0.4),
+				BackgroundColor3 = Levels.EGGS[eggType].art.frame:Lerp(UI.Colors.Panel, 0.3),
 				MaxTextSize = 13,
 				Visible = false,
 				Parent = row,
@@ -1460,7 +1458,7 @@ local function buildCamp()
 				levelAction:FireServer("HatcherBuy")
 			end
 		end)
-		hatchRows[index] = { row = row, icon = icon, title = title, status = status, buttons = buttons, action = action }
+		hatchRows[index] = { row = row, icon = icon, iconType = nil, title = title, status = status, buttons = buttons, action = action }
 	end
 	local eggsHelpTop = HATCH_TOP + 28 + #Levels.HATCHER_COST * (HATCH_ROW_H + 6) + 4
 	UI.label({
@@ -1493,7 +1491,19 @@ local function buildCamp()
 			local isNext = hatcher == nil and index == #state.hatchers + 1
 			entry.row.Visible = hatcher ~= nil or isNext
 			local egg = if hatcher then Levels.EGGS[hatcher.egg] else nil
-			entry.icon.BackgroundColor3 = if egg then egg.color else UI.Colors.Panel
+			local iconType = if egg then hatcher.egg else ""
+			if entry.iconType ~= iconType then
+				entry.iconType = iconType
+				entry.icon:ClearAllChildren()
+				if iconType ~= "" then
+					EggArt.egg(iconType, { Size = UDim2.fromScale(1, 1), Stroke = 2, Parent = entry.icon })
+				else
+					UI.new("Frame", { Name = "Empty", Size = UDim2.fromScale(1, 1), BackgroundColor3 = UI.Colors.Panel, Parent = entry.icon }, {
+						UI.new("UICorner", { CornerRadius = UDim.new(0.5, 0) }),
+						UI.stroke(UI.Colors.Ink, 2),
+					})
+				end
+			end
 			for _, button in entry.buttons do
 				button.Visible = false
 			end

@@ -857,8 +857,8 @@ return function(log)
 	check(
 		wonLevel and arena:GetAttribute("State") == "Won" and endOk and panel.Title.Text == "VICTOIRE !" and string.find(panel.Reward.Text, "80", 1, true) ~= nil
 			and panel.Next.Text == "Niveau 2 ▶" and shown(panel.Replay) and shown(panel.Camp) and onScreen(panel) and #towers() == 5
-			and string.find(panel.Details.Text, "Œuf de catapulte : il couve déjà dans ta couveuse", 1, true) ~= nil,
-		`niveau 1 gagné en posant et en améliorant sans arrêt (état « {tostring(arena:GetAttribute("State"))} », {tostring(arena:GetAttribute("Lives"))} vies, {#towers()} tours) : écran de fin « {panel.Title.Text} », « {panel.Reward.Text} », bouton « {panel.Next.Text} », l'œuf de catapulte annoncé`
+			and string.find(panel.Details.Text, "Œuf commun : il couve déjà dans ta couveuse", 1, true) ~= nil,
+		`niveau 1 gagné en posant et en améliorant sans arrêt (état « {tostring(arena:GetAttribute("State"))} », {tostring(arena:GetAttribute("Lives"))} vies, {#towers()} tours) : écran de fin « {panel.Title.Text} », « {panel.Reward.Text} », bouton « {panel.Next.Text} », le premier œuf annoncé`
 	)
 	shot("victoire")
 	check(

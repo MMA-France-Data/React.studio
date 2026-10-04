@@ -368,7 +368,7 @@ end
 check(#missingTowers == 0, `toutes les tours sortent des œufs et ont un prix en or (manquent : {table.concat(missingTowers, ", ")})`)
 check(
 	Levels.eggFor(1, true) == "Starter" and Levels.EGGS.Starter.tower == "Bomb" and Levels.EGGS.Starter.seconds == 10 and Levels.eggFor(1, false) == "Common",
-	"niveau 1 gagné la première fois : l'œuf de catapulte (10 s, la Catapulte à coup sûr) ; en le rejouant : un œuf commun"
+	"niveau 1 gagné la première fois : le premier œuf (10 s, la Catapulte à coup sûr) ; en le rejouant : un œuf commun"
 )
 -- Pièces de niveau : les premières victoires (les tours ne s'achètent plus : elles servent au camp, aux couveuses et à
 -- finir les œufs).
@@ -859,7 +859,7 @@ end
 --    sortable ». Son étape dans les données, et les DEUX PREMIERS GESTES du niveau 1 (Levels.firstSteps : ce que la
 --    flèche montre, client/TutorialUI.luau ; « juste poser une tour, et améliorer, et fin », 03/10/2026).
 ----------------------------------------------------------------------
-check(Levels.TUTORIAL.EGG == 1 and Levels.TUTORIAL.DONE == 2 and Levels.defaultData().tutorial == 0, "tuto : un nouveau joueur est à l'étape 0 (1 = ouvrir l'œuf de catapulte, 2 = fini)")
+check(Levels.TUTORIAL.EGG == 1 and Levels.TUTORIAL.DONE == 2 and Levels.defaultData().tutorial == 0, "tuto : un nouveau joueur est à l'étape 0 (1 = ouvrir le premier œuf, 2 = fini)")
 check(
 	Levels.cleanData(Levels.defaultData()).tutorial == 0 and Levels.cleanData({ best = 0, tutorial = 1 }).tutorial == 1 and Levels.cleanData({ best = 5, tutorial = 0 }).tutorial == 0
 		and Levels.cleanData({ tutorial = 2 }).tutorial == 2,
@@ -1436,7 +1436,7 @@ do
 	check(
 		Levels.eggFor(2, true) == "Common" and Levels.eggFor(5, true) == "Rare" and Levels.eggFor(10, true) == "Gold"
 			and Levels.eggFor(1, false) == "Common" and Levels.eggFor(5, false) == "Common" and Levels.eggFor(10, false) == "Rare",
-		"œufs : première victoire = commun, rare au mini-boss, doré au boss (niveau 1 : l'œuf de catapulte) ; en rejouant = commun, rare au boss"
+		"œufs : première victoire = commun, rare au mini-boss, doré au boss (niveau 1 : le premier œuf, qui donne la Catapulte) ; en rejouant = commun, rare au boss"
 	)
 	local reserve = Levels.defaultData()
 	local kept = 0
@@ -1567,7 +1567,26 @@ do
 		`œufs : chacune des 16 tours peut sortir ; tours de palier 2 : {math.floor(tier2Share.Common * 100 + 0.5)} % d'un œuf commun, {math.floor(tier2Share.Rare * 100 + 0.5)} % d'un rare, {math.floor(tier2Share.Gold * 100 + 0.5)} % d'un doré`
 	)
 	local starter = Levels.eggChances("Starter")
-	check(#starter == 1 and starter[1].tower == "Bomb" and starter[1].chance == 1 and Levels.rollEgg("Starter", 0.99) == "Bomb", "œuf de catapulte : la Catapulte à coup sûr")
+	check(#starter == 1 and starter[1].tower == "Bomb" and starter[1].chance == 1 and Levels.rollEgg("Starter", 0.99) == "Bomb", "premier œuf : la Catapulte à coup sûr")
+	-- Demande du propriétaire (04/10/2026) : « on peut pas scripter que le premier œuf commun est une catapulte au niveau
+	-- un ? » : pour le joueur, c'est un œuf commun (même nom, même allure).
+	local first, common = Levels.EGGS.Starter, Levels.EGGS.Common
+	check(
+		first.displayName == common.displayName and first.color == common.color and first.art == common.art and first.seconds == 10,
+		`premier œuf : un œuf commun pour le joueur (« {first.displayName} », même couleur, même motif), qui éclot en 10 s`
+	)
+	-- Demande du propriétaire (04/10/2026, image d'un autre jeu) : « vrai style, les plus rares un peu violets ».
+	local artOk = true
+	for _, eggType in Levels.EGG_ORDER do
+		local art = Levels.EGGS[eggType].art
+		-- (hors de Studio, les couleurs sont des tables { R, G, B } : tools/levels/shim.luau)
+		artOk = artOk and art ~= nil and art.detail ~= nil and art.frame ~= nil and art.frame.R ~= nil and (art.pattern == "spots" or art.pattern == "cross" or art.pattern == "crown")
+	end
+	local gold = Levels.EGGS.Gold.art
+	check(
+		artOk and gold.rays == true and gold.frame.B > gold.frame.G and gold.frame.R > gold.frame.G and gold.detail.B > gold.detail.G and not common.art.rays,
+		"allure des œufs : un motif et une couleur de vignette pour chacun ; l'œuf doré, le plus rare, a une couronne et une vignette violettes, avec des rayons"
+	)
 
 	-- Barre rapide (Levels.BAR_MAX = 8) : une tour achetée arrive à la fin ; une tour de palier 2 prend la place de sa
 	-- tour de base, qui passe en réserve quand la barre est pleine.

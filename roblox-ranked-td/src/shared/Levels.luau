@@ -1119,10 +1119,11 @@ end
 
 ----------------------------------------------------------------------
 -- TOURS DE DÉPART. Plus de boutique : décision du propriétaire (04/10/2026) : « ça serait mieux pas de tour en
--- boutique, et le niveau 1 te donne un œuf de catapulte qui éclot en 10 s ». Le joueur commence avec l'Archer seul
--- (une cible, rapide, pas cher ; déjà posé au niveau 1 : STARTING_TOWER) ; sa première victoire au niveau 1 lui
--- donne l'ŒUF DE CATAPULTE (EGGS.Starter), qui couve tout seul dans sa première couveuse : 10 s plus tard, il a sa
--- deuxième tour (le tuto le guide). Toutes les autres tours sortent des œufs (« LES ŒUFS »). (Le 02/10 : « il
+-- boutique, et le niveau 1 te donne un œuf de catapulte qui éclot en 10 s », puis « on peut pas scripter que le
+-- premier œuf commun est une catapulte au niveau un ? ». Le joueur commence avec l'Archer seul (une cible, rapide,
+-- pas cher ; déjà posé au niveau 1 : STARTING_TOWER) ; sa première victoire au niveau 1 lui donne son PREMIER ŒUF
+-- (EGGS.Starter : un œuf commun en apparence, qui donne toujours la Catapulte), qui couve tout seul dans sa
+-- première couveuse : 10 s plus tard, il a sa deuxième tour (le tuto le guide). Toutes les autres tours sortent des œufs (« LES ŒUFS »). (Le 02/10 : « il
 -- faudrait commencer avec au moins deux tours, juste l'Archer c'est ennuyant » : la Catapulte arrive après le
 -- niveau 1, qui dure moins de 2 minutes.)
 ----------------------------------------------------------------------
@@ -1346,10 +1347,11 @@ Levels.CAMP = {
 -- LES ŒUFS. Idée du propriétaire (04/10/2026) : « des œufs de tourelle quand tu finis les niveaux en gagnant, et
 -- les mettre dans des générateurs qui donnent un temps » ; « 16 tours qui te bloquent au niveau 40, comme ça je peux
 -- travailler les mises à jour petit à petit » ; puis « ça serait mieux pas de tour en boutique, et le niveau 1 te
--- donne un œuf de catapulte qui éclot en 10 s ». TOUTES les tours sortent des œufs (sauf l'Archer, donné au départ) :
+-- donne un œuf de catapulte qui éclot en 10 s » (« le premier œuf commun est une catapulte »). TOUTES les tours
+-- sortent des œufs (sauf l'Archer, donné au départ) :
 -- les 8 de palier 1 et leurs 8 versions de palier 2 (IdleTowers.TIER2 : bien plus fortes).
 --   * gagner un niveau donne un ŒUF (Levels.eggFor) : première victoire = commun, rare au mini-boss, doré au boss
---     (niveau 1 : l'ŒUF DE CATAPULTE, Starter) ; en rejouant = commun, rare au boss. EGG_MAX œufs au plus en réserve
+--     (niveau 1 : le PREMIER ŒUF, Starter) ; en rejouant = commun, rare au boss. EGG_MAX œufs au plus en réserve
 --     (au-delà, l'œuf est perdu : l'écran de fin le dit) ;
 --   * un œuf se pose dans une COUVEUSE de sa parcelle (la 1re offerte, les autres achetées : HATCHER_COST) et éclot
 --     après son temps (EGGS[type].seconds), même quand le joueur n'est pas là ; on peut finir tout de suite avec des
@@ -1359,43 +1361,57 @@ Levels.CAMP = {
 --     œuf rare, 75 % dans un œuf doré) ; une tour pas encore à lui devient la sienne (Levels.addTower : une tour de
 --     palier 2 prend la place de sa tour de base dans la barre) ; un doublon donne de l'XP d'entraînement à cette tour
 --     (DUPLICATE_XP selon sa rareté) ;
---   * l'ŒUF DE CATAPULTE (Starter, première victoire du niveau 1) se pose tout seul dans la première couveuse et
---     éclot en 10 s : il donne toujours la Catapulte (tower), le tuto montre comment l'ouvrir.
+--   * le PREMIER ŒUF (Starter, première victoire du niveau 1) : un œuf commun en apparence, qui se pose tout seul
+--     dans la première couveuse et éclot en 10 s ; il donne toujours la Catapulte (tower), le tuto montre comment
+--     l'ouvrir ;
+--   * l'ALLURE de chaque œuf (demande du propriétaire, 04/10/2026, avec l'image d'un autre jeu : « vrai style, les
+--     plus rares un peu violets ») : color = sa coquille ; art = { pattern = son motif ("spots" des taches, "cross"
+--     deux traînées en croix, "crown" une couronne et des étincelles), detail = la couleur du motif, frame = la
+--     couleur de sa vignette (sa rareté : gris, bleu, violet pour le plus rare), rays = des rayons derrière lui }.
+--     Dessinés par client/EggArt.luau (l'onglet Œufs) et Hub/Camp.luau (les couveuses en 3D).
 -- Les chiffres sont les miens (temps, chances, prix) : à changer s'il le veut.
 ----------------------------------------------------------------------
+local COMMON_COLOR = Color3.fromRGB(246, 242, 232)
+local COMMON_ART = { pattern = "spots", detail = Color3.fromRGB(64, 170, 240), frame = Color3.fromRGB(128, 136, 150) }
 Levels.EGGS = {
 	Common = {
 		displayName = "Œuf commun",
 		seconds = 15 * 60,
-		color = Color3.fromRGB(238, 230, 208),
+		color = COMMON_COLOR,
+		art = COMMON_ART,
 		chances = { Common = 0.7, Rare = 0.25, Epic = 0.05, Legendary = 0 },
 		tier2 = 0, -- part des tours de palier 2 (un œuf commun : seulement des tours de palier 1)
 	},
 	Rare = {
 		displayName = "Œuf rare",
 		seconds = 60 * 60,
-		color = Color3.fromRGB(86, 156, 236),
+		color = Color3.fromRGB(52, 100, 205),
+		art = { pattern = "cross", detail = Color3.fromRGB(176, 228, 255), frame = Color3.fromRGB(38, 142, 232), rays = true },
 		chances = { Common = 0.35, Rare = 0.45, Epic = 0.17, Legendary = 0.03 },
 		tier2 = 0.25,
 	},
 	Gold = {
 		displayName = "Œuf doré",
 		seconds = 4 * 3600,
-		color = Color3.fromRGB(255, 196, 52),
+		color = Color3.fromRGB(255, 198, 56),
+		-- (le plus rare : couronne violette, vignette violette)
+		art = { pattern = "crown", detail = Color3.fromRGB(146, 66, 220), frame = Color3.fromRGB(124, 60, 200), rays = true },
 		chances = { Common = 0, Rare = 0.4, Epic = 0.45, Legendary = 0.15 },
 		tier2 = 0.75,
 	},
-	-- L'œuf de catapulte : la première victoire du niveau 1 (TOURS DE DÉPART). Il ne va pas dans la réserve : il se
-	-- pose tout seul dans la première couveuse vide (autoHatch, Levels.giveEgg), et donne toujours la même tour.
+	-- Le PREMIER ŒUF : la première victoire du niveau 1 (TOURS DE DÉPART). Un œuf commun pour le joueur (même nom, même
+	-- allure), mais il donne toujours la Catapulte (tower) et il éclot en 10 s. Il ne va pas dans la réserve : il se pose
+	-- tout seul dans la première couveuse vide (autoHatch, Levels.giveEgg).
 	Starter = {
-		displayName = "Œuf de catapulte",
+		displayName = "Œuf commun",
 		seconds = 10,
-		color = Color3.fromRGB(240, 130, 50),
+		color = COMMON_COLOR,
+		art = COMMON_ART,
 		tower = "Bomb",
 		autoHatch = true,
 	},
 }
-Levels.EGG_ORDER = { "Common", "Rare", "Gold" } -- (les œufs de la réserve ; l'œuf de catapulte n'y va jamais)
+Levels.EGG_ORDER = { "Common", "Rare", "Gold" } -- (les œufs de la réserve ; le premier œuf n'y va jamais)
 Levels.EGG_MAX = 30 -- œufs en réserve au plus (tous types ensemble)
 Levels.HATCHER_COST = { 0, 600, 2500 } -- prix de la 1re (offerte), 2e et 3e couveuse, en pièces de niveau
 Levels.SKIP_COINS_PER_MINUTE = 5 -- finir un œuf tout de suite : pièces de niveau par minute qui reste
@@ -1406,7 +1422,7 @@ Levels.RARITY_ORDER = { "Common", "Rare", "Epic", "Legendary" }
 -- L'œuf gagné en remportant ce niveau (première victoire ou non).
 function Levels.eggFor(level: number, firstClear: boolean): string
 	if level == 1 and firstClear then
-		return "Starter" -- (l'œuf de catapulte)
+		return "Starter" -- (le premier œuf : un œuf commun qui donne la Catapulte)
 	end
 	local definition = Levels.definition(level)
 	if firstClear then
@@ -1424,7 +1440,7 @@ function Levels.eggCount(levels): number
 	return count
 end
 
--- Un œuf de plus en réserve ; faux si la réserve est pleine (l'œuf est perdu), ou pour l'œuf de catapulte (il ne va
+-- Un œuf de plus en réserve ; faux si la réserve est pleine (l'œuf est perdu), ou pour le premier œuf (il ne va
 -- jamais dans la réserve : Levels.giveEgg).
 function Levels.addEgg(levels, eggType: string): boolean
 	local egg = Levels.EGGS[eggType]
@@ -1435,9 +1451,9 @@ function Levels.addEgg(levels, eggType: string): boolean
 	return true
 end
 
--- Un œuf gagné : dans la réserve (EGG_MAX au plus : au-delà, il est perdu) ; l'œuf de catapulte (autoHatch) se pose
+-- Un œuf gagné : dans la réserve (EGG_MAX au plus : au-delà, il est perdu) ; le premier œuf (autoHatch) se pose
 -- tout seul dans la première couveuse vide et éclot EGGS[type].seconds plus tard (now = l'heure du serveur, os.time).
--- Renvoie "reserve", "hatcher", ou nil : perdu (réserve pleine ; ou l'œuf de catapulte sans couveuse vide : le
+-- Renvoie "reserve", "hatcher", ou nil : perdu (réserve pleine ; ou le premier œuf sans couveuse vide : le
 -- serveur donne alors sa tour tout de suite).
 function Levels.giveEgg(levels, eggType: string, now: number): string?
 	local egg = Levels.EGGS[eggType]
@@ -1470,7 +1486,7 @@ end
 
 -- Les tours qu'un œuf peut donner et leurs chances : { { tower, chance } } (chance de 0 à 1, total 1). La chance de
 -- chaque rareté est partagée entre les tours de palier 1 (1 - tier2) et celles de palier 2 (tier2), puis à parts
--- égales entre les tours de chaque palier. L'œuf de catapulte : sa tour, à coup sûr.
+-- égales entre les tours de chaque palier. Le premier œuf : sa tour, à coup sûr.
 function Levels.eggChances(eggType: string): { { tower: string, chance: number } }
 	local egg = Levels.EGGS[eggType]
 	if egg.tower then
@@ -1529,9 +1545,9 @@ end
 -- propriétaire (02/10/2026) : « fais le tuto bien, je veux un jeu sortable ». Pas d'écran à lire : une flèche montre
 -- quoi toucher. Le champ `tutorial` des données du joueur dit où il en est :
 --   0    = nouveau joueur : la flèche le mène au niveau 1, puis lui montre ses deux premiers gestes (firstSteps) ;
---   EGG  = il a gagné le niveau 1 : son œuf de catapulte couve dans sa couveuse, la flèche lui montre comment
+--   EGG  = il a gagné le niveau 1 : son premier œuf couve dans sa couveuse, la flèche lui montre comment
 --          l'ouvrir (onglet Œufs) ;
---   DONE = fini (œuf de catapulte ouvert, ou bouton « Passer le tuto »).
+--   DONE = fini (premier œuf ouvert, ou bouton « Passer le tuto »).
 ----------------------------------------------------------------------
 Levels.TUTORIAL = { EGG = 1, DONE = 2 }
 

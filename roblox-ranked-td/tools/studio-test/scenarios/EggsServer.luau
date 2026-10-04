@@ -188,6 +188,11 @@ return function(log)
 			and string.match(label2.Panel.Timer.Text, "^%d+:%d%d$") ~= nil and prompt1 ~= nil and prompt1:GetAttribute("CampTab") == "Œufs" and prompt1.Enabled,
 		`la parcelle a 3 couveuses : l'œuf rare dans la 2e (sa couleur, « {label2 and label2.Panel.Sub.Text or "?"} », {label2 and label2.Panel.Timer.Text or "?"}), une invite vers l'onglet Œufs`
 	)
+	local decor1, decor2 = model1 and model1:FindFirstChild("EggDecor"), model2 and model2:FindFirstChild("EggDecor")
+	check(
+		decor1 ~= nil and decor2 ~= nil and #decor1:GetChildren() == 0 and #decor2:GetChildren() > 0,
+		`l'œuf rare de la parcelle a ses motifs ({decor2 and #decor2:GetChildren() or 0} pièces : bande et points) ; la couveuse vide n'en a pas`
+	)
 	levels("Clock", Levels.EGGS.Rare.seconds + 1)
 	task.wait(1.5)
 	check(

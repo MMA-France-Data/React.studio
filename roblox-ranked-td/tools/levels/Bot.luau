@@ -96,7 +96,7 @@ Bot.POLICIES = {
 -- Levels.OPEN_COUNT sont réglés : tune.luau). Depuis le 04/10/2026, plus de boutique : toutes les tours sortent des
 -- ŒUFS (« LES ŒUFS », Levels.luau), au hasard. On attend donc les tours les PLUS PROBABLES pour un joueur qui gagne
 -- chaque niveau une fois, dans l'ordre, et ouvre ses œufs (en les finissant avec ses pièces quand il le peut) :
---   * 1er territoire : l'Archer (donné), puis la Catapulte (l'œuf de catapulte du niveau 1). Les tours des premiers
+--   * 1er territoire : l'Archer (donné), puis la Catapulte (le premier œuf, au niveau 1). Les tours des premiers
 --     œufs communs (Totem, Mage...) sont un bonus : un nouveau joueur n'est jamais bloqué par la chance ;
 --   * 2e territoire : le Totem de givre et le Mage des tempêtes, les tours les plus fréquentes des œufs communs (7 œufs
 --     communs et 1 rare avant le niveau 11 : 3 joueurs sur 4 ont les deux) ; puis, à partir du niveau 16, une tour de

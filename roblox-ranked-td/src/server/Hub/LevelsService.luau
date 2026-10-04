@@ -317,7 +317,7 @@ local forcedHatch = {} -- [joueur] = tour qui sortira du prochain œuf (tests St
 
 -- La tour `tower` sort de l'œuf `eggType` : nouvelle (Levels.addTower) ou doublon (XP d'entraînement). Le résultat part
 -- dans l'attribut « Hatch » du joueur : son écran le montre. Une nouvelle tour finit le tuto (sa dernière étape :
--- ouvrir l'œuf de catapulte).
+-- ouvrir le premier œuf).
 local function hatchEgg(player, levels, eggType: string, tower: string)
 	local isNew, xp = Levels.hatchTower(levels, tower)
 	if isNew and levels.tutorial < Levels.TUTORIAL.DONE then
@@ -352,7 +352,7 @@ local function rewardMember(player: Player, game, won: boolean, member, showResu
 	levels.coins += reward
 	local egg, eggKept, eggPlaced = nil, false, false
 	if won then
-		-- « LES ŒUFS » : un œuf à chaque victoire (perdu si la réserve est pleine). L'œuf de catapulte (première victoire
+		-- « LES ŒUFS » : un œuf à chaque victoire (perdu si la réserve est pleine). Le premier œuf (première victoire
 		-- du niveau 1) couve tout de suite dans sa couveuse ; sans couveuse vide, sa tour sort tout de suite.
 		egg = Levels.eggFor(level, firstClear)
 		local placed = Levels.giveEgg(levels, egg, now())
@@ -363,7 +363,7 @@ local function rewardMember(player: Player, game, won: boolean, member, showResu
 		end
 		levels.best = math.max(levels.best, level)
 		levels.wins += 1
-		-- Tuto : le guide du premier niveau est fini ; la flèche montre maintenant l'œuf de catapulte qui couve.
+		-- Tuto : le guide du premier niveau est fini ; la flèche montre maintenant le premier œuf qui couve.
 		if levels.tutorial < Levels.TUTORIAL.EGG then
 			levels.tutorial = if eggPlaced then Levels.TUTORIAL.EGG else Levels.TUTORIAL.DONE
 		end
@@ -412,7 +412,7 @@ local function rewardMember(player: Player, game, won: boolean, member, showResu
 		friend = friendHere, -- un ami Roblox sur le serveur : l'écran de fin dit le bonus d'ami
 		egg = egg, -- l'œuf gagné (nil : défaite)
 		eggKept = eggKept, -- faux : réserve pleine, l'œuf est perdu
-		eggPlaced = eggPlaced, -- vrai : l'œuf couve déjà dans une couveuse (l'œuf de catapulte)
+		eggPlaced = eggPlaced, -- vrai : l'œuf couve déjà dans une couveuse (le premier œuf)
 		})
 		game:setAttr("Result_" .. member.key, result)
 		if member == game then

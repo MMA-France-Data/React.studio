@@ -16,7 +16,8 @@ d'entraînement, les œufs de tours).
   Dans chaque territoire : un mini-boss au 5e niveau, un boss au 10e. **Les 40 premiers niveaux sont ouverts** ; les
   niveaux 41 à 100 arriveront avec tes mises à jour (« 🔒 BIENTÔT » sur leurs cartes).
 - Gagner donne un **œuf** et des **pièces de niveau** 🏅. **Toutes les tours sortent des œufs** (plus de boutique) :
-  tu commences avec l'Archer seul, et le niveau 1 te donne l'**œuf de catapulte** (il éclot en 10 secondes). Les
+  tu commences avec l'Archer seul, et le niveau 1 te donne ton **premier œuf** : un œuf commun qui donne à coup sûr
+  la Catapulte (il éclot en 10 secondes). Les
   pièces servent à ton camp, à tes couveuses et à finir un œuf tout de suite.
 - Ta parcelle est ton **camp d'entraînement** : les tours que tu y mets deviennent plus fortes (des dégâts), même
   quand tu n'es pas là, et gagnent des étoiles (★, ★★, ★★★).
@@ -184,8 +185,9 @@ Ta décision du 04/10/2026 : « ça serait mieux pas de tour en boutique, et le 
 éclot en 10 s ». Il n'y a plus de boutique :
 
 - tu commences avec l'**Archer** seul (et un Archer déjà posé au niveau 1) ;
-- gagner le niveau 1 pour la première fois donne l'**œuf de catapulte** : il se pose tout seul dans ta première
-  couveuse et éclot en **10 secondes** ; il donne toujours la **Catapulte** (le tuto te montre comment l'ouvrir) ;
+- gagner le niveau 1 pour la première fois donne ton **premier œuf** : un œuf commun (ta demande : « on peut pas
+  scripter que le premier œuf commun est une catapulte au niveau un ? »), qui se pose tout seul dans ta première
+  couveuse, éclot en **10 secondes** et donne toujours la **Catapulte** (le tuto te montre comment l'ouvrir) ;
 - **toutes les autres tours sortent des œufs** (voir « Les œufs, les couveuses et les tours de palier 2 ») : les
   œufs communs donnent les 8 tours de palier 1, les œufs rares et dorés aussi des tours de palier 2.
 
@@ -291,7 +293,7 @@ l'arrête pour de bon.
 | À l'arrivée | la fenêtre des niveaux s'ouvre toute seule : « JOUE ICI » sur le niveau 1 |
 | Pendant le niveau 1 | **deux gestes, puis plus rien** : « PRENDS UN ARCHER » sur la barre ; tour en main, seulement des mots, « POSE-LA OÙ TU VEUX » (aucun endroit montré) ; puis « TOUCHE CETTE TOUR » et « AMÉLIORE ». Ensuite, plus de flèche : le joueur se débrouille |
 | Niveau 1 perdu | « RÉESSAIE » |
-| Niveau 1 gagné | l'œuf de catapulte couve déjà dans ta 1re couveuse : « TON ŒUF ! » sur « Retour au camp » |
+| Niveau 1 gagné | le premier œuf (un œuf commun, qui donnera la Catapulte) couve déjà dans ta 1re couveuse : « TON ŒUF ! » sur « Retour au camp » |
 | Au camp | « TON ŒUF ! » sur « ⚔ NIVEAUX », « LES ŒUFS » sur l'onglet, puis « IL ÉCLOT BIENTÔT » et « OUVRE-LE ! » sur la couveuse (10 secondes) |
 
 La Catapulte sortie de l'œuf termine le tuto. Le niveau 1 est **court à guider** depuis ton retour du 03/10/2026
@@ -376,15 +378,23 @@ générateurs qui donnent un temps » ; « 16 tours qui te bloquent au niveau 40
 une claire différence de niveau entre chaque tour de palier » ; « ça serait mieux pas de tour en boutique, et le
 niveau 1 te donne un œuf de catapulte qui éclot en 10 s »). **Étape 1, faite** : les œufs et les couveuses.
 **Étape 2, faite** : les 8 tours de palier 2. **Étape 3, faite** (04/10/2026) : plus de boutique (toutes les tours
-sortent des œufs), l'œuf de catapulte au niveau 1, l'entraînement ne donne plus que des dégâts (les pouvoirs sont
+sortent des œufs), le premier œuf (la Catapulte) au niveau 1, l'entraînement ne donne plus que des dégâts (les pouvoirs sont
 ceux des tours de palier 2), le jeu s'arrête au niveau 40 (les niveaux 41 à 100 fermés en attendant tes mises à
 jour), et les niveaux 1 à 40 sont réglés pour ces œufs (les boss demandent des tours de palier 2).
 
 - **Un œuf à chaque victoire** : la première fois, un **œuf commun**, un **œuf rare** au mini-boss, un **œuf doré**
   au boss ; en rejouant, un œuf commun (rare au boss). Une défaite ne donne rien. **30 œufs** au plus en réserve
   (au-delà, l'œuf est perdu : l'écran de fin le dit).
-- **L'œuf de catapulte** : la première victoire du niveau 1. Il ne va pas dans la réserve : il se pose tout seul
-  dans ta 1re couveuse, éclot en **10 secondes**, et donne toujours la **Catapulte**.
+- **Le premier œuf** : la première victoire du niveau 1. Pour toi c'est un œuf commun, mais il donne toujours la
+  **Catapulte** et il éclot en **10 secondes**. Il ne va pas dans la réserve : il se pose tout seul dans ta 1re
+  couveuse.
+- **Leur allure** (ta demande du 04/10/2026, avec l'image d'un autre jeu : « vrai style, les plus rares un peu
+  violets ») : dans l'onglet Œufs, chaque œuf est dessiné avec un gros contour et un reflet, sur une vignette de la
+  couleur de sa rareté : l'œuf commun, blanc à taches bleues, sur une vignette grise ; l'œuf rare, bleu avec deux
+  traînées claires en croix, sur une vignette bleue ; l'œuf doré, le plus rare, avec une couronne violette, sur une
+  vignette violette ; des rayons tournent derrière l'œuf rare et l'œuf doré. Sur ta parcelle, les œufs en 3D ont les
+  mêmes motifs (taches, bande, couronne violette et étincelles), et l'œuf doré prêt brille en violet. Rien à publier
+  sur Roblox : tout est dessiné par le jeu (`src/client/EggArt.luau`, couleurs dans `Levels.EGGS`).
 - **Les couveuses** : sur ta parcelle, entre ton point d'arrivée et les socles d'entraînement (3 couveuses : la 1re
   offerte, la 2e à **600** pièces, la 3e à **2 500**), et dans le nouvel onglet **« Œufs »** de la fenêtre. Tu y
   poses un œuf ; il éclot après son temps (**15 min**, **1 h**, **4 h** selon l'œuf), **même quand tu n'es pas là**.

@@ -151,8 +151,8 @@ local SAMPLES = {
 	{ "DÉFAITE", "DEFEAT" },
 	{ "+80 🏅", "+80 🏅" },
 	{
-		"Niveau 1 réussi pour la première fois !\nVies restantes : 10/10\n🥚 Œuf de catapulte : il couve déjà dans ta couveuse !\nTes tours posées gagnent +8 XP d'entraînement.\n⭐ ÉVOLUTION ! Archer du rempart : ★★",
-		"Level 1 cleared for the first time!\nLives left: 10/10\n🥚 Catapult egg: it's already in your incubator!\nYour placed towers gain +8 training XP.\n⭐ EVOLUTION! Rampart Archer: ★★",
+		"Niveau 1 réussi pour la première fois !\nVies restantes : 10/10\n🥚 Œuf commun : il couve déjà dans ta couveuse !\nTes tours posées gagnent +8 XP d'entraînement.\n⭐ ÉVOLUTION ! Archer du rempart : ★★",
+		"Level 1 cleared for the first time!\nLives left: 10/10\n🥚 Common egg: it's already in your incubator!\nYour placed towers gain +8 training XP.\n⭐ EVOLUTION! Rampart Archer: ★★",
 	},
 	{ "Niveau 3 réussi une fois de plus.", "Level 3 cleared once more." },
 	{
@@ -227,9 +227,8 @@ local SAMPLES = {
 	{ "Œufs", "Eggs" },
 	{ "TES ŒUFS (3/30)", "YOUR EGGS (3/30)" },
 	{ "Œuf doré", "Golden egg" },
-	{ "Œuf de catapulte", "Catapult egg" },
-	{ "COUVEUSE 1 : Œuf de catapulte", "INCUBATOR 1: Catapult egg" },
-	{ "Œuf de catapulte : prêt !", "Catapult egg: ready!" },
+	{ "COUVEUSE 1 : Œuf commun", "INCUBATOR 1: Common egg" },
+	{ "Œuf commun : prêt !", "Common egg: ready!" },
 	{ "Chances :\nRare 40 % • Épique 45 % • Légendaire 15 %\nPalier 2 : 75 %", "Odds:\nRare 40% • Epic 45% • Legendary 15%\nTier 2: 75%" },
 	{ "Éclot en 15 min", "Hatches in 15 min" },
 	{ "Éclot en 4 h", "Hatches in 4 h" },

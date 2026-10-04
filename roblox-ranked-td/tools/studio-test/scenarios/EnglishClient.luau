@@ -557,7 +557,7 @@ return function(log)
 		panel.Title.Text == "VICTORY!" and panel.Next.Text == "Level 2 ▶" and panel.Replay.Text == "Replay"
 			and string.find(panel.Details.Text, "cleared for the first time", 1, true) ~= nil and string.find(panel.Details.Text, "Lives left: 10/10", 1, true) ~= nil
 			and string.find(panel.Details.Text, "EVOLUTION! Rampart Archer: ★", 1, true) ~= nil
-			and string.find(panel.Details.Text, "Catapult egg: it's already in your incubator!", 1, true) ~= nil,
+			and string.find(panel.Details.Text, "Common egg: it's already in your incubator!", 1, true) ~= nil,
 		`victoire : « {panel.Title.Text} », « {oneLine(panel.Details.Text)} », « {panel.Next.Text} », « {panel.Replay.Text} » ; flèche « {words.Text} »`
 	)
 	shot("victoire")

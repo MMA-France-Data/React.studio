@@ -13,7 +13,8 @@
 --     mots disent « POSE-LA OÙ TU VEUX » (aucun endroit n'est montré) ; puis une tour (« TOUCHE CETTE TOUR ») et son
 --     bouton « AMÉLIORE ». Ensuite, plus de flèche jusqu'à la fin du niveau, même s'il le rejoue. Défaite : la
 --     flèche montre « Réessayer ». Victoire : le serveur passe à l'étape 1 ;
---   étape 1 (EGG) : sa victoire lui a donné l'ŒUF DE CATAPULTE, qui couve dans sa couveuse (10 s). La flèche montre
+--   étape 1 (EGG) : sa victoire lui a donné son PREMIER ŒUF (un œuf commun qui donne la Catapulte : Levels.EGGS.Starter),
+--     qui couve dans sa couveuse (10 s). La flèche montre
 --     « Retour au camp » sur l'écran de fin, puis au camp le bouton « ⚔ NIVEAUX », l'onglet Œufs et le bouton
 --     « OUVRIR ! » de sa couveuse. Ouvrir l'œuf (sa deuxième tour : la Catapulte) termine le tuto (étape 2).
 -- Tout vient de ce que le serveur publie (attributs LevelsState et LevelArena du joueur, attributs de sa zone de
@@ -327,7 +328,7 @@ function TutorialUI.start()
 		return if tower then { world = towerPoint(tower.model), caption = CAPTIONS.Tower } else nil
 	end
 
-	-- La couveuse où couve l'œuf de catapulte (nil : aucune), et s'il peut s'ouvrir (une seconde après la fin du
+	-- La couveuse où couve le premier œuf (nil : aucune), et s'il peut s'ouvrir (une seconde après la fin du
 	-- décompte, comme le bouton de LevelsUI : le serveur compte en secondes entières).
 	local function starterHatcher(): (number?, boolean)
 		for index, hatcher in state.hatchers do
@@ -339,7 +340,7 @@ function TutorialUI.start()
 		return nil, false
 	end
 
-	-- Étape EGG, au camp : l'œuf de catapulte couve -> le bouton « ⚔ NIVEAUX », l'onglet Œufs, puis « OUVRIR ! » (avant
+	-- Étape EGG, au camp : le premier œuf couve -> le bouton « ⚔ NIVEAUX », l'onglet Œufs, puis « OUVRIR ! » (avant
 	-- la fin du décompte, la flèche montre déjà le bouton : il finit l'œuf tout de suite contre quelques pièces).
 	local function eggTarget()
 		local index, ready = starterHatcher()
@@ -368,7 +369,7 @@ function TutorialUI.start()
 			end
 			return campTarget()
 		end
-		-- Étape EGG, sur l'écran de fin d'un niveau : « Retour au camp » (son œuf de catapulte l'y attend).
+		-- Étape EGG, sur l'écran de fin d'un niveau : « Retour au camp » (son premier œuf l'y attend).
 		if arena then
 			local endScreen = find("LevelHud", "EndScreen")
 			if not (endScreen and endScreen:IsA("GuiObject") and endScreen.Visible) or not starterHatcher() then

@@ -9,7 +9,7 @@
 --      tour, et pas forcer un positionnement, et améliorer, et fin ») : « PRENDS UN ARCHER », puis des mots seuls
 --      « POSE-LA OÙ TU VEUX » (aucun endroit montré, aucun « + »), « TOUCHE CETTE TOUR », « AMÉLIORE » ; ensuite plus
 --      aucune flèche pendant le niveau ;
---   3) l'œuf de catapulte (demande du propriétaire, 04/10/2026 : « le niveau 1 te donne un œuf de catapulte qui
+--   3) le premier œuf (demande du propriétaire, 04/10/2026 : « le niveau 1 te donne un œuf de catapulte qui
 --      éclot en 10 s ») : « Retour au camp », l'onglet Œufs, « OUVRE-LE ! » ; la Catapulte sortie de l'œuf termine le
 --      tuto ; statistiques des nouveaux joueurs (6 étapes dans l'ordre) ;
 --   4) « Passer le tuto » (un appui sur ordinateur) ;
@@ -417,13 +417,13 @@ return function(log)
 	local hatcher = (published().hatchers or {})[1]
 	check(
 		campShown and problem == nil and published().tutorial == Levels.TUTORIAL.EGG and published().best == 1 and hatcher ~= nil and hatcher.egg == "Starter"
-			and string.find(endScreen.Panel.Details.Text, "Œuf de catapulte", 1, true) ~= nil,
-		`victoire : l'œuf de catapulte couve déjà, la flèche montre « {endScreen.Panel.Camp.Text} » par le côté, sans cacher le texte ni les autres boutons ({described()} ; {problem or "bien placée"}), le tuto passe à l'étape {tostring(published().tutorial)}`
+			and string.find(endScreen.Panel.Details.Text, "Œuf commun : il couve déjà", 1, true) ~= nil,
+		`victoire : le premier œuf (un œuf commun qui donne la Catapulte) couve déjà, la flèche montre « {endScreen.Panel.Camp.Text} » par le côté, sans cacher le texte ni les autres boutons ({described()} ; {problem or "bien placée"}), le tuto passe à l'étape {tostring(published().tutorial)}`
 	)
 	shot("victoire")
 
 	------------------------------------------------------------------
-	-- 3) L'œuf de catapulte : au camp, l'onglet Œufs, « OUVRE-LE ! »
+	-- 3) Le premier œuf : au camp, l'onglet Œufs, « OUVRE-LE ! »
 	------------------------------------------------------------------
 	act(hudGui, "Camp")
 	waitFor(function()
@@ -447,7 +447,7 @@ return function(log)
 	shot("couveuse")
 	local readyShown = waitShowing("Action", "OUVRE-LE !", 15)
 	local readyAfter = os.clock() - wonAt
-	check(readyShown and readyAfter >= 9, string.format("l'œuf de catapulte est prêt %.0f s après la victoire (il éclot en 10 s) : la flèche dit « OUVRE-LE ! »", readyAfter))
+	check(readyShown and readyAfter >= 9, string.format("le premier œuf est prêt %.0f s après la victoire (il éclot en 10 s) : la flèche dit « OUVRE-LE ! »", readyAfter))
 	shot("oeuf_pret")
 	act(campGui, "EggOpen:1") -- (le bouton de la couveuse envoie cette demande)
 	local done = waitFor(function()

@@ -74,7 +74,7 @@ caméra, sol) :
   de la caméra (`levels_vue_normale`, `levels_vue_70`, `levels_vue_90`), refus sur le chemin, conseil « ne garde pas
   ton or », x2 ;
 - **défaite de celui qui pose 4 Archers puis attend** (`levels_defaite`), « Réessayer », **victoire en posant et en
-  améliorant sans arrêt** (`levels_fin_de_niveau`, `levels_victoire` : l'œuf de catapulte annoncé), « Niveau
+  améliorant sans arrêt** (`levels_fin_de_niveau`, `levels_victoire` : le premier œuf annoncé), « Niveau
   suivant », abandon en deux appuis,
   retour au camp ;
 - puis **à la taille d'un téléphone** (750 x 332 : le scénario écrit « PHONE:want=750x332;have=... » et `run.ps1`
@@ -110,7 +110,7 @@ La place de test contient le marqueur `__AutoTestNewPlayer` : le tuto y démarre
   emplacements conseillés ; puis « TOUCHE CETTE TOUR » et « AMÉLIORE » (`tutorial_tour`, `tutorial_ameliore`) ;
   ensuite **plus aucune flèche pendant 10 s** malgré l'or qui monte (`tutorial_seul`) ; la flèche doit toujours être
   à côté de ce qu'elle montre, dans l'écran, sans recouvrir « Vendre » ; le niveau est ensuite gagné d'un coup ;
-- victoire : l'œuf de catapulte couve déjà, « TON ŒUF ! » sur « Retour au camp » (`tutorial_victoire`) ; au camp :
+- victoire : le premier œuf (un œuf commun qui donne la Catapulte) couve déjà, « TON ŒUF ! » sur « Retour au camp » (`tutorial_victoire`) ; au camp :
   l'onglet Œufs (`tutorial_onglet_oeufs`), « TON ŒUF ! » sur « ⚔ NIVEAUX » si la fenêtre est fermée, la couveuse
   (`tutorial_couveuse`), « OUVRE-LE ! » au bout de 10 s (`tutorial_oeuf_pret`) ; la Catapulte sortie termine le tuto
   (`tutorial_fini`) ; les 6 étapes des statistiques des nouveaux joueurs ;

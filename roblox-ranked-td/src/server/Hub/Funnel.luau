@@ -7,7 +7,7 @@
 --   3. 1re tour posée (en plus de l'Archer offert) ;
 --   4. 1re amélioration ;
 --   5. 1er niveau gagné ;
---   6. 1er œuf ouvert : l'œuf de catapulte du niveau 1 (fin du tuto).
+--   6. 1er œuf ouvert : le premier œuf du niveau 1, la Catapulte (fin du tuto).
 -- Chaque étape n'est envoyée qu'une fois par visite, dans l'ordre : atteindre une étape envoie aussi celles d'avant
 -- qui ne l'étaient pas encore (l'entonnoir dit « est arrivé au moins jusque-là »).
 -- « Passer le tuto » : un événement à part, « TutoPasse », dont la valeur est l'étape du tuto (Levels.TUTORIAL) où le

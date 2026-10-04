@@ -258,7 +258,6 @@ return {
 	["Œuf commun"] = "Common egg",
 	["Œuf rare"] = "Rare egg",
 	["Œuf doré"] = "Golden egg",
-	["Œuf de catapulte"] = "Catapult egg",
 	["Commune"] = "Common",
 	["Rare"] = "Rare",
 	["Épique"] = "Epic",
@@ -298,7 +297,7 @@ return {
 	["{1} : +{2} XP d'entraînement pour cette tour"] = "{1}: +{2} training XP for this tower",
 	["Super !"] = "Great!",
 	["{1} gagné ! Pose-le dans une couveuse."] = "{1} won! Put it in an incubator.",
-	["{1} : il couve déjà dans ta couveuse !"] = "{1}: it's already in your incubator!", -- « 🥚 Œuf de catapulte : ... »
+	["{1} : il couve déjà dans ta couveuse !"] = "{1}: it's already in your incubator!", -- « 🥚 Œuf commun : ... » (le premier œuf)
 	["Réserve d'œufs pleine : {1} perdu"] = "Egg storage full: {1} lost",
 	["Cette couveuse est déjà occupée"] = "This incubator is already in use",
 	["Tu n'as plus d'œuf de ce type : gagne des niveaux pour en avoir"] = "You have no eggs of this type left: win levels to get more",

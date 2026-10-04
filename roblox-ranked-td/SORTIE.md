@@ -12,7 +12,8 @@ Le jeu sort comme une **nouvelle expérience Roblox** (décision du 02/10/2026) 
       `NIVEAUX.md`). Depuis le 04/10/2026 : plus de boutique, les niveaux 1 à 40 ouverts (41 à 100 : « Bientôt »).
 - [x] Tout l'ancien jeu enlevé (classé, autel, forge, vagues infinies, renaissance, défis, passes, ancien tuto).
 - [x] **Tuto** pour un nouveau joueur : une flèche dorée lui montre quoi toucher, du camp à la fin du niveau 1,
-      puis l'œuf de catapulte à ouvrir (voir `NIVEAUX.md`, « Le tuto des nouveaux joueurs »). Celui qui la suit
+      puis son premier œuf à ouvrir (un œuf commun qui donne la Catapulte ; voir `NIVEAUX.md`, « Le tuto des
+      nouveaux joueurs »). Celui qui la suit
       gagne le niveau 1.
 - [x] **Version anglaise** : tous les écrans, le tuto, les messages et les panneaux sont traduits pour les joueurs
       non francophones (voir `README.md`, « Langues »). Vérifié par `run.ps1 -Test english` : aucun texte ne reste
@@ -102,7 +103,7 @@ Défends ton château dans des niveaux rapides de 2 à 3 minutes !
 
 ## Derniers essais dans le jeu publié (encore privé)
 
-- [ ] Le tuto : à ta première visite, la flèche t'emmène au niveau 1 puis à l'œuf de catapulte. Une fois l'œuf
+- [ ] Le tuto : à ta première visite, la flèche t'emmène au niveau 1 puis à ton premier œuf. Une fois l'œuf
       ouvert (ou le tuto passé avec « Passer le tuto »), elle ne revient plus, même à la visite suivante.
 - [ ] La sauvegarde : gagner un niveau, quitter, revenir : le niveau, les pièces, les tours et les œufs sont là.
 - [ ] Les œufs pendant l'absence : poser un œuf commun (15 min), quitter, revenir plus tard : il est prêt.

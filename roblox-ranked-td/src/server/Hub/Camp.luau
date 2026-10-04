@@ -166,6 +166,79 @@ local function clockText(seconds: number): string
 	return if hours > 0 then string.format("%d:%02d:%02d", hours, minutes, rest) else string.format("%d:%02d", minutes, rest)
 end
 
+-- Les MOTIFS des œufs en 3D (Levels.EGGS[type].art : les mêmes que les œufs dessinés de l'onglet, client/EggArt.luau) :
+-- des pastilles posées sur la coquille, une bande autour, une couronne violette et des étincelles pour l'œuf doré. La
+-- coquille est une ellipse de demi-axes EGG_A (largeur) et EGG_B (hauteur).
+local EGG_A, EGG_B = 1.15, 1.5
+
+-- Point de la coquille (theta : le tour, de 0 à 2 pi ; phi : du haut, 0, au bas, pi) et sa normale (repère de l'œuf).
+local function eggSurface(theta: number, phi: number): (Vector3, Vector3)
+	local point = Vector3.new(EGG_A * math.sin(phi) * math.cos(theta), EGG_B * math.cos(phi), EGG_A * math.sin(phi) * math.sin(theta))
+	local normal = Vector3.new(point.X / (EGG_A * EGG_A), point.Y / (EGG_B * EGG_B), point.Z / (EGG_A * EGG_A)).Unit
+	return point, normal
+end
+
+-- Une pastille plate posée sur la coquille.
+local function eggDisk(folder: Instance, center: CFrame, theta: number, phi: number, diameter: number, color: Color3)
+	local point, normal = eggSurface(theta, phi)
+	local at = center:PointToWorldSpace(point * 0.99)
+	local disk = MedievalModels.sceneryPart(folder, "EggSpot", Vector3.new(0.08, diameter, diameter),
+		CFrame.lookAt(at, center:PointToWorldSpace(point + normal)) * CFrame.Angles(0, math.pi / 2, 0), color, Enum.Material.SmoothPlastic)
+	disk.Shape = Enum.PartType.Cylinder
+	return disk
+end
+
+-- Une bande tout autour de la coquille, à la hauteur y (repère de l'œuf).
+local function eggBand(folder: Instance, center: CFrame, y: number, thickness: number, color: Color3)
+	local radius = EGG_A * math.sqrt(math.max(0, 1 - (y / EGG_B) ^ 2))
+	local band = MedievalModels.sceneryPart(folder, "EggBand", Vector3.new(thickness, radius * 2 + 0.06, radius * 2 + 0.06),
+		center * CFrame.new(0, y, 0) * CFrame.Angles(0, 0, math.pi / 2), color, Enum.Material.SmoothPlastic)
+	band.Shape = Enum.PartType.Cylinder
+	return band
+end
+
+local EGG_DECOR = {}
+-- Des taches (œuf commun).
+function EGG_DECOR.spots(folder: Instance, center: CFrame, art)
+	for _, spot in { { 0.4, 0.9, 0.5 }, { 2, 1.2, 0.42 }, { 3.4, 0.7, 0.36 }, { 4.6, 1.5, 0.5 }, { 5.6, 1.1, 0.4 }, { 1.2, 2, 0.44 }, { 2.8, 2.2, 0.4 }, { 4.2, 2.4, 0.36 }, { 5.4, 2, 0.42 }, { 0.2, 2.5, 0.34 } } do
+		eggDisk(folder, center, spot[1], spot[2], spot[3], art.detail)
+	end
+end
+-- Une bande claire et des points (œuf rare).
+function EGG_DECOR.cross(folder: Instance, center: CFrame, art)
+	eggBand(folder, center, 0.15, 0.32, art.detail)
+	for index = 0, 5 do
+		eggDisk(folder, center, index * math.pi / 3 + 0.3, 0.75, 0.3, art.detail)
+		eggDisk(folder, center, index * math.pi / 3, 2.15, 0.3, art.detail)
+	end
+end
+-- Une couronne violette (une bande et ses pointes) et des étincelles (œuf doré, le plus rare).
+function EGG_DECOR.crown(folder: Instance, center: CFrame, art)
+	eggBand(folder, center, -0.62, 0.4, art.detail)
+	for index = 0, 7 do
+		local point = eggSurface(index * math.pi / 4, 1.88)
+		local tip = MedievalModels.sceneryPart(folder, "CrownPoint", Vector3.new(0.34, 0.34, 0.34), center * CFrame.new(point * 0.98), art.detail, Enum.Material.SmoothPlastic)
+		tip.Shape = Enum.PartType.Ball
+	end
+	for _, sparkle in { { 0.8, 0.8 }, { 2.9, 0.6 }, { 4.7, 1 } } do
+		local glint = MedievalModels.sceneryPart(folder, "Sparkle", Vector3.new(0.18, 0.18, 0.18), center * CFrame.new((eggSurface(sparkle[1], sparkle[2]))), Color3.new(1, 1, 1), Enum.Material.Neon)
+		glint.Shape = Enum.PartType.Ball
+	end
+end
+
+-- Remet les motifs de l'œuf d'une couveuse (rien quand elle est vide) ; ne refait rien si l'œuf n'a pas changé.
+local function decorateEgg(entry, eggType: string)
+	if entry.decorType == eggType then
+		return
+	end
+	entry.decorType = eggType
+	entry.decor:ClearAllChildren()
+	local egg = Levels.EGGS[eggType]
+	if egg and egg.art then
+		(EGG_DECOR[egg.art.pattern] or EGG_DECOR.spots)(entry.decor, entry.egg.CFrame, egg.art)
+	end
+end
+
 local function setIfChanged(object: any, property: string, value: any)
 	if object[property] ~= value then
 		object[property] = value
@@ -196,6 +269,10 @@ local function buildHatcher(plot, index: number)
 	local mesh = Instance.new("SpecialMesh")
 	mesh.MeshType = Enum.MeshType.Sphere
 	mesh.Parent = egg
+	-- (ses motifs : EGG_DECOR, dans un dossier à part : la boucle qui cache la couveuse ne les touche pas)
+	local decor = Instance.new("Folder")
+	decor.Name = "EggDecor"
+	decor.Parent = model
 	local light = Instance.new("PointLight")
 	light.Range = 12
 	light.Brightness = 2.5
@@ -236,7 +313,7 @@ local function buildHatcher(plot, index: number)
 	prompt:SetAttribute("CampTab", "Œufs")
 	prompt.Parent = pedestal
 	model.Parent = plot.folder
-	return { model = model, pedestal = pedestal, egg = egg, light = light, panel = panel, title = title, sub = sub, timer = timer, prompt = prompt, eggType = "", readyAt = 0 }
+	return { model = model, pedestal = pedestal, egg = egg, decor = decor, decorType = "", light = light, panel = panel, title = title, sub = sub, timer = timer, prompt = prompt, eggType = "", readyAt = 0 }
 end
 
 -- Temps qui reste sur l'étiquette d'une couveuse occupée (appelé chaque seconde) ; l'œuf brille quand il est prêt.
@@ -279,7 +356,9 @@ local function refreshHatchers(dressing, levels)
 		if egg then
 			entry.egg.Color = egg.color
 		end
-		entry.light.Color = if egg then egg.color else Color3.new(1, 1, 1)
+		-- (lumière de l'œuf prêt : la couleur de sa vignette pour les plus rares, violette pour l'œuf doré)
+		entry.light.Color = if egg and egg.art and egg.art.rays then egg.art.frame elseif egg then egg.color else Color3.new(1, 1, 1)
+		decorateEgg(entry, if egg then entry.eggType else "")
 		entry.light.Enabled = false
 		entry.egg.Material = Enum.Material.SmoothPlastic
 		entry.title.Text = if owned then `COUVEUSE {index}` else `🔒 COUVEUSE {index}`

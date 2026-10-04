@@ -4,7 +4,7 @@
 --    bâtiments, tableau, évolution d'une tour, 2e emplacement ; qui reçoit les cibles et les tirs de quel camp.
 -- 2) Puis, seul (le client attend) : six combats en même temps (mesure), un niveau PERDU par celui qui pose 2 Archers
 --    puis attend, le même niveau gagné en posant et en améliorant tout, récompenses, « Rejouer », niveau suivant,
---    abandon, l'œuf de catapulte du niveau 1, plus de boutique, camp d'entraînement (emplacements, absence), ordre
+--    abandon, le premier œuf du niveau 1 (la Catapulte), plus de boutique, camp d'entraînement (emplacements, absence), ordre
 --    de la barre rapide, le 2e TERRITOIRE (niveaux 11 à 20 : autre carte, autres monstres, plus de pièces), les
 --    niveaux après Levels.OPEN_COUNT fermés (« Bientôt »). Tout passe par les mêmes demandes que le remote
 --    LevelAction (StudioDebug « Levels », « Action »).
@@ -563,7 +563,7 @@ return function(log)
 	check(
 		won.egg == "Starter" and won.eggPlaced == true and starterHatcher ~= nil and starterHatcher.egg == "Starter" and after.tutorial == Levels.TUTORIAL.EGG
 			and (after.eggs.Starter or 0) == 0 and after.towers.Bomb == nil,
-		`niveau 1 gagné la première fois : l'œuf de catapulte couve déjà dans la 1re couveuse (« {tostring(won.egg)} », posé : {tostring(won.eggPlaced)}, tuto à l'étape {tostring(after.tutorial)})`
+		`niveau 1 gagné la première fois : le premier œuf couve déjà dans la 1re couveuse (« {tostring(won.egg)} », posé : {tostring(won.eggPlaced)}, tuto à l'étape {tostring(after.tutorial)})`
 	)
 	local hatchOk = action("EggOpen", 1)
 	local waitOk = saved().hatchers[1].egg == "Starter"
@@ -573,7 +573,7 @@ return function(log)
 	check(
 		hatchOk == false and waitOk and openOk == true and opened.towers.Bomb == true and opened.hatchers[1].egg == "" and opened.tutorial == Levels.TUTORIAL.DONE
 			and table.concat(published().towers, ",") == "MachineGun,Bomb",
-		"l'œuf de catapulte ne s'ouvre pas avant ses 10 s ; 11 s plus tard il donne la Catapulte (dans la barre), le tuto est fini"
+		"le premier œuf ne s'ouvre pas avant ses 10 s ; 11 s plus tard il donne la Catapulte (dans la barre), le tuto est fini"
 	)
 
 	-- « Niveau suivant » sans repasser par le camp : la carte reste (pas de clignotement).
@@ -864,6 +864,6 @@ return function(log)
 	check(
 		clientDone and final.levels.best >= 1 and final.levels.wins >= 1 and final.levels.losses >= 1 and final.levels.coins >= 80
 			and (final.levels.xp.MachineGun or 0) >= 8 and final.levels.hatchers[1].egg == "Starter",
-		`après le test de l'interface : niveau {final.levels.best} réussi, {final.levels.wins} victoire(s), {final.levels.losses} défaite(s), {final.levels.coins} pièces de niveau, {tostring(final.levels.xp.MachineGun)} XP pour l'Archer, l'œuf de catapulte dans la couveuse (« {tostring(final.levels.hatchers[1].egg)} »)`
+		`après le test de l'interface : niveau {final.levels.best} réussi, {final.levels.wins} victoire(s), {final.levels.losses} défaite(s), {final.levels.coins} pièces de niveau, {tostring(final.levels.xp.MachineGun)} XP pour l'Archer, le premier œuf dans la couveuse (« {tostring(final.levels.hatchers[1].egg)} »)`
 	)
 end

@@ -114,6 +114,18 @@ return function(log)
 			and row2.Action.Text == `Acheter : {Levels.HATCHER_COST[2]} 🏅` and not row3.Visible,
 		`couveuses : « {row1.Title.Text} » « {row1.Status.Text} » (boutons « {row1.Put_Common.Text} » et « {row1.Put_Gold.Text} », sur une seule ligne : {tostring(row1.Put_Common.TextFits)}), « {row2.Title.Text} » « {row2.Action.Text} », la 3e cachée`
 	)
+	-- L'allure des œufs (demande du propriétaire, 04/10/2026 : « vrai style, les plus rares un peu violets ») : chaque
+	-- carte a la vignette de son œuf dessiné ; des rayons derrière l'œuf rare et l'œuf doré, pas derrière le commun.
+	local commonTile, goldTile = common:FindFirstChild("Icon"), gold:FindFirstChild("Icon")
+	local rareTile = page:WaitForChild("Egg_Rare"):FindFirstChild("Icon")
+	check(
+		commonTile ~= nil and goldTile ~= nil and rareTile ~= nil and commonTile:FindFirstChild("EggArt") ~= nil and goldTile:FindFirstChild("EggArt") ~= nil
+			and commonTile:FindFirstChild("Rays") == nil and goldTile:FindFirstChild("Rays") ~= nil and rareTile:FindFirstChild("Rays") ~= nil
+			and goldTile.EggArt:FindFirstChild("Crown") ~= nil and commonTile.EggArt:FindFirstChild("Spot") ~= nil
+			and #commonTile.EggArt:GetChildren() > 30, -- (la forme d'œuf : une rangée de ronds, son contour et son ombre)
+		"cartes des œufs : chaque œuf est dessiné sur sa vignette (taches pour le commun, couronne violette pour le doré), rayons derrière le rare et le doré"
+	)
+	check(row1.Icon:FindFirstChild("Empty") ~= nil and row1.Icon:FindFirstChild("EggArt") == nil, "couveuse vide : un ovale sombre à la place de l'œuf")
 	shot("onglet")
 
 	------------------------------------------------------------------
@@ -126,8 +138,8 @@ return function(log)
 	task.wait(1.2)
 	check(
 		placed and string.match(row1.Status.Text, "^Encore 1[45]:%d%d$") ~= nil and row1.Action.Visible and row1.Action.Text == `Finir : {Levels.skipCost(Levels.EGGS.Common.seconds)} 🏅`
-			and not row1.Put_Common.Visible and common.Count.Text == "×1",
-		`œuf commun posé : « {row1.Title.Text} », « {row1.Status.Text} », « {row1.Action.Text} »`
+			and not row1.Put_Common.Visible and common.Count.Text == "×1" and row1.Icon:FindFirstChild("EggArt") ~= nil,
+		`œuf commun posé (dessiné dans la couveuse) : « {row1.Title.Text} », « {row1.Status.Text} », « {row1.Action.Text} »`
 	)
 	shot("couve")
 	-- Sur la parcelle : la couveuse 1 et son œuf, devant le point d'arrivée (fenêtre fermée).
