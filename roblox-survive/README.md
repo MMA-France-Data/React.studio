@@ -40,7 +40,9 @@ Ce dossier est séparé du jeu de tours (`roblox-ranked-td`) : rien n'est partag
 
 Pas encore fait : vrais sons (la mélodie utilise un petit son fourni avec Roblox, joué plus ou moins aigu), vélo
 et machine spéciale, monstre, inondation, sol glissant, machines qui changent d'apparence, achats en Robux.
-Les animaux sont faits de blocs (`src/shared/Pets.luau`) : à remplacer par de vrais modèles si on en a.
+Les animaux utilisent des modèles gratuits du Creator Store, nettoyés et conservés dans `assets/pets`.
+`src/shared/PetModels.luau` les prépare ; `Pets.luau` conserve les pouvoirs, les raretés et les modèles de secours.
+Les textures restent hébergées sur Roblox. Voir `assets/pets/README.md` pour les sources et la vérification.
 
 ## Régler le jeu
 
@@ -60,6 +62,7 @@ liste des salles (`Config.ROOMS`) avec les réglages de chaque événement. Les 
 - `src/server/PlayerData.luau` : sauvegarde.
 - `src/client/Main.client.luau` : l'écran du joueur ; `src/client/Animals.luau` : couveuses, animaux, vol plané.
 - `assets/library` : modèles gratuits de la bibliothèque Roblox (voir son README).
+- `assets/pets` : les 5 compagnons de la bibliothèque ; géométrie et matériaux seulement, sans scripts importés.
 
 ## Essayer et tester
 

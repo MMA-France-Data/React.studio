@@ -2,6 +2,7 @@
 -- Le même animal existe en 4 raretés : plus il est rare, plus son pouvoir est fort (et plus il est gros et brillant).
 -- On n'en équipe qu'un à la fois.
 local Pets = {}
+local PetModels = require(script.Parent.PetModels)
 
 Pets.ORDER = { "Dragon", "Rock", "Rabbit", "Golem", "Owl" }
 
@@ -87,7 +88,7 @@ function Pets.decode(text: string?): { [string]: number }
 	return owned
 end
 
--- LES MODÈLES (faits de blocs) ------------------------------------------------------------------------------------
+-- MODÈLES DE SECOURS pour les anciennes places sans assets/pets --------------------------------------------------
 local function piece(model: Model, name: string, size: Vector3, offset: CFrame | Vector3, color: Color3, material: Enum.Material?, shape: Enum.PartType?): Part
 	local part = Instance.new("Part")
 	part.Name = name
@@ -183,10 +184,13 @@ local BUILDERS = {
 
 -- Construit le modèle d'un animal (ancré, sans collision). Sa pièce principale s'appelle « Body ».
 function Pets.build(name: string, rarity: number): Model
-	local model = Instance.new("Model")
-	model.Name = name
-	local builder = BUILDERS[name] or BUILDERS.Rock
-	builder(model)
+	local model = PetModels.build(name)
+	if not model then
+		model = Instance.new("Model")
+		model.Name = name
+		local builder = BUILDERS[name] or BUILDERS.Rock
+		builder(model)
+	end
 	local body = model:FindFirstChild("Body") :: BasePart
 	model.PrimaryPart = body
 

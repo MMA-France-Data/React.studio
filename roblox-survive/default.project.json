@@ -3,6 +3,14 @@
   "tree": {
     "$className": "DataModel",
     "ReplicatedStorage": {
+      "PetVisuals": {
+        "$className": "Folder",
+        "Dragon": { "$path": "assets/pets/Dragon.rbxmx" },
+        "Rock": { "$path": "assets/pets/Rock.rbxmx" },
+        "Rabbit": { "$path": "assets/pets/Rabbit.rbxmx" },
+        "Golem": { "$path": "assets/pets/Golem.rbxmx" },
+        "Owl": { "$path": "assets/pets/Owl.rbxmx" }
+      },
       "Shared": {
         "$path": "src/shared"
       }

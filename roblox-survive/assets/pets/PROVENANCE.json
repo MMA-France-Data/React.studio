@@ -1,0 +1,136 @@
+[
+  {
+    "name": "Dragon",
+    "assetId": 12473517134,
+    "creator": "maxito121207",
+    "url": "https://create.roblox.com/store/asset/12473517134/Dragon-Pet",
+    "freeVerified": "2026-10-05",
+    "parts": 1,
+    "meshParts": 1,
+    "sourceScripts": 0,
+    "excluded": [],
+    "sourceCenter": [
+      -279.7254333496094,
+      7.000000476837158,
+      -66.24774169921875
+    ],
+    "sourceScale": 1.6546341302771708,
+    "yawDegrees": 0,
+    "bounds": [
+      4.396539725441411,
+      2.481951195415756,
+      4.6000000000000005
+    ],
+    "sha256": "5350c7f502ec3e84de8eb3f65c6ef6df188ed2fe321b9f6b8b4e66cd969dfdda"
+  },
+  {
+    "name": "Rock",
+    "assetId": 2847767720,
+    "creator": "SionixKev",
+    "url": "https://create.roblox.com/store/asset/2847767720/Realistic-Meteor",
+    "freeVerified": "2026-10-05",
+    "parts": 1,
+    "meshParts": 1,
+    "sourceScripts": 4,
+    "excluded": [],
+    "sourceCenter": [
+      -29.95998764038086,
+      389.0400390625,
+      21.960573196411133
+    ],
+    "sourceScale": 0.24,
+    "yawDegrees": 0,
+    "bounds": [
+      2.4,
+      2.4,
+      2.4
+    ],
+    "sha256": "18b832e963bd9764fb2aa9142073a9b94d79d1168600040402e9e3dd230aa0fd"
+  },
+  {
+    "name": "Rabbit",
+    "assetId": 101886867632017,
+    "creator": "dandansoydaniel",
+    "url": "https://create.roblox.com/store/asset/101886867632017/rabbit",
+    "freeVerified": "2026-10-05",
+    "parts": 1,
+    "meshParts": 1,
+    "sourceScripts": 0,
+    "excluded": [],
+    "sourceCenter": [
+      1.4901161193847656e-8,
+      -2.2351741790771484e-7,
+      -0.28762567043304443
+    ],
+    "sourceScale": 5.66406157158796,
+    "yawDegrees": 0,
+    "bounds": [
+      1.7378139778922683,
+      2.9,
+      3.258259013804061
+    ],
+    "sha256": "e126642f37a70f90735703a4c02efdc413a3dc056937375df1f7d497ee97aa0a"
+  },
+  {
+    "name": "Golem",
+    "assetId": 101927195223511,
+    "creator": "ILegacyGamesI",
+    "url": "https://create.roblox.com/store/asset/101927195223511/Golem",
+    "freeVerified": "2026-10-05",
+    "parts": 42,
+    "meshParts": 22,
+    "sourceScripts": 0,
+    "excluded": [
+      {
+        "name": "RootsArm2",
+        "class": "UnionOperation"
+      },
+      {
+        "name": "HumanoidRootPart",
+        "class": "Part"
+      }
+    ],
+    "sourceCenter": [
+      146.20950541916338,
+      6.755022931531388,
+      50.24497432337671
+    ],
+    "sourceScale": 0.26646836240610494,
+    "yawDegrees": -90,
+    "bounds": [
+      3.0727565563397743,
+      3.6,
+      1.4006867678137396
+    ],
+    "sha256": "148f0336968365870bd1a3d10983856a6465f5b6e5756ad23569d54dfd55edbc"
+  },
+  {
+    "name": "Owl",
+    "assetId": 14798191327,
+    "creator": "creepercatchanel",
+    "url": "https://create.roblox.com/store/asset/14798191327/Realistic-owl-PBR",
+    "freeVerified": "2026-10-05",
+    "parts": 2,
+    "meshParts": 2,
+    "sourceScripts": 0,
+    "excluded": [
+      {
+        "name": "baked_mesh.001",
+        "class": "MeshPart"
+      }
+    ],
+    "sourceCenter": [
+      436.48133516311646,
+      34.630807518959045,
+      -1873.4366455078125
+    ],
+    "sourceScale": 0.8715611117277329,
+    "yawDegrees": -90,
+    "bounds": [
+      1.4573300166645518,
+      2.9,
+      1.8920966301807305
+    ],
+    "sha256": "ba4dd9a12a60cec45946f5a1b5da80a8996460a43e35f9f4e39c746e74197c76"
+  }
+]
