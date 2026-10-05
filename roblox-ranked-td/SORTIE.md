@@ -27,6 +27,10 @@ Le jeu sort comme une **nouvelle expérience Roblox** (décision du 02/10/2026) 
       tests automatiques ne vérifient que la taille de l'écran, pas le toucher.)
 - [ ] **Un nouveau joueur passe-t-il le niveau 1 ?** La difficulté est réglée avec des joueurs simulés et un seul
       vrai joueur (toi). Le tuto aide : un joueur simulé qui suit seulement la flèche gagne le niveau 1.
+- [ ] **Décide pour la chance aux œufs** (05/10/2026, voir `NIVEAUX.md`, « La difficulté ») : avec la barre, une tour
+      « de chance » (la Baliste du dragon, une légendaire) rend la suite bien plus facile. Proposition de Claude :
+      l'œuf doré d'un boss donne à coup sûr une tour de palier 2. En attendant, personne n'est bloqué sans
+      solution, mais les chanceux trouvent le 4e territoire facile.
 - [ ] **Joue les niveaux 11 à 40** : ils n'ont été essayés que par les joueurs simulés (trop durs ? trop faciles ?).
       Les boss 20, 30 et 40 demandent une tour de palier 2 (les œufs dorés des boss d'avant en donnent souvent).
       Depuis le 05/10/2026 : une seule tour par rareté dans un niveau (la barre, choisie dans « Mes tours »), et les
@@ -63,10 +67,11 @@ Le jeu sort comme une **nouvelle expérience Roblox** (décision du 02/10/2026) 
 ## Publication (Studio et Hub Création)
 
 - [ ] Le fichier à publier : la copie propre préparée par Claude, sur ton PC, dans le dossier du jeu :
-      `A-PUBLIER\Jeu-100-niveaux-v14-anglais.rbxl` (refaite à chaque version, avec un nouveau nom : prends toujours
+      `A-PUBLIER\Jeu-100-niveaux-v15-anglais.rbxl` (refaite à chaque version, avec un nouveau nom : prends toujours
       la plus récente ; elle n'est pas dans git). Ferme les autres fenêtres de Studio avant de publier, pour ne pas
-      te tromper de fichier. « -anglais » : le commit 879c43c (05/10/2026 : espagnol et portugais, corrections de la
-      relecture, désert prêt mais fermé), que Studio te montre en
+      te tromper de fichier. « -anglais » : le commit 5f00f86 (05/10/2026 au soir : une tour par rareté dans un
+      niveau, niveaux 11 à 40 « durs partout » ; avant : espagnol et portugais, désert prêt mais fermé), que Studio
+      te montre en
       anglais (`Config.STUDIO_LANGUAGE = "en"`, qui ne joue que dans Studio). Une fois publié, le jeu est le même :
       chaque joueur le voit dans sa langue Roblox (le français pour un compte en français, l'espagnol, le portugais,
       et l'anglais pour tous les autres).
