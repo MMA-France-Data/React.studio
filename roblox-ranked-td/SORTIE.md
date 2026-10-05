@@ -61,15 +61,17 @@ Le jeu sort comme une **nouvelle expérience Roblox** (décision du 02/10/2026) 
 ## Publication (Studio et Hub Création)
 
 - [ ] Le fichier à publier : la copie propre préparée par Claude, sur ton PC, dans le dossier du jeu :
-      `A-PUBLIER\Jeu-100-niveaux-v13-anglais.rbxl` (refaite à chaque version, avec un nouveau nom : prends toujours
+      `A-PUBLIER\Jeu-100-niveaux-v14-anglais.rbxl` (refaite à chaque version, avec un nouveau nom : prends toujours
       la plus récente ; elle n'est pas dans git). Ferme les autres fenêtres de Studio avant de publier, pour ne pas
-      te tromper de fichier. « -anglais » : la même que `Jeu-100-niveaux-v13` (commit e7ac7f0), mais Studio te la montre en
+      te tromper de fichier. « -anglais » : le commit 879c43c (05/10/2026 : espagnol et portugais, corrections de la
+      relecture, désert prêt mais fermé), que Studio te montre en
       anglais (`Config.STUDIO_LANGUAGE = "en"`, qui ne joue que dans Studio). Une fois publié, le jeu est le même :
       chaque joueur le voit dans sa langue Roblox (le français pour un compte en français, l'espagnol, le portugais,
       et l'anglais pour tous les autres).
-- [ ] Publier comme une **nouvelle expérience** sur ton compte personnel (Fichier > Publier sur Roblox > « Créer une
-      nouvelle expérience »), en privé. Les mises à jour ensuite : ouvrir la nouvelle copie propre,
-      Publier sur Roblox > « Mettre à jour l'expérience existante… » > la nouvelle expérience (**pas** « Tower 22 »).
+- [x] Publier comme une **nouvelle expérience** sur ton compte personnel : fait par toi le 04/10/2026 au soir (nommée
+      « tower 22 »). Les mises à jour ensuite : ouvrir la nouvelle copie propre, Publier sur Roblox > « Mettre à jour
+      l'expérience existante… » > CETTE nouvelle expérience (celle du 04/10/2026), **pas** l'ancienne « Tower 22 »
+      du jeu classé (elles portent presque le même nom : regarde la date ou l'image).
 - [ ] Sur ton compte, pas sur une communauté : les animations des monstres sont publiées sur ton compte, elles ne se
       jouent que dans tes expériences.
 - [ ] **À chaque mise à jour publiée**, surtout celle qui ouvrira de nouveaux niveaux (nouvelles tours, nouveaux
