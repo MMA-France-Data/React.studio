@@ -189,6 +189,9 @@ return function(env)
 			end
 			entry.cframe = if riding then target else entry.cframe:Lerp(target, 1 - math.exp(-9 * dt))
 			entry.model:PivotTo(entry.cframe)
+			if entry.model:GetAttribute("Rainbow") then
+				Pets.shimmer(entry.model, os.clock())
+			end
 		end
 	end)
 

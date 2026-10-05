@@ -15,11 +15,14 @@ Pets.DEFS = {
 	Owl = { power = "coins", values = { 5, 10, 15, 25 } }, -- % de pièces en plus
 }
 
+-- Chaque rareté a sa couleur, posée sur l'animal lui-même : commun = ses couleurs d'origine, rare = bleu,
+-- épique = doré, légendaire = violet qui change de teinte sans arrêt (rose, bleu, turquoise...).
+-- tint : force de la couleur sur l'animal (0 = aucune, 1 = couleur pleine).
 Pets.RARITIES = {
-	{ key = "Common", color = Color3.fromRGB(200, 204, 214), scale = 1 },
-	{ key = "Rare", color = Color3.fromRGB(70, 160, 255), scale = 1.12 },
-	{ key = "Epic", color = Color3.fromRGB(190, 100, 255), scale = 1.25 },
-	{ key = "Legendary", color = Color3.fromRGB(255, 200, 40), scale = 1.4 },
+	{ key = "Common", color = Color3.fromRGB(200, 204, 214), scale = 1, tint = 0 },
+	{ key = "Rare", color = Color3.fromRGB(60, 150, 255), scale = 1.12, tint = 0.5 },
+	{ key = "Epic", color = Color3.fromRGB(255, 200, 40), scale = 1.25, tint = 0.55 },
+	{ key = "Legendary", color = Color3.fromRGB(190, 90, 255), scale = 1.4, tint = 0.6, rainbow = true },
 }
 
 -- Chances de chaque rareté (sur 100) dans la salle 1, et ce qui change à chaque salle suivante.
@@ -196,6 +199,15 @@ function Pets.build(name: string, rarity: number): Model
 
 	local info = Pets.RARITIES[math.clamp(rarity, 1, #Pets.RARITIES)]
 	if rarity >= 2 then
+		-- L'animal prend la couleur de sa rareté (un voile de couleur par-dessus son modèle, avec un contour).
+		local tint = Instance.new("Highlight")
+		tint.Name = "Tint"
+		tint.FillColor = info.color
+		tint.FillTransparency = 1 - info.tint
+		tint.OutlineColor = info.color
+		tint.OutlineTransparency = 0
+		tint.DepthMode = Enum.HighlightDepthMode.Occluded
+		tint.Parent = model
 		-- Un anneau qui brille à la couleur de la rareté, de la lumière, et des étincelles pour le légendaire.
 		local ring = piece(model, "Halo", Vector3.new(0.15, 3.4, 3.4), CFrame.new(0, -1.5, 0) * CFrame.Angles(0, 0, math.rad(90)), info.color, Enum.Material.Neon, Enum.PartType.Cylinder)
 		ring.Transparency = 0.25
@@ -210,8 +222,39 @@ function Pets.build(name: string, rarity: number): Model
 		sparkles.SparkleColor = info.color
 		sparkles.Parent = body
 	end
+	if info.rainbow then
+		model:SetAttribute("Rainbow", true)
+	end
 	model:ScaleTo(info.scale)
 	return model
+end
+
+-- Couleur du légendaire à l'instant t : autour du violet, en passant par le rose, le bleu et le turquoise.
+function Pets.rainbow(t: number): Color3
+	return Color3.fromHSV((0.78 + 0.27 * math.sin(t * 1.4)) % 1, 0.8, 1)
+end
+
+-- À appeler à chaque image pour un animal légendaire : fait changer sa teinte.
+function Pets.shimmer(model: Model, t: number)
+	local color = Pets.rainbow(t)
+	local tint = model:FindFirstChild("Tint")
+	if tint then
+		tint.FillColor = color
+		tint.OutlineColor = Pets.rainbow(t + 1.2)
+	end
+	local halo = model:FindFirstChild("Halo")
+	if halo then
+		halo.Color = color
+	end
+	local body = model.PrimaryPart
+	local light = body and body:FindFirstChildOfClass("PointLight")
+	if light then
+		light.Color = color
+	end
+	local sparkles = body and body:FindFirstChildOfClass("Sparkles")
+	if sparkles then
+		sparkles.SparkleColor = color
+	end
 end
 
 return Pets

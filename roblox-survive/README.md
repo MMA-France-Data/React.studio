@@ -25,7 +25,8 @@ Ce dossier est séparé du jeu de tours (`roblox-ranked-td`) : rien n'est partag
     réussir ouvre la porte tout de suite ; ne pas finir à temps élimine tout le monde.
 - **Œufs et animaux** : chaque salle réussie donne l'œuf de son animal. On le pose dans une des 2 couveuses de la
   salle de sport (30 secondes × le numéro de la salle, même hors du jeu) ; à l'ouverture, la rareté est tirée
-  (commun, rare, épique, légendaire ; plus de chances dans les salles du fond). Un animal déjà trouvé en aussi
+  (commun, rare, épique, légendaire ; plus de chances dans les salles du fond). L'animal prend la couleur de sa
+  rareté : ses couleurs d'origine, bleu, doré, puis violet qui change de teinte sans arrêt pour le légendaire. Un animal déjà trouvé en aussi
   bien donne des pièces. On en équipe un seul (bouton « ANIMAUX ») et il suit le joueur :
   - Dragon de lave (salles 1, 5, 8) : sauter une 2e fois en l'air = vol plané de 1 à 3 secondes, le dragon passe
     sous le joueur.
