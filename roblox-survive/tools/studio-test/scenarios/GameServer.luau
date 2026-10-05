@@ -7,6 +7,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerStorage = game:GetService("ServerStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local Pets = require(ReplicatedStorage.Shared.Pets)
 
 local SCALE = 8
 
@@ -25,11 +26,18 @@ return function(log)
 	end
 
 	-- Le personnage vivant (attend la réapparition s'il vient de mourir).
+	local known = nil
 	local function alive()
 		while true do
 			local character = player.Character
 			local humanoid = character and character:FindFirstChildOfClass("Humanoid")
 			if humanoid and humanoid.Health > 0 and character:FindFirstChild("HumanoidRootPart") then
+				if character ~= known then
+					-- Nouveau personnage : le jeu le pose dans son espace juste après son apparition. On attend que
+					-- ce soit fait, sinon il serait ramené là après un déplacement du test.
+					known = character
+					task.wait(0.6)
+				end
 				return character, humanoid, character.HumanoidRootPart
 			end
 			task.wait(0.1)
@@ -168,7 +176,9 @@ return function(log)
 		check(won, `salle {index} : gagnée après 60 secondes`, D("Room", index).state)
 		local expected = Config.REWARD_FULL * index + if index == #Config.ROOMS then Config.FINAL_BONUS else 0
 		expected = math.floor(expected * (bonus or 1) + 0.5)
-		check(D("Data").coins - before == expected, `salle {index} : +{expected} pièces`, D("Data").coins - before)
+		-- Un familier déjà trouvé donne des pièces en plus (100, 300, 1 000 ou 5 000).
+		local gained = D("Data").coins - before
+		check(gained == expected or table.find(Pets.DUPLICATE_COINS, gained - expected) ~= nil, `salle {index} : +{expected} pièces`, gained)
 		check(D("Room", index).exitOpen == true, `salle {index} : la porte du bout s'ouvre`)
 		god(false)
 		if index < #Config.ROOMS then
@@ -185,7 +195,7 @@ return function(log)
 	alive()
 	task.wait(2)
 	local gym = workspace:FindFirstChild("Gym")
-	check(gym ~= nil and gym:FindFirstChild("Speed") and gym:FindFirstChild("Jump") and gym:FindFirstChild("Force"), "la salle de sport a ses 3 machines")
+	check(gym ~= nil, "le lobby existe")
 	local rooms = workspace:FindFirstChild("Rooms")
 	local count = 0
 	for index = 1, #Config.ROOMS do
@@ -195,12 +205,26 @@ return function(log)
 		end
 	end
 	check(count == 10, "10 salles libres, entrée ouverte, sortie fermée", count)
+	-- LE LOBBY : 6 espaces, le joueur a le sien et y apparaît.
+	local spaces = 0
+	for index = 1, 6 do
+		local folder = gym and gym:FindFirstChild("Plot" .. index)
+		if folder and folder:FindFirstChild("Speed") and folder:FindFirstChild("Jump") and folder:FindFirstChild("Force") and folder:FindFirstChild("Enclosure") then
+			spaces += 1
+		end
+	end
+	check(spaces == 6, "6 espaces avec machines et enclos", spaces)
+	local plot = D("Plot")
+	check(plot ~= nil and player:GetAttribute("Plot") == plot.index, "le joueur a reçu un espace", plot and plot.index)
+	local plotFolder = gym["Plot" .. plot.index]
+	check(plotFolder:GetAttribute("OwnerId") == player.UserId, "l'espace porte le nom de son joueur", plotFolder:GetAttribute("Owner"))
 	local _, _, root = alive()
-	check(math.abs(root.Position.X) < 40 and math.abs(root.Position.Z) < 30, "le joueur apparaît dans la salle de sport", root.Position)
-	shot("salle_de_sport", Vector3.new(0, 26, -27), Vector3.new(0, 0, 14))
-	shot("tapis", Vector3.new(-8, 9, -2), Vector3.new(-26, 3, -14))
-	shot("trampoline", Vector3.new(-6, 10, 26), Vector3.new(-26, 2, 12))
-	shot("musculation", Vector3.new(8, 9, -2), Vector3.new(26, 3, -14))
+	check((root.Position - plot.spawn).Magnitude < 12, "le joueur apparaît dans son espace", root.Position)
+	-- Le revenu des familiers est coupé pour compter les pièces des salles au plus juste (remis plus bas).
+	D("Income", false)
+	D("Hatching", false)
+	shot("lobby", Vector3.new(0, 95, -175), Vector3.new(0, 0, -55))
+	shot("espace", plot.origin + Vector3.new(34, 40, 44), plot.origin + Vector3.new(0, 0, -2))
 
 	-- 2. LA SALLE DE SPORT -----------------------------------------------------------------------------------------
 	local data = D("Data")
@@ -217,7 +241,7 @@ return function(log)
 		local busy, why = D("Train", machine)
 		check(not busy and why == "busy", machine .. " : pas deux entraînements en même temps", why)
 		task.wait(1.2)
-		local place = workspace.Gym[machine].PrimaryPart.Position
+		local place = plotFolder[machine].PrimaryPart.Position
 		shot("entrainement_" .. machine, place + Vector3.new(if machine == "Force" then -13 else 13, 9, 13), place + Vector3.new(if machine == "Force" then -3 else 0, 3.5, 0))
 		task.wait(Config.WORKOUT_SECONDS - 2.6)
 		check(D("Data")[machine] == 1 and player:GetAttribute("Workout") == "" and not gymRoot.Anchored, machine .. " : niveau 1 gagné à la fin de l'entraînement", D("Data")[machine])
@@ -264,30 +288,27 @@ return function(log)
 	check(D("Data").coins == 0, "salle 1 : mort avant 30 secondes = 0 pièce", D("Data").coins)
 	check(waitState(1, "Idle", 3), "salle 1 : redevient libre quand tout le monde est mort")
 	_, _, root = alive()
-	check(math.abs(root.Position.Z) < 30, "le mort réapparaît dans la salle de sport", root.Position)
+	task.wait(0.5)
+	check((root.Position - plot.spawn).Magnitude < 14, "le mort réapparaît dans son espace", root.Position)
 	winRoom(1, true)
 	check(D("Data").best == 1, "meilleure salle = 1", D("Data").best)
 
-	-- LES ŒUFS ET LA COUVEUSE : la salle 1 a donné un œuf de dragon.
+	-- L'ŒUF DE LA SALLE : la salle 1 réussie a mis un œuf de dragon dans l'enclos, où il couve.
 	local eggs = D("Eggs")
-	check(eggs.eggs == 1 and eggs.first == "Dragon", "salle 1 réussie = un œuf de dragon de lave", eggs.eggs .. " " .. eggs.first)
-	check(D("Slot", 1) == "placed", "couveuse 1 : l'œuf est posé")
+	check(eggs.eggs == 1 and eggs.first == "Dragon" and eggs.count == 0, "salle 1 réussie = un œuf de dragon qui couve dans l'enclos", eggs.eggs .. " " .. eggs.first)
+	check(string.match(player:GetAttribute("Eggs") or "", "^Dragon|%d+$") ~= nil and player:GetAttribute("EggCount") == 1, "l'œuf est envoyé à l'écran", player:GetAttribute("Eggs"))
+	tp(plot.spawn)
+	task.wait(1)
+	shot("nid", plot.origin + Vector3.new(4, 9, -8), plot.origin + Vector3.new(0, 1, 6))
+	-- Quand il a fini de couver, il éclot tout seul à la seconde suivante.
+	D("Ripen")
+	D("Hatching", true)
+	task.wait(1.6)
+	D("Hatching", false)
 	eggs = D("Eggs")
-	check(eggs.eggs == 0 and eggs.slots[1] == "Dragon", "l'œuf est dans la couveuse, plus dans la réserve", eggs.slots[1])
-	check(string.match(player:GetAttribute("Slot1") or "", "^Dragon|%d+$") ~= nil, "couveuse 1 : envoyée à l'écran", player:GetAttribute("Slot1"))
-	check(D("Slot", 1) == "wait", "couveuse 1 : pas encore prête, il faut attendre")
-	check(D("Slot", 2) == "none", "couveuse 2 : rien à poser sans œuf")
-	tp(Vector3.new(0, 4, -14))
-	task.wait(0.6)
-	shot("couveuses", Vector3.new(0, 9, -9), Vector3.new(0, 4, -26))
-	D("Hatch")
-	check(D("Slot", 1) == "hatched", "couveuse 1 : l'œuf prêt s'ouvre")
-	eggs = D("Eggs")
-	check((eggs.pets.Dragon or 0) >= 1 and eggs.equipped == "Dragon" and eggs.slots[1] == "", "le dragon de lave est gagné et équipé tout seul", tostring(eggs.pets.Dragon))
-	check(player:GetAttribute("Pet") == "Dragon" and player:GetAttribute("PetRarity") == eggs.pets.Dragon, "l'animal équipé est envoyé à l'écran")
-	D("Pet", "Dragon", 4)
-	task.wait(0.8)
-	shot("dragon", Vector3.new(7, 6, -4), Vector3.new(1, 3, -14))
+	check(eggs.eggs == 0 and (eggs.pets.Dragon or 0) >= 1 and eggs.equipped == "Dragon", "l'œuf éclot tout seul : le dragon entre dans la collection et suit le joueur", tostring(eggs.pets.Dragon))
+	check(eggs.count == 1 and math.abs(eggs.income - Pets.incomeOf("Dragon", eggs.pets.Dragon)) < 0.001, "la collection a 1 familier, avec son revenu", eggs.income)
+	check(player:GetAttribute("Pet") == "Dragon" and player:GetAttribute("PetRarity") == eggs.pets.Dragon and player:GetAttribute("Income") == eggs.income, "le familier et le revenu sont envoyés à l'écran")
 
 	-- Salle 2 (météorites) : rester immobile fait perdre de la vie.
 	enter(2)
@@ -397,7 +418,8 @@ return function(log)
 	end
 	info = D("Room", 6)
 	check(info.state == "Open" and info.elapsed < Config.DURATION, "salle 6 : la mélodie réussie ouvre la porte avant la fin", info.state .. " à " .. math.floor(info.elapsed) .. " s")
-	check(D("Data").coins - melodyBefore == 600, "salle 6 : +600 pièces", D("Data").coins - melodyBefore)
+	local melodyGain = D("Data").coins - melodyBefore
+	check(melodyGain == 600 or table.find(Pets.DUPLICATE_COINS, melodyGain - 600) ~= nil, "salle 6 : +600 pièces", melodyGain)
 	tp(D("Sas", 6))
 	waitState(6, "Idle", Config.OPEN / SCALE + 3)
 	D("Level", "Force", 1)
@@ -411,27 +433,26 @@ return function(log)
 	D("Level", "Force", 4)
 	winRoom(10, true)
 	check(D("Data").best == 10, "meilleure salle = 10", D("Data").best)
-	check(D("Eggs").eggs >= 8, "chaque salle réussie a donné son œuf", D("Eggs").eggs)
+	-- Autant d'œufs qu'on veut couvent en même temps : un par salle réussie depuis le début.
+	local waiting = D("Eggs").eggs
+	check(waiting >= 9, "tous les œufs des salles réussies couvent en même temps dans l'enclos", waiting)
+	check(D("Hatch") == waiting and D("Eggs").eggs == 0 and D("Eggs").count >= 3, "ils éclosent tous : la collection se remplit", D("Eggs").bits)
 
-	-- LES POUVOIRS DES ANIMAUX (légendaires, donnés par le test).
-	D("Pet", "Owl", 4)
-	winRoom(2, false, 1.25)
-	D("Pet", "Rock", 4)
-	enter(2)
-	local _, rockHumanoid = alive()
-	limit = os.clock() + 40 / SCALE
-	while (D("Room", 2).shield or 160) >= 160 and os.clock() < limit do
-		task.wait(0.03)
-	end
-	local shield = D("Room", 2).shield
-	check(shield ~= nil and shield < 160, "caillou légendaire : le bouclier encaisse le coup", shield)
-	check(shield == 0 or rockHumanoid.Health == 100, "caillou légendaire : pas de vie perdue tant que le bouclier tient", rockHumanoid.Health)
-	rockHumanoid.Health = 0
-	waitState(2, "Idle", 3)
-	D("Level", "Force", 0)
+	-- LA COLLECTION ET LE REVENU. Un familier nouveau compte une fois ; le même une 2e fois ne change rien.
+	local before = D("Eggs")
 	D("Pet", "Golem", 4)
-	check(not crushed(4, 5), "golem légendaire : force 0 + 50 % tient le plafond de la salle 4")
-	D("Pet", "", 0)
+	local after = D("Eggs")
+	check(after.count == before.count + 1 and math.abs(after.income - before.income - Pets.incomeOf("Golem", 4)) < 0.001, "golem légendaire : +60 pièces par seconde", after.income - before.income)
+	D("Pet", "Golem", 4)
+	check(D("Eggs").count == after.count, "le même familier une 2e fois ne compte pas deux fois")
+	check(math.abs(after.income - Pets.income(Pets.decode(after.bits))) < 0.001, "le revenu = la somme de la collection", after.bits)
+	-- Le revenu tombe chaque seconde quand il n'est pas coupé.
+	local coinsBefore = D("Data").coins
+	D("Income", true)
+	task.wait(3.3)
+	D("Income", false)
+	local earned = D("Data").coins - coinsBefore
+	check(earned >= after.income * 2 and earned <= after.income * 4.5, "en 3 secondes, la collection a rapporté environ 3 fois son revenu", earned .. " pour " .. after.income .. " par seconde")
 
 	-- LA GRANDE PLUIE DE MÉTÉORITES : un joueur qui court à la vitesse du niveau demandé arrive dans le rond vert,
 	-- celui du niveau d'en dessous n'arrive pas. Le test fait avancer le personnage lui-même, en temps réel.
@@ -480,30 +501,7 @@ return function(log)
 		check(not survived, `salle {index} : la vitesse du niveau {level - 1} n'arrive pas à temps`, waves)
 	end
 	D("Scale", 1)
-	D("Pet", "Rabbit", 4)
-	local _, rabbitHumanoid = alive()
-	task.wait(0.3)
-	check(math.abs(rabbitHumanoid.WalkSpeed - Config.walkSpeed(D("Data").Speed) * 1.15) < 0.01, "lapin légendaire : +15 % de vitesse", rabbitHumanoid.WalkSpeed)
-	-- Dragon : tomber de haut, sans puis avec le vol plané.
-	D("Pet", "Dragon", 4)
-	local function fall(glide: boolean): number
-		tp(Vector3.new(0, 70, 8))
-		task.wait(0.2)
-		if glide then
-			player:SetAttribute("DebugGlide", os.clock())
-		end
-		local started = os.clock()
-		local _, _, body = alive()
-		while body.Position.Y > 6 and os.clock() - started < 9 do
-			task.wait(0.03)
-		end
-		return os.clock() - started
-	end
-	local plain = fall(false)
-	task.wait(1)
-	local held = fall(true)
-	check(held > plain + 2, "dragon légendaire : le vol plané retient la chute 3 secondes", string.format("%.1f s sans, %.1f s avec", plain, held))
-	-- Une photo de chaque animal dans ses 4 raretés, à côté du joueur dans la salle de sport.
+	-- Une photo de chaque animal dans ses 4 raretés, à côté du joueur dans l'allée (la collection se remplit).
 	for _, name in { "Dragon", "Rock", "Rabbit", "Golem", "Owl" } do
 		for _, rarity in { 1, 2, 3, 4 } do
 			D("Pet", name, rarity)
@@ -527,10 +525,17 @@ return function(log)
 		shot("marche_" .. name, ahead + Vector3.new(11, 3, 7), ahead + Vector3.new(-2, -0.5, -1))
 		check(body.Position.Z > 0, "le joueur a marché pendant la photo de " .. name, body.Position.Z)
 	end
+	-- Toute la collection est trouvée : l'enclos est plein.
+	local full = D("Eggs")
+	check(full.count == 20 and math.abs(full.income - 285) < 0.001, "collection complète : 20 familiers, 285 pièces par seconde", full.income)
+	tp(plot.origin + Vector3.new(-13, 4, 2))
+	task.wait(1.5)
+	shot("enclos", plot.origin + Vector3.new(10, 20, -14), plot.origin + Vector3.new(10, 1, 18))
+	shot("enclos_pres", plot.origin + Vector3.new(-13, 6, 0), plot.origin + Vector3.new(6, 2, 14))
 	shot("gagnants", Vector3.new(-14, 12, 1036), Vector3.new(2, 5, 1058))
 
 	-- 4. LE RACCOURCI ----------------------------------------------------------------------------------------------
-	tp(Vector3.new(0, 4, -16))
+	tp(plot.spawn)
 	task.wait(0.5)
 	check(D("Shortcut", 5) == true, "raccourci ouvert après la salle 5")
 	task.wait(0.5)

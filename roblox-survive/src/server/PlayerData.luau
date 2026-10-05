@@ -1,8 +1,8 @@
--- Sauvegarde de chaque joueur : ses pièces, le niveau de ses trois machines, la meilleure salle réussie, ses œufs,
--- ses couveuses et ses animaux.
+-- Sauvegarde de chaque joueur : ses pièces, le niveau de ses trois machines, la meilleure salle réussie, ses œufs
+-- qui couvent et sa collection de familiers.
 -- Dans Studio, rien n'est écrit chez Roblox : les données restent en mémoire le temps du test.
--- Les valeurs sont aussi posées en attributs sur le joueur (Coins, Speed, Jump, Force, Best, Eggs, Slot1, Slot2,
--- Pets, Pet, PetRarity) : l'écran les lit là.
+-- Les valeurs sont aussi posées en attributs sur le joueur (Coins, Speed, Jump, Force, Best, Eggs,
+-- EggCount, Pets, Pet, PetRarity, Income) : l'écran les lit là.
 local DataStoreService = game:GetService("DataStoreService")
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -33,10 +33,9 @@ local function defaults()
 		coins = 0,
 		levels = { Speed = 0, Jump = 0, Force = 0 },
 		best = 0,
-		eggs = {}, -- œufs en attente : { a = animal, r = salle }
-		slots = {}, -- couveuses : ["1"] = { a = animal, r = salle, t = heure d'éclosion (os.time) }
-		pets = {}, -- animaux possédés : [animal] = rareté (1 à 4)
-		equipped = "", -- animal équipé
+		eggs = {}, -- œufs qui couvent dans l'enclos : { a = animal, r = salle, t = heure d'éclosion (os.time) }
+		pets = {}, -- la collection : [animal] = { true/false pour chaque rareté }
+		equipped = "", -- l'animal qui suit le joueur
 	}
 end
 
@@ -62,27 +61,24 @@ local function clean(raw)
 	end
 	if type(raw.eggs) == "table" then
 		for _, egg in raw.eggs do
-			if type(egg) == "table" and Pets.DEFS[egg.a] and type(egg.r) == "number" and #data.eggs < Pets.MAX_EGGS then
-				table.insert(data.eggs, { a = egg.a, r = egg.r })
-			end
-		end
-	end
-	if type(raw.slots) == "table" then
-		for slot = 1, Pets.SLOTS do
-			local egg = raw.slots[tostring(slot)]
-			if type(egg) == "table" and Pets.DEFS[egg.a] and type(egg.r) == "number" and type(egg.t) == "number" then
-				data.slots[tostring(slot)] = { a = egg.a, r = egg.r, t = egg.t }
+			if type(egg) == "table" and Pets.DEFS[egg.a] and type(egg.r) == "number" and type(egg.t) == "number" and #data.eggs < Pets.MAX_EGGS then
+				table.insert(data.eggs, { a = egg.a, r = egg.r, t = egg.t })
 			end
 		end
 	end
 	if type(raw.pets) == "table" then
 		for _, name in Pets.ORDER do
-			if type(raw.pets[name]) == "number" then
-				data.pets[name] = math.clamp(math.floor(raw.pets[name]), 1, #Pets.RARITIES)
+			local saved = raw.pets[name]
+			if type(saved) == "table" then
+				local list = {}
+				for rarity = 1, #Pets.RARITIES do
+					list[rarity] = saved[rarity] == true
+				end
+				data.pets[name] = list
 			end
 		end
 	end
-	if type(raw.equipped) == "string" and data.pets[raw.equipped] then
+	if type(raw.equipped) == "string" and Pets.best(data.pets[raw.equipped]) > 0 then
 		data.equipped = raw.equipped
 	end
 	return data
@@ -99,14 +95,17 @@ local function publish(player: Player)
 	for _, name in Config.MACHINES do
 		player:SetAttribute(name, data.levels[name])
 	end
-	player:SetAttribute("Eggs", #data.eggs)
-	for slot = 1, Pets.SLOTS do
-		local egg = data.slots[tostring(slot)]
-		player:SetAttribute("Slot" .. slot, if egg then egg.a .. "|" .. egg.t else "")
+	-- Les œufs : « Dragon|1759680000,Rock|1759680060 » (animal et heure d'éclosion), pour les montrer dans l'enclos.
+	local eggs = {}
+	for i = 1, math.min(#data.eggs, Pets.NEST) do
+		eggs[i] = data.eggs[i].a .. "|" .. data.eggs[i].t
 	end
+	player:SetAttribute("Eggs", table.concat(eggs, ","))
+	player:SetAttribute("EggCount", #data.eggs)
 	player:SetAttribute("Pets", Pets.encode(data.pets))
 	player:SetAttribute("Pet", data.equipped)
-	player:SetAttribute("PetRarity", data.pets[data.equipped] or 0)
+	player:SetAttribute("PetRarity", Pets.best(data.pets[data.equipped]))
+	player:SetAttribute("Income", Pets.income(data.pets))
 	local stats = player:FindFirstChild("leaderstats")
 	if stats then
 		stats.Room.Value = data.best

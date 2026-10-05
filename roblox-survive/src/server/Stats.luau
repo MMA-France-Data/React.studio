@@ -1,23 +1,13 @@
--- Les chiffres d'un joueur une fois son animal compté : vitesse, force, pièces gagnées, bouclier.
--- Tout est lu dans les attributs du joueur (posés par PlayerData).
+-- Les chiffres d'un joueur : vitesse, saut, force. Tout est lu dans les attributs du joueur (posés par PlayerData).
+-- (Les familiers ne donnent plus de bonus : ils rapportent des pièces, voir Eggs.luau.)
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
-local Pets = require(ReplicatedStorage.Shared.Pets)
 
 local Stats = {}
 
--- Force du pouvoir `power` de l'animal équipé (0 si l'animal équipé a un autre pouvoir, ou s'il n'y en a pas).
-function Stats.bonus(player: Player, power: string): number
-	local def = Pets.DEFS[player:GetAttribute("Pet") or ""]
-	if def and def.power == power then
-		return Pets.value(player:GetAttribute("Pet"), player:GetAttribute("PetRarity") or 1)
-	end
-	return 0
-end
-
 function Stats.walkSpeed(player: Player): number
-	return Config.walkSpeed(player:GetAttribute("Speed") or 0) * (1 + Stats.bonus(player, "speed") / 100)
+	return Config.walkSpeed(player:GetAttribute("Speed") or 0)
 end
 
 function Stats.jumpHeight(player: Player): number
@@ -25,11 +15,7 @@ function Stats.jumpHeight(player: Player): number
 end
 
 function Stats.force(player: Player): number
-	return Config.force(player:GetAttribute("Force") or 0) * (1 + Stats.bonus(player, "force") / 100)
-end
-
-function Stats.coins(player: Player, amount: number): number
-	return math.floor(amount * (1 + Stats.bonus(player, "coins") / 100) + 0.5)
+	return Config.force(player:GetAttribute("Force") or 0)
 end
 
 return Stats

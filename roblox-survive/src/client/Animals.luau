@@ -1,9 +1,8 @@
--- Côté joueur : les œufs et les couveuses (étiquettes, œuf visible), les animaux qui suivent les personnages, le vol
--- plané du dragon de lave, et la fenêtre « Animaux » pour choisir celui qu'on équipe.
+-- Côté joueur : les panneaux des espaces, les familiers exposés dans les enclos de tous les joueurs, celui qui suit
+-- chaque personnage, et la fenêtre « Animaux » (la collection et ce qu'elle rapporte).
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
 
 local Pets = require(ReplicatedStorage.Shared.Pets)
 local PetRig = require(ReplicatedStorage.Shared.PetRig)
@@ -15,18 +14,25 @@ local EGG_COLORS = {
 	Golem = Color3.fromRGB(120, 170, 120),
 	Owl = Color3.fromRGB(170, 120, 70),
 }
+local EGG_SPACING = 3.3 -- écart entre deux œufs dans le nid
+local ANIMATE_DISTANCE = 110 -- au-delà, les familiers d'un enclos ne sont plus animés (ils restent posés)
 
 -- env : les outils de Main.client.luau ({ gui, side, text, box, tr, num, lang, showToast }).
 return function(env)
 	local player = Players.LocalPlayer
 	local tr, showToast = env.tr, env.showToast
+	local gym = workspace:WaitForChild("Gym")
 
 	local function clock(seconds: number): string
 		seconds = math.max(0, math.ceil(seconds))
 		return string.format("%d:%02d", seconds // 60, seconds % 60)
 	end
+	-- 2 -> « 2 », 0.5 -> « 0,5 » (ou « 0.5 » en anglais), 1234.5 -> « 1 234 ».
 	local function amount(value: number): string
-		local text = tostring(value)
+		if value >= 100 or value == math.floor(value) then
+			return env.num(value)
+		end
+		local text = string.format("%.1f", value)
 		return if env.lang == "fr" then (text:gsub("%.", ",")) else text
 	end
 	local function rarityInfo(rarity: number)
@@ -35,137 +41,60 @@ return function(env)
 
 	-- LES MESSAGES --------------------------------------------------------------------------------------------------
 	ReplicatedStorage:WaitForChild("Notify").OnClientEvent:Connect(function(key: string, a, b, c)
+		-- Les messages du familier arrivent juste après « SALLE RÉUSSIE » : ils attendent leur tour.
 		if key == "egg" then
-			task.delay(1.6, showToast, tr("egg", tr(a)), EGG_COLORS[a])
-		elseif key == "eggFull" then
-			task.delay(1.6, showToast, tr("eggFull"), Color3.fromRGB(255, 90, 90))
-		elseif key == "noEgg" then
-			showToast(tr("noEgg"), Color3.fromRGB(255, 90, 90))
-		elseif key == "placed" then
-			showToast(tr("placed", tr(a)))
-		elseif key == "wait" then
-			showToast(tr("wait", clock(a)), Color3.fromRGB(255, 221, 51))
+			task.delay(1.8, showToast, tr("egg", tr(a), clock(b)), EGG_COLORS[a])
+		elseif key == "notYours" then
+			showToast(tr("notYours"), Color3.fromRGB(255, 90, 90))
 		elseif key == "hatched" then
-			showToast(tr("hatched", tr(a), tr(rarityInfo(b).key)), rarityInfo(b).color)
+			task.delay(1.8, showToast, tr("hatched", tr(a), tr(rarityInfo(b).key), amount(Pets.incomeOf(a, b))), rarityInfo(b).color)
 		elseif key == "duplicate" then
-			showToast(tr("duplicate", tr(a), tr(rarityInfo(b).key), env.num(c)), rarityInfo(b).color)
+			task.delay(1.8, showToast, tr("duplicate", tr(a), tr(rarityInfo(b).key), env.num(c)), rarityInfo(b).color)
 		end
 	end)
 
-	-- LES COUVEUSES -------------------------------------------------------------------------------------------------
-	local gym = workspace:WaitForChild("Gym")
-	local function refreshIncubators()
-		for _, model in gym:GetChildren() do
-			local base = model.Name == "Incubator" and model.PrimaryPart
-			local prompt = base and base:FindFirstChild("Prompt")
-			local label = base and base:FindFirstChild("Label")
-			if prompt and label then
-				local slot = prompt:GetAttribute("Slot")
-				local animal, ready = string.match(player:GetAttribute("Slot" .. slot) or "", "^(%a+)|(%d+)$")
-				local egg = model:FindFirstChild("Egg")
-				label.Title.Text = tr("incubator", slot)
-				prompt.ObjectText = tr("incubator", slot)
-				if animal then
-					local left = tonumber(ready) - workspace:GetServerTimeNow()
-					label.Level.Text = tr(animal)
-					label.Info.Text = if left <= 0 then tr("incReady") else clock(left)
-					prompt.ActionText = if left <= 0 then tr("incOpen") else tr("incWait")
-					if egg then
-						egg.Transparency = 0
-						egg.Color = EGG_COLORS[animal] or Color3.new(1, 1, 1)
-						egg.Material = if left <= 0 then Enum.Material.Neon else Enum.Material.SmoothPlastic
-					end
+	-- LES PANNEAUX DES ESPACES ET DES ENCLOS ----------------------------------------------------------------------------
+	local function refreshPlots()
+		for _, plot in gym:GetChildren() do
+			local index = plot:GetAttribute("Index")
+			if not index then
+				continue
+			end
+			local owner = plot:GetAttribute("Owner") or ""
+			local sign = plot:FindFirstChild("Sign")
+			local surface = sign and sign:FindFirstChildOfClass("SurfaceGui")
+			local label = surface and surface:FindFirstChild("Label")
+			if label then
+				label.Text = if owner == "" then tr("plotFree") else tr("plotOwner", owner)
+			end
+			-- L'enclos : ce que rapporte la collection de son propriétaire.
+			local ownerPlayer = Players:GetPlayerByUserId(plot:GetAttribute("OwnerId") or 0)
+			local title = plot:FindFirstChild("Enclosure") and plot.Enclosure:FindFirstChild("Title")
+			local board = title and title:FindFirstChild("Label")
+			if board then
+				board.Title.Text = tr("enclosure")
+				if ownerPlayer then
+					local owned = Pets.decode(ownerPlayer:GetAttribute("Pets"))
+					local waiting = ownerPlayer:GetAttribute("EggCount") or 0
+					board.Level.Text = tr("collection", Pets.count(owned), #Pets.ORDER * #Pets.RARITIES) .. (if waiting > 0 then "  •  " .. tr("eggsWaiting", waiting) else "")
+					board.Info.Text = tr("income", amount(ownerPlayer:GetAttribute("Income") or 0))
 				else
-					local eggs = player:GetAttribute("Eggs") or 0
-					label.Level.Text = tr("incEmpty")
-					label.Info.Text = if eggs > 0 then tr("incHasEggs", eggs) else tr("incNoEggs")
-					prompt.ActionText = tr("incPlace")
-					if egg then
-						egg.Transparency = 1
-					end
+					board.Level.Text = ""
+					board.Info.Text = ""
 				end
 			end
 		end
 	end
 	task.spawn(function()
 		while true do
-			refreshIncubators()
+			refreshPlots()
 			task.wait(0.25)
 		end
 	end)
 
-	-- LE VOL PLANÉ DU DRAGON ------------------------------------------------------------------------------------------
-	-- En l'air, sauter une 2e fois : le dragon passe sous le joueur et le porte quelques secondes.
-	local gliding, glideStart, glideEnd, readyAt, lastRequest = false, 0, 0, 0, 0
-	local function parts(): (Humanoid?, BasePart?)
-		local character = player.Character
-		local humanoid = character and character:FindFirstChildOfClass("Humanoid")
-		local root = character and character:FindFirstChild("HumanoidRootPart")
-		if humanoid and root and humanoid.Health > 0 then
-			return humanoid, root
-		end
-		return nil, nil
-	end
-	local function startGlide(forced: boolean?)
-		local humanoid = parts()
-		if not humanoid or gliding or os.clock() < readyAt or player:GetAttribute("Pet") ~= "Dragon" then
-			return
-		end
-		if not forced and humanoid.FloorMaterial ~= Enum.Material.Air then
-			return
-		end
-		gliding = true
-		glideStart = os.clock()
-		glideEnd = glideStart + Pets.value("Dragon", player:GetAttribute("PetRarity") or 1)
-	end
-	UserInputService.JumpRequest:Connect(function()
-		-- Tant que la touche reste enfoncée, la demande revient à chaque image : seul un nouvel appui compte.
-		local now = os.clock()
-		local fresh = now - lastRequest > 0.2
-		lastRequest = now
-		if fresh then
-			startGlide()
-		end
-	end)
-	if RunService:IsStudio() then
-		-- Pour le test automatique (impossible de simuler une touche).
-		player:GetAttributeChangedSignal("DebugGlide"):Connect(function()
-			startGlide(true)
-		end)
-	end
-	RunService.Heartbeat:Connect(function()
-		if not gliding then
-			return
-		end
-		local humanoid, root = parts()
-		local landed = humanoid and humanoid.FloorMaterial ~= Enum.Material.Air and os.clock() - glideStart > 0.25
-		if not humanoid or landed or os.clock() >= glideEnd then
-			gliding = false
-			readyAt = os.clock() + Pets.GLIDE_COOLDOWN
-			return
-		end
-		local velocity = root.AssemblyLinearVelocity
-		if velocity.Y < -Pets.GLIDE_FALL then
-			root.AssemblyLinearVelocity = Vector3.new(velocity.X, -Pets.GLIDE_FALL, velocity.Z)
-		end
-	end)
-
-	-- LES ANIMAUX QUI SUIVENT LES JOUEURS -------------------------------------------------------------------------------
-	-- Chaque écran dessine lui-même l'animal de chaque joueur (attributs Pet et PetRarity).
-	local folder = Instance.new("Folder")
-	folder.Name = "Pets"
-	folder.Parent = workspace
-	local shown = {} -- [joueur] = { key, model, cframe, half, limbs, clock }
-	local function drop(other: Player)
-		if shown[other] then
-			shown[other].model:Destroy()
-			shown[other] = nil
-		end
-	end
-	Players.PlayerRemoving:Connect(drop)
-
-	-- Membres qui se balancent quand l'animal marche : le point d'attache (épaule, hanche) dans le modèle, le sens,
-	-- et les pièces du membre. Seul le golem a des bras et des jambes séparés ; les autres modèles sont d'un bloc.
+	-- COMMENT UN FAMILIER BOUGE -----------------------------------------------------------------------------------------
+	-- Membres qui se balancent quand l'animal marche, pour un modèle sans squelette : le point d'attache (épaule,
+	-- hanche), le sens, et les pièces du membre. (Les modèles articulés sont animés par PetRig.)
 	local LIMBS = {
 		Golem = {
 			{ pivot = Vector3.new(0.53, 0.04, 0.09), sign = 1, parts = { "UpperLeg1", "LowerLeg1", "Foot1", "Toe1", "Toe2" } },
@@ -174,7 +103,7 @@ return function(env)
 			{ pivot = Vector3.new(-0.89, 0.95, 0.04), sign = 1, parts = { "UpperArm2", "LowerArm2", "Hand2" } },
 		},
 	}
-	local function rig(name: string, model: Model)
+	local function limbsOf(name: string, model: Model)
 		local limbs = {}
 		local origin, scale = model:GetPivot(), model:GetScale()
 		for _, limb in LIMBS[name] or {} do
@@ -189,24 +118,20 @@ return function(env)
 		return limbs
 	end
 
-	-- La pose de l'animal par-dessus sa place à côté du joueur, selon sa façon de bouger.
-	-- t = son horloge, moving = le joueur avance. Renvoie aussi l'angle de balancement des membres.
+	-- La pose de l'animal par-dessus sa place, selon sa façon de bouger.
+	-- t = son horloge, moving = il avance. Renvoie aussi l'angle de balancement des membres.
 	local function motion(move: string, t: number, moving: boolean): (CFrame, number)
 		if move == "fly" then
-			-- Vole : monte et descend, penche le nez en avançant, se balance d'une aile sur l'autre.
 			local pitch = if moving then -0.22 else 0.05 * math.sin(t * 2)
 			return CFrame.new(0, math.sin(t * 5) * 0.35, 0) * CFrame.Angles(pitch, 0, math.sin(t * 2.5) * 0.12), 0
 		elseif move == "bounce" then
-			-- Rebondit tout le temps, plus haut quand le joueur avance.
 			return CFrame.new(0, math.abs(math.sin(t * 6)) * (if moving then 2.2 else 0.6), 0), 0
 		elseif move == "hop" then
-			-- Petits bonds quand le joueur avance, le nez qui suit le bond ; immobile sinon.
 			if moving then
 				return CFrame.new(0, math.abs(math.sin(t * 8)) * 1.5, 0) * CFrame.Angles(math.cos(t * 8) * 0.3, 0, 0), 0
 			end
 			return CFrame.new(0, math.sin(t * 3) * 0.04, 0), 0
 		elseif move == "walk" then
-			-- Marche lourde : se dandine, bras et jambes qui se balancent.
 			if moving then
 				return CFrame.new(0, math.abs(math.sin(t * 7)) * 0.2, 0) * CFrame.Angles(0, 0, math.sin(t * 7) * 0.1), math.sin(t * 7) * 0.6
 			end
@@ -215,61 +140,207 @@ return function(env)
 		return CFrame.identity, 0
 	end
 
-	RunService.RenderStepped:Connect(function(dt)
+	-- Un familier affiché : son modèle, son squelette (ou ses membres), sa demi-hauteur.
+	local function create(name: string, rarity: number, display: boolean, parent: Instance)
+		local model = Pets.build(name, rarity, display)
+		local _, size = model:GetBoundingBox()
+		local skeleton = PetRig.bind(name, model)
+		model.Parent = parent
+		return {
+			name = name,
+			model = model,
+			half = size.Y / 2,
+			skeleton = skeleton,
+			limbs = if skeleton then {} else limbsOf(name, model),
+			clock = math.random() * 10,
+		}
+	end
+	-- Pose le familier à cet endroit et l'anime.
+	local function animate(pet, base: CFrame, moving: boolean, dt: number)
+		pet.clock += dt
+		local offset, swing = motion(Pets.DEFS[pet.name].move, pet.clock, moving)
+		local pose = base * offset
+		pet.model:PivotTo(pose)
+		PetRig.step(pet.skeleton, pet.clock, moving, dt)
+		for _, limb in pet.limbs do
+			local hinge = pose * CFrame.new(limb.pivot) * CFrame.Angles(swing * limb.sign, 0, 0) * CFrame.new(-limb.pivot)
+			for _, item in limb.list do
+				item.part.CFrame = hinge * item.offset
+			end
+		end
+		Pets.shimmer(pet.model, os.clock())
+	end
+
+	local folder = Instance.new("Folder")
+	folder.Name = "Pets"
+	folder.Parent = workspace
+
+	-- LE FAMILIER QUI SUIT CHAQUE JOUEUR --------------------------------------------------------------------------------
+	local followers = {} -- [joueur] = { key, pet, cframe }
+	local function dropFollower(other: Player)
+		if followers[other] then
+			followers[other].pet.model:Destroy()
+			followers[other] = nil
+		end
+	end
+	Players.PlayerRemoving:Connect(dropFollower)
+	local function stepFollowers(dt: number)
 		for _, other in Players:GetPlayers() do
 			local name, rarity = other:GetAttribute("Pet") or "", other:GetAttribute("PetRarity") or 0
 			local character = other.Character
 			local root = character and character:FindFirstChild("HumanoidRootPart")
 			local def = Pets.DEFS[name]
-			if name == "" or not def or not root then
-				drop(other)
+			if not def or rarity < 1 or not root then
+				dropFollower(other)
 				continue
 			end
 			local key = name .. rarity
-			local entry = shown[other]
+			local entry = followers[other]
 			if not entry or entry.key ~= key then
-				drop(other)
-				local model = Pets.build(name, rarity)
-				local _, size = model:GetBoundingBox()
-				local skeleton = PetRig.bind(name, model)
-				entry = { key = key, model = model, cframe = root.CFrame, half = size.Y / 2,
-					limbs = if skeleton then {} else rig(name, model), skeleton = skeleton, clock = 0 }
-				model.Parent = folder
-				shown[other] = entry
+				dropFollower(other)
+				entry = { key = key, pet = create(name, rarity, false, folder), cframe = root.CFrame }
+				entry.pet.model.Name = "Follower_" .. name
+				followers[other] = entry
 			end
-			entry.clock += dt
 			local velocity = root.AssemblyLinearVelocity
 			local moving = Vector3.new(velocity.X, 0, velocity.Z).Magnitude > 2
-			local riding = other == player and gliding
-			local pose, swing
-			if riding then
-				-- Le dragon porte le joueur : juste sous lui, bien à plat.
-				entry.cframe = root.CFrame * CFrame.new(0, -3.4, 0)
-				pose, swing = entry.cframe, 0
-			else
-				-- Un gros animal se tient un peu plus loin du joueur. Celui qui vole reste à hauteur d'épaule,
-				-- les autres ont les pieds par terre.
-				local away = (Pets.size(name) - 1) * 2.5
-				local height = if def.move == "fly" then 1.2 + away * 0.3 else entry.half - 3
-				local target = root.CFrame * CFrame.new(3.2 + away, height, 2.6)
-				entry.cframe = entry.cframe:Lerp(target, 1 - math.exp(-9 * dt))
-				local offset
-				offset, swing = motion(def.move, entry.clock, moving)
-				pose = entry.cframe * offset
+			-- Un gros animal se tient un peu plus loin. Celui qui vole reste à hauteur d'épaule, les autres ont les
+			-- pieds par terre.
+			local away = (Pets.size(name) - 1) * 2.5
+			local height = if def.move == "fly" then 1.2 + away * 0.3 else entry.pet.half - 3
+			entry.cframe = entry.cframe:Lerp(root.CFrame * CFrame.new(3.2 + away, height, 2.6), 1 - math.exp(-9 * dt))
+			animate(entry.pet, entry.cframe, moving, dt)
+		end
+	end
+
+	-- LES ENCLOS ------------------------------------------------------------------------------------------------------
+	-- Chaque familier trouvé par le propriétaire d'un espace est posé sur son socle (une colonne par animal, une
+	-- rangée par rareté). Les socles vides restent sombres.
+	local shown = {} -- [socle] = familier affiché
+	local function syncEnclosures()
+		local wanted = {}
+		for _, plot in gym:GetChildren() do
+			local enclosure = plot:FindFirstChild("Enclosure")
+			local owner = enclosure and Players:GetPlayerByUserId(plot:GetAttribute("OwnerId") or 0)
+			if not owner then
+				continue
 			end
-			entry.model:PivotTo(pose)
-			PetRig.step(entry.skeleton, entry.clock, moving or riding, dt)
-			for _, limb in entry.limbs do
-				local hinge = pose * CFrame.new(limb.pivot) * CFrame.Angles(swing * limb.sign, 0, 0) * CFrame.new(-limb.pivot)
-				for _, item in limb.list do
-					item.part.CFrame = hinge * item.offset
+			local owned = Pets.decode(owner:GetAttribute("Pets"))
+			for _, pedestal in enclosure:GetChildren() do
+				local name, rarity = pedestal:GetAttribute("Animal"), pedestal:GetAttribute("Rarity")
+				if name and owned[name] and owned[name][rarity] then
+					wanted[pedestal] = true
+					if not shown[pedestal] then
+						local pet = create(name, rarity, true, folder)
+						pet.model.Name = "Enclosure_" .. name .. rarity
+						-- Les familiers regardent vers les machines (l'entrée de l'enclos).
+						local lift = 0.3 + pet.half + (if Pets.DEFS[name].move == "fly" then 1.2 else 0)
+						pet.base = CFrame.new(pedestal.Position + Vector3.new(0, lift, 0))
+						pet.model:PivotTo(pet.base)
+						-- Le socle prend la couleur vive de la rareté (pas de néon : il éblouirait le familier).
+						pedestal.Color = Pets.RARITIES[rarity].color
+						shown[pedestal] = pet
+					end
 				end
 			end
-			Pets.shimmer(entry.model, os.clock())
+		end
+		for pedestal, pet in shown do
+			if not wanted[pedestal] then
+				pet.model:Destroy()
+				shown[pedestal] = nil
+				if pedestal.Parent then
+					pedestal.Color = Pets.RARITIES[pedestal:GetAttribute("Rarity")].color:Lerp(Color3.fromRGB(40, 44, 56), 0.5)
+					pedestal.Material = Enum.Material.SmoothPlastic
+				end
+			end
+		end
+	end
+	task.spawn(function()
+		while true do
+			syncEnclosures()
+			task.wait(0.5)
 		end
 	end)
 
-	-- LA FENÊTRE « ANIMAUX » ------------------------------------------------------------------------------------------
+	-- LES ŒUFS DANS LE NID ----------------------------------------------------------------------------------------------
+	-- Les œufs du propriétaire de chaque espace, alignés devant les socles, avec le temps qu'il leur reste.
+	local nests = {} -- [dossier de l'enclos] = liste d'œufs affichés
+	local function eggAt(list, i: number, enclosure: Instance)
+		local item = list[i]
+		if not item then
+			local part = Instance.new("Part")
+			part.Name = "Egg"
+			part.Shape = Enum.PartType.Ball
+			part.Size = Vector3.new(2.4, 2.4, 2.4)
+			part.Anchored = true
+			part.CanCollide = false
+			part.CanQuery = false
+			part.CanTouch = false
+			part.TopSurface = Enum.SurfaceType.Smooth
+			part.BottomSurface = Enum.SurfaceType.Smooth
+			-- Un œuf est plus haut que large.
+			local mesh = Instance.new("SpecialMesh")
+			mesh.MeshType = Enum.MeshType.Sphere
+			mesh.Scale = Vector3.new(1, 1.3, 1)
+			mesh.Parent = part
+			local gui = Instance.new("BillboardGui")
+			gui.Size = UDim2.fromScale(4, 1.4)
+			gui.StudsOffsetWorldSpace = Vector3.new(0, 2.6, 0)
+			gui.MaxDistance = 60
+			gui.AutoLocalize = false
+			gui.Parent = part
+			local label = env.text(gui, "Label", UDim2.fromScale(1, 1), UDim2.fromScale(0, 0))
+			part.Position = enclosure:GetAttribute("Nest") + Vector3.new((i - 1) * EGG_SPACING, 1.9, 0)
+			part.Parent = folder
+			item = { part = part, label = label }
+			list[i] = item
+		end
+		return item
+	end
+	local function syncEggs()
+		local seen = {}
+		for _, plot in gym:GetChildren() do
+			local enclosure = plot:FindFirstChild("Enclosure")
+			local owner = enclosure and Players:GetPlayerByUserId(plot:GetAttribute("OwnerId") or 0)
+			local list = enclosure and (nests[enclosure] or {})
+			if not enclosure then
+				continue
+			end
+			nests[enclosure] = list
+			seen[enclosure] = true
+			local count = 0
+			for animal, ready in string.gmatch(owner and owner:GetAttribute("Eggs") or "", "(%a+)|(%d+)") do
+				count += 1
+				local item = eggAt(list, count, enclosure)
+				local left = tonumber(ready) - workspace:GetServerTimeNow()
+				item.part.Color = EGG_COLORS[animal] or Color3.new(1, 1, 1)
+				item.part.Material = if left <= 0 then Enum.Material.Neon else Enum.Material.SmoothPlastic
+				item.label.Text = clock(left)
+			end
+			for i = #list, count + 1, -1 do
+				list[i].part:Destroy()
+				list[i] = nil
+			end
+		end
+	end
+	task.spawn(function()
+		while true do
+			syncEggs()
+			task.wait(0.25)
+		end
+	end)
+
+	RunService.RenderStepped:Connect(function(dt)
+		stepFollowers(dt)
+		local eye = workspace.CurrentCamera.CFrame.Position
+		for _, pet in shown do
+			if (pet.base.Position - eye).Magnitude < ANIMATE_DISTANCE then
+				animate(pet, pet.base, false, dt)
+			end
+		end
+	end)
+
+	-- LA FENÊTRE « ANIMAUX » : LA COLLECTION ----------------------------------------------------------------------------
 	local equipEvent = ReplicatedStorage:WaitForChild("Equip")
 	local pill = env.box(env.side, "Pets", UDim2.fromOffset(170, 36), UDim2.fromOffset(2, 12 + 4 * 44), Color3.fromRGB(170, 100, 255))
 	env.text(pill, "Label", UDim2.fromScale(0.92, 0.76), UDim2.fromScale(0.04, 0.12)).Text = tr("pets")
@@ -280,14 +351,16 @@ return function(env)
 	open.Size = UDim2.fromScale(1, 1)
 	open.Parent = pill
 
-	local panel = env.box(env.gui, "PetsPanel", UDim2.fromOffset(470, 372), UDim2.fromScale(0.5, 0.5), Color3.fromRGB(40, 44, 60))
+	local panel = env.box(env.gui, "PetsPanel", UDim2.fromOffset(560, 404), UDim2.fromScale(0.5, 0.5), Color3.fromRGB(40, 44, 60))
 	panel.AnchorPoint = Vector2.new(0.5, 0.5)
 	panel.Visible = false
 	panel.ZIndex = 5
 	local scale = Instance.new("UIScale")
 	scale.Parent = panel
-	env.text(panel, "Title", UDim2.new(1, -70, 0, 36), UDim2.fromOffset(12, 8), Color3.fromRGB(255, 221, 51)).TextXAlignment = Enum.TextXAlignment.Left
-	panel.Title.Text = tr("petsTitle")
+	local title = env.text(panel, "Title", UDim2.new(1, -70, 0, 32), UDim2.fromOffset(12, 6), Color3.fromRGB(255, 221, 51))
+	title.TextXAlignment = Enum.TextXAlignment.Left
+	local income = env.text(panel, "Income", UDim2.new(1, -24, 0, 24), UDim2.fromOffset(12, 40), Color3.fromRGB(110, 255, 80))
+	income.TextXAlignment = Enum.TextXAlignment.Left
 	local close = Instance.new("TextButton")
 	close.Name = "Close"
 	close.Size = UDim2.fromOffset(40, 36)
@@ -300,18 +373,22 @@ return function(env)
 	Instance.new("UICorner", close).CornerRadius = UDim.new(0, 8)
 	close.Parent = panel
 
+	-- Une ligne par animal : son nom, quatre cases (une par rareté) et le bouton pour qu'il suive le joueur.
 	local rows = {}
 	for i, name in Pets.ORDER do
-		local row = env.box(panel, name, UDim2.new(1, -24, 0, 56), UDim2.fromOffset(12, 52 + (i - 1) * 63), Color3.fromRGB(58, 62, 82))
-		local title = env.text(row, "Animal", UDim2.new(1, -140, 0, 26), UDim2.fromOffset(10, 3))
-		title.TextXAlignment = Enum.TextXAlignment.Left
-		local power = env.text(row, "Power", UDim2.new(1, -140, 0, 20), UDim2.fromOffset(10, 31), Color3.fromRGB(210, 214, 226), 16)
-		power.TextXAlignment = Enum.TextXAlignment.Left
-		power.UIStroke.Thickness = 1.5
+		local row = env.box(panel, name, UDim2.new(1, -24, 0, 60), UDim2.fromOffset(12, 72 + (i - 1) * 65), Color3.fromRGB(58, 62, 82))
+		local label = env.text(row, "Animal", UDim2.fromOffset(150, 30), UDim2.fromOffset(8, 15))
+		label.TextXAlignment = Enum.TextXAlignment.Left
+		local cells = {}
+		for rarity, info in Pets.RARITIES do
+			local cell = env.box(row, "Rarity" .. rarity, UDim2.fromOffset(62, 44), UDim2.fromOffset(164 + (rarity - 1) * 68, 8), info.color)
+			cell.UIStroke.Thickness = 2
+			cells[rarity] = { frame = cell, label = env.text(cell, "Label", UDim2.fromScale(0.9, 0.6), UDim2.fromScale(0.05, 0.2)) }
+		end
 		local button = Instance.new("TextButton")
-		button.Name = "Equip"
-		button.Size = UDim2.fromOffset(112, 38)
-		button.Position = UDim2.new(1, -122, 0, 9)
+		button.Name = "Follow"
+		button.Size = UDim2.fromOffset(86, 38)
+		button.Position = UDim2.new(1, -94, 0, 11)
 		button.Font = Enum.Font.FredokaOne
 		button.TextScaled = true
 		button.TextColor3 = Color3.new(1, 1, 1)
@@ -324,31 +401,29 @@ return function(env)
 		button.Activated:Connect(function()
 			equipEvent:FireServer(name)
 		end)
-		rows[name] = { title = title, power = power, button = button }
+		rows[name] = { label = label, cells = cells, button = button }
 	end
 
 	local function refreshPanel()
 		local owned = Pets.decode(player:GetAttribute("Pets"))
-		local equipped = player:GetAttribute("Pet") or ""
+		local following = player:GetAttribute("Pet") or ""
+		title.Text = tr("petsTitle", Pets.count(owned), #Pets.ORDER * #Pets.RARITIES)
+		income.Text = tr("income", amount(Pets.income(owned)))
 		for _, name in Pets.ORDER do
-			local row, rarity = rows[name], owned[name]
-			if rarity then
-				local info = rarityInfo(rarity)
-				row.title.Text = tr(name) .. "  " .. tr(info.key)
-				row.title.TextColor3 = info.color
-				row.power.Text = tr("power" .. Pets.DEFS[name].power, amount(Pets.value(name, rarity)))
-				row.button.Visible = true
-				row.button.Text = if equipped == name then tr("equipped") else tr("equip")
-				row.button.BackgroundColor3 = if equipped == name then Color3.fromRGB(70, 210, 90) else Color3.fromRGB(60, 150, 255)
-			else
-				row.title.Text = tr(name)
-				row.title.TextColor3 = Color3.fromRGB(150, 154, 168)
-				row.power.Text = tr("petUnknown")
-				row.button.Visible = false
+			local row, list = rows[name], owned[name] or {}
+			row.label.Text = tr(name)
+			for rarity, info in Pets.RARITIES do
+				local cell = row.cells[rarity]
+				cell.frame.BackgroundColor3 = if list[rarity] then info.color else info.color:Lerp(Color3.fromRGB(40, 44, 60), 0.75)
+				cell.label.Text = if list[rarity] then "+" .. amount(Pets.incomeOf(name, rarity)) else "?"
+				cell.label.TextTransparency = if list[rarity] then 0 else 0.5
 			end
+			row.button.Visible = Pets.best(list) > 0
+			row.button.Text = if following == name then tr("following") else tr("follow")
+			row.button.BackgroundColor3 = if following == name then Color3.fromRGB(70, 210, 90) else Color3.fromRGB(60, 150, 255)
 		end
 		local view = workspace.CurrentCamera.ViewportSize
-		scale.Scale = math.min(1, view.Y / 430, view.X / 520)
+		scale.Scale = math.min(1, view.Y / 460, view.X / 600)
 	end
 	player:GetAttributeChangedSignal("Pets"):Connect(refreshPanel)
 	player:GetAttributeChangedSignal("Pet"):Connect(refreshPanel)

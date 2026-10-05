@@ -90,10 +90,8 @@ local function begin(room)
 	end
 	World.setDoor(room.entry, false)
 	room.elapsed = 0
-	table.clear(room.shields)
 	for _, player in list do
 		room.participants[player] = true
-		room.shields[player] = Stats.bonus(player, "shield")
 		local humanoid = body(player)
 		table.insert(
 			room.connections,
@@ -103,7 +101,7 @@ local function begin(room)
 				end
 				room.participants[player] = nil
 				if room.elapsed >= Config.HALF then
-					local coins = Stats.coins(player, Config.REWARD_HALF * room.index)
+					local coins = Config.REWARD_HALF * room.index
 					PlayerData.addCoins(player, coins)
 					notify(player, "half", coins, Config.HALF)
 				end
@@ -121,7 +119,7 @@ local function win(room)
 	local last = room.index == #rooms
 	for player in room.participants do
 		if body(player) then
-			local coins = Stats.coins(player, Config.REWARD_FULL * room.index + if last then Config.FINAL_BONUS else 0)
+			local coins = Config.REWARD_FULL * room.index + if last then Config.FINAL_BONUS else 0
 			PlayerData.addCoins(player, coins)
 			PlayerData.setBest(player, room.index)
 			notify(player, "win", room.index, coins)
@@ -217,7 +215,6 @@ local function create(geometry)
 	room.elapsed = 0
 	room.participants = {}
 	room.connections = {}
-	room.shields = {} -- [joueur] = dégâts que son animal peut encore encaisser dans cette manche
 	room.events = {}
 
 	local parameters = RaycastParams.new()
@@ -244,19 +241,9 @@ local function create(geometry)
 		end
 		return list
 	end
-	-- kind = "Lava" : le bouclier d'un animal ne protège pas (il encaisse seulement les coups).
-	function ctx.damage(player: Player, amount: number, kind: string?)
+	function ctx.damage(player: Player, amount: number, _kind: string?)
 		local humanoid = body(player)
-		if not humanoid or not room.participants[player] then
-			return
-		end
-		local shield = room.shields[player] or 0
-		if kind ~= "Lava" and shield > 0 and not humanoid.Parent:FindFirstChildOfClass("ForceField") then
-			local absorbed = math.min(shield, amount)
-			room.shields[player] = shield - absorbed
-			amount -= absorbed
-		end
-		if amount > 0 then
+		if humanoid and room.participants[player] then
 			humanoid:TakeDamage(amount)
 		end
 	end

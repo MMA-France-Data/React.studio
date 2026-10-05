@@ -1,7 +1,7 @@
--- Construit tout le décor au démarrage du serveur : la salle de sport, puis les salles à la suite, séparées par
+-- Construit tout le décor au démarrage du serveur : le lobby, puis les salles à la suite, séparées par
 -- de petits couloirs sûrs. Rien n'est posé à la main dans Studio.
 --
---   salle de sport | couloir 0 | SALLE 1 | couloir 1 | SALLE 2 | ... | SALLE 10 | salle des gagnants
+--   lobby (allée + espaces des joueurs) | couloir 0 | SALLE 1 | couloir 1 | SALLE 2 | ... | SALLE 10 | salle des gagnants
 --
 -- Le joueur avance vers +Z. Chaque salle a une porte d'entrée et une porte de sortie (« niveau suivant »).
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -14,13 +14,17 @@ local Lava = require(script.Parent.Events.Lava)
 
 local World = {}
 
-local GYM_X, GYM_Z, GYM_WALL = 40, 30, 18
+local GYM_Z, GYM_WALL = 30, 18 -- le mur du lobby où s'ouvre la porte des salles, et la hauteur de ses murs
+local LOBBY_X, LOBBY_BACK = 90, -170 -- demi-largeur du lobby, et son mur du fond
+local ALLEY = 20 -- demi-largeur de l'allée du milieu
+local PLOT_X, PLOT_Z = 70, 64 -- taille de l'espace d'un joueur
 local DOOR_W, DOOR_H = 12, 12
 local SAS_LEN, SAS_HALF, SAS_WALL = 20, 12, 14
 local ROOM_HALF_X, ROOM_LEN = 35, 80
 local PITCH = SAS_LEN + ROOM_LEN
 local WALL = 1.5
 
+World.PLOTS = 6 -- un espace par joueur du serveur
 World.ROOM_HALF_X = ROOM_HALF_X
 World.ROOM_HALF_Z = ROOM_LEN / 2
 
@@ -87,38 +91,44 @@ function World.sasCenter(index: number): Vector3
 	return Vector3.new(0, 3.5, GYM_Z + index * PITCH + SAS_LEN / 2)
 end
 
-local function buildGym(parent: Instance)
-	local gym = Instance.new("Folder")
-	gym.Name = "Gym"
-	gym.Parent = parent
+-- Couleurs des espaces des joueurs : { sol A, sol B }.
+local PLOT_COLORS = {
+	{ Color3.fromRGB(96, 190, 255), Color3.fromRGB(140, 212, 255) },
+	{ Color3.fromRGB(255, 170, 90), Color3.fromRGB(255, 196, 130) },
+	{ Color3.fromRGB(120, 220, 130), Color3.fromRGB(160, 236, 160) },
+	{ Color3.fromRGB(255, 130, 170), Color3.fromRGB(255, 170, 196) },
+	{ Color3.fromRGB(190, 140, 255), Color3.fromRGB(212, 176, 255) },
+	{ Color3.fromRGB(255, 224, 90), Color3.fromRGB(255, 236, 140) },
+}
 
-	Build.checker(gym, "Floor", Vector3.new(0, 0, 0), GYM_X * 2, GYM_Z * 2, 8, Color3.fromRGB(70, 74, 88), Color3.fromRGB(80, 84, 98))
-	local wallColor = Color3.fromRGB(240, 150, 60)
-	sideWalls(gym, -GYM_Z, GYM_Z, GYM_X, GYM_WALL, wallColor)
-	Build.part(gym, "Wall", Vector3.new(GYM_X * 2 + WALL * 2, GYM_WALL, WALL), Vector3.new(0, GYM_WALL / 2, -GYM_Z - WALL / 2), wallColor)
-	wallWithDoor(gym, GYM_Z, GYM_X + WALL, GYM_WALL, wallColor)
+-- L'espace d'un joueur : ses 3 machines et son enclos (un socle par animal et par rareté).
+-- Les espaces impairs sont à gauche de l'allée, les pairs à droite, trois rangées en partant de la porte des salles.
+local function buildPlot(parent: Instance, index: number)
+	local side = if index % 2 == 1 then -1 else 1
+	local row = math.ceil(index / 2)
+	local origin = Vector3.new(side * (ALLEY + PLOT_X / 2), 0, GYM_Z - 2 - PLOT_Z / 2 - (row - 1) * (PLOT_Z + 2))
+	local colors = PLOT_COLORS[(index - 1) % #PLOT_COLORS + 1]
 
-	local spawn = Instance.new("SpawnLocation")
-	spawn.Name = "Spawn"
-	spawn.Anchored = true
-	spawn.Size = Vector3.new(12, 1, 12)
-	spawn.Position = Vector3.new(0, 0.5, -16)
-	spawn.Color = Color3.fromRGB(80, 220, 110)
-	spawn.Material = Enum.Material.SmoothPlastic
-	spawn.TopSurface = Enum.SurfaceType.Smooth
-	spawn.Neutral = true
-	spawn.Duration = 0
-	spawn.Parent = gym
+	local folder = Instance.new("Folder")
+	folder.Name = "Plot" .. index
+	folder:SetAttribute("Index", index)
+	folder:SetAttribute("Owner", "")
+	folder:SetAttribute("OwnerId", 0)
+	folder.Parent = parent
+	Build.checker(folder, "Floor", origin + Vector3.new(0, 0.12, 0), PLOT_X, PLOT_Z, 8, colors[1]:Lerp(Color3.fromRGB(70, 74, 88), 0.55), colors[2]:Lerp(Color3.fromRGB(70, 74, 88), 0.55), 0.12)
 
-	local title = Build.part(gym, "Title", Vector3.new(34, 5, 0.6), Vector3.new(0, 13, -GYM_Z + 0.4), Color3.fromRGB(40, 44, 56))
-	Build.sign(title, Enum.NormalId.Back, "gym")
-	local arrow = Build.part(gym, "ToRooms", Vector3.new(20, 3.4, 0.6), Vector3.new(0, DOOR_H + 3, GYM_Z - WALL), Color3.fromRGB(40, 44, 56))
-	Build.sign(arrow, Enum.NormalId.Front, "toRooms", Color3.fromRGB(120, 255, 110))
+	-- Panneau au bord de l'allée, tourné vers elle : le nom du joueur (écrit par l'écran de chacun).
+	local board = Build.part(folder, "Sign", Vector3.new(26, 5, 0.6), origin + Vector3.new(-side * (PLOT_X / 2 - 1), 12, 0), Color3.fromRGB(40, 44, 56))
+	board.CFrame = CFrame.new(board.Position) * CFrame.Angles(0, math.rad(side * 90), 0)
+	Build.sign(board, Enum.NormalId.Front, "plot|" .. index, colors[1])
+	for _, z in { -12, 12 } do
+		Build.part(folder, "SignPost", Vector3.new(0.7, 10, 0.7), origin + Vector3.new(-side * (PLOT_X / 2 - 1), 5, z), Color3.fromRGB(40, 44, 56))
+	end
 
 	local machines = {}
-	local places = { Speed = Vector3.new(-26, 0, -14), Jump = Vector3.new(-26, 0, 12), Force = Vector3.new(26, 0, -14) }
-	for name, origin in places do
-		local model = GymModels[name](gym, origin)
+	local places = { Speed = origin + Vector3.new(-22, 0, -18), Jump = origin + Vector3.new(0, 0, -18), Force = origin + Vector3.new(22, 0, -18) }
+	for name, place in places do
+		local model = GymModels[name](folder, place)
 		Build.billboard(model.PrimaryPart, 11)
 		machines[name] = model
 	end
@@ -135,28 +145,99 @@ local function buildGym(parent: Instance)
 		spot.exit = places[name] + Vector3.new(0, 3.5, 12.5)
 	end
 
-	-- Les couveuses, contre le mur du fond.
-	local incubators = {}
-	for slot = 1, Pets.SLOTS do
-		local model = GymModels.Incubator(gym, Vector3.new(-14 + (slot - 1) * 28, 0, -25))
-		Build.billboard(model.PrimaryPart, 9)
-		incubators[slot] = model
+	-- L'enclos : devant, le nid où couvent les œufs ; derrière, une colonne de socles par animal, une rangée par
+	-- rareté. L'écran de chaque joueur y pose les œufs et les familiers du propriétaire.
+	local enclosure = Instance.new("Folder")
+	enclosure.Name = "Enclosure"
+	enclosure:SetAttribute("Nest", origin + Vector3.new(-6.5, 0, 4.6)) -- place du premier œuf ; les suivants vers +X
+	enclosure.Parent = folder
+	local nest = Build.part(enclosure, "Straw", Vector3.new(37, 0.3, 3.6), origin + Vector3.new(10, 0.25, 4.6), Color3.fromRGB(226, 196, 110), Enum.Material.Grass)
+	nest.CanCollide = false
+	for column, name in Pets.ORDER do
+		for rarity, info in Pets.RARITIES do
+			local position = origin + Vector3.new(-4 + (column - 1) * 7, 0.4, 10 + (rarity - 1) * 6.4)
+			local pedestal = Build.disc(enclosure, "Ped_" .. name .. "_" .. rarity, 5, 0.6, position, info.color:Lerp(Color3.fromRGB(40, 44, 56), 0.5))
+			pedestal:SetAttribute("Animal", name)
+			pedestal:SetAttribute("Rarity", rarity)
+		end
+	end
+	local fence = Color3.fromRGB(150, 110, 70)
+	for _, bar in {
+		{ Vector3.new(10, 1.6, 1.5), Vector3.new(39, 0.5, 0.5) },
+		{ Vector3.new(10, 1.6, 31.5), Vector3.new(39, 0.5, 0.5) },
+		{ Vector3.new(29.5, 1.6, 16.5), Vector3.new(0.5, 0.5, 30) },
+	} do
+		local rail = Build.part(enclosure, "Fence", bar[2], origin + bar[1], fence, Enum.Material.Wood)
+		rail.CanCollide = false
+	end
+	for _, corner in { Vector3.new(-9.5, 1, 1.5), Vector3.new(29.5, 1, 1.5), Vector3.new(-9.5, 1, 31.5), Vector3.new(29.5, 1, 31.5) } do
+		Build.part(enclosure, "Post", Vector3.new(0.8, 2.4, 0.8), origin + corner, fence, Enum.Material.Wood)
+	end
+	local title = Build.part(enclosure, "Title", Vector3.new(1, 1, 1), origin + Vector3.new(10, 1, 16.5), fence)
+	title.Transparency = 1
+	title.CanCollide = false
+	local gui = Build.billboard(title, 15)
+	gui.MaxDistance = 140
+	gui.Title:SetAttribute("Enclosure", index)
+
+	return {
+		index = index,
+		folder = folder,
+		origin = origin,
+		machines = machines,
+		spots = spots,
+		spawn = origin + Vector3.new(-13, 3.5, 2),
+	}
+end
+
+-- Le lobby : une grande allée au milieu, qui mène à la porte des salles, et les espaces des joueurs des deux côtés.
+local function buildGym(parent: Instance)
+	local gym = Instance.new("Folder")
+	gym.Name = "Gym"
+	gym.Parent = parent
+
+	Build.checker(gym, "Floor", Vector3.new(0, 0, (GYM_Z + LOBBY_BACK) / 2), LOBBY_X * 2, GYM_Z - LOBBY_BACK, 10, Color3.fromRGB(70, 74, 88), Color3.fromRGB(80, 84, 98))
+	local wallColor = Color3.fromRGB(240, 150, 60)
+	sideWalls(gym, LOBBY_BACK, GYM_Z, LOBBY_X, GYM_WALL, wallColor)
+	Build.part(gym, "Wall", Vector3.new(LOBBY_X * 2 + WALL * 2, GYM_WALL, WALL), Vector3.new(0, GYM_WALL / 2, LOBBY_BACK - WALL / 2), wallColor)
+	wallWithDoor(gym, GYM_Z, LOBBY_X + WALL, GYM_WALL, wallColor)
+
+	-- Point d'apparition de secours, au milieu de l'allée (chaque joueur est ensuite posé dans son espace).
+	local spawn = Instance.new("SpawnLocation")
+	spawn.Name = "Spawn"
+	spawn.Anchored = true
+	spawn.Size = Vector3.new(12, 1, 12)
+	spawn.Position = Vector3.new(0, 0.5, -70)
+	spawn.Color = Color3.fromRGB(80, 220, 110)
+	spawn.Material = Enum.Material.SmoothPlastic
+	spawn.TopSurface = Enum.SurfaceType.Smooth
+	spawn.Neutral = true
+	spawn.Duration = 0
+	spawn.Parent = gym
+
+	local title = Build.part(gym, "Title", Vector3.new(34, 5, 0.6), Vector3.new(0, 13, LOBBY_BACK + 0.4), Color3.fromRGB(40, 44, 56))
+	Build.sign(title, Enum.NormalId.Back, "gym")
+	local arrow = Build.part(gym, "ToRooms", Vector3.new(20, 3.4, 0.6), Vector3.new(0, DOOR_H + 3, GYM_Z - WALL), Color3.fromRGB(40, 44, 56))
+	Build.sign(arrow, Enum.NormalId.Front, "toRooms", Color3.fromRGB(120, 255, 110))
+
+	local plots = {}
+	for index = 1, World.PLOTS do
+		plots[index] = buildPlot(gym, index)
 	end
 
-	-- Le raccourci : un rond qui brille, avec son panneau.
+	-- Le raccourci : un rond qui brille dans l'allée, près de la porte des salles, avec son panneau.
 	local shortcuts = {}
 	for i, cleared in Config.SHORTCUTS do
-		local position = Vector3.new(26, 0, 6 + (i - 1) * 14)
+		local position = Vector3.new(11, 0, 18 - (i - 1) * 14)
 		local pad = Build.disc(gym, "Shortcut" .. cleared, 10, 0.4, position + Vector3.new(0, 0.2, 0), Color3.fromRGB(190, 90, 255), Enum.Material.Neon)
 		pad:SetAttribute("Cleared", cleared)
-		local board = Build.part(gym, "ShortcutSign", Vector3.new(10, 5, 0.6), position + Vector3.new(8, 6, 0), Color3.fromRGB(40, 44, 56))
-		board.CFrame = CFrame.new(board.Position) * CFrame.Angles(0, math.rad(90), 0)
+		local board = Build.part(gym, "ShortcutSign", Vector3.new(10, 5, 0.6), position + Vector3.new(0, 6, 9), Color3.fromRGB(40, 44, 56))
 		Build.sign(board, Enum.NormalId.Front, "shortcut|" .. (cleared + 1), Color3.fromRGB(220, 160, 255))
-		Build.part(gym, "ShortcutPost", Vector3.new(0.6, 4, 0.6), position + Vector3.new(8, 2, 0), Color3.fromRGB(40, 44, 56))
+		Build.part(gym, "ShortcutPost", Vector3.new(0.6, 4, 0.6), position + Vector3.new(0, 2, 9), Color3.fromRGB(40, 44, 56))
 		shortcuts[cleared] = pad
 	end
 
-	return { folder = gym, machines = machines, spots = spots, shortcuts = shortcuts, incubators = incubators, spawn = spawn }
+	return { folder = gym, plots = plots, shortcuts = shortcuts, spawn = spawn }
 end
 
 local function buildSas(parent: Instance, index: number, wallColor: Color3)

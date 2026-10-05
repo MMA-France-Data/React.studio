@@ -40,7 +40,7 @@ end)
 local world = World.build()
 PlayerData.start()
 Gym.start(world, notify)
-Eggs.start(world, notify, Gym.applyStats)
+Eggs.start(world, notify)
 Rooms.start(world, notify)
 
 if RunService:IsStudio() then

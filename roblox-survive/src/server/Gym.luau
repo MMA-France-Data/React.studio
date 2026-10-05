@@ -1,5 +1,6 @@
--- La salle de sport : s'entraîner sur une machine pour gagner un niveau, donner au personnage sa vitesse et son
--- saut, et le raccourci vers les salles déjà atteintes.
+-- Le lobby : chaque joueur reçoit son espace (ses machines, ses couveuses, son enclos) et y apparaît. On s'entraîne
+-- sur une machine pour gagner un niveau ; le personnage reçoit sa vitesse et son saut ; le raccourci mène aux
+-- salles déjà atteintes.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -11,7 +12,44 @@ local World = require(script.Parent.World)
 local Gym = {}
 
 local notify = function(_player: Player, _key: string, ...) end
-local spawnPosition = Vector3.new(0, 4, -16)
+local plots = {} -- les espaces construits par World
+local owners = {} -- [numéro de l'espace] = joueur
+
+-- L'espace du joueur (nil s'il n'en a pas : serveur plein, cas impossible avec 6 joueurs au plus).
+function Gym.plotOf(player: Player)
+	return plots[player:GetAttribute("Plot") or 0]
+end
+
+-- Vrai si cet espace est celui du joueur ; sinon le lui dit.
+function Gym.owns(player: Player, index: number): boolean
+	if player:GetAttribute("Plot") == index then
+		return true
+	end
+	notify(player, "notYours")
+	return false
+end
+
+local function assign(player: Player)
+	for index, plot in plots do
+		if not owners[index] then
+			owners[index] = player
+			player:SetAttribute("Plot", index)
+			plot.folder:SetAttribute("OwnerId", player.UserId)
+			plot.folder:SetAttribute("Owner", player.DisplayName)
+			return
+		end
+	end
+end
+
+local function release(player: Player)
+	for index, owner in owners do
+		if owner == player then
+			owners[index] = nil
+			plots[index].folder:SetAttribute("OwnerId", 0)
+			plots[index].folder:SetAttribute("Owner", "")
+		end
+	end
+end
 
 local function prompt(part: BasePart, kind: string, distance: number): ProximityPrompt
 	local item = Instance.new("ProximityPrompt")
@@ -67,10 +105,10 @@ end
 -- Tapis de course : il court sur place. Musculation : couché sur le banc. Trampoline : il rebondit.
 -- Renvoie true si l'entraînement a commencé, ou false et la raison (« max », « poor », « busy »).
 local training = {} -- [joueur] = true pendant un entraînement
-local spots = {} -- [machine] = { enter = CFrame, exit = Vector3, anchored = bool }
 function Gym.train(player: Player, machine: string): (boolean, string?)
 	local data = PlayerData.get(player)
-	local spot = spots[machine]
+	local plot = Gym.plotOf(player)
+	local spot = plot and plot.spots[machine] -- { enter = CFrame, exit = Vector3, anchored = bool }
 	local character = player.Character
 	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
 	local root = character and character:FindFirstChild("HumanoidRootPart")
@@ -135,19 +173,28 @@ function Gym.shortcut(player: Player, cleared: number): boolean
 	return true
 end
 
+-- Pose le joueur dans son espace.
 function Gym.toGym(player: Player)
-	teleport(player, spawnPosition)
+	local plot = Gym.plotOf(player)
+	if plot then
+		teleport(player, plot.spawn)
+	end
 end
 
 function Gym.start(world, notifier)
 	notify = notifier
-	spots = world.gym.spots
-	for name, model in world.gym.machines do
-		local item = prompt(model.PrimaryPart, "Machine", 14)
-		item:SetAttribute("Machine", name)
-		item.Triggered:Connect(function(player)
-			Gym.train(player, name)
-		end)
+	plots = world.gym.plots
+	for index, plot in plots do
+		for name, model in plot.machines do
+			local item = prompt(model.PrimaryPart, "Machine", 14)
+			item:SetAttribute("Machine", name)
+			item:SetAttribute("Plot", index)
+			item.Triggered:Connect(function(player)
+				if Gym.owns(player, index) then
+					Gym.train(player, name)
+				end
+			end)
+		end
 	end
 	for cleared, pad in world.gym.shortcuts do
 		local item = prompt(pad, "Shortcut", 10)
@@ -158,13 +205,26 @@ function Gym.start(world, notifier)
 	end
 	prompt(world.final.back, "Back", 12).Triggered:Connect(Gym.toGym)
 
-	local function watch(player: Player)
-		player.CharacterAdded:Connect(function(character)
-			character:WaitForChild("Humanoid")
-			Gym.applyStats(player)
-		end)
+	local function arrive(player: Player, character: Model)
+		character:WaitForChild("Humanoid")
+		character:WaitForChild("HumanoidRootPart")
 		Gym.applyStats(player)
+		-- Laisse Roblox finir de poser le personnage au point d'apparition, puis le met dans son espace.
+		task.wait()
+		if player.Character == character then
+			Gym.toGym(player)
+		end
 	end
+	local function watch(player: Player)
+		assign(player)
+		player.CharacterAdded:Connect(function(character)
+			arrive(player, character)
+		end)
+		if player.Character then
+			task.spawn(arrive, player, player.Character)
+		end
+	end
+	Players.PlayerRemoving:Connect(release)
 	Players.PlayerAdded:Connect(watch)
 	for _, player in Players:GetPlayers() do
 		watch(player)

@@ -1,7 +1,10 @@
--- Les œufs, les couveuses et les animaux.
--- Finir une salle donne l'œuf de son animal. On le pose dans une couveuse de la salle de sport ; après le temps de
--- couvaison (qui continue même quand le joueur est parti), on l'ouvre : la rareté est tirée à ce moment-là.
--- Un animal déjà possédé en aussi bien ou mieux donne des pièces à la place.
+-- Les œufs et la collection de familiers.
+-- Finir une salle donne l'œuf de son animal. Il va tout seul dans l'enclos du joueur et y couve (30 secondes × le
+-- numéro de la salle, même quand le joueur est parti) ; autant d'œufs qu'on veut couvent en même temps. À la fin,
+-- il éclot tout seul : la rareté est tirée à ce moment-là.
+-- Un familier nouveau entre dans la collection et se pose dans l'enclos du joueur : il rapporte des pièces à chaque
+-- seconde tant que le joueur est dans le jeu. Un familier déjà trouvé donne des pièces d'un coup à la place.
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
@@ -10,111 +13,121 @@ local PlayerData = require(script.Parent.PlayerData)
 
 local Eggs = {}
 
+-- Les tests coupent le revenu des familiers et les éclosions pour compter les pièces des salles au plus juste.
+Eggs.incomePaused = false
+Eggs.hatchPaused = false
+
 local random = Random.new()
 local notify = function(_player: Player, _key: string, ...) end
-local onEquip = function(_player: Player) end
 
--- Donne l'œuf de la salle (s'il reste de la place).
+-- Choisit le familier qui suit le joueur (le même une 2e fois : plus aucun ne le suit).
+function Eggs.equip(player: Player, animal: string): boolean
+	local data = PlayerData.get(player)
+	if not data or (animal ~= "" and Pets.best(data.pets[animal]) == 0) then
+		return false
+	end
+	data.equipped = if data.equipped == animal then "" else animal
+	PlayerData.changed(player)
+	return true
+end
+
+-- Ajoute un familier à la collection (éclosion, ou test). Renvoie true s'il est nouveau.
+function Eggs.grant(player: Player, animal: string, rarity: number): boolean
+	local data = PlayerData.get(player)
+	if not data or not Pets.DEFS[animal] or not Pets.RARITIES[rarity] then
+		return false
+	end
+	local list = data.pets[animal]
+	if not list then
+		list = {}
+		for i = 1, #Pets.RARITIES do
+			list[i] = false
+		end
+		data.pets[animal] = list
+	end
+	if list[rarity] then
+		return false
+	end
+	list[rarity] = true
+	if data.equipped == "" then
+		data.equipped = animal
+	end
+	PlayerData.changed(player)
+	return true
+end
+
+-- Salle réussie : son œuf va couver dans l'enclos du joueur. Autant d'œufs qu'on veut couvent en même temps.
 function Eggs.give(player: Player, room: number): boolean
 	local data = PlayerData.get(player)
 	local animal = Config.ROOMS[room] and Config.ROOMS[room].egg
-	if not data or not animal then
+	if not data or not animal or #data.eggs >= Pets.MAX_EGGS then
 		return false
 	end
-	if #data.eggs >= Pets.MAX_EGGS then
-		notify(player, "eggFull")
-		return false
-	end
-	table.insert(data.eggs, { a = animal, r = room })
+	local seconds = Pets.hatchSeconds(room)
+	table.insert(data.eggs, { a = animal, r = room, t = os.time() + seconds })
 	PlayerData.changed(player)
-	notify(player, "egg", animal)
+	notify(player, "egg", animal, seconds)
 	return true
 end
 
-function Eggs.equip(player: Player, animal: string): boolean
+-- Fait éclore les œufs du joueur qui ont fini de couver (tous si `all`). La rareté est tirée ; un familier nouveau
+-- va dans la collection (donc sur son socle), un familier déjà trouvé donne des pièces à la place.
+-- Renvoie le nombre d'œufs éclos.
+function Eggs.hatch(player: Player, all: boolean?): number
 	local data = PlayerData.get(player)
-	if not data or (animal ~= "" and not data.pets[animal]) then
-		return false
+	if not data then
+		return 0
 	end
-	-- Choisir l'animal déjà équipé le range.
-	data.equipped = if data.equipped == animal then "" else animal
-	PlayerData.changed(player)
-	onEquip(player)
-	return true
-end
-
--- Ajoute un animal à la collection (éclosion, ou test). Renvoie true s'il est nouveau ou plus rare qu'avant.
-function Eggs.grant(player: Player, animal: string, rarity: number): boolean
-	local data = PlayerData.get(player)
-	if not data or not Pets.DEFS[animal] then
-		return false
-	end
-	local better = (data.pets[animal] or 0) < rarity
-	if better then
-		data.pets[animal] = rarity
-		if data.equipped == "" then
-			data.equipped = animal
+	local now, hatched = os.time(), 0
+	for i = #data.eggs, 1, -1 do
+		local egg = data.eggs[i]
+		if all or now >= egg.t then
+			table.remove(data.eggs, i)
+			hatched += 1
+			local rarity = Pets.roll(random, egg.r)
+			if Eggs.grant(player, egg.a, rarity) then
+				notify(player, "hatched", egg.a, rarity)
+			else
+				local coins = Pets.DUPLICATE_COINS[rarity]
+				PlayerData.addCoins(player, coins)
+				notify(player, "duplicate", egg.a, rarity, coins)
+			end
 		end
-		PlayerData.changed(player)
-		onEquip(player)
 	end
-	return better
+	if hatched > 0 then
+		PlayerData.changed(player)
+	end
+	return hatched
 end
 
--- Le joueur touche la couveuse n : pose son plus vieil œuf, ou ouvre l'œuf prêt.
--- Renvoie ce qui s'est passé : "placed", "wait", "hatched", "duplicate", "none".
-function Eggs.use(player: Player, slot: number): string
-	local data = PlayerData.get(player)
-	if not data or slot < 1 or slot > Pets.SLOTS then
-		return "none"
-	end
-	local key = tostring(slot)
-	local egg = data.slots[key]
-	if not egg then
-		local waiting = table.remove(data.eggs, 1)
-		if not waiting then
-			notify(player, "noEgg")
-			return "none"
-		end
-		data.slots[key] = { a = waiting.a, r = waiting.r, t = os.time() + Pets.hatchSeconds(waiting.r) }
-		PlayerData.changed(player)
-		notify(player, "placed", waiting.a)
-		return "placed"
-	end
-	if os.time() < egg.t then
-		notify(player, "wait", egg.t - os.time())
-		return "wait"
-	end
-	data.slots[key] = nil
-	local rarity = Pets.roll(random, egg.r)
-	if Eggs.grant(player, egg.a, rarity) then
-		PlayerData.changed(player)
-		notify(player, "hatched", egg.a, rarity)
-		return "hatched"
-	end
-	local coins = Pets.DUPLICATE_COINS[rarity]
-	PlayerData.addCoins(player, coins)
-	notify(player, "duplicate", egg.a, rarity, coins)
-	return "duplicate"
-end
-
-function Eggs.start(world, notifier, equipCallback)
+function Eggs.start(_world, notifier)
 	notify = notifier
-	onEquip = equipCallback
-	for slot, model in world.gym.incubators do
-		local prompt = Instance.new("ProximityPrompt")
-		prompt.Name = "Prompt"
-		prompt.HoldDuration = 0.25
-		prompt.MaxActivationDistance = 12
-		prompt.RequiresLineOfSight = false
-		prompt.AutoLocalize = false
-		prompt:SetAttribute("Kind", "Incubator")
-		prompt:SetAttribute("Slot", slot)
-		prompt.Parent = model.PrimaryPart
-		prompt.Triggered:Connect(function(player)
-			Eggs.use(player, slot)
-		end)
-	end
+
+	-- Chaque seconde : les œufs qui ont fini de couver éclosent, et la collection de chaque joueur lui rapporte ses
+	-- pièces (les centimes s'accumulent).
+	local owed = {}
+	Players.PlayerRemoving:Connect(function(player)
+		owed[player] = nil
+	end)
+	task.spawn(function()
+		while true do
+			task.wait(1)
+			for _, player in Players:GetPlayers() do
+				if not Eggs.hatchPaused then
+					Eggs.hatch(player)
+				end
+				local data = PlayerData.get(player)
+				if data and not Eggs.incomePaused then
+					local total = (owed[player] or 0) + Pets.income(data.pets)
+					local coins = math.floor(total)
+					owed[player] = total - coins
+					if coins > 0 then
+						PlayerData.addCoins(player, coins)
+					end
+				end
+			end
+		end
+	end)
 end
 
 return Eggs

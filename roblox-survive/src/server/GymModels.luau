@@ -113,25 +113,4 @@ function GymModels.Force(parent: Instance, origin: Vector3): Model
 	return model
 end
 
--- Couveuse : un socle, une cloche de verre et l'œuf dedans. L'œuf (« Egg ») est montré et coloré par l'écran de
--- chaque joueur, selon ce que LUI a mis dans cette couveuse.
-function GymModels.Incubator(parent: Instance, origin: Vector3): Model
-	local model = Instance.new("Model")
-	model.Name = "Incubator"
-	local base = Build.disc(model, "Base", 7, 1.2, origin + Vector3.new(0, 0.6, 0), DARK)
-	model.PrimaryPart = base
-	local ring = Build.disc(model, "Ring", 5.6, 0.2, origin + Vector3.new(0, 1.3, 0), YELLOW, Enum.Material.Neon)
-	ring.CanCollide = false
-	local egg = Build.part(model, "Egg", Vector3.new(2.6, 2.6, 2.6), origin + Vector3.new(0, 2.9, 0), Color3.fromRGB(250, 250, 250))
-	egg.Shape = Enum.PartType.Ball
-	egg.CanCollide = false
-	egg.Transparency = 1
-	local glass = Build.part(model, "Glass", Vector3.new(5.6, 5.6, 5.6), origin + Vector3.new(0, 3.2, 0), Color3.fromRGB(170, 230, 255), Enum.Material.Glass)
-	glass.Shape = Enum.PartType.Ball
-	glass.Transparency = 0.7
-	glass.CanCollide = false
-	model.Parent = parent
-	return model
-end
-
 return GymModels

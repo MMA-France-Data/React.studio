@@ -1,6 +1,8 @@
--- Les animaux : chaque salle donne l'œuf de son animal ; la rareté est tirée quand l'œuf éclot dans la couveuse.
--- Le même animal existe en 4 raretés : plus il est rare, plus son pouvoir est fort (et plus il est gros et brillant).
--- On n'en équipe qu'un à la fois.
+-- Les familiers : chaque salle réussie donne l'œuf de son animal. L'œuf va tout seul dans l'enclos du joueur, y
+-- couve un moment (autant d'œufs qu'on veut en même temps), puis éclot : la rareté est tirée à ce moment-là.
+-- Le but est la COLLECTION : 5 animaux x 4 raretés = 20 familiers à trouver. Chaque familier trouvé va dans
+-- l'enclos du joueur et lui rapporte des pièces à chaque seconde (plus il est rare, plus il rapporte).
+-- Les familiers ne donnent aucun bonus dans les salles. Le joueur peut en choisir un qui le suit, pour le plaisir.
 local AssetService = game:GetService("AssetService")
 
 local Pets = {}
@@ -9,20 +11,23 @@ local PetModels = require(script.Parent.PetModels)
 
 Pets.ORDER = { "Dragon", "Rock", "Rabbit", "Golem", "Owl" }
 
--- power : ce que fait l'animal ; values : la force du pouvoir pour chaque rareté (commun, rare, épique, légendaire).
--- size : grosseur de l'animal (1 si absent). Le dragon est gros : on monte dessus pendant le vol plané.
--- move : comment il bouge à côté du joueur (voir Animals.luau) : fly = vole, bounce = rebondit, hop = saute quand
---        le joueur avance, walk = marche en balançant bras et jambes.
+-- income : ce que l'animal rapporte par rapport au dragon (les animaux des salles plus lointaines rapportent plus).
+-- size : grosseur de l'animal quand il suit le joueur (1 si absent).
+-- move : comment il bouge (voir Animals.luau) : fly = vole, bounce = rebondit, hop = saute quand le joueur avance,
+--        walk = marche en balançant bras et jambes.
 Pets.DEFS = {
-	Dragon = { power = "glide", values = { 1, 1.5, 2, 3 }, size = 1.8, move = "fly" }, -- secondes de vol plané (sauter une 2e fois en l'air)
-	Rock = { power = "shield", values = { 40, 70, 110, 160 }, move = "bounce" }, -- dégâts encaissés par salle (pas la lave ni le plafond)
-	Rabbit = { power = "speed", values = { 4, 7, 10, 15 }, move = "hop" }, -- % de vitesse en plus
-	Golem = { power = "force", values = { 10, 20, 30, 50 }, move = "walk" }, -- % de force en plus pour repousser le plafond
-	Owl = { power = "coins", values = { 5, 10, 15, 25 }, move = "fly" }, -- % de pièces en plus
+	Dragon = { income = 1, size = 1.8, move = "fly" }, -- salles 1, 5, 9
+	Rock = { income = 1.5, move = "bounce" }, -- salle 2
+	Rabbit = { income = 2, move = "hop" }, -- salles 3, 8
+	Golem = { income = 3, move = "walk" }, -- salles 4, 7, 10
+	Owl = { income = 2.5, move = "fly" }, -- salle 6
 }
+-- Pièces par seconde d'un familier selon sa rareté (commun, rare, épique, légendaire), avant le facteur de l'animal.
+-- Exemples : dragon commun 0,5 par seconde ; golem légendaire 60 par seconde ; toute la collection : 285.
+Pets.INCOME = { 0.5, 2, 6, 20 }
 
 -- Chaque rareté a son MÉLANGE de couleurs, peint sur l'animal lui-même : un dégradé de toute la palette recouvre
--- son corps (plusieurs couleurs visibles en même temps), et son contour tourne dans la palette.
+-- son corps (plusieurs couleurs visibles en même temps).
 -- commun = ses couleurs d'origine ; rare = bleu, turquoise, vert ; épique = doré, orange, rose ;
 -- légendaire = violet, rose, bleu, turquoise, et des étincelles.
 -- color : la couleur de la rareté dans les textes ; tint : force du voile de couleur si le dégradé ne peut pas
@@ -61,13 +66,11 @@ Pets.COLOR_SECONDS = 1.3 -- temps pour passer d'une couleur de la palette à la 
 -- Chances de chaque rareté (sur 100) dans la salle 1, et ce qui change à chaque salle suivante.
 Pets.ODDS = { 60, 28, 10, 2 }
 Pets.ODDS_PER_ROOM = { -3, 1.5, 1, 0.5 }
--- Un animal déjà possédé en aussi bien ou mieux : des pièces à la place.
+-- Un familier déjà dans la collection : des pièces à la place.
 Pets.DUPLICATE_COINS = { 100, 300, 1000, 5000 }
 
-Pets.MAX_EGGS = 12 -- œufs gardés en attente
-Pets.SLOTS = 2 -- couveuses
-Pets.GLIDE_COOLDOWN = 6 -- secondes entre deux vols planés
-Pets.GLIDE_FALL = 2 -- vitesse de chute pendant le vol (studs par seconde)
+Pets.MAX_EGGS = 60 -- œufs qui peuvent couver en même temps dans l'enclos (autant dire : pas de limite)
+Pets.NEST = 11 -- œufs montrés dans l'enclos (les autres attendent leur tour, comptés sur le panneau)
 
 -- Temps de couvaison de l'œuf d'une salle, en secondes (30 s pour la salle 1, 5 min pour la salle 10).
 function Pets.hatchSeconds(room: number): number
@@ -105,27 +108,73 @@ function Pets.size(name: string): number
 	return def and def.size or 1
 end
 
--- Force du pouvoir de cet animal à cette rareté.
-function Pets.value(name: string, rarity: number): number
+-- LA COLLECTION : { Dragon = { true, false, true, false }, ... } = pour chaque animal, les raretés trouvées.
+-- Pièces par seconde d'un familier.
+function Pets.incomeOf(name: string, rarity: number): number
 	local def = Pets.DEFS[name]
-	return def and def.values[math.clamp(rarity, 1, #def.values)] or 0
+	return if def and Pets.INCOME[rarity] then Pets.INCOME[rarity] * def.income else 0
 end
 
--- « Dragon:2,Rock:1 » <-> { Dragon = 2, Rock = 1 } (pour envoyer la collection à l'écran du joueur).
-function Pets.encode(owned: { [string]: number }): string
-	local list = {}
-	for _, name in Pets.ORDER do
-		if owned[name] then
-			table.insert(list, name .. ":" .. owned[name])
+-- Pièces par seconde de toute une collection.
+function Pets.income(owned): number
+	local total = 0
+	for name, list in owned do
+		for rarity = 1, #Pets.RARITIES do
+			if list[rarity] then
+				total += Pets.incomeOf(name, rarity)
+			end
 		end
 	end
-	return table.concat(list, ",")
+	return total
 end
 
-function Pets.decode(text: string?): { [string]: number }
+-- La meilleure rareté trouvée pour un animal (0 = aucune).
+function Pets.best(list): number
+	for rarity = #Pets.RARITIES, 1, -1 do
+		if list and list[rarity] then
+			return rarity
+		end
+	end
+	return 0
+end
+
+-- Nombre de familiers trouvés.
+function Pets.count(owned): number
+	local count = 0
+	for _, list in owned do
+		for rarity = 1, #Pets.RARITIES do
+			if list[rarity] then
+				count += 1
+			end
+		end
+	end
+	return count
+end
+
+-- « Dragon:1010,Rock:1000 » <-> la collection (pour l'envoyer à l'écran des joueurs).
+function Pets.encode(owned): string
+	local parts = {}
+	for _, name in Pets.ORDER do
+		local list = owned[name]
+		if list and Pets.best(list) > 0 then
+			local bits = ""
+			for rarity = 1, #Pets.RARITIES do
+				bits ..= if list[rarity] then "1" else "0"
+			end
+			table.insert(parts, name .. ":" .. bits)
+		end
+	end
+	return table.concat(parts, ",")
+end
+
+function Pets.decode(text: string?)
 	local owned = {}
-	for name, rarity in string.gmatch(text or "", "(%a+):(%d+)") do
-		owned[name] = tonumber(rarity)
+	for name, bits in string.gmatch(text or "", "(%a+):([01]+)") do
+		local list = {}
+		for rarity = 1, #Pets.RARITIES do
+			list[rarity] = string.sub(bits, rarity, rarity) == "1"
+		end
+		owned[name] = list
 	end
 	return owned
 end
@@ -271,7 +320,8 @@ function gradient(rarity: number): any
 end
 
 -- Construit le modèle d'un animal (ancré, sans collision). Sa pièce principale s'appelle « Body ».
-function Pets.build(name: string, rarity: number): Model
+-- display : pour l'enclos (tous les animaux à la même grosseur, sans lumière).
+function Pets.build(name: string, rarity: number, display: boolean?): Model
 	local model = PetModels.build(name)
 	if not model then
 		model = Instance.new("Model")
@@ -303,19 +353,24 @@ function Pets.build(name: string, rarity: number): Model
 				part.Color = info.palette[count % #info.palette + 1]
 			end
 		end
-		-- 2) Un contour de couleur (et un voile léger, plus fort si le dégradé n'a pas pu être peint).
-		local tint = Instance.new("Highlight")
-		tint.Name = "Tint"
-		tint.FillTransparency = if content then 0.88 else 1 - info.tint
-		tint.OutlineTransparency = 0
-		tint.DepthMode = Enum.HighlightDepthMode.Occluded
-		tint.Parent = model
-		-- 3) Un peu de lumière de la couleur de la rareté.
-		local light = Instance.new("PointLight")
-		light.Name = "RarityLight"
-		light.Range = 5 + rarity
-		light.Brightness = 0.5
-		light.Parent = body
+		-- 2) Si le dégradé n'a pas pu être peint : un voile de la couleur de la rareté à la place. (Roblox n'affiche
+		--    qu'une trentaine de voiles à la fois : pas dans les enclos.)
+		if not content and not display then
+			local tint = Instance.new("Highlight")
+			tint.Name = "Tint"
+			tint.FillTransparency = 1 - info.tint
+			tint.OutlineTransparency = 0
+			tint.DepthMode = Enum.HighlightDepthMode.Occluded
+			tint.Parent = model
+		end
+		-- 3) Un peu de lumière de la couleur de la rareté, pour celui qui suit le joueur.
+		if not display then
+			local light = Instance.new("PointLight")
+			light.Name = "RarityLight"
+			light.Range = 5 + rarity
+			light.Brightness = 0.5
+			light.Parent = body
+		end
 		model:SetAttribute("Rarity", rarity)
 	end
 	if rarity >= 4 then
@@ -323,7 +378,7 @@ function Pets.build(name: string, rarity: number): Model
 		sparkles.Parent = body
 	end
 	-- La taille de base du rig importé n'est pas forcément 1 ; mêmes tailles relatives et mêmes pouvoirs.
-	model:ScaleTo((model:GetAttribute("VisualBaseScale") or 1) * info.scale * Pets.size(name))
+	model:ScaleTo((model:GetAttribute("VisualBaseScale") or 1) * info.scale * if display then 1 else Pets.size(name))
 	Pets.shimmer(model, 0)
 	return model
 end

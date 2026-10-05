@@ -30,7 +30,10 @@ local function fill(label: Instance)
 	end
 	local parts = string.split(label:GetAttribute("T") or "", "|")
 	local key = parts[1]
-	if key == "roomSign" then
+	if key == "plot" then
+		-- Le panneau d'un espace : le nom de son joueur, écrit par Animals.luau.
+		return
+	elseif key == "roomSign" then
 		local icons = {}
 		for _, name in string.split(parts[3] or "", ",") do
 			table.insert(icons, Texts.ICONS[name] or "")
@@ -118,6 +121,12 @@ coinIcon:FindFirstChildOfClass("UICorner").CornerRadius = UDim.new(1, 0)
 text(coinIcon, "Sign", UDim2.fromScale(1, 0.8), UDim2.fromScale(0, 0.1), Color3.fromRGB(255, 245, 170)).Text = "$"
 local coinsLabel = text(side, "Coins", UDim2.fromOffset(140, 44), UDim2.fromOffset(48, 0), Color3.fromRGB(110, 255, 80))
 coinsLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+-- Ce que rapportent les familiers, sous les pièces.
+local incomeLabel = text(side, "Income", UDim2.fromOffset(140, 18), UDim2.fromOffset(48, 38), Color3.fromRGB(255, 221, 51))
+incomeLabel.TextXAlignment = Enum.TextXAlignment.Left
+incomeLabel.UIStroke.Thickness = 1.5
+incomeLabel.Visible = false
 
 local STAT_COLORS = { Speed = Color3.fromRGB(60, 170, 255), Jump = Color3.fromRGB(70, 210, 90), Force = Color3.fromRGB(240, 80, 80) }
 local statLabels = {}
@@ -237,6 +246,8 @@ local function refreshPrompt(prompt: ProximityPrompt)
 	local kind = prompt:GetAttribute("Kind")
 	if kind == "Machine" then
 		local name = prompt:GetAttribute("Machine")
+		-- Seules les machines de son espace servent au joueur.
+		prompt.Enabled = prompt:GetAttribute("Plot") == player:GetAttribute("Plot")
 		local price = Config.price(player:GetAttribute(name) or 0)
 		prompt.ObjectText = tr(name)
 		prompt.ActionText = if not price then tr("maxed") elseif price == 0 then tr("trainFree") else tr("train", num(price))
@@ -247,18 +258,30 @@ local function refreshPrompt(prompt: ProximityPrompt)
 	end
 end
 
-local function refresh()
+local function refreshCoins()
 	coinsLabel.Text = num(player:GetAttribute("Coins") or 0)
-	for _, name in Config.MACHINES do
-		local level = player:GetAttribute(name) or 0
-		statLabels[name].Text = tr("stat" .. name) .. "  " .. level
-		local model = gym:FindFirstChild(name)
-		local label = model and model.PrimaryPart and model.PrimaryPart:FindFirstChild("Label")
-		if label then
-			local price = Config.price(level)
-			label.Title.Text = tr(name)
-			label.Level.Text = tr("level", level, Config.MAX_LEVEL)
-			label.Info.Text = if not price then tr("max") elseif price == 0 then tr("nextFree") else tr("next", num(price))
+	local income = player:GetAttribute("Income") or 0
+	incomeLabel.Visible = income > 0
+	incomeLabel.Text = tr("income", if income == math.floor(income) then num(income) else (string.format("%.1f", income):gsub("%.", if lang == "fr" then "," else ".")))
+end
+
+local function refresh()
+	refreshCoins()
+	local mine = player:GetAttribute("Plot") or 0
+	for _, plot in gym:GetChildren() do
+		local index = plot:GetAttribute("Index")
+		for _, name in Config.MACHINES do
+			local level = player:GetAttribute(name) or 0
+			statLabels[name].Text = tr("stat" .. name) .. "  " .. level
+			local model = index and plot:FindFirstChild(name)
+			local label = model and model.PrimaryPart and model.PrimaryPart:FindFirstChild("Label")
+			if label then
+				-- Les machines des autres espaces ne montrent que leur nom.
+				local price = Config.price(level)
+				label.Title.Text = tr(name)
+				label.Level.Text = if index == mine then tr("level", level, Config.MAX_LEVEL) else ""
+				label.Info.Text = if index ~= mine then "" elseif not price then tr("max") elseif price == 0 then tr("nextFree") else tr("next", num(price))
+			end
 		end
 	end
 	for _, prompt in workspace:GetDescendants() do
@@ -268,7 +291,10 @@ local function refresh()
 	end
 end
 player.AttributeChanged:Connect(function(name)
-	if name ~= "Room" then
+	-- Les pièces changent à chaque seconde (le revenu des familiers) : seule leur étiquette est refaite.
+	if name == "Coins" or name == "Income" then
+		refreshCoins()
+	elseif name ~= "Room" and name ~= "WorkoutEnds" then
 		refresh()
 	end
 end)

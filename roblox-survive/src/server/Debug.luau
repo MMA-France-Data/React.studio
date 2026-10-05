@@ -6,6 +6,8 @@ local PlayerData = require(script.Parent.PlayerData)
 local Gym = require(script.Parent.Gym)
 local Rooms = require(script.Parent.Rooms)
 local Eggs = require(script.Parent.Eggs)
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Pets = require(ReplicatedStorage.Shared.Pets)
 local World = require(script.Parent.World)
 
 return function(_world)
@@ -58,7 +60,6 @@ return function(_world)
 					end
 					return list
 				end)(),
-				shield = room.shields[player],
 				exitOpen = room.exit:GetAttribute("Open"),
 				entryOpen = room.entry:GetAttribute("Open"),
 			}
@@ -73,29 +74,42 @@ return function(_world)
 			return counted
 		elseif action == "Eggs" then
 			local data = PlayerData.get(player)
-			local slots = {}
-			for slot = 1, 2 do
-				local egg = data.slots[tostring(slot)]
-				slots[slot] = if egg then egg.a else ""
+			-- pets : la meilleure rareté trouvée pour chaque animal ; bits : la collection (« Dragon:1010 »).
+			local best = {}
+			for name, list in data.pets do
+				best[name] = Pets.best(list)
 			end
-			return { eggs = #data.eggs, first = data.eggs[1] and data.eggs[1].a or "", slots = slots, equipped = data.equipped, pets = table.clone(data.pets) }
-		elseif action == "Slot" then
-			return Eggs.use(player, a)
+			return { eggs = #data.eggs, first = data.eggs[1] and data.eggs[1].a or "", equipped = data.equipped, pets = best, bits = Pets.encode(data.pets), income = Pets.income(data.pets), count = Pets.count(data.pets) }
 		elseif action == "Hatch" then
-			-- Les œufs des couveuses sont prêts tout de suite.
-			for _, egg in PlayerData.get(player).slots do
+			-- Fait éclore tout de suite tous les œufs. Renvoie leur nombre.
+			return Eggs.hatch(player, true)
+		elseif action == "Ripen" then
+			-- Tous les œufs ont fini de couver (ils écloront tout seuls à la prochaine seconde).
+			for _, egg in PlayerData.get(player).eggs do
 				egg.t = 0
 			end
 			PlayerData.changed(player)
+		elseif action == "Hatching" then
+			-- a = false : les œufs n'éclosent plus tout seuls ; true : ils éclosent de nouveau.
+			Eggs.hatchPaused = not a
 		elseif action == "Pet" then
-			-- Donne l'animal a à la rareté b et l'équipe ("" = aucun animal équipé).
+			-- Ajoute le familier a de rareté b à la collection et le fait suivre le joueur ("" = aucun ne le suit).
 			local data = PlayerData.get(player)
 			if a ~= "" then
-				data.pets[a] = b
+				Eggs.grant(player, a, b)
 			end
 			data.equipped = a
 			PlayerData.changed(player)
-			Gym.applyStats(player)
+			-- Pour les photos : la rareté montrée derrière le joueur est celle demandée.
+			if a ~= "" then
+				player:SetAttribute("PetRarity", b)
+			end
+		elseif action == "Income" then
+			-- a = false : coupe le revenu des familiers ; true : le remet.
+			Eggs.incomePaused = not a
+		elseif action == "Plot" then
+			local plot = Gym.plotOf(player)
+			return plot and { index = plot.index, origin = plot.origin, spawn = plot.spawn }
 		elseif action == "Sas" then
 			return World.sasCenter(a)
 		end
