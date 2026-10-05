@@ -185,7 +185,9 @@ return function(env)
 			if riding then
 				target = root.CFrame * CFrame.new(0, -3.4, 0)
 			else
-				target = root.CFrame * CFrame.new(3.2, 0.6 + math.sin(os.clock() * 2.2) * 0.3, 2.6)
+				-- Un gros animal se tient un peu plus loin du joueur.
+				local away = (Pets.size(name) - 1) * 2.5
+				target = root.CFrame * CFrame.new(3.2 + away, 0.6 + away * 0.3 + math.sin(os.clock() * 2.2) * 0.3, 2.6)
 			end
 			entry.cframe = if riding then target else entry.cframe:Lerp(target, 1 - math.exp(-9 * dt))
 			entry.model:PivotTo(entry.cframe)

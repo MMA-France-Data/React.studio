@@ -10,8 +10,9 @@ local PetModels = require(script.Parent.PetModels)
 Pets.ORDER = { "Dragon", "Rock", "Rabbit", "Golem", "Owl" }
 
 -- power : ce que fait l'animal ; values : la force du pouvoir pour chaque rareté (commun, rare, épique, légendaire).
+-- size : grosseur de l'animal (1 si absent). Le dragon est gros : on monte dessus pendant le vol plané.
 Pets.DEFS = {
-	Dragon = { power = "glide", values = { 1, 1.5, 2, 3 } }, -- secondes de vol plané (sauter une 2e fois en l'air)
+	Dragon = { power = "glide", values = { 1, 1.5, 2, 3 }, size = 1.8 }, -- secondes de vol plané (sauter une 2e fois en l'air)
 	Rock = { power = "shield", values = { 40, 70, 110, 160 } }, -- dégâts encaissés par salle (pas la lave ni le plafond)
 	Rabbit = { power = "speed", values = { 4, 7, 10, 15 } }, -- % de vitesse en plus
 	Golem = { power = "force", values = { 3, 6, 10, 15 } }, -- force en plus pour repousser le plafond
@@ -94,6 +95,12 @@ function Pets.roll(random: Random, room: number): number
 		end
 	end
 	return 1
+end
+
+-- Grosseur de cet animal par rapport aux autres.
+function Pets.size(name: string): number
+	local def = Pets.DEFS[name]
+	return def and def.size or 1
 end
 
 -- Force du pouvoir de cet animal à cette rareté.
@@ -316,7 +323,7 @@ function Pets.build(name: string, rarity: number): Model
 		local sparkles = Instance.new("Sparkles")
 		sparkles.Parent = body
 	end
-	model:ScaleTo(info.scale)
+	model:ScaleTo(info.scale * Pets.size(name))
 	Pets.shimmer(model, 0)
 	return model
 end
