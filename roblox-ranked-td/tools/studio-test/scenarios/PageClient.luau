@@ -9,7 +9,11 @@
 --   victoire  : l'écran de victoire ;
 --   camp      : la parcelle du joueur, trois tours évoluées à l'entraînement ;
 --   oeufs, niveaux : la fenêtre du camp d'un joueur en cours de route (ses œufs et ses couveuses, le 2e territoire
---   ouvert).
+--   ouvert) ;
+--   boutique  : la page « 🛒 SHOP » (les trois pass en Robux) ;
+--   couveuses : les couveuses de la parcelle, la couveuse royale dorée (son pass) avec un œuf doré ;
+--   place     : le panneau du classement sur la place centrale (« TOP PLAYERS » de tous les serveurs : des joueurs
+--   d'essai, le classement de Studio est en mémoire).
 -- Les commandes viennent du serveur de test (scenarios/EnglishServer.luau, RemoteFunction __EnglishTest).
 return function(log)
 	local HttpService = game:GetService("HttpService")
@@ -285,6 +289,56 @@ return function(log)
 	page1.CanvasPosition = Vector2.new(0, 0)
 	task.wait(1.2)
 	shot("niveaux")
+
+	-- 7) La boutique : les trois pass en Robux (de faux numéros dans Studio, pour avoir leurs boutons de prix).
+	test:InvokeServer("Shop", { "Restricted", false })
+	test:InvokeServer("Shop", { "Pass", "Royal", 777 })
+	test:InvokeServer("Shop", { "Pass", "Xp", 778 })
+	test:InvokeServer("Shop", { "Pass", "Coins", 779 })
+	act(campGui, "Tab:Boutique")
+	task.wait(1.4)
+	hidePlayerList()
+	shot("boutique")
+
+	-- 8) Les couveuses de la parcelle : la couveuse royale dorée (son pass) avec un œuf doré, un œuf carmin prêt, un
+	-- œuf rare qui couve.
+	test:InvokeServer("Shop", { "Owned", "Royal", true })
+	test:InvokeServer("Set", {
+		hatchers = { { egg = "Crimson", readyAt = 0 }, { egg = "Rare", readyAt = os.time() + 25 * 60 } },
+		royal = { egg = "Gold", readyAt = os.time() + 47 * 60 },
+	})
+	act(campGui, "Close")
+	hidePlayerList()
+	setTopButtons(false)
+	task.wait(1.5)
+	local beforeEggs = cam().CFrame
+	cam().CameraType = Enum.CameraType.Scriptable
+	local middle = PlotLayout.HATCHERS[2]
+	cam().CFrame = CFrame.lookAt(PlotLayout.toWorld(slot, middle + Vector3.new(3, 9, 15)), PlotLayout.toWorld(slot, middle + Vector3.new(0, 2.6, 0)))
+	cam().Focus = CFrame.new(PlotLayout.toWorld(slot, middle + Vector3.new(0, 2.6, 0)))
+	task.wait(3)
+	shot("couveuses")
+
+	-- 9) La place centrale : le panneau « TOP PLAYERS » (le classement de tous les serveurs), avec des joueurs d'essai.
+	local fakes = {}
+	for index, entry in {
+		{ "ShadowKnight77", 40, 212 }, { "LunaBuilds", 40, 187 }, { "TowerKing_09", 38, 151 }, { "PixelPaladin", 36, 133 },
+		{ "CrimsonFox", 34, 120 }, { "DuneRider", 31, 97 }, { "FrostByte", 29, 88 }, { "MegaMage", 25, 64 },
+		{ "ArcherAce", 21, 52 }, { "Robin", 18, 41 },
+	} do
+		table.insert(fakes, { userId = -9000 - index, name = entry[1], best = entry[2], wins = entry[3] })
+	end
+	test:InvokeServer("Board", { "Fake", fakes })
+	test:InvokeServer("Board", { "Refresh" })
+	task.wait(1.5)
+	-- (bien en face : vu de biais, les lignes du panneau ont l'air décalées)
+	cam().CFrame = CFrame.lookAt(Vector3.new(13, 12.3, 0), Vector3.new(33, 11.3, 0))
+	cam().Focus = CFrame.new(Vector3.new(33, 11.2, 0))
+	task.wait(3)
+	shot("place")
+	test:InvokeServer("Board", { "ClearFakes" })
+	cam().CameraType = Enum.CameraType.Custom
+	cam().CFrame = beforeEggs
 
 	setTopButtons(true)
 	UserInputService.MouseIconEnabled = true

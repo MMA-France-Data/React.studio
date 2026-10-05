@@ -176,7 +176,7 @@ l'œuf spécial d'un boss rejoué (1 fois sur 10 sinon).
   l'écran de fin qui dit l'œuf gagné (`eggs_fin_de_niveau`), à la taille d'un téléphone (`eggs_tel_onglet`) ; les
   cartes des œufs spéciaux (« COUVER », « 🔒 Boss du niveau 10 », leurs dessins), le bouton « COUVER »
   (`eggs_oeuf_special_couve`, et en 3D sur la parcelle : `eggs_parcelle_oeuf_special`), la tour spéciale sortie (« 🌟 TOUR SPÉCIALE ! » : `eggs_tour_speciale`), une tour
-  spéciale pas encore à lui dans « Mes tours », l'œuf carmin sur l'écran de fin du boss, les 4 tours spéciales dans
+  spéciale pas encore à lui dans « Mes tours », l'œuf carmin sur l'écran de fin du boss, les 5 tours spéciales (celle du désert comprise, posée pour le test) dans
   un niveau avec leur parure (`eggs_speciales_niveau`, `eggs_speciales_pres`) ; « Bloqué ? » : le niveau 11 perdu une
   fois (rien de plus), puis une 2e fois de suite : le conseil (rejouer un niveau réussi, ses œufs qui attendent) et le
   bouton « ◀ Rejouer le niveau 10 », qui le relance (`eggs_bloque`).
@@ -201,7 +201,8 @@ revenir).
 
 Ce n'est pas un test. Le scénario `scenarios\PageClient.luau` met en scène de vraies parties, en anglais (un combat
 dans la vallée avec les 8 tours et un colosse, la même partie vue de près sans l'interface, le boss du col, l'écran
-de victoire, le camp avec trois tours évoluées, l'onglet des œufs, les niveaux) et prend les captures
+de victoire, le camp avec trois tours évoluées, l'onglet des œufs, les niveaux, la boutique, les couveuses avec la
+couveuse royale, le panneau du classement de la place avec des joueurs d'essai) et prend les captures
 `out\page_<nom>.png`.
 Puis :
 

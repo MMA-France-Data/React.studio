@@ -56,6 +56,9 @@ return function(log)
 		elseif command == "Shop" then
 			-- a = { commande, arguments... } : les achats en Robux (Hub/Shop.luau, faux numéros)
 			return levels("Shop", table.unpack(a))
+		elseif command == "Board" then
+			-- a = { commande, arguments... } : le classement des panneaux de la place (LevelLeaderboard.luau : faux joueurs)
+			return dbg:Invoke(player, "Board", table.unpack(a))
 		end
 		return nil
 	end

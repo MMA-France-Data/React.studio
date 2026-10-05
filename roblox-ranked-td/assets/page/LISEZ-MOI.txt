@@ -18,6 +18,14 @@ ouvrir le jeu, tu pourras en mettre de plus belles plus tard.
   miniature_victoire.jpg  1920 x 1080  l'écran de victoire
   miniature_oeufs.jpg     1920 x 1080  l'onglet des œufs, des œufs spéciaux et des couveuses
   miniature_niveaux.jpg   1920 x 1080  la liste des niveaux
+  miniature_boutique.jpg  1920 x 1080  la boutique : les trois pass en Robux (couveuse royale, XP x2, argent x2)
+  miniature_couveuses.jpg 1920 x 1080  les couveuses de la parcelle, dont la couveuse royale dorée et son œuf doré
+  miniature_place.jpg     1920 x 1080  le panneau du classement sur la place centrale (les meilleurs joueurs de
+                                       tous les serveurs ; dans cette image, des joueurs d'essai)
+
+  Refaites la nuit du 05/10/2026 avec les nouveautés (boutique, couveuse royale, panneaux de la place). Roblox
+  limite le nombre de miniatures (la vidéo en prend une place) : garde les meilleures (conseil : combat, boss,
+  zoom, couveuses, boutique, place, œufs, victoire).
 
 Pour les achats en Robux (dessinées par Claude, pas des captures) :
   couveuse-royale.png     512 x 512    l'image du pass « Couveuse royale » (un œuf violet sur un socle doré, « 2x »)
