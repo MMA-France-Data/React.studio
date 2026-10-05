@@ -16,12 +16,12 @@
 -- QUI EST LE JOUEUR ATTENDU (OWNED) ? Celui qui n'a PAS eu de chance aux œufs dorés : une tour RARE de palier 2 à
 -- partir du niveau 16, jamais de tour épique de palier 2 ni de légendaire. Mesuré le 05/10/2026 (gen/barvar.luau, un
 -- fichier de travail) : avec la barre, la chance compte énormément. La Baliste du dragon (1 joueur sur 2 l'a au
--- niveau 31) permet de battre des monstres 45 % plus résistants ; sans elle, le niveau 31 réglé pour elle restait
--- impossible même avec des tours entraînées au maximum. Les niveaux sont donc réglés pour la barre que presque tout
--- le monde peut former (97 % des joueurs ont une tour rare ou épique de palier 2 au niveau 31) : personne n'est
--- bloqué sans solution ; celui qui a une tour épique de palier 2 ou une légendaire trouve la suite plus facile (aux
--- niveaux 21 à 30 : la Baliste du dragon +17 %, une légendaire de palier 2 +35 % ; au 4e territoire, c'est encore
--- plus : d'où les DEUX crans d'entraînement demandés là).
+-- niveau 31) permettait de battre des monstres 45 % plus résistants ; sans elle, le niveau 31 réglé pour elle
+-- restait impossible même avec des tours entraînées au maximum. Les niveaux sont donc réglés pour la barre que
+-- presque tout le monde peut former (97 % des joueurs ont une tour rare ou épique de palier 2 au niveau 31) :
+-- personne n'est bloqué sans solution ; celui qui a une tour épique de palier 2 ou une légendaire a de l'avance
+-- (depuis que la Baliste du dragon est à 200 de dégâts, demande du propriétaire : +10 % aux niveaux 21 à 30, +21 %
+-- au 4e territoire ; une légendaire de palier 2 : +20 à +50 %), d'où les DEUX crans d'entraînement au 4e territoire.
 --   luau bar.luau -a "niveaux=12" "vies=5"
 local Levels = require("./gen/shared/Levels")
 local Bot = require("./Bot")

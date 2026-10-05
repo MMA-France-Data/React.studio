@@ -94,10 +94,12 @@ gagner facilement (8 vies ou plus) qu'un sur 10 au plus. Les boss des niveaux 20
 tours de base à la place des tours de palier 2.
 
 **La chance aux œufs.** La barre attendue est celle que presque tous les joueurs peuvent former (pas de tour épique
-de palier 2, pas de légendaire). Avec une tour « de chance », la suite est plus facile : la Baliste du dragon vaut
-+45 % de PV de monstres au 4e territoire (46 % des joueurs l'ont au niveau 31), une légendaire de palier 2 +20 à
-+50 %. Réglé pour la Baliste du dragon, le niveau 31 était impossible sans elle. Mesures : `gen/barvar.luau`
-(fichier de travail) ; détails dans `NIVEAUX.md`, « La difficulté ».
+de palier 2, pas de légendaire). Avec une tour « de chance », la suite est plus facile : la Baliste du dragon valait
++45 % de PV de monstres au 4e territoire (46 % des joueurs l'ont au niveau 31) : réglé pour elle, le niveau 31 était
+impossible sans elle. À la demande du propriétaire (« forte mais pas à exploser chaque niveau »), elle est passée de
+300 à 200 de dégâts : +21 % au 4e territoire, +10 % au 3e. Une légendaire de palier 2 vaut +20 à +50 %. Mesures :
+`gen/barvar.luau` (fichier de travail : d'autres barres, d'autres réglages de tours) ; détails dans `NIVEAUX.md`,
+« La difficulté ».
 
 La barre et l'entraînement « attendus » à chaque niveau, et le rythme demandé, sont dans `Bot.EXPECTED`. Avec moins
 de sortes de tours à poser (3 ou 4 au lieu de 8), il y a moins d'achats à faire : un joueur lent mais dont les tours

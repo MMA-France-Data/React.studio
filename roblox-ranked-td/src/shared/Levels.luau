@@ -656,12 +656,12 @@ Levels.STREAM = {
 -- 10, celui des débuts) n'a pas changé. Trop dur pour de vrais joueurs : baisser ces chiffres (8 % de PV en moins =
 -- à peu près un niveau d'entraînement de moins à avoir).
 -- LA CHANCE AUX ŒUFS (mesurée le 05/10/2026, détails dans tools/levels/Bot.luau et NIVEAUX.md) : avec la barre, une
--- seule tour compte beaucoup. La Baliste du dragon (46 % des joueurs l'ont au niveau 31) permet de battre des
+-- seule tour compte beaucoup. La Baliste du dragon (46 % des joueurs l'ont au niveau 31) permettait de battre des
 -- monstres 45 % plus résistants au 4e territoire ; réglé pour elle, le niveau 31 était impossible aux autres. Les
--- niveaux sont donc réglés pour le joueur qui ne l'a pas : personne n'est bloqué sans solution, mais celui qui a eu
--- de la chance (elle, ou une légendaire) trouve la suite plus facile. Pour un jeu dur pour tous, il faudrait que les
--- tours clés ne dépendent plus de la chance (proposé au propriétaire : l'œuf doré d'un boss donne à coup sûr une
--- tour de palier 2 ; s'il dit oui, les niveaux 21 à 50 sont à régler de nouveau, plus haut).
+-- niveaux sont donc réglés pour le joueur qui ne l'a pas : personne n'est bloqué sans solution, et celui qui a eu
+-- de la chance (elle, ou une légendaire) a de l'avance. Réponse du propriétaire à ma question (« faut juste mettre
+-- moins de points sur la baliste, qu'elle soit forte mais pas à exploser chaque niveau ») : elle est passée de 300
+-- à 200 de dégâts (IdleTowers.luau) : +21 % au 4e territoire, +10 % au 3e. Les œufs restent au hasard.
 -- NIVEAUX 41 À 100 : FERMÉS pour l'instant (Levels.OPEN_COUNT). Les PV des niveaux 41 à 50 sont réglés comme ceux
 -- du 4e territoire (la barre, deux crans d'entraînement ; run.ps1 -Tune -Vies 8, puis 5 % de marge) : ouvrir le
 -- désert = OPEN_COUNT = 50. Ceux des niveaux 51 à 100

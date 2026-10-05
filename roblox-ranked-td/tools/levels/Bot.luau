@@ -112,12 +112,13 @@ Bot.POLICIES = {
 -- LA CHANCE (mesurée le 05/10/2026). Avec la barre, une seule tour compte beaucoup, et les œufs sont tirés au sort :
 -- en arrivant au niveau 31, 76 % des joueurs ont une tour RARE de palier 2, 74 % une ÉPIQUE de palier 2 (48 % la
 -- Baliste du dragon), 44 % une légendaire, 97 % au moins une rare ou une épique de palier 2. Or la Baliste du dragon
--- permet de battre des monstres 45 % plus résistants au 4e territoire (une légendaire de palier 2 : +35 % au 3e) :
--- réglé pour elle, le niveau 31 restait impossible aux autres, même entraînés au maximum. Les niveaux sont donc
--- réglés pour la barre que presque tout le monde peut former (une rare de palier 2, pas d'épique de palier 2, pas de
--- légendaire) : personne n'est bloqué sans solution ; celui qui a eu de la chance trouve la suite plus facile. Pour
--- que ce soit « dur » pour tout le monde, il faudrait que les tours clés ne dépendent plus de la chance (question
--- posée au propriétaire le 05/10/2026 : les œufs dorés des boss).
+-- permettait de battre des monstres 45 % plus résistants au 4e territoire (une légendaire de palier 2 : +35 % au
+-- 3e) : réglé pour elle, le niveau 31 restait impossible aux autres, même entraînés au maximum. Les niveaux sont
+-- donc réglés pour la barre que presque tout le monde peut former (une rare de palier 2, pas d'épique de palier 2,
+-- pas de légendaire) : personne n'est bloqué sans solution ; celui qui a eu de la chance a de l'avance. Réponse du
+-- propriétaire à ma question (05/10/2026) : « faut juste mettre moins de points sur la baliste, qu'elle soit forte
+-- mais pas à exploser chaque niveau » : la Baliste du dragon est passée de 300 à 200 de dégâts (IdleTowers.luau) ;
+-- elle vaut maintenant +21 % au 4e territoire, +10 % au 3e, +4 % au 2e (à entraînement égal).
 -- LA BARRE (05/10/2026, « LA BARRE DE TOURS », Levels.luau) : dans un niveau, UNE tour par rareté. towers = la
 -- MEILLEURE barre que ce joueur peut former avec ses tours à ce niveau (une commune, une rare, une épique dès qu'il
 -- en a une, une spéciale ; pas de légendaire : trop rare pour être attendue), trouvée par essais : toutes ses barres

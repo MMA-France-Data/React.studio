@@ -1584,16 +1584,26 @@ do
 	check(priceOk, "palier 2 : deux fois le prix en or de sa tour de base, même limite par niveau")
 	-- La claire différence : sans entraînement, au moins 2,2 fois les dégâts par seconde de sa tour de base, et au moins
 	-- 1,6 fois ceux de sa tour de base entraînée au maximum (toutes ses évolutions).
+	-- Sauf la Baliste du dragon (demande du propriétaire, 05/10/2026 : « moins de points sur la baliste, qu'elle soit
+	-- forte mais pas à exploser chaque niveau ») : au moins 1,9 fois la Baliste lourde, 1,2 fois la Baliste lourde
+	-- entraînée au maximum ; son carreau transperce en plus (ces chiffres ne comptent qu'un monstre touché).
 	local stronger, ratios = true, {}
 	for _, towerType in IdleTowers.TIER2 do
 		local base = IdleTowers.baseOf(towerType)
 		local mine = IdleTowers.dpsOf(Levels.towerStats(towerType, 1, 0))
 		local plain = IdleTowers.dpsOf(Levels.towerStats(base, 1, 0))
 		local trained = IdleTowers.dpsOf(Levels.towerStats(base, 1, Levels.TRAINING.MAX_LEVEL))
-		stronger = stronger and mine >= 2.2 * plain and mine >= 1.6 * trained
+		local overPlain, overTrained = 2.2, 1.6
+		if towerType == "DragonBallista" then
+			overPlain, overTrained = 1.9, 1.2
+		end
+		stronger = stronger and mine >= overPlain * plain and mine >= overTrained * trained
 		table.insert(ratios, string.format("%s x%.1f (x%.1f)", towerType, mine / plain, mine / trained))
 	end
-	check(stronger, `palier 2 : bien plus fort que sa tour de base, même entraînée au maximum : {table.concat(ratios, ", ")}`)
+	check(
+		stronger and Levels.towerStats("DragonBallista", 1, 0).damage == 200,
+		`palier 2 : bien plus fort que sa tour de base, même entraînée au maximum (la Baliste du dragon : 200 de dégâts, forte sans tout écraser) : {table.concat(ratios, ", ")}`
+	)
 	local blizzard, frost = Levels.towerStats("BlizzardTotem", 1, 0), Levels.towerStats("Frost", 1, Levels.TRAINING.MAX_LEVEL)
 	local dragon = Levels.towerStats("DragonBallista", 1, 0)
 	check(

@@ -349,11 +349,19 @@ IdleTowers.Defs = {
 		kind = "Pierce",
 		targeting = "Strongest",
 		color = Color3.fromRGB(224, 44, 58),
-		-- Un carreau de 300 (la Baliste lourde : 120), PERÇANT : il vise le monstre le plus résistant, mais à l'impact,
+		-- Un carreau de 200 (la Baliste lourde : 120), PERÇANT : il vise le monstre le plus résistant, mais à l'impact,
 		-- les monstres à moins de pierceWidth studs du segment tour -> point d'impact prennent aussi les dégâts, pierceMax
 		-- au plus (4) : sa cible (touchée même si un ralentissement l'a fait dévier) et les premiers que le carreau
 		-- rencontre. Il enflamme aussi le sol là où il arrive.
-		damage = 300,
+		-- 200 AU LIEU DE 300 (demande du propriétaire, 05/10/2026 : « faut juste mettre moins de points sur la baliste,
+		-- qu'elle soit forte mais pas à exploser chaque niveau »). Depuis la barre (une tour par rareté), une seule tour
+		-- pèse lourd : à 300, celui qui l'avait battait des monstres 45 % plus résistants au 4e territoire (1 joueur
+		-- sur 2 l'a en arrivant au niveau 31), 17 % au 3e. Mesuré avec les joueurs simulés (tools/levels,
+		-- gen/barvar.luau) : à 200, +21 % au 4e territoire, +10 % au 3e, +4 % au 2e (à entraînement égal) ; baisser
+		-- seulement le nombre de monstres transpercés ne changeait presque rien (300 et 2 monstres : encore +30 %).
+		-- Elle reste la meilleure tour épique : presque 2 fois les dégâts par seconde de la Baliste lourde, et elle
+		-- transperce.
+		damage = 200,
 		range = 35,
 		cooldown = 3.4,
 		pierceWidth = 1.5,

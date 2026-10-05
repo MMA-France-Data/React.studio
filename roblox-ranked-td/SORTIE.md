@@ -27,10 +27,10 @@ Le jeu sort comme une **nouvelle expérience Roblox** (décision du 02/10/2026) 
       tests automatiques ne vérifient que la taille de l'écran, pas le toucher.)
 - [ ] **Un nouveau joueur passe-t-il le niveau 1 ?** La difficulté est réglée avec des joueurs simulés et un seul
       vrai joueur (toi). Le tuto aide : un joueur simulé qui suit seulement la flèche gagne le niveau 1.
-- [ ] **Décide pour la chance aux œufs** (05/10/2026, voir `NIVEAUX.md`, « La difficulté ») : avec la barre, une tour
-      « de chance » (la Baliste du dragon, une légendaire) rend la suite bien plus facile. Proposition de Claude :
-      l'œuf doré d'un boss donne à coup sûr une tour de palier 2. En attendant, personne n'est bloqué sans
-      solution, mais les chanceux trouvent le 4e territoire facile.
+- [x] **La chance aux œufs** (05/10/2026, voir `NIVEAUX.md`, « La difficulté ») : à ta demande, la Baliste du dragon
+      est moins forte (200 de dégâts au lieu de 300 : forte, sans écraser chaque niveau). Les niveaux sont réglés
+      pour que personne ne soit bloqué sans solution. Reste à voir en jouant : les légendaires de palier 2, encore
+      très fortes.
 - [ ] **Joue les niveaux 11 à 40** : ils n'ont été essayés que par les joueurs simulés (trop durs ? trop faciles ?).
       Les boss 20, 30 et 40 demandent une tour de palier 2 (les œufs dorés des boss d'avant en donnent souvent).
       Depuis le 05/10/2026 : une seule tour par rareté dans un niveau (la barre, choisie dans « Mes tours »), et les

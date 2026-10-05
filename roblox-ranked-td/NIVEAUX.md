@@ -491,7 +491,7 @@ d'or dans un niveau.
 | Totem du blizzard (commune) | Totem de givre | ralentit de 50 %, une aura plus grande, une fragilité deux fois plus forte | 80 (3 au plus) |
 | Catapulte de magma (rare) | Catapulte | 2,5 fois les dégâts, une zone plus large, et le sol brûle | 90 |
 | Archimage des tempêtes (rare) | Mage des tempêtes | 2,6 fois les dégâts, zone et portée plus grandes | 80 |
-| Baliste du dragon (épique) | Baliste lourde | un carreau de 300 qui transperce 4 monstres et enflamme le sol | 100 |
+| Baliste du dragon (épique) | Baliste lourde | un carreau de 200 qui transperce 4 monstres et enflamme le sol (300 avant le 05/10/2026 : elle écrasait tout, voir « La difficulté ») | 100 |
 | Sorcier du néant (épique) | Sorcier des arcanes | un rayon 2,7 fois plus fort, qui chauffe plus vite et monte plus haut | 180 |
 | Oracle du tonnerre (légendaire) | Oracle de la foudre | un éclair de 130 qui rebondit sur 6 monstres | 300 |
 | Trébuchet céleste (légendaire) | Trébuchet royal | une pierre de 240, une zone de 12, étourdit 1,3 s | 200 |
@@ -758,7 +758,7 @@ Ce qu'il faut en retenir :
   pièces) ;
 - les niveaux à colosse géant (15, 25, 35) et à boss se jouent d'un coup : le gros monstre passe ou ne passe pas.
 
-**La chance aux œufs compte beaucoup : à décider par toi.** Avec la barre, une seule tour pèse lourd, et les œufs
+**La chance aux œufs, et la Baliste du dragon baissée.** Avec la barre, une seule tour pèse lourd, et les œufs
 sont tirés au sort. Ce que possède un joueur qui gagne chaque niveau une fois et ouvre tous ses œufs (200 000 joueurs
 tirés au sort) :
 
@@ -768,28 +768,27 @@ tirés au sort) :
 | 21 | 61 % | 60 % | 34 % | 32 % | 3 % |
 | 31 | 76 % | 74 % | 46 % | 44 % | 1 % |
 
-Et ce que vaut une tour « de chance », mesuré avec les joueurs simulés (les PV de monstres qu'elle permet de battre
-en plus de la barre attendue) :
+En mesurant ce que vaut chaque tour « de chance » (les PV de monstres qu'elle permet de battre en plus, à
+entraînement égal), j'ai trouvé un vrai problème : **la Baliste du dragon** valait +17 % au 3e territoire et **+45 %
+au 4e**. Réglé pour elle, le niveau 31 était impossible sans elle, même avec des tours entraînées au maximum (et un
+joueur sur deux ne l'a pas) ; réglé pour les autres, elle écrasait tout. Je t'ai posé la question, ta réponse :
+« faut juste mettre moins de points sur la baliste, qu'elle soit forte mais pas à exploser chaque niveau ». Fait :
 
-- **la Baliste du dragon** : +10 à +20 % aux territoires 2 et 3 (parfois plus), **+45 % en moyenne au 4e** (à
-  entraînement égal) ;
-- **une légendaire de palier 2** (Oracle du tonnerre, Trébuchet céleste) : +20 à +50 % ;
-- le Sorcier du néant (l'autre tour épique de palier 2) : presque rien avant le niveau 34 (il coûte 180 or), puis
-  +15 à +30 % ;
-- sans aucune tour de palier 2 aux niveaux 16 à 19 : il manque 6 à 18 % (deux crans d'entraînement de plus suffisent).
+- **la Baliste du dragon : 200 de dégâts au lieu de 300** (elle transperce toujours 4 monstres et enflamme le sol).
+  Elle vaut maintenant **+4 % au 2e territoire, +10 % au 3e, +21 % au 4e** : toujours la meilleure tour épique, à peu
+  près un à deux crans d'entraînement d'avance, plus de quoi tout écraser. (Baisser seulement le nombre de monstres
+  transpercés ne changeait presque rien.)
+- Les autres tours « de chance », pas touchées : **une légendaire de palier 2** (Oracle du tonnerre, Trébuchet
+  céleste) vaut +20 à +50 % (20 % des joueurs en ont une au niveau 16, 32 % au niveau 21 : c'est la récompense d'une
+  légendaire, dis-moi si c'est trop) ; le Sorcier du néant ne vaut presque rien avant le niveau 34 (il coûte 180
+  or), puis +15 à +30 %.
+- Sans aucune tour de palier 2 aux niveaux 16 à 19 : il manque 6 à 18 % (deux crans d'entraînement de plus suffisent).
 
-J'avais d'abord réglé le 4e territoire pour la Baliste du dragon : sans elle, le niveau 31 était **impossible**, même
-avec des tours entraînées au maximum. Un joueur sur deux serait resté bloqué sans solution (la trouver dans un œuf
-rare : 2 chances sur 100 par œuf). J'ai donc réglé chaque niveau pour la barre que presque tout le monde peut former
-(une tour rare de palier 2 à partir du niveau 16, pas d'épique de palier 2, pas de légendaire) : **personne n'est
-bloqué sans solution**. Le revers : **celui qui a eu de la chance trouve la suite plus facile**, surtout le 4e
-territoire avec la Baliste du dragon.
-
-**Pour que ce soit dur pour tout le monde**, il faut que les tours clés ne dépendent plus de la chance. Ma
-proposition : **l'œuf doré d'un boss donne à coup sûr une tour de palier 2** (boss 10 : une rare ; boss 20 : une
-épique ; boss 30 : une légendaire), les autres œufs restent au hasard. Tout le monde aurait alors la même force au
-même niveau, et je pourrais régler les territoires 3 et 4 bien plus dur, pour tous. C'est un changement des œufs :
-j'attends ton « oui » (voir « Ce qui reste à décider »).
+**Pour qui les niveaux sont réglés** : pour la barre que presque tout le monde peut former (une tour rare de palier 2
+à partir du niveau 16, pas d'épique de palier 2, pas de légendaire). **Personne n'est bloqué sans solution** ; celui
+qui a eu de la chance a un peu d'avance. Au 4e territoire : avec la Baliste du dragon, l'entraînement que donnent les
+parties suffit à peu près (le joueur simulé gagne 9 niveaux sur 10 en arrivant, avec 3 à 17 % de marge au lieu de
+45 %) ; sans elle, il faut deux crans de plus.
 
 **Si c'est trop dur (ou pas encore assez)** : un seul chiffre par niveau change tout (`health` dans
 `Levels.DEFINITIONS`). 8 % de PV en moins, c'est à peu près un niveau d'entraînement de moins à avoir. Dis-moi « plus
@@ -937,8 +936,10 @@ arrivent à un niveau) : rien d'autre n'a changé. Les chiffres sont dans `src/s
     pars avec une légendaire, une de boss, une rare, une commune : ça te demande de faire des choix » ; « 1 par
     rareté : 5 tours », « dans Mes tours », « Dur partout ») : la barre n'emmène plus qu'une tour par rareté,
     choisie dans « Mes tours » ; les monstres des niveaux 11 à 30 ont de 30 à 110 % de PV en plus ; chaque niveau
-    est réglé pour la barre que presque tout le monde peut former, avec des tours entraînées. Voir « La
-    difficulté » (et la question de la chance aux œufs) et « Les œufs, les couveuses et les tours de palier 2 ».
+    est réglé pour la barre que presque tout le monde peut former, avec des tours entraînées. Puis, à ma question
+    sur la chance aux œufs (« faut juste mettre moins de points sur la baliste, qu'elle soit forte mais pas à
+    exploser chaque niveau ») : la Baliste du dragon passe de 300 à 200 de dégâts. Voir « La difficulté » et « Les
+    œufs, les couveuses et les tours de palier 2 ».
 
 ### Le grand ménage : ce qui a été enlevé
 
@@ -963,12 +964,11 @@ niveaux du joueur et son réglage du son. Les sauvegardes de l'ancien jeu « Tow
 
 ## Ce qui reste à décider (par toi)
 
-0. **La chance aux œufs (important, depuis la barre du 05/10/2026).** Une seule tour « de chance » (la Baliste du
-   dragon, une légendaire) rend la suite bien plus facile, et celui qui ne l'a pas ne peut la trouver que par
-   hasard. Les niveaux sont réglés pour que personne ne soit bloqué sans solution ; du coup les chanceux trouvent
-   le 4e territoire facile. Ma proposition : **l'œuf doré d'un boss donne à coup sûr une tour de palier 2** (boss
-   10 : une rare, boss 20 : une épique, boss 30 : une légendaire), et je règle ensuite les territoires 3 et 4 plus
-   dur, pour tout le monde. Dis-moi « oui », « non », ou autre chose (voir « La difficulté »).
+0. **La chance aux œufs (depuis la barre du 05/10/2026).** Une tour « de chance » pèse lourd dans une barre de 4 ou
+   5 tours. La Baliste du dragon a été baissée à ta demande (200 de dégâts au lieu de 300 : forte, sans tout
+   écraser). **Les légendaires de palier 2** (Oracle du tonnerre, Trébuchet céleste) valent encore +20 à +50 % :
+   dis-moi si tu veux les baisser aussi. Les niveaux sont réglés pour que personne ne soit bloqué sans solution
+   (voir « La difficulté »).
 1. **L'entraînement et les œufs** : +10 % de dégâts par niveau d'entraînement, les étoiles, les temps et les
    chances des œufs, la part des tours de palier 2 (0, 25 et 75 %) : ce sont mes chiffres, à changer comme tu veux.
 2. **Les niveaux 11 à 40** : depuis le 05/10/2026 ils sont « durs partout » (une tour par rareté, monstres plus
