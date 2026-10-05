@@ -8,7 +8,9 @@
 -- À chaque écran, chaque texte affiché qui a encore l'air français (lettre accentuée ou mot français courant, sans
 -- les noms des joueurs) est noté. À la fin : la liste « [EN] non traduit : ... », les textes que le traducteur n'a
 -- pas trouvés (liste de Lang, lue par la BindableFunction « AutoTranslateStudio » du jeu), et une ligne [PASS] /
--- [FAIL]. Puis retour au français : chaque texte doit revenir.
+-- [FAIL]. Ensuite, le même joueur passe en espagnol puis en portugais : les écrans du camp, un niveau et ses écrans
+-- de fin ; aucun texte ne doit manquer dans leurs dictionnaires (ni être pris en anglais), avec des captures pour voir
+-- si les textes, plus longs, tiennent dans leurs cadres. Puis retour au français : chaque texte doit revenir.
 -- « SHOT:nom » = capture (out\english_<nom>.png).
 return function(log)
 	local HttpService = game:GetService("HttpService")
@@ -654,6 +656,158 @@ return function(log)
 		#foundList == 0 and seenCount >= 250 and #translatedObjects >= 250,
 		`version anglaise : {#foundList} texte(s) encore en français sur {seenCount} textes différents relevés ({#translatedObjects} objets traduits ; le traducteur a noté {noted} texte(s) sans traduction, dont {misses} en français : les autres sont des noms de joueurs)`
 	)
+
+	------------------------------------------------------------------
+	-- 6b) Espagnol, puis portugais : les mêmes écrans ; aucun texte sans traduction dans leurs dictionnaires (ni pris
+	-- en anglais), sans compter les noms des joueurs
+	------------------------------------------------------------------
+	local function namesOnly(text)
+		local clean = text
+		for _, other in Players:GetPlayers() do
+			for _, name in { other.DisplayName, other.Name } do
+				if #name >= 3 then
+					clean = string.gsub(clean, escapePattern(name), " ")
+				end
+			end
+		end
+		clean = string.gsub(clean, "Robin", " ")
+		return not string.find(clean, "%a")
+	end
+	-- Textes déjà dans la langue (une traduction de son dictionnaire, exacte ou un modèle rempli) : un objet qui garde
+	-- un texte déjà traduit n'a rien à traduire (il s'affiche juste). Et les textes par défaut de Roblox (« Label »,
+	-- « Button » : un objet pas encore rempli), les lettres seules.
+	local function alreadyTranslated(code)
+		local folder = ReplicatedStorage.Shared:FindFirstChild(if code == "es" then "LangES" else "LangPT")
+		local exactValues, patterns = {}, {}
+		for _, module in if folder then folder:GetChildren() else {} do
+			for _, value in require(module) do
+				if string.find(value, "{%d+}") then
+					table.insert(patterns, "^" .. string.gsub(escapePattern(value), "{%d+}", "(.-)") .. "$")
+				else
+					exactValues[value] = true
+				end
+			end
+		end
+		return function(text)
+			if exactValues[text] or text == "Label" or text == "Button" or not string.find(text, "%a%a") then
+				return true
+			end
+			for _, pattern in patterns do
+				if string.find(text, pattern) then
+					return true
+				end
+			end
+			return false
+		end
+	end
+	-- (diagnostic) Les objets qui affichent ce texte, et le texte d'origine que la traduction leur connaît.
+	local function whoShows(text)
+		local list = {}
+		for _, root in { playerGui, workspace } do
+			for _, object in root:GetDescendants() do
+				for _, property in if object:IsA("ProximityPrompt") then { "ActionText", "ObjectText" } elseif object:IsA("TextLabel") or object:IsA("TextButton") then { "Text" } else {} do
+					if (object :: any)[property] == text and #list < 4 then
+						table.insert(list, `{object:GetFullName()}.{property} (d'origine : « {tostring(ask("Original", object, property))} »)`)
+					end
+				end
+			end
+		end
+		return table.concat(list, " ; ")
+	end
+	local OTHER_LANGUAGES = {
+		{ language = "es", name = "espagnol", levels = "⚔ NIVELES", tabs = { "Niveles", "Entrenamiento", "Mis torres", "Huevos" }, defeat = "DERROTA", victory = "¡VICTORIA!" },
+		{ language = "pt", name = "portugais", levels = "⚔ NÍVEIS", tabs = { "Níveis", "Treino", "Minhas torres", "Ovos" }, defeat = "DERROTA", victory = "VITÓRIA!" },
+	}
+	for _, other in OTHER_LANGUAGES do
+		local code = other.language
+		ask("ClearMisses")
+		player:SetAttribute("Lang", code)
+		local switched = waitFor(function()
+			return ask("Language") == code and openButton.Text == other.levels
+		end, 5)
+		task.wait(0.5)
+		check(
+			switched and window.Tab1.Text == other.tabs[1] and window.Tab2.Text == other.tabs[2] and window.Tab3.Text == other.tabs[3]
+				and window.Tab4.Text == other.tabs[4] and (ask("Entries", code) or 0) == (ask("Entries", "en") or -1),
+			`passage en {other.name} en direct : « {openButton.Text} », onglets « {window.Tab1.Text} », « {window.Tab2.Text} », « {window.Tab3.Text} », « {window.Tab4.Text} » ({tostring(ask("Entries", code))} traductions)`
+		)
+		act(campGui, "Open")
+		act(campGui, "Tab:Niveaux")
+		shot(code .. "_niveaux")
+		act(campGui, "Tab:Entraînement")
+		shot(code .. "_entrainement")
+		act(campGui, "Tab:Mes tours")
+		shot(code .. "_tours")
+		act(campGui, "Tab:Œufs")
+		shot(code .. "_oeufs")
+		act(campGui, "Tab:Boutique")
+		shot(code .. "_boutique")
+		act(campGui, "Team")
+		shot(code .. "_equipe")
+		act(campGui, "Close")
+		-- Un niveau : une tour posée, son menu, deux petits messages, puis une défaite et une victoire.
+		local played = startLevel(1)
+		test:InvokeServer("Gold", 600)
+		local towersBefore = #towers()
+		act(hudGui, "Select:MachineGun")
+		act(hudGui, `Tap:{map.spots[2].X},{map.spots[2].Z}`)
+		waitFor(function()
+			return #towers() > towersBefore
+		end, 4)
+		act(hudGui, `Tap:{map.spots[2].X},{map.spots[2].Z}`)
+		waitFor(function()
+			return menu.Visible
+		end, 3)
+		task.wait(0.3)
+		shot(code .. "_niveau")
+		act(hudGui, "Select:MachineGun")
+		act(hudGui, "Tap:-34,0")
+		act(hudGui, "Select:")
+		act(hudGui, "Quit")
+		task.wait(0.3)
+		shot(code .. "_messages")
+		test:InvokeServer("Finish", false)
+		waitFor(function()
+			return endScreen.Visible
+		end, 5)
+		task.wait(0.3)
+		local defeatTitle = panel.Title.Text
+		shot(code .. "_defaite")
+		startLevel(1)
+		task.wait(0.5)
+		test:InvokeServer("Finish", true)
+		waitFor(function()
+			return endScreen.Visible and arena:GetAttribute("State") == "Won"
+		end, 5)
+		task.wait(0.3)
+		local victoryTitle = panel.Title.Text
+		shot(code .. "_victoire")
+		check(
+			played and defeatTitle == other.defeat and victoryTitle == other.victory,
+			`{other.name} : un niveau joué, écrans de fin « {defeatTitle} » et « {victoryTitle} », « {oneLine(panel.Details.Text)} »`
+		)
+		backToCamp()
+		local missing = {}
+		local isTranslation = alreadyTranslated(code)
+		local kept = 0
+		for _, text in ask("Misses", code) or {} do
+			if namesOnly(text) then
+				continue
+			elseif isTranslation(text) then
+				kept += 1
+				say(`{code} : texte déjà traduit, gardé tel quel : « {oneLine(text)} » {whoShows(text)}`)
+			else
+				table.insert(missing, text)
+				log("Error", `[EN] {code} : sans traduction ou pris en anglais : « {oneLine(text)} » {whoShows(text)}`)
+			end
+		end
+		check(#missing == 0, `version {other.name} : {#missing} texte(s) sans traduction (ou pris en anglais), noms des joueurs et {kept} texte(s) déjà traduit(s) à part`)
+	end
+	player:SetAttribute("Lang", "en")
+	local backToEnglish = waitFor(function()
+		return ask("Language") == "en" and openButton.Text == "⚔ LEVELS"
+	end, 5)
+	check(backToEnglish and window.Tab2.Text == "Training", `retour à l'anglais en direct : « {openButton.Text} », « {window.Tab2.Text} »`)
 
 	------------------------------------------------------------------
 	-- 7) Retour au français : chaque texte traduit revient

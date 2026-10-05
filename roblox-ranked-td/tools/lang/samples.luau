@@ -1,8 +1,11 @@
--- La VERSION ANGLAISE du jeu, vérifiée sans Studio (depuis roblox-ranked-td) :
+-- Les VERSIONS ANGLAISE, ESPAGNOLE et PORTUGAISE du jeu, vérifiées sans Studio (depuis roblox-ranked-td) :
 --   luau.exe tools/lang/samples.luau
 -- Une liste de textes français tels que le jeu les affiche (avec de vrais nombres et de vrais noms), et l'anglais
 -- attendu. Chaque texte doit donner exactement cet anglais, et le traducteur ne doit noter aucun texte sans
--- traduction. Ajoute une ligne ici quand tu ajoutes un texte au jeu (et sa traduction dans src/shared/LangEN).
+-- traduction. Ajoute une ligne ici quand tu ajoutes un texte au jeu (et sa traduction dans src/shared/LangEN, LangES
+-- et LangPT). Chaque texte doit aussi se traduire en entier en espagnol et en portugais (rien de noté sans
+-- traduction, rien de pris en anglais), et quelques textes doivent donner exactement l'espagnol et le portugais
+-- attendus (OTHER_SAMPLES, plus bas).
 -- Le test Studio « run.ps1 -Test english » vérifie ensuite les vrais écrans. Sortie 1 si un échantillon rate.
 local Lang = require("./load")
 
@@ -454,11 +457,70 @@ for _, sample in SAMPLES do
 		print("   attendu : « " .. expected .. " »")
 	end
 end
-local misses = Lang.getMisses()
+local misses = Lang.getMisses("en")
 for _, text in misses do
 	print("[FAIL] sans traduction : « " .. text .. " »")
 end
-print(`{passed} échantillons réussis, {failed} ratés, {#misses} texte(s) sans traduction ({Lang.entryCount()} traductions dans les dictionnaires)`)
+print(`{passed} échantillons réussis, {failed} ratés, {#misses} texte(s) sans traduction ({Lang.entryCount("en")} traductions dans les dictionnaires)`)
+
+-- Espagnol et portugais : { texte français, espagnol attendu, portugais attendu }. (Tous les échantillons du dessus
+-- doivent aussi se traduire en entier dans ces deux langues : vérifié juste après.)
+local OTHER_SAMPLES = {
+	{ "TERRITOIRE 2 • Le col des Pillards de cuivre • 🔒 réussis le niveau 10", "TERRITORIO 2 • El paso de los Saqueadores de cobre • 🔒 supera el nivel 10", "TERRITÓRIO 2 • O desfiladeiro dos Saqueadores de cobre • 🔒 passe do nível 10" },
+	{ "Rejouer :\n+32 💵", "Repetir:\n+32 💵", "Repetir:\n+32 💵" },
+	{ "🔒 +20 %", "🔒 +20 %", "🔒 +20%" },
+	{ "Dégâts : +30 %. Prochaine étoile à l'entraînement 4.", "Daño: +30 %. Próxima estrella en el entrenamiento 4.", "Dano: +30%. Próxima estrela no treino 4." },
+	{ "Réserve • Catapulte • 45 💰 • entraînement 3", "Reserva • Catapulta • 45 💰 • entrenamiento 3", "Reserva • Catapulta • 45 💰 • treino 3" },
+	{ "Dégâts 3 • 5 atq/s • Portée 21\nNiveau suivant : dégâts 4,1", "Daño 3 • 5 atq/s • Alcance 21\nSiguiente nivel: daño 4,1", "Dano 3 • 5 atq/s • Alcance 21\nPróximo nível: dano 4,1" },
+	{ "VICTOIRE !", "¡VICTORIA!", "VITÓRIA!" },
+	{ "Rejouer !", "¡Repetir!", "Repetir!" },
+	{ "Niveau 2 : 54 monstres éliminés sur 176.", "Nivel 2: 54 de 176 monstruos eliminados.", "Nível 2: 54 de 176 monstros derrotados." },
+	{ "🗺 Nouveau territoire ouvert : Le col des Pillards de cuivre !", "🗺 ¡Nuevo territorio abierto: El paso de los Saqueadores de cobre!", "🗺 Novo território liberado: O desfiladeiro dos Saqueadores de cobre!" },
+	{ "🔁 Bloqué ? Rejoue un niveau déjà réussi : chaque victoire donne un œuf et des pièces.", "🔁 ¿Atascado? Repite un nivel ya superado: cada victoria da un huevo y monedas.", "🔁 Travou? Repita um nível já vencido: cada vitória dá um ovo e moedas." },
+	{ "🟢 Robin est en ligne ! Invite-le : +200 💵 pour vous deux s'il vient.", "🟢 ¡Robin está en línea! Invítalo: +200 💵 para los dos si viene.", "🟢 Robin está online! Convide: +200 💵 para vocês dois se ele vier." },
+	{ "🥚 Œuf doré gagné ! Pose-le dans une couveuse.", "🥚 ¡Huevo dorado ganado! Ponlo en una incubadora.", "🥚 Ovo dourado ganho! Coloque numa incubadora." },
+	{ "Chances :\nRare 40 % • Épique 45 % • Légendaire 15 %\nPalier 2 : 75 %", "Probabilidades:\nRara 40 % • Épica 45 % • Legendaria 15 %\nRango 2: 75 %", "Chances:\nRara 40% • Épica 45% • Lendária 15%\nTier 2: 75%" },
+	{ "Encore 12:34", "Listo en 12:34", "Pronto em 12:34" },
+	{ "🌟 Œuf spécial gagné : Œuf carmin (tour : Arc carmin)", "🌟 Huevo especial ganado: Huevo carmesí (torre: Arco carmesí)", "🌟 Ovo especial ganho: Ovo carmesim (torre: Arco carmesim)" },
+	{ "Acheter : 99 R$", "Comprar: 99 R$", "Comprar: 99 Robux" },
+	{ "99 R$", "99 R$", "99 Robux" },
+	{ "2 fois plus rapide • 99 R$", "2 veces más rápido • 99 R$", "2 vezes mais rápido • 99 Robux" },
+	{ "👑 COUVEUSE ROYALE : Œuf doré", "👑 INCUBADORA REAL: Huevo dorado", "👑 INCUBADORA REAL: Ovo dourado" },
+	{ "★★ Niv. 3", "★★ Niv. 3", "★★ Nív. 3" },
+	{ "Son : effets seuls", "Sonido: solo efectos", "Som: só efeitos" },
+	{ "Ta session a été ouverte sur un autre serveur.", "Tu sesión se abrió en otro servidor.", "Sua sessão foi aberta em outro servidor." },
+}
+local otherPassed, otherFailed = 0, 0
+for _, sample in OTHER_SAMPLES do
+	for column, language in { "es", "pt" } do
+		local got = Lang.translate(sample[1], language)
+		local expected = sample[column + 1]
+		if got == expected then
+			otherPassed += 1
+		else
+			otherFailed += 1
+			print(`[FAIL] {language} « {sample[1]} »`)
+			print("   obtenu  : « " .. got .. " »")
+			print("   attendu : « " .. expected .. " »")
+		end
+	end
+end
+for _, sample in SAMPLES do
+	Lang.translate(sample[1], "es")
+	Lang.translate(sample[1], "pt")
+end
+local otherMisses = 0
+for _, language in { "es", "pt" } do
+	for _, text in Lang.getMisses(language) do
+		otherMisses += 1
+		print(`[FAIL] sans traduction ({language}, ou pris en anglais) : « {text} »`)
+	end
+end
+print(`espagnol et portugais : {otherPassed} échantillons réussis, {otherFailed} ratés, {otherMisses} texte(s) sans traduction ({Lang.entryCount("es")} et {Lang.entryCount("pt")} traductions)`)
+
 if failed > 0 or #misses > 0 then
 	error("la version anglaise a des trous", 0)
+end
+if otherFailed > 0 or otherMisses > 0 then
+	error("les versions espagnole ou portugaise ont des trous", 0)
 end

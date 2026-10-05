@@ -11,8 +11,9 @@ Remotes.get("Notify").OnClientEvent:Connect(function(message: string, kind: stri
 	UI.toast(message, kind)
 end)
 
--- Traduction : un joueur qui ne joue pas en français voit les textes traduits en anglais (AutoTranslate.luau,
--- Shared/Lang.luau, dictionnaires Shared/LangEN). Avant les interfaces. Rien ne change pour un joueur francophone.
+-- Traduction : un joueur qui ne joue pas en français voit les textes traduits en anglais, en espagnol ou en portugais
+-- (AutoTranslate.luau, Shared/Lang.luau, dictionnaires Shared/LangEN, LangES, LangPT). Avant les interfaces. Rien ne
+-- change pour un joueur francophone.
 require(script.Parent.AutoTranslate).start()
 
 -- Textes flottants (niveaux des tours, barres de vie...) visibles seulement quand on s'approche.

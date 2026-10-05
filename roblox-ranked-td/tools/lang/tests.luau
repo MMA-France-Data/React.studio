@@ -1,6 +1,7 @@
--- Tests du traducteur (Shared/Lang.luau) sans Studio, avec un petit dictionnaire de test (depuis roblox-ranked-td) :
+-- Tests du traducteur (Shared/Lang.luau) sans Studio, avec de petits dictionnaires de test (depuis roblox-ranked-td) :
 --   luau.exe tools/lang/tests.luau
--- Puis les vrais dictionnaires (src/shared/LangEN) doivent se charger sans problème. Sortie 1 si un test échoue.
+-- Puis les vrais dictionnaires (src/shared/LangEN, LangES, LangPT) doivent se charger sans problème. Sortie 1 si un
+-- test échoue.
 local Lang = require("../../src/shared/Lang")
 
 local passed, failed = 0, 0
@@ -64,7 +65,11 @@ Lang.addDictionary({
 same("fromLocale fr-fr", Lang.fromLocale("fr-fr"), "fr")
 same("fromLocale FR-CA", Lang.fromLocale("FR-CA"), "fr")
 same("fromLocale en-us", Lang.fromLocale("en-us"), "en")
-same("fromLocale es-es", Lang.fromLocale("es-es"), "en")
+same("fromLocale es-es", Lang.fromLocale("es-es"), "es")
+same("fromLocale ES-MX", Lang.fromLocale("ES-MX"), "es")
+same("fromLocale pt-br", Lang.fromLocale("pt-br"), "pt")
+same("fromLocale pt-pt", Lang.fromLocale("pt-pt"), "pt")
+same("fromLocale de-de", Lang.fromLocale("de-de"), "en")
 same("fromLocale vide", Lang.fromLocale(""), "en")
 same("fromLocale nil", Lang.fromLocale(nil), "en")
 same("current hors de Roblox", Lang.current(), "fr")
@@ -188,6 +193,57 @@ end
 check(Lang.cacheSize("en") <= 4000, "mémoire bornée", `{Lang.cacheSize("en")} textes`)
 same("mémoire bornée : traduction toujours juste", en("Vague 4100"), "Wave 4100")
 
+-- Espagnol et portugais : leurs propres dictionnaires, et l'anglais quand une ligne leur manque
+Lang.clearMisses()
+Lang.addDictionary({
+	["Suivant"] = "Siguiente",
+	["Vague {1}"] = "Oleada {1}",
+	["Archer du rempart"] = "Arquero de la muralla",
+	["Niveau {1} de {2}"] = "{2} de nivel {1}",
+	["Étourdit {1} s"] = "Aturde {1} s",
+	["{1} est en ligne !"] = "¡{1} está en línea!",
+	["Ralentit {1} %"] = "Ralentiza {1} %",
+}, "TestES", "es")
+Lang.addDictionary({
+	["Suivant"] = "Próximo",
+	["Vague {1}"] = "Onda {1}",
+	["Ralentit {1} %"] = "Deixa {1}% mais lento",
+}, "TestPT", "pt")
+local function es(text: string): string
+	return Lang.translate(text, "es")
+end
+local function pt(text: string): string
+	return Lang.translate(text, "pt")
+end
+same("es-mx = espagnol", Lang.translate("Suivant", "es-mx"), "Siguiente")
+same("pt-br = portugais", Lang.translate("Suivant", "pt-br"), "Próximo")
+same("anglais inchangé", en("Suivant"), "Next")
+same("espagnol : exact", es("Suivant"), "Siguiente")
+same("espagnol : modèle", es("Vague 12"), "Oleada 12")
+same("portugais : modèle", pt("Vague 12"), "Onda 12")
+same("espagnol : nom traduit dans un modèle", es("Niveau 3 de Archer du rempart"), "Arquero de la muralla de nivel 3")
+same("espagnol : la virgule des nombres reste", es("Étourdit 0,5 s"), "Aturde 0,5 s")
+same("espagnol : nombre seul inchangé", es("2,5 %"), "2,5 %")
+same("portugais : nombre seul, pas d'espace avant %", pt("2,5 %"), "2,5%")
+same("portugais : modèle avec %", pt("Ralentit 40 %"), "Deixa 40% mais lento")
+same("espagnol : « ¡ » devant une phrase qui finit par « ! »", es("Suivant !"), "¡Siguiente!")
+same("espagnol : « ¿ » devant une phrase qui finit par « ? »", es("🔒 Suivant ?"), "🔒 ¿Siguiente?")
+same("portugais : pas de « ¡ »", pt("Suivant !"), "Próximo!")
+same("espagnol : « ¡ » passe après l'emoji d'un {n}", es("🟢 Robin est en ligne !"), "🟢 ¡Robin está en línea!")
+same("espagnol : « ¡ » sans emoji", es("Robin est en ligne !"), "¡Robin está en línea!")
+-- Ligne absente en espagnol ou en portugais : l'anglais, et le texte est noté dans les manques de SA langue
+same("espagnol : ligne absente -> anglais", es("Tu gardes tout le reste :"), "You keep everything else:")
+check(hasValue(Lang.getMisses("es"), "Tu gardes tout le reste :"), "espagnol : texte pris en anglais noté")
+check(not hasValue(Lang.getMisses("en"), "Tu gardes tout le reste :"), "anglais : rien de noté pour l'espagnol")
+same("portugais : modèle absent -> anglais", pt("Il te faut 5 pièces pour x10"), "You need 5 coins for x10")
+check(hasValue(Lang.getMisses("pt"), "Il te faut 5 pièces pour x10"), "portugais : texte pris en anglais noté")
+same("portugais : inconnu partout -> français", pt("Texte inconnu 2"), "Texte inconnu 2")
+check(hasValue(Lang.getMisses("pt"), "Texte inconnu 2"), "portugais : inconnu noté")
+check(not hasValue(Lang.getMisses("es"), "Texte inconnu 2"), "espagnol : rien de noté pour le portugais")
+same("traductions par langue", Lang.entryCount("es"), 7)
+same("français : aucune traduction", Lang.entryCount("fr"), 0)
+check(Lang.cacheSize("es") > 0 and Lang.cacheSize("pt") > 0, "mémoire par langue")
+
 -- Problèmes des dictionnaires
 Lang.addDictionary({
 	["Suivant"] = "Continue", -- doublon avec une autre traduction
@@ -224,13 +280,17 @@ perText = (os.clock() - started) / 3000 * 1e6
 print(string.format("rapidité : %.1f µs par texte inconnu (500 modèles)", perText))
 check(perText < 300, "rapidité (inconnus)", string.format("%.1f µs par texte", perText))
 
--- Les vrais dictionnaires (src/shared/LangEN) se chargent sans problème.
+-- Les vrais dictionnaires (src/shared/LangEN, LangES, LangPT) se chargent sans problème, avec autant de lignes.
 Lang.reset()
 local Real = require("./load")
 local realProblems = Real.getProblems()
 check(#realProblems == 0, "vrais dictionnaires sans problème", table.concat(realProblems, " | "))
-print(`vrais dictionnaires : {Real.entryCount()} traductions`)
+print(`vrais dictionnaires : {Real.entryCount("en")} traductions en anglais, {Real.entryCount("es")} en espagnol, {Real.entryCount("pt")} en portugais`)
+same("espagnol : autant de lignes que l'anglais", Real.entryCount("es"), Real.entryCount("en"))
+same("portugais : autant de lignes que l'anglais", Real.entryCount("pt"), Real.entryCount("en"))
 same("glossaire chargé", Real.translate("Trébuchet royal", "en"), "Royal Trebuchet")
+same("glossaire espagnol chargé", Real.translate("Trébuchet royal", "es"), "Trebuchet real")
+same("glossaire portugais chargé", Real.translate("Trébuchet royal", "pt"), "Trabuco real")
 
 print(`{passed} tests réussis, {failed} ratés`)
 if failed > 0 then

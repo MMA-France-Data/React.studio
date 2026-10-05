@@ -8,8 +8,8 @@ local PlayerData = require(script.Parent.PlayerData)
 
 Remotes.init()
 
--- Langue de chaque joueur (attribut « Lang » : "fr" s'il joue en français, sinon "en"), dès son arrivée. Le client
--- traduit ce qui s'affiche (AutoTranslate, Shared/Lang.luau).
+-- Langue de chaque joueur (attribut « Lang » : "fr" s'il joue en français, "es" en espagnol, "pt" en portugais,
+-- sinon "en"), dès son arrivée. Le client traduit ce qui s'affiche (AutoTranslate, Shared/Lang.luau).
 require(Shared.Lang).startServer()
 
 -- Modèles perso des ennemis (ReplicatedStorage.EnemyModels) : aucun script n'y a sa place (sécurité, voir

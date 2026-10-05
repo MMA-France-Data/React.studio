@@ -19,10 +19,11 @@ Config.STUDIO_SOUND_PANEL = true
 Config.STUDIO_TUTORIAL = true
 
 -- Langue du jeu dans Studio (src/shared/Lang.luau). Dans le jeu publié, un joueur dont la langue Roblox est le
--- français voit le jeu en français, tous les autres en anglais.
+-- français voit le jeu en français, l'espagnol en espagnol, le portugais en portugais, tous les autres en anglais.
 --   "auto" -> comme dans le jeu publié (d'après la langue de ton Studio / de ton compte Roblox)
 --   "fr"   -> toujours en français
 --   "en"   -> toujours en anglais (pour vérifier la traduction)
+--   "es"   -> toujours en espagnol ; "pt" -> toujours en portugais
 -- Ne change rien au jeu publié. Les tests automatiques (tools/studio-test) démarrent toujours en français.
 Config.STUDIO_LANGUAGE = "auto"
 

@@ -271,7 +271,7 @@ function Methods:propertyConnections(property)
 end
 
 ----------------------------------------------------------------------
--- Monde : DataModel, joueur local (Studio, langue Roblox anglaise), Shared avec Lang, Config et LangEN
+-- Monde : DataModel, joueur local (Studio, langue Roblox anglaise), Shared avec Lang, Config, LangEN, LangES et LangPT
 ----------------------------------------------------------------------
 local LOCALE = "en-us"
 local STUDIO = true
@@ -285,6 +285,8 @@ new("ModuleScript", { Name = "Lang", Parent = shared })
 local langFolder = new("Folder", { Name = "LangEN", Parent = shared })
 local glossaryModule = new("ModuleScript", { Name = "Glossary", Parent = langFolder })
 local testModule = new("ModuleScript", { Name = "Test", Parent = langFolder })
+local testModuleES = new("ModuleScript", { Name = "Test", Parent = new("Folder", { Name = "LangES", Parent = shared }) })
+local testModulePT = new("ModuleScript", { Name = "Test", Parent = new("Folder", { Name = "LangPT", Parent = shared }) })
 local localPlayer = new("Player", { Name = "Maelu", DisplayName = "Maël", LocaleId = LOCALE, Parent = players })
 local playerGui = new("PlayerGui", { Name = "PlayerGui", Parent = localPlayer })
 players._props.LocalPlayer = localPlayer
@@ -341,6 +343,16 @@ local TEST_DICTIONARY = { -- (en plus du vrai Glossaire)
 	["Vague {1}"] = "Wave {1}",
 	["Ouvrir"] = "Open",
 }
+local TEST_DICTIONARY_ES = { -- (seul dictionnaire espagnol : le reste est pris en anglais)
+	["Archer du rempart"] = "Arquero de la muralla",
+	["Suivant"] = "Siguiente",
+	["Vague {1}"] = "Oleada {1}",
+	["Ouvrir"] = "Abrir",
+}
+local TEST_DICTIONARY_PT = { -- (seul dictionnaire portugais)
+	["Suivant"] = "Próximo",
+	["Vague {1}"] = "Onda {1}",
+}
 makeEnv = function(module)
 	return setmetatable({
 		game = gameRoot,
@@ -377,6 +389,10 @@ makeEnv = function(module)
 				return CONFIG
 			elseif target == testModule then
 				return TEST_DICTIONARY
+			elseif target == testModuleES then
+				return TEST_DICTIONARY_ES
+			elseif target == testModulePT then
+				return TEST_DICTIONARY_PT
 			end
 			return load(target)
 		end,

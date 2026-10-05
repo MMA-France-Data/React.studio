@@ -181,7 +181,7 @@ l'œuf spécial d'un boss rejoué (1 fois sur 10 sinon).
   fois (rien de plus), puis une 2e fois de suite : le conseil (rejouer un niveau réussi, ses œufs qui attendent) et le
   bouton « ◀ Rejouer le niveau 10 », qui le relance (`eggs_bloque`).
 
-### `run.ps1 -Test english` : la version anglaise (environ 3 minutes)
+### `run.ps1 -Test english` : les versions anglaise, espagnole et portugaise (environ 4 minutes)
 
 Scénarios `scenarios\EnglishServer.luau` et `scenarios\EnglishClient.luau`. Captures `out\english_<nom>.png`.
 Le joueur passe en anglais en direct (son attribut `Lang`, comme le serveur le met pour un joueur non
@@ -190,7 +190,12 @@ puis joueur avancé), panneaux et invites de la parcelle, un niveau (conseils, b
 petits messages), les écrans de fin (défaite, victoire avec une évolution, dernier niveau), les mots de la flèche
 du tuto. À chaque écran, chaque texte qui a encore l'air français (lettre accentuée ou mot français courant) est
 noté, ainsi que les textes que le traducteur n'a pas trouvés. À la fin : la liste « non traduit : ... » (elle doit
-être vide), puis le retour au français (chaque texte doit revenir).
+être vide). Ensuite le joueur passe en espagnol puis en portugais : les onglets du camp, la boutique, l'équipe, un
+niveau (menu d'une tour, petits messages, défaite, victoire), avec une capture de chaque écran
+(`out\english_es_<nom>.png`, `out\english_pt_<nom>.png` : les textes, plus longs, doivent tenir dans leurs cadres) ;
+aucun texte ne doit manquer dans leurs dictionnaires ni être pris en anglais (sans compter les noms des joueurs et
+les textes déjà traduits qu'un objet garde). Puis le retour à l'anglais, et au français (chaque texte doit
+revenir).
 
 ### `run.ps1 -Test page` puis `page.ps1` : les images de la page Roblox du jeu
 
@@ -279,7 +284,7 @@ powershell -ExecutionPolicy Bypass -File tools\studio-test\check.ps1
 | `scenarios\LevelsClient.luau` | Le jeu côté client (la vraie interface, à la taille d'un ordinateur puis d'un téléphone) |
 | `scenarios\MonstersClient.luau` | Les modèles 3D des monstres et la galerie |
 | `scenarios\TutorialServer.luau`, `scenarios\TutorialClient.luau` | Le tuto d'un nouveau joueur |
-| `scenarios\EnglishServer.luau`, `scenarios\EnglishClient.luau` | La version anglaise |
+| `scenarios\EnglishServer.luau`, `scenarios\EnglishClient.luau` | Les versions anglaise, espagnole et portugaise |
 | `scenarios\PageClient.luau`, `page.ps1` | Les images de la page Roblox du jeu (captures, puis recadrage dans `assets\page`) |
 
 **Le plugin ne fait rien dans tes places** : sa première vérification est `if not marker then return end`. Il ne

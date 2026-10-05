@@ -185,33 +185,41 @@ que chez le joueur (`src/client/SoundManager.luau`) : aucun coût pour le serveu
      privé ou payant : prends-en un autre.
   Trop fort ou trop faible : change son `volume` (0 à 1). Joue trop souvent : augmente `minInterval`.
 
-## Langues : français et anglais
+## Langues : français, anglais, espagnol, portugais
 
-- Le jeu est écrit en français, et **tout est traduit en anglais** : un joueur dont la langue Roblox est le français
-  voit le jeu en français, tous les autres le voient en anglais (fenêtre du camp, niveaux, tuto, petits messages,
-  panneaux et invites de la parcelle).
-- **Comment ça marche** : le serveur met l'attribut `Lang` (« fr » ou « en ») sur chaque joueur d'après sa langue
+- Le jeu est écrit en français, et **tout est traduit en anglais, en espagnol et en portugais (du Brésil)** : un
+  joueur dont la langue Roblox est le français voit le jeu en français, l'espagnol en espagnol, le portugais en
+  portugais, et tous les autres en anglais (fenêtre du camp, niveaux, tuto, petits messages, panneaux et invites
+  de la parcelle).
+- **Comment ça marche** : le serveur met l'attribut `Lang` (« fr », « en », « es » ou « pt ») sur chaque joueur
+  d'après sa langue
   Roblox (`Lang.startServer`). Chez un joueur non francophone, `src/client/AutoTranslate.luau` remplace chaque texte
   affiché par sa traduction dès qu'il apparaît ou change, et garde le texte français d'origine. Un joueur
   francophone ne paie presque rien. Le code du jeu ne relit donc jamais un `.Text` pour décider quelque chose, et
   n'écrit un texte que quand il change.
-- **Traductions** : `src/shared/LangEN/` (`Glossary` = les noms : tours, monstres, territoires, évolutions ; `Game` =
-  tous les autres textes), une ligne par texte : `["texte français exact"] = "English",`. Un texte qui change :
+- **Traductions** : `src/shared/LangEN/` (anglais), `LangES/` (espagnol), `LangPT/` (portugais), avec dans chacun
+  `Glossary` (les noms : tours, monstres, territoires, évolutions) et `Game` (tous les autres textes), une ligne par
+  texte : `["texte français exact"] = "English",` (les mêmes lignes dans les trois). Une ligne qui manque en
+  espagnol ou en portugais : ce joueur voit l'anglais à la place. Un texte qui change :
   `{1}`, `{2}`… Un texte entouré de symboles ou de nombres (« 🔒 Totem de givre », « Archer du rempart ★★ »,
   « +0,3 XP ») est traduit par son milieu : pas besoin d'une ligne pour chacun. Mode d'emploi en haut de
   `src/shared/Lang.luau`. Un texte sans traduction reste en français.
-- **Quand tu ajoutes un texte au jeu** : ajoute sa traduction dans `LangEN/Game.luau`, et une ligne dans
-  `tools/lang/samples.luau` (le texte tel qu'il s'affiche, et l'anglais attendu).
-- **Vérifier sans Studio** : `luau tools/lang/samples.luau` (219 textes du jeu et leur anglais attendu, aucun trou),
-  `luau tools/lang/check.luau` (traductions chargées, doublons), `luau tools/lang/tests.luau` (le traducteur),
+- **Quand tu ajoutes un texte au jeu** : ajoute sa traduction dans `LangEN/Game.luau`, `LangES/Game.luau` et
+  `LangPT/Game.luau`, et une ligne dans `tools/lang/samples.luau` (le texte tel qu'il s'affiche, et l'anglais
+  attendu).
+- **Vérifier sans Studio** : `luau tools/lang/samples.luau` (387 textes du jeu et leur anglais attendu, aucun trou,
+  ni en anglais, ni en espagnol, ni en portugais), `luau tools/lang/check.luau` (traductions chargées, doublons,
+  lignes qui manquent en espagnol ou en portugais), `luau tools/lang/tests.luau` (le traducteur),
   `node tools/lang/autotranslate-test.cjs` (la traduction de l'écran, avec un faux Roblox).
 - **Vérifier dans Studio** : `tools\studio-test\run.ps1 -Test english` passe le joueur en anglais, ouvre tous les
-  écrans et liste chaque texte resté en français (il ne doit y en avoir aucun).
-- **Voir le jeu en anglais dans Studio** : `Config.STUDIO_LANGUAGE = "en"` (`"auto"` = comme le jeu publié, `"fr"`).
+  écrans et liste chaque texte resté en français (il ne doit y en avoir aucun), puis refait le tour en espagnol et
+  en portugais (aucun texte resté en français, aucun pris en anglais).
+- **Voir le jeu dans une autre langue dans Studio** : `Config.STUDIO_LANGUAGE = "en"`, `"es"` ou `"pt"` (`"auto"` =
+  comme le jeu publié, `"fr"`).
 - **Jamais la traduction automatique de Roblox** : depuis juin 2026, Roblox traduit tout seul les textes des jeux
   pour les joueurs qui ont le réglage « Traductions automatiques », en supposant qu'ils sont écrits dans la « langue
-  source » du jeu. Les nôtres sont en français pour les uns, en anglais pour les autres : il prendrait l'un pour
-  l'autre. `AutoTranslate.luau` l'en empêche pour tous les joueurs (« LE BOUCLIER » : `AutoLocalize = false` sur
+  source » du jeu. Les nôtres sont en français pour les uns, traduits par nous pour les autres : il prendrait l'un
+  pour l'autre. `AutoTranslate.luau` l'en empêche pour tous les joueurs (« LE BOUCLIER » : `AutoLocalize = false` sur
   chaque écran, chaque panneau du monde et chaque invite). La langue source réglée dans le Hub Création ne compte
   donc que pour la **page** du jeu (son nom, sa description), jamais pour le jeu lui-même.
 - La colonne de la liste des joueurs de Roblox (`leaderstats`) a le même nom pour tout le monde : c'est donc un mot
@@ -240,7 +248,7 @@ difficulté d'un niveau est cassée.
 src/
   shared/   (ReplicatedStorage.Shared)    Config, Levels, Monetization, TeamMaps, IdleTowers, IdleConfig, Enemies, PlotLayout,
                                           RoadGeometry, Remotes, Sounds, NumberFormat, ProximityLabel, MedievalModels,
-                                          CustomModels, Lang, LangEN/{Glossary, Game}
+                                          CustomModels, Lang, LangEN/LangES/LangPT/{Glossary, Game}
   server/   (ServerScriptService.Server)  Main, PlayerData, MockDataStore, LevelLeaderboard,
                                           Hub/{init, HubMap, Plots, PlotBoard, PlotIdentity, PlotInterest, LevelBoard, Shop,
                                                Combat, LevelGame, LevelArena, LevelsService, LevelTeams, Funnel, Camp,

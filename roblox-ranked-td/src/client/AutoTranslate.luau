@@ -1,20 +1,21 @@
 -- Traduction automatique de tout ce qui s'affiche, côté client.
--- Le jeu écrit tous ses textes en français. Pour un joueur NON francophone (attribut « Lang » = "en", mis par le
--- serveur d'après sa langue Roblox, voir Shared/Lang.luau), ce module remplace chaque texte affiché par sa
--- traduction anglaise (dictionnaires Shared/LangEN) :
+-- Le jeu écrit tous ses textes en français. Pour un joueur NON francophone (attribut « Lang » = "en", "es" ou "pt",
+-- mis par le serveur d'après sa langue Roblox, voir Shared/Lang.luau), ce module remplace chaque texte affiché par sa
+-- traduction anglaise, espagnole ou portugaise (dictionnaires Shared/LangEN, LangES, LangPT) :
 --   * les TextLabel et TextButton de son écran (PlayerGui) et des panneaux du monde (SurfaceGui, BillboardGui) ;
 --   * les invites ProximityPrompt (ActionText « Ouvrir », ObjectText « LES ŒUFS »...).
 -- Jamais les TextBox (où le joueur écrit). Un texte est traduit quand il apparaît, puis à chaque fois que le jeu (ou
--- le serveur) le change : le jeu continue d'écrire en français, sans rien savoir de l'anglais. Pour chaque texte, on
--- garde le texte français d'origine : retour au français en direct si la langue change (attribut « Lang »).
+-- le serveur) le change : le jeu continue d'écrire en français, sans rien savoir des traductions. Pour chaque texte,
+-- on garde le texte français d'origine : retour au français (ou passage à une autre langue) en direct si la langue
+-- change (attribut « Lang »).
 -- Rien ne se traduit sous un objet qui a l'attribut NoTranslate = true (outils Studio, noms de joueurs...), ni un texte
 -- qui est juste le nom d'un joueur.
 -- La traduction automatique de Roblox ne touche jamais les textes du jeu, pour AUCUN joueur : voir « LE BOUCLIER ».
 -- Coût : un joueur francophone ne paie presque rien (l'écoute de l'attribut « Lang », et le bouclier : un coup d'œil
--- à la classe de chaque objet qui apparaît) ; un joueur anglais : un tour de tous les objets au départ, puis
--- seulement quand un objet apparaît ou qu'un texte change (jamais à chaque image), et les traductions déjà faites
--- sont gardées en mémoire (Lang.luau).
--- Le code du jeu ne doit donc jamais RELIRE un .Text pour décider quelque chose (il peut être en anglais) : il garde
+-- à la classe de chaque objet qui apparaît) ; un joueur qui voit une traduction : un tour de tous les objets au
+-- départ, puis seulement quand un objet apparaît ou qu'un texte change (jamais à chaque image), et les traductions
+-- déjà faites sont gardées en mémoire (Lang.luau).
+-- Le code du jeu ne doit donc jamais RELIRE un .Text pour décider quelque chose (il peut être traduit) : il garde
 -- son propre texte français (ou AutoTranslate.original).
 -- Studio seulement : BindableFunction « AutoTranslateStudio » dans le joueur (tests automatiques, voir setupStudioDebug).
 local Players = game:GetService("Players")
@@ -91,9 +92,9 @@ local function changed(instance: Instance, property: string)
 end
 
 -- La traduction automatique de Roblox (Creator Dashboard, partie Localisation, parfois allumée par défaut) ne doit
--- jamais toucher un texte que nous traduisons : elle prendrait notre anglais pour du français. Chaque texte suivi
--- (joueur anglais seulement) a donc AutoLocalize = false, remis comme avant au retour au français. (pcall : propriété
--- absente dans les tests hors de Roblox)
+-- jamais toucher un texte que nous traduisons : elle prendrait notre traduction pour du français. Chaque texte suivi
+-- (joueur qui voit une traduction seulement) a donc AutoLocalize = false, remis comme avant au retour au français.
+-- (pcall : propriété absente dans les tests hors de Roblox)
 local function setAutoLocalize(instance: Instance, value: boolean)
 	pcall(function()
 		(instance :: any).AutoLocalize = value
@@ -103,7 +104,7 @@ end
 -- LE BOUCLIER, pour tous les joueurs (français compris). Depuis juin 2026, Roblox traduit tout seul les textes des
 -- jeux pour les joueurs qui ont le réglage « Traductions automatiques », même si le jeu n'a rien demandé, en
 -- supposant que ces textes sont écrits dans la « langue source » du jeu (Hub Création > Audience > Localisation).
--- Les nôtres sont en français pour les uns et en anglais (notre traduction) pour les autres : aucune langue source
+-- Les nôtres sont en français pour les uns et traduits par nous pour les autres : aucune langue source
 -- ne convient aux deux, Roblox prendrait l'un pour l'autre. Il ne doit donc en traduire AUCUN : chaque écran, chaque
 -- panneau du monde et chaque invite a AutoLocalize = false. Coupé sur l'écran ou le panneau, il l'est pour tout ce
 -- qu'il contient (documentation de Roblox : « AutoLocalize must be set to true on the GuiBase2d and its ancestors
@@ -211,7 +212,7 @@ local function refreshPlayerNames()
 	end
 end
 
--- Passe en anglais : suit tous les textes déjà là, puis ceux qui apparaissent.
+-- Passe à une traduction (langue `shown`) : suit tous les textes déjà là, puis ceux qui apparaissent.
 local function watchAll()
 	local playerGui = player:WaitForChild("PlayerGui")
 	refreshPlayerNames()
@@ -256,7 +257,8 @@ local function restoreAll()
 	table.clear(playerNames)
 end
 
--- Change la langue affichée ("fr" ou "en" ; rien = celle du joueur, Lang.current). Sans effet si c'est déjà elle.
+-- Change la langue affichée ("fr", "en", "es" ou "pt" ; rien = celle du joueur, Lang.current). Sans effet si c'est
+-- déjà elle. D'une traduction à une autre : chaque texte reprend d'abord son français, puis se traduit.
 function AutoTranslate.setLanguage(language: string?)
 	local wanted = if language == nil then Lang.current() else Lang.fromLocale(language)
 	if wanted == shown then
@@ -271,13 +273,13 @@ function AutoTranslate.setLanguage(language: string?)
 	end
 end
 
--- Langue affichée en ce moment ("fr" ou "en").
+-- Langue affichée en ce moment ("fr", "en", "es" ou "pt").
 function AutoTranslate.language(): string
 	return shown
 end
 
 -- Texte français d'origine d'un objet (propriété "Text" par défaut) : celui que le jeu a écrit, même s'il est affiché
--- en anglais. Objet non suivi (joueur francophone...) : son texte actuel.
+-- traduit. Objet non suivi (joueur francophone...) : son texte actuel.
 function AutoTranslate.original(instance: Instance, property: string?): string?
 	local name = property or "Text"
 	local record = records[instance]
@@ -294,11 +296,14 @@ end
 -- Studio seulement (jamais dans le jeu publié) : BindableFunction « AutoTranslateStudio » dans le joueur, pour les
 -- tests automatiques (tools/studio-test). Un scénario de test a sa propre copie des modules : il passe par elle
 -- pour lire l'état de CETTE copie.
---   Invoke("Language")               -> langue affichée ("fr" ou "en")
+--   Invoke("Language")               -> langue affichée ("fr", "en", "es" ou "pt")
 --   Invoke("Tracked")                -> nombre de textes suivis
 --   Invoke("Original", objet, prop?) -> texte français d'origine de l'objet (nil s'il n'est pas suivi)
---   Invoke("Misses") / Invoke("ClearMisses") -> textes sans traduction notés par Lang (liste) / vider la liste
---   Invoke("Problems")               -> problèmes des dictionnaires ; Invoke("Entries") -> nombre de traductions
+--   Invoke("Misses", langue?)        -> textes sans traduction notés par Lang dans cette langue (anglais par défaut ;
+--                                      en espagnol et en portugais, aussi ceux pris en anglais)
+--   Invoke("ClearMisses")            -> vider les listes de toutes les langues
+--   Invoke("Problems")               -> problèmes des dictionnaires
+--   Invoke("Entries", langue?)       -> nombre de traductions dans cette langue (anglais par défaut)
 --   Invoke("Translate", texte, langue?) -> traduction (anglais par défaut)
 local function setupStudioDebug()
 	if not RunService:IsStudio() then
@@ -318,14 +323,16 @@ local function setupStudioDebug()
 			local entry = record and record.texts[property or "Text"]
 			return entry and entry.original
 		elseif command == "Misses" then
-			return Lang.getMisses()
+			local language = ...
+			return Lang.getMisses(language)
 		elseif command == "ClearMisses" then
 			Lang.clearMisses()
 			return true
 		elseif command == "Problems" then
 			return Lang.getProblems()
 		elseif command == "Entries" then
-			return Lang.entryCount()
+			local language = ...
+			return Lang.entryCount(language)
 		elseif command == "Translate" then
 			local text, language = ...
 			return Lang.translate(text, language or Lang.ENGLISH)

@@ -19,6 +19,10 @@ Le jeu sort comme une **nouvelle expérience Roblox** (décision du 02/10/2026) 
 - [x] **Version anglaise** : tous les écrans, le tuto, les messages et les panneaux sont traduits pour les joueurs
       non francophones (voir `README.md`, « Langues »). Vérifié par `run.ps1 -Test english` : aucun texte ne reste
       en français.
+- [x] **Versions espagnole et portugaise** (nuit du 05/10/2026) : les joueurs dont la langue Roblox est l'espagnol
+      ou le portugais voient tout le jeu dans leur langue (espagnol d'Amérique latine avec « tú », portugais du
+      Brésil avec « você » ; en portugais, les prix s'écrivent « 99 Robux », car « R$ » y est le symbole du réal).
+      Les autres (allemand, etc.) voient l'anglais. Vérifié par `run.ps1 -Test english` (les 3 langues).
 - [ ] **Essai sur un vrai téléphone** : boutons, textes, pose d'une tour au doigt, zoom en pinçant, fluidité. (Les
       tests automatiques ne vérifient que la taille de l'écran, pas le toucher.)
 - [ ] **Un nouveau joueur passe-t-il le niveau 1 ?** La difficulté est réglée avec des joueurs simulés et un seul
@@ -34,9 +38,8 @@ Le jeu sort comme une **nouvelle expérience Roblox** (décision du 02/10/2026) 
 - [ ] Ouvrir les niveaux 41 à 100 (tes mises à jour) : les régler de nouveau pour les œufs, puis
       `Levels.OPEN_COUNT`. Plus de 100 niveaux : il faudrait de nouvelles familles de monstres (les dix prévues sont
       utilisées).
-- [ ] Les autres langues (espagnol, portugais...) : aujourd'hui ces joueurs voient le jeu en anglais. Après la
-      sortie, on pourra essayer de laisser Roblox traduire notre anglais dans leur langue (ça ne se teste que sur le
-      jeu publié, pas dans Studio).
+- [ ] Les autres langues (allemand, russe, coréen...) : aujourd'hui ces joueurs voient le jeu en anglais. Une
+      langue de plus = un dossier `src/shared/LangXX` comme `LangES` (voir le haut de `src/shared/Lang.luau`).
 - [ ] Monstres : **les boss des niveaux 60 et 90** (la Légion des os, la Horde gobeline) n'ont pas encore de modèle
       3D : en attendant, ils sont faits de blocs, comme un monstre sans modèle (ces niveaux sont fermés pour
       l'instant). À faire faire par ChatGPT comme les autres (`assets/EnemyModels/Boss_5.rbxm` et `Boss_8.rbxm`).
@@ -61,8 +64,8 @@ Le jeu sort comme une **nouvelle expérience Roblox** (décision du 02/10/2026) 
       la plus récente ; elle n'est pas dans git). Ferme les autres fenêtres de Studio avant de publier, pour ne pas
       te tromper de fichier. « -anglais » : la même que `Jeu-100-niveaux-v13` (commit e7ac7f0), mais Studio te la montre en
       anglais (`Config.STUDIO_LANGUAGE = "en"`, qui ne joue que dans Studio). Une fois publié, le jeu est le même :
-      chaque joueur le voit dans sa langue Roblox (le français pour un compte en français, l'anglais pour tous les
-      autres).
+      chaque joueur le voit dans sa langue Roblox (le français pour un compte en français, l'espagnol, le portugais,
+      et l'anglais pour tous les autres).
 - [ ] Publier comme une **nouvelle expérience** sur ton compte personnel (Fichier > Publier sur Roblox > « Créer une
       nouvelle expérience »), en privé. Les mises à jour ensuite : ouvrir la nouvelle copie propre,
       Publier sur Roblox > « Mettre à jour l'expérience existante… » > la nouvelle expérience (**pas** « Tower 22 »).
@@ -76,9 +79,10 @@ Le jeu sort comme une **nouvelle expérience Roblox** (décision du 02/10/2026) 
       hasard ; le jeu les cache là où Roblox les interdit) ; tout le reste : non.
 - [ ] Langue de la page (Hub Création > l'expérience > Audience > Localisation > Langues) : la **langue source** doit
       être celle de la description que tu colles sur la page (**English** si tu colles la description anglaise).
-      Tu peux ajouter « Français » dans les langues prises en charge et y coller le nom et la description en
-      français. Pour les textes **dans** le jeu, rien à régler : le jeu se traduit lui-même (français ou anglais)
-      et empêche Roblox d'y toucher (voir `README.md`, « Langues »).
+      Tu peux ajouter « Français », « Espagnol » et « Portugais » dans les langues prises en charge et y coller le
+      nom et la description dans ces langues (plus bas). Pour les textes **dans** le jeu, rien à régler : le jeu se
+      traduit lui-même (français, anglais, espagnol, portugais) et empêche Roblox d'y toucher (voir `README.md`,
+      « Langues »).
 - [ ] Page du jeu : nom, description (français et anglais), icône, miniatures, vidéo (Roblox : 30 s au plus, textes
       et son en anglais, compte vérifié de 13 ans et plus pour l'envoyer). Une description prête à coller est plus
       bas (« Textes pour la page du jeu »), des images du nouveau jeu sont prêtes dans `assets/page` (voir son
@@ -120,6 +124,32 @@ Défends ton château dans des niveaux rapides de 2 à 3 minutes !
 - Joue en équipe : de 2 à 4 joueurs, chacun défend son couloir, et tout le monde gagne plus de pièces.
 - Ton camp d'entraînement : tes tours s'entraînent et gagnent des étoiles, même quand tu es parti.
 - Sur ordinateur et sur téléphone. Gratuit.
+```
+
+En espagnol :
+
+```text
+¡Defiende tu castillo en niveles rápidos de 2 a 3 minutos!
+
+- Coloca tus torres donde quieras y mejóralas sin parar: los monstruos se vuelven cada vez más fuertes.
+- 40 niveles en 4 territorios, con minijefes y jefes (pronto habrá más).
+- 20 torres: gana un huevo con cada victoria, ponlo en tus incubadoras y consigue una torre nueva, o su versión de rango 2, mucho más fuerte. Vence al jefe de un territorio para ganar su huevo especial y su torre especial.
+- Juega en equipo: de 2 a 4 jugadores, cada uno defiende su camino, y todos ganan más monedas.
+- Tu propio campamento de entrenamiento: tus torres entrenan y ganan estrellas, incluso cuando no estás.
+- Para PC y teléfono. Gratis.
+```
+
+En portugais (du Brésil) :
+
+```text
+Defenda seu castelo em níveis rápidos de 2 a 3 minutos!
+
+- Coloque suas torres onde quiser e melhore-as sem parar: os monstros ficam cada vez mais fortes.
+- 40 níveis em 4 territórios, com minichefes e chefes (mais em breve).
+- 20 torres: ganhe um ovo a cada vitória, coloque-o nas suas incubadoras e ganhe uma torre nova, ou a versão tier 2 dela, bem mais forte. Vença o chefe de um território para ganhar o ovo especial e a torre especial dele.
+- Jogue em equipe: de 2 a 4 jogadores, cada um defende seu caminho, e todos ganham mais moedas.
+- Seu próprio acampamento de treino: suas torres treinam e ganham estrelas, mesmo quando você não está.
+- Para PC e celular. Grátis.
 ```
 
 ## Derniers essais dans le jeu publié (encore privé)
