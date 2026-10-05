@@ -12,6 +12,16 @@
         "$path": "src/server"
       }
     },
+    "ServerStorage": {
+      "LibraryVisuals": {
+        "$className": "Folder",
+        "BenchPress": { "$path": "assets/library/BenchPress.rbxmx" },
+        "Treadmill": { "$path": "assets/library/Treadmill.rbxmx" },
+        "Trampoline": { "$path": "assets/library/Trampoline.rbxmx" },
+        "Meteor": { "$path": "assets/library/Meteor.rbxmx" },
+        "Rock": { "$path": "assets/library/Rock.rbxmx" }
+      }
+    },
     "StarterPlayer": {
       "$properties": {
         "CharacterUseJumpPower": false

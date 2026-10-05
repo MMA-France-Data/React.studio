@@ -1,0 +1,78 @@
+[
+  {
+    "name": "BenchPress",
+    "id": 18999544867,
+    "url": "https://create.roblox.com/store/asset/18999544867/Bench-Station-1",
+    "creator": "yaybravl",
+    "freeVerified": "2026-10-05",
+    "parts": 88,
+    "scriptsExcluded": 0,
+    "bounds": [
+      10.990001320838928,
+      5.843994113233494,
+      8.199996948242188
+    ],
+    "sha256": "69c077074fdacbf9e7cf6c07d6dcb95c2cb11076099fa6676335954ca4e56b4c"
+  },
+  {
+    "name": "Trampoline",
+    "id": 13052221356,
+    "url": "https://create.roblox.com/store/asset/13052221356/Trampoline",
+    "creator": "Campo925029",
+    "freeVerified": "2026-10-05",
+    "parts": 14,
+    "scriptsExcluded": 2,
+    "bounds": [
+      15.612904717903007,
+      3.010228398639952,
+      15.462777137933244
+    ],
+    "sha256": "b6d05d54e2946ca340d2a001f7d80739f2c69dd4687ea6bcfa0f4b4016bc76b8",
+    "bounceTop": 3.0100905130887323
+  },
+  {
+    "name": "Treadmill",
+    "id": 85059126195767,
+    "url": "https://create.roblox.com/store/asset/85059126195767/cardio",
+    "creator": "z8ir",
+    "freeVerified": "2026-10-05",
+    "parts": 1,
+    "scriptsExcluded": 0,
+    "bounds": [
+      3.9728100299835205,
+      5.779975891113281,
+      8.333565711975098
+    ],
+    "sha256": "536b56964cd7eae3e92d41248b1cc1132b1dd30db2a10485f1c6925af421507d"
+  },
+  {
+    "name": "Meteor",
+    "id": 2847767720,
+    "url": "https://create.roblox.com/store/asset/2847767720/Realistic-Meteor",
+    "creator": "SionixKev",
+    "freeVerified": "2026-10-05",
+    "parts": 1,
+    "scriptsExcluded": 4,
+    "bounds": [
+      10,
+      10,
+      10
+    ],
+    "sha256": "b9be9d8c2c6f63224666918e5917de1152dcf9fba9c9195c24245220483b6117"
+  },
+  {
+    "name": "Rock",
+    "id": 2847767720,
+    "url": "https://create.roblox.com/store/asset/2847767720/Realistic-Meteor",
+    "creator": "SionixKev",
+    "freeVerified": "2026-10-05",
+    "parts": 1,
+    "scriptsExcluded": 4,
+    "bounds": [
+      10,
+      10,
+      10
+    ],
+    "sha256": "71bf376758b8361ca9e2e8f7e6d0aa50561b57fe4e4f82a21130673279fd94f8"
+  }
+]

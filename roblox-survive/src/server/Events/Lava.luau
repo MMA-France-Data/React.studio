@@ -12,6 +12,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local Build = require(script.Parent.Parent.Build)
+local LibraryVisuals = require(script.Parent.Parent.LibraryVisuals)
 
 local Lava = {}
 
@@ -140,7 +141,10 @@ function Lava.new(ctx, params)
 			counts[block.kind] = (counts[block.kind] or 0) + 1
 			color = COLORS[block.kind][counts[block.kind] % #COLORS[block.kind] + 1]
 		end
-		Build.part(ctx.static, "Course" .. i, block.size, center, color, material)
+		local platform = Build.part(ctx.static, "Course" .. i, block.size, center, color, material)
+		if block.kind == "corner" or block.kind == "big" then
+			LibraryVisuals.stonePlatform(ctx.static, platform)
+		end
 		tops[i] = ctx.center + block.top
 	end
 	ctx.room.pillars = tops

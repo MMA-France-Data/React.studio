@@ -1,6 +1,7 @@
--- Les machines de la salle de sport, faites de blocs (aucun modèle de la bibliothèque Roblox).
+-- Machines habillées avec des modèles gratuits du Creator Store, sans leurs scripts.
 -- Chaque machine est un Model posé sur un tapis bleu en damier ; sa pièce « Base » porte l'étiquette et le bouton.
 local Build = require(script.Parent.Build)
+local LibraryVisuals = require(script.Parent.LibraryVisuals)
 
 local GymModels = {}
 
@@ -33,8 +34,17 @@ function GymModels.Speed(parent: Instance, origin: Vector3): Model
 	model.Name = "Speed"
 	mat(model, origin, 16, 20)
 	for _, x in { -4, 4 } do
-		Build.part(model, "Deck", Vector3.new(5, 1.2, 12), at(origin, x, 0.6, 1), DARK)
-		Build.part(model, "Belt", Vector3.new(3.8, 0.2, 10.6), at(origin, x, 1.25, 1), BLACK)
+		local deck = Build.part(model, "Deck", Vector3.new(5, 1.2, 12), at(origin, x, 0.6, 1), DARK)
+		deck.Transparency = 1 -- same walking surface; imported geometry has no collision
+		local belt = Build.part(model, "Belt", Vector3.new(3.8, 0.2, 10.6), at(origin, x, 1.25, 1), BLACK)
+		belt.Transparency = 1
+		local visual = LibraryVisuals.place(model, "Treadmill", at(origin, x, 0, 1), Vector3.new(5.5, 8, 12))
+		for _, part in visual:GetDescendants() do
+			if part:IsA("BasePart") then
+				part.Color = DARK
+				part.Material = Enum.Material.Metal
+			end
+		end
 		-- Flèches : deux petites barres en V, trois fois.
 		for i = 0, 2 do
 			for _, side in { -1, 1 } do
@@ -49,26 +59,6 @@ function GymModels.Speed(parent: Instance, origin: Vector3): Model
 				arrow.CanCollide = false
 			end
 		end
-		for _, side in { -1, 1 } do
-			Build.part(model, "Post", Vector3.new(0.5, 5.5, 0.5), at(origin, x + side * 2.2, 3.3, -4.2), DARK)
-			Build.part(model, "Rail", Vector3.new(0.45, 0.45, 5), at(origin, x + side * 2.2, 5, -1.9), STEEL)
-		end
-		Build.part(
-			model,
-			"Console",
-			Vector3.new(5, 1.6, 0.6),
-			CFrame.new(at(origin, x, 6.3, -4.4)) * CFrame.Angles(math.rad(-25), 0, 0),
-			DARK
-		)
-		local screen = Build.part(
-			model,
-			"Screen",
-			Vector3.new(3, 0.9, 0.1),
-			CFrame.new(at(origin, x, 6.35, -4.05)) * CFrame.Angles(math.rad(-25), 0, 0),
-			Color3.fromRGB(80, 255, 140),
-			Enum.Material.Neon
-		)
-		screen.CanCollide = false
 	end
 	model.Parent = parent
 	return model
@@ -79,22 +69,16 @@ function GymModels.Jump(parent: Instance, origin: Vector3): Model
 	local model = Instance.new("Model")
 	model.Name = "Jump"
 	mat(model, origin, 20, 20)
-	Build.disc(model, "Frame", 15, 0.9, at(origin, 0, 2.6, 0), Color3.fromRGB(45, 110, 235))
+	local visual = LibraryVisuals.place(model, "Trampoline", at(origin, 0, 0, 0), Vector3.new(15, 30, 15))
+	local surface = visual:FindFirstChild("Bouncy", true)
+	assert(surface and surface:IsA("BasePart"), "Trampoline visual surface is missing")
+	local lift = 3.7 + origin.Y - (surface.Position.Y + surface.Size.Y / 2)
+	visual:PivotTo(visual:GetPivot() + Vector3.new(0, lift, 0))
 	local bounce = Build.disc(model, "Bounce", 12.4, 0.5, at(origin, 0, 2.95, 0), BLACK, Enum.Material.Fabric)
+	bounce.Transparency = 1 -- the original tagged collider is the only bounce trigger
 	bounce:AddTag("Bounce")
 	local ring = Build.disc(model, "Ring", 5, 0.1, at(origin, 0, 3.22, 0), YELLOW, Enum.Material.Neon)
 	ring.CanCollide = false
-	for i = 1, 6 do
-		local angle = math.rad(i * 60)
-		Build.part(
-			model,
-			"Leg",
-			Vector3.new(0.6, 2.4, 0.6),
-			at(origin, math.cos(angle) * 6.8, 1.2, math.sin(angle) * 6.8),
-			STEEL,
-			Enum.Material.Metal
-		)
-	end
 	-- Petit escalier pour monter dessus.
 	Build.part(model, "Step", Vector3.new(4, 1.2, 2.5), at(origin, 0, 0.6, 8.6), DARK)
 	model.Parent = parent
@@ -106,28 +90,7 @@ function GymModels.Force(parent: Instance, origin: Vector3): Model
 	local model = Instance.new("Model")
 	model.Name = "Force"
 	mat(model, origin, 20, 20)
-	Build.part(model, "Bench", Vector3.new(2.4, 0.7, 8), at(origin, -3, 2, 0.5), Color3.fromRGB(120, 124, 134))
-	for _, z in { -2.5, 3.5 } do
-		Build.part(model, "BenchLeg", Vector3.new(2, 1.7, 0.6), at(origin, -3, 0.85, z), BLACK)
-	end
-	for _, side in { -1, 1 } do
-		Build.part(model, "Upright", Vector3.new(0.6, 6.5, 0.6), at(origin, -3 + side * 3.2, 3.25, -2.6), BLACK, Enum.Material.Metal)
-		Build.part(model, "Foot", Vector3.new(0.6, 0.5, 5), at(origin, -3 + side * 3.2, 0.25, -1.6), BLACK, Enum.Material.Metal)
-		Build.part(model, "Hook", Vector3.new(0.6, 0.4, 1.2), at(origin, -3 + side * 3.2, 5, -1.9), BLACK, Enum.Material.Metal)
-	end
-	Build.part(model, "Bar", Vector3.new(12, 0.35, 0.35), at(origin, -3, 5.4, -1.9), STEEL, Enum.Material.Metal).Shape = Enum.PartType.Cylinder
-	for _, side in { -1, 1 } do
-		for i = 0, 1 do
-			local plate = Build.part(
-				model,
-				"Plate",
-				Vector3.new(0.5, 3.4 - i * 0.6, 3.4 - i * 0.6),
-				at(origin, -3 + side * (4.3 + i * 0.6), 5.4, -1.9),
-				BLACK
-			)
-			plate.Shape = Enum.PartType.Cylinder
-		end
-	end
+	LibraryVisuals.place(model, "BenchPress", at(origin, -3, 0, 0), Vector3.new(12, 8, 15))
 	-- Support d'haltères sur le côté.
 	Build.part(model, "Rack", Vector3.new(4, 2.2, 9), at(origin, 6, 1.1, 0), DARK)
 	for i = 0, 2 do

@@ -5,6 +5,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local Build = require(script.Parent.Parent.Build)
+local LibraryVisuals = require(script.Parent.Parent.LibraryVisuals)
 
 local Meteors = {}
 
@@ -43,8 +44,7 @@ function Meteors.new(ctx, params)
 		warn.Transparency = 0.45
 		ghost(warn)
 		local from = Vector3.new(target.X + random:NextNumber(-10, 10), math.max(ctx.topY() - 3, target.Y + 6), target.Z)
-		local ball = Build.part(ctx.effects, "Meteor", Vector3.new(5, 5, 5), from, Color3.fromRGB(255, 140, 40), Enum.Material.Neon)
-		ball.Shape = Enum.PartType.Ball
+		local ball = LibraryVisuals.meteor(ctx.effects, from)
 		ghost(ball)
 		local fire = Instance.new("Fire")
 		fire.Size = 9
