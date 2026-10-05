@@ -14,6 +14,7 @@ local Chase = {}
 
 local REACH = 4.5 -- distance (vue d'en haut) à laquelle le monstre attrape un joueur
 local MARGIN = 5 -- le monstre reste à cette distance des murs
+local GRACE = 1.5 -- secondes après son départ pendant lesquelles il ne peut encore attraper personne
 
 function Chase.new(ctx, params)
 	local self = {}
@@ -64,7 +65,9 @@ function Chase.new(ctx, params)
 		if not target or elapsed < params.delay then
 			return
 		end
-		if best <= REACH then
+		-- Il n'attrape personne pendant sa première seconde et demie : un joueur qui se trouvait juste à côté de lui
+		-- quand il démarre a le temps de filer.
+		if best <= REACH and elapsed >= params.delay + GRACE then
 			ctx.damage(target.player, Config.DAMAGE.Chase)
 			return
 		end

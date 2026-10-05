@@ -100,7 +100,7 @@ return function(log)
 	-- Place sûre pour gagner la salle (avec le champ de force pour le reste).
 	local function safeSpot(index: number, room): Vector3
 		local def = Config.ROOMS[index]
-		if def.Lava then
+		if def.Lava or def.Bomb then
 			return room.pillars[#room.pillars] + Vector3.new(0, 4, 0)
 		end
 		return room.center + Vector3.new(0, 4, 0)
@@ -162,7 +162,18 @@ return function(log)
 		if def.Ceiling then
 			mash(index, 5)
 		end
-		if snap then
+		if def.Bomb then
+			-- En haut du parcours : le joueur coupe son fil (une seule fois).
+			-- (La photo d'abord : seul dans la salle, couper son fil ouvre la porte tout de suite.)
+			waitElapsed(index, 6)
+			if snap then
+				local spot = safeSpot(index, room)
+				shot("salle" .. index, spot + Vector3.new(15, 5, -17), spot + Vector3.new(0, 1, 0))
+			end
+			check(D("Defuse", index) == true and player:GetAttribute("BombCut") == index, `salle {index} : en haut, le joueur coupe son fil`)
+			check(D("Defuse", index) == false, `salle {index} : on ne coupe son fil qu'une fois`)
+		end
+		if snap and not def.Bomb then
 			waitElapsed(index, if def.Ceiling then 44 else 34)
 			local spot = safeSpot(index, room)
 			if def.Ceiling then
@@ -173,7 +184,10 @@ return function(log)
 			end
 		end
 		local won = waitState(index, "Open", Config.DURATION / SCALE + 6)
-		check(won, `salle {index} : gagnée après 60 secondes`, D("Room", index).state)
+		check(won, `salle {index} : gagnée`, D("Room", index).state)
+		if def.Bomb then
+			check(D("Room", index).elapsed < Config.DURATION - 5, `salle {index} : tous les fils coupés, la porte s'ouvre avant zéro`, D("Room", index).elapsed)
+		end
 		local expected = Config.REWARD_FULL * index + if index == #Config.ROOMS then Config.FINAL_BONUS else 0
 		expected = math.floor(expected * (bonus or 1) + 0.5)
 		-- Un familier déjà trouvé donne des pièces en plus (100, 300, 1 000 ou 5 000).
@@ -270,6 +284,11 @@ return function(log)
 	-- 3. LES SALLES ------------------------------------------------------------------------------------------------
 	D("Scale", SCALE)
 
+	-- Le style de chaque salle : une photo de la salle vide, depuis un coin en hauteur.
+	for index = 1, #Config.ROOMS do
+		local info = D("Room", index)
+		shot("style" .. index, Vector3.new(-29, 24, info.zMin + 6), Vector3.new(10, 5, info.center.Z + 10))
+	end
 	-- Le parcours de lave, vu avant que la lave monte (salle 1, puis la salle 9, la plus longue).
 	for _, index in { 1, 9 } do
 		local info = D("Room", index)
@@ -277,15 +296,20 @@ return function(log)
 		shot("parcours" .. index, Vector3.new(33, top + 14, info.zMin + 3), Vector3.new(-6, top * 0.35, info.center.Z + 6))
 	end
 
-	-- Salle 1 (lave) : rester par terre = mourir, sans pièces.
-	enter(1)
+	-- Salle 1 (la bombe). Rester par terre : le sol ne fait pas mal, on ne peut pas couper son fil d'en bas, et à
+	-- zéro la bombe élimine le joueur, sans pièces.
+	local bombRoom = enter(1)
 	local _, lavaHumanoid = alive()
-	local limit = os.clock() + 30 / SCALE
+	waitElapsed(1, 30)
+	check(lavaHumanoid.Health == 100, "salle 1 : rester par terre ne fait plus mal (plus de lave)", lavaHumanoid.Health)
+	check(D("Defuse", 1) == false, "salle 1 : impossible de couper son fil depuis le sol")
+	shot("bombe", bombRoom.pillars[#bombRoom.pillars] + Vector3.new(16, 6, -16), bombRoom.pillars[#bombRoom.pillars] + Vector3.new(0, 4, 0))
+	local limit = os.clock() + 40 / SCALE
 	while lavaHumanoid.Health > 0 and os.clock() < limit do
 		task.wait(0.05)
 	end
-	check(lavaHumanoid.Health <= 0, "salle 1 : rester par terre dans la lave tue")
-	check(D("Data").coins == 0, "salle 1 : mort avant 30 secondes = 0 pièce", D("Data").coins)
+	check(lavaHumanoid.Health <= 0 and D("Room", 1).elapsed >= 58, "salle 1 : à zéro, la bombe élimine le joueur qui n'a pas coupé son fil", D("Room", 1).elapsed)
+	check(D("Data").coins == 0, "salle 1 : éliminé par la bombe = 0 pièce", D("Data").coins)
 	check(waitState(1, "Idle", 3), "salle 1 : redevient libre quand tout le monde est mort")
 	_, _, root = alive()
 	task.wait(0.5)

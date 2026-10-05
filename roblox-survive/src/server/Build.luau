@@ -29,8 +29,8 @@ function Build.disc(parent: Instance, name: string, diameter: number, height: nu
 	return part
 end
 
--- Sol en damier : des carreaux de deux couleurs, dessus à la hauteur `top`.
-function Build.checker(parent: Instance, name: string, center: Vector3, sizeX: number, sizeZ: number, cell: number, colorA: Color3, colorB: Color3, thickness: number?): Model
+-- Sol en damier : des carreaux de deux couleurs (et d'une matière), dessus à la hauteur de `center`.
+function Build.checker(parent: Instance, name: string, center: Vector3, sizeX: number, sizeZ: number, cell: number, colorA: Color3, colorB: Color3, thickness: number?, material: Enum.Material?): Model
 	local model = Instance.new("Model")
 	model.Name = name
 	local depth = thickness or 2
@@ -44,7 +44,7 @@ function Build.checker(parent: Instance, name: string, center: Vector3, sizeX: n
 				center.Y - depth / 2,
 				center.Z - sizeZ / 2 + (iz - 0.5) * stepZ
 			)
-			Build.part(model, "Tile", Vector3.new(stepX, depth, stepZ), position, if (ix + iz) % 2 == 0 then colorA else colorB)
+			Build.part(model, "Tile", Vector3.new(stepX, depth, stepZ), position, if (ix + iz) % 2 == 0 then colorA else colorB, material)
 		end
 	end
 	model.Parent = parent

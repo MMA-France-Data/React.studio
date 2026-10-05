@@ -99,6 +99,8 @@ Config.DAMAGE = {
 --          événements en dessous doivent dire la même chose (jump, level).
 -- egg    : l'animal dont la salle donne l'œuf (voir Pets.luau).
 -- events : les événements de la salle, lancés ensemble.
+-- Bomb      : un parcours à grimper (sol sûr) et une bombe en haut. segments et jump comme Lava ; fuse = secondes
+--             avant l'explosion ; hold = secondes à tenir E pour couper son fil. Chaque joueur coupe le sien.
 -- Lava      : segments = longueur du parcours (lignes droites de la spirale, 8 au plus), jump = niveau de saut
 --             qu'il faut pour les grandes marches, finish = seconde où la lave arrive en haut (57 si absent).
 -- Meteors   : every = secondes entre deux pluies (absent = pas de météorites au hasard), count = météorites par
@@ -125,7 +127,7 @@ Config.DAMAGE = {
 -- Les premières salles s'ouvrent en une ou deux parties ; chaque palier suivant coûte plus cher que ce que
 -- rapportent les salles déjà ouvertes : il faut rejouer de plus en plus pour avancer.
 Config.ROOMS = {
-	{ egg = "Dragon", need = {}, events = { "Lava" }, Lava = { segments = 3, jump = 0 } },
+	{ egg = "Dragon", need = {}, events = { "Bomb" }, Bomb = { segments = 3, jump = 0, fuse = 60, hold = 3 } },
 	{ egg = "Rock", need = { Speed = 1 }, events = { "Meteors" }, Meteors = { rush = { level = 1, rest = 3.5 } } },
 	{ egg = "Rabbit", need = {}, events = { "Explosions" }, Explosions = { every = 4.5, warn = 2.2, safe = 6 } },
 	{

@@ -226,6 +226,8 @@ ReplicatedStorage:WaitForChild("Notify").OnClientEvent:Connect(function(key: str
 		showToast(tr("win", a, num(b)))
 	elseif key == "half" then
 		showToast(tr("half", num(a), b))
+	elseif key == "wireCut" then
+		showToast(tr("wireCut"))
 	elseif key == "maxed" then
 		showToast(tr("max"), Color3.fromRGB(255, 221, 51))
 	elseif key == "bought" then
@@ -255,6 +257,9 @@ local function refreshPrompt(prompt: ProximityPrompt)
 		prompt.ActionText = tr("shortcutGo", prompt:GetAttribute("Cleared") + 1)
 	elseif kind == "Back" then
 		prompt.ActionText = tr("back")
+	elseif kind == "Bomb" then
+		prompt.ObjectText = tr("bombName")
+		prompt.ActionText = tr("defuse")
 	end
 end
 
@@ -345,6 +350,11 @@ RunService.RenderStepped:Connect(function()
 		bannerTitle.Text = table.concat(titles, "  ")
 		bannerHint.Text = table.concat(hints, "  •  ")
 		bannerTimer.Text = tostring(left)
+		-- Salle de la bombe : le joueur qui a coupé son fil le voit en vert.
+		if player:GetAttribute("BombCut") == index then
+			bannerHint.Text = tr("wireCut")
+			bannerHint.TextColor3 = Color3.fromRGB(110, 255, 80)
+		end
 		-- Salle de la mélodie : où on en est.
 		local phase, round, rounds, index, length = string.match(folder:GetAttribute("Melody") or "", "^(%a+)|(%d+)|(%d+)|(%d+)|(%d+)$")
 		if phase == "Play" then

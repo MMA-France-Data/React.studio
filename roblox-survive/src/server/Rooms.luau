@@ -22,6 +22,7 @@ local EVENTS = {
 	Ceiling = require(script.Parent.Events.Ceiling),
 	Melody = require(script.Parent.Events.Melody),
 	Chase = require(script.Parent.Events.Chase),
+	Bomb = require(script.Parent.Events.Bomb),
 }
 
 local Rooms = {}
@@ -91,6 +92,7 @@ local function begin(room)
 	end
 	World.setDoor(room.entry, false)
 	room.elapsed = 0
+	table.clear(room.eliminated)
 	for _, player in list do
 		room.participants[player] = true
 		local humanoid = body(player)
@@ -101,7 +103,8 @@ local function begin(room)
 					return
 				end
 				room.participants[player] = nil
-				if room.elapsed >= Config.HALF then
+				-- Pas de pièces de consolation pour un joueur éliminé par la salle elle-même (bombe, mélodie).
+				if room.elapsed >= Config.HALF and not room.eliminated[player] then
 					local coins = Config.REWARD_HALF * room.index
 					PlayerData.addCoins(player, coins)
 					notify(player, "half", coins, Config.HALF)
@@ -188,6 +191,7 @@ local function update(room, dt: number)
 				for player in room.participants do
 					local humanoid = body(player)
 					if humanoid then
+						room.eliminated[player] = true
 						humanoid.Health = 0
 					end
 				end
@@ -216,6 +220,7 @@ local function create(geometry)
 	room.elapsed = 0
 	room.participants = {}
 	room.connections = {}
+	room.eliminated = {} -- [joueur] = éliminé par la salle elle-même (pas de pièces de consolation)
 	room.events = {}
 
 	local parameters = RaycastParams.new()
@@ -247,6 +252,17 @@ local function create(geometry)
 		if humanoid and room.participants[player] then
 			humanoid:TakeDamage(amount)
 		end
+	end
+	-- Élimine le joueur sans pièces de consolation (bombe qui explose).
+	function ctx.eliminate(player: Player)
+		local humanoid = body(player)
+		if humanoid and room.participants[player] then
+			room.eliminated[player] = true
+			humanoid.Health = 0
+		end
+	end
+	function ctx.notify(player: Player, key: string, ...)
+		notify(player, key, ...)
 	end
 	function ctx.force(player: Player): number
 		return Stats.force(player)

@@ -41,6 +41,11 @@ Texts.fr = {
 	shortcutLocked = "Réussis la salle %d pour ouvrir ce raccourci",
 	back = "Retour à mon espace",
 	lift = "POUSSE ICI",
+	Bomb = "LA BOMBE !",
+	hintBomb = "Grimpe et coupe ton fil avant zéro ! Si tu tombes, remonte.",
+	bombName = "Bombe",
+	defuse = "Couper mon fil",
+	wireCut = "Fil coupé : tu es sauvé !",
 	Chase = "LE MONSTRE !",
 	hintChase = "Cours sans t'arrêter, en grands cercles ! (Maj ou COURIR)",
 	sprint = "COURIR",
@@ -137,6 +142,11 @@ Texts.en = {
 	shortcutLocked = "Clear room %d to open this shortcut",
 	back = "Back to my space",
 	lift = "PUSH HERE",
+	Bomb = "THE BOMB!",
+	hintBomb = "Climb up and cut your wire before zero! If you fall, climb again.",
+	bombName = "Bomb",
+	defuse = "Cut my wire",
+	wireCut = "Wire cut: you are safe!",
 	Chase = "THE MONSTER!",
 	hintChase = "Keep running, in wide circles! (Shift or RUN)",
 	sprint = "RUN",
@@ -194,7 +204,7 @@ Texts.en = {
 	duplicate = "%s %s already found: +%s coins",
 }
 
-Texts.ICONS = { Lava = "🌋", Meteors = "☄️", Explosions = "💣", Ceiling = "💪", Melody = "🎵", Chase = "👹" }
+Texts.ICONS = { Bomb = "💣", Lava = "🌋", Meteors = "☄️", Explosions = "💥", Ceiling = "💪", Melody = "🎵", Chase = "👹" }
 
 -- 1 500 -> « 1 500 » (français) ou « 1,500 » (anglais).
 function Texts.number(lang: string, value: number): string

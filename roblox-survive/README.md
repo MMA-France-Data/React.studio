@@ -21,6 +21,9 @@ Ce dossier est séparé du jeu de tours (`roblox-ranked-td`) : rien n'est partag
   la touche Maj, ou après un appui sur le bouton « COURIR » de l'écran (un 2e appui le remet à la marche).
 - **10 salles** : compte à rebours de 10 secondes quand on entre, puis 60 secondes d'événement. Le panneau de
   chaque salle dit les niveaux qu'il faut, et le bandeau le dit en rouge au joueur à qui il en manque.
+  - Bombe (salle 1) : un parcours qui grimpe en spirale, sans lave : si on tombe, on remonte. Tout en haut, une
+    bombe avec un gros compte à rebours. Chaque joueur monte couper SON fil (E maintenu 3 secondes). À zéro, elle
+    élimine ceux qui n'ont pas coupé le leur ; si tous l'ont coupé, la porte s'ouvre tout de suite.
   - Lave : un parcours qui grimpe en spirale ; la dernière plateforme (verte) est le seul endroit sûr à la fin.
     Les grandes marches (violettes) sont trop hautes sans le niveau de saut demandé.
   - Météorites : un cercle rouge prévient, puis ça explose. La GRANDE PLUIE (salle 2) : toute la salle
@@ -36,7 +39,7 @@ Ce dossier est séparé du jeu de tours (`roblox-ranked-td`) : rien n'est partag
 
 | Salle | Événements | Il faut |
 | --- | --- | --- |
-| 1 | lave | rien |
+| 1 | la bombe | rien |
 | 2 | grande pluie de météorites | vitesse 1 |
 | 3 | explosions | rien |
 | 4 | lave + plafond | saut 1, force 1 |
@@ -93,6 +96,8 @@ changer `jump` (lave), `level` (plafond, grande pluie) et la ligne `need` de la 
 ## Fichiers
 
 - `src/server/World.luau` : construit tout le décor au démarrage (rien n'est posé à la main dans Studio).
+- `src/server/Themes.luau` : le style de chaque salle (matières du sol et des murs, décors, habillage des
+  plateformes) : entrepôt, désert, bunker, volcan, temple de jungle, salle de concert, mine, crypte, glace, château.
 - `src/server/GymModels.luau` : les machines, faites de blocs.
 - `src/server/Gym.luau` : l'espace de chaque joueur, l'entraînement sur les machines, vitesse et saut, raccourci.
 - `src/server/Rooms.luau` : le déroulement d'une salle (attente, compte à rebours, événement, porte ouverte).
@@ -110,7 +115,7 @@ Construire la place : `rojo build default.project.json -o Survive.rbxl`, puis l'
 Tests automatiques dans Studio (une fenêtre Studio s'ouvre toute seule ; ne pas toucher au PC pendant ce temps) :
 
 - `powershell -ExecutionPolicy Bypass -File tools\studio-test\run.ps1` : tout le jeu
-  (265 vérifications, environ 11 minutes, captures dans `tools\studio-test\out`).
+  (270 vérifications, environ 12 minutes, captures dans `tools\studio-test\out`).
 - `powershell -ExecutionPolicy Bypass -File tools\studio-test\run.ps1 -Test jump -Seconds 560` : mesure la
   hauteur de marche qu'un personnage grimpe d'un saut (a servi à régler `Config.stepHeight`).
 

@@ -5,6 +5,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local Build = require(script.Parent.Parent.Build)
+local Themes = require(script.Parent.Parent.Themes)
 
 local Explosions = {}
 
@@ -16,12 +17,13 @@ function Explosions.new(ctx, params)
 	local self = {}
 	local random = Random.new()
 	local sizeX, sizeZ = ctx.halfX * 2 / GRID, (ctx.halfZ * 2 - 1.6) / GRID
+	local theme = Themes.of(ctx.room.index)
 	local tiles = {}
 	for ix = 1, GRID do
 		for iz = 1, GRID do
 			local position = ctx.center + Vector3.new(-ctx.halfX + (ix - 0.5) * sizeX, 0.15, -(sizeZ * GRID) / 2 + (iz - 0.5) * sizeZ)
-			local color = if (ix + iz) % 2 == 0 then Color3.fromRGB(70, 150, 240) else Color3.fromRGB(100, 175, 250)
-			local part = Build.part(ctx.static, "Tile", Vector3.new(sizeX - 0.4, 0.3, sizeZ - 0.4), position, color)
+			local color = if (ix + iz) % 2 == 0 then theme.floor[2]:Lerp(Color3.new(1, 1, 1), 0.18) else theme.floor[3]:Lerp(Color3.new(1, 1, 1), 0.3)
+			local part = Build.part(ctx.static, "Tile", Vector3.new(sizeX - 0.4, 0.3, sizeZ - 0.4), position, color, theme.floor[1])
 			part.CanCollide = false
 			part.CanQuery = false
 			part.CanTouch = false
@@ -36,7 +38,7 @@ function Explosions.new(ctx, params)
 		for _, tile in tiles do
 			tile.armed = false
 			tile.part.Color = tile.color
-			tile.part.Material = Enum.Material.SmoothPlastic
+			tile.part.Material = theme.floor[1]
 		end
 	end
 
@@ -97,7 +99,7 @@ function Explosions.new(ctx, params)
 			for _, tile in tiles do
 				if tile.armed then
 					tile.part.Color = if on then RED else tile.color
-					tile.part.Material = if on then Enum.Material.Neon else Enum.Material.SmoothPlastic
+					tile.part.Material = if on then Enum.Material.Neon else theme.floor[1]
 				end
 			end
 			if fuse <= 0 then

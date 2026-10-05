@@ -31,6 +31,10 @@ return function(_world)
 		elseif action == "Buy" then
 			local ok, reason = Gym.buy(player, a)
 			return ok, reason
+		elseif action == "Defuse" then
+			-- Comme le bouton de la bombe de la salle a.
+			local room = Rooms.get(a)
+			return room.defuse ~= nil and room.defuse(player)
 		elseif action == "Train" then
 			local ok, reason = Gym.train(player, a)
 			return ok, reason

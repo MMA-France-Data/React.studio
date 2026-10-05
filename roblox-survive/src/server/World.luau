@@ -11,6 +11,7 @@ local Pets = require(ReplicatedStorage.Shared.Pets)
 local Build = require(script.Parent.Build)
 local GymModels = require(script.Parent.GymModels)
 local Lava = require(script.Parent.Events.Lava)
+local Themes = require(script.Parent.Themes)
 
 local World = {}
 
@@ -30,32 +31,24 @@ World.ROOM_HALF_Z = ROOM_LEN / 2
 
 local WHITE = Color3.fromRGB(245, 245, 250)
 
--- Couleurs d'une salle selon son premier événement : { sol A, sol B, murs }.
-local THEMES = {
-	Lava = { Color3.fromRGB(96, 74, 74), Color3.fromRGB(110, 84, 82), Color3.fromRGB(150, 82, 60) },
-	Meteors = { Color3.fromRGB(62, 200, 64), Color3.fromRGB(80, 216, 74), Color3.fromRGB(70, 140, 230) },
-	Explosions = { Color3.fromRGB(240, 200, 70), Color3.fromRGB(250, 214, 96), Color3.fromRGB(235, 130, 50) },
-	Melody = { Color3.fromRGB(52, 56, 92), Color3.fromRGB(62, 66, 106), Color3.fromRGB(96, 70, 170) },
-	Chase = { Color3.fromRGB(120, 60, 60), Color3.fromRGB(136, 70, 68), Color3.fromRGB(70, 30, 40) },
-}
-
 -- Mur le long de l'axe X, à la profondeur z, avec le trou d'une porte au milieu.
-local function wallWithDoor(parent: Instance, z: number, halfX: number, height: number, color: Color3)
+local function wallWithDoor(parent: Instance, z: number, halfX: number, height: number, color: Color3, material: Enum.Material?)
 	local side = halfX - DOOR_W / 2
 	for _, sign in { -1, 1 } do
-		Build.part(parent, "Wall", Vector3.new(side, height, WALL), Vector3.new(sign * (DOOR_W / 2 + side / 2), height / 2, z), color)
+		Build.part(parent, "Wall", Vector3.new(side, height, WALL), Vector3.new(sign * (DOOR_W / 2 + side / 2), height / 2, z), color, material)
 	end
-	Build.part(parent, "Lintel", Vector3.new(DOOR_W, height - DOOR_H, WALL), Vector3.new(0, DOOR_H + (height - DOOR_H) / 2, z), color)
+	Build.part(parent, "Lintel", Vector3.new(DOOR_W, height - DOOR_H, WALL), Vector3.new(0, DOOR_H + (height - DOOR_H) / 2, z), color, material)
 end
 
-local function sideWalls(parent: Instance, zMin: number, zMax: number, halfX: number, height: number, color: Color3)
+local function sideWalls(parent: Instance, zMin: number, zMax: number, halfX: number, height: number, color: Color3, material: Enum.Material?)
 	for _, sign in { -1, 1 } do
 		Build.part(
 			parent,
 			"Wall",
 			Vector3.new(WALL, height, zMax - zMin),
 			Vector3.new(sign * (halfX + WALL / 2), height / 2, (zMin + zMax) / 2),
-			color
+			color,
+			material
 		)
 	end
 end
@@ -194,11 +187,11 @@ local function buildGym(parent: Instance)
 	gym.Name = "Gym"
 	gym.Parent = parent
 
-	Build.checker(gym, "Floor", Vector3.new(0, 0, (GYM_Z + LOBBY_BACK) / 2), LOBBY_X * 2, GYM_Z - LOBBY_BACK, 10, Color3.fromRGB(70, 74, 88), Color3.fromRGB(80, 84, 98))
-	local wallColor = Color3.fromRGB(240, 150, 60)
-	sideWalls(gym, LOBBY_BACK, GYM_Z, LOBBY_X, GYM_WALL, wallColor)
-	Build.part(gym, "Wall", Vector3.new(LOBBY_X * 2 + WALL * 2, GYM_WALL, WALL), Vector3.new(0, GYM_WALL / 2, LOBBY_BACK - WALL / 2), wallColor)
-	wallWithDoor(gym, GYM_Z, LOBBY_X + WALL, GYM_WALL, wallColor)
+	Build.checker(gym, "Floor", Vector3.new(0, 0, (GYM_Z + LOBBY_BACK) / 2), LOBBY_X * 2, GYM_Z - LOBBY_BACK, 10, Color3.fromRGB(70, 74, 88), Color3.fromRGB(80, 84, 98), nil, Enum.Material.Pavement)
+	local wallColor = Color3.fromRGB(226, 136, 70)
+	sideWalls(gym, LOBBY_BACK, GYM_Z, LOBBY_X, GYM_WALL, wallColor, Enum.Material.Brick)
+	Build.part(gym, "Wall", Vector3.new(LOBBY_X * 2 + WALL * 2, GYM_WALL, WALL), Vector3.new(0, GYM_WALL / 2, LOBBY_BACK - WALL / 2), wallColor, Enum.Material.Brick)
+	wallWithDoor(gym, GYM_Z, LOBBY_X + WALL, GYM_WALL, wallColor, Enum.Material.Brick)
 
 	-- Point d'apparition de secours, au milieu de l'allée (chaque joueur est ensuite posé dans son espace).
 	local spawn = Instance.new("SpawnLocation")
@@ -255,7 +248,7 @@ local function buildGym(parent: Instance)
 	return { folder = gym, plots = plots, shortcuts = shortcuts, shop = counter, spawn = spawn }
 end
 
-local function buildSas(parent: Instance, index: number, wallColor: Color3)
+local function buildSas(parent: Instance, index: number, wallColor: Color3, wallMaterial: Enum.Material?)
 	local zMin = GYM_Z + index * PITCH
 	local folder = Instance.new("Folder")
 	folder.Name = "Sas" .. index
@@ -268,20 +261,23 @@ local function buildSas(parent: Instance, index: number, wallColor: Color3)
 		SAS_LEN,
 		4,
 		Color3.fromRGB(200, 204, 214),
-		Color3.fromRGB(222, 226, 234)
+		Color3.fromRGB(222, 226, 234),
+		nil,
+		Enum.Material.Marble
 	)
-	sideWalls(folder, zMin, zMin + SAS_LEN, SAS_HALF, SAS_WALL, wallColor)
+	sideWalls(folder, zMin, zMin + SAS_LEN, SAS_HALF, SAS_WALL, wallColor, wallMaterial)
 end
 
 local function buildRoom(parent: Instance, index: number)
 	local def = Config.ROOMS[index]
-	local theme = THEMES[def.events[1]]
+	local theme = Themes.of(index)
 	local zMin = World.roomStart(index)
 	local zMax = zMin + ROOM_LEN
 	-- Murs : assez hauts pour le parcours de lave (et le plafond qui tombe au-dessus).
 	local height = 36
-	if def.Lava then
-		height = Lava.plan(index, def.Lava).top + if def.Ceiling then 44 else 30
+	local course = def.Lava or def.Bomb
+	if course then
+		height = Lava.plan(index, course).top + if def.Ceiling then 44 else 30
 	end
 
 	local folder = Instance.new("Folder")
@@ -294,10 +290,12 @@ local function buildRoom(parent: Instance, index: number)
 	effects.Name = "Effects"
 	effects.Parent = folder
 
-	Build.checker(static, "Floor", Vector3.new(0, 0, (zMin + zMax) / 2), ROOM_HALF_X * 2, ROOM_LEN, 10, theme[1], theme[2])
-	sideWalls(static, zMin, zMax, ROOM_HALF_X, height, theme[3])
-	wallWithDoor(static, zMin, ROOM_HALF_X + WALL, height, theme[3])
-	wallWithDoor(static, zMax, ROOM_HALF_X + WALL, height, theme[3])
+	-- Le sol, les murs et les décors prennent le style de la salle (Themes.luau).
+	Build.checker(static, "Floor", Vector3.new(0, 0, (zMin + zMax) / 2), ROOM_HALF_X * 2, ROOM_LEN, 10, theme.floor[2], theme.floor[3], nil, theme.floor[1])
+	sideWalls(static, zMin, zMax, ROOM_HALF_X, height, theme.wall[2], theme.wall[1])
+	wallWithDoor(static, zMin, ROOM_HALF_X + WALL, height, theme.wall[2], theme.wall[1])
+	wallWithDoor(static, zMax, ROOM_HALF_X + WALL, height, theme.wall[2], theme.wall[1])
+	Themes.dress(static, { center = Vector3.new(0, 0, (zMin + zMax) / 2), zMin = zMin, zMax = zMax, height = height }, theme)
 	local entry = door(folder, "Entry", zMin)
 	local exit = door(folder, "Exit", zMax)
 	World.setDoor(entry, true)
@@ -329,7 +327,8 @@ local function buildRoom(parent: Instance, index: number)
 		zMin = zMin,
 		zMax = zMax,
 		height = height,
-		wallColor = theme[3],
+		wallColor = theme.wall[2],
+		wallMaterial = theme.wall[1],
 	}
 end
 
@@ -339,7 +338,7 @@ local function buildFinal(parent: Instance, count: number)
 	folder.Name = "Final"
 	folder.Parent = parent
 	local length = 40
-	Build.checker(folder, "Floor", Vector3.new(0, 0, zMin + length / 2), 48, length, 8, Color3.fromRGB(255, 205, 60), Color3.fromRGB(255, 225, 110))
+	Build.checker(folder, "Floor", Vector3.new(0, 0, zMin + length / 2), 48, length, 8, Color3.fromRGB(255, 205, 60), Color3.fromRGB(255, 225, 110), nil, Enum.Material.Marble)
 	local gold = Color3.fromRGB(230, 170, 40)
 	sideWalls(folder, zMin, zMin + length, 24, 20, gold)
 	Build.part(folder, "Wall", Vector3.new(48 + WALL * 2, 20, WALL), Vector3.new(0, 10, zMin + length + WALL / 2), gold)
@@ -367,7 +366,7 @@ function World.build()
 	end
 	-- Couloirs : celui d'avant la salle n prend la couleur de ses murs.
 	for index = 0, #rooms - 1 do
-		buildSas(roomsFolder, index, rooms[index + 1].wallColor)
+		buildSas(roomsFolder, index, rooms[index + 1].wallColor, rooms[index + 1].wallMaterial)
 	end
 	local final = buildFinal(roomsFolder, #rooms)
 

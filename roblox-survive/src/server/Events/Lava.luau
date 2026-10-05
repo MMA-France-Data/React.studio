@@ -12,7 +12,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local Build = require(script.Parent.Parent.Build)
-local LibraryVisuals = require(script.Parent.Parent.LibraryVisuals)
+local Themes = require(script.Parent.Parent.Themes)
 
 local Lava = {}
 
@@ -124,13 +124,15 @@ function Lava.plan(index: number, params)
 	return { blocks = blocks, top = height, step = step }
 end
 
-function Lava.new(ctx, params)
-	local self = {}
+-- Construit le parcours de la salle (sans lave). Note dans la salle ses plateformes (pillars) et la dernière
+-- (finalTop). Renvoie le plan (voir Lava.plan).
+function Lava.course(ctx, params)
 	local plan = Lava.plan(ctx.room.index, params)
-	local final = plan.top - 1.2 -- hauteur finale de la lave : juste sous la dernière plateforme
-	local finish = params.finish or (Config.DURATION - 3)
+	local theme = Themes.of(ctx.room.index)
+	local dressing = Instance.new("Model")
+	dressing.Name = "CourseDecor"
+	dressing.Parent = ctx.static
 	local tops = {}
-
 	local counts = {}
 	for i, block in plan.blocks do
 		local center = ctx.center + Vector3.new(block.top.X, block.top.Y - THICK / 2, block.top.Z)
@@ -142,13 +144,19 @@ function Lava.new(ctx, params)
 			color = COLORS[block.kind][counts[block.kind] % #COLORS[block.kind] + 1]
 		end
 		local platform = Build.part(ctx.static, "Course" .. i, block.size, center, color, material)
-		if block.kind == "corner" or block.kind == "big" then
-			LibraryVisuals.stonePlatform(ctx.static, platform)
-		end
+		Themes.platform(dressing, platform, block.kind, theme, i)
 		tops[i] = ctx.center + block.top
 	end
 	ctx.room.pillars = tops
 	ctx.room.finalTop = tops[#tops]
+	return plan
+end
+
+function Lava.new(ctx, params)
+	local self = {}
+	local plan = Lava.course(ctx, params)
+	local final = plan.top - 1.2 -- hauteur finale de la lave : juste sous la dernière plateforme
+	local finish = params.finish or (Config.DURATION - 3)
 
 	local lava = Build.part(
 		ctx.static,
