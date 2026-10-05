@@ -7,6 +7,7 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local Pets = require(ReplicatedStorage.Shared.Pets)
 local Build = require(script.Parent.Build)
 local GymModels = require(script.Parent.GymModels)
 local Lava = require(script.Parent.Events.Lava)
@@ -30,6 +31,7 @@ local THEMES = {
 	Lava = { Color3.fromRGB(96, 74, 74), Color3.fromRGB(110, 84, 82), Color3.fromRGB(150, 82, 60) },
 	Meteors = { Color3.fromRGB(62, 200, 64), Color3.fromRGB(80, 216, 74), Color3.fromRGB(70, 140, 230) },
 	Explosions = { Color3.fromRGB(240, 200, 70), Color3.fromRGB(250, 214, 96), Color3.fromRGB(235, 130, 50) },
+	Melody = { Color3.fromRGB(52, 56, 92), Color3.fromRGB(62, 66, 106), Color3.fromRGB(96, 70, 170) },
 }
 
 -- Mur le long de l'axe X, à la profondeur z, avec le trou d'une porte au milieu.
@@ -121,6 +123,14 @@ local function buildGym(parent: Instance)
 		machines[name] = model
 	end
 
+	-- Les couveuses, contre le mur du fond.
+	local incubators = {}
+	for slot = 1, Pets.SLOTS do
+		local model = GymModels.Incubator(gym, Vector3.new(-14 + (slot - 1) * 28, 0, -25))
+		Build.billboard(model.PrimaryPart, 9)
+		incubators[slot] = model
+	end
+
 	-- Le raccourci : un rond qui brille, avec son panneau.
 	local shortcuts = {}
 	for i, cleared in Config.SHORTCUTS do
@@ -134,7 +144,7 @@ local function buildGym(parent: Instance)
 		shortcuts[cleared] = pad
 	end
 
-	return { folder = gym, machines = machines, shortcuts = shortcuts, spawn = spawn }
+	return { folder = gym, machines = machines, shortcuts = shortcuts, incubators = incubators, spawn = spawn }
 end
 
 local function buildSas(parent: Instance, index: number, wallColor: Color3)

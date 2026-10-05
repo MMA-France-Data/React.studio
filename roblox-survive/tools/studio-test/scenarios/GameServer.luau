@@ -145,7 +145,7 @@ return function(log)
 		waitState(index, "Idle", 3)
 		return dead
 	end
-	local function winRoom(index: number, snap: boolean?)
+	local function winRoom(index: number, snap: boolean?, bonus: number?)
 		local before = D("Data").coins
 		local room = enter(index)
 		local def = Config.ROOMS[index]
@@ -167,6 +167,7 @@ return function(log)
 		local won = waitState(index, "Open", Config.DURATION / SCALE + 6)
 		check(won, `salle {index} : gagnée après 60 secondes`, D("Room", index).state)
 		local expected = Config.REWARD_FULL * index + if index == #Config.ROOMS then Config.FINAL_BONUS else 0
+		expected = math.floor(expected * (bonus or 1) + 0.5)
 		check(D("Data").coins - before == expected, `salle {index} : +{expected} pièces`, D("Data").coins - before)
 		check(D("Room", index).exitOpen == true, `salle {index} : la porte du bout s'ouvre`)
 		god(false)
@@ -251,6 +252,27 @@ return function(log)
 	winRoom(1, true)
 	check(D("Data").best == 1, "meilleure salle = 1", D("Data").best)
 
+	-- LES ŒUFS ET LA COUVEUSE : la salle 1 a donné un œuf de dragon.
+	local eggs = D("Eggs")
+	check(eggs.eggs == 1 and eggs.first == "Dragon", "salle 1 réussie = un œuf de dragon de lave", eggs.eggs .. " " .. eggs.first)
+	check(D("Slot", 1) == "placed", "couveuse 1 : l'œuf est posé")
+	eggs = D("Eggs")
+	check(eggs.eggs == 0 and eggs.slots[1] == "Dragon", "l'œuf est dans la couveuse, plus dans la réserve", eggs.slots[1])
+	check(string.match(player:GetAttribute("Slot1") or "", "^Dragon|%d+$") ~= nil, "couveuse 1 : envoyée à l'écran", player:GetAttribute("Slot1"))
+	check(D("Slot", 1) == "wait", "couveuse 1 : pas encore prête, il faut attendre")
+	check(D("Slot", 2) == "none", "couveuse 2 : rien à poser sans œuf")
+	tp(Vector3.new(0, 4, -14))
+	task.wait(0.6)
+	shot("couveuses", Vector3.new(0, 9, -9), Vector3.new(0, 4, -26))
+	D("Hatch")
+	check(D("Slot", 1) == "hatched", "couveuse 1 : l'œuf prêt s'ouvre")
+	eggs = D("Eggs")
+	check((eggs.pets.Dragon or 0) >= 1 and eggs.equipped == "Dragon" and eggs.slots[1] == "", "le dragon de lave est gagné et équipé tout seul", tostring(eggs.pets.Dragon))
+	check(player:GetAttribute("Pet") == "Dragon" and player:GetAttribute("PetRarity") == eggs.pets.Dragon, "l'animal équipé est envoyé à l'écran")
+	D("Pet", "Dragon", 4)
+	task.wait(0.8)
+	shot("dragon", Vector3.new(7, 6, -4), Vector3.new(1, 3, -14))
+
 	-- Salle 2 (météorites) : rester immobile fait perdre de la vie.
 	enter(2)
 	local _, meteorHumanoid = alive()
@@ -306,7 +328,61 @@ return function(log)
 	check(workspace.Rooms.Room4:GetAttribute("Ceiling") == 1, "salle 4 : le plafond remonte après la manche", workspace.Rooms.Room4:GetAttribute("Ceiling"))
 
 	winRoom(5, true)
-	winRoom(6)
+
+	-- Salle 6 (la mélodie). Ne rien faire : éliminé à la fin du temps.
+	enter(6)
+	local _, idleHumanoid = alive()
+	limit = os.clock() + (Config.DURATION + 4) / SCALE
+	while idleHumanoid.Health > 0 and os.clock() < limit do
+		task.wait(0.05)
+	end
+	check(idleHumanoid.Health <= 0, "salle 6 : mélodie pas finie à temps = éliminé")
+	waitState(6, "Idle", 3)
+	-- Une fausse note blesse ; puis la bonne suite, manche après manche, ouvre la porte avant la fin du temps.
+	local melodyBefore = D("Data").coins
+	local melodyRoom = enter(6)
+	local function waitPlay(): any
+		local stop = os.clock() + 6
+		while os.clock() < stop do
+			local info = D("Room", 6)
+			if info.state ~= "Event" or (info.melody and info.melody.phase == "Play") then
+				return info
+			end
+			task.wait(0.03)
+		end
+		return D("Room", 6)
+	end
+	local function step(note: number)
+		tp(melodyRoom.melodyPads[note] + Vector3.new(0, 4, 0))
+		task.wait(0.12)
+		tp(melodyRoom.center + Vector3.new(0, 4, 0))
+		task.wait(0.12)
+	end
+	local info = waitPlay()
+	check(info.melody ~= nil and #info.melody.sequence == 3, "salle 6 : la première suite a 3 notes", info.melody and #info.melody.sequence)
+	local _, melodyHumanoid = alive()
+	step(if info.melody.sequence[1] == 1 then 2 else 1)
+	check(melodyHumanoid.Health == 100 - Config.DAMAGE.Melody, "salle 6 : une fausse note blesse", melodyHumanoid.Health)
+	local snapped = false
+	while true do
+		info = waitPlay()
+		if info.state ~= "Event" or not info.melody or info.melody.phase ~= "Play" then
+			break
+		end
+		if not snapped and info.melody.round == 2 then
+			snapped = true
+			shot("salle6", Vector3.new(-28, 16, melodyRoom.zMin + 6), Vector3.new(4, 6, melodyRoom.center.Z + 14))
+			info = waitPlay()
+		end
+		for i = info.melody.index, #info.melody.sequence do
+			step(info.melody.sequence[i])
+		end
+	end
+	info = D("Room", 6)
+	check(info.state == "Open" and info.elapsed < Config.DURATION, "salle 6 : la mélodie réussie ouvre la porte avant la fin", info.state .. " à " .. math.floor(info.elapsed) .. " s")
+	check(D("Data").coins - melodyBefore == 600, "salle 6 : +600 pièces", D("Data").coins - melodyBefore)
+	tp(D("Sas", 6))
+	waitState(6, "Idle", Config.OPEN / SCALE + 3)
 	D("Level", "Force", 3)
 	check(crushed(7, 5), "salle 7 : force 3 à 5 appuis par seconde = écrasé")
 	D("Level", "Force", 4)
@@ -316,7 +392,50 @@ return function(log)
 	D("Level", "Force", 5)
 	winRoom(10, true)
 	check(D("Data").best == 10, "meilleure salle = 10", D("Data").best)
+	check(D("Eggs").eggs >= 8, "chaque salle réussie a donné son œuf", D("Eggs").eggs)
+
+	-- LES POUVOIRS DES ANIMAUX (légendaires, donnés par le test).
+	D("Pet", "Owl", 4)
+	winRoom(2, false, 1.25)
+	D("Pet", "Rock", 4)
+	enter(2)
+	local _, rockHumanoid = alive()
+	limit = os.clock() + 40 / SCALE
+	while (D("Room", 2).shield or 160) >= 160 and os.clock() < limit do
+		task.wait(0.03)
+	end
+	local shield = D("Room", 2).shield
+	check(shield ~= nil and shield < 160, "caillou légendaire : le bouclier encaisse le coup", shield)
+	check(shield == 0 or rockHumanoid.Health == 100, "caillou légendaire : pas de vie perdue tant que le bouclier tient", rockHumanoid.Health)
+	rockHumanoid.Health = 0
+	waitState(2, "Idle", 3)
+	D("Level", "Force", 1)
+	D("Pet", "Golem", 4)
+	check(not crushed(4, 5), "golem légendaire : force 1 + 15 tient le plafond de la salle 4")
 	D("Scale", 1)
+	D("Pet", "Rabbit", 4)
+	local _, rabbitHumanoid = alive()
+	task.wait(0.3)
+	check(math.abs(rabbitHumanoid.WalkSpeed - Config.walkSpeed(D("Data").Speed) * 1.15) < 0.01, "lapin légendaire : +15 % de vitesse", rabbitHumanoid.WalkSpeed)
+	-- Dragon : tomber de haut, sans puis avec le vol plané.
+	D("Pet", "Dragon", 4)
+	local function fall(glide: boolean): number
+		tp(Vector3.new(0, 70, 8))
+		task.wait(0.2)
+		if glide then
+			player:SetAttribute("DebugGlide", os.clock())
+		end
+		local started = os.clock()
+		local _, _, body = alive()
+		while body.Position.Y > 6 and os.clock() - started < 9 do
+			task.wait(0.03)
+		end
+		return os.clock() - started
+	end
+	local plain = fall(false)
+	task.wait(1)
+	local held = fall(true)
+	check(held > plain + 2, "dragon légendaire : le vol plané retient la chute 3 secondes", string.format("%.1f s sans, %.1f s avec", plain, held))
 	shot("gagnants", Vector3.new(-14, 12, 1036), Vector3.new(2, 5, 1058))
 
 	-- 4. LE RACCOURCI ----------------------------------------------------------------------------------------------

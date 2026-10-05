@@ -186,7 +186,7 @@ function Lava.new(ctx, params)
 		for _, entry in ctx.players() do
 			-- Pieds du personnage : 3 studs sous le milieu du corps.
 			if entry.root.Position.Y - 3 < top - 0.3 then
-				ctx.damage(entry.player, Config.DAMAGE.Lava)
+				ctx.damage(entry.player, Config.DAMAGE.Lava, "Lava")
 			end
 		end
 	end

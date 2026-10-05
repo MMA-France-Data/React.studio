@@ -6,6 +6,7 @@ local RunService = game:GetService("RunService")
 local PlayerData = require(script.Parent.PlayerData)
 local World = require(script.Parent.World)
 local Gym = require(script.Parent.Gym)
+local Eggs = require(script.Parent.Eggs)
 local Rooms = require(script.Parent.Rooms)
 
 Players.RespawnTime = 2
@@ -26,9 +27,20 @@ pushEvent.OnServerEvent:Connect(function(player)
 	Rooms.push(player)
 end)
 
+-- Choix de l'animal équipé, depuis la fenêtre « Animaux ».
+local equipEvent = Instance.new("RemoteEvent")
+equipEvent.Name = "Equip"
+equipEvent.Parent = ReplicatedStorage
+equipEvent.OnServerEvent:Connect(function(player, animal)
+	if typeof(animal) == "string" then
+		Eggs.equip(player, animal)
+	end
+end)
+
 local world = World.build()
 PlayerData.start()
 Gym.start(world, notify)
+Eggs.start(world, notify, Gym.applyStats)
 Rooms.start(world, notify)
 
 if RunService:IsStudio() then

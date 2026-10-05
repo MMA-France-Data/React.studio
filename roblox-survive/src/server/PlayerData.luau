@@ -1,12 +1,15 @@
--- Sauvegarde de chaque joueur : ses pièces, le niveau de ses trois machines et la meilleure salle réussie.
+-- Sauvegarde de chaque joueur : ses pièces, le niveau de ses trois machines, la meilleure salle réussie, ses œufs,
+-- ses couveuses et ses animaux.
 -- Dans Studio, rien n'est écrit chez Roblox : les données restent en mémoire le temps du test.
--- Les valeurs sont aussi posées en attributs sur le joueur (Coins, Speed, Jump, Force, Best) : l'écran les lit là.
+-- Les valeurs sont aussi posées en attributs sur le joueur (Coins, Speed, Jump, Force, Best, Eggs, Slot1, Slot2,
+-- Pets, Pet, PetRarity) : l'écran les lit là.
 local DataStoreService = game:GetService("DataStoreService")
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
+local Pets = require(ReplicatedStorage.Shared.Pets)
 
 local PlayerData = {}
 
@@ -26,7 +29,15 @@ local sessions = {}
 local loadedCallbacks = {}
 
 local function defaults()
-	return { coins = 0, levels = { Speed = 1, Jump = 1, Force = 1 }, best = 0 }
+	return {
+		coins = 0,
+		levels = { Speed = 1, Jump = 1, Force = 1 },
+		best = 0,
+		eggs = {}, -- œufs en attente : { a = animal, r = salle }
+		slots = {}, -- couveuses : ["1"] = { a = animal, r = salle, t = heure d'éclosion (os.time) }
+		pets = {}, -- animaux possédés : [animal] = rareté (1 à 4)
+		equipped = "", -- animal équipé
+	}
 end
 
 -- Remet d'aplomb des données lues (champ manquant, valeur impossible).
@@ -49,6 +60,31 @@ local function clean(raw)
 			end
 		end
 	end
+	if type(raw.eggs) == "table" then
+		for _, egg in raw.eggs do
+			if type(egg) == "table" and Pets.DEFS[egg.a] and type(egg.r) == "number" and #data.eggs < Pets.MAX_EGGS then
+				table.insert(data.eggs, { a = egg.a, r = egg.r })
+			end
+		end
+	end
+	if type(raw.slots) == "table" then
+		for slot = 1, Pets.SLOTS do
+			local egg = raw.slots[tostring(slot)]
+			if type(egg) == "table" and Pets.DEFS[egg.a] and type(egg.r) == "number" and type(egg.t) == "number" then
+				data.slots[tostring(slot)] = { a = egg.a, r = egg.r, t = egg.t }
+			end
+		end
+	end
+	if type(raw.pets) == "table" then
+		for _, name in Pets.ORDER do
+			if type(raw.pets[name]) == "number" then
+				data.pets[name] = math.clamp(math.floor(raw.pets[name]), 1, #Pets.RARITIES)
+			end
+		end
+	end
+	if type(raw.equipped) == "string" and data.pets[raw.equipped] then
+		data.equipped = raw.equipped
+	end
 	return data
 end
 
@@ -63,6 +99,14 @@ local function publish(player: Player)
 	for _, name in Config.MACHINES do
 		player:SetAttribute(name, data.levels[name])
 	end
+	player:SetAttribute("Eggs", #data.eggs)
+	for slot = 1, Pets.SLOTS do
+		local egg = data.slots[tostring(slot)]
+		player:SetAttribute("Slot" .. slot, if egg then egg.a .. "|" .. egg.t else "")
+	end
+	player:SetAttribute("Pets", Pets.encode(data.pets))
+	player:SetAttribute("Pet", data.equipped)
+	player:SetAttribute("PetRarity", data.pets[data.equipped] or 0)
 	local stats = player:FindFirstChild("leaderstats")
 	if stats then
 		stats.Room.Value = data.best
@@ -138,6 +182,13 @@ end
 local function touch(player: Player)
 	sessions[player].dirty = true
 	publish(player)
+end
+
+-- À appeler après avoir changé les données à la main (œufs, animaux) : sauvegarde et mise à jour de l'écran.
+function PlayerData.changed(player: Player)
+	if sessions[player] then
+		touch(player)
+	end
 end
 
 function PlayerData.addCoins(player: Player, amount: number)

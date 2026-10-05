@@ -11,6 +11,8 @@ local RunService = game:GetService("RunService")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local PlayerData = require(script.Parent.PlayerData)
+local Eggs = require(script.Parent.Eggs)
+local Stats = require(script.Parent.Stats)
 local World = require(script.Parent.World)
 
 local EVENTS = {
@@ -18,6 +20,7 @@ local EVENTS = {
 	Meteors = require(script.Parent.Events.Meteors),
 	Explosions = require(script.Parent.Events.Explosions),
 	Ceiling = require(script.Parent.Events.Ceiling),
+	Melody = require(script.Parent.Events.Melody),
 }
 
 local Rooms = {}
@@ -87,8 +90,10 @@ local function begin(room)
 	end
 	World.setDoor(room.entry, false)
 	room.elapsed = 0
+	table.clear(room.shields)
 	for _, player in list do
 		room.participants[player] = true
+		room.shields[player] = Stats.bonus(player, "shield")
 		local humanoid = body(player)
 		table.insert(
 			room.connections,
@@ -98,7 +103,7 @@ local function begin(room)
 				end
 				room.participants[player] = nil
 				if room.elapsed >= Config.HALF then
-					local coins = Config.REWARD_HALF * room.index
+					local coins = Stats.coins(player, Config.REWARD_HALF * room.index)
 					PlayerData.addCoins(player, coins)
 					notify(player, "half", coins, Config.HALF)
 				end
@@ -116,10 +121,11 @@ local function win(room)
 	local last = room.index == #rooms
 	for player in room.participants do
 		if body(player) then
-			local coins = Config.REWARD_FULL * room.index + if last then Config.FINAL_BONUS else 0
+			local coins = Stats.coins(player, Config.REWARD_FULL * room.index + if last then Config.FINAL_BONUS else 0)
 			PlayerData.addCoins(player, coins)
 			PlayerData.setBest(player, room.index)
 			notify(player, "win", room.index, coins)
+			Eggs.give(player, room.index)
 			if last then
 				notify(player, "finished", #rooms)
 			end
@@ -166,11 +172,31 @@ local function update(room, dt: number)
 			toIdle(room)
 			return
 		end
+		local solved, failed = false, false
 		for _, event in room.events do
 			event.update(dt, room.elapsed)
+			solved = solved or (event.solved ~= nil and event.solved())
 		end
-		if room.elapsed >= Config.DURATION then
+		if solved then
+			-- Casse-tête réussi : la porte s'ouvre sans attendre la fin du temps.
 			win(room)
+		elseif room.elapsed >= Config.DURATION then
+			for _, event in room.events do
+				failed = failed or (event.timeout ~= nil and event.timeout())
+			end
+			if failed then
+				-- Casse-tête pas fini à temps : tout le monde est éliminé.
+				for player in room.participants do
+					local humanoid = body(player)
+					if humanoid then
+						humanoid.Health = 0
+					end
+				end
+				stopEvents(room)
+				toIdle(room)
+			else
+				win(room)
+			end
 		end
 	elseif room.state == "Open" then
 		room.t -= dt
@@ -191,6 +217,7 @@ local function create(geometry)
 	room.elapsed = 0
 	room.participants = {}
 	room.connections = {}
+	room.shields = {} -- [joueur] = dégâts que son animal peut encore encaisser dans cette manche
 	room.events = {}
 
 	local parameters = RaycastParams.new()
@@ -217,11 +244,24 @@ local function create(geometry)
 		end
 		return list
 	end
-	function ctx.damage(player: Player, amount: number)
+	-- kind = "Lava" : le bouclier d'un animal ne protège pas (il encaisse seulement les coups).
+	function ctx.damage(player: Player, amount: number, kind: string?)
 		local humanoid = body(player)
-		if humanoid and room.participants[player] then
+		if not humanoid or not room.participants[player] then
+			return
+		end
+		local shield = room.shields[player] or 0
+		if kind ~= "Lava" and shield > 0 and not humanoid.Parent:FindFirstChildOfClass("ForceField") then
+			local absorbed = math.min(shield, amount)
+			room.shields[player] = shield - absorbed
+			amount -= absorbed
+		end
+		if amount > 0 then
 			humanoid:TakeDamage(amount)
 		end
+	end
+	function ctx.force(player: Player): number
+		return Stats.force(player)
 	end
 	function ctx.kill(player: Player)
 		local humanoid = body(player)

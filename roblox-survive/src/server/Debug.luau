@@ -5,6 +5,7 @@ local ServerStorage = game:GetService("ServerStorage")
 local PlayerData = require(script.Parent.PlayerData)
 local Gym = require(script.Parent.Gym)
 local Rooms = require(script.Parent.Rooms)
+local Eggs = require(script.Parent.Eggs)
 local World = require(script.Parent.World)
 
 return function(_world)
@@ -45,6 +46,15 @@ return function(_world)
 				zMin = room.zMin,
 				zMax = room.zMax,
 				pillars = pillars,
+				melody = room.melody,
+				melodyPads = (function()
+					local list = {}
+					for i, pad in room.melodyPads or {} do
+						list[i] = pad.Position
+					end
+					return list
+				end)(),
+				shield = room.shields[player],
 				exitOpen = room.exit:GetAttribute("Open"),
 				entryOpen = room.entry:GetAttribute("Open"),
 			}
@@ -57,6 +67,31 @@ return function(_world)
 				end
 			end
 			return counted
+		elseif action == "Eggs" then
+			local data = PlayerData.get(player)
+			local slots = {}
+			for slot = 1, 2 do
+				local egg = data.slots[tostring(slot)]
+				slots[slot] = if egg then egg.a else ""
+			end
+			return { eggs = #data.eggs, first = data.eggs[1] and data.eggs[1].a or "", slots = slots, equipped = data.equipped, pets = table.clone(data.pets) }
+		elseif action == "Slot" then
+			return Eggs.use(player, a)
+		elseif action == "Hatch" then
+			-- Les œufs des couveuses sont prêts tout de suite.
+			for _, egg in PlayerData.get(player).slots do
+				egg.t = 0
+			end
+			PlayerData.changed(player)
+		elseif action == "Pet" then
+			-- Donne l'animal a à la rareté b et l'équipe ("" = aucun animal équipé).
+			local data = PlayerData.get(player)
+			if a ~= "" then
+				data.pets[a] = b
+			end
+			data.equipped = a
+			PlayerData.changed(player)
+			Gym.applyStats(player)
 		elseif action == "Sas" then
 			return World.sasCenter(a)
 		end

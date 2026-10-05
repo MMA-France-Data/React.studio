@@ -5,9 +5,6 @@
 --
 -- Réglage : avec la force `need` et 5 appuis par seconde, le plafond ne bouge plus. Sans personne, il écrase tout
 -- en FALL secondes. Il faut à peu près les deux tiers de `need` (à 5 appuis par seconde) pour tenir jusqu'au bout.
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-
-local Config = require(ReplicatedStorage.Shared.Config)
 local Build = require(script.Parent.Parent.Build)
 
 local Ceiling = {}
@@ -114,7 +111,7 @@ function Ceiling.new(ctx, params)
 			end
 			lastPress[player] = elapsed
 		end
-		local force = Config.force(player:GetAttribute("Force") or 1)
+		local force = ctx.force(player)
 		place(math.min(high, bottom + speed * force / (params.need * PRESSES)))
 		return true
 	end

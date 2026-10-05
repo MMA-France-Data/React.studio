@@ -57,6 +57,7 @@ Config.DAMAGE = {
 	Lava = 34, -- toutes les 0,4 s dans la lave
 	Meteor = 45,
 	Explosion = 60,
+	Melody = 25, -- fausse note
 }
 
 -- LES SALLES ----------------------------------------------------------------------------------------------------
@@ -66,43 +67,48 @@ Config.DAMAGE = {
 -- Meteors   : every = secondes entre deux pluies, count = météorites par pluie, warn = secondes d'avertissement,
 --             radius = rayon de l'explosion, aimed = part des météorites qui visent un joueur (0 à 1).
 -- Explosions: every = secondes entre deux vagues, warn = secondes d'avertissement, safe = dalles sûres (sur 16).
+-- Melody    : salle casse-tête. start = notes de la première suite, rounds = manches à réussir (une note de plus
+--             à chaque manche). Réussir ouvre la porte tout de suite ; ne pas finir à temps élimine tout le monde.
+-- egg       : l'animal dont la salle donne l'œuf (voir Pets.luau).
 -- Ceiling   : toujours avec Lava (et écrit après). at = seconde où le plafond commence à descendre, need = force
 --             qui l'arrête à 5 appuis par seconde. Il faut environ les deux tiers pour tenir jusqu'au bout.
 Config.ROOMS = {
-	{ events = { "Lava" }, Lava = { segments = 3, jump = 1 } },
-	{ events = { "Meteors" }, Meteors = { every = 1.1, count = 2, warn = 1.5, radius = 9, aimed = 0.5 } },
-	{ events = { "Explosions" }, Explosions = { every = 4.5, warn = 2.2, safe = 6 } },
+	{ egg = "Dragon", events = { "Lava" }, Lava = { segments = 3, jump = 1 } },
+	{ egg = "Rock", events = { "Meteors" }, Meteors = { every = 1.1, count = 2, warn = 1.5, radius = 9, aimed = 0.5 } },
+	{ egg = "Rabbit", events = { "Explosions" }, Explosions = { every = 4.5, warn = 2.2, safe = 6 } },
 	{
+		egg = "Golem",
 		events = { "Lava", "Ceiling" },
 		Lava = { segments = 3, jump = 1, finish = 28 },
 		Ceiling = { at = 30, need = 28 },
 	},
 	{
+		egg = "Dragon",
 		events = { "Lava", "Meteors" },
 		Lava = { segments = 4, jump = 2 },
 		Meteors = { every = 2.6, count = 1, warn = 1.5, radius = 6, aimed = 1 },
 	},
+	{ egg = "Owl", events = { "Melody" }, Melody = { start = 3, rounds = 3 } },
 	{
-		events = { "Explosions", "Meteors" },
-		Explosions = { every = 4, warn = 1.9, safe = 4 },
-		Meteors = { every = 1.7, count = 1, warn = 1.4, radius = 8, aimed = 0.6 },
-	},
-	{
+		egg = "Golem",
 		events = { "Lava", "Ceiling" },
 		Lava = { segments = 3, jump = 2, finish = 28 },
 		Ceiling = { at = 30, need = 55 },
 	},
 	{
+		egg = "Dragon",
 		events = { "Lava", "Meteors" },
 		Lava = { segments = 6, jump = 4 },
 		Meteors = { every = 2.1, count = 1, warn = 1.3, radius = 6, aimed = 1 },
 	},
 	{
+		egg = "Rabbit",
 		events = { "Explosions", "Meteors" },
 		Explosions = { every = 3.3, warn = 1.6, safe = 3 },
 		Meteors = { every = 1, count = 2, warn = 1.3, radius = 8, aimed = 0.6 },
 	},
 	{
+		egg = "Golem",
 		events = { "Lava", "Ceiling", "Meteors" },
 		Lava = { segments = 4, jump = 4, finish = 28 },
 		Ceiling = { at = 30, need = 68 },

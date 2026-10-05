@@ -20,17 +20,32 @@ Ce dossier est séparé du jeu de tours (`roblox-ranked-td`) : rien n'est partag
     avec plus de force.
 - **Pièces** : salle réussie = 100 × le numéro de la salle ; mort après 30 secondes = la moitié ; +1 000 pour
   la dernière salle.
+- Mélodie (salle 6, casse-tête) : le mur joue une suite de notes en allumant des couleurs ; il faut la refaire en
+    marchant sur les dalles de couleur, dans l'ordre. 3 manches (3, 4 puis 5 notes). Une fausse note blesse ;
+    réussir ouvre la porte tout de suite ; ne pas finir à temps élimine tout le monde.
+- **Œufs et animaux** : chaque salle réussie donne l'œuf de son animal. On le pose dans une des 2 couveuses de la
+  salle de sport (30 secondes × le numéro de la salle, même hors du jeu) ; à l'ouverture, la rareté est tirée
+  (commun, rare, épique, légendaire ; plus de chances dans les salles du fond). Un animal déjà trouvé en aussi
+  bien donne des pièces. On en équipe un seul (bouton « ANIMAUX ») et il suit le joueur :
+  - Dragon de lave (salles 1, 5, 8) : sauter une 2e fois en l'air = vol plané de 1 à 3 secondes, le dragon passe
+    sous le joueur.
+  - Caillou de météorite (salle 2) : encaisse 40 à 160 dégâts par salle (pas la lave ni le plafond).
+  - Lapin éclair (salles 3, 9) : +4 à +15 % de vitesse.
+  - Golem (salles 4, 7, 10) : +3 à +15 de force.
+  - Chouette (salle 6) : +5 à +25 % de pièces.
 - **Raccourci** dans la salle de sport : mène devant la salle 6 quand la salle 5 est réussie.
 - **Sauvegarde** des pièces, des niveaux et de la meilleure salle (dans le jeu publié ; dans Studio, tout reste
   en mémoire le temps du test).
 - Textes en français ou en anglais selon la langue Roblox du joueur.
 
-Pas encore fait : sons, vélo et machine spéciale, monstre, inondation, sol glissant, machines qui changent
-d'apparence, achats en Robux, coffre et compagnons.
+Pas encore fait : vrais sons (la mélodie utilise un petit son fourni avec Roblox, joué plus ou moins aigu), vélo
+et machine spéciale, monstre, inondation, sol glissant, machines qui changent d'apparence, achats en Robux.
+Les animaux sont faits de blocs (`src/shared/Pets.luau`) : à remplacer par de vrais modèles si on en a.
 
 ## Régler le jeu
 
-Tous les chiffres sont dans `src/shared/Config.luau` : prix, gains par niveau, durée des manches, pièces, et la
+Les animaux (pouvoirs, chances des raretés, temps de couvaison) sont dans `src/shared/Pets.luau`.
+Tous les autres chiffres sont dans `src/shared/Config.luau` : prix, gains par niveau, durée des manches, pièces, et la
 liste des salles (`Config.ROOMS`) avec les réglages de chaque événement. Les textes sont dans
 `src/shared/Texts.luau`.
 
@@ -41,8 +56,10 @@ liste des salles (`Config.ROOMS`) avec les réglages de chaque événement. Les 
 - `src/server/Gym.luau` : achats, vitesse et saut du personnage, raccourci.
 - `src/server/Rooms.luau` : le déroulement d'une salle (attente, compte à rebours, événement, porte ouverte).
 - `src/server/Events/` : un fichier par événement.
+- `src/server/Eggs.luau` : œufs, couveuses, animaux ; `src/server/Stats.luau` : les bonus de l'animal équipé.
 - `src/server/PlayerData.luau` : sauvegarde.
-- `src/client/Main.client.luau` : l'écran du joueur.
+- `src/client/Main.client.luau` : l'écran du joueur ; `src/client/Animals.luau` : couveuses, animaux, vol plané.
+- `assets/library` : modèles gratuits de la bibliothèque Roblox (voir son README).
 
 ## Essayer et tester
 
@@ -51,7 +68,7 @@ Construire la place : `rojo build default.project.json -o Survive.rbxl`, puis l'
 Tests automatiques dans Studio (une fenêtre Studio s'ouvre toute seule ; ne pas toucher au PC pendant ce temps) :
 
 - `powershell -ExecutionPolicy Bypass -File tools\studio-test\run.ps1` : tout le jeu, environ 4 minutes
-  (155 vérifications, captures dans `tools\studio-test\out`).
+  (196 vérifications, captures dans `tools\studio-test\out`).
 - `powershell -ExecutionPolicy Bypass -File tools\studio-test\run.ps1 -Test jump -Seconds 560` : mesure la
   hauteur de marche qu'un personnage grimpe d'un saut (a servi à régler `Config.stepHeight`).
 

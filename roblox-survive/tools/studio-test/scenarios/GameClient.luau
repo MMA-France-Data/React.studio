@@ -32,6 +32,10 @@ return function(log)
 	local prompt = workspace.Gym.Force.Base.Prompt
 	check(prompt.ActionText ~= "" and prompt.ObjectText ~= "", "écran : bouton de la musculation rempli", prompt.ObjectText .. " : " .. prompt.ActionText)
 
+	check(hud.Side.Pets.Label.Text ~= "", "écran : bouton des animaux", hud.Side.Pets.Label.Text)
+	local incubator = workspace.Gym.Incubator.Base.Label
+	check(incubator.Title.Text ~= "" and incubator.Info.Text ~= "", "écran : étiquette de la couveuse remplie", incubator.Title.Text .. " / " .. incubator.Level.Text .. " / " .. incubator.Info.Text)
+
 	-- Pendant une salle : le bandeau.
 	local seen = {}
 	while true do
@@ -45,6 +49,18 @@ return function(log)
 				task.wait(0.5)
 				check(hud.Ceiling.Visible and hud.Ceiling.Label.Text ~= "", "écran : jauge du plafond dans la salle 4", hud.Ceiling.Label.Text)
 			end
+		end
+		if player:GetAttribute("Pet") == "Dragon" and not seen.pet then
+			seen.pet = true
+			task.wait(0.5)
+			local model = workspace:FindFirstChild("Pets") and workspace.Pets:FindFirstChild("Dragon")
+			check(model ~= nil, "écran : le dragon de lave suit le joueur")
+			local row = hud.PetsPanel.Dragon
+			check(row.Equip.Visible and row.Power.Text ~= "", "écran : fenêtre des animaux remplie", row.Animal.Text .. " / " .. row.Power.Text .. " / " .. row.Equip.Text)
+		end
+		if room == 6 and hud.Banner.Visible and not seen.melody and string.find(hud.Banner.Hint.Text, "/") then
+			seen.melody = true
+			check(true, "écran : bandeau de la mélodie", hud.Banner.Title.Text .. " | " .. hud.Banner.Hint.Text)
 		end
 		if room == 4 and hud.Push.Visible and not seen.push then
 			seen.push = true

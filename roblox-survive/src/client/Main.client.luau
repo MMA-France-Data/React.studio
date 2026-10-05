@@ -1,5 +1,6 @@
 -- L'écran du joueur : ses pièces et ses niveaux, le bandeau de la salle (événement, compte à rebours), les
 -- messages (« +300 pièces »), les textes du décor dans sa langue, et le rebond du trampoline.
+-- Les œufs, les couveuses et les animaux sont dans Animals.luau.
 local CollectionService = game:GetService("CollectionService")
 local LocalizationService = game:GetService("LocalizationService")
 local Players = game:GetService("Players")
@@ -51,6 +52,7 @@ local gui = Instance.new("ScreenGui")
 gui.Name = "Hud"
 gui.ResetOnSpawn = false
 gui.AutoLocalize = false
+gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 gui.Parent = player:WaitForChild("PlayerGui")
 
 local function text(parent: Instance, name: string, size: UDim2, position: UDim2, color: Color3?, maxSize: number?): TextLabel
@@ -294,6 +296,13 @@ RunService.RenderStepped:Connect(function()
 		bannerTitle.Text = table.concat(titles, "  ")
 		bannerHint.Text = table.concat(hints, "  •  ")
 		bannerTimer.Text = tostring(left)
+		-- Salle de la mélodie : où on en est.
+		local phase, round, rounds, index, length = string.match(folder:GetAttribute("Melody") or "", "^(%a+)|(%d+)|(%d+)|(%d+)|(%d+)$")
+		if phase == "Play" then
+			bannerHint.Text = tr("melodyPlay", index, length, round, rounds)
+		elseif phase then
+			bannerHint.Text = tr("melodyShow", round, rounds)
+		end
 		bannerTimer.TextColor3 = if left <= 10 then Color3.fromRGB(110, 255, 80) else Color3.new(1, 1, 1)
 	else
 		bannerTitle.Text = tr("doorOpen")
@@ -311,6 +320,9 @@ RunService.RenderStepped:Connect(function()
 		gaugeLabel.Text = if pushButton.Visible then tr("pushKey") else tr("ceiling")
 	end
 end)
+
+-- LES ŒUFS ET LES ANIMAUX -----------------------------------------------------------------------------------------
+require(script.Parent.Animals)({ gui = gui, side = side, text = text, box = box, tr = tr, num = num, lang = lang, showToast = showToast })
 
 -- LE TRAMPOLINE -------------------------------------------------------------------------------------------------
 local function bouncy(part: Instance)

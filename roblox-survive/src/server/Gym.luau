@@ -5,6 +5,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local PlayerData = require(script.Parent.PlayerData)
+local Stats = require(script.Parent.Stats)
 local World = require(script.Parent.World)
 
 local Gym = {}
@@ -26,7 +27,7 @@ local function prompt(part: BasePart, kind: string, distance: number): Proximity
 	return item
 end
 
--- Vitesse et saut du personnage selon les niveaux du joueur.
+-- Vitesse et saut du personnage selon les niveaux du joueur (et son animal).
 function Gym.applyStats(player: Player)
 	local data = PlayerData.get(player)
 	local character = player.Character
@@ -35,8 +36,8 @@ function Gym.applyStats(player: Player)
 		return
 	end
 	humanoid.UseJumpPower = false
-	humanoid.WalkSpeed = Config.walkSpeed(data.levels.Speed)
-	humanoid.JumpHeight = Config.jumpHeight(data.levels.Jump)
+	humanoid.WalkSpeed = Stats.walkSpeed(player)
+	humanoid.JumpHeight = Stats.jumpHeight(player)
 end
 
 -- Achète le niveau suivant d'une machine. Renvoie true, ou false et la raison (« max », « poor »).
