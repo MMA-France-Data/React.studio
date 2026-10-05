@@ -28,7 +28,8 @@ Ce dossier est séparé du jeu de tours (`roblox-ranked-td`) : rien n'est partag
   (commun, rare, épique, légendaire ; plus de chances dans les salles du fond). L'animal prend le mélange de
   couleurs de sa rareté (corps, reflets et contour de trois couleurs qui tournent) : ses couleurs d'origine, puis
   bleu-turquoise-vert, doré-orange-rose, et violet-rose-bleu-turquoise avec des étincelles pour le légendaire. Un animal déjà trouvé en aussi
-  bien donne des pièces. On en équipe un seul (bouton « ANIMAUX ») et il suit le joueur :
+  bien donne des pièces. On en équipe un seul (bouton « ANIMAUX ») et il suit le joueur en bougeant à sa façon
+  (le dragon et la chouette volent, le caillou rebondit, le lapin saute, le golem marche en balançant les bras) :
   - Dragon de lave (salles 1, 5, 8) : sauter une 2e fois en l'air = vol plané de 1 à 3 secondes, le dragon passe
     sous le joueur.
   - Caillou de météorite (salle 2) : encaisse 40 à 160 dégâts par salle (pas la lave ni le plafond).

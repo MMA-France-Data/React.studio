@@ -447,6 +447,19 @@ return function(log)
 			shot("animal_" .. name .. rarity, (view * CFrame.new(1.5, 2.5, -11)).Position, (view * CFrame.new(1.6, 0.4, 1.3)).Position)
 		end
 	end
+	-- Les animaux en mouvement : le joueur marche tout droit, la photo est prise pendant qu'il avance.
+	for _, name in { "Dragon", "Rock", "Rabbit", "Golem", "Owl" } do
+		D("Pet", name, 3)
+		tp(Vector3.new(0, 4, -22))
+		task.wait(0.8)
+		local _, walker, body = alive()
+		walker:MoveTo(Vector3.new(0, 0, 27))
+		task.wait(0.5)
+		-- shot() attend 0,7 s avant la photo : la caméra vise l'endroit où le joueur sera à ce moment-là.
+		local ahead = body.Position + Vector3.new(0, 0, walker.WalkSpeed * 0.7)
+		shot("marche_" .. name, ahead + Vector3.new(11, 3, 7), ahead + Vector3.new(-2, -0.5, -1))
+		check(body.Position.Z > 0, "le joueur a marché pendant la photo de " .. name, body.Position.Z)
+	end
 	shot("gagnants", Vector3.new(-14, 12, 1036), Vector3.new(2, 5, 1058))
 
 	-- 4. LE RACCOURCI ----------------------------------------------------------------------------------------------

@@ -154,7 +154,7 @@ return function(env)
 	local folder = Instance.new("Folder")
 	folder.Name = "Pets"
 	folder.Parent = workspace
-	local shown = {} -- [joueur] = { key, model, cframe }
+	local shown = {} -- [joueur] = { key, model, cframe, half, limbs, clock }
 	local function drop(other: Player)
 		if shown[other] then
 			shown[other].model:Destroy()
@@ -162,12 +162,65 @@ return function(env)
 		end
 	end
 	Players.PlayerRemoving:Connect(drop)
+
+	-- Membres qui se balancent quand l'animal marche : le point d'attache (épaule, hanche) dans le modèle, le sens,
+	-- et les pièces du membre. Seul le golem a des bras et des jambes séparés ; les autres modèles sont d'un bloc.
+	local LIMBS = {
+		Golem = {
+			{ pivot = Vector3.new(0.53, 0.04, 0.09), sign = 1, parts = { "UpperLeg1", "LowerLeg1", "Foot1", "Toe1", "Toe2" } },
+			{ pivot = Vector3.new(-0.45, 0.04, 0.09), sign = -1, parts = { "UpperLeg2", "LowerLeg2", "Foot2", "Toe3", "Toe4" } },
+			{ pivot = Vector3.new(1, 0.95, 0.04), sign = -1, parts = { "UpperArm1", "LowerArm1", "LashesArm1", "Finger1", "Finger2", "Finger3" } },
+			{ pivot = Vector3.new(-0.89, 0.95, 0.04), sign = 1, parts = { "UpperArm2", "LowerArm2", "Hand2" } },
+		},
+	}
+	local function rig(name: string, model: Model)
+		local limbs = {}
+		local origin, scale = model:GetPivot(), model:GetScale()
+		for _, limb in LIMBS[name] or {} do
+			local list = {}
+			for _, part in model:GetDescendants() do
+				if part:IsA("BasePart") and table.find(limb.parts, part.Name) then
+					table.insert(list, { part = part, offset = origin:ToObjectSpace(part.CFrame) })
+				end
+			end
+			table.insert(limbs, { pivot = limb.pivot * scale, sign = limb.sign, list = list })
+		end
+		return limbs
+	end
+
+	-- La pose de l'animal par-dessus sa place à côté du joueur, selon sa façon de bouger.
+	-- t = son horloge, moving = le joueur avance. Renvoie aussi l'angle de balancement des membres.
+	local function motion(move: string, t: number, moving: boolean): (CFrame, number)
+		if move == "fly" then
+			-- Vole : monte et descend, penche le nez en avançant, se balance d'une aile sur l'autre.
+			local pitch = if moving then -0.22 else 0.05 * math.sin(t * 2)
+			return CFrame.new(0, math.sin(t * 5) * 0.35, 0) * CFrame.Angles(pitch, 0, math.sin(t * 2.5) * 0.12), 0
+		elseif move == "bounce" then
+			-- Rebondit tout le temps, plus haut quand le joueur avance.
+			return CFrame.new(0, math.abs(math.sin(t * 6)) * (if moving then 2.2 else 0.6), 0), 0
+		elseif move == "hop" then
+			-- Petits bonds quand le joueur avance, le nez qui suit le bond ; immobile sinon.
+			if moving then
+				return CFrame.new(0, math.abs(math.sin(t * 8)) * 1.5, 0) * CFrame.Angles(math.cos(t * 8) * 0.3, 0, 0), 0
+			end
+			return CFrame.new(0, math.sin(t * 3) * 0.04, 0), 0
+		elseif move == "walk" then
+			-- Marche lourde : se dandine, bras et jambes qui se balancent.
+			if moving then
+				return CFrame.new(0, math.abs(math.sin(t * 7)) * 0.2, 0) * CFrame.Angles(0, 0, math.sin(t * 7) * 0.1), math.sin(t * 7) * 0.6
+			end
+			return CFrame.Angles(0, 0, math.sin(t * 1.5) * 0.03), 0
+		end
+		return CFrame.identity, 0
+	end
+
 	RunService.RenderStepped:Connect(function(dt)
 		for _, other in Players:GetPlayers() do
 			local name, rarity = other:GetAttribute("Pet") or "", other:GetAttribute("PetRarity") or 0
 			local character = other.Character
 			local root = character and character:FindFirstChild("HumanoidRootPart")
-			if name == "" or not Pets.DEFS[name] or not root then
+			local def = Pets.DEFS[name]
+			if name == "" or not def or not root then
 				drop(other)
 				continue
 			end
@@ -176,21 +229,38 @@ return function(env)
 			if not entry or entry.key ~= key then
 				drop(other)
 				local model = Pets.build(name, rarity)
+				local _, size = model:GetBoundingBox()
+				entry = { key = key, model = model, cframe = root.CFrame, half = size.Y / 2, limbs = rig(name, model), clock = 0 }
 				model.Parent = folder
-				entry = { key = key, model = model, cframe = root.CFrame }
 				shown[other] = entry
 			end
+			entry.clock += dt
+			local velocity = root.AssemblyLinearVelocity
+			local moving = Vector3.new(velocity.X, 0, velocity.Z).Magnitude > 2
 			local riding = other == player and gliding
-			local target
+			local pose, swing
 			if riding then
-				target = root.CFrame * CFrame.new(0, -3.4, 0)
+				-- Le dragon porte le joueur : juste sous lui, bien à plat.
+				entry.cframe = root.CFrame * CFrame.new(0, -3.4, 0)
+				pose, swing = entry.cframe, 0
 			else
-				-- Un gros animal se tient un peu plus loin du joueur.
+				-- Un gros animal se tient un peu plus loin du joueur. Celui qui vole reste à hauteur d'épaule,
+				-- les autres ont les pieds par terre.
 				local away = (Pets.size(name) - 1) * 2.5
-				target = root.CFrame * CFrame.new(3.2 + away, 0.6 + away * 0.3 + math.sin(os.clock() * 2.2) * 0.3, 2.6)
+				local height = if def.move == "fly" then 1.2 + away * 0.3 else entry.half - 3
+				local target = root.CFrame * CFrame.new(3.2 + away, height, 2.6)
+				entry.cframe = entry.cframe:Lerp(target, 1 - math.exp(-9 * dt))
+				local offset
+				offset, swing = motion(def.move, entry.clock, moving)
+				pose = entry.cframe * offset
 			end
-			entry.cframe = if riding then target else entry.cframe:Lerp(target, 1 - math.exp(-9 * dt))
-			entry.model:PivotTo(entry.cframe)
+			entry.model:PivotTo(pose)
+			for _, limb in entry.limbs do
+				local hinge = pose * CFrame.new(limb.pivot) * CFrame.Angles(swing * limb.sign, 0, 0) * CFrame.new(-limb.pivot)
+				for _, item in limb.list do
+					item.part.CFrame = hinge * item.offset
+				end
+			end
 			Pets.shimmer(entry.model, os.clock())
 		end
 	end)

@@ -11,16 +11,18 @@ Pets.ORDER = { "Dragon", "Rock", "Rabbit", "Golem", "Owl" }
 
 -- power : ce que fait l'animal ; values : la force du pouvoir pour chaque rareté (commun, rare, épique, légendaire).
 -- size : grosseur de l'animal (1 si absent). Le dragon est gros : on monte dessus pendant le vol plané.
+-- move : comment il bouge à côté du joueur (voir Animals.luau) : fly = vole, bounce = rebondit, hop = saute quand
+--        le joueur avance, walk = marche en balançant bras et jambes.
 Pets.DEFS = {
-	Dragon = { power = "glide", values = { 1, 1.5, 2, 3 }, size = 1.8 }, -- secondes de vol plané (sauter une 2e fois en l'air)
-	Rock = { power = "shield", values = { 40, 70, 110, 160 } }, -- dégâts encaissés par salle (pas la lave ni le plafond)
-	Rabbit = { power = "speed", values = { 4, 7, 10, 15 } }, -- % de vitesse en plus
-	Golem = { power = "force", values = { 3, 6, 10, 15 } }, -- force en plus pour repousser le plafond
-	Owl = { power = "coins", values = { 5, 10, 15, 25 } }, -- % de pièces en plus
+	Dragon = { power = "glide", values = { 1, 1.5, 2, 3 }, size = 1.8, move = "fly" }, -- secondes de vol plané (sauter une 2e fois en l'air)
+	Rock = { power = "shield", values = { 40, 70, 110, 160 }, move = "bounce" }, -- dégâts encaissés par salle (pas la lave ni le plafond)
+	Rabbit = { power = "speed", values = { 4, 7, 10, 15 }, move = "hop" }, -- % de vitesse en plus
+	Golem = { power = "force", values = { 3, 6, 10, 15 }, move = "walk" }, -- force en plus pour repousser le plafond
+	Owl = { power = "coins", values = { 5, 10, 15, 25 }, move = "fly" }, -- % de pièces en plus
 }
 
 -- Chaque rareté a son MÉLANGE de couleurs, peint sur l'animal lui-même : un dégradé de toute la palette recouvre
--- son corps (plusieurs couleurs visibles en même temps), et le contour et les anneaux tournent dans la palette.
+-- son corps (plusieurs couleurs visibles en même temps), et son contour tourne dans la palette.
 -- commun = ses couleurs d'origine ; rare = bleu, turquoise, vert ; épique = doré, orange, rose ;
 -- légendaire = violet, rose, bleu, turquoise, et des étincelles.
 -- color : la couleur de la rareté dans les textes ; tint : force du voile de couleur si le dégradé ne peut pas
@@ -223,7 +225,7 @@ local BUILDERS = {
 }
 
 -- Pièces qui gardent leur couleur quelle que soit la rareté (yeux, braises...).
-local KEEP_COLOR = { Eye = true, Pupil = true, Halo = true, Halo2 = true, Nose = true, Beak = true }
+local KEEP_COLOR = { Eye = true, Pupil = true, Nose = true, Beak = true }
 
 -- Couleur à la position `position` d'une palette (0 = la 1re couleur, 1 = la 2e...) : glisse de l'une à l'autre.
 local function along(palette: { Color3 }, position: number): Color3
@@ -308,10 +310,7 @@ function Pets.build(name: string, rarity: number): Model
 		tint.OutlineTransparency = 0
 		tint.DepthMode = Enum.HighlightDepthMode.Occluded
 		tint.Parent = model
-		-- 3) Deux anneaux qui brillent sous l'animal, de deux couleurs, et de la lumière.
-		local ring = piece(model, "Halo", Vector3.new(0.15, 3.6, 3.6), CFrame.new(0, -1.5, 0) * CFrame.Angles(0, 0, math.rad(90)), info.color, Enum.Material.Neon, Enum.PartType.Cylinder)
-		ring.Transparency = 0.3
-		piece(model, "Halo2", Vector3.new(0.17, 2.1, 2.1), CFrame.new(0, -1.5, 0) * CFrame.Angles(0, 0, math.rad(90)), info.color, Enum.Material.Neon, Enum.PartType.Cylinder)
+		-- 3) Un peu de lumière de la couleur de la rareté.
 		local light = Instance.new("PointLight")
 		light.Name = "RarityLight"
 		light.Range = 5 + rarity
@@ -333,7 +332,7 @@ local function blend(palette: { Color3 }, t: number, offset: number): Color3
 	return along(palette, t / Pets.COLOR_SECONDS + offset)
 end
 
--- À appeler à chaque image pour un animal rare ou mieux : fait tourner les couleurs du contour, des anneaux et de
+-- À appeler à chaque image pour un animal rare ou mieux : fait tourner les couleurs du contour et de
 -- la lumière (le dégradé du corps, lui, ne bouge pas).
 function Pets.shimmer(model: Model, t: number)
 	local info = Pets.RARITIES[model:GetAttribute("Rarity") or 1]
@@ -346,10 +345,6 @@ function Pets.shimmer(model: Model, t: number)
 		if child.Name == "Tint" then
 			child.FillColor = first
 			child.OutlineColor = third
-		elseif child.Name == "Halo" then
-			child.Color = second
-		elseif child.Name == "Halo2" then
-			child.Color = third
 		end
 	end
 	local body = model.PrimaryPart
