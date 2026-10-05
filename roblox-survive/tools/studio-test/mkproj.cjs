@@ -24,9 +24,13 @@ if (!scenarios[mode]) {
 
 const project = JSON.parse(fs.readFileSync(path.join(repo, 'default.project.json'), 'utf8'));
 const tree = project.tree;
-tree.ReplicatedStorage.Shared.$path = norm(path.join(repo, 'src', 'shared'));
-tree.ServerScriptService.Server.$path = norm(path.join(repo, 'src', 'server'));
-tree.StarterPlayer.StarterPlayerScripts.Client.$path = norm(path.join(repo, 'src', 'client'));
+// Le projet de test est écrit dans out/ : tous les chemins du projet (scripts, modèles de assets/) deviennent absolus.
+const absolute = (node) => {
+	if (!node || typeof node !== 'object') return;
+	if (typeof node.$path === 'string' && !path.isAbsolute(node.$path)) node.$path = norm(path.join(repo, node.$path));
+	for (const [key, child] of Object.entries(node)) if (!key.startsWith('$')) absolute(child);
+};
+absolute(tree);
 tree.ReplicatedStorage.__AutoPlayTest = { $className: 'NumberValue', $properties: { Value: Number(duration) } };
 const [serverScenario, clientScenario] = scenarios[mode];
 tree.ReplicatedStorage.__AutoTestScript = { $path: norm(path.join(here, 'scenarios', serverScenario)) };
