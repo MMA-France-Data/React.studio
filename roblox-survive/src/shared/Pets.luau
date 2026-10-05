@@ -1,7 +1,10 @@
 -- Les animaux : chaque salle donne l'œuf de son animal ; la rareté est tirée quand l'œuf éclot dans la couveuse.
 -- Le même animal existe en 4 raretés : plus il est rare, plus son pouvoir est fort (et plus il est gros et brillant).
 -- On n'en équipe qu'un à la fois.
+local AssetService = game:GetService("AssetService")
+
 local Pets = {}
+local gradient
 local PetModels = require(script.Parent.PetModels)
 
 Pets.ORDER = { "Dragon", "Rock", "Rabbit", "Golem", "Owl" }
@@ -15,15 +18,42 @@ Pets.DEFS = {
 	Owl = { power = "coins", values = { 5, 10, 15, 25 } }, -- % de pièces en plus
 }
 
--- Chaque rareté a sa couleur, posée sur l'animal lui-même : commun = ses couleurs d'origine, rare = bleu,
--- épique = doré, légendaire = violet qui change de teinte sans arrêt (rose, bleu, turquoise...).
--- tint : force de la couleur sur l'animal (0 = aucune, 1 = couleur pleine).
+-- Chaque rareté a son MÉLANGE de couleurs, peint sur l'animal lui-même : un dégradé de toute la palette recouvre
+-- son corps (plusieurs couleurs visibles en même temps), et le contour et les anneaux tournent dans la palette.
+-- commun = ses couleurs d'origine ; rare = bleu, turquoise, vert ; épique = doré, orange, rose ;
+-- légendaire = violet, rose, bleu, turquoise, et des étincelles.
+-- color : la couleur de la rareté dans les textes ; tint : force du voile de couleur si le dégradé ne peut pas
+-- être peint (voir gradient plus bas).
 Pets.RARITIES = {
 	{ key = "Common", color = Color3.fromRGB(200, 204, 214), scale = 1, tint = 0 },
-	{ key = "Rare", color = Color3.fromRGB(60, 150, 255), scale = 1.12, tint = 0.5 },
-	{ key = "Epic", color = Color3.fromRGB(255, 200, 40), scale = 1.25, tint = 0.55 },
-	{ key = "Legendary", color = Color3.fromRGB(190, 90, 255), scale = 1.4, tint = 0.6, rainbow = true },
+	{
+		key = "Rare",
+		color = Color3.fromRGB(60, 150, 255),
+		scale = 1.12,
+		tint = 0.4,
+		palette = { Color3.fromRGB(40, 110, 255), Color3.fromRGB(50, 225, 255), Color3.fromRGB(60, 235, 150) },
+	},
+	{
+		key = "Epic",
+		color = Color3.fromRGB(255, 200, 40),
+		scale = 1.25,
+		tint = 0.45,
+		palette = { Color3.fromRGB(255, 210, 40), Color3.fromRGB(255, 120, 30), Color3.fromRGB(255, 80, 150) },
+	},
+	{
+		key = "Legendary",
+		color = Color3.fromRGB(190, 90, 255),
+		scale = 1.4,
+		tint = 0.5,
+		palette = {
+			Color3.fromRGB(160, 70, 255),
+			Color3.fromRGB(255, 80, 210),
+			Color3.fromRGB(70, 110, 255),
+			Color3.fromRGB(50, 235, 225),
+		},
+	},
 }
+Pets.COLOR_SECONDS = 1.3 -- temps pour passer d'une couleur de la palette à la suivante
 
 -- Chances de chaque rareté (sur 100) dans la salle 1, et ce qui change à chaque salle suivante.
 Pets.ODDS = { 60, 28, 10, 2 }
@@ -185,6 +215,52 @@ local BUILDERS = {
 	end,
 }
 
+-- Pièces qui gardent leur couleur quelle que soit la rareté (yeux, braises...).
+local KEEP_COLOR = { Eye = true, Pupil = true, Halo = true, Halo2 = true, Nose = true, Beak = true }
+
+-- Couleur à la position `position` d'une palette (0 = la 1re couleur, 1 = la 2e...) : glisse de l'une à l'autre.
+local function along(palette: { Color3 }, position: number): Color3
+	position %= #palette
+	local index = math.floor(position)
+	return palette[index + 1]:Lerp(palette[(index + 1) % #palette + 1], position - index)
+end
+
+-- L'image du dégradé d'une rareté, fabriquée par le jeu lui-même (aucune image à mettre en ligne) : des bandes
+-- ondulées de toutes les couleurs de la palette. Elle est faite une seule fois et sert à tous les animaux de
+-- cette rareté. Si Roblox refuse de créer l'image (réglage du jeu, vieil appareil), renvoie nil : l'animal reçoit
+-- alors seulement un voile de couleur.
+local gradients = {}
+function gradient(rarity: number): any
+	if gradients[rarity] ~= nil then
+		return gradients[rarity] or nil
+	end
+	local palette = Pets.RARITIES[rarity].palette
+	local ok, content = pcall(function()
+		local size = 64
+		local image = AssetService:CreateEditableImage({ Size = Vector2.new(size, size) })
+		local pixels = buffer.create(size * size * 4)
+		for y = 0, size - 1 do
+			for x = 0, size - 1 do
+				local u, v = x / size, y / size
+				local wave = 0.25 * math.sin(v * math.pi * 4) + 0.25 * math.sin(u * math.pi * 6)
+				local color = along(palette, (u * 2 + v * 2 + wave) * #palette)
+				local offset = (y * size + x) * 4
+				buffer.writeu8(pixels, offset, math.floor(color.R * 255))
+				buffer.writeu8(pixels, offset + 1, math.floor(color.G * 255))
+				buffer.writeu8(pixels, offset + 2, math.floor(color.B * 255))
+				buffer.writeu8(pixels, offset + 3, 255)
+			end
+		end
+		image:WritePixelsBuffer(Vector2.zero, Vector2.new(size, size), pixels)
+		return Content.fromObject(image)
+	end)
+	if not ok then
+		warn("[Survive] dégradé des animaux impossible : " .. tostring(content))
+	end
+	gradients[rarity] = if ok then content else false
+	return if ok then content else nil
+end
+
 -- Construit le modèle d'un animal (ancré, sans collision). Sa pièce principale s'appelle « Body ».
 function Pets.build(name: string, rarity: number): Model
 	local model = PetModels.build(name)
@@ -198,62 +274,85 @@ function Pets.build(name: string, rarity: number): Model
 	model.PrimaryPart = body
 
 	local info = Pets.RARITIES[math.clamp(rarity, 1, #Pets.RARITIES)]
-	if rarity >= 2 then
-		-- L'animal prend la couleur de sa rareté (un voile de couleur par-dessus son modèle, avec un contour).
+	if info.palette then
+		-- 1) Le corps : le dégradé de la palette remplace la texture de chaque maillage ; les pièces simples
+		--    (blocs) prennent chacune une couleur de la palette.
+		local content = gradient(rarity)
+		local count = 0
+		for _, part in model:GetDescendants() do
+			if part:IsA("MeshPart") and content then
+				for _, child in part:GetChildren() do
+					if child:IsA("SurfaceAppearance") then
+						child:Destroy()
+					end
+				end
+				part.TextureContent = content
+				part.Color = Color3.new(1, 1, 1)
+				part.Material = Enum.Material.SmoothPlastic
+			elseif part:IsA("BasePart") and part ~= body and not KEEP_COLOR[part.Name] then
+				count += 1
+				part.Color = info.palette[count % #info.palette + 1]
+			end
+		end
+		-- 2) Un contour de couleur (et un voile léger, plus fort si le dégradé n'a pas pu être peint).
 		local tint = Instance.new("Highlight")
 		tint.Name = "Tint"
-		tint.FillColor = info.color
-		tint.FillTransparency = 1 - info.tint
-		tint.OutlineColor = info.color
+		tint.FillTransparency = if content then 0.88 else 1 - info.tint
 		tint.OutlineTransparency = 0
 		tint.DepthMode = Enum.HighlightDepthMode.Occluded
 		tint.Parent = model
-		-- Un anneau qui brille à la couleur de la rareté, de la lumière, et des étincelles pour le légendaire.
-		local ring = piece(model, "Halo", Vector3.new(0.15, 3.4, 3.4), CFrame.new(0, -1.5, 0) * CFrame.Angles(0, 0, math.rad(90)), info.color, Enum.Material.Neon, Enum.PartType.Cylinder)
-		ring.Transparency = 0.25
+		-- 3) Deux anneaux qui brillent sous l'animal, de deux couleurs, et de la lumière.
+		local ring = piece(model, "Halo", Vector3.new(0.15, 3.6, 3.6), CFrame.new(0, -1.5, 0) * CFrame.Angles(0, 0, math.rad(90)), info.color, Enum.Material.Neon, Enum.PartType.Cylinder)
+		ring.Transparency = 0.3
+		piece(model, "Halo2", Vector3.new(0.17, 2.1, 2.1), CFrame.new(0, -1.5, 0) * CFrame.Angles(0, 0, math.rad(90)), info.color, Enum.Material.Neon, Enum.PartType.Cylinder)
 		local light = Instance.new("PointLight")
-		light.Color = info.color
-		light.Range = 6 + rarity * 2
-		light.Brightness = 1.5
+		light.Name = "RarityLight"
+		light.Range = 5 + rarity
+		light.Brightness = 0.5
 		light.Parent = body
+		model:SetAttribute("Rarity", rarity)
 	end
 	if rarity >= 4 then
 		local sparkles = Instance.new("Sparkles")
-		sparkles.SparkleColor = info.color
 		sparkles.Parent = body
 	end
-	if info.rainbow then
-		model:SetAttribute("Rainbow", true)
-	end
 	model:ScaleTo(info.scale)
+	Pets.shimmer(model, 0)
 	return model
 end
 
--- Couleur du légendaire à l'instant t : autour du violet, en passant par le rose, le bleu et le turquoise.
-function Pets.rainbow(t: number): Color3
-	return Color3.fromHSV((0.78 + 0.27 * math.sin(t * 1.4)) % 1, 0.8, 1)
+-- Couleur d'une palette à l'instant t (décalé de `offset` couleurs).
+local function blend(palette: { Color3 }, t: number, offset: number): Color3
+	return along(palette, t / Pets.COLOR_SECONDS + offset)
 end
 
--- À appeler à chaque image pour un animal légendaire : fait changer sa teinte.
+-- À appeler à chaque image pour un animal rare ou mieux : fait tourner les couleurs du contour, des anneaux et de
+-- la lumière (le dégradé du corps, lui, ne bouge pas).
 function Pets.shimmer(model: Model, t: number)
-	local color = Pets.rainbow(t)
-	local tint = model:FindFirstChild("Tint")
-	if tint then
-		tint.FillColor = color
-		tint.OutlineColor = Pets.rainbow(t + 1.2)
+	local info = Pets.RARITIES[model:GetAttribute("Rarity") or 1]
+	local palette = info and info.palette
+	if not palette then
+		return
 	end
-	local halo = model:FindFirstChild("Halo")
-	if halo then
-		halo.Color = color
+	local first, second, third = blend(palette, t, 0), blend(palette, t, 1), blend(palette, t, 2)
+	for _, child in model:GetChildren() do
+		if child.Name == "Tint" then
+			child.FillColor = first
+			child.OutlineColor = third
+		elseif child.Name == "Halo" then
+			child.Color = second
+		elseif child.Name == "Halo2" then
+			child.Color = third
+		end
 	end
 	local body = model.PrimaryPart
-	local light = body and body:FindFirstChildOfClass("PointLight")
+	local light = body and body:FindFirstChild("RarityLight")
 	if light then
-		light.Color = color
+		light.Color = first
 	end
 	local sparkles = body and body:FindFirstChildOfClass("Sparkles")
 	if sparkles then
-		sparkles.SparkleColor = color
+		sparkles.SparkleColor = second
 	end
 end
 
