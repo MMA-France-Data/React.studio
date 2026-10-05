@@ -3,6 +3,16 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local PetModels = {}
 
+-- Les rigs gardent leurs dimensions et poses de liaison d'origine dans les assets.
+-- ScaleTo adapte ensemble le maillage, les os et les attaches, sans casser le skinning.
+local RIG_SIZE = {
+	Dragon = { maximum = 4.6 },
+	Rock = { maximum = 3.3 },
+	Rabbit = { height = 2.9 },
+	Golem = { height = 3.6, yaw = -math.pi / 2 },
+	Owl = { height = 2.9 },
+}
+
 local function accent(model: Model, name: string, position: Vector3, size: Vector3, color: Color3, shape: Enum.PartType?): Part
 	local part = Instance.new("Part")
 	part.Name = name
@@ -29,7 +39,11 @@ function PetModels.build(name: string): Model?
 	end
 	local model = template:Clone()
 	model.Name = name
+	local hasRig = false
 	for _, instance in model:GetDescendants() do
+		if instance:IsA("Bone") or instance:IsA("Motor6D") then
+			hasRig = true
+		end
 		if instance:IsA("BasePart") then
 			instance.Anchored = true
 			instance.CanCollide = false
@@ -42,7 +56,8 @@ function PetModels.build(name: string): Model?
 	local body = Instance.new("Part")
 	body.Name = "Body"
 	body.Size = Vector3.new(0.1, 0.1, 0.1)
-	body.CFrame = CFrame.identity
+	local bounds, size = model:GetBoundingBox()
+	body.CFrame = if hasRig then CFrame.new(bounds.Position) else CFrame.identity
 	body.Transparency = 1
 	body.Anchored = true
 	body.CanCollide = false
@@ -51,14 +66,34 @@ function PetModels.build(name: string): Model?
 	body.CastShadow = false
 	body.Parent = model
 	model.PrimaryPart = body
+	if hasRig then
+		local dimensions = RIG_SIZE[name]
+		model:PivotTo(CFrame.Angles(0, dimensions and dimensions.yaw or 0, 0))
+		if dimensions then
+			local factor = if dimensions.height then dimensions.height / size.Y else dimensions.maximum / math.max(size.X, size.Y, size.Z)
+			model:ScaleTo(factor)
+			model:SetAttribute("VisualBaseScale", factor)
+		end
+		-- Garder l'orientation dans les pièces, pas dans le pivot : le suivi remplace
+		-- ensuite le CFrame du modèle et ne doit pas annuler cette correction.
+		body.CFrame = CFrame.identity
+	end
 
 	if name == "Dragon" then
+		if hasRig then
+			for _, part in model:GetDescendants() do
+				if part:IsA("MeshPart") and part.TextureID == "" then
+					part.Color = Color3.fromRGB(175, 54, 32)
+					part.Material = Enum.Material.SmoothPlastic
+				end
+			end
+		end
 		local light = Instance.new("PointLight")
 		light.Color = Color3.fromRGB(255, 105, 30)
 		light.Brightness = 0.6
 		light.Range = 5
 		light.Parent = body
-	elseif name == "Rock" then
+	elseif name == "Rock" and not hasRig then
 		-- La vraie pierre conserve le visage et les braises du compagnon d'origine.
 		for _, side in { -1, 1 } do
 			local eye = accent(model, "Eye", Vector3.new(side * 0.45, 0.25, -1.15), Vector3.new(0.45, 0.45, 0.15), Color3.fromRGB(250, 250, 250), Enum.PartType.Block)

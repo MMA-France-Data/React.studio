@@ -1,75 +1,57 @@
 [
   {
     "name": "Dragon",
-    "assetId": 12473517134,
-    "creator": "maxito121207",
-    "url": "https://create.roblox.com/store/asset/12473517134/Dragon-Pet",
+    "assetId": 13323202284,
+    "creator": "mangysuperboy",
+    "url": "https://create.roblox.com/store/asset/13323202284/A-soaring-dragon-HAS-A-RIG",
     "freeVerified": "2026-10-05",
     "parts": 1,
     "meshParts": 1,
+    "bones": 218,
+    "motors": 0,
+    "clips": [],
     "sourceScripts": 0,
     "excluded": [],
-    "sourceCenter": [
-      -279.7254333496094,
-      7.000000476837158,
-      -66.24774169921875
-    ],
-    "sourceScale": 1.6546341302771708,
-    "yawDegrees": 0,
-    "bounds": [
-      4.396539725441411,
-      2.481951195415756,
-      4.6000000000000005
-    ],
-    "sha256": "5350c7f502ec3e84de8eb3f65c6ef6df188ed2fe321b9f6b8b4e66cd969dfdda"
-  },
-  {
-    "name": "Rock",
-    "assetId": 2847767720,
-    "creator": "SionixKev",
-    "url": "https://create.roblox.com/store/asset/2847767720/Realistic-Meteor",
-    "freeVerified": "2026-10-05",
-    "parts": 1,
-    "meshParts": 1,
-    "sourceScripts": 4,
-    "excluded": [],
-    "sourceCenter": [
-      -29.95998764038086,
-      389.0400390625,
-      21.960573196411133
-    ],
-    "sourceScale": 0.24,
-    "yawDegrees": 0,
-    "bounds": [
-      2.4,
-      2.4,
-      2.4
-    ],
-    "sha256": "18b832e963bd9764fb2aa9142073a9b94d79d1168600040402e9e3dd230aa0fd"
+    "runtimeNormalization": {
+      "maximum": 4.6,
+      "yawDegrees": 0
+    },
+    "sha256": "bf46f13abdaf3fff619ccba58b8aadefed69691428543b9af5489d12a44e0403"
   },
   {
     "name": "Rabbit",
-    "assetId": 101886867632017,
-    "creator": "dandansoydaniel",
-    "url": "https://create.roblox.com/store/asset/101886867632017/rabbit",
+    "assetId": 12725036090,
+    "creator": "Magus_ArtStudios",
+    "url": "https://create.roblox.com/store/asset/12725036090/Rabbit-Rig-Animations",
     "freeVerified": "2026-10-05",
     "parts": 1,
     "meshParts": 1,
+    "bones": 22,
+    "motors": 0,
+    "clips": [
+      {
+        "duration": 0.800000011920929,
+        "name": "Automatic Save",
+        "frames": 3
+      },
+      {
+        "duration": 0.800000011920929,
+        "name": "Walk",
+        "frames": 3
+      },
+      {
+        "duration": 17.100000381469727,
+        "name": "Idle",
+        "frames": 29
+      }
+    ],
     "sourceScripts": 0,
     "excluded": [],
-    "sourceCenter": [
-      1.4901161193847656e-8,
-      -2.2351741790771484e-7,
-      -0.28762567043304443
-    ],
-    "sourceScale": 5.66406157158796,
-    "yawDegrees": 0,
-    "bounds": [
-      1.7378139778922683,
-      2.9,
-      3.258259013804061
-    ],
-    "sha256": "e126642f37a70f90735703a4c02efdc413a3dc056937375df1f7d497ee97aa0a"
+    "runtimeNormalization": {
+      "height": 2.9,
+      "yawDegrees": 0
+    },
+    "sha256": "e34a2c61f62cfa216c3b29fa424ec2e79346abea44cec480c82821bcd20a3727"
   },
   {
     "name": "Golem",
@@ -77,60 +59,62 @@
     "creator": "ILegacyGamesI",
     "url": "https://create.roblox.com/store/asset/101927195223511/Golem",
     "freeVerified": "2026-10-05",
-    "parts": 42,
+    "parts": 43,
     "meshParts": 22,
+    "bones": 0,
+    "motors": 17,
+    "clips": [],
     "sourceScripts": 0,
     "excluded": [
       {
         "name": "RootsArm2",
         "class": "UnionOperation"
-      },
-      {
-        "name": "HumanoidRootPart",
-        "class": "Part"
       }
     ],
-    "sourceCenter": [
-      146.20950541916338,
-      6.755022931531388,
-      50.24497432337671
-    ],
-    "sourceScale": 0.26646836240610494,
-    "yawDegrees": -90,
-    "bounds": [
-      3.0727565563397743,
-      3.6,
-      1.4006867678137396
-    ],
-    "sha256": "148f0336968365870bd1a3d10983856a6465f5b6e5756ad23569d54dfd55edbc"
+    "runtimeNormalization": {
+      "height": 3.6,
+      "yawDegrees": -90
+    },
+    "sha256": "4c3192159b3454cadd3287b953de090de5162f46423061870d91f5e9b061d6d8"
+  },
+  {
+    "name": "Rock",
+    "assetId": 2847767720,
+    "creator": "SionixKev",
+    "url": "https://create.roblox.com/store/asset/2847767720/Realistic-Meteor",
+    "freeVerified": "2026-10-05",
+    "parts": 13,
+    "meshParts": 5,
+    "bones": 0,
+    "motors": 5,
+    "authoredRig": "Core, hands and feet; local SURVIVE! rig",
+    "clips": [],
+    "sourceScripts": 4,
+    "excluded": [],
+    "runtimeNormalization": {
+      "maximum": 3.3,
+      "yawDegrees": 0
+    },
+    "sha256": "7f1d074f75e7dd5cd6255af540165b713d250f18cf626686ea1fc9eddc246d26"
   },
   {
     "name": "Owl",
-    "assetId": 14798191327,
-    "creator": "creepercatchanel",
-    "url": "https://create.roblox.com/store/asset/14798191327/Realistic-owl-PBR",
+    "assetId": 8240793375,
+    "creator": "noobAcker1114",
+    "url": "https://create.roblox.com/store/asset/8240793375/The-Owl",
     "freeVerified": "2026-10-05",
-    "parts": 2,
-    "meshParts": 2,
+    "parts": 39,
+    "meshParts": 0,
+    "bones": 0,
+    "motors": 6,
+    "authoredRig": "Body, neck, wings and feet; local SURVIVE! rig",
+    "clips": [],
     "sourceScripts": 0,
-    "excluded": [
-      {
-        "name": "baked_mesh.001",
-        "class": "MeshPart"
-      }
-    ],
-    "sourceCenter": [
-      436.48133516311646,
-      34.630807518959045,
-      -1873.4366455078125
-    ],
-    "sourceScale": 0.8715611117277329,
-    "yawDegrees": -90,
-    "bounds": [
-      1.4573300166645518,
-      2.9,
-      1.8920966301807305
-    ],
-    "sha256": "ba4dd9a12a60cec45946f5a1b5da80a8996460a43e35f9f4e39c746e74197c76"
+    "excluded": [],
+    "runtimeNormalization": {
+      "height": 2.9,
+      "yawDegrees": 0
+    },
+    "sha256": "3aaca91d957e28936836e92cdb4405476df94254e927cc79d40b87b2b62ba748"
   }
 ]

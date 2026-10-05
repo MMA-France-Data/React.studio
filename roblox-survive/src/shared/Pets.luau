@@ -322,7 +322,8 @@ function Pets.build(name: string, rarity: number): Model
 		local sparkles = Instance.new("Sparkles")
 		sparkles.Parent = body
 	end
-	model:ScaleTo(info.scale * Pets.size(name))
+	-- La taille de base du rig importé n'est pas forcément 1 ; mêmes tailles relatives et mêmes pouvoirs.
+	model:ScaleTo((model:GetAttribute("VisualBaseScale") or 1) * info.scale * Pets.size(name))
 	Pets.shimmer(model, 0)
 	return model
 end

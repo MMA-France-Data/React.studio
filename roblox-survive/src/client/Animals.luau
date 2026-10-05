@@ -6,6 +6,7 @@ local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 
 local Pets = require(ReplicatedStorage.Shared.Pets)
+local PetRig = require(ReplicatedStorage.Shared.PetRig)
 
 local EGG_COLORS = {
 	Dragon = Color3.fromRGB(240, 90, 40),
@@ -230,7 +231,9 @@ return function(env)
 				drop(other)
 				local model = Pets.build(name, rarity)
 				local _, size = model:GetBoundingBox()
-				entry = { key = key, model = model, cframe = root.CFrame, half = size.Y / 2, limbs = rig(name, model), clock = 0 }
+				local skeleton = PetRig.bind(name, model)
+				entry = { key = key, model = model, cframe = root.CFrame, half = size.Y / 2,
+					limbs = if skeleton then {} else rig(name, model), skeleton = skeleton, clock = 0 }
 				model.Parent = folder
 				shown[other] = entry
 			end
@@ -255,6 +258,7 @@ return function(env)
 				pose = entry.cframe * offset
 			end
 			entry.model:PivotTo(pose)
+			PetRig.step(entry.skeleton, entry.clock, moving or riding, dt)
 			for _, limb in entry.limbs do
 				local hinge = pose * CFrame.new(limb.pivot) * CFrame.Angles(swing * limb.sign, 0, 0) * CFrame.new(-limb.pivot)
 				for _, item in limb.list do

@@ -1,45 +1,68 @@
-# Compagnons gratuits de SURVIVE!
+# Compagnons riggés de SURVIVE!
 
-Ces modèles remplacent les compagnons en blocs, sans modifier les pouvoirs, les chances,
-les œufs, les couveuses, l'inventaire ou les sauvegardes. Gratuité vérifiée sur le Creator
-Store le 5 octobre 2026. Les identifiants et empreintes sont dans `PROVENANCE.json`.
+Les cinq compagnons utilisent maintenant de véritables os ou articulations, pas seulement
+une oscillation du modèle entier. Les pouvoirs, chances, œufs, couveuses, inventaires,
+sauvegardes et effets de rareté existants sont conservés. Gratuité des sources vérifiée
+sur le Creator Store le 5 octobre 2026 ; sources et empreintes dans `PROVENANCE.json`.
 
-| Compagnon | Modèle source et créateur | Géométrie conservée |
+| Compagnon | Source et créateur | Rig et animation |
 | --- | --- | --- |
-| Dragon | [Dragon Pet — maxito121207](https://create.roblox.com/store/asset/12473517134/Dragon-Pet) | 1 MeshPart ; le SpecialMesh est converti avec ses dimensions exactes et sa texture |
-| Caillou | [Realistic Meteor — SionixKev](https://create.roblox.com/store/asset/2847767720/Realistic-Meteor) | 1 MeshPart ; visage et petites braises ajoutés localement |
-| Lapin | [rabbit — dandansoydaniel](https://create.roblox.com/store/asset/101886867632017/rabbit) | 1 MeshPart, matériaux PBR conservés |
-| Golem | [Golem — ILegacyGamesI](https://create.roblox.com/store/asset/101927195223511/Golem) | 42 pièces, dont 22 MeshParts ; runes lumineuses conservées |
-| Chouette | [Realistic owl (PBR) — creepercatchanel](https://create.roblox.com/store/asset/14798191327/Realistic-owl-PBR) | 2 MeshParts, matériaux PBR conservés ; support retiré |
+| Dragon | [A soaring dragon (HAS A RIG) — mangysuperboy](https://create.roblox.com/store/asset/13323202284/A-soaring-dragon-HAS-A-RIG) | 1 MeshPart, 218 os d'origine ; ailes, cou et queue animés localement |
+| Caillou | [Realistic Meteor — SionixKev](https://create.roblox.com/store/asset/2847767720/Realistic-Meteor) | Rig créé pour SURVIVE! : corps, deux mains, deux pieds ; 5 Motor6D |
+| Lapin | [Rabbit Rig Animations — Magus_ArtStudios](https://create.roblox.com/store/asset/12725036090/Rabbit-Rig-Animations) | 1 MeshPart, 22 os ; séquences `Walk` et `Idle` du modèle source |
+| Golem | [Golem — ILegacyGamesI](https://create.roblox.com/store/asset/101927195223511/Golem) | 17 Motor6D d'origine ; marche articulée locale, décorations soudées aux membres |
+| Chouette | [The Owl — noobAcker1114](https://create.roblox.com/store/asset/8240793375/The-Owl) | Rig ajouté aux pièces séparées : corps, tête, deux ailes, deux pieds ; 6 Motor6D |
+
+Le dragon source n'a pas de texture : sa couleur rouge-brun est définie localement pour
+la rareté commune. Le lapin et le golem conservent leurs ressources graphiques d'origine.
+La chouette est un modèle en pièces, et non le précédent maillage PBR statique.
+Aucune génération payante ni crédit Meshy utilisé.
 
 ## Intégration et sécurité
 
-- `default.project.json` place les 5 modèles dans `ReplicatedStorage.PetVisuals`.
-- `src/shared/PetModels.luau` clone le modèle local et crée le pivot invisible `Body`.
-- `Pets.build(name, rarity)` conserve son interface et ajoute les effets de rareté existants.
-- Géométrie centrée sur l'origine, taille de compagnon, avant orienté vers -Z.
-- Toutes les pièces sont ancrées, sans collision, contact, requête ou ombre.
-- Aucun script de bibliothèque, Humanoid, contrainte, son ou logique de PNJ n'est importé.
-  Les 4 scripts de la météorite d'origine sont exclus ; les 4 nouveaux modèles n'en contenaient aucun.
-- Le golem exclut `HumanoidRootPart` et la décoration en union `RootsArm2`.
-  La chouette exclut le support `baked_mesh.001`.
-- Pas de chargement de modèle depuis le Creator Store pendant la partie. Les maillages et
-  textures référencent les ressources hébergées sur Roblox, comme les modèles de la salle de sport.
-- Aucun rig ou animation de combat ajouté : le suivi et le vol plané existants sont conservés.
-  Les ailes du dragon ne battent pas encore.
+- `default.project.json` place les modèles dans `ReplicatedStorage.PetVisuals`.
+- `PetModels.build` clone les modèles locaux et normalise leur taille avec `ScaleTo`,
+  sans réécrire séparément la pose de liaison des os ou les attaches du rig.
+- Le pivot invisible `Body` est centré et orienté normalement. La correction visuelle
+  d'orientation du golem reste dans les pièces quand le suivi appelle `PivotTo`.
+- `VisualBaseScale` conserve la taille de base du rig ; les facteurs de rareté et la
+  taille spéciale du dragon restent ceux de `Pets.luau`.
+- `PetRig.luau` anime les os et résout les liaisons Motor6D/Weld des pièces ancrées.
+  `Animals.luau` le branche au suivi existant, y compris le dragon monté en vol plané.
+- Toutes les pièces sont sans collision, contact, requête ni ombre. Aucun Humanoid,
+  script de bibliothèque, son ou logique de PNJ n'est importé. Les 4 scripts de la
+  météorite source sont exclus. Les os, Motor6D, Weld et séquences de poses sont conservés.
+- Le golem conserve son `HumanoidRootPart` invisible comme racine des articulations,
+  mais pas le Humanoid ni la décoration en union `RootsArm2`.
+- Aucun modèle n'est chargé depuis le Creator Store pendant la partie. Les maillages
+  et textures continuent à utiliser les ressources hébergées sur Roblox.
+- Pas d'ID d'animation à publier : les séquences de poses et mouvements sont locaux.
 
-Les anciens builders de `Pets.luau` restent comme secours pour une place qui n'aurait pas
-encore le dossier `PetVisuals`. La place construite avec ce projet utilise les nouveaux modèles.
+Les anciens builders restent en secours pour les places sans `PetVisuals`.
+Il faut reconstruire une place depuis ce projet pour utiliser les nouveaux rigs :
+remplacer seulement les modules dans un ancien fichier `.rbxl` ne remplace pas les assets.
 
-## Vérifications
+## Vérifications et passage à Claude
 
-- Compilation syntaxique de tous les fichiers `src/**/*.luau` : réussie.
-- Construction de la place avec Rojo : réussie.
-- Aperçu client isolé dans Studio, avec les fonctions `PetModels.build` et `Pets.build` :
-  les 20 combinaisons animal/rareté sont construites, avec vérification du pivot `Body`,
-  des MeshParts, de l'absence de script et de collision, de l'anneau, de l'échelle et des pouvoirs.
-- Inspection des textures et de l'orientation dans cet aperçu.
+- Références internes des cinq fichiers RBXMX : vérifiées ; aucun script embarqué.
+- Compilation de tous les fichiers `src/**/*.luau` et construction de la place complète
+  avec Rojo : réussies avant cet envoi.
+- Test client isolé dans Studio : les 20 combinaisons animal/rareté ont été construites,
+  leurs pouvoirs inchangés et leurs articulations mobiles vérifiés automatiquement
+  (`SURVIVE_RIG_TEST_OK 20`). Ce test ne prouve pas la qualité visuelle du skinning.
+- La correction finale du pivot du golem a été ajoutée après ce test : vérifier son
+  orientation dans la nouvelle place reconstruite.
 
-La suite complète de gameplay et la performance sur un vrai téléphone n'ont pas été
-retestées dans cette intervention. Ne pas remplacer une place ouverte contenant du travail
-non sauvegardé : reconstruire une nouvelle place, puis tester et publier séparément.
+À la demande du joueur, l'inspection visuelle est confiée à Claude. Avant publication :
+
+1. Équiper les cinq compagnons : regarder les ailes du dragon et de la chouette,
+   les pattes du lapin, les bras/jambes du golem, les mains/pieds du caillou.
+2. Vérifier à l'arrêt et en déplacement : pas d'étirement du maillage, de membre
+   détaché, de saut de pose ou de modèle qui regarde de côté.
+3. Vérifier les quatre raretés, les textures et la taille du dragon, puis le vol plané.
+4. Vérifier les bonus et sauvegardes avec la suite habituelle de gameplay.
+5. Mesurer la fluidité sur téléphone et avec plusieurs joueurs ; le dragon a 218 os.
+
+La qualité visuelle, le gameplay complet et la performance sur téléphone ne sont pas
+validés par cet envoi. Construire une nouvelle place ; ne pas écraser une place ouverte
+contenant du travail non sauvegardé. Rien n'est publié sur Roblox par ce commit.
