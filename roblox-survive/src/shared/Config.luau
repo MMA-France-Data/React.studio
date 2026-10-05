@@ -16,6 +16,10 @@ function Config.price(level: number): number?
 	return Config.PRICES[level + 1]
 end
 
+-- MARCHER ET COURIR : le personnage marche à WALK_RATIO de sa vitesse ; il court à pleine vitesse tant que le joueur
+-- tient la touche Maj (ou a appuyé sur le bouton « COURIR » de l'écran).
+Config.WALK_RATIO = 0.7
+
 -- Chaque niveau est un vrai palier : une salle faite pour le niveau N ne se passe pas au niveau N - 1.
 -- Tapis de course : +15 % de vitesse par niveau (16 au départ, 37 au niveau 6).
 function Config.walkSpeed(level: number): number
@@ -55,6 +59,13 @@ end
 -- VITESSE : secondes laissées pour courir `distance` studs jusqu'à la zone verte, dans une salle faite pour une
 -- vitesse de niveau `level` : le temps qu'il faut à ce niveau, plus 0,3 seconde pour réagir. Au niveau d'en
 -- dessous (15 % plus lent), il manque environ 4 studs à l'arrivée.
+-- VITESSE (salle de course) : vitesse du monstre dans une salle faite pour une vitesse de niveau `level`. Il va 5 %
+-- plus vite qu'un joueur du niveau d'en dessous qui court (il finit par l'attraper), et 9 % moins vite qu'un joueur
+-- du niveau demandé (qui garde une dizaine de studs d'avance en tournant en grand cercle).
+function Config.chaseSpeed(level: number): number
+	return Config.walkSpeed(level - 1) * 1.05
+end
+
 Config.RUSH_REACTION = 0.3
 function Config.rushSeconds(level: number, distance: number): number
 	return distance / Config.walkSpeed(level) + Config.RUSH_REACTION
@@ -80,6 +91,7 @@ Config.DAMAGE = {
 	Explosion = 60,
 	Melody = 25, -- fausse note
 	Rush = 100, -- hors de la zone verte quand la grande pluie de météorites tombe
+	Chase = 100, -- attrapé par le monstre
 }
 
 -- LES SALLES ----------------------------------------------------------------------------------------------------
@@ -95,6 +107,8 @@ Config.DAMAGE = {
 --             rush = la GRANDE PLUIE : toute la salle explose sauf un rond vert, à l'autre bout de la salle à
 --             chaque fois. level = niveau de vitesse qu'il faut pour y arriver à temps, rest = secondes de repos
 --             entre deux grandes pluies.
+-- Chase     : salle de course. Un monstre poursuit les joueurs. level = niveau de vitesse qu'il faut pour le
+--             distancer en courant (Config.chaseSpeed), delay = secondes avant qu'il parte.
 -- Explosions: every = secondes entre deux vagues, warn = secondes d'avertissement, safe = dalles sûres (sur 16).
 -- Melody    : salle casse-tête. start = notes de la première suite, rounds = manches à réussir (une note de plus
 --             à chaque manche). Réussir ouvre la porte tout de suite ; ne pas finir à temps élimine tout le monde.
@@ -136,12 +150,7 @@ Config.ROOMS = {
 		Lava = { segments = 3, jump = 3, finish = 28 },
 		Ceiling = { at = 30, level = 2 },
 	},
-	{
-		egg = "Rabbit",
-		need = { Speed = 3 },
-		events = { "Meteors" },
-		Meteors = { every = 2.2, count = 1, warn = 1.2, radius = 5, aimed = 1, rush = { level = 3, rest = 3 } },
-	},
+	{ egg = "Rabbit", need = { Speed = 3 }, events = { "Chase" }, Chase = { level = 3, delay = 4 } },
 	{
 		egg = "Dragon",
 		need = { Jump = 4 },

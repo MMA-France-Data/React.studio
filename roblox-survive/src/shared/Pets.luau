@@ -1,7 +1,11 @@
--- Les familiers : chaque salle réussie donne l'œuf de son animal. L'œuf va tout seul dans l'enclos du joueur, y
--- couve un moment (autant d'œufs qu'on veut en même temps), puis éclot : la rareté est tirée à ce moment-là.
--- Le but est la COLLECTION : 5 animaux x 4 raretés = 20 familiers à trouver. Chaque familier trouvé va dans
--- l'enclos du joueur et lui rapporte des pièces à chaque seconde (plus il est rare, plus il rapporte).
+-- Les familiers. Le chemin d'un familier :
+--   1. une salle réussie donne un TICKET de cette salle ;
+--   2. à la boutique du lobby, le ticket s'échange contre un ŒUF de l'animal de la salle (sa rareté est tirée là) ;
+--   3. le joueur POSE l'œuf lui-même sur une place libre de son enclos ; il y couve (plus il est rare, plus c'est long) ;
+--   4. à l'éclosion, le familier reçoit une VALEUR cachée tirée dans le palier de sa rareté : c'est elle qui décide
+--      de ce qu'il rapporte à chaque seconde. Deux familiers de la même rareté ne rapportent donc pas pareil, et on
+--      peut avoir plusieurs fois le même.
+-- L'enclos a peu de places : on en achète, et on peut vendre un familier pour libérer la sienne.
 -- Les familiers ne donnent aucun bonus dans les salles. Le joueur peut en choisir un qui le suit, pour le plaisir.
 local AssetService = game:GetService("AssetService")
 
@@ -22,27 +26,41 @@ Pets.DEFS = {
 	Golem = { income = 3, move = "walk" }, -- salles 4, 7, 10
 	Owl = { income = 2.5, move = "fly" }, -- salle 6
 }
--- Pièces par seconde d'un familier selon sa rareté (commun, rare, épique, légendaire), avant le facteur de l'animal.
--- Exemples : dragon commun 0,5 par seconde ; golem légendaire 60 par seconde ; toute la collection : 285.
-Pets.INCOME = { 0.5, 2, 6, 20 }
+
+-- LA VALEUR CACHÉE : le palier de chaque rareté (commun, peu commun, rare, légendaire).
+Pets.VALUE = { { 1, 100 }, { 100, 200 }, { 200, 400 }, { 400, 800 } }
+-- Ce qu'un familier rapporte par seconde = sa valeur / VALUE_PER_COIN x le facteur de son animal.
+-- Exemples : dragon commun 0,01 à 1 par seconde ; golem légendaire 12 à 24 par seconde.
+Pets.VALUE_PER_COIN = 100
+-- Couvaison : secondes selon la rareté, multipliées par (0,5 + numéro de la salle / 10).
+-- Exemples : commun de la salle 1 = 18 s ; légendaire de la salle 10 = 15 min.
+Pets.HATCH = { 30, 90, 240, 600 }
+
+-- L'ENCLOS : les places. Les premières sont offertes ; chaque place suivante coûte SPOT_FACTOR fois la précédente
+-- (1 000, 6 000, 36 000, 216 000, 1 296 000...).
+Pets.SPOTS_FREE = 5
+Pets.SPOTS_MAX = 12
+Pets.SPOT_PRICE = 1000
+Pets.SPOT_FACTOR = 6
+Pets.MAX_BAG = 60 -- œufs gardés en attente d'être posés
 
 -- Chaque rareté a son MÉLANGE de couleurs, peint sur l'animal lui-même : un dégradé de toute la palette recouvre
 -- son corps (plusieurs couleurs visibles en même temps).
--- commun = ses couleurs d'origine ; rare = bleu, turquoise, vert ; épique = doré, orange, rose ;
+-- commun = ses couleurs d'origine ; peu commun = bleu, turquoise, vert ; rare = doré, orange, rose ;
 -- légendaire = violet, rose, bleu, turquoise, et des étincelles.
 -- color : la couleur de la rareté dans les textes ; tint : force du voile de couleur si le dégradé ne peut pas
 -- être peint (voir gradient plus bas).
 Pets.RARITIES = {
 	{ key = "Common", color = Color3.fromRGB(200, 204, 214), scale = 1, tint = 0 },
 	{
-		key = "Rare",
+		key = "Uncommon",
 		color = Color3.fromRGB(60, 150, 255),
 		scale = 1.12,
 		tint = 0.4,
 		palette = { Color3.fromRGB(40, 110, 255), Color3.fromRGB(50, 225, 255), Color3.fromRGB(60, 235, 150) },
 	},
 	{
-		key = "Epic",
+		key = "Rare",
 		color = Color3.fromRGB(255, 200, 40),
 		scale = 1.25,
 		tint = 0.45,
@@ -63,19 +81,9 @@ Pets.RARITIES = {
 }
 Pets.COLOR_SECONDS = 1.3 -- temps pour passer d'une couleur de la palette à la suivante
 
--- Chances de chaque rareté (sur 100) dans la salle 1, et ce qui change à chaque salle suivante.
+-- Chances de chaque rareté (sur 100) pour un œuf de la salle 1, et ce qui change à chaque salle suivante.
 Pets.ODDS = { 60, 28, 10, 2 }
 Pets.ODDS_PER_ROOM = { -3, 1.5, 1, 0.5 }
--- Un familier déjà dans la collection : des pièces à la place.
-Pets.DUPLICATE_COINS = { 100, 300, 1000, 5000 }
-
-Pets.MAX_EGGS = 60 -- œufs qui peuvent couver en même temps dans l'enclos (autant dire : pas de limite)
-Pets.NEST = 11 -- œufs montrés dans l'enclos (les autres attendent leur tour, comptés sur le panneau)
-
--- Temps de couvaison de l'œuf d'une salle, en secondes (30 s pour la salle 1, 5 min pour la salle 10).
-function Pets.hatchSeconds(room: number): number
-	return 30 * room
-end
 
 function Pets.odds(room: number): { number }
 	local odds = {}
@@ -102,81 +110,88 @@ function Pets.roll(random: Random, room: number): number
 	return 1
 end
 
+-- Tire la valeur cachée d'un familier dans le palier de sa rareté.
+function Pets.rollValue(random: Random, rarity: number): number
+	local range = Pets.VALUE[math.clamp(rarity, 1, #Pets.VALUE)]
+	return random:NextInteger(range[1], range[2])
+end
+
+-- Temps de couvaison d'un œuf, en secondes.
+function Pets.hatchSeconds(room: number, rarity: number): number
+	return math.floor(Pets.HATCH[math.clamp(rarity, 1, #Pets.HATCH)] * (0.5 + room / 10) + 0.5)
+end
+
 -- Grosseur de cet animal par rapport aux autres.
 function Pets.size(name: string): number
 	local def = Pets.DEFS[name]
 	return def and def.size or 1
 end
 
--- LA COLLECTION : { Dragon = { true, false, true, false }, ... } = pour chaque animal, les raretés trouvées.
--- Pièces par seconde d'un familier.
-function Pets.incomeOf(name: string, rarity: number): number
+-- Pièces par seconde d'un familier de cette valeur.
+function Pets.incomeOf(name: string, value: number): number
 	local def = Pets.DEFS[name]
-	return if def and Pets.INCOME[rarity] then Pets.INCOME[rarity] * def.income else 0
+	return if def then value / Pets.VALUE_PER_COIN * def.income else 0
 end
 
--- Pièces par seconde de toute une collection.
-function Pets.income(owned): number
+-- Pièces reçues en vendant un familier (ce qu'il rapporte en 100 secondes).
+function Pets.sellPrice(name: string, value: number): number
+	return math.floor(Pets.incomeOf(name, value) * 100 + 0.5)
+end
+
+-- Prix de la place suivante quand on en a `places` (nil au maximum).
+function Pets.spotPrice(places: number): number?
+	if places >= Pets.SPOTS_MAX then
+		return nil
+	end
+	return Pets.SPOT_PRICE * Pets.SPOT_FACTOR ^ math.max(0, places - Pets.SPOTS_FREE)
+end
+
+-- LES PLACES DE L'ENCLOS : { [numéro] = { a = animal, q = rareté, t = heure d'éclosion } pour un œuf qui couve,
+-- ou { a = animal, q = rareté, v = valeur } pour un familier }.
+-- Pièces par seconde de tout un enclos.
+function Pets.income(spots): number
 	local total = 0
-	for name, list in owned do
-		for rarity = 1, #Pets.RARITIES do
-			if list[rarity] then
-				total += Pets.incomeOf(name, rarity)
-			end
+	for _, spot in spots do
+		if spot.v then
+			total += Pets.incomeOf(spot.a, spot.v)
 		end
 	end
 	return total
 end
 
--- La meilleure rareté trouvée pour un animal (0 = aucune).
-function Pets.best(list): number
-	for rarity = #Pets.RARITIES, 1, -1 do
-		if list and list[rarity] then
-			return rarity
+-- Nombre de familiers (éclos) et d'œufs qui couvent dans un enclos.
+function Pets.count(spots): (number, number)
+	local pets, eggs = 0, 0
+	for _, spot in spots do
+		if spot.v then
+			pets += 1
+		else
+			eggs += 1
 		end
 	end
-	return 0
+	return pets, eggs
 end
 
--- Nombre de familiers trouvés.
-function Pets.count(owned): number
-	local count = 0
-	for _, list in owned do
-		for rarity = 1, #Pets.RARITIES do
-			if list[rarity] then
-				count += 1
-			end
-		end
-	end
-	return count
-end
-
--- « Dragon:1010,Rock:1000 » <-> la collection (pour l'envoyer à l'écran des joueurs).
-function Pets.encode(owned): string
+-- « 1:Dragon:2:v:153,2:Rock:1:t:1759680000 » <-> les places (pour les envoyer à l'écran des joueurs).
+function Pets.encode(spots): string
 	local parts = {}
-	for _, name in Pets.ORDER do
-		local list = owned[name]
-		if list and Pets.best(list) > 0 then
-			local bits = ""
-			for rarity = 1, #Pets.RARITIES do
-				bits ..= if list[rarity] then "1" else "0"
-			end
-			table.insert(parts, name .. ":" .. bits)
+	for index = 1, Pets.SPOTS_MAX do
+		local spot = spots[tostring(index)]
+		if spot then
+			table.insert(parts, string.format("%d:%s:%d:%s:%d", index, spot.a, spot.q, if spot.v then "v" else "t", spot.v or spot.t))
 		end
 	end
 	return table.concat(parts, ",")
 end
 
 function Pets.decode(text: string?)
-	local owned = {}
-	for name, bits in string.gmatch(text or "", "(%a+):([01]+)") do
-		local list = {}
-		for rarity = 1, #Pets.RARITIES do
-			list[rarity] = string.sub(bits, rarity, rarity) == "1"
-		end
-		owned[name] = list
+	local spots = {}
+	for index, name, rarity, kind, number in string.gmatch(text or "", "(%d+):(%a+):(%d):([vt]):(%d+)") do
+		local spot = { a = name, q = tonumber(rarity) }
+		spot[kind] = tonumber(number)
+		spots[tostring(index)] = spot
 	end
-	return owned
+	return spots
 end
 
 -- MODÈLES DE SECOURS pour les anciennes places sans assets/pets --------------------------------------------------

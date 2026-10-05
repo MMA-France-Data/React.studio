@@ -370,6 +370,55 @@ RunService.RenderStepped:Connect(function()
 	end
 end)
 
+-- MARCHER ET COURIR -------------------------------------------------------------------------------------------------
+-- Le personnage marche ; il court à pleine vitesse tant que la touche Maj est tenue, ou après un appui sur le bouton
+-- « COURIR » (un 2e appui le remet à la marche). La pleine vitesse est celle de son niveau de tapis de course.
+local runButton = Instance.new("TextButton")
+runButton.Name = "Run"
+runButton.AnchorPoint = Vector2.new(1, 1)
+runButton.Position = UDim2.new(1, -190, 1, -64)
+runButton.Size = UDim2.fromOffset(96, 96)
+runButton.BackgroundColor3 = Color3.fromRGB(60, 150, 255)
+runButton.Text = ""
+Instance.new("UICorner", runButton).CornerRadius = UDim.new(1, 0)
+local runStroke = Instance.new("UIStroke")
+runStroke.Thickness = 4
+runStroke.Color = Color3.fromRGB(20, 20, 30)
+runStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+runStroke.Parent = runButton
+runButton.Parent = gui
+text(runButton, "Label", UDim2.fromScale(0.86, 0.36), UDim2.fromScale(0.07, 0.32)).Text = tr("sprint")
+local runHeld, runLocked = false, false
+runButton.Activated:Connect(function()
+	runLocked = not runLocked
+end)
+UserInputService.InputBegan:Connect(function(input, typing)
+	if typing then
+		return
+	end
+	if input.KeyCode == Enum.KeyCode.LeftShift or input.KeyCode == Enum.KeyCode.RightShift then
+		runHeld = true
+	elseif input.KeyCode == Enum.KeyCode.ButtonL3 then
+		runLocked = not runLocked
+	end
+end)
+UserInputService.InputEnded:Connect(function(input)
+	if input.KeyCode == Enum.KeyCode.LeftShift or input.KeyCode == Enum.KeyCode.RightShift then
+		runHeld = false
+	end
+end)
+RunService.Heartbeat:Connect(function()
+	local running = runHeld or runLocked
+	runButton.BackgroundColor3 = if running then Color3.fromRGB(70, 210, 90) else Color3.fromRGB(60, 150, 255)
+	local character = player.Character
+	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+	-- Pendant un entraînement, le serveur tient le personnage sur la machine (vitesse 0) : on n'y touche pas.
+	if humanoid and (player:GetAttribute("Workout") or "") == "" then
+		local full = Config.walkSpeed(player:GetAttribute("Speed") or 0)
+		humanoid.WalkSpeed = if running then full else full * Config.WALK_RATIO
+	end
+end)
+
 -- L'ENTRAÎNEMENT SUR UNE MACHINE ------------------------------------------------------------------------------------
 -- Pendant l'entraînement (attribut « Workout »), une barre se remplit et le personnage fait le geste : il court
 -- sur le tapis, il pousse la barre sur le banc. Sur le trampoline, il rebondit tout seul.

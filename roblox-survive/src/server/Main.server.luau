@@ -27,20 +27,20 @@ pushEvent.OnServerEvent:Connect(function(player)
 	Rooms.push(player)
 end)
 
--- Choix de l'animal équipé, depuis la fenêtre « Animaux ».
+-- Choix du familier qui suit le joueur (par sa place dans l'enclos), depuis la fenêtre « Animaux ».
 local equipEvent = Instance.new("RemoteEvent")
 equipEvent.Name = "Equip"
 equipEvent.Parent = ReplicatedStorage
-equipEvent.OnServerEvent:Connect(function(player, animal)
-	if typeof(animal) == "string" then
-		Eggs.equip(player, animal)
+equipEvent.OnServerEvent:Connect(function(player, spot)
+	if typeof(spot) == "number" then
+		Eggs.follow(player, spot)
 	end
 end)
 
 local world = World.build()
 PlayerData.start()
 Gym.start(world, notify)
-Eggs.start(world, notify)
+Eggs.start(world, notify, Gym.owns)
 Rooms.start(world, notify)
 
 if RunService:IsStudio() then

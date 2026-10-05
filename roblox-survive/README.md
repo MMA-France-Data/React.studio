@@ -3,8 +3,8 @@
 Jeu Roblox. Chaque joueur a son **espace** dans le lobby : ses machines de sport et son enclos.
 Il améliore son personnage sur les machines, puis traverse des **salles à la suite** : dans chaque salle il faut
 survivre 60 secondes à un événement, et la porte du bout s'ouvre sur la salle suivante. Chaque salle réussie donne
-des pièces et un œuf, qui couve dans l'enclos ; le familier qui en sort **rapporte des pièces à chaque
-seconde**, qui servent à améliorer les machines pour aller plus loin. Un mort réapparaît dans son espace.
+des pièces et un ticket, à échanger contre un œuf à poser dans son enclos ; le familier qui en sort **rapporte
+des pièces à chaque seconde**, qui servent à améliorer les machines pour aller plus loin. Un mort réapparaît dans son espace.
 
 Ce dossier est séparé du jeu de tours (`roblox-ranked-td`) : rien n'est partagé entre les deux.
 
@@ -17,14 +17,19 @@ Ce dossier est séparé du jeu de tours (`roblox-ranked-td`) : rien n'est partag
   s'entraîne 4 secondes (il court sur le tapis, pousse la barre couché sur le banc, rebondit sur le trampoline).
   Le niveau 1 est gratuit, puis 500, 1 500, 4 000, 10 000 et 25 000 pièces. Chaque niveau est un vrai palier :
   +15 % de vitesse, +15 % de saut, +50 % de force.
+- **Marcher et courir** : le personnage marche à 70 % de sa vitesse. Il court à pleine vitesse tant qu'on tient
+  la touche Maj, ou après un appui sur le bouton « COURIR » de l'écran (un 2e appui le remet à la marche).
 - **10 salles** : compte à rebours de 10 secondes quand on entre, puis 60 secondes d'événement. Le panneau de
   chaque salle dit les niveaux qu'il faut, et le bandeau le dit en rouge au joueur à qui il en manque.
   - Lave : un parcours qui grimpe en spirale ; la dernière plateforme (verte) est le seul endroit sûr à la fin.
     Les grandes marches (violettes) sont trop hautes sans le niveau de saut demandé.
-  - Météorites : un cercle rouge prévient, puis ça explose. La GRANDE PLUIE (salles 2 et 8) : toute la salle
+  - Météorites : un cercle rouge prévient, puis ça explose. La GRANDE PLUIE (salle 2) : toute la salle
     explose sauf un rond vert, à l'autre bout à chaque fois ; sans le niveau de vitesse demandé, on n'y arrive
     pas à temps.
   - Explosions : le sol est en 16 dalles ; celles qui clignotent en rouge explosent.
+  - Monstre (salle 8, salle de course) : un grand golem fonce sur le joueur le plus proche ; s'il le touche,
+    c'est fini. Il va 9 % moins vite qu'un joueur du niveau de vitesse demandé qui court, et 5 % plus vite que le
+    niveau d'en dessous : il faut courir tout le long, en grands cercles.
   - Plafond (toujours avec la lave) : 30 secondes pour grimper, puis le plafond descend. En haut du parcours,
     on le repousse en appuyant très vite sur E (gros bouton sur téléphone) ; sans le niveau de force demandé,
     il écrase même en appuyant au plus vite.
@@ -38,7 +43,7 @@ Ce dossier est séparé du jeu de tours (`roblox-ranked-td`) : rien n'est partag
 | 5 | lave + météorites | saut 2 |
 | 6 | mélodie | rien |
 | 7 | lave + plafond | saut 3, force 2 |
-| 8 | grande pluie + météorites | vitesse 3 |
+| 8 | le monstre (salle de course) | vitesse 3 |
 | 9 | lave + météorites | saut 4 |
 | 10 | lave + plafond + météorites | saut 5, force 4 |
 
@@ -49,17 +54,23 @@ Ce dossier est séparé du jeu de tours (`roblox-ranked-td`) : rien n'est partag
 - Mélodie (salle 6, casse-tête) : le mur joue une suite de notes en allumant des couleurs ; il faut la refaire en
     marchant sur les dalles de couleur, dans l'ordre. 3 manches (3, 4 puis 5 notes). Une fausse note blesse ;
     réussir ouvre la porte tout de suite ; ne pas finir à temps élimine tout le monde.
-- **Œufs et familiers** : chaque salle réussie donne l'œuf de son animal. Il va tout seul dans le nid de l'enclos
-  et y couve (30 secondes × le numéro de la salle, même hors du jeu). Pas de couveuse : autant d'œufs qu'on veut
-  couvent en même temps. À la fin il éclot tout seul, et la rareté est tirée à ce moment-là (commun, rare,
-  épique, légendaire ; plus de chances dans les salles du fond).
-  - **La collection** : 5 animaux × 4 raretés = 20 familiers à trouver. Chaque familier trouvé est posé sur son
-    socle dans l'enclos et rapporte des pièces à chaque seconde, tant que le joueur est dans le jeu. Un familier
-    déjà trouvé donne des pièces d'un coup à la place (100, 300, 1 000 ou 5 000).
-  - **Ce qu'ils rapportent** par seconde : 0,5 / 2 / 6 / 20 selon la rareté, multiplié par l'animal (dragon × 1,
-    caillou × 1,5, lapin × 2, chouette × 2,5, golem × 3). Toute la collection : 285 pièces par seconde.
+- **Tickets, œufs et familiers** :
+  1. chaque salle réussie donne un **ticket** de cette salle ;
+  2. à la **boutique des œufs** (le stand jaune de l'allée, près de la porte des salles), les tickets s'échangent
+     contre des œufs de l'animal de la salle ; la rareté de l'œuf est tirée à ce moment-là (commun, peu commun,
+     rare, légendaire ; plus de chances dans les salles du fond) ;
+  3. le joueur **pose l'œuf lui-même** sur une place libre de son enclos (touche E). Il y couve : 30 s, 1 min 30,
+     4 min ou 10 min selon la rareté, multiplié par 0,6 (salle 1) à 1,5 (salle 10) ; le temps continue hors du jeu ;
+  4. à l'éclosion, le familier reçoit une **valeur cachée** tirée dans le palier de sa rareté : commun 1 à 100,
+     peu commun 100 à 200, rare 200 à 400, légendaire 400 à 800. Il rapporte chaque seconde sa valeur / 100,
+     multipliée par son animal (dragon × 1, caillou × 1,5, lapin × 2, chouette × 2,5, golem × 3), tant que le
+     joueur est dans le jeu. Deux familiers de la même rareté ne rapportent donc pas pareil.
+  - **Les places** : l'enclos commence avec 5 places. La 6e coûte 1 000 pièces, et chaque place suivante 6 fois
+    la précédente (6 000, 36 000, 216 000...), jusqu'à 12.
+  - **Doublons** : on peut avoir plusieurs fois le même familier. Pour libérer une place, on vend le familier
+    (E maintenu) : il rend ce qu'il rapporte en 100 secondes.
   - Les familiers ne donnent **aucun bonus dans les salles**. Le joueur peut en choisir un qui le suit (bouton
-    « ANIMAUX », qui montre aussi la collection). Chaque rareté a son mélange de couleurs.
+    « ANIMAUX », qui montre aussi tout l'enclos). Chaque rareté a son mélange de couleurs.
 - **Raccourci** dans la salle de sport : mène devant la salle 6 quand la salle 5 est réussie.
 - **Sauvegarde** des pièces, des niveaux et de la meilleure salle (dans le jeu publié ; dans Studio, tout reste
   en mémoire le temps du test).
@@ -73,7 +84,7 @@ Les textures restent hébergées sur Roblox. Voir `assets/pets/README.md` pour l
 
 ## Régler le jeu
 
-Les familiers (ce qu'ils rapportent, chances des raretés, temps de couvaison) sont dans `src/shared/Pets.luau`.
+Les familiers (paliers de valeur, chances des raretés, temps de couvaison, prix des places) sont dans `src/shared/Pets.luau`.
 Tous les autres chiffres sont dans `src/shared/Config.luau` : prix, gains par niveau, durée des manches, pièces, et la
 liste des salles (`Config.ROOMS`) avec les réglages de chaque événement. Pour qu'une salle demande un autre niveau :
 changer `jump` (lave), `level` (plafond, grande pluie) et la ligne `need` de la salle (le panneau). Les textes sont dans
@@ -86,7 +97,7 @@ changer `jump` (lave), `level` (plafond, grande pluie) et la ligne `need` de la 
 - `src/server/Gym.luau` : l'espace de chaque joueur, l'entraînement sur les machines, vitesse et saut, raccourci.
 - `src/server/Rooms.luau` : le déroulement d'une salle (attente, compte à rebours, événement, porte ouverte).
 - `src/server/Events/` : un fichier par événement.
-- `src/server/Eggs.luau` : œufs, collection et revenu des familiers.
+- `src/server/Eggs.luau` : tickets, boutique, œufs, places de l'enclos, revenu des familiers.
 - `src/server/PlayerData.luau` : sauvegarde.
 - `src/client/Main.client.luau` : l'écran du joueur ; `src/client/Animals.luau` : enclos, familiers.
 - `assets/library` : modèles gratuits de la bibliothèque Roblox (voir son README).
@@ -99,7 +110,7 @@ Construire la place : `rojo build default.project.json -o Survive.rbxl`, puis l'
 Tests automatiques dans Studio (une fenêtre Studio s'ouvre toute seule ; ne pas toucher au PC pendant ce temps) :
 
 - `powershell -ExecutionPolicy Bypass -File tools\studio-test\run.ps1` : tout le jeu
-  (233 vérifications, environ 8 minutes, captures dans `tools\studio-test\out`).
+  (265 vérifications, environ 11 minutes, captures dans `tools\studio-test\out`).
 - `powershell -ExecutionPolicy Bypass -File tools\studio-test\run.ps1 -Test jump -Seconds 560` : mesure la
   hauteur de marche qu'un personnage grimpe d'un saut (a servi à régler `Config.stepHeight`).
 

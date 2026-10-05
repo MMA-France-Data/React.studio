@@ -1,8 +1,8 @@
--- Sauvegarde de chaque joueur : ses pièces, le niveau de ses trois machines, la meilleure salle réussie, ses œufs
--- qui couvent et sa collection de familiers.
+-- Sauvegarde de chaque joueur : ses pièces, le niveau de ses trois machines, la meilleure salle réussie, ses
+-- tickets, ses œufs et son enclos.
 -- Dans Studio, rien n'est écrit chez Roblox : les données restent en mémoire le temps du test.
--- Les valeurs sont aussi posées en attributs sur le joueur (Coins, Speed, Jump, Force, Best, Eggs,
--- EggCount, Pets, Pet, PetRarity, Income) : l'écran les lit là.
+-- Les valeurs sont aussi posées en attributs sur le joueur (Coins, Speed, Jump, Force, Best, Tickets,
+-- Bag, Places, Spots, Pet, PetRarity, PetSpot, Income) : l'écran les lit là.
 local DataStoreService = game:GetService("DataStoreService")
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -33,9 +33,13 @@ local function defaults()
 		coins = 0,
 		levels = { Speed = 0, Jump = 0, Force = 0 },
 		best = 0,
-		eggs = {}, -- œufs qui couvent dans l'enclos : { a = animal, r = salle, t = heure d'éclosion (os.time) }
-		pets = {}, -- la collection : [animal] = { true/false pour chaque rareté }
-		equipped = "", -- l'animal qui suit le joueur
+		tickets = {}, -- tickets gagnés dans les salles : ["3"] = nombre de tickets de la salle 3
+		bag = {}, -- œufs pas encore posés : { a = animal, q = rareté, r = salle }
+		places = Pets.SPOTS_FREE, -- places de l'enclos
+		-- places occupées : ["1"] = { a, q, r, t = heure d'éclosion (os.time) } pour un œuf qui couve,
+		-- ou { a, q, v = valeur cachée } pour un familier
+		spots = {},
+		equipped = "", -- numéro de la place du familier qui suit le joueur
 	}
 end
 
@@ -59,26 +63,40 @@ local function clean(raw)
 			end
 		end
 	end
-	if type(raw.eggs) == "table" then
-		for _, egg in raw.eggs do
-			if type(egg) == "table" and Pets.DEFS[egg.a] and type(egg.r) == "number" and type(egg.t) == "number" and #data.eggs < Pets.MAX_EGGS then
-				table.insert(data.eggs, { a = egg.a, r = egg.r, t = egg.t })
+	if type(raw.tickets) == "table" then
+		for room = 1, #Config.ROOMS do
+			local count = raw.tickets[tostring(room)]
+			if type(count) == "number" and count >= 1 then
+				data.tickets[tostring(room)] = math.floor(count)
 			end
 		end
 	end
-	if type(raw.pets) == "table" then
-		for _, name in Pets.ORDER do
-			local saved = raw.pets[name]
-			if type(saved) == "table" then
-				local list = {}
-				for rarity = 1, #Pets.RARITIES do
-					list[rarity] = saved[rarity] == true
+	local function validEgg(egg): boolean
+		return type(egg) == "table" and Pets.DEFS[egg.a] ~= nil and type(egg.q) == "number" and Pets.RARITIES[egg.q] ~= nil
+	end
+	if type(raw.bag) == "table" then
+		for _, egg in raw.bag do
+			if validEgg(egg) and #data.bag < Pets.MAX_BAG then
+				table.insert(data.bag, { a = egg.a, q = egg.q, r = if type(egg.r) == "number" then egg.r else 1 })
+			end
+		end
+	end
+	if type(raw.places) == "number" then
+		data.places = math.clamp(math.floor(raw.places), Pets.SPOTS_FREE, Pets.SPOTS_MAX)
+	end
+	if type(raw.spots) == "table" then
+		for index = 1, data.places do
+			local spot = raw.spots[tostring(index)]
+			if validEgg(spot) then
+				if type(spot.v) == "number" then
+					data.spots[tostring(index)] = { a = spot.a, q = spot.q, v = math.floor(spot.v) }
+				elseif type(spot.t) == "number" then
+					data.spots[tostring(index)] = { a = spot.a, q = spot.q, r = spot.r, t = spot.t }
 				end
-				data.pets[name] = list
 			end
 		end
 	end
-	if type(raw.equipped) == "string" and Pets.best(data.pets[raw.equipped]) > 0 then
+	if type(raw.equipped) == "string" and data.spots[raw.equipped] and data.spots[raw.equipped].v then
 		data.equipped = raw.equipped
 	end
 	return data
@@ -95,17 +113,19 @@ local function publish(player: Player)
 	for _, name in Config.MACHINES do
 		player:SetAttribute(name, data.levels[name])
 	end
-	-- Les œufs : « Dragon|1759680000,Rock|1759680060 » (animal et heure d'éclosion), pour les montrer dans l'enclos.
-	local eggs = {}
-	for i = 1, math.min(#data.eggs, Pets.NEST) do
-		eggs[i] = data.eggs[i].a .. "|" .. data.eggs[i].t
+	local tickets = 0
+	for _, count in data.tickets do
+		tickets += count
 	end
-	player:SetAttribute("Eggs", table.concat(eggs, ","))
-	player:SetAttribute("EggCount", #data.eggs)
-	player:SetAttribute("Pets", Pets.encode(data.pets))
-	player:SetAttribute("Pet", data.equipped)
-	player:SetAttribute("PetRarity", Pets.best(data.pets[data.equipped]))
-	player:SetAttribute("Income", Pets.income(data.pets))
+	player:SetAttribute("Tickets", tickets)
+	player:SetAttribute("Bag", #data.bag)
+	player:SetAttribute("Places", data.places)
+	player:SetAttribute("Spots", Pets.encode(data.spots))
+	local follower = data.spots[data.equipped]
+	player:SetAttribute("Pet", if follower and follower.v then follower.a else "")
+	player:SetAttribute("PetRarity", if follower and follower.v then follower.q else 0)
+	player:SetAttribute("PetSpot", data.equipped)
+	player:SetAttribute("Income", Pets.income(data.spots))
 	local stats = player:FindFirstChild("leaderstats")
 	if stats then
 		stats.Room.Value = data.best

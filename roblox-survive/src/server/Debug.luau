@@ -53,6 +53,7 @@ return function(_world)
 				pillars = pillars,
 				melody = room.melody,
 				rush = room.rush,
+				chaser = room.chaser,
 				melodyPads = (function()
 					local list = {}
 					for i, pad in room.melodyPads or {} do
@@ -73,37 +74,71 @@ return function(_world)
 			end
 			return counted
 		elseif action == "Eggs" then
+			-- tickets, œufs à poser (bag), places, familiers et œufs de l'enclos, revenu, place du familier qui suit.
 			local data = PlayerData.get(player)
-			-- pets : la meilleure rareté trouvée pour chaque animal ; bits : la collection (« Dragon:1010 »).
-			local best = {}
-			for name, list in data.pets do
-				best[name] = Pets.best(list)
+			local tickets = 0
+			for _, count in data.tickets do
+				tickets += count
 			end
-			return { eggs = #data.eggs, first = data.eggs[1] and data.eggs[1].a or "", equipped = data.equipped, pets = best, bits = Pets.encode(data.pets), income = Pets.income(data.pets), count = Pets.count(data.pets) }
+			local pets, eggs = Pets.count(data.spots)
+			local spots = {}
+			for key, spot in data.spots do
+				spots[key] = { a = spot.a, q = spot.q, v = spot.v, t = spot.t }
+			end
+			return { tickets = tickets, bag = #data.bag, first = data.bag[1] and data.bag[1].a or "", places = data.places, pets = pets, eggs = eggs, income = Pets.income(data.spots), equipped = data.equipped, spots = spots }
+		elseif action == "Exchange" then
+			return Eggs.exchange(player)
+		elseif action == "Use" then
+			-- Comme un appui sur E devant la place a de son enclos.
+			return Eggs.use(player, a)
 		elseif action == "Hatch" then
-			-- Fait éclore tout de suite tous les œufs. Renvoie leur nombre.
+			-- Fait éclore tout de suite tous les œufs qui couvent. Renvoie leur nombre.
 			return Eggs.hatch(player, true)
 		elseif action == "Ripen" then
 			-- Tous les œufs ont fini de couver (ils écloront tout seuls à la prochaine seconde).
-			for _, egg in PlayerData.get(player).eggs do
-				egg.t = 0
+			for _, spot in PlayerData.get(player).spots do
+				if spot.t then
+					spot.t = 0
+				end
 			end
 			PlayerData.changed(player)
 		elseif action == "Hatching" then
 			-- a = false : les œufs n'éclosent plus tout seuls ; true : ils éclosent de nouveau.
 			Eggs.hatchPaused = not a
-		elseif action == "Pet" then
-			-- Ajoute le familier a de rareté b à la collection et le fait suivre le joueur ("" = aucun ne le suit).
+		elseif action == "Clear" then
+			-- Vide l'enclos (sans rien vendre).
 			local data = PlayerData.get(player)
-			if a ~= "" then
-				Eggs.grant(player, a, b)
-			end
-			data.equipped = a
+			table.clear(data.spots)
+			data.equipped = ""
 			PlayerData.changed(player)
-			-- Pour les photos : la rareté montrée derrière le joueur est celle demandée.
-			if a ~= "" then
-				player:SetAttribute("PetRarity", b)
+		elseif action == "Egg" then
+			-- Ajoute un œuf de l'animal a, de rareté b, aux œufs à poser.
+			table.insert(PlayerData.get(player).bag, { a = a, q = b, r = 1 })
+			PlayerData.changed(player)
+		elseif action == "Pet" then
+			-- Pose directement un familier a de rareté b (valeur au milieu de son palier) sur la première place vide,
+			-- en ouvrant des places s'il le faut, et le fait suivre le joueur. "" : plus aucun ne le suit.
+			local data = PlayerData.get(player)
+			if a == "" then
+				data.equipped = ""
+			else
+				local key
+				for spot = 1, Pets.SPOTS_MAX do
+					if not data.spots[tostring(spot)] then
+						key = tostring(spot)
+						data.places = math.max(data.places, spot)
+						break
+					end
+				end
+				if not key then
+					return false
+				end
+				local range = Pets.VALUE[b]
+				data.spots[key] = { a = a, q = b, v = (range[1] + range[2]) // 2 }
+				data.equipped = key
 			end
+			PlayerData.changed(player)
+			return true
 		elseif action == "Income" then
 			-- a = false : coupe le revenu des familiers ; true : le remet.
 			Eggs.incomePaused = not a

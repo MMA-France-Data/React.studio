@@ -293,22 +293,38 @@ return function(log)
 	winRoom(1, true)
 	check(D("Data").best == 1, "meilleure salle = 1", D("Data").best)
 
-	-- L'ŒUF DE LA SALLE : la salle 1 réussie a mis un œuf de dragon dans l'enclos, où il couve.
-	local eggs = D("Eggs")
-	check(eggs.eggs == 1 and eggs.first == "Dragon" and eggs.count == 0, "salle 1 réussie = un œuf de dragon qui couve dans l'enclos", eggs.eggs .. " " .. eggs.first)
-	check(string.match(player:GetAttribute("Eggs") or "", "^Dragon|%d+$") ~= nil and player:GetAttribute("EggCount") == 1, "l'œuf est envoyé à l'écran", player:GetAttribute("Eggs"))
+	-- LE TICKET, LA BOUTIQUE, L'ENCLOS. La salle 1 réussie a donné un ticket de la salle 1.
+	local pen = D("Eggs")
+	check(pen.tickets == 1 and pen.bag == 0 and pen.places == 5 and pen.pets == 0, "salle 1 réussie = un ticket ; l'enclos a 5 places, vides", pen.tickets)
+	check(player:GetAttribute("Tickets") == 1, "le ticket est envoyé à l'écran", player:GetAttribute("Tickets"))
+	check(D("Use", 1) == "none" and D("Eggs").eggs == 0, "sans œuf, rien à poser dans l'enclos")
+	-- À la boutique, le ticket devient un œuf de dragon ; sa rareté est tirée là.
+	check(D("Exchange") == 1, "boutique : le ticket devient un œuf")
+	pen = D("Eggs")
+	check(pen.tickets == 0 and pen.bag == 1 and pen.first == "Dragon", "l'œuf de dragon attend d'être posé", pen.first)
+	check(D("Exchange") == 0, "boutique : rien à échanger sans ticket")
+	-- Le joueur pose l'œuf lui-même sur une place : il couve, plus ou moins longtemps selon sa rareté.
+	check(D("Use", 2) == "placed", "l'œuf est posé sur la place 2")
+	pen = D("Eggs")
+	local laid = pen.spots["2"]
+	check(pen.bag == 0 and pen.eggs == 1 and laid ~= nil and laid.a == "Dragon" and laid.t ~= nil, "il couve sur la place 2")
+	check(laid.t - os.time() <= Pets.hatchSeconds(1, laid.q) and laid.t - os.time() >= Pets.hatchSeconds(1, laid.q) - 3, "temps de couvaison selon la rareté", laid.t - os.time())
+	check(D("Use", 2) == "wait", "tant qu'il couve, on ne peut rien faire de la place")
+	check(D("Use", 7) == "none", "la place 7 est encore fermée (il faut d'abord la 6)")
 	tp(plot.spawn)
 	task.wait(1)
-	shot("nid", plot.origin + Vector3.new(4, 9, -8), plot.origin + Vector3.new(0, 1, 6))
-	-- Quand il a fini de couver, il éclot tout seul à la seconde suivante.
+	shot("oeuf", plot.origin + Vector3.new(-6, 8, -3), plot.origin + Vector3.new(2, 1, 10))
+	-- Quand il a fini de couver, il éclot tout seul à la seconde suivante : le familier reçoit sa valeur cachée.
 	D("Ripen")
 	D("Hatching", true)
 	task.wait(1.6)
 	D("Hatching", false)
-	eggs = D("Eggs")
-	check(eggs.eggs == 0 and (eggs.pets.Dragon or 0) >= 1 and eggs.equipped == "Dragon", "l'œuf éclot tout seul : le dragon entre dans la collection et suit le joueur", tostring(eggs.pets.Dragon))
-	check(eggs.count == 1 and math.abs(eggs.income - Pets.incomeOf("Dragon", eggs.pets.Dragon)) < 0.001, "la collection a 1 familier, avec son revenu", eggs.income)
-	check(player:GetAttribute("Pet") == "Dragon" and player:GetAttribute("PetRarity") == eggs.pets.Dragon and player:GetAttribute("Income") == eggs.income, "le familier et le revenu sont envoyés à l'écran")
+	pen = D("Eggs")
+	local born = pen.spots["2"]
+	local range = born and Pets.VALUE[born.q]
+	check(born ~= nil and born.v ~= nil and born.v >= range[1] and born.v <= range[2], "éclosion : la valeur cachée est dans le palier de sa rareté", born and born.v)
+	check(pen.pets == 1 and pen.equipped == "2" and math.abs(pen.income - Pets.incomeOf("Dragon", born.v)) < 0.001, "le familier rapporte selon sa valeur, et suit le joueur", pen.income)
+	check(player:GetAttribute("Pet") == "Dragon" and player:GetAttribute("PetRarity") == born.q and player:GetAttribute("Income") == pen.income, "le familier et le revenu sont envoyés à l'écran")
 
 	-- Salle 2 (météorites) : rester immobile fait perdre de la vie.
 	enter(2)
@@ -433,26 +449,49 @@ return function(log)
 	D("Level", "Force", 4)
 	winRoom(10, true)
 	check(D("Data").best == 10, "meilleure salle = 10", D("Data").best)
-	-- Autant d'œufs qu'on veut couvent en même temps : un par salle réussie depuis le début.
-	local waiting = D("Eggs").eggs
-	check(waiting >= 9, "tous les œufs des salles réussies couvent en même temps dans l'enclos", waiting)
-	check(D("Hatch") == waiting and D("Eggs").eggs == 0 and D("Eggs").count >= 3, "ils éclosent tous : la collection se remplit", D("Eggs").bits)
+	-- Un ticket par salle réussie depuis le début.
+	local tickets = D("Eggs").tickets
+	check(tickets >= 9, "chaque salle réussie a donné son ticket", tickets)
+	check(D("Exchange") == tickets and D("Eggs").bag == tickets, "boutique : tous les tickets deviennent des œufs")
 
-	-- LA COLLECTION ET LE REVENU. Un familier nouveau compte une fois ; le même une 2e fois ne change rien.
-	local before = D("Eggs")
-	D("Pet", "Golem", 4)
-	local after = D("Eggs")
-	check(after.count == before.count + 1 and math.abs(after.income - before.income - Pets.incomeOf("Golem", 4)) < 0.001, "golem légendaire : +60 pièces par seconde", after.income - before.income)
-	D("Pet", "Golem", 4)
-	check(D("Eggs").count == after.count, "le même familier une 2e fois ne compte pas deux fois")
-	check(math.abs(after.income - Pets.income(Pets.decode(after.bits))) < 0.001, "le revenu = la somme de la collection", after.bits)
+	-- LES PLACES : 5 au départ. Quand elles sont pleines, on en achète ; chaque place coûte 6 fois la précédente.
+	-- (La place 2 a déjà le dragon du début.)
+	for _, spot in { 1, 3, 4, 5 } do
+		D("Use", spot)
+	end
+	pen = D("Eggs")
+	check(pen.pets == 1 and pen.eggs == 4, "les 5 places sont occupées : le dragon et 4 œufs qui couvent", pen.pets + pen.eggs)
+	check(Pets.spotPrice(5) == 1000 and Pets.spotPrice(6) == 6000 and Pets.spotPrice(7) == 36000 and Pets.spotPrice(12) == nil, "prix des places : 1 000, 6 000, 36 000... et 12 au plus")
+	D("Give", -D("Data").coins)
+	check(D("Use", 6) == "none" and D("Eggs").places == 5, "pas de 6e place sans les 1 000 pièces")
+	D("Give", 1000)
+	check(D("Use", 6) == "bought" and D("Eggs").places == 6 and D("Data").coins == 0, "la 6e place coûte 1 000 pièces")
+	check(D("Use", 6) == "placed", "un œuf est posé sur la nouvelle place")
+	D("Hatch")
+	pen = D("Eggs")
+	check(pen.pets == 6 and pen.eggs == 0, "les 6 œufs sont éclos", pen.pets)
+	-- Deux familiers de la même rareté ne rapportent pas pareil ; le revenu est la somme de l'enclos.
+	local sum = 0
+	for _, spot in pen.spots do
+		sum += Pets.incomeOf(spot.a, spot.v)
+	end
+	check(math.abs(sum - pen.income) < 0.001 and player:GetAttribute("Income") == pen.income, "le revenu = la somme des familiers de l'enclos", pen.income)
+	-- Vendre un familier : des pièces, et sa place est libre (les doublons se gèrent comme ça).
+	local sold = pen.spots["1"]
+	check(D("Use", 1) == "sold" and D("Data").coins == Pets.sellPrice(sold.a, sold.v) and D("Eggs").pets == 5, "vendre le familier de la place 1 rapporte ce qu'il vaut", D("Data").coins)
+	check(D("Use", 1) == "placed", "la place libérée reçoit un nouvel œuf")
 	-- Le revenu tombe chaque seconde quand il n'est pas coupé.
+	D("Clear")
+	D("Pet", "Golem", 4)
+	D("Pet", "Golem", 4)
+	pen = D("Eggs")
+	check(pen.pets == 2 and math.abs(pen.income - 2 * Pets.incomeOf("Golem", 600)) < 0.001, "on peut avoir deux fois le même familier (deux golems légendaires)", pen.income)
 	local coinsBefore = D("Data").coins
 	D("Income", true)
 	task.wait(3.3)
 	D("Income", false)
 	local earned = D("Data").coins - coinsBefore
-	check(earned >= after.income * 2 and earned <= after.income * 4.5, "en 3 secondes, la collection a rapporté environ 3 fois son revenu", earned .. " pour " .. after.income .. " par seconde")
+	check(earned >= pen.income * 2 and earned <= pen.income * 4.5, "en 3 secondes, l'enclos a rapporté environ 3 fois son revenu", earned .. " pour " .. pen.income .. " par seconde")
 
 	-- LA GRANDE PLUIE DE MÉTÉORITES : un joueur qui court à la vitesse du niveau demandé arrive dans le rond vert,
 	-- celui du niveau d'en dessous n'arrive pas. Le test fait avancer le personnage lui-même, en temps réel.
@@ -493,16 +532,57 @@ return function(log)
 		waitState(index, "Idle", 3)
 		return survived, waves
 	end
-	for _, case in { { 2, 1 }, { 8, 3 } } do
+	for _, case in { { 2, 1 } } do
 		local index, level = case[1], case[2]
 		local survived, waves = rushRun(index, Config.walkSpeed(level))
 		check(survived and waves >= 3, `salle {index} : la vitesse du niveau {level} suffit pour 3 grandes pluies`, waves)
 		survived, waves = rushRun(index, Config.walkSpeed(level - 1))
 		check(not survived, `salle {index} : la vitesse du niveau {level - 1} n'arrive pas à temps`, waves)
 	end
+	-- LA SALLE DE COURSE (salle 8) : le joueur tourne en grand cercle autour de la salle. À la vitesse du niveau
+	-- demandé, le monstre ne le rattrape pas ; à celle du niveau d'en dessous, il l'attrape.
+	local function chaseRun(index: number, speed: number, seconds: number): (boolean, number)
+		D("Scale", SCALE)
+		enter(index)
+		D("Scale", 1)
+		local character, runner, body = alive()
+		local center = D("Room", index).center
+		local radius, angle = 27, -math.pi / 2
+		local started, previous = os.clock(), os.clock()
+		local closest = math.huge
+		while runner.Health > 0 and os.clock() - started < seconds do
+			local now = os.clock()
+			angle += speed * (now - previous) / radius
+			previous = now
+			character:PivotTo(CFrame.new(center + Vector3.new(math.cos(angle) * radius, 3, math.sin(angle) * radius)))
+			local info = D("Room", index)
+			if info.state ~= "Event" then
+				break
+			end
+			if info.chaser and info.chaser.moving then
+				closest = math.min(closest, info.chaser.distance)
+			end
+			task.wait()
+		end
+		local survived = runner.Health > 0
+		if survived then
+			runner.Health = 0
+		end
+		D("Scale", SCALE)
+		waitState(index, "Idle", 3)
+		return survived, closest
+	end
+	local need = Config.ROOMS[8].need.Speed
+	local escaped, closest = chaseRun(8, Config.walkSpeed(need), 32)
+	check(escaped, `salle 8 : en courant à la vitesse du niveau {need}, le monstre ne rattrape pas le joueur en 30 secondes`, string.format("au plus près : %.1f studs", closest))
+	escaped, closest = chaseRun(8, Config.walkSpeed(need - 1), 52)
+	check(not escaped, `salle 8 : à la vitesse du niveau {need - 1}, le monstre attrape le joueur`, string.format("au plus près : %.1f studs", closest))
+	escaped = chaseRun(8, Config.walkSpeed(need) * Config.WALK_RATIO, 40)
+	check(not escaped, `salle 8 : en marchant sans courir, même au niveau {need}, le monstre attrape le joueur`)
 	D("Scale", 1)
-	-- Une photo de chaque animal dans ses 4 raretés, à côté du joueur dans l'allée (la collection se remplit).
+	-- Une photo de chaque animal dans ses 4 raretés, à côté du joueur dans l'allée.
 	for _, name in { "Dragon", "Rock", "Rabbit", "Golem", "Owl" } do
+		D("Clear")
 		for _, rarity in { 1, 2, 3, 4 } do
 			D("Pet", name, rarity)
 			tp(Vector3.new(0, 4, 6))
@@ -514,6 +594,7 @@ return function(log)
 	end
 	-- Les animaux en mouvement : le joueur marche tout droit, la photo est prise pendant qu'il avance.
 	for _, name in { "Dragon", "Rock", "Rabbit", "Golem", "Owl" } do
+		D("Clear")
 		D("Pet", name, 3)
 		tp(Vector3.new(0, 4, -22))
 		task.wait(0.8)
@@ -521,17 +602,27 @@ return function(log)
 		walker:MoveTo(Vector3.new(0, 0, 27))
 		task.wait(0.5)
 		-- shot() attend 0,7 s avant la photo : la caméra vise l'endroit où le joueur sera à ce moment-là.
-		local ahead = body.Position + Vector3.new(0, 0, walker.WalkSpeed * 0.7)
+		local ahead = body.Position + Vector3.new(0, 0, walker.WalkSpeed * Config.WALK_RATIO * 0.7)
 		shot("marche_" .. name, ahead + Vector3.new(11, 3, 7), ahead + Vector3.new(-2, -0.5, -1))
-		check(body.Position.Z > 0, "le joueur a marché pendant la photo de " .. name, body.Position.Z)
+		check(body.Position.Z > -14, "le joueur a marché pendant la photo de " .. name, body.Position.Z)
 	end
-	-- Toute la collection est trouvée : l'enclos est plein.
-	local full = D("Eggs")
-	check(full.count == 20 and math.abs(full.income - 285) < 0.001, "collection complète : 20 familiers, 285 pièces par seconde", full.income)
+	-- Un enclos bien rempli : des familiers de toutes les raretés, deux œufs qui couvent, la place suivante à vendre.
+	D("Clear")
+	for i, name in { "Dragon", "Rock", "Rabbit", "Golem", "Owl", "Dragon", "Golem", "Owl" } do
+		D("Pet", name, (i - 1) % 4 + 1)
+	end
+	D("Egg", "Rabbit", 3)
+	D("Egg", "Dragon", 4)
+	D("Give", -D("Data").coins)
+	D("Give", 216000)
+	check(D("Use", 9) == "bought" and D("Use", 9) == "placed", "la 9e place coûte 216 000 pièces ; un œuf est posé dessus")
+	D("Give", 1296000)
+	check(D("Use", 10) == "bought" and D("Use", 10) == "placed" and D("Eggs").places == 10 and D("Data").coins == 0, "la 10e place coûte 1 296 000 pièces ; un œuf est posé dessus")
 	tp(plot.origin + Vector3.new(-13, 4, 2))
 	task.wait(1.5)
-	shot("enclos", plot.origin + Vector3.new(10, 20, -14), plot.origin + Vector3.new(10, 1, 18))
+	shot("enclos", plot.origin + Vector3.new(10, 22, -12), plot.origin + Vector3.new(10, 1, 16))
 	shot("enclos_pres", plot.origin + Vector3.new(-13, 6, 0), plot.origin + Vector3.new(6, 2, 14))
+	shot("boutique", Vector3.new(-2, 8, 2), Vector3.new(-11, 5, 16))
 	shot("gagnants", Vector3.new(-14, 12, 1036), Vector3.new(2, 5, 1058))
 
 	-- 4. LE RACCOURCI ----------------------------------------------------------------------------------------------

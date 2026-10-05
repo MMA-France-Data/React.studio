@@ -36,6 +36,7 @@ local THEMES = {
 	Meteors = { Color3.fromRGB(62, 200, 64), Color3.fromRGB(80, 216, 74), Color3.fromRGB(70, 140, 230) },
 	Explosions = { Color3.fromRGB(240, 200, 70), Color3.fromRGB(250, 214, 96), Color3.fromRGB(235, 130, 50) },
 	Melody = { Color3.fromRGB(52, 56, 92), Color3.fromRGB(62, 66, 106), Color3.fromRGB(96, 70, 170) },
+	Chase = { Color3.fromRGB(120, 60, 60), Color3.fromRGB(136, 70, 68), Color3.fromRGB(70, 30, 40) },
 }
 
 -- Mur le long de l'axe X, à la profondeur z, avec le trou d'une porte au milieu.
@@ -101,7 +102,7 @@ local PLOT_COLORS = {
 	{ Color3.fromRGB(255, 224, 90), Color3.fromRGB(255, 236, 140) },
 }
 
--- L'espace d'un joueur : ses 3 machines et son enclos (un socle par animal et par rareté).
+-- L'espace d'un joueur : ses 3 machines et son enclos (12 places, dont 5 ouvertes au départ).
 -- Les espaces impairs sont à gauche de l'allée, les pairs à droite, trois rangées en partant de la porte des salles.
 local function buildPlot(parent: Instance, index: number)
 	local side = if index % 2 == 1 then -1 else 1
@@ -145,21 +146,17 @@ local function buildPlot(parent: Instance, index: number)
 		spot.exit = places[name] + Vector3.new(0, 3.5, 12.5)
 	end
 
-	-- L'enclos : devant, le nid où couvent les œufs ; derrière, une colonne de socles par animal, une rangée par
-	-- rareté. L'écran de chaque joueur y pose les œufs et les familiers du propriétaire.
+	-- L'enclos : 12 places sur deux rangées. L'écran de chaque joueur y montre les œufs et les familiers du
+	-- propriétaire ; les places pas encore achetées restent sombres.
 	local enclosure = Instance.new("Folder")
 	enclosure.Name = "Enclosure"
-	enclosure:SetAttribute("Nest", origin + Vector3.new(-6.5, 0, 4.6)) -- place du premier œuf ; les suivants vers +X
 	enclosure.Parent = folder
-	local nest = Build.part(enclosure, "Straw", Vector3.new(37, 0.3, 3.6), origin + Vector3.new(10, 0.25, 4.6), Color3.fromRGB(226, 196, 110), Enum.Material.Grass)
-	nest.CanCollide = false
-	for column, name in Pets.ORDER do
-		for rarity, info in Pets.RARITIES do
-			local position = origin + Vector3.new(-4 + (column - 1) * 7, 0.4, 10 + (rarity - 1) * 6.4)
-			local pedestal = Build.disc(enclosure, "Ped_" .. name .. "_" .. rarity, 5, 0.6, position, info.color:Lerp(Color3.fromRGB(40, 44, 56), 0.5))
-			pedestal:SetAttribute("Animal", name)
-			pedestal:SetAttribute("Rarity", rarity)
-		end
+	local pens = {}
+	for spot = 1, Pets.SPOTS_MAX do
+		local column, line = (spot - 1) % 6, math.floor((spot - 1) / 6)
+		local pad = Build.disc(enclosure, "Spot" .. spot, 5.4, 0.6, origin + Vector3.new(-6 + column * 6.6, 0.4, 9 + line * 13), Color3.fromRGB(60, 64, 78))
+		pad:SetAttribute("Spot", spot)
+		pens[spot] = pad
 	end
 	local fence = Color3.fromRGB(150, 110, 70)
 	for _, bar in {
@@ -186,6 +183,7 @@ local function buildPlot(parent: Instance, index: number)
 		origin = origin,
 		machines = machines,
 		spots = spots,
+		pens = pens,
 		spawn = origin + Vector3.new(-13, 3.5, 2),
 	}
 end
@@ -225,6 +223,23 @@ local function buildGym(parent: Instance)
 		plots[index] = buildPlot(gym, index)
 	end
 
+	-- La boutique des œufs : un stand dans l'allée, près de la porte des salles (on y échange ses tickets).
+	local stand = Vector3.new(-11, 0, 16)
+	local counter = Build.part(gym, "Shop", Vector3.new(9, 3.4, 4), stand + Vector3.new(0, 1.7, 0), Color3.fromRGB(255, 200, 60))
+	Build.part(gym, "ShopTop", Vector3.new(10, 0.5, 5), stand + Vector3.new(0, 3.6, 0), Color3.fromRGB(150, 90, 40), Enum.Material.Wood)
+	for _, x in { -4.6, 4.6 } do
+		Build.part(gym, "ShopPost", Vector3.new(0.6, 7, 0.6), stand + Vector3.new(x, 7, 0), Color3.fromRGB(150, 90, 40), Enum.Material.Wood)
+	end
+	Build.part(gym, "ShopRoof", Vector3.new(11.5, 0.6, 6.5), stand + Vector3.new(0, 10.8, 0), Color3.fromRGB(240, 70, 70))
+	local shopBoard = Build.part(gym, "ShopSign", Vector3.new(10, 2.6, 0.5), stand + Vector3.new(0, 12.6, 0), Color3.fromRGB(40, 44, 56))
+	Build.sign(shopBoard, Enum.NormalId.Front, "shop", Color3.fromRGB(255, 221, 51))
+	Build.sign(shopBoard, Enum.NormalId.Back, "shop", Color3.fromRGB(255, 221, 51))
+	for i, color in { Color3.fromRGB(240, 90, 40), Color3.fromRGB(250, 250, 250), Color3.fromRGB(120, 170, 120) } do
+		local egg = Build.part(gym, "ShopEgg", Vector3.new(1.8, 1.8, 1.8), stand + Vector3.new(-3 + (i - 1) * 3, 4.9, 0), color)
+		egg.Shape = Enum.PartType.Ball
+		egg.CanCollide = false
+	end
+
 	-- Le raccourci : un rond qui brille dans l'allée, près de la porte des salles, avec son panneau.
 	local shortcuts = {}
 	for i, cleared in Config.SHORTCUTS do
@@ -237,7 +252,7 @@ local function buildGym(parent: Instance)
 		shortcuts[cleared] = pad
 	end
 
-	return { folder = gym, plots = plots, shortcuts = shortcuts, spawn = spawn }
+	return { folder = gym, plots = plots, shortcuts = shortcuts, shop = counter, spawn = spawn }
 end
 
 local function buildSas(parent: Instance, index: number, wallColor: Color3)
