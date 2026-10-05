@@ -11,6 +11,7 @@ powershell -ExecutionPolicy Bypass -File tools\levels\run.ps1
 powershell -ExecutionPolicy Bypass -File tools\levels\run.ps1 -Tests
 powershell -ExecutionPolicy Bypass -File tools\levels\run.ps1 -Lazy
 powershell -ExecutionPolicy Bypass -File tools\levels\run.ps1 -Tune
+powershell -ExecutionPolicy Bypass -File tools\levels\run.ps1 -Barre -Niveaux "11,12"
 powershell -ExecutionPolicy Bypass -File tools\levels\run.ps1 -Curve
 powershell -ExecutionPolicy Bypass -File tools\levels\run.ps1 -Worth
 powershell -ExecutionPolicy Bypass -File tools\levels\run.ps1 -Equipe
@@ -19,9 +20,9 @@ powershell -ExecutionPolicy Bypass -File tools\levels\run.ps1 -Regler "Levels.ST
 
 - **sans option** : le tableau de difficulté. Chaque niveau est joué par des joueurs simulés : très actif, au rythme
   demandé par le niveau, lent (un achat toutes les 8 s), distrait (toutes les 15 s), sans œuf (l'Archer et la
-  Catapulte seulement), tout débloqué.
+  Catapulte seulement), tout débloqué (la meilleure barre, entraînée à fond : `Bot.FULL_BAR`).
   « G 7 » = gagné avec 7 vies, « P 62 % » = perdu après avoir éliminé 62 % des monstres. Environ 2 minutes.
-- **`-Tests`** : 1 438 vérifications (100 niveaux dont 40 ouverts, 10 territoires, flot continu, cartes, pose libre, récompenses, prix, entraînement, données
+- **`-Tests`** : 1 483 vérifications (100 niveaux dont 40 ouverts, 10 territoires, flot continu, cartes, pose libre, récompenses, prix, entraînement, données
   du joueur, le moteur : or, vies, victoire, défaite, vitesse x2, paquets réseau, **la difficulté de chaque
   niveau** : voir plus bas, les évolutions des tours, le camp d'entraînement de la parcelle : `CampGame.luau`, et
   **le tuto** : son étape dans les données, les deux premiers gestes du niveau 1 ; **le jeu en équipe** : les règles,
@@ -32,18 +33,27 @@ powershell -ExecutionPolicy Bypass -File tools\levels\run.ps1 -Regler "Levels.ST
   **les amis** : bonus d'ami sur le serveur, récompenses d'invitation une fois par ami ; **les œufs** : l'œuf de
   catapulte, œuf gagné, réserve, chances et part des tours de palier 2, tour sortie, données ; **les tours de palier
   2** : chacune et sa tour de base, prix, bien plus fortes même face à une tour de base entraînée au maximum,
-  pouvoirs déjà là, la barre de 8 tours et la réserve, la Catapulte de magma posée dans un niveau, Totem de givre +
+  pouvoirs déjà là, **la barre** (une tour par rareté, « Choisir », la réserve, les sauvegardes d'avant), la
+  Catapulte de magma posée dans un niveau, Totem de givre +
   Totem du blizzard qui ne s'additionnent pas ; **le colosse géant** ; **les tours spéciales** : une par territoire,
   un peu plus fortes que les tours de palier 2, posées dans un niveau, le poison des ronces (encore là hors des
   ronces, sans ralentir), la Catapulte de givre qui ralentit sans cumul avec le Totem du blizzard, les œufs spéciaux
   au boss du territoire, gardés même réserve pleine ; **« Bloqué ? »** : les défaites de suite au même niveau).
-  Une dizaine de minutes.
+  Un quart d'heure.
 - **`-Lazy`** : les 10 niveaux joués par un joueur qui pose quelques tours puis attend (rien de plus, 2 Archers,
   3 Archers, 2 Archers et une Catapulte, 4 Archers et 2 Catapultes). Ils doivent tous perdre.
 - **`-Tune`** : cherche, pour chaque niveau, les PV des monstres les plus hauts avec lesquels le joueur de référence
-  gagne encore (un niveau par processus, environ 2 minutes pour 10 niveaux). `-Niveaux "1,3"` : seulement ces
+  gagne encore (un niveau par processus, quelques minutes pour 10 niveaux), précis à 2 % près (les niveaux à gros
+  monstres basculent d'un coup). `-Niveaux "1,3"` : seulement ces
   niveaux (pour régler un nouveau territoire : `-Niveaux "11,12,13,14,15,16,17,18,19,20"`). `-Rythme 3` : un autre
   rythme de référence. `-Vies 8` : il doit garder 8 vies.
+- **`-Barre`** : la meilleure BARRE de chaque niveau demandé (`-Niveaux "11,12"` ; sans : les niveaux 11 à 50).
+  Dans un niveau, le joueur ne pose qu'une tour par rareté : l'outil essaie toutes les barres que le joueur attendu
+  peut former avec ses tours (`OWNED` dans `bar.luau`), garde les 2 plus fortes, et cherche pour elles les PV les
+  plus hauts. Il affiche la barre gagnante et son entraînement (un cran de plus que ce que ses parties lui ont
+  donné, deux à partir du niveau 31 : « dur partout ») : c'est la ligne à mettre dans `Bot.EXPECTED`. De 30 s à
+  quelques minutes par niveau, 12 à la fois. Le joueur attendu est celui qui n'a PAS eu de chance aux œufs dorés
+  (une tour rare de palier 2, pas d'épique de palier 2, pas de légendaire) : voir le début de `bar.luau`.
 - **`-Curve`** : la pression d'un niveau au fil du temps (les PV qui sortent par seconde, comparés à ce que le joueur
   peut se payer). Elle doit monter du début à la fin.
 - **`-Worth`** : ce que chaque tour APPORTE (de combien les monstres peuvent être plus résistants
@@ -64,20 +74,34 @@ powershell -ExecutionPolicy Bypass -File tools\levels\run.ps1 -Regler "Levels.ST
 
 Retour du propriétaire après son premier essai (02/10/2026) : « beaucoup trop facile », « je veux que ce soit en
 continu et de plus en plus dur, que je sois obligé d'être super actif : poser des tours, améliorer », « si juste
-2 Archers gèrent le niveau, je passe mon temps à attendre ». `tests.luau` vérifie donc, pour **chacun des 40 niveaux
-ouverts** (`Levels.OPEN_COUNT`) :
+2 Archers gèrent le niveau, je passe mon temps à attendre ». Puis, le 05/10/2026 : « les niveaux sont beaucoup trop
+simples, ma copine est allée au niveau 30 sans être bloquée » : la **barre** (une tour par rareté) et « **dur
+partout** » à partir du niveau 11. `tests.luau` vérifie donc, pour **chacun des 40 niveaux ouverts**
+(`Levels.OPEN_COUNT`), avec la barre attendue à ce niveau (`Bot.EXPECTED`) :
 
-| Joueur simulé | Doit |
-|---|---|
-| Très actif (il dépense son or tout de suite) | gagner avec au moins 8 vies |
-| Au rythme demandé (un achat toutes les 5 s au niveau 1, toutes les 3,5 s à partir du niveau 6) | gagner avec au moins 5 vies |
-| Lent (un achat toutes les 8 s) | perdre |
-| Distrait (un achat toutes les 15 s) | perdre encore plus tôt |
-| 2 Archers puis attendre | perdre avant 30 % du niveau, mais tenir au moins 35 s |
-| 4 Archers et 2 Catapultes sans rien améliorer | perdre avant 60 % du niveau |
+| Joueur simulé | Niveaux 1 à 10 | Niveaux 11 et plus |
+|---|---|---|
+| Très actif (il dépense son or tout de suite) | gagner avec au moins 8 vies | gagner avec au moins 5 vies |
+| Au rythme demandé (un achat toutes les 5 s au niveau 1, toutes les 3,5 s à partir du niveau 6) | gagner avec au moins 5 vies | pareil |
+| Lent (un achat toutes les 8 s) | perdre | perdre s'il n'a pas entraîné ses tours en plus (`Bot.EXPECTED` moins `Bot.extraTraining` : un cran, deux à partir du niveau 31) |
+| Distrait (un achat toutes les 15 s) | perdre encore plus tôt | perdre, même avec des tours entraînées |
+| 2 Archers puis attendre | perdre avant 30 % du niveau, mais tenir au moins 35 s | pareil, tenir au moins 30 s |
+| 4 Archers et 2 Catapultes sans rien améliorer | perdre avant 60 % du niveau | pareil |
 
-Les tours et l'entraînement « attendus » à chaque niveau, et le rythme demandé, sont dans `Bot.EXPECTED` (une tour
-qui vient d'être achetée n'est pas encore entraînée : `trainings`).
+Et, pour l'ensemble des niveaux 11 et plus (« dur partout ») : **celui qui arrive** à un niveau au rythme demandé,
+avec la bonne barre mais sans avoir entraîné ses tours en plus, doit perdre au moins 4 niveaux sur 10 et n'en
+gagner facilement (8 vies ou plus) qu'un sur 10 au plus. Les boss des niveaux 20, 30 et 40 ne passent pas avec les
+tours de base à la place des tours de palier 2.
+
+**La chance aux œufs.** La barre attendue est celle que presque tous les joueurs peuvent former (pas de tour épique
+de palier 2, pas de légendaire). Avec une tour « de chance », la suite est plus facile : la Baliste du dragon vaut
++45 % de PV de monstres au 4e territoire (46 % des joueurs l'ont au niveau 31), une légendaire de palier 2 +20 à
++50 %. Réglé pour la Baliste du dragon, le niveau 31 était impossible sans elle. Mesures : `gen/barvar.luau`
+(fichier de travail) ; détails dans `NIVEAUX.md`, « La difficulté ».
+
+La barre et l'entraînement « attendus » à chaque niveau, et le rythme demandé, sont dans `Bot.EXPECTED`. Avec moins
+de sortes de tours à poser (3 ou 4 au lieu de 8), il y a moins d'achats à faire : un joueur lent mais dont les tours
+sont bien entraînées gagne certains niveaux. Ce qui bloque maintenant, c'est la barre et l'entraînement.
 
 ## Ajouter un territoire (10 niveaux)
 
@@ -86,8 +110,9 @@ C'est ce qui a été fait pour les niveaux 11 à 20 (02/10/2026, « ajoute des n
 
 1. `src/shared/Levels.luau` : la carte dans `MAPS` (chemin en tronçons droits, château, 12 emplacements conseillés),
    son nom dans `TERRITORIES`, 10 lignes dans `DEFINITIONS` avec des PV provisoires, puis `COUNT`.
-2. `Bot.luau` : 10 lignes dans `Bot.EXPECTED` (les tours que les pièces gagnées jusque-là permettent d'acheter).
-3. `run.ps1 -Tune -Niveaux "..."` donne les PV ; on garde 5 % de marge en dessous.
+2. `bar.luau` : les tours que le joueur attendu possède dans ce territoire (`OWNED`, `NATURAL`, `SPECIAL_BOSS`), puis
+   `run.ps1 -Barre -Niveaux "..."` : la meilleure barre de chaque niveau, à recopier dans `Bot.EXPECTED` (`Bot.luau`).
+3. `run.ps1 -Tune -Niveaux "..."` donne les PV ; on garde 5 % de marge en dessous (`health` dans `DEFINITIONS`).
 4. `run.ps1 -Tests` vérifie tout (les mêmes règles que pour les autres niveaux), puis `run.ps1` montre le tableau.
 5. `src/server/Hub/LevelArena.luau` : le décor du territoire (`THEMES`).
 

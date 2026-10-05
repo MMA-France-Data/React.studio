@@ -46,7 +46,10 @@ d'entraînement, les œufs de tours).
 4. Dans le niveau :
    - au début, tu n'as que l'**Archer** dans la barre du bas (une cible, rapide, 20 or). Au niveau 1, un Archer est
      déjà posé et tire tout seul. Les autres tours arrivent avec les œufs (la **Catapulte** dès le niveau 1) ;
-   - **ordinateur** : clique une tour de la barre du bas (ou touches 1 à 8), un aperçu vert ou rouge suit ta souris
+   - **ta barre de tours** : dans un niveau, tu n'emmènes qu'**une tour de chaque rareté** (une commune, une rare,
+     une épique, une légendaire, une spéciale : 5 au plus). Tu la choisis au camp, dans l'onglet **« Mes tours »**
+     (bouton **« CHOISIR »**) : les autres tours attendent en réserve ;
+   - **ordinateur** : clique une tour de la barre du bas (ou touches 1 à 5), un aperçu vert ou rouge suit ta souris
      avec sa portée, clique pour poser. Clique une tour posée pour ouvrir son petit menu (**Améliorer** / **Vendre**).
      Raccourcis : `E` améliorer, `X` vendre, `F` vitesse x2 ;
    - **téléphone** : appuie sur la tour dans la barre, puis sur le terrain ; ou fais-la glisser depuis la barre.
@@ -211,14 +214,19 @@ minute qui reste : 75 pour un œuf commun, 1 200 pour un œuf doré), et acheter
 Au col, le chemin passe trois fois devant le milieu du terrain : une tour posée entre deux couloirs tire sur les
 deux. Les monstres y sont plus résistants qu'à la vallée.
 
-**Les boss demandent des tours de palier 2** (ta demande : « que des niveaux tu sois vraiment bloqué, obligé de
-rechercher les tourelles »). Mesuré avec le joueur simulé, au rythme demandé (un achat toutes les 3,5 s) :
+**Les boss demandent une tour de palier 2** (ta demande : « que des niveaux tu sois vraiment bloqué, obligé de
+rechercher les tourelles »). Mesuré avec le joueur simulé, au rythme demandé (un achat toutes les 3,5 s), avec la
+barre attendue (une tour par rareté, voir « La difficulté ») puis avec la tour de base à la place de sa tour de
+palier 2, au même entraînement :
 
-| Boss | Avec les tours attendues | Sans une de ses tours de palier 2 |
+| Boss | Avec la barre attendue | Avec la tour de base à la place |
 |---|---|---|
-| niveau 20 | gagné, 10 vies (avec la Catapulte de magma) | perdu à 100 % : le boss passe à la toute fin |
-| niveau 30 | gagné, 10 vies (Catapulte de magma et Archimage des tempêtes) | sans l'Archimage : perdu à 100 % |
-| niveau 40 | gagné, 10 vies (les trois tours de palier 2) | sans la Baliste du dragon : perdu à 69 % |
+| niveau 20 | gagné, 10 vies (Totem, Catapulte de magma, Arc carmin) | la Catapulte : perdu à 96 % |
+| niveau 30 | gagné, 10 vies (Archer, Archimage, Baliste lourde, Arbalète de cuivre) | le Mage : perdu à 82 % |
+| niveau 40 | gagné, 10 vies (Archer, Archimage, Baliste lourde, Arbalète de cuivre) | le Mage : perdu à 98 % |
+
+(Avec des tours plus entraînées, ou une autre tour forte, un boss peut passer sans tour de palier 2 : ce n'est plus
+un mur absolu, c'est l'entraînement et la barre qui comptent.)
 
 Sans aucune chance aux œufs (l'Archer et la Catapulte seulement, au même entraînement), un joueur très actif gagne
 les niveaux 1 à 10 et perd tous les niveaux 11 à 40 : il rejoue des niveaux, chaque victoire donne encore un œuf.
@@ -231,8 +239,9 @@ fin remplace ses conseils généraux par :
 - « 🔁 Bloqué ? Rejoue un niveau déjà réussi : chaque victoire donne un œuf et des pièces. » (pas au niveau 1) ;
 - puis UNE aide selon ta situation : « 🥚 Des œufs t'attendent... » (un œuf prêt, ou une couveuse vide alors que
   tu as des œufs) ; sinon, au boss d'un territoire (20, 30, 40) sans aucune tour de palier 2 : « 👑 Ce boss
-  demande une tour de palier 2 (œufs rares et dorés) : rejouer un boss donne un œuf rare. » ; sinon « ⛺ Mets tes
-  tours au camp d'entraînement... » ;
+  demande une tour de palier 2 (œufs rares et dorés) : rejouer un boss donne un œuf rare. » ; sinon, quand une
+  tour de palier 2 attend en réserve alors que la barre garde sa tour de base : « 🔀 Une tour plus forte attend
+  dans ta réserve : choisis-la dans « Mes tours ». » ; sinon « ⛺ Mets tes tours au camp d'entraînement... » ;
 - et le bouton **« ◀ Rejouer le niveau N »** (le niveau d'avant) à côté de « Réessayer ».
 
 Le conseil « Il te restait X 💰 : dépense ton or » reste quand c'est le cas (la raison la plus fréquente d'une
@@ -246,7 +255,7 @@ Les territoires 3 et 4 (ajoutés le 03/10/2026, « continue les niveaux jusqu'à
 | Monstres | les Gardiens des ronces | la Légion du givre |
 | Carte | sous-bois sombre, beaucoup d'arbres, rochers moussus ; le chemin descend le terrain en S (trois longs couloirs), le château en bas à droite (308 studs, le plus long) | neige, arbres enneigés, rochers bleutés ; le chemin serpente de haut en bas en cinq passages serrés, le château au milieu à droite (266 studs) |
 | Gros monstres | deux à quatre colosses par niveau, le colosse géant au niveau 25, le boss au niveau 30 (plus résistant que celui du niveau 20) | deux à quatre colosses par niveau, deux colosses géants au niveau 35, quatre colosses puis le boss au niveau 40 (le dernier niveau ouvert) |
-| Tours attendues | une 2e tour de palier 2, l'Archimage des tempêtes (l'œuf doré du niveau 20), puis la Baliste lourde à partir du niveau 26 | une 3e tour de palier 2, la Baliste du dragon (l'œuf doré du niveau 30) : 8 tours, la barre rapide est pleine |
+| Tours attendues | une 2e tour de palier 2, l'Archimage des tempêtes (l'œuf doré du niveau 20), puis la Baliste lourde à partir du niveau 26 | le Lance-ronces (le boss du niveau 30) ; pas de tour épique de palier 2 : réglé pour celui qui n'en a pas eu dans ses œufs (voir « La difficulté ») |
 | Pièces (première victoire) | 7 180 en tout | 9 680 en tout |
 
 Sur ces deux cartes aussi, une tour posée entre deux couloirs tire sur les deux. Le chemin est d'une couleur qui
@@ -424,7 +433,9 @@ jour), et les niveaux 1 à 40 sont réglés pour ces œufs (les boss demandent d
   épique 45 %, légendaire 15 %. Et la part des **tours de palier 2** : aucune dans un œuf commun (seulement les 8
   tours de palier 1, l'Archer compris), **25 %** dans un œuf rare, **75 %** dans un œuf doré. Un panneau montre la
   tour sortie (pour une tour de palier 2 : de quelle tour elle est la version forte) et ce qu'elle fait.
-  **Nouvelle**, elle est à toi (une tour de palier 2 prend la place de sa tour de base dans ta barre) ;
+  **Nouvelle**, elle est à toi : elle entre dans ta barre si sa rareté n'y avait encore personne (ou si c'est la
+  version de palier 2 de la tour qui y est) ; sinon elle attend en réserve, et le panneau te dit de la choisir dans
+  « Mes tours » ;
   **doublon**, elle donne de l'XP d'entraînement à cette tour (20, 40, 80 ou 160 selon sa rareté).
 - Une pastille « ! » sur le bouton « ⚔ NIVEAUX » et l'onglet Œufs : un œuf est prêt, ou une couveuse est vide
   alors que tu as des œufs.
@@ -488,10 +499,26 @@ d'or dans un niveau.
 Leurs ralentissements et étourdissements comptent comme ceux de leur tour de base : un Totem du blizzard et un
 Totem de givre ne s'additionnent pas (le plus fort des deux gagne), et la fatigue du Mage vaut pour l'Archimage.
 
-**La barre rapide garde 8 tours.** Avec plus de 20 tours, une barre de 20 boutons ne tiendrait pas sur un téléphone : les
-**8 premières** de « Mes tours » vont dans la barre des niveaux (touches 1 à 8), les autres attendent **en réserve**
-(▲ ▼ pour changer l'ordre). Une nouvelle tour entre dans la barre (une tour de palier 2 à la place de sa tour de
-base, qui passe au bout). Rien ne change pour un joueur qui n'a pas encore de tour de palier 2.
+**La barre de tours : une tour par rareté** (ta demande du 05/10/2026 : « on devrait limiter le nombre de tours,
+exemple tu pars avec une légendaire, une de boss, une rare, une commune : ça te demande de faire des choix » ; tes
+réponses : « 1 par rareté : 5 tours », choisies « dans Mes tours »). Dans un niveau, tu ne poses que les tours de ta
+**barre** : **une commune, une rare, une épique, une légendaire, une spéciale** (touches 1 à 5). Une tour de palier 2
+a la rareté de sa tour de base : il faut choisir entre l'Archer et le Totem, entre la Catapulte et le Mage, entre la
+Baliste et le Sorcier, entre l'Oracle et le Trébuchet, et entre tes tours spéciales. Les autres attendent **en
+réserve**.
+
+- L'onglet **« Mes tours »** range tes tours par rareté. Le bouton **« CHOISIR »** d'une tour de la réserve la met
+  dans la barre, à la place de celle de sa rareté (qui dit alors « ✓ CHOISIE »). Une rareté sans tour le dit :
+  « aucune tour : cherche dans les œufs » (ou « bats le boss d'un territoire » pour les spéciales).
+- Une nouvelle tour entre toute seule dans la barre si sa rareté n'y avait personne, ou si c'est la version de
+  palier 2 de la tour qui y est. Sinon elle attend en réserve.
+- La barre se change au camp, pas pendant un niveau. En équipe, chacun a la sienne.
+- Rien à refaire pour les joueurs d'avant : leur barre est la première tour de chaque rareté, dans l'ordre qu'ils
+  avaient.
+- Bloqué deux fois de suite avec une tour de palier 2 oubliée en réserve : l'écran de défaite le dit (« 🔀 Une tour
+  plus forte attend dans ta réserve »).
+
+La règle est dans `Levels.luau` (« LA BARRE DE TOURS » : `BAR_RARITIES`, `barList`, `chooseTower`).
 
 Les chiffres des tours de palier 2 sont les miens (`src/shared/IdleTowers.luau`, prix en or dans `Levels.TOWER_COST`) ;
 les niveaux 1 à 40 sont réglés avec eux.
@@ -558,9 +585,10 @@ monstres les plus résistants qu'il bat en gardant au moins 5 vies ; `run.ps1 -W
 | 36 | 414 PV | Lance-ronces ou Catapulte de givre à la place de la Catapulte de magma : 414 (autant, avec 2 tours au lieu de 4) ; Catapulte de givre en plus : 439 (+6 %) | Catapulte de magma en plus : +6 % |
 
 Au niveau 36, le joueur simulé a déjà beaucoup de tours de zone et de ralentissements (ils ne s'additionnent
-pas) : une tour de plus y change peu, quelle qu'elle soit. Les niveaux restent réglés **sans** les tours spéciales :
-celui qui les a trouve les niveaux suivants un peu plus faciles (c'est la récompense). Si c'est trop facile, on
-peut les affaiblir (leurs dégâts dans `IdleTowers.luau`).
+pas) : une tour de plus y change peu, quelle qu'elle soit. Ces mesures datent d'avant la barre (une tour par
+rareté). **Depuis le 05/10/2026, les niveaux 11 et plus sont réglés AVEC les tours spéciales** : tout le monde les
+reçoit à chaque boss, et sans les compter, même un joueur lent gagnait tout jusqu'au niveau 30 (voir « La
+difficulté »). Si elles sont trop fortes, on peut les affaiblir (leurs dégâts dans `IdleTowers.luau`).
 
 ### Les amis : notif, invitations, bonus
 
@@ -644,9 +672,10 @@ Temps pour évoluer avec le seul emplacement du camp (sans compter l'XP gagnée 
 
 ### La difficulté, réglée avec des joueurs simulés
 
-`tools/levels` fait jouer les 40 niveaux ouverts par des joueurs simulés, avec le vrai moteur du jeu (réglés de nouveau
-le 04/10/2026 pour les œufs). Chaque niveau est réglé pour qu'**attendre fasse perdre** et que **rester actif fasse
-gagner** :
+`tools/levels` fait jouer les 40 niveaux ouverts par des joueurs simulés, avec le vrai moteur du jeu.
+
+**Le 1er territoire (niveaux 1 à 10)** est celui des débuts. Il est réglé pour qu'**attendre fasse perdre** et que
+**rester actif fasse gagner** (réglé le 04/10/2026 pour les œufs, pas changé depuis) :
 
 | Niveau | Très actif (dépense tout, tout de suite) | Au rythme demandé | Un achat toutes les 8 s | 2 Archers puis attendre | 4 Archers et 2 Catapultes, sans améliorer |
 |---|---|---|---|---|---|
@@ -660,92 +689,155 @@ gagner** :
 | 8 | gagne, 10 vies | un achat toutes les 3,5 s : gagne, 10 vies | perd à 68 % | perd à 10 % (48 s) | perd à 32 % |
 | 9 | gagne, 10 vies | un achat toutes les 3,5 s : gagne, 10 vies | perd à 52 % | perd à 8 % (45 s) | perd à 27 % |
 | 10 (boss) | gagne, 10 vies | un achat toutes les 3,5 s : gagne, 10 vies | perd à 58 % | perd à 9 % (50 s) | perd à 29 % |
-| 11 | gagne, 10 vies | un achat toutes les 3,5 s : gagne, 10 vies | perd à 55 % | perd à 7 % (48 s) | perd à 26 % |
-| 12 | gagne, 10 vies | un achat toutes les 3,5 s : gagne, 10 vies | perd à 59 % | perd à 7 % (48 s) | perd à 28 % |
-| 13 | gagne, 10 vies | un achat toutes les 3,5 s : gagne, 5 vies | perd à 74 % | perd à 7 % (45 s) | perd à 29 % |
-| 14 | gagne, 10 vies | un achat toutes les 3,5 s : gagne, 5 vies | perd à 58 % | perd à 7 % (47 s) | perd à 26 % |
-| 15 (colosse géant) | gagne, 10 vies | un achat toutes les 3,5 s : gagne, 10 vies | perd à 98 % | perd à 10 % (55 s) | perd à 28 % |
-| 16 | gagne, 10 vies | un achat toutes les 3,5 s : gagne, 5 vies | perd à 98 % | perd à 5 % (44 s) | perd à 20 % |
-| 17 | gagne, 10 vies | un achat toutes les 3,5 s : gagne, 10 vies | perd à 89 % | perd à 5 % (45 s) | perd à 22 % |
-| 18 | gagne, 10 vies | un achat toutes les 3,5 s : gagne, 10 vies | perd à 84 % | perd à 5 % (45 s) | perd à 20 % |
-| 19 | gagne, 10 vies | un achat toutes les 3,5 s : gagne, 10 vies | perd à 84 % | perd à 6 % (45 s) | perd à 22 % |
-| 20 (boss) | gagne, 10 vies | un achat toutes les 3,5 s : gagne, 10 vies | perd à 100 % | perd à 10 % (55 s) | perd à 25 % |
-| 21 | gagne, 10 vies | un achat toutes les 3,5 s : gagne, 5 vies | perd à 98 % | perd à 3 % (40 s) | perd à 16 % |
-| 22 | gagne, 10 vies | un achat toutes les 3,5 s : gagne, 10 vies | perd à 99 % | perd à 5 % (44 s) | perd à 19 % |
-| 23 | gagne, 10 vies | un achat toutes les 3,5 s : gagne, 10 vies | perd à 99 % | perd à 5 % (44 s) | perd à 16 % |
-| 24 | gagne, 10 vies | un achat toutes les 3,5 s : gagne, 5 vies | perd à 97 % | perd à 5 % (44 s) | perd à 16 % |
-| 25 (colosse géant) | gagne, 10 vies | un achat toutes les 3,5 s : gagne, 10 vies | perd à 100 % | perd à 3 % (40 s) | perd à 15 % |
-| 26 | gagne, 10 vies | un achat toutes les 3,5 s : gagne, 5 vies | perd à 97 % | perd à 4 % (42 s) | perd à 16 % |
-| 27 | gagne, 10 vies | un achat toutes les 3,5 s : gagne, 5 vies | perd à 96 % | perd à 4 % (42 s) | perd à 16 % |
-| 28 | gagne, 10 vies | un achat toutes les 3,5 s : gagne, 10 vies | perd à 84 % | perd à 4 % (43 s) | perd à 14 % |
-| 29 | gagne, 10 vies | un achat toutes les 3,5 s : gagne, 5 vies | perd à 99 % | perd à 4 % (43 s) | perd à 14 % |
-| 30 (boss) | gagne, 10 vies | un achat toutes les 3,5 s : gagne, 10 vies | perd à 99 % | perd à 5 % (44 s) | perd à 16 % |
-| 31 | gagne, 10 vies | un achat toutes les 3,5 s : gagne, 10 vies | perd à 95 % | perd à 2 % (36 s) | perd à 7 % |
-| 32 | gagne, 10 vies | un achat toutes les 3,5 s : gagne, 10 vies | perd à 50 % | perd à 2 % (36 s) | perd à 8 % |
-| 33 | gagne, 10 vies | un achat toutes les 3,5 s : gagne, 8 vies | perd à 42 % | perd à 2 % (36 s) | perd à 8 % |
-| 34 | gagne, 10 vies | un achat toutes les 3,5 s : gagne, 10 vies | perd à 44 % | perd à 2 % (36 s) | perd à 8 % |
-| 35 (deux colosses géants) | gagne, 10 vies | un achat toutes les 3,5 s : gagne, 6 vies | perd à 83 % | perd à 2 % (36 s) | perd à 7 % |
-| 36 | gagne, 10 vies | un achat toutes les 3,5 s : gagne, 10 vies | perd à 51 % | perd à 2 % (36 s) | perd à 8 % |
-| 37 | gagne, 10 vies | un achat toutes les 3,5 s : gagne, 10 vies | perd à 66 % | perd à 2 % (36 s) | perd à 7 % |
-| 38 | gagne, 10 vies | un achat toutes les 3,5 s : gagne, 10 vies | perd à 98 % | perd à 2 % (36 s) | perd à 7 % |
-| 39 | gagne, 10 vies | un achat toutes les 3,5 s : gagne, 8 vies | perd à 64 % | perd à 2 % (36 s) | perd à 6 % |
-| 40 (boss, le dernier ouvert) | gagne, 10 vies | un achat toutes les 3,5 s : gagne, 10 vies | perd à 59 % | perd à 2 % (36 s) | perd à 6 % |
 
 « Perd à 76 % » = le château tombe quand 76 % des monstres du niveau ont été éliminés.
 
-Ce que les joueurs simulés ont en arrivant à chaque niveau (`Bot.EXPECTED`, dans `tools/levels/Bot.luau`) : l'Archer
-seul au niveau 1, puis l'Archer et la Catapulte (l'œuf du niveau 1) jusqu'au niveau 10 ; le Totem de givre et le Mage
-des tempêtes à partir du niveau 11 (les tours les plus fréquentes des œufs communs : 7 œufs communs et 1 rare avant le
-niveau 11, 3 joueurs sur 4 ont les deux) ; la Catapulte de magma (palier 2, l'œuf doré du niveau 10) à partir du
-niveau 16 ; l'Archimage des tempêtes (palier 2, l'œuf doré du niveau 20) à partir du niveau 21 ; la Baliste lourde à
-partir du niveau 26 ; la Baliste du dragon (palier 2, l'œuf doré du niveau 30) à partir du niveau 31 ; et
-l'entraînement que leurs parties donnent (niveau 1 à partir du niveau 4, 2 à partir du niveau 8, 3 à partir du niveau
-21 ; une tour qui vient de sortir d'un œuf n'est pas encore entraînée). Un joueur moins chanceux rejoue des niveaux :
-chaque victoire donne encore un œuf, et des pièces pour le finir.
+**À partir du niveau 11 : « dur partout ».** Ton retour du 05/10/2026 : « les niveaux sont beaucoup trop simples, ma
+copine est allée au niveau 30 sans être bloquée ; elle m'a dit qu'on devrait limiter le nombre de tours, exemple tu
+pars avec une légendaire, une de boss, une rare, une commune : ça te demande de faire des choix ». J'ai mesuré, et
+elle avait raison : les niveaux 11 à 40 étaient réglés pour 4 à 8 sortes de tours posées ensemble, et **sans** les
+tours spéciales, que tout le monde reçoit pourtant à chaque boss. Avec elles, même le joueur simulé lent (un achat
+toutes les 8 s) gagnait tous les niveaux 11 à 30 sans perdre une vie. Deux changements (tes réponses : « 1 par
+rareté : 5 tours », « dans Mes tours », « Dur partout ») :
+
+1. **la barre de tours** : une seule tour par rareté dans un niveau (voir « Les œufs, les couveuses et les tours de
+   palier 2 ») ;
+2. **les monstres ont plus de PV** aux territoires 2 et 3 (+40 à +110 % au 2e, +30 à +60 % au 3e ; au 4e, à peu près
+   comme avant, mais avec une barre de 4 tours au lieu de 8). Chaque niveau est réglé pour la **meilleure barre que
+   presque tous les joueurs peuvent former** à ce niveau, tours spéciales comprises, avec des tours **entraînées un
+   cran de plus** que ce que leurs parties donnent (deux crans au 4e territoire).
+
+| Niveau | PV des monstres (par rapport à avant) | La barre attendue (et son entraînement) | Avec elle, au rythme demandé | Avec elle, très actif | Celui qui arrive (sans entraînement en plus) | Lui, un achat toutes les 8 s | 2 Archers puis attendre |
+|---|---|---|---|---|---|---|---|
+| 11 | 220 (+39 %) | Archer 3, Mage 1, Arc carmin 1 | gagne, 10 vies | gagne, 10 vies | gagne, 2 vies | perd à 65 % | perd à 4 % (42 s) |
+| 12 | 212 (+41 %) | Archer 3, Mage 1, Arc carmin 1 | gagne, 10 vies | gagne, 10 vies | gagne, 2 vies | perd à 68 % | perd à 4 % (42 s) |
+| 13 | 209 (+44 %) | Totem 1, Catapulte 3, Arc carmin 1 | gagne, 10 vies | gagne, 10 vies | perd à 97 % | perd à 88 % | perd à 4 % (42 s) |
+| 14 | 238 (+59 %) | Totem 2, Catapulte 3, Arc carmin 2 | gagne, 10 vies | gagne, 10 vies | perd à 92 % | perd à 85 % | perd à 4 % (42 s) |
+| 15 (colosse géant) | 217 (+81 %) | Totem 2, Catapulte 3, Arc carmin 2 | gagne, 10 vies | gagne, 10 vies | perd à 100 % | perd à 100 % | perd à 4 % (42 s) |
+| 16 | 286 (+51 %) | Totem 2, Catapulte de magma 1, Arc carmin 2 | gagne, 5 vies | gagne, 5 vies | gagne, 3 vies | perd à 95 % | perd à 3 % (40 s) |
+| 17 | 275 (+54 %) | Totem 2, Catapulte de magma 1, Arc carmin 2 | gagne, 10 vies | gagne, 10 vies | perd à 99 % | perd à 81 % | perd à 3 % (40 s) |
+| 18 | 260 (+46 %) | Totem 2, Catapulte de magma 1, Arc carmin 2 | gagne, 10 vies | gagne, 10 vies | gagne, 3 vies | perd à 99 % | perd à 3 % (40 s) |
+| 19 | 298 (+76 %) | Totem 2, Catapulte de magma 2, Arc carmin 3 | gagne, 5 vies | gagne, 10 vies | perd à 99 % | perd à 98 % | perd à 2 % (38 s) |
+| 20 (boss) | 265 (+112 %) | Totem 2, Catapulte de magma 2, Arc carmin 3 | gagne, 10 vies | gagne, 10 vies | gagne, 10 vies | perd à 100 % | perd à 3 % (37 s) |
+| 21 | 304 (+29 %) | Archer 4, Archimage 1, Arbalète de cuivre 1 | gagne, 10 vies | gagne, 10 vies | gagne, 1 vie | perd à 94 % | perd à 2 % (39 s) |
+| 22 | 292 (+51 %) | Archer 4, Archimage 1, Arbalète de cuivre 1 | gagne, 10 vies | gagne, 10 vies | gagne, 5 vies | perd à 96 % | perd à 3 % (39 s) |
+| 23 | 304 (+47 %) | Totem 3, Catapulte de magma 2, Arbalète de cuivre 1 | gagne, 5 vies | gagne, 5 vies | perd à 97 % | perd à 97 % | perd à 3 % (39 s) |
+| 24 | 317 (+53 %) | Archer 4, Archimage 2, Arbalète de cuivre 2 | gagne, 10 vies | gagne, 10 vies | perd à 99 % | perd à 86 % | perd à 2 % (39 s) |
+| 25 (colosse géant) | 298 (+28 %) | Archer 4, Archimage 2, Arbalète de cuivre 2 | gagne, 10 vies | gagne, 10 vies | perd à 100 % | perd à 100 % | perd à 2 % (39 s) |
+| 26 | 329 (+50 %) | Archer 4, Archimage 2, Baliste lourde 1, Arbalète de cuivre 2 | gagne, 10 vies | gagne, 10 vies | perd à 99 % | perd à 93 % | perd à 2 % (39 s) |
+| 27 | 316 (+53 %) | Archer 4, Archimage 2, Baliste lourde 1, Arbalète de cuivre 2 | gagne, 10 vies | gagne, 10 vies | gagne, 1 vie | perd à 97 % | perd à 2 % (39 s) |
+| 28 | 286 (+31 %) | Totem 3, Catapulte de magma 3, Baliste lourde 1, Arbalète de cuivre 2 | gagne, 10 vies | gagne, 10 vies | perd à 99 % | perd à 98 % | perd à 2 % (40 s) |
+| 29 | 329 (+50 %) | Archer 4, Archimage 3, Baliste lourde 2, Arbalète de cuivre 3 | gagne, 10 vies | gagne, 10 vies | perd à 99 % | perd à 99 % | perd à 2 % (39 s) |
+| 30 (boss) | 329 (+59 %) | Archer 4, Archimage 3, Baliste lourde 2, Arbalète de cuivre 3 | gagne, 10 vies | gagne, 10 vies | perd à 99 % | perd à 98 % | perd à 2 % (39 s) |
+| 31 | 336 (−4 %) | Totem 5, Archimage 4, Baliste lourde 3, Arbalète de cuivre 4 | gagne, 10 vies | gagne, 10 vies | perd à 97 % | perd à 97 % | perd à 2 % (36 s) |
+| 32 | 364 (+13 %) | Totem 5, Archimage 4, Baliste lourde 3, Arbalète de cuivre 4 | gagne, 5 vies | gagne, 6 vies | perd à 90 % | perd à 94 % | perd à 2 % (36 s) |
+| 33 | 351 (+9 %) | Totem 5, Archimage 4, Baliste lourde 3, Arbalète de cuivre 4 | gagne, 10 vies | gagne, 5 vies | perd à 97 % | perd à 90 % | perd à 2 % (36 s) |
+| 34 | 339 (+2 %) | Totem 5, Archimage 4, Baliste lourde 4, Arbalète de cuivre 4 | gagne, 10 vies | gagne, 10 vies | perd à 97 % | perd à 97 % | perd à 2 % (36 s) |
+| 35 (deux colosses géants) | 286 (−18 %) | Totem 5, Archimage 4, Baliste lourde 4, Arbalète de cuivre 4 | gagne, 10 vies | gagne, 10 vies | perd à 100 % | perd à 92 % | perd à 2 % (36 s) |
+| 36 | 329 (+0 %) | Totem 5, Archimage 4, Baliste lourde 4, Arbalète de cuivre 4 | gagne, 10 vies | gagne, 10 vies | perd à 98 % | perd à 97 % | perd à 2 % (36 s) |
+| 37 | 339 (−6 %) | Totem 5, Archimage 5, Baliste lourde 4, Arbalète de cuivre 4 | gagne, 10 vies | gagne, 8 vies | perd à 98 % | perd à 97 % | perd à 2 % (36 s) |
+| 38 | 365 (+5 %) | Totem 5, Archimage 5, Baliste lourde 4, Arbalète de cuivre 4 | gagne, 10 vies | gagne, 10 vies | perd à 97 % | perd à 96 % | perd à 2 % (36 s) |
+| 39 | 374 (+1 %) | Archer 5, Archimage 5, Baliste lourde 4, Arbalète de cuivre 5 | gagne, 5 vies | gagne, 10 vies | perd à 92 % | perd à 89 % | perd à 2 % (36 s) |
+| 40 (boss, le dernier ouvert) | 339 (−10 %) | Archer 5, Archimage 5, Baliste lourde 4, Arbalète de cuivre 5 | gagne, 10 vies | gagne, 10 vies | perd à 97 % | perd à 95 % | perd à 2 % (36 s) |
+
+(« Archer 3 » = l'Archer à l'entraînement 3. « Celui qui arrive » a la même barre, au rythme demandé, mais
+l'entraînement que donnent ses parties, sans le camp : un cran de moins que la barre attendue aux niveaux 11 à 30,
+deux crans de moins aux niveaux 31 à 40.)
+
+Ce qu'il faut en retenir :
+
+- **avec la barre attendue et des tours entraînées, tous les niveaux se gagnent** au rythme demandé (un achat toutes
+  les 3,5 s) ;
+- **celui qui arrive à un niveau sans avoir entraîné ses tours en plus perd 12 niveaux sur 20 aux territoires 2 et
+  3** (presque toujours de très peu : « perd à 97 % »), gagne les autres de justesse, **et perd tous ceux du 4e**.
+  Pour passer, il rejoue d'anciens niveaux (chaque victoire donne 8 XP à chaque tour posée, un œuf et des pièces),
+  laisse ses tours au camp, achète de l'entraînement avec ses pièces (⚡), ou trouve mieux dans ses œufs ;
+- s'il joue en plus lentement (un achat toutes les 8 s), il perd partout ; un achat toutes les 15 s perd partout,
+  même avec des tours entraînées ; poser 2 Archers puis attendre ne tient pas 45 secondes ;
+- le premier niveau après un boss demande la tour spéciale de ce boss : son œuf couve 1 heure (ou se finit avec des
+  pièces) ;
+- les niveaux à colosse géant (15, 25, 35) et à boss se jouent d'un coup : le gros monstre passe ou ne passe pas.
+
+**La chance aux œufs compte beaucoup : à décider par toi.** Avec la barre, une seule tour pèse lourd, et les œufs
+sont tirés au sort. Ce que possède un joueur qui gagne chaque niveau une fois et ouvre tous ses œufs (200 000 joueurs
+tirés au sort) :
+
+| En arrivant au niveau | une tour rare de palier 2 | une tour épique de palier 2 | la Baliste du dragon | une légendaire | aucune tour de palier 2 |
+|---|---|---|---|---|---|
+| 16 | 45 % | 39 % | 20 % | 20 % | 14 % |
+| 21 | 61 % | 60 % | 34 % | 32 % | 3 % |
+| 31 | 76 % | 74 % | 46 % | 44 % | 1 % |
+
+Et ce que vaut une tour « de chance », mesuré avec les joueurs simulés (les PV de monstres qu'elle permet de battre
+en plus de la barre attendue) :
+
+- **la Baliste du dragon** : +10 à +20 % aux territoires 2 et 3 (parfois plus), **+45 % en moyenne au 4e** (à
+  entraînement égal) ;
+- **une légendaire de palier 2** (Oracle du tonnerre, Trébuchet céleste) : +20 à +50 % ;
+- le Sorcier du néant (l'autre tour épique de palier 2) : presque rien avant le niveau 34 (il coûte 180 or), puis
+  +15 à +30 % ;
+- sans aucune tour de palier 2 aux niveaux 16 à 19 : il manque 6 à 18 % (deux crans d'entraînement de plus suffisent).
+
+J'avais d'abord réglé le 4e territoire pour la Baliste du dragon : sans elle, le niveau 31 était **impossible**, même
+avec des tours entraînées au maximum. Un joueur sur deux serait resté bloqué sans solution (la trouver dans un œuf
+rare : 2 chances sur 100 par œuf). J'ai donc réglé chaque niveau pour la barre que presque tout le monde peut former
+(une tour rare de palier 2 à partir du niveau 16, pas d'épique de palier 2, pas de légendaire) : **personne n'est
+bloqué sans solution**. Le revers : **celui qui a eu de la chance trouve la suite plus facile**, surtout le 4e
+territoire avec la Baliste du dragon.
+
+**Pour que ce soit dur pour tout le monde**, il faut que les tours clés ne dépendent plus de la chance. Ma
+proposition : **l'œuf doré d'un boss donne à coup sûr une tour de palier 2** (boss 10 : une rare ; boss 20 : une
+épique ; boss 30 : une légendaire), les autres œufs restent au hasard. Tout le monde aurait alors la même force au
+même niveau, et je pourrais régler les territoires 3 et 4 bien plus dur, pour tous. C'est un changement des œufs :
+j'attends ton « oui » (voir « Ce qui reste à décider »).
+
+**Si c'est trop dur (ou pas encore assez)** : un seul chiffre par niveau change tout (`health` dans
+`Levels.DEFINITIONS`). 8 % de PV en moins, c'est à peu près un niveau d'entraînement de moins à avoir. Dis-moi « plus
+facile » ou « plus dur » : le réglage se refait en quelques minutes (`run.ps1 -Barre`, puis `-Tune`).
+
+Ce que les joueurs simulés possèdent à chaque niveau (`Bot.EXPECTED` dans `tools/levels/Bot.luau` ; `bar.luau` essaie
+toutes les barres qu'ils peuvent former) : l'Archer seul au niveau 1, puis l'Archer et la Catapulte (l'œuf du niveau
+1) jusqu'au niveau 10 ; à partir du niveau 11, le Totem de givre et le Mage des tempêtes (les tours les plus
+fréquentes des œufs communs) et l'Arc carmin (la tour spéciale du boss du niveau 10) ; la Catapulte de magma (rare
+de palier 2) à partir du niveau 16 ; l'Arbalète de cuivre (boss du niveau 20) et l'Archimage des tempêtes (rare de
+palier 2) à partir du niveau 21 ; la Baliste lourde à partir du niveau 26 ; le Lance-ronces (boss du niveau 30) à
+partir du niveau 31. Jamais de tour épique de palier 2 ni de légendaire (voir « la chance », juste au-dessus).
 
 Sans aucune chance aux œufs (l'Archer et la Catapulte seulement, au même entraînement), un joueur très actif gagne les
-niveaux 1 à 10 et perd tous les niveaux 11 à 40. Les boss des niveaux 20, 30 et 40 demandent des tours de palier 2
-(voir « Les dix territoires »).
+niveaux 1 à 10 et perd tous les niveaux 11 à 40. Les boss des niveaux 20, 30 et 40 demandent une tour de palier 2 :
+avec les tours de base à leur place (la Catapulte, le Mage), au même entraînement, ils ne passent pas (voir « Les dix
+territoires »).
 
-Les niveaux 11 à 40 ont été réglés avec la même méthode que les dix premiers (`run.ps1 -Tune`, puis 5 % de marge et
-quelques retouches), mais **aucun vrai joueur ne les a encore essayés** : dis-moi s'ils sont trop durs ou trop
-faciles. Le colosse géant (niveaux 15, 25 et 35) a été réglé à part : un seul gros monstre résiste mieux que plusieurs
+Le colosse géant (niveaux 15, 25 et 35) a été réglé à part : un seul gros monstre résiste mieux que plusieurs
 colosses (une tour à zone ne le touche qu'une fois), il a donc moins de PV que les colosses qu'il remplace. Le boss du
 niveau 40 a un peu moins de PV que ce que donnerait son niveau (85 %), celui du niveau 30 un peu plus (110 %). Les
-niveaux 41 à 100 sont fermés : le désert (41 à 50) est réglé pour les œufs (juste en dessous), les niveaux 51 à
-100 gardent les chiffres de la boutique.
+niveaux 41 à 100 sont fermés : le désert (41 à 50) est réglé comme le 4e territoire (juste en dessous), les
+niveaux 51 à 100 gardent les chiffres de la boutique.
 
-**Le désert, prêt mais fermé** (nuit du 05/10/2026). Le joueur de référence arrive au niveau 41 avec les mêmes 8
-tours qu'au glacier : l'œuf doré du niveau 40 ne donne une NOUVELLE tour de palier 2 qu'une fois sur 4 environ
-(les trois tours de palier 2 déjà là reviennent en doublons), et les œufs communs presque jamais une tour de plus.
-Ses tours sont un peu plus entraînées (8 XP par victoire et par tour posée : l'entraînement 4 pour l'Archer et la
-Catapulte, 3 pour les autres ; `Bot.EXPECTED`). Les PV : `run.ps1 -Tune -Vies 8` (il doit garder 8 vies, à cause
-des quatre ou cinq colosses), puis 5 % de marge (sauf aux niveaux 41 et 46 : le joueur lent y gagnait encore,
-ils gardent les PV trouvés). Toutes les règles de la difficulté (celles des 40 premiers
-niveaux) sont vérifiées pour les 50 niveaux, désert ouvert pour l'essai. Le tableau, désert ouvert :
+**Le désert, prêt mais fermé.** Il est réglé comme le 4e territoire (la barre du joueur sans tour épique de palier 2,
+entraînée deux crans de plus que ce que ses parties donnent). Les PV : `run.ps1 -Tune -Vies 8` (il doit garder 8
+vies, à cause des quatre ou cinq colosses), puis 5 % de marge. Toutes les règles de la difficulté sont vérifiées pour
+les 50 niveaux, désert ouvert pour l'essai :
 
-```text
-Niveau   PV monst durée    or | Actif           | Référence     | Lent (8 s)      | Distrait (15 s) | Sans œuf       | Tout entr.6
-41      391   267  159s  2209 | G 10            | G 10            | P 96 %          | P 8 %           | P 18 %          | G 10
-42      350   268  159s  2334 | G 10            | G 10            | P 95 %          | P 8 %           | P 18 %          | G 10
-43      350   280  165s  2399 | G 10            | G 10            | P 96 %          | P 8 %           | P 18 %          | G 10
-44      371   280  165s  2404 | G 10            | G 10            | P 57 %          | P 8 %           | P 17 %          | G 10
-45      302   288  169s  2469 | G 10            | G 10            | P 92 %          | P 10 %          | P 21 %          | G 10
-46      391   288  169s  2474 | G 10            | G 10            | P 87 %          | P 9 %           | P 17 %          | G 10
-47      371   289  169s  2599 | G 10            | G 10            | P 45 %          | P 8 %           | P 17 %          | G 10
-48      371   298  189s  2658 | G 10            | G 10            | P 48 %          | P 8 %           | P 17 %          | G 10
-49      350   298  189s  2663 | G 10            | G 10            | P 25 %          | P 6 %           | P 17 %          | G 10
-50      371   281  192s  2734 | G 10            | G 10            | P 96 %          | P 8 %           | P 17 %          | G 10
-```
+| Niveau | PV des monstres (par rapport à avant) | La barre attendue (et son entraînement) | Avec elle, au rythme demandé | Avec elle, très actif | Celui qui arrive (sans entraînement en plus) | Lui, un achat toutes les 8 s | 2 Archers puis attendre |
+|---|---|---|---|---|---|---|---|
+| 41 | 412 (+5 %) | Archer 6, Archimage 5, Baliste lourde 4, Arbalète de cuivre 5 | gagne, 10 vies | gagne, 8 vies | perd à 99 % | perd à 97 % | perd à 1 % (34 s) |
+| 42 | 389 (+11 %) | Archer 6, Archimage 5, Baliste lourde 4, Arbalète de cuivre 5 | gagne, 10 vies | gagne, 5 vies | perd à 94 % | perd à 92 % | perd à 2 % (35 s) |
+| 43 | 389 (+11 %) | Archer 6, Archimage 5, Baliste lourde 4, Arbalète de cuivre 5 | gagne, 10 vies | gagne, 10 vies | perd à 90 % | perd à 90 % | perd à 2 % (36 s) |
+| 44 | 374 (+1 %) | Archer 6, Archimage 5, Baliste lourde 4, Arbalète de cuivre 5 | gagne, 10 vies | gagne, 10 vies | perd à 99 % | perd à 82 % | perd à 2 % (36 s) |
+| 45 (quatre colosses à la file) | 310 (+3 %) | Totem 5, Archimage 5, Baliste lourde 5, Arbalète de cuivre 5 | gagne, 10 vies | gagne, 10 vies | perd à 97 % | perd à 94 % | perd à 2 % (37 s) |
+| 46 | 374 (−4 %) | Totem 5, Archimage 5, Baliste lourde 5, Arbalète de cuivre 5 | gagne, 10 vies | gagne, 5 vies | perd à 99 % | perd à 88 % | perd à 2 % (36 s) |
+| 47 | 389 (+5 %) | Archer 6, Archimage 5, Baliste lourde 5, Arbalète de cuivre 5 | gagne, 10 vies | gagne, 10 vies | perd à 69 % | perd à 69 % | perd à 2 % (36 s) |
+| 48 | 351 (−5 %) | Totem 6, Archimage 5, Baliste lourde 5, Arbalète de cuivre 5 | gagne, 10 vies | gagne, 10 vies | perd à 98 % | perd à 98 % | perd à 2 % (36 s) |
+| 49 | 396 (+13 %) | Archer 6, Archimage 5, Baliste lourde 5, Arbalète de cuivre 5 | gagne, 10 vies | gagne, 10 vies | perd à 67 % | perd à 66 % | perd à 2 % (36 s) |
+| 50 (boss) | 351 (−5 %) | Totem 6, Catapulte de magma 6, Baliste lourde 5, Arbalète de cuivre 5 | gagne, 10 vies | gagne, 10 vies | perd à 99 % | perd à 99 % | perd à 2 % (36 s) |
 
-Comme au glacier, les tours spéciales ne comptent pas dans ce réglage : celui qui les a (les quatre premières sont
-gagnées à coup sûr en battant les boss 10 à 40) trouve le désert un peu plus facile. **Pour l'ouvrir** : dis-moi
-« oui », je mets `Levels.OPEN_COUNT = 50` et je refais la copie à publier ; tu publies, puis tu redémarres les
-serveurs (voir `SORTIE.md`).
+**Pour l'ouvrir** : dis-moi « oui », je mets `Levels.OPEN_COUNT = 50` et je refais la copie à publier ; tu publies,
+puis tu redémarres les serveurs (voir `SORTIE.md`). (Si tu dis « oui » aux œufs dorés des boss, je le réglerai de
+nouveau avant.)
 
 Un vrai joueur choisit moins bien que le joueur simulé : pour gagner, il doit aller un peu plus vite que le rythme
-indiqué. Si c'est trop dur ou trop facile un jour, un seul chiffre par niveau change tout (`health` dans
-`Levels.DEFINITIONS`).
+indiqué, ou entraîner un peu plus ses tours.
 
 ### Ce que chaque tour apporte (mesuré au temps de la boutique)
 
@@ -840,6 +932,13 @@ arrivent à un niveau) : rien d'autre n'a changé. Les chiffres sont dans `src/s
     c'est perdu) ; en équipe, les colosses, le colosse géant et le boss sortent dans un couloir tiré au sort. Le
     niveau 25, presque impossible en équipe avec ses trois colosses ensemble, passe maintenant. Voir « Jouer en
     équipe ».
+24. **Une tour par rareté, et « dur partout »** (05/10/2026 : « les niveaux sont beaucoup trop simples, ma copine
+    est allée au niveau 30 sans être bloquée ; elle m'a dit qu'on devrait limiter le nombre de tours, exemple tu
+    pars avec une légendaire, une de boss, une rare, une commune : ça te demande de faire des choix » ; « 1 par
+    rareté : 5 tours », « dans Mes tours », « Dur partout ») : la barre n'emmène plus qu'une tour par rareté,
+    choisie dans « Mes tours » ; les monstres des niveaux 11 à 30 ont de 30 à 110 % de PV en plus ; chaque niveau
+    est réglé pour la barre que presque tout le monde peut former, avec des tours entraînées. Voir « La
+    difficulté » (et la question de la chance aux œufs) et « Les œufs, les couveuses et les tours de palier 2 ».
 
 ### Le grand ménage : ce qui a été enlevé
 
@@ -864,10 +963,18 @@ niveaux du joueur et son réglage du son. Les sauvegardes de l'ancien jeu « Tow
 
 ## Ce qui reste à décider (par toi)
 
+0. **La chance aux œufs (important, depuis la barre du 05/10/2026).** Une seule tour « de chance » (la Baliste du
+   dragon, une légendaire) rend la suite bien plus facile, et celui qui ne l'a pas ne peut la trouver que par
+   hasard. Les niveaux sont réglés pour que personne ne soit bloqué sans solution ; du coup les chanceux trouvent
+   le 4e territoire facile. Ma proposition : **l'œuf doré d'un boss donne à coup sûr une tour de palier 2** (boss
+   10 : une rare, boss 20 : une épique, boss 30 : une légendaire), et je règle ensuite les territoires 3 et 4 plus
+   dur, pour tout le monde. Dis-moi « oui », « non », ou autre chose (voir « La difficulté »).
 1. **L'entraînement et les œufs** : +10 % de dégâts par niveau d'entraînement, les étoiles, les temps et les
    chances des œufs, la part des tours de palier 2 (0, 25 et 75 %) : ce sont mes chiffres, à changer comme tu veux.
-2. **Les niveaux 11 à 40** sont réglés, mais tu ne les as pas encore joués : leur difficulté, les cartes et le
-   nombre de colosses sont mes choix. Dis-moi ce que tu en penses. **Le désert (41 à 50)** est prêt (réglé, sa
+2. **Les niveaux 11 à 40** : depuis le 05/10/2026 ils sont « durs partout » (une tour par rareté, monstres plus
+   résistants : voir « La difficulté »). C'est réglé avec des joueurs simulés, pas encore avec de vrais joueurs :
+   **essayez-les, ta copine et toi, et dis-moi « plus facile » ou « plus dur »** (un chiffre par niveau). Les cartes
+   et le nombre de colosses sont mes choix. **Le désert (41 à 50)** est prêt (réglé, sa
    tour spéciale et son œuf) mais fermé : **ton « oui » l'ouvre** (et dis-moi si le Totem des sables te plaît).
    **Les niveaux 51 à 100** sont fermés (« Bientôt ») en attendant tes mises à jour : il faudra les régler de
    nouveau avant de les ouvrir (au-delà du niveau 100, il faudrait de nouvelles familles de monstres).
@@ -881,9 +988,8 @@ niveaux du joueur et son réglage du son. Les sauvegardes de l'ancien jeu « Tow
 4. **Avant de rendre le jeu public** : voir `SORTIE.md` (publication, essai sur un vrai téléphone, page du jeu).
 5. **Les tours de palier 2** : leurs noms, leurs pouvoirs et leurs chiffres sont les miens (voir « Les œufs, les
    couveuses et les tours de palier 2 »). L'étape 3 est faite.
-6. **Les tours spéciales** : leur force (les niveaux ne sont pas re-réglés avec elles : la suite devient plus
-   facile pour qui les a), leurs noms et le poison sont mes choix (voir « Les tours spéciales et les œufs
-   spéciaux »).
+6. **Les tours spéciales** : leur force (depuis le 05/10/2026, les niveaux 11 et plus sont réglés AVEC elles),
+   leurs noms et le poison sont mes choix (voir « Les tours spéciales et les œufs spéciaux »).
 
 ## Technique (pour s'y retrouver)
 
@@ -930,7 +1036,8 @@ niveaux du joueur et son réglage du son. Les sauvegardes de l'ancien jeu « Tow
 | `tools/studio-test/` | tests automatiques dans Studio |
 
 Sauvegarde : `data.levels` dans les données du joueur (niveau le plus haut réussi, pièces de niveau, ses tours,
-XP, emplacements du camp, ordre de la barre rapide, étape du tuto, qui l'a invité et les amis venus grâce à lui, œufs
+XP, emplacements du camp, ordre de ses tours (sa barre : la première de chaque rareté), étape du tuto, qui l'a invité
+et les amis venus grâce à lui, œufs
 en réserve et couveuses), et
 `data.soundMode`. Les récompenses d'invitation qui attendent un joueur absent sont dans un autre espace
 (`Niveaux_Invites_v1`).
@@ -949,10 +1056,10 @@ powershell -ExecutionPolicy Bypass -File tools\levels\run.ps1
 powershell -ExecutionPolicy Bypass -File tools\studio-test\run.ps1
 ```
 
-- le premier : 1 438 vérifications des règles, de la difficulté de chacun des 40 niveaux ouverts, de l'entraînement,
+- le premier : 1 483 vérifications des règles, de la difficulté de chacun des 40 niveaux ouverts, de l'entraînement,
   du camp, du tuto, du jeu en équipe, des 30 cartes d'équipe, des amis, des œufs, des tours de palier 2, du
-  colosse géant et des tours spéciales, sans Studio (une dizaine de minutes : les équipes de joueurs simulés sont
-  lentes) ;
+  colosse géant, des tours spéciales et de la barre (une tour par rareté), sans Studio (un quart d'heure : les
+  équipes de joueurs simulés sont lentes) ;
 - le deuxième : le tableau de difficulté des 40 niveaux ouverts par les joueurs simulés ;
 - le troisième : le test complet dans Studio (serveur, puis la vraie interface à la taille normale et à la taille
   d'un téléphone), avec des captures dans `tools/studio-test/out/levels_*.png`. Avec `-Test tutorial` : le tuto

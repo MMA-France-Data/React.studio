@@ -132,10 +132,10 @@ return function(log)
 	local mine = data()
 	check(
 		ok and hatch.tower == "VoidSorcerer" and hatch.new == true and hatch.egg == "Gold" and mine.towers.VoidSorcerer == true
-			and table.find(mine.bar, "VoidSorcerer") ~= nil and mine.hatchers[1].egg == "",
+			and hatch.bar == true and Levels.barTowers(mine).VoidSorcerer == true and mine.hatchers[1].egg == "",
 		`4 h plus tard, l'œuf doré s'ouvre : une nouvelle tour de palier 2, le Sorcier du néant (attribut Hatch : {tostring(hatch.tower)}, nouvelle : {tostring(hatch.new)}), dans sa barre`
 	)
-	-- Une tour de palier 2 prend la place de sa tour de base dans la barre (l'Archer passe au bout).
+	-- Une tour de palier 2 prend la place de sa tour de base dans la barre (l'Archer passe en réserve, juste derrière).
 	action("EggStart", 1, "Common")
 	levels("Clock", Levels.EGGS.Common.seconds + 1)
 	levels("EggForce", "FireArcher")
@@ -143,8 +143,25 @@ return function(log)
 	hatch = decode(player:GetAttribute("Hatch")) or {}
 	local bar = Levels.ownedTowers(data())
 	check(
-		hatch.tower == "FireArcher" and hatch.new == true and bar[1] == "FireArcher" and bar[#bar] == "MachineGun" and data().towers.MachineGun == true,
-		`l'Archer enflammé prend la place de l'Archer dans la barre : {table.concat(bar, ", ")}`
+		hatch.tower == "FireArcher" and hatch.new == true and hatch.bar == true and bar[1] == "FireArcher" and bar[2] == "MachineGun"
+			and data().towers.MachineGun == true and Levels.barTowers(data()).FireArcher == true and not Levels.barTowers(data()).MachineGun,
+		`l'Archer enflammé prend la place de l'Archer dans la barre : {table.concat(Levels.barList(data()), ", ")} (ses tours : {table.concat(bar, ", ")})`
+	)
+	-- Une 2e tour de la même rareté (le Totem, commune comme l'Archer enflammé) attend en RÉSERVE : le joueur la choisit
+	-- dans « Mes tours » (demande « Choose »), elle prend alors la place de l'autre.
+	levels("Egg", "Common", 1)
+	action("EggStart", 1, "Common")
+	levels("Clock", Levels.EGGS.Common.seconds + 1)
+	levels("EggForce", "Frost")
+	action("EggOpen", 1)
+	hatch = decode(player:GetAttribute("Hatch")) or {}
+	local reserveBar = Levels.barTowers(data())
+	local chosen = action("Choose", "Frost")
+	local chosenBar = Levels.barTowers(data())
+	check(
+		hatch.tower == "Frost" and hatch.new == true and hatch.bar == false and not reserveBar.Frost and reserveBar.FireArcher == true and chosen == true
+			and chosenBar.Frost == true and not chosenBar.FireArcher and action("Choose", "FireArcher") == true and Levels.barTowers(data()).FireArcher == true,
+		`le Totem sort d'un œuf : en réserve (attribut Hatch, bar : {tostring(hatch.bar)}) ; « Choisir » le met dans la barre à la place de l'Archer enflammé, puis l'inverse`
 	)
 	-- Un doublon donne de l'XP d'entraînement à cette tour ; « Finir » tout de suite.
 	local coinsBefore = data().coins
@@ -173,7 +190,7 @@ return function(log)
 		tierOne = tierOne and IdleTowers.tierOf(hatch.tower or "") == 1 and IdleTowers.Defs[hatch.tower] ~= nil
 	end
 	check(tierOne, "6 œufs communs ouverts au hasard : toujours une tour de palier 1")
-	-- L'œuf carmin donne toujours l'Arc carmin (une tour spéciale : à la fin de la barre).
+	-- L'œuf carmin donne toujours l'Arc carmin (une tour spéciale : elle a sa place dans la barre).
 	levels("Set", "eggs", { Crimson = 1 })
 	local crimsonStarted = action("EggStart", 1, "Crimson")
 	levels("Clock", Levels.EGGS.Crimson.seconds + 1)
@@ -182,8 +199,8 @@ return function(log)
 	local crimsonBar = Levels.ownedTowers(data())
 	check(
 		crimsonStarted and crimsonOpened and hatch.tower == "CrimsonBow" and hatch.new == true and hatch.egg == "Crimson" and data().towers.CrimsonBow == true
-			and table.find(crimsonBar, "CrimsonBow") ~= nil and (data().eggs.Crimson or 0) == 0,
-		`l'œuf carmin couve 1 h puis donne l'Arc carmin (attribut Hatch : {tostring(hatch.tower)}) ; barre : {table.concat(crimsonBar, ", ")}`
+			and table.find(crimsonBar, "CrimsonBow") ~= nil and hatch.bar == true and Levels.barTowers(data()).CrimsonBow == true and (data().eggs.Crimson or 0) == 0,
+		`l'œuf carmin couve 1 h puis donne l'Arc carmin (attribut Hatch : {tostring(hatch.tower)}) ; barre : {table.concat(Levels.barList(data()), ", ")}`
 	)
 
 	------------------------------------------------------------------
@@ -461,6 +478,9 @@ return function(log)
 			return true
 		elseif command == "Place" then
 			return action("Place", ...)
+		elseif command == "FreeBar" then
+			-- (le test pose TOUTES les tours dans un niveau pour vérifier leur allure : plus que la barre, une par rareté)
+			return levels("FreeBar", ...)
 		elseif command == "Skip" then
 			return levels("Skip", ...)
 		elseif command == "Quit" then

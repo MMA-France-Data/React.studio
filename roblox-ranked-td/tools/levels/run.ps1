@@ -1,10 +1,11 @@
-# Niveaux hors de Studio : le VRAI moteur des niveaux (src\server\Hub\LevelGame.luau, qui hérite du vrai
+﻿# Niveaux hors de Studio : le VRAI moteur des niveaux (src\server\Hub\LevelGame.luau, qui hérite du vrai
 # Combat.luau) joué par un joueur simulé, en quelques secondes. Sert à régler la difficulté et à vérifier les
 # règles sans ouvrir Studio. Depuis le dossier roblox-ranked-td :
 #   powershell -ExecutionPolicy Bypass -File tools\levels\run.ps1            (tableau des 10 niveaux, plusieurs joueurs types)
 #   powershell -ExecutionPolicy Bypass -File tools\levels\run.ps1 -Tests     (vérifications des règles : tests.luau)
 #   powershell -ExecutionPolicy Bypass -File tools\levels\run.ps1 -Lazy      (niveaux joués sans presque rien faire : lazy.luau)
 #   powershell -ExecutionPolicy Bypass -File tools\levels\run.ps1 -Tune      (cherche les PV de chaque niveau : tune.luau)
+#   powershell -ExecutionPolicy Bypass -File tools\levels\run.ps1 -Barre -Niveaux "11,12"   (la meilleure barre de ces niveaux, une tour par rareté : bar.luau)
 #   powershell -ExecutionPolicy Bypass -File tools\levels\run.ps1 -Curve     (ce qu'un joueur actif peut se payer au fil d'un niveau : curve.luau)
 #   powershell -ExecutionPolicy Bypass -File tools\levels\run.ps1 -Worth     (ce que chaque tour de la boutique apporte : worth.luau)
 #   powershell -ExecutionPolicy Bypass -File tools\levels\run.ps1 -Equipe    (jouer en équipe : PV des monstres à 2, 3, 4 joueurs : team.luau)
@@ -13,13 +14,14 @@ param(
 	[switch]$Tests,
 	[switch]$Lazy,
 	[switch]$Tune,
+	[switch]$Barre,
 	[switch]$Curve,
 	[switch]$Worth,
 	[switch]$Equipe,
-	[string]$Niveaux = "", # avec -Tune, -Worth ou -Equipe : seulement ces niveaux, ex. "1,3,6"
+	[string]$Niveaux = "", # avec -Tune, -Barre, -Worth ou -Equipe : seulement ces niveaux, ex. "1,3,6"
 	[string]$Tours = "", # avec -Worth : seulement ces tours, ex. "Laser,Rocket"
 	[string]$Rythme = "", # avec -Tune ou -Curve : secondes entre deux achats du joueur simulé (sinon : le rythme de chaque niveau)
-	[string]$Vies = "", # avec -Tune ou -Equipe : vies qu'il doit garder (5 par défaut)
+	[string]$Vies = "", # avec -Tune, -Barre ou -Equipe : vies qu'il doit garder (5 par défaut)
 	[string]$Regler = "" # essais de réglages sans toucher à src : "Levels.CHAMP=valeur;Levels.Autre.champ=valeur"
 )
 $ErrorActionPreference = "Stop"
@@ -106,6 +108,50 @@ try {
 		}
 		Write-Host ""
 		Write-Host ("PV trouvés : " + ($healths -join ", "))
+	} elseif ($Barre) {
+		# La meilleure barre de chaque niveau : un niveau par processus, 12 à la fois au plus (chaque recherche prend de
+		# 30 s à quelques minutes), puis les lignes remises dans l'ordre.
+		$levels = if ($Niveaux -ne "") { $Niveaux -split "[,; ]+" | Where-Object { $_ -ne "" } } else { 11..50 }
+		$temp = Join-Path $gen "barre"
+		New-Item -ItemType Directory -Force $temp | Out-Null
+		$luau = (Get-Command luau).Source
+		$pending = New-Object System.Collections.Queue
+		foreach ($level in $levels) { $pending.Enqueue($level) }
+		$running = @()
+		$jobs = @()
+		while ($pending.Count -gt 0 -or $running.Count -gt 0) {
+			while ($pending.Count -gt 0 -and $running.Count -lt 12) {
+				$level = $pending.Dequeue()
+				$out = Join-Path $temp "niveau-$level.txt"
+				$arguments = "--codegen -O2 bar.luau -a `"regler=$Regler`" `"niveaux=$level`" `"vies=$Vies`""
+				$job = [pscustomobject]@{
+					Level = $level
+					Out = $out
+					Process = Start-Process -FilePath $luau -ArgumentList $arguments -WorkingDirectory $here -NoNewWindow -PassThru -RedirectStandardOutput $out -RedirectStandardError "$out.err"
+				}
+				$running += $job
+				$jobs += $job
+			}
+			Start-Sleep -Milliseconds 500
+			$running = @($running | Where-Object { -not $_.Process.HasExited })
+		}
+		$code = 0
+		$first = $true
+		foreach ($job in $jobs) {
+			$errors = [IO.File]::ReadAllText("$($job.Out).err", $utf8)
+			if ($errors.Trim() -ne "") {
+				Write-Host "Niveau $($job.Level) : $errors"
+				$code = 1
+			}
+			foreach ($line in [IO.File]::ReadAllLines($job.Out, $utf8)) {
+				if ($line -match "^\d") {
+					Write-Host $line
+				} elseif ($first -and $line.Trim() -ne "") {
+					Write-Host $line # (réglages essayés, en-tête : une seule fois)
+				}
+			}
+			$first = $false
+		}
 	} elseif ($Worth) {
 		# Ce que chaque tour de la boutique apporte : un processus par mesure (niveau, tour, goût du joueur simulé
 		# pour cette tour), tous en même temps. Base = goût 0 (il ne la pose jamais).

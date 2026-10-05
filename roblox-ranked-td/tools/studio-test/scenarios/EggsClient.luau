@@ -400,8 +400,112 @@ return function(log)
 	end, 5)
 	task.wait(0.8)
 
-	-- Les 8 tours de palier 2 dans un niveau : seulement elles dans la barre (les 8 tours de palier 1, après elles, sont
-	-- en réserve), leurs silhouettes à leurs couleurs avec leur parure, leurs tirs.
+	-- LA BARRE DE TOURS dans « Mes tours » (une tour par rareté) : le bouton « CHOISIR » d'une tour de la réserve la
+	-- met à la place de celle de sa rareté ; dans un niveau, la barre ne montre que ces tours-là.
+	do
+		test:InvokeServer("Set", "towers", { MachineGun = true, Frost = true, Bomb = true, DragonBallista = true })
+		test:InvokeServer("Set", "bar", { "MachineGun", "Frost", "Bomb", "DragonBallista" })
+		act(campGui, "Tab:Mes tours")
+		task.wait(1)
+		local list = window.Page3.Towers
+		local archerRow, frostRow = list.Tower_MachineGun, list.Tower_Frost
+		local function texts(row): string
+			local found = {}
+			for _, child in row:GetDescendants() do
+				if child:IsA("TextLabel") then
+					table.insert(found, child.Text)
+				end
+			end
+			return table.concat(found, " | ")
+		end
+		local function y(instance): number
+			return instance.AbsolutePosition.Y
+		end
+		check(
+			list.Rarity_Common.Text == "Commune" and list.Rarity_Rare.Text == "Rare" and list.Rarity_Epic.Text == "Épique"
+				and list.Rarity_Legendary.Text == "Légendaire • aucune tour : cherche dans les œufs"
+				and list.Rarity_Special.Text == "Spéciale • aucune tour : bats le boss d'un territoire"
+				and y(list.Rarity_Common) < y(archerRow) and y(archerRow) < y(frostRow) and y(frostRow) < y(list.Locked_FireArcher)
+				and y(list.Locked_FireArcher) < y(list.Rarity_Rare) and y(list.Rarity_Rare) < y(list.Tower_Bomb) and y(list.Tower_Bomb) < y(list.Rarity_Epic),
+			`« Mes tours », rareté par rareté : « {list.Rarity_Common.Text} » (sa tour de la barre, sa réserve, puis celles pas encore à lui), « {list.Rarity_Legendary.Text} », « {list.Rarity_Special.Text} »`
+		)
+		check(
+			archerRow.Choose.Text == "✓ CHOISIE" and string.find(texts(archerRow), "1. Archer du rempart", 1, true) ~= nil and frostRow.Choose.Text == "CHOISIR"
+				and string.find(texts(frostRow), "Réserve • Totem de givre", 1, true) ~= nil and list.Tower_Bomb.Choose.Text == "✓ CHOISIE"
+				and string.find(texts(list.Tower_Bomb), "2. Catapulte", 1, true) ~= nil and string.find(texts(list.Tower_DragonBallista), "3. Baliste du dragon", 1, true) ~= nil
+				and archerRow.Choose.TextFits and frostRow.Choose.TextFits,
+			`la barre : « {texts(archerRow)} » [{archerRow.Choose.Text}] ; en réserve : « {texts(frostRow)} » [{frostRow.Choose.Text}]`
+		)
+		shot("mes_tours_barre")
+		act(campGui, "Choose:Frost")
+		local swapped = waitFor(function()
+			return frostRow.Choose.Text == "✓ CHOISIE"
+		end, 4)
+		task.wait(0.5)
+		check(
+			swapped and archerRow.Choose.Text == "CHOISIR" and string.find(texts(frostRow), "1. Totem de givre", 1, true) ~= nil
+				and string.find(texts(archerRow), "Réserve • Archer du rempart", 1, true) ~= nil and y(frostRow) < y(archerRow),
+			`« CHOISIR » le Totem : il prend la place de l'Archer dans la barre (« {texts(frostRow)} » [{frostRow.Choose.Text}], l'Archer : [{archerRow.Choose.Text}])`
+		)
+		shot("mes_tours_barre_choisie")
+		-- Une tour sort d'un œuf alors que sa rareté est déjà prise dans la barre (l'Archimage, rare comme la Catapulte) :
+		-- elle attend en réserve, et le panneau dit où la choisir. (Ses œufs et ses couveuses sont remis ensuite.)
+		local before = test:InvokeServer("State") or {}
+		test:InvokeServer("Set", "eggs", { Common = 1 })
+		test:InvokeServer("Set", "hatchers", { { egg = "", readyAt = 0 } })
+		act(campGui, "Tab:Œufs")
+		task.wait(0.8)
+		act(campGui, "EggStart:1:Common")
+		waitFor(function()
+			return row1.Title.Text == "COUVEUSE 1 : Œuf commun"
+		end, 4)
+		test:InvokeServer("Clock", Levels.EGGS.Common.seconds + 1)
+		test:InvokeServer("Force", "StormArchmage")
+		waitFor(function()
+			return row1.Action.Text == "OUVRIR !"
+		end, 5)
+		act(campGui, "EggOpen:1")
+		local reserveRevealed = waitFor(function()
+			return revealGui.Enabled
+		end, 5)
+		task.wait(0.6)
+		check(
+			reserveRevealed and panel.Title.Text == "🎉 NOUVELLE TOUR !" and panel.TowerName.Text == "Archimage des tempêtes"
+				and string.find(panel.Detail.Text, "Palier 2 de : Mage des tempêtes", 1, true) ~= nil
+				and string.find(panel.Detail.Text, "Rare : choisis-la dans « Mes tours » pour la prendre", 1, true) ~= nil and panel.Detail.TextFits,
+			`une tour dont la rareté est déjà prise dans la barre : « {string.gsub(panel.Detail.Text, "\n", " ⏎ ")} »`
+		)
+		shot("nouvelle_tour_reserve")
+		act(campGui, "RevealClose")
+		test:InvokeServer("Set", "eggs", before.eggs or {})
+		test:InvokeServer("Set", "hatchers", before.hatchers or { { egg = "", readyAt = 0 } })
+		task.wait(0.5)
+		-- Dans un niveau : le Totem, la Catapulte et la Baliste du dragon dans la barre ; l'Archer, en réserve, ne se pose pas.
+		test:InvokeServer("Play", 2)
+		local inBarLevel = waitFor(function()
+			return player:GetAttribute("LevelArena") ~= nil
+		end, 8)
+		task.wait(1.5)
+		local hudBar = hudGui:FindFirstChild("TowerBar")
+		local barSpots = Levels.geometry(Levels.definition(2).map).map.spots
+		local archerPlaced = test:InvokeServer("Place", "MachineGun", barSpots[1].X, barSpots[1].Z)
+		local frostPlaced = test:InvokeServer("Place", "Frost", barSpots[1].X, barSpots[1].Z)
+		check(
+			inBarLevel and hudBar ~= nil and hudBar.Tower_Frost.Visible and hudBar.Tower_Bomb.Visible and hudBar.Tower_DragonBallista.Visible
+				and not hudBar.Tower_MachineGun.Visible and not hudBar.Tower_StormArchmage.Visible and not archerPlaced and frostPlaced == true,
+			`dans un niveau : la barre montre le Totem, la Catapulte et la Baliste du dragon, pas l'Archer (en réserve : il ne se pose pas, {tostring(archerPlaced)})`
+		)
+		shot("barre_niveau")
+		test:InvokeServer("Quit")
+		waitFor(function()
+			return player:GetAttribute("LevelArena") == nil
+		end, 5)
+		task.wait(0.8)
+	end
+
+	-- Les 8 tours de palier 2 dans un niveau : leurs silhouettes à leurs couleurs avec leur parure, leurs tirs. La barre
+	-- n'en montre qu'UNE PAR RARETÉ (« LA BARRE DE TOURS », Levels.luau) : pour les poser toutes, le test lève la règle
+	-- (debug « FreeBar », Studio seulement).
 	local everything, order = {}, table.clone(IdleTowers.TIER2)
 	for _, towerType in IdleTowers.ORDER do
 		everything[towerType] = true
@@ -411,6 +515,8 @@ return function(log)
 	end
 	test:InvokeServer("Set", "towers", everything)
 	test:InvokeServer("Set", "bar", order)
+	test:InvokeServer("FreeBar", true)
+	local expectedBar = Levels.barList(test:InvokeServer("State"))
 	test:InvokeServer("Play", 10)
 	local inLevel = waitFor(function()
 		return player:GetAttribute("LevelArena") ~= nil
@@ -433,8 +539,9 @@ return function(log)
 	local barOk = towerBar ~= nil
 	for _, towerType in IdleTowers.ORDER do
 		local button = towerBar and towerBar:FindFirstChild("Tower_" .. towerType)
-		barOk = barOk and button ~= nil and button.Visible == (IdleTowers.tierOf(towerType) == 2)
+		barOk = barOk and button ~= nil and button.Visible == (table.find(expectedBar, towerType) ~= nil)
 	end
+	barOk = barOk and #expectedBar == Levels.BAR_MAX and expectedBar[1] == "FireArcher" and IdleTowers.isSpecial(expectedBar[5])
 	local adorned = 0
 	local arenas = workspace:FindFirstChild("Arenas")
 	for _, model in (if arenas then arenas:GetDescendants() else {}) do
@@ -444,7 +551,7 @@ return function(log)
 	end
 	check(
 		inLevel and placed == 8 and barOk and adorned == 8,
-		`niveau 10 avec les 8 tours de palier 2 : {placed} posées, {adorned} avec leur parure, barre des 8 tours de palier 2 (celles de palier 1 en réserve : {barOk})`
+		`niveau 10 avec les 8 tours de palier 2 : {placed} posées, {adorned} avec leur parure ; la barre : une tour par rareté ({table.concat(expectedBar, ", ")} : {barOk})`
 	)
 	task.wait(6) -- (les monstres arrivent, les tours tirent)
 	shot("palier2_niveau")
@@ -458,14 +565,15 @@ return function(log)
 	end, 5)
 	task.wait(0.8)
 
-	-- Les tours spéciales dans un niveau (toutes, même celle du désert, encore fermé : posée ici pour le test) : dans la
-	-- barre, leur parure (anneau d'or et joyaux), leurs tirs (flèches carmin, carreaux de cuivre, ronces au sol, blocs
-	-- de glace, tempête de sable).
+	-- Les tours spéciales dans un niveau (toutes, même celle du désert, encore fermé : posées ici pour le test, règle
+	-- de la barre levée) : leur parure (anneau d'or et joyaux), leurs tirs (flèches carmin, carreaux de cuivre, ronces
+	-- au sol, blocs de glace, tempête de sable). Dans la barre : une seule tour spéciale, la première de sa liste.
 	local specialOrder = table.clone(IdleTowers.SPECIAL)
 	for _, towerType in IdleTowers.TIER1 do
 		table.insert(specialOrder, towerType)
 	end
 	test:InvokeServer("Set", "bar", specialOrder)
+	local specialExpected = Levels.barList(test:InvokeServer("State"))
 	test:InvokeServer("Play", 10)
 	local inSpecialLevel = waitFor(function()
 		return player:GetAttribute("LevelArena") ~= nil
@@ -483,10 +591,10 @@ return function(log)
 		end
 	end
 	task.wait(1.5)
-	local specialBar = towerBar ~= nil
+	local specialBar = towerBar ~= nil and specialExpected[#specialExpected] == IdleTowers.SPECIAL[1]
 	for _, towerType in IdleTowers.SPECIAL do
 		local button = towerBar and towerBar:FindFirstChild("Tower_" .. towerType)
-		specialBar = specialBar and button ~= nil and button.Visible
+		specialBar = specialBar and button ~= nil and button.Visible == (towerType == IdleTowers.SPECIAL[1])
 	end
 	local specialAdorned = 0
 	for _, model in (if arenas then arenas:GetDescendants() else {}) do
@@ -496,7 +604,7 @@ return function(log)
 	end
 	check(
 		inSpecialLevel and specialPlaced == #IdleTowers.SPECIAL and specialBar and specialAdorned == #IdleTowers.SPECIAL,
-		`niveau 10 avec les {#IdleTowers.SPECIAL} tours spéciales : {specialPlaced} posées, {specialAdorned} avec leur parure, dans la barre : {specialBar}`
+		`niveau 10 avec les {#IdleTowers.SPECIAL} tours spéciales : {specialPlaced} posées, {specialAdorned} avec leur parure ; dans la barre, une seule ({table.concat(specialExpected, ", ")} : {specialBar})`
 	)
 	-- (le niveau avance de 40 s d'un coup : les monstres sont sur tout le chemin, les tours tirent : ronces au sol,
 	-- blocs de glace, carreaux, flèches carmin)
@@ -508,6 +616,7 @@ return function(log)
 	shot("speciales_pres")
 	act(hudGui, "Zoom:1")
 	test:InvokeServer("Quit")
+	test:InvokeServer("FreeBar", false)
 	waitFor(function()
 		return player:GetAttribute("LevelArena") == nil
 	end, 5)

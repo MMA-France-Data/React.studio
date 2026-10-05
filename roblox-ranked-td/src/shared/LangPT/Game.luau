@@ -85,7 +85,11 @@ return {
 	["Empl. {1} → {2}"] = "Esp. {1} → {2}",
 	["ENTRAÎNER"] = "TREINAR",
 	-- Onglet « Mes tours »
-	["Tes {1} premières tours vont dans ta barre rapide pour les niveaux, les autres attendent en réserve (▲ ▼ pour changer l'ordre)."] = "Suas {1} primeiras torres vão para a barra rápida nos níveis, as outras esperam na reserva (▲ ▼ para mudar a ordem).",
+	["Ta barre de tours pour les niveaux : une tour de chaque rareté (commune, rare, épique, légendaire, spéciale). Touche « Choisir » pour changer de tour."] = "Sua barra de torres para os níveis: uma torre de cada raridade (comum, rara, épica, lendária, especial). Toque em “Escolher” para trocar de torre.",
+	["CHOISIR"] = "ESCOLHER", -- (bouton d'une tour de la réserve : elle entre dans la barre)
+	["CHOISIE"] = "ESCOLHIDA", -- « ✓ CHOISIE » (bouton de la tour qui est dans la barre)
+	["aucune tour : cherche dans les œufs"] = "nenhuma torre: procure nos ovos", -- « Épique • aucune tour : cherche dans les œufs »
+	["aucune tour : bats le boss d'un territoire"] = "nenhuma torre: vença o chefe de um território", -- « Spéciale • aucune tour : ... »
 	["Réserve"] = "Reserva", -- « Réserve • Catapulte • 45 💰 • entraînement 3 »
 	["entraînement {1}"] = "treino {1}",
 	-- Ligne de stats d'une tour (statsLine, UI.towerSpeed)
@@ -132,6 +136,7 @@ return {
 	["Bloqué ? Rejoue un niveau déjà réussi : chaque victoire donne un œuf et des pièces."] = "Travou? Repita um nível já vencido: cada vitória dá um ovo e moedas.", -- « 🔁 ... »
 	["Des œufs t'attendent : ouvre-les dans l'onglet Œufs pour avoir de nouvelles tours."] = "Tem ovos esperando por você: abra-os na aba Ovos para ganhar torres novas.", -- « 🥚 ... »
 	["Ce boss demande une tour de palier 2 (œufs rares et dorés) : rejouer un boss donne un œuf rare."] = "Este chefe pede uma torre tier 2 (ovos raros e dourados): repetir um chefe dá um ovo raro.", -- « 👑 ... »
+	["Une tour plus forte attend dans ta réserve : choisis-la dans « Mes tours »."] = "Uma torre mais forte espera na sua reserva: escolha-a em “Minhas torres”.", -- « 🔀 ... » (une tour de palier 2 en réserve, sa tour de base dans la barre)
 	["Mets tes tours au camp d'entraînement : elles deviennent plus fortes même quand tu n'es pas là."] = "Coloque suas torres no acampamento de treino: elas ficam mais fortes mesmo quando você não está.", -- « ⛺ ... »
 	["Rejouer le niveau {1}"] = "Repetir o nível {1}", -- « ◀ Rejouer le niveau 9 » (bouton de l'écran de fin, bloqué)
 	["Retour au camp"] = "Voltar ao acampamento", -- « ⛺ Retour au camp »
@@ -174,6 +179,7 @@ return {
 	["Le niveau est terminé"] = "O nível acabou",
 	["Tour inconnue"] = "Torre desconhecida",
 	["{1} n'est pas dans ta barre de tours"] = "{1} não está na sua barra de torres",
+	["Ta barre de tours se change au camp, pas pendant un niveau"] = "Sua barra de torres se troca no acampamento, não durante um nível",
 	["Maximum {1} {2} par niveau"] = "Máximo {1} {2} por nível",
 	["Pas assez d'or"] = "Ouro insuficiente",
 	["Niveau maximum atteint"] = "Nível máximo alcançado",
@@ -321,6 +327,7 @@ return {
 	["NOUVELLE TOUR !"] = "TORRE NOVA!", -- « 🎉 NOUVELLE TOUR ! » (panneau de la tour sortie d'un œuf)
 	["DOUBLON"] = "REPETIDA",
 	["{1} : elle rejoint ta barre de tours"] = "{1}: ela entra na sua barra de torres",
+	["{1} : choisis-la dans « Mes tours » pour la prendre"] = "{1}: escolha-a em “Minhas torres” para levá-la", -- (une autre tour de sa rareté est déjà dans la barre)
 	["{1} : +{2} XP d'entraînement pour cette tour"] = "{1}: +{2} XP de treino para esta torre",
 	["Super !"] = "Legal!",
 	["{1} gagné ! Pose-le dans une couveuse."] = "{1} ganho! Coloque numa incubadora.",

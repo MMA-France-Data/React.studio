@@ -86,7 +86,11 @@ return {
 	["Empl. {1} → {2}"] = "Slot {1} → {2}",
 	["ENTRAÎNER"] = "TRAIN",
 	-- Onglet « Mes tours »
-	["Tes {1} premières tours vont dans ta barre rapide pour les niveaux, les autres attendent en réserve (▲ ▼ pour changer l'ordre)."] = "Your first {1} towers go in your quick bar for levels, the others wait in reserve (▲ ▼ to change the order).",
+	["Ta barre de tours pour les niveaux : une tour de chaque rareté (commune, rare, épique, légendaire, spéciale). Touche « Choisir » pour changer de tour."] = "Your tower bar for levels: one tower of each rarity (common, rare, epic, legendary, special). Tap “Choose” to switch towers.",
+	["CHOISIR"] = "CHOOSE", -- (bouton d'une tour de la réserve : elle entre dans la barre)
+	["CHOISIE"] = "CHOSEN", -- « ✓ CHOISIE » (bouton de la tour qui est dans la barre)
+	["aucune tour : cherche dans les œufs"] = "no tower: look in eggs", -- « Épique • aucune tour : cherche dans les œufs »
+	["aucune tour : bats le boss d'un territoire"] = "no tower: beat a territory boss", -- « Spéciale • aucune tour : ... »
 	["Réserve"] = "Reserve", -- « Réserve • Catapulte • 45 💰 • entraînement 3 »
 	["entraînement {1}"] = "training {1}",
 	-- Ligne de stats d'une tour (statsLine, UI.towerSpeed)
@@ -133,6 +137,7 @@ return {
 	["Bloqué ? Rejoue un niveau déjà réussi : chaque victoire donne un œuf et des pièces."] = "Stuck? Replay a level you've already cleared: every win gives an egg and coins.", -- « 🔁 ... »
 	["Des œufs t'attendent : ouvre-les dans l'onglet Œufs pour avoir de nouvelles tours."] = "Eggs are waiting for you: open them in the Eggs tab to get new towers.", -- « 🥚 ... »
 	["Ce boss demande une tour de palier 2 (œufs rares et dorés) : rejouer un boss donne un œuf rare."] = "This boss needs a tier 2 tower (rare and golden eggs): replaying a boss gives a rare egg.", -- « 👑 ... »
+	["Une tour plus forte attend dans ta réserve : choisis-la dans « Mes tours »."] = "A stronger tower is waiting in your reserve: choose it in “My towers”.", -- « 🔀 ... » (une tour de palier 2 en réserve, sa tour de base dans la barre)
 	["Mets tes tours au camp d'entraînement : elles deviennent plus fortes même quand tu n'es pas là."] = "Put your towers in the training camp: they get stronger even while you're away.", -- « ⛺ ... »
 	["Rejouer le niveau {1}"] = "Replay level {1}", -- « ◀ Rejouer le niveau 9 » (bouton de l'écran de fin, bloqué)
 	["Retour au camp"] = "Back to camp", -- « ⛺ Retour au camp »
@@ -175,6 +180,7 @@ return {
 	["Le niveau est terminé"] = "The level is over",
 	["Tour inconnue"] = "Unknown tower",
 	["{1} n'est pas dans ta barre de tours"] = "{1} isn't in your tower bar",
+	["Ta barre de tours se change au camp, pas pendant un niveau"] = "Change your tower bar at the camp, not during a level",
 	["Maximum {1} {2} par niveau"] = "Max {1} {2} per level",
 	["Pas assez d'or"] = "Not enough gold",
 	["Niveau maximum atteint"] = "Max level reached",
@@ -322,6 +328,7 @@ return {
 	["NOUVELLE TOUR !"] = "NEW TOWER!", -- « 🎉 NOUVELLE TOUR ! » (panneau de la tour sortie d'un œuf)
 	["DOUBLON"] = "DUPLICATE",
 	["{1} : elle rejoint ta barre de tours"] = "{1}: it joins your tower bar",
+	["{1} : choisis-la dans « Mes tours » pour la prendre"] = "{1}: choose it in “My towers” to bring it", -- (une autre tour de sa rareté est déjà dans la barre)
 	["{1} : +{2} XP d'entraînement pour cette tour"] = "{1}: +{2} training XP for this tower",
 	["Super !"] = "Great!",
 	["{1} gagné ! Pose-le dans une couveuse."] = "{1} won! Put it in an incubator.",

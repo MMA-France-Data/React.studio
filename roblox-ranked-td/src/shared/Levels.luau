@@ -622,25 +622,48 @@ Levels.STREAM = {
 -- 7 PV, le dernier 115.
 -- C'est LE réglage de la difficulté d'un niveau, trouvé avec les joueurs simulés (tools/levels, run.ps1 -Tune, puis
 -- 5 % de marge) : avec les tours attendues à ce niveau, celui qui achète au rythme demandé (un achat toutes les 5 s
--- au niveau 1, toutes les 3,5 s à partir du niveau 6) gagne ; celui qui n'achète que toutes les 8 s perd ; celui qui
--- pose 2 Archers puis attend perd avant 30 % du niveau (tests.luau le vérifie pour les niveaux ouverts). Trop dur ou
--- trop facile pour de vrais joueurs : baisser ou monter ce chiffre, rien d'autre.
+-- au niveau 1, toutes les 3,5 s à partir du niveau 6) gagne ; celui qui n'achète que toutes les 8 s perd (à partir
+-- du niveau 11 : s'il n'a pas entraîné ses tours, voir « DUR PARTOUT ») ; celui qui pose 2 Archers puis attend perd
+-- avant 30 % du niveau (tests.luau le vérifie pour les niveaux ouverts). Trop dur ou trop facile pour de vrais
+-- joueurs : baisser ou monter ce chiffre, rien d'autre.
 -- Les niveaux à colosse (5, 8) et à boss (10) ont un flot un peu moins résistant : le gros monstre fait le reste.
 -- NIVEAUX 11 À 20 (2e territoire, carte « Pass ») : plus d'or au départ, des niveaux un peu plus longs, tous les
 -- types de monstres dès le début, et des COLOSSES dans presque tous les niveaux (un, puis deux, puis trois). Niveau
 -- 15 : le COLOSSE GÉANT (mini-boss : un seul monstre, bien plus résistant). Niveau 20 : deux colosses, puis le boss,
 -- qui ferme le flot comme au niveau 10. (Sorti PENDANT le flot, il se faisait doubler par les monstres rapides : les
 -- tours qui visent « le plus avancé » ne le touchaient plus, et le joueur simulé très actif perdait après avoir tout
--- éliminé sauf lui.) Réglés pour le joueur qui a les tours des premiers œufs (le Totem et le Mage), puis une tour
--- de PALIER 2 à partir du niveau 16 : le boss du niveau 20 la demande vraiment (Bot.EXPECTED).
+-- éliminé sauf lui.) Réglés pour le joueur qui a les tours des premiers œufs (le Totem et le Mage) et l'Arc carmin,
+-- puis une tour de PALIER 2 à partir du niveau 16 : le boss du niveau 20 la demande vraiment (Bot.EXPECTED).
 -- NIVEAUX 21 À 40 (3e et 4e territoires, cartes « Forest » et « Glacier ») : même principe, plus de colosses
 -- (trois, puis quatre), le colosse géant au niveau 25, deux colosses géants au niveau 35, un boss qui ferme le flot
--- aux niveaux 30 et 40. Réglés pour le joueur qui a deux, puis trois tours de palier 2, avec l'entraînement que
--- ces parties donnent (Bot.EXPECTED). Les niveaux à boss sont un peu plus courts : le boss doit encore traverser la
+-- aux niveaux 30 et 40. Réglés pour le joueur qui a une tour rare de palier 2, l'Arbalète de cuivre, puis la
+-- Baliste lourde (Bot.EXPECTED). Les niveaux à boss sont un peu plus courts : le boss doit encore traverser la
 -- carte (200 s au plus en tout).
--- NIVEAUX 41 À 100 : FERMÉS pour l'instant (Levels.OPEN_COUNT). Les PV des niveaux 41 à 50 sont réglés pour les
--- œufs (05/10/2026 : le joueur qui a les mêmes 8 tours qu'au 4e territoire, un peu plus entraînées, Bot.EXPECTED ;
--- run.ps1 -Tune -Vies 8, puis 5 % de marge, sauf aux niveaux 41 et 46 : le joueur lent y gagnait encore) : ouvrir le
+-- NIVEAUX 11 ET PLUS : « DUR PARTOUT » (05/10/2026). Retour du propriétaire : « les niveaux sont beaucoup trop
+-- simples, ma copine est allée au niveau 30 sans être bloquée ». La cause : ces niveaux étaient réglés pour 4 à 8
+-- sortes de tours posées ensemble, et SANS les tours spéciales, que tout le monde reçoit pourtant à chaque boss
+-- (avec elles, même le joueur simulé lent gagnait tout jusqu'au niveau 30). Depuis :
+--   * LA BARRE : une tour par rareté dans un niveau (« LA BARRE DE TOURS », plus bas) ;
+--   * des PV réglés de nouveau pour la MEILLEURE barre que PRESQUE TOUS les joueurs peuvent former à ce niveau, tours
+--     spéciales comprises (une tour rare de palier 2 à partir du niveau 16 ; pas de tour épique de palier 2 ni de
+--     légendaire), avec des tours entraînées UN CRAN DE PLUS que ce que leurs parties donnent, DEUX à partir du
+--     niveau 31 (Bot.EXPECTED ; tools/levels : run.ps1 -Barre trouve la barre, -Tune les PV par pas de 2 %, puis 5 %
+--     de marge).
+-- Ce que ça donne (vérifié par tests.luau) : avec cette barre et cet entraînement, on gagne partout au rythme
+-- demandé ; celui qui ARRIVE à un niveau sans avoir entraîné ses tours en plus perd 12 niveaux sur 20 aux territoires
+-- 2 et 3 (de peu) et tous ceux du 4e : il rejoue d'anciens niveaux, laisse ses tours au camp, ou cherche mieux dans
+-- ses œufs ; sans tour de palier 2, les boss des niveaux 20, 30 et 40 ne passent pas. Le 1er territoire (niveaux 1 à
+-- 10, celui des débuts) n'a pas changé. Trop dur pour de vrais joueurs : baisser ces chiffres (8 % de PV en moins =
+-- à peu près un niveau d'entraînement de moins à avoir).
+-- LA CHANCE AUX ŒUFS (mesurée le 05/10/2026, détails dans tools/levels/Bot.luau et NIVEAUX.md) : avec la barre, une
+-- seule tour compte beaucoup. La Baliste du dragon (46 % des joueurs l'ont au niveau 31) permet de battre des
+-- monstres 45 % plus résistants au 4e territoire ; réglé pour elle, le niveau 31 était impossible aux autres. Les
+-- niveaux sont donc réglés pour le joueur qui ne l'a pas : personne n'est bloqué sans solution, mais celui qui a eu
+-- de la chance (elle, ou une légendaire) trouve la suite plus facile. Pour un jeu dur pour tous, il faudrait que les
+-- tours clés ne dépendent plus de la chance (proposé au propriétaire : l'œuf doré d'un boss donne à coup sûr une
+-- tour de palier 2 ; s'il dit oui, les niveaux 21 à 50 sont à régler de nouveau, plus haut).
+-- NIVEAUX 41 À 100 : FERMÉS pour l'instant (Levels.OPEN_COUNT). Les PV des niveaux 41 à 50 sont réglés comme ceux
+-- du 4e territoire (la barre, deux crans d'entraînement ; run.ps1 -Tune -Vies 8, puis 5 % de marge) : ouvrir le
 -- désert = OPEN_COUNT = 50. Ceux des niveaux 51 à 100
 -- datent de la boutique (réglés pour les huit tours de palier 1) : à régler de nouveau avant de les ouvrir. Ce
 -- qu'ils contiennent :
@@ -664,49 +687,49 @@ Levels.DEFINITIONS = {
 	{ gold = 100, seconds = 145, health = 99, gap = { 0.95, 0.28 }, from = { Fast = 0.1, Swarm = 0.2, Tank = 0.25 } },
 	{ gold = 110, seconds = 155, health = 86, gap = { 0.95, 0.28 }, from = { Fast = 0.1, Swarm = 0.2, Tank = 0.25 }, specials = { { "Giant", 0.5, 0.7 }, { "Boss", 1 } } },
 	-- 2e territoire
-	{ gold = 115, seconds = 130, health = 158, gap = { 0.95, 0.3 }, from = { Fast = 0.1, Swarm = 0.2, Tank = 0.25 } },
-	{ gold = 120, seconds = 135, health = 150, gap = { 0.95, 0.3 }, from = { Fast = 0.1, Swarm = 0.2, Tank = 0.25 }, specials = { { "Giant", 0.75, 0.8 } } },
-	{ gold = 125, seconds = 135, health = 145, gap = { 0.95, 0.3 }, from = { Fast = 0.1, Swarm = 0.15, Tank = 0.25 }, specials = { { "Giant", 0.6, 0.8 } } },
-	{ gold = 130, seconds = 140, health = 150, gap = { 0.95, 0.3 }, from = { Fast = 0.1, Swarm = 0.15, Tank = 0.2 }, specials = { { "Giant", 0.45, 0.7 }, { "Giant", 0.85 } } },
-	{ gold = 135, seconds = 145, health = 120, gap = { 0.95, 0.3 }, from = { Fast = 0.1, Swarm = 0.15, Tank = 0.2 }, specials = { { "Colossus", 0.71, 0.6 } } },
-	{ gold = 140, seconds = 145, health = 190, gap = { 0.9, 0.3 }, from = { Fast = 0.05, Swarm = 0.15, Tank = 0.2 }, specials = { { "Giant", 0.4, 0.7 }, { "Giant", 0.8 } } },
-	{ gold = 145, seconds = 150, health = 178, gap = { 0.9, 0.3 }, from = { Fast = 0.05, Swarm = 0.1, Tank = 0.2 }, specials = { { "Giant", 0.35, 0.7 }, { "Giant", 0.6, 0.85 }, { "Giant", 0.85 } } },
-	{ gold = 150, seconds = 150, health = 178, gap = { 0.9, 0.3 }, from = { Fast = 0.05, Swarm = 0.1, Tank = 0.15 }, specials = { { "Giant", 0.3, 0.7 }, { "Giant", 0.55, 0.85 }, { "Giant", 0.8 } } },
-	{ gold = 155, seconds = 155, health = 169, gap = { 0.9, 0.3 }, from = { Fast = 0.05, Swarm = 0.1, Tank = 0.15 }, specials = { { "Giant", 0.3, 0.8 }, { "Giant", 0.55 }, { "Giant", 0.8, 1.2 } } },
-	{ gold = 160, seconds = 145, health = 125, gap = { 0.9, 0.3 }, from = { Fast = 0.05, Swarm = 0.1, Tank = 0.15 }, specials = { { "Giant", 0.35, 0.7 }, { "Giant", 0.6, 0.9 }, { "Boss", 1 } } },
+	{ gold = 115, seconds = 130, health = 220, gap = { 0.95, 0.3 }, from = { Fast = 0.1, Swarm = 0.2, Tank = 0.25 } },
+	{ gold = 120, seconds = 135, health = 212, gap = { 0.95, 0.3 }, from = { Fast = 0.1, Swarm = 0.2, Tank = 0.25 }, specials = { { "Giant", 0.75, 0.8 } } },
+	{ gold = 125, seconds = 135, health = 209, gap = { 0.95, 0.3 }, from = { Fast = 0.1, Swarm = 0.15, Tank = 0.25 }, specials = { { "Giant", 0.6, 0.8 } } },
+	{ gold = 130, seconds = 140, health = 238, gap = { 0.95, 0.3 }, from = { Fast = 0.1, Swarm = 0.15, Tank = 0.2 }, specials = { { "Giant", 0.45, 0.7 }, { "Giant", 0.85 } } },
+	{ gold = 135, seconds = 145, health = 217, gap = { 0.95, 0.3 }, from = { Fast = 0.1, Swarm = 0.15, Tank = 0.2 }, specials = { { "Colossus", 0.71, 0.6 } } },
+	{ gold = 140, seconds = 145, health = 286, gap = { 0.9, 0.3 }, from = { Fast = 0.05, Swarm = 0.15, Tank = 0.2 }, specials = { { "Giant", 0.4, 0.7 }, { "Giant", 0.8 } } },
+	{ gold = 145, seconds = 150, health = 275, gap = { 0.9, 0.3 }, from = { Fast = 0.05, Swarm = 0.1, Tank = 0.2 }, specials = { { "Giant", 0.35, 0.7 }, { "Giant", 0.6, 0.85 }, { "Giant", 0.85 } } },
+	{ gold = 150, seconds = 150, health = 260, gap = { 0.9, 0.3 }, from = { Fast = 0.05, Swarm = 0.1, Tank = 0.15 }, specials = { { "Giant", 0.3, 0.7 }, { "Giant", 0.55, 0.85 }, { "Giant", 0.8 } } },
+	{ gold = 155, seconds = 155, health = 298, gap = { 0.9, 0.3 }, from = { Fast = 0.05, Swarm = 0.1, Tank = 0.15 }, specials = { { "Giant", 0.3, 0.8 }, { "Giant", 0.55 }, { "Giant", 0.8, 1.2 } } },
+	{ gold = 160, seconds = 145, health = 265, gap = { 0.9, 0.3 }, from = { Fast = 0.05, Swarm = 0.1, Tank = 0.15 }, specials = { { "Giant", 0.35, 0.7 }, { "Giant", 0.6, 0.9 }, { "Boss", 1 } } },
 	-- 3e territoire
-	{ gold = 165, seconds = 135, health = 236, gap = { 0.9, 0.3 }, from = { Fast = 0.05, Swarm = 0.1, Tank = 0.15 }, specials = { { "Giant", 0.6, 0.8 } } },
-	{ gold = 170, seconds = 135, health = 194, gap = { 0.9, 0.3 }, from = { Fast = 0.05, Swarm = 0.1, Tank = 0.15 }, specials = { { "Giant", 0.4, 0.7 }, { "Giant", 0.8 } } },
-	{ gold = 175, seconds = 140, health = 207, gap = { 0.9, 0.3 }, from = { Fast = 0.05, Swarm = 0.1, Tank = 0.15 }, specials = { { "Giant", 0.35, 0.7 }, { "Giant", 0.7, 0.9 } } },
-	{ gold = 180, seconds = 140, health = 207, gap = { 0.9, 0.3 }, from = { Fast = 0.05, Swarm = 0.1, Tank = 0.15 }, specials = { { "Giant", 0.3, 0.7 }, { "Giant", 0.55, 0.85 }, { "Giant", 0.85 } } },
-	{ gold = 185, seconds = 145, health = 232, gap = { 0.9, 0.3 }, from = { Fast = 0.05, Swarm = 0.1, Tank = 0.15 }, specials = { { "Colossus", 0.72, 0.5 } } },
-	{ gold = 190, seconds = 145, health = 219, gap = { 0.9, 0.3 }, from = { Fast = 0.05, Swarm = 0.1, Tank = 0.15 }, specials = { { "Giant", 0.3, 0.7 }, { "Giant", 0.55, 0.85 }, { "Giant", 0.8 } } },
-	{ gold = 195, seconds = 145, health = 207, gap = { 0.9, 0.3 }, from = { Fast = 0.05, Swarm = 0.1, Tank = 0.15 }, specials = { { "Giant", 0.25, 0.7 }, { "Giant", 0.5, 0.85 }, { "Giant", 0.7 }, { "Giant", 0.9, 1.1 } } },
-	{ gold = 200, seconds = 150, health = 219, gap = { 0.9, 0.3 }, from = { Fast = 0.05, Swarm = 0.1, Tank = 0.15 }, specials = { { "Giant", 0.25, 0.7 }, { "Giant", 0.45, 0.85 }, { "Giant", 0.65 }, { "Giant", 0.85, 1.1 } } },
-	{ gold = 205, seconds = 150, health = 219, gap = { 0.9, 0.3 }, from = { Fast = 0.05, Swarm = 0.1, Tank = 0.15 }, specials = { { "Giant", 0.25, 0.75 }, { "Giant", 0.45, 0.9 }, { "Giant", 0.65 }, { "Giant", 0.85, 1.2 } } },
-	{ gold = 210, seconds = 140, health = 207, gap = { 0.9, 0.3 }, from = { Fast = 0.05, Swarm = 0.1, Tank = 0.15 }, specials = { { "Giant", 0.3, 0.7 }, { "Giant", 0.55, 0.9 }, { "Giant", 0.8 }, { "Boss", 1, 1.1 } } },
+	{ gold = 165, seconds = 135, health = 304, gap = { 0.9, 0.3 }, from = { Fast = 0.05, Swarm = 0.1, Tank = 0.15 }, specials = { { "Giant", 0.6, 0.8 } } },
+	{ gold = 170, seconds = 135, health = 292, gap = { 0.9, 0.3 }, from = { Fast = 0.05, Swarm = 0.1, Tank = 0.15 }, specials = { { "Giant", 0.4, 0.7 }, { "Giant", 0.8 } } },
+	{ gold = 175, seconds = 140, health = 304, gap = { 0.9, 0.3 }, from = { Fast = 0.05, Swarm = 0.1, Tank = 0.15 }, specials = { { "Giant", 0.35, 0.7 }, { "Giant", 0.7, 0.9 } } },
+	{ gold = 180, seconds = 140, health = 317, gap = { 0.9, 0.3 }, from = { Fast = 0.05, Swarm = 0.1, Tank = 0.15 }, specials = { { "Giant", 0.3, 0.7 }, { "Giant", 0.55, 0.85 }, { "Giant", 0.85 } } },
+	{ gold = 185, seconds = 145, health = 298, gap = { 0.9, 0.3 }, from = { Fast = 0.05, Swarm = 0.1, Tank = 0.15 }, specials = { { "Colossus", 0.72, 0.5 } } },
+	{ gold = 190, seconds = 145, health = 329, gap = { 0.9, 0.3 }, from = { Fast = 0.05, Swarm = 0.1, Tank = 0.15 }, specials = { { "Giant", 0.3, 0.7 }, { "Giant", 0.55, 0.85 }, { "Giant", 0.8 } } },
+	{ gold = 195, seconds = 145, health = 316, gap = { 0.9, 0.3 }, from = { Fast = 0.05, Swarm = 0.1, Tank = 0.15 }, specials = { { "Giant", 0.25, 0.7 }, { "Giant", 0.5, 0.85 }, { "Giant", 0.7 }, { "Giant", 0.9, 1.1 } } },
+	{ gold = 200, seconds = 150, health = 286, gap = { 0.9, 0.3 }, from = { Fast = 0.05, Swarm = 0.1, Tank = 0.15 }, specials = { { "Giant", 0.25, 0.7 }, { "Giant", 0.45, 0.85 }, { "Giant", 0.65 }, { "Giant", 0.85, 1.1 } } },
+	{ gold = 205, seconds = 150, health = 329, gap = { 0.9, 0.3 }, from = { Fast = 0.05, Swarm = 0.1, Tank = 0.15 }, specials = { { "Giant", 0.25, 0.75 }, { "Giant", 0.45, 0.9 }, { "Giant", 0.65 }, { "Giant", 0.85, 1.2 } } },
+	{ gold = 210, seconds = 140, health = 329, gap = { 0.9, 0.3 }, from = { Fast = 0.05, Swarm = 0.1, Tank = 0.15 }, specials = { { "Giant", 0.3, 0.7 }, { "Giant", 0.55, 0.9 }, { "Giant", 0.8 }, { "Boss", 1, 1.1 } } },
 	-- 4e territoire
-	{ gold = 215, seconds = 140, health = 349, gap = { 0.95, 0.28 }, from = { Fast = 0.05, Swarm = 0.08, Tank = 0.12 }, specials = { { "Giant", 0.4, 0.7 }, { "Giant", 0.75, 0.9 } } },
-	{ gold = 220, seconds = 140, health = 321, gap = { 0.95, 0.28 }, from = { Fast = 0.05, Swarm = 0.08, Tank = 0.12 }, specials = { { "Giant", 0.3, 0.7 }, { "Giant", 0.55, 0.85 }, { "Giant", 0.85 } } },
-	{ gold = 225, seconds = 145, health = 321, gap = { 0.95, 0.28 }, from = { Fast = 0.05, Swarm = 0.08, Tank = 0.12 }, specials = { { "Giant", 0.3, 0.7 }, { "Giant", 0.5, 0.85 }, { "Giant", 0.8, 1.1 } } },
-	{ gold = 230, seconds = 145, health = 331, gap = { 0.95, 0.28 }, from = { Fast = 0.05, Swarm = 0.08, Tank = 0.12 }, specials = { { "Giant", 0.25, 0.7 }, { "Giant", 0.45, 0.85 }, { "Giant", 0.65 }, { "Giant", 0.85, 1.1 } } },
-	{ gold = 235, seconds = 150, health = 350, gap = { 0.95, 0.28 }, from = { Fast = 0.05, Swarm = 0.08, Tank = 0.12 }, specials = { { "Colossus", 0.46, 0.64 }, { "Colossus", 0.81, 0.8 } } },
-	{ gold = 240, seconds = 150, health = 330, gap = { 0.95, 0.28 }, from = { Fast = 0.05, Swarm = 0.08, Tank = 0.12 }, specials = { { "Giant", 0.25, 0.7 }, { "Giant", 0.45, 0.85 }, { "Giant", 0.65 }, { "Giant", 0.85, 1.1 } } },
-	{ gold = 245, seconds = 150, health = 360, gap = { 0.95, 0.28 }, from = { Fast = 0.05, Swarm = 0.08, Tank = 0.12 }, specials = { { "Giant", 0.25, 0.75 }, { "Giant", 0.45, 0.9 }, { "Giant", 0.65 }, { "Giant", 0.85, 1.2 } } },
-	{ gold = 250, seconds = 155, health = 349, gap = { 0.95, 0.28 }, from = { Fast = 0.05, Swarm = 0.08, Tank = 0.12 }, specials = { { "Giant", 0.2, 0.7 }, { "Giant", 0.4, 0.85 }, { "Giant", 0.6 }, { "Giant", 0.8, 1.1 } } },
-	{ gold = 255, seconds = 155, health = 371, gap = { 0.95, 0.28 }, from = { Fast = 0.05, Swarm = 0.08, Tank = 0.12 }, specials = { { "Giant", 0.2, 0.7 }, { "Giant", 0.4, 0.85 }, { "Giant", 0.6 }, { "Giant", 0.8, 1.1 } } },
-	{ gold = 260, seconds = 145, health = 378, gap = { 0.95, 0.28 }, from = { Fast = 0.05, Swarm = 0.08, Tank = 0.12 }, specials = { { "Giant", 0.3, 0.7 }, { "Giant", 0.5, 0.85 }, { "Giant", 0.7 }, { "Giant", 0.85, 1.1 }, { "Boss", 1, 0.85 } } },
+	{ gold = 215, seconds = 140, health = 336, gap = { 0.95, 0.28 }, from = { Fast = 0.05, Swarm = 0.08, Tank = 0.12 }, specials = { { "Giant", 0.4, 0.7 }, { "Giant", 0.75, 0.9 } } },
+	{ gold = 220, seconds = 140, health = 364, gap = { 0.95, 0.28 }, from = { Fast = 0.05, Swarm = 0.08, Tank = 0.12 }, specials = { { "Giant", 0.3, 0.7 }, { "Giant", 0.55, 0.85 }, { "Giant", 0.85 } } },
+	{ gold = 225, seconds = 145, health = 351, gap = { 0.95, 0.28 }, from = { Fast = 0.05, Swarm = 0.08, Tank = 0.12 }, specials = { { "Giant", 0.3, 0.7 }, { "Giant", 0.5, 0.85 }, { "Giant", 0.8, 1.1 } } },
+	{ gold = 230, seconds = 145, health = 339, gap = { 0.95, 0.28 }, from = { Fast = 0.05, Swarm = 0.08, Tank = 0.12 }, specials = { { "Giant", 0.25, 0.7 }, { "Giant", 0.45, 0.85 }, { "Giant", 0.65 }, { "Giant", 0.85, 1.1 } } },
+	{ gold = 235, seconds = 150, health = 286, gap = { 0.95, 0.28 }, from = { Fast = 0.05, Swarm = 0.08, Tank = 0.12 }, specials = { { "Colossus", 0.46, 0.64 }, { "Colossus", 0.81, 0.8 } } },
+	{ gold = 240, seconds = 150, health = 329, gap = { 0.95, 0.28 }, from = { Fast = 0.05, Swarm = 0.08, Tank = 0.12 }, specials = { { "Giant", 0.25, 0.7 }, { "Giant", 0.45, 0.85 }, { "Giant", 0.65 }, { "Giant", 0.85, 1.1 } } },
+	{ gold = 245, seconds = 150, health = 339, gap = { 0.95, 0.28 }, from = { Fast = 0.05, Swarm = 0.08, Tank = 0.12 }, specials = { { "Giant", 0.25, 0.75 }, { "Giant", 0.45, 0.9 }, { "Giant", 0.65 }, { "Giant", 0.85, 1.2 } } },
+	{ gold = 250, seconds = 155, health = 365, gap = { 0.95, 0.28 }, from = { Fast = 0.05, Swarm = 0.08, Tank = 0.12 }, specials = { { "Giant", 0.2, 0.7 }, { "Giant", 0.4, 0.85 }, { "Giant", 0.6 }, { "Giant", 0.8, 1.1 } } },
+	{ gold = 255, seconds = 155, health = 374, gap = { 0.95, 0.28 }, from = { Fast = 0.05, Swarm = 0.08, Tank = 0.12 }, specials = { { "Giant", 0.2, 0.7 }, { "Giant", 0.4, 0.85 }, { "Giant", 0.6 }, { "Giant", 0.8, 1.1 } } },
+	{ gold = 260, seconds = 145, health = 339, gap = { 0.95, 0.28 }, from = { Fast = 0.05, Swarm = 0.08, Tank = 0.12 }, specials = { { "Giant", 0.3, 0.7 }, { "Giant", 0.5, 0.85 }, { "Giant", 0.7 }, { "Giant", 0.85, 1.1 }, { "Boss", 1, 0.85 } } },
 	-- 5e territoire
-	{ gold = 265, seconds = 140, health = 391, gap = { 1.0, 0.28 }, from = { Fast = 0.1, Swarm = 0.12, Tank = 0.15 }, specials = { { "Giant", 0.3, 0.7 }, { "Giant", 0.6, 0.85 }, { "Giant", 0.85 } } },
-	{ gold = 270, seconds = 140, health = 350, gap = { 1.0, 0.28 }, from = { Fast = 0.1, Swarm = 0.12, Tank = 0.15 }, specials = { { "Giant", 0.25, 0.7 }, { "Giant", 0.45, 0.85 }, { "Giant", 0.65 }, { "Giant", 0.85, 1.1 } } },
-	{ gold = 275, seconds = 145, health = 350, gap = { 1.0, 0.28 }, from = { Fast = 0.1, Swarm = 0.12, Tank = 0.15 }, specials = { { "Giant", 0.25, 0.7 }, { "Giant", 0.45, 0.85 }, { "Giant", 0.65 }, { "Giant", 0.85, 1.1 } } },
-	{ gold = 280, seconds = 145, health = 371, gap = { 1.0, 0.28 }, from = { Fast = 0.1, Swarm = 0.12, Tank = 0.15 }, specials = { { "Giant", 0.2, 0.7 }, { "Giant", 0.4, 0.85 }, { "Giant", 0.6 }, { "Giant", 0.8, 1.2 } } },
-	{ gold = 285, seconds = 150, health = 302, gap = { 1.0, 0.28 }, from = { Fast = 0.1, Swarm = 0.12, Tank = 0.15 }, specials = { { "Giant", 0.6 }, { "Giant", 0.62 }, { "Giant", 0.64 }, { "Giant", 0.66 } } },
-	{ gold = 290, seconds = 150, health = 391, gap = { 1.0, 0.28 }, from = { Fast = 0.1, Swarm = 0.12, Tank = 0.15 }, specials = { { "Giant", 0.2, 0.7 }, { "Giant", 0.4, 0.85 }, { "Giant", 0.6 }, { "Giant", 0.8, 1.2 } } },
-	{ gold = 295, seconds = 150, health = 371, gap = { 1.0, 0.28 }, from = { Fast = 0.1, Swarm = 0.12, Tank = 0.15 }, specials = { { "Giant", 0.2, 0.7 }, { "Giant", 0.35, 0.85 }, { "Giant", 0.5 }, { "Giant", 0.7, 1.1 }, { "Giant", 0.88, 1.2 } } },
-	{ gold = 300, seconds = 155, health = 371, gap = { 1.0, 0.28 }, from = { Fast = 0.1, Swarm = 0.12, Tank = 0.15 }, specials = { { "Giant", 0.2, 0.7 }, { "Giant", 0.35, 0.85 }, { "Giant", 0.5 }, { "Giant", 0.7, 1.1 }, { "Giant", 0.88, 1.2 } } },
-	{ gold = 305, seconds = 155, health = 350, gap = { 1.0, 0.28 }, from = { Fast = 0.1, Swarm = 0.12, Tank = 0.15 }, specials = { { "Giant", 0.15, 0.7 }, { "Giant", 0.3, 0.85 }, { "Giant", 0.5 }, { "Giant", 0.7, 1.1 }, { "Giant", 0.88, 1.2 } } },
-	{ gold = 310, seconds = 145, health = 371, gap = { 1.0, 0.28 }, from = { Fast = 0.1, Swarm = 0.12, Tank = 0.15 }, specials = { { "Giant", 0.3, 0.7 }, { "Giant", 0.5, 0.85 }, { "Giant", 0.7 }, { "Giant", 0.85, 1.1 }, { "Boss", 1 } } },
+	{ gold = 265, seconds = 140, health = 412, gap = { 1.0, 0.28 }, from = { Fast = 0.1, Swarm = 0.12, Tank = 0.15 }, specials = { { "Giant", 0.3, 0.7 }, { "Giant", 0.6, 0.85 }, { "Giant", 0.85 } } },
+	{ gold = 270, seconds = 140, health = 389, gap = { 1.0, 0.28 }, from = { Fast = 0.1, Swarm = 0.12, Tank = 0.15 }, specials = { { "Giant", 0.25, 0.7 }, { "Giant", 0.45, 0.85 }, { "Giant", 0.65 }, { "Giant", 0.85, 1.1 } } },
+	{ gold = 275, seconds = 145, health = 389, gap = { 1.0, 0.28 }, from = { Fast = 0.1, Swarm = 0.12, Tank = 0.15 }, specials = { { "Giant", 0.25, 0.7 }, { "Giant", 0.45, 0.85 }, { "Giant", 0.65 }, { "Giant", 0.85, 1.1 } } },
+	{ gold = 280, seconds = 145, health = 374, gap = { 1.0, 0.28 }, from = { Fast = 0.1, Swarm = 0.12, Tank = 0.15 }, specials = { { "Giant", 0.2, 0.7 }, { "Giant", 0.4, 0.85 }, { "Giant", 0.6 }, { "Giant", 0.8, 1.2 } } },
+	{ gold = 285, seconds = 150, health = 310, gap = { 1.0, 0.28 }, from = { Fast = 0.1, Swarm = 0.12, Tank = 0.15 }, specials = { { "Giant", 0.6 }, { "Giant", 0.62 }, { "Giant", 0.64 }, { "Giant", 0.66 } } },
+	{ gold = 290, seconds = 150, health = 374, gap = { 1.0, 0.28 }, from = { Fast = 0.1, Swarm = 0.12, Tank = 0.15 }, specials = { { "Giant", 0.2, 0.7 }, { "Giant", 0.4, 0.85 }, { "Giant", 0.6 }, { "Giant", 0.8, 1.2 } } },
+	{ gold = 295, seconds = 150, health = 389, gap = { 1.0, 0.28 }, from = { Fast = 0.1, Swarm = 0.12, Tank = 0.15 }, specials = { { "Giant", 0.2, 0.7 }, { "Giant", 0.35, 0.85 }, { "Giant", 0.5 }, { "Giant", 0.7, 1.1 }, { "Giant", 0.88, 1.2 } } },
+	{ gold = 300, seconds = 155, health = 351, gap = { 1.0, 0.28 }, from = { Fast = 0.1, Swarm = 0.12, Tank = 0.15 }, specials = { { "Giant", 0.2, 0.7 }, { "Giant", 0.35, 0.85 }, { "Giant", 0.5 }, { "Giant", 0.7, 1.1 }, { "Giant", 0.88, 1.2 } } },
+	{ gold = 305, seconds = 155, health = 396, gap = { 1.0, 0.28 }, from = { Fast = 0.1, Swarm = 0.12, Tank = 0.15 }, specials = { { "Giant", 0.15, 0.7 }, { "Giant", 0.3, 0.85 }, { "Giant", 0.5 }, { "Giant", 0.7, 1.1 }, { "Giant", 0.88, 1.2 } } },
+	{ gold = 310, seconds = 145, health = 351, gap = { 1.0, 0.28 }, from = { Fast = 0.1, Swarm = 0.12, Tank = 0.15 }, specials = { { "Giant", 0.3, 0.7 }, { "Giant", 0.5, 0.85 }, { "Giant", 0.7 }, { "Giant", 0.85, 1.1 }, { "Boss", 1 } } },
 	-- 6e territoire
 	{ gold = 315, seconds = 140, health = 302, gap = { 1.0, 0.27 }, from = { Fast = 0.1, Swarm = 0.1, Tank = 0.12 }, specials = { { "Giant", 0.25, 0.7 }, { "Giant", 0.45, 0.85 }, { "Giant", 0.65 }, { "Giant", 0.85, 1.1 } } },
 	{ gold = 320, seconds = 145, health = 302, gap = { 1.0, 0.27 }, from = { Fast = 0.1, Swarm = 0.1, Tank = 0.12 }, specials = { { "Giant", 0.2, 0.7 }, { "Giant", 0.4, 0.85 }, { "Giant", 0.6 }, { "Giant", 0.8, 1.2 } } },
@@ -1135,39 +1158,98 @@ end
 ----------------------------------------------------------------------
 Levels.STARTING_TOWERS = { "MachineGun" }
 
--- BARRE RAPIDE : les BAR_MAX premières tours de la liste du joueur (Levels.ownedTowers, dans l'ordre qu'il choisit
--- dans l'onglet « Mes tours ») sont celles qu'il peut poser dans un niveau (touches 1 à 8 du clavier) ; les autres
--- attendent en RÉSERVE. Avec les œufs, un joueur peut avoir 20 tours : une barre de 20 boutons ne tiendrait pas sur un
--- téléphone. 8 = toutes les tours d'avant les œufs : rien ne change pour un joueur sans tour de palier 2.
-Levels.BAR_MAX = 8
+-- LA BARRE DE TOURS : UNE TOUR PAR RARETÉ. Retour du propriétaire (05/10/2026) : « les niveaux sont beaucoup trop
+-- simples, ma copine est allée au niveau 30 sans être bloquée ; elle m'a dit qu'on devrait limiter le nombre de
+-- tours, exemple tu pars avec une légendaire, une de boss, une rare, une commune : ça te demande de faire des
+-- choix », puis ses réponses à mes questions : « 1 par rareté : 5 tours », choisies « dans Mes tours », et une
+-- difficulté « dur partout » (les PV des niveaux : DEFINITIONS, réglés avec cette règle).
+-- Dans un niveau, on ne pose que les tours de sa BARRE : UNE tour par rareté (BAR_RARITIES : commune, rare, épique,
+-- légendaire, spéciale), 5 au plus (touches 1 à 5 du clavier). Une tour de palier 2 a la rareté de sa tour de base :
+-- il faut choisir entre l'Archer et le Totem (communes), la Catapulte et le Mage (rares), la Baliste et le Sorcier
+-- (épiques), l'Oracle et le Trébuchet (légendaires), et entre les tours spéciales. Une place reste vide tant que le
+-- joueur n'a aucune tour de cette rareté. Les autres tours attendent en RÉSERVE.
+-- La liste du joueur (data.bar, Levels.ownedTowers) garde l'ordre qu'il a choisi : sa barre = sa PREMIÈRE tour de
+-- chaque rareté dans cette liste (rien à convertir dans les sauvegardes d'avant, où les 8 premières tours formaient
+-- la barre). Choisir une tour dans l'onglet « Mes tours » (Levels.chooseTower) la place devant les autres tours de
+-- sa rareté.
+Levels.BAR_RARITIES = { "Common", "Rare", "Epic", "Legendary", "Special" }
+Levels.BAR_MAX = #Levels.BAR_RARITIES
 
--- Tours de sa barre rapide, celles qu'il peut poser dans un niveau : { [type] = true }.
+-- La rareté d'une tour ("Common", "Rare", "Epic", "Legendary", "Special") : sa place dans la barre.
+function Levels.rarityOf(towerType: string): string
+	local def = IdleTowers.Defs[towerType]
+	return if def then def.rarity else "Common"
+end
+
+-- La barre tirée d'une liste de tours dans l'ordre du joueur : la première de chaque rareté, rendues dans l'ordre
+-- des raretés (celui des boutons de la barre d'un niveau).
+function Levels.barOfList(list: { string }): { string }
+	local first = {}
+	for _, towerType in list do
+		local rarity = Levels.rarityOf(towerType)
+		if first[rarity] == nil then
+			first[rarity] = towerType
+		end
+	end
+	local bar = {}
+	for _, rarity in Levels.BAR_RARITIES do
+		if first[rarity] then
+			table.insert(bar, first[rarity])
+		end
+	end
+	return bar
+end
+
+-- La barre du joueur : ses tours pour les niveaux, dans l'ordre des raretés.
+function Levels.barList(data): { string }
+	return Levels.barOfList(Levels.ownedTowers(data))
+end
+
+-- Tours de sa barre, celles qu'il peut poser dans un niveau : { [type] = true }.
 function Levels.barTowers(data): { [string]: boolean }
 	local set = {}
-	for index, towerType in Levels.ownedTowers(data) do
-		if index > Levels.BAR_MAX then
-			break
-		end
+	for _, towerType in Levels.barList(data) do
 		set[towerType] = true
 	end
 	return set
 end
 
--- Une NOUVELLE tour pour le joueur (sortie d'un œuf) : elle est à lui et entre dans sa barre rapide :
---   * une tour de palier 2 prend la place de sa tour de base si celle-ci est dans la barre (la tour de base passe à la
---     fin de la liste : en réserve si la barre est pleine) ;
---   * sinon, à la fin de la barre, ou à sa dernière place si la barre est pleine (la tour qui y était passe en
---     réserve).
+-- Met cette tour dans la barre, à la place de celle de sa rareté (qui passe en réserve, juste derrière elle). Faux si
+-- elle n'est pas à lui.
+function Levels.chooseTower(data, towerType: string): boolean
+	if not IdleTowers.Defs[towerType] or not data.towers[towerType] then
+		return false
+	end
+	local list = Levels.ownedTowers(data)
+	table.remove(list, table.find(list, towerType))
+	local rarity = Levels.rarityOf(towerType)
+	local position = #list + 1
+	for index, other in list do
+		if Levels.rarityOf(other) == rarity then
+			position = index
+			break
+		end
+	end
+	table.insert(list, position, towerType)
+	data.bar = list
+	return true
+end
+
+-- Une NOUVELLE tour pour le joueur (sortie d'un œuf) : elle est à lui. Elle entre dans sa barre :
+--   * si c'est la version de palier 2 de la tour qui y est (elle prend sa place : juste devant sa tour de base dans
+--     la liste) ;
+--   * ou si sa rareté n'y avait encore personne (elle arrive à la fin de la liste : la première de sa rareté).
+-- Sinon elle attend en réserve : le joueur la choisit dans « Mes tours » s'il la préfère (une tour de palier 2 se range
+-- quand même devant sa tour de base).
 function Levels.addTower(data, towerType: string)
 	local list = Levels.ownedTowers(data)
 	data.towers[towerType] = true
 	local baseType = IdleTowers.baseOf(towerType)
 	local baseIndex = if baseType ~= towerType then table.find(list, baseType) else nil
-	if baseIndex and baseIndex <= Levels.BAR_MAX then
-		list[baseIndex] = towerType
-		table.insert(list, baseType)
+	if baseIndex then
+		table.insert(list, baseIndex, towerType)
 	else
-		table.insert(list, math.min(#list + 1, Levels.BAR_MAX), towerType)
+		table.insert(list, towerType)
 	end
 	data.bar = list
 end
@@ -1659,7 +1741,7 @@ function Levels.rollEgg(eggType: string, roll: number): string
 	return list[#list].tower
 end
 
--- Une tour sort d'un œuf : nouvelle, elle est au joueur (Levels.addTower : dans sa barre rapide) ; doublon :
+-- Une tour sort d'un œuf : nouvelle, elle est au joueur (Levels.addTower : dans sa barre ou en réserve) ; doublon :
 -- DUPLICATE_XP d'XP d'entraînement pour elle, fois `multiplier` (pass XP x2). Renvoie (nouvelle, XP gagnée).
 function Levels.hatchTower(levels, towerType: string, multiplier: number?): (boolean, number)
 	if not levels.towers[towerType] then
@@ -1831,7 +1913,7 @@ function Levels.defaultData()
 		xp = {}, -- [type] = XP d'entraînement
 		slots = { { tower = Levels.STARTING_TOWERS[1], level = 1 } }, -- emplacements du camp (tower = "" : vide)
 		trainedAt = 0, -- os.time() du dernier calcul de l'entraînement (0 = jamais)
-		bar = table.clone(Levels.STARTING_TOWERS), -- tours de la barre rapide, dans l'ordre
+		bar = table.clone(Levels.STARTING_TOWERS), -- ses tours, dans son ordre (sa barre : la première de chaque rareté)
 		wins = 0,
 		losses = 0,
 		tutorial = 0, -- étape du tuto (Levels.TUTORIAL) : 0 = nouveau joueur
@@ -1993,9 +2075,9 @@ function Levels.trainingLevels(data): { [string]: number }
 	return levels
 end
 
--- Tours de la barre rapide et de l'inventaire, dans l'ordre : d'abord la barre du joueur, puis ses autres tours
--- (ordre de IdleTowers.ORDER). Les BAR_MAX premières peuvent être posées dans un niveau (Levels.barTowers), les
--- autres sont en réserve.
+-- Toutes les tours du joueur, dans l'ordre qu'il a choisi (data.bar), puis ses autres tours (ordre de
+-- IdleTowers.ORDER). Sa barre pour les niveaux : la première de chaque rareté (Levels.barList, « LA BARRE DE TOURS ») ;
+-- les autres sont en réserve.
 function Levels.ownedTowers(data): { string }
 	local list, seen = {}, {}
 	for _, towerType in data.bar do

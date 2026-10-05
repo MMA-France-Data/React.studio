@@ -6,11 +6,15 @@
 --   Actif         = les tours attendues à ce niveau, un joueur qui dépense son or tout de suite : il doit GAGNER ;
 --   Référence     = les mêmes tours, un achat toutes les `pace` secondes (Bot.EXPECTED : le rythme demandé par le
 --                   niveau, 5 s au niveau 1, 3 s au niveau 10) : il doit GAGNER, de peu ;
---   Lent          = les mêmes tours, un achat toutes les 8 s : il doit PERDRE (sinon on peut attendre) ;
+--   Lent          = les mêmes tours, un achat toutes les 8 s : il doit PERDRE dans le 1er territoire (sinon on peut
+--                   attendre) ; à partir du niveau 11 (la barre : une tour par rareté, « dur partout »), les tours
+--                   attendues sont entraînées un cran de plus que celles du joueur qui arrive : avec elles, le joueur
+--                   lent gagne certains niveaux (tests.luau vérifie qu'il perd sans cet entraînement) ;
 --   Distrait      = un achat toutes les 15 s : il doit PERDRE tôt ;
 --   Sans œuf      = seulement l'Archer et la Catapulte (aucune chance aux œufs), joueur actif : dit à partir de quand
 --                   les tours des œufs deviennent nécessaires ;
---   Tout entr.6   = toutes les tours, entraînées à fond, joueur actif : la récompense de celui qui a tout débloqué.
+--   Tout entr.6   = la meilleure barre (Bot.FULL_BAR : 5 tours, une par rareté), entraînée à fond, joueur actif : la
+--                   récompense de celui qui a tout débloqué.
 -- (Les joueurs qui posent quelques tours puis attendent : run.ps1 -Lazy.)
 --   luau sim.luau -a "regler=Levels.DEFINITIONS.3.health=20;Levels.DEFINITIONS.3.gap.2=0.45"   (essai de réglages)
 local Levels = require("./gen/shared/Levels")
@@ -36,7 +40,7 @@ local COLUMNS = {
 		return { towers = Bot.NO_EGG_TOWERS, training = 0 }
 	end },
 	{ name = "Tout entr.6", make = function()
-		return { towers = Bot.ALL_TOWERS, training = 6 }
+		return { towers = Bot.FULL_BAR, training = 6 }
 	end },
 }
 

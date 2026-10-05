@@ -12,7 +12,7 @@
 --     suivant débloqué, XP d'entraînement des tours qu'il a posées ;
 --   * LES AMIS (Levels.luau) : amis Roblox sur le serveur (attribut « FriendsHere »), récompenses d'invitation (un
 --     ami venu grâce à une invitation : pour lui et pour celui qui l'a invité, tout de suite ou à son retour) ;
---   * les œufs et les couveuses, le camp d'entraînement (emplacements), l'ordre de la barre rapide ;
+--   * les œufs et les couveuses, le camp d'entraînement (emplacements), la barre de tours (une par rareté) ;
 --   * LES ŒUFS (Levels.luau) : un œuf gagné à chaque victoire, les couveuses (poser, ouvrir, finir tout de suite,
 --     acheter ; la couveuse royale), la tour sortie (attribut « Hatch » du joueur) ;
 --   * les effets des ACHATS EN ROBUX (Hub/Shop.luau) : couveuse royale (2 fois plus rapide), XP x2, argent x2, et
@@ -146,7 +146,7 @@ local function publish(player: Player)
 	player:SetAttribute("LevelsState", HttpService:JSONEncode({
 		best = levels.best,
 		coins = levels.coins,
-		towers = Levels.ownedTowers(levels), -- tours débloquées, dans l'ordre de la barre rapide
+		towers = Levels.ownedTowers(levels), -- ses tours, dans son ordre : sa barre = la première de chaque rareté
 		xp = xp,
 		slots = levels.slots,
 		wins = levels.wins,
@@ -345,6 +345,21 @@ local hatchCount = 0 -- n° de la dernière ouverture (attribut « Hatch » : le
 local forcedHatch = {} -- [joueur] = tour qui sortira du prochain œuf (tests Studio : debug « EggForce »)
 -- [joueur] = vrai / faux : le prochain tirage de l'œuf spécial d'un boss rejoué (tests Studio : debug « BonusForce »)
 local forcedBonus = {}
+-- [joueur] = vrai : dans un niveau, il peut poser TOUTES ses tours, pas seulement sa barre (tests Studio et captures de
+-- la page : debug « FreeBar » ; jamais dans le jeu publié)
+local freeBar = {}
+
+-- Les tours qu'un joueur peut poser dans un niveau : sa barre, une tour par rareté (Levels.barTowers).
+local function placeable(player, levels): { [string]: boolean }
+	if freeBar[player] then
+		local all = {}
+		for _, towerType in Levels.ownedTowers(levels) do
+			all[towerType] = true
+		end
+		return all
+	end
+	return Levels.barTowers(levels)
+end
 
 -- La tour `tower` sort de l'œuf `eggType` : nouvelle (Levels.addTower) ou doublon (XP d'entraînement). Le résultat part
 -- dans l'attribut « Hatch » du joueur : son écran le montre. Une nouvelle tour finit le tuto (sa dernière étape :
@@ -358,7 +373,9 @@ local function hatchEgg(player, levels, eggType: string, tower: string)
 		end
 	end
 	hatchCount += 1
-	player:SetAttribute("Hatch", HttpService:JSONEncode({ n = hatchCount, egg = eggType, tower = tower, new = isNew, xp = xp }))
+	-- (bar : la tour est dans sa barre de tours ; sinon elle attend en réserve, il la choisit dans « Mes tours »)
+	local inBar = Levels.barTowers(levels)[tower] == true
+	player:SetAttribute("Hatch", HttpService:JSONEncode({ n = hatchCount, egg = eggType, tower = tower, new = isNew, xp = xp, bar = inBar }))
 	print(`[Niveaux] {player.Name} : {eggType} ouvert -> {tower} ({if isNew then "nouvelle" else `doublon, +{xp} XP`})`)
 end
 
@@ -636,12 +653,12 @@ local function startLevel(player: Player, level: any): (boolean, string?)
 	local others = {}
 	for index = 2, #group do
 		local data = levelsOf(group[index])
-		table.insert(others, { player = group[index], unlocked = Levels.barTowers(data), training = Levels.trainingLevels(data) })
+		table.insert(others, { player = group[index], unlocked = placeable(group[index], data), training = Levels.trainingLevels(data) })
 	end
 	local match = { slot = slot, players = group, syncTimer = 0, shotsTimer = 0 }
 	match.game = LevelGame.new(arena, player, {
 		level = level,
-		unlocked = Levels.barTowers(levels), -- (les tours de sa barre rapide : les autres sont en réserve)
+		unlocked = placeable(player, levels), -- (les tours de sa barre, une par rareté : les autres sont en réserve)
 		training = Levels.trainingLevels(levels),
 		startingTower = level == 1 and #group == 1,
 		team = others,
@@ -802,7 +819,7 @@ local function buyHatcher(player, levels): (boolean, string?)
 end
 
 ----------------------------------------------------------------------
--- Camp d'entraînement, barre rapide (plus de boutique : les tours sortent des œufs)
+-- Camp d'entraînement, barre de tours (plus de boutique : les tours sortent des œufs)
 ----------------------------------------------------------------------
 
 -- Met la tour `towerType` dans l'emplacement du camp ("" = le vider). Une tour ne s'entraîne que dans un seul
@@ -874,24 +891,11 @@ local function buyTraining(levels, towerType: any): (boolean, string?)
 	return true, nil
 end
 
--- Ordre de la barre rapide : la liste du joueur (tours à lui, sans doublon), puis ses autres tours.
-local function setBar(levels, list: any): (boolean, string?)
-	if typeof(list) ~= "table" then
+-- « Mes tours » : cette tour entre dans sa barre de tours, à la place de celle de sa rareté (Levels.chooseTower).
+local function chooseTower(levels, towerType: any): (boolean, string?)
+	if typeof(towerType) ~= "string" or not Levels.chooseTower(levels, towerType) then
 		return false, nil
 	end
-	local bar, seen = {}, {}
-	for index = 1, math.min(#list, #IdleTowers.ORDER) do
-		local towerType = list[index]
-		if typeof(towerType) == "string" and levels.towers[towerType] and not seen[towerType] then
-			seen[towerType] = true
-			table.insert(bar, towerType)
-		end
-	end
-	if #bar == 0 then
-		return false, nil
-	end
-	levels.bar = bar
-	levels.bar = Levels.ownedTowers(levels)
 	return true, nil
 end
 
@@ -943,8 +947,12 @@ local function handle(player: Player, action: any, a: any, b: any, c: any): (boo
 	elseif action == "TrainBuy" then
 		train(player)
 		ok, reason = buyTraining(levels, a)
-	elseif action == "Bar" then
-		ok, reason = setBar(levels, a)
+	elseif action == "Choose" then
+		-- (pendant un niveau, sa barre reste celle du départ : elle se change au camp)
+		if sessions[player] then
+			return false, "Ta barre de tours se change au camp, pas pendant un niveau"
+		end
+		ok, reason = chooseTower(levels, a)
 	elseif action == "EggStart" then
 		ok, reason = startEgg(player, levels, a, b)
 	elseif action == "EggOpen" then
@@ -1076,6 +1084,7 @@ function LevelsService.start(plots)
 			lastAction[player] = nil
 			lastOfKind[player] = nil
 			lastSave[player] = nil
+			freeBar[player] = nil
 			LevelTeams.removePlayer(player)
 			forgetFriends(player)
 			Shop.removePlayer(player)
@@ -1182,6 +1191,8 @@ end
 --   Invoke(player, "Levels", "InvitePending", 9) -> l'ami 9 est venu grâce au joueur pendant son absence (noté)
 --   Invoke(player, "Levels", "Egg", "Rare", 2)    -> 2 œufs rares de plus dans sa réserve ; renvoie la réserve
 --   Invoke(player, "Levels", "EggForce", "Laser") -> le prochain œuf ouvert donnera cette tour
+--   Invoke(player, "Levels", "FreeBar", true)  -> dans ses prochains niveaux, il peut poser TOUTES ses tours, pas
+--                                                   seulement sa barre (captures de la page, tests) ; false : la règle
 --   Invoke(player, "Levels", "BonusForce", true) -> le prochain boss de territoire REJOUÉ et gagné donnera (true) ou
 --                                                   pas (false) son œuf spécial ; rien = au hasard (1 fois sur 10)
 --   Invoke(player, "Levels", "InviteClaim")      -> le joueur prend ses récompenses d'invitation en attente ;
@@ -1308,6 +1319,9 @@ function LevelsService.debug(player: Player, command: string, ...)
 		end
 		publish(player)
 		return table.clone(levels.eggs)
+	elseif command == "FreeBar" then
+		freeBar[player] = if ... == true then true else nil
+		return freeBar[player] == true
 	elseif command == "EggForce" then
 		forcedHatch[player] = if IdleTowers.Defs[...] then ... else nil
 		return forcedHatch[player]

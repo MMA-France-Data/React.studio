@@ -749,10 +749,23 @@ return function(log)
 	)
 
 	------------------------------------------------------------------
-	-- Barre rapide, entraînement dans un niveau
+	-- La barre de tours (UNE tour par rareté : « LA BARRE DE TOURS », Levels.luau), entraînement dans un niveau
 	------------------------------------------------------------------
-	check(action("Bar", { "Frost", "MachineGun" }) == true and table.concat(published().towers, ",") == "Frost,MachineGun,Bomb", "barre rapide : nouvel ordre gardé (Totem, Archer, puis le reste)")
-	check(action("Bar", { "Dragon" }) == false and action("Bar", "Frost") == false and published().towers[1] == "Frost", "barre rapide : liste invalide refusée")
+	-- (ses tours : l'Archer et le Totem, deux communes, et la Catapulte, rare)
+	local barBefore = Levels.barOfList(published().towers)
+	check(
+		table.concat(barBefore, ",") == "MachineGun,Bomb" and #published().towers == 3,
+		`barre : une tour par rareté ({table.concat(barBefore, ", ")}) ; le Totem, 2e commune, attend en réserve`
+	)
+	check(
+		action("Choose", "Frost") == true and table.concat(published().towers, ",") == "Frost,MachineGun,Bomb"
+			and table.concat(Levels.barOfList(published().towers), ",") == "Frost,Bomb",
+		"« Choisir » le Totem : il passe devant l'Archer et prend sa place dans la barre"
+	)
+	check(
+		action("Choose", "Dragon") == false and action("Choose", { "Frost" }) == false and action("Choose", "Orbital") == false and published().towers[1] == "Frost",
+		"« Choisir » : une tour inconnue, une demande abîmée ou une tour pas à lui sont refusées"
+	)
 	levels("Set", "xp", { MachineGun = 60, Frost = 0 })
 	action("Start", 1)
 	check(
@@ -760,8 +773,16 @@ return function(log)
 		`Archer à l'entraînement 2 : son entraînement est publié dans le niveau (« {tostring(arena:GetAttribute("Training"))} » ; plus d'effets à débloquer)`
 	)
 	levels("Gold", 100)
-	check(action("Place", "Frost", -1, 0) == true and levels("State").active.gold == 160 - Levels.placeCost("Frost"), "le Totem (sorti d'un œuf) se pose dans le niveau (40 or)")
+	check(action("Place", "Frost", -1, 0) == true and levels("State").active.gold == 160 - Levels.placeCost("Frost"), "le Totem (sorti d'un œuf, choisi dans sa barre) se pose dans le niveau (40 or)")
+	local archerOk, archerReason = action("Place", "MachineGun", 21, 0)
+	local chooseOk, chooseReason = action("Choose", "MachineGun")
+	check(
+		archerOk == false and string.find(tostring(archerReason), "barre", 1, true) ~= nil and chooseOk == false
+			and chooseReason == "Ta barre de tours se change au camp, pas pendant un niveau",
+		`l'Archer, passé en réserve, ne se pose plus (« {tostring(archerReason)} ») ; la barre ne se change pas pendant un niveau (« {tostring(chooseReason)} »)`
+	)
 	action("Quit")
+	check(action("Choose", "MachineGun") == true and table.concat(published().towers, ",") == "MachineGun,Frost,Bomb", "au camp : l'Archer reprend sa place dans la barre")
 
 	------------------------------------------------------------------
 	-- 2e territoire (niveaux 11 à 20). Demande du propriétaire (02/10/2026) : « ajoute des niveaux ».
@@ -794,7 +815,8 @@ return function(log)
 			`col : le premier emplacement de la vallée est sur le chemin (« {tostring(onPathReason)} »), le premier emplacement du col est libre`
 		)
 		levels("Gold", 4000)
-		for index, towerType in { "MachineGun", "MachineGun", "MachineGun", "Bomb", "Frost", "Bomb", "Tesla", "Rocket", "Rocket", "MachineGun", "Bomb" } do
+		-- (sa barre : l'Archer, la Catapulte, la Baliste lourde : 5, 4 et 3 exemplaires au plus)
+		for index, towerType in { "MachineGun", "MachineGun", "MachineGun", "Bomb", "Bomb", "Bomb", "Rocket", "Rocket", "Rocket", "MachineGun", "Bomb" } do
 			action("Place", towerType, passSpots[index + 1].X, passSpots[index + 1].Z)
 		end
 		for _, model in towers() do
@@ -875,7 +897,8 @@ return function(log)
 			-- Les 12 emplacements conseillés de cette carte sont tous posables, même tous occupés.
 			local spots = Levels.MAPS[case.map].spots
 			levels("Gold", 6000)
-			for index, towerType in { "MachineGun", "MachineGun", "Laser", "Bomb", "Frost", "Rocket", "Chain", "Tesla", "Rocket", "MachineGun", "Bomb", "Laser" } do
+			-- (sa barre : l'Archer, la Catapulte, la Baliste lourde, l'Oracle : une tour par rareté)
+			for index, towerType in { "MachineGun", "MachineGun", "Rocket", "Bomb", "MachineGun", "Rocket", "Chain", "Bomb", "Rocket", "MachineGun", "Bomb", "Chain" } do
 				action("Place", towerType, spots[index].X, spots[index].Z)
 			end
 			for _, model in towers() do

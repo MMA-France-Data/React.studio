@@ -57,7 +57,7 @@ for level = 1, Levels.COUNT do
 	end
 	-- Le joueur simulé n'est pas parfaitement régulier (un peu plus de PV peut, par hasard, mieux lui réussir) : une
 	-- grille grossière (x1,3) encadre d'abord, puis une grille fine (x1,06) garde les PV les plus hauts où il gagne
-	-- aussi au pas d'avant.
+	-- aussi au pas d'avant ; une dernière passe, par pas de 2 %, précise ce chiffre (voir plus bas).
 	local coarse, lastWin, misses = {}, nil, 0
 	local value = 20
 	while value <= 2500 do
@@ -87,6 +87,21 @@ for level = 1, Levels.COUNT do
 			previous = wins
 			value *= 1.06
 		end
+		-- Dernière passe, par pas de 2 % (de -2 % à +20 % autour de ce chiffre) : les PV les plus hauts où il gagne, à ce
+		-- pas et au pas du dessous. Les niveaux à gros monstres basculent d'un coup (un colosse passe ou ne passe pas) :
+		-- entre « tout le monde gagne » et « personne ne gagne », il n'y a parfois que 5 % de PV ; un pas de 6 % donnait
+		-- des niveaux voisins de difficulté très inégale.
+		local start = health
+		local fine = {}
+		for step = -1, 10 do
+			fine[step] = winsAt(math.floor(start * 1.02 ^ step + 0.5))
+		end
+		for step = 10, 0, -1 do
+			if fine[step] and fine[step - 1] then
+				health = math.floor(start * 1.02 ^ step + 0.5)
+				break
+			end
+		end
 	end
 	source.health = health
 	found[level] = health
@@ -101,7 +116,7 @@ for level = 1, Levels.COUNT do
 	local slow = Bot.play(level, Bot.profile(level, 8))
 	local distracted = Bot.play(level, Bot.profile(level, 15))
 	local noEgg = Bot.play(level, { towers = Bot.NO_EGG_TOWERS, training = 0 })
-	local everything = Bot.play(level, { towers = Bot.ALL_TOWERS, training = 6 })
+	local everything = Bot.play(level, { towers = Bot.FULL_BAR, training = 6 })
 	-- Achats du joueur actif : chaque tour posée et chaque amélioration compte pour un.
 	local purchases = active.levels - (if level == 1 then 1 else 0)
 	print(string.format(

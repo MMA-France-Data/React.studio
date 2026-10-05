@@ -19,6 +19,10 @@ return function(log)
 		return dbg:Invoke(player, "Levels", ...)
 	end
 
+	-- Les plans du tournage et les images de la page posent plus de sortes de tours qu'une barre (une par rareté,
+	-- « LA BARRE DE TOURS », Levels.luau) : la règle est levée pour ce joueur, dans Studio seulement.
+	levels("FreeBar", true)
+
 	local remote = Instance.new("RemoteFunction")
 	remote.Name = "__VideoTest"
 	remote.OnServerInvoke = function(who, command, a, b)

@@ -224,7 +224,10 @@ do
 		averages[territory] = total / Levels.TERRITORY_SIZE
 		bosses[territory] = bossHealth(territory * Levels.TERRITORY_SIZE)
 		if territory > 1 and (territory - 1) * Levels.TERRITORY_SIZE < Levels.OPEN_COUNT then
-			harder = harder and averages[territory] > averages[territory - 1] and bosses[territory] > bosses[territory - 1]
+			-- (les PV du boss : comparés jusqu'au 3e territoire seulement. À partir du 4e, les niveaux sont réglés pour le
+			-- joueur SANS tour épique de palier 2 (Bot.EXPECTED, « LA CHANCE »), et le boss du niveau 40 arrive après quatre
+			-- colosses : il a moins de PV que celui du niveau 30, pour un niveau plus dur en tout.)
+			harder = harder and averages[territory] > averages[territory - 1] and (territory > 3 or bosses[territory] > bosses[territory - 1])
 		end
 	end
 	local shown, shownBosses = {}, {}
@@ -474,7 +477,7 @@ check(Levels.cleanData(nil).best == 0 and Levels.cleanData("x").towers.MachineGu
 local kept = Levels.cleanData({ coins = 100, towers = { MachineGun = true, Frost = true, Bomb = true, Tesla = true } })
 check(kept.coins == 100 and kept.towers.Frost == true and kept.towers.Tesla == true and Levels.cleanData(Levels.defaultData()).coins == 0, "sauvegarde relue : pièces et tours gardées telles quelles")
 local owned = Levels.ownedTowers({ bar = { "Bomb", "MachineGun" }, towers = { MachineGun = true, Bomb = true, Frost = true, Orbital = true } })
-check(table.concat(owned, ",") == "Bomb,MachineGun,Frost,Orbital", "barre rapide : l'ordre du joueur, puis ses autres tours")
+check(table.concat(owned, ",") == "Bomb,MachineGun,Frost,Orbital", "ses tours : l'ordre du joueur, puis ses autres tours")
 
 local camp = Levels.defaultData()
 check(next(Levels.accrueTraining(camp, 1000)) == nil and camp.trainedAt == 1000 and camp.xp.MachineGun == nil, "entraînement : la première fois, l'heure est seulement notée")
@@ -623,36 +626,84 @@ do
 end
 
 ----------------------------------------------------------------------
--- 7) La difficulté. Retour du propriétaire (02/10/2026) : « beaucoup trop facile », « obligé d'être super actif
+-- 7) La difficulté. Retours du propriétaire : (02/10/2026) « beaucoup trop facile », « obligé d'être super actif
 --    pendant le niveau : poser des tours, améliorer », « si juste 2 Archers gèrent le niveau, je passe mon temps
---    à attendre ». Chaque niveau, joué par les joueurs simulés (Bot.luau) avec les tours attendues à ce niveau.
+--    à attendre » ; (05/10/2026) « les niveaux sont beaucoup trop simples, ma copine est allée au niveau 30 sans
+--    être bloquée » : la BARRE (une tour par rareté) et « DUR PARTOUT » à partir du niveau 11.
+--    Chaque niveau, joué par les joueurs simulés (Bot.luau) avec la barre attendue à ce niveau (Bot.EXPECTED).
 ----------------------------------------------------------------------
 local function outcome(result): string
 	return if result.won then `gagné avec {result.lives} vies` else `perdu à {math.floor(result.kills / result.total * 100 + 0.5)} %`
 end
+-- Le joueur qui ARRIVE à ce niveau pour la première fois, à partir du niveau 11 : la même barre, mais des tours
+-- entraînées comme ses parties le donnent, sans plus (Bot.EXPECTED en compte un cran de plus, deux à partir du
+-- niveau 31 : Bot.extraTraining). pace : voir Bot.profile.
+local function arriving(level: number, pace: (number | string)?)
+	local profile = Bot.profile(level, pace)
+	local extra = Bot.extraTraining(level)
+	if extra == 0 then
+		return profile
+	end
+	local trainings = {}
+	for _, towerType in profile.towers do
+		local trained = (profile.trainings and profile.trainings[towerType]) or profile.training or 0
+		trainings[towerType] = math.max(0, trained - extra)
+	end
+	profile.trainings = trainings
+	return profile
+end
+local arrivals = { count = 0, lost = 0, easy = 0, list = {} }
 for level = 1, Levels.OPEN_COUNT do
-	-- Celui qui réinvestit son or sans arrêt gagne, avec presque toutes ses vies.
+	local first = level <= Levels.TERRITORY_SIZE -- (le 1er territoire : celui des débuts, pas touché par « dur partout »)
+	-- La barre attendue respecte la règle : une tour par rareté.
+	check(#Levels.barOfList(Bot.EXPECTED[level].towers) == #Bot.EXPECTED[level].towers, `niveau {level} : la barre attendue a une seule tour par rareté ({table.concat(Bot.EXPECTED[level].towers, ", ")})`)
+	-- Celui qui réinvestit son or sans arrêt gagne (1er territoire : avec presque toutes ses vies).
+	local activeLives = if first then 8 else 5
 	local active = Bot.play(level, Bot.profile(level), function(result)
-		return result.won and result.lives >= 8
+		return result.won and result.lives >= activeLives
 	end)
-	check(active.won and active.lives >= 8, `niveau {level} : le joueur très actif gagne avec au moins 8 vies ({outcome(active)})`)
+	check(active.won and active.lives >= activeLives, `niveau {level} : le joueur très actif gagne avec au moins {activeLives} vies ({outcome(active)})`)
 	-- Le rythme demandé (Bot.EXPECTED : un achat toutes les 5 s au niveau 1, toutes les 3,5 s à la fin) suffit.
 	local reference = Bot.play(level, Bot.profile(level, "reference"), function(result)
 		return result.won and result.lives >= 5
 	end)
 	check(reference.won and reference.lives >= 5, `niveau {level} : un achat toutes les {Bot.EXPECTED[level].pace} s suffit ({outcome(reference)})`)
-	-- Plus lent que ça, on perd : un achat toutes les 8 s, toutes les 15 s.
-	local slow = Bot.play(level, Bot.profile(level, 8))
-	check(not slow.won, `niveau {level} : un achat toutes les 8 s ne suffit pas ({outcome(slow)})`)
+	-- Plus lent que ça, on perd : un achat toutes les 8 s (à partir du niveau 11 : celui qui n'a pas entraîné ses tours ;
+	-- avec une barre de 3 ou 4 sortes de tours, il y a moins d'achats à faire qu'avant, et des tours bien entraînées
+	-- pardonnent un rythme plus lent), toutes les 15 s (même avec des tours entraînées).
+	local slow = Bot.play(level, arriving(level, 8))
+	check(not slow.won, `niveau {level} : un achat toutes les 8 s ne suffit pas{if first then "" else " à celui qui arrive"} ({outcome(slow)})`)
 	local distracted = Bot.play(level, Bot.profile(level, 15))
-	check(not distracted.won and distracted.kills <= slow.kills, `niveau {level} : un achat toutes les 15 s perd encore plus tôt ({outcome(distracted)})`)
+	check(
+		not distracted.won and (not first or distracted.kills <= slow.kills),
+		`niveau {level} : un achat toutes les 15 s perd{if first then " encore plus tôt" else ", même avec des tours entraînées"} ({outcome(distracted)})`
+	)
+	-- « Dur partout » : celui qui arrive (au rythme demandé) ; le bilan est vérifié après la boucle.
+	if not first then
+		local arrival = Bot.play(level, arriving(level, "reference"))
+		arrivals.count += 1
+		arrivals.lost += if arrival.won then 0 else 1
+		arrivals.easy += if arrival.won and arrival.lives >= 8 then 1 else 0
+		table.insert(arrivals.list, `{level}:{if arrival.won then arrival.lives .. " vies" else "perdu"}`)
+	end
 	-- Poser quelques tours puis attendre : toujours perdu, et de plus en plus tard quand on en pose plus.
 	local two = Bot.playLazy(level, { "MachineGun", "MachineGun" })
 	local six = Bot.playLazy(level, { "MachineGun", "MachineGun", "Bomb", "MachineGun", "MachineGun", "Bomb" })
 	check(not two.won and two.kills / two.total < 0.3, `niveau {level} : 2 Archers puis attendre : {outcome(two)} (avant 30 %)`)
 	check(not six.won and six.kills > two.kills and six.kills / six.total < 0.6, `niveau {level} : 4 Archers et 2 Catapultes sans rien améliorer : {outcome(six)} (plus tard, avant 60 %)`)
 	-- Les premières secondes laissent le temps de poser ses premières tours : celui qui attend tient un moment.
-	check(two.seconds >= 35, `niveau {level} : celui qui pose 2 Archers puis attend tient au moins 35 s ({math.floor(two.seconds)} s)`)
+	local calm = if first then 35 else 30
+	check(two.seconds >= calm, `niveau {level} : celui qui pose 2 Archers puis attend tient au moins {calm} s ({math.floor(two.seconds)} s)`)
+end
+if arrivals.count > 0 then
+	-- « DUR PARTOUT » (choix du propriétaire, 05/10/2026) : avec la meilleure barre mais sans avoir entraîné ses tours en
+	-- plus, celui qui arrive à un niveau perd souvent (de peu) et ne gagne presque jamais facilement : il rejoue d'anciens
+	-- niveaux, laisse ses tours au camp ou cherche de meilleures tours. Avec un cran d'entraînement de plus, il gagne
+	-- partout (vérifié plus haut : « un achat toutes les 3,5 s suffit »).
+	check(
+		arrivals.lost >= arrivals.count * 0.4 and arrivals.easy <= arrivals.count * 0.1,
+		`dur partout, niveaux 11 à {Levels.OPEN_COUNT} : celui qui arrive sans entraînement en plus perd {arrivals.lost} niveaux sur {arrivals.count} (au moins 4 sur 10) et n'en gagne que {arrivals.easy} avec 8 vies ou plus (1 sur 10 au plus) : {table.concat(arrivals.list, ", ")}`
+	)
 end
 do
 	-- Les œufs (« LES ŒUFS ») : sans aucune chance (l'Archer et la Catapulte de l'œuf du niveau 1), le joueur très actif
@@ -674,29 +725,35 @@ do
 		firstOk and laterLost,
 		`sans chance aux œufs (l'Archer et la Catapulte) : les niveaux 1 à 10 se gagnent, les niveaux 11 à {Levels.OPEN_COUNT} non (gagnés quand même : {table.concat(beaten, ", ")})`
 	)
-	local function profileWithout(level: number, missing: { string })
+	-- La même barre au même entraînement, avec les tours de BASE à la place de celles de palier 2 (la Catapulte pour la
+	-- Catapulte de magma, le Mage pour l'Archimage, la Baliste lourde pour la Baliste du dragon).
+	local function profileTier1(level: number)
 		local profile = Bot.profile(level, "reference")
 		local towers = {}
 		for _, towerType in profile.towers do
-			if not table.find(missing, towerType) then
-				table.insert(towers, towerType)
-			end
+			table.insert(towers, IdleTowers.baseOf(towerType))
 		end
 		profile.towers = towers
 		return profile
 	end
-	local boss20 = Bot.play(20, Bot.profile(20, "reference"))
-	local boss20Without = Bot.play(20, profileWithout(20, { "MagmaCatapult" }))
-	check(boss20.won and not boss20Without.won, `boss du niveau 20 au rythme demandé : {outcome(boss20)} avec la Catapulte de magma, {outcome(boss20Without)} sans tour de palier 2`)
-	local boss30 = Bot.play(30, Bot.profile(30, "reference"))
-	local boss30Without = Bot.play(30, profileWithout(30, { "StormArchmage" }))
-	check(boss30.won and not boss30Without.won, `boss du niveau 30 : {outcome(boss30)} avec deux tours de palier 2, {outcome(boss30Without)} avec une seule`)
-	local boss40 = Bot.play(40, Bot.profile(40, "reference"))
-	local boss40Without = Bot.play(40, profileWithout(40, { "DragonBallista" }))
-	check(boss40.won and not boss40Without.won, `boss du niveau 40 : {outcome(boss40)} avec trois tours de palier 2, {outcome(boss40Without)} avec deux`)
-	local full = Bot.play(10, { towers = Bot.ALL_TOWERS, training = 6 })
-	local lastFull = Bot.play(Levels.OPEN_COUNT, { towers = Bot.ALL_TOWERS, training = 6 })
-	check(full.won and full.lives == 10 and lastFull.won and lastFull.lives == 10, `toutes les tours entraînées : les niveaux 10 et {Levels.OPEN_COUNT} gagnés sans perdre de vie ({outcome(lastFull)})`)
+	for _, level in { 20, 30, 40 } do
+		if level <= Levels.OPEN_COUNT then
+			local boss = Bot.play(level, Bot.profile(level, "reference"))
+			local tier1 = profileTier1(level)
+			local bossWithout = Bot.play(level, tier1)
+			check(
+				boss.won and not bossWithout.won,
+				`boss du niveau {level} au rythme demandé : {outcome(boss)} avec sa barre ({table.concat(Bot.EXPECTED[level].towers, ", ")}), {outcome(bossWithout)} sans tour de palier 2 ({table.concat(tier1.towers, ", ")})`
+			)
+		end
+	end
+	-- Celui qui a TOUT : une barre de tours de palier 2 avec une légendaire, entraînées à fond.
+	local full = Bot.play(10, { towers = Bot.FULL_BAR, training = 6 })
+	local lastFull = Bot.play(Levels.OPEN_COUNT, { towers = Bot.FULL_BAR, training = 6 })
+	check(
+		#Levels.barOfList(Bot.FULL_BAR) == Levels.BAR_MAX and full.won and full.lives == 10 and lastFull.won and lastFull.lives == 10,
+		`la meilleure barre (5 tours, une par rareté) entraînée à fond : les niveaux 10 et {Levels.OPEN_COUNT} gagnés sans perdre de vie ({outcome(lastFull)})`
+	)
 end
 
 do
@@ -1592,36 +1649,65 @@ do
 		"allure des œufs : un motif et une couleur de vignette pour chacun ; l'œuf doré, le plus rare, a une couronne et une vignette violettes, avec des rayons"
 	)
 
-	-- Barre rapide (Levels.BAR_MAX = 8) : une tour achetée arrive à la fin ; une tour de palier 2 prend la place de sa
-	-- tour de base, qui passe en réserve quand la barre est pleine.
+	-- LA BARRE DE TOURS (Levels.luau) : UNE tour par rareté, la première de chaque rareté dans la liste du joueur. Une
+	-- nouvelle tour arrive à la fin de sa liste : elle est dans la barre seulement si sa rareté n'y avait personne.
 	local data = Levels.defaultData()
 	for _, towerType in IdleTowers.TIER1 do
 		if not data.towers[towerType] then
 			Levels.addTower(data, towerType)
 		end
 	end
-	check(Levels.BAR_MAX == 8 and table.concat(Levels.ownedTowers(data), ",") == "MachineGun,Frost,Bomb,Tesla,Rocket,Laser,Chain,Orbital", "barre : une nouvelle tour arrive à la fin de la barre")
+	check(
+		Levels.BAR_MAX == 5 and table.concat(Levels.BAR_RARITIES, ",") == "Common,Rare,Epic,Legendary,Special"
+			and table.concat(Levels.ownedTowers(data), ",") == "MachineGun,Frost,Bomb,Tesla,Rocket,Laser,Chain,Orbital"
+			and table.concat(Levels.barList(data), ",") == "MachineGun,Bomb,Rocket,Chain",
+		"barre : une tour par rareté (5 au plus), la première de chaque rareté ; avec les 8 tours de palier 1 : l'Archer, la Catapulte, la Baliste, l'Oracle"
+	)
+	local rarityOk = true
+	for _, towerType in IdleTowers.ORDER do
+		rarityOk = rarityOk and table.find(Levels.BAR_RARITIES, Levels.rarityOf(towerType)) ~= nil
+			and Levels.rarityOf(towerType) == Levels.rarityOf(IdleTowers.baseOf(towerType))
+	end
+	check(rarityOk and Levels.rarityOf("CrimsonBow") == "Special", "barre : chaque tour a une place (sa rareté) ; une tour de palier 2 a la rareté de sa tour de base")
+	-- « Choisir » (onglet Mes tours) : la tour passe devant celles de sa rareté ; une tour pas à lui, ou inconnue : refusé.
+	local chose = Levels.chooseTower(data, "Tesla")
+	check(
+		chose and table.concat(Levels.barList(data), ",") == "MachineGun,Tesla,Rocket,Chain"
+			and table.concat(Levels.ownedTowers(data), ",") == "MachineGun,Frost,Tesla,Bomb,Rocket,Laser,Chain,Orbital"
+			and not Levels.chooseTower(data, "CrimsonBow") and not Levels.chooseTower(data, "Dragon")
+			and Levels.chooseTower(data, "Tesla") and table.concat(Levels.barList(data), ",") == "MachineGun,Tesla,Rocket,Chain",
+		"barre : « Choisir » met le Mage à la place de la Catapulte (juste devant elle dans sa liste) ; une tour pas à lui est refusée"
+	)
+	Levels.chooseTower(data, "Bomb")
 	local isNew = Levels.hatchTower(data, "MagmaCatapult")
 	local list, bar = Levels.ownedTowers(data), Levels.barTowers(data)
 	check(
-		isNew and #list == 9 and list[3] == "MagmaCatapult" and list[9] == "Bomb" and bar.MagmaCatapult and not bar.Bomb and bar.MachineGun,
-		"barre : la Catapulte de magma prend la place de la Catapulte, qui passe en réserve (barre pleine)"
+		isNew and #list == 9 and list[3] == "MagmaCatapult" and list[4] == "Bomb" and bar.MagmaCatapult and not bar.Bomb and bar.MachineGun and not bar.Frost,
+		"barre : la Catapulte de magma prend la place de la Catapulte, qui passe en réserve"
+	)
+	Levels.hatchTower(data, "StormArchmage")
+	list, bar = Levels.ownedTowers(data), Levels.barTowers(data)
+	check(
+		not bar.StormArchmage and bar.MagmaCatapult and list[5] == "StormArchmage" and list[6] == "Tesla",
+		"barre : la version de palier 2 d'une tour en réserve (le Mage) attend en réserve aussi, devant sa tour de base"
 	)
 	local cleaned = Levels.cleanData(data)
 	check(table.concat(Levels.ownedTowers(cleaned), ",") == table.concat(list, ",") and cleaned.towers.MagmaCatapult == true, "barre : l'ordre et les tours de palier 2 restent après une sauvegarde")
 	local small = Levels.defaultData()
 	Levels.hatchTower(small, "VoidSorcerer")
-	check(table.concat(Levels.ownedTowers(small), ",") == "MachineGun,VoidSorcerer", "barre : sans sa tour de base, la tour de palier 2 arrive à la fin de la barre")
-	local full = Levels.defaultData()
-	for _, towerType in { "Bomb", "Frost", "Tesla", "Rocket", "Chain", "Orbital" } do
-		Levels.addTower(full, towerType)
-	end
-	Levels.hatchTower(full, "FireArcher")
-	Levels.hatchTower(full, "VoidSorcerer")
-	local fullList, fullBar = Levels.ownedTowers(full), Levels.barTowers(full)
+	Levels.hatchTower(small, "Frost")
 	check(
-		fullList[1] == "FireArcher" and fullList[8] == "VoidSorcerer" and fullList[9] == "MachineGun" and fullBar.VoidSorcerer and not fullBar.MachineGun,
-		"barre pleine : la nouvelle tour prend la dernière place de la barre (l'Archer, remplacé par l'Archer enflammé, est en réserve)"
+		table.concat(Levels.ownedTowers(small), ",") == "MachineGun,VoidSorcerer,Frost" and table.concat(Levels.barList(small), ",") == "MachineGun,VoidSorcerer",
+		"barre : la première tour d'une rareté y entre (le Sorcier du néant, sans sa tour de base) ; une 2e commune (le Totem) attend en réserve"
+	)
+	-- Une sauvegarde d'avant (ses 8 premières tours formaient la barre) : rien à convertir.
+	local before = Levels.cleanData({
+		towers = { MachineGun = true, Bomb = true, Frost = true, Tesla = true, MagmaCatapult = true, CrimsonBow = true, CopperCrossbow = true, Laser = true },
+		bar = { "Frost", "MagmaCatapult", "MachineGun", "CopperCrossbow", "Bomb", "Tesla", "CrimsonBow", "Laser" },
+	})
+	check(
+		table.concat(Levels.barList(before), ",") == "Frost,MagmaCatapult,Laser,CopperCrossbow" and #Levels.ownedTowers(before) == 8,
+		"barre : une sauvegarde d'avant garde son ordre et toutes ses tours (sa barre : la première de chaque rareté, rangée par rareté)"
 	)
 
 	-- Dans un niveau : une tour en réserve ne se pose pas ; une tour de palier 2 se pose, tire avec ses pouvoirs.
@@ -1721,7 +1807,7 @@ do
 			and Levels.specialEggOpen("Dune") == (Levels.OPEN_COUNT >= 50),
 		`œufs spéciaux : montrés seulement quand leur boss est ouvert (niveaux ouverts : {Levels.OPEN_COUNT} ; l'œuf des dunes : {if Levels.specialEggOpen("Dune") then "montré" else "caché"})`
 	)
-	-- Une tour spéciale arrive à la fin de la barre (elle ne remplace pas l'Archer) ; un doublon : 200 XP.
+	-- Une tour spéciale a sa place dans la barre (la 5e), la suivante attend en réserve ; un doublon : 200 XP.
 	local owner = Levels.defaultData()
 	for _, towerType in { "Bomb", "Frost", "Tesla", "Rocket", "Laser", "Chain", "Orbital" } do
 		Levels.addTower(owner, towerType)
@@ -1730,8 +1816,15 @@ do
 	local again, xp = Levels.hatchTower(owner, "CrimsonBow")
 	local ownedList = Levels.ownedTowers(owner)
 	check(
-		isNew and not again and xp == 200 and owner.xp.CrimsonBow == 200 and ownedList[1] == "MachineGun" and ownedList[8] == "CrimsonBow" and ownedList[9] == "Orbital",
-		"tour spéciale : nouvelle, à la dernière place de la barre pleine (l'Archer reste) ; un doublon donne 200 XP d'entraînement"
+		isNew and not again and xp == 200 and owner.xp.CrimsonBow == 200 and ownedList[1] == "MachineGun" and ownedList[9] == "CrimsonBow"
+			and table.concat(Levels.barList(owner), ",") == "MachineGun,Bomb,Rocket,Chain,CrimsonBow",
+		"tour spéciale : nouvelle, elle prend la place « spéciale » de la barre (les autres tours restent) ; un doublon donne 200 XP d'entraînement"
+	)
+	Levels.hatchTower(owner, "CopperCrossbow")
+	local waiting = not Levels.barTowers(owner).CopperCrossbow and Levels.barTowers(owner).CrimsonBow
+	check(
+		waiting and Levels.chooseTower(owner, "CopperCrossbow") and Levels.barTowers(owner).CopperCrossbow and not Levels.barTowers(owner).CrimsonBow,
+		"tours spéciales : la 2e attend en réserve ; choisie dans « Mes tours », elle remplace la première dans la barre"
 	)
 
 	-- Dans un niveau : elles tuent, avec leurs pouvoirs.

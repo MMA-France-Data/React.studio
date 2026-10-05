@@ -48,9 +48,9 @@ powershell -ExecutionPolicy Bypass -File tools\levels\run.ps1 -Tests
 ```
 
 Les vérifications des règles, de la difficulté de chacun des 40 niveaux ouverts, de l'entraînement, du camp, du tuto,
-du jeu en équipe et des œufs (une dizaine de minutes). Sans `-Tests` : le tableau de difficulté des 40 niveaux joués
-par des joueurs
-simulés ; `-Lazy`, `-Tune`, `-Curve`, `-Worth`, `-Equipe` pour régler la difficulté (voir
+du jeu en équipe, des œufs et de la barre de tours (un quart d'heure). Sans `-Tests` : le tableau de difficulté des
+40 niveaux joués par des joueurs
+simulés ; `-Lazy`, `-Tune`, `-Barre`, `-Curve`, `-Worth`, `-Equipe` pour régler la difficulté (voir
 [tools/levels/README.md](tools/levels/README.md)).
 
 ```bash

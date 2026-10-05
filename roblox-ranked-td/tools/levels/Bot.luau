@@ -92,40 +92,60 @@ Bot.POLICIES = {
 	{ patience = 1.05, archers = 0, danger = 2 },
 }
 
--- Ce qu'un joueur a quand il arrive à chaque niveau (le joueur de RÉFÉRENCE, pour qui les niveaux 1 à
+-- Ce qu'un joueur a dans sa BARRE quand il joue chaque niveau (le joueur de RÉFÉRENCE, pour qui les niveaux 1 à
 -- Levels.OPEN_COUNT sont réglés : tune.luau). Depuis le 04/10/2026, plus de boutique : toutes les tours sortent des
--- ŒUFS (« LES ŒUFS », Levels.luau), au hasard. On attend donc les tours les PLUS PROBABLES pour un joueur qui gagne
--- chaque niveau une fois, dans l'ordre, et ouvre ses œufs (en les finissant avec ses pièces quand il le peut) :
+-- ŒUFS (« LES ŒUFS », Levels.luau), au hasard. On attend donc les tours que PRESQUE TOUS les joueurs ont quand ils
+-- gagnent chaque niveau une fois, dans l'ordre, et ouvrent leurs œufs (en les finissant avec leurs pièces) :
 --   * 1er territoire : l'Archer (donné), puis la Catapulte (le premier œuf, au niveau 1). Les tours des premiers
 --     œufs communs (Totem, Mage...) sont un bonus : un nouveau joueur n'est jamais bloqué par la chance ;
---   * 2e territoire : le Totem de givre et le Mage des tempêtes, les tours les plus fréquentes des œufs communs (7 œufs
---     communs et 1 rare avant le niveau 11 : 3 joueurs sur 4 ont les deux) ; puis, à partir du niveau 16, une tour de
---     PALIER 2 : la Catapulte de magma (l'œuf doré du niveau 10 : 3 chances sur 4 d'une tour de palier 2). Le boss du
---     niveau 20 la demande vraiment (blocage voulu par le propriétaire : « que des niveaux tu sois vraiment bloqué,
---     obligé de rechercher les tourelles ») ;
---   * 3e territoire : une 2e tour de palier 2, l'Archimage des tempêtes (l'œuf doré du niveau 20), puis la Baliste
---     lourde (au fil des œufs) à partir du niveau 26 ;
---   * 4e territoire : une 3e tour de palier 2, la Baliste du dragon (l'œuf doré du niveau 30) : 8 tours, la barre
---     rapide est pleine.
+--   * 2e territoire : en plus, le Totem de givre et le Mage des tempêtes, les tours les plus fréquentes des œufs
+--     communs (7 œufs communs et 1 rare avant le niveau 11 : 3 joueurs sur 4 ont les deux), et l'Arc carmin (la tour
+--     spéciale du boss du niveau 10 : son œuf est donné à coup sûr) ; puis, à partir du niveau 16, une tour de PALIER 2 :
+--     la Catapulte de magma (l'œuf doré du niveau 10 : 3 chances sur 4 d'une tour de palier 2). Le boss du niveau 20
+--     la demande vraiment (blocage voulu par le propriétaire : « que des niveaux tu sois vraiment bloqué, obligé de
+--     rechercher les tourelles ») ;
+--   * 3e territoire : en plus, l'Arbalète de cuivre (boss du niveau 20), une 2e tour de palier 2, l'Archimage des
+--     tempêtes (l'œuf doré du niveau 20), puis la Baliste lourde (au fil des œufs) à partir du niveau 26 ;
+--   * 4e territoire et désert : en plus, le Lance-ronces (boss du niveau 30) puis la Catapulte de givre (boss du
+--     niveau 40). PAS de tour épique de palier 2 ni de légendaire : voir « LA CHANCE » plus bas.
 -- Un joueur moins chanceux rejoue des niveaux : chaque victoire donne encore un œuf (et des pièces pour les finir).
---   * entraînement : 8 XP par victoire pour chaque tour posée (+10 % de dégâts par niveau d'entraînement), sans
---     compter le camp ; trainings = entraînement d'une tour à part (une tour qui vient de sortir d'un œuf n'est pas
---     encore entraînée).
+-- LA CHANCE (mesurée le 05/10/2026). Avec la barre, une seule tour compte beaucoup, et les œufs sont tirés au sort :
+-- en arrivant au niveau 31, 76 % des joueurs ont une tour RARE de palier 2, 74 % une ÉPIQUE de palier 2 (48 % la
+-- Baliste du dragon), 44 % une légendaire, 97 % au moins une rare ou une épique de palier 2. Or la Baliste du dragon
+-- permet de battre des monstres 45 % plus résistants au 4e territoire (une légendaire de palier 2 : +35 % au 3e) :
+-- réglé pour elle, le niveau 31 restait impossible aux autres, même entraînés au maximum. Les niveaux sont donc
+-- réglés pour la barre que presque tout le monde peut former (une rare de palier 2, pas d'épique de palier 2, pas de
+-- légendaire) : personne n'est bloqué sans solution ; celui qui a eu de la chance trouve la suite plus facile. Pour
+-- que ce soit « dur » pour tout le monde, il faudrait que les tours clés ne dépendent plus de la chance (question
+-- posée au propriétaire le 05/10/2026 : les œufs dorés des boss).
+-- LA BARRE (05/10/2026, « LA BARRE DE TOURS », Levels.luau) : dans un niveau, UNE tour par rareté. towers = la
+-- MEILLEURE barre que ce joueur peut former avec ses tours à ce niveau (une commune, une rare, une épique dès qu'il
+-- en a une, une spéciale ; pas de légendaire : trop rare pour être attendue), trouvée par essais : toutes ses barres
+-- possibles jouées par le joueur simulé, la plus forte gardée (voir « RÉGLER » dans le README de ce dossier).
+-- L'ENTRAÎNEMENT, « DUR PARTOUT » (choix du propriétaire le 05/10/2026 : chaque niveau demande presque la
+-- meilleure équipe et des tours entraînées, on rejoue souvent d'anciens niveaux) : ce que ses parties lui ont donné
+-- (8 XP par victoire pour chaque tour posée, +10 % de dégâts par niveau d'entraînement ; une tour qui vient de
+-- sortir d'un œuf n'est pas encore entraînée) PLUS UN NIVEAU pour chaque tour de la barre à partir du niveau 11,
+-- DEUX à partir du niveau 31 (Bot.extraTraining : là, le joueur attendu n'a pas la tour épique de palier 2 qu'ont 3
+-- joueurs sur 4) : celui qui arrive à un niveau pour la première fois doit d'abord entraîner ses tours (camp,
+-- niveaux rejoués, ⚡).
+-- training = entraînement de l'Archer et de la Catapulte ; trainings = celui d'une tour à part.
 -- pace = le RYTHME demandé par ce niveau : secondes entre deux achats du joueur de référence, celui pour qui le
 -- niveau est réglé (tune.luau). Le premier niveau laisse un peu de temps, les derniers demandent un achat toutes
 -- les 3,5 secondes (un humain choisit moins bien que le joueur simulé : il doit aller un peu plus vite que ça).
--- Niveaux 41 à 100 : fermés pour l'instant (Levels.OPEN_COUNT). Les lignes des niveaux 41 à 50 sont réglées pour les
--- œufs (05/10/2026) ; celles des niveaux 51 à 100 datent de la boutique (les sept puis huit tours de palier 1) : à
--- refaire avant de les ouvrir.
+-- Niveaux 41 à 100 : fermés pour l'instant (Levels.OPEN_COUNT). Les lignes des niveaux 41 à 50 sont réglées comme
+-- celles des niveaux ouverts (la barre, « dur partout ») ; celles des niveaux 51 à 100 datent de la boutique (huit
+-- tours de palier 1, bien plus qu'une barre) : à refaire avant de les ouvrir.
+-- Crans d'entraînement que Bot.EXPECTED compte EN PLUS de ce que les parties donnent (« dur partout ») : 1 à partir
+-- du niveau 11, 2 à partir du niveau 31. (tests.luau s'en sert pour retrouver « celui qui arrive ».)
+function Bot.extraTraining(level: number): number
+	return if level > 3 * Levels.TERRITORY_SIZE then 2 elseif level > Levels.TERRITORY_SIZE then 1 else 0
+end
+
 local MG, BOMB, FROST, TESLA, ROCKET, LASER, CHAIN, ORBITAL = "MachineGun", "Bomb", "Frost", "Tesla", "Rocket", "Laser", "Chain", "Orbital"
-local MAGMA, STORM, DRAGON = "MagmaCatapult", "StormArchmage", "DragonBallista"
-local SEVEN = { MG, BOMB, FROST, TESLA, ROCKET, LASER, CHAIN }
+local MAGMA, STORM = "MagmaCatapult", "StormArchmage"
+local CRIMSON, COPPER = "CrimsonBow", "CopperCrossbow"
 local EIGHT = { MG, BOMB, FROST, TESLA, ROCKET, LASER, CHAIN, ORBITAL }
-local CONTROL = { MG, BOMB, FROST, TESLA }
-local MAGMA5 = { MG, BOMB, FROST, TESLA, MAGMA }
-local STORM6 = { MG, BOMB, FROST, TESLA, MAGMA, STORM }
-local ROCKET7 = { MG, BOMB, FROST, TESLA, ROCKET, MAGMA, STORM }
-local DRAGON8 = { MG, BOMB, FROST, TESLA, ROCKET, MAGMA, STORM, DRAGON }
 Bot.EXPECTED = {
 	-- 1er territoire
 	{ towers = { MG }, training = 0, pace = 5 },
@@ -139,55 +159,50 @@ Bot.EXPECTED = {
 	{ towers = { MG, BOMB }, training = 2, pace = 3.5 },
 	{ towers = { MG, BOMB }, training = 2, pace = 3.5 },
 	-- 2e territoire
-	{ towers = CONTROL, training = 2, trainings = { Frost = 0, Tesla = 0 }, pace = 3.5 },
-	{ towers = CONTROL, training = 2, trainings = { Frost = 0, Tesla = 0 }, pace = 3.5 },
-	{ towers = CONTROL, training = 2, trainings = { Frost = 0, Tesla = 0 }, pace = 3.5 },
-	{ towers = CONTROL, training = 2, trainings = { Frost = 1, Tesla = 1 }, pace = 3.5 },
-	{ towers = CONTROL, training = 2, trainings = { Frost = 1, Tesla = 1 }, pace = 3.5 },
-	{ towers = MAGMA5, training = 2, trainings = { Frost = 1, Tesla = 1, MagmaCatapult = 0 }, pace = 3.5 },
-	{ towers = MAGMA5, training = 2, trainings = { Frost = 1, Tesla = 1, MagmaCatapult = 0 }, pace = 3.5 },
-	{ towers = MAGMA5, training = 2, trainings = { Frost = 1, Tesla = 1, MagmaCatapult = 0 }, pace = 3.5 },
-	{ towers = MAGMA5, training = 2, trainings = { Frost = 1, Tesla = 1, MagmaCatapult = 1 }, pace = 3.5 },
-	{ towers = MAGMA5, training = 2, trainings = { Frost = 1, Tesla = 1, MagmaCatapult = 1 }, pace = 3.5 },
+	{ towers = { MG, TESLA, CRIMSON }, training = 3, trainings = { Tesla = 1, CrimsonBow = 1 }, pace = 3.5 },
+	{ towers = { MG, TESLA, CRIMSON }, training = 3, trainings = { Tesla = 1, CrimsonBow = 1 }, pace = 3.5 },
+	{ towers = { FROST, BOMB, CRIMSON }, training = 3, trainings = { Frost = 1, CrimsonBow = 1 }, pace = 3.5 },
+	{ towers = { FROST, BOMB, CRIMSON }, training = 3, trainings = { Frost = 2, CrimsonBow = 2 }, pace = 3.5 },
+	{ towers = { FROST, BOMB, CRIMSON }, training = 3, trainings = { Frost = 2, CrimsonBow = 2 }, pace = 3.5 },
+	{ towers = { FROST, MAGMA, CRIMSON }, training = 3, trainings = { Frost = 2, MagmaCatapult = 1, CrimsonBow = 2 }, pace = 3.5 },
+	{ towers = { FROST, MAGMA, CRIMSON }, training = 3, trainings = { Frost = 2, MagmaCatapult = 1, CrimsonBow = 2 }, pace = 3.5 },
+	{ towers = { FROST, MAGMA, CRIMSON }, training = 3, trainings = { Frost = 2, MagmaCatapult = 1, CrimsonBow = 2 }, pace = 3.5 },
+	{ towers = { FROST, MAGMA, CRIMSON }, training = 3, trainings = { Frost = 2, MagmaCatapult = 2 }, pace = 3.5 },
+	{ towers = { FROST, MAGMA, CRIMSON }, training = 3, trainings = { Frost = 2, MagmaCatapult = 2 }, pace = 3.5 },
 	-- 3e territoire
-	{ towers = STORM6, training = 3, trainings = { Frost = 2, Tesla = 2, MagmaCatapult = 1, StormArchmage = 0 }, pace = 3.5 },
-	{ towers = STORM6, training = 3, trainings = { Frost = 2, Tesla = 2, MagmaCatapult = 1, StormArchmage = 0 }, pace = 3.5 },
-	{ towers = STORM6, training = 3, trainings = { Frost = 2, Tesla = 2, MagmaCatapult = 1, StormArchmage = 0 }, pace = 3.5 },
-	{ towers = STORM6, training = 3, trainings = { Frost = 2, Tesla = 2, MagmaCatapult = 2, StormArchmage = 1 }, pace = 3.5 },
-	{ towers = STORM6, training = 3, trainings = { Frost = 2, Tesla = 2, MagmaCatapult = 2, StormArchmage = 1 }, pace = 3.5 },
-	{ towers = ROCKET7, training = 3, trainings = { Frost = 2, Tesla = 2, Rocket = 0, MagmaCatapult = 2, StormArchmage = 1 }, pace = 3.5 },
-	{ towers = ROCKET7, training = 3, trainings = { Frost = 2, Tesla = 2, Rocket = 0, MagmaCatapult = 2, StormArchmage = 1 }, pace = 3.5 },
-	{ towers = ROCKET7, training = 3, trainings = { Frost = 2, Tesla = 2, Rocket = 0, MagmaCatapult = 2, StormArchmage = 1 }, pace = 3.5 },
-	{ towers = ROCKET7, training = 3, trainings = { Frost = 2, Tesla = 2, Rocket = 1, MagmaCatapult = 2, StormArchmage = 2 }, pace = 3.5 },
-	{ towers = ROCKET7, training = 3, trainings = { Frost = 2, Tesla = 2, Rocket = 1, MagmaCatapult = 2, StormArchmage = 2 }, pace = 3.5 },
+	{ towers = { MG, STORM, COPPER }, training = 4, trainings = { StormArchmage = 1, CopperCrossbow = 1 }, pace = 3.5 },
+	{ towers = { MG, STORM, COPPER }, training = 4, trainings = { StormArchmage = 1, CopperCrossbow = 1 }, pace = 3.5 },
+	{ towers = { FROST, MAGMA, COPPER }, training = 4, trainings = { Frost = 3, MagmaCatapult = 2, CopperCrossbow = 1 }, pace = 3.5 },
+	{ towers = { MG, STORM, COPPER }, training = 4, trainings = { StormArchmage = 2, CopperCrossbow = 2 }, pace = 3.5 },
+	{ towers = { MG, STORM, COPPER }, training = 4, trainings = { StormArchmage = 2, CopperCrossbow = 2 }, pace = 3.5 },
+	{ towers = { MG, STORM, ROCKET, COPPER }, training = 4, trainings = { StormArchmage = 2, Rocket = 1, CopperCrossbow = 2 }, pace = 3.5 },
+	{ towers = { MG, STORM, ROCKET, COPPER }, training = 4, trainings = { StormArchmage = 2, Rocket = 1, CopperCrossbow = 2 }, pace = 3.5 },
+	{ towers = { FROST, MAGMA, ROCKET, COPPER }, training = 4, trainings = { Frost = 3, MagmaCatapult = 3, Rocket = 1, CopperCrossbow = 2 }, pace = 3.5 },
+	{ towers = { MG, STORM, ROCKET, COPPER }, training = 4, trainings = { StormArchmage = 3, Rocket = 2, CopperCrossbow = 3 }, pace = 3.5 },
+	{ towers = { MG, STORM, ROCKET, COPPER }, training = 4, trainings = { StormArchmage = 3, Rocket = 2, CopperCrossbow = 3 }, pace = 3.5 },
 	-- 4e territoire
-	{ towers = DRAGON8, training = 3, trainings = { Rocket = 1, MagmaCatapult = 2, StormArchmage = 2, DragonBallista = 0 }, pace = 3.5 },
-	{ towers = DRAGON8, training = 3, trainings = { Rocket = 1, MagmaCatapult = 2, StormArchmage = 2, DragonBallista = 0 }, pace = 3.5 },
-	{ towers = DRAGON8, training = 3, trainings = { Rocket = 1, MagmaCatapult = 2, StormArchmage = 2, DragonBallista = 0 }, pace = 3.5 },
-	{ towers = DRAGON8, training = 3, trainings = { Rocket = 2, MagmaCatapult = 3, StormArchmage = 2, DragonBallista = 1 }, pace = 3.5 },
-	{ towers = DRAGON8, training = 3, trainings = { Rocket = 2, MagmaCatapult = 3, StormArchmage = 2, DragonBallista = 1 }, pace = 3.5 },
-	{ towers = DRAGON8, training = 3, trainings = { Rocket = 2, MagmaCatapult = 3, StormArchmage = 2, DragonBallista = 1 }, pace = 3.5 },
-	{ towers = DRAGON8, training = 3, trainings = { Rocket = 2, MagmaCatapult = 3, StormArchmage = 3, DragonBallista = 1 }, pace = 3.5 },
-	{ towers = DRAGON8, training = 3, trainings = { Rocket = 2, MagmaCatapult = 3, StormArchmage = 3, DragonBallista = 1 }, pace = 3.5 },
-	{ towers = DRAGON8, training = 3, trainings = { Rocket = 2, MagmaCatapult = 3, StormArchmage = 3, DragonBallista = 2 }, pace = 3.5 },
-	{ towers = DRAGON8, training = 3, trainings = { Rocket = 2, MagmaCatapult = 3, StormArchmage = 3, DragonBallista = 2 }, pace = 3.5 },
-	-- 5e territoire (réglé de nouveau le 05/10/2026 pour les œufs, toujours fermé : Levels.OPEN_COUNT). Les mêmes 8
-	-- tours qu'au 4e territoire : l'œuf doré du niveau 40 ne donne une NOUVELLE tour de palier 2 qu'une fois sur 4 environ
-	-- (les trois déjà là reviennent en doublons) et les œufs communs presque jamais une tour de plus (le Sorcier, 5 % par
-	-- œuf). Elles s'entraînent au fil des parties (8 XP par victoire et par tour posée, sans compter le camp) : le niveau
-	-- 4 d'entraînement pour l'Archer et la Catapulte vers le niveau 41, pour le Totem et le Mage vers le niveau 47.
-	-- Les tours spéciales (celles des boss 10 à 40) ne comptent pas, comme avant : celui qui les a trouve les niveaux un
-	-- peu plus faciles.
-	{ towers = DRAGON8, training = 4, trainings = { Frost = 3, Tesla = 3, Rocket = 2, MagmaCatapult = 3, StormArchmage = 3, DragonBallista = 2 }, pace = 3.5 },
-	{ towers = DRAGON8, training = 4, trainings = { Frost = 3, Tesla = 3, Rocket = 2, MagmaCatapult = 3, StormArchmage = 3, DragonBallista = 2 }, pace = 3.5 },
-	{ towers = DRAGON8, training = 4, trainings = { Frost = 3, Tesla = 3, Rocket = 2, MagmaCatapult = 3, StormArchmage = 3, DragonBallista = 2 }, pace = 3.5 },
-	{ towers = DRAGON8, training = 4, trainings = { Frost = 3, Tesla = 3, Rocket = 2, MagmaCatapult = 3, StormArchmage = 3, DragonBallista = 2 }, pace = 3.5 },
-	{ towers = DRAGON8, training = 4, trainings = { Frost = 3, Tesla = 3, Rocket = 3, MagmaCatapult = 3, StormArchmage = 3, DragonBallista = 2 }, pace = 3.5 },
-	{ towers = DRAGON8, training = 4, trainings = { Frost = 3, Tesla = 3, Rocket = 3, MagmaCatapult = 3, StormArchmage = 3, DragonBallista = 3 }, pace = 3.5 },
-	{ towers = DRAGON8, training = 4, trainings = { Rocket = 3, MagmaCatapult = 3, StormArchmage = 3, DragonBallista = 3 }, pace = 3.5 },
-	{ towers = DRAGON8, training = 4, trainings = { Rocket = 3, MagmaCatapult = 3, StormArchmage = 3, DragonBallista = 3 }, pace = 3.5 },
-	{ towers = DRAGON8, training = 4, trainings = { Rocket = 3, MagmaCatapult = 4, StormArchmage = 3, DragonBallista = 3 }, pace = 3.5 },
-	{ towers = DRAGON8, training = 4, trainings = { Rocket = 3, MagmaCatapult = 4, StormArchmage = 3, DragonBallista = 3 }, pace = 3.5 },
+	{ towers = { FROST, STORM, ROCKET, COPPER }, training = 5, trainings = { StormArchmage = 4, Rocket = 3, CopperCrossbow = 4 }, pace = 3.5 },
+	{ towers = { FROST, STORM, ROCKET, COPPER }, training = 5, trainings = { StormArchmage = 4, Rocket = 3, CopperCrossbow = 4 }, pace = 3.5 },
+	{ towers = { FROST, STORM, ROCKET, COPPER }, training = 5, trainings = { StormArchmage = 4, Rocket = 3, CopperCrossbow = 4 }, pace = 3.5 },
+	{ towers = { FROST, STORM, ROCKET, COPPER }, training = 5, trainings = { StormArchmage = 4, Rocket = 4, CopperCrossbow = 4 }, pace = 3.5 },
+	{ towers = { FROST, STORM, ROCKET, COPPER }, training = 5, trainings = { StormArchmage = 4, Rocket = 4, CopperCrossbow = 4 }, pace = 3.5 },
+	{ towers = { FROST, STORM, ROCKET, COPPER }, training = 5, trainings = { StormArchmage = 4, Rocket = 4, CopperCrossbow = 4 }, pace = 3.5 },
+	{ towers = { FROST, STORM, ROCKET, COPPER }, training = 5, trainings = { Rocket = 4, CopperCrossbow = 4 }, pace = 3.5 },
+	{ towers = { FROST, STORM, ROCKET, COPPER }, training = 5, trainings = { Rocket = 4, CopperCrossbow = 4 }, pace = 3.5 },
+	{ towers = { MG, STORM, ROCKET, COPPER }, training = 5, trainings = { Rocket = 4 }, pace = 3.5 },
+	{ towers = { MG, STORM, ROCKET, COPPER }, training = 5, trainings = { Rocket = 4 }, pace = 3.5 },
+	-- 5e territoire (toujours fermé : Levels.OPEN_COUNT). Les mêmes tours qu'au 4e territoire, plus la Catapulte de
+	-- givre (boss du niveau 40). Elles s'entraînent au fil des parties.
+	{ towers = { MG, STORM, ROCKET, COPPER }, training = 6, trainings = { StormArchmage = 5, Rocket = 4, CopperCrossbow = 5 }, pace = 3.5 },
+	{ towers = { MG, STORM, ROCKET, COPPER }, training = 6, trainings = { StormArchmage = 5, Rocket = 4, CopperCrossbow = 5 }, pace = 3.5 },
+	{ towers = { MG, STORM, ROCKET, COPPER }, training = 6, trainings = { StormArchmage = 5, Rocket = 4, CopperCrossbow = 5 }, pace = 3.5 },
+	{ towers = { MG, STORM, ROCKET, COPPER }, training = 6, trainings = { StormArchmage = 5, Rocket = 4, CopperCrossbow = 5 }, pace = 3.5 },
+	{ towers = { FROST, STORM, ROCKET, COPPER }, training = 6, trainings = { Frost = 5, StormArchmage = 5, Rocket = 5, CopperCrossbow = 5 }, pace = 3.5 },
+	{ towers = { FROST, STORM, ROCKET, COPPER }, training = 6, trainings = { Frost = 5, StormArchmage = 5, Rocket = 5, CopperCrossbow = 5 }, pace = 3.5 },
+	{ towers = { MG, STORM, ROCKET, COPPER }, training = 6, trainings = { StormArchmage = 5, Rocket = 5, CopperCrossbow = 5 }, pace = 3.5 },
+	{ towers = { FROST, STORM, ROCKET, COPPER }, training = 6, trainings = { StormArchmage = 5, Rocket = 5, CopperCrossbow = 5 }, pace = 3.5 },
+	{ towers = { MG, STORM, ROCKET, COPPER }, training = 6, trainings = { StormArchmage = 5, Rocket = 5, CopperCrossbow = 5 }, pace = 3.5 },
+	{ towers = { FROST, MAGMA, ROCKET, COPPER }, training = 6, trainings = { Rocket = 5, CopperCrossbow = 5 }, pace = 3.5 },
 	-- 6e territoire
 	{ towers = EIGHT, training = 4, trainings = { Laser = 3, Chain = 3, Orbital = 1 }, pace = 3.5 },
 	{ towers = EIGHT, training = 4, trainings = { Laser = 3, Chain = 3, Orbital = 1 }, pace = 3.5 },
@@ -244,8 +259,11 @@ Bot.EXPECTED = {
 	{ towers = EIGHT, training = 4, trainings = { MachineGun = 5, Bomb = 5, Frost = 5, Tesla = 5, Rocket = 5, Laser = 5 }, pace = 3.5 },
 	{ towers = EIGHT, training = 4, trainings = { MachineGun = 5, Bomb = 5, Frost = 5, Tesla = 5, Rocket = 5, Laser = 5 }, pace = 3.5 },
 }
--- Toutes les tours du jeu (les 20, tours spéciales comprises : « tout débloqué »).
+-- Toutes les tours du jeu (les 21, tours spéciales comprises), pour les outils de mesure : plus qu'une barre, aucun
+-- joueur ne peut les poser toutes dans un niveau.
 Bot.ALL_TOWERS = table.clone(IdleTowers.ORDER)
+-- La barre de celui qui a TOUT : une tour par rareté, des tours de palier 2 et une légendaire (« tout débloqué »).
+Bot.FULL_BAR = { "FireArcher", "StormArchmage", "DragonBallista", "ThunderOracle", "CopperCrossbow" }
 -- Ce qu'a un joueur sans aucune chance aux œufs : l'Archer (donné) et la Catapulte (l'œuf du niveau 1).
 Bot.NO_EGG_TOWERS = { "MachineGun", "Bomb" }
 

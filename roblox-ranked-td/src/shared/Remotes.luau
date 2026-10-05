@@ -27,7 +27,7 @@ local DEFINITIONS = {
 	--   | ("Upgrade", id de la tour) | ("Sell", id) | ("Speed", 1 ou 2)
 	--   | ("SlotAssign", emplacement du camp, type de tour ou "") | ("SlotUpgrade", emplacement) | "SlotUnlock"
 	--   | ("TrainBuy", type de tour) : entraînement acheté avec des pièces (bouton ⚡ de l'onglet Entraînement)
-	--   | ("Bar", { types de tours }) : ordre de la barre rapide
+	--   | ("Choose", type de tour) : cette tour entre dans sa barre de tours (une tour par rareté)
 	--   | ("EggStart", couveuse, type d'œuf) | ("EggOpen", couveuse) | ("EggSkip", couveuse) | "HatcherBuy" : les œufs
 	--     (toutes les tours en sortent ; plus de boutique de tours ; couveuse 3 = la couveuse royale)
 	--   | ("EggSkipRobux", couveuse) | ("PassBuy", "Royal" | "Xp" | "Coins") : achats en Robux, la fenêtre d'achat de
@@ -36,7 +36,8 @@ local DEFINITIONS = {
 	--   | ("TeamInvite", UserId) | ("TeamAnswer", UserId de celui qui invite, vrai = accepter) | "TeamLeave" : jouer en
 	--     équipe (Hub/LevelTeams.luau ; en équipe, « Start » ne vient que du chef et lance le niveau pour tous).
 	-- Le serveur vérifie tout (Hub/LevelsService.luau). État publié en attributs :
-	--   du joueur : LevelsState (JSON : best, coins, towers = ses tours dans l'ordre de sa barre rapide, xp, slots,
+	--   du joueur : LevelsState (JSON : best, coins, towers = ses tours dans son ordre (sa barre : la première de
+	--     chaque rareté), xp, slots,
 	--     wins, losses, tutorial = étape du tuto, eggs, hatchers, royal = la couveuse royale, shop = { passes = { [clé] =
 	--     "owned" | "buy" | "soon" | "no" }, prices = prix de « Finir l'œuf » } ; absent tant que ses données ne sont pas
 	--     chargées), RoyalHatcher (état du pass de la couveuse royale), XpBoost (1 ou 2 : pass XP x2),

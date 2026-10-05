@@ -56,8 +56,9 @@ Scénarios `scenarios\LevelsServer.luau` puis `scenarios\LevelsClient.luau`. Cap
 - demandes refusées, le niveau 1 **perdu** par celui qui pose 2 Archers puis attend (pose libre, refus, x2, défaite,
   petite récompense), puis gagné avec ses 5 Archers posés et améliorés (victoire, récompense, XP, **l'œuf de
   catapulte** dans la 1re couveuse, ouvert 11 s plus tard : la Catapulte), « Niveau suivant » dans la même zone,
-  abandon, « Rejouer », plus de boutique, camp (emplacements, absence d'une heure puis d'une semaine), ordre de la
-  barre rapide, entraînement publié dans un niveau ;
+  abandon, « Rejouer », plus de boutique, camp (emplacements, absence d'une heure puis d'une semaine), **la barre
+  de tours** (une tour par rareté, « Choisir » le Totem à la place de l'Archer, l'Archer en réserve qui ne se pose
+  plus, pas de changement pendant un niveau), entraînement publié dans un niveau ;
 - **le 2e territoire** : le niveau 11 fermé tant que le niveau 10 n'est pas réussi, la carte du col construite
   (terre rousse, rochers), ses 12 emplacements, une capture en plein combat (`levels_territoire2`), les récompenses
   (280, 600 au mini-boss, 1 200 au boss), le retour à la carte de la vallée ;
@@ -162,7 +163,8 @@ l'œuf spécial d'un boss rejoué (1 fois sur 10 sinon).
 
 - **serveur** : un œuf à chaque victoire (doré au boss, commun en rejouant, rien en perdant, perdu si la réserve est
   pleine), poser un œuf (couveuse vide et œuf en réserve seulement), pas d'ouverture avant son temps, la tour sortie
-  (nouvelle : dans la barre, une tour de palier 2 à la place de sa tour de base ; doublon : XP d'entraînement ;
+  (nouvelle : dans la barre si sa rareté y était libre, une tour de palier 2 à la place de sa tour de base, sinon
+  en réserve jusqu'à « Choisir » ; doublon : XP d'entraînement ;
   attribut `Hatch` ; au hasard, un œuf commun : toujours une tour de palier 1), « Finir » avec des pièces, les
   couveuses achetées
   (pas de 4e), les couveuses de la parcelle (l'œuf de sa couleur, le temps qui reste, l'œuf prêt qui brille,
@@ -172,12 +174,16 @@ l'œuf spécial d'un boss rejoué (1 fois sur 10 sinon).
 - **client** : l'onglet « Œufs » (cartes des œufs et leurs chances, couveuses : `eggs_onglet`), un œuf posé
   (`eggs_couve`), prêt puis ouvert : nouvelle tour de palier 2, sa tour de base et ce qu'elle fait
   (`eggs_nouvelle_tour`), et doublon (`eggs_doublon`), « Mes tours » avec la tour de palier 2 et celles qui
-  attendent « dans les œufs » (`eggs_mes_tours_palier2`), la 2e couveuse achetée, la pastille « ! » de l'onglet,
+  attendent « dans les œufs » (`eggs_mes_tours_palier2`), **la barre dans « Mes tours »** (ses tours rangées par
+  rareté, « ✓ CHOISIE » et « CHOISIR » : `eggs_mes_tours_barre`, `eggs_mes_tours_barre_choisie`), une tour sortie
+  d'un œuf qui part en réserve (« choisis-la dans Mes tours » : `eggs_nouvelle_tour_reserve`), la barre dans un
+  niveau (`eggs_barre_niveau`), la 2e couveuse achetée, la pastille « ! » de l'onglet,
   l'écran de fin qui dit l'œuf gagné (`eggs_fin_de_niveau`), à la taille d'un téléphone (`eggs_tel_onglet`) ; les
   cartes des œufs spéciaux (« COUVER », « 🔒 Boss du niveau 10 », leurs dessins), le bouton « COUVER »
   (`eggs_oeuf_special_couve`, et en 3D sur la parcelle : `eggs_parcelle_oeuf_special`), la tour spéciale sortie (« 🌟 TOUR SPÉCIALE ! » : `eggs_tour_speciale`), une tour
   spéciale pas encore à lui dans « Mes tours », l'œuf carmin sur l'écran de fin du boss, les 5 tours spéciales (celle du désert comprise, posée pour le test) dans
-  un niveau avec leur parure (`eggs_speciales_niveau`, `eggs_speciales_pres`) ; « Bloqué ? » : le niveau 11 perdu une
+  un niveau avec leur parure (`eggs_speciales_niveau`, `eggs_speciales_pres` ; pour les poser toutes, comme les 8
+  tours de palier 2, le test lève la règle de la barre : debug « FreeBar ») ; « Bloqué ? » : le niveau 11 perdu une
   fois (rien de plus), puis une 2e fois de suite : le conseil (rejouer un niveau réussi, ses œufs qui attendent) et le
   bouton « ◀ Rejouer le niveau 10 », qui le relance (`eggs_bloque`).
 

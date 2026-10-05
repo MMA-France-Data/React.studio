@@ -159,9 +159,15 @@ return function(log)
 		not ok and not sold and why ~= nil and string.find(why, "Ce n'est pas ta tour", 1, true) ~= nil and whySell == why and robinTower.Parent ~= nil,
 		`le joueur ne peut ni améliorer ni vendre la tour de Robin (« {tostring(why)} »)`
 	)
-	ok = action("Place", "Frost", spots[2].X, spots[2].Z)
-	local robinFrost, whyFrost = as(robin, "Place", "Frost", spots[3].X, spots[3].Z)
-	check(ok and not robinFrost and whyFrost ~= nil and string.find(whyFrost, "barre", 1, true) ~= nil, "chacun ses tours : le joueur pose son Totem, pas Robin (il n'est pas dans sa barre)")
+	-- (la barre du joueur : l'Archer et la Catapulte, une tour par rareté ; son Totem, 2e commune, est en réserve)
+	ok = action("Place", "Bomb", spots[2].X, spots[2].Z)
+	local robinBomb, whyBomb = as(robin, "Place", "Bomb", spots[3].X, spots[3].Z)
+	local reserveOk, whyReserve = action("Place", "Frost", spots[3].X, spots[3].Z)
+	check(
+		ok and not robinBomb and whyBomb ~= nil and string.find(whyBomb, "barre", 1, true) ~= nil and not reserveOk and whyReserve ~= nil
+			and string.find(whyReserve, "barre", 1, true) ~= nil,
+		"chacun ses tours : le joueur pose sa Catapulte, pas Robin (elle n'est pas dans sa barre) ; le Totem du joueur, en réserve, ne se pose pas"
+	)
 	levels("Skip", 3)
 	local myBefore, robinBefore = state().active.gold, fake(robin).active.gold
 	local killed = levels("KillAll")

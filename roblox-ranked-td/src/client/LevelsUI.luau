@@ -3,12 +3,12 @@
 --                  l'équipe, bouton « 👥 ÉQUIPE » : jouer à plusieurs, Levels.luau « JOUER EN ÉQUIPE ») : Niveaux (choisir un
 --                  niveau : 10 cartes par territoire, la page défile et s'ouvre sur le territoire du prochain
 --                  niveau ; après Levels.OPEN_COUNT : « Bientôt »), Entraînement (emplacements du camp, XP et étoiles
---                  de chaque tour), Mes tours (l'inventaire et l'ordre de la barre rapide), Œufs (réserve et
+--                  de chaque tour), Mes tours (ses tours par rareté, et sa barre : une par rareté), Œufs (réserve et
 --                  couveuses : toutes les tours sortent des œufs, plus de boutique) ;
 --   « LevelHud » : pendant un niveau. Vue d'en haut de la zone de combat (caméra réglée pour montrer toute la carte
 --                  entre les bandeaux ; zoom avec la molette ou en pinçant, déplacement en glissant un doigt ou
---                  avec le clic droit / les flèches), or / vies / avancée du flot de monstres, barre rapide des
---                  tours, pose LIBRE, où on veut sur l'herbe, sans emplacement montré (ordinateur : clic sur une
+--                  avec le clic droit / les flèches), or / vies / avancée du flot de monstres, sa barre de tours
+--                  (une par rareté), pose LIBRE, où on veut sur l'herbe, sans emplacement montré (ordinateur : clic sur une
 --                  tour de la barre, un aperçu vert ou rouge suit la souris avec sa portée, clic pour poser ;
 --                  téléphone : appui sur la tour puis appui sur le terrain, ou glisser la tour depuis la barre ; la
 --                  tour en main dit « ANNULER » : un appui dessus annule), petit menu Améliorer / Vendre à côté de
@@ -187,7 +187,7 @@ end
 ----------------------------------------------------------------------
 -- État du joueur (attribut « LevelsState », publié par le serveur)
 ----------------------------------------------------------------------
-local state = { best = 0, coins = 0, towers = table.clone(Levels.STARTING_TOWERS), xp = {}, slots = {}, wins = 0, losses = 0, eggs = {}, hatchers = {},
+local state = { best = 0, coins = 0, towers = table.clone(Levels.STARTING_TOWERS), bar = table.clone(Levels.STARTING_TOWERS), xp = {}, slots = {}, wins = 0, losses = 0, eggs = {}, hatchers = {},
 	royal = { egg = "", readyIn = 0 }, shop = { passes = {}, prices = {} }, readAt = 0 }
 
 local function readState()
@@ -210,7 +210,8 @@ local function readState()
 	state = {
 		best = tonumber(decoded.best) or 0,
 		coins = tonumber(decoded.coins) or 0,
-		towers = towers,
+		towers = towers, -- toutes ses tours, dans son ordre
+		bar = Levels.barOfList(towers), -- sa barre pour les niveaux : la première de chaque rareté (Levels.luau)
 		xp = if typeof(decoded.xp) == "table" then decoded.xp else {},
 		slots = if typeof(decoded.slots) == "table" then decoded.slots else {},
 		wins = tonumber(decoded.wins) or 0,
@@ -225,6 +226,11 @@ end
 
 local function owns(towerType: string): boolean
 	return table.find(state.towers, towerType) ~= nil
+end
+
+-- Vrai si cette tour est dans sa barre de tours (celles qu'il peut poser dans un niveau : une par rareté).
+local function inBar(towerType: string): boolean
+	return table.find(state.bar, towerType) ~= nil
 end
 
 local function amount(value: number): string
@@ -340,9 +346,23 @@ local function replayLevelOf(result): number?
 	return if stuckIn(result) and levelNumber > 1 then levelNumber - 1 else nil
 end
 
+-- Vrai si une tour de palier 2 attend en réserve alors que sa barre garde une tour de palier 1 de la même rareté.
+local function strongerInReserve(): boolean
+	for _, towerType in state.towers do
+		if not inBar(towerType) and IdleTowers.tierOf(towerType) >= 2 then
+			for _, barType in state.bar do
+				if Levels.rarityOf(barType) == Levels.rarityOf(towerType) and IdleTowers.tierOf(barType) < 2 then
+					return true
+				end
+			end
+		end
+	end
+	return false
+end
+
 -- Le conseil « Bloqué ? » de l'écran de fin : rejouer un niveau réussi (pas au niveau 1 : il n'y en a pas), puis UNE
 -- aide selon sa situation : des œufs qui l'attendent ; un boss (20, 30, 40) qui demande une tour de palier 2 alors
--- qu'il n'en a aucune ; sinon le camp d'entraînement.
+-- qu'il n'en a aucune ; une tour plus forte oubliée en réserve ; sinon le camp d'entraînement.
 local function stuckTips(levelNumber: number): { string }
 	local tips = {}
 	if levelNumber > 1 then
@@ -356,6 +376,8 @@ local function stuckTips(levelNumber: number): { string }
 		table.insert(tips, "🥚 Des œufs t'attendent : ouvre-les dans l'onglet Œufs pour avoir de nouvelles tours.")
 	elseif Levels.definition(levelNumber).boss and levelNumber > Levels.TERRITORY_SIZE and not strong then
 		table.insert(tips, "👑 Ce boss demande une tour de palier 2 (œufs rares et dorés) : rejouer un boss donne un œuf rare.")
+	elseif strongerInReserve() then
+		table.insert(tips, "🔀 Une tour plus forte attend dans ta réserve : choisis-la dans « Mes tours ».")
 	else
 		table.insert(tips, "⛺ Mets tes tours au camp d'entraînement : elles deviennent plus fortes même quand tu n'es pas là.")
 	end
@@ -1310,22 +1332,25 @@ local function buildCamp()
 	end
 
 	------------------------------------------------------------------
-	-- Onglet « Mes tours » : l'inventaire, dans l'ordre de la barre rapide
+	-- Onglet « Mes tours » : ses tours, rareté par rareté, et sa BARRE pour les niveaux (une tour par rareté :
+	-- « LA BARRE DE TOURS », Levels.luau). Le bouton « CHOISIR » d'une tour de la réserve la met dans la barre, à la
+	-- place de celle de sa rareté.
 	------------------------------------------------------------------
 	UI.label({
 		Name = "Help",
-		Size = UDim2.new(1, 0, 0, 20),
+		Size = UDim2.new(1, 0, 0, 34),
 		TextXAlignment = Enum.TextXAlignment.Left,
 		TextColor3 = UI.Colors.Muted,
 		MaxTextSize = 14,
-		Text = `Tes {Levels.BAR_MAX} premières tours vont dans ta barre rapide pour les niveaux, les autres attendent en réserve (▲ ▼ pour changer l'ordre).`,
+		TextWrapped = true,
+		Text = "Ta barre de tours pour les niveaux : une tour de chaque rareté (commune, rare, épique, légendaire, spéciale). Touche « Choisir » pour changer de tour.",
 		Parent = pages["Mes tours"],
 	})
 	-- (la liste ne défile pas toute seule : c'est la page qui défile, de l'aide à la dernière tour. Une liste qui
 	-- défilait DANS la page qui défile bloquait le doigt sur téléphone : impossible d'aller tout en bas.)
 	local towerList = UI.new("Frame", {
 		Name = "Towers",
-		Position = UDim2.fromOffset(0, 26),
+		Position = UDim2.fromOffset(0, 40),
 		Size = UDim2.new(1, 0, 0, 0),
 		AutomaticSize = Enum.AutomaticSize.Y,
 		BackgroundTransparency = 1,
@@ -1334,14 +1359,19 @@ local function buildCamp()
 	pages["Mes tours"].CanvasSize = UDim2.new()
 	pages["Mes tours"].AutomaticCanvasSize = Enum.AutomaticSize.Y
 	local towerRows = {}
-	local function moveInBar(towerType: string, direction: number)
-		local order = table.clone(state.towers)
-		local index = table.find(order, towerType)
-		local target = index and index + direction
-		if index and target and target >= 1 and target <= #order then
-			order[index], order[target] = order[target], order[index]
-			levelAction:FireServer("Bar", order)
-		end
+	-- Un titre par rareté (une place de la barre), au-dessus de ses tours.
+	local rarityHeaders = {}
+	for index, rarity in Levels.BAR_RARITIES do
+		rarityHeaders[rarity] = UI.label({
+			Name = "Rarity_" .. rarity,
+			Size = UDim2.new(1, -8, 0, 22),
+			Font = Enum.Font.GothamBlack,
+			TextXAlignment = Enum.TextXAlignment.Left,
+			TextColor3 = RARITY_COLORS[rarity] or UI.Colors.Text,
+			MaxTextSize = 15,
+			LayoutOrder = index * 100,
+			Parent = towerList,
+		})
 	end
 	for _, towerType in IdleTowers.ORDER do
 		local def = IdleTowers.Defs[towerType]
@@ -1356,7 +1386,7 @@ local function buildCamp()
 		towerTile(row, towerType, UDim2.fromOffset(0, 0), UDim2.fromOffset(72, 78))
 		local title = UI.label({
 			Position = UDim2.fromOffset(82, 0),
-			Size = UDim2.new(1, -182, 0, 36),
+			Size = UDim2.new(1, -202, 0, 36),
 			Font = Enum.Font.GothamBlack,
 			TextXAlignment = Enum.TextXAlignment.Left,
 			TextColor3 = UI.Colors.Text,
@@ -1366,7 +1396,7 @@ local function buildCamp()
 		})
 		local stats = UI.label({
 			Position = UDim2.fromOffset(82, 40),
-			Size = UDim2.new(1, -182, 0, 36),
+			Size = UDim2.new(1, -202, 0, 36),
 			TextXAlignment = Enum.TextXAlignment.Left,
 			TextYAlignment = Enum.TextYAlignment.Top,
 			TextWrapped = true,
@@ -1374,33 +1404,23 @@ local function buildCamp()
 			MaxTextSize = 13,
 			Parent = row,
 		})
-		local up = UI.button({
-			Name = "Up",
-			AnchorPoint = Vector2.new(1, 0.5),
-			Position = UDim2.new(1, -46, 0.5, 0),
-			Size = UDim2.fromOffset(40, 40),
-			BackgroundColor3 = UI.Colors.Panel,
-			Text = "▲",
-			MaxTextSize = 16,
-			Parent = row,
-		})
-		local down = UI.button({
-			Name = "Down",
+		-- « CHOISIR » : cette tour entre dans la barre, à la place de celle de sa rareté ; « ✓ CHOISIE » : elle y est.
+		local choose = UI.button({
+			Name = "Choose",
 			AnchorPoint = Vector2.new(1, 0.5),
 			Position = UDim2.new(1, 0, 0.5, 0),
-			Size = UDim2.fromOffset(40, 40),
-			BackgroundColor3 = UI.Colors.Panel,
-			Text = "▼",
-			MaxTextSize = 16,
+			Size = UDim2.fromOffset(112, 40),
+			BackgroundColor3 = UI.Colors.Accent,
+			Text = "CHOISIR",
+			MaxTextSize = 14,
 			Parent = row,
 		})
-		up.Activated:Connect(function()
-			moveInBar(towerType, -1)
+		choose.Activated:Connect(function()
+			if owns(towerType) and not inBar(towerType) then
+				levelAction:FireServer("Choose", towerType)
+			end
 		end)
-		down.Activated:Connect(function()
-			moveInBar(towerType, 1)
-		end)
-		towerRows[towerType] = { row = row, title = title, stats = stats }
+		towerRows[towerType] = { row = row, title = title, stats = stats, choose = choose }
 	end
 	local lockedTowers = {}
 	for _, towerType in IdleTowers.ORDER do
@@ -1408,23 +1428,39 @@ local function buildCamp()
 	end
 
 	local function refreshTowers()
+		local ownedIn = {} -- [rareté] = nombre de tours à lui
 		for order, towerType in IdleTowers.ORDER do
 			local entry = towerRows[towerType]
+			local rarity = Levels.rarityOf(towerType)
+			-- Dans la liste : rareté par rareté ; le titre de la rareté, sa tour de la barre, sa réserve (dans l'ordre du
+			-- joueur), puis les tours pas encore à lui.
+			local section = (table.find(Levels.BAR_RARITIES, rarity) or 1) * 100
 			local index = table.find(state.towers, towerType)
+			local barIndex = table.find(state.bar, towerType)
 			entry.row.Visible = index ~= nil
-			entry.row.LayoutOrder = index or (100 + order)
+			entry.row.LayoutOrder = section + (if barIndex then 1 else 2 + (index or 0))
 			refreshLocked(lockedTowers[towerType], towerType, order)
+			lockedTowers[towerType].row.LayoutOrder = section + 60 + order
 			if index then
+				ownedIn[rarity] = (ownedIn[rarity] or 0) + 1
 				local def = IdleTowers.Defs[towerType]
 				local trained = Levels.trainingLevel(state.xp[towerType])
 				local stars = Levels.stars(Levels.evolutionStage(towerType, trained))
-				-- (au-delà de Levels.BAR_MAX : en réserve, pas dans la barre d'un niveau)
-				local place = if index <= Levels.BAR_MAX then `{index}.` else "Réserve •"
+				-- (« 2. » : son numéro dans la barre d'un niveau, et sa touche ; sinon elle est en réserve)
+				local place = if barIndex then `{barIndex}.` else "Réserve •"
 				entry.title.Text = `{place} {def.displayName}{if stars ~= "" then " " .. stars else ""} • {Levels.placeCost(towerType)} {GOLD} • entraînement {trained}`
-				entry.title.TextColor3 = if index <= Levels.BAR_MAX then UI.Colors.Text else UI.Colors.Muted
+				entry.title.TextColor3 = if barIndex then UI.Colors.Text else UI.Colors.Muted
 				local role = ROLES[towerType]
 				entry.stats.Text = statsLine(Levels.towerStats(towerType, 1, trained)) .. (if role then "\n" .. role else "")
+				entry.choose.Text = if barIndex then "✓ CHOISIE" else "CHOISIR"
+				entry.choose.BackgroundColor3 = if barIndex then UI.Colors.Success else UI.Colors.Accent
+				entry.choose.AutoButtonColor = barIndex == nil
 			end
+		end
+		for _, rarity in Levels.BAR_RARITIES do
+			local name = Levels.RARITY_NAMES[rarity] or rarity
+			local empty = if rarity == "Special" then "aucune tour : bats le boss d'un territoire" else "aucune tour : cherche dans les œufs"
+			rarityHeaders[rarity].Text = if (ownedIn[rarity] or 0) > 0 then name else `{name} • {empty}`
 		end
 	end
 
@@ -3369,7 +3405,7 @@ local function buildHud()
 			entry.copies.Visible = not phone
 		end
 		bar.Size = UDim2.fromOffset(0, buttonSize.Y)
-		local count = math.clamp(#state.towers, 1, Levels.BAR_MAX)
+		local count = math.clamp(#state.bar, 1, Levels.BAR_MAX)
 		local barWidth = count * buttonSize.X + (count - 1) * BAR_GAP
 		barScale.Scale = math.clamp((screen.X - 16) / barWidth, 0.5, 1)
 		local barHeight = buttonSize.Y * barScale.Scale
@@ -3443,10 +3479,7 @@ local function buildHud()
 	local richSince: number? = nil
 	local nextRichCheck = 0
 	local function canBuySomething(gold: number): boolean
-		for index, towerType in state.towers do
-			if index > Levels.BAR_MAX then
-				break -- (en réserve : pas dans la barre)
-			end
+		for _, towerType in state.bar do
 			if gold >= Levels.placeCost(towerType) and copiesOf(towerType) < Levels.maxCopies(towerType) then
 				return true
 			end
@@ -3507,20 +3540,20 @@ local function buildHud()
 		set(teamInfo, "Text", teamText)
 		set(teamInfo, "Visible", teamText ~= "")
 
-		-- Barre rapide : les Levels.BAR_MAX premières tours de sa liste (les autres sont en réserve).
-		local order = table.concat(state.towers, ",")
+		-- Sa barre de tours : une tour par rareté, dans l'ordre des raretés (les autres sont en réserve).
+		local order = table.concat(state.bar, ",")
 		if order ~= barOrder then
 			barOrder = order
 			for _, towerType in IdleTowers.ORDER do
 				local entry = barButtons[towerType]
-				local index = table.find(state.towers, towerType)
-				entry.button.Visible = index ~= nil and index <= Levels.BAR_MAX
+				local index = table.find(state.bar, towerType)
+				entry.button.Visible = index ~= nil
 				entry.button.LayoutOrder = index or 99
 			end
 			layout()
 		end
-		for index, towerType in state.towers do
-			local entry = if index <= Levels.BAR_MAX then barButtons[towerType] else nil
+		for index, towerType in state.bar do
+			local entry = barButtons[towerType]
 			if entry then
 				local cost = Levels.placeCost(towerType)
 				local copies, limit = copiesOf(towerType), Levels.maxCopies(towerType)
@@ -3840,7 +3873,8 @@ end
 
 -- Tests automatiques (Studio) : gui:SetAttribute("TestAction", "<commande>#<numéro>") fait comme le joueur.
 --   écran « Levels »   : "Open", "Close", "Tab:Œufs", "Slot:2" (invite du socle d'entraînement 2 du camp),
---                        "TrainBuy:MachineGun" (bouton ⚡ de cette tour dans l'onglet Entraînement), "Team" (page de
+--                        "TrainBuy:MachineGun" (bouton ⚡ de cette tour dans l'onglet Entraînement), "Choose:Frost"
+--                        (bouton « CHOISIR » de cette tour dans l'onglet Mes tours), "Team" (page de
 --                        l'équipe), "TeamInvite:123" (inviter ce joueur), "TeamAccept" / "TeamDecline" (répondre à
 --                        l'invitation affichée), "TeamLeave" (quitter l'équipe), "FriendOnline:123:Robin" (comme si
 --                        cet ami venait de se connecter), "FriendInvite" / "FriendClose" (boutons du panneau),
@@ -3868,6 +3902,11 @@ local function testAction(command: string)
 	elseif name == "TrainBuy" then
 		if owns(argument) then
 			levelAction:FireServer("TrainBuy", argument)
+		end
+	elseif name == "Choose" then
+		-- (comme le bouton « CHOISIR » de cette tour dans l'onglet Mes tours)
+		if owns(argument) and not inBar(argument) then
+			levelAction:FireServer("Choose", argument)
 		end
 	elseif name == "Team" then
 		camp.open("Équipe")
@@ -3912,7 +3951,7 @@ local function testAction(command: string)
 	elseif name == "Select" then
 		setPlacing(if argument ~= "" and owns(argument) then argument else nil)
 	elseif name == "Bar" then
-		if owns(argument) then
+		if inBar(argument) then
 			barTap(argument)
 		end
 	elseif name == "Tap" then
@@ -4265,7 +4304,10 @@ local function buildHatchReveal()
 		setText(name, def.displayName)
 		name.TextColor3 = color
 		stroke.Color = color
-		local line = if result.new then `{rarity} : elle rejoint ta barre de tours` else `{rarity} : +{tonumber(result.xp) or 0} XP d'entraînement pour cette tour`
+		-- (result.bar : elle est entrée dans sa barre ; faux : une autre tour de sa rareté y est déjà, elle attend en réserve)
+		local line = if not result.new then `{rarity} : +{tonumber(result.xp) or 0} XP d'entraînement pour cette tour`
+			elseif result.bar == false then `{rarity} : choisis-la dans « Mes tours » pour la prendre`
+			else `{rarity} : elle rejoint ta barre de tours`
 		-- Tour de palier 2 : de quelle tour elle est la version forte, et ce qu'elle fait.
 		if def.base then
 			line = `Palier 2 de : {IdleTowers.Defs[def.base].displayName}\n{ROLES[result.tower] or ""}\n{line}`
@@ -4402,7 +4444,7 @@ local function build()
 		elseif input.UserInputType == Enum.UserInputType.Keyboard then
 			local slot = HOTKEYS[input.KeyCode]
 			if slot then
-				local towerType = state.towers[slot]
+				local towerType = state.bar[slot]
 				if towerType then
 					barTap(towerType)
 				end

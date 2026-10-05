@@ -28,7 +28,9 @@ Le jeu sort comme une **nouvelle expérience Roblox** (décision du 02/10/2026) 
 - [ ] **Un nouveau joueur passe-t-il le niveau 1 ?** La difficulté est réglée avec des joueurs simulés et un seul
       vrai joueur (toi). Le tuto aide : un joueur simulé qui suit seulement la flèche gagne le niveau 1.
 - [ ] **Joue les niveaux 11 à 40** : ils n'ont été essayés que par les joueurs simulés (trop durs ? trop faciles ?).
-      Les boss 20, 30 et 40 demandent des tours de palier 2 (les œufs dorés des boss d'avant en donnent souvent).
+      Les boss 20, 30 et 40 demandent une tour de palier 2 (les œufs dorés des boss d'avant en donnent souvent).
+      Depuis le 05/10/2026 : une seule tour par rareté dans un niveau (la barre, choisie dans « Mes tours »), et les
+      niveaux 11 à 40 sont « durs partout » (il faut la bonne barre et des tours entraînées).
 - [ ] **Jouer en équipe, à deux pour de vrai** : dans Studio, le test « serveur et clients » avec 2 joueurs ;
       réussir le niveau 1 dans les deux, puis « 👥 ÉQUIPE » > « Inviter », accepter, lancer un niveau ensemble. À
       vérifier : chacun son couloir (son nom au-dessus de sa porte, des monstres dans les deux couloirs), chacun
