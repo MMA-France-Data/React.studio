@@ -436,6 +436,17 @@ return function(log)
 	task.wait(1)
 	local held = fall(true)
 	check(held > plain + 2, "dragon légendaire : le vol plané retient la chute 3 secondes", string.format("%.1f s sans, %.1f s avec", plain, held))
+	-- Une photo de chaque animal (rare puis légendaire), à côté du joueur dans la salle de sport.
+	for _, name in { "Dragon", "Rock", "Rabbit", "Golem", "Owl" } do
+		for _, rarity in { 2, 4 } do
+			D("Pet", name, rarity)
+			tp(Vector3.new(0, 4, 6))
+			task.wait(1.2)
+			local _, _, body = alive()
+			local view = body.CFrame
+			shot("animal_" .. name .. rarity, (view * CFrame.new(1.5, 2.5, -11)).Position, (view * CFrame.new(1.6, 0.4, 1.3)).Position)
+		end
+	end
 	shot("gagnants", Vector3.new(-14, 12, 1036), Vector3.new(2, 5, 1058))
 
 	-- 4. LE RACCOURCI ----------------------------------------------------------------------------------------------
