@@ -30,6 +30,7 @@ return {
 	["Arbalète de cuivre"] = "Copper Crossbow",
 	["Lance-ronces"] = "Thorn Thrower",
 	["Catapulte de givre"] = "Frost Catapult",
+	["Totem des sables"] = "Sand Totem",
 
 	-- Noms courts des tours, sur la barre d'un niveau (client/LevelsUI.luau, SHORT_NAMES ; « Catapulte » : plus haut)
 	["Archer"] = "Archer",
@@ -51,6 +52,7 @@ return {
 	["Cuivre"] = "Copper",
 	["Ronces"] = "Thorns",
 	["Givre"] = "Frost",
+	["Sables"] = "Sand",
 
 	-- Monstres (Enemies.luau)
 	["Écuyer"] = "Squire",

@@ -83,10 +83,14 @@ local SAMPLES = {
 	{ "Arbalète de cuivre", "Copper Crossbow" },
 	{ "Lance-ronces", "Thorn Thrower" },
 	{ "Catapulte de givre", "Frost Catapult" },
+	{ "Totem des sables", "Sand Totem" },
 	{ "Carmin", "Crimson" },
 	{ "Cuivre", "Copper" },
 	{ "Ronces", "Thorns" },
 	{ "Givre", "Frost" },
+	{ "Sables", "Sand" },
+	{ "Une tempête de sable autour de lui : elle use tous les monstres proches.", "A sandstorm around it: it wears down every nearby monster." },
+	{ "Spéciale • Œuf des dunes • boss du niveau 50", "Special • Dune egg • level 50 boss" },
 	{ "Grosses flèches rapides : très fort contre un monstre à la fois.", "Big fast arrows: very strong against one monster at a time." },
 	{ "Ses carreaux transpercent 3 monstres alignés.", "Its bolts pierce 3 monsters in a line." },
 	{ "Ses ronces empoisonnent les monstres qui marchent dessus.", "Its thorns poison the monsters that walk on them." },
@@ -492,6 +496,8 @@ local OTHER_SAMPLES = {
 	{ "★★ Niv. 3", "★★ Niv. 3", "★★ Nív. 3" },
 	{ "Son : effets seuls", "Sonido: solo efectos", "Som: só efeitos" },
 	{ "Ta session a été ouverte sur un autre serveur.", "Tu sesión se abrió en otro servidor.", "Sua sessão foi aberta em outro servidor." },
+	{ "Spéciale • Œuf des dunes • boss du niveau 50", "Especial • Huevo de las dunas • jefe del nivel 50", "Especial • Ovo das dunas • chefe do nível 50" },
+	{ "🔒 Totem des sables", "🔒 Tótem de arena", "🔒 Totem de areia" },
 	{ "Robin a refusé tes invitations : réessaie dans une minute", "Robin rechazó tus invitaciones: inténtalo de nuevo en un minuto", "Robin recusou seus convites: tente de novo em um minuto" },
 }
 local otherPassed, otherFailed = 0, 0

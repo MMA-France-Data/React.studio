@@ -1502,10 +1502,10 @@ do
 	local lastEight = table.concat(table.move(IdleTowers.ORDER, 9, 16, 1, {}), ",")
 	local specials = table.concat(table.move(IdleTowers.ORDER, 17, #IdleTowers.ORDER, 1, {}), ",")
 	check(
-		#IdleTowers.ORDER == 20 and firstEight == "MachineGun,Frost,Bomb,Tesla,Rocket,Laser,Chain,Orbital"
+		#IdleTowers.ORDER == 21 and firstEight == "MachineGun,Frost,Bomb,Tesla,Rocket,Laser,Chain,Orbital"
 			and firstEight == table.concat(IdleTowers.TIER1, ",") and lastEight == table.concat(IdleTowers.TIER2, ",")
-			and specials == table.concat(IdleTowers.SPECIAL, ",") and specials == "CrimsonBow,CopperCrossbow,ThornSpitter,FrostCatapult",
-		"20 tours : les 8 de palier 1 d'abord (mêmes numéros qu'avant dans les paquets), puis leurs 8 versions de palier 2, puis les 4 tours spéciales"
+			and specials == table.concat(IdleTowers.SPECIAL, ",") and specials == "CrimsonBow,CopperCrossbow,ThornSpitter,FrostCatapult,SandTotem",
+		"21 tours : les 8 de palier 1 d'abord (mêmes numéros qu'avant dans les paquets), puis leurs 8 versions de palier 2, puis les 5 tours spéciales"
 	)
 	local pairsOk, bases = true, {}
 	for index, towerType in IdleTowers.TIER2 do
@@ -1661,7 +1661,7 @@ do
 	check(
 		shapesOk and not IdleTowers.isSpecial("FireArcher") and IdleTowers.shapeOf("FireArcher") == "MachineGun" and IdleTowers.shapeOf("Bomb") == "Bomb"
 			and IdleTowers.shapeOf("CrimsonBow") == "MachineGun" and IdleTowers.shapeOf("CopperCrossbow") == "Rocket" and IdleTowers.shapeOf("FrostCatapult") == "Bomb",
-		"tours spéciales : une par territoire (vallée, col, forêt, glacier), la silhouette d'une tour de palier 1, 2 au plus par niveau, son œuf spécial au boss du territoire (10, 20, 30, 40)"
+		"tours spéciales : une par territoire (vallée, col, forêt, glacier, désert), la silhouette d'une tour de palier 1, 2 au plus par niveau, son œuf spécial au boss du territoire (10, 20, 30, 40, 50)"
 	)
 	-- « Un peu plus forte qu'une tour de palier 2 », chacune dans son rôle : l'Arc carmin tire plus fort que l'Archer
 	-- enflammé, l'Arbalète de cuivre plus que la Baliste du dragon sur une cible, la Catapulte de givre frappe plus que la
@@ -1671,23 +1671,26 @@ do
 	end
 	local crimson, copper = Levels.towerStats("CrimsonBow", 1, 0), Levels.towerStats("CopperCrossbow", 1, 0)
 	local thorns, frost = Levels.towerStats("ThornSpitter", 1, 0), Levels.towerStats("FrostCatapult", 1, 0)
+	local sand = Levels.towerStats("SandTotem", 1, 0)
 	check(
 		dps("CrimsonBow") > dps("FireArcher") and crimson.kind == "Single" and crimson.fireRadius == nil
 			and dps("CopperCrossbow") >= dps("DragonBallista") and copper.kind == "Pierce" and copper.pierceMax == 3
 			and dps("FrostCatapult") >= dps("MagmaCatapult") and frost.kind == "Splash" and frost.slow ~= nil and frost.family == "Frost"
 			and IdleTowers.fireDps(thorns) >= 2 * IdleTowers.fireDps(Levels.towerStats("MagmaCatapult", 1, 0)) and thorns.poisonDuration ~= nil
-			and thorns.slow == nil and thorns.stunDuration == nil,
-		string.format("tours spéciales : un peu plus fortes que les tours de palier 2 (Arc carmin %.0f/s contre %.0f, Arbalète %.0f contre %.0f, Catapulte de givre %.0f contre %.0f, poison %.0f/s) ; le Lance-ronces ne ralentit pas",
-			dps("CrimsonBow"), dps("FireArcher"), dps("CopperCrossbow"), dps("DragonBallista"), dps("FrostCatapult"), dps("MagmaCatapult"), IdleTowers.fireDps(thorns))
+			and thorns.slow == nil and thorns.stunDuration == nil
+			and dps("SandTotem") > dps("BlizzardTotem") and sand.kind == "Aura" and sand.slow == nil and sand.ignoresFragility == nil
+			and sand.range >= Levels.towerStats("BlizzardTotem", 1, 0).range - 1,
+		string.format("tours spéciales : un peu plus fortes que les tours de palier 2 (Arc carmin %.0f/s contre %.0f, Arbalète %.0f contre %.0f, Catapulte de givre %.0f contre %.0f, poison %.0f/s, Totem des sables %.0f/s sur chaque monstre de son aura contre %.0f pour le Totem du blizzard) ; le Lance-ronces et le Totem des sables ne ralentissent pas",
+			dps("CrimsonBow"), dps("FireArcher"), dps("CopperCrossbow"), dps("DragonBallista"), dps("FrostCatapult"), dps("MagmaCatapult"), IdleTowers.fireDps(thorns), dps("SandTotem"), dps("BlizzardTotem"))
 	)
 
 	-- L'œuf spécial : au boss du territoire, la première fois toujours, en rejouant 1 fois sur 10 ; rien ailleurs.
 	check(
 		Levels.bonusEggFor(10, true, 0.99) == "Crimson" and Levels.bonusEggFor(20, true, 0.5) == "Copper" and Levels.bonusEggFor(30, true, 0.5) == "Bramble"
 			and Levels.bonusEggFor(40, true, 0.5) == "Rime" and Levels.bonusEggFor(10, false, 0.99) == nil and Levels.bonusEggFor(10, false, 0.05) == "Crimson"
-			and Levels.bonusEggFor(9, true, 0) == nil and Levels.bonusEggFor(15, true, 0) == nil and Levels.bonusEggFor(50, true, 0) == nil
-			and Levels.SPECIAL_REPLAY_CHANCE == 0.1 and Levels.eggFor(10, true) == "Gold",
-		"œufs spéciaux : au boss du territoire, en plus de l'œuf doré (la 1re fois toujours, en rejouant 1 fois sur 10) ; rien aux autres niveaux, ni au désert (pas encore d'œuf)"
+			and Levels.bonusEggFor(9, true, 0) == nil and Levels.bonusEggFor(15, true, 0) == nil and Levels.bonusEggFor(50, true, 0) == "Dune"
+			and Levels.bonusEggFor(60, true, 0) == nil and Levels.SPECIAL_REPLAY_CHANCE == 0.1 and Levels.eggFor(10, true) == "Gold",
+		"œufs spéciaux : au boss du territoire, en plus de l'œuf doré (la 1re fois toujours, en rejouant 1 fois sur 10) ; rien aux autres niveaux ; au désert, l'œuf des dunes (niveau 50) ; pas encore d'œuf après"
 	)
 	local fixed = Levels.eggChances("Crimson")
 	local data = Levels.defaultData()
@@ -1711,7 +1714,13 @@ do
 	for _, eggType in Levels.SPECIAL_EGG_ORDER do
 		table.insert(patterns, Levels.EGGS[eggType].art.pattern)
 	end
-	check(artOk and table.concat(patterns, ",") == "zigzag,rivets,thorns,flakes", "œufs spéciaux : les dessins montrés au propriétaire (zigzag doré, rivets, ronces, flocons), avec des rayons")
+	check(artOk and table.concat(patterns, ",") == "zigzag,rivets,thorns,flakes,dunes", "œufs spéciaux : les dessins montrés au propriétaire (zigzag doré, rivets, ronces, flocons), puis les dunes du désert, avec des rayons")
+	-- Un œuf spécial dont le boss est dans un territoire encore fermé (après Levels.OPEN_COUNT) : caché dans l'interface.
+	check(
+		Levels.specialEggOpen("Crimson") and Levels.specialEggOpen("Rime") == (Levels.OPEN_COUNT >= 40)
+			and Levels.specialEggOpen("Dune") == (Levels.OPEN_COUNT >= 50),
+		`œufs spéciaux : montrés seulement quand leur boss est ouvert (niveaux ouverts : {Levels.OPEN_COUNT} ; l'œuf des dunes : {if Levels.specialEggOpen("Dune") then "montré" else "caché"})`
+	)
 	-- Une tour spéciale arrive à la fin de la barre (elle ne remplace pas l'Archer) ; un doublon : 200 XP.
 	local owner = Levels.defaultData()
 	for _, towerType in { "Bomb", "Frost", "Tesla", "Rocket", "Laser", "Chain", "Orbital" } do

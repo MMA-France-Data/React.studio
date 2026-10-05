@@ -35,9 +35,10 @@ Le jeu sort comme une **nouvelle expérience Roblox** (décision du 02/10/2026) 
       pose ses tours, l'or de chacun, l'écran de fin des deux, le niveau suivant ouvert pour les deux. (Le test
       automatique joue avec des joueurs d'essai, pas avec deux vrais clients.)
 - [x] La Baliste et le Trébuchet renforcés (02/10/2026, voir `NIVEAUX.md`, « Ce que chaque tour apporte »).
-- [ ] Ouvrir les niveaux 41 à 100 (tes mises à jour) : les régler de nouveau pour les œufs, puis
-      `Levels.OPEN_COUNT`. Plus de 100 niveaux : il faudrait de nouvelles familles de monstres (les dix prévues sont
-      utilisées).
+- [ ] Ouvrir les niveaux 41 à 100 (tes mises à jour). **Le désert (41 à 50) est prêt** (nuit du 05/10/2026 : réglé
+      pour les œufs, sa tour spéciale le Totem des sables et l'œuf des dunes) : ton « oui » et je mets
+      `Levels.OPEN_COUNT = 50`. Les niveaux 51 à 100 : à régler de nouveau pour les œufs avant de les ouvrir. Plus de
+      100 niveaux : il faudrait de nouvelles familles de monstres (les dix prévues sont utilisées).
 - [ ] Les autres langues (allemand, russe, coréen...) : aujourd'hui ces joueurs voient le jeu en anglais. Une
       langue de plus = un dossier `src/shared/LangXX` comme `LangES` (voir le haut de `src/shared/Lang.luau`).
 - [ ] Monstres : **les boss des niveaux 60 et 90** (la Légion des os, la Horde gobeline) n'ont pas encore de modèle

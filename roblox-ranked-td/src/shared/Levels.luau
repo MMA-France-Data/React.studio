@@ -638,8 +638,12 @@ Levels.STREAM = {
 -- aux niveaux 30 et 40. Réglés pour le joueur qui a deux, puis trois tours de palier 2, avec l'entraînement que
 -- ces parties donnent (Bot.EXPECTED). Les niveaux à boss sont un peu plus courts : le boss doit encore traverser la
 -- carte (200 s au plus en tout).
--- NIVEAUX 41 À 100 : FERMÉS pour l'instant (Levels.OPEN_COUNT) ; leurs chiffres datent de la boutique (réglés pour
--- les huit tours de palier 1) : à régler de nouveau avant de les ouvrir. Ce qu'ils contiennent :
+-- NIVEAUX 41 À 100 : FERMÉS pour l'instant (Levels.OPEN_COUNT). Les PV des niveaux 41 à 50 sont réglés pour les
+-- œufs (05/10/2026 : le joueur qui a les mêmes 8 tours qu'au 4e territoire, un peu plus entraînées, Bot.EXPECTED ;
+-- run.ps1 -Tune -Vies 8, puis 5 % de marge, sauf aux niveaux 41 et 46 : le joueur lent y gagnait encore) : ouvrir le
+-- désert = OPEN_COUNT = 50. Ceux des niveaux 51 à 100
+-- datent de la boutique (réglés pour les huit tours de palier 1) : à régler de nouveau avant de les ouvrir. Ce
+-- qu'ils contiennent :
 -- NIVEAUX 41 À 60 (5e et 6e territoires, cartes « Desert » et « Necropolis ») : quatre ou cinq colosses par niveau,
 -- quatre à la file au niveau 45, un trio puis une paire au niveau 55, un boss qui ferme le flot aux niveaux 50 et
 -- 60. Leurs chemins sont plus courts (252 studs) : les monstres sortent un peu moins serrés au
@@ -693,16 +697,16 @@ Levels.DEFINITIONS = {
 	{ gold = 255, seconds = 155, health = 371, gap = { 0.95, 0.28 }, from = { Fast = 0.05, Swarm = 0.08, Tank = 0.12 }, specials = { { "Giant", 0.2, 0.7 }, { "Giant", 0.4, 0.85 }, { "Giant", 0.6 }, { "Giant", 0.8, 1.1 } } },
 	{ gold = 260, seconds = 145, health = 378, gap = { 0.95, 0.28 }, from = { Fast = 0.05, Swarm = 0.08, Tank = 0.12 }, specials = { { "Giant", 0.3, 0.7 }, { "Giant", 0.5, 0.85 }, { "Giant", 0.7 }, { "Giant", 0.85, 1.1 }, { "Boss", 1, 0.85 } } },
 	-- 5e territoire
-	{ gold = 265, seconds = 140, health = 349, gap = { 1.0, 0.28 }, from = { Fast = 0.1, Swarm = 0.12, Tank = 0.15 }, specials = { { "Giant", 0.3, 0.7 }, { "Giant", 0.6, 0.85 }, { "Giant", 0.85 } } },
-	{ gold = 270, seconds = 140, health = 302, gap = { 1.0, 0.28 }, from = { Fast = 0.1, Swarm = 0.12, Tank = 0.15 }, specials = { { "Giant", 0.25, 0.7 }, { "Giant", 0.45, 0.85 }, { "Giant", 0.65 }, { "Giant", 0.85, 1.1 } } },
-	{ gold = 275, seconds = 145, health = 321, gap = { 1.0, 0.28 }, from = { Fast = 0.1, Swarm = 0.12, Tank = 0.15 }, specials = { { "Giant", 0.25, 0.7 }, { "Giant", 0.45, 0.85 }, { "Giant", 0.65 }, { "Giant", 0.85, 1.1 } } },
-	{ gold = 280, seconds = 145, health = 268, gap = { 1.0, 0.28 }, from = { Fast = 0.1, Swarm = 0.12, Tank = 0.15 }, specials = { { "Giant", 0.2, 0.7 }, { "Giant", 0.4, 0.85 }, { "Giant", 0.6 }, { "Giant", 0.8, 1.2 } } },
-	{ gold = 285, seconds = 150, health = 247, gap = { 1.0, 0.28 }, from = { Fast = 0.1, Swarm = 0.12, Tank = 0.15 }, specials = { { "Giant", 0.6 }, { "Giant", 0.62 }, { "Giant", 0.64 }, { "Giant", 0.66 } } },
-	{ gold = 290, seconds = 150, health = 285, gap = { 1.0, 0.28 }, from = { Fast = 0.1, Swarm = 0.12, Tank = 0.15 }, specials = { { "Giant", 0.2, 0.7 }, { "Giant", 0.4, 0.85 }, { "Giant", 0.6 }, { "Giant", 0.8, 1.2 } } },
-	{ gold = 295, seconds = 150, health = 253, gap = { 1.0, 0.28 }, from = { Fast = 0.1, Swarm = 0.12, Tank = 0.15 }, specials = { { "Giant", 0.2, 0.7 }, { "Giant", 0.35, 0.85 }, { "Giant", 0.5 }, { "Giant", 0.7, 1.1 }, { "Giant", 0.88, 1.2 } } },
-	{ gold = 300, seconds = 155, health = 285, gap = { 1.0, 0.28 }, from = { Fast = 0.1, Swarm = 0.12, Tank = 0.15 }, specials = { { "Giant", 0.2, 0.7 }, { "Giant", 0.35, 0.85 }, { "Giant", 0.5 }, { "Giant", 0.7, 1.1 }, { "Giant", 0.88, 1.2 } } },
-	{ gold = 305, seconds = 155, health = 302, gap = { 1.0, 0.28 }, from = { Fast = 0.1, Swarm = 0.12, Tank = 0.15 }, specials = { { "Giant", 0.15, 0.7 }, { "Giant", 0.3, 0.85 }, { "Giant", 0.5 }, { "Giant", 0.7, 1.1 }, { "Giant", 0.88, 1.2 } } },
-	{ gold = 310, seconds = 145, health = 349, gap = { 1.0, 0.28 }, from = { Fast = 0.1, Swarm = 0.12, Tank = 0.15 }, specials = { { "Giant", 0.3, 0.7 }, { "Giant", 0.5, 0.85 }, { "Giant", 0.7 }, { "Giant", 0.85, 1.1 }, { "Boss", 1 } } },
+	{ gold = 265, seconds = 140, health = 391, gap = { 1.0, 0.28 }, from = { Fast = 0.1, Swarm = 0.12, Tank = 0.15 }, specials = { { "Giant", 0.3, 0.7 }, { "Giant", 0.6, 0.85 }, { "Giant", 0.85 } } },
+	{ gold = 270, seconds = 140, health = 350, gap = { 1.0, 0.28 }, from = { Fast = 0.1, Swarm = 0.12, Tank = 0.15 }, specials = { { "Giant", 0.25, 0.7 }, { "Giant", 0.45, 0.85 }, { "Giant", 0.65 }, { "Giant", 0.85, 1.1 } } },
+	{ gold = 275, seconds = 145, health = 350, gap = { 1.0, 0.28 }, from = { Fast = 0.1, Swarm = 0.12, Tank = 0.15 }, specials = { { "Giant", 0.25, 0.7 }, { "Giant", 0.45, 0.85 }, { "Giant", 0.65 }, { "Giant", 0.85, 1.1 } } },
+	{ gold = 280, seconds = 145, health = 371, gap = { 1.0, 0.28 }, from = { Fast = 0.1, Swarm = 0.12, Tank = 0.15 }, specials = { { "Giant", 0.2, 0.7 }, { "Giant", 0.4, 0.85 }, { "Giant", 0.6 }, { "Giant", 0.8, 1.2 } } },
+	{ gold = 285, seconds = 150, health = 302, gap = { 1.0, 0.28 }, from = { Fast = 0.1, Swarm = 0.12, Tank = 0.15 }, specials = { { "Giant", 0.6 }, { "Giant", 0.62 }, { "Giant", 0.64 }, { "Giant", 0.66 } } },
+	{ gold = 290, seconds = 150, health = 391, gap = { 1.0, 0.28 }, from = { Fast = 0.1, Swarm = 0.12, Tank = 0.15 }, specials = { { "Giant", 0.2, 0.7 }, { "Giant", 0.4, 0.85 }, { "Giant", 0.6 }, { "Giant", 0.8, 1.2 } } },
+	{ gold = 295, seconds = 150, health = 371, gap = { 1.0, 0.28 }, from = { Fast = 0.1, Swarm = 0.12, Tank = 0.15 }, specials = { { "Giant", 0.2, 0.7 }, { "Giant", 0.35, 0.85 }, { "Giant", 0.5 }, { "Giant", 0.7, 1.1 }, { "Giant", 0.88, 1.2 } } },
+	{ gold = 300, seconds = 155, health = 371, gap = { 1.0, 0.28 }, from = { Fast = 0.1, Swarm = 0.12, Tank = 0.15 }, specials = { { "Giant", 0.2, 0.7 }, { "Giant", 0.35, 0.85 }, { "Giant", 0.5 }, { "Giant", 0.7, 1.1 }, { "Giant", 0.88, 1.2 } } },
+	{ gold = 305, seconds = 155, health = 350, gap = { 1.0, 0.28 }, from = { Fast = 0.1, Swarm = 0.12, Tank = 0.15 }, specials = { { "Giant", 0.15, 0.7 }, { "Giant", 0.3, 0.85 }, { "Giant", 0.5 }, { "Giant", 0.7, 1.1 }, { "Giant", 0.88, 1.2 } } },
+	{ gold = 310, seconds = 145, health = 371, gap = { 1.0, 0.28 }, from = { Fast = 0.1, Swarm = 0.12, Tank = 0.15 }, specials = { { "Giant", 0.3, 0.7 }, { "Giant", 0.5, 0.85 }, { "Giant", 0.7 }, { "Giant", 0.85, 1.1 }, { "Boss", 1 } } },
 	-- 6e territoire
 	{ gold = 315, seconds = 140, health = 302, gap = { 1.0, 0.27 }, from = { Fast = 0.1, Swarm = 0.1, Tank = 0.12 }, specials = { { "Giant", 0.25, 0.7 }, { "Giant", 0.45, 0.85 }, { "Giant", 0.65 }, { "Giant", 0.85, 1.1 } } },
 	{ gold = 320, seconds = 145, health = 302, gap = { 1.0, 0.27 }, from = { Fast = 0.1, Swarm = 0.1, Tank = 0.12 }, specials = { { "Giant", 0.2, 0.7 }, { "Giant", 0.4, 0.85 }, { "Giant", 0.6 }, { "Giant", 0.8, 1.2 } } },
@@ -1085,7 +1089,7 @@ Levels.TOWER_COST = {
 	MachineGun = 20, Frost = 40, Bomb = 45, Tesla = 40, Rocket = 50, Laser = 90, Chain = 150, Orbital = 100,
 	FireArcher = 40, BlizzardTotem = 80, MagmaCatapult = 90, StormArchmage = 80, DragonBallista = 100, VoidSorcerer = 180,
 	ThunderOracle = 300, CelestialTrebuchet = 200,
-	CrimsonBow = 60, CopperCrossbow = 90, ThornSpitter = 90, FrostCatapult = 100,
+	CrimsonBow = 60, CopperCrossbow = 90, ThornSpitter = 90, FrostCatapult = 100, SandTotem = 100,
 }
 Levels.MAX_COPIES = { Frost = 3, BlizzardTotem = 3 }
 -- Stats changées par rapport à IdleTowers : { [type] = { champ = valeur } }.
@@ -1374,13 +1378,14 @@ Levels.CAMP = {
 --     Dessinés par client/EggArt.luau (l'onglet Œufs) et Hub/Camp.luau (les couveuses en 3D) ;
 --   * les ŒUFS SPÉCIAUX (idée du propriétaire, 04/10/2026 : « des œufs spéciaux carmin, ensuite spéciaux orc... »,
 --     « une tour spéciale ? ») : un par territoire, qui donne toujours la TOUR SPÉCIALE de ce territoire
---     (IdleTowers.SPECIAL). Battre le boss du territoire (niveaux 10, 20, 30, 40) la première fois le donne EN PLUS
+--     (IdleTowers.SPECIAL). Battre le boss du territoire (niveaux 10, 20, 30, 40, 50) la première fois le donne EN PLUS
 --     de l'œuf doré ; en rejouant ce boss, il revient SPECIAL_REPLAY_CHANCE fois (Levels.bonusEggFor). L'œuf doré reste
 --     donc là : le réglage des niveaux ne change pas (les boss demandent les tours de palier 2 des œufs dorés). Un
 --     œuf spécial n'est jamais perdu quand la réserve est pleine (il ne compte pas dans EGG_MAX). Un doublon donne
 --     DUPLICATE_XP.Special d'XP à sa tour. Leurs dessins : ceux montrés au propriétaire (carmin à bande dorée en
---     zigzag, cuivre à rivets, vert à ronces, bleu glacé à flocons). Les territoires suivants (orc, obsidienne,
---     dragon...) auront les leurs avec leurs mises à jour.
+--     zigzag, cuivre à rivets, vert à ronces, bleu glacé à flocons ; le désert : sable à dunes et soleil doré). Les
+--     territoires suivants (orc, obsidienne, dragon...) auront les leurs avec leurs mises à jour. Un œuf spécial dont
+--     le boss est dans un territoire encore fermé (après OPEN_COUNT) n'apparaît nulle part (Levels.specialEggOpen).
 -- Les chiffres sont les miens (temps, chances, prix) : à changer s'il le veut.
 ----------------------------------------------------------------------
 local COMMON_COLOR = Color3.fromRGB(246, 242, 232)
@@ -1460,9 +1465,20 @@ Levels.EGGS = {
 		territory = "Glacier",
 		special = true,
 	},
+	-- (le désert : niveaux 41 à 50, fermés pour l'instant ; son œuf n'apparaît nulle part avant leur ouverture, voir
+	-- Levels.specialEggOpen)
+	Dune = {
+		displayName = "Œuf des dunes",
+		seconds = 60 * 60,
+		color = Color3.fromRGB(232, 194, 120),
+		art = { pattern = "dunes", detail = Color3.fromRGB(166, 108, 48), accent = Color3.fromRGB(255, 214, 80), frame = Color3.fromRGB(204, 142, 52), rays = true },
+		tower = "SandTotem",
+		territory = "Desert",
+		special = true,
+	},
 }
 Levels.EGG_ORDER = { "Common", "Rare", "Gold" } -- (les œufs de la réserve ; le premier œuf n'y va jamais)
-Levels.SPECIAL_EGG_ORDER = { "Crimson", "Copper", "Bramble", "Rime" } -- (dans l'ordre des territoires)
+Levels.SPECIAL_EGG_ORDER = { "Crimson", "Copper", "Bramble", "Rime", "Dune" } -- (dans l'ordre des territoires)
 Levels.SPECIAL_REPLAY_CHANCE = 0.1 -- en rejouant le boss d'un territoire : 1 chance sur 10 de regagner son œuf spécial
 Levels.EGG_MAX = 30 -- œufs en réserve au plus (tous types ensemble)
 Levels.HATCHER_COST = { 0, 600 } -- prix de la 1re (offerte) et de la 2e couveuse, en pièces de niveau (la 3e : ROYAL)
@@ -1521,9 +1537,15 @@ function Levels.towerEgg(towerType: string): string?
 	return nil
 end
 
--- Le niveau du boss qui donne cet œuf spécial (10 pour l'œuf carmin, 20, 30, 40).
+-- Le niveau du boss qui donne cet œuf spécial (10 pour l'œuf carmin, 20, 30, 40, 50).
 function Levels.specialBossLevel(eggType: string): number
 	return (table.find(Levels.TERRITORIES, Levels.EGGS[eggType].territory) or 1) * Levels.TERRITORY_SIZE
+end
+
+-- Vrai si le boss qui donne cet œuf spécial est ouvert (niveau <= OPEN_COUNT). Sinon, l'œuf et sa tour restent
+-- cachés dans l'interface (onglet Œufs, listes des tours) jusqu'à l'ouverture de leur territoire.
+function Levels.specialEggOpen(eggType: string): boolean
+	return Levels.specialBossLevel(eggType) <= Levels.OPEN_COUNT
 end
 
 -- L'ŒUF SPÉCIAL gagné EN PLUS de l'œuf du niveau (Levels.eggFor) en remportant ce niveau, ou nil : celui du

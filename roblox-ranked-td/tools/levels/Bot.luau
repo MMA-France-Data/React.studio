@@ -114,8 +114,9 @@ Bot.POLICIES = {
 -- pace = le RYTHME demandé par ce niveau : secondes entre deux achats du joueur de référence, celui pour qui le
 -- niveau est réglé (tune.luau). Le premier niveau laisse un peu de temps, les derniers demandent un achat toutes
 -- les 3,5 secondes (un humain choisit moins bien que le joueur simulé : il doit aller un peu plus vite que ça).
--- Niveaux 41 à 100 : fermés pour l'instant (Levels.OPEN_COUNT) ; leurs lignes datent de la boutique (les sept puis
--- huit tours de palier 1) : à refaire avant de les ouvrir.
+-- Niveaux 41 à 100 : fermés pour l'instant (Levels.OPEN_COUNT). Les lignes des niveaux 41 à 50 sont réglées pour les
+-- œufs (05/10/2026) ; celles des niveaux 51 à 100 datent de la boutique (les sept puis huit tours de palier 1) : à
+-- refaire avant de les ouvrir.
 local MG, BOMB, FROST, TESLA, ROCKET, LASER, CHAIN, ORBITAL = "MachineGun", "Bomb", "Frost", "Tesla", "Rocket", "Laser", "Chain", "Orbital"
 local MAGMA, STORM, DRAGON = "MagmaCatapult", "StormArchmage", "DragonBallista"
 local SEVEN = { MG, BOMB, FROST, TESLA, ROCKET, LASER, CHAIN }
@@ -170,17 +171,23 @@ Bot.EXPECTED = {
 	{ towers = DRAGON8, training = 3, trainings = { Rocket = 2, MagmaCatapult = 3, StormArchmage = 3, DragonBallista = 1 }, pace = 3.5 },
 	{ towers = DRAGON8, training = 3, trainings = { Rocket = 2, MagmaCatapult = 3, StormArchmage = 3, DragonBallista = 2 }, pace = 3.5 },
 	{ towers = DRAGON8, training = 3, trainings = { Rocket = 2, MagmaCatapult = 3, StormArchmage = 3, DragonBallista = 2 }, pace = 3.5 },
-	-- 5e territoire
-	{ towers = SEVEN, training = 3, trainings = { MachineGun = 4, Bomb = 4, Frost = 4, Rocket = 3, Laser = 3, Chain = 2 }, pace = 3.5 },
-	{ towers = SEVEN, training = 3, trainings = { MachineGun = 4, Bomb = 4, Frost = 4, Rocket = 3, Laser = 3, Chain = 2 }, pace = 3.5 },
-	{ towers = SEVEN, training = 3, trainings = { MachineGun = 4, Bomb = 4, Frost = 4, Rocket = 3, Laser = 3, Chain = 2 }, pace = 3.5 },
-	{ towers = SEVEN, training = 4, trainings = { Rocket = 3, Laser = 3, Chain = 2 }, pace = 3.5 },
-	{ towers = SEVEN, training = 4, trainings = { Rocket = 3, Laser = 3, Chain = 2 }, pace = 3.5 },
-	{ towers = EIGHT, training = 4, trainings = { Rocket = 3, Laser = 3, Chain = 2, Orbital = 0 }, pace = 3.5 },
-	{ towers = EIGHT, training = 4, trainings = { Rocket = 3, Laser = 3, Chain = 2, Orbital = 0 }, pace = 3.5 },
-	{ towers = EIGHT, training = 4, trainings = { Rocket = 3, Laser = 3, Chain = 2, Orbital = 0 }, pace = 3.5 },
-	{ towers = EIGHT, training = 4, trainings = { Laser = 3, Chain = 3, Orbital = 1 }, pace = 3.5 },
-	{ towers = EIGHT, training = 4, trainings = { Laser = 3, Chain = 3, Orbital = 1 }, pace = 3.5 },
+	-- 5e territoire (réglé de nouveau le 05/10/2026 pour les œufs, toujours fermé : Levels.OPEN_COUNT). Les mêmes 8
+	-- tours qu'au 4e territoire : l'œuf doré du niveau 40 ne donne une NOUVELLE tour de palier 2 qu'une fois sur 4 environ
+	-- (les trois déjà là reviennent en doublons) et les œufs communs presque jamais une tour de plus (le Sorcier, 5 % par
+	-- œuf). Elles s'entraînent au fil des parties (8 XP par victoire et par tour posée, sans compter le camp) : le niveau
+	-- 4 d'entraînement pour l'Archer et la Catapulte vers le niveau 41, pour le Totem et le Mage vers le niveau 47.
+	-- Les tours spéciales (celles des boss 10 à 40) ne comptent pas, comme avant : celui qui les a trouve les niveaux un
+	-- peu plus faciles.
+	{ towers = DRAGON8, training = 4, trainings = { Frost = 3, Tesla = 3, Rocket = 2, MagmaCatapult = 3, StormArchmage = 3, DragonBallista = 2 }, pace = 3.5 },
+	{ towers = DRAGON8, training = 4, trainings = { Frost = 3, Tesla = 3, Rocket = 2, MagmaCatapult = 3, StormArchmage = 3, DragonBallista = 2 }, pace = 3.5 },
+	{ towers = DRAGON8, training = 4, trainings = { Frost = 3, Tesla = 3, Rocket = 2, MagmaCatapult = 3, StormArchmage = 3, DragonBallista = 2 }, pace = 3.5 },
+	{ towers = DRAGON8, training = 4, trainings = { Frost = 3, Tesla = 3, Rocket = 2, MagmaCatapult = 3, StormArchmage = 3, DragonBallista = 2 }, pace = 3.5 },
+	{ towers = DRAGON8, training = 4, trainings = { Frost = 3, Tesla = 3, Rocket = 3, MagmaCatapult = 3, StormArchmage = 3, DragonBallista = 2 }, pace = 3.5 },
+	{ towers = DRAGON8, training = 4, trainings = { Frost = 3, Tesla = 3, Rocket = 3, MagmaCatapult = 3, StormArchmage = 3, DragonBallista = 3 }, pace = 3.5 },
+	{ towers = DRAGON8, training = 4, trainings = { Rocket = 3, MagmaCatapult = 3, StormArchmage = 3, DragonBallista = 3 }, pace = 3.5 },
+	{ towers = DRAGON8, training = 4, trainings = { Rocket = 3, MagmaCatapult = 3, StormArchmage = 3, DragonBallista = 3 }, pace = 3.5 },
+	{ towers = DRAGON8, training = 4, trainings = { Rocket = 3, MagmaCatapult = 4, StormArchmage = 3, DragonBallista = 3 }, pace = 3.5 },
+	{ towers = DRAGON8, training = 4, trainings = { Rocket = 3, MagmaCatapult = 4, StormArchmage = 3, DragonBallista = 3 }, pace = 3.5 },
 	-- 6e territoire
 	{ towers = EIGHT, training = 4, trainings = { Laser = 3, Chain = 3, Orbital = 1 }, pace = 3.5 },
 	{ towers = EIGHT, training = 4, trainings = { Laser = 3, Chain = 3, Orbital = 1 }, pace = 3.5 },

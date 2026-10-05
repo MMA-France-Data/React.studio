@@ -60,6 +60,7 @@ return {
 	["Ses carreaux transpercent {1} monstres alignés."] = "Seus virotes atravessam {1} monstros em fila.",
 	["Ses ronces empoisonnent les monstres qui marchent dessus."] = "Seus espinhos envenenam os monstros que pisam neles.",
 	["Blocs de glace : grosse zone, et ralentit de {1} %."] = "Blocos de gelo: área grande, e deixa {1}% mais lento.",
+	["Une tempête de sable autour de lui : elle use tous les monstres proches."] = "Uma tempestade de areia ao redor: desgasta todos os monstros por perto.",
 	-- Tours pas encore à lui, dans les listes « Entraînement » et « Mes tours » (« Rare • dans les œufs »)
 	["Palier 2 de : {1}"] = "Tier 2 de: {1}", -- « Palier 2 de : Catapulte • dans les œufs » (et la tour sortie d'un œuf)
 	["dans les œufs"] = "nos ovos",
@@ -279,6 +280,7 @@ return {
 	["Œuf de cuivre"] = "Ovo de cobre",
 	["Œuf des ronces"] = "Ovo de espinhos",
 	["Œuf de givre"] = "Ovo de gelo",
+	["Œuf des dunes"] = "Ovo das dunas",
 	["ŒUFS SPÉCIAUX"] = "OVOS ESPECIAIS",
 	["Boss du niveau {1}"] = "Chefe do nível {1}", -- « 🔒 Boss du niveau 10 » (carte d'un œuf spécial pas encore gagné)
 	["COUVER"] = "INCUBAR",

@@ -1,4 +1,4 @@
--- Les 20 TOURS du jeu : leurs stats de combat. Leur prix en or, les œufs d'où elles sortent et leur entraînement sont
+-- Les 21 TOURS du jeu : leurs stats de combat. Leur prix en or, les œufs d'où elles sortent et leur entraînement sont
 -- dans Levels.luau ; le combat lui-même est dans Hub/Combat.luau.
 -- (Ce fichier garde le nom qu'il avait dans l'ancien jeu.)
 --
@@ -69,12 +69,12 @@ local IdleTowers = {}
 IdleTowers.ORDER = {
 	"MachineGun", "Frost", "Bomb", "Tesla", "Rocket", "Laser", "Chain", "Orbital",
 	"FireArcher", "BlizzardTotem", "MagmaCatapult", "StormArchmage", "DragonBallista", "VoidSorcerer", "ThunderOracle", "CelestialTrebuchet",
-	"CrimsonBow", "CopperCrossbow", "ThornSpitter", "FrostCatapult",
+	"CrimsonBow", "CopperCrossbow", "ThornSpitter", "FrostCatapult", "SandTotem",
 }
 IdleTowers.TIER1 = { "MachineGun", "Frost", "Bomb", "Tesla", "Rocket", "Laser", "Chain", "Orbital" }
 IdleTowers.TIER2 = { "FireArcher", "BlizzardTotem", "MagmaCatapult", "StormArchmage", "DragonBallista", "VoidSorcerer", "ThunderOracle", "CelestialTrebuchet" }
 -- Les tours spéciales, dans l'ordre des territoires (voir « TOURS SPÉCIALES »).
-IdleTowers.SPECIAL = { "CrimsonBow", "CopperCrossbow", "ThornSpitter", "FrostCatapult" }
+IdleTowers.SPECIAL = { "CrimsonBow", "CopperCrossbow", "ThornSpitter", "FrostCatapult", "SandTotem" }
 
 -- Temps de vol maximal d'un projectile, en secondes de simulation : il voyage sur 1 octet (en centièmes
 -- de seconde, 2,55 s au plus) dans le paquet des tirs (Combat.luau). Un réglage plus long est coupé ici.
@@ -428,7 +428,8 @@ IdleTowers.Defs = {
 	-- simulé (PV des monstres qu'il bat ; voir NIVEAUX.md, « Ce qu'apportent les tours spéciales ») : au niveau 16,
 	-- l'Arc carmin avec la Catapulte de magma bat des monstres plus résistants que l'Archer enflammé avec elle ; au
 	-- niveau 26, l'Arbalète de cuivre fait mieux que la Baliste du dragon ; au niveau 36, le Lance-ronces et la Catapulte
-	-- de givre (2 au plus) valent la Catapulte de magma (4).
+	-- de givre (2 au plus) valent la Catapulte de magma (4). Le Totem des sables (05/10/2026, le désert) : mesuré au
+	-- niveau 46 (NIVEAUX.md).
 	----------------------------------------------------------------------
 	CrimsonBow = {
 		special = "Valley",
@@ -511,6 +512,22 @@ IdleTowers.Defs = {
 		slowDuration = 2.5,
 		projectileSpeed = 26,
 		projectileMinFlight = 0.45,
+	},
+	SandTotem = {
+		special = "Desert",
+		shape = "Frost",
+		shot = "Sand",
+		rarity = "Special",
+		displayName = "Totem des sables",
+		-- Le totem des Gardes des dunes (le désert, niveaux 41 à 50 : fermés pour l'instant, Levels.OPEN_COUNT) : une
+		-- TEMPÊTE DE SABLE tourne autour de lui et use TOUS les monstres proches à chaque bourrasque. Une aura comme celle
+		-- du Totem de givre, mais pour les dégâts : il ne ralentit pas (pas un contrôle), et ses dégâts profitent de la
+		-- fragilité du Totem du blizzard. Le meilleur endroit : un virage où le chemin passe plusieurs fois près de lui.
+		kind = "Aura",
+		color = Color3.fromRGB(226, 178, 92),
+		damage = 40,
+		range = 12,
+		cooldown = 1,
 	},
 }
 

@@ -61,6 +61,7 @@ return {
 	["Ses carreaux transpercent {1} monstres alignés."] = "Its bolts pierce {1} monsters in a line.",
 	["Ses ronces empoisonnent les monstres qui marchent dessus."] = "Its thorns poison the monsters that walk on them.",
 	["Blocs de glace : grosse zone, et ralentit de {1} %."] = "Ice blocks: a big area, and slows by {1}%.",
+	["Une tempête de sable autour de lui : elle use tous les monstres proches."] = "A sandstorm around it: it wears down every nearby monster.",
 	-- Tours pas encore à lui, dans les listes « Entraînement » et « Mes tours » (« Rare • dans les œufs »)
 	["Palier 2 de : {1}"] = "Tier 2 of: {1}", -- « Palier 2 de : Catapulte • dans les œufs » (et la tour sortie d'un œuf)
 	["dans les œufs"] = "in eggs",
@@ -280,6 +281,7 @@ return {
 	["Œuf de cuivre"] = "Copper egg",
 	["Œuf des ronces"] = "Thorn egg",
 	["Œuf de givre"] = "Frost egg",
+	["Œuf des dunes"] = "Dune egg",
 	["ŒUFS SPÉCIAUX"] = "SPECIAL EGGS",
 	["Boss du niveau {1}"] = "Level {1} boss", -- « 🔒 Boss du niveau 10 » (carte d'un œuf spécial pas encore gagné)
 	["COUVER"] = "HATCH",

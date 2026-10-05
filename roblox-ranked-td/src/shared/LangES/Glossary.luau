@@ -28,6 +28,7 @@ return {
 	["Arbalète de cuivre"] = "Ballesta de cobre",
 	["Lance-ronces"] = "Lanzaespinas",
 	["Catapulte de givre"] = "Catapulta de escarcha",
+	["Totem des sables"] = "Tótem de arena",
 
 	-- Noms courts des tours, sur la barre d'un niveau (client/LevelsUI.luau, SHORT_NAMES ; « Catapulte » : plus haut)
 	["Archer"] = "Arquero",
@@ -49,6 +50,7 @@ return {
 	["Cuivre"] = "Cobre",
 	["Ronces"] = "Espinas",
 	["Givre"] = "Escarcha",
+	["Sables"] = "Arena",
 
 	-- Monstres (Enemies.luau)
 	["Écuyer"] = "Escudero",

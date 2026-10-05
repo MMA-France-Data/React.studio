@@ -145,6 +145,12 @@ return function(log)
 			and crimsonCard.Icon:FindFirstChild("Rays") ~= nil and row1.AbsolutePosition.Y > copperCard.AbsolutePosition.Y + copperCard.AbsoluteSize.Y,
 		`œufs spéciaux : « {copperCard.EggName.Text} » {copperCard.Count.Text} « {copperCard.Put.Text} » ; « {crimsonCard.Put.Text} », « {rimeCard.Put.Text} » ; les couveuses en dessous`
 	)
+	-- L'œuf des dunes (le désert, niveaux 41 à 50) attend l'ouverture de son territoire : pas de carte avant.
+	local desertOpen = Levels.specialEggOpen("Dune")
+	check(
+		(page:FindFirstChild("Special_Dune") ~= nil) == desertOpen,
+		`l'œuf des dunes : {if desertOpen then "sa carte est là (désert ouvert)" else "pas de carte tant que le désert est fermé"} (niveaux ouverts : {Levels.OPEN_COUNT})`
+	)
 	shot("onglet")
 
 	------------------------------------------------------------------
@@ -452,8 +458,9 @@ return function(log)
 	end, 5)
 	task.wait(0.8)
 
-	-- Les 4 tours spéciales dans un niveau : dans la barre, leur parure (anneau d'or et joyaux), leurs tirs (flèches
-	-- carmin, carreaux de cuivre, ronces au sol, blocs de glace).
+	-- Les tours spéciales dans un niveau (toutes, même celle du désert, encore fermé : posée ici pour le test) : dans la
+	-- barre, leur parure (anneau d'or et joyaux), leurs tirs (flèches carmin, carreaux de cuivre, ronces au sol, blocs
+	-- de glace, tempête de sable).
 	local specialOrder = table.clone(IdleTowers.SPECIAL)
 	for _, towerType in IdleTowers.TIER1 do
 		table.insert(specialOrder, towerType)
@@ -488,8 +495,8 @@ return function(log)
 		end
 	end
 	check(
-		inSpecialLevel and specialPlaced == 4 and specialBar and specialAdorned == 4,
-		`niveau 10 avec les 4 tours spéciales : {specialPlaced} posées, {specialAdorned} avec leur parure, dans la barre : {specialBar}`
+		inSpecialLevel and specialPlaced == #IdleTowers.SPECIAL and specialBar and specialAdorned == #IdleTowers.SPECIAL,
+		`niveau 10 avec les {#IdleTowers.SPECIAL} tours spéciales : {specialPlaced} posées, {specialAdorned} avec leur parure, dans la barre : {specialBar}`
 	)
 	-- (le niveau avance de 40 s d'un coup : les monstres sont sur tout le chemin, les tours tirent : ronces au sol,
 	-- blocs de glace, carreaux, flèches carmin)
@@ -505,6 +512,68 @@ return function(log)
 		return player:GetAttribute("LevelArena") == nil
 	end, 5)
 	task.wait(0.8)
+	-- (gros plans pour le propriétaire, sur la parcelle : le Totem des sables, la tour du désert encore fermé, au 1er
+	-- emplacement du camp, et un œuf des dunes dans la 1re couveuse ; puis tout redevient comme avant)
+	do
+		local PlotLayout = require(Shared.PlotLayout)
+		local saved = test:InvokeServer("State") or {}
+		local owned = table.clone(saved.towers or {})
+		owned.SandTotem = true
+		test:InvokeServer("Set", "towers", owned)
+		test:InvokeServer("Set", "slots", { { tower = "SandTotem", level = 3 } })
+		-- (prêt dans un jour : l'horloge du serveur a été avancée plus haut, un œuf prêt brille et cache son dessin)
+		test:InvokeServer("Set", "hatchers", { { egg = "Dune", readyAt = os.time() + 86400 } })
+		act(campGui, "Close")
+		task.wait(2)
+		local plotIndex = player:GetAttribute("Plot")
+		if typeof(plotIndex) == "number" then
+			local camera = workspace.CurrentCamera
+			local before = camera.CFrame
+			local function look(from: Vector3, at: Vector3)
+				camera.CameraType = Enum.CameraType.Scriptable
+				camera.CFrame = CFrame.lookAt(PlotLayout.toWorld(plotIndex, from), PlotLayout.toWorld(plotIndex, at))
+				camera.Focus = CFrame.new(PlotLayout.toWorld(plotIndex, at))
+			end
+			local spot = PlotLayout.SPOTS[1]
+			look(spot + Vector3.new(4, 6.5, -10), spot + Vector3.new(0, 3.6, 0))
+			task.wait(2.5)
+			look(spot + Vector3.new(4, 6.5, -10), spot + Vector3.new(0, 3.6, 0))
+			shot("totem_des_sables")
+			local hatcher = PlotLayout.HATCHERS[1]
+			look(hatcher + Vector3.new(2.5, 5, -7.5), hatcher + Vector3.new(0, 3.3, 0))
+			task.wait(1.5)
+			shot("oeuf_des_dunes")
+			camera.CameraType = Enum.CameraType.Custom
+			camera.CFrame = before
+		end
+		-- (et son dessin de l'onglet Œufs, en grand : sa carte n'apparaît qu'à l'ouverture du désert)
+		local client = player:FindFirstChild("PlayerScripts") and player.PlayerScripts:FindFirstChild("Client")
+		local eggArtModule = client and client:FindFirstChild("EggArt")
+		local okArt, EggArt = false, nil
+		if eggArtModule then
+			okArt, EggArt = pcall(require, eggArtModule)
+		end
+		if okArt and EggArt then
+			local preview = Instance.new("ScreenGui")
+			preview.Name = "DuneEggPreview"
+			preview.DisplayOrder = 60
+			preview.ResetOnSpawn = false
+			preview:SetAttribute("NoTranslate", true)
+			preview.Parent = playerGui
+			for index, eggType in { "Rime", "Dune" } do
+				EggArt.tile(eggType, { Size = UDim2.fromOffset(240, 240), Position = UDim2.new(0.5, (index - 2) * 260 + 10, 0.5, -120), Parent = preview })
+			end
+			task.wait(1)
+			shot("oeuf_des_dunes_dessin")
+			preview:Destroy()
+		end
+		for _, key in { "towers", "slots", "hatchers" } do
+			if saved[key] then
+				test:InvokeServer("Set", key, saved[key])
+			end
+		end
+		task.wait(0.5)
+	end
 
 	------------------------------------------------------------------
 	-- 6) À la taille d'un téléphone (750 x 332)

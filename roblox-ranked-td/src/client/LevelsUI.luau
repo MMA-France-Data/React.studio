@@ -84,6 +84,7 @@ local SHORT_NAMES = {
 	CopperCrossbow = "Cuivre",
 	ThornSpitter = "Ronces",
 	FrostCatapult = "Givre",
+	SandTotem = "Sables",
 }
 local ROLES = {
 	MachineGun = "Tireur rapide à longue portée. Ta tour de base.",
@@ -108,6 +109,7 @@ local ROLES = {
 	CopperCrossbow = `Ses carreaux transpercent {IdleTowers.Defs.CopperCrossbow.pierceMax} monstres alignés.`,
 	ThornSpitter = "Ses ronces empoisonnent les monstres qui marchent dessus.",
 	FrostCatapult = `Blocs de glace : grosse zone, et ralentit de {math.floor(Levels.towerStats("FrostCatapult", 1, 0).slow * 100 + 0.5)} %.`,
+	SandTotem = "Une tempête de sable autour de lui : elle use tous les monstres proches.",
 }
 local HOTKEYS = {
 	[Enum.KeyCode.One] = 1,
@@ -474,6 +476,7 @@ local TOWER_COLORS = {
 	-- tours spéciales : les couleurs de leur territoire
 	CrimsonBow = Color3.fromRGB(226, 40, 66), CopperCrossbow = Color3.fromRGB(222, 132, 60),
 	ThornSpitter = Color3.fromRGB(84, 186, 72), FrostCatapult = Color3.fromRGB(128, 214, 255),
+	SandTotem = Color3.fromRGB(226, 172, 72),
 }
 
 -- Vignettes 3D statiques des vrais modèles (préparés par Camp). Pas d'animation, de RenderStepped ou de requête
@@ -1016,10 +1019,11 @@ local function buildCamp()
 		return { row = row, price = price }
 	end
 	local function refreshLocked(entry, towerType: string, order: number)
-		entry.row.Visible = not owns(towerType)
+		local specialEgg = Levels.towerEgg(towerType)
+		-- (une tour spéciale d'un territoire encore fermé : cachée jusqu'à son ouverture, Levels.specialEggOpen)
+		entry.row.Visible = not owns(towerType) and (specialEgg == nil or Levels.specialEggOpen(specialEgg))
 		entry.row.LayoutOrder = 200 + order
 		local def = IdleTowers.Defs[towerType]
-		local specialEgg = Levels.towerEgg(towerType)
 		-- (une tour spéciale : son œuf, et le boss qui le donne)
 		entry.price.Text = if specialEgg then `{Levels.RARITY_NAMES.Special} • {Levels.EGGS[specialEgg].displayName} • boss du niveau {Levels.specialBossLevel(specialEgg)}`
 			elseif def.base then `Palier 2 de : {IdleTowers.Defs[def.base].displayName} • dans les œufs`
@@ -1506,7 +1510,8 @@ local function buildCamp()
 		eggCards[eggType] = { count = count }
 	end
 	-- LES ŒUFS SPÉCIAUX (un par territoire, Levels.SPECIAL_EGG_ORDER) : une carte chacun, même avant de l'avoir (le
-	-- boss qui le donne est écrit : un but à atteindre). Son bouton le pose dans la première couveuse vide.
+	-- boss qui le donne est écrit : un but à atteindre), sauf ceux des territoires encore fermés (Levels.specialEggOpen :
+	-- l'œuf des dunes attend l'ouverture du désert). Son bouton le pose dans la première couveuse vide.
 	local SPECIAL_TOP = 28 + EGG_CARD_H + 14
 	local SPECIAL_CARD_H = 100
 	UI.label({
@@ -1521,7 +1526,13 @@ local function buildCamp()
 		Parent = eggsPage,
 	})
 	local specialCards = {}
-	local specialCount = #Levels.SPECIAL_EGG_ORDER
+	local shownSpecials = {}
+	for _, eggType in Levels.SPECIAL_EGG_ORDER do
+		if Levels.specialEggOpen(eggType) then
+			table.insert(shownSpecials, eggType)
+		end
+	end
+	local specialCount = math.max(1, #shownSpecials)
 	-- Pose cet œuf spécial dans la première couveuse vide (bouton de sa carte ; TestAction « SpecialPut »).
 	function camp.putSpecial(eggType: string)
 		if (tonumber(state.eggs[eggType]) or 0) < 1 then
@@ -1534,7 +1545,7 @@ local function buildCamp()
 			end
 		end
 	end
-	for index, eggType in Levels.SPECIAL_EGG_ORDER do
+	for index, eggType in shownSpecials do
 		local egg = Levels.EGGS[eggType]
 		local card = UI.new("Frame", {
 			Name = "Special_" .. eggType,
@@ -1738,7 +1749,7 @@ local function buildCamp()
 		for _, entry in ownedHatchers() do
 			emptyHatcher = emptyHatcher or entry.hatcher.egg == ""
 		end
-		for _, eggType in Levels.SPECIAL_EGG_ORDER do
+		for _, eggType in shownSpecials do
 			local entry = specialCards[eggType]
 			local count = tonumber(state.eggs[eggType]) or 0
 			anySpecial = anySpecial or count > 0

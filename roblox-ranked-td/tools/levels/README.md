@@ -21,7 +21,7 @@ powershell -ExecutionPolicy Bypass -File tools\levels\run.ps1 -Regler "Levels.ST
   demandé par le niveau, lent (un achat toutes les 8 s), distrait (toutes les 15 s), sans œuf (l'Archer et la
   Catapulte seulement), tout débloqué.
   « G 7 » = gagné avec 7 vies, « P 62 % » = perdu après avoir éliminé 62 % des monstres. Environ 2 minutes.
-- **`-Tests`** : 1 430 vérifications (100 niveaux dont 40 ouverts, 10 territoires, flot continu, cartes, pose libre, récompenses, prix, entraînement, données
+- **`-Tests`** : 1 438 vérifications (100 niveaux dont 40 ouverts, 10 territoires, flot continu, cartes, pose libre, récompenses, prix, entraînement, données
   du joueur, le moteur : or, vies, victoire, défaite, vitesse x2, paquets réseau, **la difficulté de chaque
   niveau** : voir plus bas, les évolutions des tours, le camp d'entraînement de la parcelle : `CampGame.luau`, et
   **le tuto** : son étape dans les données, les deux premiers gestes du niveau 1 ; **le jeu en équipe** : les règles,

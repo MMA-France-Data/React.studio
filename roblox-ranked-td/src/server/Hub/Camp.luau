@@ -300,6 +300,24 @@ function EGG_DECOR.flakes(folder: Instance, center: CFrame, art)
 	end
 end
 
+-- Deux dunes ondulées tout autour, et deux soleils dorés et leurs rayons (œuf des dunes).
+function EGG_DECOR.dunes(folder: Instance, center: CFrame, art)
+	local points = 12
+	for _, dune in { { 1.55, 0 }, { 2.05, 1.1 } } do
+		for index = 0, points - 1 do
+			local thetaA, thetaB = index / points * math.pi * 2, (index + 1) / points * math.pi * 2
+			eggSegment(folder, center, thetaA, dune[1] + math.sin(thetaA * 2 + dune[2]) * 0.14, thetaB, dune[1] + math.sin(thetaB * 2 + dune[2]) * 0.14, 0.2, art.detail)
+		end
+	end
+	local sun = art.accent or Color3.new(1, 1, 1)
+	for _, spot in { { 0.6, 0.85 }, { 3.7, 0.85 } } do
+		eggDisk(folder, center, spot[1], spot[2], 0.42, sun)
+		for _, angle in { 0, math.pi / 3, -math.pi / 3 } do
+			eggPiece(folder, center, "SunRay", spot[1], spot[2], Vector3.new(1.15, 0.07, 0.05), angle, sun, Enum.Material.SmoothPlastic)
+		end
+	end
+end
+
 -- Remet les motifs de l'œuf d'une couveuse (rien quand elle est vide) ; ne refait rien si l'œuf n'a pas changé.
 local function decorateEgg(entry, eggType: string)
 	if entry.decorType == eggType then

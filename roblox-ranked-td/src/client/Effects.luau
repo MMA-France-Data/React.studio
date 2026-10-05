@@ -306,8 +306,10 @@ local function stormStrike(from: Vector3, to: Vector3, color: Color3, radius: nu
 end
 
 -- Projectiles des tours spéciales (def.shot, IdleTowers.luau) : la traînée dorée de l'Arc carmin, la graine épineuse
--- du Lance-ronces, le bloc de glace de la Catapulte de givre.
+-- du Lance-ronces, le bloc de glace de la Catapulte de givre ; la tempête du Totem des sables (pas un projectile :
+-- des bouffées de sable qui tournent sur le bord de son aura).
 local CRIMSON_GOLD = Color3.fromRGB(255, 196, 70)
+local SAND_GRAIN = Color3.fromRGB(238, 206, 140)
 local THORN_SEED = Color3.fromRGB(70, 118, 44)
 local ICE_BLOCK = Color3.fromRGB(196, 236, 255)
 
@@ -378,7 +380,7 @@ end
 -- s'il a disparu, voir PlotRenderer) : il arrive là où le serveur fait tomber les dégâts. La tour vise quand
 -- même le point prévu au départ. Sans follow, le projectile va tout droit à `to`.
 -- towerType = la SILHOUETTE de la tour (IdleTowers.shapeOf : son animation, d'où part le tir) ; style = l'allure du
--- projectile d'une tour spéciale (def.shot : "Crimson", "Thorn", "Ice"), nil = celui de la silhouette.
+-- projectile d'une tour spéciale (def.shot : "Crimson", "Thorn", "Ice", "Sand"), nil = celui de la silhouette.
 function Effects.playTowerShot(from: Vector3, to: Vector3, towerType: string, radius: number, color: Color3, kind: string, towerModel: Model?, flightTime: number?, follow: (() -> Vector3)?, style: string?)
 	if not CombatVFX.isNear(from) and not CombatVFX.isNear(to) then return end
 	aimTower(towerModel, to)
@@ -394,6 +396,15 @@ function Effects.playTowerShot(from: Vector3, to: Vector3, towerType: string, ra
 		if kind == "Aura" then
 			-- Totem de givre : le cercle bleu simple d'origine (demande du propriétaire, 30/09/2026).
 			Effects.circle(to, radius, color)
+			if style == "Sand" then
+				-- Totem des sables : six bouffées de sable sur le bord de l'aura, à une place nouvelle à chaque bourrasque.
+				local start = math.random() * math.pi * 2
+				for index = 0, 5 do
+					local angle = start + index * math.pi / 3
+					local at = to + Vector3.new(math.cos(angle) * radius * 0.75, 0.8 + (index % 2) * 0.7, math.sin(angle) * radius * 0.75)
+					Effects.burst(at, 1.7, SAND_GRAIN, 0.4)
+				end
+			end
 		elseif style == "Crimson" then
 			-- Arc carmin : une grosse flèche rouge, traînée dorée, un éclat à l'arrivée.
 			linearProjectile(from, to, color, true, travel, nil, follow, false, CRIMSON_GOLD)

@@ -3,7 +3,8 @@
 -- reflet blanc, posé sur une vignette de la couleur de sa rareté, avec des rayons qui tournent derrière les plus
 -- rares ; « les plus rares, un peu violets » : l'œuf doré a une couronne et des taches violettes, sur une vignette
 -- violette. Les ŒUFS SPÉCIAUX des territoires (Levels.SPECIAL_EGG_ORDER) ont les dessins montrés au propriétaire :
--- carmin à bande dorée en zigzag, cuivre à bande rivetée, vert à ronces, bleu glacé à flocons.
+-- carmin à bande dorée en zigzag, cuivre à bande rivetée, vert à ronces, bleu glacé à flocons ; puis le désert :
+-- sable à dunes et soleil doré.
 -- Rien à publier sur Roblox (aucune image) : tout est fait de cadres de l'interface. La FORME d'œuf (plus étroite en
 -- haut) est une rangée de ronds qui se chevauchent, d'un petit rond en haut à un grand en bas : ensemble, ils
 -- dessinent exactement la forme qui joint les deux (bords lisses, comme un vrai ovale). Le contour : la même forme,
@@ -150,6 +151,20 @@ function PATTERNS.flakes(holder: Instance, art, zIndex: number)
 	flake(holder, 0.67, 0.9, 0.22, art.detail, zIndex)
 	dot(holder, "Spot", 0.21, 0.95, 0.071, art.detail, zIndex)
 	dot(holder, "Spot", 0.74, 0.4, 0.06, art.detail, zIndex)
+end
+
+-- Deux dunes ondulées, un soleil doré et ses rayons, un point (œuf des dunes, le désert des Gardes des dunes).
+function PATTERNS.dunes(holder: Instance, art, zIndex: number)
+	line(holder, "Dune", { { 0.1, 0.8 }, { 0.25, 0.72 }, { 0.42, 0.76 }, { 0.58, 0.84 }, { 0.75, 0.8 }, { 0.9, 0.72 } }, 0.06, art.detail, zIndex)
+	line(holder, "Dune", { { 0.1, 1.04 }, { 0.27, 0.97 }, { 0.45, 1.01 }, { 0.62, 1.08 }, { 0.78, 1.04 }, { 0.9, 0.98 } }, 0.06, art.detail, zIndex)
+	local sun = art.accent or WHITE
+	dot(holder, "Sun", 0.62, 0.42, 0.2, sun, zIndex + 1)
+	for index = 0, 7 do
+		local angle = index * 45
+		local radians = math.rad(angle)
+		put(holder, "SunRay", 0.62 + math.cos(radians) * 0.16, 0.42 + math.sin(radians) * 0.16, 0.07, 0.03, sun, zIndex + 1, angle)
+	end
+	dot(holder, "Spot", 0.27, 0.5, 0.07, art.detail, zIndex)
 end
 
 -- Un œuf dessiné, sans vignette. props = { Name, Size, Position, AnchorPoint, ZIndex (celui de l'œuf entier), Parent }.

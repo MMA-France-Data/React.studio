@@ -255,9 +255,11 @@ on les voit bien.
 
 **Les territoires 5 à 10 sont FERMÉS pour l'instant** (ta demande du 04/10/2026 : « 16 tours qui te bloquent au
 niveau 40, comme ça je peux travailler les mises à jour petit à petit »). Ils existent (cartes, monstres,
-récompenses) mais leurs cartes disent « 🔒 BIENTÔT » : leurs chiffres datent de la boutique (réglés pour les huit
-tours de palier 1), ils seront réglés de nouveau avant de les ouvrir (`Levels.OPEN_COUNT = 40` : un seul chiffre
-pour ouvrir la suite). Ce qu'ils contiennent :
+récompenses) mais leurs cartes disent « 🔒 BIENTÔT » (`Levels.OPEN_COUNT = 40` : un seul chiffre pour ouvrir la
+suite). **Le désert (41 à 50) est prêt** (nuit du 05/10/2026, voir « Le désert, prêt mais fermé ») : réglé pour
+les œufs, avec sa tour spéciale et son œuf ; il attend ton « oui » pour s'ouvrir. Les territoires 6 à 10 datent
+encore de la boutique (réglés pour les huit tours de palier 1) : à régler de nouveau avant de les ouvrir. Ce
+qu'ils contiennent :
 
 Les territoires 5 et 6 (ajoutés le même jour, « fais encore 20 ») :
 
@@ -267,7 +269,7 @@ Les territoires 5 et 6 (ajoutés le même jour, « fais encore 20 ») :
 | Monstres | les Gardes des dunes | la Légion des os (son boss, au niveau 60, n'a pas encore de modèle 3D : il est fait de blocs) |
 | Carte | sable, cactus, rochers de grès, pas un arbre ; le chemin fait le tour du terrain en grand U, avec un crochet, et le château est en bas à gauche, près de la porte d'entrée (252 studs) | herbe morte, arbres sombres, pierres tombales ; le chemin en forme de couronne finit au château, au centre du terrain (252 studs) |
 | Gros monstres | quatre ou cinq colosses par niveau, quatre à la file au niveau 45, le boss au niveau 50 | quatre ou cinq colosses par niveau, un trio puis une paire au niveau 55, cinq colosses puis le boss au niveau 60 |
-| Tours attendues | les sept tours, puis le Trébuchet dès le niveau 46 (les 45 premiers niveaux le paient) | les huit tours, un peu plus entraînées |
+| Tours attendues | les mêmes 8 tours qu'au glacier, un peu plus entraînées (réglé de nouveau pour les œufs le 05/10/2026) | les huit tours, un peu plus entraînées (chiffres de la boutique) |
 | Pièces (première victoire) | 12 180 en tout | 14 680 en tout |
 
 Le chemin tranche encore sur les monstres : terre brune sous les Gardes couleur sable, ardoise sombre sous la Légion
@@ -486,7 +488,7 @@ d'or dans un niveau.
 Leurs ralentissements et étourdissements comptent comme ceux de leur tour de base : un Totem du blizzard et un
 Totem de givre ne s'additionnent pas (le plus fort des deux gagne), et la fatigue du Mage vaut pour l'Archimage.
 
-**La barre rapide garde 8 tours.** Avec 20 tours, une barre de 20 boutons ne tiendrait pas sur un téléphone : les
+**La barre rapide garde 8 tours.** Avec plus de 20 tours, une barre de 20 boutons ne tiendrait pas sur un téléphone : les
 **8 premières** de « Mes tours » vont dans la barre des niveaux (touches 1 à 8), les autres attendent **en réserve**
 (▲ ▼ pour changer l'ordre). Une nouvelle tour entre dans la barre (une tour de palier 2 à la place de sa tour de
 base, qui passe au bout). Rien ne change pour un joueur qui n'a pas encore de tour de palier 2.
@@ -506,6 +508,7 @@ catapulte de givre », puis « oui »). **Une tour spéciale par territoire**, d
 | Arbalète de cuivre | œuf de cuivre (niveau 20) | des carreaux de 90 qui transpercent 3 monstres alignés, une fois par seconde | 90 |
 | Lance-ronces | œuf des ronces (niveau 30) | un druide qui lance des graines : des ronces poussent au sol et **empoisonnent** les monstres qui marchent dessus (ils perdent de la vie encore 3 s après en être sortis) ; **ne ralentit pas** | 90 |
 | Catapulte de givre | œuf de givre (niveau 40) | des blocs de glace : une grande zone, et elle **ralentit** de 40 % les monstres touchés | 100 |
+| Totem des sables | œuf des dunes (niveau 50 : **fermé pour l'instant**) | une **tempête de sable** tourne autour de lui et use **tous** les monstres proches (40 dégâts par seconde à chacun, rayon 12) ; ne ralentit pas | 100 |
 
 - **Comment on les gagne** : la première fois que tu bats le boss d'un territoire, tu gagnes son œuf spécial **en
   plus** de l'œuf doré (le réglage des niveaux ne change donc pas : les boss demandent toujours les tours de palier 2
@@ -530,6 +533,13 @@ catapulte de givre », puis « oui »). **Une tour spéciale par territoire**, d
 - **Leurs contrôles** : la Catapulte de givre ralentit comme un Totem de givre (« aucun cumul de ralentissement » :
   avec un Totem, un seul ralentissement, le plus fort des deux). Le poison du Lance-ronces n'est pas un contrôle :
   deux poisons ne s'additionnent pas (le plus fort gagne).
+- **Le désert** (préparé la nuit du 05/10/2026, mon choix : à toi de dire s'il te plaît) : le **Totem des sables**,
+  la silhouette du Totem de givre en grès doré, une pierre de soleil ambrée, un disque de soleil et ses rayons au
+  sommet, des traînées de sable qui tournent autour ; à chaque bourrasque, un cercle couleur sable et des bouffées
+  de sable sur le bord de son aura. Son œuf : **l'œuf des dunes**, sable à deux dunes sombres et soleil doré. Tant
+  que le désert est fermé, ni l'œuf ni la tour n'apparaissent dans le jeu (onglet Œufs, listes des tours :
+  `Levels.specialEggOpen`). Mesuré au niveau 46 avec le joueur simulé : comme la Catapulte de givre, il permet de
+  battre des monstres 6 % plus résistants (414 PV sans, 439 avec ; une tour de palier 2 de plus : 0 %).
 - **Plus tard** : les territoires suivants auront les leurs avec leurs mises à jour (tes idées : orc, obsidienne,
   dragon...). Pour en ajouter une : sa tour dans `IdleTowers.SPECIAL` (à la fin de `IdleTowers.ORDER`), son œuf dans
   `Levels.EGGS` et `Levels.SPECIAL_EGG_ORDER`, son dessin dans `client/EggArt.luau` et `Hub/Camp.luau`, sa parure
@@ -702,7 +712,36 @@ quelques retouches), mais **aucun vrai joueur ne les a encore essayés** : dis-m
 faciles. Le colosse géant (niveaux 15, 25 et 35) a été réglé à part : un seul gros monstre résiste mieux que plusieurs
 colosses (une tour à zone ne le touche qu'une fois), il a donc moins de PV que les colosses qu'il remplace. Le boss du
 niveau 40 a un peu moins de PV que ce que donnerait son niveau (85 %), celui du niveau 30 un peu plus (110 %). Les
-niveaux 41 à 100 sont fermés : leurs chiffres datent de la boutique.
+niveaux 41 à 100 sont fermés : le désert (41 à 50) est réglé pour les œufs (juste en dessous), les niveaux 51 à
+100 gardent les chiffres de la boutique.
+
+**Le désert, prêt mais fermé** (nuit du 05/10/2026). Le joueur de référence arrive au niveau 41 avec les mêmes 8
+tours qu'au glacier : l'œuf doré du niveau 40 ne donne une NOUVELLE tour de palier 2 qu'une fois sur 4 environ
+(les trois tours de palier 2 déjà là reviennent en doublons), et les œufs communs presque jamais une tour de plus.
+Ses tours sont un peu plus entraînées (8 XP par victoire et par tour posée : l'entraînement 4 pour l'Archer et la
+Catapulte, 3 pour les autres ; `Bot.EXPECTED`). Les PV : `run.ps1 -Tune -Vies 8` (il doit garder 8 vies, à cause
+des quatre ou cinq colosses), puis 5 % de marge (sauf aux niveaux 41 et 46 : le joueur lent y gagnait encore,
+ils gardent les PV trouvés). Toutes les règles de la difficulté (celles des 40 premiers
+niveaux) sont vérifiées pour les 50 niveaux, désert ouvert pour l'essai. Le tableau, désert ouvert :
+
+```text
+Niveau   PV monst durée    or | Actif           | Référence     | Lent (8 s)      | Distrait (15 s) | Sans œuf       | Tout entr.6
+41      391   267  159s  2209 | G 10            | G 10            | P 96 %          | P 8 %           | P 18 %          | G 10
+42      350   268  159s  2334 | G 10            | G 10            | P 95 %          | P 8 %           | P 18 %          | G 10
+43      350   280  165s  2399 | G 10            | G 10            | P 96 %          | P 8 %           | P 18 %          | G 10
+44      371   280  165s  2404 | G 10            | G 10            | P 57 %          | P 8 %           | P 17 %          | G 10
+45      302   288  169s  2469 | G 10            | G 10            | P 92 %          | P 10 %          | P 21 %          | G 10
+46      391   288  169s  2474 | G 10            | G 10            | P 87 %          | P 9 %           | P 17 %          | G 10
+47      371   289  169s  2599 | G 10            | G 10            | P 45 %          | P 8 %           | P 17 %          | G 10
+48      371   298  189s  2658 | G 10            | G 10            | P 48 %          | P 8 %           | P 17 %          | G 10
+49      350   298  189s  2663 | G 10            | G 10            | P 25 %          | P 6 %           | P 17 %          | G 10
+50      371   281  192s  2734 | G 10            | G 10            | P 96 %          | P 8 %           | P 17 %          | G 10
+```
+
+Comme au glacier, les tours spéciales ne comptent pas dans ce réglage : celui qui les a (les quatre premières sont
+gagnées à coup sûr en battant les boss 10 à 40) trouve le désert un peu plus facile. **Pour l'ouvrir** : dis-moi
+« oui », je mets `Levels.OPEN_COUNT = 50` et je refais la copie à publier ; tu publies, puis tu redémarres les
+serveurs (voir `SORTIE.md`).
 
 Un vrai joueur choisit moins bien que le joueur simulé : pour gagner, il doit aller un peu plus vite que le rythme
 indiqué. Si c'est trop dur ou trop facile un jour, un seul chiffre par niveau change tout (`health` dans
@@ -828,16 +867,17 @@ niveaux du joueur et son réglage du son. Les sauvegardes de l'ancien jeu « Tow
 1. **L'entraînement et les œufs** : +10 % de dégâts par niveau d'entraînement, les étoiles, les temps et les
    chances des œufs, la part des tours de palier 2 (0, 25 et 75 %) : ce sont mes chiffres, à changer comme tu veux.
 2. **Les niveaux 11 à 40** sont réglés, mais tu ne les as pas encore joués : leur difficulté, les cartes et le
-   nombre de colosses sont mes choix. Dis-moi ce que tu en penses. **Les niveaux 41 à 100** sont fermés
-   (« Bientôt ») en attendant tes mises à jour : il faudra les régler de nouveau avant de les ouvrir (au-delà du
-   niveau 100, il faudrait de nouvelles familles de monstres).
+   nombre de colosses sont mes choix. Dis-moi ce que tu en penses. **Le désert (41 à 50)** est prêt (réglé, sa
+   tour spéciale et son œuf) mais fermé : **ton « oui » l'ouvre** (et dis-moi si le Totem des sables te plaît).
+   **Les niveaux 51 à 100** sont fermés (« Bientôt ») en attendant tes mises à jour : il faudra les régler de
+   nouveau avant de les ouvrir (au-delà du niveau 100, il faudrait de nouvelles familles de monstres).
    **Le colosse géant** est aux niveaux 15, 25 et 35 : dis-moi s'il en faut ailleurs.
    **Les boss des niveaux 60 et 90** n'ont pas encore de modèle 3D (ils sont faits de blocs) : à faire faire par
    ChatGPT, comme les autres (`assets/EnemyModels/Boss_5.rbxm` et `Boss_8.rbxm`).
    **Jouer en équipe** : fait (voir « Jouer en équipe ») ; les bonus sont tes chiffres, les PV d'équipe les miens.
    À essayer à deux (le test « serveur et clients » de Studio avec 2 joueurs, ou avec un ami).
-3. **Des passes Robux pour ce jeu ?** Il n'y en a plus aucun. Si tu en veux, il faudra choisir lesquels (jamais un
-   avantage qui casse la difficulté des niveaux).
+3. **Les achats en Robux** : faits (tes demandes du 04/10/2026, voir « Les achats en Robux »). Il reste à créer
+   les 7 produits « Finish egg » sur le Hub Création (voir `SORTIE.md`).
 4. **Avant de rendre le jeu public** : voir `SORTIE.md` (publication, essai sur un vrai téléphone, page du jeu).
 5. **Les tours de palier 2** : leurs noms, leurs pouvoirs et leurs chiffres sont les miens (voir « Les œufs, les
    couveuses et les tours de palier 2 »). L'étape 3 est faite.
@@ -869,7 +909,7 @@ niveaux du joueur et son réglage du son. Les sauvegardes de l'ancien jeu « Tow
 |---|---|
 | `src/shared/Levels.luau` | toutes les règles et tous les chiffres (niveaux, territoires et cartes, monstres, prix, œufs, entraînement, tuto) |
 | `src/shared/TeamMaps.luau` | les 30 cartes d'équipe (écrit par `tools/team-maps/generer.py`, à ne pas modifier à la main) |
-| `src/shared/IdleTowers.luau`, `IdleConfig.luau`, `Enemies.luau` | les 20 tours (8 de palier 1, 8 de palier 2, 4 tours spéciales), les réglages du combat, les 7 types de monstres (dont le colosse géant) |
+| `src/shared/IdleTowers.luau`, `IdleConfig.luau`, `Enemies.luau` | les 21 tours (8 de palier 1, 8 de palier 2, 5 tours spéciales, dont celle du désert, encore fermé), les réglages du combat, les 7 types de monstres (dont le colosse géant) |
 | `src/server/Hub/Combat.luau` | le combat des tours contre les monstres, et ses paquets réseau |
 | `src/server/Hub/LevelGame.luau` | un niveau en cours (or, vies, flot de monstres, pose des tours) |
 | `src/server/Hub/LevelArena.luau` | les zones de combat, leur carte et le décor de chaque territoire |
@@ -909,7 +949,7 @@ powershell -ExecutionPolicy Bypass -File tools\levels\run.ps1
 powershell -ExecutionPolicy Bypass -File tools\studio-test\run.ps1
 ```
 
-- le premier : 1 430 vérifications des règles, de la difficulté de chacun des 40 niveaux ouverts, de l'entraînement,
+- le premier : 1 438 vérifications des règles, de la difficulté de chacun des 40 niveaux ouverts, de l'entraînement,
   du camp, du tuto, du jeu en équipe, des 30 cartes d'équipe, des amis, des œufs, des tours de palier 2, du
   colosse géant et des tours spéciales, sans Studio (une dizaine de minutes : les équipes de joueurs simulés sont
   lentes) ;

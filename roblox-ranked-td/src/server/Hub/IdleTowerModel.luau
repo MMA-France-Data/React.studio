@@ -499,6 +499,35 @@ function IdleTowerModel.create(towerType: string, cframe: CFrame, parent: Instan
 				icicle.Transparency = 0.15
 			end
 			block("SnowCap", Vector3.new(3.2, 0.12, 2.75), Vector3.new(0, 1.32, 0.2), Color3.fromRGB(240, 248, 255), Enum.Material.Snow)
+		elseif towerType == "SandTotem" then
+			-- Totem des sables : le totem des Gardes des dunes, en grès (menhirs, runes dorées), une pierre de soleil ambrée à
+			-- la place du cristal de glace, des dunes au pied, un disque de soleil et ses rayons au sommet, et des traînées de
+			-- sable qui tournent autour (la tempête).
+			local sandstone = Color3.fromRGB(214, 170, 104)
+			local sun = Color3.fromRGB(255, 206, 84)
+			recolor = {
+				Runestone1 = { sandstone, Enum.Material.Sandstone },
+				Runestone2 = { sandstone, Enum.Material.Sandstone },
+				Runestone3 = { sandstone, Enum.Material.Sandstone },
+				Rune1 = { sun, Enum.Material.Neon },
+				Rune2 = { sun, Enum.Material.Neon },
+				Rune3 = { sun, Enum.Material.Neon },
+				CrystalCore = { Color3.fromRGB(240, 150, 44), Enum.Material.Glass },
+				Shard1 = { Color3.fromRGB(250, 196, 96), Enum.Material.Glass },
+				Shard2 = { Color3.fromRGB(250, 196, 96), Enum.Material.Glass },
+				IceOutcrop = { Color3.fromRGB(230, 196, 132), Enum.Material.Sand },
+				Plinth = { Color3.fromRGB(196, 158, 100), Enum.Material.Sandstone },
+			}
+			cylinder("SunDisc", Vector3.new(0.16, 1, 1), Vector3.new(0, 5.05, 0), sun, Enum.Material.Neon, CFrame.Angles(0, math.rad(90), 0))
+			for i = 0, 7 do
+				local angle = i * math.pi / 4
+				block("SunRay", Vector3.new(0.1, 0.42, 0.12), Vector3.new(math.cos(angle) * 0.72, 5.05 + math.sin(angle) * 0.72, 0), gold, Enum.Material.Metal, CFrame.Angles(0, 0, angle - math.pi / 2))
+			end
+			for i = 0, 9 do
+				local angle = i * math.pi / 5
+				local swirl = block("SandSwirl", Vector3.new(0.12, 0.12, 0.85), Vector3.new(math.cos(angle) * 1.75, 1.4 + i * 0.22, math.sin(angle) * 1.75), Color3.fromRGB(238, 206, 140), Enum.Material.Sand, CFrame.Angles(0, -angle, math.rad(10)))
+				swirl.CastShadow = false
+			end
 		end
 		for _, child in model:GetChildren() do
 			local paint = recolor[child.Name]
