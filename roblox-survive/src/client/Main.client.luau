@@ -35,7 +35,16 @@ local function fill(label: Instance)
 		for _, name in string.split(parts[3] or "", ",") do
 			table.insert(icons, Texts.ICONS[name] or "")
 		end
-		label.Text = tr("room", parts[2]) .. "  " .. table.concat(icons, " ")
+		local text = tr("room", parts[2]) .. "  " .. table.concat(icons, " ")
+		-- 2e ligne : les niveaux qu'il faut pour réussir la salle.
+		local needs = {}
+		for name, level in string.gmatch(parts[4] or "", "(%a+):(%d+)") do
+			table.insert(needs, tr("stat" .. name) .. " " .. level)
+		end
+		if #needs > 0 then
+			text ..= "\n" .. tr("needs", table.concat(needs, ", "))
+		end
+		label.Text = text
 	elseif #parts > 1 then
 		label.Text = tr(key, tonumber(parts[2]) or parts[2])
 	else
@@ -208,6 +217,8 @@ ReplicatedStorage:WaitForChild("Notify").OnClientEvent:Connect(function(key: str
 		showToast(tr("win", a, num(b)))
 	elseif key == "half" then
 		showToast(tr("half", num(a), b))
+	elseif key == "maxed" then
+		showToast(tr("max"), Color3.fromRGB(255, 221, 51))
 	elseif key == "bought" then
 		showToast(tr("bought", tr(a), b))
 	elseif key == "poor" then
@@ -226,9 +237,9 @@ local function refreshPrompt(prompt: ProximityPrompt)
 	local kind = prompt:GetAttribute("Kind")
 	if kind == "Machine" then
 		local name = prompt:GetAttribute("Machine")
-		local price = Config.price(player:GetAttribute(name) or 1)
+		local price = Config.price(player:GetAttribute(name) or 0)
 		prompt.ObjectText = tr(name)
-		prompt.ActionText = if price then tr("upgrade", num(price)) else tr("maxed")
+		prompt.ActionText = if not price then tr("maxed") elseif price == 0 then tr("trainFree") else tr("train", num(price))
 	elseif kind == "Shortcut" then
 		prompt.ActionText = tr("shortcutGo", prompt:GetAttribute("Cleared") + 1)
 	elseif kind == "Back" then
@@ -239,7 +250,7 @@ end
 local function refresh()
 	coinsLabel.Text = num(player:GetAttribute("Coins") or 0)
 	for _, name in Config.MACHINES do
-		local level = player:GetAttribute(name) or 1
+		local level = player:GetAttribute(name) or 0
 		statLabels[name].Text = tr("stat" .. name) .. "  " .. level
 		local model = gym:FindFirstChild(name)
 		local label = model and model.PrimaryPart and model.PrimaryPart:FindFirstChild("Label")
@@ -247,7 +258,7 @@ local function refresh()
 			local price = Config.price(level)
 			label.Title.Text = tr(name)
 			label.Level.Text = tr("level", level, Config.MAX_LEVEL)
-			label.Info.Text = if price then tr("next", num(price)) else tr("max")
+			label.Info.Text = if not price then tr("max") elseif price == 0 then tr("nextFree") else tr("next", num(price))
 		end
 	end
 	for _, prompt in workspace:GetDescendants() do
@@ -284,15 +295,27 @@ RunService.RenderStepped:Connect(function()
 	local titles, hints = {}, {}
 	for _, name in string.split(folder:GetAttribute("Events"), ",") do
 		table.insert(titles, Texts.ICONS[name] .. " " .. tr(name))
-		table.insert(hints, tr("hint" .. name))
+		table.insert(hints, if name == "Meteors" and folder:GetAttribute("Rush") then tr("hintRush") else tr("hint" .. name))
 	end
 	banner.Visible = true
 	if state == "Countdown" then
 		bannerTitle.Text = tr("room", index) .. "  " .. table.concat(titles, "  ")
 		bannerHint.Text = table.concat(hints, "  •  ")
+		-- Il manque un niveau au joueur pour cette salle : on le lui dit tout de suite, en rouge.
+		local missing = {}
+		for name, level in string.gmatch(folder:GetAttribute("Needs") or "", "(%a+):(%d+)") do
+			if (player:GetAttribute(name) or 0) < tonumber(level) then
+				table.insert(missing, tr("stat" .. name) .. " " .. level)
+			end
+		end
+		bannerHint.TextColor3 = if #missing > 0 then Color3.fromRGB(255, 90, 90) else Color3.new(1, 1, 1)
+		if #missing > 0 then
+			bannerHint.Text = tr("needs", table.concat(missing, ", "))
+		end
 		bannerTimer.Text = tr("prepare", left)
 		bannerTimer.TextColor3 = Color3.new(1, 1, 1)
 	elseif state == "Event" then
+		bannerHint.TextColor3 = Color3.new(1, 1, 1)
 		bannerTitle.Text = table.concat(titles, "  ")
 		bannerHint.Text = table.concat(hints, "  •  ")
 		bannerTimer.Text = tostring(left)
@@ -318,6 +341,59 @@ RunService.RenderStepped:Connect(function()
 		gaugeFill.Size = UDim2.fromScale(left, 1)
 		gaugeFill.BackgroundColor3 = if left >= 0.5 then Color3.fromRGB(70, 210, 90) else Color3.fromRGB(240, 80, 80)
 		gaugeLabel.Text = if pushButton.Visible then tr("pushKey") else tr("ceiling")
+	end
+end)
+
+-- L'ENTRAÎNEMENT SUR UNE MACHINE ------------------------------------------------------------------------------------
+-- Pendant l'entraînement (attribut « Workout »), une barre se remplit et le personnage fait le geste : il court
+-- sur le tapis, il pousse la barre sur le banc. Sur le trampoline, il rebondit tout seul.
+local workoutBar = box(gui, "Workout", UDim2.fromOffset(320, 34), UDim2.new(0.5, -160, 0.74, 0), Color3.fromRGB(40, 44, 56))
+workoutBar.Visible = false
+local workoutFill = Instance.new("Frame")
+workoutFill.Name = "Fill"
+workoutFill.BorderSizePixel = 0
+workoutFill.Size = UDim2.fromScale(0, 1)
+workoutFill.BackgroundColor3 = Color3.fromRGB(70, 210, 90)
+Instance.new("UICorner", workoutFill).CornerRadius = UDim.new(0, 8)
+workoutFill.Parent = workoutBar
+local workoutLabel = text(workoutBar, "Label", UDim2.fromScale(1, 0.84), UDim2.fromScale(0, 0.08))
+workoutLabel.ZIndex = 2
+workoutLabel.Text = tr("workout")
+local workoutTrack: AnimationTrack? = nil
+local function workoutGesture(machine: string)
+	if workoutTrack then
+		workoutTrack:Stop(0.2)
+		workoutTrack = nil
+	end
+	-- Les gestes viennent des animations du personnage lui-même (courir, grimper = pousser avec les bras).
+	local folderName = if machine == "Speed" then "run" elseif machine == "Force" then "climb" else nil
+	local character = player.Character
+	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+	local animator = humanoid and humanoid:FindFirstChildOfClass("Animator")
+	local animate = character and character:FindFirstChild("Animate")
+	local holder = folderName and animate and animate:FindFirstChild(folderName)
+	local source = holder and holder:FindFirstChildOfClass("Animation")
+	if animator and source then
+		local ok, track = pcall(function()
+			return animator:LoadAnimation(source)
+		end)
+		if ok and track then
+			track.Looped = true
+			track.Priority = Enum.AnimationPriority.Action
+			track:Play(0.15, 1, 1.3)
+			workoutTrack = track
+		end
+	end
+end
+player:GetAttributeChangedSignal("Workout"):Connect(function()
+	local machine = player:GetAttribute("Workout") or ""
+	workoutBar.Visible = machine ~= ""
+	workoutGesture(machine)
+end)
+RunService.RenderStepped:Connect(function()
+	if workoutBar.Visible then
+		local left = (player:GetAttribute("WorkoutEnds") or 0) - workspace:GetServerTimeNow()
+		workoutFill.Size = UDim2.fromScale(math.clamp(1 - left / Config.WORKOUT_SECONDS, 0, 1), 1)
 	end
 end)
 

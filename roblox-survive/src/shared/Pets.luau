@@ -17,7 +17,7 @@ Pets.DEFS = {
 	Dragon = { power = "glide", values = { 1, 1.5, 2, 3 }, size = 1.8, move = "fly" }, -- secondes de vol plané (sauter une 2e fois en l'air)
 	Rock = { power = "shield", values = { 40, 70, 110, 160 }, move = "bounce" }, -- dégâts encaissés par salle (pas la lave ni le plafond)
 	Rabbit = { power = "speed", values = { 4, 7, 10, 15 }, move = "hop" }, -- % de vitesse en plus
-	Golem = { power = "force", values = { 3, 6, 10, 15 }, move = "walk" }, -- force en plus pour repousser le plafond
+	Golem = { power = "force", values = { 10, 20, 30, 50 }, move = "walk" }, -- % de force en plus pour repousser le plafond
 	Owl = { power = "coins", values = { 5, 10, 15, 25 }, move = "fly" }, -- % de pièces en plus
 }
 

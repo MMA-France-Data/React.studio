@@ -31,7 +31,7 @@ local loadedCallbacks = {}
 local function defaults()
 	return {
 		coins = 0,
-		levels = { Speed = 1, Jump = 1, Force = 1 },
+		levels = { Speed = 0, Jump = 0, Force = 0 },
 		best = 0,
 		eggs = {}, -- œufs en attente : { a = animal, r = salle }
 		slots = {}, -- couveuses : ["1"] = { a = animal, r = salle, t = heure d'éclosion (os.time) }
@@ -56,7 +56,7 @@ local function clean(raw)
 		for _, name in Config.MACHINES do
 			local level = raw.levels[name]
 			if type(level) == "number" then
-				data.levels[name] = math.clamp(math.floor(level), 1, Config.MAX_LEVEL)
+				data.levels[name] = math.clamp(math.floor(level), 0, Config.MAX_LEVEL)
 			end
 		end
 	end
@@ -202,7 +202,7 @@ end
 function PlayerData.setLevel(player: Player, machine: string, level: number)
 	local data = PlayerData.get(player)
 	if data then
-		data.levels[machine] = math.clamp(level, 1, Config.MAX_LEVEL)
+		data.levels[machine] = math.clamp(level, 0, Config.MAX_LEVEL)
 		touch(player)
 	end
 end

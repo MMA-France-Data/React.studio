@@ -29,6 +29,9 @@ return function(_world)
 		elseif action == "Buy" then
 			local ok, reason = Gym.buy(player, a)
 			return ok, reason
+		elseif action == "Train" then
+			local ok, reason = Gym.train(player, a)
+			return ok, reason
 		elseif action == "Shortcut" then
 			return Gym.shortcut(player, a)
 		elseif action == "Scale" then
@@ -47,6 +50,7 @@ return function(_world)
 				zMax = room.zMax,
 				pillars = pillars,
 				melody = room.melody,
+				rush = room.rush,
 				melodyPads = (function()
 					local list = {}
 					for i, pad in room.melodyPads or {} do

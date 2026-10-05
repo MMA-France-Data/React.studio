@@ -204,23 +204,39 @@ return function(log)
 
 	-- 2. LA SALLE DE SPORT -----------------------------------------------------------------------------------------
 	local data = D("Data")
-	check(data.coins == 0 and data.Speed == 1 and data.Jump == 1 and data.Force == 1 and data.best == 0, "nouveau joueur : 0 pièce, niveaux 1")
-	local _, humanoid = alive()
+	check(data.coins == 0 and data.Speed == 0 and data.Jump == 0 and data.Force == 0 and data.best == 0, "nouveau joueur : 0 pièce, niveaux 0")
+	local _, humanoid, gymRoot = alive()
 	check(math.abs(humanoid.WalkSpeed - 16) < 0.01 and math.abs(humanoid.JumpHeight - 7.2) < 0.01, "vitesse 16 et saut 7,2 au départ", humanoid.WalkSpeed .. " / " .. humanoid.JumpHeight)
-	local ok, reason = D("Buy", "Speed")
-	check(not ok and reason == "poor", "achat refusé sans pièces", reason)
+
+	-- S'entraîner sur chaque machine : le niveau 1 est gratuit, le joueur est posé sur la machine quelques secondes.
+	for _, machine in { "Speed", "Force", "Jump" } do
+		local ok = D("Train", machine)
+		check(ok == true, "entraînement gratuit accepté : " .. machine)
+		task.wait(0.4)
+		check(player:GetAttribute("Workout") == machine and humanoid.WalkSpeed == 0, machine .. " : le joueur est sur la machine, sans pouvoir marcher", player:GetAttribute("Workout"))
+		local busy, why = D("Train", machine)
+		check(not busy and why == "busy", machine .. " : pas deux entraînements en même temps", why)
+		task.wait(1.2)
+		local place = workspace.Gym[machine].PrimaryPart.Position
+		shot("entrainement_" .. machine, place + Vector3.new(if machine == "Force" then -13 else 13, 9, 13), place + Vector3.new(if machine == "Force" then -3 else 0, 3.5, 0))
+		task.wait(Config.WORKOUT_SECONDS - 2.6)
+		check(D("Data")[machine] == 1 and player:GetAttribute("Workout") == "" and not gymRoot.Anchored, machine .. " : niveau 1 gagné à la fin de l'entraînement", D("Data")[machine])
+	end
+	check(math.abs(humanoid.WalkSpeed - 16 * 1.15) < 0.01 and math.abs(humanoid.JumpHeight - 7.2 * 1.15) < 0.01, "niveau 1 : +15 % de vitesse et de saut", humanoid.WalkSpeed .. " / " .. humanoid.JumpHeight)
+	local ok, reason = D("Train", "Speed")
+	check(not ok and reason == "poor", "le niveau 2 coûte 500 pièces : entraînement refusé sans pièces", reason)
 	D("Give", 500)
 	ok = D("Buy", "Speed")
 	data = D("Data")
 	check(ok and data.Speed == 2 and data.coins == 0, "tapis de course niveau 2 pour 500 pièces", data.coins)
-	check(math.abs(humanoid.WalkSpeed - 17.28) < 0.01, "vitesse +8 %", humanoid.WalkSpeed)
+	check(math.abs(humanoid.WalkSpeed - 16 * 1.15 ^ 2) < 0.01, "vitesse du niveau 2", humanoid.WalkSpeed)
 	D("Give", 41000)
 	for _ = 1, 5 do
 		D("Buy", "Jump")
 	end
 	data = D("Data")
 	check(data.Jump == 6 and data.coins == 0, "trampoline niveau 6 pour 41 000 pièces en tout", data.coins)
-	check(math.abs(humanoid.JumpHeight - 7.2 * 1.15 ^ 5) < 0.01, "saut deux fois plus haut au niveau 6", humanoid.JumpHeight)
+	check(math.abs(humanoid.JumpHeight - 7.2 * 1.15 ^ 6) < 0.01, "saut du niveau 6", humanoid.JumpHeight)
 	ok, reason = D("Buy", "Jump")
 	check(not ok and reason == "max", "pas de niveau 7", reason)
 	check(player:GetAttribute("Jump") == 6 and player.leaderstats.Coins.Value == 0, "niveaux et pièces envoyés à l'écran")
@@ -230,8 +246,8 @@ return function(log)
 	-- 3. LES SALLES ------------------------------------------------------------------------------------------------
 	D("Scale", SCALE)
 
-	-- Le parcours de lave, vu avant que la lave monte (salle 1, puis la salle 8, la plus haute).
-	for _, index in { 1, 8 } do
+	-- Le parcours de lave, vu avant que la lave monte (salle 1, puis la salle 9, la plus longue).
+	for _, index in { 1, 9 } do
 		local info = D("Room", index)
 		local top = info.pillars[#info.pillars].Y
 		shot("parcours" .. index, Vector3.new(33, top + 14, info.zMin + 3), Vector3.new(-6, top * 0.35, info.center.Z + 6))
@@ -322,8 +338,9 @@ return function(log)
 	end
 	check(crushHumanoid.Health <= 0, "salle 4 : sans pousser, le plafond écrase", D("Room", 4).elapsed)
 	waitState(4, "Idle", 3)
-	check(crushed(4, 5), "salle 4 : force 1 à 5 appuis par seconde = écrasé")
-	D("Level", "Force", 2)
+	check(crushed(4, 5), "salle 4 : force 0 à 5 appuis par seconde = écrasé")
+	check(crushed(4, 6), "salle 4 : force 0 même en appuyant au plus vite (6 par seconde) = écrasé")
+	D("Level", "Force", 1)
 	winRoom(4, true)
 	check(workspace.Rooms.Room4:GetAttribute("Ceiling") == 1, "salle 4 : le plafond remonte après la manche", workspace.Rooms.Room4:GetAttribute("Ceiling"))
 
@@ -383,13 +400,15 @@ return function(log)
 	check(D("Data").coins - melodyBefore == 600, "salle 6 : +600 pièces", D("Data").coins - melodyBefore)
 	tp(D("Sas", 6))
 	waitState(6, "Idle", Config.OPEN / SCALE + 3)
-	D("Level", "Force", 3)
-	check(crushed(7, 5), "salle 7 : force 3 à 5 appuis par seconde = écrasé")
-	D("Level", "Force", 4)
+	D("Level", "Force", 1)
+	check(crushed(7, 6), "salle 7 : force 1 même en appuyant au plus vite = écrasé")
+	D("Level", "Force", 2)
 	winRoom(7)
 	winRoom(8, true)
 	winRoom(9, true)
-	D("Level", "Force", 5)
+	D("Level", "Force", 3)
+	check(crushed(10, 6), "salle 10 : force 3 même en appuyant au plus vite = écrasé")
+	D("Level", "Force", 4)
 	winRoom(10, true)
 	check(D("Data").best == 10, "meilleure salle = 10", D("Data").best)
 	check(D("Eggs").eggs >= 8, "chaque salle réussie a donné son œuf", D("Eggs").eggs)
@@ -409,9 +428,57 @@ return function(log)
 	check(shield == 0 or rockHumanoid.Health == 100, "caillou légendaire : pas de vie perdue tant que le bouclier tient", rockHumanoid.Health)
 	rockHumanoid.Health = 0
 	waitState(2, "Idle", 3)
-	D("Level", "Force", 1)
+	D("Level", "Force", 0)
 	D("Pet", "Golem", 4)
-	check(not crushed(4, 5), "golem légendaire : force 1 + 15 tient le plafond de la salle 4")
+	check(not crushed(4, 5), "golem légendaire : force 0 + 50 % tient le plafond de la salle 4")
+	D("Pet", "", 0)
+
+	-- LA GRANDE PLUIE DE MÉTÉORITES : un joueur qui court à la vitesse du niveau demandé arrive dans le rond vert,
+	-- celui du niveau d'en dessous n'arrive pas. Le test fait avancer le personnage lui-même, en temps réel.
+	local function rushRun(index: number, speed: number): (boolean, number)
+		D("Scale", SCALE)
+		enter(index)
+		D("Scale", 1)
+		local character, runner, body = alive()
+		local waves = 0
+		local previous = os.clock()
+		while runner.Health > 0 and waves < 3 do
+			local now = os.clock()
+			local dt = now - previous
+			previous = now
+			local info = D("Room", index)
+			if info.state ~= "Event" then
+				break
+			end
+			local rush = info.rush
+			waves = rush.waves
+			-- Soigné à chaque image : une petite météorite ne le tue pas, la grande pluie (100 dégâts) si.
+			runner.Health = runner.MaxHealth
+			if rush.phase == "warn" then
+				-- Court tout droit vers le rond vert et s'arrête 5 studs avant son milieu.
+				local position = body.Position
+				local delta = Vector3.new(rush.target.X - position.X, 0, rush.target.Z - position.Z)
+				if delta.Magnitude > 5 then
+					character:PivotTo(CFrame.new(position + delta.Unit * math.min(speed * dt, delta.Magnitude - 5)))
+				end
+			end
+			task.wait()
+		end
+		local survived = runner.Health > 0
+		if survived then
+			runner.Health = 0
+		end
+		D("Scale", SCALE)
+		waitState(index, "Idle", 3)
+		return survived, waves
+	end
+	for _, case in { { 2, 1 }, { 8, 3 } } do
+		local index, level = case[1], case[2]
+		local survived, waves = rushRun(index, Config.walkSpeed(level))
+		check(survived and waves >= 3, `salle {index} : la vitesse du niveau {level} suffit pour 3 grandes pluies`, waves)
+		survived, waves = rushRun(index, Config.walkSpeed(level - 1))
+		check(not survived, `salle {index} : la vitesse du niveau {level - 1} n'arrive pas à temps`, waves)
+	end
 	D("Scale", 1)
 	D("Pet", "Rabbit", 4)
 	local _, rabbitHumanoid = alive()

@@ -1,5 +1,5 @@
--- La salle de sport : acheter un niveau sur une machine, donner au personnage sa vitesse et son saut, et le
--- raccourci vers les salles déjà atteintes.
+-- La salle de sport : s'entraîner sur une machine pour gagner un niveau, donner au personnage sa vitesse et son
+-- saut, et le raccourci vers les salles déjà atteintes.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -40,7 +40,8 @@ function Gym.applyStats(player: Player)
 	humanoid.JumpHeight = Stats.jumpHeight(player)
 end
 
--- Achète le niveau suivant d'une machine. Renvoie true, ou false et la raison (« max », « poor »).
+-- Donne le niveau suivant d'une machine et prend son prix. Renvoie true, ou false et la raison (« max », « poor »).
+-- (Le joueur passe par Gym.train : il s'entraîne d'abord sur la machine.)
 function Gym.buy(player: Player, machine: string): (boolean, string?)
 	local data = PlayerData.get(player)
 	if not data or not table.find(Config.MACHINES, machine) then
@@ -59,6 +60,57 @@ function Gym.buy(player: Player, machine: string): (boolean, string?)
 	PlayerData.setLevel(player, machine, level + 1)
 	Gym.applyStats(player)
 	notify(player, "bought", machine, level + 1)
+	return true
+end
+
+-- Le joueur monte sur la machine et s'entraîne quelques secondes ; à la fin, il gagne le niveau (et paie).
+-- Tapis de course : il court sur place. Musculation : couché sur le banc. Trampoline : il rebondit.
+-- Renvoie true si l'entraînement a commencé, ou false et la raison (« max », « poor », « busy »).
+local training = {} -- [joueur] = true pendant un entraînement
+local spots = {} -- [machine] = { enter = CFrame, exit = Vector3, anchored = bool }
+function Gym.train(player: Player, machine: string): (boolean, string?)
+	local data = PlayerData.get(player)
+	local spot = spots[machine]
+	local character = player.Character
+	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+	local root = character and character:FindFirstChild("HumanoidRootPart")
+	if not data or not spot or not humanoid or not root or humanoid.Health <= 0 then
+		return false, "data"
+	end
+	if training[player] then
+		return false, "busy"
+	end
+	local price = Config.price(data.levels[machine])
+	if not price then
+		notify(player, "maxed", machine)
+		return false, "max"
+	end
+	if data.coins < price then
+		notify(player, "poor", price - data.coins)
+		return false, "poor"
+	end
+
+	training[player] = true
+	humanoid.WalkSpeed = 0
+	character:PivotTo(spot.enter)
+	root.Anchored = spot.anchored
+	player:SetAttribute("WorkoutEnds", workspace:GetServerTimeNow() + Config.WORKOUT_SECONDS)
+	player:SetAttribute("Workout", machine)
+	task.delay(Config.WORKOUT_SECONDS, function()
+		training[player] = nil
+		if not player:IsDescendantOf(Players) then
+			return
+		end
+		player:SetAttribute("Workout", "")
+		-- Mort ou réapparu pendant l'entraînement : pas de niveau, rien à payer.
+		if player.Character ~= character or humanoid.Health <= 0 then
+			return
+		end
+		root.Anchored = false
+		character:PivotTo(CFrame.new(spot.exit))
+		Gym.buy(player, machine)
+		Gym.applyStats(player)
+	end)
 	return true
 end
 
@@ -89,11 +141,12 @@ end
 
 function Gym.start(world, notifier)
 	notify = notifier
+	spots = world.gym.spots
 	for name, model in world.gym.machines do
 		local item = prompt(model.PrimaryPart, "Machine", 14)
 		item:SetAttribute("Machine", name)
 		item.Triggered:Connect(function(player)
-			Gym.buy(player, name)
+			Gym.train(player, name)
 		end)
 	end
 	for cleared, pad in world.gym.shortcuts do

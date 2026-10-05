@@ -17,15 +17,15 @@ function Stats.bonus(player: Player, power: string): number
 end
 
 function Stats.walkSpeed(player: Player): number
-	return Config.walkSpeed(player:GetAttribute("Speed") or 1) * (1 + Stats.bonus(player, "speed") / 100)
+	return Config.walkSpeed(player:GetAttribute("Speed") or 0) * (1 + Stats.bonus(player, "speed") / 100)
 end
 
 function Stats.jumpHeight(player: Player): number
-	return Config.jumpHeight(player:GetAttribute("Jump") or 1)
+	return Config.jumpHeight(player:GetAttribute("Jump") or 0)
 end
 
 function Stats.force(player: Player): number
-	return Config.force(player:GetAttribute("Force") or 1) + Stats.bonus(player, "force")
+	return Config.force(player:GetAttribute("Force") or 0) * (1 + Stats.bonus(player, "force") / 100)
 end
 
 function Stats.coins(player: Player, amount: number): number

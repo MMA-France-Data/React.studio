@@ -122,6 +122,18 @@ local function buildGym(parent: Instance)
 		Build.billboard(model.PrimaryPart, 11)
 		machines[name] = model
 	end
+	-- Où le joueur se met pour s'entraîner (enter), et où il est reposé après (exit).
+	local spots = {
+		-- debout sur la bande du premier tapis, face à l'écran
+		Speed = { enter = CFrame.new(places.Speed + Vector3.new(-4, 4.9, 1.5)), anchored = true },
+		-- couché sur le dos sur le banc, la tête vers la barre
+		Force = { enter = CFrame.new(places.Force + Vector3.new(-3, 4, 0.6)) * CFrame.Angles(math.rad(90), 0, math.rad(180)), anchored = true },
+		-- au milieu du trampoline : il rebondit tout seul
+		Jump = { enter = CFrame.new(places.Jump + Vector3.new(0, 7.5, 0)), anchored = false },
+	}
+	for name, spot in spots do
+		spot.exit = places[name] + Vector3.new(0, 3.5, 12.5)
+	end
 
 	-- Les couveuses, contre le mur du fond.
 	local incubators = {}
@@ -144,7 +156,7 @@ local function buildGym(parent: Instance)
 		shortcuts[cleared] = pad
 	end
 
-	return { folder = gym, machines = machines, shortcuts = shortcuts, incubators = incubators, spawn = spawn }
+	return { folder = gym, machines = machines, spots = spots, shortcuts = shortcuts, incubators = incubators, spawn = spawn }
 end
 
 local function buildSas(parent: Instance, index: number, wallColor: Color3)
@@ -195,8 +207,15 @@ local function buildRoom(parent: Instance, index: number)
 	World.setDoor(entry, true)
 
 	-- Panneau au-dessus de l'entrée, côté couloir : le numéro de la salle et ses événements.
-	local board = Build.part(folder, "Sign", Vector3.new(DOOR_W + 6, 4, 0.5), Vector3.new(0, DOOR_H + 3.4, zMin - WALL), Color3.fromRGB(40, 44, 56))
-	Build.sign(board, Enum.NormalId.Front, "roomSign|" .. index .. "|" .. table.concat(def.events, ","))
+	local board = Build.part(folder, "Sign", Vector3.new(DOOR_W + 8, 5.4, 0.5), Vector3.new(0, DOOR_H + 3.9, zMin - WALL), Color3.fromRGB(40, 44, 56))
+	local needs = {}
+	for _, name in Config.MACHINES do
+		if def.need and def.need[name] then
+			table.insert(needs, name .. ":" .. def.need[name])
+		end
+	end
+	Build.sign(board, Enum.NormalId.Front, "roomSign|" .. index .. "|" .. table.concat(def.events, ",") .. "|" .. table.concat(needs, ","))
+	folder:SetAttribute("Needs", table.concat(needs, ","))
 
 	folder:SetAttribute("State", "Idle")
 	folder:SetAttribute("Ends", 0)

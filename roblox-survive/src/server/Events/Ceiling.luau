@@ -3,8 +3,12 @@
 -- Pour le repousser, il faut être sur la dernière plateforme et appuyer très vite sur E (ou le bouton de l'écran).
 -- Chaque appui le remonte un peu, d'autant plus que la force du joueur est haute. À plusieurs, tout s'additionne.
 --
--- Réglage : avec la force `need` et 5 appuis par seconde, le plafond ne bouge plus. Sans personne, il écrase tout
--- en FALL secondes. Il faut à peu près les deux tiers de `need` (à 5 appuis par seconde) pour tenir jusqu'au bout.
+-- Réglage : la salle demande un niveau de force (params.level). Avec la force Config.ceilingNeed(level) et 5 appuis
+-- par seconde, le plafond ne bouge plus ; sans personne, il écrase tout en FALL secondes. Le niveau demandé tient
+-- jusqu'au bout, le niveau d'en dessous est écrasé même en appuyant au plus vite (voir Config.ceilingNeed).
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local Config = require(ReplicatedStorage.Shared.Config)
 local Build = require(script.Parent.Parent.Build)
 
 local Ceiling = {}
@@ -14,12 +18,13 @@ local FALL = 12 -- secondes pour tout écraser si personne ne pousse
 local THICK = 3
 local REACH = 9 -- distance (vue d'en haut) au milieu de la dernière plateforme pour pouvoir pousser
 local PRESSES = 5 -- appuis par seconde qui arrêtent le plafond avec la force `need`
-local MAX_PRESSES = 8 -- appuis par seconde comptés au plus (les clics automatiques ne servent à rien)
+local MAX_PRESSES = 6 -- appuis par seconde comptés au plus (les clics automatiques ne servent à rien)
 
 function Ceiling.new(ctx, params)
 	local self = {}
 	local platform = ctx.room.finalTop
 	assert(platform, "le plafond a besoin de la lave dans la même salle (events = { \"Lava\", \"Ceiling\" })")
+	local need = Config.ceilingNeed(params.level)
 	local high, low = platform.Y + ROOM, platform.Y + CRUSH
 	local speed = (high - low) / FALL
 
@@ -70,7 +75,7 @@ function Ceiling.new(ctx, params)
 		active = false
 		table.clear(lastPress)
 		place(high)
-		folder:SetAttribute("Need", params.need)
+		folder:SetAttribute("Need", need)
 		folder:SetAttribute("Pushing", false)
 	end
 
@@ -112,7 +117,7 @@ function Ceiling.new(ctx, params)
 			lastPress[player] = elapsed
 		end
 		local force = ctx.force(player)
-		place(math.min(high, bottom + speed * force / (params.need * PRESSES)))
+		place(math.min(high, bottom + speed * force / (need * PRESSES)))
 		return true
 	end
 	ctx.room.push = self.push
