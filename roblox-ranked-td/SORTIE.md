@@ -67,11 +67,11 @@ Le jeu sort comme une **nouvelle expérience Roblox** (décision du 02/10/2026) 
 ## Publication (Studio et Hub Création)
 
 - [ ] Le fichier à publier : la copie propre préparée par Claude, sur ton PC, dans le dossier du jeu :
-      `A-PUBLIER\Jeu-100-niveaux-v15-anglais.rbxl` (refaite à chaque version, avec un nouveau nom : prends toujours
+      `A-PUBLIER\Jeu-100-niveaux-v16-anglais.rbxl` (refaite à chaque version, avec un nouveau nom : prends toujours
       la plus récente ; elle n'est pas dans git). Ferme les autres fenêtres de Studio avant de publier, pour ne pas
-      te tromper de fichier. « -anglais » : le commit 5f00f86 (05/10/2026 au soir : une tour par rareté dans un
-      niveau, niveaux 11 à 40 « durs partout » ; avant : espagnol et portugais, désert prêt mais fermé), que Studio
-      te montre en
+      te tromper de fichier. « -anglais » : le commit 6d8b6d5 (05/10/2026 au soir : une tour par rareté dans un
+      niveau, niveaux 11 à 40 « durs partout », Baliste du dragon à 200 de dégâts ; avant : espagnol et portugais,
+      désert prêt mais fermé), que Studio te montre en
       anglais (`Config.STUDIO_LANGUAGE = "en"`, qui ne joue que dans Studio). Une fois publié, le jeu est le même :
       chaque joueur le voit dans sa langue Roblox (le français pour un compte en français, l'espagnol, le portugais,
       et l'anglais pour tous les autres).
