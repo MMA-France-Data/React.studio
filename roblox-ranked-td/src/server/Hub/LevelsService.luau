@@ -45,6 +45,9 @@ local Shop = require(script.Parent.Shop)
 local LevelsService = {}
 
 local ACTION_COOLDOWN = 0.08 -- secondes entre deux demandes d'un joueur (on améliore vite, pendant un niveau)
+-- En plus, pour les demandes qui refont des modèles visibles (la carte d'un niveau, les tours du camp) : secondes
+-- entre deux demandes du même genre (un tricheur qui les enverrait en boucle ferait ramer le serveur).
+local ACTION_COOLDOWNS = { Start = 0.5, SlotAssign = 0.25 }
 local TRAINING_INTERVAL = 20 -- secondes entre deux calculs de l'entraînement des joueurs présents
 local SAVE_INTERVAL = 30 -- au plus une sauvegarde de fin de niveau toutes les 30 s par joueur (le reste : sauvegarde automatique)
 local MAX_STEP = 0.1 -- une image plus longue que ça (à-coup du serveur) ne fait pas sauter les monstres : le niveau ralentit
@@ -58,6 +61,7 @@ local sessions = {} -- [Player] = match
 local fakePlayers = {} -- [UserId] = joueur d'essai
 local fakeData = {} -- [joueur d'essai] = ses données des niveaux
 local lastAction = {} -- [Player] = heure de sa dernière demande
+local lastOfKind = {} -- [Player] = { [demande de ACTION_COOLDOWNS] = heure de la dernière }
 local lastSave = {} -- [Player] = heure de sa dernière sauvegarde de fin de niveau
 local savingAllowed = true -- faux pendant le départ d'un joueur : sa sauvegarde finale suit, pas besoin d'une autre
 local plotOf: (Player) -> number? = function()
@@ -751,12 +755,14 @@ local function skipEgg(player, levels, index: any): (boolean, string?)
 	return true, nil
 end
 
--- Un achat « Finir l'œuf » confirmé par Roblox (Hub/Shop.luau) : l'œuf de la couveuse visée finit tout de suite. Si
--- elle a déjà fini, le temps payé (prix x 5 min) avance l'œuf qui a le plus à attendre ; s'il n'y en a plus aucun, il
--- est rendu en pièces de niveau (au prix des pièces). Renvoie le message pour le joueur.
-local function finishEggWithRobux(player, levels, price: number, index: any): string
+-- Un achat « Finir l'œuf » confirmé par Roblox (Hub/Shop.luau) : l'œuf de la couveuse visée finit tout de suite, si
+-- c'est bien celui pour lequel la fenêtre d'achat s'est ouverte (même heure prévue `readyAt` : un tricheur ne peut pas
+-- mettre un œuf doré à sa place pendant que la fenêtre est ouverte, pour le finir au prix d'un petit œuf). Sinon, ou
+-- s'il a déjà fini, le temps payé (prix x 5 min) avance l'œuf qui a le plus à attendre ; s'il n'y en a plus aucun,
+-- il est rendu en pièces de niveau (au prix des pièces). Renvoie le message pour le joueur.
+local function finishEggWithRobux(player, levels, price: number, index: any, readyAt: number?): string
 	local target = hatcherAt(player, levels, index)
-	if target and target.egg ~= "" and target.readyAt > now() then
+	if target and target.egg ~= "" and target.readyAt > now() and target.readyAt == readyAt then
 		target.readyAt = now()
 		return "⏩ Œuf fini : ouvre-le !"
 	end
@@ -953,7 +959,7 @@ local function handle(player: Player, action: any, a: any, b: any, c: any): (boo
 		if not real(player) or not hatcher or hatcher.egg == "" or hatcher.readyAt <= now() then
 			return false, nil
 		end
-		return Shop.promptSkip(player, a, hatcher.readyAt - now())
+		return Shop.promptSkip(player, a, hatcher.readyAt - now(), hatcher.readyAt)
 	elseif action == "PassBuy" then
 		if not real(player) then
 			return false, nil
@@ -1025,6 +1031,11 @@ function LevelsService.start(plots)
 		passBought = function(player)
 			train(player) -- (XP x2 : l'XP du camp est comptée jusqu'ici, puis au nouveau rythme)
 		end,
+		readyAt = function(player, index)
+			local levels = levelsOf(player)
+			local hatcher = levels and hatcherAt(player, levels, index)
+			return hatcher and hatcher.readyAt
+		end,
 	})
 
 	local function onLoaded(player: Player)
@@ -1059,17 +1070,31 @@ function LevelsService.start(plots)
 		train(player)
 	end)
 	Players.PlayerRemoving:Connect(function(player)
-		lastAction[player] = nil
-		lastSave[player] = nil
-		LevelTeams.removePlayer(player)
-		forgetFriends(player)
-		Shop.removePlayer(player)
+		-- (un peu après : la sauvegarde finale de PlayerData compte encore son abandon d'un niveau en cours, avec ses
+		-- pass, son équipe et ses amis ; l'ordre des fonctions branchées sur PlayerRemoving n'est pas garanti)
+		task.defer(function()
+			lastAction[player] = nil
+			lastOfKind[player] = nil
+			lastSave[player] = nil
+			LevelTeams.removePlayer(player)
+			forgetFriends(player)
+			Shop.removePlayer(player)
+		end)
 	end)
 
 	Remotes.get("LevelAction").OnServerEvent:Connect(function(player, action, a, b, c)
 		local clock = os.clock()
 		if typeof(action) ~= "string" or clock - (lastAction[player] or 0) < ACTION_COOLDOWN then
 			return
+		end
+		local kindCooldown = ACTION_COOLDOWNS[action]
+		if kindCooldown then
+			local kinds = lastOfKind[player] or {}
+			lastOfKind[player] = kinds
+			if clock - (kinds[action] or -math.huge) < kindCooldown then
+				return
+			end
+			kinds[action] = clock
 		end
 		lastAction[player] = clock
 		local ok, reason = handle(player, action, a, b, c)

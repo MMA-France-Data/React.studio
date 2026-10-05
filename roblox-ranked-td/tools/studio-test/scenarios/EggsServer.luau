@@ -340,6 +340,84 @@ return function(log)
 			and model3 ~= nil and model3.HatcherPedestal.Transparency == 0 and sale == "2 fois plus rapide • 99 R$",
 		`pass : pas encore créés « {tostring(soon.passes.Royal)} », achats d'œufs interdits « {tostring(restrictedState.passes.Royal)} » ({#restrictedState.prices} prix), à acheter « {tostring(buyable.passes.Royal)} » ; la couveuse royale reste sur la parcelle : « {tostring(sale)} »`
 	)
+	-- Un tricheur change l'œuf pendant que la fenêtre d'achat est ouverte (demandes envoyées à la main) : seul l'œuf
+	-- pour lequel la fenêtre s'est ouverte peut finir d'un coup ; un œuf doré mis à sa place avance seulement du
+	-- temps payé.
+	action("EggOpen", 2)
+	levels("Set", "coins", 50000)
+	levels("Set", "eggs", { Common = 1, Gold = 1 })
+	action("EggStart", 2, "Common")
+	local commonIn = tonumber(((published().hatchers or {})[2] or {}).readyIn) or 0
+	local cheap = levels("Shop", "Prompt", 2, commonIn)
+	action("EggSkip", 2)
+	action("EggOpen", 2)
+	action("EggStart", 2, "Gold")
+	local goldBefore = tonumber(((published().hatchers or {})[2] or {}).readyIn) or 0
+	local swapped = levels("Shop", "Receipt", cheap.product, "TEST-5")
+	local goldAfter = tonumber(((published().hatchers or {})[2] or {}).readyIn) or 0
+	check(
+		cheap.ok and cheap.price == 3 and swapped == "PurchaseGranted" and goldAfter > 0
+			and math.abs((goldBefore - goldAfter) - 3 * Levels.ROBUX_SKIP_SECONDS) <= 3,
+		`œuf changé pendant l'achat : « Finir » à {tostring(cheap.price)} Robux pour un œuf commun, un œuf doré mis à sa place avance de {math.floor((goldBefore - goldAfter) / 60)} min, il n'est pas fini ({math.floor(goldAfter / 60)} min encore)`
+	)
+	action("EggSkip", 2)
+	action("EggOpen", 2)
+	-- Roblox ne répond pas pour un pass : on redemande plus tard ; en attendant, il n'est « prêt » pour rien
+	-- (l'entraînement du camp attend la réponse, pour compter ses heures d'absence avec son XP x2).
+	levels("Shop", "Pass", "Royal", 0)
+	levels("Shop", "Pass", "Xp", 7001)
+	levels("Shop", "Check", { "none", "none", "none", true }, 0.4)
+	task.wait(0.15)
+	local unanswered = levels("Shop", "State")
+	local answered = unanswered
+	for _ = 1, 80 do
+		task.wait(0.1)
+		answered = levels("Shop", "State")
+		if answered.ready then
+			break
+		end
+	end
+	check(
+		unanswered.ready == false and unanswered.passes.Xp == "no" and answered.ready == true and answered.passes.Xp == "owned",
+		`Roblox ne répond pas pour le pass XP x2 : on attend (« {tostring(unanswered.passes.Xp)} », prêt : {tostring(unanswered.ready)}), on redemande, puis « {tostring(answered.passes.Xp)} »`
+	)
+	levels("Shop", "Owned", "Xp", false)
+	levels("Shop", "Pass", "Xp", 0)
+	levels("Shop", "Pass", "Royal", 777)
+	levels("Shop", "Restricted", false)
+
+	------------------------------------------------------------------
+	-- LA SAUVEGARDE (PlayerData.luau, fausses sauvegardes de Studio) : un ancien serveur, resté ouvert après une mise à
+	-- jour, ne charge jamais des données écrites par une version plus récente du jeu ; un joueur qui revient pendant sa
+	-- sauvegarde finale attend qu'elle soit finie
+	------------------------------------------------------------------
+	local function store(...)
+		return dbg:Invoke(player, "Data", ...)
+	end
+	local fakeId = -4242
+	store("PlaceVersion", 20)
+	local firstLoad = store("Acquire", fakeId)
+	local firstWrite = store("Write", fakeId, { levels = { best = 7 } }, true)
+	local firstRecord = store("Record", fakeId) or {}
+	store("PlaceVersion", 19)
+	local oldLoad = store("Acquire", fakeId)
+	local oldRecord = store("Record", fakeId) or {}
+	store("PlaceVersion", 21)
+	local newLoad = store("Acquire", fakeId)
+	local newWrite = store("Write", fakeId, { levels = { best = 8 } }, true)
+	local newRecord = store("Record", fakeId) or {}
+	store("PlaceVersion", 0)
+	store("Releasing", fakeId, true)
+	local busyDuring = store("Busy", fakeId)
+	store("Releasing", fakeId, false)
+	local busyAfter = store("Busy", fakeId)
+	check(
+		firstLoad.ok and firstLoad.why == nil and firstWrite.ok and firstRecord.placeVersion == 20 and firstRecord.lock == nil
+			and oldLoad.ok == false and oldLoad.why == "outdated" and oldRecord.lock == nil and oldRecord.data.levels.best == 7
+			and newLoad.ok and newLoad.data.levels.best == 7 and newWrite.ok and newRecord.placeVersion == 21 and newRecord.data.levels.best == 8
+			and busyDuring == true and busyAfter == false,
+		`sauvegarde écrite par la version 20 du jeu ; un serveur de la version 19 la refuse (« {tostring(oldLoad.why)} », rien de pris ni d'écrit) ; la version 21 la charge, sa sauvegarde garde sa version ({tostring(newRecord.placeVersion)}) ; un retour pendant la sauvegarde finale attend ({tostring(busyDuring)}, puis {tostring(busyAfter)})`
+	)
 
 	------------------------------------------------------------------
 	-- Le client prend la main

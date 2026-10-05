@@ -251,6 +251,21 @@ return function(log)
 		levels("TeamGone", id)
 	end
 	check(fake(robin).levels == nil and state().team == nil, "joueurs d'essai partis")
+	-- Pas d'invitations en rafale (Hub/LevelTeams.luau) : une invitation qui attend sa réponse ne se renvoie pas ; après
+	-- 2 refus de suite, plus d'invitation à ce joueur pendant une minute.
+	local zoe = levels("TeamFake", "Zoe", 5)
+	local firstInvite = action("TeamInvite", zoe)
+	local tooSoon, tooSoonWhy = action("TeamInvite", zoe)
+	as(zoe, "TeamAnswer", me, false)
+	local secondInvite = action("TeamInvite", zoe)
+	as(zoe, "TeamAnswer", me, false)
+	local paused, pausedWhy = action("TeamInvite", zoe)
+	check(
+		firstInvite and not tooSoon and tooSoonWhy == nil and secondInvite and not paused
+			and pausedWhy == "Zoe a refusé tes invitations : réessaie dans une minute",
+		`invitations en rafale : la même encore pendant qu'elle attend sa réponse est ignorée ; après 2 refus de Zoe : « {tostring(pausedWhy)} »`
+	)
+	levels("TeamGone", zoe)
 
 	------------------------------------------------------------------
 	-- Les amis (« LES AMIS », Levels.luau)

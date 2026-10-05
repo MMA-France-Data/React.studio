@@ -441,6 +441,9 @@ local SAMPLES = {
 	-- Messages d'expulsion (PlayerData.luau)
 	{ "Impossible de charger tes données. Réessaie dans une minute.", "Couldn't load your data. Try again in a minute." },
 	{ "Ta session a été ouverte sur un autre serveur.", "Your session was opened on another server." },
+	{ "Le jeu vient d'être mis à jour : rejoins une nouvelle partie pour avoir la dernière version.", "The game was just updated: join a new server to get the latest version." },
+	-- Invitations en rafale refusées (Hub/LevelTeams.luau)
+	{ "Robin a refusé tes invitations : réessaie dans une minute", "Robin declined your invites: try again in a minute" },
 }
 
 Lang.clearMisses()
@@ -489,6 +492,7 @@ local OTHER_SAMPLES = {
 	{ "★★ Niv. 3", "★★ Niv. 3", "★★ Nív. 3" },
 	{ "Son : effets seuls", "Sonido: solo efectos", "Som: só efeitos" },
 	{ "Ta session a été ouverte sur un autre serveur.", "Tu sesión se abrió en otro servidor.", "Sua sessão foi aberta em outro servidor." },
+	{ "Robin a refusé tes invitations : réessaie dans une minute", "Robin rechazó tus invitaciones: inténtalo de nuevo en un minuto", "Robin recusou seus convites: tente de novo em um minuto" },
 }
 local otherPassed, otherFailed = 0, 0
 for _, sample in OTHER_SAMPLES do

@@ -219,6 +219,7 @@ return {
 	["{1} choisit la suite"] = "{1} elige qué sigue", -- « ⏳ Robin choisit la suite »
 	["Invitation envoyée à {1}"] = "Invitación enviada a {1}",
 	["{1} a refusé ton invitation"] = "{1} rechazó tu invitación",
+	["{1} a refusé tes invitations : réessaie dans une minute"] = "{1} rechazó tus invitaciones: inténtalo de nuevo en un minuto",
 	["{1} rejoint ton équipe !"] = "¡{1} se une a tu equipo!",
 	["Tu joues maintenant dans l'équipe de {1}"] = "Ahora juegas en el equipo de {1}",
 	["{1} a quitté l'équipe : tu joues seul"] = "{1} salió del equipo: juegas solo",
@@ -436,4 +437,5 @@ return {
 	----------------------------------------------------------------------
 	["Impossible de charger tes données. Réessaie dans une minute."] = "No se pudieron cargar tus datos. Vuelve a intentarlo en un minuto.",
 	["Ta session a été ouverte sur un autre serveur."] = "Tu sesión se abrió en otro servidor.",
+	["Le jeu vient d'être mis à jour : rejoins une nouvelle partie pour avoir la dernière version."] = "El juego se acaba de actualizar: únete a un servidor nuevo para tener la última versión.",
 }

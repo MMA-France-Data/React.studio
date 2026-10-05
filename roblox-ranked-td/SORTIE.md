@@ -71,6 +71,12 @@ Le jeu sort comme une **nouvelle expérience Roblox** (décision du 02/10/2026) 
       Publier sur Roblox > « Mettre à jour l'expérience existante… » > la nouvelle expérience (**pas** « Tower 22 »).
 - [ ] Sur ton compte, pas sur une communauté : les animations des monstres sont publiées sur ton compte, elles ne se
       jouent que dans tes expériences.
+- [ ] **À chaque mise à jour publiée**, surtout celle qui ouvrira de nouveaux niveaux (nouvelles tours, nouveaux
+      œufs) : redémarre les serveurs (Hub Création > l'expérience > le menu « ⋯ » > « Redémarrer les serveurs » ;
+      le nom exact peut changer). Sinon les anciens serveurs restent ouverts tant qu'ils ont des joueurs. Depuis le
+      05/10/2026, le jeu protège quand même les sauvegardes : un joueur venu d'un serveur plus récent ne peut pas
+      jouer sur un ancien (il est invité à rejoindre une nouvelle partie). Cette protection ne marche qu'à partir
+      des serveurs qui l'ont : la première fois, redémarrer est nécessaire.
 - [ ] Taille des serveurs : **6 joueurs** (une parcelle par joueur) : Hub Création > Lieux > le lieu > Accès.
 - [ ] Appareils : **ordinateur, téléphone, tablette**. Décoche la console et la réalité virtuelle : le jeu n'a pas de
       commandes à la manette (Hub Création > l'expérience > Accès).

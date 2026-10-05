@@ -3,12 +3,16 @@
 -- couleur, incubation 2 fois plus rapide, à payer en Robux, 99 Robux », « mets-la en or », « x2 XP 99 Robux aussi,
 -- et x2 argent 199 Robux ».
 --   * les pass (Monetization.PASSES : la couveuse royale, XP x2, argent x2) : Roblox dit qui les a
---     (UserOwnsGamePassAsync, à l'arrivée) ; un achat dans le jeu compte tout de suite (PromptGamePassPurchaseFinished).
---     Leurs effets : Hub/LevelsService.luau (Shop.owns) ;
---   * les produits « Finir l'œuf » : le serveur choisit le produit (Levels.robuxSkipPrice), note la couveuse visée et
---     ouvre la fenêtre d'achat ; quand Roblox confirme l'achat (ProcessReceipt), l'œuf de cette couveuse finit tout
---     de suite (LevelsService, finishEgg). Chaque reçu n'est compté qu'une fois (son numéro est gardé dans la
---     sauvegarde, data.levels.receipts) et n'est accepté qu'une fois la sauvegarde faite (sinon Roblox le renvoie) ;
+--     (UserOwnsGamePassAsync, à l'arrivée ; s'il ne répond pas, on redemande, et l'entraînement du camp attend la
+--     réponse) ; un achat dans le jeu compte tout de suite (PromptGamePassPurchaseFinished). Leurs effets :
+--     Hub/LevelsService.luau (Shop.owns) ;
+--   * les produits « Finir l'œuf » : le serveur choisit le produit (Levels.robuxSkipPrice), note la couveuse visée (et
+--     l'heure où son œuf devait être prêt) et ouvre la fenêtre d'achat ; quand Roblox confirme l'achat (ProcessReceipt),
+--     cet œuf finit tout de suite (LevelsService, finishEgg) ; si l'œuf a changé entre-temps, le temps payé avance
+--     seulement un œuf. Chaque reçu n'est compté qu'une fois (son numéro est gardé dans la sauvegarde,
+--     data.levels.receipts) et n'est accepté qu'une fois la sauvegarde faite (sinon Roblox le renvoie). Un reçu qui
+--     arrive pendant le chargement de ses données (Roblox renvoie les achats pas encore comptés à l'arrivée du joueur)
+--     attend ces données ;
 --   * la couveuse royale et « Finir l'œuf » ne sont jamais proposés là où Roblox interdit les objets aléatoires payants
 --     (PolicyService : un œuf donne une tour au hasard ; ou si Roblox ne répond pas) ; aucun achat avec un numéro à 0,
 --     ni un produit dont le prix sur Roblox n'est pas celui attendu.
@@ -38,8 +42,9 @@ local BOUGHT = {
 }
 
 -- Fonctions de Hub/LevelsService.luau : levelsOf(player), publish(player), notify(player, texte, genre),
--- finishEgg(player, levels, prix, couveuse) -> texte du message, save(player) -> vrai si la sauvegarde est faite,
--- passBought(player, clé) (un pass vient d'être acheté, ou Roblox vient de dire qu'il l'a : l'XP du camp, etc.).
+-- finishEgg(player, levels, prix, couveuse, readyAt) -> texte du message, save(player) -> vrai si la sauvegarde est
+-- faite, passBought(player, clé) (un pass vient d'être acheté, ou Roblox vient de dire qu'il l'a : l'XP du camp,
+-- etc.), readyAt(player, couveuse) -> heure où l'œuf de cette couveuse sera prêt (tests Studio).
 local hooks = nil
 local owners = {} -- [clé du pass] = { [Player] = vrai }
 local passIds = {} -- [clé du pass] = son numéro (Monetization.PASSES ; tests Studio : de faux numéros, debug « Pass »)
@@ -49,17 +54,33 @@ for key, pass in Monetization.PASSES do
 end
 local checked = {} -- [Player] = vrai : Roblox a répondu (pays, pass)
 local restricted = {} -- [Player] = vrai : objets aléatoires payants interdits chez lui (ou pas encore su)
-local pending = {} -- [Player] = { [prix] = couveuse visée par le dernier achat « Finir » ouvert à ce prix }
+-- [Player] = { [prix] = { index = couveuse visée par le dernier achat « Finir » ouvert à ce prix, readyAt = heure où
+-- son œuf devait être prêt à ce moment-là } }
+local pending = {}
 local verified = {} -- [prix] = numéro du produit « Finir l'œuf », vérifié sur Roblox (le bon prix)
+
+local PASS_TRIES = 3 -- essais de suite pour savoir s'il a un pass (Roblox ne répond pas toujours du premier coup)
+local CHECK_ROUNDS = 10 -- tours de questions au plus (un toutes les CHECK_RETRY s) avant de le croire sans le pass
+local CHECK_RETRY = 30
+local RECEIPT_WAIT = 60 -- secondes d'attente de ses données pour un achat qui arrive pendant leur chargement
+local checkRetry, tryWait = CHECK_RETRY, 2 -- (tests Studio : plus courts, debug « Check »)
+local simulated = {} -- [Player] = réponses de Roblox imitées, une par question : true, false ou "none" (tests Studio)
+local VERIFY_ROUNDS = 5 -- tours de vérification des produits au démarrage (Roblox peut ne pas répondre)
 
 local function real(player): boolean
 	return typeof(player) == "Instance"
 end
 
--- Le prix d'un produit « Finir l'œuf » vérifié, d'après son numéro (nil : pas un de nos produits).
+-- Le prix d'un produit « Finir l'œuf », d'après son numéro (nil : pas un de nos produits). Un de nos produits pas
+-- encore vérifié sur ce serveur (Roblox n'a pas répondu) compte quand même : il a été acheté ailleurs.
 local function priceOf(productId: any): number?
 	for price, id in verified do
 		if id == productId then
+			return price
+		end
+	end
+	for price, id in Monetization.SKIP_PRODUCTS do
+		if id ~= 0 and id == productId then
 			return price
 		end
 	end
@@ -120,9 +141,10 @@ function Shop.promptPass(player: Player, key: any): (boolean, string?)
 	return true, nil
 end
 
--- Ouvre la fenêtre d'achat « Finir l'œuf » pour la couveuse `index`, dont l'œuf doit encore couver `seconds` s.
--- dryRun (tests Studio) : tout pareil, sans ouvrir la fenêtre. Renvoie (fait, raison, prix, numéro du produit).
-function Shop.promptSkip(player: Player, index: number, seconds: number, dryRun: boolean?): (boolean, string?, number?, number?)
+-- Ouvre la fenêtre d'achat « Finir l'œuf » pour la couveuse `index`, dont l'œuf doit encore couver `seconds` s (il
+-- sera prêt à l'heure `readyAt` : seul CET œuf pourra finir d'un coup). dryRun (tests Studio) : tout pareil, sans
+-- ouvrir la fenêtre. Renvoie (fait, raison, prix, numéro du produit).
+function Shop.promptSkip(player: Player, index: number, seconds: number, readyAt: number?, dryRun: boolean?): (boolean, string?, number?, number?)
 	local prices = Shop.skipPrices(player)
 	local price = if #prices > 0 then Levels.robuxSkipPrice(seconds, prices) else 0
 	local productId = verified[price]
@@ -130,7 +152,7 @@ function Shop.promptSkip(player: Player, index: number, seconds: number, dryRun:
 		return false, nil, nil, nil
 	end
 	pending[player] = pending[player] or {}
-	pending[player][price] = index
+	pending[player][price] = { index = index, readyAt = readyAt }
 	if not dryRun then
 		MarketplaceService:PromptProductPurchase(player, productId)
 	end
@@ -141,23 +163,30 @@ end
 local function processReceipt(receipt): Enum.ProductPurchaseDecision
 	local player = Players:GetPlayerByUserId(receipt.PlayerId)
 	local levels = player and hooks.levelsOf(player)
+	-- (achat renvoyé par Roblox à son arrivée, pendant le chargement de ses données : on les attend)
+	local deadline = os.clock() + RECEIPT_WAIT
+	while player and not levels and player.Parent == Players and os.clock() < deadline do
+		task.wait(0.5)
+		levels = hooks.levelsOf(player)
+	end
 	if not player or not levels then
 		return Enum.ProductPurchaseDecision.NotProcessedYet -- (Roblox le renverra à sa prochaine visite)
 	end
 	local receiptId = tostring(receipt.PurchaseId)
 	if table.find(levels.receipts, receiptId) then
-		return Enum.ProductPurchaseDecision.PurchaseGranted -- (déjà compté)
+		-- (déjà compté ; accepté seulement une fois la sauvegarde faite : la première a pu rater)
+		return if hooks.save(player) then Enum.ProductPurchaseDecision.PurchaseGranted else Enum.ProductPurchaseDecision.NotProcessedYet
 	end
 	local price = priceOf(receipt.ProductId)
 	if not price then
 		warn(`[Boutique] Produit inconnu : {receipt.ProductId}`)
 		return Enum.ProductPurchaseDecision.NotProcessedYet
 	end
-	local index = pending[player] and pending[player][price]
+	local target = pending[player] and pending[player][price]
 	if pending[player] then
 		pending[player][price] = nil
 	end
-	local message = hooks.finishEgg(player, levels, price, index)
+	local message = hooks.finishEgg(player, levels, price, target and target.index, target and target.readyAt)
 	table.insert(levels.receipts, receiptId)
 	while #levels.receipts > Levels.RECEIPTS_MAX do
 		table.remove(levels.receipts, 1)
@@ -171,23 +200,56 @@ local function processReceipt(receipt): Enum.ProductPurchaseDecision
 	return Enum.ProductPurchaseDecision.PurchaseGranted
 end
 
+-- Vrai ou faux s'il a ce pass ; nil si Roblox n'a pas répondu (après PASS_TRIES essais).
+local function ownsPass(player: Player, id: number): boolean?
+	for attempt = 1, PASS_TRIES do
+		local ok, owns
+		local answers = simulated[player]
+		if answers then
+			local answer = table.remove(answers, 1)
+			ok, owns = answer == true or answer == false, answer == true
+		else
+			ok, owns = pcall(function()
+				return MarketplaceService:UserOwnsGamePassAsync(player.UserId, id)
+			end)
+		end
+		if ok then
+			return owns == true
+		end
+		if attempt < PASS_TRIES and player.Parent == Players then
+			task.wait(attempt * tryWait)
+		end
+	end
+	return nil
+end
+
 -- Ses achats possibles : pays (objets aléatoires payants), pass déjà achetés. Appelé à son arrivée, données chargées.
-local function checkPlayer(player: Player, onChecked)
+-- Si Roblox ne répond pas pour un pass, on redemande toutes les CHECK_RETRY s (CHECK_ROUNDS fois au plus) : en
+-- attendant, Shop.ready reste faux et l'entraînement du camp attend (sinon ses heures d'absence seraient comptées
+-- sans son XP x2, pour de bon), et rien ne lui est proposé à l'achat.
+local function checkPlayer(player: Player, onChecked, round: number?)
 	local ok, info = pcall(function()
 		return PolicyService:GetPolicyInfoForPlayerAsync(player)
 	end)
 	restricted[player] = not ok or typeof(info) ~= "table" or info.ArePaidRandomItemsRestricted == true or nil
+	local unanswered = false
 	for key, id in passIds do
-		if id ~= 0 and player.Parent == Players and not RunService:IsStudio() then
-			local okPass, owns = pcall(function()
-				return MarketplaceService:UserOwnsGamePassAsync(player.UserId, id)
-			end)
-			if okPass and owns then
+		if id ~= 0 and player.Parent == Players and (not RunService:IsStudio() or simulated[player]) and not owners[key][player] then
+			local owns = ownsPass(player, id)
+			if owns == nil then
+				unanswered = true
+			elseif owns then
 				owners[key][player] = true
 			end
 		end
 	end
 	if player.Parent ~= Players then
+		return
+	end
+	local current = round or 1
+	if unanswered and current < CHECK_ROUNDS then
+		warn(`[Boutique] Roblox ne dit pas encore quels pass a {player.Name} : nouvel essai dans {checkRetry} s`)
+		task.delay(checkRetry, checkPlayer, player, onChecked, current + 1)
 		return
 	end
 	checked[player] = true
@@ -197,22 +259,41 @@ local function checkPlayer(player: Player, onChecked)
 	hooks.publish(player)
 end
 
--- Les produits « Finir l'œuf » qui ont bien leur prix sur Roblox (une fois, au démarrage du serveur).
+-- Les produits « Finir l'œuf » qui ont bien leur prix sur Roblox (au démarrage du serveur ; ceux pour lesquels Roblox
+-- ne répond pas sont redemandés, VERIFY_ROUNDS tours au plus, de plus en plus espacés).
 local function verifyProducts()
+	local waiting = {} -- [prix] = numéro : pas encore de réponse de Roblox
 	for price, id in Monetization.SKIP_PRODUCTS do
 		if id ~= 0 then
+			waiting[price] = id
+		end
+	end
+	for round = 1, VERIFY_ROUNDS do
+		for price, id in waiting do
 			local ok, info = pcall(function()
 				return MarketplaceService:GetProductInfo(id, Enum.InfoType.Product)
 			end)
-			if ok and typeof(info) == "table" and info.PriceInRobux == price then
-				verified[price] = id
-			else
-				warn(`[Boutique] Produit {id} : {price} Robux attendus, {if ok and typeof(info) == "table" then tostring(info.PriceInRobux) else "?"} sur Roblox : pas proposé`)
+			if ok and typeof(info) == "table" then
+				waiting[price] = nil
+				if info.PriceInRobux == price then
+					verified[price] = id
+				else
+					warn(`[Boutique] Produit {id} : {price} Robux attendus, {tostring(info.PriceInRobux)} sur Roblox : pas proposé`)
+				end
 			end
 		end
+		for _, player in Players:GetPlayers() do
+			hooks.publish(player)
+		end
+		if next(waiting) == nil then
+			return
+		end
+		if round < VERIFY_ROUNDS then
+			task.wait(round * 10)
+		end
 	end
-	for _, player in Players:GetPlayers() do
-		hooks.publish(player)
+	for price, id in waiting do
+		warn(`[Boutique] Produit {id} ({price} Robux) : Roblox ne répond pas, pas proposé sur ce serveur`)
 	end
 end
 
@@ -248,6 +329,7 @@ function Shop.removePlayer(player: Player)
 	checked[player] = nil
 	restricted[player] = nil
 	pending[player] = nil
+	simulated[player] = nil
 end
 
 -- Tests Studio (StudioDebug « Levels », « Shop », ... ; jamais dans le jeu publié) :
@@ -258,6 +340,9 @@ end
 --   "Prompt", couveuse, secondes -> comme le bouton « Finir » en Robux, sans ouvrir la fenêtre : { ok, price, product }
 --   "Receipt", numéro du produit, numéro du reçu -> comme si Roblox confirmait cet achat : la décision, en texte
 --   "State"                    -> { passes = { [clé] = état }, prices, pending, ready }
+--   "Check", réponses, secondes -> refait les questions de son arrivée (pays, pass), avec ces réponses de Roblox
+--                                 imitées (true, false ou "none" = pas de réponse, une par question) et
+--                                 `secondes` entre deux tours (sans attente entre deux essais)
 function Shop.debug(player: Player, action: string, ...)
 	local first, second = ...
 	if action == "Owned" then
@@ -280,10 +365,17 @@ function Shop.debug(player: Player, action: string, ...)
 			verified[tonumber(price) or 0] = id
 		end
 	elseif action == "Prompt" then
-		local ok, _, price, productId = Shop.promptSkip(player, first, tonumber(second) or 0, true)
+		local readyAt = if hooks and hooks.readyAt then hooks.readyAt(player, first) else nil
+		local ok, _, price, productId = Shop.promptSkip(player, first, tonumber(second) or 0, readyAt, true)
 		return { ok = ok, price = price, product = productId }
 	elseif action == "Receipt" then
 		return processReceipt({ PlayerId = player.UserId, ProductId = first, PurchaseId = second }).Name
+	elseif action == "Check" then
+		simulated[player] = if type(first) == "table" then table.clone(first) else {}
+		checkRetry, tryWait = tonumber(second) or CHECK_RETRY, 0
+		checked[player] = nil
+		task.spawn(checkPlayer, player, nil, 1)
+		return true
 	elseif action == "State" then
 		local passes = {}
 		for key in passIds do

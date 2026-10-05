@@ -129,6 +129,9 @@ end
 -- Outil de test, uniquement dans Studio : ServerStorage.StudioDebug (BindableFunction), utilisable depuis la barre
 -- de commande ou un plugin.
 --   Invoke(player, "Data")                      -> renvoie les données du joueur
+--   Invoke(player, "Data", ...)                 -> sauvegardes de Studio : verrou, version du jeu ("PlaceVersion",
+--                                                  "Acquire", "Write", "Record", "Releasing", "Busy" : en bas de
+--                                                  PlayerData.luau)
 --   Invoke(player, "Levels", "State")           -> { levels, active } ; les autres commandes des niveaux ("Action",
 --                                                  "Set", "Gold", "Skip", "KillAll", "Finish", "Clock", "Bench") sont
 --                                                  décrites en bas de LevelsService.luau
@@ -150,6 +153,9 @@ local function setupStudioDebug()
 	debug.Name = "StudioDebug"
 	debug.OnInvoke = function(player: Player, command: string, ...)
 		if command == "Data" then
+			if select("#", ...) > 0 then
+				return PlayerData.debug(...)
+			end
 			return PlayerData.get(player)
 		elseif command == "Levels" then
 			return LevelsService.debug(player, ...)

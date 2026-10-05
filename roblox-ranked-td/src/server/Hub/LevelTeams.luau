@@ -5,6 +5,8 @@
 --     l'invité accepte ou refuse dans les Levels.TEAM_INVITE_SECONDS secondes (une invitation à la fois : la nouvelle
 --     remplace l'ancienne) ;
 --   * il faut avoir réussi le niveau 1 (le tuto) pour inviter ou être invité ;
+--   * pas d'invitations en rafale : une invitation qui attend sa réponse ne se renvoie pas, et après DECLINE_LIMIT
+--     refus de suite du même joueur, plus d'invitation à ce joueur pendant DECLINE_PAUSE s ;
 --   * chacun peut quitter l'équipe ; si le chef s'en va, le suivant devient chef ; une équipe d'un seul joueur n'en est
 --     plus une ;
 --   * publié à chaque changement, pour l'interface (client/LevelsUI.luau) : attribut « Team » de chaque coéquipier
@@ -22,6 +24,24 @@ local LevelTeams = {}
 
 local teams = {} -- [Player] = son équipe : { leader = Player, members = { Player } (le chef en premier) }
 local invites = {} -- [Player invité] = { from = Player }
+
+local DECLINE_LIMIT = 2 -- refus de suite du même invité...
+local DECLINE_PAUSE = 60 -- ... puis plus d'invitation de ce joueur à cet invité pendant ce temps (secondes)
+-- [celui qui invite] = { [invité] = { declines = refus de suite, pausedUntil = heure de la fin de la pause } }
+local invitePairs = {}
+local function pairOf(from, target)
+	local list = invitePairs[from]
+	if not list then
+		list = {}
+		invitePairs[from] = list
+	end
+	local pair = list[target]
+	if not pair then
+		pair = { declines = 0, pausedUntil = 0 }
+		list[target] = pair
+	end
+	return pair
+end
 
 -- Branché par LevelsService (LevelTeams.init) : données des niveaux d'un joueur (nil si pas chargées), Player d'un
 -- UserId, message à un joueur.
@@ -130,6 +150,11 @@ function LevelTeams.invite(from, targetId: any): (boolean, string?)
 	if not ok then
 		return false, reason
 	end
+	if os.clock() < pairOf(from, target).pausedUntil then
+		return false, `{nameOf(target)} a refusé tes invitations : réessaie dans une minute`
+	elseif invites[target] and invites[target].from == from then
+		return false, nil -- (son invitation attend déjà la réponse)
+	end
 	local invite = { from = from }
 	invites[target] = invite
 	publishInvite(target)
@@ -152,10 +177,17 @@ function LevelTeams.answer(player, fromId: any, accept: boolean): (boolean, stri
 	invites[player] = nil
 	publishInvite(player)
 	local from = invite.from
+	local pair = pairOf(from, player)
 	if not accept then
+		pair.declines += 1
+		if pair.declines >= DECLINE_LIMIT then
+			pair.declines = 0
+			pair.pausedUntil = os.clock() + DECLINE_PAUSE
+		end
 		hooks.notify(from, `{nameOf(player)} a refusé ton invitation`, "Info")
 		return true, nil
 	end
+	pair.declines = 0
 	if not from.Parent then
 		return false, `{nameOf(from)} n'est plus là`
 	end
@@ -222,6 +254,10 @@ end
 function LevelTeams.removePlayer(player)
 	LevelTeams.leave(player)
 	invites[player] = nil
+	invitePairs[player] = nil
+	for _, list in invitePairs do
+		list[player] = nil
+	end
 	for target, invite in invites do
 		if invite.from == player then
 			invites[target] = nil

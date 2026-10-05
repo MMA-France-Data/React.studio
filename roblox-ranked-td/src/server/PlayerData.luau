@@ -1,5 +1,11 @@
 -- Sauvegarde des joueurs avec verrou de session : un seul serveur à la fois peut écrire les données d'un joueur
 -- (un joueur qui change de serveur ne risque pas de voir ses progrès écrasés par l'ancien).
+-- Chaque sauvegarde garde aussi la version du jeu qui l'a écrite (numéro de publication du lieu) : un ANCIEN serveur,
+-- resté ouvert après une mise à jour, ne charge jamais des données écrites par une version plus récente (il ne
+-- connaît pas tout ce qu'elles contiennent : sa remise en ordre, Levels.cleanData, effacerait les nouvelles tours,
+-- les nouveaux œufs...) ; le joueur est invité à rejoindre une nouvelle partie.
+-- Un joueur qui revient sur le même serveur pendant la sauvegarde finale de sa visite d'avant attend qu'elle soit
+-- finie (sinon il chargerait des données d'avant cette sauvegarde).
 local DataStoreService = game:GetService("DataStoreService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -19,6 +25,10 @@ local useMock = RunService:IsStudio() and Config.Data.MOCK_IN_STUDIO
 local store = if useMock then MockDataStore.new() else DataStoreService:GetDataStore(Config.Data.DATASTORE_NAME)
 
 local profiles = {} -- [Player] = { data = table }
+local releasing = {} -- [UserId] = nombre de sauvegardes finales (départs) en cours pour lui
+local RELEASE_WAIT = 30 -- secondes d'attente au plus, à son arrivée, de la sauvegarde finale de sa visite d'avant
+-- Version du jeu de ce serveur (numéro de publication du lieu). 0 dans Studio : pas de garde (tests : debug).
+local placeVersion = if RunService:IsStudio() then 0 else game.PlaceVersion
 local lastSettingAt = {} -- [Player] = heure du dernier réglage reçu (remote « Settings »)
 local loadedCallbacks = {}
 local beforeReleaseCallbacks = {}
@@ -52,17 +62,29 @@ local function keyFor(userId: number): string
 	return "Player_" .. userId
 end
 
--- Prend le verrou et lit les données. Retourne (ok, data) ; data = nil pour un nouveau joueur.
-local function acquire(userId: number): (boolean, any)
+-- Vrai si ces données ont été écrites par une version du jeu plus récente que ce serveur.
+local function writtenByNewer(record): boolean
+	return placeVersion > 0 and (tonumber(record.placeVersion) or 0) > placeVersion
+end
+
+-- Prend le verrou et lit les données. Retourne (ok, data, raison) ; data = nil pour un nouveau joueur ; raison =
+-- "outdated" si ses données viennent d'une version du jeu plus récente que ce serveur (rien n'est pris ni écrit).
+local function acquire(userId: number): (boolean, any, string?)
 	local key = keyFor(userId)
 	for attempt = 1, Config.Data.LOAD_RETRIES + 1 do
 		local force = attempt > Config.Data.LOAD_RETRIES
 		local lockedByOther = false
+		local newer = false
 
 		local ok, result = pcall(function()
 			return store:UpdateAsync(key, function(record)
 				lockedByOther = false
+				newer = false
 				record = record or {}
+				if writtenByNewer(record) then
+					newer = true
+					return nil -- annule l'écriture
+				end
 				local lock = record.lock
 				local lockIsFresh = lock and os.time() - (lock.time or 0) < Config.Data.LOCK_EXPIRY
 				if not force and lock and lock.jobId ~= game.JobId and lockIsFresh then
@@ -74,7 +96,10 @@ local function acquire(userId: number): (boolean, any)
 			end)
 		end)
 
-		if ok and result then
+		if ok and newer then
+			warn(`[PlayerData] {userId} : données d'une version du jeu plus récente que ce serveur (version {placeVersion})`)
+			return false, nil, "outdated"
+		elseif ok and result then
 			return true, result.data
 		elseif not ok then
 			warn(`[PlayerData] Chargement échoué pour {userId} (essai {attempt}) : {result}`)
@@ -97,11 +122,12 @@ local function write(userId: number, data, release: boolean): (boolean, boolean)
 			store:UpdateAsync(keyFor(userId), function(record)
 				lostLock = false
 				record = record or {}
-				if not record.lock or record.lock.jobId ~= game.JobId then
+				if not record.lock or record.lock.jobId ~= game.JobId or writtenByNewer(record) then
 					lostLock = true
 					return nil
 				end
 				record.data = data
+				record.placeVersion = math.max(tonumber(record.placeVersion) or 0, placeVersion)
 				record.lock = if release then nil else { jobId = game.JobId, time = os.time() }
 				return record
 			end)
@@ -152,14 +178,36 @@ function PlayerData.refresh(player: Player)
 	PlayerData.setLevel(player, data.levels.best)
 end
 
+-- Vrai si une sauvegarde finale de ce joueur est en cours, ou si une autre session de lui est encore chargée ici.
+local function busy(userId: number, except: Player?): boolean
+	if releasing[userId] then
+		return true
+	end
+	for other in profiles do
+		if other ~= except and other.UserId == userId then
+			return true
+		end
+	end
+	return false
+end
+
 local function onPlayerAdded(player: Player)
-	local ok, data = acquire(player.UserId)
+	-- (revenu sur ce serveur pendant la sauvegarde finale de sa visite d'avant : on l'attend)
+	local deadline = os.clock() + RELEASE_WAIT
+	while busy(player.UserId, player) and player.Parent and os.clock() < deadline do
+		task.wait(0.2)
+	end
+	local ok, data, why = acquire(player.UserId)
 
 	if not player.Parent then
 		-- Parti pendant le chargement : on rend le verrou tout de suite.
 		if ok then
 			write(player.UserId, data or defaultData(), true)
 		end
+		return
+	end
+	if why == "outdated" then
+		player:Kick(Lang.translate("Le jeu vient d'être mis à jour : rejoins une nouvelle partie pour avoir la dernière version.", Lang.forPlayer(player)))
 		return
 	end
 	if not ok then
@@ -189,7 +237,13 @@ local function release(player: Player, isShutdown: boolean)
 		end
 	end
 	profiles[player] = nil
-	write(player.UserId, profile.data, true)
+	local userId = player.UserId
+	releasing[userId] = (releasing[userId] or 0) + 1
+	write(userId, profile.data, true)
+	releasing[userId] -= 1
+	if releasing[userId] <= 0 then
+		releasing[userId] = nil
+	end
 end
 
 function PlayerData.get(player: Player)
@@ -205,6 +259,38 @@ function PlayerData.save(player: Player): boolean
 	end
 	local ok = write(player.UserId, profile.data, false)
 	return ok
+end
+
+-- Tests Studio (StudioDebug « Data », ... ; seulement avec les fausses sauvegardes de Studio, jamais dans le jeu publié) :
+--   "PlaceVersion", n          -> la version du jeu de ce serveur devient n (0 : pas de garde)
+--   "Acquire", userId          -> { ok, why, data } : comme l'arrivée de ce joueur (prend le verrou)
+--   "Write", userId, data, rendre -> { ok, lostLock } : une sauvegarde (rendre : avec le verrou rendu)
+--   "Record", userId           -> la sauvegarde telle qu'elle est rangée (verrou, version, données)
+--   "Releasing", userId, vrai/faux -> comme si sa sauvegarde finale était en cours (ou finie)
+--   "Busy", userId             -> vrai si son arrivée attendrait (sauvegarde finale en cours)
+function PlayerData.debug(action: string, ...)
+	if not useMock then
+		return nil
+	end
+	local first, second, third = ...
+	if action == "PlaceVersion" then
+		placeVersion = tonumber(first) or 0
+		return placeVersion
+	elseif action == "Acquire" then
+		local ok, data, why = acquire(first)
+		return { ok = ok, why = why, data = data }
+	elseif action == "Write" then
+		local ok, lostLock = write(first, second, third == true)
+		return { ok = ok, lostLock = lostLock }
+	elseif action == "Record" then
+		return store:GetAsync(keyFor(first))
+	elseif action == "Releasing" then
+		releasing[first] = if second then 1 else nil
+		return true
+	elseif action == "Busy" then
+		return busy(first, nil)
+	end
+	return nil
 end
 
 function PlayerData.onLoaded(callback: (Player, any) -> ())

@@ -114,6 +114,21 @@ n'est pas touché.
 Pour utiliser les vraies sauvegardes depuis Studio : `Config.Data.MOCK_IN_STUDIO = false` et *Paramètres du jeu >
 Sécurité > Activer l'accès de Studio aux services d'API*.
 
+**Ce qui protège les sauvegardes et les achats** (relecture du 05/10/2026) :
+
+- Un seul serveur à la fois écrit les données d'un joueur (verrou, `src/server/PlayerData.luau`). Un joueur qui
+  revient sur le même serveur pendant la sauvegarde finale de sa visite d'avant attend qu'elle soit finie.
+- Chaque sauvegarde garde la **version du jeu** qui l'a écrite (le numéro de publication du lieu). Après une mise à
+  jour, les anciens serveurs restent ouverts tant qu'ils ont des joueurs : un ancien serveur ne charge jamais les
+  données d'un joueur venu d'un serveur plus récent (il effacerait les nouvelles tours, les nouveaux œufs qu'il ne
+  connaît pas) ; le joueur est invité à rejoindre une nouvelle partie.
+- Achats en Robux (`src/server/Hub/Shop.luau`) : chaque reçu ne compte qu'une fois et n'est accepté qu'une fois la
+  sauvegarde faite ; un reçu qui arrive pendant le chargement des données les attend ; « Finir l'œuf » ne finit
+  que l'œuf pour lequel la fenêtre d'achat s'est ouverte ; si Roblox ne dit pas quels pass a un joueur, on
+  redemande (et l'entraînement du camp attend la réponse, pour compter son XP x2).
+- Demandes du client : un délai entre deux « lancer un niveau » (0,5 s) ou deux changements de tour au camp
+  (0,25 s) ; plus d'invitation à un joueur qui en a refusé deux de suite, pendant une minute.
+
 ## Mettre tes propres modèles de monstres
 
 Les monstres peuvent utiliser de vrais modèles 3D à la place des blocs. Un type sans modèle garde ses blocs : tu peux
