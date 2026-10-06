@@ -29,6 +29,12 @@ Pets.DEFS = {
 
 -- LA VALEUR CACHÉE : le palier de chaque rareté (commun, peu commun, rare, légendaire).
 Pets.VALUE = { { 1, 100 }, { 100, 200 }, { 200, 400 }, { 400, 800 } }
+-- Ces paliers sont ceux de la salle 1 : chaque salle suivante les multiplie par ROOM_FACTOR (salle 2 : commun 3 à
+-- 300 ; salle 3 : 9 à 900...).
+Pets.ROOM_FACTOR = 3
+function Pets.roomFactor(room: number): number
+	return Pets.ROOM_FACTOR ^ (math.max(1, room) - 1)
+end
 -- Ce qu'un familier rapporte par seconde = sa valeur / VALUE_PER_COIN x le facteur de son animal.
 -- Exemples : dragon commun 0,01 à 1 par seconde ; golem légendaire 12 à 24 par seconde.
 Pets.VALUE_PER_COIN = 100

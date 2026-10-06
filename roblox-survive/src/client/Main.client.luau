@@ -237,9 +237,7 @@ end
 local RED = Color3.fromRGB(255, 90, 90)
 ReplicatedStorage:WaitForChild("Notify").OnClientEvent:Connect(function(key: string, a, b)
 	if key == "win" then
-		showToast(tr("win", a, num(b)))
-	elseif key == "half" then
-		showToast(tr("half", num(a), b))
+		showToast(tr("win", a))
 	elseif key == "wireCut" then
 		showToast(tr("wireCut"))
 	elseif key == "maxed" then

@@ -42,7 +42,7 @@ return function(log)
 	local penSign = mine.Enclosure.Upgrade.Label
 	check(penSign.Title.Text ~= "" and string.find(penSign.Level.Text, "2") ~= nil and string.find(penSign.Button.Info.Text, "000") ~= nil, "écran : panneau « Améliorer l'enclos » (niveau 1 > 2, 1 000)", penSign.Title.Text .. " / " .. penSign.Level.Text .. " / " .. penSign.Button.Info.Text)
 	local sign = workspace.Rooms.Room5.Sign:FindFirstChildOfClass("SurfaceGui").Label
-	check(sign.Text:find("5") ~= nil and sign.Text:find("500") ~= nil, "écran : panneau de la salle 5 avec le palier conseillé (saut 500)", sign.Text)
+	check(sign.Text:find("5") ~= nil and sign.Text:find("2[,.]5K") ~= nil, "écran : panneau de la salle 5 avec le palier conseillé (saut 2,5K)", sign.Text)
 	local prompt = mine.Force.Base.Prompt
 	check(prompt.ActionText ~= "" and prompt.ObjectText ~= "" and prompt.Enabled, "écran : bouton de la musculation rempli", prompt.ObjectText .. " : " .. prompt.ActionText)
 	local other = workspace.Gym:FindFirstChild("Plot" .. (if mine.Name == "Plot1" then 2 else 1))
@@ -112,7 +112,9 @@ return function(log)
 			check(inPen ~= nil and where.X > -9 and where.X < 29 and where.Z > 2 and where.Z < 31, "écran : le dragon est dans l'enclos", tostring(where))
 			local start = inPen and inPen:GetPivot().Position
 			task.wait(6)
-			check(inPen ~= nil and (inPen:GetPivot().Position - start).Magnitude > 1, "écran : le dragon se promène dans l'enclos")
+			local again = pets and pets:FindFirstChild("Pen_Dragon" .. rarity)
+			local detail = inPen and string.format("bouge de %.2f ; meme modele %s ; parent %s ; camera a %.0f ; nouveau a %.2f", (inPen:GetPivot().Position - start).Magnitude, tostring(again == inPen), tostring(inPen.Parent), (workspace.CurrentCamera.CFrame.Position - start).Magnitude, if again then (again:GetPivot().Position - start).Magnitude else -1)
+			check(inPen ~= nil and (inPen:GetPivot().Position - start).Magnitude > 1, "écran : le dragon se promène dans l'enclos", detail)
 			local petTag = inPen and inPen.PrimaryPart:FindFirstChild("Tag")
 			check(petTag ~= nil and petTag.Top.Text ~= "" and string.find(petTag.Bottom.Text, "/") ~= nil, "écran : le familier montre son nom et ce qu'il rapporte", petTag and (petTag.Top.Text .. " | " .. petTag.Bottom.Text))
 			local row = hud.PetPanel.List:FindFirstChild("Pet1")

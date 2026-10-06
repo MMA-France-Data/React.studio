@@ -102,13 +102,8 @@ local function begin(room)
 				if room.state ~= "Event" or not room.participants[player] then
 					return
 				end
+				-- Un mort ne gagne rien : seule la salle réussie donne son ticket.
 				room.participants[player] = nil
-				-- Pas de pièces de consolation pour un joueur éliminé par la salle elle-même (bombe, mélodie).
-				if room.elapsed >= Config.HALF and not room.eliminated[player] then
-					local coins = Config.REWARD_HALF * room.index
-					PlayerData.addCoins(player, coins)
-					notify(player, "half", coins, Config.HALF)
-				end
 			end)
 		)
 	end
@@ -123,10 +118,9 @@ local function win(room)
 	local last = room.index == #rooms
 	for player in room.participants do
 		if body(player) then
-			local coins = Config.REWARD_FULL * room.index + if last then Config.FINAL_BONUS else 0
-			PlayerData.addCoins(player, coins)
+			-- Une salle ne donne AUCUNE pièce : seulement son ticket (les pièces viennent des familiers).
 			PlayerData.setBest(player, room.index)
-			notify(player, "win", room.index, coins)
+			notify(player, "win", room.index)
 			Eggs.give(player, room.index)
 			if last then
 				notify(player, "finished", #rooms)

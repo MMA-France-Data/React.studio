@@ -6,11 +6,11 @@ local Config = {}
 -- Trois stats : la vitesse, le saut et la force. Ce sont des NOMBRES DE POINTS, qu'on fait monter en s'entraînant.
 -- Le joueur monte sur sa machine (tapis de course, trampoline, banc) et s'entraîne tant qu'il veut : à chaque pas
 -- (toutes les STEP_SECONDS), il gagne des points. Améliorer la machine, avec des pièces, augmente seulement le
--- nombre de points gagnés à chaque pas (1, 4, 16, 64, 256, 1 024).
+-- nombre de points gagnés à chaque pas : 10 fois plus à chaque niveau (1, 10, 100, 1 000, 10 000, 100 000).
 Config.MACHINES = { "Speed", "Jump", "Force" }
 Config.MACHINE_MAX = 6
 -- Prix pour passer la machine du niveau 1 au 2, du 2 au 3, etc.
-Config.PRICES = { 500, 1500, 4000, 10000, 25000 }
+Config.PRICES = { 500, 3000, 18000, 108000, 648000 } -- x 6 à chaque niveau
 Config.STEP_SECONDS = 0.5
 
 -- Prix pour améliorer une machine de niveau `level` (nil au maximum).
@@ -20,13 +20,15 @@ end
 
 -- Points gagnés à chaque pas sur une machine de ce niveau.
 function Config.gain(level: number): number
-	return 4 ^ (level - 1)
+	return 10 ^ (level - 1)
 end
 
 -- LES PALIERS : le nombre de points qui donne le palier 1, 2, 3... d'une stat. Les salles sont réglées sur ces
--- paliers (« Vitesse 500 recommandé » = palier 2). Avec une machine du même niveau que le palier visé, chaque
--- palier demande une à deux minutes d'entraînement ; avec une machine d'un niveau de moins, quatre fois plus.
-Config.POINTS = { 100, 500, 2500, 12500, 60000, 300000 }
+-- paliers (« Vitesse 2 500 recommandé » = palier 2). Avec une machine du même niveau que le palier visé, chaque
+-- palier demande DEUX FOIS PLUS de temps que celui d'avant : 1 minute pour le premier (avant la salle 2), puis
+-- 2, 4, 8, 16 et 32 minutes. On peut toujours s'entraîner sans améliorer sa machine, mais c'est DIX FOIS plus long
+-- (20 minutes au lieu de 2 pour le palier 2) : les pièces des salles et des familiers font gagner ce temps.
+Config.POINTS = { 120, 2500, 50000, 1000000, 20000000, 400000000 }
 Config.MAX_LEVEL = #Config.POINTS
 
 -- Points qu'il faut pour le palier `level` (0 pour le palier 0).
@@ -108,13 +110,11 @@ end
 -- LES MANCHES ---------------------------------------------------------------------------------------------------
 Config.PREPARE = 10 -- secondes pour se préparer
 Config.DURATION = 60 -- secondes à survivre
-Config.HALF = 30 -- mort après ce temps : la moitié des pièces
+Config.HALF = 30 -- le milieu de la manche (le plafond commence à descendre)
 Config.OPEN = 12 -- secondes pendant lesquelles la porte du bout reste ouverte
 
--- Pièces : multipliées par le numéro de la salle (salle 3 réussie = 300).
-Config.REWARD_FULL = 100
-Config.REWARD_HALF = 50
-Config.FINAL_BONUS = 1000 -- en plus, pour la dernière salle
+-- Une salle réussie ne donne PAS de pièces : seulement un ticket de la salle (voir Eggs.luau). Les pièces viennent
+-- des familiers de l'enclos.
 
 -- LA FERMETURE DE LA PORTE (voir Cycle.luau) : toutes les `every` secondes, la porte du lobby se ferme `closed`
 -- secondes. Pendant ce temps les œufs couvent `speed` fois plus vite. À la réouverture, une salle au hasard reçoit
@@ -158,12 +158,12 @@ Config.DAMAGE = {
 --
 -- LA PROGRESSION : les paliers se gagnent en s'entraînant ; les pièces (salles, familiers) servent à améliorer les
 -- machines pour s'entraîner plus vite, et à agrandir l'enclos.
---   salles 1 à 4  : paliers 1 (100 points : moins d'une minute par machine au départ).
---   salle 5       : saut palier 2 (500 points).
---   salle 7       : saut palier 3 (2 500) et force palier 2.
+--   salles 1 à 4  : paliers 1 (120 points : une minute par machine au départ).
+--   salle 5       : saut palier 2 (2 500 points).
+--   salle 7       : saut palier 3 (50 000) et force palier 2.
 --   salle 8       : vitesse palier 3.
---   salle 9       : saut palier 4 (12 500).
---   salle 10      : saut palier 5 (60 000) et force palier 4.
+--   salle 9       : saut palier 4 (1 000 000).
+--   salle 10      : saut palier 5 (20 000 000) et force palier 4.
 Config.ROOMS = {
 	{ egg = "Dragon", need = {}, events = { "Bomb" }, Bomb = { segments = 3, jump = 0, fuse = 60, hold = 3 } },
 	{ egg = "Rock", need = { Speed = 1 }, events = { "Meteors" }, Meteors = { rush = { level = 1, rest = 3.5 } } },

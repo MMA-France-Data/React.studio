@@ -188,11 +188,9 @@ return function(log)
 		if def.Bomb then
 			check(D("Room", index).elapsed < Config.DURATION - 5, `salle {index} : tous les fils coupés, la porte s'ouvre avant zéro`, D("Room", index).elapsed)
 		end
-		local expected = Config.REWARD_FULL * index + if index == #Config.ROOMS then Config.FINAL_BONUS else 0
-		expected = math.floor(expected * (bonus or 1) + 0.5)
-		-- Un familier déjà trouvé donne des pièces en plus (100, 300, 1 000 ou 5 000).
+		-- Une salle réussie ne donne aucune pièce : seulement son ticket.
 		local gained = D("Data").coins - before
-		check(gained == expected or table.find(Pets.DUPLICATE_COINS, gained - expected) ~= nil, `salle {index} : +{expected} pièces`, gained)
+		check(gained == 0, `salle {index} : aucune pièce, seulement le ticket`, gained)
 		check(D("Room", index).exitOpen == true, `salle {index} : la porte du bout s'ouvre`)
 		god(false)
 		if index < #Config.ROOMS then
@@ -268,14 +266,24 @@ return function(log)
 		task.wait(0.9)
 		check(D("Data")[machine] == stopped, machine .. " : plus de points une fois descendu")
 	end
-	-- Les points donnent les paliers : 100 points = palier 1 (+15 %), 500 = palier 2.
-	D("Points", "Speed", 99)
-	check(humanoid.WalkSpeed > 16 and humanoid.WalkSpeed < 16 * 1.15, "99 points de vitesse : presque le palier 1", humanoid.WalkSpeed)
-	D("Points", "Speed", 100)
-	check(math.abs(humanoid.WalkSpeed - 16 * 1.15) < 0.01 and player:GetAttribute("Speed") == 1, "100 points de vitesse = palier 1 : +15 %", humanoid.WalkSpeed)
+	-- Les points donnent les paliers : 120 points = palier 1 (+15 %), 2 500 = palier 2.
+	local tier1, tier2 = Config.POINTS[1], Config.POINTS[2]
+	check(tier1 == 120 and tier2 == 2500 and Config.POINTS[6] == 400000000, "paliers : 120 points pour le premier (1 minute), 400 000 000 pour le dernier", tier1)
+	check((tier2 - tier1) / Config.gain(1) * Config.STEP_SECONDS >= 600, "sans améliorer sa machine, le palier 2 demande plus de 10 minutes")
+	for level = 2, #Config.POINTS do
+		-- Avec la machine du même niveau, chaque palier demande plus de temps que celui d'avant.
+		local seconds = (Config.POINTS[level] - Config.POINTS[level - 1]) / Config.gain(level) * Config.STEP_SECONDS
+		local previous = (Config.POINTS[level - 1] - (Config.POINTS[level - 2] or 0)) / Config.gain(level - 1) * Config.STEP_SECONDS
+		check(seconds > previous * 1.7, "palier " .. level .. " : presque deux fois plus long que le précédent", math.floor(seconds) .. " s")
+	end
+	D("Points", "Speed", tier1 - 1)
+	check(humanoid.WalkSpeed > 16 and humanoid.WalkSpeed < 16 * 1.15, "119 points de vitesse : presque le palier 1", humanoid.WalkSpeed)
+	D("Points", "Speed", tier1)
+	check(math.abs(humanoid.WalkSpeed - 16 * 1.15) < 0.01 and player:GetAttribute("Speed") == 1, "120 points de vitesse = palier 1 : +15 %", humanoid.WalkSpeed)
 	D("Level", "Jump", 2)
-	check(D("Data").Jump == 500 and math.abs(humanoid.JumpHeight - 7.2 * 1.15 ^ 2) < 0.01, "500 points de saut = palier 2", humanoid.JumpHeight)
-	check(player:GetAttribute("JumpPoints") == 500 and player:GetAttribute("SpeedPoints") == 100, "les points sont envoyés à l'écran")
+	check(D("Data").Jump == tier2 and math.abs(humanoid.JumpHeight - 7.2 * 1.15 ^ 2) < 0.01, "2 500 points de saut = palier 2", humanoid.JumpHeight)
+	check(player:GetAttribute("JumpPoints") == tier2 and player:GetAttribute("SpeedPoints") == tier1, "les points sont envoyés à l'écran")
+	check(Pets.roomFactor(1) == 1 and Pets.roomFactor(2) == 3 and Pets.roomFactor(10) == 3 ^ 9, "les familiers d'une salle valent 3 fois ceux de la salle d'avant")
 	-- Améliorer une machine : avec des pièces, elle donne plus de points à chaque pas.
 	local ok, reason = D("Buy", "Speed")
 	check(not ok and reason == "poor", "améliorer le tapis coûte 500 pièces : refusé sans pièces", reason)
@@ -288,14 +296,14 @@ return function(log)
 	task.wait(1.3)
 	D("Stop")
 	local gained = D("Data").Speed - before
-	check(gained >= 8 and gained % 4 == 0, "tapis niveau 2 : 4 points par pas", gained)
-	D("Give", 41000)
+	check(gained >= 20 and gained % 10 == 0, "tapis niveau 2 : 10 points par pas", gained)
+	D("Give", 777500)
 	for _ = 1, 5 do
 		D("Buy", "Jump")
 	end
 	data = D("Data")
-	check(data.machines.Jump == 6 and data.coins == 0, "trampoline niveau 6 pour 41 000 pièces en tout", data.coins)
-	check(Config.gain(6) == 1024, "machine niveau 6 : 1 024 points par pas")
+	check(data.machines.Jump == 6 and data.coins == 0, "trampoline niveau 6 pour 777 500 pièces en tout (500, puis 6 fois plus à chaque niveau)", data.coins)
+	check(Config.gain(6) == 100000, "machine niveau 6 : 100 000 points par pas")
 	ok, reason = D("Buy", "Jump")
 	check(not ok and reason == "max", "pas de niveau 7", reason)
 	D("Reset")
@@ -377,6 +385,9 @@ return function(log)
 	check(born ~= nil and born.v ~= nil and born.v >= range[1] and born.v <= range[2], "éclosion : la valeur cachée est dans le palier de sa rareté", born and born.v)
 	check(pen.pets == 1 and pen.equipped == "1" and math.abs(pen.income - Pets.incomeOf("Dragon", born.v)) < 0.001, "le familier rapporte selon sa valeur, et suit le joueur", pen.income)
 	check(player:GetAttribute("Pet") == "Dragon" and player:GetAttribute("PetRarity") == born.q and player:GetAttribute("Income") == pen.income, "le familier et le revenu sont envoyés à l'écran")
+	-- Le joueur reste près de son enclos le temps que le test de l'écran voie le familier s'y promener (de loin,
+	-- les familiers ne bougent plus).
+	task.wait(8)
 
 	-- Salle 2 (météorites) : rester immobile fait perdre de la vie.
 	enter(2)
@@ -404,7 +415,7 @@ return function(log)
 	god(false)
 	blastHumanoid.Health = 0
 	task.wait(0.5)
-	check(D("Data").coins - before == 150, "salle 3 : mort après 30 secondes = 150 pièces", D("Data").coins - before)
+	check(D("Data").coins - before == 0, "salle 3 : mort après 30 secondes = aucune pièce", D("Data").coins - before)
 	waitState(3, "Idle", 3)
 	winRoom(3, true)
 
@@ -487,7 +498,7 @@ return function(log)
 	info = D("Room", 6)
 	check(info.state == "Open" and info.elapsed < Config.DURATION, "salle 6 : la mélodie réussie ouvre la porte avant la fin", info.state .. " à " .. math.floor(info.elapsed) .. " s")
 	local melodyGain = D("Data").coins - melodyBefore
-	check(melodyGain == 600 or table.find(Pets.DUPLICATE_COINS, melodyGain - 600) ~= nil, "salle 6 : +600 pièces", melodyGain)
+	check(melodyGain == 0, "salle 6 : aucune pièce, seulement le ticket", melodyGain)
 	tp(D("Sas", 6))
 	waitState(6, "Idle", Config.OPEN / SCALE + 3)
 	D("Level", "Force", 1)

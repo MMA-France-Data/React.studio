@@ -3,7 +3,7 @@
 Jeu Roblox. Chaque joueur a son **espace** dans le lobby : ses machines de sport et son enclos.
 Il améliore son personnage sur les machines, puis traverse des **salles à la suite** : dans chaque salle il faut
 survivre 60 secondes à un événement, et la porte du bout s'ouvre sur la salle suivante. Chaque salle réussie donne
-des pièces et un ticket, à échanger contre un œuf à poser dans son enclos ; le familier qui en sort **rapporte
+un ticket (pas de pièces), à échanger contre un œuf à poser dans son enclos ; le familier qui en sort **rapporte
 des pièces à chaque seconde**, qui servent à améliorer les machines pour aller plus loin. Un mort réapparaît dans son espace.
 
 Ce dossier est séparé du jeu de tours (`roblox-ranked-td`) : rien n'est partagé entre les deux.
@@ -16,8 +16,9 @@ Ce dossier est séparé du jeu de tours (`roblox-ranked-td`) : rien n'est partag
   On monte sur sa machine (touche E) : le personnage s'entraîne tant qu'on veut (il court sur le tapis, pousse la
   barre couché sur le banc, rebondit sur le trampoline) et gagne des points à chaque pas, deux pas par seconde ;
   on redescend avec E ou le bouton « ARRÊTER ». Le panneau « Améliorer » à côté de chaque machine la fait monter
-  d'un niveau avec des pièces (500, 1 500, 4 000, 10 000, 25 000) : elle donne alors 4 fois plus de points par pas
-  (1, 4, 16, 64, 256, 1 024). Les paliers de stat : 100, 500, 2 500, 12 500, 60 000, 300 000 points ; chaque palier
+  d'un niveau avec des pièces (500, puis 6 fois plus à chaque niveau : 3 000, 18 000, 108 000, 648 000) : elle donne alors 10 fois plus de points par pas
+  (1, 10, 100, 1 000, 10 000, 100 000). Les paliers de stat : 120, 2 500, 50 000, 1 000 000, 20 000 000, 400 000 000 points (1 minute d'entraînement pour le
+  premier, puis 2, 4, 8, 16 et 32 minutes avec la machine du même niveau) ; chaque palier
   donne +15 % de vitesse, +15 % de saut ou +50 % de force.
 - **Marcher et courir** : le personnage marche à 70 % de sa vitesse. Il court à pleine vitesse tant qu'on tient
   la touche Maj, ou après un appui sur le bouton « COURIR » de l'écran (un 2e appui le remet à la marche).
@@ -43,20 +44,20 @@ Ce dossier est séparé du jeu de tours (`roblox-ranked-td`) : rien n'est partag
 | Salle | Événements | Il faut |
 | --- | --- | --- |
 | 1 | la bombe | rien |
-| 2 | grande pluie de météorites | vitesse 100 |
+| 2 | grande pluie de météorites | vitesse 120 |
 | 3 | explosions | rien |
-| 4 | lave + plafond | saut 100, force 100 |
-| 5 | lave + météorites | saut 500 |
+| 4 | lave + plafond | saut 120, force 120 |
+| 5 | lave + météorites | saut 2 500 |
 | 6 | mélodie | rien |
-| 7 | lave + plafond | saut 2 500, force 500 |
-| 8 | le monstre (salle de course) | vitesse 2 500 |
-| 9 | lave + météorites | saut 12 500 |
-| 10 | lave + plafond + météorites | saut 60 000, force 12 500 |
+| 7 | lave + plafond | saut 50 000, force 2 500 |
+| 8 | le monstre (salle de course) | vitesse 50 000 |
+| 9 | lave + météorites | saut 1 000 000 |
+| 10 | lave + plafond + météorites | saut 20 000 000, force 1 000 000 |
 
   Les paliers se gagnent en s'entraînant ; les pièces servent à améliorer les machines (pour s'entraîner plus
   vite) et l'enclos (voir « LA PROGRESSION » dans `Config.luau`).
-- **Pièces** : salle réussie = 100 × le numéro de la salle ; mort après 30 secondes = la moitié ; +1 000 pour
-  la dernière salle.
+- **Pièces** : les salles n'en donnent pas (une salle réussie = un ticket, un mort ne gagne rien). Les pièces
+  viennent seulement des familiers de l'enclos (revenu par seconde, ou vente).
 - Mélodie (salle 6, casse-tête) : le mur joue une suite de notes en allumant des couleurs ; il faut la refaire en
     marchant sur les dalles de couleur, dans l'ordre. 3 manches (3, 4 puis 5 notes). Une fausse note blesse ;
     réussir ouvre la porte tout de suite ; ne pas finir à temps élimine tout le monde.
@@ -69,7 +70,8 @@ Ce dossier est séparé du jeu de tours (`roblox-ranked-td`) : rien n'est partag
      30 s, 1 min 30, 4 min ou 10 min selon la rareté, multiplié par 0,6 (salle 1) à 1,5 (salle 10) ; le temps
      continue hors du jeu ;
   4. à l'éclosion, le familier reçoit une **valeur cachée** tirée dans le palier de sa rareté : commun 1 à 100,
-     peu commun 100 à 200, rare 200 à 400, légendaire 400 à 800. Il **se promène dans l'enclos** et rapporte chaque
+     peu commun 100 à 200, rare 200 à 400, légendaire 400 à 800 ; ces paliers sont ceux de la salle 1, et chaque
+     salle suivante les multiplie par 3 (salle 2 : 3 à 300 pour un commun ; salle 10 : x 19 683). Il **se promène dans l'enclos** et rapporte chaque
      seconde sa valeur / 100, multipliée par son animal (dragon × 1, caillou × 1,5, lapin × 2, chouette × 2,5,
      golem × 3), tant que le joueur est dans le jeu ; le gain s'envole au-dessus de lui.
   - **L'enclos** : une clôture à la couleur de l'espace. Niveau 1 = 5 places (familiers + œufs). Le panneau
@@ -129,7 +131,7 @@ Construire la place : `rojo build default.project.json -o Survive.rbxl`, puis l'
 Tests automatiques dans Studio (une fenêtre Studio s'ouvre toute seule ; ne pas toucher au PC pendant ce temps) :
 
 - `powershell -ExecutionPolicy Bypass -File tools\studio-test\run.ps1` : tout le jeu
-  (308 vérifications, environ 13 minutes, captures dans `tools\studio-test\out`).
+  (316 vérifications, environ 13 minutes, captures dans `tools\studio-test\out`).
 - `powershell -ExecutionPolicy Bypass -File tools\studio-test\run.ps1 -Test jump -Seconds 560` : mesure la
   hauteur de marche qu'un personnage grimpe d'un saut (a servi à régler `Config.stepHeight`).
 

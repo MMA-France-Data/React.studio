@@ -158,7 +158,7 @@ function Eggs.hatch(player: Player, all: boolean?): number
 	local now, hatched = os.time(), 0
 	for key, spot in data.spots do
 		if spot.t and (all or now >= spot.t) then
-			local value = Pets.rollValue(random, spot.q)
+			local value = Pets.rollValue(random, spot.q) * Pets.roomFactor(spot.r or 1)
 			data.spots[key] = { a = spot.a, q = spot.q, v = value, x = spot.x, z = spot.z }
 			hatched += 1
 			if data.equipped == "" then
