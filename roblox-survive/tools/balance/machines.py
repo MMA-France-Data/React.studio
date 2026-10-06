@@ -7,7 +7,7 @@ LA REGLE (demandes du joueur, 06/10/2026) :
   - ensuite, chaque nouvelle salle demande UNE JOURNEE DE JEU (5 heures) : il sort une salle par jour, le joueur ne
     doit pas le rattraper ;
   - aucun joueur ne doit avoir "fini" le jeu : la machine au maximum est a plus de 200 heures.
-  -> UN NIVEAU DE MACHINE PAR SALLE. Le niveau N se paie avec les familiers de la salle N - 1. Niveaux 1 a 10 :
+  -> UN NIVEAU DE MACHINE PAR SALLE. Le niveau N se paie avec les familiers de la salle N. Niveaux 1 a 10 :
      les 10 premieres salles (2 h 30). Niveaux 11 a 50 : une journee de jeu chacun (le niveau 50 vers 200 heures),
      en supposant qu'une nouvelle salle sort a chaque fois. Sans nouvelle salle, le revenu ne monte plus et chaque
      niveau demande deux fois plus de temps que le precedent : il reste toujours quelque chose a viser.
@@ -78,8 +78,11 @@ def prices():
     result = []
     previous = 0
     for level in range(2, LEVELS + 1):
-        start, end = room_hour(level - 1), room_hour(level)
-        price = income_with(level - 1, (start + end) / 2) * (end - start) * 3600 * SHARE
+        # Le niveau N se paie avec les familiers de la salle N, pendant qu'on prepare la salle N + 1 (le joueur :
+        # "monte encore le cout des machines, a la salle 3 faut faire des sous deja" : la machine niveau 2 demande
+        # un enclos de la salle 2, pas de la salle 1).
+        start, end = room_hour(level), room_hour(level + 1)
+        price = income_with(level, (start + end) / 2) * (end - start) * 3600 * SHARE
         price = max(price, previous * 1.5, 500)  # jamais moins d'une fois et demie le niveau d'avant
         price = nice(price)
         result.append(price)
