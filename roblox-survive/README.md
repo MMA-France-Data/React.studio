@@ -87,8 +87,8 @@ Ce dossier est séparé du jeu de tours (`roblox-ranked-td`) : rien n'est partag
     (x 1,15 par salle ; la valeur d'un super rare compte pour moitié). Il s'ajoute au bonus de la salle chanceuse,
     et le ticket garde la chance du moment. Le familier rapporte quand même ses pièces.
   - **L'enclos** : une clôture à la couleur de l'espace. Niveau 1 = 5 places (familiers + œufs). Le panneau
-    « Améliorer l'enclos », sur la clôture, ajoute une place par niveau : 1 000 pièces, puis 6 fois plus à chaque
-    niveau (6 000, 36 000, 216 000...), jusqu'à 20 places.
+    « Améliorer l'enclos », sur la clôture, ajoute une place par niveau, jusqu'à 20 places ; les prix sont calculés par
+    `tools/balance/machines.py` (5 places de plus pendant les 10 premières salles, puis une toutes les 20 heures de jeu).
   - **Doublons et vente** : on peut avoir plusieurs fois le même familier. Le stand « VENDRE » (ou la patte, à
     droite de l'écran) ouvre la liste de ses familiers, avec « Vendre » (deux appuis ; il rend ce qu'il rapporte
     en 100 secondes) et « Suivre » (ce familier suit le joueur et lui porte chance).

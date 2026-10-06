@@ -98,13 +98,14 @@ Pets.VALUE_PER_COIN = 100
 -- Exemples : commun de la salle 1 = 18 s ; super rare de la salle 1 = 12 min ; légendaire de la salle 10 = 15 min.
 Pets.HATCH = { 30, 60, 150, 300, 600, 1200 }
 
--- L'ENCLOS : son niveau donne le nombre de places (niveau 1 = SPOTS_FREE places, +1 par niveau). Améliorer l'enclos
--- coûte SPOT_FACTOR fois plus cher à chaque niveau
--- (1 000, 6 000, 36 000, 216 000, 1 296 000...).
+-- L'ENCLOS : son niveau donne le nombre de places (niveau 1 = SPOTS_FREE places, +1 par niveau). Le prix de chaque
+-- place est CALCULÉ par tools/balance/machines.py, comme ceux des machines, sur ce que rapportent les familiers :
+-- les 5 premières places en plus se paient pendant les 10 premières salles (la 6e dès la salle 2),
+-- les suivantes une toutes les 20 heures, la 20e vers 200 heures.
 Pets.SPOTS_FREE = 5
 Pets.SPOTS_MAX = 20
-Pets.SPOT_PRICE = 1000
-Pets.SPOT_FACTOR = 6
+-- Prix de la 6e place, de la 7e, etc.
+Pets.SPOT_PRICES = { 15000, 500000, 11000000, 2200000000, 620000000000, 11000000000000000, 200000000000000000, 3500000000000000000, 60000000000000000000, 1000000000000000000000, 18000000000000000000000, 300000000000000000000000, 5100000000000000000000000, 86000000000000000000000000, 1400000000000000000000000000 }
 Pets.MAX_BAG = 60 -- œufs gardés en attente d'être posés
 -- La zone de l'enclos où marchent les familiers et où on pose les œufs, par rapport au milieu de l'espace du joueur.
 Pets.PEN = { minX = -7, maxX = 27, minZ = 4, maxZ = 29 }
@@ -236,7 +237,7 @@ function Pets.spotPrice(places: number): number?
 	if places >= Pets.SPOTS_MAX then
 		return nil
 	end
-	return Pets.SPOT_PRICE * Pets.SPOT_FACTOR ^ math.max(0, places - Pets.SPOTS_FREE)
+	return Pets.SPOT_PRICES[math.max(1, places - Pets.SPOTS_FREE + 1)]
 end
 
 -- LES PLACES DE L'ENCLOS : { [numéro] = { a = animal, q = rareté, t = heure d'éclosion } pour un œuf qui couve,

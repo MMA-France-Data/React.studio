@@ -105,6 +105,41 @@ def short(value):
     return '%d' % value
 
 
+PEN_FREE, PEN_MAX = 5, 20  # places de l'enclos au depart, et au plus (Pets.SPOTS_FREE, Pets.SPOTS_MAX)
+PEN_SHARE = 0.3  # part de ses pieces que le joueur met dans son enclos
+
+
+def room_at(hours):
+    """La salle ou en est un joueur regulier a cette heure de jeu."""
+    room = 1
+    while room < 400 and room_hour(room + 1) <= hours:
+        room += 1
+    return room
+
+
+def pen_hour(place):
+    """Heure de jeu a laquelle on vise l'achat de cette place : les 5 premieres pendant les 10 premieres salles
+    (la 6e des la salle 2), puis une toutes les 20 heures jusqu'a la 20e vers 200 heures."""
+    if place <= 10:
+        # 6e place des la salle 2 (5 minutes de jeu), puis de plus en plus espace jusqu'a la 10e a 2 h 30.
+        return [0, 0.08, 0.25, 0.6, 1.2, 2.5][place - PEN_FREE]
+    return 2.5 + (place - 10) * (200 - 2.5) / (PEN_MAX - 10)
+
+
+def pen_prices():
+    """Prix de la 6e place, de la 7e... Meme principe que les machines."""
+    result = []
+    previous = 0
+    for place in range(PEN_FREE + 1, PEN_MAX + 1):
+        start, end = pen_hour(place - 1), pen_hour(place)
+        middle = (start + end) / 2
+        price = income_with(max(1, room_at(middle) - 1), middle) * (end - start) * 3600 * PEN_SHARE
+        price = nice(max(price, previous * 1.5))
+        result.append(price)
+        previous = price
+    return result
+
+
 if __name__ == '__main__':
     table = prices()
     print('niveau | prix     | heure visee | revenu/s     | points par pas | sans nouvelle salle apres la 10')
@@ -123,3 +158,5 @@ if __name__ == '__main__':
     print()
     print('Config.PRICES = { ' + ', '.join(str(p) for p in table) + ' }')
     print('Config.GAINS = { ' + ', '.join(str(gain(level)) for level in range(1, LEVELS + 1)) + ' }')
+    print('Pets.SPOT_PRICES = { ' + ', '.join(str(p) for p in pen_prices()) + ' }')
+    print('places de l\'enclos : ' + ', '.join('%d = %s' % (PEN_FREE + 1 + i, short(p)) for i, p in enumerate(pen_prices())))

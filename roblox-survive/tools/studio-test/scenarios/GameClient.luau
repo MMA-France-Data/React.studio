@@ -47,7 +47,7 @@ return function(log)
 	check(machineSign ~= nil and machineSign.Label.Title.Text ~= "" and string.find(machineSign.Label.Level.Text, "2") ~= nil and string.find(machineSign.Label.Button.Info.Text, "500") ~= nil, "écran : panneau « Améliorer » du tapis (niveau 1 > 2, 500)", machineSign and (machineSign.Label.Title.Text .. " / " .. machineSign.Label.Level.Text .. " / " .. machineSign.Label.Button.Info.Text))
 	check(machineSign.Prompt.Enabled and machineSign.Prompt.ActionText ~= "", "écran : bouton pour améliorer le tapis", machineSign.Prompt.ActionText)
 	local penSign = mine.Enclosure.Upgrade.Label
-	check(penSign.Title.Text ~= "" and string.find(penSign.Level.Text, "2") ~= nil and string.find(penSign.Button.Info.Text, "000") ~= nil, "écran : panneau « Améliorer l'enclos » (niveau 1 > 2, 1 000)", penSign.Title.Text .. " / " .. penSign.Level.Text .. " / " .. penSign.Button.Info.Text)
+	check(penSign.Title.Text ~= "" and string.find(penSign.Level.Text, "2") ~= nil and string.find(penSign.Button.Info.Text, "%d") ~= nil, "écran : panneau « Améliorer l'enclos » (niveau 1 > 2, 1 000)", penSign.Title.Text .. " / " .. penSign.Level.Text .. " / " .. penSign.Button.Info.Text)
 	local sign = workspace.Rooms.Room5.Sign:FindFirstChildOfClass("SurfaceGui").Label
 	check(sign.Text:find("5") ~= nil and sign.Text:find("2[,.]5K") ~= nil, "écran : panneau de la salle 5 avec le palier conseillé (saut 2,5K)", sign.Text)
 	local prompt = mine.Force.Base.Prompt
@@ -161,7 +161,7 @@ return function(log)
 			check(petTag ~= nil and petTag.Top.Text ~= "" and string.find(petTag.Bottom.Text, "/") ~= nil, "écran : le familier montre son nom et ce qu'il rapporte", petTag and (petTag.Top.Text .. " | " .. petTag.Bottom.Text))
 			local row = hud.PetPanel.List:FindFirstChild("Pet1")
 			check(row ~= nil and row.Visible and row.Animal.Text ~= "" and row.Info.Text ~= "" and row.Sell.Text ~= "" and row.Follow.Text ~= "", "écran : la liste des familiers montre le familier, avec « Suivre » et « Vendre »", row and (hud.PetPanel.Header.Title.Text .. " | " .. row.Animal.Text .. " | " .. row.Info.Text))
-			check(hud.PetPanel.Header.AddPlace.Visible and string.find(hud.PetPanel.Header.AddPlace.Text, "000") ~= nil, "écran : bouton « +1 place » avec son prix", hud.PetPanel.Header.AddPlace.Text)
+			check(hud.PetPanel.Header.AddPlace.Visible and string.find(hud.PetPanel.Header.AddPlace.Text, "%d") ~= nil, "écran : bouton « +1 place » avec son prix", hud.PetPanel.Header.AddPlace.Text)
 			check(hud.Side.Income.Visible and hud.Side.Income.Text ~= "", "écran : le revenu est affiché sous les pièces", hud.Side.Income.Text)
 			check(string.find(mine.Enclosure.Title.Label.Info.Text, "%d") ~= nil, "écran : le panneau de l'enclos dit le revenu", mine.Enclosure.Title.Label.Level.Text .. " / " .. mine.Enclosure.Title.Label.Info.Text)
 		end
