@@ -206,6 +206,16 @@ return function()
 	end, function(x)
 		remote:FireServer("Coins", coinsAt(x))
 	end)
+	-- Les vannes de la salle 4 : le temps de remplissage des jauges, en % du réglage du jeu (plus petit = plus dur).
+	local function valveAt(x: number): number
+		return math.floor(60 + x * 80 + 0.5)
+	end
+	slider("Vannes (salle 4)", Color3.fromRGB(255, 130, 60), (100 - 60) / 80, function(x)
+		local percent = valveAt(x)
+		return string.format("jauges à %d %% du temps  (%s)", percent, if percent < 100 then "plus dur" elseif percent > 100 then "plus facile" else "réglage du jeu")
+	end, function(x)
+		remote:FireServer("ValveFactor", valveAt(x) / 100)
+	end)
 	-- Le prédateur de la salle 2 : sa vitesse, en % de celle du palier demandé (réglage du jeu : 92 %).
 	local function ratioAt(x: number): number
 		return math.floor(60 + x * 50 + 0.5)

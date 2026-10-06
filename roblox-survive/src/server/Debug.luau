@@ -229,6 +229,10 @@ return function(_world)
 			end
 		elseif kind == "Coins" then
 			PlayerData.addCoins(player, math.clamp(math.floor(value), 0, 1e12) - data.coins)
+		elseif kind == "ValveFactor" then
+			-- Le temps de remplissage des vannes de la salle 4 (1 = le réglage du jeu ; plus petit = plus dur) : lu au
+			-- début de la manche suivante.
+			workspace:SetAttribute("ValveFactor", math.clamp(value, 0.5, 2))
 		elseif kind == "HunterRatio" then
 			-- La vitesse du prédateur, en part de celle du palier demandé : lue au début de la manche suivante.
 			workspace:SetAttribute("HunterRatio", math.clamp(value, 0.5, 1.2))

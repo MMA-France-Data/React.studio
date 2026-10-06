@@ -6,10 +6,11 @@
 -- puisse pas activer si j'ai pas la vitesse, je devrais juste échouer »). Les jauges sont réglées sur un joueur qui
 -- court à la vitesse demandée par la salle (params.points) : le temps de remplissage d'une vanne est un multiple
 -- du temps qu'il met à faire le tour des quatre coins. Plus lent, on finit débordé.
--- La barrière n'est donc PAS nette (simulation tools/balance/valves.py, 300 manches par réglage) : avec les
--- chiffres ci-dessous, un joueur à 10 000 points perd 0 % des manches s'il ne traîne pas et 29 % s'il hésite 0,4 s à
--- chaque vanne ; à 2 500 ou 1 000 points sans aucune faute, il en perd 4 sur 10 ; à 150 points, 9 sur 10 ; à 0,
--- toutes. Resserrer davantage ferait perdre aussi le joueur qui a la vitesse.
+-- Les quatre vitesses de remplissage TOURNENT d'une vanne à la suivante toutes les SHUFFLE secondes, sans hasard
+-- (seul le point de départ est tiré au sort). Avec un échange au hasard, le résultat d'une manche dépendait surtout
+-- de la chance : le joueur a « failli réussir » avec 300 points alors qu'il « devrait se faire exterminer ». Sans
+-- hasard, la limite est bien plus franche (simulation) : à 150 et 300 points on meurt toujours, à 600 une fois sur
+-- deux, à 1 000 et plus on tient ; à 10 000 points on tient même en hésitant 0,6 seconde à chaque vanne.
 --
 -- LE CERVEAU : les quatre vannes ne se remplissent pas à la même vitesse, et ça change pendant la manche. Il faut
 -- choisir laquelle aller fermer : la plus urgente n'est pas toujours la plus proche.
@@ -29,7 +30,7 @@ local SPOTS = { Vector3.new(-27, 0, -31), Vector3.new(27, 0, -31), Vector3.new(2
 local CLOSE = 6 -- distance (vue d'en haut) à laquelle le joueur ferme une vanne
 -- Temps de remplissage des quatre vannes, en « tours de salle » (le temps qu'un joueur à la vitesse demandée met à
 -- passer par les quatre coins). Une rapide, deux moyennes, une lente ; elles s'échangent tous les SHUFFLE secondes.
-local FILLS = { 1.06, 1.54, 1.54, 2.11 }
+local FILLS = { 1.13, 1.65, 1.65, 2.27 }
 local SHUFFLE = 12
 local GRACE = 3 -- secondes au début pendant lesquelles rien ne monte
 local BURST_DAMAGE = 30 -- une vanne qui explose blesse ; à la troisième (STRIKES), le joueur est mort
@@ -76,11 +77,13 @@ function Valves.new(ctx, params)
 	local games = {} -- [joueur] = { pressure = {4}, fills = {4}, shuffle, bursts, closed, sent }
 	local running = false
 
-	local function shuffled(): { number }
-		local list = table.clone(FILLS)
-		for i = #list, 2, -1 do
-			local j = random:NextInteger(1, i)
-			list[i], list[j] = list[j], list[i]
+	-- Les quatre vitesses, décalées de `shift` crans autour de la salle.
+	local function rotated(shift: number): { number }
+		local list = {}
+		-- (Dans Studio, le panneau de réglages peut ralentir ou accélérer les jauges : attribut « ValveFactor ».)
+		local factor = workspace:GetAttribute("ValveFactor") or 1
+		for index = 1, #FILLS do
+			list[index] = FILLS[(index - 1 + shift) % #FILLS + 1] * factor
 		end
 		return list
 	end
@@ -94,7 +97,8 @@ function Valves.new(ctx, params)
 		running = true
 		table.clear(games)
 		for _, entry in ctx.players() do
-			local game = { pressure = { 0, 0, 0, 0 }, fills = shuffled(), shuffle = SHUFFLE, bursts = 0, closed = 0, sent = 0 }
+			local shift = random:NextInteger(0, #FILLS - 1)
+			local game = { pressure = { 0, 0, 0, 0 }, fills = rotated(shift), shift = shift, shuffle = SHUFFLE, bursts = 0, closed = 0, sent = 0 }
 			games[entry.player] = game
 			publish(entry.player, game)
 			setGroup(entry.player.Character, GROUP)
@@ -116,7 +120,8 @@ function Valves.new(ctx, params)
 			game.shuffle -= dt
 			if game.shuffle <= 0 then
 				game.shuffle = SHUFFLE
-				game.fills = shuffled()
+				game.shift += 1
+				game.fills = rotated(game.shift)
 			end
 			for index, spot in SPOTS do
 				local offset = entry.root.Position - (center + spot)
