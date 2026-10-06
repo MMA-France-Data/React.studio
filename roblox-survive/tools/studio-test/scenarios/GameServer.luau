@@ -354,8 +354,8 @@ return function(log)
 	-- À la boutique, le ticket devient un œuf de dragon ; sa rareté est tirée là. Le joueur le porte sur la tête.
 	check(D("Exchange") == 1, "boutique : le ticket devient un œuf")
 	pen = D("Eggs")
-	check(pen.tickets == 0 and pen.bag == 1 and pen.first == "Dragon", "le joueur a un œuf de dragon à poser", pen.first)
-	check(string.match(player:GetAttribute("BagNext") or "", "^Dragon:%d$") ~= nil, "l'œuf porté est envoyé à l'écran", player:GetAttribute("BagNext"))
+	check(pen.tickets == 0 and pen.bag == 1 and table.find(Pets.COLLECTIONS[1], pen.first) ~= nil, "le joueur a un œuf d'un des six animaux de la salle 1", pen.first)
+	check(string.match(player:GetAttribute("BagNext") or "", "^%a+:%d$") ~= nil, "l'œuf porté est envoyé à l'écran", player:GetAttribute("BagNext"))
 	check(D("Exchange") == 0, "boutique : rien à échanger sans ticket")
 	-- (Le temps que l'écran du joueur montre l'œuf porté sur sa tête : le test de l'écran le vérifie.)
 	task.wait(1.5)
@@ -367,7 +367,7 @@ return function(log)
 	check(D("Place") == true, "l'œuf est posé là où se tient le joueur")
 	pen = D("Eggs")
 	local laid = pen.spots["1"]
-	check(pen.bag == 0 and pen.eggs == 1 and laid ~= nil and laid.a == "Dragon" and laid.t ~= nil, "il couve dans l'enclos")
+	check(pen.bag == 0 and pen.eggs == 1 and laid ~= nil and Pets.DEFS[laid.a].room == 1 and Pets.DEFS[laid.a].rank == laid.q and laid.t ~= nil, "il couve dans l'enclos")
 	check(math.abs(laid.x - 6) < 1.5 and math.abs(laid.z - 12) < 1.5, "il est bien à l'endroit où le joueur l'a posé", laid.x .. " ; " .. laid.z)
 	check(laid.d == Pets.hatchSeconds(1, laid.q) and laid.t - os.time() <= laid.d and laid.t - os.time() >= laid.d - 3, "temps de couvaison selon la rareté", laid.t - os.time())
 	check(player:GetAttribute("BagNext") == "", "le joueur ne porte plus d'œuf")
@@ -384,8 +384,8 @@ return function(log)
 	local range = born and Pets.VALUE[born.q]
 	check(born ~= nil and born.v ~= nil and born.v >= range[1] and born.v <= range[2], "éclosion : la valeur cachée est dans le palier de sa rareté", born and born.v)
 	check(born ~= nil and born.l == Pets.luckPercent(born.v, 1), "éclosion : le familier reçoit son bonus de chance (valeur / 16)", born and born.l)
-	check(pen.pets == 1 and pen.equipped == "1" and math.abs(pen.income - Pets.incomeOf("Dragon", born.v)) < 0.001, "le familier rapporte selon sa valeur, et suit le joueur", pen.income)
-	check(player:GetAttribute("Pet") == "Dragon" and player:GetAttribute("PetRarity") == born.q and player:GetAttribute("Income") == pen.income, "le familier et le revenu sont envoyés à l'écran")
+	check(pen.pets == 1 and pen.equipped == "1" and math.abs(pen.income - Pets.incomeOf(born.a, born.v)) < 0.001, "le familier rapporte selon sa valeur, et suit le joueur", pen.income)
+	check(player:GetAttribute("Pet") == born.a and player:GetAttribute("PetRarity") == born.q and player:GetAttribute("Income") == pen.income, "le familier et le revenu sont envoyés à l'écran")
 	-- Le joueur reste près de son enclos le temps que le test de l'écran voie le familier s'y promener (de loin,
 	-- les familiers ne bougent plus).
 	task.wait(8)
@@ -547,8 +547,8 @@ return function(log)
 	check(D("Place", 20, 20) == true, "la place libérée reçoit un nouvel œuf")
 	-- Le revenu tombe chaque seconde quand il n'est pas coupé.
 	D("Clear")
-	D("Pet", "Golem", 4)
-	D("Pet", "Golem", 4)
+	D("Pet", "Golem", 5)
+	D("Pet", "Golem", 5)
 	pen = D("Eggs")
 	check(pen.pets == 2 and math.abs(pen.income - 2 * Pets.incomeOf("Golem", 600)) < 0.001, "on peut avoir deux fois le même familier (deux golems légendaires)", pen.income)
 	local coinsBefore = D("Data").coins
@@ -677,7 +677,7 @@ return function(log)
 		D("Pet", name, (i - 1) % 4 + 1)
 	end
 	D("Egg", "Rabbit", 3)
-	D("Egg", "Dragon", 4)
+	D("Egg", "Dragon", 5)
 	D("Give", -D("Data").coins)
 	D("Give", 216000 + 1296000)
 	check(D("Upgrade") == true and D("Upgrade") == true and D("Eggs").places == 10 and D("Data").coins == 0, "deux niveaux d'enclos de plus : 216 000 puis 1 296 000 pièces, 10 places")
@@ -710,7 +710,7 @@ return function(log)
 	local every = workspace:GetAttribute("CycleEnds") - workspace:GetServerTimeNow()
 	check(every > Config.CYCLE.every - 5 and every <= Config.CYCLE.every + 1, "la fermeture est prévue dans 5 minutes", every)
 	-- Un œuf légendaire couve dans l'enclos : la fermeture doit le faire avancer de 100 secondes en 10.
-	D("Egg", "Dragon", 4)
+	D("Egg", "Dragon", 5)
 	check(D("Place", 10, 16) == true, "un œuf légendaire est posé avant la fermeture")
 	local before = D("Eggs").spots["1"].t - os.time()
 	D("Cycle", "close")
@@ -747,12 +747,12 @@ return function(log)
 			rares += 1
 		end
 	end
-	local share = (lucky[3] + lucky[4]) / (lucky[1] + lucky[2] + lucky[3] + lucky[4])
+	local share = (lucky[3] + lucky[4] + lucky[5] + lucky[6]) / (lucky[1] + lucky[2] + lucky[3] + lucky[4] + lucky[5] + lucky[6])
 	check(math.abs(rares / total - share) < 0.04, "le tirage suit bien ces chances", rares / total)
 	-- LE FAMILIER QUI SUIT donne un bonus de chance selon sa valeur cachée, x 1,15 par salle ; il s'ajoute à la salle.
 	check(Pets.luckPercent(96, 1) == 6 and Pets.luckPercent(800, 1) == 50 and Pets.luckPercent(800, 2) == 57 and Pets.luckPercent(1, 1) == 0 and Pets.luckPercent(800, 10) < 180, "bonus du familier : valeur / 16, x 1,15 par salle, moins de 180 % à la salle 10", Pets.luckPercent(800, 10))
 	D("Exchange")
-	D("Pet", "Dragon", 4)
+	D("Pet", "Dragon", 5)
 	pen = D("Eggs")
 	local follower = pen.spots[pen.equipped]
 	check(follower ~= nil and follower.l == 38 and player:GetAttribute("PetLuck") == 38, "un légendaire de valeur 600 qui suit : +38 % de chance", follower and follower.l)
@@ -769,6 +769,66 @@ return function(log)
 	D("Ticket", 2)
 	check(D("Eggs").keys == "2", "sans familier qui suit ni salle chanceuse : ticket normal", D("Eggs").keys)
 	D("Exchange")
+
+	-- 6. LES COLLECTIONS : six animaux par salle (salles 1 à 3), du plus courant au super rare ----------------------
+	check(#Pets.ODDS == 6 and #Pets.VALUE == 6 and #Pets.HATCH == 6 and #Pets.RARITIES == 6, "six rangs, du commun au super rare")
+	local oddsTotal = 0
+	for _, weight in Pets.odds(1) do
+		oddsTotal += weight
+	end
+	check(oddsTotal == 100 and Pets.ODDS[1] == 45 and Pets.ODDS[6] == 0.5, "chances : 45 % pour le plus courant, 0,5 % pour le super rare", oddsTotal)
+	check(Pets.VALUE[1][2] == 50 and Pets.VALUE[6][1] == 1600 and Pets.VALUE[6][2] == 3200, "valeurs : 1 à 50 pour le plus courant, 1 600 à 3 200 pour le super rare")
+	check(Pets.animalOf(1, 6, "x") == "Fox" and Pets.animalOf(2, 6, "x") == "Badger" and Pets.animalOf(3, 6, "x") == "Horse", "super rares : renard, blaireau, cheval")
+	check(Pets.animalOf(1, 1, "x") == "Bunny" and Pets.animalOf(4, 6, "Golem") == "Golem", "salle sans collection : l'animal de la salle")
+	check(Pets.luckPercent(3200, 1) == 100 and Pets.luckPercent(1600, 1) == 50, "bonus de chance d'un super rare qui suit : 50 à 100 %", Pets.luckPercent(3200, 1))
+	local visuals = game:GetService("ReplicatedStorage"):FindFirstChild("PetVisuals")
+	for room, list in Pets.COLLECTIONS do
+		local missing = {}
+		for rank, name in list do
+			local model = visuals and visuals:FindFirstChild(name)
+			local def = Pets.DEFS[name]
+			if not (model and model:FindFirstChild("RigRoot") and model:FindFirstChild("Walk", true) and model:FindFirstChild("Idle", true) and def and def.room == room and def.rank == rank) then
+				table.insert(missing, name)
+			end
+		end
+		check(#list == 6 and #missing == 0, `collection de la salle {room} : six modèles articulés avec repos et marche`, table.concat(missing, " "))
+	end
+	-- Un ticket de la salle 2 devient un œuf d'un des six animaux de la salle 2, celui du rang tiré.
+	D("Pet", "")
+	D("Clear")
+	D("EmptyBag")
+	for _ = 1, 12 do
+		D("Ticket", 2)
+	end
+	D("Exchange")
+	local wrong = 0
+	for _ = 1, 12 do
+		local egg = D("Eggs")
+		local def = Pets.DEFS[egg.first]
+		if not def or def.room ~= 2 then
+			wrong += 1
+		end
+		D("Place", 10, 16)
+		local laidEgg = D("Eggs").spots["1"]
+		if not laidEgg or laidEgg.a ~= egg.first or (def and def.rank ~= laidEgg.q) then
+			wrong += 1
+		end
+		D("Clear")
+	end
+	check(wrong == 0 and D("Eggs").bag == 0, "12 tickets de la salle 2 : 12 œufs d'animaux de la salle 2, l'animal suit le rang", wrong)
+	-- Les photos : les six animaux de chaque collection dans l'enclos.
+	tp(plot.origin + Vector3.new(-2, 4, 6))
+	for room, list in Pets.COLLECTIONS do
+		D("Clear")
+		for rank, name in list do
+			D("Pet", name, rank)
+		end
+		check(D("Eggs").pets == 6, `les six animaux de la salle {room} sont dans l'enclos`)
+		task.wait(5)
+		shot("collection" .. room, plot.origin + Vector3.new(10, 16, -6), plot.origin + Vector3.new(10, 1, 16))
+	end
+	D("Pet", "")
+	D("Clear")
 
 	log("Info", "[SURVIVE] TEST:done")
 end

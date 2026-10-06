@@ -1,6 +1,7 @@
 -- Les tickets, les œufs et l'enclos (voir le chemin d'un familier en haut de Pets.luau).
 --   Salle réussie -> un ticket de la salle.
---   Boutique du lobby -> chaque ticket devient un œuf de l'animal de la salle (rareté tirée à ce moment-là).
+--   Boutique du lobby -> chaque ticket devient un œuf de la salle : son rang est tiré à ce moment-là, et dans une
+--   salle à collection ce rang donne l'animal (un des six de la salle).
 --   Le joueur porte l'œuf sur la tête jusqu'à son enclos et le pose par terre, où il veut. L'œuf y couve ; à
 --   l'éclosion le familier reçoit sa valeur cachée, se promène dans l'enclos et rapporte des pièces à chaque
 --   seconde, tant que le joueur est dans le jeu.
@@ -81,7 +82,8 @@ function Eggs.exchange(player: Player): number
 		room, luck = tonumber(room), tonumber(luck) or 1
 		while (data.tickets[key] or 0) > 0 and #data.bag < Pets.MAX_BAG do
 			data.tickets[key] -= 1
-			table.insert(data.bag, { a = Config.ROOMS[room].egg, q = Pets.roll(random, room, luck), r = room })
+			local rank = Pets.roll(random, room, luck)
+			table.insert(data.bag, { a = Pets.animalOf(room, rank, Config.ROOMS[room].egg), q = rank, r = room })
 			received += 1
 		end
 		if data.tickets[key] == 0 then

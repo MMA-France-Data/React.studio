@@ -109,6 +109,10 @@ return function(_world)
 			end
 			table.sort(keys)
 			return { keys = table.concat(keys, " "), lucky = lucky, tickets = tickets, bag = #data.bag, first = data.bag[1] and data.bag[1].a or "", places = data.places, pets = pets, eggs = eggs, income = Pets.income(data.spots), equipped = data.equipped, spots = spots }
+		elseif action == "EmptyBag" then
+			-- Jette les œufs à poser.
+			table.clear(PlayerData.get(player).bag)
+			PlayerData.changed(player)
 		elseif action == "Ticket" then
 			-- Donne un ticket de la salle a (comme une salle réussie).
 			return Eggs.give(player, a)

@@ -107,25 +107,34 @@ return function(log)
 			check(shop.ActionText ~= "" and shop.ObjectText ~= "", "écran : la boutique des œufs a son bouton", shop.ObjectText .. " : " .. shop.ActionText)
 			check(workspace.Gym.Sell.Prompt.ActionText ~= "", "écran : le stand « VENDRE » a son bouton", workspace.Gym.Sell.Prompt.ActionText)
 		end
-		if player:GetAttribute("Pet") == "Dragon" and not seen.pet then
+		if (player:GetAttribute("Pet") or "") ~= "" and not seen.pet then
 			seen.pet = true
+			-- Le premier familier vient d'un œuf de la salle 1 : un des six animaux de sa collection.
+			local animal = player:GetAttribute("Pet")
 			task.wait(0.8)
 			local pets = workspace:FindFirstChild("Pets")
-			check(pets ~= nil and pets:FindFirstChild("Follower_Dragon") ~= nil, "écran : le dragon suit le joueur")
+			check(pets ~= nil and pets:FindFirstChild("Follower_" .. animal) ~= nil, "écran : le familier suit le joueur", animal)
 			local rarity = player:GetAttribute("PetRarity")
-			local inPen = pets and pets:FindFirstChild("Pen_Dragon" .. rarity)
+			local inPen = pets and pets:FindFirstChild("Pen_" .. animal .. rarity)
+			local joints = 0
+			for _, child in if inPen then inPen:GetDescendants() else {} do
+				if child:IsA("Motor6D") then
+					joints += 1
+				end
+			end
+			check(inPen ~= nil and inPen:GetAttribute("Starter") == true and joints >= 5 and inPen:FindFirstChild("Walk", true) ~= nil, "écran : c'est un animal articulé de la collection, avec son animation de marche", animal .. " : " .. joints .. " articulations")
 			local origin = mine:GetAttribute("Origin")
 			local where = inPen and inPen:GetPivot().Position - origin
-			check(inPen ~= nil and where.X > -9 and where.X < 29 and where.Z > 2 and where.Z < 31, "écran : le dragon est dans l'enclos", tostring(where))
+			check(inPen ~= nil and where.X > -9 and where.X < 29 and where.Z > 2 and where.Z < 31, "écran : le familier est dans l'enclos", tostring(where))
 			local start = inPen and inPen:GetPivot().Position
 			task.wait(6)
-			local again = pets and pets:FindFirstChild("Pen_Dragon" .. rarity)
+			local again = pets and pets:FindFirstChild("Pen_" .. animal .. rarity)
 			local detail = inPen and string.format("bouge de %.2f ; meme modele %s ; parent %s ; camera a %.0f ; nouveau a %.2f", (inPen:GetPivot().Position - start).Magnitude, tostring(again == inPen), tostring(inPen.Parent), (workspace.CurrentCamera.CFrame.Position - start).Magnitude, if again then (again:GetPivot().Position - start).Magnitude else -1)
-			check(inPen ~= nil and (inPen:GetPivot().Position - start).Magnitude > 1, "écran : le dragon se promène dans l'enclos", detail)
+			check(inPen ~= nil and (inPen:GetPivot().Position - start).Magnitude > 1, "écran : le familier se promène dans l'enclos", detail)
 			local petTag = inPen and inPen.PrimaryPart:FindFirstChild("Tag")
 			check(petTag ~= nil and petTag.Top.Text ~= "" and string.find(petTag.Bottom.Text, "/") ~= nil, "écran : le familier montre son nom et ce qu'il rapporte", petTag and (petTag.Top.Text .. " | " .. petTag.Bottom.Text))
 			local row = hud.PetPanel.List:FindFirstChild("Pet1")
-			check(row ~= nil and row.Visible and row.Animal.Text ~= "" and row.Info.Text ~= "" and row.Sell.Text ~= "" and row.Follow.Text ~= "", "écran : la liste des familiers montre le dragon, avec « Suivre » et « Vendre »", row and (hud.PetPanel.Header.Title.Text .. " | " .. row.Animal.Text .. " | " .. row.Info.Text))
+			check(row ~= nil and row.Visible and row.Animal.Text ~= "" and row.Info.Text ~= "" and row.Sell.Text ~= "" and row.Follow.Text ~= "", "écran : la liste des familiers montre le familier, avec « Suivre » et « Vendre »", row and (hud.PetPanel.Header.Title.Text .. " | " .. row.Animal.Text .. " | " .. row.Info.Text))
 			check(hud.PetPanel.Header.AddPlace.Visible and string.find(hud.PetPanel.Header.AddPlace.Text, "000") ~= nil, "écran : bouton « +1 place » avec son prix", hud.PetPanel.Header.AddPlace.Text)
 			check(hud.Side.Income.Visible and hud.Side.Income.Text ~= "", "écran : le revenu est affiché sous les pièces", hud.Side.Income.Text)
 			check(string.find(mine.Enclosure.Title.Label.Info.Text, "%d") ~= nil, "écran : le panneau de l'enclos dit le revenu", mine.Enclosure.Title.Label.Level.Text .. " / " .. mine.Enclosure.Title.Label.Info.Text)

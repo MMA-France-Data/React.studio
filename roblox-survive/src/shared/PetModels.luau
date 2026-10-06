@@ -39,6 +39,25 @@ function PetModels.build(name: string): Model?
 	end
 	local model = template:Clone()
 	model.Name = name
+	-- LES ANIMAUX DES COLLECTIONS (assets/collections) : des briques Roblox articulées autour de « RigRoot », avec
+	-- leurs animations dans le modèle (lues par StarterAnimator). Ils gardent leurs couleurs et leur taille.
+	local rigRoot = model:FindFirstChild("RigRoot")
+	-- (Les anciens modèles de la bibliothèque ont parfois un « RigRoot » eux aussi, mais pas ces animations.)
+	local walk, idle = model:FindFirstChild("Walk", true), model:FindFirstChild("Idle", true)
+	if rigRoot and rigRoot:IsA("BasePart") and walk and walk:IsA("KeyframeSequence") and idle and idle:IsA("KeyframeSequence") then
+		for _, instance in model:GetDescendants() do
+			if instance:IsA("BasePart") then
+				instance.Anchored = true
+				instance.CanCollide = false
+				instance.CanTouch = false
+				instance.CanQuery = false
+				instance.CastShadow = false
+			end
+		end
+		model.PrimaryPart = rigRoot
+		model:SetAttribute("Starter", true)
+		return model
+	end
 	local hasRig = false
 	for _, instance in model:GetDescendants() do
 		if instance:IsA("Bone") or instance:IsA("Motor6D") then

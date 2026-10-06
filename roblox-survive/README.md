@@ -63,32 +63,41 @@ Ce dossier est séparé du jeu de tours (`roblox-ranked-td`) : rien n'est partag
     réussir ouvre la porte tout de suite ; ne pas finir à temps élimine tout le monde.
 - **Tickets, œufs et familiers** :
   1. chaque salle réussie donne un **ticket** de cette salle ;
-  2. à la **boutique des œufs** (le stand « ŒUFS » de l'allée), les tickets s'échangent contre des œufs de l'animal
-     de la salle ; la rareté de l'œuf est tirée à ce moment-là (commun, peu commun, rare, légendaire ; plus de
-     chances dans les salles du fond). Le joueur **porte son œuf sur la tête** ;
+  2. à la **boutique des œufs** (le stand « ŒUFS » de l'allée), les tickets s'échangent contre des œufs de la
+     salle ; le **rang** de l'œuf est tiré à ce moment-là : commun 45 %, peu commun 30 %, rare 14 %, épique 7 %,
+     légendaire 3,5 %, super rare 0,5 %. Le joueur **porte son œuf sur la tête** ;
   3. dans son enclos, il **pose l'œuf par terre** où il veut (touche E ou bouton « POSER L'ŒUF »). L'œuf y couve :
-     30 s, 1 min 30, 4 min ou 10 min selon la rareté, multiplié par 0,6 (salle 1) à 1,5 (salle 10) ; le temps
-     continue hors du jeu ;
-  4. à l'éclosion, le familier reçoit une **valeur cachée** tirée dans le palier de sa rareté : commun 1 à 100,
-     peu commun 100 à 200, rare 200 à 400, légendaire 400 à 800 ; ces paliers sont ceux de la salle 1, et chaque
-     salle suivante les multiplie par 3 (salle 2 : 3 à 300 pour un commun ; salle 10 : x 19 683). Il **se promène dans l'enclos** et rapporte chaque
-     seconde sa valeur / 100, multipliée par son animal (dragon × 1, caillou × 1,5, lapin × 2, chouette × 2,5,
-     golem × 3), tant que le joueur est dans le jeu ; le gain s'envole au-dessus de lui.
+     30 s, 1 min, 2 min 30, 5 min, 10 min ou 20 min selon le rang, multiplié par 0,6 (salle 1) à 1,5 (salle 10) ;
+     le temps continue hors du jeu ;
+  4. à l'éclosion, le familier reçoit une **valeur cachée** tirée dans le palier de son rang : 1 à 50, 50 à 100,
+     100 à 200, 200 à 400, 400 à 800, et 1 600 à 3 200 pour le super rare ; ces paliers sont ceux de la salle 1,
+     et chaque salle suivante les multiplie par 3. Il **se promène dans l'enclos** et rapporte chaque seconde sa
+     valeur / 100, tant que le joueur est dans le jeu ; le gain s'envole au-dessus de lui.
+  - **Les collections** (`Pets.COLLECTIONS`, modèles dans `assets/collections`) : dans les salles 1 à 3, le rang
+    de l'œuf donne l'animal, six par salle, du plus courant au super rare :
+    salle 1 : lapin, tortue, chat, chien, chouette, **renard** ;
+    salle 2 : hérisson, écureuil, moufette, castor, raton laveur, **blaireau** ;
+    salle 3 : canard, coq, cochon, mouton, chèvre, **cheval**.
+    Ces animaux sont articulés et animés (repos, marche) par `StarterAnimator.luau`. Les salles 4 à 10 gardent
+    pour l'instant l'animal de la salle (dragon, golem, chouette, lapin éclair), peint selon son rang.
+  - **Le familier qui suit** (bouton « Suivre ») donne un bonus de chance d'œuf rare : sa valeur cachée / 16, en %
+    (x 1,15 par salle ; la valeur d'un super rare compte pour moitié). Il s'ajoute au bonus de la salle chanceuse,
+    et le ticket garde la chance du moment. Le familier rapporte quand même ses pièces.
   - **L'enclos** : une clôture à la couleur de l'espace. Niveau 1 = 5 places (familiers + œufs). Le panneau
     « Améliorer l'enclos », sur la clôture, ajoute une place par niveau : 1 000 pièces, puis 6 fois plus à chaque
     niveau (6 000, 36 000, 216 000...), jusqu'à 20 places.
   - **Doublons et vente** : on peut avoir plusieurs fois le même familier. Le stand « VENDRE » (ou la patte, à
     droite de l'écran) ouvre la liste de ses familiers, avec « Vendre » (deux appuis ; il rend ce qu'il rapporte
-    en 100 secondes) et « Suivre » (ce familier suit le joueur, pour le plaisir).
+    en 100 secondes) et « Suivre » (ce familier suit le joueur et lui porte chance).
   - **À droite de l'écran** : le bouton œuf déplie « Œufs en croissance » (une barre par œuf qui couve, et le
     nombre de tickets et d'œufs à poser) ; le bouton patte déplie la liste des familiers (« 7/8 Actifs », le
     bouton « +1 place », le revenu de chacun). La flèche rouge replie le panneau.
-  - Les familiers ne donnent **aucun bonus dans les salles**. Chaque rareté a son mélange de couleurs.
+  - Les familiers ne donnent **aucun bonus de force, de saut ou de vitesse dans les salles**.
 - **La fermeture de la porte** (`Cycle.luau`, réglages `Config.CYCLE`) : toutes les 5 minutes, la porte du lobby
   vers les salles se ferme 10 secondes. Pendant ce temps, les œufs de tous les enclos couvent 10 fois plus vite
   (10 secondes en valent 100). À la réouverture, une salle tirée au hasard reçoit un bonus de chance tiré au hasard
   (+100, +200, +300, +400 ou +500 %) : un ticket gagné dans cette salle garde le bonus, et son œuf a 2 à 6 fois
-  plus de chances d'être peu commun, rare ou légendaire. Le bonus dure jusqu'à la fermeture suivante ; il est
+  plus de chances d'être autre chose que commun. Le bonus dure jusqu'à la fermeture suivante ; il est
   écrit en haut de l'écran dans le lobby et en doré sur le panneau de la salle.
 - **Raccourci** dans la salle de sport : mène devant la salle 6 quand la salle 5 est réussie.
 - **Sauvegarde** des pièces, des niveaux et de la meilleure salle (dans le jeu publié ; dans Studio, tout reste
@@ -131,7 +140,7 @@ Construire la place : `rojo build default.project.json -o Survive.rbxl`, puis l'
 Tests automatiques dans Studio (une fenêtre Studio s'ouvre toute seule ; ne pas toucher au PC pendant ce temps) :
 
 - `powershell -ExecutionPolicy Bypass -File tools\studio-test\run.ps1` : tout le jeu
-  (316 vérifications, environ 13 minutes, captures dans `tools\studio-test\out`).
+  (339 vérifications, environ 14 minutes, captures dans `tools\studio-test\out`).
 - `powershell -ExecutionPolicy Bypass -File tools\studio-test\run.ps1 -Test jump -Seconds 560` : mesure la
   hauteur de marche qu'un personnage grimpe d'un saut (a servi à régler `Config.stepHeight`).
 

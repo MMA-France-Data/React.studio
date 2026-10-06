@@ -11,6 +11,7 @@ local UserInputService = game:GetService("UserInputService")
 
 local Pets = require(ReplicatedStorage.Shared.Pets)
 local PetRig = require(ReplicatedStorage.Shared.PetRig)
+local StarterAnimator = require(ReplicatedStorage.Shared.StarterAnimator)
 
 local EGG_COLORS = {
 	Dragon = Color3.fromRGB(240, 90, 40),
@@ -19,6 +20,12 @@ local EGG_COLORS = {
 	Golem = Color3.fromRGB(120, 170, 120),
 	Owl = Color3.fromRGB(170, 120, 70),
 }
+-- Les œufs d'une salle à collection ont la couleur de la salle (l'animal ne se voit qu'à l'éclosion).
+for room, color in { Color3.fromRGB(255, 226, 150), Color3.fromRGB(190, 140, 90), Color3.fromRGB(250, 245, 235) } do
+	for _, name in Pets.COLLECTIONS[room] or {} do
+		EGG_COLORS[name] = color
+	end
+end
 local ANIMATE_DISTANCE = 120 -- au-delà, les familiers d'un enclos ne bougent plus (ils restent où ils sont)
 local PEN_SCALE = 1.5 -- les familiers de l'enclos sont plus gros que celui qui suit le joueur
 local DARK = Color3.fromRGB(40, 44, 60)
@@ -109,12 +116,23 @@ return function(env)
 			model:ScaleTo(model:GetScale() * factor)
 		end
 		local _, size = model:GetBoundingBox()
-		local skeleton = PetRig.bind(name, model)
+		-- Un animal des collections a ses propres animations (repos, marche), lues par StarterAnimator.
+		local starter = nil
+		if model:GetAttribute("Starter") then
+			local ok, rig = pcall(StarterAnimator.bind, model)
+			if ok then
+				starter = rig
+			else
+				warn("[Survive] animation de " .. name .. " impossible : " .. tostring(rig))
+			end
+		end
+		local skeleton = if model:GetAttribute("Starter") then nil else PetRig.bind(name, model)
 		model.Parent = folder
 		return {
 			name = name,
 			model = model,
 			half = size.Y / 2,
+			starter = starter,
 			skeleton = skeleton,
 			limbs = if skeleton then {} else limbsOf(name, model),
 			clock = math.random() * 10,
@@ -123,6 +141,13 @@ return function(env)
 	-- Pose le familier à cet endroit et l'anime.
 	local function animate(pet, base: CFrame, moving: boolean, dt: number)
 		pet.clock += dt
+		if pet.model:GetAttribute("Starter") then
+			pet.model:PivotTo(base)
+			if pet.starter then
+				StarterAnimator.step(pet.starter, pet.clock, if moving then "Walk" else "Idle")
+			end
+			return
+		end
 		local offset, swing = motion(Pets.DEFS[pet.name].move, pet.clock, moving)
 		local pose = base * offset
 		pet.model:PivotTo(pose)

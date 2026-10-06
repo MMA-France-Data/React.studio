@@ -1,6 +1,8 @@
 -- Les familiers. Le chemin d'un familier :
 --   1. une salle réussie donne un TICKET de cette salle ;
---   2. à la boutique du lobby, le ticket s'échange contre un ŒUF de l'animal de la salle (sa rareté est tirée là) ;
+--   2. à la boutique du lobby, le ticket s'échange contre un ŒUF de la salle : sa rareté (6 rangs, du commun au
+--      super rare) est tirée là. Dans une salle à COLLECTION (Pets.COLLECTIONS), le rang donne l'animal : six
+--      animaux par salle, du plus courant au super rare. Ailleurs, c'est l'animal de la salle, peint selon le rang ;
 --   3. le joueur POSE l'œuf lui-même sur une place libre de son enclos ; il y couve (plus il est rare, plus c'est long) ;
 --   4. à l'éclosion, le familier reçoit une VALEUR cachée tirée dans le palier de sa rareté : c'est elle qui décide
 --      de ce qu'il rapporte à chaque seconde. Deux familiers de la même rareté ne rapportent donc pas pareil, et on
@@ -27,8 +29,27 @@ Pets.DEFS = {
 	Owl = { income = 2.5, move = "fly" }, -- salle 6
 }
 
--- LA VALEUR CACHÉE : le palier de chaque rareté (commun, peu commun, rare, légendaire).
-Pets.VALUE = { { 1, 100 }, { 100, 200 }, { 200, 400 }, { 400, 800 } }
+-- LES COLLECTIONS : les six animaux d'une salle, du plus courant (rang 1) au SUPER RARE (rang 6). L'œuf d'une de ces
+-- salles tire un rang, qui donne l'animal. (Bunny et Owlet : le lapin et la chouette des collections, pour ne pas
+-- les confondre avec les anciens Rabbit et Owl des salles du fond.)
+Pets.COLLECTIONS = {
+	{ "Bunny", "Turtle", "Cat", "Dog", "Owlet", "Fox" },
+	{ "Hedgehog", "Squirrel", "Skunk", "Beaver", "Raccoon", "Badger" },
+	{ "Duck", "Rooster", "Pig", "Sheep", "Goat", "Horse" },
+}
+for room, list in Pets.COLLECTIONS do
+	for rank, name in list do
+		Pets.DEFS[name] = { income = 1, move = "walk", room = room, rank = rank }
+	end
+end
+-- L'animal d'un œuf de cette salle et de ce rang (fallback : l'animal de la salle, s'il n'y a pas de collection).
+function Pets.animalOf(room: number, rank: number, fallback: string): string
+	local list = Pets.COLLECTIONS[room]
+	return list and list[rank] or fallback
+end
+
+-- LA VALEUR CACHÉE : le palier de chaque rang (commun, peu commun, rare, épique, légendaire, super rare).
+Pets.VALUE = { { 1, 50 }, { 50, 100 }, { 100, 200 }, { 200, 400 }, { 400, 800 }, { 1600, 3200 } }
 -- Ces paliers sont ceux de la salle 1 : chaque salle suivante les multiplie par ROOM_FACTOR (salle 2 : commun 3 à
 -- 300 ; salle 3 : 9 à 900...).
 Pets.ROOM_FACTOR = 3
@@ -36,12 +57,16 @@ function Pets.roomFactor(room: number): number
 	return Pets.ROOM_FACTOR ^ (math.max(1, room) - 1)
 end
 -- LE FAMILIER QUI SUIT LE JOUEUR lui donne un bonus de chance d'œuf rare, en % : sa valeur cachée (celle de la
--- salle 1, avant ROOM_FACTOR) / LUCK_DIVIDER, multipliée par LUCK_ROOM à chaque salle. Salle 1 : commun 0 à 6 %,
--- peu commun 6 à 12 %, rare 12 à 25 %, légendaire 25 à 50 % ; x 1,15 par salle (salle 10 : légendaire 175 % au plus).
+-- salle 1, avant ROOM_FACTOR) / LUCK_DIVIDER, multipliée par LUCK_ROOM à chaque salle. Salle 1 : commun 0 à 3 %,
+-- peu commun 3 à 6 %, rare 6 à 12 %, épique 12 à 25 %, légendaire 25 à 50 %, super rare 50 à 100 % (sa valeur
+-- compte pour moitié) ; x 1,15 par salle.
 -- Le bonus est tiré à l'éclosion et gardé dans la place (`l`). Le familier rapporte quand même ses pièces.
 Pets.LUCK_DIVIDER = 16
 Pets.LUCK_ROOM = 1.15
 function Pets.luckPercent(baseValue: number, room: number): number
+	if baseValue > Pets.VALUE[5][2] then
+		baseValue /= 2
+	end
 	return math.floor(baseValue / Pets.LUCK_DIVIDER * Pets.LUCK_ROOM ^ (math.max(1, room) - 1) + 0.5)
 end
 -- Le bonus de chance (en %) du familier de cette place (un familier d'avant ce bonus : d'après sa valeur).
@@ -49,14 +74,14 @@ function Pets.luckOf(spot): number
 	if not spot or not spot.v then
 		return 0
 	end
-	return spot.l or Pets.luckPercent(math.min(spot.v, Pets.VALUE[#Pets.VALUE][2]), 1)
+	return spot.l or Pets.luckPercent(math.min(spot.v, Pets.VALUE[5][2]), 1)
 end
 -- Ce qu'un familier rapporte par seconde = sa valeur / VALUE_PER_COIN x le facteur de son animal.
--- Exemples : dragon commun 0,01 à 1 par seconde ; golem légendaire 12 à 24 par seconde.
+-- Exemples (salle 1) : lapin commun 0,01 à 0,5 par seconde ; renard super rare 16 à 32 par seconde.
 Pets.VALUE_PER_COIN = 100
--- Couvaison : secondes selon la rareté, multipliées par (0,5 + numéro de la salle / 10).
--- Exemples : commun de la salle 1 = 18 s ; légendaire de la salle 10 = 15 min.
-Pets.HATCH = { 30, 90, 240, 600 }
+-- Couvaison : secondes selon le rang, multipliées par (0,5 + numéro de la salle / 10).
+-- Exemples : commun de la salle 1 = 18 s ; super rare de la salle 1 = 12 min ; légendaire de la salle 10 = 15 min.
+Pets.HATCH = { 30, 60, 150, 300, 600, 1200 }
 
 -- L'ENCLOS : son niveau donne le nombre de places (niveau 1 = SPOTS_FREE places, +1 par niveau). Améliorer l'enclos
 -- coûte SPOT_FACTOR fois plus cher à chaque niveau
@@ -77,7 +102,9 @@ end
 -- Chaque rareté a son MÉLANGE de couleurs, peint sur l'animal lui-même : un dégradé de toute la palette recouvre
 -- son corps (plusieurs couleurs visibles en même temps).
 -- commun = ses couleurs d'origine ; peu commun = bleu, turquoise, vert ; rare = doré, orange, rose ;
--- légendaire = violet, rose, bleu, turquoise, et des étincelles.
+-- épique = rose, rouge, orange ; légendaire = violet, rose, bleu, turquoise, et des étincelles ; super rare =
+-- arc-en-ciel. Les animaux des collections ne sont PAS repeints (leur animal dit déjà leur rang) : ils gardent
+-- seulement la grosseur, la lumière et les étincelles de leur rang.
 -- color : la couleur de la rareté dans les textes ; tint : force du voile de couleur si le dégradé ne peut pas
 -- être peint (voir gradient plus bas).
 Pets.RARITIES = {
@@ -97,6 +124,13 @@ Pets.RARITIES = {
 		palette = { Color3.fromRGB(255, 210, 40), Color3.fromRGB(255, 120, 30), Color3.fromRGB(255, 80, 150) },
 	},
 	{
+		key = "Epic",
+		color = Color3.fromRGB(255, 90, 200),
+		scale = 1.32,
+		tint = 0.45,
+		palette = { Color3.fromRGB(255, 70, 200), Color3.fromRGB(255, 60, 90), Color3.fromRGB(255, 150, 60) },
+	},
+	{
 		key = "Legendary",
 		color = Color3.fromRGB(190, 90, 255),
 		scale = 1.4,
@@ -108,23 +142,36 @@ Pets.RARITIES = {
 			Color3.fromRGB(50, 235, 225),
 		},
 	},
+	{
+		key = "Mythic",
+		color = Color3.fromRGB(255, 80, 60),
+		scale = 1.55,
+		tint = 0.5,
+		palette = {
+			Color3.fromRGB(255, 60, 60),
+			Color3.fromRGB(255, 200, 40),
+			Color3.fromRGB(70, 230, 90),
+			Color3.fromRGB(50, 200, 255),
+			Color3.fromRGB(170, 80, 255),
+		},
+	},
 }
 Pets.COLOR_SECONDS = 1.3 -- temps pour passer d'une couleur de la palette à la suivante
 
--- Chances de chaque rareté (sur 100) pour un œuf de la salle 1, et ce qui change à chaque salle suivante.
-Pets.ODDS = { 60, 28, 10, 2 }
-Pets.ODDS_PER_ROOM = { -3, 1.5, 1, 0.5 }
+-- Chances de chaque rang (sur 100), les mêmes dans toutes les salles : commun 45 %, peu commun 30 %, rare 14 %,
+-- épique 7 %, légendaire 3,5 %, super rare 0,5 %.
+Pets.ODDS = { 45, 30, 14, 7, 3.5, 0.5 }
 
--- luck : le bonus de chance de la salle (1 = aucun). Il multiplie les chances de tout ce qui n'est pas commun.
-function Pets.odds(room: number, luck: number?): { number }
+-- luck : la chance du ticket (1 = aucune). Elle multiplie les chances de tout ce qui n'est pas commun.
+function Pets.odds(_room: number, luck: number?): { number }
 	local odds = {}
 	for i, base in Pets.ODDS do
-		odds[i] = math.max(1, base + Pets.ODDS_PER_ROOM[i] * (room - 1)) * if i > 1 then (luck or 1) else 1
+		odds[i] = base * if i > 1 then (luck or 1) else 1
 	end
 	return odds
 end
 
--- Tire une rareté (1 à 4) pour un œuf de cette salle.
+-- Tire un rang (1 à 6) pour un œuf de cette salle.
 function Pets.roll(random: Random, room: number, luck: number?): number
 	local odds = Pets.odds(room, luck)
 	local total = 0
@@ -371,7 +418,8 @@ function gradient(rarity: number): any
 	return if ok then content else nil
 end
 
--- Construit le modèle d'un animal (ancré, sans collision). Sa pièce principale s'appelle « Body ».
+-- Construit le modèle d'un animal (ancré, sans collision). Sa pièce principale s'appelle « Body » (« RigRoot »
+-- pour un animal des collections).
 -- display : pour l'enclos (tous les animaux à la même grosseur, sans lumière).
 function Pets.build(name: string, rarity: number, display: boolean?): Model
 	local model = PetModels.build(name)
@@ -381,7 +429,8 @@ function Pets.build(name: string, rarity: number, display: boolean?): Model
 		local builder = BUILDERS[name] or BUILDERS.Rock
 		builder(model)
 	end
-	local body = model:FindFirstChild("Body") :: BasePart
+	local starter = model:GetAttribute("Starter") == true
+	local body = (model:FindFirstChild("Body") or model:FindFirstChild("RigRoot")) :: BasePart
 	model.PrimaryPart = body
 
 	local info = Pets.RARITIES[math.clamp(rarity, 1, #Pets.RARITIES)]
@@ -400,14 +449,14 @@ function Pets.build(name: string, rarity: number, display: boolean?): Model
 				part.TextureContent = content
 				part.Color = Color3.new(1, 1, 1)
 				part.Material = Enum.Material.SmoothPlastic
-			elseif part:IsA("BasePart") and part ~= body and not KEEP_COLOR[part.Name] then
+			elseif part:IsA("BasePart") and part ~= body and not KEEP_COLOR[part.Name] and not starter then
 				count += 1
 				part.Color = info.palette[count % #info.palette + 1]
 			end
 		end
 		-- 2) Si le dégradé n'a pas pu être peint : un voile de la couleur de la rareté à la place. (Roblox n'affiche
 		--    qu'une trentaine de voiles à la fois : pas dans les enclos.)
-		if not content and not display then
+		if not content and not display and not starter then
 			local tint = Instance.new("Highlight")
 			tint.Name = "Tint"
 			tint.FillTransparency = 1 - info.tint
@@ -425,7 +474,7 @@ function Pets.build(name: string, rarity: number, display: boolean?): Model
 		end
 		model:SetAttribute("Rarity", rarity)
 	end
-	if rarity >= 4 then
+	if rarity >= 5 then
 		local sparkles = Instance.new("Sparkles")
 		sparkles.Parent = body
 	end

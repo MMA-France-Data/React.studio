@@ -5,11 +5,75 @@
     "ReplicatedStorage": {
       "PetVisuals": {
         "$className": "Folder",
-        "Dragon": { "$path": "assets/pets/Dragon.rbxmx" },
-        "Rock": { "$path": "assets/pets/Rock.rbxmx" },
-        "Rabbit": { "$path": "assets/pets/Rabbit.rbxmx" },
-        "Golem": { "$path": "assets/pets/Golem.rbxmx" },
-        "Owl": { "$path": "assets/pets/Owl.rbxmx" }
+        "Dragon": {
+          "$path": "assets/pets/Dragon.rbxmx"
+        },
+        "Rock": {
+          "$path": "assets/pets/Rock.rbxmx"
+        },
+        "Rabbit": {
+          "$path": "assets/pets/Rabbit.rbxmx"
+        },
+        "Golem": {
+          "$path": "assets/pets/Golem.rbxmx"
+        },
+        "Owl": {
+          "$path": "assets/pets/Owl.rbxmx"
+        },
+        "Bunny": {
+          "$path": "assets/collections/salle-01/models/Rabbit.rbxmx"
+        },
+        "Turtle": {
+          "$path": "assets/collections/salle-01/models/Turtle.rbxmx"
+        },
+        "Cat": {
+          "$path": "assets/collections/salle-01/models/Cat.rbxmx"
+        },
+        "Dog": {
+          "$path": "assets/collections/salle-01/models/Dog.rbxmx"
+        },
+        "Owlet": {
+          "$path": "assets/collections/salle-01/models/Owl.rbxmx"
+        },
+        "Fox": {
+          "$path": "assets/collections/salle-01/models/Fox.rbxmx"
+        },
+        "Hedgehog": {
+          "$path": "assets/collections/salle-02/models/Hedgehog.rbxmx"
+        },
+        "Squirrel": {
+          "$path": "assets/collections/salle-02/models/Squirrel.rbxmx"
+        },
+        "Skunk": {
+          "$path": "assets/collections/salle-02/models/Skunk.rbxmx"
+        },
+        "Beaver": {
+          "$path": "assets/collections/salle-02/models/Beaver.rbxmx"
+        },
+        "Raccoon": {
+          "$path": "assets/collections/salle-02/models/Raccoon.rbxmx"
+        },
+        "Badger": {
+          "$path": "assets/collections/salle-02/models/Badger.rbxmx"
+        },
+        "Duck": {
+          "$path": "assets/collections/salle-03/models/Duck.rbxmx"
+        },
+        "Rooster": {
+          "$path": "assets/collections/salle-03/models/Rooster.rbxmx"
+        },
+        "Pig": {
+          "$path": "assets/collections/salle-03/models/Pig.rbxmx"
+        },
+        "Sheep": {
+          "$path": "assets/collections/salle-03/models/Sheep.rbxmx"
+        },
+        "Goat": {
+          "$path": "assets/collections/salle-03/models/Goat.rbxmx"
+        },
+        "Horse": {
+          "$path": "assets/collections/salle-03/models/Horse.rbxmx"
+        }
       },
       "Shared": {
         "$path": "src/shared"
@@ -23,11 +87,21 @@
     "ServerStorage": {
       "LibraryVisuals": {
         "$className": "Folder",
-        "BenchPress": { "$path": "assets/library/BenchPress.rbxmx" },
-        "Treadmill": { "$path": "assets/library/Treadmill.rbxmx" },
-        "Trampoline": { "$path": "assets/library/Trampoline.rbxmx" },
-        "Meteor": { "$path": "assets/library/Meteor.rbxmx" },
-        "Rock": { "$path": "assets/library/Rock.rbxmx" }
+        "BenchPress": {
+          "$path": "assets/library/BenchPress.rbxmx"
+        },
+        "Treadmill": {
+          "$path": "assets/library/Treadmill.rbxmx"
+        },
+        "Trampoline": {
+          "$path": "assets/library/Trampoline.rbxmx"
+        },
+        "Meteor": {
+          "$path": "assets/library/Meteor.rbxmx"
+        },
+        "Rock": {
+          "$path": "assets/library/Rock.rbxmx"
+        }
       }
     },
     "StarterPlayer": {
