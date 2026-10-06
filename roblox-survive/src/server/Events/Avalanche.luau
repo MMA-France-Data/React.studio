@@ -205,7 +205,12 @@ function Avalanche.new(ctx, params)
 					game.leaks += 1
 					publish(entry.player, game)
 					ctx.notify(entry.player, "rockLeak", game.leaks)
-					ctx.damage(entry.player, LEAK_DAMAGE)
+					-- Le troisième rocher passé tue, même si le joueur a regagné de la vie entre-temps.
+					if game.leaks >= 3 then
+						ctx.kill(entry.player)
+					else
+						ctx.damage(entry.player, LEAK_DAMAGE)
+					end
 				end
 			end
 			local rocks = {}

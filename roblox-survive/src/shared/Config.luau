@@ -204,13 +204,8 @@ Config.ROOMS = {
 	-- (5 minutes au premier essai ; il a demande 3 minutes : "qu'on ecoeure pas les gens".)
 	-- Son idée : à ce moment le joueur améliore ses trois machines au niveau 2 (500 pièces chacune).
 	{ egg = "Rabbit", need = { Force = 2 }, points = { Force = 7200 }, events = { "Avalanche" }, Avalanche = { points = 7200 } },
-	{
-		egg = "Golem",
-		need = { Jump = 1, Force = 1 },
-		events = { "Lava", "Ceiling" },
-		Lava = { segments = 3, jump = 1, finish = 28 },
-		Ceiling = { at = 30, level = 1 },
-	},
+	-- Salle 4 : 10 000 de vitesse = 4 minutes de tapis avec la machine niveau 2 (son chiffre).
+	{ egg = "Golem", need = { Speed = 2 }, points = { Speed = 10000 }, events = { "Valves" }, Valves = { points = 10000 } },
 	{
 		egg = "Dragon",
 		need = { Jump = 2 },

@@ -19,6 +19,7 @@ const scenarios = {
 	jump: ['JumpServer.luau', 'JumpClient.luau'],
 	hunter: ['HunterServer.luau', 'HunterClient.luau'],
 	rocks: ['RocksServer.luau', 'RocksClient.luau'],
+	valves: ['ValvesServer.luau', 'ValvesClient.luau'],
 };
 if (!scenarios[mode]) {
 	console.error(`Test inconnu : ${mode} (attendu : ${Object.keys(scenarios).join(', ')})`);

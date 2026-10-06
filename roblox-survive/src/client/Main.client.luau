@@ -248,6 +248,10 @@ ReplicatedStorage:WaitForChild("Notify").OnClientEvent:Connect(function(key: str
 		showToast(tr("rockLeak", a), RED)
 	elseif key == "rockWeak" then
 		showToast(tr("rockWeak"), RED)
+	elseif key == "valveBurst" then
+		showToast(tr("valveBurst", a), RED)
+	elseif key == "valveWeak" then
+		showToast(tr("valveWeak"), RED)
 
 	elseif key == "maxed" then
 		showToast(tr("max"), Color3.fromRGB(255, 221, 51))
@@ -446,6 +450,12 @@ RunService.RenderStepped:Connect(function()
 		if player:GetAttribute("BombCut") == index then
 			bannerHint.Text = tr("wireCut")
 			bannerHint.TextColor3 = Color3.fromRGB(110, 255, 80)
+		end
+		-- Salle des vannes : les vannes fermées, et celles qui ont explosé (3 = mort).
+		if folder:GetAttribute("Valves") then
+			local bursts = player:GetAttribute("ValveBursts") or 0
+			bannerHint.Text = tr("valveProgress", player:GetAttribute("ValveClosed") or 0, bursts)
+			bannerHint.TextColor3 = if bursts >= 2 then Color3.fromRGB(255, 90, 90) elseif bursts == 1 then Color3.fromRGB(255, 200, 40) else Color3.new(1, 1, 1)
 		end
 		-- Salle de l'avalanche : les rochers cassés, et ceux qui sont passés (3 = mort).
 		if folder:GetAttribute("Avalanche") then

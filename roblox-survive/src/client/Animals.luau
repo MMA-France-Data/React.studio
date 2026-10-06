@@ -500,6 +500,7 @@ return function(env)
 	local exits = {} -- [bloc] = true : son « ! » est posé
 	local hidden = {} -- [personnage] = true : caché pendant la chasse
 	local boulders = {} -- [bloc] = { ball, spin } : les rochers de l'avalanche
+	local valveGauges = {} -- [vanne] = { gui, fill } : la jauge dessinée au-dessus de chaque vanne
 	local function setHidden(character: Model, hide: boolean)
 		for _, item in character:GetDescendants() do
 			if item:IsA("BasePart") or item:IsA("Decal") then
@@ -622,6 +623,48 @@ return function(env)
 			item.ball.Size = Vector3.new(size, size, size)
 			item.ball.Color = if hp < 0.99 then Color3.fromRGB(230, 130, 60) else Color3.fromRGB(110, 104, 106)
 			item.ball.CFrame = CFrame.new(part.Position.X, size / 2, part.Position.Z) * CFrame.Angles(-item.spin, 0, 0)
+		end
+		-- LES VANNES : une grosse jauge au-dessus de chaque vanne de la salle du joueur, avec SA pression à lui
+		-- (attribut « Valves » du joueur : quatre nombres de 0 à 1). Verte, puis jaune, puis rouge qui clignote.
+		local mine = player:GetAttribute("Valves")
+		local values = {}
+		for value in string.gmatch(mine or "", "[%d%.]+") do
+			table.insert(values, tonumber(value))
+		end
+		local myRoom = workspace:FindFirstChild("Rooms") and workspace.Rooms:FindFirstChild("Room" .. (player:GetAttribute("Room") or 0))
+		for _, part in CollectionService:GetTagged("Valve") do
+			local gauge = valveGauges[part]
+			if not gauge then
+				local gui = Instance.new("BillboardGui")
+				gui.Name = "Gauge"
+				gui.Size = UDim2.fromScale(9, 2.2)
+				gui.StudsOffsetWorldSpace = Vector3.new(0, 9, 0)
+				gui.AlwaysOnTop = true
+				gui.MaxDistance = 220
+				gui.AutoLocalize = false
+				gui.Parent = part
+				local back = Instance.new("Frame")
+				back.Size = UDim2.fromScale(1, 1)
+				back.BackgroundColor3 = Color3.fromRGB(30, 32, 44)
+				back.BorderSizePixel = 0
+				back.Parent = gui
+				Instance.new("UICorner", back).CornerRadius = UDim.new(0.3, 0)
+				local fill = Instance.new("Frame")
+				fill.Size = UDim2.fromScale(0, 1)
+				fill.BorderSizePixel = 0
+				fill.Parent = back
+				Instance.new("UICorner", fill).CornerRadius = UDim.new(0.3, 0)
+				gauge = { gui = gui, fill = fill }
+				valveGauges[part] = gauge
+			end
+			local value = values[part:GetAttribute("Index") or 0]
+			local shown = value ~= nil and myRoom ~= nil and part:IsDescendantOf(myRoom)
+			gauge.gui.Enabled = shown
+			if shown then
+				gauge.fill.Size = UDim2.fromScale(math.clamp(value, 0, 1), 1)
+				local blink = value > 0.8 and math.floor(os.clock() * 6) % 2 == 0
+				gauge.fill.BackgroundColor3 = if blink then Color3.new(1, 1, 1) elseif value > 0.8 then Color3.fromRGB(255, 50, 50) elseif value > 0.5 then Color3.fromRGB(255, 200, 40) else Color3.fromRGB(70, 210, 90)
+			end
 		end
 		-- Dans une salle où chacun joue seul (prédateur, avalanche), on ne voit pas les autres joueurs de la salle.
 		local room = player:GetAttribute("Room") or 0

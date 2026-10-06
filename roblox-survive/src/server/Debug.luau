@@ -67,6 +67,7 @@ return function(_world)
 				rush = room.rush,
 				hunter = room.hunter,
 				avalanche = room.avalanche,
+				valves = room.valves,
 				chaser = room.chaser,
 				melodyPads = (function()
 					local list = {}

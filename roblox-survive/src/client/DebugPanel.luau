@@ -26,7 +26,11 @@ end
 local function pointsAt(tier: number): number
 	local low = math.floor(tier)
 	local from, to = Config.pointsFor(low), Config.pointsFor(math.min(low + 1, Config.MAX_LEVEL))
-	return math.floor(from + (to - from) * (tier - low) + 0.5)
+	if low < 1 then
+		return math.floor(to * tier + 0.5)
+	end
+	-- Entre deux paliers, on avance en multipliant (comme Config.levelOf).
+	return math.floor(from * (to / from) ^ (tier - low) + 0.5)
 end
 
 return function()

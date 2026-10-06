@@ -83,6 +83,11 @@ Texts.fr = {
 	rockLeak = "Un rocher est passé !  %d/3",
 	rockWeak = "Pas assez de force pour casser ce rocher !",
 	punch = "FRAPPE !",
+	Valves = "LES VANNES !",
+	hintValves = "La pression monte dans les 4 vannes : cours (Maj) les fermer avant qu'elles explosent !",
+	valveProgress = "Vannes fermées : %d   •   explosions : %d/3   •   cours vers la jauge la plus rouge !",
+	valveBurst = "Une vanne a explosé !  %d/3",
+	valveWeak = "Pas assez de vitesse pour fermer cette vanne !",
 	hintChase = "Cours sans t'arrêter, en grands cercles ! (Maj ou COURIR)",
 	sprint = "COURIR",
 	Uncommon = "PEU COMMUN",
@@ -238,6 +243,11 @@ Texts.en = {
 	rockLeak = "A rock got through!  %d/3",
 	rockWeak = "Not enough force to break this rock!",
 	punch = "PUNCH!",
+	Valves = "THE VALVES!",
+	hintValves = "Pressure rises in the 4 valves: run (Shift) to close them before they blow!",
+	valveProgress = "Valves closed: %d   •   blasts: %d/3   •   run to the reddest gauge!",
+	valveBurst = "A valve blew up!  %d/3",
+	valveWeak = "Not enough speed to close this valve!",
 	hintChase = "Keep running, in wide circles! (Shift or RUN)",
 	sprint = "RUN",
 	Uncommon = "UNCOMMON",
@@ -312,7 +322,7 @@ Texts.en = {
 	duplicate = "%s %s already found: +%s coins",
 }
 
-Texts.ICONS = { Bomb = "💣", Lava = "🌋", Meteors = "☄️", Explosions = "💥", Ceiling = "💪", Melody = "🎵", Chase = "👹", Hunter = "🐺", Avalanche = "🪨" }
+Texts.ICONS = { Bomb = "💣", Lava = "🌋", Meteors = "☄️", Explosions = "💥", Ceiling = "💪", Melody = "🎵", Chase = "👹", Hunter = "🐺", Avalanche = "🪨", Valves = "🌋" }
 
 -- 1 500 -> « 1 500 » (français) ou « 1,500 » (anglais).
 function Texts.number(lang: string, value: number): string
