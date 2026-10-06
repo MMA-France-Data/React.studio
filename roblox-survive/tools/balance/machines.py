@@ -29,9 +29,10 @@ MEAN_VALUE = 109  # valeur cachee moyenne d'un oeuf de la salle 1 (chances x pal
 CURATED = 2.2  # un joueur vend ses mauvais familiers : son enclos vaut environ 2,2 fois la moyenne
 SHARE = 0.2  # part de ses pieces qui va dans UNE machine (trois machines, et l'enclos a agrandir)
 
-# Points par pas : niveaux 4, 6, 8, 10 = ceux des paliers de stat 2, 3, 4, 5 (Config.POINTS : x 20 par palier,
-# donc x 4,47 par niveau), environ 3 minutes d'entrainement par palier avec eux. Apres le niveau 10 : x 1,5.
-TIER2_GAIN = 7
+# Points par pas : la machine niveau 2 passe de +1 a +20 (demande du joueur : "passer de 1 a +20", pour que la
+# salle 3 demande d'ameliorer ses trois machines et environ 5 minutes d'entrainement). Ensuite x 4,47 par niveau
+# jusqu'au niveau 10 (deux niveaux = x 20, comme les paliers de Config.POINTS), puis x 1,5.
+LEVEL2_GAIN = 20
 EARLY_GAIN = 4.47
 LATE_GAIN = 1.5
 
@@ -84,8 +85,10 @@ def prices():
 
 
 def gain(level):
+    if level <= 1:
+        return 1
     if level <= FIRST_ROOMS:
-        return nice(max(level, TIER2_GAIN * EARLY_GAIN ** (level - 4)))
+        return nice(LEVEL2_GAIN * EARLY_GAIN ** (level - 2))
     return nice(gain(FIRST_ROOMS) * LATE_GAIN ** (level - FIRST_ROOMS))
 
 

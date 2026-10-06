@@ -18,6 +18,7 @@ const scenarios = {
 	game: ['GameServer.luau', 'GameClient.luau'],
 	jump: ['JumpServer.luau', 'JumpClient.luau'],
 	hunter: ['HunterServer.luau', 'HunterClient.luau'],
+	rocks: ['RocksServer.luau', 'RocksClient.luau'],
 };
 if (!scenarios[mode]) {
 	console.error(`Test inconnu : ${mode} (attendu : ${Object.keys(scenarios).join(', ')})`);

@@ -12,8 +12,8 @@ local Config = {}
 -- journée de jeu (5 heures) par nouvelle salle car il en sort une par jour ; « aucun joueur ne doit avoir fini le
 -- jeu » ; « au moins 200 heures pour la machine max »).
 --   Niveaux 1 à 10  : les 10 premières salles. Le niveau N se paie avec les familiers de la salle N - 1 (ils valent
---                     10 fois plus à chaque salle, Pets.ROOM_FACTOR). Niveaux 4, 6, 8, 10 : ceux qu'il faut pour
---                     les paliers de stat 2, 3, 4, 5 (environ 3 minutes d'entraînement avec eux).
+--                     10 fois plus à chaque salle, Pets.ROOM_FACTOR). La machine niveau 2 donne +20 par pas au
+--                     lieu de +1 (son chiffre), puis x 4,47 par niveau.
 --   Niveaux 11 à 50 : un par salle à venir, une journée de jeu chacun (le niveau 50 vers 200 heures). Tant que la
 --                     salle suivante n'est pas sortie, le revenu ne monte plus : chaque niveau demande alors deux
 --                     fois plus de temps que le précédent (5 h, 10 h, 20 h, 40 h...), il reste toujours un but.
@@ -22,7 +22,7 @@ Config.MACHINES = { "Speed", "Jump", "Force" }
 -- Prix pour passer la machine du niveau 1 au 2, du 2 au 3, etc.
 Config.PRICES = { 500, 8100, 140000, 2000000, 27000000, 350000000, 4500000000, 72000000000, 970000000000, 87000000000000, 180000000000000, 370000000000000, 750000000000000, 1500000000000000, 3100000000000000, 6400000000000000, 13000000000000000, 27000000000000000, 55000000000000000, 110000000000000000, 230000000000000000, 470000000000000000, 950000000000000000, 1900000000000000000, 3900000000000000000, 8000000000000000000, 16000000000000000000, 33000000000000000000, 68000000000000000000, 140000000000000000000, 280000000000000000000, 570000000000000000000, 1200000000000000000000, 2300000000000000000000, 4800000000000000000000, 9700000000000000000000, 20000000000000000000000, 40000000000000000000000, 81000000000000000000000, 160000000000000000000000, 330000000000000000000000, 680000000000000000000000, 1400000000000000000000000, 2800000000000000000000000, 5600000000000000000000000, 11000000000000000000000000, 23000000000000000000000000, 47000000000000000000000000, 95000000000000000000000000 }
 -- Points gagnés à chaque pas, par niveau de machine.
-Config.GAINS = { 1, 2, 3, 7, 31, 140, 630, 2800, 12000, 56000, 84000, 130000, 190000, 280000, 430000, 640000, 960000, 1400000, 2200000, 3200000, 4800000, 7300000, 11000000, 16000000, 25000000, 37000000, 55000000, 83000000, 120000000, 190000000, 280000000, 420000000, 630000000, 940000000, 1400000000, 2100000000, 3200000000, 4800000000, 7200000000, 11000000000, 16000000000, 24000000000, 36000000000, 54000000000, 82000000000, 120000000000, 180000000000, 280000000000, 410000000000, 620000000000 }
+Config.GAINS = { 1, 20, 89, 400, 1800, 8000, 36000, 160000, 710000, 3200000, 4800000, 7200000, 11000000, 16000000, 24000000, 36000000, 55000000, 82000000, 120000000, 180000000, 280000000, 420000000, 620000000, 930000000, 1400000000, 2100000000, 3200000000, 4700000000, 7100000000, 11000000000, 16000000000, 24000000000, 36000000000, 54000000000, 81000000000, 120000000000, 180000000000, 270000000000, 410000000000, 610000000000, 920000000000, 1400000000000, 2100000000000, 3100000000000, 4700000000000, 7000000000000, 10000000000000, 16000000000000, 24000000000000, 35000000000000 }
 Config.MACHINE_MAX = #Config.GAINS
 Config.STEP_SECONDS = 0.5
 
@@ -124,7 +124,10 @@ end
 -- 60 points 18,5 (rattrapé aussi), à 120 points 21 (il le distance), à 2 500 points 26 (il le sème largement).
 -- Pourquoi 8 % : un vrai joueur hésite, se cogne, lâche la touche un instant. À 3 %, un joueur au bon palier qui
 -- perdait 0,3 seconde toutes les 6 secondes se faisait rattraper (mesuré).
-Config.HUNTER_RATIO = 0.92
+-- 100 % : le choix du joueur (« loup met 100% », après avoir trouvé qu'à 150 points il le semait trop facilement à
+-- 92 %). Le prédateur court donc EXACTEMENT à la vitesse du palier demandé : au palier pile, on garde son avance
+-- tant qu'on ne s'arrête pas ; chaque hésitation le rapproche.
+Config.HUNTER_RATIO = 1
 -- (Dans Studio, le panneau de réglages peut changer ce rapport : attribut « HunterRatio » du Workspace.)
 function Config.hunterSpeed(level: number): number
 	return Config.walkSpeed(level) * (workspace:GetAttribute("HunterRatio") or Config.HUNTER_RATIO)
@@ -194,8 +197,13 @@ Config.DAMAGE = {
 --   salle 10      : saut palier 5 (20 000 000) et force palier 4.
 Config.ROOMS = {
 	{ egg = "Dragon", need = {}, events = { "Bomb" }, Bomb = { segments = 3, jump = 0, fuse = 60, hold = 3 } },
-	{ egg = "Rock", need = { Speed = 1 }, events = { "Hunter" }, Hunter = { level = 1 } },
-	{ egg = "Rabbit", need = {}, events = { "Explosions" }, Explosions = { every = 4.5, warn = 2.2, safe = 6 } },
+	-- (points : ce que la salle demande, en POINTS de stat, quand ce n'est pas un palier rond : c'est ce nombre qui
+	-- est écrit sur son panneau. Demandes du joueur : 150 de vitesse pour la salle 2.)
+	{ egg = "Rock", need = { Speed = 1 }, points = { Speed = 150 }, events = { "Hunter" }, Hunter = { level = Config.levelOf(150) } },
+	-- Salle 3 : 7 200 de force = 3 minutes de banc avec la machine niveau 2 (20 points par pas, 2 pas par seconde).
+	-- (5 minutes au premier essai ; il a demande 3 minutes : "qu'on ecoeure pas les gens".)
+	-- Son idée : à ce moment le joueur améliore ses trois machines au niveau 2 (500 pièces chacune).
+	{ egg = "Rabbit", need = { Force = 2 }, points = { Force = 7200 }, events = { "Avalanche" }, Avalanche = { points = 7200 } },
 	{
 		egg = "Golem",
 		need = { Jump = 1, Force = 1 },

@@ -77,6 +77,12 @@ Texts.fr = {
 	Hunter = "LE PRÉDATEUR !",
 	hintHunter = "Un loup te chasse autour du bloc : cours (Maj) sans t'arrêter, et ne le laisse pas te rattraper !",
 	hunterName = "PRÉDATEUR",
+	Avalanche = "L'AVALANCHE !",
+	hintAvalanche = "Casse les rochers à coups de poing (E) avant la ligne rouge ! Change de couloir.",
+	rockProgress = "Rochers cassés : %d   •   passés : %d/3   •   frappe avec E !",
+	rockLeak = "Un rocher est passé !  %d/3",
+	rockWeak = "Pas assez de force pour casser ce rocher !",
+	punch = "FRAPPE !",
 	hintChase = "Cours sans t'arrêter, en grands cercles ! (Maj ou COURIR)",
 	sprint = "COURIR",
 	Uncommon = "PEU COMMUN",
@@ -226,6 +232,12 @@ Texts.en = {
 	Hunter = "THE PREDATOR!",
 	hintHunter = "A wolf hunts you around the block: keep running (Shift), don't let it catch you!",
 	hunterName = "PREDATOR",
+	Avalanche = "THE AVALANCHE!",
+	hintAvalanche = "Punch the rocks (E) before the red line! Switch lanes.",
+	rockProgress = "Rocks broken: %d   •   passed: %d/3   •   punch with E!",
+	rockLeak = "A rock got through!  %d/3",
+	rockWeak = "Not enough force to break this rock!",
+	punch = "PUNCH!",
 	hintChase = "Keep running, in wide circles! (Shift or RUN)",
 	sprint = "RUN",
 	Uncommon = "UNCOMMON",
@@ -300,7 +312,7 @@ Texts.en = {
 	duplicate = "%s %s already found: +%s coins",
 }
 
-Texts.ICONS = { Bomb = "💣", Lava = "🌋", Meteors = "☄️", Explosions = "💥", Ceiling = "💪", Melody = "🎵", Chase = "👹", Hunter = "🐺" }
+Texts.ICONS = { Bomb = "💣", Lava = "🌋", Meteors = "☄️", Explosions = "💥", Ceiling = "💪", Melody = "🎵", Chase = "👹", Hunter = "🐺", Avalanche = "🪨" }
 
 -- 1 500 -> « 1 500 » (français) ou « 1,500 » (anglais).
 function Texts.number(lang: string, value: number): string

@@ -56,8 +56,8 @@ local function fill(label: Instance)
 		local text = tr("room", parts[2]) .. "  " .. table.concat(icons, " ")
 		-- 2e ligne : les points de stat conseillés pour réussir la salle (« Vitesse 500 recommandé »).
 		local needs = {}
-		for name, level in string.gmatch(parts[4] or "", "(%a+):(%d+)") do
-			table.insert(needs, tr("stat" .. name) .. " " .. compact(Config.pointsFor(tonumber(level))))
+		for name, points in string.gmatch(parts[4] or "", "(%a+):(%d+)") do
+			table.insert(needs, tr("stat" .. name) .. " " .. compact(tonumber(points)))
 		end
 		if #needs > 0 then
 			text ..= "\n" .. tr("recommended", table.concat(needs, ", "))
@@ -183,7 +183,7 @@ gaugeLabel.ZIndex = 2
 local pushButton = Instance.new("TextButton")
 pushButton.Name = "Push"
 pushButton.AnchorPoint = Vector2.new(1, 0.5)
-pushButton.Position = UDim2.new(1, -24, 0.42, 0)
+pushButton.Position = UDim2.new(1, -112, 0.42, 0) -- a gauche des boutons oeuf et patte
 pushButton.Size = UDim2.fromOffset(150, 150)
 pushButton.BackgroundColor3 = Color3.fromRGB(255, 200, 40)
 pushButton.Text = ""
@@ -244,6 +244,10 @@ ReplicatedStorage:WaitForChild("Notify").OnClientEvent:Connect(function(key: str
 		showToast(tr("win", a))
 	elseif key == "wireCut" then
 		showToast(tr("wireCut"))
+	elseif key == "rockLeak" then
+		showToast(tr("rockLeak", a), RED)
+	elseif key == "rockWeak" then
+		showToast(tr("rockWeak"), RED)
 
 	elseif key == "maxed" then
 		showToast(tr("max"), Color3.fromRGB(255, 221, 51))
@@ -422,9 +426,9 @@ RunService.RenderStepped:Connect(function()
 		bannerHint.Text = table.concat(hints, "  •  ")
 		-- Il manque un niveau au joueur pour cette salle : on le lui dit tout de suite, en rouge.
 		local missing = {}
-		for name, level in string.gmatch(folder:GetAttribute("Needs") or "", "(%a+):(%d+)") do
-			if (player:GetAttribute(name) or 0) < tonumber(level) then
-				table.insert(missing, tr("stat" .. name) .. " " .. compact(Config.pointsFor(tonumber(level))))
+		for name, points in string.gmatch(folder:GetAttribute("Needs") or "", "(%a+):(%d+)") do
+			if (player:GetAttribute(name .. "Points") or 0) < tonumber(points) then
+				table.insert(missing, tr("stat" .. name) .. " " .. compact(tonumber(points)))
 			end
 		end
 		bannerHint.TextColor3 = if #missing > 0 then Color3.fromRGB(255, 90, 90) else Color3.new(1, 1, 1)
@@ -443,6 +447,12 @@ RunService.RenderStepped:Connect(function()
 			bannerHint.Text = tr("wireCut")
 			bannerHint.TextColor3 = Color3.fromRGB(110, 255, 80)
 		end
+		-- Salle de l'avalanche : les rochers cassés, et ceux qui sont passés (3 = mort).
+		if folder:GetAttribute("Avalanche") then
+			local leaks = player:GetAttribute("RockLeaks") or 0
+			bannerHint.Text = tr("rockProgress", player:GetAttribute("RockBroken") or 0, leaks)
+			bannerHint.TextColor3 = if leaks >= 2 then Color3.fromRGB(255, 90, 90) elseif leaks == 1 then Color3.fromRGB(255, 200, 40) else Color3.new(1, 1, 1)
+		end
 		-- Salle de la mélodie : où on en est.
 		local phase, round, rounds, index, length = string.match(folder:GetAttribute("Melody") or "", "^(%a+)|(%d+)|(%d+)|(%d+)|(%d+)$")
 		if phase == "Play" then
@@ -459,7 +469,9 @@ RunService.RenderStepped:Connect(function()
 
 	local need = folder:GetAttribute("Need") or 0
 	gauge.Visible = state == "Event" and need > 0
-	pushButton.Visible = gauge.Visible and folder:GetAttribute("Pushing") == true
+	local avalanche = state == "Event" and folder:GetAttribute("Avalanche") == true
+	pushButton.Visible = (gauge.Visible and folder:GetAttribute("Pushing") == true) or avalanche
+	pushButton.Label.Text = if avalanche then tr("punch") else tr("push")
 	if gauge.Visible then
 		local left = math.clamp(folder:GetAttribute("Ceiling") or 1, 0, 1)
 		gaugeFill.Size = UDim2.fromScale(left, 1)

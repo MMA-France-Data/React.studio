@@ -24,7 +24,7 @@ local Hunter = {}
 local BLOCK_X, BLOCK_Z, BLOCK_HEIGHT = 17, 22, 26
 local LANE = 6 -- au début de la manche, le prédateur arrive par le milieu du couloir (à cette distance du bloc)
 local REACH = 4 -- distance (vue d'en haut) à laquelle il attrape son joueur
-local START = 14 -- au début, il apparaît à cette distance de son joueur, le long du circuit
+local START = 30 -- au début, il apparaît à cette distance de son joueur, le long du circuit
 local ROAR = 0.8 -- secondes au début pendant lesquelles il rugit sans bouger
 local CRUMB = 1.5 -- une marque de la trace du joueur tous les ... studs
 -- Un joueur bien plus rapide que lui finirait par faire un tour d'avance et lui rentrer dedans par derriere : au-dela
@@ -162,6 +162,7 @@ function Hunter.new(ctx, params)
 			setGroup(entry.player.Character, GROUP)
 		end
 		ctx.room.folder:SetAttribute("Hunter", true)
+		ctx.room.folder:SetAttribute("Solo", true)
 	end
 
 	function self.update(dt: number, _elapsed: number)
@@ -235,6 +236,7 @@ function Hunter.new(ctx, params)
 		end
 		ctx.room.hunter = nil
 		ctx.room.folder:SetAttribute("Hunter", nil)
+		ctx.room.folder:SetAttribute("Solo", nil)
 	end
 
 	return self

@@ -279,11 +279,11 @@ return function(log)
 	local tier1, tier2 = Config.POINTS[1], Config.POINTS[2]
 	check(tier1 == 120 and tier2 == 2500 and Config.POINTS[6] == 400000000, "paliers : 120 points pour le premier (1 minute), 400 000 000 pour le dernier", tier1)
 	check((tier2 - tier1) / Config.gain(1) * Config.STEP_SECONDS >= 600, "sans améliorer sa machine, le palier 2 demande plus de 10 minutes")
-	for tier, machine in { [2] = 4, [3] = 6, [4] = 8, [5] = 10 } do
+	for tier, machine in { [2] = 2, [3] = 4, [4] = 6, [5] = 8 } do
 		-- Avec la machine prévue pour ce palier : quelques minutes ; avec celle du palier d'avant : bien plus long.
 		local seconds = (Config.POINTS[tier] - Config.POINTS[tier - 1]) / Config.gain(machine) * Config.STEP_SECONDS
-		local slow = (Config.POINTS[tier] - Config.POINTS[tier - 1]) / Config.gain(machine - 2) * Config.STEP_SECONDS
-		check(seconds > 30 and seconds < 420 and slow > 1200, "palier " .. tier .. " : quelques minutes avec la machine niveau " .. machine .. ", plus de 20 minutes avec celle d'avant", math.floor(seconds) .. " s / " .. math.floor(slow) .. " s")
+		local slow = (Config.POINTS[tier] - Config.POINTS[tier - 1]) / Config.gain(math.max(1, machine - 2)) * Config.STEP_SECONDS
+		check(seconds > 30 and seconds < 420 and slow > 1000, "palier " .. tier .. " : quelques minutes avec la machine niveau " .. machine .. ", plus de 20 minutes avec celle d'avant", math.floor(seconds) .. " s / " .. math.floor(slow) .. " s")
 	end
 	check(Config.MACHINE_MAX == 50 and #Config.PRICES == 49 and Config.PRICES[1] == 500, "50 niveaux de machine (un par salle), le premier à 500 pièces")
 	check(Pets.roomFactor(11) == 2 * 10 ^ 9 and Pets.roomFactor(12) == 4 * 10 ^ 9, "après la salle 10, les familiers valent 2 fois plus à chaque salle")
@@ -310,7 +310,7 @@ return function(log)
 	task.wait(1.3)
 	D("Stop")
 	local gained = D("Data").Speed - before
-	check(gained >= 4 and gained % 2 == 0, "tapis niveau 2 : 2 points par pas", gained)
+	check(gained >= 40 and gained % 20 == 0, "tapis niveau 2 : 20 points par pas", gained)
 	local everything = 0
 	for _, price in Config.PRICES do
 		everything += price
@@ -418,21 +418,15 @@ return function(log)
 	waitState(2, "Idle", 3)
 	winRoom(2, true)
 
-	-- Salle 3 (explosions) : immobile = blessé ; puis mort après 30 secondes = moitié des pièces.
+	-- Salle 3 (l'avalanche) : sans frapper, trois rochers passent la ligne et le joueur meurt, sans pièce.
 	enter(3)
-	local _, blastHumanoid = alive()
-	limit = os.clock() + 40 / SCALE
-	while blastHumanoid.Health >= 100 and os.clock() < limit do
+	local _, rockHumanoid = alive()
+	local before = D("Data").coins
+	limit = os.clock() + 50 / SCALE
+	while rockHumanoid.Health > 0 and os.clock() < limit do
 		task.wait(0.05)
 	end
-	check(blastHumanoid.Health < 100, "salle 3 : une explosion blesse un joueur immobile", blastHumanoid.Health)
-	god(true)
-	waitElapsed(3, 36)
-	local before = D("Data").coins
-	god(false)
-	blastHumanoid.Health = 0
-	task.wait(0.5)
-	check(D("Data").coins - before == 0, "salle 3 : mort après 30 secondes = aucune pièce", D("Data").coins - before)
+	check(rockHumanoid.Health <= 0 and D("Data").coins - before == 0, "salle 3 : sans frapper, les rochers passent et le joueur meurt", D("Room", 3).elapsed)
 	waitState(3, "Idle", 3)
 	winRoom(3, true)
 

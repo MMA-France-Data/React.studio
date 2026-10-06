@@ -381,8 +381,10 @@ local function buildRoom(parent: Instance, index: number)
 	local board = Build.part(folder, "Sign", Vector3.new(DOOR_W + 8, 5.4, 0.5), Vector3.new(0, DOOR_H + 3.9, zMin - WALL), Color3.fromRGB(40, 44, 56))
 	local needs = {}
 	for _, name in Config.MACHINES do
-		if def.need and def.need[name] then
-			table.insert(needs, name .. ":" .. def.need[name])
+		-- En points de stat : ceux que la salle donne (def.points), sinon ceux du palier demandé (def.need).
+		local points = (def.points and def.points[name]) or (def.need and def.need[name] and Config.pointsFor(def.need[name]))
+		if points then
+			table.insert(needs, name .. ":" .. points)
 		end
 	end
 	Build.sign(board, Enum.NormalId.Front, "roomSign|" .. index .. "|" .. table.concat(def.events, ",") .. "|" .. table.concat(needs, ","))

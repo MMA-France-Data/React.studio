@@ -499,6 +499,7 @@ return function(env)
 	local hunters = {} -- [bloc] = { pet, shown }
 	local exits = {} -- [bloc] = true : son « ! » est posé
 	local hidden = {} -- [personnage] = true : caché pendant la chasse
+	local boulders = {} -- [bloc] = { ball, spin } : les rochers de l'avalanche
 	local function setHidden(character: Model, hide: boolean)
 		for _, item in character:GetDescendants() do
 			if item:IsA("BasePart") or item:IsA("Decal") then
@@ -576,8 +577,56 @@ return function(env)
 				exits[part] = nil
 			end
 		end
-		-- Pendant sa chasse, le joueur ne voit pas les autres joueurs de la salle.
+		-- LES ROCHERS DE L'AVALANCHE : le serveur fait rouler un bloc invisible « Boulder » par rocher ; on dessine
+		-- les siens. Un rocher déjà frappé est fissuré (orange) et plus petit.
+		for _, part in CollectionService:GetTagged("Boulder") do
+			if part:GetAttribute("Owner") == player.UserId and part:IsDescendantOf(workspace) and not boulders[part] then
+				local ball = Instance.new("Part")
+				ball.Name = "Boulder"
+				ball.Shape = Enum.PartType.Ball
+				ball.Size = Vector3.new(7, 7, 7)
+				ball.Material = Enum.Material.Slate
+				ball.Color = Color3.fromRGB(110, 104, 106)
+				ball.Anchored = true
+				ball.CanCollide = false
+				ball.CanQuery = false
+				ball.CanTouch = false
+				ball.Parent = folder
+				boulders[part] = { ball = ball, spin = 0 }
+			end
+		end
+		for part, item in boulders do
+			if not part:IsDescendantOf(workspace) then
+				-- Cassé (ou passé) : il éclate en morceaux.
+				local at = item.ball.Position
+				item.ball:Destroy()
+				boulders[part] = nil
+				for _ = 1, 6 do
+					local chip = Instance.new("Part")
+					chip.Size = Vector3.new(1.4, 1.4, 1.4)
+					chip.Material = Enum.Material.Slate
+					chip.Color = Color3.fromRGB(110, 104, 106)
+					chip.CanCollide = false
+					chip.CanQuery = false
+					chip.CanTouch = false
+					chip.Position = at
+					chip.AssemblyLinearVelocity = Vector3.new(math.random(-18, 18), math.random(14, 30), math.random(-18, 18))
+					chip.Parent = folder
+					game:GetService("Debris"):AddItem(chip, 1.2)
+				end
+				continue
+			end
+			local hp = part:GetAttribute("Hp") or 1
+			local size = 4.5 + 2.5 * hp
+			item.spin += dt * 3
+			item.ball.Size = Vector3.new(size, size, size)
+			item.ball.Color = if hp < 0.99 then Color3.fromRGB(230, 130, 60) else Color3.fromRGB(110, 104, 106)
+			item.ball.CFrame = CFrame.new(part.Position.X, size / 2, part.Position.Z) * CFrame.Angles(-item.spin, 0, 0)
+		end
+		-- Dans une salle où chacun joue seul (prédateur, avalanche), on ne voit pas les autres joueurs de la salle.
 		local room = player:GetAttribute("Room") or 0
+		local roomFolder = workspace:FindFirstChild("Rooms") and workspace.Rooms:FindFirstChild("Room" .. room)
+		hunting = hunting or (roomFolder ~= nil and roomFolder:GetAttribute("Solo") == true and roomFolder:GetAttribute("State") == "Event")
 		for _, other in Players:GetPlayers() do
 			local character = other.Character
 			if other ~= player and character then

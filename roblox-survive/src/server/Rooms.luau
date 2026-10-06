@@ -24,6 +24,7 @@ local EVENTS = {
 	Chase = require(script.Parent.Events.Chase),
 	Bomb = require(script.Parent.Events.Bomb),
 	Hunter = require(script.Parent.Events.Hunter),
+	Avalanche = require(script.Parent.Events.Avalanche),
 }
 
 local Rooms = {}

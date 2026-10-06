@@ -8,7 +8,7 @@
 # Un Studio deja ouvert n'est PAS touche : le test s'ouvre dans une autre fenetre, fermee a la fin (-KeepOpen : non).
 # (Fichier sans accents expres : PowerShell 5.1 lit mal l'UTF-8 sans BOM.)
 param(
-	[ValidateSet("game", "jump", "hunter")][string]$Test = "game",
+	[ValidateSet("game", "jump", "hunter", "rocks")][string]$Test = "game",
 	[int]$Seconds = 420,
 	[switch]$KeepOpen
 )
