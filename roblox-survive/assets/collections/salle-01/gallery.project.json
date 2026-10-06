@@ -1,0 +1,23 @@
+{
+  "name": "SURVIVE-Starter-Collection",
+  "tree": {
+    "$className": "DataModel",
+    "ReplicatedStorage": {
+      "Models": {
+        "$className": "Folder",
+        "Rabbit": { "$path": "models/Rabbit.rbxmx" },
+        "Owl": { "$path": "models/Owl.rbxmx" },
+        "Dog": { "$path": "models/Dog.rbxmx" },
+        "Cat": { "$path": "models/Cat.rbxmx" },
+        "Fox": { "$path": "models/Fox.rbxmx" },
+        "Turtle": { "$path": "models/Turtle.rbxmx" }
+      },
+      "StarterAnimator": { "$path": "StarterAnimator.luau" }
+    },
+    "StarterPlayer": {
+      "StarterPlayerScripts": { "Gallery": { "$path": "Gallery.client.luau" } }
+    },
+    "Workspace": { "$properties": { "Gravity": 0, "StreamingEnabled": false } },
+    "Lighting": { "$properties": { "Brightness": 2, "ClockTime": 12, "Ambient": [0.55, 0.6, 0.57] } }
+  }
+}
