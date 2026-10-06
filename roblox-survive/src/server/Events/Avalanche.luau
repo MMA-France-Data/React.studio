@@ -68,9 +68,14 @@ function Avalanche.new(ctx, params)
 		strip.CanCollide = false
 		strip.Transparency = 0.4
 	end
-	-- La pente du fond, d'où tombent les rochers (décor).
-	local slope = Build.part(ctx.static, "Slope", Vector3.new(ctx.halfX * 2 - 4, 1, 14), CFrame.new(center + Vector3.new(0, 5, SPAWN + 3)) * CFrame.Angles(math.rad(-38), 0, 0), Color3.fromRGB(96, 90, 92), Enum.Material.Slate)
-	slope.CanCollide = false
+	-- Les deux pentes du fond, d'ou tombent les rochers (decor). Elles laissent le passage libre devant la porte du
+	-- bout (le joueur : "recule ca, ca bloque la porte").
+	local gap = 9 -- demi-largeur du passage laisse devant la porte
+	for i, side in { -1, 1 } do
+		local width = ctx.halfX - 2 - gap
+		local slope = Build.part(ctx.static, "Slope" .. i, Vector3.new(width, 1, 14), CFrame.new(center + Vector3.new(side * (gap + width / 2), 5, SPAWN + 3)) * CFrame.Angles(math.rad(-38), 0, 0), Color3.fromRGB(96, 90, 92), Enum.Material.Slate)
+		slope.CanCollide = false
+	end
 
 	local games = {} -- [joueur] = { rocks, next, lane, leaks, broken, lastHit }
 	local running = false
