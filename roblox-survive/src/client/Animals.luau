@@ -686,7 +686,7 @@ return function(env)
 			row.frame.Visible = true
 			row.name.Text = tr(entry.spot.a)
 			row.name.TextColor3 = info.color
-			row.info.Text = tr(info.key) .. "  " .. tr("perSecond", amount(Pets.incomeOf(entry.spot.a, entry.spot.v)))
+			row.info.Text = tr(info.key) .. "  " .. tr("perSecond", amount(Pets.incomeOf(entry.spot.a, entry.spot.v))) .. "  ★ " .. tr("petLuck", Pets.luckOf(entry.spot))
 			local followed = following == tostring(entry.index)
 			row.follow.Text = if followed then tr("following") else tr("follow")
 			row.follow.BackgroundColor3 = if followed then Color3.fromRGB(70, 210, 90) else Color3.fromRGB(60, 150, 255)
@@ -778,7 +778,7 @@ return function(env)
 	ReplicatedStorage:WaitForChild("Notify").OnClientEvent:Connect(function(key: string, a, b, c)
 		if key == "ticket" then
 			-- Arrive juste après « SALLE RÉUSSIE » : attend son tour.
-			task.delay(1.8, showToast, if (b or 1) > 1 then tr("luckTicket", a, (b - 1) * 100) else tr("ticket", a), Color3.fromRGB(255, 221, 51))
+			task.delay(1.8, showToast, if (b or 1) > 1 then tr("luckTicket", a, math.round((b - 1) * 100)) else tr("ticket", a), Color3.fromRGB(255, 221, 51))
 		elseif key == "exchanged" then
 			showToast(tr("exchanged", a))
 		elseif key == "noTicket" or key == "noEgg" or key == "goShop" or key == "notYours" or key == "notInPen" or key == "penFull" then

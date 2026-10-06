@@ -35,6 +35,22 @@ Pets.ROOM_FACTOR = 3
 function Pets.roomFactor(room: number): number
 	return Pets.ROOM_FACTOR ^ (math.max(1, room) - 1)
 end
+-- LE FAMILIER QUI SUIT LE JOUEUR lui donne un bonus de chance d'œuf rare, en % : sa valeur cachée (celle de la
+-- salle 1, avant ROOM_FACTOR) / LUCK_DIVIDER, multipliée par LUCK_ROOM à chaque salle. Salle 1 : commun 0 à 6 %,
+-- peu commun 6 à 12 %, rare 12 à 25 %, légendaire 25 à 50 % ; x 1,15 par salle (salle 10 : légendaire 175 % au plus).
+-- Le bonus est tiré à l'éclosion et gardé dans la place (`l`). Le familier rapporte quand même ses pièces.
+Pets.LUCK_DIVIDER = 16
+Pets.LUCK_ROOM = 1.15
+function Pets.luckPercent(baseValue: number, room: number): number
+	return math.floor(baseValue / Pets.LUCK_DIVIDER * Pets.LUCK_ROOM ^ (math.max(1, room) - 1) + 0.5)
+end
+-- Le bonus de chance (en %) du familier de cette place (un familier d'avant ce bonus : d'après sa valeur).
+function Pets.luckOf(spot): number
+	if not spot or not spot.v then
+		return 0
+	end
+	return spot.l or Pets.luckPercent(math.min(spot.v, Pets.VALUE[#Pets.VALUE][2]), 1)
+end
 -- Ce qu'un familier rapporte par seconde = sa valeur / VALUE_PER_COIN x le facteur de son animal.
 -- Exemples : dragon commun 0,01 à 1 par seconde ; golem légendaire 12 à 24 par seconde.
 Pets.VALUE_PER_COIN = 100
@@ -189,13 +205,14 @@ end
 
 -- Les places en texte, pour les envoyer à l'écran des joueurs : pour chaque place occupée,
 -- « numéro:animal:rareté:v ou t:valeur ou heure d'éclosion:x:z:durée » (x, z = où l'œuf est posé dans l'enclos, en
--- dixièmes de stud ; durée = temps total de couvaison, pour la barre du panneau).
+-- dixièmes de stud ; durée = temps total de couvaison, pour la barre du panneau ; pour un familier, ce dernier
+-- nombre est son bonus de chance en %).
 function Pets.encode(spots): string
 	local parts = {}
 	for index = 1, Pets.SPOTS_MAX do
 		local spot = spots[tostring(index)]
 		if spot then
-			table.insert(parts, string.format("%d:%s:%d:%s:%d:%d:%d:%d", index, spot.a, spot.q, if spot.v then "v" else "t", spot.v or spot.t, math.round((spot.x or 0) * 10), math.round((spot.z or 0) * 10), spot.d or 0))
+			table.insert(parts, string.format("%d:%s:%d:%s:%d:%d:%d:%d", index, spot.a, spot.q, if spot.v then "v" else "t", spot.v or spot.t, math.round((spot.x or 0) * 10), math.round((spot.z or 0) * 10), if spot.v then Pets.luckOf(spot) else spot.d or 0))
 		end
 	end
 	return table.concat(parts, ",")
@@ -206,6 +223,9 @@ function Pets.decode(text: string?)
 	for index, name, rarity, kind, number, x, z, duration in string.gmatch(text or "", "(%d+):(%a+):(%d):([vt]):(%d+):(-?%d+):(-?%d+):(%d+)") do
 		local spot = { a = name, q = tonumber(rarity), x = tonumber(x) / 10, z = tonumber(z) / 10, d = tonumber(duration) }
 		spot[kind] = tonumber(number)
+		if kind == "v" then
+			spot.l, spot.d = spot.d, nil
+		end
 		spots[tostring(index)] = spot
 	end
 	return spots

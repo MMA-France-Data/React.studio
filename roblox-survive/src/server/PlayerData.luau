@@ -69,8 +69,8 @@ local function clean(raw)
 	if type(raw.tickets) == "table" then
 		-- Clés « salle » ou « salle:bonus de chance ».
 		for key, count in raw.tickets do
-			local room, luck = string.match(tostring(key), "^(%d+):?(%d*)$")
-			if room and Config.ROOMS[tonumber(room)] and (luck == "" or tonumber(luck) <= 9) and type(count) == "number" and count >= 1 then
+			local room, luck = string.match(tostring(key), "^(%d+):?([%d%.]*)$")
+			if room and Config.ROOMS[tonumber(room)] and (luck == "" or (tonumber(luck) or 1e9) <= 200) and type(count) == "number" and count >= 1 then
 				data.tickets[tostring(key)] = math.floor(count)
 			end
 		end
@@ -93,7 +93,7 @@ local function clean(raw)
 			local spot = raw.spots[tostring(index)]
 			if validEgg(spot) then
 				if type(spot.v) == "number" then
-					data.spots[tostring(index)] = { a = spot.a, q = spot.q, v = math.floor(spot.v) }
+					data.spots[tostring(index)] = { a = spot.a, q = spot.q, v = math.floor(spot.v), l = if type(spot.l) == "number" then math.clamp(math.floor(spot.l), 0, 10000) else nil }
 				elseif type(spot.t) == "number" then
 					data.spots[tostring(index)] = { a = spot.a, q = spot.q, r = spot.r, t = spot.t, d = tonumber(spot.d) or 0, x = tonumber(spot.x) or 10, z = tonumber(spot.z) or 16 }
 				end
@@ -134,6 +134,8 @@ local function publish(player: Player)
 	player:SetAttribute("Pet", if follower and follower.v then follower.a else "")
 	player:SetAttribute("PetRarity", if follower and follower.v then follower.q else 0)
 	player:SetAttribute("PetSpot", data.equipped)
+	-- Le bonus de chance d'œuf rare (en %) que donne le familier qui suit le joueur.
+	player:SetAttribute("PetLuck", Pets.luckOf(follower))
 	player:SetAttribute("Income", Pets.income(data.spots))
 	local stats = player:FindFirstChild("leaderstats")
 	if stats then

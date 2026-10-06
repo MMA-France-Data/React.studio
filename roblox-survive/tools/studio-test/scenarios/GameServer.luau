@@ -383,6 +383,7 @@ return function(log)
 	local born = pen.spots["1"]
 	local range = born and Pets.VALUE[born.q]
 	check(born ~= nil and born.v ~= nil and born.v >= range[1] and born.v <= range[2], "éclosion : la valeur cachée est dans le palier de sa rareté", born and born.v)
+	check(born ~= nil and born.l == Pets.luckPercent(born.v, 1), "éclosion : le familier reçoit son bonus de chance (valeur / 16)", born and born.l)
 	check(pen.pets == 1 and pen.equipped == "1" and math.abs(pen.income - Pets.incomeOf("Dragon", born.v)) < 0.001, "le familier rapporte selon sa valeur, et suit le joueur", pen.income)
 	check(player:GetAttribute("Pet") == "Dragon" and player:GetAttribute("PetRarity") == born.q and player:GetAttribute("Income") == pen.income, "le familier et le revenu sont envoyés à l'écran")
 	-- Le joueur reste près de son enclos le temps que le test de l'écran voie le familier s'y promener (de loin,
@@ -748,7 +749,26 @@ return function(log)
 	end
 	local share = (lucky[3] + lucky[4]) / (lucky[1] + lucky[2] + lucky[3] + lucky[4])
 	check(math.abs(rares / total - share) < 0.04, "le tirage suit bien ces chances", rares / total)
+	-- LE FAMILIER QUI SUIT donne un bonus de chance selon sa valeur cachée, x 1,15 par salle ; il s'ajoute à la salle.
+	check(Pets.luckPercent(96, 1) == 6 and Pets.luckPercent(800, 1) == 50 and Pets.luckPercent(800, 2) == 57 and Pets.luckPercent(1, 1) == 0 and Pets.luckPercent(800, 10) < 180, "bonus du familier : valeur / 16, x 1,15 par salle, moins de 180 % à la salle 10", Pets.luckPercent(800, 10))
+	D("Exchange")
+	D("Pet", "Dragon", 4)
+	pen = D("Eggs")
+	local follower = pen.spots[pen.equipped]
+	check(follower ~= nil and follower.l == 38 and player:GetAttribute("PetLuck") == 38, "un légendaire de valeur 600 qui suit : +38 % de chance", follower and follower.l)
+	check(string.find(player:GetAttribute("Spots"), ":38$") ~= nil and Pets.decode(player:GetAttribute("Spots"))[pen.equipped].l == 38, "le bonus du familier est envoyé à l'écran", player:GetAttribute("Spots"))
+	D("Ticket", 3)
+	check(D("Eggs").keys == "3:6.38", "salle à +500 % et familier à +38 % : le ticket garde 6,38", D("Eggs").keys)
 	D("Cycle", "luck", 0, 1)
+	D("Ticket", 2)
+	check(D("Eggs").keys == "2:1.38 3:6.38", "sans salle chanceuse, le familier seul donne un ticket à 1,38", D("Eggs").keys)
+	local income = D("Eggs").income
+	check(income > 0, "le familier qui suit rapporte quand même ses pièces", income)
+	check(D("Exchange") == 2 and D("Eggs").tickets == 0, "les tickets chanceux deviennent des œufs")
+	D("Pet", "")
+	D("Ticket", 2)
+	check(D("Eggs").keys == "2", "sans familier qui suit ni salle chanceuse : ticket normal", D("Eggs").keys)
+	D("Exchange")
 
 	log("Info", "[SURVIVE] TEST:done")
 end

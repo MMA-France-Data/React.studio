@@ -29,14 +29,15 @@ Eggs.luckOf = function(_room: number): number
 	return 1
 end
 
--- Salle réussie : un ticket de cette salle. Si la salle a un bonus de chance à ce moment-là, le ticket le garde
--- (clé « salle:bonus ») : il servira quand le ticket deviendra un œuf.
+-- Salle réussie : un ticket de cette salle. Le ticket garde la chance du moment (clé « salle:chance ») : celle de
+-- la salle si elle est chanceuse, plus celle du familier qui suit le joueur. Elle servira quand le ticket deviendra
+-- un œuf. Exemple : salle à +300 % (4) et familier à +25 % = 4,25.
 function Eggs.give(player: Player, room: number): boolean
 	local data = PlayerData.get(player)
 	if not data or not Config.ROOMS[room] or not Config.ROOMS[room].egg then
 		return false
 	end
-	local luck = Eggs.luckOf(room)
+	local luck = math.floor((Eggs.luckOf(room) + Pets.luckOf(data.spots[data.equipped]) / 100) * 100 + 0.5) / 100
 	local key = if luck > 1 then room .. ":" .. luck else tostring(room)
 	data.tickets[key] = (data.tickets[key] or 0) + 1
 	PlayerData.changed(player)
@@ -76,7 +77,7 @@ function Eggs.exchange(player: Player): number
 	table.sort(keys)
 	for _, key in keys do
 		-- « 3 » = un ticket de la salle 3 ; « 3:4 » = gagné quand la salle 3 avait un bonus de chance de 4.
-		local room, luck = string.match(key, "^(%d+):?(%d*)$")
+		local room, luck = string.match(key, "^(%d+):?([%d%.]*)$")
 		room, luck = tonumber(room), tonumber(luck) or 1
 		while (data.tickets[key] or 0) > 0 and #data.bag < Pets.MAX_BAG do
 			data.tickets[key] -= 1
@@ -158,8 +159,9 @@ function Eggs.hatch(player: Player, all: boolean?): number
 	local now, hatched = os.time(), 0
 	for key, spot in data.spots do
 		if spot.t and (all or now >= spot.t) then
-			local value = Pets.rollValue(random, spot.q) * Pets.roomFactor(spot.r or 1)
-			data.spots[key] = { a = spot.a, q = spot.q, v = value, x = spot.x, z = spot.z }
+			local base = Pets.rollValue(random, spot.q)
+			local value = base * Pets.roomFactor(spot.r or 1)
+			data.spots[key] = { a = spot.a, q = spot.q, v = value, l = Pets.luckPercent(base, spot.r or 1), x = spot.x, z = spot.z }
 			hatched += 1
 			if data.equipped == "" then
 				data.equipped = key

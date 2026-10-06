@@ -25,6 +25,13 @@ return function(log)
 	task.wait(4)
 	check(hud.Side.Coins.Text == "0", "écran : 0 pièce affichée", hud.Side.Coins.Text)
 	local walker = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+	-- (Si le test du serveur a déjà mis le joueur sur une machine, on attend qu'il en redescende : dessus, il ne
+	-- marche pas.)
+	local machineLimit = os.clock() + 12
+	while (player:GetAttribute("Workout") or "") ~= "" and os.clock() < machineLimit do
+		task.wait(0.1)
+	end
+	task.wait(0.2)
 	check(walker ~= nil and math.abs(walker.WalkSpeed - 16 * 0.7) < 0.01, "écran : sans courir, le personnage marche à 70 % de sa vitesse", walker and walker.WalkSpeed)
 	check(hud.Run.Label.Text ~= "", "écran : bouton pour courir", hud.Run.Label.Text)
 	check(hud.Side.Speed.Label.Text ~= "", "écran : niveau de vitesse affiché", hud.Side.Speed.Label.Text)

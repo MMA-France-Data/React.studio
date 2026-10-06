@@ -95,7 +95,7 @@ return function(_world)
 			local pets, eggs = Pets.count(data.spots)
 			local spots = {}
 			for key, spot in data.spots do
-				spots[key] = { a = spot.a, q = spot.q, v = spot.v, t = spot.t, x = spot.x, z = spot.z, d = spot.d }
+				spots[key] = { a = spot.a, q = spot.q, v = spot.v, l = spot.l, t = spot.t, x = spot.x, z = spot.z, d = spot.d }
 			end
 			local lucky = 0
 			for key, count in data.tickets do
@@ -103,7 +103,12 @@ return function(_world)
 					lucky += count
 				end
 			end
-			return { lucky = lucky, tickets = tickets, bag = #data.bag, first = data.bag[1] and data.bag[1].a or "", places = data.places, pets = pets, eggs = eggs, income = Pets.income(data.spots), equipped = data.equipped, spots = spots }
+			local keys = {}
+			for key in data.tickets do
+				table.insert(keys, key)
+			end
+			table.sort(keys)
+			return { keys = table.concat(keys, " "), lucky = lucky, tickets = tickets, bag = #data.bag, first = data.bag[1] and data.bag[1].a or "", places = data.places, pets = pets, eggs = eggs, income = Pets.income(data.spots), equipped = data.equipped, spots = spots }
 		elseif action == "Ticket" then
 			-- Donne un ticket de la salle a (comme une salle réussie).
 			return Eggs.give(player, a)
@@ -179,7 +184,8 @@ return function(_world)
 					return false
 				end
 				local range = Pets.VALUE[b]
-				data.spots[key] = { a = a, q = b, v = (range[1] + range[2]) // 2, x = 10, z = 16 }
+				local value = (range[1] + range[2]) // 2
+				data.spots[key] = { a = a, q = b, v = value, l = Pets.luckPercent(value, 1), x = 10, z = 16 }
 				data.equipped = key
 			end
 			PlayerData.changed(player)
