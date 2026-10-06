@@ -1,4 +1,4 @@
-# SURVIVE! — collections originales, salles 1 à 5
+# SURVIVE! — collections originales et super animaux ultra-rares
 
 30 animaux originaux en pièces Roblox natives, avec rigs Motor6D, détails soudés
 et séquences locales `Idle` / `Walk`. Versions retenues après les retours visuels
@@ -11,6 +11,23 @@ du joueur, préparées le 6 octobre 2026. Aucun modèle ou script de bibliothèq
 | [Salle 3](salle-03/README.md) | Coq, canard, cochon, mouton, chèvre, cheval |
 | [Salle 4](salle-04/README.md) | Lynx, bélier, sanglier, loup corrigé, cerf, ours brun |
 | [Salle 5](salle-05/README.md) | Capybara, toucan, singe, anaconda, jaguar, crocodile |
+
+## Nouveau : six super animaux à 0,5 % — version approuvée
+
+Les versions **arc-en-ciel saturées** du Renard, Blaireau, Cheval, Ours brun,
+Jaguar et Varan sont dans [ultra-rares/](ultra-rares/README.md), avec leurs six
+[modèles séparés](ultra-rares/models/), [aperçu](ultra-rares/Apercu-6-super-animaux.png),
+animations locales et galerie indépendante. Elles reprennent la palette des œufs
+rares V3, avec un contour violet natif. Le varan est aussi agrandi et remodelé.
+Version validée visuellement pour l'envoi GitHub le 6 octobre 2026.
+
+**Pour ces six animaux, utiliser les fichiers de `ultra-rares/models/` pour la
+nouvelle apparence.** Les modèles naturels des salles 1 à 5 restent conservés ;
+ce ne sont pas de nouvelles entrées de sauvegarde. Seul le varan de la salle 6
+est publié ici : les cinq autres animaux et ses œufs restent dans les packs
+locaux séparés. Cet ajout ne change pas les chemins chargés par le jeu, les
+chances ou les revenus : l'intégration et les tests dans Studio restent à faire
+séparément.
 
 ## Œufs validés — pack complet
 

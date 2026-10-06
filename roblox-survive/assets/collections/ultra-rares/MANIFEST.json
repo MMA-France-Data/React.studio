@@ -1,0 +1,183 @@
+{
+  "created": "2026-10-06",
+  "paidGenerations": 0,
+  "gameModified": false,
+  "gameDropRatesModified": false,
+  "notes": "Only six 0.5% native rare animals; MonitorLizard is larger and remodelled. Original files preserved.",
+  "pets": [
+    {
+      "id": "Fox",
+      "label": "Renard",
+      "parts": 84,
+      "motors": 10,
+      "size": [
+        1.2714107357469484,
+        2.5621047701262345,
+        3.1
+      ],
+      "sha256": "c1758dabe7a9eef6419c13aafbbd265d000a90a638c403f2f2c3cbfd204834a9",
+      "animations": [
+        "Idle",
+        "Walk"
+      ],
+      "ultraRare": true,
+      "referenceChancePercent": 0.5,
+      "rainbowPalette": [
+        "ff1599",
+        "951cff",
+        "184eff",
+        "00c9f5",
+        "36ee28",
+        "ffe414",
+        "ff9414",
+        "ff287d"
+      ],
+      "room": 1
+    },
+    {
+      "id": "Badger",
+      "label": "Blaireau",
+      "parts": 93,
+      "motors": 9,
+      "size": [
+        1.1237064777884607,
+        1.089356226413109,
+        3.1
+      ],
+      "sha256": "9a7a19a61df46040b5489d33b874d108aedfd3181c939dec82e8b20e218694ac",
+      "animations": [
+        "Idle",
+        "Walk"
+      ],
+      "ultraRare": true,
+      "referenceChancePercent": 0.5,
+      "rainbowPalette": [
+        "ff1599",
+        "951cff",
+        "184eff",
+        "00c9f5",
+        "36ee28",
+        "ffe414",
+        "ff9414",
+        "ff287d"
+      ],
+      "room": 2
+    },
+    {
+      "id": "Horse",
+      "label": "Cheval",
+      "parts": 76,
+      "motors": 15,
+      "size": [
+        0.8343103970078299,
+        3.1,
+        3.1965807066488767
+      ],
+      "sha256": "e442e1f703b95745826acc832039290b7388b81975b913e26a85b7ec57fbbd63",
+      "animations": [
+        "Idle",
+        "Walk"
+      ],
+      "ultraRare": true,
+      "referenceChancePercent": 0.5,
+      "rainbowPalette": [
+        "ff1599",
+        "951cff",
+        "184eff",
+        "00c9f5",
+        "36ee28",
+        "ffe414",
+        "ff9414",
+        "ff287d"
+      ],
+      "room": 3
+    },
+    {
+      "id": "Bear",
+      "label": "Ours brun",
+      "parts": 88,
+      "motors": 9,
+      "size": [
+        1.58,
+        2.1585643148821934,
+        3.335
+      ],
+      "sha256": "02ea02e6e100c84d8fe20bebb609dbd7009bae9e32d8313f66a3f636a4261af5",
+      "animations": [
+        "Idle",
+        "Walk"
+      ],
+      "ultraRare": true,
+      "referenceChancePercent": 0.5,
+      "rainbowPalette": [
+        "ff1599",
+        "951cff",
+        "184eff",
+        "00c9f5",
+        "36ee28",
+        "ffe414",
+        "ff9414",
+        "ff287d"
+      ],
+      "room": 4
+    },
+    {
+      "id": "Jaguar",
+      "label": "Jaguar",
+      "parts": 116,
+      "motors": 11,
+      "size": [
+        0.9901181513426426,
+        1.7934851596592605,
+        3.6
+      ],
+      "sha256": "b70754fcf01ec30ba7b45596d18afafdd496cbbd5893d0ec0d483b0012e18cdf",
+      "animations": [
+        "Idle",
+        "Walk"
+      ],
+      "ultraRare": true,
+      "referenceChancePercent": 0.5,
+      "rainbowPalette": [
+        "ff1599",
+        "951cff",
+        "184eff",
+        "00c9f5",
+        "36ee28",
+        "ffe414",
+        "ff9414",
+        "ff287d"
+      ],
+      "room": 5
+    },
+    {
+      "id": "MonitorLizard",
+      "label": "Varan",
+      "parts": 133,
+      "motors": 18,
+      "size": [
+        2.522750146033498,
+        1.5129849813324878,
+        5.8
+      ],
+      "sha256": "53af64732fd4dabb3a0ca4b8758102cbe31fc3059eeb2ca4a353806eacc0c570",
+      "animations": [
+        "Idle",
+        "Walk"
+      ],
+      "ultraRare": true,
+      "referenceChancePercent": 0.5,
+      "rainbowPalette": [
+        "ff1599",
+        "951cff",
+        "184eff",
+        "00c9f5",
+        "36ee28",
+        "ffe414",
+        "ff9414",
+        "ff287d"
+      ],
+      "room": 6
+    }
+  ]
+}

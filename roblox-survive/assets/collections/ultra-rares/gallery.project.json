@@ -1,0 +1,64 @@
+{
+  "name": "SURVIVE-Six-Ultra-Rares-Preview",
+  "tree": {
+    "$className": "DataModel",
+    "ReplicatedStorage": {
+      "Models": {
+        "$className": "Folder",
+        "Fox": {
+          "$path": "models/Fox.rbxmx"
+        },
+        "Badger": {
+          "$path": "models/Badger.rbxmx"
+        },
+        "Horse": {
+          "$path": "models/Horse.rbxmx"
+        },
+        "Bear": {
+          "$path": "models/Bear.rbxmx"
+        },
+        "Jaguar": {
+          "$path": "models/Jaguar.rbxmx"
+        },
+        "MonitorLizard": {
+          "$path": "models/MonitorLizard.rbxmx"
+        }
+      },
+      "StarterAnimator": {
+        "$path": "StarterAnimator.luau"
+      }
+    },
+    "StarterPlayer": {
+      "StarterPlayerScripts": {
+        "Gallery": {
+          "$path": "Gallery.client.luau"
+        }
+      }
+    },
+    "Workspace": {
+      "$properties": {
+        "Gravity": 0,
+        "StreamingEnabled": false
+      }
+    },
+    "Lighting": {
+      "$properties": {
+        "Brightness": 2,
+        "ClockTime": 12,
+        "Ambient": [
+          0.55,
+          0.6,
+          0.57
+        ]
+      },
+      "RareBloom": {
+        "$className": "BloomEffect",
+        "$properties": {
+          "Intensity": 0.25,
+          "Size": 16,
+          "Threshold": 1.1
+        }
+      }
+    }
+  }
+}
