@@ -105,6 +105,11 @@ end
 -- la stat de la machine. Tapis de course : il court sur place. Musculation : couché sur le banc. Trampoline : il
 -- rebondit. Il en descend en rappuyant sur E (ou sur le bouton « ARRÊTER »).
 local training = {} -- [joueur] = { machine, character, root, exit }
+-- MONTER SANS APPUYER : il suffit de marcher sur sa machine pour s'y entraîner. `armed` : le joueur est sorti de
+-- toutes les zones depuis son dernier entraînement (sinon il remonterait dessus à l'instant où il en descend).
+local armed = {} -- [joueur] = true
+-- Demi-largeur et demi-profondeur de la zone de chaque machine, autour de sa place.
+local ZONES = { Speed = Vector3.new(8, 0, 7.5), Jump = Vector3.new(8.5, 0, 8.5), Force = Vector3.new(9, 0, 6) }
 
 function Gym.stop(player: Player): boolean
 	local session = training[player]
@@ -112,6 +117,7 @@ function Gym.stop(player: Player): boolean
 		return false
 	end
 	training[player] = nil
+	armed[player] = nil
 	if player:IsDescendantOf(Players) then
 		player:SetAttribute("Workout", "")
 		if player.Character == session.character and session.root.Parent then
@@ -219,6 +225,35 @@ function Gym.start(world, notifier)
 			end)
 		end
 	end
+	-- Marcher sur une de ses machines la met en route (la touche E ne sert plus qu'à en descendre).
+	task.spawn(function()
+		while true do
+			task.wait(0.15)
+			for _, player in Players:GetPlayers() do
+				local plot = Gym.plotOf(player)
+				local character = player.Character
+				local root = character and character:FindFirstChild("HumanoidRootPart")
+				if not plot or not root or training[player] or not PlayerData.get(player) then
+					continue
+				end
+				local inside = nil
+				for name, model in plot.machines do
+					local offset = root.Position - model.PrimaryPart.Position
+					local zone = ZONES[name]
+					if math.abs(offset.X) <= zone.X and math.abs(offset.Z) <= zone.Z and offset.Y < 14 then
+						inside = name
+						break
+					end
+				end
+				if not inside then
+					armed[player] = true
+				elseif armed[player] then
+					armed[player] = nil
+					Gym.train(player, inside)
+				end
+			end
+		end
+	end)
 	for cleared, pad in world.gym.shortcuts do
 		local item = prompt(pad, "Shortcut", 10)
 		item:SetAttribute("Cleared", cleared)
@@ -249,6 +284,7 @@ function Gym.start(world, notifier)
 	end
 	Players.PlayerRemoving:Connect(function(player)
 		training[player] = nil
+		armed[player] = nil
 		release(player)
 	end)
 	Players.PlayerAdded:Connect(watch)

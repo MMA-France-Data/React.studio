@@ -873,7 +873,7 @@ return function(env)
 	-- La patte : la liste de ses familiers, comme « 7/8 Actifs » avec le bouton pour acheter une place.
 	local pawButton = squareButton("PawButton", 1, Color3.fromRGB(255, 150, 40))
 	env.text(pawButton, "Label", UDim2.fromScale(0.8, 0.8), UDim2.fromScale(0.1, 0.1)).Text = "🐾"
-	local petPanel, petTitle = sidePanel("PetPanel", 420)
+	local petPanel, petTitle = sidePanel("PetPanel", 470)
 	local addPlace = Instance.new("TextButton")
 	addPlace.Name = "AddPlace"
 	addPlace.AnchorPoint = Vector2.new(1, 0)
@@ -893,10 +893,20 @@ return function(env)
 	end)
 	local petIncome = env.text(petPanel, "Income", UDim2.new(1, -20, 0, 22), UDim2.fromOffset(10, 58), GREEN, 18)
 	petIncome.TextXAlignment = Enum.TextXAlignment.Left
+	-- LA CHANCE : une ligne qui explique, et une ligne qui dit la chance du joueur en ce moment.
+	local GOLD = Color3.fromRGB(255, 221, 51)
+	local luckFrame = env.box(petPanel, "Luck", UDim2.new(1, -16, 0, 50), UDim2.fromOffset(8, 84), Color3.fromRGB(70, 56, 20))
+	luckFrame.UIStroke.Thickness = 2
+	luckFrame.UIStroke.Color = GOLD
+	local luckExplain = env.text(luckFrame, "Explain", UDim2.new(1, -12, 0, 20), UDim2.fromOffset(6, 3), GOLD, 16)
+	luckExplain.UIStroke.Thickness = 1.5
+	luckExplain.Text = tr("luckExplain")
+	local luckNow = env.text(luckFrame, "Now", UDim2.new(1, -12, 0, 22), UDim2.fromOffset(6, 25), nil, 18)
+	luckNow.UIStroke.Thickness = 1.5
 	local list = Instance.new("ScrollingFrame")
 	list.Name = "List"
-	list.Position = UDim2.fromOffset(8, 86)
-	list.Size = UDim2.new(1, -16, 1, -94)
+	list.Position = UDim2.fromOffset(8, 142)
+	list.Size = UDim2.new(1, -16, 1, -150)
 	list.BackgroundTransparency = 1
 	list.BorderSizePixel = 0
 	list.ScrollBarThickness = 8
@@ -905,13 +915,17 @@ return function(env)
 	local petRows = {}
 	local selling = 0 -- la place dont le bouton « Vendre » attend son 2e appui
 	local function petRow(i: number)
-		local row = env.box(list, "Pet" .. i, UDim2.new(1, -14, 0, 56), UDim2.fromOffset(2, 2 + (i - 1) * 62), Color3.fromRGB(74, 76, 90))
+		local row = env.box(list, "Pet" .. i, UDim2.new(1, -14, 0, 78), UDim2.fromOffset(2, 2 + (i - 1) * 84), Color3.fromRGB(74, 76, 90))
 		row.UIStroke.Thickness = 2
 		local name = env.text(row, "Animal", UDim2.new(1, -196, 0, 24), UDim2.fromOffset(10, 4), nil, 19)
 		name.TextXAlignment = Enum.TextXAlignment.Left
-		local info = env.text(row, "Info", UDim2.new(1, -196, 0, 20), UDim2.fromOffset(10, 30), GREEN, 16)
+		local info = env.text(row, "Info", UDim2.new(1, -196, 0, 20), UDim2.fromOffset(10, 29), GREEN, 16)
 		info.TextXAlignment = Enum.TextXAlignment.Left
 		info.UIStroke.Thickness = 1.5
+		-- Sa chance d'œuf rare, sur sa propre ligne dorée (toute la largeur : c'est ce qu'on compare).
+		local luck = env.text(row, "Luck", UDim2.new(1, -20, 0, 22), UDim2.fromOffset(10, 52), GOLD, 18)
+		luck.TextXAlignment = Enum.TextXAlignment.Left
+		luck.UIStroke.Thickness = 1.5
 		local function button(buttonName: string, x: number, width: number): TextButton
 			local item = Instance.new("TextButton")
 			item.Name = buttonName
@@ -926,7 +940,7 @@ return function(env)
 		end
 		local follow = button("Follow", -178, 80)
 		local sell = button("Sell", -92, 86)
-		local item = { frame = row, name = name, info = info, follow = follow, sell = sell, spot = 0 }
+		local item = { frame = row, name = name, info = info, luck = luck, follow = follow, sell = sell, spot = 0 }
 		follow.Activated:Connect(function()
 			equipEvent:FireServer(item.spot)
 		end)
@@ -986,8 +1000,12 @@ return function(env)
 			row.frame.Visible = true
 			row.name.Text = tr(entry.spot.a)
 			row.name.TextColor3 = info.color
-			row.info.Text = tr(info.key) .. "  " .. tr("perSecond", amount(Pets.incomeOf(entry.spot.a, entry.spot.v))) .. "  ★ " .. tr("petLuck", Pets.luckOf(entry.spot))
+			row.info.Text = tr(info.key) .. "  " .. tr("perSecond", amount(Pets.incomeOf(entry.spot.a, entry.spot.v)))
+			row.luck.Text = tr("luckLine", Pets.luckOf(entry.spot))
 			local followed = following == tostring(entry.index)
+			-- Celui qui suit le joueur : son cadre passe au doré.
+			row.frame.UIStroke.Color = if followed then GOLD else Color3.fromRGB(20, 20, 30)
+			row.frame.BackgroundColor3 = if followed then Color3.fromRGB(96, 84, 50) else Color3.fromRGB(74, 76, 90)
 			row.follow.Text = if followed then tr("following") else tr("follow")
 			row.follow.BackgroundColor3 = if followed then Color3.fromRGB(70, 210, 90) else Color3.fromRGB(60, 150, 255)
 			local confirm = (player:GetAttribute("Held") or "") == tostring(entry.index)
@@ -997,7 +1015,10 @@ return function(env)
 		for i = #pets + 1, #petRows do
 			petRows[i].frame.Visible = false
 		end
-		list.CanvasSize = UDim2.fromOffset(0, #pets * 62 + 4)
+		list.CanvasSize = UDim2.fromOffset(0, #pets * 84 + 4)
+		local follower = spots[following]
+		luckNow.Text = if follower and follower.v then tr("luckNow", Pets.luckOf(follower), tr(follower.a)) else tr("luckNone")
+		luckNow.TextColor3 = if follower and follower.v then Color3.fromRGB(110, 255, 80) else Color3.fromRGB(255, 120, 120)
 		fit(petPanel)
 	end
 	for _, name in { "Spots", "Places", "PetSpot", "Tickets", "Bag" } do
@@ -1087,6 +1108,10 @@ return function(env)
 			showToast(tr("placed", tr(a), tr(rarityInfo(b).key), clock(c)), rarityInfo(b).color)
 		elseif key == "hatched" then
 			showToast(tr("hatched", tr(a), tr(rarityInfo(b).key), amount(c)), rarityInfo(b).color)
+		elseif key == "followLuck" then
+			showToast(tr("followLuck", tr(a), b), Color3.fromRGB(255, 221, 51))
+		elseif key == "followNone" then
+			showToast(tr("followNone"), RED)
 		elseif key == "sold" then
 			showToast(tr("sold", tr(a), env.num(b)))
 		elseif key == "placeBought" then

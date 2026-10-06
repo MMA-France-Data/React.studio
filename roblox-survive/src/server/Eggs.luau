@@ -263,6 +263,12 @@ function Eggs.follow(player: Player, spot: number): boolean
 	end
 	data.equipped = if data.equipped == key then "" else key
 	PlayerData.changed(player)
+	-- L'écran dit ce que ce choix change : la chance d'œuf rare que donne ce familier (ou qu'il ne donne plus).
+	if data.equipped == key then
+		notify(player, "followLuck", data.spots[key].a, Pets.luckOf(data.spots[key]))
+	else
+		notify(player, "followNone")
+	end
 	return true
 end
 

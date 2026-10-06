@@ -131,7 +131,7 @@ side.Name = "Side"
 side.BackgroundTransparency = 1
 side.AnchorPoint = Vector2.new(0, 0.5)
 side.Position = UDim2.new(0, 12, 0.5, 0)
-side.Size = UDim2.fromOffset(190, 190)
+side.Size = UDim2.fromOffset(240, 236)
 side.Parent = gui
 
 local coinIcon = box(side, "Coin", UDim2.fromOffset(40, 40), UDim2.fromOffset(0, 2), Color3.fromRGB(255, 205, 50))
@@ -152,6 +152,19 @@ for i, name in Config.MACHINES do
 	local pill = box(side, name, UDim2.fromOffset(170, 36), UDim2.fromOffset(2, 12 + i * 44), STAT_COLORS[name])
 	statLabels[name] = text(pill, "Label", UDim2.fromScale(0.92, 0.76), UDim2.fromScale(0.04, 0.12))
 end
+
+-- Sous les niveaux : la chance d'œuf rare que donne le familier qui suit le joueur (toujours à l'écran).
+local luckPill = box(side, "Luck", UDim2.fromOffset(230, 40), UDim2.fromOffset(2, 12 + 4 * 44), Color3.fromRGB(70, 56, 20))
+luckPill.UIStroke.Color = Color3.fromRGB(255, 221, 51)
+local luckLabel = text(luckPill, "Label", UDim2.fromScale(0.94, 0.84), UDim2.fromScale(0.03, 0.08), Color3.fromRGB(255, 221, 51))
+luckLabel.UIStroke.Thickness = 1.5
+local function refreshLuck()
+	local luck = player:GetAttribute("PetLuck") or 0
+	luckLabel.Text = if (player:GetAttribute("Pet") or "") ~= "" then tr("luckHud", luck) else tr("luckHudNone")
+end
+player:GetAttributeChangedSignal("PetLuck"):Connect(refreshLuck)
+player:GetAttributeChangedSignal("Pet"):Connect(refreshLuck)
+refreshLuck()
 
 -- En haut, au milieu : le bandeau de la salle.
 local banner = Instance.new("Frame")
@@ -276,9 +289,10 @@ local function refreshPrompt(prompt: ProximityPrompt)
 	if kind == "Machine" then
 		local name = prompt:GetAttribute("Machine")
 		-- Seules les machines de son espace servent au joueur.
-		prompt.Enabled = prompt:GetAttribute("Plot") == player:GetAttribute("Plot")
+		-- (On y monte en marchant dessus : la touche ne sert qu'à en descendre.)
+		prompt.Enabled = prompt:GetAttribute("Plot") == player:GetAttribute("Plot") and player:GetAttribute("Workout") == name
 		prompt.ObjectText = tr(name)
-		prompt.ActionText = if player:GetAttribute("Workout") == name then tr("stopTraining") else tr("train")
+		prompt.ActionText = tr("stopTraining")
 	elseif kind == "MachineUpgrade" then
 		-- Le panneau « Améliorer » d'une machine.
 		local name = prompt:GetAttribute("Machine")

@@ -11,6 +11,7 @@ local Pets = require(ReplicatedStorage.Shared.Pets)
 local Build = require(script.Parent.Build)
 local GymModels = require(script.Parent.GymModels)
 local Lava = require(script.Parent.Events.Lava)
+local Scenery = require(script.Parent.Scenery)
 local Themes = require(script.Parent.Themes)
 
 local World = {}
@@ -246,8 +247,8 @@ local function buildGym(parent: Instance)
 	gym.Name = "Gym"
 	gym.Parent = parent
 
-	Build.checker(gym, "Floor", Vector3.new(0, 0, (GYM_Z + LOBBY_BACK) / 2), LOBBY_X * 2, GYM_Z - LOBBY_BACK, 10, Color3.fromRGB(70, 74, 88), Color3.fromRGB(80, 84, 98), nil, Enum.Material.Pavement)
-	local wallColor = Color3.fromRGB(226, 136, 70)
+	Build.checker(gym, "Floor", Vector3.new(0, 0, (GYM_Z + LOBBY_BACK) / 2), LOBBY_X * 2, GYM_Z - LOBBY_BACK, 10, Color3.fromRGB(196, 184, 160), Color3.fromRGB(208, 196, 172), nil, Enum.Material.Pavement)
+	local wallColor = Color3.fromRGB(236, 150, 84)
 	sideWalls(gym, LOBBY_BACK, GYM_Z, LOBBY_X, GYM_WALL, wallColor, Enum.Material.Brick)
 	Build.part(gym, "Wall", Vector3.new(LOBBY_X * 2 + WALL * 2, GYM_WALL, WALL), Vector3.new(0, GYM_WALL / 2, LOBBY_BACK - WALL / 2), wallColor, Enum.Material.Brick)
 	wallWithDoor(gym, GYM_Z, LOBBY_X + WALL, GYM_WALL, wallColor, Enum.Material.Brick)
@@ -322,6 +323,9 @@ local function buildGym(parent: Instance)
 		shortcuts[cleared] = pad
 	end
 
+	-- L'habillage : le haut des murs, les lampadaires, les guirlandes, la fontaine, la grande porte des salles.
+	Scenery.lobby(gym, { halfX = LOBBY_X, back = LOBBY_BACK, front = GYM_Z, wall = GYM_WALL, alley = ALLEY, doorWidth = DOOR_W, lamps = { 12, -37, -103, -160 }, fountain = Vector3.new(0, 0, -112) })
+
 	return { folder = gym, plots = plots, shortcuts = shortcuts, shop = counter, sell = sell, gate = gate, spawn = spawn }
 end
 
@@ -343,6 +347,7 @@ local function buildSas(parent: Instance, index: number, wallColor: Color3, wall
 		Enum.Material.Marble
 	)
 	sideWalls(folder, zMin, zMin + SAS_LEN, SAS_HALF, SAS_WALL, wallColor, wallMaterial)
+	Scenery.sas(folder, zMin, SAS_LEN, SAS_HALF, SAS_WALL)
 end
 
 local function buildRoom(parent: Instance, index: number)
@@ -434,7 +439,9 @@ local function buildFinal(parent: Instance, count: number)
 end
 
 function World.build()
+	Scenery.light()
 	local gym = buildGym(workspace)
+	Scenery.land(workspace, { halfX = LOBBY_X, back = LOBBY_BACK, front = GYM_Z, wall = GYM_WALL }, GYM_Z + #Config.ROOMS * PITCH + 40)
 	local roomsFolder = Instance.new("Folder")
 	roomsFolder.Name = "Rooms"
 	roomsFolder.Parent = workspace
