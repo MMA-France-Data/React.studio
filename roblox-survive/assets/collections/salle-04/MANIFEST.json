@@ -1,0 +1,104 @@
+{
+  "created": "2026-10-06",
+  "author": "Original models authored locally with Codex",
+  "paidGenerations": 0,
+  "gameModified": false,
+  "pets": [
+    {
+      "id": "Lynx",
+      "label": "Lynx",
+      "parts": 68,
+      "motors": 9,
+      "size": [
+        1.2228209839840383,
+        2.5286501659529064,
+        2.659800586015443
+      ],
+      "sha256": "5f450c7a64524d791c455a178a3be415796fd3c9036f268221d8b2bd099b90b0",
+      "animations": [
+        "Idle",
+        "Walk"
+      ]
+    },
+    {
+      "id": "Ram",
+      "label": "Bélier",
+      "parts": 74,
+      "motors": 9,
+      "size": [
+        1.456734880773561,
+        2.0399703510257683,
+        2.9308620339471476
+      ],
+      "sha256": "ea9f0691ed6295972e771478fbb409ff500d423fc702c0376d9eb23529b6e72b",
+      "animations": [
+        "Idle",
+        "Walk"
+      ]
+    },
+    {
+      "id": "Boar",
+      "label": "Sanglier",
+      "parts": 68,
+      "motors": 9,
+      "size": [
+        1.0934916128086933,
+        1.758997949466109,
+        3.1
+      ],
+      "sha256": "a1bb46899bf5ef7786615a3dda97c60b07ff5634d72835e7b31ff096a0403226",
+      "animations": [
+        "Idle",
+        "Walk"
+      ]
+    },
+    {
+      "id": "Wolf",
+      "label": "Loup",
+      "parts": 85,
+      "motors": 17,
+      "size": [
+        0.6928383427735426,
+        1.5813567328629805,
+        3.1
+      ],
+      "sha256": "16b8fba7735d44c7435984b7c21b22b3bc087261e1f205d16ac98ae757671ad4",
+      "animations": [
+        "Idle",
+        "Walk"
+      ]
+    },
+    {
+      "id": "Deer",
+      "label": "Cerf",
+      "parts": 58,
+      "motors": 14,
+      "size": [
+        1.1915551897395584,
+        3.1,
+        2.8450190675044738
+      ],
+      "sha256": "f96f68b9e3b13eeb0469f61ca4b3327f18fa47834e8d9bb4397b96bf590d85ff",
+      "animations": [
+        "Idle",
+        "Walk"
+      ]
+    },
+    {
+      "id": "Bear",
+      "label": "Ours brun",
+      "parts": 80,
+      "motors": 9,
+      "size": [
+        1.58,
+        2.1585643148821934,
+        3.335
+      ],
+      "sha256": "0fde90868fa3e5559dd901d6004ba777006a2ae14d57c04e4a8b88d8a15a386d",
+      "animations": [
+        "Idle",
+        "Walk"
+      ]
+    }
+  ]
+}

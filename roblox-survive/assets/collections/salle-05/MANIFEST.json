@@ -1,0 +1,104 @@
+{
+  "created": "2026-10-06",
+  "author": "Original models authored locally with Codex",
+  "paidGenerations": 0,
+  "gameModified": false,
+  "pets": [
+    {
+      "id": "Capybara",
+      "label": "Capybara",
+      "parts": 66,
+      "motors": 8,
+      "size": [
+        1.22,
+        1.5754921960638528,
+        2.8235
+      ],
+      "sha256": "3c8b8b0b9a0a1f510a6aa1d5760f0acbd47059b5a8afbdfec13ba3ffd5b16d96",
+      "animations": [
+        "Idle",
+        "Walk"
+      ]
+    },
+    {
+      "id": "Toucan",
+      "label": "Toucan",
+      "parts": 46,
+      "motors": 7,
+      "size": [
+        1.0173060997462255,
+        1.8675,
+        2.682405293754039
+      ],
+      "sha256": "3449717209eb210080ba2fc0472adbfa262d74c77a83c2198a734685802879db",
+      "animations": [
+        "Idle",
+        "Walk"
+      ]
+    },
+    {
+      "id": "Monkey",
+      "label": "Singe",
+      "parts": 51,
+      "motors": 13,
+      "size": [
+        1.3396147367628384,
+        2.113700522478062,
+        2.268970915058272
+      ],
+      "sha256": "d62ff41f9a844635995ba32d2b711ec53eb49b9bfdd1d82203e24e4050b5dbb3",
+      "animations": [
+        "Idle",
+        "Walk"
+      ]
+    },
+    {
+      "id": "Anaconda",
+      "label": "Anaconda",
+      "parts": 87,
+      "motors": 10,
+      "size": [
+        1.6719783184358374,
+        0.5306796640156468,
+        3.5999999999999996
+      ],
+      "sha256": "7c6dc1a90eb09cd03948eb11d817d919adf65ad0257aa514865a43162c515ec8",
+      "animations": [
+        "Idle",
+        "Walk"
+      ]
+    },
+    {
+      "id": "Jaguar",
+      "label": "Jaguar",
+      "parts": 108,
+      "motors": 11,
+      "size": [
+        0.9901181513426426,
+        1.7934851596592605,
+        3.6
+      ],
+      "sha256": "283bea45eb150932971e87f90afcc3516d0bad665e0b4e2fcbd1019ac7ea41f9",
+      "animations": [
+        "Idle",
+        "Walk"
+      ]
+    },
+    {
+      "id": "Crocodile",
+      "label": "Crocodile",
+      "parts": 106,
+      "motors": 11,
+      "size": [
+        1.320528199029165,
+        0.6554646606222321,
+        3.6
+      ],
+      "sha256": "bf4714996e5371efdba1f7cc9798f5b2cae70d71e073f9ba8eb94e82af8dab7f",
+      "animations": [
+        "Idle",
+        "Walk"
+      ]
+    }
+  ]
+}
