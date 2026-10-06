@@ -578,6 +578,33 @@ text(stopButton, "Label", UDim2.fromScale(0.94, 0.7), UDim2.fromScale(0.03, 0.15
 stopButton.Activated:Connect(function()
 	stopEvent:FireServer()
 end)
+-- DESCENDRE EN BOUGEANT : pendant l'entraînement, se déplacer ou sauter suffit pour descendre de la machine. Comme on
+-- y monte en marchant, il faut d'abord avoir lâché les touches un court instant (sinon on en redescendrait aussitôt).
+do
+	local lastJump, quietSince, armed = 0, nil, false
+	UserInputService.JumpRequest:Connect(function()
+		lastJump = os.clock()
+	end)
+	RunService.Heartbeat:Connect(function()
+		if (player:GetAttribute("Workout") or "") == "" then
+			quietSince, armed = nil, false
+			return
+		end
+		local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+		local moving = (humanoid ~= nil and humanoid.MoveDirection.Magnitude > 0.1) or os.clock() - lastJump < 0.1
+		if not armed then
+			if moving then
+				quietSince = nil
+			else
+				quietSince = quietSince or os.clock()
+				armed = os.clock() - quietSince > 0.25
+			end
+		elseif moving then
+			armed, quietSince = false, nil
+			stopEvent:FireServer()
+		end
+	end)
+end
 
 local workoutTrack: AnimationTrack? = nil
 local function workoutGesture(machine: string)
