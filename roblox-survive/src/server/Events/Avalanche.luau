@@ -77,6 +77,18 @@ function Avalanche.new(ctx, params)
 		slope.CanCollide = false
 	end
 
+	-- LA VITRE : pendant la manche, une vitre ferme les couloirs juste devant la ligne rouge. Le joueur reste
+	-- derriere et frappe les rochers quand ils arrivent (ils la traversent) ; elle s'ouvre quand la manche est finie,
+	-- pour aller a la porte du bout. (Le joueur : "que je puisse pas aller sur les couloirs, une vitre qui s'ouvre
+	-- quand le niveau est fini".)
+	local GLASS = LINE + 7
+	local glass = Build.part(ctx.static, "Glass", Vector3.new(ctx.halfX * 2, 16, 0.6), center + Vector3.new(0, 8, GLASS), Color3.fromRGB(170, 220, 255), Enum.Material.Glass)
+	local function setGlass(closed: boolean)
+		glass.CanCollide = closed
+		glass.Transparency = if closed then 0.7 else 1
+	end
+	setGlass(false)
+
 	local games = {} -- [joueur] = { rocks, next, lane, leaks, broken, lastHit }
 	local running = false
 
@@ -142,7 +154,12 @@ function Avalanche.new(ctx, params)
 			games[entry.player] = game
 			publish(entry.player, game)
 			setGroup(entry.player.Character, GROUP)
+			-- Un joueur qui s'est avance dans les couloirs pendant le compte a rebours est ramene derriere la vitre.
+			if entry.root.Position.Z > center.Z + GLASS - 2 then
+				entry.player.Character:PivotTo(CFrame.new(entry.root.Position.X, entry.root.Position.Y, center.Z + LINE + 3))
+			end
 		end
+		setGlass(true)
 		ctx.room.folder:SetAttribute("Avalanche", true)
 		ctx.room.folder:SetAttribute("Solo", true)
 	end
@@ -206,6 +223,7 @@ function Avalanche.new(ctx, params)
 			setGroup(player.Character, "Default")
 			remove(player)
 		end
+		setGlass(false)
 		ctx.room.avalanche = nil
 		ctx.room.folder:SetAttribute("Avalanche", nil)
 		ctx.room.folder:SetAttribute("Solo", nil)
