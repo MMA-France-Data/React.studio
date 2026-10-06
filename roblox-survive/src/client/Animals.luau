@@ -208,23 +208,25 @@ return function(env)
 			model:ScaleTo(size * 1.3 / math.max(bounds.Y, 0.1))
 			for _, item in model:GetDescendants() do
 				if item:IsA("BasePart") then
-					item.Anchored = false
-					item.Massless = true
+					item.Anchored = true
 					item.CanCollide = false
 					item.CanQuery = false
 					item.CanTouch = false
 				end
 			end
-			-- Le pivot du modele est a son pied : il est pose au bas de la boule.
-			model:PivotTo(part.CFrame * CFrame.new(0, -size * 0.65, 0))
-			local weld = Instance.new("WeldConstraint")
-			weld.Part0 = part
-			weld.Part1 = model.PrimaryPart
-			weld.Parent = part
 			model.Parent = part
+			part:SetAttribute("Lift", size * 0.65)
 			part.Transparency = 1
 		end
 		return part
+	end
+	-- Repose le modele de l'oeuf sur sa boule (a appeler apres avoir deplace la boule). Le pivot du modele est a son
+	-- pied : il est pose au bas de la boule. (Les pieces restent ancrees : pas de soudure, pas de physique.)
+	local function settleEgg(part: BasePart)
+		local model = part:FindFirstChild("EggModel")
+		if model then
+			model:PivotTo(CFrame.new(part.Position - Vector3.new(0, part:GetAttribute("Lift") or 0, 0)) * part.CFrame.Rotation)
+		end
 	end
 
 	-- Une étiquette qui flotte au-dessus d'une pièce : deux lignes.
@@ -279,7 +281,8 @@ return function(env)
 					item.egg.Name = "CarriedEgg"
 					carried[other] = item
 				end
-				item.egg.CFrame = head.CFrame * CFrame.new(0, item.lift, 0)
+				item.egg.CFrame = CFrame.new((head.CFrame * CFrame.new(0, item.lift, 0)).Position)
+				settleEgg(item.egg)
 			end
 
 			local name, rarity = other:GetAttribute("Pet") or "", other:GetAttribute("PetRarity") or 0
@@ -369,6 +372,7 @@ return function(env)
 						local size = eggSize(3, spot.s)
 						item.egg = makeEgg(spot.a, size)
 						item.egg.Position = place + Vector3.new(0, 0.15 + size * 0.65, 0)
+						settleEgg(item.egg)
 						item.top, item.bottom = tag(item.egg, size * 0.65 + 1.3)
 						item.top.Text = tr("eggName") .. "  " .. tr(rarityInfo(spot.q).key)
 						item.top.TextColor3 = rarityInfo(spot.q).color

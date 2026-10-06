@@ -169,9 +169,10 @@ return function(_world)
 			data.equipped = ""
 			PlayerData.changed(player)
 		elseif action == "Egg" then
-			-- Ajoute un œuf de l'animal a, de rareté b, aux œufs à poser.
+			-- Ajoute un œuf de l'animal a, de rareté b, aux œufs à poser. c : sa place dans le palier de valeur, de 0
+			-- (le pire) à 1 (le meilleur) ; sans c, le milieu.
 			local range = Pets.VALUE[b]
-			table.insert(PlayerData.get(player).bag, { a = a, q = b, r = 1, b = (range[1] + range[2]) // 2 })
+			table.insert(PlayerData.get(player).bag, { a = a, q = b, r = 1, b = math.floor(range[1] + (range[2] - range[1]) * (c or 0.5)) })
 			PlayerData.changed(player)
 		elseif action == "Pet" then
 			-- Pose directement un familier a de rareté b (valeur au milieu de son palier) sur la première place vide,
