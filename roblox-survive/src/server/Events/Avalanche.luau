@@ -36,6 +36,8 @@ local LEAK_DAMAGE = 34 -- un rocher qui passe la ligne : trois et le joueur est 
 -- 4 secondes en moyenne, une quinzaine dans la minute.)
 local LANE_TIME = 2.2
 local MARGIN_START, MARGIN_END = 1.9, 0.9
+-- Puis 20 % de rochers en plus (le joueur : "c'est trop simple, ajoute plus de rochers mais pas trop, genre 20 %").
+local RATE = 1.2
 local FIRST = 2 -- secondes avant le premier rocher
 local GROUP = "SurviveSolo"
 
@@ -155,7 +157,7 @@ function Avalanche.new(ctx, params)
 			game.next -= dt
 			if game.next <= 0 and elapsed < Config.DURATION - (SPAWN - LINE) / ROLL then
 				local lane = random:NextInteger(1, #LANES)
-				game.next = math.abs(lane - game.lane) * LANE_TIME + HIT + margin
+				game.next = (math.abs(lane - game.lane) * LANE_TIME + HIT + margin) / RATE
 				game.lane = lane
 				local position = center + Vector3.new(LANES[lane] + random:NextNumber(-3, 3), 3.5, SPAWN)
 				local part = Build.part(ctx.effects, "Boulder", Vector3.new(7, 7, 7), position, Color3.fromRGB(96, 90, 92), Enum.Material.Slate)
