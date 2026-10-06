@@ -1,0 +1,133 @@
+{
+  "name": "SURVIVE-Themed-Eggs-Preview",
+  "tree": {
+    "$className": "DataModel",
+    "ReplicatedStorage": {
+      "Models": {
+        "$className": "Folder",
+        "RabbitEgg": {
+          "$path": "models/RabbitEgg.rbxmx"
+        },
+        "TurtleEgg": {
+          "$path": "models/TurtleEgg.rbxmx"
+        },
+        "CatEgg": {
+          "$path": "models/CatEgg.rbxmx"
+        },
+        "DogEgg": {
+          "$path": "models/DogEgg.rbxmx"
+        },
+        "OwlEgg": {
+          "$path": "models/OwlEgg.rbxmx"
+        },
+        "FoxEgg": {
+          "$path": "models/FoxEgg.rbxmx"
+        },
+        "HedgehogEgg": {
+          "$path": "models/HedgehogEgg.rbxmx"
+        },
+        "SquirrelEgg": {
+          "$path": "models/SquirrelEgg.rbxmx"
+        },
+        "SkunkEgg": {
+          "$path": "models/SkunkEgg.rbxmx"
+        },
+        "BeaverEgg": {
+          "$path": "models/BeaverEgg.rbxmx"
+        },
+        "RaccoonEgg": {
+          "$path": "models/RaccoonEgg.rbxmx"
+        },
+        "BadgerEgg": {
+          "$path": "models/BadgerEgg.rbxmx"
+        },
+        "DuckEgg": {
+          "$path": "models/DuckEgg.rbxmx"
+        },
+        "RoosterEgg": {
+          "$path": "models/RoosterEgg.rbxmx"
+        },
+        "PigEgg": {
+          "$path": "models/PigEgg.rbxmx"
+        },
+        "SheepEgg": {
+          "$path": "models/SheepEgg.rbxmx"
+        },
+        "GoatEgg": {
+          "$path": "models/GoatEgg.rbxmx"
+        },
+        "HorseEgg": {
+          "$path": "models/HorseEgg.rbxmx"
+        },
+        "BoarEgg": {
+          "$path": "models/BoarEgg.rbxmx"
+        },
+        "RamEgg": {
+          "$path": "models/RamEgg.rbxmx"
+        },
+        "DeerEgg": {
+          "$path": "models/DeerEgg.rbxmx"
+        },
+        "LynxEgg": {
+          "$path": "models/LynxEgg.rbxmx"
+        },
+        "WolfEgg": {
+          "$path": "models/WolfEgg.rbxmx"
+        },
+        "BearEgg": {
+          "$path": "models/BearEgg.rbxmx"
+        },
+        "CapybaraEgg": {
+          "$path": "models/CapybaraEgg.rbxmx"
+        },
+        "ToucanEgg": {
+          "$path": "models/ToucanEgg.rbxmx"
+        },
+        "MonkeyEgg": {
+          "$path": "models/MonkeyEgg.rbxmx"
+        },
+        "AnacondaEgg": {
+          "$path": "models/AnacondaEgg.rbxmx"
+        },
+        "CrocodileEgg": {
+          "$path": "models/CrocodileEgg.rbxmx"
+        },
+        "JaguarEgg": {
+          "$path": "models/JaguarEgg.rbxmx"
+        }
+      }
+    },
+    "StarterPlayer": {
+      "StarterPlayerScripts": {
+        "Gallery": {
+          "$path": "Gallery.client.luau"
+        }
+      }
+    },
+    "Workspace": {
+      "$properties": {
+        "Gravity": 0,
+        "StreamingEnabled": false
+      }
+    },
+    "Lighting": {
+      "$properties": {
+        "Brightness": 2,
+        "ClockTime": 12,
+        "Ambient": [
+          0.58,
+          0.62,
+          0.59
+        ]
+      },
+      "RareEggBloom": {
+        "$className": "BloomEffect",
+        "$properties": {
+          "Intensity": 0.3,
+          "Size": 20,
+          "Threshold": 1.1
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,520 @@
+{
+  "created": "2026-10-06",
+  "nests": false,
+  "paidGenerations": 0,
+  "gameModified": false,
+  "embeddedScripts": false,
+  "notes": "Native original Roblox Parts; static visual assets, not yet integrated or tested in Studio.",
+  "eggs": [
+    {
+      "id": "RabbitEgg",
+      "animalId": "Rabbit",
+      "label": "Lapin",
+      "room": 1,
+      "parts": 80,
+      "welds": 79,
+      "size": [
+        2.02,
+        3.13,
+        1.8840000000000001
+      ],
+      "referenceChancePercent": 45,
+      "rareViolet": false,
+      "rareRainbow": false,
+      "sha256": "3aa741babbc582e2c2d46e8116b19be154baf84c13b38e03afc52723faef07a5"
+    },
+    {
+      "id": "TurtleEgg",
+      "animalId": "Turtle",
+      "label": "Tortue",
+      "room": 1,
+      "parts": 80,
+      "welds": 79,
+      "size": [
+        2.02,
+        2.4475,
+        1.8840000000000001
+      ],
+      "referenceChancePercent": 30,
+      "rareViolet": false,
+      "rareRainbow": false,
+      "sha256": "fb0231481d7064cf14f9ed95b48f35f76a0e4ebde96cc214be2399288ae7c824"
+    },
+    {
+      "id": "CatEgg",
+      "animalId": "Cat",
+      "label": "Chat",
+      "room": 1,
+      "parts": 88,
+      "welds": 87,
+      "size": [
+        2.02,
+        2.856,
+        1.8840000000000001
+      ],
+      "referenceChancePercent": 14,
+      "rareViolet": false,
+      "rareRainbow": false,
+      "sha256": "dd317eacf1e0cb697c22a7d1a81dc4a65c206789041d7dc2e2be3dae1032415a"
+    },
+    {
+      "id": "DogEgg",
+      "animalId": "Dog",
+      "label": "Chien",
+      "room": 1,
+      "parts": 81,
+      "welds": 80,
+      "size": [
+        2.0876456105435794,
+        2.444,
+        1.9330000000000003
+      ],
+      "referenceChancePercent": 7,
+      "rareViolet": false,
+      "rareRainbow": false,
+      "sha256": "bd884d179e7b2ff64c0ec14394ea17dada731c6b14fd47963fb3f8e3441cb03a"
+    },
+    {
+      "id": "OwlEgg",
+      "animalId": "Owl",
+      "label": "Chouette",
+      "room": 1,
+      "parts": 92,
+      "welds": 91,
+      "size": [
+        2.5673341251646726,
+        2.5,
+        1.9330000000000003
+      ],
+      "referenceChancePercent": 3.5,
+      "rareViolet": false,
+      "rareRainbow": false,
+      "sha256": "cb6b4b37018b3e6ca0b57edc2ee19c3c0f2d5bc66a337748ae1cecd900c98085"
+    },
+    {
+      "id": "FoxEgg",
+      "animalId": "Fox",
+      "label": "Renard",
+      "room": 1,
+      "parts": 75,
+      "welds": 74,
+      "size": [
+        2.02,
+        2.9759999999999995,
+        1.8545
+      ],
+      "referenceChancePercent": 0.5,
+      "rareViolet": true,
+      "rareRainbow": true,
+      "sha256": "bfb196992a0f3bf97ce5460713dd7fcf02a5e421fd2e5800465464d4f155db7f"
+    },
+    {
+      "id": "HedgehogEgg",
+      "animalId": "Hedgehog",
+      "label": "Hérisson",
+      "room": 2,
+      "parts": 99,
+      "welds": 98,
+      "size": [
+        2.3290401886976295,
+        2.444,
+        2.125745148171287
+      ],
+      "referenceChancePercent": 45,
+      "rareViolet": false,
+      "rareRainbow": false,
+      "sha256": "19590ebbb3c1af1d27ab8744b14d1501c034b44230428f5cd417e35d012a718d"
+    },
+    {
+      "id": "SquirrelEgg",
+      "animalId": "Squirrel",
+      "label": "Écureuil",
+      "room": 2,
+      "parts": 96,
+      "welds": 95,
+      "size": [
+        2.4723454148447868,
+        2.6759999999999997,
+        1.9820000000000002
+      ],
+      "referenceChancePercent": 30,
+      "rareViolet": false,
+      "rareRainbow": false,
+      "sha256": "08f897b72b190764643ea0e771d272baef15ffb2d3fe77e4ce97641d9812d7b1"
+    },
+    {
+      "id": "SkunkEgg",
+      "animalId": "Skunk",
+      "label": "Moufette",
+      "room": 2,
+      "parts": 100,
+      "welds": 99,
+      "size": [
+        2.02,
+        2.4819,
+        1.8840000000000001
+      ],
+      "referenceChancePercent": 14,
+      "rareViolet": false,
+      "rareRainbow": false,
+      "sha256": "25535cc24c004fb18816bfbd707b43c1f54845ba3d96cf85a20f5a08cbef35be"
+    },
+    {
+      "id": "BeaverEgg",
+      "animalId": "Beaver",
+      "label": "Castor",
+      "room": 2,
+      "parts": 83,
+      "welds": 82,
+      "size": [
+        2.174388356953637,
+        2.4766,
+        1.8840000000000001
+      ],
+      "referenceChancePercent": 7,
+      "rareViolet": false,
+      "rareRainbow": false,
+      "sha256": "1606300bea15916a84ec89e4d38f0f6a1609c0abd7581a96070917c9307eaa6e"
+    },
+    {
+      "id": "RaccoonEgg",
+      "animalId": "Raccoon",
+      "label": "Raton laveur",
+      "room": 2,
+      "parts": 85,
+      "welds": 84,
+      "size": [
+        2.02,
+        2.5031,
+        1.9820000000000002
+      ],
+      "referenceChancePercent": 3.5,
+      "rareViolet": false,
+      "rareRainbow": false,
+      "sha256": "27cbd02588ddfb3ddbc70434565dfaeeff950f50539f97b714fb07f3eb04e5f0"
+    },
+    {
+      "id": "BadgerEgg",
+      "animalId": "Badger",
+      "label": "Blaireau",
+      "room": 2,
+      "parts": 99,
+      "welds": 98,
+      "size": [
+        2.02,
+        2.4659999999999997,
+        1.9330000000000003
+      ],
+      "referenceChancePercent": 0.5,
+      "rareViolet": true,
+      "rareRainbow": true,
+      "sha256": "ed72274703c327d226187d86a1cdd8811c5fe315335ef93d889c027005f53c28"
+    },
+    {
+      "id": "DuckEgg",
+      "animalId": "Duck",
+      "label": "Canard",
+      "room": 3,
+      "parts": 84,
+      "welds": 83,
+      "size": [
+        2.5673341251646726,
+        2.444,
+        1.8840000000000001
+      ],
+      "referenceChancePercent": 45,
+      "rareViolet": false,
+      "rareRainbow": false,
+      "sha256": "90b4c2ffda354cb314ec5954abe9c5728fb0d9958f6a037c2e86327108159e63"
+    },
+    {
+      "id": "RoosterEgg",
+      "animalId": "Rooster",
+      "label": "Coq",
+      "room": 3,
+      "parts": 87,
+      "welds": 86,
+      "size": [
+        2.5673341251646726,
+        2.77,
+        1.8840000000000001
+      ],
+      "referenceChancePercent": 30,
+      "rareViolet": false,
+      "rareRainbow": false,
+      "sha256": "850a0443eacac575b571b48a95b4b1235ed70f152a803e69bcc68ed9b37bb444"
+    },
+    {
+      "id": "PigEgg",
+      "animalId": "Pig",
+      "label": "Cochon",
+      "room": 3,
+      "parts": 87,
+      "welds": 86,
+      "size": [
+        2.342274009381825,
+        2.606,
+        1.9820000000000002
+      ],
+      "referenceChancePercent": 14,
+      "rareViolet": false,
+      "rareRainbow": false,
+      "sha256": "fb040f69f08abf10b6823a8a9f07f313614907449b4f0e62b44c6edf82c617af"
+    },
+    {
+      "id": "SheepEgg",
+      "animalId": "Sheep",
+      "label": "Mouton",
+      "room": 3,
+      "parts": 94,
+      "welds": 93,
+      "size": [
+        2.02,
+        2.4775,
+        2.08
+      ],
+      "referenceChancePercent": 7,
+      "rareViolet": false,
+      "rareRainbow": false,
+      "sha256": "c0000828d78a81f138f8da9a31b5df97f3e8b98abc2b033ff28e1934f048fded"
+    },
+    {
+      "id": "GoatEgg",
+      "animalId": "Goat",
+      "label": "Chèvre",
+      "room": 3,
+      "parts": 83,
+      "welds": 82,
+      "size": [
+        2.02,
+        2.9833226278596947,
+        1.8840000000000001
+      ],
+      "referenceChancePercent": 3.5,
+      "rareViolet": false,
+      "rareRainbow": false,
+      "sha256": "e39e9b03d0fab9902268bc5efd10b90eee9baa1008b31d5dc0b42065a33a2f12"
+    },
+    {
+      "id": "HorseEgg",
+      "animalId": "Horse",
+      "label": "Cheval",
+      "room": 3,
+      "parts": 92,
+      "welds": 91,
+      "size": [
+        2.02,
+        2.666,
+        2.0220000000000002
+      ],
+      "referenceChancePercent": 0.5,
+      "rareViolet": true,
+      "rareRainbow": true,
+      "sha256": "d2c415d9b78962240bae195acc3261ab75439936ccf9a772d434cc9e0454cf07"
+    },
+    {
+      "id": "BoarEgg",
+      "animalId": "Boar",
+      "label": "Sanglier",
+      "room": 4,
+      "parts": 89,
+      "welds": 88,
+      "size": [
+        2.02,
+        2.646,
+        2.0420000000000003
+      ],
+      "referenceChancePercent": 45,
+      "rareViolet": false,
+      "rareRainbow": false,
+      "sha256": "a8a38c6e5407ee381dd1659ca818051a24a7bc2ce9684dbf2b9b5ef80b401a3f"
+    },
+    {
+      "id": "RamEgg",
+      "animalId": "Ram",
+      "label": "Bélier",
+      "room": 4,
+      "parts": 88,
+      "welds": 87,
+      "size": [
+        2.724,
+        2.5331251438709717,
+        1.9330000000000003
+      ],
+      "referenceChancePercent": 30,
+      "rareViolet": false,
+      "rareRainbow": false,
+      "sha256": "217eaf63e4cb0059950d95d4e48e60c092d502cbff908aa44e180fe5f4f8898d"
+    },
+    {
+      "id": "DeerEgg",
+      "animalId": "Deer",
+      "label": "Cerf",
+      "room": 4,
+      "parts": 89,
+      "welds": 88,
+      "size": [
+        2.0976525793157075,
+        3.219386838104474,
+        1.9330000000000003
+      ],
+      "referenceChancePercent": 14,
+      "rareViolet": false,
+      "rareRainbow": false,
+      "sha256": "91fc910e240aa34c580b72d5143c965f3ec08a3ceb1c80a90d46fffdba8a0f7e"
+    },
+    {
+      "id": "LynxEgg",
+      "animalId": "Lynx",
+      "label": "Lynx",
+      "room": 4,
+      "parts": 125,
+      "welds": 124,
+      "size": [
+        2.104,
+        2.9492733499742725,
+        1.9820000000000002
+      ],
+      "referenceChancePercent": 7,
+      "rareViolet": false,
+      "rareRainbow": false,
+      "sha256": "871e493b5c78f4c6f9d6cdd0346ba863cea4a2e49dfa0bed3f5ec1a73b43ddff"
+    },
+    {
+      "id": "WolfEgg",
+      "animalId": "Wolf",
+      "label": "Loup",
+      "room": 4,
+      "parts": 97,
+      "welds": 96,
+      "size": [
+        2.02,
+        2.856,
+        1.9820000000000002
+      ],
+      "referenceChancePercent": 3.5,
+      "rareViolet": false,
+      "rareRainbow": false,
+      "sha256": "77024e86b519298bce0be920cf5a678e211d55be742158cbaf647f6be78b1c2c"
+    },
+    {
+      "id": "BearEgg",
+      "animalId": "Bear",
+      "label": "Ours brun",
+      "room": 4,
+      "parts": 76,
+      "welds": 75,
+      "size": [
+        2.02,
+        2.5667,
+        1.8545
+      ],
+      "referenceChancePercent": 0.5,
+      "rareViolet": true,
+      "rareRainbow": true,
+      "sha256": "b4ae72741d17ba830f8d243ae50b8b1b4a70d36b8092db736e112869b615b0d4"
+    },
+    {
+      "id": "CapybaraEgg",
+      "animalId": "Capybara",
+      "label": "Capybara",
+      "room": 5,
+      "parts": 84,
+      "welds": 83,
+      "size": [
+        2.0946409106427395,
+        2.4659999999999997,
+        1.9330000000000003
+      ],
+      "referenceChancePercent": 45,
+      "rareViolet": false,
+      "rareRainbow": false,
+      "sha256": "5b12029cd9b2f9577af13a36a517c6c7fbeb7a4660b40b65d600539c360728e0"
+    },
+    {
+      "id": "ToucanEgg",
+      "animalId": "Toucan",
+      "label": "Toucan",
+      "room": 5,
+      "parts": 87,
+      "welds": 86,
+      "size": [
+        2.5673341251646726,
+        2.5,
+        1.8840000000000001
+      ],
+      "referenceChancePercent": 30,
+      "rareViolet": false,
+      "rareRainbow": false,
+      "sha256": "39cbffce2964706a85068115b1af2687fab633f92eefa3ddd8c26f56572c3522"
+    },
+    {
+      "id": "MonkeyEgg",
+      "animalId": "Monkey",
+      "label": "Singe",
+      "room": 5,
+      "parts": 85,
+      "welds": 84,
+      "size": [
+        2.342274009381825,
+        2.6473101263040997,
+        1.8840000000000001
+      ],
+      "referenceChancePercent": 14,
+      "rareViolet": false,
+      "rareRainbow": false,
+      "sha256": "c46cf91dcb51f2e05118699725a961a72d6638d3da0ef2f63a1aa3ae1da37783"
+    },
+    {
+      "id": "AnacondaEgg",
+      "animalId": "Anaconda",
+      "label": "Anaconda",
+      "room": 5,
+      "parts": 112,
+      "welds": 111,
+      "size": [
+        2.4387625533916895,
+        2.444,
+        1.9420000000000002
+      ],
+      "referenceChancePercent": 7,
+      "rareViolet": false,
+      "rareRainbow": false,
+      "sha256": "4be4b1968da2d5e84190edbf86e4f9667c91b3b173aac02d87c15b2c9bb83578"
+    },
+    {
+      "id": "CrocodileEgg",
+      "animalId": "Crocodile",
+      "label": "Crocodile",
+      "room": 5,
+      "parts": 100,
+      "welds": 99,
+      "size": [
+        2.2864935835527183,
+        2.51,
+        2.091
+      ],
+      "referenceChancePercent": 3.5,
+      "rareViolet": false,
+      "rareRainbow": false,
+      "sha256": "7a1073c5a6da2030a874014e9681d54b477090d32ac9c8d38267790fad2df43b"
+    },
+    {
+      "id": "JaguarEgg",
+      "animalId": "Jaguar",
+      "label": "Jaguar",
+      "room": 5,
+      "parts": 122,
+      "welds": 121,
+      "size": [
+        2.104,
+        2.4872,
+        2.031
+      ],
+      "referenceChancePercent": 0.5,
+      "rareViolet": true,
+      "rareRainbow": true,
+      "sha256": "cda3f969f602192b52d71d137892e4cd88593ce0ee08403498243e0e2766e59f"
+    }
+  ]
+}

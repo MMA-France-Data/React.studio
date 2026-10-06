@@ -1,0 +1,182 @@
+{
+  "source": "User table, 6 October 2026",
+  "referenceOnly": true,
+  "gameDropRatesModified": false,
+  "rooms": [
+    {
+      "room": 1,
+      "eggs": [
+        {
+          "animalId": "Rabbit",
+          "chancePercent": 45,
+          "violet": false
+        },
+        {
+          "animalId": "Turtle",
+          "chancePercent": 30,
+          "violet": false
+        },
+        {
+          "animalId": "Cat",
+          "chancePercent": 14,
+          "violet": false
+        },
+        {
+          "animalId": "Dog",
+          "chancePercent": 7,
+          "violet": false
+        },
+        {
+          "animalId": "Owl",
+          "chancePercent": 3.5,
+          "violet": false
+        },
+        {
+          "animalId": "Fox",
+          "chancePercent": 0.5,
+          "violet": true
+        }
+      ]
+    },
+    {
+      "room": 2,
+      "eggs": [
+        {
+          "animalId": "Hedgehog",
+          "chancePercent": 45,
+          "violet": false
+        },
+        {
+          "animalId": "Squirrel",
+          "chancePercent": 30,
+          "violet": false
+        },
+        {
+          "animalId": "Skunk",
+          "chancePercent": 14,
+          "violet": false
+        },
+        {
+          "animalId": "Beaver",
+          "chancePercent": 7,
+          "violet": false
+        },
+        {
+          "animalId": "Raccoon",
+          "chancePercent": 3.5,
+          "violet": false
+        },
+        {
+          "animalId": "Badger",
+          "chancePercent": 0.5,
+          "violet": true
+        }
+      ]
+    },
+    {
+      "room": 3,
+      "eggs": [
+        {
+          "animalId": "Duck",
+          "chancePercent": 45,
+          "violet": false
+        },
+        {
+          "animalId": "Rooster",
+          "chancePercent": 30,
+          "violet": false
+        },
+        {
+          "animalId": "Pig",
+          "chancePercent": 14,
+          "violet": false
+        },
+        {
+          "animalId": "Sheep",
+          "chancePercent": 7,
+          "violet": false
+        },
+        {
+          "animalId": "Goat",
+          "chancePercent": 3.5,
+          "violet": false
+        },
+        {
+          "animalId": "Horse",
+          "chancePercent": 0.5,
+          "violet": true
+        }
+      ]
+    },
+    {
+      "room": 4,
+      "eggs": [
+        {
+          "animalId": "Boar",
+          "chancePercent": 45,
+          "violet": false
+        },
+        {
+          "animalId": "Ram",
+          "chancePercent": 30,
+          "violet": false
+        },
+        {
+          "animalId": "Deer",
+          "chancePercent": 14,
+          "violet": false
+        },
+        {
+          "animalId": "Lynx",
+          "chancePercent": 7,
+          "violet": false
+        },
+        {
+          "animalId": "Wolf",
+          "chancePercent": 3.5,
+          "violet": false
+        },
+        {
+          "animalId": "Bear",
+          "chancePercent": 0.5,
+          "violet": true
+        }
+      ]
+    },
+    {
+      "room": 5,
+      "eggs": [
+        {
+          "animalId": "Capybara",
+          "chancePercent": 45,
+          "violet": false
+        },
+        {
+          "animalId": "Toucan",
+          "chancePercent": 30,
+          "violet": false
+        },
+        {
+          "animalId": "Monkey",
+          "chancePercent": 14,
+          "violet": false
+        },
+        {
+          "animalId": "Anaconda",
+          "chancePercent": 7,
+          "violet": false
+        },
+        {
+          "animalId": "Crocodile",
+          "chancePercent": 3.5,
+          "violet": false
+        },
+        {
+          "animalId": "Jaguar",
+          "chancePercent": 0.5,
+          "violet": true
+        }
+      ]
+    }
+  ]
+}
