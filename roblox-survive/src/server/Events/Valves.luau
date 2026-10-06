@@ -30,7 +30,9 @@ local SPOTS = { Vector3.new(-27, 0, -31), Vector3.new(27, 0, -31), Vector3.new(2
 local CLOSE = 6 -- distance (vue d'en haut) à laquelle le joueur ferme une vanne
 -- Temps de remplissage des quatre vannes, en « tours de salle » (le temps qu'un joueur à la vitesse demandée met à
 -- passer par les quatre coins). Une rapide, deux moyennes, une lente ; elles s'échangent tous les SHUFFLE secondes.
-local FILLS = { 1.13, 1.65, 1.65, 2.27 }
+-- (Avec la course a +10 par palier : un joueur a 10 000 points court a 40,6 et passe environ 60 % de son temps a
+-- courir d'une vanne a l'autre ; a 300 points (29) il lui faudrait 85 % : le moindre retard et il est deborde.)
+local FILLS = { 1.30, 1.90, 1.90, 2.61 }
 local SHUFFLE = 12
 local GRACE = 3 -- secondes au début pendant lesquelles rien ne monte
 local BURST_DAMAGE = 30 -- une vanne qui explose blesse ; à la troisième (STRIKES), le joueur est mort

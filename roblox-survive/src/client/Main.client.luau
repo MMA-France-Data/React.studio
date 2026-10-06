@@ -534,8 +534,8 @@ RunService.Heartbeat:Connect(function()
 	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
 	-- Pendant un entraînement, le serveur tient le personnage sur la machine (vitesse 0) : on n'y touche pas.
 	if humanoid and (player:GetAttribute("Workout") or "") == "" then
-		local full = Config.walkSpeed(player:GetAttribute("Speed") or 0)
-		humanoid.WalkSpeed = if running then full else full * Config.WALK_RATIO
+		-- Sans courir : la vitesse de base, toujours la même. En courant : celle de ses points de vitesse.
+		humanoid.WalkSpeed = if running then Config.walkSpeed(player:GetAttribute("Speed") or 0) else Config.BASE_SPEED
 	end
 end)
 

@@ -62,24 +62,28 @@ function Config.levelOf(points: number): number
 			return level + math.log(points / list[level]) / math.log(list[level + 1] / list[level])
 		end
 	end
-	return #list
+	-- Au-delà du dernier palier, ça continue du même pas (un palier de plus à chaque fois que les points sont
+	-- multipliés par 20) : la vitesse de course n'a pas de plafond. Le saut, lui, s'arrête au dernier palier.
+	return #list + math.log(points / list[#list]) / math.log(list[#list] / list[#list - 1])
 end
 
--- MARCHER ET COURIR : le personnage marche à WALK_RATIO de sa vitesse ; il court à pleine vitesse tant que le joueur
--- tient la touche Maj (ou a appuyé sur le bouton « COURIR » de l'écran).
-Config.WALK_RATIO = 0.7
+-- MARCHER ET COURIR (le joueur : « on peut laisser la vitesse de base en vitesse de base et le sprint infini de
+-- vitesse si on veut ») : sans courir, le personnage marche TOUJOURS à BASE_SPEED, quels que soient ses points (il
+-- reste facile à diriger). Tant que le joueur tient la touche Maj (ou a appuyé sur « COURIR »), il court à la
+-- vitesse que donnent ses points de vitesse, sans plafond.
+Config.BASE_SPEED = 16
+Config.WALK_RATIO = 0.7 -- (n'est plus utilisé par le jeu ; gardé pour les anciens tests)
 
--- Chaque palier compte : une salle faite pour le palier N ne se passe pas au palier N - 1.
--- Vitesse : +5 par palier (16 au départ, 21 au palier 1, 26 au palier 2... 46 au palier 6). Le premier palier fait
--- donc +31 % d'un coup : un palier de plus se SENT (« à 2 500 je m'attends à détruire le boss »), et l'écart entre
--- deux paliers est assez grand pour régler les salles de vitesse.
+-- Vitesse de COURSE : +10 par palier, sans plafond (16 à 0 point, 26 à 120 points, 36 à 2 500, 46 à 50 000, 56 à
+-- 1 000 000...). Entre deux paliers, chaque fois que les points doublent on gagne environ 2,3. Ainsi 300 points
+-- (29), 1 000 (33) et 10 000 (41) ne se ressemblent pas : il trouvait que « ça change pas assez ».
 function Config.walkSpeed(level: number): number
-	return 16 + 5 * level
+	return Config.BASE_SPEED + 10 * level
 end
 
--- Saut : +15 % de hauteur par palier (7,2 studs au départ, 16,7 au palier 6).
+-- Saut : +15 % de hauteur par palier (7,2 studs au départ, 16,7 au palier 6, le maximum).
 function Config.jumpHeight(level: number): number
-	return 7.2 * 1.15 ^ level
+	return 7.2 * 1.15 ^ math.min(level, Config.MAX_LEVEL)
 end
 
 -- Force : +50 % par palier (10 au départ, 114 au palier 6). Elle sert à repousser le plafond.

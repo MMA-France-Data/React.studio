@@ -275,7 +275,7 @@ return function(log)
 		task.wait(0.9)
 		check(D("Data")[machine] == stopped, machine .. " : plus de points une fois descendu")
 	end
-	-- Les points donnent les paliers : 120 points = palier 1 (vitesse 21 au lieu de 16), 2 500 = palier 2.
+	-- Les points donnent les paliers : 120 points = palier 1 (course à 26 au lieu de 16), 2 500 = palier 2.
 	local tier1, tier2 = Config.POINTS[1], Config.POINTS[2]
 	check(tier1 == 120 and tier2 == 2500 and Config.POINTS[6] == 400000000, "paliers : 120 points pour le premier (1 minute), 400 000 000 pour le dernier", tier1)
 	check((tier2 - tier1) / Config.gain(1) * Config.STEP_SECONDS >= 600, "sans améliorer sa machine, le palier 2 demande plus de 10 minutes")
@@ -293,7 +293,7 @@ return function(log)
 	D("Points", "Speed", tier1 - 1)
 	check(humanoid.WalkSpeed > 16 and humanoid.WalkSpeed < Config.walkSpeed(1), "119 points de vitesse : presque le palier 1", humanoid.WalkSpeed)
 	D("Points", "Speed", tier1)
-	check(math.abs(humanoid.WalkSpeed - 21) < 0.01 and player:GetAttribute("Speed") == 1, "120 points de vitesse = palier 1 : +15 %", humanoid.WalkSpeed)
+	check(math.abs(humanoid.WalkSpeed - Config.walkSpeed(1)) < 0.01 and player:GetAttribute("Speed") == 1, "120 points de vitesse = palier 1 : +15 %", humanoid.WalkSpeed)
 	D("Level", "Jump", 2)
 	check(D("Data").Jump == tier2 and math.abs(humanoid.JumpHeight - 7.2 * 1.15 ^ 2) < 0.01, "2 500 points de saut = palier 2", humanoid.JumpHeight)
 	check(player:GetAttribute("JumpPoints") == tier2 and player:GetAttribute("SpeedPoints") == tier1, "les points sont envoyés à l'écran")

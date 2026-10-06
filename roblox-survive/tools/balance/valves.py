@@ -11,15 +11,17 @@ import math, random, sys
 SPOTS = [(-27, -31), (27, -31), (27, 31), (-27, 31)]
 CLOSE, STOP = 6.0, 3.0
 SHUFFLE, GRACE, DURATION = 12.0, 3.0, 60.0
-NEED_SPEED = 16 + 5 * (2 + math.log(10000 / 2500) / math.log(20))  # la vitesse a 10 000 points
+PER_TIER = 10  # vitesse de course gagnee par palier (Config.walkSpeed)
+NEED_SPEED = 16 + PER_TIER * (2 + math.log(10000 / 2500) / math.log(20))  # la vitesse a 10 000 points
 
 
 def run(speed, late, fills, seed, strikes=3):
     rnd = random.Random(seed)
     perimeter = sum(math.dist(SPOTS[i], SPOTS[(i + 1) % 4]) for i in range(4))
     lap = perimeter / NEED_SPEED
-    current = fills[:]
-    rnd.shuffle(current)
+    # Les remplissages tournent d'un cran (seul le depart est tire au sort), comme dans le jeu.
+    shift = rnd.randrange(4)
+    current = fills[shift:] + fills[:shift]
     pressure = [0.0] * 4
     pos = [0.0, -32.0]
     t, dt, shuffle, bursts, target, wait = 0.0, 1 / 30, SHUFFLE, 0, -1, 0.0
@@ -28,7 +30,7 @@ def run(speed, late, fills, seed, strikes=3):
         shuffle -= dt
         if shuffle <= 0:
             shuffle = SHUFFLE
-            rnd.shuffle(current)
+            current = current[1:] + current[:1]
         arrived = target < 0 or math.dist(pos, SPOTS[target]) <= STOP + 0.5
         if arrived:
             best, slack = 0, 1e9
@@ -61,19 +63,19 @@ def run(speed, late, fills, seed, strikes=3):
 def speed_of(points):
     tiers = [120, 2500, 50000, 1000000]
     if points < 120:
-        return 16 + 5 * points / 120
+        return 16 + PER_TIER * points / 120
     for n in range(len(tiers) - 1):
         if points < tiers[n + 1]:
-            return 16 + 5 * (n + 1 + math.log(points / tiers[n]) / math.log(tiers[n + 1] / tiers[n]))
-    return 16 + 5 * len(tiers)
+            return 16 + PER_TIER * (n + 1 + math.log(points / tiers[n]) / math.log(tiers[n + 1] / tiers[n]))
+    return 16 + PER_TIER * len(tiers)
 
 
 if __name__ == '__main__':
-    base = [1.1, 1.6, 1.6, 2.2]
+    base = [1.13, 1.65, 1.65, 2.27]
     for factor in [float(a) for a in sys.argv[1:]] or [1.0, 1.1, 1.2, 1.3]:
         fills = [f * factor for f in base]
         print('remplissage x %.2f : %s tours de salle' % (factor, ', '.join('%.2f' % f for f in fills)))
-        for points, late in [(10000, 0), (10000, 0.4), (10000, 0.8), (5000, 0.4), (2500, 0), (2500, 0.4), (1000, 0), (1000, 0.4), (150, 0), (0, 0)]:
+        for points, late in [(10000, 0), (10000, 0.4), (10000, 0.8), (7000, 0.4), (5000, 0), (5000, 0.4), (2500, 0), (1000, 0), (300, 0), (0, 0)]:
             results = [run(speed_of(points), late, fills, seed) for seed in range(300)]
             lost = sum(1 for b, _ in results if b >= 3) / len(results)
             mean = sum(b for b, _ in results) / len(results)
