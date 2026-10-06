@@ -1,7 +1,8 @@
 -- Petit test, côté serveur : seulement LE PRÉDATEUR de la salle 2.
---   powershell -ExecutionPolicy Bypass -File tools\studio-test\run.ps1 -Test hunter -Seconds 220
--- Le test fait courir le personnage lui-même autour du rocher, sur la corde (le meilleur chemin possible), à la
--- vitesse d'un palier donné. Il fuit son prédateur, et à chaque feinte il fait demi-tour après un temps de réaction.
+--   powershell -ExecutionPolicy Bypass -File tools\studio-test\run.ps1 -Test hunter -Seconds 260
+-- Le test fait courir le personnage lui-même autour du bloc, à la vitesse d'un palier donné. Le prédateur suit sa
+-- trace : le test vérifie qu'un joueur au bon palier survit MÊME s'il court large ou hésite, et qu'un joueur trop
+-- lent est rattrapé même sur le meilleur chemin.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerStorage = game:GetService("ServerStorage")
@@ -10,7 +11,7 @@ local Config = require(ReplicatedStorage.Shared.Config)
 
 local SCALE = 4
 local ROOM = 2
-local HALF_X, HALF_Z = 18.3, 23.3 -- la corde du joueur : à 1,3 stud du rocher (17 x 22)
+local BLOCK_X, BLOCK_Z = 17, 22
 
 return function(log)
 	local function check(condition, name, detail)
@@ -61,37 +62,40 @@ return function(log)
 		workspace:SetAttribute("ShotCam", nil)
 	end
 
-	-- La corde du joueur : le même rectangle que le circuit du prédateur, parcouru par une distance s.
 	local info = D("Room", ROOM)
 	local center = info.center
-	local sides = { HALF_X * 2, HALF_Z * 2, HALF_X * 2, HALF_Z * 2 }
-	local length = 2 * (sides[1] + sides[2])
-	local corners = { Vector3.new(-HALF_X, 0, -HALF_Z), Vector3.new(HALF_X, 0, -HALF_Z), Vector3.new(HALF_X, 0, HALF_Z), Vector3.new(-HALF_X, 0, HALF_Z) }
-	local function pointAt(s: number): Vector3
-		s %= length
-		for i = 1, 4 do
-			if s <= sides[i] then
-				return center + corners[i] + (corners[i % 4 + 1] - corners[i]).Unit * s
+	-- Le chemin du joueur : un rectangle autour du bloc, à `offset` studs de lui (1,3 = à la corde ; 9 = au milieu
+	-- du couloir, virages très larges).
+	local function lane(offset: number)
+		local halfX, halfZ = BLOCK_X + offset, BLOCK_Z + offset
+		local sides = { halfX * 2, halfZ * 2, halfX * 2, halfZ * 2 }
+		local corners = { Vector3.new(-halfX, 0, -halfZ), Vector3.new(halfX, 0, -halfZ), Vector3.new(halfX, 0, halfZ), Vector3.new(-halfX, 0, halfZ) }
+		local length = 2 * (sides[1] + sides[2])
+		return length, halfX, function(s: number): Vector3
+			s %= length
+			for i = 1, 4 do
+				if s <= sides[i] then
+					return center + corners[i] + (corners[i % 4 + 1] - corners[i]).Unit * s
+				end
+				s -= sides[i]
 			end
-			s -= sides[i]
+			return center + corners[1]
 		end
-		return center + corners[1]
-	end
-	local function gap(a: number, b: number): number
-		return (b - a + length / 2) % length - length / 2
 	end
 
 	local def = Config.ROOMS[ROOM]
 	check(def.events[1] == "Hunter" and def.need.Speed == 1, "la salle 2 est le prédateur, faite pour la vitesse de palier 1")
 	local mesa = workspace.Rooms["Room" .. ROOM]:FindFirstChild("Mesa", true)
-	check(mesa ~= nil and mesa.Size.Y > Config.jumpHeight(Config.MAX_LEVEL) + 3, "le rocher du milieu est plus haut que le meilleur saut du jeu", mesa and mesa.Size.Y)
+	check(mesa ~= nil and mesa.Size.Y > Config.jumpHeight(Config.MAX_LEVEL) + 3 and mesa.Transparency > 0.7, "le bloc du milieu est transparent et plus haut que le meilleur saut du jeu", mesa and mesa.Size.Y)
 	local hunterSpeed = Config.hunterSpeed(def.Hunter.level)
-	check(hunterSpeed < Config.walkSpeed(1) and hunterSpeed > Config.walkSpeed(0.5), "le prédateur va moins vite que le palier 1 et plus vite qu'un joueur à mi-chemin", hunterSpeed)
+	check(hunterSpeed < Config.walkSpeed(1) and hunterSpeed > Config.walkSpeed(0), "le prédateur va moins vite que le palier 1 et plus vite que le palier 0", hunterSpeed)
 
-	-- Une manche : le personnage fuit à `speed` ; à chaque feinte il fait demi-tour après `reaction` secondes.
-	-- speed = 0 : il ne bouge pas. Renvoie : salle gagnée, moment de la mort (ou 60), plus petite avance, feintes.
-	local photographed = {}
-	local function run(speed: number, reaction: number): (boolean, number, number, number)
+	-- Une manche : le personnage court à `speed` sur le chemin à `offset` studs du bloc. pause : il s'arrête ce
+	-- nombre de secondes toutes les 6 secondes (une hésitation). speed = 0 : il ne bouge pas.
+	-- Renvoie : salle gagnée, moment de la mort (ou 60), plus petite avance sur le prédateur, avance à la fin.
+	local photographed = false
+	local function run(speed: number, offset: number, pause: number?): (boolean, number, number, number)
+		local length, halfX, pointAt = lane(offset)
 		D("Scale", 8)
 		local character = alive()
 		character:PivotTo(CFrame.new(Vector3.new(center.X, 4, info.zMin + 8), Vector3.new(center.X + 10, 4, info.zMin + 8)))
@@ -100,9 +104,9 @@ return function(log)
 		D("Scale", SCALE)
 		local runner, body
 		character, runner, body = alive()
-		local s = HALF_X -- le milieu du côté de l'entrée (là où le joueur arrive)
+		local s = halfX -- le milieu du côté de l'entrée (là où le joueur arrive)
 		local last = D("Room", ROOM).elapsed
-		local direction, digStart, closest, feints, died = 1, nil, math.huge, 0, Config.DURATION
+		local closest, lead, died, started = math.huge, 0, Config.DURATION, false
 		while runner.Health > 0 do
 			local room = D("Room", ROOM)
 			if room.state ~= "Event" then
@@ -112,41 +116,27 @@ return function(log)
 			last = room.elapsed
 			died = room.elapsed
 			local hunter = room.hunter and room.hunter.players[id]
-			if hunter and speed > 0 then
-				feints = hunter.feints
-				local scale = length / room.hunter.length
-				if hunter.mode == "dig" then
-					digStart = digStart or room.elapsed
-					-- Après son temps de réaction, il fuit la sortie du terrier.
-					if room.elapsed - digStart >= reaction then
-						direction = if gap(hunter.exitS * scale, s) >= 0 then 1 else -1
-					end
-					if not photographed.feint then
-						photographed.feint = true
-						D("Scale", 0.05)
-						local spot = pointAt(s)
-						shot("feinte", Vector3.new(spot.X, 14, spot.Z) + (Vector3.new(spot.X, 0, spot.Z) - center).Unit * 14, pointAt(hunter.exitS * scale) + Vector3.new(0, 4, 0))
-						D("Scale", SCALE)
-						last = D("Room", ROOM).elapsed
-					end
-				else
-					digStart = nil
-					direction = if gap(hunter.s * scale, s) >= 0 then 1 else -1
-					if hunter.mode == "run" then
-						closest = math.min(closest, hunter.distance)
-					end
-					if not photographed.chase and hunter.mode == "run" and room.elapsed > 5 then
-						photographed.chase = true
-						D("Scale", 0.05)
-						local spot = pointAt(s)
-						shot("chasse", Vector3.new(spot.X, 12, spot.Z) + (Vector3.new(spot.X, 0, spot.Z) - center).Unit * 12, hunter.position + Vector3.new(0, 3, 0))
-						D("Scale", SCALE)
-						last = D("Room", ROOM).elapsed
-					end
+			if hunter then
+				lead = hunter.lead
+				started = started or hunter.moving
+				if started then
+					closest = math.min(closest, lead)
 				end
-				s = (s + direction * speed * dt) % length
-				local spot = pointAt(s)
-				character:PivotTo(CFrame.new(spot.X, body.Position.Y, spot.Z))
+				local resting = pause ~= nil and room.elapsed % 6 < pause and room.elapsed > 6
+				if speed > 0 and not resting then
+					s = (s + speed * dt) % length
+					local spot = pointAt(s)
+					character:PivotTo(CFrame.new(spot.X, body.Position.Y, spot.Z))
+				end
+				if not photographed and room.elapsed > 6 and speed > 0 then
+					photographed = true
+					D("Scale", 0.05)
+					local spot = pointAt(s)
+					local out = (Vector3.new(spot.X, 0, spot.Z) - Vector3.new(center.X, 0, center.Z)).Unit
+					shot("chasse", Vector3.new(spot.X, 11, spot.Z) + out * 9, hunter.position + Vector3.new(0, 3, 0))
+					D("Scale", SCALE)
+					last = D("Room", ROOM).elapsed
+				end
 			end
 			task.wait()
 		end
@@ -156,26 +146,34 @@ return function(log)
 			runner.Health = 0
 		end
 		waitState("Idle", 6)
-		return won, if won then Config.DURATION else died, closest, feints
+		return won, if won then Config.DURATION else died, closest, lead
 	end
 
-	local function report(won, died, closest, feints): string
-		return string.format("%s à %.0f s ; plus petite avance %.0f studs ; %d feintes", if won then "gagné" else "attrapé", died, closest, feints)
+	local function report(won, died, closest, lead): string
+		return string.format("%s à %.0f s ; plus petite avance %.0f studs ; avance à la fin %.0f", if won then "gagné" else "attrapé", died, closest, lead)
 	end
 	local tickets = D("Eggs").tickets
-	local won, died, closest, feints = run(Config.walkSpeed(1), 0.45)
-	check(won and feints == 0 and closest > 15, "vitesse de palier 1 (120 points) : survit aux 60 secondes, le loup ne s'approche pas, aucune feinte", report(won, died, closest, feints))
+	local won, died, closest, lead = run(Config.walkSpeed(1), 9)
+	check(won and closest > 12, "palier 1 (120 points) en courant au MILIEU du couloir (virages très larges) : survit", report(won, died, closest, lead))
 	check(D("Eggs").tickets == tickets + 1, "la salle gagnée donne son ticket", D("Eggs").tickets)
+	won, died, closest, lead = run(Config.walkSpeed(1), 1.3)
+	check(won and closest > 12, "palier 1 à la corde : survit pareil (le chemin choisi ne change rien)", report(won, died, closest, lead))
+	won, died, closest, lead = run(Config.walkSpeed(1), 5, 0.3)
+	check(won and closest > 12, "palier 1 avec une hésitation de 0,3 s toutes les 6 secondes : survit", report(won, died, closest, lead))
+	won, died, closest, lead = run(Config.walkSpeed(1), 5, 0.6)
+	log("Info", "[SURVIVE] palier 1 avec une hésitation de 0,6 s toutes les 6 secondes : " .. report(won, died, closest, lead))
 	tickets = D("Eggs").tickets
-	won, died, closest, feints = run(Config.walkSpeed(0), 0.25)
-	check(not won and died < 30, "vitesse 0 : attrapé", report(won, died, closest, feints))
+	won, died, closest, lead = run(Config.walkSpeed(0), 1.3)
+	check(not won and died < 45, "vitesse 0, même à la corde : attrapé", report(won, died, closest, lead))
 	check(D("Eggs").tickets == tickets, "pas de ticket pour un joueur attrapé", D("Eggs").tickets)
-	won, died, closest, feints = run(Config.walkSpeed(0.5), 0.45)
-	check(not won, "à mi-chemin du palier 1 (60 points) : attrapé avant la fin", report(won, died, closest, feints))
-	won, died = run(0, 0)
-	check(not won and died < 6, "sans bouger, contre le mur d'en face : attrapé en quelques secondes", string.format("%.1f s", died))
-	won, died, closest, feints = run(Config.walkSpeed(2), 0.8)
-	check(won and closest > 20, "palier 2 : survit largement", report(won, died, closest, feints))
+	won, died, closest, lead = run(Config.walkSpeed(0), 9, 0.3)
+	check(not won and died < 35, "vitesse 0, comme un vrai joueur (couloir, hésitations) : attrapé plus vite", report(won, died, closest, lead))
+	won, died, closest, lead = run(Config.walkSpeed(0.5), 1.3)
+	log("Info", "[SURVIVE] à mi-chemin du palier 1 (60 points), sans faute : " .. report(won, died, closest, lead))
+	won, died = run(0, 9)
+	check(not won and died < 6, "sans bouger : attrapé en quelques secondes", string.format("%.1f s", died))
+	won, died, closest, lead = run(Config.walkSpeed(4), 5)
+	check(won and lead < 75, "palier 4 (très rapide) : survit, et le prédateur reste à moins d'un demi-tour (pas de tour d'avance)", report(won, died, closest, lead))
 
 	log("Info", "[SURVIVE] TEST:done")
 end

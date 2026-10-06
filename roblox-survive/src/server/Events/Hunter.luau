@@ -1,18 +1,17 @@
 -- LE PRÉDATEUR : un prédateur chasse chaque joueur pendant toute la manche. Il faut lui échapper jusqu'au bout.
 --
--- La salle est un CIRCUIT : un gros rocher occupe le milieu, on court autour. Le prédateur court sur la corde (tout
--- contre le rocher) vers son joueur, par le plus court chemin. Il va un peu moins vite qu'un joueur au palier de
--- vitesse demandé, et plus vite qu'un joueur du palier d'en dessous (Config.hunterSpeed) : sans le palier, il vous
--- rattrape forcément, et on ne peut pas le semer en coupant (le rocher est trop haut pour sauter dessus).
+-- La salle est un CIRCUIT : un gros bloc transparent occupe le milieu, on court autour (il est trop haut pour sauter
+-- dessus, et on voit toujours son prédateur à travers).
 --
--- LA FEINTE (seulement si params.feints, éteinte partout pour l'instant : le joueur l'a trouvée incompréhensible
--- et injuste, « juste le prédateur qui nous chasse suffit ») : il plonge dans un terrier et ressort DEVANT le joueur.
--- Un grand « ! » rouge montre la sortie une seconde avant : il faut faire demi-tour tout de suite. La sortie est
--- placée pour qu'un joueur qui réagit vite garde la même avance qu'avant ; celui qui réagit tard en perd.
+-- LE PRÉDATEUR SUIT LA TRACE DE SON JOUEUR : il passe exactement là où le joueur est passé, virages larges compris.
+-- Il fait donc le même chemin que lui, ni plus court ni plus long : seule la vitesse compte. Il va un peu moins vite
+-- qu'un joueur au palier de vitesse demandé, et plus vite qu'un joueur du palier d'en dessous (Config.hunterSpeed) :
+-- sans le palier, il vous rattrape forcément. (Avant, il courait à la corde du bloc : un joueur au bon palier qui
+-- prenait ses virages un peu large se faisait rattraper.)
 --
 -- CHACUN JOUE SEUL : le prédateur d'un joueur ne s'occupe que de lui, et les joueurs ne se cognent pas. Le serveur
--- ne déplace que des blocs invisibles étiquetés « Hunter » et « HunterExit » (attribut « Owner ») ; l'écran de
--- chaque joueur dessine SON prédateur et cache les autres joueurs (Animals.luau).
+-- ne déplace que des blocs invisibles étiquetés « Hunter » (attribut « Owner ») ; l'écran de chaque joueur dessine
+-- SON prédateur et cache les autres joueurs (Animals.luau).
 local PhysicsService = game:GetService("PhysicsService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -21,25 +20,17 @@ local Build = require(script.Parent.Parent.Build)
 
 local Hunter = {}
 
--- Le rocher du milieu (demi-largeurs) et sa hauteur : plus haut que le meilleur saut du jeu.
+-- Le bloc du milieu (demi-largeurs) et sa hauteur : plus haut que le meilleur saut du jeu.
 local BLOCK_X, BLOCK_Z, BLOCK_HEIGHT = 17, 22, 26
--- Le prédateur court à cette distance du rocher : tout contre, pour que personne ne puisse passer plus à
--- l'intérieur que lui dans les virages (un personnage ne peut pas s'approcher à moins de 1 stud du rocher). Il est
--- DESSINÉ un peu plus loin (SHOWN), pour ne pas entrer dans le rocher.
-local LANE, SHOWN = 1.2, 2.2
--- Il attrape son joueur quand il arrive à sa hauteur LE LONG DU CIRCUIT (à moins de REACH), même si le joueur est
--- collé au mur d'en face : il bondit de côté. Rester contre le mur extérieur ne protège donc pas.
-local REACH = 3.5
-local START = 22 -- au début, il apparaît à cette distance de son joueur, le long du circuit
+local LANE = 6 -- au début de la manche, le prédateur arrive par le milieu du couloir (à cette distance du bloc)
+local REACH = 4 -- distance (vue d'en haut) à laquelle il attrape son joueur
+local START = 14 -- au début, il apparaît à cette distance de son joueur, le long du circuit
 local ROAR = 0.8 -- secondes au début pendant lesquelles il rugit sans bouger
-local DIG = 1 -- secondes entre le plongeon dans le terrier et la sortie
-local REACTION = 0.45 -- temps de réaction d'un joueur normal : avec lui, une feinte ne change pas l'avance
-local FEINT_MIN, FEINT_MAX = 6, 10 -- secondes entre deux feintes
-local FEINT_NEAR = 12 -- il ne feinte pas si son joueur est plus près que ça (il est en train de l'attraper)
--- La sortie du terrier est entre EXIT_MIN et EXIT_MAX studs devant le joueur : un joueur qui a pris beaucoup
--- d'avance la perd à chaque feinte (le prédateur reste toujours une menace).
-local EXIT_MIN, EXIT_MAX = 10, 28
-local GRACE = 0.35 -- secondes après sa sortie pendant lesquelles il n'attrape pas encore
+local CRUMB = 1.5 -- une marque de la trace du joueur tous les ... studs
+-- Un joueur bien plus rapide que lui finirait par faire un tour d'avance et lui rentrer dedans par derriere : au-dela
+-- de FAR studs d'avance, le predateur accelere (CATCH_UP studs/s en plus par stud d'avance en trop). L'avance ne
+-- depasse donc jamais un tiers de tour, et il reste toujours une menace.
+local FAR, CATCH_UP = 55, 1.5
 local GROUP = "SurviveSolo"
 
 -- Les joueurs d'une salle du prédateur ne se cognent pas entre eux.
@@ -54,20 +45,22 @@ local function setGroup(character: Model?, group: string)
 		end
 	end
 end
+local function flat(position: Vector3): Vector3
+	return Vector3.new(position.X, 0, position.Z)
+end
 
 function Hunter.new(ctx, params)
 	local self = {}
-	local random = Random.new()
 	local speed = Config.hunterSpeed(params.level)
 	local center = ctx.center
 
-	-- LE DÉCOR : le gros bloc du milieu, avec un terrier sur chaque face.
-	-- Il est TRANSPARENT (une cage de verre) : on voit toujours son predateur a travers, mais on ne passe pas.
+	-- LE DÉCOR : le gros bloc du milieu, transparent (une cage de verre) : on voit toujours son prédateur à travers,
+	-- mais on ne passe pas.
 	local rock = Build.part(ctx.static, "Mesa", Vector3.new(BLOCK_X * 2, BLOCK_HEIGHT, BLOCK_Z * 2), center + Vector3.new(0, BLOCK_HEIGHT / 2, 0), Color3.fromRGB(255, 244, 224), Enum.Material.SmoothPlastic)
 	rock.Transparency = 0.88
 	rock.CastShadow = false
 	rock.TopSurface = Enum.SurfaceType.Smooth
-	-- Son cadre : un socle, un rebord en haut et quatre montants, pour qu'on voie bien ou il est.
+	-- Son cadre : un socle, un rebord en haut et quatre montants, pour qu'on voie bien où il est.
 	for i, band in { 0.7, BLOCK_HEIGHT - 0.7 } do
 		local rim = Build.part(ctx.static, "MesaRim" .. i, Vector3.new(BLOCK_X * 2 + 0.4, 1.4, BLOCK_Z * 2 + 0.4), center + Vector3.new(0, band, 0), Color3.fromRGB(170, 112, 70), Enum.Material.Sandstone)
 		rim.CanCollide = false
@@ -77,15 +70,9 @@ function Hunter.new(ctx, params)
 		local post = Build.part(ctx.static, "MesaPost" .. i, Vector3.new(1.2, BLOCK_HEIGHT, 1.2), center + Vector3.new(corner.X * (BLOCK_X - 0.5), BLOCK_HEIGHT / 2, corner.Z * (BLOCK_Z - 0.5)), Color3.fromRGB(170, 112, 70), Enum.Material.Sandstone)
 		post.CanCollide = false
 	end
-	for i, hole in if not params.feints then {} else { Vector3.new(0, 0, -BLOCK_Z), Vector3.new(0, 0, BLOCK_Z), Vector3.new(-BLOCK_X, 0, 0), Vector3.new(BLOCK_X, 0, 0), Vector3.new(-BLOCK_X, 0, 12), Vector3.new(BLOCK_X, 0, -12) } do
-		-- Un trou sombre, posé à plat sur la face du rocher.
-		local onX = math.abs(hole.X) >= BLOCK_X
-		local size = if onX then Vector3.new(0.5, 4.4, 6) else Vector3.new(6, 4.4, 0.5)
-		local burrow = Build.part(ctx.static, "Burrow" .. i, size, center + hole + Vector3.new(0, 2.2, 0), Color3.fromRGB(30, 22, 18), Enum.Material.Slate)
-		burrow.CanCollide = false
-	end
 
-	-- LE CIRCUIT du prédateur : un rectangle autour du rocher, parcouru par une distance `s` (0 à `length`).
+	-- Le milieu du couloir : un rectangle autour du bloc, parcouru par une distance `s`. Il ne sert qu'au tout
+	-- début, pour amener le prédateur de son point de départ jusqu'à la trace du joueur.
 	local halfX, halfZ = BLOCK_X + LANE, BLOCK_Z + LANE
 	local sides = { halfX * 2, halfZ * 2, halfX * 2, halfZ * 2 }
 	local length = 2 * (sides[1] + sides[2])
@@ -95,23 +82,19 @@ function Hunter.new(ctx, params)
 		Vector3.new(halfX, 0, halfZ),
 		Vector3.new(-halfX, 0, halfZ),
 	}
-	-- Le point du circuit à la distance s, et la direction du circuit à cet endroit.
-	local function pointAt(s: number): (Vector3, Vector3)
+	local function pointAt(s: number): Vector3
 		s %= length
 		for i = 1, 4 do
 			if s <= sides[i] then
-				local from, to = corners[i], corners[i % 4 + 1]
-				local direction = (to - from).Unit
-				return center + from + direction * s, direction
+				return flat(center) + corners[i] + (corners[i % 4 + 1] - corners[i]).Unit * s
 			end
 			s -= sides[i]
 		end
-		return center + corners[1], Vector3.xAxis
+		return flat(center) + corners[1]
 	end
-	-- La distance `s` du point du circuit le plus proche de cette position.
 	local function nearest(position: Vector3): number
 		local best, bestDistance, travelled = 0, math.huge, 0
-		local point = Vector3.new(position.X - center.X, 0, position.Z - center.Z)
+		local point = flat(position) - flat(center)
 		for i = 1, 4 do
 			local from, to = corners[i], corners[i % 4 + 1]
 			local direction = (to - from).Unit
@@ -124,38 +107,18 @@ function Hunter.new(ctx, params)
 		end
 		return best
 	end
-	-- Écart le long du circuit, de a vers b, par le plus court : entre -length/2 et length/2.
-	local function gap(a: number, b: number): number
-		return (b - a + length / 2) % length - length / 2
-	end
-	-- La direction qui s'éloigne du rocher, à cet endroit du circuit.
-	local function outwardAt(position: Vector3, direction: Vector3): Vector3
-		local side = Vector3.new(direction.Z, 0, -direction.X)
-		return if (position + side - center).Magnitude > (position - center).Magnitude then side else -side
-	end
 
-	local hunters = {} -- [joueur] = { s, sign, mode, timer, feint, grace, exitS, part, exit }
+	local hunters = {} -- [joueur] = { position, facing, trail, first, roar, part }
 	local running = false
 
-	local function ghost(part: BasePart)
-		part.Transparency = 1
-		part.CanCollide = false
-		part.CanQuery = false
-		part.CanTouch = false
-		part.CastShadow = false
-	end
 	local function place(hunter)
-		local position, direction = pointAt(hunter.s)
-		local shown = position + outwardAt(position, direction) * SHOWN + Vector3.new(0, 2, 0)
-		hunter.part.CFrame = CFrame.lookAt(shown, shown + direction * hunter.sign)
+		local at = Vector3.new(hunter.position.X, center.Y + 2, hunter.position.Z)
+		hunter.part.CFrame = CFrame.lookAt(at, at + hunter.facing)
 	end
 	local function remove(player: Player)
 		local hunter = hunters[player]
 		if hunter then
 			hunter.part:Destroy()
-			if hunter.exit then
-				hunter.exit:Destroy()
-			end
 			hunters[player] = nil
 		end
 	end
@@ -167,24 +130,31 @@ function Hunter.new(ctx, params)
 		end
 		for _, entry in ctx.players() do
 			local part = Build.part(ctx.effects, "Hunter", Vector3.new(4, 4, 4), center, Color3.fromRGB(120, 120, 130))
-			ghost(part)
+			part.Transparency = 1
+			part.CanCollide = false
+			part.CanQuery = false
+			part.CanTouch = false
+			part.CastShadow = false
 			part:SetAttribute("Owner", entry.player.UserId)
 			part:AddTag("Hunter")
-			-- Il apparaît derrière le joueur (du côté opposé à celui où il regarde le circuit).
+			-- Il apparaît derrière le joueur (du côté opposé à celui où il regarde le circuit), au milieu du couloir,
+			-- et rejoint sa trace en longeant le couloir.
 			local playerS = nearest(entry.root.Position)
-			local _, direction = pointAt(playerS)
+			local ahead = pointAt(playerS + 1) - pointAt(playerS)
 			local look = entry.root.CFrame.LookVector
-			local facing = if Vector3.new(look.X, 0, look.Z):Dot(direction) >= 0 then 1 else -1
+			local facing = if flat(look):Dot(ahead) >= 0 then 1 else -1
+			local trail = {}
+			for step = START - CRUMB, 0, -CRUMB do
+				table.insert(trail, pointAt(playerS - facing * step))
+			end
+			table.insert(trail, flat(entry.root.Position))
 			local hunter = {
-				s = (playerS - facing * START) % length,
-				sign = facing,
-				mode = "roar",
-				timer = ROAR,
-				feint = ROAR + random:NextNumber(FEINT_MIN, FEINT_MAX),
-				grace = 0,
-				exitS = 0,
+				position = pointAt(playerS - facing * START),
+				facing = (ahead * facing).Unit,
+				trail = trail,
+				first = 1, -- la prochaine marque à atteindre dans `trail`
+				roar = ROAR,
 				part = part,
-				feints = 0,
 			}
 			hunters[entry.player] = hunter
 			place(hunter)
@@ -193,7 +163,7 @@ function Hunter.new(ctx, params)
 		ctx.room.folder:SetAttribute("Hunter", true)
 	end
 
-	function self.update(dt: number, elapsed: number)
+	function self.update(dt: number, _elapsed: number)
 		if not running then
 			return
 		end
@@ -203,71 +173,57 @@ function Hunter.new(ctx, params)
 			if not hunter then
 				continue
 			end
-			local root = entry.root.Position
-			local playerS = nearest(root)
-			local away = gap(hunter.s, playerS) -- du prédateur vers son joueur, par le plus court
-			hunter.timer -= dt
-			hunter.grace -= dt
-			if hunter.mode == "roar" then
-				-- Le début de la manche : il rugit sans bouger, le joueur voit de quel côté il est.
-				hunter.sign = if away >= 0 then 1 else -1
-				if hunter.timer <= 0 then
-					hunter.mode = "run"
-				end
-				place(hunter)
-			elseif hunter.mode == "dig" then
-				-- Dans le terrier : il ressort à la sortie annoncée.
-				if hunter.timer <= 0 then
-					hunter.s = hunter.exitS
-					hunter.mode = "run"
-					hunter.grace = GRACE
-					hunter.feint = random:NextNumber(FEINT_MIN, FEINT_MAX)
-					hunter.sign = if gap(hunter.s, playerS) >= 0 then 1 else -1
-					if hunter.exit then
-						hunter.exit:Destroy()
-						hunter.exit = nil
-					end
-					place(hunter)
-				end
-			else
-				if math.abs(away) <= REACH and hunter.grace <= 0 then
+			local root = flat(entry.root.Position)
+			local trail = hunter.trail
+			-- La trace : une marque à chaque fois que le joueur s'est éloigné de la dernière.
+			if (root - trail[#trail]).Magnitude >= CRUMB then
+				table.insert(trail, root)
+			end
+			hunter.roar -= dt
+			local moving = hunter.roar <= 0
+			if moving then
+				if (root - hunter.position).Magnitude <= REACH then
 					ctx.damage(entry.player, Config.DAMAGE.Chase)
 				else
-					hunter.sign = if away >= 0 then 1 else -1
-					hunter.s = (hunter.s + hunter.sign * math.min(speed * dt, math.abs(away))) % length
-					hunter.feint -= dt
-					local distance = math.abs(away)
-					if params.feints and hunter.feint <= 0 and distance >= FEINT_NEAR and elapsed < Config.DURATION - DIG - 2 then
-						-- LA FEINTE : il plonge et ressortira devant le joueur (qui fuit dans le sens `sign`). La
-						-- sortie est à la bonne distance pour qu'un joueur qui fait demi-tour après REACTION
-						-- secondes retrouve la même avance.
-						local ahead = math.clamp(distance - (DIG - 2 * REACTION) * speed, EXIT_MIN, EXIT_MAX)
-						hunter.exitS = (playerS + hunter.sign * ahead) % length
-						hunter.mode = "dig"
-						hunter.timer = DIG
-						hunter.feints += 1
-						local spot, direction = pointAt(hunter.exitS)
-						local exit = Build.part(ctx.effects, "HunterExit", Vector3.new(2, 2, 2), spot + outwardAt(spot, direction) * SHOWN + Vector3.new(0, 2, 0), Color3.fromRGB(255, 40, 40))
-						ghost(exit)
-						exit:SetAttribute("Owner", entry.player.UserId)
-						exit:AddTag("HunterExit")
-						hunter.exit = exit
+					-- Il avance le long de la trace, marque après marque, puis droit sur le joueur.
+					local lead = math.max(0, #trail - hunter.first) * CRUMB + ((trail[hunter.first] or root) - hunter.position).Magnitude
+					local left = (speed + math.max(0, lead - FAR) * CATCH_UP) * dt
+					while left > 0 do
+						local target = trail[hunter.first] or root
+						local offset = target - hunter.position
+						local distance = offset.Magnitude
+						if distance > 0.001 then
+							hunter.facing = offset.Unit
+						end
+						if distance <= left then
+							hunter.position = target
+							left -= distance
+							if not trail[hunter.first] then
+								break
+							end
+							hunter.first += 1
+						else
+							hunter.position += offset.Unit * left
+							left = 0
+						end
 					end
-					place(hunter)
+					-- Les marques déjà passées sont jetées de temps en temps.
+					if hunter.first > 64 then
+						local kept = {}
+						table.move(trail, hunter.first, #trail, 1, kept)
+						hunter.trail = kept
+						hunter.first = 1
+						trail = kept
+					end
 				end
 			end
-			hunter.part:SetAttribute("Moving", hunter.mode == "run")
-			hunter.part:SetAttribute("Hidden", hunter.mode == "dig")
-			state[tostring(entry.player.UserId)] = {
-				s = hunter.s,
-				mode = hunter.mode,
-				exitS = hunter.exitS,
-				distance = math.abs(gap(hunter.s, playerS)),
-				feints = hunter.feints,
-				position = pointAt(hunter.s),
-			}
+			place(hunter)
+			hunter.part:SetAttribute("Moving", moving)
+			-- L'avance du joueur : le chemin qu'il reste au prédateur le long de la trace.
+			local lead = math.max(0, #trail - hunter.first) * CRUMB + ((trail[hunter.first] or root) - hunter.position).Magnitude
+			state[tostring(entry.player.UserId)] = { lead = lead, position = hunter.position + Vector3.new(0, center.Y, 0), moving = moving }
 		end
-		ctx.room.hunter = { speed = speed, length = length, players = state }
+		ctx.room.hunter = { speed = speed, players = state }
 	end
 
 	function self.stop()

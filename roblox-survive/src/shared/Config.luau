@@ -103,11 +103,15 @@ function Config.chaseSpeed(level: number): number
 	return Config.walkSpeed(level - 1) * 1.05
 end
 
--- VITESSE (le prédateur) : vitesse du prédateur dans une salle faite pour une vitesse de palier `level`. Il va 2 %
--- moins vite qu'un joueur de ce palier qui court (qui le distance lentement), et 13 % plus vite qu'un joueur du
--- palier d'en dessous (qu'il rattrape en une vingtaine de secondes).
+-- VITESSE (le prédateur) : vitesse du prédateur dans une salle faite pour une vitesse de palier `level`. Il suit
+-- la trace du joueur (même chemin que lui) : il va 8 % moins vite qu'un joueur de ce palier qui court, et 6 % plus
+-- vite qu'un joueur du palier d'en dessous (qu'il rattrape en une trentaine de secondes).
+-- Pourquoi 8 % : un vrai joueur hésite, se cogne, lâche la touche un instant. À 3 %, un joueur au bon palier qui
+-- perdait 0,3 seconde toutes les 6 secondes se faisait rattraper (mesuré). Un palier ne fait que 15 % de vitesse :
+-- la marge laissée au bon joueur est prise sur l'écart avec le joueur trop lent (qui met donc plus longtemps à se
+-- faire rattraper, et un joueur à mi-chemin du palier peut passer s'il court sans faute).
 function Config.hunterSpeed(level: number): number
-	return Config.walkSpeed(level) * 0.98
+	return Config.walkSpeed(level) * 0.92
 end
 
 Config.RUSH_SLACK = 1.06
