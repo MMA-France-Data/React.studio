@@ -2,13 +2,14 @@
 -- différentes (une jauge au-dessus le montre). Le joueur court en fermer une : sa jauge retombe à zéro, puis elle
 -- remonte. Une vanne qui arrive au bout EXPLOSE : trois explosions et c'est fini. Il faut tenir toute la manche.
 --
--- LA VITESSE : il faut les points de vitesse demandés par la salle (params.points) pour faire tourner le volant
--- d'une vanne. Avec moins, la vanne ne se ferme PAS (« pas assez de vitesse ») : la salle est impossible. C'est une
--- barrière nette, comme la force de l'avalanche : la simulation (tools/balance/valves.py, 300 manches par réglage)
--- a montré qu'on ne peut pas séparer proprement deux vitesses proches seulement par le temps de trajet (une
--- hésitation de 0,4 seconde à chaque vanne pèse autant que passer de 10 000 à 1 000 points).
--- Les jauges, elles, sont réglées pour qu'un joueur à la vitesse demandée tienne les quatre vannes même en
--- hésitant : le temps de remplissage d'une vanne est un multiple du temps qu'il met à faire le tour des coins.
+-- LA VITESSE : rien n'empêche de fermer une vanne, il faut juste y arriver à temps (le joueur : « c'est nul que je
+-- puisse pas activer si j'ai pas la vitesse, je devrais juste échouer »). Les jauges sont réglées sur un joueur qui
+-- court à la vitesse demandée par la salle (params.points) : le temps de remplissage d'une vanne est un multiple
+-- du temps qu'il met à faire le tour des quatre coins. Plus lent, on finit débordé.
+-- La barrière n'est donc PAS nette (simulation tools/balance/valves.py, 300 manches par réglage) : avec les
+-- chiffres ci-dessous, un joueur à 10 000 points perd 0 % des manches s'il ne traîne pas et 29 % s'il hésite 0,4 s à
+-- chaque vanne ; à 2 500 ou 1 000 points sans aucune faute, il en perd 4 sur 10 ; à 150 points, 9 sur 10 ; à 0,
+-- toutes. Resserrer davantage ferait perdre aussi le joueur qui a la vitesse.
 --
 -- LE CERVEAU : les quatre vannes ne se remplissent pas à la même vitesse, et ça change pendant la manche. Il faut
 -- choisir laquelle aller fermer : la plus urgente n'est pas toujours la plus proche.
@@ -28,9 +29,7 @@ local SPOTS = { Vector3.new(-27, 0, -31), Vector3.new(27, 0, -31), Vector3.new(2
 local CLOSE = 6 -- distance (vue d'en haut) à laquelle le joueur ferme une vanne
 -- Temps de remplissage des quatre vannes, en « tours de salle » (le temps qu'un joueur à la vitesse demandée met à
 -- passer par les quatre coins). Une rapide, deux moyennes, une lente ; elles s'échangent tous les SHUFFLE secondes.
--- (Simulation : avec ces chiffres, un joueur à la vitesse demandée perd 0 % des manches en hésitant 0,4 s à chaque
--- vanne, et 4 % en hésitant 0,8 s.)
-local FILLS = { 1.26, 1.84, 1.84, 2.53 }
+local FILLS = { 1.06, 1.54, 1.54, 2.11 }
 local SHUFFLE = 12
 local GRACE = 3 -- secondes au début pendant lesquelles rien ne monte
 local BURST_DAMAGE = 30 -- une vanne qui explose blesse ; à la troisième (STRIKES), le joueur est mort
@@ -95,7 +94,7 @@ function Valves.new(ctx, params)
 		running = true
 		table.clear(games)
 		for _, entry in ctx.players() do
-			local game = { pressure = { 0, 0, 0, 0 }, fills = shuffled(), shuffle = SHUFFLE, bursts = 0, closed = 0, sent = 0, weak = -10 }
+			local game = { pressure = { 0, 0, 0, 0 }, fills = shuffled(), shuffle = SHUFFLE, bursts = 0, closed = 0, sent = 0 }
 			games[entry.player] = game
 			publish(entry.player, game)
 			setGroup(entry.player.Character, GROUP)
@@ -121,14 +120,7 @@ function Valves.new(ctx, params)
 			end
 			for index, spot in SPOTS do
 				local offset = entry.root.Position - (center + spot)
-				local near = Vector3.new(offset.X, 0, offset.Z).Magnitude <= CLOSE
-				local fast = (entry.player:GetAttribute("SpeedPoints") or 0) >= params.points
-				if near and not fast and elapsed - game.weak > 2 then
-					-- Pas assez de vitesse : le volant ne tourne pas.
-					game.weak = elapsed
-					ctx.notify(entry.player, "valveWeak")
-				end
-				if near and fast then
+				if Vector3.new(offset.X, 0, offset.Z).Magnitude <= CLOSE then
 					-- Le joueur est à la vanne : elle est fermée.
 					if game.pressure[index] > 0.08 then
 						game.closed += 1

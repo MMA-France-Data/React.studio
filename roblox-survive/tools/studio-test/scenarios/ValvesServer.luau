@@ -149,15 +149,17 @@ return function(log)
 	check(won and bursts <= 1, "vitesse demandée, sans hésiter : survit", report(need, won, died, closed, bursts))
 	check(D("Eggs").tickets == tickets + 1, "la salle gagnée donne son ticket", D("Eggs").tickets)
 	won, died, closed, bursts = run(need, 0.4)
-	check(won, "vitesse demandée, en hésitant 0,4 s à chaque changement de vanne : survit", report(need, won, died, closed, bursts))
+	log("Info", "[SURVIVE] vitesse demandée, 0,4 s d'hésitation : " .. report(need, won, died, closed, bursts))
 	won, died, closed, bursts = run(need, 0.8)
 	log("Info", "[SURVIVE] vitesse demandée, 0,8 s d'hésitation : " .. report(need, won, died, closed, bursts))
+	for _, points in { 2500, 150 } do
+		won, died, closed, bursts = run(points, 0)
+		log("Info", "[SURVIVE] " .. points .. " points, sans hésiter : " .. report(points, won, died, closed, bursts))
+	end
 	tickets = D("Eggs").tickets
-	won, died, closed, bursts = run(need - 1, 0)
-	check(not won and closed == 0 and bursts >= 2 and died < 30, "un point de vitesse en moins : aucune vanne ne se ferme, mort à la 3e explosion (la 3e n'est pas lue : elle tue dans la même image)", report(need - 1, won, died, closed, bursts))
-	check(D("Eggs").tickets == tickets, "pas de ticket pour un joueur mort", D("Eggs").tickets)
 	won, died, closed, bursts = run(0, 0)
-	check(not won and closed == 0, "vitesse 0 : aucune vanne ne se ferme, mort", report(0, won, died, closed, bursts))
+	check(not won and died < 45, "vitesse 0 : débordé, mort bien avant la fin", report(0, won, died, closed, bursts))
+	check(D("Eggs").tickets == tickets, "pas de ticket pour un joueur mort", D("Eggs").tickets)
 	D("Points", "Speed", 0)
 
 	log("Info", "[SURVIVE] TEST:done")
