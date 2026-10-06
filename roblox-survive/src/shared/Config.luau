@@ -93,8 +93,9 @@ function Config.ceilingNeed(level: number): number
 end
 
 -- VITESSE : secondes laissées pour courir `distance` studs jusqu'à la zone verte, dans une salle faite pour une
--- vitesse de niveau `level` : le temps qu'il faut à ce niveau, plus 0,3 seconde pour réagir. Au niveau d'en
--- dessous (15 % plus lent), il manque environ 4 studs à l'arrivée.
+-- vitesse de niveau `level` : le temps qu'il faut à ce niveau, plus 6 % (voir RUSH_SLACK). Le joueur voit le rond
+-- d'arrivée avant le départ et ne peut pas partir en avance (Meteors.luau) : il n'a donc pas à réagir, seulement à
+-- courir. Au niveau d'en dessous (15 % plus lent), il manque environ 6 studs à l'arrivée.
 -- VITESSE (salle de course) : vitesse du monstre dans une salle faite pour une vitesse de niveau `level`. Il va 5 %
 -- plus vite qu'un joueur du niveau d'en dessous qui court (il finit par l'attraper), et 9 % moins vite qu'un joueur
 -- du niveau demandé (qui garde une dizaine de studs d'avance en tournant en grand cercle).
@@ -102,9 +103,9 @@ function Config.chaseSpeed(level: number): number
 	return Config.walkSpeed(level - 1) * 1.05
 end
 
-Config.RUSH_REACTION = 0.3
+Config.RUSH_SLACK = 1.06
 function Config.rushSeconds(level: number, distance: number): number
-	return distance / Config.walkSpeed(level) + Config.RUSH_REACTION
+	return distance / Config.walkSpeed(level) * Config.RUSH_SLACK
 end
 
 -- LES MANCHES ---------------------------------------------------------------------------------------------------

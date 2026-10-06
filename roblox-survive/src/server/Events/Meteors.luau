@@ -1,10 +1,15 @@
 -- PLUIE DE MÉTÉORITES : un cercle rouge prévient, puis la météorite tombe dessus et explose. Une partie des
 -- météorites vise un joueur, les autres tombent au hasard.
 --
--- LA GRANDE PLUIE (params.rush) : toute la salle devient rouge sauf un rond vert, placé à l'autre bout de la salle
--- à chaque fois. Quand le compte à rebours du rond arrive à zéro, tout ce qui est hors du rond explose. Le temps
--- laissé est celui qu'il faut pour traverser en courant avec le niveau de vitesse demandé (Config.rushSeconds) :
--- sans ce niveau, on n'arrive pas à temps.
+-- LA GRANDE PLUIE (params.rush) : une course d'un rond vert à l'autre, d'un coin de la salle au coin opposé.
+--   1. « rest »  : le sol brûle partout sauf dans le rond où sont les joueurs : il faut y rester (au tout début de
+--                  la manche, il n'y a pas encore de rond : on est où on veut).
+--   2. « ready » : le rond d'arrivée apparaît à l'autre bout, avec un décompte blanc (READY secondes). Il faut
+--                  ENCORE rester dans le rond de départ : pas de départ en avance.
+--   3. « warn »  : PARTEZ. Le rond de départ disparaît, le décompte vert tourne. À zéro, tout ce qui est hors du
+--                  rond d'arrivée explose. Ce rond devient le rond de départ de la course suivante.
+-- Le temps de course est celui qu'il faut au niveau de vitesse demandé (Config.rushSeconds) : sans ce niveau, on
+-- n'arrive pas à temps. Tout le monde part du même endroit, donc le temps est juste pour tout le monde.
 local Debris = game:GetService("Debris")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -19,6 +24,8 @@ local GREEN = Color3.fromRGB(70, 255, 90)
 local SAFE_RADIUS = 6.5 -- rayon du rond vert
 local SAFE_GRACE = 1 -- marge en plus au moment de l'impact (retard du réseau)
 local FIRST_EXTRA = 2.5 -- secondes en plus pour la première grande pluie (les joueurs sont n'importe où)
+local READY = 2 -- secondes pendant lesquelles on voit le rond d'arrivée avant de pouvoir partir
+local HOLD_EVERY, HOLD_DAMAGE = 0.25, 25 -- hors du rond de départ avant le départ : dégâts toutes les 0,25 s
 -- Les deux places du rond vert, aux deux coins opposés de la salle (par rapport à son centre).
 local CORNERS = { Vector3.new(-26, 0, -30), Vector3.new(26, 0, 30) }
 local EXPLOSION_SOUND = "rbxasset://sounds/impact_explosion_03.mp3"
@@ -99,12 +106,12 @@ function Meteors.new(ctx, params)
 
 	-- LA GRANDE PLUIE ---------------------------------------------------------------------------------------------
 	local rush = params.rush
-	local danger, safe, counter, boom
+	local danger, safe, hold, counter, boom
 	local phase, rushTimer, side, waves, showered = "rest", 0, 1, 0, false
-	local travel, rushTime = 0, 0
+	local travel, rushTime, holdTimer = 0, 0, 0
 	if rush then
-		-- Distance à courir : d'un rond à l'autre, moins les deux rayons (on part du bord, on s'arrête au bord).
-		travel = (CORNERS[1] - CORNERS[2]).Magnitude - 2 * SAFE_RADIUS + 2
+		-- Distance à courir : du bord du rond de départ au bord du rond d'arrivée (marges comprises).
+		travel = (CORNERS[1] - CORNERS[2]).Magnitude - 2 * (SAFE_RADIUS + SAFE_GRACE)
 		rushTime = Config.rushSeconds(rush.level, travel)
 		danger = Build.part(ctx.static, "Danger", Vector3.new(ctx.halfX * 2, 0.2, ctx.halfZ * 2 - 1.6), ctx.center + Vector3.new(0, 0.12, 0), RED, Enum.Material.Neon)
 		danger.Transparency = 1
@@ -112,6 +119,10 @@ function Meteors.new(ctx, params)
 		safe = Build.disc(ctx.static, "Safe", SAFE_RADIUS * 2, 0.3, ctx.center + CORNERS[1] + Vector3.new(0, 0.2, 0), GREEN, Enum.Material.Neon)
 		safe.Transparency = 1
 		ghost(safe)
+		-- Le rond de départ : celui où il faut rester avant le départ.
+		hold = Build.disc(ctx.static, "Hold", SAFE_RADIUS * 2, 0.3, ctx.center + CORNERS[1] + Vector3.new(0, 0.2, 0), GREEN, Enum.Material.Neon)
+		hold.Transparency = 1
+		ghost(hold)
 		local gui = Instance.new("BillboardGui")
 		gui.Size = UDim2.fromScale(8, 5)
 		gui.StudsOffsetWorldSpace = Vector3.new(0, 9, 0)
@@ -130,25 +141,57 @@ function Meteors.new(ctx, params)
 	end
 
 	local function publishRush()
-		ctx.room.rush = { phase = phase, timer = rushTimer, target = ctx.center + CORNERS[side], waves = waves, seconds = rushTime }
+		ctx.room.rush = { phase = phase, timer = rushTimer, target = ctx.center + CORNERS[side], hold = if waves > 0 then hold.Position else nil, waves = waves, seconds = rushTime }
 	end
 	local function hideRush()
 		danger.Transparency = 1
 		safe.Transparency = 1
+		hold.Transparency = 1
 		counter.Parent.Enabled = false
+	end
+	-- Avant le départ : le sol brûle hors du rond de départ (dès la 2e course).
+	local function holdPlayers(dt: number)
+		if waves == 0 then
+			return
+		end
+		hold.Transparency = 0.1
+		danger.Transparency = 0.8
+		holdTimer -= dt
+		if holdTimer <= 0 then
+			holdTimer = HOLD_EVERY
+			for _, entry in ctx.players() do
+				local offset = entry.root.Position - hold.Position
+				if Vector3.new(offset.X, 0, offset.Z).Magnitude > SAFE_RADIUS + SAFE_GRACE then
+					ctx.damage(entry.player, HOLD_DAMAGE)
+				end
+			end
+		end
 	end
 	local function updateRush(dt: number, elapsed: number)
 		rushTimer -= dt
 		if phase == "rest" then
+			holdPlayers(dt)
 			-- Pas de nouvelle grande pluie si elle ne peut pas finir avant la fin de la manche.
-			if rushTimer <= 0 and elapsed + rushTime + FIRST_EXTRA < Config.DURATION then
+			if rushTimer <= 0 and elapsed + READY + rushTime + FIRST_EXTRA < Config.DURATION then
 				side = if waves == 0 then 1 else 3 - side
+				phase = "ready"
+				rushTimer = READY
+				safe.Position = ctx.center + CORNERS[side] + Vector3.new(0, 0.2, 0)
+				safe.Transparency = 0.45
+				counter.TextColor3 = Color3.new(1, 1, 1)
+				counter.Parent.Enabled = true
+			end
+		elseif phase == "ready" then
+			holdPlayers(dt)
+			counter.Text = tostring(math.max(1, math.ceil(rushTimer)))
+			if rushTimer <= 0 then
+				-- PARTEZ.
 				phase = "warn"
 				rushTimer = rushTime + if waves == 0 then FIRST_EXTRA else 0
 				showered = false
-				safe.Position = ctx.center + CORNERS[side] + Vector3.new(0, 0.2, 0)
+				hold.Transparency = 1
 				safe.Transparency = 0.1
-				counter.Parent.Enabled = true
+				counter.TextColor3 = GREEN
 			end
 		else
 			danger.Transparency = 0.75 - 0.25 * math.abs(math.sin(rushTimer * 5))
@@ -174,7 +217,10 @@ function Meteors.new(ctx, params)
 				waves += 1
 				phase = "rest"
 				rushTimer = rush.rest or 3
+				-- Le rond d'arrivée devient le rond de départ de la course suivante.
 				hideRush()
+				hold.Position = safe.Position
+				holdTimer = 0.6
 			end
 		end
 		publishRush()

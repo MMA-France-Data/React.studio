@@ -12,10 +12,12 @@ const norm = (p) => p.split(path.sep).join('/');
 
 // Scénarios (dossier scenarios) : [serveur, client].
 //   game : tout le jeu (décor, salle de sport, les 10 salles, pièces, raccourci), avec des captures
+//   rush : seulement la grande pluie de la salle 2 (petit test, environ 4 minutes)
 //   jump : mesure la hauteur de marche qu'un personnage peut grimper d'un saut (réglage des salles de lave)
 const scenarios = {
 	game: ['GameServer.luau', 'GameClient.luau'],
 	jump: ['JumpServer.luau', 'JumpClient.luau'],
+	rush: ['RushServer.luau', 'RushClient.luau'],
 };
 if (!scenarios[mode]) {
 	console.error(`Test inconnu : ${mode} (attendu : ${Object.keys(scenarios).join(', ')})`);

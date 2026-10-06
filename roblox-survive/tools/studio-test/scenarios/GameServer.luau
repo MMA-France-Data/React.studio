@@ -579,7 +579,11 @@ return function(log)
 			waves = rush.waves
 			-- Soigné à chaque image : une petite météorite ne le tue pas, la grande pluie (100 dégâts) si.
 			runner.Health = runner.MaxHealth
-			if rush.phase == "warn" then
+			if rush.phase == "ready" and rush.hold then
+				-- Avant le départ : au bord du rond de départ, du côté du rond d'arrivée (comme un bon joueur).
+				local toward = Vector3.new(rush.target.X - rush.hold.X, 0, rush.target.Z - rush.hold.Z).Unit
+				character:PivotTo(CFrame.new(Vector3.new(rush.hold.X, body.Position.Y, rush.hold.Z) + toward * 6))
+			elseif rush.phase == "warn" then
 				-- Court tout droit vers le rond vert et s'arrête 5 studs avant son milieu.
 				local position = body.Position
 				local delta = Vector3.new(rush.target.X - position.X, 0, rush.target.Z - position.Z)
