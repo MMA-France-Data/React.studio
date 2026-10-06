@@ -1,0 +1,102 @@
+{
+  "status": "30_ORDINARY_ANIMALS_BYTE_IDENTICAL",
+  "actualStudioTest": false,
+  "checks": [
+    {
+      "room": 1,
+      "id": "Fox",
+      "ordinaryModelsUnchanged": 5,
+      "rigAndOriginalPartGeometryUnchanged": true,
+      "oldSize": [
+        1.2714107357469484,
+        2.5621047701262345,
+        3.1
+      ],
+      "newSize": [
+        1.2714107357469484,
+        2.5621047701262345,
+        3.1
+      ]
+    },
+    {
+      "room": 2,
+      "id": "Badger",
+      "ordinaryModelsUnchanged": 5,
+      "rigAndOriginalPartGeometryUnchanged": true,
+      "oldSize": [
+        1.1237064777884607,
+        1.089356226413109,
+        3.1
+      ],
+      "newSize": [
+        1.1237064777884607,
+        1.089356226413109,
+        3.1
+      ]
+    },
+    {
+      "room": 3,
+      "id": "Horse",
+      "ordinaryModelsUnchanged": 5,
+      "rigAndOriginalPartGeometryUnchanged": true,
+      "oldSize": [
+        0.8343103970078299,
+        3.1,
+        3.1965807066488767
+      ],
+      "newSize": [
+        0.8343103970078299,
+        3.1,
+        3.1965807066488767
+      ]
+    },
+    {
+      "room": 4,
+      "id": "Bear",
+      "ordinaryModelsUnchanged": 5,
+      "rigAndOriginalPartGeometryUnchanged": true,
+      "oldSize": [
+        1.58,
+        2.1585643148821934,
+        3.335
+      ],
+      "newSize": [
+        1.58,
+        2.1585643148821934,
+        3.335
+      ]
+    },
+    {
+      "room": 5,
+      "id": "Jaguar",
+      "ordinaryModelsUnchanged": 5,
+      "rigAndOriginalPartGeometryUnchanged": true,
+      "oldSize": [
+        0.9901181513426426,
+        1.7934851596592605,
+        3.6
+      ],
+      "newSize": [
+        0.9901181513426426,
+        1.7934851596592605,
+        3.6
+      ]
+    },
+    {
+      "room": 6,
+      "id": "MonitorLizard",
+      "ordinaryModelsUnchanged": 5,
+      "rigAndOriginalPartGeometryUnchanged": false,
+      "oldSize": [
+        1.6142628908657226,
+        0.8404856855694988,
+        3.8000000000000003
+      ],
+      "newSize": [
+        2.522750146033498,
+        1.5129849813324878,
+        5.8
+      ]
+    }
+  ]
+}

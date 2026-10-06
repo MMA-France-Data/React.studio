@@ -1,0 +1,135 @@
+{
+  "status": "SIX_ULTRA_RARES_OFFLINE_GEOMETRY_RIG_LOOP_OK",
+  "actualStudioTest": false,
+  "gameModified": false,
+  "animals": [
+    {
+      "id": "Fox",
+      "parts": 84,
+      "motors": 10,
+      "movingWalkJoints": [
+        "EarL",
+        "EarR",
+        "TailTip",
+        "Core",
+        "Head",
+        "LegFL",
+        "LegFR",
+        "LegBL",
+        "LegBR",
+        "Tail"
+      ],
+      "lowestSampledPoint": -0.09497489526320368,
+      "highestSampledPoint": 2.584246245330334
+    },
+    {
+      "id": "Badger",
+      "parts": 93,
+      "motors": 9,
+      "movingWalkJoints": [
+        "EarL",
+        "EarR",
+        "Core",
+        "Head",
+        "LegFL",
+        "LegFR",
+        "LegBL",
+        "LegBR",
+        "Tail"
+      ],
+      "lowestSampledPoint": -0.0585366074760737,
+      "highestSampledPoint": 1.1163337538824862
+    },
+    {
+      "id": "Horse",
+      "parts": 76,
+      "motors": 15,
+      "movingWalkJoints": [
+        "EarL",
+        "EarR",
+        "TailTip",
+        "Core",
+        "Neck",
+        "Head",
+        "LegFL",
+        "KneeFL",
+        "LegFR",
+        "LegBL",
+        "LegBR",
+        "KneeBR",
+        "Tail",
+        "KneeFR",
+        "KneeBL"
+      ],
+      "lowestSampledPoint": -0.030126376791927756,
+      "highestSampledPoint": 3.126691344123123
+    },
+    {
+      "id": "Bear",
+      "parts": 88,
+      "motors": 9,
+      "movingWalkJoints": [
+        "EarL",
+        "EarR",
+        "Core",
+        "Head",
+        "LegFL",
+        "LegBL",
+        "LegFR",
+        "LegBR",
+        "Tail"
+      ],
+      "lowestSampledPoint": -0.1055622852594118,
+      "highestSampledPoint": 2.1966736234441266
+    },
+    {
+      "id": "Jaguar",
+      "parts": 116,
+      "motors": 11,
+      "movingWalkJoints": [
+        "EarL",
+        "EarR",
+        "Tail1",
+        "Tail2",
+        "Core",
+        "Head",
+        "LegFL",
+        "LegBL",
+        "LegFR",
+        "LegBR",
+        "Tail"
+      ],
+      "lowestSampledPoint": -0.07019762970861276,
+      "highestSampledPoint": 1.818562545096239
+    },
+    {
+      "id": "MonitorLizard",
+      "parts": 133,
+      "motors": 18,
+      "movingWalkJoints": [
+        "Head",
+        "Tail1",
+        "Tail2",
+        "Tail3",
+        "Tail4",
+        "Core",
+        "Neck",
+        "Jaw",
+        "LegFL",
+        "KneeFL",
+        "LegBL",
+        "LegFR",
+        "LegBR",
+        "KneeBR",
+        "Tail",
+        "Tongue",
+        "KneeBL",
+        "KneeFR"
+      ],
+      "lowestSampledPoint": -0.028290257767034643,
+      "highestSampledPoint": 1.5419803376002192
+    }
+  ],
+  "eggs": 6,
+  "rareRainbowEgg": "MonitorLizardEgg"
+}
