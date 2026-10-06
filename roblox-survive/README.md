@@ -12,19 +12,22 @@ Ce dossier est séparé du jeu de tours (`roblox-ranked-td`) : rien n'est partag
 
 - **Lobby** : une allée qui mène à la porte des salles, et 6 espaces (un par joueur du serveur), chacun avec ses
   3 machines et son enclos. Le joueur apparaît dans le sien ; les machines des autres espaces ne lui servent pas.
-- **Machines** : tapis de course (vitesse), trampoline (saut), musculation (force pour repousser le plafond).
-  Tout le monde commence au niveau 0. Pour gagner un niveau, on va sur la machine (touche E) : le personnage
-  s'entraîne 4 secondes (il court sur le tapis, pousse la barre couché sur le banc, rebondit sur le trampoline).
-  Le niveau 1 est gratuit, puis 500, 1 500, 4 000, 10 000 et 25 000 pièces. Chaque niveau est un vrai palier :
-  +15 % de vitesse, +15 % de saut, +50 % de force.
+- **Machines et stats** : la vitesse, le saut et la force sont des nombres de points, affichés à gauche de l'écran.
+  On monte sur sa machine (touche E) : le personnage s'entraîne tant qu'on veut (il court sur le tapis, pousse la
+  barre couché sur le banc, rebondit sur le trampoline) et gagne des points à chaque pas, deux pas par seconde ;
+  on redescend avec E ou le bouton « ARRÊTER ». Le panneau « Améliorer » à côté de chaque machine la fait monter
+  d'un niveau avec des pièces (500, 1 500, 4 000, 10 000, 25 000) : elle donne alors 4 fois plus de points par pas
+  (1, 4, 16, 64, 256, 1 024). Les paliers de stat : 100, 500, 2 500, 12 500, 60 000, 300 000 points ; chaque palier
+  donne +15 % de vitesse, +15 % de saut ou +50 % de force.
 - **Marcher et courir** : le personnage marche à 70 % de sa vitesse. Il court à pleine vitesse tant qu'on tient
   la touche Maj, ou après un appui sur le bouton « COURIR » de l'écran (un 2e appui le remet à la marche).
 - **10 salles** : compte à rebours de 10 secondes quand on entre, puis 60 secondes d'événement. Le panneau de
-  chaque salle dit les niveaux qu'il faut, et le bandeau le dit en rouge au joueur à qui il en manque.
-  - Bombe (salle 1) : un parcours qui grimpe en spirale, sans lave : si on tombe, on remonte. Tout en haut, une
+  chaque salle dit les points de stat conseillés (« Saut 500 recommandé »), et le bandeau dit en rouge ce qui manque
+  au joueur.
+  - Bombe (salle 1) : un parcours qui grimpe en zigzag de l'entrée vers la sortie, sans lave : si on tombe, on remonte. Tout en haut, une
     bombe avec un gros compte à rebours. Chaque joueur monte couper SON fil (E maintenu 3 secondes). À zéro, elle
     élimine ceux qui n'ont pas coupé le leur ; si tous l'ont coupé, la porte s'ouvre tout de suite.
-  - Lave : un parcours qui grimpe en spirale ; la dernière plateforme (verte) est le seul endroit sûr à la fin.
+  - Lave : un parcours qui grimpe en zigzag, et finit du côté de la sortie ; la dernière plateforme (verte) est le seul endroit sûr à la fin.
     Les grandes marches (violettes) sont trop hautes sans le niveau de saut demandé.
   - Météorites : un cercle rouge prévient, puis ça explose. La GRANDE PLUIE (salle 2) : toute la salle
     explose sauf un rond vert, à l'autre bout à chaque fois ; sans le niveau de vitesse demandé, on n'y arrive
@@ -40,18 +43,18 @@ Ce dossier est séparé du jeu de tours (`roblox-ranked-td`) : rien n'est partag
 | Salle | Événements | Il faut |
 | --- | --- | --- |
 | 1 | la bombe | rien |
-| 2 | grande pluie de météorites | vitesse 1 |
+| 2 | grande pluie de météorites | vitesse 100 |
 | 3 | explosions | rien |
-| 4 | lave + plafond | saut 1, force 1 |
-| 5 | lave + météorites | saut 2 |
+| 4 | lave + plafond | saut 100, force 100 |
+| 5 | lave + météorites | saut 500 |
 | 6 | mélodie | rien |
-| 7 | lave + plafond | saut 3, force 2 |
-| 8 | le monstre (salle de course) | vitesse 3 |
-| 9 | lave + météorites | saut 4 |
-| 10 | lave + plafond + météorites | saut 5, force 4 |
+| 7 | lave + plafond | saut 2 500, force 500 |
+| 8 | le monstre (salle de course) | vitesse 2 500 |
+| 9 | lave + météorites | saut 12 500 |
+| 10 | lave + plafond + météorites | saut 60 000, force 12 500 |
 
-  Les salles 1 à 4 ne demandent que les niveaux gratuits. Ensuite chaque palier coûte plus cher que ce que
-  rapportent les salles déjà ouvertes (voir le tableau « LA PROGRESSION » dans `Config.luau`).
+  Les paliers se gagnent en s'entraînant ; les pièces servent à améliorer les machines (pour s'entraîner plus
+  vite) et l'enclos (voir « LA PROGRESSION » dans `Config.luau`).
 - **Pièces** : salle réussie = 100 × le numéro de la salle ; mort après 30 secondes = la moitié ; +1 000 pour
   la dernière salle.
 - Mélodie (salle 6, casse-tête) : le mur joue une suite de notes en allumant des couleurs ; il faut la refaire en
@@ -59,21 +62,32 @@ Ce dossier est séparé du jeu de tours (`roblox-ranked-td`) : rien n'est partag
     réussir ouvre la porte tout de suite ; ne pas finir à temps élimine tout le monde.
 - **Tickets, œufs et familiers** :
   1. chaque salle réussie donne un **ticket** de cette salle ;
-  2. à la **boutique des œufs** (le stand jaune de l'allée, près de la porte des salles), les tickets s'échangent
-     contre des œufs de l'animal de la salle ; la rareté de l'œuf est tirée à ce moment-là (commun, peu commun,
-     rare, légendaire ; plus de chances dans les salles du fond) ;
-  3. le joueur **pose l'œuf lui-même** sur une place libre de son enclos (touche E). Il y couve : 30 s, 1 min 30,
-     4 min ou 10 min selon la rareté, multiplié par 0,6 (salle 1) à 1,5 (salle 10) ; le temps continue hors du jeu ;
+  2. à la **boutique des œufs** (le stand « ŒUFS » de l'allée), les tickets s'échangent contre des œufs de l'animal
+     de la salle ; la rareté de l'œuf est tirée à ce moment-là (commun, peu commun, rare, légendaire ; plus de
+     chances dans les salles du fond). Le joueur **porte son œuf sur la tête** ;
+  3. dans son enclos, il **pose l'œuf par terre** où il veut (touche E ou bouton « POSER L'ŒUF »). L'œuf y couve :
+     30 s, 1 min 30, 4 min ou 10 min selon la rareté, multiplié par 0,6 (salle 1) à 1,5 (salle 10) ; le temps
+     continue hors du jeu ;
   4. à l'éclosion, le familier reçoit une **valeur cachée** tirée dans le palier de sa rareté : commun 1 à 100,
-     peu commun 100 à 200, rare 200 à 400, légendaire 400 à 800. Il rapporte chaque seconde sa valeur / 100,
-     multipliée par son animal (dragon × 1, caillou × 1,5, lapin × 2, chouette × 2,5, golem × 3), tant que le
-     joueur est dans le jeu. Deux familiers de la même rareté ne rapportent donc pas pareil.
-  - **Les places** : l'enclos commence avec 5 places. La 6e coûte 1 000 pièces, et chaque place suivante 6 fois
-    la précédente (6 000, 36 000, 216 000...), jusqu'à 12.
-  - **Doublons** : on peut avoir plusieurs fois le même familier. Pour libérer une place, on vend le familier
-    (E maintenu) : il rend ce qu'il rapporte en 100 secondes.
-  - Les familiers ne donnent **aucun bonus dans les salles**. Le joueur peut en choisir un qui le suit (bouton
-    « ANIMAUX », qui montre aussi tout l'enclos). Chaque rareté a son mélange de couleurs.
+     peu commun 100 à 200, rare 200 à 400, légendaire 400 à 800. Il **se promène dans l'enclos** et rapporte chaque
+     seconde sa valeur / 100, multipliée par son animal (dragon × 1, caillou × 1,5, lapin × 2, chouette × 2,5,
+     golem × 3), tant que le joueur est dans le jeu ; le gain s'envole au-dessus de lui.
+  - **L'enclos** : une clôture à la couleur de l'espace. Niveau 1 = 5 places (familiers + œufs). Le panneau
+    « Améliorer l'enclos », sur la clôture, ajoute une place par niveau : 1 000 pièces, puis 6 fois plus à chaque
+    niveau (6 000, 36 000, 216 000...), jusqu'à 20 places.
+  - **Doublons et vente** : on peut avoir plusieurs fois le même familier. Le stand « VENDRE » (ou la patte, à
+    droite de l'écran) ouvre la liste de ses familiers, avec « Vendre » (deux appuis ; il rend ce qu'il rapporte
+    en 100 secondes) et « Suivre » (ce familier suit le joueur, pour le plaisir).
+  - **À droite de l'écran** : le bouton œuf déplie « Œufs en croissance » (une barre par œuf qui couve, et le
+    nombre de tickets et d'œufs à poser) ; le bouton patte déplie la liste des familiers (« 7/8 Actifs », le
+    bouton « +1 place », le revenu de chacun). La flèche rouge replie le panneau.
+  - Les familiers ne donnent **aucun bonus dans les salles**. Chaque rareté a son mélange de couleurs.
+- **La fermeture de la porte** (`Cycle.luau`, réglages `Config.CYCLE`) : toutes les 5 minutes, la porte du lobby
+  vers les salles se ferme 10 secondes. Pendant ce temps, les œufs de tous les enclos couvent 10 fois plus vite
+  (10 secondes en valent 100). À la réouverture, une salle tirée au hasard reçoit un bonus de chance tiré au hasard
+  (+100, +200, +300, +400 ou +500 %) : un ticket gagné dans cette salle garde le bonus, et son œuf a 2 à 6 fois
+  plus de chances d'être peu commun, rare ou légendaire. Le bonus dure jusqu'à la fermeture suivante ; il est
+  écrit en haut de l'écran dans le lobby et en doré sur le panneau de la salle.
 - **Raccourci** dans la salle de sport : mène devant la salle 6 quand la salle 5 est réussie.
 - **Sauvegarde** des pièces, des niveaux et de la meilleure salle (dans le jeu publié ; dans Studio, tout reste
   en mémoire le temps du test).
@@ -115,7 +129,7 @@ Construire la place : `rojo build default.project.json -o Survive.rbxl`, puis l'
 Tests automatiques dans Studio (une fenêtre Studio s'ouvre toute seule ; ne pas toucher au PC pendant ce temps) :
 
 - `powershell -ExecutionPolicy Bypass -File tools\studio-test\run.ps1` : tout le jeu
-  (270 vérifications, environ 12 minutes, captures dans `tools\studio-test\out`).
+  (308 vérifications, environ 13 minutes, captures dans `tools\studio-test\out`).
 - `powershell -ExecutionPolicy Bypass -File tools\studio-test\run.ps1 -Test jump -Seconds 560` : mesure la
   hauteur de marche qu'un personnage grimpe d'un saut (a servi à régler `Config.stepHeight`).
 

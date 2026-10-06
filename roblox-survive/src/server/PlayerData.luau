@@ -1,8 +1,8 @@
--- Sauvegarde de chaque joueur : ses pièces, le niveau de ses trois machines, la meilleure salle réussie, ses
+-- Sauvegarde de chaque joueur : ses pièces, les points de ses trois stats, le niveau de ses trois machines, la meilleure salle réussie, ses
 -- tickets, ses œufs et son enclos.
 -- Dans Studio, rien n'est écrit chez Roblox : les données restent en mémoire le temps du test.
 -- Les valeurs sont aussi posées en attributs sur le joueur (Coins, Speed, Jump, Force, Best, Tickets,
--- Bag, Places, Spots, Pet, PetRarity, PetSpot, Income) : l'écran les lit là.
+-- Bag, BagNext, Places, Spots, Pet, PetRarity, PetSpot, Income) : l'écran les lit là.
 local DataStoreService = game:GetService("DataStoreService")
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -31,9 +31,10 @@ local loadedCallbacks = {}
 local function defaults()
 	return {
 		coins = 0,
-		levels = { Speed = 0, Jump = 0, Force = 0 },
+		points = { Speed = 0, Jump = 0, Force = 0 }, -- points de chaque stat
+		machines = { Speed = 1, Jump = 1, Force = 1 }, -- niveau de chaque machine
 		best = 0,
-		tickets = {}, -- tickets gagnés dans les salles : ["3"] = nombre de tickets de la salle 3
+		tickets = {}, -- tickets gagnés : ["3"] = nombre de tickets de la salle 3 ; ["3:4"] = avec un bonus de chance de 4
 		bag = {}, -- œufs pas encore posés : { a = animal, q = rareté, r = salle }
 		places = Pets.SPOTS_FREE, -- places de l'enclos
 		-- places occupées : ["1"] = { a, q, r, t = heure d'éclosion (os.time) } pour un œuf qui couve,
@@ -55,19 +56,22 @@ local function clean(raw)
 	if type(raw.best) == "number" then
 		data.best = math.clamp(math.floor(raw.best), 0, #Config.ROOMS)
 	end
-	if type(raw.levels) == "table" then
-		for _, name in Config.MACHINES do
-			local level = raw.levels[name]
-			if type(level) == "number" then
-				data.levels[name] = math.clamp(math.floor(level), 0, Config.MAX_LEVEL)
-			end
+	for _, name in Config.MACHINES do
+		local points = type(raw.points) == "table" and raw.points[name]
+		if type(points) == "number" and points >= 0 then
+			data.points[name] = math.floor(points)
+		end
+		local machine = type(raw.machines) == "table" and raw.machines[name]
+		if type(machine) == "number" then
+			data.machines[name] = math.clamp(math.floor(machine), 1, Config.MACHINE_MAX)
 		end
 	end
 	if type(raw.tickets) == "table" then
-		for room = 1, #Config.ROOMS do
-			local count = raw.tickets[tostring(room)]
-			if type(count) == "number" and count >= 1 then
-				data.tickets[tostring(room)] = math.floor(count)
+		-- Clés « salle » ou « salle:bonus de chance ».
+		for key, count in raw.tickets do
+			local room, luck = string.match(tostring(key), "^(%d+):?(%d*)$")
+			if room and Config.ROOMS[tonumber(room)] and (luck == "" or tonumber(luck) <= 9) and type(count) == "number" and count >= 1 then
+				data.tickets[tostring(key)] = math.floor(count)
 			end
 		end
 	end
@@ -91,7 +95,7 @@ local function clean(raw)
 				if type(spot.v) == "number" then
 					data.spots[tostring(index)] = { a = spot.a, q = spot.q, v = math.floor(spot.v) }
 				elseif type(spot.t) == "number" then
-					data.spots[tostring(index)] = { a = spot.a, q = spot.q, r = spot.r, t = spot.t }
+					data.spots[tostring(index)] = { a = spot.a, q = spot.q, r = spot.r, t = spot.t, d = tonumber(spot.d) or 0, x = tonumber(spot.x) or 10, z = tonumber(spot.z) or 16 }
 				end
 			end
 		end
@@ -111,7 +115,10 @@ local function publish(player: Player)
 	player:SetAttribute("Coins", data.coins)
 	player:SetAttribute("Best", data.best)
 	for _, name in Config.MACHINES do
-		player:SetAttribute(name, data.levels[name])
+		-- Le palier (pour les formules et les salles), les points (pour l'écran) et le niveau de la machine.
+		player:SetAttribute(name, Config.levelOf(data.points[name]))
+		player:SetAttribute(name .. "Points", data.points[name])
+		player:SetAttribute(name .. "Machine", data.machines[name])
 	end
 	local tickets = 0
 	for _, count in data.tickets do
@@ -119,6 +126,8 @@ local function publish(player: Player)
 	end
 	player:SetAttribute("Tickets", tickets)
 	player:SetAttribute("Bag", #data.bag)
+	-- Le prochain œuf à poser (« Dragon:2 ») : le joueur le porte sur la tête.
+	player:SetAttribute("BagNext", if data.bag[1] then data.bag[1].a .. ":" .. data.bag[1].q else "")
 	player:SetAttribute("Places", data.places)
 	player:SetAttribute("Spots", Pets.encode(data.spots))
 	local follower = data.spots[data.equipped]
@@ -218,10 +227,28 @@ function PlayerData.addCoins(player: Player, amount: number)
 	end
 end
 
-function PlayerData.setLevel(player: Player, machine: string, level: number)
+-- Ajoute des points à une stat (un pas d'entraînement).
+function PlayerData.addPoints(player: Player, stat: string, amount: number)
+	local data = PlayerData.get(player)
+	if data and data.points[stat] then
+		data.points[stat] += math.floor(amount)
+		touch(player)
+	end
+end
+
+-- Met une stat pile au palier `level` (pour les tests).
+function PlayerData.setLevel(player: Player, stat: string, level: number)
 	local data = PlayerData.get(player)
 	if data then
-		data.levels[machine] = math.clamp(level, 0, Config.MAX_LEVEL)
+		data.points[stat] = Config.pointsFor(level)
+		touch(player)
+	end
+end
+
+function PlayerData.setMachine(player: Player, machine: string, level: number)
+	local data = PlayerData.get(player)
+	if data then
+		data.machines[machine] = math.clamp(level, 1, Config.MACHINE_MAX)
 		touch(player)
 	end
 end

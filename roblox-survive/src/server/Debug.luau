@@ -13,11 +13,12 @@ local World = require(script.Parent.World)
 return function(_world)
 	local debug = Instance.new("BindableFunction")
 	debug.Name = "SurviveDebug"
-	debug.OnInvoke = function(action: string, a, b)
+	debug.OnInvoke = function(action: string, a, b, c)
 		local player = Players:GetPlayers()[1]
 		if action == "Data" then
 			local data = PlayerData.get(player)
-			return data and { coins = data.coins, best = data.best, Speed = data.levels.Speed, Jump = data.levels.Jump, Force = data.levels.Force }
+			-- Speed, Jump, Force : les points de chaque stat ; machines : le niveau de chaque machine.
+			return data and { coins = data.coins, best = data.best, Speed = data.points.Speed, Jump = data.points.Jump, Force = data.points.Force, machines = table.clone(data.machines) }
 		elseif action == "Give" then
 			PlayerData.addCoins(player, a)
 		elseif action == "Reset" then
@@ -35,6 +36,13 @@ return function(_world)
 			-- Comme le bouton de la bombe de la salle a.
 			local room = Rooms.get(a)
 			return room.defuse ~= nil and room.defuse(player)
+		elseif action == "Stop" then
+			return Gym.stop(player)
+		elseif action == "Points" then
+			-- Met la stat a à b points.
+			PlayerData.get(player).points[a] = b
+			PlayerData.changed(player)
+			Gym.applyStats(player)
 		elseif action == "Train" then
 			local ok, reason = Gym.train(player, a)
 			return ok, reason
@@ -87,14 +95,31 @@ return function(_world)
 			local pets, eggs = Pets.count(data.spots)
 			local spots = {}
 			for key, spot in data.spots do
-				spots[key] = { a = spot.a, q = spot.q, v = spot.v, t = spot.t }
+				spots[key] = { a = spot.a, q = spot.q, v = spot.v, t = spot.t, x = spot.x, z = spot.z, d = spot.d }
 			end
-			return { tickets = tickets, bag = #data.bag, first = data.bag[1] and data.bag[1].a or "", places = data.places, pets = pets, eggs = eggs, income = Pets.income(data.spots), equipped = data.equipped, spots = spots }
+			local lucky = 0
+			for key, count in data.tickets do
+				if string.find(key, ":") then
+					lucky += count
+				end
+			end
+			return { lucky = lucky, tickets = tickets, bag = #data.bag, first = data.bag[1] and data.bag[1].a or "", places = data.places, pets = pets, eggs = eggs, income = Pets.income(data.spots), equipped = data.equipped, spots = spots }
+		elseif action == "Ticket" then
+			-- Donne un ticket de la salle a (comme une salle réussie).
+			return Eggs.give(player, a)
 		elseif action == "Exchange" then
 			return Eggs.exchange(player)
-		elseif action == "Use" then
-			-- Comme un appui sur E devant la place a de son enclos.
-			return Eggs.use(player, a)
+		elseif action == "Place" then
+			-- Pose l'œuf porté à l'endroit (a, b) de l'enclos (par rapport au milieu de l'espace) ; sans a et b : là
+			-- où se tient le joueur. Renvoie true, ou false et la raison.
+			local ok, reason = Eggs.place(player, a, b)
+			return ok, reason
+		elseif action == "Upgrade" then
+			-- Comme le panneau « Améliorer l'enclos ».
+			return Eggs.buyPlace(player)
+		elseif action == "Sell" then
+			-- Vend le familier de la place a.
+			return Eggs.sell(player, a)
 		elseif action == "Hatch" then
 			-- Fait éclore tout de suite tous les œufs qui couvent. Renvoie leur nombre.
 			return Eggs.hatch(player, true)
@@ -109,6 +134,22 @@ return function(_world)
 		elseif action == "Hatching" then
 			-- a = false : les œufs n'éclosent plus tout seuls ; true : ils éclosent de nouveau.
 			Eggs.hatchPaused = not a
+		elseif action == "Cycle" then
+			-- "pause" : plus de fermeture prévue ; "close" : ferme la porte du lobby tout de suite ;
+			-- "luck", salle, bonus : pose le bonus de chance.
+			-- Renvoie l'état : { state, room, luck, gateOpen }.
+			local Cycle = require(script.Parent.Cycle)
+			if a == "pause" then
+				Cycle.paused = true
+			elseif a == "close" then
+				Cycle.force()
+			elseif a == "luck" then
+				Cycle.setLuck(b, c)
+			end
+			return Cycle.state()
+		elseif action == "OpenPets" then
+			-- Ouvre la fenêtre des familiers du joueur (comme le stand « VENDRE »), pour une photo.
+			ReplicatedStorage.Notify:FireClient(player, "openPets")
 		elseif action == "Clear" then
 			-- Vide l'enclos (sans rien vendre).
 			local data = PlayerData.get(player)
@@ -138,7 +179,7 @@ return function(_world)
 					return false
 				end
 				local range = Pets.VALUE[b]
-				data.spots[key] = { a = a, q = b, v = (range[1] + range[2]) // 2 }
+				data.spots[key] = { a = a, q = b, v = (range[1] + range[2]) // 2, x = 10, z = 16 }
 				data.equipped = key
 			end
 			PlayerData.changed(player)

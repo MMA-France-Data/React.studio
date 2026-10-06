@@ -1,4 +1,4 @@
--- LA LAVE MONTE : un parcours qui grimpe en spirale le long des murs puis vers le centre. La lave monte jusque
+-- LA LAVE MONTE : un parcours qui grimpe en zigzag, de l'entrée vers la sortie de la salle. La lave monte jusque
 -- sous la dernière plateforme (verte) : à la fin, c'est le seul endroit sûr.
 --
 -- Le parcours est fait de morceaux tirés au sort (toujours les mêmes pour une salle donnée) :
@@ -7,7 +7,7 @@
 --   steps : trois petites marches
 --   big   : la GRANDE MARCHE, une par ligne droite. Sa hauteur dépend du niveau de saut demandé par la salle
 --           (Config.stepHeight) : c'est elle qui oblige à améliorer le trampoline.
--- À chaque coin de la spirale, une plateforme de repos.
+-- À chaque coin du parcours, une plateforme de repos.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
@@ -16,19 +16,29 @@ local Themes = require(script.Parent.Parent.Themes)
 
 local Lava = {}
 
--- Coins de la spirale (x, z) par rapport au centre de la salle. L'entrée de la salle est du côté z négatif.
-local SPIRAL = {
-	Vector3.new(-28, 0, -32),
-	Vector3.new(28, 0, -32),
-	Vector3.new(28, 0, 32),
-	Vector3.new(-28, 0, 32),
-	Vector3.new(-28, 0, -21),
-	Vector3.new(17, 0, -21),
-	Vector3.new(17, 0, 21),
-	Vector3.new(-17, 0, 21),
-	Vector3.new(-17, 0, -10),
-}
-Lava.MAX_SEGMENTS = #SPIRAL - 1
+-- Le parcours zigzague d'un mur à l'autre en avançant vers le fond de la salle : il part du côté de l'entrée
+-- (z négatif) et finit TOUJOURS du côté de la sortie, pour qu'on n'ait pas à retraverser la salle une fois en haut.
+-- Une ligne droite sur deux traverse la salle, l'autre avance vers le fond.
+Lava.MAX_SEGMENTS = 6
+local HALF_X, HALF_Z = 28, 32
+
+-- Les coins du parcours (x, z) par rapport au centre de la salle, pour ce nombre de lignes droites.
+local function corners(segments: number): { Vector3 }
+	local rows = segments // 2 + 1 -- rangées qui traversent la salle
+	local list = { Vector3.new(-HALF_X, 0, -HALF_Z) }
+	local x, row = -HALF_X, 0
+	for s = 1, segments do
+		if s % 2 == 1 then
+			x = -x
+		else
+			row += 1
+		end
+		-- Les rangées sont réparties de l'entrée au fond : la dernière est toujours tout au fond.
+		local z = if rows > 1 then -HALF_Z + row * (2 * HALF_Z) / (rows - 1) else -HALF_Z
+		table.insert(list, Vector3.new(x, 0, z))
+	end
+	return list
+end
 
 local CORNER, FINAL = 9, 12 -- côté d'une plateforme de coin, et de la dernière
 local THICK = 1.2
@@ -66,9 +76,10 @@ function Lava.plan(index: number, params)
 	end
 
 	local segments = math.clamp(params.segments, 1, Lava.MAX_SEGMENTS)
-	add("corner", SPIRAL[1], Vector3.xAxis, CORNER, CORNER)
+	local path = corners(segments)
+	add("corner", path[1], Vector3.xAxis, CORNER, CORNER)
 	for s = 1, segments do
-		local from, to = SPIRAL[s], SPIRAL[s + 1]
+		local from, to = path[s], path[s + 1]
 		local along = (to - from).Unit
 		local last = s == segments
 		local endHalf = if last then FINAL / 2 else CORNER / 2

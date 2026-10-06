@@ -95,7 +95,60 @@ local PLOT_COLORS = {
 	{ Color3.fromRGB(255, 224, 90), Color3.fromRGB(255, 236, 140) },
 }
 
--- L'espace d'un joueur : ses 3 machines et son enclos (12 places, dont 5 ouvertes au départ).
+local NAVY = Color3.fromRGB(34, 40, 70)
+
+-- Un panneau sombre qui porte trois lignes de texte (« Title », « Level », « Info »), écrites par l'écran du joueur.
+local function upgradeBoard(parent: Instance, name: string, size: Vector3, cframe: CFrame, face: Enum.NormalId): Part
+	local part = Build.part(parent, name, size, cframe, NAVY)
+	local gui = Instance.new("SurfaceGui")
+	gui.Name = "Label"
+	gui.Face = face
+	gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+	gui.PixelsPerStud = 40
+	gui.AutoLocalize = false
+	gui.LightInfluence = 0
+	gui.Parent = part
+	Build.text(gui, "Title", UDim2.fromScale(0.94, 0.3), UDim2.fromScale(0.03, 0.04))
+	Build.text(gui, "Level", UDim2.fromScale(0.94, 0.22), UDim2.fromScale(0.03, 0.36), Color3.fromRGB(110, 255, 80))
+	local button = Instance.new("Frame")
+	button.Name = "Button"
+	button.BackgroundColor3 = Color3.fromRGB(40, 190, 60)
+	button.BorderSizePixel = 0
+	button.Size = UDim2.fromScale(0.7, 0.3)
+	button.Position = UDim2.fromScale(0.15, 0.64)
+	Instance.new("UICorner", button).CornerRadius = UDim.new(0.2, 0)
+	button.Parent = gui
+	Build.text(button, "Info", UDim2.fromScale(0.94, 0.86), UDim2.fromScale(0.03, 0.07))
+	return part
+end
+
+-- Une clôture croisée entre deux points (le long de X ou de Z) : des poteaux sombres, deux lisses et des croisillons
+-- de couleur.
+local function fence(parent: Instance, from: Vector3, to: Vector3, color: Color3)
+	local length = (to - from).Magnitude
+	local count = math.max(1, math.round(length / 6.5))
+	local step = (to - from) / count
+	local span = step.Magnitude
+	local height = 3.2
+	for i = 0, count do
+		Build.part(parent, "FencePost", Vector3.new(1.1, height + 0.8, 1.1), from + step * i + Vector3.new(0, (height + 0.8) / 2, 0), NAVY)
+	end
+	for i = 1, count do
+		local middle = from + step * (i - 0.5)
+		local along = CFrame.lookAt(middle, middle + step)
+		for _, y in { 0.9, height } do
+			Build.part(parent, "FenceRail", Vector3.new(0.5, 0.6, span), along + Vector3.new(0, y, 0), color)
+		end
+		local diagonal = math.sqrt(span * span + (height - 0.9) ^ 2)
+		local angle = math.atan2(height - 0.9, span)
+		for _, sign in { -1, 1 } do
+			local brace = Build.part(parent, "FenceBrace", Vector3.new(0.4, 0.5, diagonal), (along + Vector3.new(0, (height + 0.9) / 2, 0)) * CFrame.Angles(sign * angle, 0, 0), color)
+			brace.CanCollide = false
+		end
+	end
+end
+
+-- L'espace d'un joueur : ses 3 machines (chacune avec son panneau « Améliorer ») et son enclos.
 -- Les espaces impairs sont à gauche de l'allée, les pairs à droite, trois rangées en partant de la porte des salles.
 local function buildPlot(parent: Instance, index: number)
 	local side = if index % 2 == 1 then -1 else 1
@@ -106,10 +159,12 @@ local function buildPlot(parent: Instance, index: number)
 	local folder = Instance.new("Folder")
 	folder.Name = "Plot" .. index
 	folder:SetAttribute("Index", index)
+	folder:SetAttribute("Origin", origin)
 	folder:SetAttribute("Owner", "")
 	folder:SetAttribute("OwnerId", 0)
 	folder.Parent = parent
-	Build.checker(folder, "Floor", origin + Vector3.new(0, 0.12, 0), PLOT_X, PLOT_Z, 8, colors[1]:Lerp(Color3.fromRGB(70, 74, 88), 0.55), colors[2]:Lerp(Color3.fromRGB(70, 74, 88), 0.55), 0.12)
+	-- Sol vert vif en damier, comme une pelouse de jeu.
+	Build.checker(folder, "Floor", origin + Vector3.new(0, 0.12, 0), PLOT_X, PLOT_Z, 7, Color3.fromRGB(80, 204, 52), Color3.fromRGB(92, 216, 60), 0.12)
 
 	-- Panneau au bord de l'allée, tourné vers elle : le nom du joueur (écrit par l'écran de chacun).
 	local board = Build.part(folder, "Sign", Vector3.new(26, 5, 0.6), origin + Vector3.new(-side * (PLOT_X / 2 - 1), 12, 0), Color3.fromRGB(40, 44, 56))
@@ -139,36 +194,39 @@ local function buildPlot(parent: Instance, index: number)
 		spot.exit = places[name] + Vector3.new(0, 3.5, 12.5)
 	end
 
-	-- L'enclos : 12 places sur deux rangées. L'écran de chaque joueur y montre les œufs et les familiers du
-	-- propriétaire ; les places pas encore achetées restent sombres.
+	-- Un panneau « Améliorer » à côté de chaque machine (le niveau et le prix sont écrits par l'écran du joueur).
+	local signs = {}
+	for name, place in places do
+		local sign = upgradeBoard(folder, "UpgradeSign", Vector3.new(8, 4.4, 0.6), CFrame.new(place + Vector3.new(7, 4.4, 11.4)), Enum.NormalId.Back)
+		sign:SetAttribute("Machine", name)
+		signs[name] = sign
+		Build.part(folder, "UpgradePost", Vector3.new(1, 2.4, 1), place + Vector3.new(7, 1.2, 11.4), NAVY)
+	end
+
+	-- L'enclos : une clôture croisée à la couleur de l'espace, sur un sol vert. Les familiers du joueur s'y
+	-- promènent et il y pose ses œufs (l'écran de chacun les dessine). L'entrée est du côté des machines.
 	local enclosure = Instance.new("Folder")
 	enclosure.Name = "Enclosure"
 	enclosure.Parent = folder
-	local pens = {}
-	for spot = 1, Pets.SPOTS_MAX do
-		local column, line = (spot - 1) % 6, math.floor((spot - 1) / 6)
-		local pad = Build.disc(enclosure, "Spot" .. spot, 5.4, 0.6, origin + Vector3.new(-6 + column * 6.6, 0.4, 9 + line * 13), Color3.fromRGB(60, 64, 78))
-		pad:SetAttribute("Spot", spot)
-		pens[spot] = pad
-	end
-	local fence = Color3.fromRGB(150, 110, 70)
-	for _, bar in {
-		{ Vector3.new(10, 1.6, 1.5), Vector3.new(39, 0.5, 0.5) },
-		{ Vector3.new(10, 1.6, 31.5), Vector3.new(39, 0.5, 0.5) },
-		{ Vector3.new(29.5, 1.6, 16.5), Vector3.new(0.5, 0.5, 30) },
-	} do
-		local rail = Build.part(enclosure, "Fence", bar[2], origin + bar[1], fence, Enum.Material.Wood)
-		rail.CanCollide = false
-	end
-	for _, corner in { Vector3.new(-9.5, 1, 1.5), Vector3.new(29.5, 1, 1.5), Vector3.new(-9.5, 1, 31.5), Vector3.new(29.5, 1, 31.5) } do
-		Build.part(enclosure, "Post", Vector3.new(0.8, 2.4, 0.8), origin + corner, fence, Enum.Material.Wood)
-	end
-	local title = Build.part(enclosure, "Title", Vector3.new(1, 1, 1), origin + Vector3.new(10, 1, 16.5), fence)
+	local pen = Pets.PEN
+	local x0, x1, z0, z1 = pen.minX - 2.5, pen.maxX + 2.5, pen.minZ - 2.5, pen.maxZ + 2.5
+	Build.checker(enclosure, "Grass", origin + Vector3.new((x0 + x1) / 2, 0.22, (z0 + z1) / 2), x1 - x0, z1 - z0, 4, Color3.fromRGB(96, 220, 60), Color3.fromRGB(110, 232, 70), 0.1)
+	local gate = 4 -- demi-largeur de l'entrée, au milieu du côté des machines
+	local middle = (x0 + x1) / 2
+	fence(enclosure, origin + Vector3.new(x0, 0, z0), origin + Vector3.new(middle - gate, 0, z0), colors[1])
+	fence(enclosure, origin + Vector3.new(middle + gate, 0, z0), origin + Vector3.new(x1, 0, z0), colors[1])
+	fence(enclosure, origin + Vector3.new(x1, 0, z0), origin + Vector3.new(x1, 0, z1), colors[1])
+	fence(enclosure, origin + Vector3.new(x1, 0, z1), origin + Vector3.new(x0, 0, z1), colors[1])
+	fence(enclosure, origin + Vector3.new(x0, 0, z1), origin + Vector3.new(x0, 0, z0), colors[1])
+	-- Le panneau « Améliorer l'enclos », à gauche de l'entrée, tourné vers les machines.
+	local upgrade = upgradeBoard(enclosure, "Upgrade", Vector3.new(9, 4.8, 0.6), CFrame.new(origin + Vector3.new(middle - gate - 6, 5.2, z0 - 0.9)), Enum.NormalId.Front)
+	Build.part(enclosure, "UpgradePost", Vector3.new(1, 3, 1), origin + Vector3.new(middle - gate - 6, 1.5, z0 - 0.9), NAVY)
+	-- Le nom de l'enclos et ce qu'il rapporte, au-dessus.
+	local title = Build.part(enclosure, "Title", Vector3.new(1, 1, 1), origin + Vector3.new(middle, 1, (z0 + z1) / 2), NAVY)
 	title.Transparency = 1
 	title.CanCollide = false
-	local gui = Build.billboard(title, 15)
+	local gui = Build.billboard(title, 17)
 	gui.MaxDistance = 140
-	gui.Title:SetAttribute("Enclosure", index)
 
 	return {
 		index = index,
@@ -176,8 +234,9 @@ local function buildPlot(parent: Instance, index: number)
 		origin = origin,
 		machines = machines,
 		spots = spots,
-		pens = pens,
-		spawn = origin + Vector3.new(-13, 3.5, 2),
+		upgrade = upgrade,
+		signs = signs,
+		spawn = origin + Vector3.new(-13, 3.5, -3),
 	}
 end
 
@@ -192,6 +251,9 @@ local function buildGym(parent: Instance)
 	sideWalls(gym, LOBBY_BACK, GYM_Z, LOBBY_X, GYM_WALL, wallColor, Enum.Material.Brick)
 	Build.part(gym, "Wall", Vector3.new(LOBBY_X * 2 + WALL * 2, GYM_WALL, WALL), Vector3.new(0, GYM_WALL / 2, LOBBY_BACK - WALL / 2), wallColor, Enum.Material.Brick)
 	wallWithDoor(gym, GYM_Z, LOBBY_X + WALL, GYM_WALL, wallColor, Enum.Material.Brick)
+	-- La porte du lobby vers les salles : ouverte, sauf pendant la fermeture (Cycle.luau).
+	local gate = door(gym, "Gate", GYM_Z)
+	World.setDoor(gate, true)
 
 	-- Point d'apparition de secours, au milieu de l'allée (chaque joueur est ensuite posé dans son espace).
 	local spawn = Instance.new("SpawnLocation")
@@ -233,6 +295,21 @@ local function buildGym(parent: Instance)
 		egg.CanCollide = false
 	end
 
+	-- Le stand « VENDRE » : on y vend ses familiers. Un comptoir et un auvent rayé rouge et blanc.
+	local sellAt = Vector3.new(11, 0, -2)
+	local sell = Build.part(gym, "Sell", Vector3.new(9, 3.2, 3.6), sellAt + Vector3.new(0, 1.6, 0), Color3.fromRGB(110, 96, 100))
+	for _, x in { -4.6, 4.6 } do
+		for _, z in { -2.4, 2.4 } do
+			Build.part(gym, "SellPost", Vector3.new(0.5, 10, 0.5), sellAt + Vector3.new(x, 5, z), Color3.fromRGB(110, 96, 100))
+		end
+	end
+	for i = 0, 8 do
+		Build.part(gym, "SellAwning", Vector3.new(1.2, 0.5, 6.4), sellAt + Vector3.new(-4.8 + i * 1.2, 10.2, 0), if i % 2 == 0 then Color3.fromRGB(235, 50, 50) else Color3.fromRGB(250, 250, 250))
+	end
+	local sellBoard = Build.part(gym, "SellSign", Vector3.new(10, 2.8, 0.5), sellAt + Vector3.new(0, 12.4, 0), NAVY)
+	Build.sign(sellBoard, Enum.NormalId.Front, "sell", Color3.fromRGB(255, 70, 70))
+	Build.sign(sellBoard, Enum.NormalId.Back, "sell", Color3.fromRGB(255, 70, 70))
+
 	-- Le raccourci : un rond qui brille dans l'allée, près de la porte des salles, avec son panneau.
 	local shortcuts = {}
 	for i, cleared in Config.SHORTCUTS do
@@ -245,7 +322,7 @@ local function buildGym(parent: Instance)
 		shortcuts[cleared] = pad
 	end
 
-	return { folder = gym, plots = plots, shortcuts = shortcuts, shop = counter, spawn = spawn }
+	return { folder = gym, plots = plots, shortcuts = shortcuts, shop = counter, sell = sell, gate = gate, spawn = spawn }
 end
 
 local function buildSas(parent: Instance, index: number, wallColor: Color3, wallMaterial: Enum.Material?)

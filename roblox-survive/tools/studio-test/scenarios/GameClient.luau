@@ -30,9 +30,19 @@ return function(log)
 	check(hud.Side.Speed.Label.Text ~= "", "écran : niveau de vitesse affiché", hud.Side.Speed.Label.Text)
 	local mine = workspace.Gym:WaitForChild("Plot" .. (player:GetAttribute("Plot") or 1))
 	local label = mine.Speed.Base.Label
-	check(label.Title.Text ~= "" and label.Level.Text ~= "" and label.Info.Text ~= "", "écran : étiquette du tapis de course remplie", label.Title.Text .. " / " .. label.Level.Text .. " / " .. label.Info.Text)
+	check(label.Title.Text ~= "" and string.find(label.Level.Text, "1") ~= nil, "écran : étiquette du tapis de course (son nom, ses points par pas)", label.Title.Text .. " / " .. label.Level.Text)
+	local machineSign
+	for _, child in mine:GetChildren() do
+		if child.Name == "UpgradeSign" and child:GetAttribute("Machine") == "Speed" then
+			machineSign = child
+		end
+	end
+	check(machineSign ~= nil and machineSign.Label.Title.Text ~= "" and string.find(machineSign.Label.Level.Text, "2") ~= nil and string.find(machineSign.Label.Button.Info.Text, "500") ~= nil, "écran : panneau « Améliorer » du tapis (niveau 1 > 2, 500)", machineSign and (machineSign.Label.Title.Text .. " / " .. machineSign.Label.Level.Text .. " / " .. machineSign.Label.Button.Info.Text))
+	check(machineSign.Prompt.Enabled and machineSign.Prompt.ActionText ~= "", "écran : bouton pour améliorer le tapis", machineSign.Prompt.ActionText)
+	local penSign = mine.Enclosure.Upgrade.Label
+	check(penSign.Title.Text ~= "" and string.find(penSign.Level.Text, "2") ~= nil and string.find(penSign.Button.Info.Text, "000") ~= nil, "écran : panneau « Améliorer l'enclos » (niveau 1 > 2, 1 000)", penSign.Title.Text .. " / " .. penSign.Level.Text .. " / " .. penSign.Button.Info.Text)
 	local sign = workspace.Rooms.Room5.Sign:FindFirstChildOfClass("SurfaceGui").Label
-	check(sign.Text:find("5") ~= nil, "écran : panneau de la salle 5 rempli", sign.Text)
+	check(sign.Text:find("5") ~= nil and sign.Text:find("500") ~= nil, "écran : panneau de la salle 5 avec le palier conseillé (saut 500)", sign.Text)
 	local prompt = mine.Force.Base.Prompt
 	check(prompt.ActionText ~= "" and prompt.ObjectText ~= "" and prompt.Enabled, "écran : bouton de la musculation rempli", prompt.ObjectText .. " : " .. prompt.ActionText)
 	local other = workspace.Gym:FindFirstChild("Plot" .. (if mine.Name == "Plot1" then 2 else 1))
@@ -40,7 +50,7 @@ return function(log)
 	local plotSign = mine.Sign:FindFirstChildOfClass("SurfaceGui").Label
 	check(string.find(plotSign.Text, player.DisplayName, 1, true) ~= nil, "écran : le panneau de l'espace porte le nom du joueur", plotSign.Text)
 
-	check(hud.Side.Pets.Label.Text ~= "", "écran : bouton des animaux", hud.Side.Pets.Label.Text)
+	check(hud:FindFirstChild("EggButton") ~= nil and hud:FindFirstChild("PawButton") ~= nil and not hud.EggPanel.Visible and not hud.PetPanel.Visible, "écran : boutons œuf et patte à droite, panneaux repliés")
 
 	-- Pendant une salle : le bandeau.
 	local seen = {}
@@ -57,21 +67,38 @@ return function(log)
 			end
 		end
 		local spots = player:GetAttribute("Spots") or ""
+		if (player:GetAttribute("Workout") or "") ~= "" and not seen.workout then
+			seen.workout = true
+			task.wait(0.3)
+			check(hud.StopTraining.Visible, "écran : bouton « ARRÊTER » pendant l'entraînement")
+			task.wait(1.2)
+			check(string.find(hud.Side.Speed.Label.Text, "%d") ~= nil and hud.Side.Speed.Label.Text ~= "", "écran : les points de vitesse montent", hud.Side.Speed.Label.Text)
+		end
+		if (player:GetAttribute("BagNext") or "") ~= "" and not seen.carry then
+			seen.carry = true
+			task.wait(0.5)
+			local egg = workspace:FindFirstChild("Pets") and workspace.Pets:FindFirstChild("CarriedEgg")
+			local head = player.Character and player.Character:FindFirstChild("Head")
+			check(egg ~= nil and head ~= nil and (egg.Position - head.Position).Magnitude < 5, "écran : le joueur porte son œuf sur la tête")
+			check(hud.EggButton.Badge.Visible and hud.EggButton.Badge.Label.Text == "1", "écran : la pastille du bouton œuf compte 1", hud.EggButton.Badge.Label.Text)
+		end
+		if hud.PlaceEgg.Visible and not seen.place then
+			seen.place = true
+			check(true, "écran : bouton « POSER L'ŒUF » quand le joueur est dans son enclos avec un œuf", hud.PlaceEgg.Label.Text)
+		end
 		if string.find(spots, ":t:") and not seen.egg then
 			seen.egg = true
 			task.wait(0.8)
-			local pad = mine.Enclosure.Spot2
+			local origin = mine:GetAttribute("Origin")
 			local egg = workspace:FindFirstChild("Pets") and workspace.Pets:FindFirstChild("Egg")
-			check(egg ~= nil and (egg.Position - pad.Position).Magnitude < 5, "écran : l'œuf est sur la place 2 de l'enclos")
-			check(string.find(pad.Tag.Label.Text, ":") ~= nil, "écran : la place montre la rareté et le temps de couvaison", pad.Tag.Label.Text)
-			check(pad.Prompt.Enabled == false, "écran : pas de bouton sur une place qui couve")
-			check(mine.Enclosure.Spot1.Prompt.Enabled and mine.Enclosure.Spot1.Prompt.ActionText ~= "", "écran : bouton pour poser un œuf sur une place libre", mine.Enclosure.Spot1.Prompt.ActionText)
-			check(mine.Enclosure.Spot6.Prompt.Enabled and string.find(mine.Enclosure.Spot6.Prompt.ActionText, "000") ~= nil, "écran : la 6e place montre son prix", mine.Enclosure.Spot6.Prompt.ActionText)
-			check(mine.Enclosure.Spot7.Prompt.Enabled == false, "écran : la 7e place est fermée")
-			local otherPad = other.Enclosure.Spot1
-			check(otherPad.Prompt.Enabled == false, "écran : pas de bouton dans l'enclos d'un autre espace")
+			check(egg ~= nil and (egg.Position - (origin + Vector3.new(6, 2, 12))).Magnitude < 4, "écran : l'œuf est par terre dans l'enclos, là où il a été posé")
+			check(egg.Tag.Top.Text ~= "" and string.find(egg.Tag.Bottom.Text, "%d") ~= nil, "écran : l'œuf montre son nom et son temps", egg.Tag.Top.Text .. " | " .. egg.Tag.Bottom.Text)
+			local row = hud.EggPanel.Egg1
+			check(row.Visible and row.Track.Label.Text ~= "" and row.Rarity.Text ~= "", "écran : « Œufs en croissance » montre l'œuf avec sa barre", hud.EggPanel.Header.Title.Text .. " | " .. row.Track.Label.Text .. " | " .. row.Rarity.Text)
+			check(other.Enclosure.Upgrade.Prompt.Enabled == false, "écran : pas de bouton sur l'enclos d'un autre espace")
 			local shop = workspace.Gym.Shop.Prompt
 			check(shop.ActionText ~= "" and shop.ObjectText ~= "", "écran : la boutique des œufs a son bouton", shop.ObjectText .. " : " .. shop.ActionText)
+			check(workspace.Gym.Sell.Prompt.ActionText ~= "", "écran : le stand « VENDRE » a son bouton", workspace.Gym.Sell.Prompt.ActionText)
 		end
 		if player:GetAttribute("Pet") == "Dragon" and not seen.pet then
 			seen.pet = true
@@ -80,13 +107,18 @@ return function(log)
 			check(pets ~= nil and pets:FindFirstChild("Follower_Dragon") ~= nil, "écran : le dragon suit le joueur")
 			local rarity = player:GetAttribute("PetRarity")
 			local inPen = pets and pets:FindFirstChild("Pen_Dragon" .. rarity)
-			local pad = mine.Enclosure.Spot2
-			check(inPen ~= nil and (inPen:GetPivot().Position - pad.Position).Magnitude < 8, "écran : le dragon est sur sa place dans l'enclos")
-			check(string.find(pad.Tag.Label.Text, "/") ~= nil and pad.Prompt.Enabled and pad.Prompt.HoldDuration > 1, "écran : la place montre le revenu, et un bouton long pour vendre", pad.Tag.Label.Text .. " | " .. pad.Prompt.ActionText)
-			local row = hud.PetsPanel.Spot2
-			check(row.Follow.Visible and row.Animal.Text ~= "" and row.Info.Text ~= "", "écran : la fenêtre montre le dragon et ce qu'il rapporte", hud.PetsPanel.Title.Text .. " / " .. row.Animal.Text .. " / " .. row.Info.Text)
+			local origin = mine:GetAttribute("Origin")
+			local where = inPen and inPen:GetPivot().Position - origin
+			check(inPen ~= nil and where.X > -9 and where.X < 29 and where.Z > 2 and where.Z < 31, "écran : le dragon est dans l'enclos", tostring(where))
+			local start = inPen and inPen:GetPivot().Position
+			task.wait(6)
+			check(inPen ~= nil and (inPen:GetPivot().Position - start).Magnitude > 1, "écran : le dragon se promène dans l'enclos")
+			local petTag = inPen and inPen.PrimaryPart:FindFirstChild("Tag")
+			check(petTag ~= nil and petTag.Top.Text ~= "" and string.find(petTag.Bottom.Text, "/") ~= nil, "écran : le familier montre son nom et ce qu'il rapporte", petTag and (petTag.Top.Text .. " | " .. petTag.Bottom.Text))
+			local row = hud.PetPanel.List:FindFirstChild("Pet1")
+			check(row ~= nil and row.Visible and row.Animal.Text ~= "" and row.Info.Text ~= "" and row.Sell.Text ~= "" and row.Follow.Text ~= "", "écran : la liste des familiers montre le dragon, avec « Suivre » et « Vendre »", row and (hud.PetPanel.Header.Title.Text .. " | " .. row.Animal.Text .. " | " .. row.Info.Text))
+			check(hud.PetPanel.Header.AddPlace.Visible and string.find(hud.PetPanel.Header.AddPlace.Text, "000") ~= nil, "écran : bouton « +1 place » avec son prix", hud.PetPanel.Header.AddPlace.Text)
 			check(hud.Side.Income.Visible and hud.Side.Income.Text ~= "", "écran : le revenu est affiché sous les pièces", hud.Side.Income.Text)
-			check(hud.Side.Stock.Text ~= "", "écran : tickets et œufs à poser affichés", hud.Side.Stock.Text)
 			check(string.find(mine.Enclosure.Title.Label.Info.Text, "%d") ~= nil, "écran : le panneau de l'enclos dit le revenu", mine.Enclosure.Title.Label.Level.Text .. " / " .. mine.Enclosure.Title.Label.Info.Text)
 		end
 		if room == 6 and hud.Banner.Visible and not seen.melody and string.find(hud.Banner.Hint.Text, "/") then

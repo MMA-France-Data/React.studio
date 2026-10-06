@@ -79,7 +79,11 @@ try {
 				$name = $Matches[1]
 				$shots[$name] = $true
 				$testStudio = Get-TestStudio
-				if ($testStudio) { & (Join-Path $root "shot.ps1") (Join-Path $out "$name.png") -ProcessId $testStudio.Id | Out-Null }
+				# Une capture ratee (fichier occupe, fenetre cachee) ne doit pas arreter le test.
+				if ($testStudio) {
+					try { & (Join-Path $root "shot.ps1") (Join-Path $out "$name.png") -ProcessId $testStudio.Id | Out-Null }
+					catch { Write-Host "Capture ratee : $name" }
+				}
 			}
 		}
 		if (-not $maximized) {
@@ -104,9 +108,9 @@ if (-not $KeepOpen) {
 }
 
 $lines = Read-Log
-$lines | Where-Object { $_ -match "\[SURVIVE\]|\[PASS\]|\[FAIL\]|\]\[Error\]|\]\[Warning\]" }
+$lines | Where-Object { $_ -match "\[SURVIVE\]|\[PASS\]|\[FAIL\]|\]\[Error\]|\[MessageError\]|\]\[Warning\]" }
 Write-Host ""
 Write-Host ("Captures : " + (($shots.Keys | Sort-Object) -join ", "))
 $passed = @($lines | Where-Object { $_ -match "\[PASS\]" })
-$errors = @($lines | Where-Object { $_ -match "\]\[Error\]|\[FAIL\]" })
+$errors = @($lines | Where-Object { $_ -match "\]\[Error\]|\[MessageError\]|\[FAIL\]" })
 Write-Host "Reussis : $($passed.Count)   Erreurs : $($errors.Count)"

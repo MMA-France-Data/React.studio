@@ -21,6 +21,17 @@ end
 local function num(value: number): string
 	return Texts.number(lang, value)
 end
+-- Un gros nombre en court : 950 -> « 950 », 12 500 -> « 12,5K », 2 400 000 000 -> « 2,4B ».
+local function compact(value: number): string
+	for _, unit in { { 1e9, "B" }, { 1e6, "M" }, { 1e3, "K" } } do
+		if value >= unit[1] then
+			local short = math.floor(value / unit[1] * 10) / 10
+			local digits = if short == math.floor(short) then string.format("%d", short) else string.format("%.1f", short)
+			return (if lang == "fr" then (digits:gsub("%.", ",")) else digits) .. unit[2]
+		end
+	end
+	return num(value)
+end
 
 -- LES TEXTES DU DÉCOR -------------------------------------------------------------------------------------------
 -- Le serveur pose l'attribut « T » (clé|arguments) ; le texte est écrit ici, dans la langue du joueur.
@@ -39,14 +50,17 @@ local function fill(label: Instance)
 			table.insert(icons, Texts.ICONS[name] or "")
 		end
 		local text = tr("room", parts[2]) .. "  " .. table.concat(icons, " ")
-		-- 2e ligne : les niveaux qu'il faut pour réussir la salle.
+		-- 2e ligne : les points de stat conseillés pour réussir la salle (« Vitesse 500 recommandé »).
 		local needs = {}
 		for name, level in string.gmatch(parts[4] or "", "(%a+):(%d+)") do
-			table.insert(needs, tr("stat" .. name) .. " " .. level)
+			table.insert(needs, tr("stat" .. name) .. " " .. compact(Config.pointsFor(tonumber(level))))
 		end
 		if #needs > 0 then
-			text ..= "\n" .. tr("needs", table.concat(needs, ", "))
+			text ..= "\n" .. tr("recommended", table.concat(needs, ", "))
 		end
+		-- Le texte de base est gardé : une ligne s'y ajoute quand la salle a le bonus de chance.
+		label:SetAttribute("Base", text)
+		label:SetAttribute("RoomIndex", tonumber(parts[2]))
 		label.Text = text
 	elseif #parts > 1 then
 		label.Text = tr(key, tonumber(parts[2]) or parts[2])
@@ -250,9 +264,15 @@ local function refreshPrompt(prompt: ProximityPrompt)
 		local name = prompt:GetAttribute("Machine")
 		-- Seules les machines de son espace servent au joueur.
 		prompt.Enabled = prompt:GetAttribute("Plot") == player:GetAttribute("Plot")
-		local price = Config.price(player:GetAttribute(name) or 0)
 		prompt.ObjectText = tr(name)
-		prompt.ActionText = if not price then tr("maxed") elseif price == 0 then tr("trainFree") else tr("train", num(price))
+		prompt.ActionText = if player:GetAttribute("Workout") == name then tr("stopTraining") else tr("train")
+	elseif kind == "MachineUpgrade" then
+		-- Le panneau « Améliorer » d'une machine.
+		local name = prompt:GetAttribute("Machine")
+		local price = Config.price(player:GetAttribute(name .. "Machine") or 1)
+		prompt.Enabled = prompt:GetAttribute("Plot") == player:GetAttribute("Plot") and price ~= nil
+		prompt.ObjectText = tr(name)
+		prompt.ActionText = if price then tr("upgradeGo", num(price)) else tr("max")
 	elseif kind == "Shortcut" then
 		prompt.ActionText = tr("shortcutGo", prompt:GetAttribute("Cleared") + 1)
 	elseif kind == "Back" then
@@ -270,22 +290,44 @@ local function refreshCoins()
 	incomeLabel.Text = tr("income", if income == math.floor(income) then num(income) else (string.format("%.1f", income):gsub("%.", if lang == "fr" then "," else ".")))
 end
 
+-- Les trois stats, en gros nombres.
+local function refreshStats()
+	for _, name in Config.MACHINES do
+		statLabels[name].Text = tr("stat" .. name) .. "  " .. compact(player:GetAttribute(name .. "Points") or 0)
+	end
+end
+
 local function refresh()
 	refreshCoins()
+	refreshStats()
 	local mine = player:GetAttribute("Plot") or 0
 	for _, plot in gym:GetChildren() do
 		local index = plot:GetAttribute("Index")
+		if not index then
+			continue
+		end
+		-- L'étiquette au-dessus de chaque machine : son nom, et ce qu'elle donne à chaque pas (dans son espace).
 		for _, name in Config.MACHINES do
-			local level = player:GetAttribute(name) or 0
-			statLabels[name].Text = tr("stat" .. name) .. "  " .. level
-			local model = index and plot:FindFirstChild(name)
+			local level = player:GetAttribute(name .. "Machine") or 1
+			local model = plot:FindFirstChild(name)
 			local label = model and model.PrimaryPart and model.PrimaryPart:FindFirstChild("Label")
 			if label then
-				-- Les machines des autres espaces ne montrent que leur nom.
-				local price = Config.price(level)
 				label.Title.Text = tr(name)
-				label.Level.Text = if index == mine then tr("level", level, Config.MAX_LEVEL) else ""
-				label.Info.Text = if index ~= mine then "" elseif not price then tr("max") elseif price == 0 then tr("nextFree") else tr("next", num(price))
+				label.Level.Text = if index == mine then tr("perStep", compact(Config.gain(level))) else ""
+				label.Info.Text = ""
+			end
+		end
+		-- Le panneau « Améliorer » à côté de chaque machine.
+		for _, sign in plot:GetChildren() do
+			local name = sign.Name == "UpgradeSign" and sign:GetAttribute("Machine")
+			local label = name and sign:FindFirstChild("Label")
+			if label then
+				local level = player:GetAttribute(name .. "Machine") or 1
+				local price = Config.price(level)
+				label.Title.Text = if index == mine then tr("improve") else tr(name)
+				label.Level.Text = if index ~= mine then "" elseif price then tr("levelUp", level, level + 1) else tr("max")
+				label.Button.Visible = index == mine and price ~= nil
+				label.Button.Info.Text = if price then num(price) else ""
 			end
 		end
 	end
@@ -295,11 +337,15 @@ local function refresh()
 		end
 	end
 end
+local STAT_ATTRIBUTES = { Speed = true, Jump = true, Force = true, SpeedPoints = true, JumpPoints = true, ForcePoints = true }
 player.AttributeChanged:Connect(function(name)
-	-- Les pièces changent à chaque seconde (le revenu des familiers) : seule leur étiquette est refaite.
+	-- Les pièces changent à chaque seconde (le revenu des familiers) et les stats à chaque pas d'entraînement : seule
+	-- leur étiquette est refaite.
 	if name == "Coins" or name == "Income" then
 		refreshCoins()
-	elseif name ~= "Room" and name ~= "WorkoutEnds" then
+	elseif STAT_ATTRIBUTES[name] then
+		refreshStats()
+	elseif name ~= "Room" then
 		refresh()
 	end
 end)
@@ -309,6 +355,45 @@ workspace.DescendantAdded:Connect(function(item)
 	end
 end)
 refresh()
+
+-- LA FERMETURE DE LA PORTE ET LE BONUS DE CHANCE --------------------------------------------------------------------
+-- Dans le lobby, une ligne en haut de l'écran : la porte fermée et les œufs accélérés, ou la salle qui a le bonus
+-- de chance et le temps qu'il reste. Le panneau de cette salle gagne une ligne dorée.
+local cycleLabel = text(gui, "Cycle", UDim2.new(0.8, 0, 0, 30), UDim2.new(0.1, 0, 0, 6), Color3.fromRGB(255, 221, 51), 24)
+local function shortClock(seconds: number): string
+	seconds = math.max(0, math.ceil(seconds))
+	return string.format("%d:%02d", seconds // 60, seconds % 60)
+end
+task.spawn(function()
+	local rooms = workspace:WaitForChild("Rooms")
+	while true do
+		local left = (workspace:GetAttribute("CycleEnds") or 0) - workspace:GetServerTimeNow()
+		local luckRoom, luck = workspace:GetAttribute("LuckRoom") or 0, workspace:GetAttribute("Luck") or 1
+		cycleLabel.Visible = (player:GetAttribute("Room") or 0) == 0
+		if workspace:GetAttribute("CycleState") == "Closed" then
+			cycleLabel.Text = tr("cycleClosed", math.max(0, math.ceil(left)), Config.CYCLE.speed)
+			cycleLabel.TextColor3 = Color3.fromRGB(255, 90, 90)
+		elseif luckRoom > 0 then
+			cycleLabel.Text = tr("cycleLuck", luckRoom, (luck - 1) * 100, shortClock(left))
+			cycleLabel.TextColor3 = Color3.fromRGB(255, 221, 51)
+		else
+			cycleLabel.Text = tr("cycleNext", shortClock(left))
+			cycleLabel.TextColor3 = Color3.new(1, 1, 1)
+		end
+		for _, room in rooms:GetChildren() do
+			local sign = room:FindFirstChild("Sign")
+			local surface = sign and sign:FindFirstChildOfClass("SurfaceGui")
+			local label = surface and surface:FindFirstChild("Label")
+			local base = label and label:GetAttribute("Base")
+			if base then
+				local lucky = label:GetAttribute("RoomIndex") == luckRoom and luck > 1
+				label.Text = if lucky then base .. "\n★ " .. tr("luckSign", (luck - 1) * 100) else base
+				label.TextColor3 = if lucky then Color3.fromRGB(255, 221, 51) else Color3.new(1, 1, 1)
+			end
+		end
+		task.wait(0.5)
+	end
+end)
 
 -- LE BANDEAU DE LA SALLE ----------------------------------------------------------------------------------------
 local roomsFolder = workspace:WaitForChild("Rooms")
@@ -336,7 +421,7 @@ RunService.RenderStepped:Connect(function()
 		local missing = {}
 		for name, level in string.gmatch(folder:GetAttribute("Needs") or "", "(%a+):(%d+)") do
 			if (player:GetAttribute(name) or 0) < tonumber(level) then
-				table.insert(missing, tr("stat" .. name) .. " " .. level)
+				table.insert(missing, tr("stat" .. name) .. " " .. compact(Config.pointsFor(tonumber(level))))
 			end
 		end
 		bannerHint.TextColor3 = if #missing > 0 then Color3.fromRGB(255, 90, 90) else Color3.new(1, 1, 1)
@@ -430,20 +515,29 @@ RunService.Heartbeat:Connect(function()
 end)
 
 -- L'ENTRAÎNEMENT SUR UNE MACHINE ------------------------------------------------------------------------------------
--- Pendant l'entraînement (attribut « Workout »), une barre se remplit et le personnage fait le geste : il court
--- sur le tapis, il pousse la barre sur le banc. Sur le trampoline, il rebondit tout seul.
-local workoutBar = box(gui, "Workout", UDim2.fromOffset(320, 34), UDim2.new(0.5, -160, 0.74, 0), Color3.fromRGB(40, 44, 56))
-workoutBar.Visible = false
-local workoutFill = Instance.new("Frame")
-workoutFill.Name = "Fill"
-workoutFill.BorderSizePixel = 0
-workoutFill.Size = UDim2.fromScale(0, 1)
-workoutFill.BackgroundColor3 = Color3.fromRGB(70, 210, 90)
-Instance.new("UICorner", workoutFill).CornerRadius = UDim.new(0, 8)
-workoutFill.Parent = workoutBar
-local workoutLabel = text(workoutBar, "Label", UDim2.fromScale(1, 0.84), UDim2.fromScale(0, 0.08))
-workoutLabel.ZIndex = 2
-workoutLabel.Text = tr("workout")
+-- Pendant l'entraînement (attribut « Workout »), le personnage fait le geste (il court sur le tapis, pousse la barre
+-- sur le banc, rebondit sur le trampoline), chaque pas fait s'envoler un « +N » rose, et un bouton permet d'arrêter.
+local stopEvent = ReplicatedStorage:WaitForChild("StopTraining")
+local stopButton = Instance.new("TextButton")
+stopButton.Name = "StopTraining"
+stopButton.AnchorPoint = Vector2.new(0.5, 1)
+stopButton.Position = UDim2.new(0.5, 0, 1, -120)
+stopButton.Size = UDim2.fromOffset(240, 56)
+stopButton.BackgroundColor3 = Color3.fromRGB(235, 50, 50)
+stopButton.Text = ""
+stopButton.Visible = false
+Instance.new("UICorner", stopButton).CornerRadius = UDim.new(0, 10)
+local stopStroke = Instance.new("UIStroke")
+stopStroke.Thickness = 4
+stopStroke.Color = Color3.fromRGB(20, 20, 30)
+stopStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+stopStroke.Parent = stopButton
+stopButton.Parent = gui
+text(stopButton, "Label", UDim2.fromScale(0.94, 0.7), UDim2.fromScale(0.03, 0.15)).Text = tr("stopButton")
+stopButton.Activated:Connect(function()
+	stopEvent:FireServer()
+end)
+
 local workoutTrack: AnimationTrack? = nil
 local function workoutGesture(machine: string)
 	if workoutTrack then
@@ -472,15 +566,43 @@ local function workoutGesture(machine: string)
 end
 player:GetAttributeChangedSignal("Workout"):Connect(function()
 	local machine = player:GetAttribute("Workout") or ""
-	workoutBar.Visible = machine ~= ""
+	stopButton.Visible = machine ~= ""
 	workoutGesture(machine)
 end)
-RunService.RenderStepped:Connect(function()
-	if workoutBar.Visible then
-		local left = (player:GetAttribute("WorkoutEnds") or 0) - workspace:GetServerTimeNow()
-		workoutFill.Size = UDim2.fromScale(math.clamp(1 - left / Config.WORKOUT_SECONDS, 0, 1), 1)
+
+-- Le « +N » rose qui s'envole au-dessus du joueur à chaque pas.
+local function gainPopup(amount: number)
+	local head = player.Character and player.Character:FindFirstChild("Head")
+	if not head then
+		return
 	end
-end)
+	local board = Instance.new("BillboardGui")
+	board.Name = "StatGain"
+	board.Size = UDim2.fromScale(5, 1.5)
+	board.StudsOffsetWorldSpace = Vector3.new(math.random() * 3 - 1.5, 2.5, 0)
+	board.AlwaysOnTop = true
+	board.AutoLocalize = false
+	board.Adornee = head
+	board.Parent = gui
+	local label = text(board, "Label", UDim2.fromScale(1, 1), UDim2.fromScale(0, 0), Color3.fromRGB(255, 70, 220))
+	label.Text = "+" .. compact(amount)
+	local info = TweenInfo.new(0.9, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+	TweenService:Create(board, info, { StudsOffsetWorldSpace = board.StudsOffsetWorldSpace + Vector3.new(0, 3.5, 0) }):Play()
+	TweenService:Create(label, info, { TextTransparency = 1 }):Play()
+	TweenService:Create(label.UIStroke, info, { Transparency = 1 }):Play()
+	task.delay(1, board.Destroy, board)
+end
+local lastPoints = {}
+for _, name in Config.MACHINES do
+	lastPoints[name] = player:GetAttribute(name .. "Points") or 0
+	player:GetAttributeChangedSignal(name .. "Points"):Connect(function()
+		local points = player:GetAttribute(name .. "Points") or 0
+		if points > lastPoints[name] and player:GetAttribute("Workout") == name then
+			gainPopup(points - lastPoints[name])
+		end
+		lastPoints[name] = points
+	end)
+end
 
 -- LES ŒUFS ET LES ANIMAUX -----------------------------------------------------------------------------------------
 require(script.Parent.Animals)({ gui = gui, side = side, text = text, box = box, tr = tr, num = num, lang = lang, showToast = showToast })

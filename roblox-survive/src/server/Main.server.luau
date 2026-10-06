@@ -7,6 +7,7 @@ local PlayerData = require(script.Parent.PlayerData)
 local World = require(script.Parent.World)
 local Gym = require(script.Parent.Gym)
 local Eggs = require(script.Parent.Eggs)
+local Cycle = require(script.Parent.Cycle)
 local Rooms = require(script.Parent.Rooms)
 
 Players.RespawnTime = 2
@@ -37,10 +38,43 @@ equipEvent.OnServerEvent:Connect(function(player, spot)
 	end
 end)
 
+-- Poser l'œuf qu'on porte, là où on se tient dans son enclos ; vendre un familier (par sa place).
+local placeEvent = Instance.new("RemoteEvent")
+placeEvent.Name = "PlaceEgg"
+placeEvent.Parent = ReplicatedStorage
+placeEvent.OnServerEvent:Connect(function(player)
+	Eggs.place(player)
+end)
+local sellEvent = Instance.new("RemoteEvent")
+sellEvent.Name = "SellPet"
+sellEvent.Parent = ReplicatedStorage
+sellEvent.OnServerEvent:Connect(function(player, spot)
+	if typeof(spot) == "number" then
+		Eggs.sell(player, spot)
+	end
+end)
+
+-- Le bouton « +1 place » de la fenêtre des familiers (comme le panneau « Améliorer l'enclos »).
+local upgradeEvent = Instance.new("RemoteEvent")
+upgradeEvent.Name = "UpgradePen"
+upgradeEvent.Parent = ReplicatedStorage
+upgradeEvent.OnServerEvent:Connect(function(player)
+	Eggs.buyPlace(player)
+end)
+
+-- Le bouton « ARRÊTER » pendant un entraînement.
+local stopEvent = Instance.new("RemoteEvent")
+stopEvent.Name = "StopTraining"
+stopEvent.Parent = ReplicatedStorage
+stopEvent.OnServerEvent:Connect(function(player)
+	Gym.stop(player)
+end)
+
 local world = World.build()
 PlayerData.start()
 Gym.start(world, notify)
-Eggs.start(world, notify, Gym.owns)
+Eggs.start(world, notify, Gym.owns, Gym.plotOf)
+Cycle.start(world)
 Rooms.start(world, notify)
 
 if RunService:IsStudio() then

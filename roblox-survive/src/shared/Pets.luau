@@ -36,13 +36,21 @@ Pets.VALUE_PER_COIN = 100
 -- Exemples : commun de la salle 1 = 18 s ; légendaire de la salle 10 = 15 min.
 Pets.HATCH = { 30, 90, 240, 600 }
 
--- L'ENCLOS : les places. Les premières sont offertes ; chaque place suivante coûte SPOT_FACTOR fois la précédente
+-- L'ENCLOS : son niveau donne le nombre de places (niveau 1 = SPOTS_FREE places, +1 par niveau). Améliorer l'enclos
+-- coûte SPOT_FACTOR fois plus cher à chaque niveau
 -- (1 000, 6 000, 36 000, 216 000, 1 296 000...).
 Pets.SPOTS_FREE = 5
-Pets.SPOTS_MAX = 12
+Pets.SPOTS_MAX = 20
 Pets.SPOT_PRICE = 1000
 Pets.SPOT_FACTOR = 6
 Pets.MAX_BAG = 60 -- œufs gardés en attente d'être posés
+-- La zone de l'enclos où marchent les familiers et où on pose les œufs, par rapport au milieu de l'espace du joueur.
+Pets.PEN = { minX = -7, maxX = 27, minZ = 4, maxZ = 29 }
+
+-- Niveau de l'enclos quand il a `places` places.
+function Pets.penLevel(places: number): number
+	return places - Pets.SPOTS_FREE + 1
+end
 
 -- Chaque rareté a son MÉLANGE de couleurs, peint sur l'animal lui-même : un dégradé de toute la palette recouvre
 -- son corps (plusieurs couleurs visibles en même temps).
@@ -85,17 +93,18 @@ Pets.COLOR_SECONDS = 1.3 -- temps pour passer d'une couleur de la palette à la 
 Pets.ODDS = { 60, 28, 10, 2 }
 Pets.ODDS_PER_ROOM = { -3, 1.5, 1, 0.5 }
 
-function Pets.odds(room: number): { number }
+-- luck : le bonus de chance de la salle (1 = aucun). Il multiplie les chances de tout ce qui n'est pas commun.
+function Pets.odds(room: number, luck: number?): { number }
 	local odds = {}
 	for i, base in Pets.ODDS do
-		odds[i] = math.max(1, base + Pets.ODDS_PER_ROOM[i] * (room - 1))
+		odds[i] = math.max(1, base + Pets.ODDS_PER_ROOM[i] * (room - 1)) * if i > 1 then (luck or 1) else 1
 	end
 	return odds
 end
 
 -- Tire une rareté (1 à 4) pour un œuf de cette salle.
-function Pets.roll(random: Random, room: number): number
-	local odds = Pets.odds(room)
+function Pets.roll(random: Random, room: number, luck: number?): number
+	local odds = Pets.odds(room, luck)
 	local total = 0
 	for _, weight in odds do
 		total += weight
@@ -172,13 +181,15 @@ function Pets.count(spots): (number, number)
 	return pets, eggs
 end
 
--- « 1:Dragon:2:v:153,2:Rock:1:t:1759680000 » <-> les places (pour les envoyer à l'écran des joueurs).
+-- Les places en texte, pour les envoyer à l'écran des joueurs : pour chaque place occupée,
+-- « numéro:animal:rareté:v ou t:valeur ou heure d'éclosion:x:z:durée » (x, z = où l'œuf est posé dans l'enclos, en
+-- dixièmes de stud ; durée = temps total de couvaison, pour la barre du panneau).
 function Pets.encode(spots): string
 	local parts = {}
 	for index = 1, Pets.SPOTS_MAX do
 		local spot = spots[tostring(index)]
 		if spot then
-			table.insert(parts, string.format("%d:%s:%d:%s:%d", index, spot.a, spot.q, if spot.v then "v" else "t", spot.v or spot.t))
+			table.insert(parts, string.format("%d:%s:%d:%s:%d:%d:%d:%d", index, spot.a, spot.q, if spot.v then "v" else "t", spot.v or spot.t, math.round((spot.x or 0) * 10), math.round((spot.z or 0) * 10), spot.d or 0))
 		end
 	end
 	return table.concat(parts, ",")
@@ -186,8 +197,8 @@ end
 
 function Pets.decode(text: string?)
 	local spots = {}
-	for index, name, rarity, kind, number in string.gmatch(text or "", "(%d+):(%a+):(%d):([vt]):(%d+)") do
-		local spot = { a = name, q = tonumber(rarity) }
+	for index, name, rarity, kind, number, x, z, duration in string.gmatch(text or "", "(%d+):(%a+):(%d):([vt]):(%d+):(-?%d+):(-?%d+):(%d+)") do
+		local spot = { a = name, q = tonumber(rarity), x = tonumber(x) / 10, z = tonumber(z) / 10, d = tonumber(duration) }
 		spot[kind] = tonumber(number)
 		spots[tostring(index)] = spot
 	end

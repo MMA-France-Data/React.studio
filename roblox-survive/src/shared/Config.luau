@@ -2,36 +2,70 @@
 -- Pour régler la difficulté, c'est ici qu'on change les nombres (voir README.md).
 local Config = {}
 
--- LA SALLE DE SPORT ---------------------------------------------------------------------------------------------
--- Trois machines, six niveaux chacune. Tout le monde commence au niveau 0 ; le niveau 1 est gratuit.
--- Pour monter d'un niveau, le joueur monte sur la machine et s'entraîne quelques secondes.
+-- LES MACHINES ET LES STATS ----------------------------------------------------------------------------------------
+-- Trois stats : la vitesse, le saut et la force. Ce sont des NOMBRES DE POINTS, qu'on fait monter en s'entraînant.
+-- Le joueur monte sur sa machine (tapis de course, trampoline, banc) et s'entraîne tant qu'il veut : à chaque pas
+-- (toutes les STEP_SECONDS), il gagne des points. Améliorer la machine, avec des pièces, augmente seulement le
+-- nombre de points gagnés à chaque pas (1, 4, 16, 64, 256, 1 024).
 Config.MACHINES = { "Speed", "Jump", "Force" }
-Config.MAX_LEVEL = 6
--- Prix du niveau 1, du niveau 2, etc.
-Config.PRICES = { 0, 500, 1500, 4000, 10000, 25000 }
-Config.WORKOUT_SECONDS = 4 -- durée d'un entraînement sur une machine
+Config.MACHINE_MAX = 6
+-- Prix pour passer la machine du niveau 1 au 2, du 2 au 3, etc.
+Config.PRICES = { 500, 1500, 4000, 10000, 25000 }
+Config.STEP_SECONDS = 0.5
 
--- Prix pour passer du niveau `level` au suivant (nil au maximum).
+-- Prix pour améliorer une machine de niveau `level` (nil au maximum).
 function Config.price(level: number): number?
-	return Config.PRICES[level + 1]
+	return Config.PRICES[level]
+end
+
+-- Points gagnés à chaque pas sur une machine de ce niveau.
+function Config.gain(level: number): number
+	return 4 ^ (level - 1)
+end
+
+-- LES PALIERS : le nombre de points qui donne le palier 1, 2, 3... d'une stat. Les salles sont réglées sur ces
+-- paliers (« Vitesse 500 recommandé » = palier 2). Avec une machine du même niveau que le palier visé, chaque
+-- palier demande une à deux minutes d'entraînement ; avec une machine d'un niveau de moins, quatre fois plus.
+Config.POINTS = { 100, 500, 2500, 12500, 60000, 300000 }
+Config.MAX_LEVEL = #Config.POINTS
+
+-- Points qu'il faut pour le palier `level` (0 pour le palier 0).
+function Config.pointsFor(level: number): number
+	return Config.POINTS[math.clamp(math.floor(level), 0, Config.MAX_LEVEL)] or 0
+end
+
+-- Le palier (avec des décimales) que donnent ces points : 100 -> 1 ; 500 -> 2 ; entre les deux, on avance en
+-- proportion (en multipliant) ; sous le premier palier, en ligne droite. Les formules de vitesse, de saut et de
+-- force ci-dessous prennent ce palier.
+function Config.levelOf(points: number): number
+	local list = Config.POINTS
+	if points < list[1] then
+		return math.max(0, points) / list[1]
+	end
+	for level = 1, #list - 1 do
+		if points < list[level + 1] then
+			return level + math.log(points / list[level]) / math.log(list[level + 1] / list[level])
+		end
+	end
+	return #list
 end
 
 -- MARCHER ET COURIR : le personnage marche à WALK_RATIO de sa vitesse ; il court à pleine vitesse tant que le joueur
 -- tient la touche Maj (ou a appuyé sur le bouton « COURIR » de l'écran).
 Config.WALK_RATIO = 0.7
 
--- Chaque niveau est un vrai palier : une salle faite pour le niveau N ne se passe pas au niveau N - 1.
--- Tapis de course : +15 % de vitesse par niveau (16 au départ, 37 au niveau 6).
+-- Chaque palier compte : une salle faite pour le palier N ne se passe pas au palier N - 1.
+-- Vitesse : +15 % par palier (16 au départ, 37 au palier 6).
 function Config.walkSpeed(level: number): number
 	return 16 * 1.15 ^ level
 end
 
--- Trampoline : +15 % de hauteur de saut par niveau (7,2 studs au départ, 16,7 au niveau 6).
+-- Saut : +15 % de hauteur par palier (7,2 studs au départ, 16,7 au palier 6).
 function Config.jumpHeight(level: number): number
 	return 7.2 * 1.15 ^ level
 end
 
--- Musculation : +50 % de force par niveau (10 au départ, 114 au niveau 6). Elle sert à repousser le plafond.
+-- Force : +50 % par palier (10 au départ, 114 au palier 6). Elle sert à repousser le plafond.
 function Config.force(level: number): number
 	return 10 * 1.5 ^ level
 end
@@ -82,6 +116,11 @@ Config.REWARD_FULL = 100
 Config.REWARD_HALF = 50
 Config.FINAL_BONUS = 1000 -- en plus, pour la dernière salle
 
+-- LA FERMETURE DE LA PORTE (voir Cycle.luau) : toutes les `every` secondes, la porte du lobby se ferme `closed`
+-- secondes. Pendant ce temps les œufs couvent `speed` fois plus vite. À la réouverture, une salle au hasard reçoit
+-- un bonus de chance tiré dans `luck` (2 = +100 % de chances d'un œuf rare, 6 = +500 %), jusqu'à la fermeture suivante.
+Config.CYCLE = { every = 300, closed = 10, speed = 10, luck = { 2, 3, 4, 5, 6 } }
+
 -- Raccourcis de la salle de sport : { salle à avoir réussie }. Le raccourci mène devant la salle suivante.
 Config.SHORTCUTS = { 5 }
 
@@ -101,7 +140,7 @@ Config.DAMAGE = {
 -- events : les événements de la salle, lancés ensemble.
 -- Bomb      : un parcours à grimper (sol sûr) et une bombe en haut. segments et jump comme Lava ; fuse = secondes
 --             avant l'explosion ; hold = secondes à tenir E pour couper son fil. Chaque joueur coupe le sien.
--- Lava      : segments = longueur du parcours (lignes droites de la spirale, 8 au plus), jump = niveau de saut
+-- Lava      : segments = longueur du parcours (lignes droites du zigzag, 6 au plus), jump = niveau de saut
 --             qu'il faut pour les grandes marches, finish = seconde où la lave arrive en haut (57 si absent).
 -- Meteors   : every = secondes entre deux pluies (absent = pas de météorites au hasard), count = météorites par
 --             pluie, warn = secondes d'avertissement, radius = rayon de l'explosion, aimed = part des météorites
@@ -117,15 +156,14 @@ Config.DAMAGE = {
 -- Ceiling   : toujours avec Lava (et écrit après). at = seconde où le plafond commence à descendre, level = niveau
 --             de force qu'il faut pour le tenir (Config.ceilingNeed).
 --
--- LA PROGRESSION (pièces gagnées : 100 x le numéro de la salle) :
---   salles 1 à 4  : rien à payer, seulement les niveaux 1 gratuits (une visite aux machines).   Gain : 1 000
---   salle 5       : saut 2 (500).                                                               Gain : 500
---   salle 7       : saut 3 et force 2 (2 000 de plus).
---   salle 8       : vitesse 3 (2 000 de plus).
---   salle 9       : saut 4 (4 000 de plus).
---   salle 10      : saut 5 et force 4 (15 500 de plus).
--- Les premières salles s'ouvrent en une ou deux parties ; chaque palier suivant coûte plus cher que ce que
--- rapportent les salles déjà ouvertes : il faut rejouer de plus en plus pour avancer.
+-- LA PROGRESSION : les paliers se gagnent en s'entraînant ; les pièces (salles, familiers) servent à améliorer les
+-- machines pour s'entraîner plus vite, et à agrandir l'enclos.
+--   salles 1 à 4  : paliers 1 (100 points : moins d'une minute par machine au départ).
+--   salle 5       : saut palier 2 (500 points).
+--   salle 7       : saut palier 3 (2 500) et force palier 2.
+--   salle 8       : vitesse palier 3.
+--   salle 9       : saut palier 4 (12 500).
+--   salle 10      : saut palier 5 (60 000) et force palier 4.
 Config.ROOMS = {
 	{ egg = "Dragon", need = {}, events = { "Bomb" }, Bomb = { segments = 3, jump = 0, fuse = 60, hold = 3 } },
 	{ egg = "Rock", need = { Speed = 1 }, events = { "Meteors" }, Meteors = { rush = { level = 1, rest = 3.5 } } },

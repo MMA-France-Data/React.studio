@@ -1,5 +1,5 @@
 -- Le lobby : chaque joueur reçoit son espace (ses machines, ses couveuses, son enclos) et y apparaît. On s'entraîne
--- sur une machine pour gagner un niveau ; le personnage reçoit sa vitesse et son saut ; le raccourci mène aux
+-- sur une machine pour gagner des points de stat ; le personnage reçoit sa vitesse et son saut ; le raccourci mène aux
 -- salles déjà atteintes.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -78,16 +78,17 @@ function Gym.applyStats(player: Player)
 	humanoid.JumpHeight = Stats.jumpHeight(player)
 end
 
--- Donne le niveau suivant d'une machine et prend son prix. Renvoie true, ou false et la raison (« max », « poor »).
--- (Le joueur passe par Gym.train : il s'entraîne d'abord sur la machine.)
+-- Améliore une machine d'un niveau, avec des pièces : elle donne plus de points à chaque pas.
+-- Renvoie true, ou false et la raison (« max », « poor »).
 function Gym.buy(player: Player, machine: string): (boolean, string?)
 	local data = PlayerData.get(player)
 	if not data or not table.find(Config.MACHINES, machine) then
 		return false, "data"
 	end
-	local level = data.levels[machine]
+	local level = data.machines[machine]
 	local price = Config.price(level)
 	if not price then
+		notify(player, "maxed", machine)
 		return false, "max"
 	end
 	if data.coins < price then
@@ -95,16 +96,35 @@ function Gym.buy(player: Player, machine: string): (boolean, string?)
 		return false, "poor"
 	end
 	PlayerData.addCoins(player, -price)
-	PlayerData.setLevel(player, machine, level + 1)
-	Gym.applyStats(player)
+	PlayerData.setMachine(player, machine, level + 1)
 	notify(player, "bought", machine, level + 1)
 	return true
 end
 
--- Le joueur monte sur la machine et s'entraîne quelques secondes ; à la fin, il gagne le niveau (et paie).
--- Tapis de course : il court sur place. Musculation : couché sur le banc. Trampoline : il rebondit.
--- Renvoie true si l'entraînement a commencé, ou false et la raison (« max », « poor », « busy »).
-local training = {} -- [joueur] = true pendant un entraînement
+-- L'ENTRAÎNEMENT : le joueur monte sur sa machine et y reste tant qu'il veut. À chaque pas, il gagne des points de
+-- la stat de la machine. Tapis de course : il court sur place. Musculation : couché sur le banc. Trampoline : il
+-- rebondit. Il en descend en rappuyant sur E (ou sur le bouton « ARRÊTER »).
+local training = {} -- [joueur] = { machine, character, root, exit }
+
+function Gym.stop(player: Player): boolean
+	local session = training[player]
+	if not session then
+		return false
+	end
+	training[player] = nil
+	if player:IsDescendantOf(Players) then
+		player:SetAttribute("Workout", "")
+		if player.Character == session.character and session.root.Parent then
+			session.root.Anchored = false
+			session.character:PivotTo(CFrame.new(session.exit))
+		end
+		Gym.applyStats(player)
+	end
+	return true
+end
+
+-- Monte sur la machine, ou en descend si le joueur y est déjà. Renvoie true, ou false et la raison (« busy » s'il
+-- s'entraîne sur une autre machine).
 function Gym.train(player: Player, machine: string): (boolean, string?)
 	local data = PlayerData.get(player)
 	local plot = Gym.plotOf(player)
@@ -116,38 +136,32 @@ function Gym.train(player: Player, machine: string): (boolean, string?)
 		return false, "data"
 	end
 	if training[player] then
+		if training[player].machine == machine then
+			Gym.stop(player)
+			return true
+		end
 		return false, "busy"
 	end
-	local price = Config.price(data.levels[machine])
-	if not price then
-		notify(player, "maxed", machine)
-		return false, "max"
-	end
-	if data.coins < price then
-		notify(player, "poor", price - data.coins)
-		return false, "poor"
-	end
 
-	training[player] = true
+	local session = { machine = machine, character = character, root = root, exit = spot.exit }
+	training[player] = session
 	humanoid.WalkSpeed = 0
 	character:PivotTo(spot.enter)
 	root.Anchored = spot.anchored
-	player:SetAttribute("WorkoutEnds", workspace:GetServerTimeNow() + Config.WORKOUT_SECONDS)
 	player:SetAttribute("Workout", machine)
-	task.delay(Config.WORKOUT_SECONDS, function()
-		training[player] = nil
-		if not player:IsDescendantOf(Players) then
-			return
+	task.spawn(function()
+		while training[player] == session do
+			task.wait(Config.STEP_SECONDS)
+			if training[player] ~= session then
+				break
+			end
+			-- Mort, parti ou réapparu : l'entraînement s'arrête.
+			if not player:IsDescendantOf(Players) or player.Character ~= character or humanoid.Health <= 0 then
+				Gym.stop(player)
+				break
+			end
+			PlayerData.addPoints(player, machine, Config.gain(data.machines[machine]))
 		end
-		player:SetAttribute("Workout", "")
-		-- Mort ou réapparu pendant l'entraînement : pas de niveau, rien à payer.
-		if player.Character ~= character or humanoid.Health <= 0 then
-			return
-		end
-		root.Anchored = false
-		character:PivotTo(CFrame.new(spot.exit))
-		Gym.buy(player, machine)
-		Gym.applyStats(player)
 	end)
 	return true
 end
@@ -194,6 +208,15 @@ function Gym.start(world, notifier)
 					Gym.train(player, name)
 				end
 			end)
+			-- Le panneau « Améliorer » de la machine.
+			local upgrade = prompt(plot.signs[name], "MachineUpgrade", 11)
+			upgrade:SetAttribute("Machine", name)
+			upgrade:SetAttribute("Plot", index)
+			upgrade.Triggered:Connect(function(player)
+				if Gym.owns(player, index) then
+					Gym.buy(player, name)
+				end
+			end)
 		end
 	end
 	for cleared, pad in world.gym.shortcuts do
@@ -224,7 +247,10 @@ function Gym.start(world, notifier)
 			task.spawn(arrive, player, player.Character)
 		end
 	end
-	Players.PlayerRemoving:Connect(release)
+	Players.PlayerRemoving:Connect(function(player)
+		training[player] = nil
+		release(player)
+	end)
 	Players.PlayerAdded:Connect(watch)
 	for _, player in Players:GetPlayers() do
 		watch(player)

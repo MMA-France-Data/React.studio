@@ -1,9 +1,10 @@
 -- Les tickets, les œufs et l'enclos (voir le chemin d'un familier en haut de Pets.luau).
 --   Salle réussie -> un ticket de la salle.
 --   Boutique du lobby -> chaque ticket devient un œuf de l'animal de la salle (rareté tirée à ce moment-là).
---   Enclos -> le joueur pose l'œuf sur une place libre ; il y couve ; à l'éclosion le familier reçoit sa valeur
---   cachée et rapporte des pièces à chaque seconde, tant que le joueur est dans le jeu.
---   Une place occupée par un familier peut être vendue ; la place suivante de l'enclos s'achète.
+--   Le joueur porte l'œuf sur la tête jusqu'à son enclos et le pose par terre, où il veut. L'œuf y couve ; à
+--   l'éclosion le familier reçoit sa valeur cachée, se promène dans l'enclos et rapporte des pièces à chaque
+--   seconde, tant que le joueur est dans le jeu.
+--   L'enclos a un nombre de places (son niveau) : on l'améliore au panneau de sa clôture. Un familier se vend.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -19,18 +20,45 @@ Eggs.hatchPaused = false
 
 local random = Random.new()
 local notify = function(_player: Player, _key: string, ...) end
+local plotOf = function(_player: Player): any
+	return nil
+end
 
--- Salle réussie : un ticket de cette salle.
+-- Le bonus de chance d'une salle en ce moment (1 = aucun). Cycle.luau le remplace par le sien.
+Eggs.luckOf = function(_room: number): number
+	return 1
+end
+
+-- Salle réussie : un ticket de cette salle. Si la salle a un bonus de chance à ce moment-là, le ticket le garde
+-- (clé « salle:bonus ») : il servira quand le ticket deviendra un œuf.
 function Eggs.give(player: Player, room: number): boolean
 	local data = PlayerData.get(player)
 	if not data or not Config.ROOMS[room] or not Config.ROOMS[room].egg then
 		return false
 	end
-	local key = tostring(room)
+	local luck = Eggs.luckOf(room)
+	local key = if luck > 1 then room .. ":" .. luck else tostring(room)
 	data.tickets[key] = (data.tickets[key] or 0) + 1
 	PlayerData.changed(player)
-	notify(player, "ticket", room)
+	notify(player, "ticket", room, luck)
 	return true
+end
+
+-- Fait avancer la couvaison de tous les œufs de tous les joueurs (pendant la fermeture de la porte).
+function Eggs.accelerate(seconds: number)
+	for _, player in Players:GetPlayers() do
+		local data = PlayerData.get(player)
+		local changed = false
+		for _, spot in data and data.spots or {} do
+			if spot.t then
+				spot.t -= seconds
+				changed = true
+			end
+		end
+		if changed then
+			PlayerData.changed(player)
+		end
+	end
 end
 
 -- À la boutique : tous les tickets du joueur deviennent des œufs (tant qu'il a de la place pour les garder).
@@ -41,11 +69,18 @@ function Eggs.exchange(player: Player): number
 		return 0
 	end
 	local received = 0
-	for room = 1, #Config.ROOMS do
-		local key = tostring(room)
+	local keys = {}
+	for key in data.tickets do
+		table.insert(keys, key)
+	end
+	table.sort(keys)
+	for _, key in keys do
+		-- « 3 » = un ticket de la salle 3 ; « 3:4 » = gagné quand la salle 3 avait un bonus de chance de 4.
+		local room, luck = string.match(key, "^(%d+):?(%d*)$")
+		room, luck = tonumber(room), tonumber(luck) or 1
 		while (data.tickets[key] or 0) > 0 and #data.bag < Pets.MAX_BAG do
 			data.tickets[key] -= 1
-			table.insert(data.bag, { a = Config.ROOMS[room].egg, q = Pets.roll(random, room), r = room })
+			table.insert(data.bag, { a = Config.ROOMS[room].egg, q = Pets.roll(random, room, luck), r = room })
 			received += 1
 		end
 		if data.tickets[key] == 0 then
@@ -61,20 +96,53 @@ function Eggs.exchange(player: Player): number
 	return received
 end
 
--- Pose le plus vieil œuf du joueur sur cette place de son enclos.
-function Eggs.place(player: Player, spot: number): boolean
+-- Pose l'œuf que le joueur porte, là où il se tient dans son enclos (x, z : par rapport au milieu de son espace ;
+-- sans eux, c'est la place du personnage). Renvoie true, ou false et la raison.
+function Eggs.place(player: Player, x: number?, z: number?): (boolean, string?)
 	local data = PlayerData.get(player)
-	local key = tostring(spot)
-	if not data or spot < 1 or spot > data.places or data.spots[key] then
-		return false
+	local plot = plotOf(player)
+	if not data or not plot then
+		return false, "data"
+	end
+	if not x or not z then
+		local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+		if not root then
+			return false, "data"
+		end
+		x, z = root.Position.X - plot.origin.X, root.Position.Z - plot.origin.Z
+	end
+	if #data.bag == 0 then
+		notify(player, if next(data.tickets) then "goShop" else "noEgg")
+		return false, "noEgg"
+	end
+	local pen = Pets.PEN
+	if x < pen.minX - 1 or x > pen.maxX + 1 or z < pen.minZ - 1 or z > pen.maxZ + 1 then
+		notify(player, "notInPen")
+		return false, "notInPen"
+	end
+	-- Une place libre parmi celles du niveau de l'enclos.
+	local key
+	for index = 1, data.places do
+		if not data.spots[tostring(index)] then
+			key = tostring(index)
+			break
+		end
+	end
+	if not key then
+		notify(player, "penFull")
+		return false, "penFull"
 	end
 	local egg = table.remove(data.bag, 1)
-	if not egg then
-		notify(player, if next(data.tickets) then "goShop" else "noEgg")
-		return false
-	end
 	local seconds = Pets.hatchSeconds(egg.r, egg.q)
-	data.spots[key] = { a = egg.a, q = egg.q, r = egg.r, t = os.time() + seconds }
+	data.spots[key] = {
+		a = egg.a,
+		q = egg.q,
+		r = egg.r,
+		t = os.time() + seconds,
+		d = seconds,
+		x = math.clamp(x, pen.minX, pen.maxX),
+		z = math.clamp(z, pen.minZ, pen.maxZ),
+	}
 	PlayerData.changed(player)
 	notify(player, "placed", egg.a, egg.q, seconds)
 	return true
@@ -91,7 +159,7 @@ function Eggs.hatch(player: Player, all: boolean?): number
 	for key, spot in data.spots do
 		if spot.t and (all or now >= spot.t) then
 			local value = Pets.rollValue(random, spot.q)
-			data.spots[key] = { a = spot.a, q = spot.q, v = value }
+			data.spots[key] = { a = spot.a, q = spot.q, v = value, x = spot.x, z = spot.z }
 			hatched += 1
 			if data.equipped == "" then
 				data.equipped = key
@@ -123,7 +191,7 @@ function Eggs.sell(player: Player, spot: number): boolean
 	return true
 end
 
--- Achète la place suivante de l'enclos.
+-- Améliore l'enclos d'un niveau : une place de plus.
 function Eggs.buyPlace(player: Player): boolean
 	local data = PlayerData.get(player)
 	local price = data and Pets.spotPrice(data.places)
@@ -136,29 +204,8 @@ function Eggs.buyPlace(player: Player): boolean
 	end
 	data.places += 1
 	PlayerData.addCoins(player, -price)
-	notify(player, "placeBought", data.places)
+	notify(player, "placeBought", Pets.penLevel(data.places), data.places)
 	return true
-end
-
--- Le joueur appuie sur E devant une place de son enclos : selon ce qu'il y a dessus, il achète la place, pose un
--- œuf, ou vend le familier. Renvoie ce qui s'est passé ("bought", "placed", "wait", "sold", "none").
-function Eggs.use(player: Player, spot: number): string
-	local data = PlayerData.get(player)
-	if not data then
-		return "none"
-	end
-	local occupant = data.spots[tostring(spot)]
-	if spot == data.places + 1 then
-		return if Eggs.buyPlace(player) then "bought" else "none"
-	elseif spot > data.places then
-		return "none"
-	elseif not occupant then
-		return if Eggs.place(player, spot) then "placed" else "none"
-	elseif occupant.t then
-		notify(player, "wait", math.max(0, occupant.t - os.time()))
-		return "wait"
-	end
-	return if Eggs.sell(player, spot) then "sold" else "none"
 end
 
 -- Choisit le familier qui suit le joueur, par sa place (le même une 2e fois : plus aucun ne le suit).
@@ -173,35 +220,36 @@ function Eggs.follow(player: Player, spot: number): boolean
 	return true
 end
 
--- owns(joueur, numéro de l'espace) : vrai si c'est son espace (Gym.owns).
-function Eggs.start(world, notifier, owns)
+-- owns(joueur, numéro de l'espace) : vrai si c'est son espace ; plotFor(joueur) : son espace (Gym.owns, Gym.plotOf).
+function Eggs.start(world, notifier, owns, plotFor)
 	notify = notifier
-	local function prompt(part: BasePart, kind: string): ProximityPrompt
+	plotOf = plotFor
+	local function prompt(part: BasePart, kind: string, distance: number): ProximityPrompt
 		local item = Instance.new("ProximityPrompt")
 		item.Name = "Prompt"
 		item.HoldDuration = 0.25
-		item.MaxActivationDistance = 9
+		item.MaxActivationDistance = distance
 		item.RequiresLineOfSight = false
 		item.AutoLocalize = false
 		item:SetAttribute("Kind", kind)
 		item.Parent = part
 		return item
 	end
+	-- Le panneau « Améliorer l'enclos » de chaque espace.
 	for index, plot in world.gym.plots do
-		for spot, pad in plot.pens do
-			local item = prompt(pad, "Spot")
-			item:SetAttribute("Plot", index)
-			item:SetAttribute("Spot", spot)
-			item.Triggered:Connect(function(player)
-				if owns(player, index) then
-					Eggs.use(player, spot)
-				end
-			end)
-		end
+		local item = prompt(plot.upgrade, "PenUpgrade", 12)
+		item:SetAttribute("Plot", index)
+		item.Triggered:Connect(function(player)
+			if owns(player, index) then
+				Eggs.buyPlace(player)
+			end
+		end)
 	end
-	local shop = prompt(world.gym.shop, "Shop")
-	shop.MaxActivationDistance = 14
-	shop.Triggered:Connect(Eggs.exchange)
+	-- La boutique des œufs, et le stand « VENDRE » (qui ouvre la fenêtre des familiers).
+	prompt(world.gym.shop, "Shop", 14).Triggered:Connect(Eggs.exchange)
+	prompt(world.gym.sell, "Sell", 14).Triggered:Connect(function(player)
+		notify(player, "openPets")
+	end)
 
 	-- Chaque seconde : les œufs qui ont fini de couver éclosent, et l'enclos de chaque joueur lui rapporte ses
 	-- pièces (les centimes s'accumulent).
