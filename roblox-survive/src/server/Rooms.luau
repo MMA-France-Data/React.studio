@@ -32,6 +32,13 @@ local Rooms = {}
 -- Les tests dans Studio accélèrent le temps (1 = normal).
 Rooms.timeScale = 1
 
+-- PORTES OUVERTES (seulement quand le joueur essaie le jeu lui-même dans Studio, pas dans le jeu publié ni dans les
+-- tests automatiques) : la porte du bout de chaque salle vide est ouverte, on traverse les salles sans les jouer.
+-- Une salle ne se lance que si un joueur S'ARRÊTE dedans (immobile STILL secondes) : là, ses portes se ferment
+-- comme d'habitude. Pour aller essayer la salle 5, on court tout droit et on s'arrête dans la 5.
+Rooms.passThrough = RunService:IsStudio() and ReplicatedStorage:FindFirstChild("__AutoPlayTest") == nil
+local STILL = 1.5
+
 local rooms = {}
 local notify = function(_player: Player, _key: string, ...) end
 
@@ -81,8 +88,9 @@ end
 
 local function toIdle(room)
 	table.clear(room.participants)
-	World.setDoor(room.exit, false)
+	World.setDoor(room.exit, Rooms.passThrough)
 	World.setDoor(room.entry, true)
+	room.still = 0
 	setState(room, "Idle", 0)
 end
 
@@ -93,6 +101,7 @@ local function begin(room)
 		return
 	end
 	World.setDoor(room.entry, false)
+	World.setDoor(room.exit, false)
 	room.elapsed = 0
 	table.clear(room.eliminated)
 	for _, player in list do
@@ -145,11 +154,28 @@ end
 
 local function update(room, dt: number)
 	if room.state == "Idle" then
-		if #playersIn(room) > 0 then
+		local inside = playersIn(room)
+		if #inside > 0 and Rooms.passThrough then
+			-- Portes ouvertes : le compte à rebours ne part que si un joueur reste immobile dans la salle.
+			local still = false
+			for _, player in inside do
+				local _, root = body(player)
+				local velocity = root and root.AssemblyLinearVelocity
+				still = still or (velocity ~= nil and Vector3.new(velocity.X, 0, velocity.Z).Magnitude < 2)
+			end
+			room.still = if still then (room.still or 0) + dt / Rooms.timeScale else 0
+			if room.still >= STILL then
+				setState(room, "Countdown", Config.PREPARE)
+			end
+		elseif #inside > 0 then
 			setState(room, "Countdown", Config.PREPARE)
+		else
+			room.still = 0
 		end
 	elseif room.state == "Countdown" then
 		room.t -= dt
+		-- (Portes ouvertes : la porte du bout se ferme dès que le compte à rebours part.)
+		World.setDoor(room.exit, false)
 		if #playersIn(room) == 0 then
 			toIdle(room)
 		elseif room.t <= 0 then
@@ -313,6 +339,7 @@ function Rooms.start(world, notifier)
 	notify = notifier
 	for index, geometry in world.rooms do
 		rooms[index] = create(geometry)
+		World.setDoor(rooms[index].exit, Rooms.passThrough)
 	end
 	RunService.Heartbeat:Connect(function(dt)
 		local scaled = math.min(dt, 0.1) * Rooms.timeScale

@@ -82,6 +82,7 @@ return function()
 	panel.Parent = gui
 	round(panel, 10)
 	label(panel, "Réglages de test (Studio seulement)", UDim2.new(1, -20, 0, 20), UDim2.fromOffset(12, 8), Color3.fromRGB(255, 221, 51))
+	label(panel, "Portes ouvertes : traverse les salles, arrête-toi 2 s dans celle à jouer.", UDim2.new(1, -20, 0, 16), UDim2.fromOffset(12, 28), Color3.fromRGB(200, 204, 214), 12)
 	toggle.MouseButton1Click:Connect(function()
 		panel.Visible = not panel.Visible
 	end)
@@ -92,7 +93,7 @@ return function()
 	local rows = 0
 	local dragging = nil
 	local function slider(title: string, color: Color3, start: number, describe: (number) -> string, send: (number) -> ())
-		local y = 36 + rows * 58
+		local y = 52 + rows * 58
 		rows += 1
 		local caption = label(panel, "", UDim2.new(1, -24, 0, 18), UDim2.fromOffset(12, y))
 		local bar = Instance.new("TextButton")
@@ -137,7 +138,7 @@ return function()
 			end
 		end)
 		item.show()
-		panel.Size = UDim2.fromOffset(380, 36 + rows * 58 + 8)
+		panel.Size = UDim2.fromOffset(380, 52 + rows * 58 + 8)
 		return item
 	end
 	UserInputService.InputChanged:Connect(function(input)
