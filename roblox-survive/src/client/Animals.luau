@@ -176,6 +176,11 @@ return function(env)
 	end
 
 	-- Un œuf (plus haut que large), de la couleur de son animal.
+	-- Plus l'oeuf est rare, plus il est gros (le joueur : "plus tu approches du palier haut, plus l'oeuf est gros") :
+	-- +13 % par rang, donc un super rare est 1,65 fois plus gros qu'un commun.
+	local function eggSize(base: number, rank: number?): number
+		return base * (1 + 0.13 * (math.clamp(rank or 1, 1, #Pets.RARITIES) - 1))
+	end
 	local function makeEgg(animal: string, size: number): Part
 		local part = Instance.new("Part")
 		part.Name = "Egg"
@@ -191,6 +196,34 @@ return function(env)
 		mesh.Scale = Vector3.new(1, 1.3, 1)
 		mesh.Parent = part
 		part.Parent = folder
+		-- LES OEUFS DES COLLECTIONS (assets/collections/oeufs) : chaque animal des salles 1 a 5 a son oeuf en briques
+		-- (arc-en-ciel pour les super rares). La boule devient invisible et sert de poignee : le modele y est soude,
+		-- pose sur son socle, et la suit quand on la deplace. Les autres animaux gardent la boule de couleur.
+		local visuals = ReplicatedStorage:FindFirstChild("EggVisuals")
+		local template = visuals and visuals:FindFirstChild(animal)
+		if template and template:IsA("Model") and template.PrimaryPart then
+			local model = template:Clone()
+			model.Name = "EggModel"
+			local _, bounds = model:GetBoundingBox()
+			model:ScaleTo(size * 1.3 / math.max(bounds.Y, 0.1))
+			for _, item in model:GetDescendants() do
+				if item:IsA("BasePart") then
+					item.Anchored = false
+					item.Massless = true
+					item.CanCollide = false
+					item.CanQuery = false
+					item.CanTouch = false
+				end
+			end
+			-- Le pivot du modele est a son pied : il est pose au bas de la boule.
+			model:PivotTo(part.CFrame * CFrame.new(0, -size * 0.65, 0))
+			local weld = Instance.new("WeldConstraint")
+			weld.Part0 = part
+			weld.Part1 = model.PrimaryPart
+			weld.Parent = part
+			model.Parent = part
+			part.Transparency = 1
+		end
 		return part
 	end
 
@@ -241,11 +274,12 @@ return function(env)
 				local item = carried[other]
 				if not item or item.key ~= nextEgg then
 					dropCarried(other)
-					item = { key = nextEgg, egg = makeEgg(string.match(nextEgg, "^%a+") or "", 2.2) }
+					local size = eggSize(2.2, tonumber(string.match(nextEgg, ":(%d+)")))
+					item = { key = nextEgg, egg = makeEgg(string.match(nextEgg, "^%a+") or "", size), lift = 1 + size * 0.65 }
 					item.egg.Name = "CarriedEgg"
 					carried[other] = item
 				end
-				item.egg.CFrame = head.CFrame * CFrame.new(0, 2.4, 0)
+				item.egg.CFrame = head.CFrame * CFrame.new(0, item.lift, 0)
 			end
 
 			local name, rarity = other:GetAttribute("Pet") or "", other:GetAttribute("PetRarity") or 0
@@ -317,7 +351,12 @@ return function(env)
 					local place = origin + Vector3.new(spot.x, 0, spot.z)
 					if spot.v then
 						-- Un familier : il part de là où son œuf était posé et se promène.
-						item.pet = create(spot.a, spot.q, true, PEN_SCALE)
+						-- Dans son rang, un familier qui vaut plus est plus gros (jusqu'a +25 % en haut du palier) : la taille
+						-- donne une idee de sa valeur cachee. (Le rang, lui, grossit deja l'animal : Pets.RARITIES.)
+						local range = Pets.VALUE[math.clamp(spot.q, 1, #Pets.VALUE)]
+						local base = spot.v / Pets.roomFactor(Pets.DEFS[spot.a] and Pets.DEFS[spot.a].room or 1)
+						local along = math.clamp((base - range[1]) / (range[2] - range[1]), 0, 1)
+						item.pet = create(spot.a, spot.q, true, PEN_SCALE * (1 + 0.25 * along))
 						item.pet.model.Name = "Pen_" .. spot.a .. spot.q
 						item.position, item.target, item.rest = place, randomSpot(origin), math.random() * 2
 						item.origin = origin
@@ -330,9 +369,10 @@ return function(env)
 						top.TextColor3 = rarityInfo(spot.q).color
 						bottom.Text = tr("perSecond", amount(item.income))
 					else
-						item.egg = makeEgg(spot.a, 3)
-						item.egg.Position = place + Vector3.new(0, 2.1, 0)
-						item.top, item.bottom = tag(item.egg, 3.2)
+						local size = eggSize(3, spot.q)
+						item.egg = makeEgg(spot.a, size)
+						item.egg.Position = place + Vector3.new(0, 0.15 + size * 0.65, 0)
+						item.top, item.bottom = tag(item.egg, size * 0.65 + 1.3)
 						item.top.Text = tr("eggName") .. "  " .. tr(rarityInfo(spot.q).key)
 						item.top.TextColor3 = rarityInfo(spot.q).color
 						item.bottom.TextColor3 = Color3.new(1, 1, 1)
