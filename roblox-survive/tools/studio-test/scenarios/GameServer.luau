@@ -779,7 +779,7 @@ return function(log)
 	check(oddsTotal == 100 and Pets.ODDS[1] == 45 and Pets.ODDS[6] == 0.5, "chances : 45 % pour le plus courant, 0,5 % pour le super rare", oddsTotal)
 	check(Pets.VALUE[1][2] == 50 and Pets.VALUE[6][1] == 1600 and Pets.VALUE[6][2] == 3200, "valeurs : 1 à 50 pour le plus courant, 1 600 à 3 200 pour le super rare")
 	check(Pets.animalOf(1, 6, "x") == "Fox" and Pets.animalOf(2, 6, "x") == "Badger" and Pets.animalOf(3, 6, "x") == "Horse", "super rares : renard, blaireau, cheval")
-	check(Pets.animalOf(1, 1, "x") == "Bunny" and Pets.animalOf(4, 6, "Golem") == "Golem", "salle sans collection : l'animal de la salle")
+	check(Pets.animalOf(1, 1, "x") == "Bunny" and Pets.animalOf(4, 6, "x") == "Bear" and Pets.animalOf(5, 6, "x") == "Jaguar" and Pets.animalOf(6, 6, "Owl") == "Owl", "ours et jaguar super rares ; salle sans collection : l'animal de la salle")
 	check(Pets.luckPercent(3200, 1) == 100 and Pets.luckPercent(1600, 1) == 50, "bonus de chance d'un super rare qui suit : 50 à 100 %", Pets.luckPercent(3200, 1))
 	local visuals = game:GetService("ReplicatedStorage"):FindFirstChild("PetVisuals")
 	for room, list in Pets.COLLECTIONS do

@@ -36,6 +36,8 @@ Pets.COLLECTIONS = {
 	{ "Bunny", "Turtle", "Cat", "Dog", "Owlet", "Fox" },
 	{ "Hedgehog", "Squirrel", "Skunk", "Beaver", "Raccoon", "Badger" },
 	{ "Duck", "Rooster", "Pig", "Sheep", "Goat", "Horse" },
+	{ "Boar", "Ram", "Deer", "Lynx", "Wolf", "Bear" },
+	{ "Capybara", "Toucan", "Monkey", "Anaconda", "Crocodile", "Jaguar" },
 }
 for room, list in Pets.COLLECTIONS do
 	for rank, name in list do

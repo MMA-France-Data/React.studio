@@ -73,12 +73,14 @@ Ce dossier est séparé du jeu de tours (`roblox-ranked-td`) : rien n'est partag
      100 à 200, 200 à 400, 400 à 800, et 1 600 à 3 200 pour le super rare ; ces paliers sont ceux de la salle 1,
      et chaque salle suivante les multiplie par 3. Il **se promène dans l'enclos** et rapporte chaque seconde sa
      valeur / 100, tant que le joueur est dans le jeu ; le gain s'envole au-dessus de lui.
-  - **Les collections** (`Pets.COLLECTIONS`, modèles dans `assets/collections`) : dans les salles 1 à 3, le rang
+  - **Les collections** (`Pets.COLLECTIONS`, modèles dans `assets/collections`) : dans les salles 1 à 5, le rang
     de l'œuf donne l'animal, six par salle, du plus courant au super rare :
     salle 1 : lapin, tortue, chat, chien, chouette, **renard** ;
     salle 2 : hérisson, écureuil, moufette, castor, raton laveur, **blaireau** ;
-    salle 3 : canard, coq, cochon, mouton, chèvre, **cheval**.
-    Ces animaux sont articulés et animés (repos, marche) par `StarterAnimator.luau`. Les salles 4 à 10 gardent
+    salle 3 : canard, coq, cochon, mouton, chèvre, **cheval** ;
+    salle 4 : sanglier, bélier, cerf, lynx, loup, **ours brun** ;
+    salle 5 : capybara, toucan, singe, anaconda, crocodile, **jaguar**.
+    Ces animaux sont articulés et animés (repos, marche) par `StarterAnimator.luau`. Les salles 6 à 10 gardent
     pour l'instant l'animal de la salle (dragon, golem, chouette, lapin éclair), peint selon son rang.
   - **Le familier qui suit** (bouton « Suivre ») donne un bonus de chance d'œuf rare : sa valeur cachée / 16, en %
     (x 1,15 par salle ; la valeur d'un super rare compte pour moitié). Il s'ajoute au bonus de la salle chanceuse,

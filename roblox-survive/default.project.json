@@ -73,6 +73,42 @@
         },
         "Horse": {
           "$path": "assets/collections/salle-03/models/Horse.rbxmx"
+        },
+        "Boar": {
+          "$path": "assets/collections/salle-04/models/Boar.rbxmx"
+        },
+        "Ram": {
+          "$path": "assets/collections/salle-04/models/Ram.rbxmx"
+        },
+        "Deer": {
+          "$path": "assets/collections/salle-04/models/Deer.rbxmx"
+        },
+        "Lynx": {
+          "$path": "assets/collections/salle-04/models/Lynx.rbxmx"
+        },
+        "Wolf": {
+          "$path": "assets/collections/salle-04/models/Wolf.rbxmx"
+        },
+        "Bear": {
+          "$path": "assets/collections/salle-04/models/Bear.rbxmx"
+        },
+        "Capybara": {
+          "$path": "assets/collections/salle-05/models/Capybara.rbxmx"
+        },
+        "Toucan": {
+          "$path": "assets/collections/salle-05/models/Toucan.rbxmx"
+        },
+        "Monkey": {
+          "$path": "assets/collections/salle-05/models/Monkey.rbxmx"
+        },
+        "Anaconda": {
+          "$path": "assets/collections/salle-05/models/Anaconda.rbxmx"
+        },
+        "Crocodile": {
+          "$path": "assets/collections/salle-05/models/Crocodile.rbxmx"
+        },
+        "Jaguar": {
+          "$path": "assets/collections/salle-05/models/Jaguar.rbxmx"
         }
       },
       "Shared": {

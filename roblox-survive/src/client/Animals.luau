@@ -21,7 +21,7 @@ local EGG_COLORS = {
 	Owl = Color3.fromRGB(170, 120, 70),
 }
 -- Les œufs d'une salle à collection ont la couleur de la salle (l'animal ne se voit qu'à l'éclosion).
-for room, color in { Color3.fromRGB(255, 226, 150), Color3.fromRGB(190, 140, 90), Color3.fromRGB(250, 245, 235) } do
+for room, color in { Color3.fromRGB(255, 226, 150), Color3.fromRGB(190, 140, 90), Color3.fromRGB(250, 245, 235), Color3.fromRGB(120, 150, 110), Color3.fromRGB(70, 190, 110) } do
 	for _, name in Pets.COLLECTIONS[room] or {} do
 		EGG_COLORS[name] = color
 	end
