@@ -12,7 +12,23 @@ du joueur, préparées le 6 octobre 2026. Aucun modèle ou script de bibliothèq
 | [Salle 4](salle-04/README.md) | Lynx, bélier, sanglier, loup corrigé, cerf, ours brun |
 | [Salle 5](salle-05/README.md) | Capybara, toucan, singe, anaconda, jaguar, crocodile |
 
-Chaque dossier contient les six modèles dans `models/`, une insertion groupée,
+## Œufs validés — pack complet
+
+Les **30 œufs des salles 1 à 5** sont dans [oeufs/](oeufs/README.md), avec
+leurs fichiers séparés dans [oeufs/models/](oeufs/models/), les rendus et une
+galerie indépendante. **Sans nid.** Version retenue : **V3 arc-en-ciel**, et non
+la version violet pastel refusée par le joueur. Les cinq œufs à 0,5 % sont
+Renard, Blaireau, Cheval, Ours brun et Jaguar : coquille arc-en-ciel saturée,
+taches blanches, contour violet natif. Les 25 autres modèles restent ceux du
+premier pack validé. [Aperçu des cinq rares](oeufs/Apercu-5-rares-arc-en-ciel.png).
+
+[RARITY_REFERENCE.json](oeufs/RARITY_REFERENCE.json) reproduit le tableau du
+joueur sans modifier les probabilités du jeu. Les clés de jeu `Bunny` et `Owlet`
+correspondent respectivement aux fichiers `RabbitEgg.rbxmx` et `OwlEgg.rbxmx`.
+La livraison ne branche pas ces œufs dans `default.project.json` : l'intégration
+des Model à la place des Part uniques d'`Animals.luau` reste à faire séparément.
+
+Chaque dossier de salle contient les six animaux dans `models/`, une insertion groupée,
 les rendus individuels et l'aperçu de collection, un aperçu animé, une scène Blender,
 les descriptions de géométrie/rig/clips, les empreintes SHA256 et une galerie
 Roblox indépendante. Les anciennes versions restent archivées localement, pas
