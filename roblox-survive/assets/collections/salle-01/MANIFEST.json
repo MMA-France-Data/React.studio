@@ -1,0 +1,104 @@
+{
+  "created": "2026-10-06",
+  "author": "Original models authored locally with Codex",
+  "paidGenerations": 0,
+  "gameModified": false,
+  "pets": [
+    {
+      "id": "Rabbit",
+      "label": "Lapin",
+      "parts": 69,
+      "motors": 9,
+      "size": [
+        1.614302174826062,
+        2.75,
+        2.407266970399712
+      ],
+      "sha256": "b3ce7208a28aa35ea0e316a3d24478c9d2f07a6f0007f31922195fe667c6237d",
+      "animations": [
+        "Idle",
+        "Walk"
+      ]
+    },
+    {
+      "id": "Owl",
+      "label": "Chouette",
+      "parts": 72,
+      "motors": 9,
+      "size": [
+        1.8736852860675053,
+        2.75,
+        1.9277362437040872
+      ],
+      "sha256": "6aba7c0a6b0349968edc5ce083d76d85b92bf28d88ef3a2571610f95fc3b53e1",
+      "animations": [
+        "Idle",
+        "Walk"
+      ]
+    },
+    {
+      "id": "Dog",
+      "label": "Chien",
+      "parts": 56,
+      "motors": 9,
+      "size": [
+        1.9425276033575907,
+        2.565,
+        2.895
+      ],
+      "sha256": "631657d94a86f57494ddcc2c6228a9d6f93ac5275d054ea7be7a609e84624159",
+      "animations": [
+        "Idle",
+        "Walk"
+      ]
+    },
+    {
+      "id": "Cat",
+      "label": "Chat",
+      "parts": 84,
+      "motors": 10,
+      "size": [
+        1.3716478882519603,
+        2.75,
+        2.354474474820449
+      ],
+      "sha256": "9d515f3ad8b3ca9cf9da98d2b6f5ecc376f114cd9d6921171dd1cc3b16059a12",
+      "animations": [
+        "Idle",
+        "Walk"
+      ]
+    },
+    {
+      "id": "Fox",
+      "label": "Renard",
+      "parts": 76,
+      "motors": 10,
+      "size": [
+        1.2714107357469484,
+        2.5621047701262345,
+        3.1
+      ],
+      "sha256": "ab15374d977c479fd0bf3cd955d62280a4f5b8d60d95a305d83546a25b17f220",
+      "animations": [
+        "Idle",
+        "Walk"
+      ]
+    },
+    {
+      "id": "Turtle",
+      "label": "Tortue",
+      "parts": 75,
+      "motors": 7,
+      "size": [
+        2.2301414360364378,
+        1.186299212598425,
+        3.1
+      ],
+      "sha256": "731142456f60b194c32f4ebf1c803151fb04e167e195ff2835bec76e5b66964a",
+      "animations": [
+        "Idle",
+        "Walk"
+      ]
+    }
+  ]
+}

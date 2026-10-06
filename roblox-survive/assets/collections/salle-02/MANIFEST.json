@@ -1,0 +1,104 @@
+{
+  "created": "2026-10-06",
+  "author": "Original models authored locally with Codex",
+  "paidGenerations": 0,
+  "gameModified": false,
+  "pets": [
+    {
+      "id": "Squirrel",
+      "label": "Écureuil",
+      "parts": 54,
+      "motors": 10,
+      "size": [
+        1.26,
+        2.662362701881476,
+        2.1645000000000003
+      ],
+      "sha256": "d3b8b2f886ca4c97316a984561e084c0369df35a5867e95a82ae31797efd5c47",
+      "animations": [
+        "Idle",
+        "Walk"
+      ]
+    },
+    {
+      "id": "Hedgehog",
+      "label": "Hérisson",
+      "parts": 87,
+      "motors": 9,
+      "size": [
+        1.5891902842786845,
+        1.2878833277839794,
+        2.675
+      ],
+      "sha256": "5a7bec1e73d3da25c71960bb47c004a8886501d25aeea9a6023152da6d9c6bd7",
+      "animations": [
+        "Idle",
+        "Walk"
+      ]
+    },
+    {
+      "id": "Raccoon",
+      "label": "Raton laveur",
+      "parts": 73,
+      "motors": 10,
+      "size": [
+        1.3558582021997359,
+        1.4837617350395709,
+        3.1
+      ],
+      "sha256": "7f2f34bc809d7e09018316a691d450fa882eba3077b56b130d6fdf7a12c20e55",
+      "animations": [
+        "Idle",
+        "Walk"
+      ]
+    },
+    {
+      "id": "Skunk",
+      "label": "Moufette",
+      "parts": 50,
+      "motors": 10,
+      "size": [
+        1.173660851100252,
+        2.1660009570078658,
+        3.1
+      ],
+      "sha256": "d1bf8fe508b284d56d1ab50fcc9a2e8b9263cbf0413a739c617329a88d322bc3",
+      "animations": [
+        "Idle",
+        "Walk"
+      ]
+    },
+    {
+      "id": "Beaver",
+      "label": "Castor",
+      "parts": 65,
+      "motors": 10,
+      "size": [
+        2.0575772283168257,
+        2.0615948390906116,
+        3.1
+      ],
+      "sha256": "326b3819ad10282b860dfb937056008c95e94f0f6a83487c2e18bbfac2bce03d",
+      "animations": [
+        "Idle",
+        "Walk"
+      ]
+    },
+    {
+      "id": "Badger",
+      "label": "Blaireau",
+      "parts": 85,
+      "motors": 9,
+      "size": [
+        1.1237064777884607,
+        1.089356226413109,
+        3.1
+      ],
+      "sha256": "244c30c0b56e4b6100c35b6f544d605d7f7cef781f44d7141e628fc055c6d8d3",
+      "animations": [
+        "Idle",
+        "Walk"
+      ]
+    }
+  ]
+}
