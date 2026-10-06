@@ -57,9 +57,11 @@ end
 Config.WALK_RATIO = 0.7
 
 -- Chaque palier compte : une salle faite pour le palier N ne se passe pas au palier N - 1.
--- Vitesse : +15 % par palier (16 au départ, 37 au palier 6).
+-- Vitesse : +5 par palier (16 au départ, 21 au palier 1, 26 au palier 2... 46 au palier 6). Le premier palier fait
+-- donc +31 % d'un coup : un palier de plus se SENT (« à 2 500 je m'attends à détruire le boss »), et l'écart entre
+-- deux paliers est assez grand pour régler les salles de vitesse.
 function Config.walkSpeed(level: number): number
-	return 16 * 1.15 ^ level
+	return 16 + 5 * level
 end
 
 -- Saut : +15 % de hauteur par palier (7,2 studs au départ, 16,7 au palier 6).
@@ -104,12 +106,11 @@ function Config.chaseSpeed(level: number): number
 end
 
 -- VITESSE (le prédateur) : vitesse du prédateur dans une salle faite pour une vitesse de palier `level`. Il suit
--- la trace du joueur (même chemin que lui) : il va 8 % moins vite qu'un joueur de ce palier qui court, et 6 % plus
--- vite qu'un joueur du palier d'en dessous (qu'il rattrape en une trentaine de secondes).
+-- la trace du joueur (même chemin que lui) : il va 8 % moins vite qu'un joueur de ce palier qui court. Salle 2
+-- (palier 1) : le prédateur court à 19,3 ; un joueur à 0 point court à 16 (rattrapé en une dizaine de secondes), à
+-- 60 points 18,5 (rattrapé aussi), à 120 points 21 (il le distance), à 2 500 points 26 (il le sème largement).
 -- Pourquoi 8 % : un vrai joueur hésite, se cogne, lâche la touche un instant. À 3 %, un joueur au bon palier qui
--- perdait 0,3 seconde toutes les 6 secondes se faisait rattraper (mesuré). Un palier ne fait que 15 % de vitesse :
--- la marge laissée au bon joueur est prise sur l'écart avec le joueur trop lent (qui met donc plus longtemps à se
--- faire rattraper, et un joueur à mi-chemin du palier peut passer s'il court sans faute).
+-- perdait 0,3 seconde toutes les 6 secondes se faisait rattraper (mesuré).
 function Config.hunterSpeed(level: number): number
 	return Config.walkSpeed(level) * 0.92
 end

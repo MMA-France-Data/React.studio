@@ -19,7 +19,7 @@ Ce dossier est séparé du jeu de tours (`roblox-ranked-td`) : rien n'est partag
   d'un niveau avec des pièces (500, puis 6 fois plus à chaque niveau : 3 000, 18 000, 108 000, 648 000) : elle donne alors 10 fois plus de points par pas
   (1, 10, 100, 1 000, 10 000, 100 000). Les paliers de stat : 120, 2 500, 50 000, 1 000 000, 20 000 000, 400 000 000 points (1 minute d'entraînement pour le
   premier, puis 2, 4, 8, 16 et 32 minutes avec la machine du même niveau) ; chaque palier
-  donne +15 % de vitesse, +15 % de saut ou +50 % de force.
+  donne +5 de vitesse (16 au départ, 21, 26... 46 au palier 6), +15 % de saut ou +50 % de force.
 - **Marcher et courir** : le personnage marche à 70 % de sa vitesse. Il court à pleine vitesse tant qu'on tient
   la touche Maj, ou après un appui sur le bouton « COURIR » de l'écran (un 2e appui le remet à la marche).
 - **10 salles** : compte à rebours de 10 secondes quand on entre, puis 60 secondes d'événement. Le panneau de
