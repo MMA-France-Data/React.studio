@@ -246,6 +246,7 @@ return function(env)
 	-- LE FAMILIER QUI SUIT CHAQUE JOUEUR, ET L'ŒUF QU'IL PORTE -----------------------------------------------------------
 	local followers = {} -- [joueur] = { key, pet, cframe }
 	local carried = {} -- [joueur] = { key, egg }
+	local lifts = {} -- [joueur] = { key, pet } : le familier porté à bout de bras pour aller le vendre
 	local function dropFollower(other: Player)
 		if followers[other] then
 			followers[other].pet.model:Destroy()
@@ -261,6 +262,10 @@ return function(env)
 	Players.PlayerRemoving:Connect(function(other)
 		dropFollower(other)
 		dropCarried(other)
+		if lifts[other] then
+			lifts[other].pet.model:Destroy()
+			lifts[other] = nil
+		end
 	end)
 	local function stepPlayers(dt: number)
 		for _, other in Players:GetPlayers() do
@@ -283,6 +288,28 @@ return function(env)
 				end
 				item.egg.CFrame = CFrame.new((head.CFrame * CFrame.new(0, item.lift, 0)).Position)
 				settleEgg(item.egg)
+			end
+
+			-- Le familier porté à bout de bras, pour aller le vendre (« animal:rang:grosseur »).
+			local heldPet = other:GetAttribute("HeldPet") or ""
+			local lifted = lifts[other]
+			if heldPet == "" or not head then
+				if lifted then
+					lifted.pet.model:Destroy()
+					lifts[other] = nil
+				end
+			else
+				if not lifted or lifted.key ~= heldPet then
+					if lifted then
+						lifted.pet.model:Destroy()
+					end
+					local petName, rank, size = string.match(heldPet, "^(%a+):(%d+):(%d+)$")
+					lifted = { key = heldPet, pet = create(petName, tonumber(rank), true, 0.4 + 1.6 * tonumber(size) / 100) }
+					lifted.pet.model.Name = "Held_" .. petName
+					lifts[other] = lifted
+				end
+				local above = (head.CFrame * CFrame.new(0, 1.4 + lifted.pet.half, 0)).Position
+				animate(lifted.pet, CFrame.new(above) * (if root then root.CFrame.Rotation else CFrame.identity), false, dt)
 			end
 
 			local name, rarity = other:GetAttribute("Pet") or "", other:GetAttribute("PetRarity") or 0
@@ -345,6 +372,10 @@ return function(env)
 			local places = owner and owner:GetAttribute("Places") or Pets.SPOTS_FREE
 			for index, spot in spots do
 				local id = plot.Name .. ":" .. index
+				-- Le familier que son joueur porte dans ses bras n'est plus dans l'enclos.
+				if owner and (owner:GetAttribute("Held") or "") == tostring(index) then
+					continue
+				end
 				seen[id] = true
 				local key = if spot.v then "v" .. spot.a .. spot.q .. spot.v else "t" .. spot.a .. spot.q
 				local item = shown[id]
@@ -899,14 +930,9 @@ return function(env)
 		follow.Activated:Connect(function()
 			equipEvent:FireServer(item.spot)
 		end)
-		-- Vendre demande deux appuis, pour ne pas le faire par erreur.
+		-- « Vendre » : le joueur prend le familier dans ses bras pour le porter au stand (un 2e appui le repose).
 		sell.Activated:Connect(function()
-			if selling == item.spot then
-				selling = 0
-				sellEvent:FireServer(item.spot)
-			else
-				selling = item.spot
-			end
+			sellEvent:FireServer(item.spot)
 		end)
 		petRows[i] = item
 		return item
@@ -964,8 +990,8 @@ return function(env)
 			local followed = following == tostring(entry.index)
 			row.follow.Text = if followed then tr("following") else tr("follow")
 			row.follow.BackgroundColor3 = if followed then Color3.fromRGB(70, 210, 90) else Color3.fromRGB(60, 150, 255)
-			local confirm = selling == entry.index
-			row.sell.Text = if confirm then tr("sellConfirm", env.num(Pets.sellPrice(entry.spot.a, entry.spot.v))) else tr("sellButton")
+			local confirm = (player:GetAttribute("Held") or "") == tostring(entry.index)
+			row.sell.Text = if confirm then tr("putBack") else tr("sellButton")
 			row.sell.BackgroundColor3 = if confirm then Color3.fromRGB(255, 150, 40) else Color3.fromRGB(235, 50, 50)
 		end
 		for i = #pets + 1, #petRows do

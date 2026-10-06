@@ -21,6 +21,7 @@ const scenarios = {
 	rocks: ['RocksServer.luau', 'RocksClient.luau'],
 	valves: ['ValvesServer.luau', 'ValvesClient.luau'],
 	eggs: ['EggsServer.luau', 'EggsClient.luau'],
+	poses: ['PosesServer.luau', 'PosesClient.luau'],
 };
 if (!scenarios[mode]) {
 	console.error(`Test inconnu : ${mode} (attendu : ${Object.keys(scenarios).join(', ')})`);

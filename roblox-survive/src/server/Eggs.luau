@@ -198,6 +198,45 @@ function Eggs.sell(player: Player, spot: number): boolean
 	return true
 end
 
+-- PORTER UN FAMILIER POUR LE VENDRE : le joueur prend le familier de cette place dans ses bras (attributs « Held »
+-- = la place, « HeldPet » = « animal:rang:grosseur » pour que les écrans le dessinent au-dessus de sa tête). Il va
+-- au stand « VENDRE » et y appuie sur E. Rappeler avec la même place : il le repose dans l'enclos.
+local held = {} -- [joueur] = clé de la place
+local function setHeld(player: Player, key: string?)
+	held[player] = key
+	local data = PlayerData.get(player)
+	local pet = key and data and data.spots[key]
+	player:SetAttribute("Held", if pet then key else "")
+	player:SetAttribute("HeldPet", if pet then pet.a .. ":" .. pet.q .. ":" .. math.floor(Pets.alongOf(pet) * 100 + 0.5) else "")
+end
+function Eggs.hold(player: Player, spot: number): boolean
+	local data = PlayerData.get(player)
+	local key = tostring(spot)
+	local pet = data and data.spots[key]
+	if not pet or not pet.v then
+		return false
+	end
+	if held[player] == key then
+		setHeld(player, nil)
+		return true
+	end
+	setHeld(player, key)
+	notify(player, "holdPet", pet.a, Pets.sellPrice(pet.a, pet.v))
+	return true
+end
+-- Au stand « VENDRE » : vend le familier porté. Renvoie false si le joueur ne porte rien.
+function Eggs.sellHeld(player: Player): boolean
+	local key = held[player]
+	if not key then
+		return false
+	end
+	setHeld(player, nil)
+	return Eggs.sell(player, tonumber(key) :: number)
+end
+Players.PlayerRemoving:Connect(function(player)
+	held[player] = nil
+end)
+
 -- Améliore l'enclos d'un niveau : une place de plus.
 function Eggs.buyPlace(player: Player): boolean
 	local data = PlayerData.get(player)
@@ -255,7 +294,10 @@ function Eggs.start(world, notifier, owns, plotFor)
 	-- La boutique des œufs, et le stand « VENDRE » (qui ouvre la fenêtre des familiers).
 	prompt(world.gym.shop, "Shop", 14).Triggered:Connect(Eggs.exchange)
 	prompt(world.gym.sell, "Sell", 14).Triggered:Connect(function(player)
-		notify(player, "openPets")
+		-- Avec un familier dans les bras : il est vendu. Sinon : la fenêtre des familiers, pour en choisir un.
+		if not Eggs.sellHeld(player) then
+			notify(player, "openPets")
+		end
 	end)
 
 	-- Chaque seconde : les œufs qui ont fini de couver éclosent, et l'enclos de chaque joueur lui rapporte ses

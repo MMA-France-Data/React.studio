@@ -244,6 +244,8 @@ ReplicatedStorage:WaitForChild("Notify").OnClientEvent:Connect(function(key: str
 		showToast(tr("win", a))
 	elseif key == "wireCut" then
 		showToast(tr("wireCut"))
+	elseif key == "holdPet" then
+		showToast(tr("holdPet", tr(a), num(b)), Color3.fromRGB(255, 221, 51))
 	elseif key == "rockLeak" then
 		showToast(tr("rockLeak", a), RED)
 	elseif key == "rockWeak" then
@@ -570,7 +572,8 @@ local function workoutGesture(machine: string)
 		workoutTrack = nil
 	end
 	-- Les gestes viennent des animations du personnage lui-même (courir, grimper = pousser avec les bras).
-	local folderName = if machine == "Speed" then "run" elseif machine == "Force" then "climb" else nil
+	-- (Le banc de force n'a plus d'animation empruntée : les bras qui poussent la barre sont faits par Poses.luau.)
+	local folderName = if machine == "Speed" then "run" else nil
 	local character = player.Character
 	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
 	local animator = humanoid and humanoid:FindFirstChildOfClass("Animator")
@@ -631,6 +634,9 @@ end
 
 -- LES ŒUFS ET LES ANIMAUX -----------------------------------------------------------------------------------------
 require(script.Parent.Animals)({ gui = gui, side = side, text = text, box = box, tr = tr, num = num, lang = lang, showToast = showToast })
+
+-- Les gestes des bras : porter un œuf ou un familier, frapper, soulever la barre du banc.
+require(script.Parent.Poses)()
 
 -- Dans Studio seulement : le panneau de réglages (jauges de vitesse, saut, force, pièces, prédateur).
 if RunService:IsStudio() then

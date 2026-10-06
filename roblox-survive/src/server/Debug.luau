@@ -126,6 +126,11 @@ return function(_world)
 			-- où se tient le joueur. Renvoie true, ou false et la raison.
 			local ok, reason = Eggs.place(player, a, b)
 			return ok, reason
+		elseif action == "Hold" then
+			-- Prend le familier de la place a dans ses bras (ou le repose).
+			return Eggs.hold(player, a)
+		elseif action == "SellHeld" then
+			return Eggs.sellHeld(player)
 		elseif action == "Upgrade" then
 			-- Comme le panneau « Améliorer l'enclos ».
 			return Eggs.buyPlace(player)

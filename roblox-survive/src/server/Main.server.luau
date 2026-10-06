@@ -25,6 +25,8 @@ local pushEvent = Instance.new("RemoteEvent")
 pushEvent.Name = "Push"
 pushEvent.Parent = ReplicatedStorage
 pushEvent.OnServerEvent:Connect(function(player)
+	-- L'heure de l'appui : l'écran de tous les joueurs y joue le coup de poing (Poses.luau).
+	player:SetAttribute("PunchAt", workspace:GetServerTimeNow())
 	Rooms.push(player)
 end)
 
@@ -48,9 +50,11 @@ end)
 local sellEvent = Instance.new("RemoteEvent")
 sellEvent.Name = "SellPet"
 sellEvent.Parent = ReplicatedStorage
+-- (Le bouton « Vendre » de la liste ne vend plus tout de suite : le joueur PREND le familier dans ses bras et le
+-- porte jusqu'au stand « VENDRE ». Un 2e appui le repose dans l'enclos.)
 sellEvent.OnServerEvent:Connect(function(player, spot)
 	if typeof(spot) == "number" then
-		Eggs.sell(player, spot)
+		Eggs.hold(player, spot)
 	end
 end)
 
