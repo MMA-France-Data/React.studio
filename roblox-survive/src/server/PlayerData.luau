@@ -81,7 +81,7 @@ local function clean(raw)
 	if type(raw.bag) == "table" then
 		for _, egg in raw.bag do
 			if validEgg(egg) and #data.bag < Pets.MAX_BAG then
-				table.insert(data.bag, { a = egg.a, q = egg.q, r = if type(egg.r) == "number" then egg.r else 1 })
+				table.insert(data.bag, { a = egg.a, q = egg.q, r = if type(egg.r) == "number" then egg.r else 1, b = if type(egg.b) == "number" then egg.b else nil })
 			end
 		end
 	end
@@ -93,9 +93,9 @@ local function clean(raw)
 			local spot = raw.spots[tostring(index)]
 			if validEgg(spot) then
 				if type(spot.v) == "number" then
-					data.spots[tostring(index)] = { a = spot.a, q = spot.q, v = math.floor(spot.v), l = if type(spot.l) == "number" then math.clamp(math.floor(spot.l), 0, 10000) else nil }
+					data.spots[tostring(index)] = { a = spot.a, q = spot.q, v = math.floor(spot.v), l = if type(spot.l) == "number" then math.clamp(math.floor(spot.l), 0, 10000) else nil, x = tonumber(spot.x), z = tonumber(spot.z) }
 				elseif type(spot.t) == "number" then
-					data.spots[tostring(index)] = { a = spot.a, q = spot.q, r = spot.r, t = spot.t, d = tonumber(spot.d) or 0, x = tonumber(spot.x) or 10, z = tonumber(spot.z) or 16 }
+					data.spots[tostring(index)] = { a = spot.a, q = spot.q, r = spot.r, b = if type(spot.b) == "number" then spot.b else nil, t = spot.t, d = tonumber(spot.d) or 0, x = tonumber(spot.x) or 10, z = tonumber(spot.z) or 16 }
 				end
 			end
 		end
@@ -127,7 +127,9 @@ local function publish(player: Player)
 	player:SetAttribute("Tickets", tickets)
 	player:SetAttribute("Bag", #data.bag)
 	-- Le prochain œuf à poser (« Dragon:2 ») : le joueur le porte sur la tête.
-	player:SetAttribute("BagNext", if data.bag[1] then data.bag[1].a .. ":" .. data.bag[1].q else "")
+	-- (« Fox:6:73 » : l'animal, son rang, et la grosseur de l'œuf de 0 à 100.)
+	local first = data.bag[1]
+	player:SetAttribute("BagNext", if first then first.a .. ":" .. first.q .. ":" .. math.floor((if first.b then Pets.along(first.q, first.b) else 0.5) * 100 + 0.5) else "")
 	player:SetAttribute("Places", data.places)
 	player:SetAttribute("Spots", Pets.encode(data.spots))
 	local follower = data.spots[data.equipped]

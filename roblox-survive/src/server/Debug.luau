@@ -170,7 +170,8 @@ return function(_world)
 			PlayerData.changed(player)
 		elseif action == "Egg" then
 			-- Ajoute un œuf de l'animal a, de rareté b, aux œufs à poser.
-			table.insert(PlayerData.get(player).bag, { a = a, q = b, r = 1 })
+			local range = Pets.VALUE[b]
+			table.insert(PlayerData.get(player).bag, { a = a, q = b, r = 1, b = (range[1] + range[2]) // 2 })
 			PlayerData.changed(player)
 		elseif action == "Pet" then
 			-- Pose directement un familier a de rareté b (valeur au milieu de son palier) sur la première place vide,

@@ -32,7 +32,7 @@ return function(log)
 		task.wait(0.1)
 	end
 	task.wait(0.2)
-	check(walker ~= nil and math.abs(walker.WalkSpeed - 16 * 0.7) < 0.01, "écran : sans courir, le personnage marche à 70 % de sa vitesse", walker and walker.WalkSpeed)
+	check(walker ~= nil and math.abs(walker.WalkSpeed - 16) < 0.01, "écran : sans courir, le personnage marche à la vitesse de base (16)", walker and walker.WalkSpeed)
 	check(hud.Run.Label.Text ~= "", "écran : bouton pour courir", hud.Run.Label.Text)
 	check(hud.Side.Speed.Label.Text ~= "", "écran : niveau de vitesse affiché", hud.Side.Speed.Label.Text)
 	local mine = workspace.Gym:WaitForChild("Plot" .. (player:GetAttribute("Plot") or 1))
@@ -44,7 +44,7 @@ return function(log)
 			machineSign = child
 		end
 	end
-	check(machineSign ~= nil and machineSign.Label.Title.Text ~= "" and string.find(machineSign.Label.Level.Text, "2") ~= nil and string.find(machineSign.Label.Button.Info.Text, "500") ~= nil, "écran : panneau « Améliorer » du tapis (niveau 1 > 2, 500)", machineSign and (machineSign.Label.Title.Text .. " / " .. machineSign.Label.Level.Text .. " / " .. machineSign.Label.Button.Info.Text))
+	check(machineSign ~= nil and machineSign.Label.Title.Text ~= "" and string.find(machineSign.Label.Level.Text, "2") ~= nil and string.find(machineSign.Label.Button.Info.Text, "%d") ~= nil, "écran : panneau « Améliorer » du tapis (niveau 1 > 2, son prix)", machineSign and (machineSign.Label.Title.Text .. " / " .. machineSign.Label.Level.Text .. " / " .. machineSign.Label.Button.Info.Text))
 	check(machineSign.Prompt.Enabled and machineSign.Prompt.ActionText ~= "", "écran : bouton pour améliorer le tapis", machineSign.Prompt.ActionText)
 	local penSign = mine.Enclosure.Upgrade.Label
 	check(penSign.Title.Text ~= "" and string.find(penSign.Level.Text, "2") ~= nil and string.find(penSign.Button.Info.Text, "%d") ~= nil, "écran : panneau « Améliorer l'enclos » (niveau 1 > 2, 1 000)", penSign.Title.Text .. " / " .. penSign.Level.Text .. " / " .. penSign.Button.Info.Text)

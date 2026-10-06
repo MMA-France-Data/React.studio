@@ -83,7 +83,9 @@ function Eggs.exchange(player: Player): number
 		while (data.tickets[key] or 0) > 0 and #data.bag < Pets.MAX_BAG do
 			data.tickets[key] -= 1
 			local rank = Pets.roll(random, room, luck)
-			table.insert(data.bag, { a = Pets.animalOf(room, rank, Config.ROOMS[room].egg), q = rank, r = room })
+			-- La valeur cachée du futur familier est tirée ICI (`b`, celle de la salle 1) : l'œuf est d'autant plus
+			-- gros qu'elle est haute dans le palier de son rang.
+			table.insert(data.bag, { a = Pets.animalOf(room, rank, Config.ROOMS[room].egg), q = rank, r = room, b = Pets.rollValue(random, rank) })
 			received += 1
 		end
 		if data.tickets[key] == 0 then
@@ -141,6 +143,7 @@ function Eggs.place(player: Player, x: number?, z: number?): (boolean, string?)
 		a = egg.a,
 		q = egg.q,
 		r = egg.r,
+		b = egg.b,
 		t = os.time() + seconds,
 		d = seconds,
 		x = math.clamp(x, pen.minX, pen.maxX),
@@ -161,7 +164,7 @@ function Eggs.hatch(player: Player, all: boolean?): number
 	local now, hatched = os.time(), 0
 	for key, spot in data.spots do
 		if spot.t and (all or now >= spot.t) then
-			local base = Pets.rollValue(random, spot.q)
+			local base = spot.b or Pets.rollValue(random, spot.q)
 			local value = base * Pets.roomFactor(spot.r or 1)
 			data.spots[key] = { a = spot.a, q = spot.q, v = value, l = Pets.luckPercent(base, spot.r or 1), x = spot.x, z = spot.z }
 			hatched += 1

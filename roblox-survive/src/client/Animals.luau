@@ -176,10 +176,10 @@ return function(env)
 	end
 
 	-- Un œuf (plus haut que large), de la couleur de son animal.
-	-- Plus l'oeuf est rare, plus il est gros (le joueur : "plus tu approches du palier haut, plus l'oeuf est gros") :
-	-- +13 % par rang, donc un super rare est 1,65 fois plus gros qu'un commun.
-	local function eggSize(base: number, rank: number?): number
-		return base * (1 + 0.13 * (math.clamp(rank or 1, 1, #Pets.RARITIES) - 1))
+	-- La grosseur de l'oeuf dit ce que vaudra le familier DANS SON RANG : along = 0 (tout en bas du palier de son
+	-- animal) a 1 (tout en haut). Un gros oeuf de renard donne un renard qui rapporte le maximum.
+	local function eggSize(base: number, along: number?): number
+		return base * (1 + 0.5 * math.clamp(along or 0.5, 0, 1)) -- de 100 % a 150 %, comme le familier qui en sort
 	end
 	local function makeEgg(animal: string, size: number): Part
 		local part = Instance.new("Part")
@@ -274,7 +274,7 @@ return function(env)
 				local item = carried[other]
 				if not item or item.key ~= nextEgg then
 					dropCarried(other)
-					local size = eggSize(2.2, tonumber(string.match(nextEgg, ":(%d+)")))
+					local size = eggSize(2.2, (tonumber(string.match(nextEgg, ":%d+:(%d+)")) or 50) / 100)
 					item = { key = nextEgg, egg = makeEgg(string.match(nextEgg, "^%a+") or "", size), lift = 1 + size * 0.65 }
 					item.egg.Name = "CarriedEgg"
 					carried[other] = item
@@ -351,12 +351,9 @@ return function(env)
 					local place = origin + Vector3.new(spot.x, 0, spot.z)
 					if spot.v then
 						-- Un familier : il part de là où son œuf était posé et se promène.
-						-- Dans son rang, un familier qui vaut plus est plus gros (jusqu'a +25 % en haut du palier) : la taille
-						-- donne une idee de sa valeur cachee. (Le rang, lui, grossit deja l'animal : Pets.RARITIES.)
-						local range = Pets.VALUE[math.clamp(spot.q, 1, #Pets.VALUE)]
-						local base = spot.v / Pets.roomFactor(Pets.DEFS[spot.a] and Pets.DEFS[spot.a].room or 1)
-						local along = math.clamp((base - range[1]) / (range[2] - range[1]), 0, 1)
-						item.pet = create(spot.a, spot.q, true, PEN_SCALE * (1 + 0.25 * along))
+						-- Dans son rang, un familier qui vaut plus est plus gros (jusqu'a 150 % en haut du palier, son chiffre), comme
+						-- son oeuf l'annoncait. (Le rang, lui, grossit deja l'animal : Pets.RARITIES.)
+						item.pet = create(spot.a, spot.q, true, PEN_SCALE * (1 + 0.5 * (spot.s or 0.5)))
 						item.pet.model.Name = "Pen_" .. spot.a .. spot.q
 						item.position, item.target, item.rest = place, randomSpot(origin), math.random() * 2
 						item.origin = origin
@@ -369,7 +366,7 @@ return function(env)
 						top.TextColor3 = rarityInfo(spot.q).color
 						bottom.Text = tr("perSecond", amount(item.income))
 					else
-						local size = eggSize(3, spot.q)
+						local size = eggSize(3, spot.s)
 						item.egg = makeEgg(spot.a, size)
 						item.egg.Position = place + Vector3.new(0, 0.15 + size * 0.65, 0)
 						item.top, item.bottom = tag(item.egg, size * 0.65 + 1.3)
