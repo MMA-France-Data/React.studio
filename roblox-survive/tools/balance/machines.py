@@ -1,58 +1,63 @@
-"""Calcule le prix des niveaux de machine de SURVIVE! pour que la machine au maximum demande environ 200 heures.
+"""Calcule le prix des niveaux de machine de SURVIVE!.
 
-    python tools/balance/machines.py          -> affiche le tableau et la ligne a coller dans Config.luau
+    python tools/balance/machines.py          -> affiche le tableau et les deux lignes a coller dans Config.luau
 
-Le principe : on se donne le parcours d'un joueur regulier (a quelle heure de jeu il atteint chaque salle), on en
-deduit ce que rapportent ses familiers a chaque heure, et le prix d'un niveau de machine = une part de ce qu'il gagne
-pendant le temps qu'on veut lui faire attendre ce niveau. Ce n'est qu'un premier reglage : tout se change ici.
+LA REGLE (demandes du joueur, 06/10/2026) :
+  - les 10 premieres salles se font en 2 a 3 heures de jeu ;
+  - ensuite, chaque nouvelle salle demande UNE JOURNEE DE JEU (5 heures) : il sort une salle par jour, le joueur ne
+    doit pas le rattraper ;
+  - aucun joueur ne doit avoir "fini" le jeu : la machine au maximum est a plus de 200 heures.
+  -> UN NIVEAU DE MACHINE PAR SALLE. Le niveau N se paie avec les familiers de la salle N - 1. Niveaux 1 a 10 :
+     les 10 premieres salles (2 h 30). Niveaux 11 a 50 : une journee de jeu chacun (le niveau 50 vers 200 heures),
+     en supposant qu'une nouvelle salle sort a chaque fois. Sans nouvelle salle, le revenu ne monte plus et chaque
+     niveau demande deux fois plus de temps que le precedent : il reste toujours quelque chose a viser.
+
+Le prix d'un niveau = ce que le joueur gagne pendant le temps qu'on veut lui faire attendre ce niveau, fois la part
+de ses pieces qui va dans une machine. Ce n'est qu'un calcul : rien n'a ete joue. Tout se regle ici.
 """
 import math
 
-LEVELS = 15  # niveaux de machine (peu de niveaux, chacun est un grand saut, comme dans les jeux du genre)
-GAIN = 4.47  # points par pas : x 4,47 a chaque niveau (deux niveaux = un palier de stat, qui vaut 20 fois le precedent)
-TIER2_GAIN = 7  # points par pas au niveau 4, celui du palier 2 (2 500 points en 3 minutes)
+LEVELS = 50  # niveaux de machine (un par salle ; les salles 11 a 50 n'existent pas encore)
+FIRST_ROOMS = 10  # les salles du debut, rapides
+# Heure de jeu a laquelle un joueur regulier atteint chacune des 10 premieres salles (la salle 10 a 2 h 30).
+FIRST_HOURS = [0, 0.06, 0.15, 0.3, 0.5, 0.75, 1.05, 1.4, 1.9, 2.5]
+DAY = 5  # heures de jeu d'une "journee" : le temps que doit demander chaque salle apres la 10e
 
-# Heure de jeu a laquelle un joueur regulier atteint chaque salle (salle 1 a 10).
-ROOM_HOURS = [0, 0.3, 0.6, 1.5, 3, 5, 9, 14, 22, 40]
-# Heure de jeu a laquelle il doit pouvoir s'offrir ce niveau de machine (entre deux : en ligne droite).
-# Niveaux 4, 6, 8, 10, 13 : ceux qu'il faut pour les paliers de stat 2, 3, 4, 5, 6 (voir Config.POINTS) : avec
-# eux, le palier demande environ 3 minutes d'entrainement ; avec la machine du palier d'avant, une heure.
-LEVEL_HOURS = {1: 0, 2: 0.12, 3: 1.2, 4: 2.5, 5: 4.5, 6: 8, 7: 13, 8: 20, 9: 28, 10: 36, 11: 60, 12: 90, 13: 120, 14: 160, 15: 200}
-
-ROOM_FACTOR = 10  # Pets.ROOM_FACTOR : les familiers valent 10 fois plus a chaque salle
+ROOM_FACTOR = 10  # Pets.ROOM_FACTOR : les familiers valent 10 fois plus a chaque salle, jusqu'a la salle 10
+LATE_FACTOR = 2  # Pets.LATE_FACTOR : puis 2 fois plus a chaque salle
 MEAN_VALUE = 109  # valeur cachee moyenne d'un oeuf de la salle 1 (chances x paliers de Pets.luau)
 CURATED = 2.2  # un joueur vend ses mauvais familiers : son enclos vaut environ 2,2 fois la moyenne
 SHARE = 0.2  # part de ses pieces qui va dans UNE machine (trois machines, et l'enclos a agrandir)
 
+# Points par pas : niveaux 4, 6, 8, 10 = ceux des paliers de stat 2, 3, 4, 5 (Config.POINTS : x 20 par palier,
+# donc x 4,47 par niveau), environ 3 minutes d'entrainement par palier avec eux. Apres le niveau 10 : x 1,5.
+TIER2_GAIN = 7
+EARLY_GAIN = 4.47
+LATE_GAIN = 1.5
 
-def room_at(hours):
-    room = 1
-    for index, start in enumerate(ROOM_HOURS):
-        if hours >= start:
-            room = index + 1
-    return room
+
+def room_hour(room):
+    """Heure de jeu a laquelle on atteint cette salle."""
+    if room <= FIRST_ROOMS:
+        return FIRST_HOURS[room - 1]
+    return FIRST_HOURS[-1] + (room - FIRST_ROOMS) * DAY
+
+
+def room_factor(room):
+    return ROOM_FACTOR ** (min(room, FIRST_ROOMS) - 1) * LATE_FACTOR ** max(0, room - FIRST_ROOMS)
 
 
 def places_at(hours):
-    # L'enclos : 5 places au debut, 14 vers 40 heures, 20 vers 200 heures.
-    if hours <= 40:
-        return 5 + 9 * hours / 40
-    return min(20, 14 + 6 * (hours - 40) / 160)
+    # L'enclos : 5 places au debut, 10 vers 2 h 30, 20 vers 200 heures.
+    if hours <= 2.5:
+        return 5 + 5 * hours / 2.5
+    return min(20, 10 + 10 * (hours - 2.5) / 197.5)
 
 
-def income_at(hours):
-    """Pieces par seconde d'un joueur regulier a cette heure de jeu (ses familiers viennent de la salle d'avant)."""
-    room = max(1, room_at(hours) - 1) if hours > 0.2 else 1
-    start_pets = min(places_at(hours), 1 + hours * 20)  # les toutes premieres minutes : un seul familier, puis l'enclos se remplit
-    return start_pets * MEAN_VALUE / 100 * CURATED * ROOM_FACTOR ** (room - 1)
-
-
-def hour_of(level):
-    keys = sorted(LEVEL_HOURS)
-    for a, b in zip(keys, keys[1:]):
-        if a <= level <= b:
-            return LEVEL_HOURS[a] + (LEVEL_HOURS[b] - LEVEL_HOURS[a]) * (level - a) / (b - a)
-    return LEVEL_HOURS[keys[-1]]
+def income_with(room, hours):
+    """Pieces par seconde d'un joueur regulier dont les familiers viennent de cette salle."""
+    pets = min(places_at(hours), 1 + hours * 60)  # les toutes premieres minutes : un seul familier
+    return pets * MEAN_VALUE / 100 * CURATED * room_factor(room)
 
 
 def nice(value):
@@ -65,12 +70,13 @@ def nice(value):
 
 
 def prices():
+    """Prix pour passer au niveau 2, 3... Le niveau N se paie pendant qu'on fait la salle N - 1."""
     result = []
     previous = 0
     for level in range(2, LEVELS + 1):
-        wait = (hour_of(level) - hour_of(level - 1)) * 3600
-        price = income_at(hour_of(level)) * wait * SHARE
-        price = max(price, previous * 1.12, 500)  # jamais moins cher que le niveau d'avant
+        start, end = room_hour(level - 1), room_hour(level)
+        price = income_with(level - 1, (start + end) / 2) * (end - start) * 3600 * SHARE
+        price = max(price, previous * 1.5, 500)  # jamais moins d'une fois et demie le niveau d'avant
         price = 500 if level == 2 else nice(price)  # le premier niveau : 500 pieces (le chiffre du joueur)
         result.append(price)
         previous = price
@@ -78,19 +84,36 @@ def prices():
 
 
 def gain(level):
-    # 1, 2, 3 pour les trois premiers niveaux, puis x 4,47 par niveau a partir du niveau 4.
-    return nice(max(level, TIER2_GAIN * GAIN ** (level - 4)))
+    if level <= FIRST_ROOMS:
+        return nice(max(level, TIER2_GAIN * EARLY_GAIN ** (level - 4)))
+    return nice(gain(FIRST_ROOMS) * LATE_GAIN ** (level - FIRST_ROOMS))
+
+
+SUFFIXES = [(1e27, 'Oc'), (1e24, 'Sp'), (1e21, 'Sx'), (1e18, 'Qi'), (1e15, 'Qa'), (1e12, 'T'), (1e9, 'B'), (1e6, 'M'), (1e3, 'K')]
+
+
+def short(value):
+    for size, name in SUFFIXES:
+        if value >= size:
+            return '%.3g%s' % (value / size, name)
+    return '%d' % value
 
 
 if __name__ == '__main__':
     table = prices()
-    total = 0
-    print('niveau | prix          | cumul         | heure visee | revenu/s a cette heure | points par pas')
+    print('niveau | prix     | heure visee | revenu/s     | points par pas | sans nouvelle salle apres la 10')
+    stuck = 0
     for level in range(2, LEVELS + 1):
         price = table[level - 2]
-        total += price
-        if True:
-            print('%6d | %13s | %13s | %9.1f h | %14s | %s' % (level, format(price, ','), format(total, ','), hour_of(level), format(int(income_at(hour_of(level))), ','), format(gain(level), ',')))
+        hour = room_hour(level)
+        income = income_with(level - 1, (room_hour(level - 1) + hour) / 2)
+        # Sans nouvelle salle : le revenu reste celui de la salle 10.
+        late = ''
+        if level > FIRST_ROOMS:
+            stuck += price / (income_with(FIRST_ROOMS, 2.5 + stuck) * SHARE) / 3600
+            late = '%.0f h de plus' % stuck
+        if level <= 16 or level % 10 == 0:
+            print('%6d | %8s | %9.2f h | %12s | %12s | %s' % (level, short(price), hour, short(income), short(gain(level)), late))
     print()
     print('Config.PRICES = { ' + ', '.join(str(p) for p in table) + ' }')
     print('Config.GAINS = { ' + ', '.join(str(gain(level)) for level in range(1, LEVELS + 1)) + ' }')

@@ -53,11 +53,15 @@ end
 -- LA VALEUR CACHÉE : le palier de chaque rang (commun, peu commun, rare, épique, légendaire, super rare).
 Pets.VALUE = { { 1, 50 }, { 50, 100 }, { 100, 200 }, { 200, 400 }, { 400, 800 }, { 1600, 3200 } }
 -- Ces paliers sont ceux de la salle 1 : chaque salle suivante les multiplie par ROOM_FACTOR (salle 2 : commun 10 à
--- 500 ; salle 3 : 100 à 5 000... salle 10 : x 1 milliard). Les prix des machines sont calculés là-dessus
--- (tools/balance/machines.py) : si on change ce chiffre, il faut les recalculer.
+-- 500 ; salle 3 : 100 à 5 000... salle 10 : x 1 milliard), puis par LATE_FACTOR après la salle LATE_ROOM (les
+-- salles à venir). Les prix des machines sont calculés là-dessus (tools/balance/machines.py) : si on change ces
+-- chiffres, il faut les recalculer.
 Pets.ROOM_FACTOR = 10
+Pets.LATE_ROOM = 10
+Pets.LATE_FACTOR = 2
 function Pets.roomFactor(room: number): number
-	return Pets.ROOM_FACTOR ^ (math.max(1, room) - 1)
+	room = math.max(1, room)
+	return Pets.ROOM_FACTOR ^ (math.min(room, Pets.LATE_ROOM) - 1) * Pets.LATE_FACTOR ^ math.max(0, room - Pets.LATE_ROOM)
 end
 -- LE FAMILIER QUI SUIT LE JOUEUR lui donne un bonus de chance d'œuf rare, en % : sa valeur cachée (celle de la
 -- salle 1, avant ROOM_FACTOR) / LUCK_DIVIDER, multipliée par LUCK_ROOM à chaque salle. Salle 1 : commun 0 à 3 %,

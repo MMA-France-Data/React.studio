@@ -18,19 +18,23 @@ local lang = if LocalizationService.RobloxLocaleId:lower():sub(1, 2) == "fr" the
 local function tr(key: string, ...): string
 	return Texts.get(lang, key, ...)
 end
-local function num(value: number): string
+local function plain(value: number): string
 	return Texts.number(lang, value)
 end
--- Un gros nombre en court : 950 -> « 950 », 12 500 -> « 12,5K », 2 400 000 000 -> « 2,4B ».
+-- Un gros nombre en court : 950 -> « 950 », 12 500 -> « 12,5K », 2 400 000 000 -> « 2,4B », puis T, Qa, Qi, Sx...
 local function compact(value: number): string
-	for _, unit in { { 1e18, "Qi" }, { 1e15, "Qa" }, { 1e12, "T" }, { 1e9, "B" }, { 1e6, "M" }, { 1e3, "K" } } do
+	for _, unit in { { 1e27, "Oc" }, { 1e24, "Sp" }, { 1e21, "Sx" }, { 1e18, "Qi" }, { 1e15, "Qa" }, { 1e12, "T" }, { 1e9, "B" }, { 1e6, "M" }, { 1e3, "K" } } do
 		if value >= unit[1] then
 			local short = math.floor(value / unit[1] * 10) / 10
 			local digits = if short == math.floor(short) then string.format("%d", short) else string.format("%.1f", short)
 			return (if lang == "fr" then (digits:gsub("%.", ",")) else digits) .. unit[2]
 		end
 	end
-	return num(value)
+	return plain(value)
+end
+-- Un nombre écrit en entier (1 234 567) ; à partir de 10 millions, en court (les pièces montent très haut).
+local function num(value: number): string
+	return if value >= 1e7 then compact(value) else plain(value)
 end
 
 -- LES TEXTES DU DÉCOR -------------------------------------------------------------------------------------------

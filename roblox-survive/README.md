@@ -16,8 +16,9 @@ Ce dossier est séparé du jeu de tours (`roblox-ranked-td`) : rien n'est partag
   On monte sur sa machine (touche E) : le personnage s'entraîne tant qu'on veut (il court sur le tapis, pousse la
   barre couché sur le banc, rebondit sur le trampoline) et gagne des points à chaque pas, deux pas par seconde ;
   on redescend avec E ou le bouton « ARRÊTER ». Le panneau « Améliorer » à côté de chaque machine la fait monter
-  d'un niveau avec des pièces : 15 niveaux, de 500 pièces à 150 000 milliards (la machine au maximum est un
-  objectif d'environ 200 heures de jeu ; les prix et les points par pas sont calculés par `tools/balance/machines.py`). Les paliers de stat : 120, 2 500, 50 000, 1 000 000, 20 000 000, 400 000 000 points (1 minute d'entraînement pour le
+  d'un niveau avec des pièces : 50 niveaux, un par salle (les 10 premiers pour les 10 salles, en 2 à 3 heures de jeu ;
+  les suivants pour les salles à venir, une journée de jeu de 5 heures chacun ; le niveau 50 est vers 200 heures).
+  Les prix et les points par pas sont calculés par `tools/balance/machines.py`. Les paliers de stat : 120, 2 500, 50 000, 1 000 000, 20 000 000, 400 000 000 points (1 minute d'entraînement pour le
   premier, puis 2, 4, 8, 16 et 32 minutes avec la machine du même niveau) ; chaque palier
   donne +5 de vitesse (16 au départ, 21, 26... 46 au palier 6), +15 % de saut ou +50 % de force.
 - **Marcher et courir** : le personnage marche à 70 % de sa vitesse. Il court à pleine vitesse tant qu'on tient
@@ -71,7 +72,7 @@ Ce dossier est séparé du jeu de tours (`roblox-ranked-td`) : rien n'est partag
      le temps continue hors du jeu ;
   4. à l'éclosion, le familier reçoit une **valeur cachée** tirée dans le palier de son rang : 1 à 50, 50 à 100,
      100 à 200, 200 à 400, 400 à 800, et 1 600 à 3 200 pour le super rare ; ces paliers sont ceux de la salle 1,
-     et chaque salle suivante les multiplie par 10. Il **se promène dans l'enclos** et rapporte chaque seconde sa
+     et chaque salle suivante les multiplie par 10 (par 2 après la salle 10). Il **se promène dans l'enclos** et rapporte chaque seconde sa
      valeur / 100, tant que le joueur est dans le jeu ; le gain s'envole au-dessus de lui.
   - **Les collections** (`Pets.COLLECTIONS`, modèles dans `assets/collections`) : dans les salles 1 à 5, le rang
     de l'œuf donne l'animal, six par salle, du plus courant au super rare :

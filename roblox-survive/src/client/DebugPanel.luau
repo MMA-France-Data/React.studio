@@ -10,7 +10,14 @@ local Config = require(ReplicatedStorage.Shared.Config)
 
 local WHITE = Color3.new(1, 1, 1)
 
+local UNITS = { { 1e27, "Oc" }, { 1e24, "Sp" }, { 1e21, "Sx" }, { 1e18, "Qi" }, { 1e15, "Qa" }, { 1e12, "T" } }
 local function grouped(value: number): string
+	-- Les très grands nombres : 1,5 Qa, 87 T...
+	for _, unit in UNITS do
+		if value >= unit[1] then
+			return string.format("%.3g %s", value / unit[1], unit[2])
+		end
+	end
 	local text = string.format("%d", math.floor(value + 0.5))
 	local out = text:reverse():gsub("(%d%d%d)", "%1 "):reverse()
 	return (out:gsub("^ ", ""))

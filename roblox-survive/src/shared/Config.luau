@@ -8,18 +8,21 @@ local Config = {}
 -- (toutes les STEP_SECONDS), il gagne des points. Améliorer la machine, avec des pièces, augmente seulement le
 -- nombre de points gagnés à chaque pas (Config.GAINS).
 --
--- LA MACHINE AU MAXIMUM EST UN OBJECTIF DE 200 HEURES DE JEU (demande du joueur : « au moins 200 heures pour la
--- machine max », sur le modèle d'un jeu où un niveau coûte 1 Qa avec 4 milliards de revenu par seconde).
--- 15 niveaux, chacun est un grand saut. Les prix suivent ce que rapportent les familiers au fil des salles (ils
--- valent 10 fois plus à chaque salle, Pets.ROOM_FACTOR). Les deux tableaux sont CALCULÉS par
--- tools/balance/machines.py : on y règle les heures visées, puis on recopie ses deux lignes ici.
--- Niveaux 4, 6, 8, 10, 13 : ceux qu'il faut pour les paliers de stat 2, 3, 4, 5, 6 (environ 3 minutes
--- d'entraînement avec eux, une heure avec la machine du palier d'avant).
+-- UN NIVEAU DE MACHINE PAR SALLE (demandes du joueur : les 10 premières salles en 2 à 3 heures de jeu, puis une
+-- journée de jeu (5 heures) par nouvelle salle car il en sort une par jour ; « aucun joueur ne doit avoir fini le
+-- jeu » ; « au moins 200 heures pour la machine max »).
+--   Niveaux 1 à 10  : les 10 premières salles. Le niveau N se paie avec les familiers de la salle N - 1 (ils valent
+--                     10 fois plus à chaque salle, Pets.ROOM_FACTOR). Niveaux 4, 6, 8, 10 : ceux qu'il faut pour
+--                     les paliers de stat 2, 3, 4, 5 (environ 3 minutes d'entraînement avec eux).
+--   Niveaux 11 à 50 : un par salle à venir, une journée de jeu chacun (le niveau 50 vers 200 heures). Tant que la
+--                     salle suivante n'est pas sortie, le revenu ne monte plus : chaque niveau demande alors deux
+--                     fois plus de temps que le précédent (5 h, 10 h, 20 h, 40 h...), il reste toujours un but.
+-- Les deux tableaux sont CALCULÉS par tools/balance/machines.py : on y règle les heures, puis on recopie ici.
 Config.MACHINES = { "Speed", "Jump", "Force" }
 -- Prix pour passer la machine du niveau 1 au 2, du 2 au 3, etc.
-Config.PRICES = { 500, 98000, 1200000, 21000000, 410000000, 6800000000, 110000000000, 1600000000000, 1800000000000, 61000000000000, 82000000000000, 92000000000000, 130000000000000, 150000000000000 }
+Config.PRICES = { 500, 8100, 140000, 2000000, 27000000, 350000000, 4500000000, 72000000000, 970000000000, 87000000000000, 180000000000000, 370000000000000, 750000000000000, 1500000000000000, 3100000000000000, 6400000000000000, 13000000000000000, 27000000000000000, 55000000000000000, 110000000000000000, 230000000000000000, 470000000000000000, 950000000000000000, 1900000000000000000, 3900000000000000000, 8000000000000000000, 16000000000000000000, 33000000000000000000, 68000000000000000000, 140000000000000000000, 280000000000000000000, 570000000000000000000, 1200000000000000000000, 2300000000000000000000, 4800000000000000000000, 9700000000000000000000, 20000000000000000000000, 40000000000000000000000, 81000000000000000000000, 160000000000000000000000, 330000000000000000000000, 680000000000000000000000, 1400000000000000000000000, 2800000000000000000000000, 5600000000000000000000000, 11000000000000000000000000, 23000000000000000000000000, 47000000000000000000000000, 95000000000000000000000000 }
 -- Points gagnés à chaque pas, par niveau de machine.
-Config.GAINS = { 1, 2, 3, 7, 31, 140, 630, 2800, 12000, 56000, 250000, 1100000, 5000000, 22000000, 100000000 }
+Config.GAINS = { 1, 2, 3, 7, 31, 140, 630, 2800, 12000, 56000, 84000, 130000, 190000, 280000, 430000, 640000, 960000, 1400000, 2200000, 3200000, 4800000, 7300000, 11000000, 16000000, 25000000, 37000000, 55000000, 83000000, 120000000, 190000000, 280000000, 420000000, 630000000, 940000000, 1400000000, 2100000000, 3200000000, 4800000000, 7200000000, 11000000000, 16000000000, 24000000000, 36000000000, 54000000000, 82000000000, 120000000000, 180000000000, 280000000000, 410000000000, 620000000000 }
 Config.MACHINE_MAX = #Config.GAINS
 Config.STEP_SECONDS = 0.5
 
