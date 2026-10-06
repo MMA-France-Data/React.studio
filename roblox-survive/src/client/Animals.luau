@@ -179,7 +179,7 @@ return function(env)
 	-- La grosseur de l'oeuf dit ce que vaudra le familier DANS SON RANG : along = 0 (tout en bas du palier de son
 	-- animal) a 1 (tout en haut). Un gros oeuf de renard donne un renard qui rapporte le maximum.
 	local function eggSize(base: number, along: number?): number
-		return base * (1 + 0.5 * math.clamp(along or 0.5, 0, 1)) -- de 100 % a 150 %, comme le familier qui en sort
+		return base * (0.4 + 1.1 * math.clamp(along or 0.5, 0, 1)) -- de 40 % (le moins bon) a 150 % (le meilleur)
 	end
 	local function makeEgg(animal: string, size: number): Part
 		local part = Instance.new("Part")
@@ -353,7 +353,7 @@ return function(env)
 						-- Un familier : il part de là où son œuf était posé et se promène.
 						-- Dans son rang, un familier qui vaut plus est plus gros (jusqu'a 150 % en haut du palier, son chiffre), comme
 						-- son oeuf l'annoncait. (Le rang, lui, grossit deja l'animal : Pets.RARITIES.)
-						item.pet = create(spot.a, spot.q, true, PEN_SCALE * (1 + 0.5 * (spot.s or 0.5)))
+						item.pet = create(spot.a, spot.q, true, PEN_SCALE * (0.5 + 1.0 * (spot.s or 0.5))) -- de 50 % a 150 %
 						item.pet.model.Name = "Pen_" .. spot.a .. spot.q
 						item.position, item.target, item.rest = place, randomSpot(origin), math.random() * 2
 						item.origin = origin
