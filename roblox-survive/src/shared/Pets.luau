@@ -52,9 +52,10 @@ end
 
 -- LA VALEUR CACHÉE : le palier de chaque rang (commun, peu commun, rare, épique, légendaire, super rare).
 Pets.VALUE = { { 1, 50 }, { 50, 100 }, { 100, 200 }, { 200, 400 }, { 400, 800 }, { 1600, 3200 } }
--- Ces paliers sont ceux de la salle 1 : chaque salle suivante les multiplie par ROOM_FACTOR (salle 2 : commun 3 à
--- 300 ; salle 3 : 9 à 900...).
-Pets.ROOM_FACTOR = 3
+-- Ces paliers sont ceux de la salle 1 : chaque salle suivante les multiplie par ROOM_FACTOR (salle 2 : commun 10 à
+-- 500 ; salle 3 : 100 à 5 000... salle 10 : x 1 milliard). Les prix des machines sont calculés là-dessus
+-- (tools/balance/machines.py) : si on change ce chiffre, il faut les recalculer.
+Pets.ROOM_FACTOR = 10
 function Pets.roomFactor(room: number): number
 	return Pets.ROOM_FACTOR ^ (math.max(1, room) - 1)
 end

@@ -279,11 +279,15 @@ return function(log)
 	local tier1, tier2 = Config.POINTS[1], Config.POINTS[2]
 	check(tier1 == 120 and tier2 == 2500 and Config.POINTS[6] == 400000000, "paliers : 120 points pour le premier (1 minute), 400 000 000 pour le dernier", tier1)
 	check((tier2 - tier1) / Config.gain(1) * Config.STEP_SECONDS >= 600, "sans améliorer sa machine, le palier 2 demande plus de 10 minutes")
-	for level = 2, #Config.POINTS do
-		-- Avec la machine du même niveau, chaque palier demande plus de temps que celui d'avant.
-		local seconds = (Config.POINTS[level] - Config.POINTS[level - 1]) / Config.gain(level) * Config.STEP_SECONDS
-		local previous = (Config.POINTS[level - 1] - (Config.POINTS[level - 2] or 0)) / Config.gain(level - 1) * Config.STEP_SECONDS
-		check(seconds > previous * 1.7, "palier " .. level .. " : presque deux fois plus long que le précédent", math.floor(seconds) .. " s")
+	for tier, machine in { [2] = 4, [3] = 6, [4] = 8, [5] = 10, [6] = 13 } do
+		-- Avec la machine prévue pour ce palier : quelques minutes ; avec celle du palier d'avant : bien plus long.
+		local seconds = (Config.POINTS[tier] - Config.POINTS[tier - 1]) / Config.gain(machine) * Config.STEP_SECONDS
+		local slow = (Config.POINTS[tier] - Config.POINTS[tier - 1]) / Config.gain(machine - 2) * Config.STEP_SECONDS
+		check(seconds > 30 and seconds < 420 and slow > 1200, "palier " .. tier .. " : quelques minutes avec la machine niveau " .. machine .. ", plus de 20 minutes avec celle d'avant", math.floor(seconds) .. " s / " .. math.floor(slow) .. " s")
+	end
+	check(Config.MACHINE_MAX == 15 and #Config.PRICES == 14 and Config.PRICES[1] == 500, "15 niveaux de machine, le premier à 500 pièces")
+	for level = 2, #Config.PRICES do
+		check(Config.PRICES[level] > Config.PRICES[level - 1] and Config.gain(level + 1) > Config.gain(level), "machine niveau " .. (level + 1) .. " : plus chère et plus forte que la précédente", Config.PRICES[level])
 	end
 	D("Points", "Speed", tier1 - 1)
 	check(humanoid.WalkSpeed > 16 and humanoid.WalkSpeed < Config.walkSpeed(1), "119 points de vitesse : presque le palier 1", humanoid.WalkSpeed)
@@ -292,7 +296,7 @@ return function(log)
 	D("Level", "Jump", 2)
 	check(D("Data").Jump == tier2 and math.abs(humanoid.JumpHeight - 7.2 * 1.15 ^ 2) < 0.01, "2 500 points de saut = palier 2", humanoid.JumpHeight)
 	check(player:GetAttribute("JumpPoints") == tier2 and player:GetAttribute("SpeedPoints") == tier1, "les points sont envoyés à l'écran")
-	check(Pets.roomFactor(1) == 1 and Pets.roomFactor(2) == 3 and Pets.roomFactor(10) == 3 ^ 9, "les familiers d'une salle valent 3 fois ceux de la salle d'avant")
+	check(Pets.roomFactor(1) == 1 and Pets.roomFactor(2) == 10 and Pets.roomFactor(10) == 10 ^ 9, "les familiers d'une salle valent 10 fois ceux de la salle d'avant")
 	-- Améliorer une machine : avec des pièces, elle donne plus de points à chaque pas.
 	local ok, reason = D("Buy", "Speed")
 	check(not ok and reason == "poor", "améliorer le tapis coûte 500 pièces : refusé sans pièces", reason)
@@ -305,16 +309,19 @@ return function(log)
 	task.wait(1.3)
 	D("Stop")
 	local gained = D("Data").Speed - before
-	check(gained >= 20 and gained % 10 == 0, "tapis niveau 2 : 10 points par pas", gained)
-	D("Give", 777500)
-	for _ = 1, 5 do
+	check(gained >= 4 and gained % 2 == 0, "tapis niveau 2 : 2 points par pas", gained)
+	local everything = 0
+	for _, price in Config.PRICES do
+		everything += price
+	end
+	D("Give", everything)
+	for _ = 1, #Config.PRICES do
 		D("Buy", "Jump")
 	end
 	data = D("Data")
-	check(data.machines.Jump == 6 and data.coins == 0, "trampoline niveau 6 pour 777 500 pièces en tout (500, puis 6 fois plus à chaque niveau)", data.coins)
-	check(Config.gain(6) == 100000, "machine niveau 6 : 100 000 points par pas")
+	check(data.machines.Jump == Config.MACHINE_MAX and data.coins == 0, "trampoline au niveau maximum (15) pour la somme de tous les prix", data.coins)
 	ok, reason = D("Buy", "Jump")
-	check(not ok and reason == "max", "pas de niveau 7", reason)
+	check(not ok and reason == "max", "pas de niveau 16", reason)
 	D("Reset")
 	check(not D("Shortcut", 5), "raccourci fermé tant que la salle 5 n'est pas réussie")
 

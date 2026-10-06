@@ -6,11 +6,21 @@ local Config = {}
 -- Trois stats : la vitesse, le saut et la force. Ce sont des NOMBRES DE POINTS, qu'on fait monter en s'entraînant.
 -- Le joueur monte sur sa machine (tapis de course, trampoline, banc) et s'entraîne tant qu'il veut : à chaque pas
 -- (toutes les STEP_SECONDS), il gagne des points. Améliorer la machine, avec des pièces, augmente seulement le
--- nombre de points gagnés à chaque pas : 10 fois plus à chaque niveau (1, 10, 100, 1 000, 10 000, 100 000).
+-- nombre de points gagnés à chaque pas (Config.GAINS).
+--
+-- LA MACHINE AU MAXIMUM EST UN OBJECTIF DE 200 HEURES DE JEU (demande du joueur : « au moins 200 heures pour la
+-- machine max », sur le modèle d'un jeu où un niveau coûte 1 Qa avec 4 milliards de revenu par seconde).
+-- 15 niveaux, chacun est un grand saut. Les prix suivent ce que rapportent les familiers au fil des salles (ils
+-- valent 10 fois plus à chaque salle, Pets.ROOM_FACTOR). Les deux tableaux sont CALCULÉS par
+-- tools/balance/machines.py : on y règle les heures visées, puis on recopie ses deux lignes ici.
+-- Niveaux 4, 6, 8, 10, 13 : ceux qu'il faut pour les paliers de stat 2, 3, 4, 5, 6 (environ 3 minutes
+-- d'entraînement avec eux, une heure avec la machine du palier d'avant).
 Config.MACHINES = { "Speed", "Jump", "Force" }
-Config.MACHINE_MAX = 6
 -- Prix pour passer la machine du niveau 1 au 2, du 2 au 3, etc.
-Config.PRICES = { 500, 3000, 18000, 108000, 648000 } -- x 6 à chaque niveau
+Config.PRICES = { 500, 98000, 1200000, 21000000, 410000000, 6800000000, 110000000000, 1600000000000, 1800000000000, 61000000000000, 82000000000000, 92000000000000, 130000000000000, 150000000000000 }
+-- Points gagnés à chaque pas, par niveau de machine.
+Config.GAINS = { 1, 2, 3, 7, 31, 140, 630, 2800, 12000, 56000, 250000, 1100000, 5000000, 22000000, 100000000 }
+Config.MACHINE_MAX = #Config.GAINS
 Config.STEP_SECONDS = 0.5
 
 -- Prix pour améliorer une machine de niveau `level` (nil au maximum).
@@ -20,7 +30,7 @@ end
 
 -- Points gagnés à chaque pas sur une machine de ce niveau.
 function Config.gain(level: number): number
-	return 10 ^ (level - 1)
+	return Config.GAINS[math.clamp(math.floor(level), 1, Config.MACHINE_MAX)]
 end
 
 -- LES PALIERS : le nombre de points qui donne le palier 1, 2, 3... d'une stat. Les salles sont réglées sur ces

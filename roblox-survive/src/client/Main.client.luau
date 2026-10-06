@@ -23,7 +23,7 @@ local function num(value: number): string
 end
 -- Un gros nombre en court : 950 -> « 950 », 12 500 -> « 12,5K », 2 400 000 000 -> « 2,4B ».
 local function compact(value: number): string
-	for _, unit in { { 1e9, "B" }, { 1e6, "M" }, { 1e3, "K" } } do
+	for _, unit in { { 1e18, "Qi" }, { 1e15, "Qa" }, { 1e12, "T" }, { 1e9, "B" }, { 1e6, "M" }, { 1e3, "K" } } do
 		if value >= unit[1] then
 			local short = math.floor(value / unit[1] * 10) / 10
 			local digits = if short == math.floor(short) then string.format("%d", short) else string.format("%.1f", short)
@@ -271,7 +271,7 @@ local function refreshPrompt(prompt: ProximityPrompt)
 		local price = Config.price(player:GetAttribute(name .. "Machine") or 1)
 		prompt.Enabled = prompt:GetAttribute("Plot") == player:GetAttribute("Plot") and price ~= nil
 		prompt.ObjectText = tr(name)
-		prompt.ActionText = if price then tr("upgradeGo", num(price)) else tr("max")
+		prompt.ActionText = if price then tr("upgradeGo", if price >= 1e6 then compact(price) else num(price)) else tr("max")
 	elseif kind == "Shortcut" then
 		prompt.ActionText = tr("shortcutGo", prompt:GetAttribute("Cleared") + 1)
 	elseif kind == "Back" then
@@ -326,7 +326,7 @@ local function refresh()
 				label.Title.Text = if index == mine then tr("improve") else tr(name)
 				label.Level.Text = if index ~= mine then "" elseif price then tr("levelUp", level, level + 1) else tr("max")
 				label.Button.Visible = index == mine and price ~= nil
-				label.Button.Info.Text = if price then num(price) else ""
+				label.Button.Info.Text = if not price then "" elseif price >= 1e6 then compact(price) else num(price)
 			end
 		end
 	end

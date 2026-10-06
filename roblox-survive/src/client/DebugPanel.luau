@@ -174,9 +174,20 @@ return function()
 			end
 		end)
 	end
-	-- Les pièces : de 0 à 10 millions (la jauge avance de plus en plus vite).
+	-- Les trois machines : leur niveau, de 1 au maximum.
+	local function machineAt(x: number): number
+		return math.floor(1 + x * (Config.MACHINE_MAX - 1) + 0.5)
+	end
+	slider("Machines (les trois)", Color3.fromRGB(90, 220, 220), ((player:GetAttribute("SpeedMachine") or 1) - 1) / (Config.MACHINE_MAX - 1), function(x)
+		local level = machineAt(x)
+		local price = Config.price(level)
+		return string.format("niveau %d  (+%s points par pas%s)", level, grouped(Config.gain(level)), if price then ", le suivant coûte " .. grouped(price) else ", maximum")
+	end, function(x)
+		remote:FireServer("Machines", machineAt(x))
+	end)
+	-- Les pièces : de 0 à 1 Qa (la jauge avance de plus en plus vite).
 	local function coinsAt(x: number): number
-		return if x <= 0.02 then 0 else math.floor(10 ^ (x * 7) + 0.5)
+		return if x <= 0.02 then 0 else math.floor(10 ^ (x * 15) + 0.5)
 	end
 	slider("Pièces", Color3.fromRGB(255, 200, 40), 0, function(x)
 		return grouped(coinsAt(x))

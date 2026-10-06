@@ -220,6 +220,11 @@ return function(_world)
 			data.points[kind] = math.clamp(math.floor(value), 0, 1e12)
 			PlayerData.changed(player)
 			Gym.applyStats(player)
+		elseif kind == "Machines" then
+			-- Les trois machines à ce niveau.
+			for _, machine in { "Speed", "Jump", "Force" } do
+				PlayerData.setMachine(player, machine, math.floor(value))
+			end
 		elseif kind == "Coins" then
 			PlayerData.addCoins(player, math.clamp(math.floor(value), 0, 1e12) - data.coins)
 		elseif kind == "HunterRatio" then

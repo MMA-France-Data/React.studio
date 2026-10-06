@@ -3,7 +3,7 @@
 local RunService = game:GetService("RunService")
 
 return function(log)
-	-- Le panneau de reglages (Studio) : il existe, il a ses cinq jauges, et une jauge regle bien la stat.
+	-- Le panneau de reglages (Studio) : il existe, il a ses six jauges, et une jauge regle bien la stat.
 	task.spawn(function()
 		local player = game:GetService("Players").LocalPlayer
 		local gui = player:WaitForChild("PlayerGui"):WaitForChild("DebugPanel", 15)
@@ -14,7 +14,7 @@ return function(log)
 				bars += 1
 			end
 		end
-		log("Info", (if bars == 5 then "[PASS] " else "[FAIL] ") .. "ecran : le panneau de reglages a ses cinq jauges  (" .. bars .. ")")
+		log("Info", (if bars == 6 then "[PASS] " else "[FAIL] ") .. "ecran : le panneau de reglages a ses six jauges  (" .. bars .. ")")
 		if panel then
 			panel.Visible = true
 			game:GetService("ReplicatedStorage"):WaitForChild("DebugSet"):FireServer("Speed", 2500)
