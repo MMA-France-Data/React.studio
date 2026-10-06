@@ -285,7 +285,7 @@ return function(log)
 		local slow = (Config.POINTS[tier] - Config.POINTS[tier - 1]) / Config.gain(math.max(1, machine - 2)) * Config.STEP_SECONDS
 		check(seconds > 30 and seconds < 420 and slow > 1000, "palier " .. tier .. " : quelques minutes avec la machine niveau " .. machine .. ", plus de 20 minutes avec celle d'avant", math.floor(seconds) .. " s / " .. math.floor(slow) .. " s")
 	end
-	check(Config.MACHINE_MAX == 50 and #Config.PRICES == 49 and Config.PRICES[1] == 500, "50 niveaux de machine (un par salle), le premier à 500 pièces")
+	check(Config.MACHINE_MAX == 50 and #Config.PRICES == 49, "50 niveaux de machine (un par salle)")
 	check(Pets.roomFactor(11) == 2 * 10 ^ 9 and Pets.roomFactor(12) == 4 * 10 ^ 9, "après la salle 10, les familiers valent 2 fois plus à chaque salle")
 	for level = 2, #Config.PRICES do
 		check(Config.PRICES[level] > Config.PRICES[level - 1] and Config.gain(level + 1) > Config.gain(level), "machine niveau " .. (level + 1) .. " : plus chère et plus forte que la précédente", Config.PRICES[level])
@@ -300,11 +300,11 @@ return function(log)
 	check(Pets.roomFactor(1) == 1 and Pets.roomFactor(2) == 10 and Pets.roomFactor(10) == 10 ^ 9, "les familiers d'une salle valent 10 fois ceux de la salle d'avant")
 	-- Améliorer une machine : avec des pièces, elle donne plus de points à chaque pas.
 	local ok, reason = D("Buy", "Speed")
-	check(not ok and reason == "poor", "améliorer le tapis coûte 500 pièces : refusé sans pièces", reason)
-	D("Give", 500)
+	check(not ok and reason == "poor", "améliorer le tapis coûte des pièces : refusé sans pièces", reason)
+	D("Give", Config.PRICES[1])
 	ok = D("Buy", "Speed")
 	data = D("Data")
-	check(ok and data.machines.Speed == 2 and data.coins == 0 and player:GetAttribute("SpeedMachine") == 2, "tapis de course niveau 2 pour 500 pièces", data.coins)
+	check(ok and data.machines.Speed == 2 and data.coins == 0 and player:GetAttribute("SpeedMachine") == 2, "tapis de course niveau 2 pour son prix", data.coins)
 	local before = data.Speed
 	D("Train", "Speed")
 	task.wait(1.3)
@@ -400,7 +400,7 @@ return function(log)
 	local born = pen.spots["1"]
 	local range = born and Pets.VALUE[born.q]
 	check(born ~= nil and born.v ~= nil and born.v >= range[1] and born.v <= range[2], "éclosion : la valeur cachée est dans le palier de sa rareté", born and born.v)
-	check(born ~= nil and born.l == Pets.luckPercent(born.v, 1), "éclosion : le familier reçoit son bonus de chance (valeur / 16)", born and born.l)
+	check(born ~= nil and born.l == Pets.luckPercent(born.v, 1), "éclosion : le familier reçoit son bonus de chance (selon sa valeur)", born and born.l)
 	check(pen.pets == 1 and pen.equipped == "1" and math.abs(pen.income - Pets.incomeOf(born.a, born.v)) < 0.001, "le familier rapporte selon sa valeur, et suit le joueur", pen.income)
 	check(player:GetAttribute("Pet") == born.a and player:GetAttribute("PetRarity") == born.q and player:GetAttribute("Income") == pen.income, "le familier et le revenu sont envoyés à l'écran")
 	-- Le joueur reste près de son enclos le temps que le test de l'écran voie le familier s'y promener (de loin,
@@ -765,7 +765,7 @@ return function(log)
 	local share = (lucky[3] + lucky[4] + lucky[5] + lucky[6]) / (lucky[1] + lucky[2] + lucky[3] + lucky[4] + lucky[5] + lucky[6])
 	check(math.abs(rares / total - share) < 0.04, "le tirage suit bien ces chances", rares / total)
 	-- LE FAMILIER QUI SUIT donne un bonus de chance selon sa valeur cachée, x 1,15 par salle ; il s'ajoute à la salle.
-	check(Pets.luckPercent(96, 1) == 6 and Pets.luckPercent(800, 1) == 50 and Pets.luckPercent(800, 2) == 57 and Pets.luckPercent(1, 1) == 0 and Pets.luckPercent(800, 10) < 180, "bonus du familier : valeur / 16, x 1,15 par salle, moins de 180 % à la salle 10", Pets.luckPercent(800, 10))
+	check(Pets.luckPercent(200, 1) == 0 and Pets.luckPercent(150000, 1) == 50 and Pets.luckPercent(150000, 2) == 58 and Pets.luckPercent(1500000, 10) < 400, "bonus du familier : selon sa valeur, x 1,15 par salle", Pets.luckPercent(1500000, 10))
 	D("Exchange")
 	D("Pet", "Dragon", 5)
 	pen = D("Eggs")
@@ -792,10 +792,10 @@ return function(log)
 		oddsTotal += weight
 	end
 	check(oddsTotal == 100 and Pets.ODDS[1] == 45 and Pets.ODDS[6] == 0.5, "chances : 45 % pour le plus courant, 0,5 % pour le super rare", oddsTotal)
-	check(Pets.VALUE[1][2] == 50 and Pets.VALUE[6][1] == 1600 and Pets.VALUE[6][2] == 3200, "valeurs : 1 à 50 pour le plus courant, 1 600 à 3 200 pour le super rare")
+	check(Pets.VALUE[1][1] == 200 and Pets.VALUE[6][1] > Pets.VALUE[1][2] * 1000, "valeurs : au moins 2 pièces par seconde pour le plus courant, et le super rare de la salle 1 au-dessus d'un commun de la salle 4 ; ancien texte : pour le super rare")
 	check(Pets.animalOf(1, 6, "x") == "Fox" and Pets.animalOf(2, 6, "x") == "Badger" and Pets.animalOf(3, 6, "x") == "Horse", "super rares : renard, blaireau, cheval")
 	check(Pets.animalOf(1, 1, "x") == "Bunny" and Pets.animalOf(4, 6, "x") == "Bear" and Pets.animalOf(5, 6, "x") == "Jaguar" and Pets.animalOf(6, 6, "Owl") == "Owl", "ours et jaguar super rares ; salle sans collection : l'animal de la salle")
-	check(Pets.luckPercent(3200, 1) == 100 and Pets.luckPercent(1600, 1) == 50, "bonus de chance d'un super rare qui suit : 50 à 100 %", Pets.luckPercent(3200, 1))
+	check(Pets.luckPercent(1500000, 1) == 100 and Pets.luckPercent(600000, 1) == 50, "bonus de chance d'un super rare qui suit : 50 à 100 %", Pets.luckPercent(3200, 1))
 	local visuals = game:GetService("ReplicatedStorage"):FindFirstChild("PetVisuals")
 	for room, list in Pets.COLLECTIONS do
 		local missing = {}

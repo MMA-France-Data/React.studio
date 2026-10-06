@@ -25,7 +25,10 @@ DAY = 5  # heures de jeu d'une "journee" : le temps que doit demander chaque sal
 
 ROOM_FACTOR = 10  # Pets.ROOM_FACTOR : les familiers valent 10 fois plus a chaque salle, jusqu'a la salle 10
 LATE_FACTOR = 2  # Pets.LATE_FACTOR : puis 2 fois plus a chaque salle
-MEAN_VALUE = 109  # valeur cachee moyenne d'un oeuf de la salle 1 (chances x paliers de Pets.luau)
+# Valeur cachee d'un oeuf ordinaire de la salle 1, en centiemes de piece par seconde (Pets.VALUE) : la moyenne des
+# quatre premiers rangs (commun a epique, 96 % des oeufs). Les legendaires et super rares sont des coups de chance :
+# on ne regle pas les prix dessus. (.45 x 350 + .30 x 1000 + .14 x 3750 + .07 x 18000) / .96
+MEAN_VALUE = 2300
 CURATED = 2.2  # un joueur vend ses mauvais familiers : son enclos vaut environ 2,2 fois la moyenne
 SHARE = 0.2  # part de ses pieces qui va dans UNE machine (trois machines, et l'enclos a agrandir)
 
@@ -78,7 +81,7 @@ def prices():
         start, end = room_hour(level - 1), room_hour(level)
         price = income_with(level - 1, (start + end) / 2) * (end - start) * 3600 * SHARE
         price = max(price, previous * 1.5, 500)  # jamais moins d'une fois et demie le niveau d'avant
-        price = 500 if level == 2 else nice(price)  # le premier niveau : 500 pieces (le chiffre du joueur)
+        price = nice(price)
         result.append(price)
         previous = price
     return result

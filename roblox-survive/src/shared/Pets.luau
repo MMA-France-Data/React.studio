@@ -50,8 +50,12 @@ function Pets.animalOf(room: number, rank: number, fallback: string): string
 	return list and list[rank] or fallback
 end
 
--- LA VALEUR CACHÉE : le palier de chaque rang (commun, peu commun, rare, épique, légendaire, super rare).
-Pets.VALUE = { { 1, 50 }, { 50, 100 }, { 100, 200 }, { 200, 400 }, { 400, 800 }, { 1600, 3200 } }
+-- LA VALEUR CACHÉE : le palier de chaque rang (commun, peu commun, rare, épique, légendaire, super rare), en
+-- centièmes de pièce par seconde. Demandes du joueur : « le minimum soit deux pièces » (le pire familier de la
+-- salle 1 rapporte 2 pièces par seconde) et « le super rare de la salle 1 paie quand même bien plus qu'un commun
+-- de la salle 3, voire 4 ». Salle 1, en pièces par seconde : commun 2 à 5, peu commun 5 à 15, rare 15 à 60, épique
+-- 60 à 300, légendaire 300 à 1 500, super rare 6 000 à 15 000 (un commun de la salle 4 : 2 000 à 5 000).
+Pets.VALUE = { { 200, 500 }, { 500, 1500 }, { 1500, 6000 }, { 6000, 30000 }, { 30000, 150000 }, { 600000, 1500000 } }
 -- Ces paliers sont ceux de la salle 1 : chaque salle suivante les multiplie par ROOM_FACTOR (salle 2 : commun 10 à
 -- 500 ; salle 3 : 100 à 5 000... salle 10 : x 1 milliard), puis par LATE_FACTOR après la salle LATE_ROOM (les
 -- salles à venir). Les prix des machines sont calculés là-dessus (tools/balance/machines.py) : si on change ces
@@ -63,28 +67,32 @@ function Pets.roomFactor(room: number): number
 	room = math.max(1, room)
 	return Pets.ROOM_FACTOR ^ (math.min(room, Pets.LATE_ROOM) - 1) * Pets.LATE_FACTOR ^ math.max(0, room - Pets.LATE_ROOM)
 end
--- LE FAMILIER QUI SUIT LE JOUEUR lui donne un bonus de chance d'œuf rare, en % : sa valeur cachée (celle de la
--- salle 1, avant ROOM_FACTOR) / LUCK_DIVIDER, multipliée par LUCK_ROOM à chaque salle. Salle 1 : commun 0 à 3 %,
--- peu commun 3 à 6 %, rare 6 à 12 %, épique 12 à 25 %, légendaire 25 à 50 %, super rare 50 à 100 % (sa valeur
--- compte pour moitié) ; x 1,15 par salle.
+-- LE FAMILIER QUI SUIT LE JOUEUR lui donne un bonus de chance d'œuf rare, en %, selon sa place dans les paliers
+-- de valeur (sa valeur de la salle 1, avant ROOM_FACTOR) : commun 0 à 3 %, peu commun 3 à 6 %, rare 6 à 12 %,
+-- épique 12 à 25 %, légendaire 25 à 50 %, super rare 50 à 100 % ; multiplié par LUCK_ROOM à chaque salle.
 -- Le bonus est tiré à l'éclosion et gardé dans la place (`l`). Le familier rapporte quand même ses pièces.
-Pets.LUCK_DIVIDER = 16
+Pets.LUCK = { { 0, 3 }, { 3, 6 }, { 6, 12 }, { 12, 25 }, { 25, 50 }, { 50, 100 } }
 Pets.LUCK_ROOM = 1.15
 function Pets.luckPercent(baseValue: number, room: number): number
-	if baseValue > Pets.VALUE[5][2] then
-		baseValue /= 2
+	local rank = 1
+	for index, range in Pets.VALUE do
+		if baseValue >= range[1] then
+			rank = index
+		end
 	end
-	return math.floor(baseValue / Pets.LUCK_DIVIDER * Pets.LUCK_ROOM ^ (math.max(1, room) - 1) + 0.5)
+	local range, luck = Pets.VALUE[rank], Pets.LUCK[rank]
+	local along = math.clamp((baseValue - range[1]) / (range[2] - range[1]), 0, 1)
+	return math.floor((luck[1] + (luck[2] - luck[1]) * along) * Pets.LUCK_ROOM ^ (math.max(1, room) - 1) + 0.5)
 end
 -- Le bonus de chance (en %) du familier de cette place (un familier d'avant ce bonus : d'après sa valeur).
 function Pets.luckOf(spot): number
 	if not spot or not spot.v then
 		return 0
 	end
-	return spot.l or Pets.luckPercent(math.min(spot.v, Pets.VALUE[5][2]), 1)
+	return spot.l or Pets.luckPercent(spot.v, 1)
 end
 -- Ce qu'un familier rapporte par seconde = sa valeur / VALUE_PER_COIN x le facteur de son animal.
--- Exemples (salle 1) : lapin commun 0,01 à 0,5 par seconde ; renard super rare 16 à 32 par seconde.
+-- Exemples (salle 1) : lapin commun 2 à 5 par seconde ; renard super rare 6 000 à 15 000 par seconde.
 Pets.VALUE_PER_COIN = 100
 -- Couvaison : secondes selon le rang, multipliées par (0,5 + numéro de la salle / 10).
 -- Exemples : commun de la salle 1 = 18 s ; super rare de la salle 1 = 12 min ; légendaire de la salle 10 = 15 min.
