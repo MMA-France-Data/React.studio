@@ -5,7 +5,8 @@
 -- vitesse demandé, et plus vite qu'un joueur du palier d'en dessous (Config.hunterSpeed) : sans le palier, il vous
 -- rattrape forcément, et on ne peut pas le semer en coupant (le rocher est trop haut pour sauter dessus).
 --
--- LA FEINTE : de temps en temps il plonge dans un terrier du rocher et ressort DEVANT le joueur, de l'autre côté.
+-- LA FEINTE (seulement si params.feints, éteinte partout pour l'instant : le joueur l'a trouvée incompréhensible
+-- et injuste, « juste le prédateur qui nous chasse suffit ») : il plonge dans un terrier et ressort DEVANT le joueur.
 -- Un grand « ! » rouge montre la sortie une seconde avant : il faut faire demi-tour tout de suite. La sortie est
 -- placée pour qu'un joueur qui réagit vite garde la même avance qu'avant ; celui qui réagit tard en perd.
 --
@@ -76,7 +77,7 @@ function Hunter.new(ctx, params)
 		local post = Build.part(ctx.static, "MesaPost" .. i, Vector3.new(1.2, BLOCK_HEIGHT, 1.2), center + Vector3.new(corner.X * (BLOCK_X - 0.5), BLOCK_HEIGHT / 2, corner.Z * (BLOCK_Z - 0.5)), Color3.fromRGB(170, 112, 70), Enum.Material.Sandstone)
 		post.CanCollide = false
 	end
-	for i, hole in { Vector3.new(0, 0, -BLOCK_Z), Vector3.new(0, 0, BLOCK_Z), Vector3.new(-BLOCK_X, 0, 0), Vector3.new(BLOCK_X, 0, 0), Vector3.new(-BLOCK_X, 0, 12), Vector3.new(BLOCK_X, 0, -12) } do
+	for i, hole in if not params.feints then {} else { Vector3.new(0, 0, -BLOCK_Z), Vector3.new(0, 0, BLOCK_Z), Vector3.new(-BLOCK_X, 0, 0), Vector3.new(BLOCK_X, 0, 0), Vector3.new(-BLOCK_X, 0, 12), Vector3.new(BLOCK_X, 0, -12) } do
 		-- Un trou sombre, posé à plat sur la face du rocher.
 		local onX = math.abs(hole.X) >= BLOCK_X
 		local size = if onX then Vector3.new(0.5, 4.4, 6) else Vector3.new(6, 4.4, 0.5)
@@ -236,7 +237,7 @@ function Hunter.new(ctx, params)
 					hunter.s = (hunter.s + hunter.sign * math.min(speed * dt, math.abs(away))) % length
 					hunter.feint -= dt
 					local distance = math.abs(away)
-					if hunter.feint <= 0 and distance >= FEINT_NEAR and elapsed < Config.DURATION - DIG - 2 then
+					if params.feints and hunter.feint <= 0 and distance >= FEINT_NEAR and elapsed < Config.DURATION - DIG - 2 then
 						-- LA FEINTE : il plonge et ressortira devant le joueur (qui fuit dans le sens `sign`). La
 						-- sortie est à la bonne distance pour qu'un joueur qui fait demi-tour après REACTION
 						-- secondes retrouve la même avance.

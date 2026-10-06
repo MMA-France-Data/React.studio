@@ -44,7 +44,7 @@ Ce dossier est séparé du jeu de tours (`roblox-ranked-td`) : rien n'est partag
 | Salle | Événements | Il faut |
 | --- | --- | --- |
 | 1 | la bombe | rien |
-| 2 | le prédateur (un loup par joueur, autour du bloc transparent ; il feinte en ressortant d'un terrier devant le joueur) | vitesse 120 |
+| 2 | le prédateur (un loup par joueur, qui le chasse autour du bloc transparent pendant les 60 secondes) | vitesse 120 |
 | 3 | explosions | rien |
 | 4 | lave + plafond | saut 120, force 120 |
 | 5 | lave + météorites | saut 2 500 |

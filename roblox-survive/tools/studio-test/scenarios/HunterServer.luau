@@ -164,22 +164,18 @@ return function(log)
 	end
 	local tickets = D("Eggs").tickets
 	local won, died, closest, feints = run(Config.walkSpeed(1), 0.45)
-	check(won and feints >= 3, "vitesse de palier 1 (120 points), demi-tour en 0,45 s : survit aux 60 secondes", report(won, died, closest, feints))
+	check(won and feints == 0 and closest > 15, "vitesse de palier 1 (120 points) : survit aux 60 secondes, le loup ne s'approche pas, aucune feinte", report(won, died, closest, feints))
 	check(D("Eggs").tickets == tickets + 1, "la salle gagnée donne son ticket", D("Eggs").tickets)
-	won, died, closest, feints = run(Config.walkSpeed(1), 0.25)
-	check(won, "palier 1, très bon réflexe (0,25 s) : survit", report(won, died, closest, feints))
-	won, died, closest, feints = run(Config.walkSpeed(1), 0.8)
-	log("Info", "[SURVIVE] palier 1, réflexe lent (0,8 s) : " .. report(won, died, closest, feints))
 	tickets = D("Eggs").tickets
 	won, died, closest, feints = run(Config.walkSpeed(0), 0.25)
-	check(not won and died < 40, "vitesse 0, même avec un très bon réflexe : attrapé", report(won, died, closest, feints))
+	check(not won and died < 30, "vitesse 0 : attrapé", report(won, died, closest, feints))
 	check(D("Eggs").tickets == tickets, "pas de ticket pour un joueur attrapé", D("Eggs").tickets)
 	won, died, closest, feints = run(Config.walkSpeed(0.5), 0.45)
 	check(not won, "à mi-chemin du palier 1 (60 points) : attrapé avant la fin", report(won, died, closest, feints))
 	won, died = run(0, 0)
 	check(not won and died < 6, "sans bouger, contre le mur d'en face : attrapé en quelques secondes", string.format("%.1f s", died))
 	won, died, closest, feints = run(Config.walkSpeed(2), 0.8)
-	check(won, "palier 2, réflexe lent : survit largement", report(won, died, closest, feints))
+	check(won and closest > 20, "palier 2 : survit largement", report(won, died, closest, feints))
 
 	log("Info", "[SURVIVE] TEST:done")
 end
