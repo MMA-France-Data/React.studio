@@ -28,6 +28,9 @@ for room, color in { Color3.fromRGB(255, 226, 150), Color3.fromRGB(190, 140, 90)
 end
 local ANIMATE_DISTANCE = 120 -- au-delà, les familiers d'un enclos ne bougent plus (ils restent où ils sont)
 local PEN_SCALE = 1.5 -- les familiers de l'enclos sont plus gros que celui qui suit le joueur
+local WALK_SPEED = 1.8 -- animaux des collections : la marche est jouée plus vite que le clip livré...
+local WALK_GAIN = 2.4 -- ... et les pattes tournent plus (voir StarterAnimator)
+local PEN_WALK = 3 -- studs par seconde d'un animal des collections qui se promène (les autres : 4,5)
 local DARK = Color3.fromRGB(40, 44, 60)
 local RED = Color3.fromRGB(255, 90, 90)
 local GREEN = Color3.fromRGB(110, 255, 80)
@@ -142,9 +145,20 @@ return function(env)
 	local function animate(pet, base: CFrame, moving: boolean, dt: number)
 		pet.clock += dt
 		if pet.model:GetAttribute("Starter") then
-			pet.model:PivotTo(base)
+			-- La marche livrée est discrète : on la joue plus vite, les pattes tournent plus, et le corps sautille
+			-- à chaque pas (deux pas par tour d'animation), pour qu'on voie l'animal marcher et non glisser.
+			local walk = pet.starter and pet.starter.clips.Walk
+			local hop = 0
+			if moving and walk then
+				hop = math.abs(math.sin(pet.clock * WALK_SPEED / walk.duration * math.pi * 2)) * 0.16 * pet.model:GetScale()
+			end
+			pet.model:PivotTo(base * CFrame.new(0, hop, 0))
 			if pet.starter then
-				StarterAnimator.step(pet.starter, pet.clock, if moving then "Walk" else "Idle")
+				if moving then
+					StarterAnimator.step(pet.starter, pet.clock * WALK_SPEED, "Walk", WALK_GAIN)
+				else
+					StarterAnimator.step(pet.starter, pet.clock, "Idle", 1.5)
+				end
 			end
 			return
 		end
@@ -437,7 +451,7 @@ return function(env)
 					item.rest = 1 + math.random() * 3
 				else
 					local direction = offset.Unit
-					item.position += direction * math.min(distance, 4.5 * dt)
+					item.position += direction * math.min(distance, (if pet.starter then PEN_WALK else 4.5) * dt)
 					item.facing = item.facing:Lerp(CFrame.lookAt(Vector3.zero, direction), 1 - math.exp(-6 * dt))
 					moving = true
 				end

@@ -131,6 +131,32 @@ return function(log)
 			local again = pets and pets:FindFirstChild("Pen_" .. animal .. rarity)
 			local detail = inPen and string.format("bouge de %.2f ; meme modele %s ; parent %s ; camera a %.0f ; nouveau a %.2f", (inPen:GetPivot().Position - start).Magnitude, tostring(again == inPen), tostring(inPen.Parent), (workspace.CurrentCamera.CFrame.Position - start).Magnitude, if again then (again:GetPivot().Position - start).Magnitude else -1)
 			check(inPen ~= nil and (inPen:GetPivot().Position - start).Magnitude > 1, "écran : le familier se promène dans l'enclos", detail)
+			-- Les pattes bougent-elles vraiment ? On suit chaque pièce articulée par rapport au centre de l'animal
+			-- pendant 4 secondes : la plus grande rotation et le plus grand déplacement vus.
+			local turn, shift, walked = 0, 0, 0
+			if inPen then
+				local rigRoot = inPen.PrimaryPart
+				local rest = {}
+				for _, joint in inPen:GetDescendants() do
+					if joint:IsA("Motor6D") and joint.Part1 then
+						rest[joint.Part1] = rigRoot.CFrame:ToObjectSpace(joint.Part1.CFrame)
+					end
+				end
+				local last = rigRoot.Position
+				local limit = os.clock() + 4
+				while os.clock() < limit do
+					RunService.RenderStepped:Wait()
+					walked += (rigRoot.Position - last).Magnitude
+					last = rigRoot.Position
+					for part, first in rest do
+						local now = rigRoot.CFrame:ToObjectSpace(part.CFrame)
+						local _, angle = (first:Inverse() * now):ToAxisAngle()
+						turn = math.max(turn, math.deg(angle))
+						shift = math.max(shift, (now.Position - first.Position).Magnitude)
+					end
+				end
+			end
+			check(turn > 22, "écran : les pattes du familier bougent quand il marche (il ne glisse pas)", string.format("rotation %.1f degres ; deplacement %.2f ; marche %.1f studs", turn, shift, walked))
 			local petTag = inPen and inPen.PrimaryPart:FindFirstChild("Tag")
 			check(petTag ~= nil and petTag.Top.Text ~= "" and string.find(petTag.Bottom.Text, "/") ~= nil, "écran : le familier montre son nom et ce qu'il rapporte", petTag and (petTag.Top.Text .. " | " .. petTag.Bottom.Text))
 			local row = hud.PetPanel.List:FindFirstChild("Pet1")

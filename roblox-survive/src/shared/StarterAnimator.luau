@@ -1,5 +1,8 @@
 -- Animation autonome des six modèles. Aucun ID distant, aucun accès aux données du jeu.
 -- Usage client : bind(model), puis step(rig, time, "Walk" ou "Idle") après model:PivotTo().
+-- (Copie de assets/collections/*/StarterAnimator.luau, avec un réglage en plus pour le jeu : `gain` grossit les
+-- rotations du clip. Les clips de marche livrés ne tournent les pattes que de 9 à 19 degrés : de loin, l'animal
+-- avait l'air de glisser.)
 local StarterAnimator = {}
 
 local function clip(sequence)
@@ -60,7 +63,8 @@ local function sample(track, t)
 	return track[#track].cf
 end
 
-function StarterAnimator.step(rig, time: number, mode: string?)
+local MAX_ANGLE = math.rad(55)
+function StarterAnimator.step(rig, time: number, mode: string?, gain: number?)
 	local playing = rig.clips[mode or "Idle"] or rig.clips.Idle
 	local t = time % playing.duration
 	local scale = rig.model:GetScale()
@@ -70,7 +74,12 @@ function StarterAnimator.step(rig, time: number, mode: string?)
 			local track = playing.tracks[joint.Part1.Name]
 			if track then
 				local value = sample(track, t)
-				transform = CFrame.new(value.Position * scale) * value.Rotation
+				local rotation = value.Rotation
+				if gain and gain ~= 1 then
+					local axis, angle = rotation:ToAxisAngle()
+					rotation = CFrame.fromAxisAngle(axis, math.clamp(angle * gain, -MAX_ANGLE, MAX_ANGLE))
+				end
+				transform = CFrame.new(value.Position * scale) * rotation
 			end
 			joint.Transform = transform
 		end
