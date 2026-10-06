@@ -111,8 +111,10 @@ end
 -- 60 points 18,5 (rattrapé aussi), à 120 points 21 (il le distance), à 2 500 points 26 (il le sème largement).
 -- Pourquoi 8 % : un vrai joueur hésite, se cogne, lâche la touche un instant. À 3 %, un joueur au bon palier qui
 -- perdait 0,3 seconde toutes les 6 secondes se faisait rattraper (mesuré).
+Config.HUNTER_RATIO = 0.92
+-- (Dans Studio, le panneau de réglages peut changer ce rapport : attribut « HunterRatio » du Workspace.)
 function Config.hunterSpeed(level: number): number
-	return Config.walkSpeed(level) * 0.92
+	return Config.walkSpeed(level) * (workspace:GetAttribute("HunterRatio") or Config.HUNTER_RATIO)
 end
 
 Config.RUSH_SLACK = 1.06

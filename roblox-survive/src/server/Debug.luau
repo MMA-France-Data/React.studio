@@ -207,4 +207,25 @@ return function(_world)
 		return nil
 	end
 	debug.Parent = ServerStorage
+
+	-- LE PANNEAU DE RÉGLAGES (DebugPanel.luau, côté joueur) : les jauges envoient ici ce qu'elles règlent.
+	local set = Instance.new("RemoteEvent")
+	set.Name = "DebugSet"
+	set.OnServerEvent:Connect(function(player: Player, kind: string, value: number)
+		local data = PlayerData.get(player)
+		if not data or type(value) ~= "number" or value ~= value then
+			return
+		end
+		if kind == "Speed" or kind == "Jump" or kind == "Force" then
+			data.points[kind] = math.clamp(math.floor(value), 0, 1e12)
+			PlayerData.changed(player)
+			Gym.applyStats(player)
+		elseif kind == "Coins" then
+			PlayerData.addCoins(player, math.clamp(math.floor(value), 0, 1e12) - data.coins)
+		elseif kind == "HunterRatio" then
+			-- La vitesse du prédateur, en part de celle du palier demandé : lue au début de la manche suivante.
+			workspace:SetAttribute("HunterRatio", math.clamp(value, 0.5, 1.2))
+		end
+	end)
+	set.Parent = ReplicatedStorage
 end

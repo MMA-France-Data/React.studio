@@ -51,7 +51,7 @@ end
 
 function Hunter.new(ctx, params)
 	local self = {}
-	local speed = Config.hunterSpeed(params.level)
+	local speed = Config.hunterSpeed(params.level) -- relue au début de chaque manche
 	local center = ctx.center
 
 	-- LE DÉCOR : le gros bloc du milieu, transparent (une cage de verre) : on voit toujours son prédateur à travers,
@@ -125,6 +125,7 @@ function Hunter.new(ctx, params)
 
 	function self.start()
 		running = true
+		speed = Config.hunterSpeed(params.level)
 		for player in hunters do
 			remove(player)
 		end

@@ -606,6 +606,11 @@ end
 -- LES ŒUFS ET LES ANIMAUX -----------------------------------------------------------------------------------------
 require(script.Parent.Animals)({ gui = gui, side = side, text = text, box = box, tr = tr, num = num, lang = lang, showToast = showToast })
 
+-- Dans Studio seulement : le panneau de réglages (jauges de vitesse, saut, force, pièces, prédateur).
+if RunService:IsStudio() then
+	task.spawn(require(script.Parent.DebugPanel))
+end
+
 -- LE TRAMPOLINE -------------------------------------------------------------------------------------------------
 local function bouncy(part: Instance)
 	if not part:IsA("BasePart") then

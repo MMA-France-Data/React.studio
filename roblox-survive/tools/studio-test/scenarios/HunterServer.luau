@@ -83,6 +83,15 @@ return function(log)
 		end
 	end
 
+	-- Le panneau de reglages : l'ecran du joueur regle sa vitesse a 2 500 points avec une jauge (HunterClient).
+	local limit = os.clock() + 12
+	while D("Data").Speed ~= 2500 and os.clock() < limit do
+		task.wait(0.2)
+	end
+	local _, tuned = alive()
+	check(D("Data").Speed == 2500 and player:GetAttribute("Speed") == 2, "panneau de reglages : la jauge de vitesse met 2 500 points (palier 2)", D("Data").Speed)
+	shot("reglages", Vector3.new(0, 14, -30), Vector3.new(0, 4, 20))
+	D("Points", "Speed", 0)
 	local def = Config.ROOMS[ROOM]
 	check(def.events[1] == "Hunter" and def.need.Speed == 1, "la salle 2 est le prédateur, faite pour la vitesse de palier 1")
 	local mesa = workspace.Rooms["Room" .. ROOM]:FindFirstChild("Mesa", true)
