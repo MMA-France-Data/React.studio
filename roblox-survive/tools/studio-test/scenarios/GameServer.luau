@@ -279,13 +279,13 @@ return function(log)
 	local tier1, tier2 = Config.POINTS[1], Config.POINTS[2]
 	check(tier1 == 120 and tier2 == 2500 and Config.POINTS[6] == 400000000, "paliers : 120 points pour le premier (1 minute), 400 000 000 pour le dernier", tier1)
 	check((tier2 - tier1) / Config.gain(1) * Config.STEP_SECONDS >= 600, "sans améliorer sa machine, le palier 2 demande plus de 10 minutes")
-	for tier, machine in { [2] = 2, [3] = 4, [4] = 6, [5] = 8 } do
+	for tier, machine in { [2] = 2, [3] = 3, [4] = 4, [5] = 5 } do
 		-- Avec la machine prévue pour ce palier : quelques minutes ; avec celle du palier d'avant : bien plus long.
 		local seconds = (Config.POINTS[tier] - Config.POINTS[tier - 1]) / Config.gain(machine) * Config.STEP_SECONDS
-		local slow = (Config.POINTS[tier] - Config.POINTS[tier - 1]) / Config.gain(math.max(1, machine - 2)) * Config.STEP_SECONDS
+		local slow = (Config.POINTS[tier] - Config.POINTS[tier - 1]) / Config.gain(machine - 1) * Config.STEP_SECONDS
 		check(seconds > 30 and seconds < 420 and slow > 1000, "palier " .. tier .. " : quelques minutes avec la machine niveau " .. machine .. ", plus de 20 minutes avec celle d'avant", math.floor(seconds) .. " s / " .. math.floor(slow) .. " s")
 	end
-	check(Config.MACHINE_MAX == 50 and #Config.PRICES == 49, "50 niveaux de machine (un par salle)")
+	check(Config.MACHINE_MAX == 20 and #Config.PRICES == 19 and Config.gain(2) == 20 and Config.gain(3) == 400, "20 niveaux de machine, 20 fois plus de points à chaque niveau")
 	check(Pets.roomFactor(11) == 2 * 10 ^ 9 and Pets.roomFactor(12) == 4 * 10 ^ 9, "après la salle 10, les familiers valent 2 fois plus à chaque salle")
 	for level = 2, #Config.PRICES do
 		check(Config.PRICES[level] > Config.PRICES[level - 1] and Config.gain(level + 1) > Config.gain(level), "machine niveau " .. (level + 1) .. " : plus chère et plus forte que la précédente", Config.PRICES[level])
@@ -320,9 +320,9 @@ return function(log)
 		D("Buy", "Jump")
 	end
 	data = D("Data")
-	check(data.machines.Jump == Config.MACHINE_MAX and data.coins == 0, "trampoline au niveau maximum (50) pour la somme de tous les prix", data.coins)
+	check(data.machines.Jump == Config.MACHINE_MAX and data.coins == 0, "trampoline au niveau maximum (20) pour la somme de tous les prix", data.coins)
 	ok, reason = D("Buy", "Jump")
-	check(not ok and reason == "max", "pas de niveau 51", reason)
+	check(not ok and reason == "max", "pas de niveau 21", reason)
 	D("Reset")
 	check(not D("Shortcut", 5), "raccourci fermé tant que la salle 5 n'est pas réussie")
 

@@ -7,17 +7,22 @@ LA REGLE (demandes du joueur, 06/10/2026) :
   - ensuite, chaque nouvelle salle demande UNE JOURNEE DE JEU (5 heures) : il sort une salle par jour, le joueur ne
     doit pas le rattraper ;
   - aucun joueur ne doit avoir "fini" le jeu : la machine au maximum est a plus de 200 heures.
-  -> UN NIVEAU DE MACHINE PAR SALLE. Le niveau N se paie avec les familiers de la salle N. Niveaux 1 a 10 :
-     les 10 premieres salles (2 h 30). Niveaux 11 a 50 : une journee de jeu chacun (le niveau 50 vers 200 heures),
-     en supposant qu'une nouvelle salle sort a chaque fois. Sans nouvelle salle, le revenu ne monte plus et chaque
-     niveau demande deux fois plus de temps que le precedent : il reste toujours quelque chose a viser.
+  - "je veux pas qu'il y ait forcement une amelioration de tapis a chaque niveau, par ex la salle 4 et 5 peuvent
+    etre speed 10 k et saut 15 k" : une machine sert pour PLUSIEURS salles.
+  -> UN NIVEAU DE MACHINE TOUTES LES 3 SALLES. Le niveau 2 se paie avec les familiers de la salle 2 (il sert pour
+     les salles 3, 4, 5), le niveau 3 avec ceux de la salle 5 (salles 6, 7, 8), le niveau 4 avec ceux de la salle 8,
+     etc. Chaque niveau donne 20 fois plus de points par pas (1, 20, 400, 8 000...) : avec lui, ce que demandent
+     ses trois salles s'entraine en quelques minutes (10 000 points au niveau 2 = 4 minutes).
+     20 niveaux : le dernier se paie avec les familiers de la salle 56, vers 230 heures de jeu. Sans nouvelle
+     salle, le revenu ne monte plus : il reste toujours quelque chose a viser.
 
 Le prix d'un niveau = ce que le joueur gagne pendant le temps qu'on veut lui faire attendre ce niveau, fois la part
 de ses pieces qui va dans une machine. Ce n'est qu'un calcul : rien n'a ete joue. Tout se regle ici.
 """
 import math
 
-LEVELS = 50  # niveaux de machine (un par salle ; les salles 11 a 50 n'existent pas encore)
+LEVELS = 20  # niveaux de machine
+ROOMS_PER_LEVEL = 3  # une machine sert pour trois salles
 FIRST_ROOMS = 10  # les salles du debut, rapides
 # Heure de jeu a laquelle un joueur regulier atteint chacune des 10 premieres salles (la salle 10 a 2 h 30).
 FIRST_HOURS = [0, 0.06, 0.15, 0.3, 0.5, 0.75, 1.05, 1.4, 1.9, 2.5]
@@ -32,12 +37,9 @@ MEAN_VALUE = 2300
 CURATED = 2.2  # un joueur vend ses mauvais familiers : son enclos vaut environ 2,2 fois la moyenne
 SHARE = 0.2  # part de ses pieces qui va dans UNE machine (trois machines, et l'enclos a agrandir)
 
-# Points par pas : la machine niveau 2 passe de +1 a +20 (demande du joueur : "passer de 1 a +20", pour que la
-# salle 3 demande d'ameliorer ses trois machines et environ 5 minutes d'entrainement). Ensuite x 4,47 par niveau
-# jusqu'au niveau 10 (deux niveaux = x 20, comme les paliers de Config.POINTS), puis x 1,5.
-LEVEL2_GAIN = 20
-EARLY_GAIN = 4.47
-LATE_GAIN = 1.5
+# Points par pas : x 20 a chaque niveau de machine (demande du joueur : "passer de 1 a +20"). C'est aussi l'ecart
+# entre deux paliers de stat (Config.POINTS).
+GAIN = 20
 
 
 def room_hour(room):
@@ -73,29 +75,27 @@ def nice(value):
     return int(round(value / step) * step)
 
 
+def room_of(level):
+    """La salle dont les familiers paient ce niveau de machine : 2, 5, 8, 11..."""
+    return ROOMS_PER_LEVEL * level - 4
+
+
 def prices():
-    """Prix pour passer au niveau 2, 3... Le niveau N se paie pendant qu'on fait la salle N - 1."""
+    """Prix pour passer au niveau 2, 3..."""
     result = []
     previous = 0
     for level in range(2, LEVELS + 1):
-        # Le niveau N se paie avec les familiers de la salle N, pendant qu'on prepare la salle N + 1 (le joueur :
-        # "monte encore le cout des machines, a la salle 3 faut faire des sous deja" : la machine niveau 2 demande
-        # un enclos de la salle 2, pas de la salle 1).
-        start, end = room_hour(level), room_hour(level + 1)
-        price = income_with(level, (start + end) / 2) * (end - start) * 3600 * SHARE
-        price = max(price, previous * 1.5, 500)  # jamais moins d'une fois et demie le niveau d'avant
-        price = nice(price)
+        room = room_of(level)
+        start, end = room_hour(room), room_hour(room + 1)
+        price = income_with(room, (start + end) / 2) * (end - start) * 3600 * SHARE
+        price = nice(max(price, previous * 1.5))
         result.append(price)
         previous = price
     return result
 
 
 def gain(level):
-    if level <= 1:
-        return 1
-    if level <= FIRST_ROOMS:
-        return nice(LEVEL2_GAIN * EARLY_GAIN ** (level - 2))
-    return nice(gain(FIRST_ROOMS) * LATE_GAIN ** (level - FIRST_ROOMS))
+    return GAIN ** (level - 1)
 
 
 SUFFIXES = [(1e27, 'Oc'), (1e24, 'Sp'), (1e21, 'Sx'), (1e18, 'Qi'), (1e15, 'Qa'), (1e12, 'T'), (1e9, 'B'), (1e6, 'M'), (1e3, 'K')]
@@ -145,19 +145,10 @@ def pen_prices():
 
 if __name__ == '__main__':
     table = prices()
-    print('niveau | prix     | heure visee | revenu/s     | points par pas | sans nouvelle salle apres la 10')
-    stuck = 0
+    print('niveau | prix     | points par pas | se paie avec la salle | vers')
     for level in range(2, LEVELS + 1):
-        price = table[level - 2]
-        hour = room_hour(level)
-        income = income_with(level - 1, (room_hour(level - 1) + hour) / 2)
-        # Sans nouvelle salle : le revenu reste celui de la salle 10.
-        late = ''
-        if level > FIRST_ROOMS:
-            stuck += price / (income_with(FIRST_ROOMS, 2.5 + stuck) * SHARE) / 3600
-            late = '%.0f h de plus' % stuck
-        if level <= 16 or level % 10 == 0:
-            print('%6d | %8s | %9.2f h | %12s | %12s | %s' % (level, short(price), hour, short(income), short(gain(level)), late))
+        room = room_of(level)
+        print('%6d | %8s | %14s | %21d | %.1f h' % (level, short(table[level - 2]), short(gain(level)), room, room_hour(room)))
     print()
     print('Config.PRICES = { ' + ', '.join(str(p) for p in table) + ' }')
     print('Config.GAINS = { ' + ', '.join(str(gain(level)) for level in range(1, LEVELS + 1)) + ' }')
