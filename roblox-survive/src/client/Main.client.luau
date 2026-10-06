@@ -6,6 +6,7 @@ local LocalizationService = game:GetService("LocalizationService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+local StarterGui = game:GetService("StarterGui")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 
@@ -134,22 +135,33 @@ side.Position = UDim2.new(0, 12, 0.5, 0)
 side.Size = UDim2.fromOffset(240, 236)
 side.Parent = gui
 
-local coinIcon = box(side, "Coin", UDim2.fromOffset(40, 40), UDim2.fromOffset(0, 2), Color3.fromRGB(255, 205, 50))
+-- (Les pièces sont dans leur propre cadre : sur téléphone, il monte en haut à droite de l'écran.)
+local wallet = Instance.new("Frame")
+wallet.Name = "Wallet"
+wallet.BackgroundTransparency = 1
+wallet.Size = UDim2.fromOffset(190, 58)
+wallet.Parent = side
+local walletScale = Instance.new("UIScale")
+walletScale.Parent = wallet
+local coinIcon = box(wallet, "Coin", UDim2.fromOffset(40, 40), UDim2.fromOffset(0, 2), Color3.fromRGB(255, 205, 50))
 coinIcon:FindFirstChildOfClass("UICorner").CornerRadius = UDim.new(1, 0)
 text(coinIcon, "Sign", UDim2.fromScale(1, 0.8), UDim2.fromScale(0, 0.1), Color3.fromRGB(255, 245, 170)).Text = "$"
-local coinsLabel = text(side, "Coins", UDim2.fromOffset(140, 44), UDim2.fromOffset(48, 0), Color3.fromRGB(110, 255, 80))
+local coinsLabel = text(wallet, "Coins", UDim2.fromOffset(140, 44), UDim2.fromOffset(48, 0), Color3.fromRGB(110, 255, 80))
 coinsLabel.TextXAlignment = Enum.TextXAlignment.Left
 
 -- Ce que rapportent les familiers, sous les pièces.
-local incomeLabel = text(side, "Income", UDim2.fromOffset(140, 18), UDim2.fromOffset(48, 38), Color3.fromRGB(255, 221, 51))
+local incomeLabel = text(wallet, "Income", UDim2.fromOffset(140, 18), UDim2.fromOffset(48, 38), Color3.fromRGB(255, 221, 51))
 incomeLabel.TextXAlignment = Enum.TextXAlignment.Left
 incomeLabel.UIStroke.Thickness = 1.5
 incomeLabel.Visible = false
 
 local STAT_COLORS = { Speed = Color3.fromRGB(60, 170, 255), Jump = Color3.fromRGB(70, 210, 90), Force = Color3.fromRGB(240, 80, 80) }
-local statLabels = {}
+-- Chaque stat a son icône (sa demande : « des icônes, surtout les 3 stats »).
+local STAT_ICONS = { Speed = "⚡", Jump = "🦘", Force = "💪" }
+local statLabels, statPills = {}, {}
 for i, name in Config.MACHINES do
 	local pill = box(side, name, UDim2.fromOffset(170, 36), UDim2.fromOffset(2, 12 + i * 44), STAT_COLORS[name])
+	statPills[i] = pill
 	statLabels[name] = text(pill, "Label", UDim2.fromScale(0.92, 0.76), UDim2.fromScale(0.04, 0.12))
 end
 
@@ -158,10 +170,58 @@ local luckPill = box(side, "Luck", UDim2.fromOffset(230, 40), UDim2.fromOffset(2
 luckPill.UIStroke.Color = Color3.fromRGB(255, 221, 51)
 local luckLabel = text(luckPill, "Label", UDim2.fromScale(0.94, 0.84), UDim2.fromScale(0.03, 0.08), Color3.fromRGB(255, 221, 51))
 luckLabel.UIStroke.Thickness = 1.5
+-- L'ÉCRAN ALLÉGÉ DES TÉLÉPHONES (sa demande : « le HUD sur tel est trop chargé ») : tout le bloc de gauche est plus
+-- petit, les textes sont courts, les boutons de droite rétrécissent et la liste des joueurs de Roblox est cachée.
+-- (« PhoneHud » sur le Workspace : pour l'essayer sur un PC.)
+local small = false
+local refreshStatsNow: (() -> ())? = nil
+local sideScale = Instance.new("UIScale")
+sideScale.Parent = side
 local function refreshLuck()
 	local luck = player:GetAttribute("PetLuck") or 0
-	luckLabel.Text = if (player:GetAttribute("Pet") or "") ~= "" then tr("luckHud", luck) else tr("luckHudNone")
+	local following = (player:GetAttribute("Pet") or "") ~= ""
+	if small then
+		luckLabel.Text = if following then tr("luckShort", luck) else tr("luckShortNone")
+	else
+		luckLabel.Text = if following then tr("luckHud", luck) else tr("luckHudNone")
+	end
 end
+local function applyHud()
+	local view = workspace.CurrentCamera.ViewportSize
+	small = workspace:GetAttribute("PhoneHud") == true or (UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled) or view.Y < 520
+	-- Téléphone : les pièces en haut à droite ; à gauche, seulement trois petites pastilles (icône + nombre) et la
+	-- chance.
+	sideScale.Scale = if small then 0.8 else 1
+	wallet.Parent = if small then gui else side
+	wallet.AnchorPoint = if small then Vector2.new(1, 0) else Vector2.zero
+	wallet.Position = if small then UDim2.new(1, -6, 0, 2) else UDim2.fromOffset(0, 0)
+	walletScale.Scale = if small then 0.7 else 1
+	for i, pill in statPills do
+		pill.Size = if small then UDim2.fromOffset(118, 34) else UDim2.fromOffset(170, 36)
+		pill.Position = if small then UDim2.fromOffset(2, (i - 1) * 40) else UDim2.fromOffset(2, 12 + i * 44)
+	end
+	luckPill.Size = if small then UDim2.fromOffset(118, 34) else UDim2.fromOffset(230, 40)
+	luckPill.Position = if small then UDim2.fromOffset(2, 3 * 40) else UDim2.fromOffset(2, 12 + 4 * 44)
+	side.Size = if small then UDim2.fromOffset(130, 156) else UDim2.fromOffset(240, 236)
+	if refreshStatsNow then
+		refreshStatsNow()
+	end
+	for _, name in { "EggButton", "PawButton" } do
+		local button = gui:FindFirstChild(name)
+		if button then
+			local scale = button:FindFirstChildOfClass("UIScale") or Instance.new("UIScale")
+			scale.Scale = if small then 0.78 else 1
+			scale.Parent = button
+		end
+	end
+	pcall(function()
+		StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.PlayerList, not small)
+	end)
+	refreshLuck()
+end
+workspace:GetAttributeChangedSignal("PhoneHud"):Connect(applyHud)
+task.defer(applyHud)
+task.delay(3, applyHud)
 player:GetAttributeChangedSignal("PetLuck"):Connect(refreshLuck)
 player:GetAttributeChangedSignal("Pet"):Connect(refreshLuck)
 refreshLuck()
@@ -320,9 +380,11 @@ end
 -- Les trois stats, en gros nombres.
 local function refreshStats()
 	for _, name in Config.MACHINES do
-		statLabels[name].Text = tr("stat" .. name) .. "  " .. compact(player:GetAttribute(name .. "Points") or 0)
+		local points = compact(player:GetAttribute(name .. "Points") or 0)
+		statLabels[name].Text = if small then STAT_ICONS[name] .. " " .. points else STAT_ICONS[name] .. " " .. tr("stat" .. name) .. "  " .. points
 	end
 end
+refreshStatsNow = refreshStats
 
 local function refresh()
 	refreshCoins()
@@ -398,15 +460,18 @@ task.spawn(function()
 		local luckRoom, luck = workspace:GetAttribute("LuckRoom") or 0, workspace:GetAttribute("Luck") or 1
 		cycleLabel.Visible = (player:GetAttribute("Room") or 0) == 0
 		if workspace:GetAttribute("CycleState") == "Closed" then
-			cycleLabel.Text = tr("cycleClosed", math.max(0, math.ceil(left)), Config.CYCLE.speed)
+			cycleLabel.Text = tr(if small then "cycleClosedShort" else "cycleClosed", math.max(0, math.ceil(left)), Config.CYCLE.speed)
 			cycleLabel.TextColor3 = Color3.fromRGB(255, 90, 90)
 		elseif luckRoom > 0 then
-			cycleLabel.Text = tr("cycleLuck", luckRoom, (luck - 1) * 100, shortClock(left))
+			cycleLabel.Text = tr(if small then "cycleLuckShort" else "cycleLuck", luckRoom, (luck - 1) * 100, shortClock(left))
 			cycleLabel.TextColor3 = Color3.fromRGB(255, 221, 51)
 		else
-			cycleLabel.Text = tr("cycleNext", shortClock(left))
+			cycleLabel.Text = tr(if small then "cycleNextShort" else "cycleNext", shortClock(left))
 			cycleLabel.TextColor3 = Color3.new(1, 1, 1)
 		end
+		-- Sur téléphone : une petite ligne, sous les boutons de Roblox.
+		cycleLabel.Size = if small then UDim2.new(0.5, 0, 0, 20) else UDim2.new(0.8, 0, 0, 30)
+		cycleLabel.Position = if small then UDim2.new(0.25, 0, 0, 2) else UDim2.new(0.1, 0, 0, 6)
 		for _, room in rooms:GetChildren() do
 			local sign = room:FindFirstChild("Sign")
 			local surface = sign and sign:FindFirstChildOfClass("SurfaceGui")

@@ -70,6 +70,10 @@ function Lava.plan(index: number, params, seed: number?)
 	local step = Config.stepHeight(params.jump)
 	local blocks = {} -- { kind, center (x, dessus, z), size }
 	local height = 0.6 * step -- première plateforme : on y monte depuis le sol
+	-- Réglages d'une salle FACILE (la salle 1, pour les enfants sur téléphone) : des trous plus courts (gap) et des
+	-- poutres plus larges (beam).
+	local maxGap = params.gap or MAX_GAP
+	local bigGap = math.min(BIG_GAP, maxGap)
 
 	local function add(kind: string, center: Vector3, along: Vector3, length: number, width: number)
 		local size = if math.abs(along.X) > 0.5 then Vector3.new(length, THICK, width) else Vector3.new(width, THICK, length)
@@ -103,9 +107,9 @@ function Lava.plan(index: number, params, seed: number?)
 		-- Trous égaux entre les morceaux ; s'ils seraient trop grands, les morceaux sont allongés.
 		local gap = (usable - total) / (#items + 1)
 		local stretch = 0
-		if gap > MAX_GAP then
-			stretch = (gap - MAX_GAP) * (#items + 1) / #items
-			gap = MAX_GAP
+		if gap > maxGap then
+			stretch = (gap - maxGap) * (#items + 1) / #items
+			gap = maxGap
 		end
 
 		local cursor = CORNER / 2
@@ -115,8 +119,8 @@ function Lava.plan(index: number, params, seed: number?)
 			local start = cursor + gap
 			if kind == "big" then
 				-- Allongée vers l'arrière pour raccourcir le saut.
-				start -= math.max(0, gap - BIG_GAP)
-				length += math.max(0, gap - BIG_GAP)
+				start -= math.max(0, gap - bigGap)
+				length += math.max(0, gap - bigGap)
 			end
 			if kind == "steps" then
 				local piece = (length - 5) / 3
@@ -126,7 +130,7 @@ function Lava.plan(index: number, params, seed: number?)
 				end
 			else
 				height += def.rise * step
-				add(kind, from + along * (start + length / 2), along, length, def.width)
+				add(kind, from + along * (start + length / 2), along, length, if kind == "beam" then params.beam or def.width else def.width)
 			end
 			cursor = start + length
 		end

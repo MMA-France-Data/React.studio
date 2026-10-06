@@ -58,6 +58,15 @@ return function(log)
 	workspace:SetAttribute("OpenPets", false)
 	task.wait(0.3)
 
+	-- L'écran allégé des téléphones.
+	workspace:SetAttribute("PhoneHud", true)
+	shot("telephone", from, target)
+	workspace:SetAttribute("PhoneHud", nil)
+	if workspace:GetAttribute("ShotsOnly") then
+		log("Info", "[SURVIVE] TEST:done")
+		return
+	end
+
 	-- 3. LES DÉCORS.
 	shot("lobby_haut", Vector3.new(0, 95, -175), Vector3.new(0, 0, -50))
 	shot("lobby_allee", Vector3.new(4, 12, -140), Vector3.new(0, 8, 30))

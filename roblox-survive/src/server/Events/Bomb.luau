@@ -19,7 +19,7 @@ function Bomb.new(ctx, params)
 	-- reconstruit quand la salle est redevenue vide, jamais sous les pieds d'un joueur.
 	Lava.course(ctx, params)
 	local top = ctx.room.finalTop
-	local fuse = math.min(params.fuse or Config.DURATION, Config.DURATION - 1)
+	local fuse = math.min(params.fuse or Config.DURATION, (ctx.room.def.duration or Config.DURATION) - 1)
 	local folder = ctx.room.folder
 
 	-- La bombe : une boule noire, sa mèche, une lumière rouge qui clignote, et le compte à rebours au-dessus.

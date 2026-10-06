@@ -122,7 +122,7 @@ local function begin(room)
 	for _, event in room.events do
 		event.start()
 	end
-	setState(room, "Event", Config.DURATION)
+	setState(room, "Event", room.def.duration or Config.DURATION)
 end
 
 local function win(room)
@@ -205,7 +205,7 @@ local function update(room, dt: number)
 		if solved then
 			-- Casse-tête réussi : la porte s'ouvre sans attendre la fin du temps.
 			win(room)
-		elseif room.elapsed >= Config.DURATION then
+		elseif room.elapsed >= (room.def.duration or Config.DURATION) then
 			for _, event in room.events do
 				failed = failed or (event.timeout ~= nil and event.timeout())
 			end
