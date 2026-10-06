@@ -240,6 +240,7 @@ ReplicatedStorage:WaitForChild("Notify").OnClientEvent:Connect(function(key: str
 		showToast(tr("win", a))
 	elseif key == "wireCut" then
 		showToast(tr("wireCut"))
+
 	elseif key == "maxed" then
 		showToast(tr("max"), Color3.fromRGB(255, 221, 51))
 	elseif key == "bought" then

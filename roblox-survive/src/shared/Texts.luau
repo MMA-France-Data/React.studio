@@ -74,6 +74,9 @@ Texts.fr = {
 	defuse = "Couper mon fil",
 	wireCut = "Fil coupé : tu es sauvé !",
 	Chase = "LE MONSTRE !",
+	Hunter = "LE PRÉDATEUR !",
+	hintHunter = "Il te chasse autour du bloc : cours (Maj) ! Au « ! » rouge il ressort devant toi : demi-tour !",
+	hunterName = "PRÉDATEUR",
 	hintChase = "Cours sans t'arrêter, en grands cercles ! (Maj ou COURIR)",
 	sprint = "COURIR",
 	Uncommon = "PEU COMMUN",
@@ -220,6 +223,9 @@ Texts.en = {
 	defuse = "Cut my wire",
 	wireCut = "Wire cut: you are safe!",
 	Chase = "THE MONSTER!",
+	Hunter = "THE PREDATOR!",
+	hintHunter = "It hunts you around the block: run (Shift)! At the red \"!\" it comes out in front of you: turn back!",
+	hunterName = "PREDATOR",
 	hintChase = "Keep running, in wide circles! (Shift or RUN)",
 	sprint = "RUN",
 	Uncommon = "UNCOMMON",
@@ -294,7 +300,7 @@ Texts.en = {
 	duplicate = "%s %s already found: +%s coins",
 }
 
-Texts.ICONS = { Bomb = "💣", Lava = "🌋", Meteors = "☄️", Explosions = "💥", Ceiling = "💪", Melody = "🎵", Chase = "👹" }
+Texts.ICONS = { Bomb = "💣", Lava = "🌋", Meteors = "☄️", Explosions = "💥", Ceiling = "💪", Melody = "🎵", Chase = "👹", Hunter = "🐺" }
 
 -- 1 500 -> « 1 500 » (français) ou « 1,500 » (anglais).
 function Texts.number(lang: string, value: number): string

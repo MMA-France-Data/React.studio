@@ -103,6 +103,13 @@ function Config.chaseSpeed(level: number): number
 	return Config.walkSpeed(level - 1) * 1.05
 end
 
+-- VITESSE (le prédateur) : vitesse du prédateur dans une salle faite pour une vitesse de palier `level`. Il va 2 %
+-- moins vite qu'un joueur de ce palier qui court (qui le distance lentement), et 13 % plus vite qu'un joueur du
+-- palier d'en dessous (qu'il rattrape en une vingtaine de secondes).
+function Config.hunterSpeed(level: number): number
+	return Config.walkSpeed(level) * 0.98
+end
+
 Config.RUSH_SLACK = 1.06
 function Config.rushSeconds(level: number, distance: number): number
 	return distance / Config.walkSpeed(level) * Config.RUSH_SLACK
@@ -167,7 +174,7 @@ Config.DAMAGE = {
 --   salle 10      : saut palier 5 (20 000 000) et force palier 4.
 Config.ROOMS = {
 	{ egg = "Dragon", need = {}, events = { "Bomb" }, Bomb = { segments = 3, jump = 0, fuse = 60, hold = 3 } },
-	{ egg = "Rock", need = { Speed = 1 }, events = { "Meteors" }, Meteors = { rush = { level = 1, rest = 3.5 } } },
+	{ egg = "Rock", need = { Speed = 1 }, events = { "Hunter" }, Hunter = { level = 1 } },
 	{ egg = "Rabbit", need = {}, events = { "Explosions" }, Explosions = { every = 4.5, warn = 2.2, safe = 6 } },
 	{
 		egg = "Golem",

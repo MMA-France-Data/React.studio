@@ -103,6 +103,10 @@ return function(log)
 		if def.Lava or def.Bomb then
 			return room.pillars[#room.pillars] + Vector3.new(0, 4, 0)
 		end
+		if def.Hunter then
+			-- Dans le couloir, près de l'entrée (le milieu de la salle est un rocher).
+			return Vector3.new(room.center.X, 4, room.zMin + 8)
+		end
 		return room.center + Vector3.new(0, 4, 0)
 	end
 	-- Appuie sur E `rate` fois par seconde (du temps de la salle) tant que l'événement dure. Le nombre d'appuis suit
@@ -173,7 +177,12 @@ return function(log)
 			check(D("Defuse", index) == true and player:GetAttribute("BombCut") == index, `salle {index} : en haut, le joueur coupe son fil`)
 			check(D("Defuse", index) == false, `salle {index} : on ne coupe son fil qu'une fois`)
 		end
-		if snap and not def.Bomb then
+		if def.Hunter and snap then
+			waitElapsed(index, 3)
+			local spot = safeSpot(index, room)
+			shot("salle" .. index, spot + Vector3.new(-22, 14, -4), room.center + Vector3.new(-18, 3, -22))
+		end
+		if snap and not def.Bomb and not def.Hunter then
 			waitElapsed(index, if def.Ceiling then 44 else 34)
 			local spot = safeSpot(index, room)
 			if def.Ceiling then
@@ -390,15 +399,14 @@ return function(log)
 	-- les familiers ne bougent plus).
 	task.wait(8)
 
-	-- Salle 2 (météorites) : rester immobile fait perdre de la vie.
+	-- Salle 2 (le prédateur) : un joueur qui ne bouge pas est attrapé.
 	enter(2)
-	local _, meteorHumanoid = alive()
-	limit = os.clock() + 40 / SCALE
-	while meteorHumanoid.Health >= 100 and os.clock() < limit do
+	local _, preyHumanoid = alive()
+	limit = os.clock() + 30 / SCALE
+	while preyHumanoid.Health > 0 and os.clock() < limit do
 		task.wait(0.05)
 	end
-	check(meteorHumanoid.Health < 100, "salle 2 : une météorite blesse un joueur immobile", meteorHumanoid.Health)
-	meteorHumanoid.Health = 0
+	check(preyHumanoid.Health <= 0, "salle 2 : le prédateur attrape un joueur immobile", D("Room", 2).elapsed)
 	waitState(2, "Idle", 3)
 	winRoom(2, true)
 
@@ -601,7 +609,8 @@ return function(log)
 		waitState(index, "Idle", 3)
 		return survived, waves
 	end
-	for _, case in { { 2, 1 } } do
+	-- (Plus aucune salle n'a la grande pluie pour l'instant : la salle 2 est devenue le prédateur.)
+	for _, case in {} :: { { number } } do
 		local index, level = case[1], case[2]
 		local survived, waves = rushRun(index, Config.walkSpeed(level))
 		check(survived and waves >= 3, `salle {index} : la vitesse du niveau {level} suffit pour 3 grandes pluies`, waves)

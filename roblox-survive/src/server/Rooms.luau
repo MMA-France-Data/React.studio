@@ -23,6 +23,7 @@ local EVENTS = {
 	Melody = require(script.Parent.Events.Melody),
 	Chase = require(script.Parent.Events.Chase),
 	Bomb = require(script.Parent.Events.Bomb),
+	Hunter = require(script.Parent.Events.Hunter),
 }
 
 local Rooms = {}

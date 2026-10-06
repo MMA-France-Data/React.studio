@@ -492,10 +492,112 @@ return function(env)
 		end
 	end
 
+	-- LE PRÉDATEUR -------------------------------------------------------------------------------------------------------
+	-- Le serveur déplace un bloc invisible « Hunter » par joueur (attribut Owner) et pose un bloc « HunterExit » là où
+	-- le prédateur va ressortir de son terrier. Chacun joue seul : on ne dessine que SON prédateur, et pendant la
+	-- chasse les autres joueurs de la salle sont cachés.
+	local hunters = {} -- [bloc] = { pet, shown }
+	local exits = {} -- [bloc] = true : son « ! » est posé
+	local hidden = {} -- [personnage] = true : caché pendant la chasse
+	local function setHidden(character: Model, hide: boolean)
+		for _, item in character:GetDescendants() do
+			if item:IsA("BasePart") or item:IsA("Decal") then
+				item.LocalTransparencyModifier = if hide then 1 else 0
+			end
+		end
+		local humanoid = character:FindFirstChildOfClass("Humanoid")
+		if humanoid then
+			humanoid.DisplayDistanceType = if hide then Enum.HumanoidDisplayDistanceType.None else Enum.HumanoidDisplayDistanceType.Viewer
+		end
+	end
+	local function stepHunters(dt: number)
+		local hunting = false
+		for _, part in CollectionService:GetTagged("Hunter") do
+			if part:GetAttribute("Owner") == player.UserId and part:IsDescendantOf(workspace) then
+				hunting = true
+				if not hunters[part] then
+					local pet = create("Wolf", 1, true, 3.4)
+					pet.model.Name = "Hunter"
+					local top, bottom = tag(pet.model.PrimaryPart, pet.half + 2.6)
+					top.Text = tr("hunterName")
+					top.TextColor3 = RED
+					bottom.Text = ""
+					local light = Instance.new("PointLight")
+					light.Color = Color3.fromRGB(255, 50, 50)
+					light.Range = 16
+					light.Brightness = 1.5
+					light.Parent = pet.model.PrimaryPart
+					hunters[part] = { pet = pet, shown = part.CFrame }
+				end
+			end
+		end
+		for part, item in hunters do
+			if not part:IsDescendantOf(workspace) then
+				item.pet.model:Destroy()
+				hunters[part] = nil
+				continue
+			end
+			if part:GetAttribute("Hidden") then
+				-- Dans son terrier : rangé sous le sol.
+				item.shown = part.CFrame
+				item.pet.model:PivotTo(CFrame.new(part.Position.X, -80, part.Position.Z))
+				continue
+			end
+			-- Le bloc arrive par à-coups du serveur : on le suit en douceur (et d'un coup s'il ressort ailleurs).
+			local far = (part.Position - item.shown.Position).Magnitude > 12
+			item.shown = if far then part.CFrame else item.shown:Lerp(part.CFrame, 1 - math.exp(-18 * dt))
+			-- Le bloc est à 2 studs du sol : le prédateur a les pattes par terre.
+			animate(item.pet, item.shown * CFrame.new(0, item.pet.half - 2, 0), part:GetAttribute("Moving") == true, dt)
+		end
+		-- La sortie du terrier : un grand « ! » rouge, visible à travers le rocher.
+		for _, part in CollectionService:GetTagged("HunterExit") do
+			if part:GetAttribute("Owner") == player.UserId and part:IsDescendantOf(workspace) and not exits[part] then
+				exits[part] = true
+				local gui = Instance.new("BillboardGui")
+				gui.Name = "Warning"
+				gui.Size = UDim2.fromScale(16, 16)
+				gui.StudsOffsetWorldSpace = Vector3.new(0, 7, 0)
+				gui.AlwaysOnTop = true
+				gui.MaxDistance = 300
+				gui.AutoLocalize = false
+				gui.Parent = part
+				local mark = env.text(gui, "Mark", UDim2.fromScale(1, 1), UDim2.fromScale(0, 0), RED)
+				mark.Text = "!"
+				local sound = Instance.new("Sound")
+				sound.SoundId = "rbxasset://sounds/bass.wav"
+				sound.Volume = 1.2
+				sound.PlaybackSpeed = 0.6
+				sound.Parent = part
+				sound:Play()
+			end
+		end
+		for part in exits do
+			if not part:IsDescendantOf(workspace) then
+				exits[part] = nil
+			end
+		end
+		-- Pendant sa chasse, le joueur ne voit pas les autres joueurs de la salle.
+		local room = player:GetAttribute("Room") or 0
+		for _, other in Players:GetPlayers() do
+			local character = other.Character
+			if other ~= player and character then
+				local hide = hunting and (other:GetAttribute("Room") or 0) == room
+				if hide then
+					hidden[character] = true
+					setHidden(character, true)
+				elseif hidden[character] then
+					hidden[character] = nil
+					setHidden(character, false)
+				end
+			end
+		end
+	end
+
 	RunService.RenderStepped:Connect(function(dt)
 		stepPlayers(dt)
 		stepPens(dt)
 		stepChasers(dt)
+		stepHunters(dt)
 	end)
 
 	-- LES BOUTONS DE DROITE ET LEURS PANNEAUX ---------------------------------------------------------------------------

@@ -65,6 +65,7 @@ return function(_world)
 				pillars = pillars,
 				melody = room.melody,
 				rush = room.rush,
+				hunter = room.hunter,
 				chaser = room.chaser,
 				melodyPads = (function()
 					local list = {}
