@@ -200,9 +200,9 @@ Config.DAMAGE = {
 --   salle 9       : saut palier 4 (1 000 000).
 --   salle 10      : saut palier 5 (20 000 000) et force palier 4.
 Config.ROOMS = {
-	-- Salle 1 FACILE (sa copine ne la passait pas sur téléphone : « des enfants, ça sera pas mieux ») : 90 secondes
-	-- au lieu de 60, des trous de 3,5 au lieu de 5,5 et des poutres de 4,5 de large au lieu de 2,2.
-	{ egg = "Dragon", need = {}, events = { "Bomb" }, duration = 91, Bomb = { segments = 3, jump = 0, fuse = 90, hold = 3, gap = 3.5, beam = 4.5 } },
+	-- Salle 1 FACILE (sa copine ne la passait pas sur téléphone : « des enfants, ça sera pas mieux ») : des trous de
+	-- 3,5 au lieu de 5,5 et des poutres de 4,5 de large au lieu de 2,2. Elle reste à 1 minute (« laisse 1 mn »).
+	{ egg = "Dragon", need = {}, events = { "Bomb" }, Bomb = { segments = 3, jump = 0, fuse = 60, hold = 3, gap = 3.5, beam = 4.5 } },
 	-- (points : ce que la salle demande, en POINTS de stat, quand ce n'est pas un palier rond : c'est ce nombre qui
 	-- est écrit sur son panneau. Demandes du joueur : 150 de vitesse pour la salle 2.)
 	{ egg = "Rock", need = { Speed = 1 }, points = { Speed = 150 }, events = { "Hunter" }, Hunter = { level = Config.levelOf(150) } },
