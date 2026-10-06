@@ -64,8 +64,9 @@ local COLORS = {
 
 -- Calcule le parcours d'une salle sans rien construire : la liste des blocs et la hauteur du sommet.
 -- (World s'en sert pour la hauteur des murs.)
-function Lava.plan(index: number, params)
-	local random = Random.new(1000 + index)
+-- seed : pour tirer un autre parcours que celui de la salle (la bombe en change à chaque manche).
+function Lava.plan(index: number, params, seed: number?)
+	local random = Random.new(seed or (1000 + index))
 	local step = Config.stepHeight(params.jump)
 	local blocks = {} -- { kind, center (x, dessus, z), size }
 	local height = 0.6 * step -- première plateforme : on y monte depuis le sol
@@ -137,12 +138,20 @@ end
 
 -- Construit le parcours de la salle (sans lave). Note dans la salle ses plateformes (pillars) et la dernière
 -- (finalTop). Renvoie le plan (voir Lava.plan).
-function Lava.course(ctx, params)
-	local plan = Lava.plan(ctx.room.index, params)
+-- Appelée une 2e fois (avec un autre `seed`), elle enlève l'ancien parcours et en construit un nouveau.
+function Lava.course(ctx, params, seed: number?)
+	local plan = Lava.plan(ctx.room.index, params, seed)
 	local theme = Themes.of(ctx.room.index)
+	if ctx.room.course then
+		ctx.room.course:Destroy()
+	end
+	local course = Instance.new("Model")
+	course.Name = "Course"
+	course.Parent = ctx.static
+	ctx.room.course = course
 	local dressing = Instance.new("Model")
 	dressing.Name = "CourseDecor"
-	dressing.Parent = ctx.static
+	dressing.Parent = course
 	local tops = {}
 	local counts = {}
 	for i, block in plan.blocks do
@@ -154,7 +163,7 @@ function Lava.course(ctx, params)
 			counts[block.kind] = (counts[block.kind] or 0) + 1
 			color = COLORS[block.kind][counts[block.kind] % #COLORS[block.kind] + 1]
 		end
-		local platform = Build.part(ctx.static, "Course" .. i, block.size, center, color, material)
+		local platform = Build.part(course, "Course" .. i, block.size, center, color, material)
 		Themes.platform(dressing, platform, block.kind, theme, i)
 		tops[i] = ctx.center + block.top
 	end

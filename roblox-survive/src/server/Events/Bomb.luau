@@ -15,6 +15,8 @@ local EXPLOSION_SOUND = "rbxasset://sounds/impact_explosion_03.mp3"
 
 function Bomb.new(ctx, params)
 	local self = {}
+	-- LE PARCOURS CHANGE À CHAQUE MANCHE (le joueur : « que le parcours soit à chaque fois différent »). Il est
+	-- reconstruit quand la salle est redevenue vide, jamais sous les pieds d'un joueur.
 	Lava.course(ctx, params)
 	local top = ctx.room.finalTop
 	local fuse = math.min(params.fuse or Config.DURATION, Config.DURATION - 1)
@@ -23,7 +25,7 @@ function Bomb.new(ctx, params)
 	-- La bombe : une boule noire, sa mèche, une lumière rouge qui clignote, et le compte à rebours au-dessus.
 	local shell = Build.part(ctx.static, "Bomb", Vector3.new(4.4, 4.4, 4.4), top + Vector3.new(0, 2.4, 0), Color3.fromRGB(28, 28, 34))
 	shell.Shape = Enum.PartType.Ball
-	Build.part(ctx.static, "BombCap", Vector3.new(1.2, 0.8, 1.2), top + Vector3.new(0, 4.8, 0), Color3.fromRGB(120, 124, 134), Enum.Material.Metal)
+	local cap = Build.part(ctx.static, "BombCap", Vector3.new(1.2, 0.8, 1.2), top + Vector3.new(0, 4.8, 0), Color3.fromRGB(120, 124, 134), Enum.Material.Metal)
 	local spark = Build.part(ctx.static, "BombSpark", Vector3.new(0.7, 0.7, 0.7), top + Vector3.new(0, 5.6, 0), Color3.fromRGB(255, 60, 40), Enum.Material.Neon)
 	spark.Shape = Enum.PartType.Ball
 	spark.CanCollide = false
@@ -56,6 +58,41 @@ function Bomb.new(ctx, params)
 	prompt.Enabled = false
 	prompt:SetAttribute("Kind", "Bomb")
 	prompt.Parent = shell
+
+	-- Tire un nouveau parcours et repose la bombe en haut.
+	local random = Random.new()
+	local rebuilding = false
+	local function reroll()
+		Lava.course(ctx, params, random:NextInteger(1, 1e9))
+		local summit = ctx.room.finalTop
+		shell.Position = summit + Vector3.new(0, 2.4, 0)
+		cap.Position = summit + Vector3.new(0, 4.8, 0)
+		spark.Position = summit + Vector3.new(0, 5.6, 0)
+	end
+	-- Attend que la salle soit vide (état « Idle », plus personne dedans) pour changer le parcours.
+	local function rerollWhenEmpty()
+		if rebuilding then
+			return
+		end
+		rebuilding = true
+		task.spawn(function()
+			while true do
+				task.wait(0.5)
+				local occupied = false
+				for _, player in game:GetService("Players"):GetPlayers() do
+					local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+					if root and math.abs(root.Position.X) <= ctx.halfX and math.abs(root.Position.Z - ctx.center.Z) <= ctx.halfZ then
+						occupied = true
+					end
+				end
+				if ctx.room.state == "Idle" and not occupied then
+					reroll()
+					break
+				end
+			end
+			rebuilding = false
+		end)
+	end
 
 	local cut = {} -- [joueur] = true quand il a coupé son fil
 	local running, exploded = false, false
@@ -146,6 +183,7 @@ function Bomb.new(ctx, params)
 	end
 
 	function self.stop()
+		rerollWhenEmpty()
 		running = false
 		prompt.Enabled = false
 		gui.Enabled = false
