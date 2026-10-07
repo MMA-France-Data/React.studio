@@ -11,7 +11,12 @@ return function(log)
 		task.wait(0.1)
 	end
 	task.wait(3)
-	for _, sword in { 4, 5, 6 } do
+	-- Le stand des epees, contre le mur de la grande porte.
+	workspace:SetAttribute("ShotCam", CFrame.lookAt(Vector3.new(-2, 8, 2), Vector3.new(-16, 6, 26)))
+	task.wait(0.9)
+	log("Info", "SHOT:photo_stand")
+	task.wait(1.2)
+	for _, sword in {} do
 		debug:Invoke("Sword", sword)
 		task.wait(2.5)
 		local root = player.Character.HumanoidRootPart.Position

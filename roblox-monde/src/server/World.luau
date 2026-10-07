@@ -32,6 +32,7 @@ local WHITE = Color3.fromRGB(245, 245, 250)
 -- Où va le vrai stand des épées, et de combien de degrés il est tourné (pour que sa devanture regarde l'allée).
 local STAND_AT, STAND_TURN = Vector3.new(-16, 0, 24.6), 0
 local SELL_TURN = 0
+local WALL_Z = 29.2 -- la face du mur de la grande porte, du cote de la base
 
 -- Mur le long de l'axe X, à la profondeur z, avec le trou d'une porte au milieu.
 local function wallWithDoor(parent: Instance, z: number, halfX: number, height: number, color: Color3, material: Enum.Material?)
@@ -268,8 +269,20 @@ local function buildGym(parent: Instance)
 		end
 		local model = Instance.new("Model")
 		model.Name = name
+		-- (Le fichier enregistre peut contenir autre chose que le stand : les epees importees y etaient aussi, et le
+		-- stand se retrouvait minuscule et decale. On ne garde que les pieces dont le nom contient « Stand » ; s il
+		-- n y en a pas, la plus grosse piece.)
+		local named, biggest = false, nil
 		for _, item in container:GetDescendants() do
 			if item:IsA("BasePart") then
+				named = named or string.find(item.Name, "Stand") ~= nil
+				if not biggest or item.Size.Magnitude > biggest.Size.Magnitude then
+					biggest = item
+				end
+			end
+		end
+		for _, item in container:GetDescendants() do
+			if item:IsA("BasePart") and (if named then string.find(item.Name, "Stand") ~= nil else item == biggest) then
 				local part = item:Clone()
 				part.Anchored = true
 				part.CanQuery = false
@@ -280,11 +293,29 @@ local function buildGym(parent: Instance)
 		if #model:GetChildren() == 0 then
 			return false
 		end
-		local _, measured = model:GetBoundingBox()
-		model:ScaleTo(13 / measured.Y)
-		model:PivotTo(CFrame.new(at) * CFrame.Angles(0, math.rad(turn), 0))
-		local box, size = model:GetBoundingBox()
-		model:PivotTo(model:GetPivot() + Vector3.new(at.X - box.Position.X, size.Y / 2 - box.Position.Y, at.Z - box.Position.Z))
+		-- La vraie boite du stand, dans les axes du monde (celle de GetBoundingBox suit le pivot du modele, qui peut
+		-- etre penche : le stand se retrouvait en l air et decale).
+		local function bounds(): (Vector3, Vector3)
+			local low, high = Vector3.one * math.huge, Vector3.one * -math.huge
+			for _, part in model:GetChildren() do
+				local half = part.Size / 2
+				for _, x in { -1, 1 } do
+					for _, y in { -1, 1 } do
+						for _, z in { -1, 1 } do
+							local corner = part.CFrame:PointToWorldSpace(Vector3.new(x * half.X, y * half.Y, z * half.Z))
+							low, high = low:Min(corner), high:Max(corner)
+						end
+					end
+				end
+			end
+			return low, high
+		end
+		local low, high = bounds()
+		model:ScaleTo(13 / (high.Y - low.Y))
+		model:PivotTo(CFrame.Angles(0, math.rad(turn), 0) * model:GetPivot())
+		low, high = bounds()
+		-- Pose sur le sol, centre sur `at`, le dos contre le mur de la grande porte (z = WALL_Z).
+		model:PivotTo(model:GetPivot() + Vector3.new(at.X - (low.X + high.X) / 2, -low.Y, WALL_Z - 0.3 - high.Z))
 		model.Parent = gym
 		return true
 	end
