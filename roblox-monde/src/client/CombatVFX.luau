@@ -22,7 +22,11 @@ local function visible(position: Vector3): boolean
 	return camera ~= nil and (camera.CFrame.Position - position).Magnitude <= 85
 end
 local function color(tier: number, index: number?): Color3
-	return Palette.color(tier, if index then index * 0.16 else nil)
+	local id = Palette.gameOrder[math.clamp(tier, 1, #Palette.gameOrder)]
+	if id == "Fusion" and index then
+		id = if index % 2 == 0 then "Frost" else "Flame"
+	end
+	return Palette.color(id, if index then index * 0.16 else nil)
 end
 local function piece(): Part
 	local p = Instance.new("Part")

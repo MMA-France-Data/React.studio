@@ -1,6 +1,7 @@
 -- Blade-local elemental VFX. No mesh, texture, grip or gameplay is modified.
 -- Uses Roblox's bundled particle textures: no uploads or third-party scripts.
 local Input = game:GetService("UserInputService")
+local Wisp = require(script.Parent.SwordWispProfile)
 local Aura = {}
 local MOBILE = Input.TouchEnabled
 local CAP = if MOBILE then 6 else 16
@@ -28,7 +29,7 @@ local GLOW_COLORS = {
 		ColorSequenceKeypoint.new(0.3, COLORS.Storm), ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 171, 0)) }),
 }
 function Aura.supports(id: string): boolean
-	return COLORS[id] ~= nil
+	return Wisp.groups[id] ~= nil or COLORS[id] ~= nil
 end
 local function curve(values)
 	local keys = {}
@@ -72,8 +73,59 @@ local function emitter(state, point, name, texture, rate, color): ParticleEmitte
 	table.insert(state.emitters, { item = item, rate = item.Rate })
 	return item
 end
+-- Small detached wisps, NOT the wide boosted halo used by the older swords.
+-- Calibrated hot/cold markers follow the real colored regions of this mesh.
+local function wisps(model: Model, id: string, base: Attachment, tip: Attachment)
+	local state = {
+		id = id, primary = model.PrimaryPart, base = base, tip = tip,
+		owned = {}, beams = {}, emitters = {}, points = {}, bolts = {}, time = 0,
+		visible = false, disposed = false,
+	}
+	state.folder = Instance.new("Folder")
+	state.folder.Name, state.folder.Parent = id .. "BladeWisps", model
+	allocated += 1
+	local count = if MOBILE then 3 else 4
+	for i = 1, count do
+		-- The mobile subset spans the whole blade as well (1, 2, 4).
+		local index = if MOBILE and i == 3 then 4 else i
+		local fraction = Wisp.fractions[index]
+		for _, group in Wisp.groups[id] do
+			local side = group.name
+			local at = anchor(state, id .. side .. "WispPoint" .. index)
+			local marker = model:FindFirstChild("Aura" .. side .. index, true)
+			if marker and marker:IsA("Attachment") then
+				at.CFrame = state.primary.CFrame:ToObjectSpace(marker.WorldCFrame)
+			else
+				-- Safe fallback for a manually imported model without color markers.
+				local localBase = state.primary.CFrame:PointToObjectSpace(base.WorldPosition)
+				local localTip = state.primary.CFrame:PointToObjectSpace(tip.WorldPosition)
+				at.Position = localBase:Lerp(localTip, fraction)
+					+ Vector3.new(0, if side == "Hot" then -0.10 else 0.10, 0)
+			end
+			local color = ColorSequence.new({
+				ColorSequenceKeypoint.new(0, Color3.fromRGB(table.unpack(group.first))),
+				ColorSequenceKeypoint.new(1, Color3.fromRGB(table.unpack(group.last))),
+			})
+			local puff = emitter(state, at, id .. side .. "Wisp", TEXTURES.mist, Wisp.rate, color)
+			-- Mobile throttling is explicit here and covered by the budget tests.
+			local rate = Wisp.rate * (if MOBILE then Wisp.mobileRate else 1)
+			puff.Rate, state.emitters[#state.emitters].rate = rate, rate
+			puff.Lifetime, puff.Speed = NumberRange.new(table.unpack(Wisp.lifetime)), NumberRange.new(table.unpack(Wisp.speed))
+			puff.Size, puff.Transparency = curve(Wisp.size), curve(Wisp.transparency)
+			puff.Rotation, puff.RotSpeed = NumberRange.new(0, 360), NumberRange.new(-65, 65)
+			puff.SpreadAngle = Vector2.new(45, 45)
+			-- Once born, a wisp is left in space and fades there instead of being
+			-- dragged rigidly by the sword or sticking to the character's hand.
+			puff.LockedToPart, puff.VelocityInheritance = Wisp.locked, Wisp.inheritance
+			puff.Acceleration, puff.Drag = Vector3.new(0, group.rise, 0), 0.55
+			puff.LightEmission, puff.LightInfluence, puff.ZOffset = 0.6, 0.2, 0
+		end
+	end
+	return state
+end
 function Aura.create(model: Model, id: string, base: Attachment, tip: Attachment)
 	if not Aura.supports(id) or allocated >= CAP or not model.PrimaryPart then return nil end
+	if Wisp.groups[id] then return wisps(model, id, base, tip) end
 	local state = {
 		id = id, primary = model.PrimaryPart, base = base, tip = tip,
 		owned = {}, beams = {}, emitters = {}, points = {}, bolts = {}, time = 0,
@@ -197,6 +249,9 @@ function Aura.update(state, dt: number, visible: boolean, swinging: boolean, cle
 		entry.item.Rate = entry.rate * (if swinging then 1.25 else 1)
 	end
 	for _, ray in state.beams do ray.Enabled = visible end
+	-- Fusion only has detached particles: no long Beam, cone, orbiting parts,
+	-- point light or BOOST. Existing visibility and teleport clearing still apply.
+	if Wisp.groups[state.id] then return end
 	if not visible then state.light.Brightness = 0; return end
 	local primary, a, b = state.primary, state.base.WorldPosition, state.tip.WorldPosition
 	local length = (b - a).Magnitude

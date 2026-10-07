@@ -6,14 +6,17 @@ local Palette = require(script.Parent.SwordPalette)
 local Storage = game:GetService("ReplicatedStorage")
 Swords.SIZE = 1.6
 function Swords.tier(level: number): number
-	return math.clamp(math.floor(level), 1, #DESIGNS)
+	return math.clamp(math.floor(level), 1, #Palette.gameOrder)
+end
+function Swords.dual(tier: number): boolean
+	return Palette.gameOrder[Swords.tier(tier)] == "Void"
 end
 function Swords.build(tier: number, parent: Instance): Model
 	local data = DESIGNS[math.clamp(tier, 1, #DESIGNS)]
 	-- Optional calibrated Meshy imports. No mesh deformation or re-generation.
 	local assets = Storage:FindFirstChild("SwordMeshes")
-	-- (Choix du joueur, 07/10/2026 : fer, acier, or, glace, feu, foudre ; l'arc-en-ciel reste de cote pour le moment.)
-	local order = { "Iron", "Steel", "Gold", "Frost", "Flame", "Storm" }
+	-- Fire/ice fusion follows Storm. Prismatic stays outside the shop progression.
+	local order = Palette.gameOrder
 	local wanted = order[math.clamp(tier, 1, #order)]
 	local template = assets and assets:FindFirstChild(wanted)
 	if template and template:IsA("Model") and template.PrimaryPart
@@ -40,6 +43,12 @@ function Swords.build(tier: number, parent: Instance): Model
 		imported.Parent = parent
 		Effects.attach(imported, wanted)
 		return imported
+	end
+	-- Until the new FBX has been imported in Studio, keep an existing real sword
+	-- rather than masquerading an unrelated primitive fallback as the Fusion mesh.
+	if wanted == "Fusion" or wanted == "Void" then
+		warn("[MONDE] " .. wanted .. " absente : importer Sword_" .. wanted .. ".fbx puis enregistrer SwordMeshes.rbxm")
+		return Swords.build(6, parent)
 	end
 	local model = Instance.new("Model")
 	model.Name = "Sword"

@@ -11,6 +11,8 @@
       "SwordGrip": { "$path": "../../../src/client/SwordGrip.luau" },
       "SwordEffects": { "$path": "../../../src/client/SwordEffects.luau" },
       "SwordElementalAura": { "$path": "../../../src/client/SwordElementalAura.luau" },
+      "SwordWispProfile": { "$path": "../../../src/client/SwordWispProfile.luau" },
+      "DualSwordMotion": { "$path": "../../../src/client/DualSwordMotion.luau" },
       "SwordVisuals": { "$path": "../../../src/client/SwordVisuals.luau" },
       "CombatMotion": { "$path": "../../../src/client/CombatMotion.luau" }
     },

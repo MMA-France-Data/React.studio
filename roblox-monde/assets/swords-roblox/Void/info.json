@@ -1,0 +1,56 @@
+{
+  "id": "Void",
+  "sourceFile": "Meshy_AI_Void_Shadow_Scimitar__1007232100_image-to-3d-texture.fbx",
+  "sourceSha256": "b8dc8f149755afca8576b33ee57da25be0faa39ef5f20e7a010435025e744a83",
+  "trianglesBefore": 172996,
+  "triangles": 18950,
+  "size": [
+    0.4367,
+    1.3474,
+    5.2
+  ],
+  "gripFromPommel": 0.819,
+  "gripAt": [
+    0,
+    0,
+    0
+  ],
+  "gripCrossOffset": [
+    -0.0013,
+    0.1861
+  ],
+  "trailBase": [
+    0.0004,
+    -0.0403,
+    -1.079
+  ],
+  "trailTip": [
+    -0.0008,
+    0.2716,
+    -4.381
+  ],
+  "markers": {
+    "AuraShadow1": [
+      -0.0267,
+      -0.3406,
+      -1.4708
+    ],
+    "AuraShadow2": [
+      0.0271,
+      -0.6722,
+      -2.2619
+    ],
+    "AuraShadow3": [
+      -0.0801,
+      -0.3582,
+      -3.0554
+    ],
+    "AuraShadow4": [
+      0.0859,
+      -0.4163,
+      -3.8515
+    ]
+  },
+  "preparation": "local Blender, source unchanged, no Meshy API calls",
+  "robloxImportCompleted": false
+}

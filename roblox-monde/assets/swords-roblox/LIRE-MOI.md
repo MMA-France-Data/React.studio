@@ -1,5 +1,9 @@
 # Les 7 épées, prêtes à importer dans Roblox Studio
 
+**Ajout du 8 octobre :** deux modèles supplémentaires, `Sword_Fusion.fbx` et `Sword_Void.fbx`, sont prêts dans
+`A-IMPORTER`. Leurs effets et la double prise de la lame violette sont branchés dans le code, mais leur import
+dans `SwordMeshes.rbxm` reste à faire. Voir [les instructions d'import et de vérification](AJOUTS-FUSION-VOID.md).
+
 Copies **allégées** des sources de `../swords-meshy` (qui ne sont pas modifiées), faites par
 `tools/swords/optimise.py` avec Blender :
 

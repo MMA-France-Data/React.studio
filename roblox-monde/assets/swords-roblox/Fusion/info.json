@@ -1,0 +1,76 @@
+{
+  "id": "Fusion",
+  "sourceFile": "Meshy_AI_Fire_Ice_Fusion_Sword_1007231009_image-to-3d-texture.fbx",
+  "sourceSha256": "0bb1af16ca522664de39a5cc3aff65ec4a7507c72c91b43cbca18edf577c173e",
+  "trianglesBefore": 320780,
+  "triangles": 18950,
+  "size": [
+    0.6382,
+    1.9477,
+    5.2
+  ],
+  "gripFromPommel": 0.91,
+  "gripAt": [
+    0,
+    0,
+    0
+  ],
+  "gripCrossOffset": [
+    0.0016,
+    0.0014
+  ],
+  "trailBase": [
+    0.0159,
+    -0.003,
+    -0.988
+  ],
+  "trailTip": [
+    0.0007,
+    0.0898,
+    -4.29
+  ],
+  "markers": {
+    "AuraHot1": [
+      -0.1683,
+      -0.0578,
+      -1.3831
+    ],
+    "AuraHot2": [
+      0.1175,
+      0.0061,
+      -2.1798
+    ],
+    "AuraHot3": [
+      -0.1388,
+      -0.0559,
+      -2.9653
+    ],
+    "AuraHot4": [
+      0.1204,
+      -0.0412,
+      -3.7541
+    ],
+    "AuraCold1": [
+      -0.1001,
+      0.1435,
+      -1.3899
+    ],
+    "AuraCold2": [
+      0.1302,
+      0.2061,
+      -2.1849
+    ],
+    "AuraCold3": [
+      -0.1725,
+      0.0721,
+      -2.9732
+    ],
+    "AuraCold4": [
+      0.0355,
+      0.24,
+      -3.7586
+    ]
+  },
+  "preparation": "local Blender, source unchanged, no Meshy API calls",
+  "robloxImportCompleted": false
+}

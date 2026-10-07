@@ -11,12 +11,13 @@
 --      dans roblox-monde/assets/swords-roblox sous le nom SwordMeshes.rbxm.
 -- Les épées importées restent dans le Workspace, intactes. On peut recliquer autant de fois qu'on veut.
 -- (Fichier installé dans %LOCALAPPDATA%\Roblox\Plugins par Claude ; l'original est dans roblox-monde/tools/swords.)
+-- Ajouts : Sword_Fusion et Sword_Void (18 950 triangles), prises calibrées et points de petites fumées.
 local ChangeHistoryService = game:GetService("ChangeHistoryService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Selection = game:GetService("Selection")
 
 local LENGTH = 5.2
-local ORDER = { "Iron", "Steel", "Gold", "Frost", "Flame", "Storm", "Prismatic" }
+local ORDER = { "Iron", "Steel", "Gold", "Frost", "Flame", "Storm", "Fusion", "Void", "Prismatic" }
 -- En studs : grip = du pommeau au milieu de la poignée ; base et tip = de la poignée au bas de la lame (un peu après
 -- la garde) et à la pointe.
 -- (Chiffres de assets/swords-roblox/RAPPORT.json, calculés par tools/swords/optimise.py.)
@@ -28,6 +29,22 @@ local INFO = {
 	Flame = { grip = 0.758, base = 1.008, tip = 4.442 },
 	Storm = { grip = 0.932, base = 1.182, tip = 4.268 },
 	Prismatic = { grip = 1.148, base = 1.398, tip = 4.052 },
+	Fusion = { grip = 0.910, cross = {0.0016, 0.0014}, base = {0.0159, -0.0030, -0.988}, tip = {0.0007, 0.0898, -4.290} },
+	Void = { grip = 0.819, cross = {-0.0013, 0.1861}, base = {0.0004, -0.0403, -1.079}, tip = {-0.0008, 0.2716, -4.381} },
+}
+-- Positions measured on the actual orange/cyan/violet texture regions. These
+-- are canonical offsets from the middle of the handle, not from the mesh bbox.
+local WISPS = {
+	Fusion = {
+		AuraHot1 = {-0.1683, -0.0578, -1.3831}, AuraHot2 = {0.1175, 0.0061, -2.1798},
+		AuraHot3 = {-0.1388, -0.0559, -2.9653}, AuraHot4 = {0.1204, -0.0412, -3.7541},
+		AuraCold1 = {-0.1001, 0.1435, -1.3899}, AuraCold2 = {0.1302, 0.2061, -2.1849},
+		AuraCold3 = {-0.1725, 0.0721, -2.9732}, AuraCold4 = {0.0355, 0.2400, -3.7586},
+	},
+	Void = {
+		AuraShadow1 = {-0.0267, -0.3406, -1.4708}, AuraShadow2 = {0.0271, -0.6722, -2.2619},
+		AuraShadow3 = {-0.0801, -0.3582, -3.0554}, AuraShadow4 = {0.0859, -0.4163, -3.8515},
+	},
 }
 
 local toolbar = plugin:CreateToolbar("MONDE")
@@ -91,6 +108,11 @@ local function arrange(name: string, source: Instance): Model
 	local info = INFO[name]
 	local pommel = main.Position - tip * (LENGTH / 2)
 	local at = pommel + tip * info.grip
+	if info.cross then
+		-- In particular, the curved Void blade's bbox is sideways from its
+		-- handle. Move the grip onto the real handle, not the bbox centerline.
+		at += tip:Cross(wide) * info.cross[1] + wide * info.cross[2]
+	end
 	local grip = Instance.new("Part")
 	grip.Name = "Grip"
 	grip.Size = Vector3.new(0.2, 0.2, 0.2)
@@ -106,8 +128,12 @@ local function arrange(name: string, source: Instance): Model
 	for key, distance in { TrailBase = info.base, TrailTip = info.tip } do
 		local point = Instance.new("Attachment")
 		point.Name = key
-		point.Position = Vector3.new(0, 0, -distance)
+		point.Position = if type(distance) == "table" then Vector3.new(table.unpack(distance)) else Vector3.new(0, 0, -distance)
 		point.Parent = grip
+	end
+	for key, position in WISPS[name] or {} do
+		local point = Instance.new("Attachment")
+		point.Name, point.Position, point.Parent = key, Vector3.new(table.unpack(position)), grip
 	end
 	return model
 end

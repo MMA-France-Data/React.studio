@@ -2,7 +2,7 @@
 -- Orientation belongs to the authored wrist (canonical blade axes -Z/Y/X).
 local Grip = {}
 function Grip.frame(hand: BasePart): CFrame
-	local socket = hand:FindFirstChild("RightGripAttachment")
+	local socket = hand:FindFirstChild(if hand.Name == "LeftHand" then "LeftGripAttachment" else "RightGripAttachment")
 	local position = if socket and socket:IsA("Attachment") then socket.WorldPosition
 		else hand.CFrame:PointToWorldSpace(Vector3.new(0, -0.25, 0))
 	return CFrame.new(position) * hand.CFrame.Rotation

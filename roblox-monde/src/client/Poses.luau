@@ -10,6 +10,7 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 
 local CombatMotion = require(script.Parent.CombatMotion)
+local DualMotion = require(script.Parent.DualSwordMotion)
 local SwordVisuals = require(script.Parent.SwordVisuals)
 local SwordGrip = require(script.Parent.SwordGrip)
 local CombatVFX = require(script.Parent.CombatVFX)
@@ -59,6 +60,7 @@ return function()
 		if state and state.sword then
 			state.sword:Destroy()
 		end
+		if state and state.swordLeft then state.swordLeft:Destroy() end
 		states[character] = nil
 	end
 
@@ -125,7 +127,13 @@ return function()
 			local stamp = other:GetAttribute("PunchAt") or 0
 			local sincePunch = now - stamp
 			local variant = CombatMotion.observeAttack(state, stamp, sincePunch)
-			local combat = if not carrying and not pressing then CombatMotion.sample(variant, sincePunch) else nil
+			local tier = SwordVisuals.tier(other:GetAttribute("Sword") or 1)
+			local dual = SwordVisuals.dual(tier)
+			local combat = nil
+			if not carrying and not pressing then
+				combat = if dual then DualMotion.sample(CombatMotion, variant, sincePunch)
+					else CombatMotion.sample(variant, sincePunch)
+			end
 			-- The slash now comes from the blade's actual Trail attachments.
 			-- No separately drawn root-centred arc; confirmed-hit FX stay in Main.
 
@@ -172,6 +180,12 @@ return function()
 					if wrist then
 						apply(wrist, wrist.Transform:Lerp(CFrame.Angles(math.rad(-4), 0, math.rad(-6)), guard))
 					end
+					if dual then
+						apply(leftShoulder, leftShoulder.Transform:Lerp(CFrame.Angles(math.rad(22 + sway), 0, math.rad(8)), guard))
+						if leftElbow then apply(leftElbow, leftElbow.Transform:Lerp(CFrame.Angles(math.rad(62), 0, 0), guard)) end
+						local leftWrist = joint(character, "LeftHand", "LeftWrist")
+						if leftWrist then apply(leftWrist, leftWrist.Transform:Lerp(CFrame.Angles(math.rad(-4), 0, math.rad(6)), guard)) end
+					end
 				end
 			end
 
@@ -185,17 +199,26 @@ return function()
 				end
 			end
 			local rightHand, leftHand = character:FindFirstChild("RightHand"), character:FindFirstChild("LeftHand")
-			local tier = SwordVisuals.tier(other:GetAttribute("Sword") or 1)
 			if rightHand and not carrying and not pressing then
 				if not state.sword or state.swordTier ~= tier then
 					if state.sword then state.sword:Destroy() end
+					if state.swordLeft then state.swordLeft:Destroy(); state.swordLeft = nil end
 					state.sword, state.swordTier = SwordVisuals.build(tier, workspace), tier
 				end
 				state.swordHand = rightHand
-				state.swordSwing = combat ~= nil and CombatMotion.trail(sincePunch)
+				local leftCut = dual and DualMotion.activeHand(variant) == "Left"
+				local cutting = combat ~= nil and CombatMotion.trail(sincePunch)
+				state.swordSwing = cutting and not leftCut
+				if dual and leftHand then
+					if not state.swordLeft then state.swordLeft = SwordVisuals.build(tier, workspace) end
+					state.swordLeftHand, state.swordLeftSwing = leftHand, cutting and leftCut
+				elseif state.swordLeft then
+					state.swordLeft:Destroy(); state.swordLeft = nil
+				end
 			elseif state.sword then
 				state.sword:Destroy()
 				state.sword = nil
+				if state.swordLeft then state.swordLeft:Destroy(); state.swordLeft = nil end
 			end
 
 			-- La barre du banc : entre les deux mains.
@@ -222,6 +245,10 @@ return function()
 			if state.sword and state.swordHand and state.swordHand.Parent then
 				SwordGrip.place(state.sword, state.swordHand)
 				SwordVisuals.update(state.sword, dt, state.swordSwing == true)
+			end
+			if state.swordLeft and state.swordLeftHand and state.swordLeftHand.Parent then
+				SwordGrip.place(state.swordLeft, state.swordLeftHand)
+				SwordVisuals.update(state.swordLeft, dt, state.swordLeftSwing == true)
 			end
 		end
 	end)
