@@ -101,9 +101,9 @@ end
 Pets.VALUE_PER_COIN = 1000
 -- Couvaison : secondes selon le rang, multipliées par (0,5 + numéro de la salle / 10).
 -- Exemples : commun de la salle 1 = 18 s ; super rare de la salle 1 = 12 min ; légendaire de la salle 10 = 15 min.
--- (Jeu « Monde » : bien plus court, le joueur trouvait le debut mou. Monde 1 : canard 5 s, coq 9 s, cochon 18 s,
--- mouton 36 s, chevre 1 min 12, familier du boss 3 min.)
-Pets.HATCH = { 8, 15, 30, 60, 120, 300 }
+-- (Son avis : ces temps sont bien ; et l'œuf d'un BOSS couve 1 heure, dans tous les mondes : HATCH_BOSS.)
+Pets.HATCH = { 30, 60, 150, 300, 600, 1200 }
+Pets.HATCH_BOSS = 3600
 
 -- L'ENCLOS : son niveau donne le nombre de places (niveau 1 = SPOTS_FREE places, +1 par niveau). Le prix de chaque
 -- place est CALCULÉ par tools/balance/machines.py, comme ceux des machines, sur ce que rapportent les familiers :
@@ -321,6 +321,9 @@ Pets.FEED = 0.75
 
 -- Temps de couvaison d'un œuf, en secondes.
 function Pets.hatchSeconds(room: number, rarity: number): number
+	if rarity >= 6 then
+		return Pets.HATCH_BOSS
+	end
 	return math.floor(Pets.HATCH[math.clamp(rarity, 1, #Pets.HATCH)] * (0.5 + room / 10) + 0.5)
 end
 
