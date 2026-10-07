@@ -856,6 +856,20 @@ if RunService:IsStudio() then
 		button.Text = "VISITER : tout ouvrir"
 		Instance.new("UICorner", button).CornerRadius = UDim.new(0, 8)
 		button.Parent = gui
+		-- LA MOLETTE change d epee (1 a 6), pour les essayer. Elle ne zoome donc plus la camera dans Studio (les
+		-- touches I et O zooment toujours). Le nom de l epee s affiche a chaque cran.
+		local swap = ReplicatedStorage:WaitForChild("DebugSword", 5)
+		if swap then
+			local names = { "Fer", "Acier", "Or", "Glace", "Feu", "Foudre" }
+			game:GetService("ContextActionService"):BindActionAtPriority("DebugSword", function(_, _, input)
+				swap:FireServer(if input.Position.Z > 0 then 1 else -1)
+				return Enum.ContextActionResult.Sink
+			end, false, 3000, Enum.UserInputType.MouseWheel)
+			player:GetAttributeChangedSignal("Sword"):Connect(function()
+				local sword = player:GetAttribute("Sword") or 1
+				showToast("Épée " .. sword .. " : " .. (names[sword] or "?"), GOLD)
+			end)
+		end
 		button.Activated:Connect(function()
 			visit:FireServer()
 			button.Text = "Tout est ouvert"

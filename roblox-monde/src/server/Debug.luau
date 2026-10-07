@@ -113,4 +113,16 @@ return function(world)
 		end
 	end)
 	visit.Parent = ReplicatedStorage
+
+	-- LA MOLETTE (dans Studio seulement) : passe a l epee suivante ou precedente, de 1 a 6, pour les essayer.
+	local swap = Instance.new("RemoteEvent")
+	swap.Name = "DebugSword"
+	swap.OnServerEvent:Connect(function(player, step)
+		local data = PlayerData.get(player)
+		if data and (step == 1 or step == -1) then
+			data.sword = (data.sword - 1 + step) % 6 + 1
+			PlayerData.changed(player)
+		end
+	end)
+	swap.Parent = ReplicatedStorage
 end
