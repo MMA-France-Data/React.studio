@@ -435,18 +435,57 @@ local function buildZone(parent: Instance, index: number, zMin: number)
 		end
 	end
 
-	-- Un panneau à l'entrée de chaque camp (l'animal et son niveau), et un devant l'arène du boss.
-	local function signpost(at: Vector3, key: string, color: Color3)
-		Build.part(folder, "SignPost", Vector3.new(0.8, 6, 0.8), at + Vector3.new(0, 3, 0), rgb(120, 80, 46), M.Wood).CanQuery = false
-		local board = Build.part(folder, "CampSign", Vector3.new(12, 6.4, 0.5), at + Vector3.new(0, 8.4, 0), rgb(24, 26, 36))
-		board.CanQuery = false
-		Build.sign(board, Enum.NormalId.Front, key, color)
-		Build.sign(board, Enum.NormalId.Back, key, color)
+	-- À L'ENTRÉE DE CHAQUE CAMP (et devant l'arène du boss) : un mât blanc avec, d'un côté, la BANNIÈRE de l'animal
+	-- (son niveau et son portrait) et, de l'autre, une pancarte en bois suspendue qui donne la CHANCE D'ŒUF de chaque
+	-- note (C, B, A, S) par monstre battu. Les dessins sont faits par l'écran de chaque joueur (étiquettes
+	-- « CampFlag » et « CampOdds ») ; ici, seulement les blocs.
+	local function signpost(at: Vector3, rank: number)
+		local def = Config.monster(index, rank)
+		local gold, white = rgb(240, 180, 50), rgb(246, 244, 238)
+		local function block(name: string, size: Vector3, offset: Vector3, color: Color3, material: Enum.Material?): Part
+			local part = Build.part(folder, name, size, at + offset, color, material)
+			part.CanQuery = false
+			part.CanCollide = false
+			return part
+		end
+		block("FlagPole", Vector3.new(0.8, 17, 0.8), Vector3.new(0, 8.5, 0), white).CanCollide = true
+		ball(folder, "FlagTop", 1.6, at + Vector3.new(0, 17.4, 0), gold)
+		block("FlagArm", Vector3.new(15, 0.6, 0.6), Vector3.new(0, 16, 0), gold)
+		for _, y in { 5.5, 11 } do
+			block("FlagRing", Vector3.new(1.2, 0.7, 1.2), Vector3.new(0, y, 0), gold)
+		end
+		-- La bannière, à droite du mât.
+		local flag = block("CampFlag", Vector3.new(6.4, 9.4, 0.2), Vector3.new(4, 11, 0), if rank == 6 then rgb(170, 40, 50) else rgb(44, 62, 176), M.Fabric)
+		flag:SetAttribute("Animal", Pets.COLLECTIONS[index][rank])
+		flag:SetAttribute("Rank", rank)
+		flag:SetAttribute("Level", def.level)
+		flag:SetAttribute("Boss", rank == 6)
+		flag:AddTag("CampFlag")
+		for _, sign in { -1, 1 } do
+			local tail = Instance.new("WedgePart")
+			tail.Name = "FlagTail"
+			tail.Anchored = true
+			tail.CanCollide = false
+			tail.CanQuery = false
+			tail.Size = Vector3.new(0.2, 2.2, 3.2)
+			tail.CFrame = CFrame.new(at + Vector3.new(4 + sign * 1.6, 5.2, 0)) * CFrame.Angles(0, math.rad(sign * 90), math.rad(180))
+			tail.Color = flag.Color
+			tail.Material = M.Fabric
+			tail.Parent = folder
+		end
+		-- La pancarte des chances, à gauche, suspendue par deux attaches.
+		local board = block("CampOdds", Vector3.new(5.6, 6.6, 0.4), Vector3.new(-4.2, 11.6, 0), rgb(176, 116, 62), M.WoodPlanks)
+		board:SetAttribute("Egg", def.egg)
+		board:AddTag("CampOdds")
+		for _, x in { -5.8, -2.6 } do
+			block("OddsHanger", Vector3.new(0.4, 1.3, 0.5), Vector3.new(x, 15.3, 0), rgb(120, 76, 40), M.Wood)
+		end
+		block("OddsTop", Vector3.new(6.2, 0.5, 0.6), Vector3.new(-4.2, 14.9, 0), gold)
 	end
 	for rank, camp in CAMPS do
-		signpost(Vector3.new(if camp[1] > 0 then 9 else -9, 0, zMin + camp[2] - 7), "camp|" .. Pets.COLLECTIONS[index][rank] .. "|" .. Config.monster(index, rank).level .. "|" .. math.floor(Config.monster(index, rank).egg * 100 + 0.5), rgb(255, 221, 51))
+		signpost(Vector3.new(if camp[1] > 0 then 10 else -10, 0, zMin + camp[2] - 7), rank)
 	end
-	signpost(Vector3.new(11, 0, zMin + BOSS_Z - ARENA - 4), "boss|" .. Pets.COLLECTIONS[index][6] .. "|" .. math.floor(Config.monster(index, 6).egg * 100 + 0.5), rgb(255, 90, 90))
+	signpost(Vector3.new(12, 0, zMin + BOSS_Z - ARENA - 4), 6)
 
 	-- Où naissent les monstres : CAMP_SIZE par camp, en rond ; et le boss au milieu de son arène.
 	local spawns = {}

@@ -84,6 +84,101 @@ for _, label in CollectionService:GetTagged("T") do
 	fill(label)
 end
 
+-- LES BANNIÈRES ET LES PANCARTES DES CAMPS ------------------------------------------------------------------------
+-- La bannière : « Niveau N » et le portrait de l'animal. La pancarte en bois : pour chaque note (C, B, A, S), la
+-- chance de trouver un œuf de cette note en battant un monstre de ce camp.
+local GRADE_COLORS = { C = Color3.fromRGB(214, 218, 228), B = Color3.fromRGB(120, 200, 255), A = Color3.fromRGB(120, 255, 120), S = Color3.fromRGB(255, 221, 51) }
+local function surface(part: BasePart, face: Enum.NormalId): SurfaceGui
+	local board = Instance.new("SurfaceGui")
+	board.Face = face
+	board.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+	board.PixelsPerStud = 40
+	board.AutoLocalize = false
+	board.LightInfluence = 0
+	-- (Range dans l ecran du joueur et accroche au bloc : un portrait en 3D ne s affiche que la.)
+	board.Name = "Camp_" .. part.Name
+	board.ResetOnSpawn = false
+	board.Adornee = part
+	board.Parent = player:WaitForChild("PlayerGui")
+	return board
+end
+local function campText(parent: Instance, size: UDim2, position: UDim2, color: Color3?): TextLabel
+	local label = Instance.new("TextLabel")
+	label.BackgroundTransparency = 1
+	label.Size = size
+	label.Position = position
+	label.Font = Enum.Font.FredokaOne
+	label.TextScaled = true
+	label.TextColor3 = color or Color3.new(1, 1, 1)
+	local stroke = Instance.new("UIStroke")
+	stroke.Thickness = 3
+	stroke.Parent = label
+	label.Parent = parent
+	return label
+end
+local function dressFlag(part: Instance)
+	if not part:IsA("BasePart") then
+		return
+	end
+	local animal, boss = part:GetAttribute("Animal"), part:GetAttribute("Boss") == true
+	for _, face in { Enum.NormalId.Front, Enum.NormalId.Back } do
+		local board = surface(part, face)
+		local title = campText(board, UDim2.fromScale(0.94, 0.2), UDim2.fromScale(0.03, 0.03))
+		title.Text = if boss then "👑 BOSS" else tr("lvlLong", part:GetAttribute("Level") or 1)
+		local name = campText(board, UDim2.fromScale(0.94, 0.13), UDim2.fromScale(0.03, 0.85), Color3.fromRGB(255, 221, 51))
+		name.Text = tr(animal)
+		local view = Instance.new("ViewportFrame")
+		view.BackgroundTransparency = 1
+		view.Size = UDim2.fromScale(0.96, 0.62)
+		view.Position = UDim2.fromScale(0.02, 0.23)
+		view.Ambient = Color3.fromRGB(215, 215, 225)
+		view.LightColor = Color3.new(1, 1, 1)
+		view.LightDirection = Vector3.new(1, -1.2, 1)
+		view.Parent = board
+		local ok, model = pcall(Pets.build, animal, part:GetAttribute("Rank") or 1, true)
+		if ok and model then
+			model.Parent = view
+			local center, size = model:GetBoundingBox()
+			local distance = math.max(size.X, size.Y, size.Z) * 1.4
+			local camera = Instance.new("Camera")
+			camera.FieldOfView = 40
+			camera.CFrame = CFrame.lookAt(center.Position + Vector3.new(-distance * 0.55, distance * 0.25, -distance), center.Position)
+			camera.Parent = view
+			view.CurrentCamera = camera
+		end
+	end
+end
+local function dressOdds(part: Instance)
+	if not part:IsA("BasePart") then
+		return
+	end
+	local egg = part:GetAttribute("Egg") or 0
+	for _, face in { Enum.NormalId.Front, Enum.NormalId.Back } do
+		local board = surface(part, face)
+		local count = #Pets.GRADES
+		for index = count, 1, -1 do
+			local grade = Pets.GRADES[index]
+			local row = Instance.new("Frame")
+			row.BackgroundColor3 = Color3.fromRGB(118, 74, 38)
+			row.BorderSizePixel = 0
+			row.Size = UDim2.fromScale(0.9, 0.9 / count - 0.03)
+			row.Position = UDim2.fromScale(0.05, 0.05 + (count - index) * 0.9 / count)
+			Instance.new("UICorner", row).CornerRadius = UDim.new(0.2, 0)
+			row.Parent = board
+			campText(row, UDim2.fromScale(0.26, 0.86), UDim2.fromScale(0.04, 0.07), GRADE_COLORS[grade]).Text = grade
+			local chance = egg * Pets.GRADE_ODDS[index]
+			local text = if chance >= 10 then string.format("%d", chance + 0.5) else string.format("%.1f", chance)
+			campText(row, UDim2.fromScale(0.64, 0.8), UDim2.fromScale(0.32, 0.1)).Text = (if lang == "fr" then (text:gsub("%.", ",")) else text) .. " %"
+		end
+	end
+end
+for tag, dress in { CampFlag = dressFlag, CampOdds = dressOdds } do
+	CollectionService:GetInstanceAddedSignal(tag):Connect(dress)
+	for _, part in CollectionService:GetTagged(tag) do
+		task.spawn(dress, part)
+	end
+end
+
 -- L'ÉCRAN -------------------------------------------------------------------------------------------------------
 local gui = Instance.new("ScreenGui")
 gui.Name = "Hud"
@@ -438,8 +533,23 @@ local autoButton = roundButton("Auto", 66, UDim2.new(1, -124, 1, -146), Color3.f
 local AUTO_RADIUS = 34
 local auto = false
 local anchor: Vector3? = nil
+-- (walking : l AUTO a lance une marche ; il faut l arreter quand l AUTO s eteint ou se met en pause, sinon le
+-- personnage continue tout seul vers le dernier monstre.)
+local walking = false
+local function halt()
+	local character = player.Character
+	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+	local root = character and character:FindFirstChild("HumanoidRootPart")
+	if walking and humanoid and root then
+		humanoid:MoveTo(root.Position)
+	end
+	walking = false
+end
 local function setAuto(on: boolean)
 	auto = on
+	if not on then
+		halt()
+	end
 	local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
 	anchor = if on and root then root.Position else nil
 	autoButton.BackgroundColor3 = if auto then Color3.fromRGB(60, 200, 90) else Color3.fromRGB(90, 96, 120)
@@ -463,8 +573,20 @@ local function steering(): boolean
 	local ok, vector = pcall(function()
 		return controls:GetMoveVector()
 	end)
-	return ok and typeof(vector) == "Vector3" and vector.Magnitude > 0.1
+	if ok and typeof(vector) == "Vector3" and vector.Magnitude > 0.1 then
+		return true
+	end
+	-- (Au cas ou le module des commandes ne repond pas : les touches du clavier.)
+	for _, key in { Enum.KeyCode.W, Enum.KeyCode.A, Enum.KeyCode.S, Enum.KeyCode.D, Enum.KeyCode.Up, Enum.KeyCode.Down, Enum.KeyCode.Left, Enum.KeyCode.Right, Enum.KeyCode.Space } do
+		if UserInputService:IsKeyDown(key) then
+			return true
+		end
+	end
+	return false
 end
+-- SE DEPLACER MET L AUTO EN PAUSE : elle ne reprend que quand le joueur est immobile depuis AUTO_PAUSE secondes.
+local AUTO_PAUSE = 0.8
+local lastSteer = 0
 UserInputService.InputBegan:Connect(function(input, typing)
 	if typing then
 		return
@@ -490,9 +612,13 @@ task.spawn(function()
 			anchor = nil
 		end
 		if auto and root and humanoid and humanoid.Health > 0 and not busy and not inBase then
-			if steering() or not anchor then
-				-- Le joueur marche lui-même : l'AUTO repart d'ici.
+			if steering() then
+				lastSteer = os.clock()
+			end
+			if os.clock() - lastSteer < AUTO_PAUSE or not anchor then
+				-- Le joueur marche lui-même : l'AUTO attend, et repartira d'ici.
 				anchor = root.Position
+				walking = false
 			else
 				-- La cible : le monstre déjà visé, sinon le plus proche de soi dans le rayon.
 				local wanted = player:GetAttribute("Target") or 0
@@ -513,6 +639,7 @@ task.spawn(function()
 					local away = Vector3.new(root.Position.X - best.Position.X, 0, root.Position.Z - best.Position.Z)
 					if away.Magnitude > reach then
 						humanoid:MoveTo(best.Position + away.Unit * (reach - 2.5))
+						walking = true
 					else
 						swing()
 					end
