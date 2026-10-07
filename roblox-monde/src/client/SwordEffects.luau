@@ -1,7 +1,8 @@
--- Cosmetic, texture-free FX for native swords or calibrated imported meshes.
+-- Cosmetic FX for native swords or calibrated imported meshes.
 -- Call update AFTER the sword follows RightHand, once per rendered frame.
 local Input = game:GetService("UserInputService")
 local Palette = require(script.Parent.SwordPalette)
+local Elemental = require(script.Parent.SwordElementalAura)
 local Effects = {}
 local MOBILE = Input.TouchEnabled
 local PART_CAP = if MOBILE then 48 else 128
@@ -43,7 +44,7 @@ function Effects.attach(model: Model, identity: any)
 	inner.Parent = a.Parent
 	local holder = Instance.new("Folder")
 	holder.Name, holder.Parent = "SwordAura", model
-	local state = { id = id, a = a, b = b, holder = holder, bits = {}, elapsed = 0,
+	local state = { model = model, id = id, a = a, b = b, holder = holder, bits = {}, elapsed = 0,
 		core = trail("SwingWhiteCore", inner, b, ColorSequence.new(Color3.new(1, 1, 1)), true),
 		edge = trail("SwingTrail", a, b, Palette.sequence(id), false), swinging = false, disposed = false }
 	registry[model] = state
@@ -51,6 +52,7 @@ function Effects.attach(model: Model, identity: any)
 		if state.disposed then return end
 		state.disposed = true
 		allocated -= #state.bits
+		Elemental.dispose(state.elemental)
 		registry[model] = nil
 	end)
 	return state
@@ -120,6 +122,13 @@ function Effects.update(model: Model, dt: number, swinging: boolean)
 	state.last, state.swinging = a, swinging
 	state.core.Enabled, state.edge.Enabled = visible and swinging, visible and swinging
 	state.elapsed += math.min(math.max(dt, 0), 0.10)
+	if Elemental.supports(state.id) then
+		if visible and not state.elemental then
+			state.elemental = Elemental.create(model, state.id, state.a, state.b)
+		end
+		Elemental.update(state.elemental, dt, visible, swinging, teleport == true)
+		return
+	end
 	if visible then buildBits(state) end
 	local primary = model.PrimaryPart
 	if not primary then return end

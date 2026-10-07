@@ -2,7 +2,7 @@ $ErrorActionPreference = 'Stop'
 $taskRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
 & luau (Join-Path $PSScriptRoot 'alternation.luau')
 if ($LASTEXITCODE -ne 0) { throw 'Combat timing / alternation failed' }
-foreach ($taskName in @('CombatMotion','CombatVFX','Poses','SwordVisuals','SwordPalette','SwordEffects','SwordGrip')) {
+foreach ($taskName in @('CombatMotion','CombatVFX','Poses','SwordVisuals','SwordPalette','SwordEffects','SwordGrip','SwordElementalAura')) {
     & luau-compile --null (Join-Path $taskRoot "src/client/$taskName.luau")
     if ($LASTEXITCODE -ne 0) { throw "Syntax error: $taskName" }
 }

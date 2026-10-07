@@ -1,6 +1,6 @@
 # MONDE — coups amples, vraie prise et mini-auras (v3)
 
-Cette version est **déjà branchée dans `roblox-monde/src/client`**. Les anciens dossiers `personnage` restent des archives : leurs copies de modules ne sont pas la version active.
+Historique de la v3. La version active est maintenant [la v4](../personnage-v4/LIRE-MOI.md), déjà branchée dans `roblox-monde/src/client`. Les anciens dossiers `personnage` restent des archives : leurs copies de modules ne sont pas la version active.
 
 ## Ce qui change
 

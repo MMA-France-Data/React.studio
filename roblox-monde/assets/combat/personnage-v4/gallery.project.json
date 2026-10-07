@@ -1,20 +1,21 @@
 {
-  "name": "MONDE-Combat-Ample-Auras-v3",
+  "name": "MONDE-Elemental-Combat-Preview-v4",
   "tree": {
     "$className": "DataModel",
     "ReplicatedStorage": {
       "Models": { "$className": "Folder", "R15Preview": { "$path": "models/R15Preview.rbxmx" } },
+      "SwordMeshes": { "$path": "../../swords-roblox/SwordMeshes.rbxm" },
       "CombatAnimator": { "$path": "../personnage/CombatAnimator.luau" },
       "AttackTimeline": { "$path": "../personnage/AttackTimeline.luau" },
       "SwordPalette": { "$path": "../../../src/client/SwordPalette.luau" },
       "SwordGrip": { "$path": "../../../src/client/SwordGrip.luau" },
       "SwordEffects": { "$path": "../../../src/client/SwordEffects.luau" },
       "SwordElementalAura": { "$path": "../../../src/client/SwordElementalAura.luau" },
-      "CombatVFX": { "$path": "../../../src/client/CombatVFX.luau" },
+      "SwordVisuals": { "$path": "../../../src/client/SwordVisuals.luau" },
       "CombatMotion": { "$path": "../../../src/client/CombatMotion.luau" }
     },
-    "StarterPlayer": { "StarterPlayerScripts": { "PlayerGallery": { "$path": "PlayerGallery.client.luau" } } },
+    "StarterPlayer": { "StarterPlayerScripts": { "ElementalPreview": { "$path": "Preview.client.luau" } } },
     "Workspace": { "$properties": { "StreamingEnabled": false, "Gravity": 0 } },
-    "Lighting": { "$properties": { "Brightness": 2, "ClockTime": 12, "Ambient": [0.5, 0.5, 0.5] } }
+    "Lighting": { "$properties": { "Brightness": 2, "ClockTime": 14, "Ambient": [0.35, 0.35, 0.4] } }
   }
 }
