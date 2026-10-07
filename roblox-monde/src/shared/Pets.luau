@@ -320,11 +320,19 @@ end
 Pets.FEED = 0.75
 
 -- Temps de couvaison d'un œuf, en secondes.
+-- (Sa regle : les oeufs des mondes suivants continuent apres la chevre, en doublant : 12, 24, puis 48 minutes ;
+-- ensuite tous les oeufs couvent 48 minutes. Monde 1 : canard 18 s, coq 36 s, cochon 1 min 30, mouton 3 min, chevre
+-- 6 min. L oeuf d un boss : 1 heure, partout.)
+Pets.HATCH_LATE = { 720, 1440, 2880 }
 function Pets.hatchSeconds(room: number, rarity: number): number
 	if rarity >= 6 then
 		return Pets.HATCH_BOSS
 	end
-	return math.floor(Pets.HATCH[math.clamp(rarity, 1, #Pets.HATCH)] * (0.5 + room / 10) + 0.5)
+	if room <= 1 then
+		return math.floor(Pets.HATCH[math.clamp(rarity, 1, 5)] * 0.6 + 0.5)
+	end
+	local step = (room - 2) * 5 + math.clamp(rarity, 1, 5)
+	return Pets.HATCH_LATE[math.min(step, #Pets.HATCH_LATE)]
 end
 
 -- Grosseur de cet animal par rapport aux autres.
