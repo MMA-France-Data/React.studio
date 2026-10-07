@@ -11,7 +11,10 @@ function Swords.build(tier: number, parent: Instance): Model
 	local data = DESIGNS[math.clamp(tier, 1, #DESIGNS)]
 	-- Optional calibrated Meshy imports. No mesh deformation or re-generation.
 	local assets = Storage:FindFirstChild("SwordMeshes")
-	local template = assets and assets:FindFirstChild(data.id)
+	-- (Choix du joueur, 07/10/2026 : fer, acier, or, glace, feu, foudre ; l'arc-en-ciel reste de cote pour le moment.)
+	local order = { "Iron", "Steel", "Gold", "Frost", "Flame", "Storm" }
+	local wanted = order[math.clamp(tier, 1, #order)]
+	local template = assets and assets:FindFirstChild(wanted)
 	if template and template:IsA("Model") and template.PrimaryPart
 		and template:FindFirstChild("TrailBase", true) and template:FindFirstChild("TrailTip", true) then
 		local imported = template:Clone()
@@ -23,7 +26,7 @@ function Swords.build(tier: number, parent: Instance): Model
 			elseif item:IsA("BaseScript") or item:IsA("ModuleScript") then item:Destroy() end
 		end
 		imported.Parent = parent
-		Effects.attach(imported, data.id)
+		Effects.attach(imported, wanted)
 		return imported
 	end
 	local model = Instance.new("Model")
