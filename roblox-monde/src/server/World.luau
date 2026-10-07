@@ -282,6 +282,15 @@ function World.build()
 	Scenery.land(workspace, { halfX = LOBBY_X, back = LOBBY_BACK, front = GYM_Z, wall = GYM_WALL }, GYM_Z + #Config.ZONES * Config.ZONE_SIZE.Z + 40)
 	-- Les zones du monde, à la suite de la grande porte.
 	local zones = Zones.build(workspace, GYM_Z)
+	-- AUCUNE OMBRE POUR LE DECOR (retour du joueur : « les ombres du decor clignotent : soit on enleve toutes les
+	-- ombres, soit on les rend statiques »). Les personnages, les familiers et les monstres gardent la leur.
+	for _, folder in { gym.folder, workspace:FindFirstChild("Zones"), workspace:FindFirstChild("Scenery") } do
+		for _, item in folder:GetDescendants() do
+			if item:IsA("BasePart") then
+				item.CastShadow = false
+			end
+		end
+	end
 	return { gym = gym, zones = zones }
 end
 
