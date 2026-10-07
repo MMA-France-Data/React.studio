@@ -55,6 +55,19 @@ for name, action in { EquipBest = Eggs.equipBest, UnequipAll = Eggs.unequipAll }
 	end)
 end
 
+-- Le sac : ranger un familier de l'enclos, ou en ressortir un.
+for name, action in { BagPet = Eggs.toBag, UnbagPet = Eggs.fromBag } do
+	local event = Instance.new("RemoteEvent")
+	event.Name = name
+	event.Parent = ReplicatedStorage
+	event.OnServerEvent:Connect(function(player, which)
+		if typeof(which) == "number" and calm(player) then
+			action(player, math.floor(which))
+			Monsters.publishTeam(player)
+		end
+	end)
+end
+
 -- Nourrir un familier avec un autre.
 local feedEvent = Instance.new("RemoteEvent")
 feedEvent.Name = "FeedPet"

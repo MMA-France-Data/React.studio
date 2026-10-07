@@ -98,16 +98,16 @@ function Eggs.place(player: Player, x: number?, z: number?): (boolean, string?)
 		notify(player, "notInPen")
 		return false, "notInPen"
 	end
-	-- Une place libre parmi celles du niveau de l'enclos.
+	-- Une place d'œuf libre (les œufs ne prennent plus les places de l'enclos : on en pose à volonté).
 	local key
-	for index = 1, data.places do
+	for index = Pets.EGG_FIRST, Pets.EGG_FIRST + Pets.EGG_SPOTS - 1 do
 		if not data.spots[tostring(index)] then
 			key = tostring(index)
 			break
 		end
 	end
 	if not key then
-		notify(player, "penFull")
+		notify(player, "eggsFull")
 		return false, "penFull"
 	end
 	local egg = table.remove(data.bag, 1)
@@ -140,13 +140,31 @@ function Eggs.hatch(player: Player, all: boolean?): number
 		if spot.t and (all or now >= spot.t) then
 			local base = spot.b or Pets.rollValue(random, spot.q)
 			local value = base * Pets.roomFactor(spot.r or 1)
-			data.spots[key] = { a = spot.a, q = spot.q, v = value, l = Pets.luckPercent(base, spot.r or 1), x = spot.x, z = spot.z, lv = 1, xp = 0 }
+			local pet = { a = spot.a, q = spot.q, v = value, l = Pets.luckPercent(base, spot.r or 1), x = spot.x, z = spot.z, lv = 1, xp = 0 }
 			hatched += 1
-			-- Il rejoint l'équipe de combat s'il y reste une place.
-			if #data.team < Config.TEAM then
-				table.insert(data.team, key)
+			-- Le familier prend une place libre de l'enclos (celle de son œuf, si c'en est une) ; enclos plein : au SAC.
+			local home = if tonumber(key) <= data.places then key else nil
+			if not home then
+				data.spots[key] = nil
+				for index = 1, data.places do
+					if not data.spots[tostring(index)] then
+						home = tostring(index)
+						break
+					end
+				end
 			end
-			notify(player, "hatched", spot.a, spot.q, Pets.incomeOf(spot.a, value))
+			if home then
+				data.spots[home] = pet
+				-- Il rejoint l'équipe de combat s'il y reste une place.
+				if #data.team < Config.TEAM then
+					table.insert(data.team, home)
+				end
+				notify(player, "hatched", spot.a, spot.q, Pets.incomeOf(spot.a, value))
+			else
+				pet.x, pet.z = nil, nil
+				table.insert(data.store, pet)
+				notify(player, "hatchedBag", spot.a, spot.q)
+			end
 		end
 	end
 	if hatched > 0 then
@@ -310,6 +328,53 @@ function Eggs.feed(player: Player, eater: number, food: number): number?
 	PlayerData.changed(player)
 	notify(player, "fed", pet.a, meal.a, gain, Pets.levelOf(pet))
 	return gain
+end
+
+-- LE SAC. Ranger le familier de cette place de l'enclos dans le sac (il quitte l'équipe), ou remettre dans l'enclos
+-- le familier numéro `index` du sac (s'il y a une place libre).
+function Eggs.toBag(player: Player, spot: number): boolean
+	local data = PlayerData.get(player)
+	local key = tostring(spot)
+	local pet = data and data.spots[key]
+	if not pet or not pet.v then
+		return false
+	end
+	if #data.store >= Pets.STORE_MAX then
+		notify(player, "bagFull")
+		return false
+	end
+	if held[player] == key then
+		setHeld(player, nil)
+	end
+	data.spots[key] = nil
+	local member = table.find(data.team, key)
+	if member then
+		table.remove(data.team, member)
+	end
+	pet.x, pet.z = nil, nil
+	table.insert(data.store, pet)
+	PlayerData.changed(player)
+	notify(player, "bagged", pet.a)
+	return true
+end
+function Eggs.fromBag(player: Player, index: number): boolean
+	local data = PlayerData.get(player)
+	local pet = data and data.store[index]
+	if not pet then
+		return false
+	end
+	for place = 1, data.places do
+		if not data.spots[tostring(place)] then
+			table.remove(data.store, index)
+			pet.x, pet.z = 10 + (place % 5) * 3 - 6, 16 + (place % 3) * 3 - 3
+			data.spots[tostring(place)] = pet
+			PlayerData.changed(player)
+			notify(player, "unbagged", pet.a)
+			return true
+		end
+	end
+	notify(player, "penFull")
+	return false
 end
 
 -- « Équiper les meilleurs » : l'équipe devient les familiers qui tapent le plus fort. « Tout déséquiper » : plus

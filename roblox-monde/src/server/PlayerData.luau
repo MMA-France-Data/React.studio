@@ -40,6 +40,7 @@ local function defaults()
 		-- places occupées : ["1"] = { a, q, r, t = heure d'éclosion (os.time) } pour un œuf qui couve,
 		-- ou { a, q, v = valeur cachée } pour un familier
 		spots = {},
+		store = {}, -- LE SAC : les familiers rangés hors de l'enclos ({ a, q, v, l, lv, xp }) ; ils n'y rapportent rien
 		team = {}, -- les places des familiers qui se battent avec le joueur (Config.TEAM au plus)
 	}
 end
@@ -79,14 +80,28 @@ local function clean(raw)
 		data.places = math.clamp(math.floor(raw.places), Pets.SPOTS_FREE, Pets.SPOTS_MAX)
 	end
 	if type(raw.spots) == "table" then
+		local keys = {}
 		for index = 1, data.places do
+			table.insert(keys, index)
+		end
+		for index = Pets.EGG_FIRST, Pets.EGG_FIRST + Pets.EGG_SPOTS - 1 do
+			table.insert(keys, index)
+		end
+		for _, index in keys do
 			local spot = raw.spots[tostring(index)]
-			if validEgg(spot) then
+			if validEgg(spot) and (index <= data.places or type(spot.t) == "number") then
 				if type(spot.v) == "number" then
 					data.spots[tostring(index)] = { a = spot.a, q = spot.q, v = math.floor(spot.v), l = if type(spot.l) == "number" then math.clamp(math.floor(spot.l), 0, 10000) else nil, x = tonumber(spot.x), z = tonumber(spot.z), lv = if type(spot.lv) == "number" then math.max(1, math.floor(spot.lv)) else 1, xp = if type(spot.xp) == "number" then math.max(0, math.floor(spot.xp)) else 0 }
 				elseif type(spot.t) == "number" then
 					data.spots[tostring(index)] = { a = spot.a, q = spot.q, r = spot.r, b = if type(spot.b) == "number" then spot.b else nil, t = spot.t, d = tonumber(spot.d) or 0, x = tonumber(spot.x) or 10, z = tonumber(spot.z) or 16 }
 				end
+			end
+		end
+	end
+	if type(raw.store) == "table" then
+		for _, pet in raw.store do
+			if validEgg(pet) and type(pet.v) == "number" and #data.store < Pets.STORE_MAX then
+				table.insert(data.store, { a = pet.a, q = pet.q, v = math.floor(pet.v), l = if type(pet.l) == "number" then math.floor(pet.l) else nil, lv = if type(pet.lv) == "number" then math.max(1, math.floor(pet.lv)) else 1, xp = if type(pet.xp) == "number" then math.max(0, math.floor(pet.xp)) else 0 })
 			end
 		end
 	end
@@ -136,6 +151,7 @@ local function publish(player: Player)
 	player:SetAttribute("BagList", table.concat(order, ","))
 	player:SetAttribute("Places", data.places)
 	player:SetAttribute("Spots", Pets.encode(data.spots))
+	player:SetAttribute("Store", Pets.encodeStore(data.store))
 	-- L'équipe de combat : les places (« 2,5,1 »), et de quoi dessiner chaque familier (« Fox:6:73;Dog:4:20 »).
 	local members, luck = {}, 0
 	for _, key in data.team do

@@ -404,9 +404,36 @@ end
 -- « numéro:animal:rareté:v ou t:valeur ou heure d'éclosion:x:z:durée » (x, z = où l'œuf est posé dans l'enclos, en
 -- dixièmes de stud ; durée = temps total de couvaison, pour la barre du panneau ; pour un familier, ce nombre est
 -- son bonus de chance en %), puis « :grosseur » = sa place dans le palier de son rang, de 0 à 100 (Pets.alongOf).
+-- LES OEUFS A VOLONTE ET LE SAC (demande du joueur) : un oeuf qui couve ne prend plus une place de l enclos, il a
+-- sa propre place (EGG_FIRST a EGG_FIRST + EGG_SPOTS - 1). A l eclosion, le familier prend une place libre de l enclos ;
+-- si l enclos est plein, il va dans le SAC (data.store). Le sac garde les familiers, mais ils n y rapportent rien.
+Pets.EGG_FIRST = 101
+Pets.EGG_SPOTS = 30
+Pets.STORE_MAX = 200
+-- Le sac, pour l ecran : « animal:rang:valeur:chance:niveau:xp » separes par des points-virgules.
+function Pets.encodeStore(store): string
+	local parts = {}
+	for _, pet in store do
+		table.insert(parts, string.format("%s:%d:%d:%d:%d:%d", pet.a, pet.q, pet.v, pet.l or 0, pet.lv or 1, pet.xp or 0))
+	end
+	return table.concat(parts, ";")
+end
+function Pets.decodeStore(text: string?)
+	local store = {}
+	for a, q, v, l, lv, xp in string.gmatch(text or "", "(%a+):(%d+):(%d+):(%d+):(%d+):(%d+)") do
+		table.insert(store, { a = a, q = tonumber(q), v = tonumber(v), l = tonumber(l), lv = tonumber(lv), xp = tonumber(xp) })
+	end
+	return store
+end
 function Pets.encode(spots): string
 	local parts = {}
-	for index = 1, Pets.SPOTS_MAX do
+	-- (Places 1 a SPOTS_MAX : l enclos. Places EGG_FIRST et plus : les oeufs qui couvent, poses a volonte.)
+	local keys = {}
+	for key in spots do
+		table.insert(keys, tonumber(key))
+	end
+	table.sort(keys)
+	for _, index in keys do
 		local spot = spots[tostring(index)]
 		if spot then
 			table.insert(parts, string.format("%d:%s:%d:%s:%d:%d:%d:%d:%d:%d:%d", index, spot.a, spot.q, if spot.v then "v" else "t", spot.v or spot.t, math.round((spot.x or 0) * 10), math.round((spot.z or 0) * 10), if spot.v then Pets.luckOf(spot) else spot.d or 0, math.floor(Pets.alongOf(spot) * 100 + 0.5), spot.lv or 1, spot.xp or 0))

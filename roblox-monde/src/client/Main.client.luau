@@ -317,7 +317,7 @@ local autoButton: TextButton? = nil
 --   bas à gauche, avec l'épée, l'équipe et la chance juste au-dessus ; la grande barre de niveau en bas au milieu ;
 --   au-dessus d'elle, les deux actions avec leur touche : F = frapper, R = attaque automatique ;
 --   sur téléphone : tout est plus petit et sur les bords, les deux boutons d'attaque ronds sous le pouce droit.
-local MENU = { "EggButton", "PawButton", "ShopButton" }
+local MENU = { "EggButton", "PawButton", "BagButton", "ShopButton" }
 local function applyHud()
 	local view = workspace.CurrentCamera.ViewportSize
 	small = workspace:GetAttribute("PhoneHud") == true or (UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled) or view.Y < 520
@@ -450,8 +450,14 @@ local RED, GOLD = Color3.fromRGB(255, 90, 90), Color3.fromRGB(255, 221, 51)
 ReplicatedStorage:WaitForChild("Notify").OnClientEvent:Connect(function(key: string, a, b, c, d)
 	if key == "poor" then
 		showToast(tr("poor", num(a)), RED)
-	elseif key == "levelUp" then
-		showToast(tr("levelUp", a), GOLD)
+	elseif key == "playerLevel" then
+		showToast(tr("playerLevel", a), GOLD)
+	elseif key == "bagged" or key == "unbagged" then
+		showToast(tr(key, tr(a)), GOLD)
+	elseif key == "bagFull" or key == "eggsFull" then
+		showToast(tr(key), RED)
+	elseif key == "hatchedBag" then
+		showToast(tr("hatchedBag", tr(a), tr(Pets.RARITIES[b].key)), GOLD)
 	elseif key == "petLevel" then
 		showToast(tr("petLevel", tr(a), b), Color3.fromRGB(120, 200, 255))
 	elseif key == "fed" then

@@ -86,6 +86,10 @@ return function(world)
 		elseif action == "Place" then
 			player:SetAttribute("Carrying", true)
 			return Eggs.place(player, a, b)
+		elseif action == "ToBag" then
+			return Eggs.toBag(player, a)
+		elseif action == "FromBag" then
+			return Eggs.fromBag(player, a)
 		elseif action == "Feed" then
 			return Eggs.feed(player, a, b)
 		elseif action == "Take" then

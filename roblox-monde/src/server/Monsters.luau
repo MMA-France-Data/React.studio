@@ -148,7 +148,7 @@ local function reward(monster, player: Player, share: number, best: boolean)
 	lootEvent:FireClient(player, monster.position, coins, xp)
 	if levels > 0 then
 		Gym.applyStats(player, true)
-		notify(player, "levelUp", PlayerData.get(player).level)
+		notify(player, "playerLevel", PlayerData.get(player).level)
 	end
 	-- Un monstre lâche l'œuf de son animal ; un coffre, un œuf tiré au sort. La chance du joueur aide.
 	-- LE TOUT PREMIER MONSTRE BATTU lache toujours son oeuf (un joueur qui n a encore ni oeuf ni familier) : on a son

@@ -1072,7 +1072,15 @@ return function(env)
 	local feedEvent = ReplicatedStorage:WaitForChild("FeedPet")
 	local feeding = false
 	local doomed = 0 -- la place du familier qui attend la confirmation « es-tu sûr ? »
-	local feed = button(sheet, "Feed", UDim2.fromOffset(256, 44), UDim2.fromOffset(12, 414), Color3.fromRGB(240, 170, 30), "")
+	local feed = button(sheet, "Feed", UDim2.fromOffset(160, 44), UDim2.fromOffset(12, 414), Color3.fromRGB(240, 170, 30), "")
+	-- « Au sac » : range ce familier dans le sac (il libère sa place dans l'enclos).
+	local bagEvent = ReplicatedStorage:WaitForChild("BagPet")
+	local toBag = button(sheet, "ToBag", UDim2.fromOffset(88, 44), UDim2.fromOffset(180, 414), Color3.fromRGB(120, 90, 200), tr("toBag"))
+	toBag.Activated:Connect(function()
+		if selected > 0 then
+			bagEvent:FireServer(selected)
+		end
+	end)
 	feed.Activated:Connect(function()
 		feeding = not feeding
 		doomed = 0
@@ -1165,7 +1173,7 @@ return function(env)
 			return
 		end
 		local price = Pets.spotPrice(places)
-		petCount.Text = tr("active", #pets + #eggs, places)
+		petCount.Text = tr("active", #pets, places)
 		addPlace.Visible = price ~= nil
 		addPlace.Label.Text = if price then tr("addPlace", env.num(price)) else ""
 		if not spots[tostring(selected)] or not spots[tostring(selected)].v then
@@ -1253,7 +1261,67 @@ return function(env)
 		end
 	end)
 	-- LA BOUTIQUE : on y dépense ses pièces. L'épée (plus de dégâts pour soi) et les places de l'enclos.
-	local shopButton = squareButton("ShopButton", 2, Color3.fromRGB(60, 150, 255))
+	-- LE SAC : les familiers rangés hors de l'enclos. Un clic sur l'un d'eux le remet dans l'enclos.
+	local bagButton = squareButton("BagButton", 2, Color3.fromRGB(120, 90, 200))
+	env.text(bagButton, "Label", UDim2.fromScale(0.8, 0.8), UDim2.fromScale(0.1, 0.1)).Text = "🎒"
+	local bagPanel = window("BagPanel", tr("bagTitle"), 600, 460)
+	local bagInfo = env.text(bagPanel, "Info", UDim2.new(1, -40, 0, 24), UDim2.fromOffset(20, 52), GOLD, 18)
+	bagInfo.TextXAlignment = Enum.TextXAlignment.Left
+	bagInfo.ZIndex = 5
+	local bagGrid = grid(bagPanel, UDim2.new(1, -40, 1, -104), UDim2.fromOffset(20, 84))
+	local bagCards = {}
+	local unbagEvent = ReplicatedStorage:WaitForChild("UnbagPet")
+	local function refreshBag()
+		if not bagPanel.Visible then
+			return
+		end
+		local store = Pets.decodeStore(player:GetAttribute("Store"))
+		local spots = Pets.decode(player:GetAttribute("Spots"))
+		local places, used = player:GetAttribute("Places") or Pets.SPOTS_FREE, 0
+		for _, spot in spots do
+			if spot.v then
+				used += 1
+			end
+		end
+		bagInfo.Text = if #store == 0 then tr("bagEmpty") else tr("bagHint", #store, math.max(0, places - used))
+		for i, pet in store do
+			local item = bagCards[i]
+			if not item then
+				item = card(bagGrid, "Bag" .. i)
+				item.frame.LayoutOrder = i
+				item.tick.Visible = false
+				item.frame.Activated:Connect(function()
+					unbagEvent:FireServer(i)
+				end)
+				bagCards[i] = item
+			end
+			item.frame.Visible = true
+			paint(item, pet.q, false, Pets.gradeOf(pet))
+			item.line.Text = tr("lvlLong", Pets.levelOf(pet))
+			show(item.view, pet.a .. pet.q, function()
+				return Pets.build(pet.a, pet.q, true)
+			end)
+		end
+		for i = #store + 1, #bagCards do
+			bagCards[i].frame.Visible = false
+		end
+		fitWindow(bagPanel)
+	end
+	for _, name in { "Store", "Spots", "Places" } do
+		player:GetAttributeChangedSignal(name):Connect(refreshBag)
+	end
+	bagPanel:GetPropertyChangedSignal("Visible"):Connect(refreshBag)
+	bagButton.Activated:Connect(function()
+		bagPanel.Visible = not bagPanel.Visible
+		local shop = env.gui:FindFirstChild("ShopPanel")
+		if shop then
+			shop.Visible = false
+		end
+		petPanel.Visible = false
+		eggPanel.Visible = false
+	end)
+
+	local shopButton = squareButton("ShopButton", 3, Color3.fromRGB(60, 150, 255))
 	env.text(shopButton, "Label", UDim2.fromScale(0.8, 0.8), UDim2.fromScale(0.1, 0.1)).Text = "🛒"
 	local shopPanel = window("ShopPanel", tr("shopTitle"), 620, 330)
 	local swordEvent = ReplicatedStorage:WaitForChild("BuySword")
@@ -1314,6 +1382,7 @@ return function(env)
 	shopPanel:GetPropertyChangedSignal("Visible"):Connect(refreshShop)
 	shopButton.Activated:Connect(function()
 		shopPanel.Visible = not shopPanel.Visible
+		bagPanel.Visible = false
 		petPanel.Visible = false
 		eggPanel.Visible = false
 	end)
@@ -1322,11 +1391,13 @@ return function(env)
 	eggPanel:GetPropertyChangedSignal("Visible"):Connect(refreshPanels)
 	eggButton.Activated:Connect(function()
 		eggPanel.Visible = not eggPanel.Visible
+		bagPanel.Visible = false
 		petPanel.Visible = false
 		shopPanel.Visible = false
 	end)
 	pawButton.Activated:Connect(function()
 		petPanel.Visible = not petPanel.Visible
+		bagPanel.Visible = false
 		eggPanel.Visible = false
 		shopPanel.Visible = false
 	end)
