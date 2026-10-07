@@ -141,7 +141,7 @@ local function publish(player: Player)
 	for _, key in data.team do
 		local pet = data.spots[key]
 		if pet and pet.v then
-			table.insert(members, pet.a .. ":" .. pet.q .. ":" .. math.floor(Pets.alongOf(pet) * 100 + 0.5) .. ":" .. (pet.lv or 1))
+			table.insert(members, pet.a .. ":" .. pet.q .. ":" .. math.floor(Pets.alongOf(pet) * 100 + 0.5) .. ":" .. Pets.levelOf(pet))
 			luck = math.max(luck, Pets.luckOf(pet))
 		end
 	end

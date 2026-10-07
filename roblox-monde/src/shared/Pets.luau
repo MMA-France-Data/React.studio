@@ -14,6 +14,7 @@ local AssetService = game:GetService("AssetService")
 local Pets = {}
 local gradient
 local PetModels = require(script.Parent.PetModels)
+local Config = require(script.Parent.Config)
 
 Pets.ORDER = { "Dragon", "Rock", "Rabbit", "Golem", "Owl" }
 
@@ -278,6 +279,15 @@ Pets.GRADES = { "C", "B", "A", "S" }
 Pets.GRADE_ODDS = { 70, 25, 4.6, 0.4 }
 function Pets.gradeOf(spot): string
 	return Pets.GRADES[math.clamp(math.floor(Pets.alongOf(spot) * #Pets.GRADES) + 1, 1, #Pets.GRADES)]
+end
+-- LE NIVEAU AFFICHE d un familier (demande du joueur : coherent avec les monstres, « pareil pour mes familiers ») :
+-- il nait au niveau des monstres de son camp (un canard niveau 1, une chevre niveau 13, un animal du monde 2 niveau
+-- 24 et plus), puis gagne ses niveaux par-dessus. Sa force ne change pas : elle depend toujours des niveaux GAGNES
+-- (spot.lv). Une chevre qui a gagne 8 niveaux affiche 21, a peu pres le niveau du boss et du joueur a ce moment.
+function Pets.levelOf(spot): number
+	local def = Pets.DEFS[spot.a]
+	local base = if def and def.rank then Config.monsterLevel(def.room or 1, def.rank) else 1
+	return base + (spot.lv or 1) - 1
 end
 function Pets.damageOf(spot): number
 	return math.max(1, math.floor(Pets.FIGHT_DMG[math.clamp(spot.q, 1, 6)] * fightFactor(spot) + 0.5))

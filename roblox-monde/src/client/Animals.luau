@@ -1173,7 +1173,7 @@ return function(env)
 			item.spot = entry.index
 			item.frame.Visible = true
 			paint(item, entry.spot.q, entry.index == selected, Pets.gradeOf(entry.spot))
-			item.line.Text = if feeding and entry.index ~= selected then tr("feedThis") else tr("lvlLong", entry.spot.lv or 1)
+			item.line.Text = if feeding and entry.index ~= selected then tr("feedThis") else tr("lvlLong", Pets.levelOf(entry.spot))
 			item.tick.Visible = table.find(inTeam, tostring(entry.index)) ~= nil
 			show(item.view, entry.spot.a .. entry.spot.q, function()
 				return Pets.build(entry.spot.a, entry.spot.q, true)
@@ -1204,7 +1204,7 @@ return function(env)
 			sheetLuck.Text = tr("luckLine", Pets.luckOf(spot))
 			local need = Pets.xpNeed(spot)
 			xpFill.Size = UDim2.fromScale(math.clamp((spot.xp or 0) / need, 0, 1), 1)
-			xpLabel.Text = tr("lvlLong", spot.lv or 1) .. "   " .. env.num(spot.xp or 0) .. " / " .. env.num(need)
+			xpLabel.Text = tr("lvlLong", Pets.levelOf(spot)) .. "   " .. env.num(spot.xp or 0) .. " / " .. env.num(need)
 			equip.Label.Text = if member then tr("unequip") else tr("equip")
 			equip.BackgroundColor3 = if member then Color3.fromRGB(50, 130, 230) else Color3.fromRGB(240, 170, 30)
 			local carrying = (player:GetAttribute("Held") or "") == tostring(selected)

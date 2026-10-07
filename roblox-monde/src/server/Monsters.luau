@@ -139,7 +139,7 @@ local function reward(monster, player: Player, share: number, best: boolean)
 				pet.lv += 1
 			end
 			if pet.lv > before then
-				notify(player, "petLevel", pet.a, pet.lv)
+				notify(player, "petLevel", pet.a, Pets.levelOf(pet))
 			end
 		end
 	end

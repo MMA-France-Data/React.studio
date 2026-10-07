@@ -308,7 +308,7 @@ function Eggs.feed(player: Player, eater: number, food: number): number?
 		pet.lv += 1
 	end
 	PlayerData.changed(player)
-	notify(player, "fed", pet.a, meal.a, gain, pet.lv)
+	notify(player, "fed", pet.a, meal.a, gain, Pets.levelOf(pet))
 	return gain
 end
 
