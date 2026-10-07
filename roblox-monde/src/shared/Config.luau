@@ -130,7 +130,8 @@ Config.REGEN_DELAY = 3 -- secondes sans combat avant que cette regeneration comm
 Config.ATTACK_COOLDOWN = 0.42 -- secondes entre deux coups d'épée
 -- Portee de l epee, comptee depuis le bord du monstre : la longueur du bras et de la lame, pas plus. Il faut un vrai
 -- contact (retour du joueur : « je tape dans le vide devant le monstre qui est trop eloigne et ca touche »).
-Config.ATTACK_REACH = 4.5
+-- (7 depuis que les epees sont enormes : 8,3 studs de long, dont 7 de lame devant la main.)
+Config.ATTACK_REACH = 7
 Config.TEAM = 3 -- familiers qui se battent avec le joueur
 Config.PET_REACH = 26 -- les familiers attaquent un monstre jusqu'à cette distance du joueur
 

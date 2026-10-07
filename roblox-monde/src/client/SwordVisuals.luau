@@ -4,6 +4,7 @@ local Swords = {}
 local Effects = require(script.Parent.SwordEffects)
 local Palette = require(script.Parent.SwordPalette)
 local Storage = game:GetService("ReplicatedStorage")
+Swords.SIZE = 1.6
 function Swords.tier(level: number): number
 	return math.clamp(math.floor(level), 1, #DESIGNS)
 end
@@ -27,6 +28,9 @@ function Swords.build(tier: number, parent: Instance): Model
 			local fromPommel = 5.2 + far.Position.Z
 			hold.CFrame = hold.CFrame * CFrame.new(0, 0, -2 * (2.6 - fromPommel)) * CFrame.Angles(0, math.pi, 0)
 		end
+		-- DES EPEES ENORMES (sa demande : « on pourrait meme encore les grossir, qu elles soient enormes ») : SIZE fois la
+		-- taille des fichiers (5,2 studs), grossies autour de la prise. La portee des coups suit (Config.ATTACK_REACH).
+		imported:ScaleTo(imported:GetScale() * Swords.SIZE)
 		for _, item in imported:GetDescendants() do
 			if item:IsA("BasePart") then
 				item.Anchored, item.Massless = true, true

@@ -157,6 +157,24 @@ return function()
 				end
 			end
 
+			-- LA GARDE (demande du joueur, sur une capture : « la posture de base avec le coude replie, l epee vers le
+			-- ciel ») : tant qu il tient son epee sans frapper, le bras droit est un peu avance, le coude plie, et la lame
+			-- pointe vers le haut, legerement penchee. Elle tient aussi en marchant ; le coup d epee la remplace.
+			if not carrying and not pressing then
+				local guard = 1 - (if combat then CombatMotion.weight(sincePunch) else 0)
+				if guard > 0.01 then
+					local sway = math.sin(now * 1.6) * 2 -- (un tout petit balancement, pour qu elle ait l air vivante)
+					apply(rightShoulder, rightShoulder.Transform:Lerp(CFrame.Angles(math.rad(22 + sway), 0, math.rad(-8)), guard))
+					if rightElbow then
+						apply(rightElbow, rightElbow.Transform:Lerp(CFrame.Angles(math.rad(62), 0, 0), guard))
+					end
+					local wrist = joint(character, "RightHand", "RightWrist")
+					if wrist then
+						apply(wrist, wrist.Transform:Lerp(CFrame.Angles(math.rad(-4), 0, math.rad(-6)), guard))
+					end
+				end
+			end
+
 			-- Override the walking arm during the cut, so its wrist rotation cannot
 			-- tip the authored cutting plane. Blend back to locomotion at the ends.
 			if combat then
