@@ -294,6 +294,8 @@ end)
 -- LES CHIFFRES QUI S'ENVOLENT -------------------------------------------------------------------------------------
 -- Un coup porté : le chiffre des dégâts (blanc pour l'épée, orange pour les familiers). Un monstre battu : ses
 -- pièces et son XP.
+local CombatVFX = require(script.Parent.CombatVFX)
+local SwordVisuals = require(script.Parent.SwordVisuals)
 local popups = Instance.new("Folder")
 popups.Name = "Popups"
 popups.Parent = workspace
@@ -354,7 +356,7 @@ local function coinBurst(position: Vector3)
 end
 ReplicatedStorage:WaitForChild("Loot").OnClientEvent:Connect(function(position: Vector3, a: number, b: number, kind: string?)
 	if kind == "sword" then
-		sparks(position + Vector3.new(0, 2.5, 0), Color3.fromRGB(255, 230, 120), 14)
+		CombatVFX.impact(position, SwordVisuals.tier(player:GetAttribute("Sword") or 1))
 	elseif kind == "pet" then
 		sparks(position + Vector3.new(0, 2, 0), Color3.fromRGB(255, 150, 60), 6)
 	else

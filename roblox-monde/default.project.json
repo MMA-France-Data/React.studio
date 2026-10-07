@@ -21,94 +21,94 @@
           "$path": "../roblox-survive/assets/pets/Owl.rbxmx"
         },
         "Bunny": {
-          "$path": "../roblox-survive/assets/collections/salle-01/models/Rabbit.rbxmx"
+          "$path": "assets/combat/animaux/salle-1/models/Rabbit.rbxmx"
         },
         "Turtle": {
-          "$path": "../roblox-survive/assets/collections/salle-01/models/Turtle.rbxmx"
+          "$path": "assets/combat/animaux/salle-1/models/Turtle.rbxmx"
         },
         "Cat": {
-          "$path": "../roblox-survive/assets/collections/salle-01/models/Cat.rbxmx"
+          "$path": "assets/combat/animaux/salle-1/models/Cat.rbxmx"
         },
         "Dog": {
-          "$path": "../roblox-survive/assets/collections/salle-01/models/Dog.rbxmx"
+          "$path": "assets/combat/animaux/salle-1/models/Dog.rbxmx"
         },
         "Owlet": {
-          "$path": "../roblox-survive/assets/collections/salle-01/models/Owl.rbxmx"
+          "$path": "assets/combat/animaux/salle-1/models/Owl.rbxmx"
         },
         "Fox": {
-          "$path": "../roblox-survive/assets/collections/ultra-rares/models/Fox.rbxmx"
+          "$path": "assets/combat/animaux/salle-1/models/Fox.rbxmx"
         },
         "Hedgehog": {
-          "$path": "../roblox-survive/assets/collections/salle-02/models/Hedgehog.rbxmx"
+          "$path": "assets/combat/animaux/salle-2/models/Hedgehog.rbxmx"
         },
         "Squirrel": {
-          "$path": "../roblox-survive/assets/collections/salle-02/models/Squirrel.rbxmx"
+          "$path": "assets/combat/animaux/salle-2/models/Squirrel.rbxmx"
         },
         "Skunk": {
-          "$path": "../roblox-survive/assets/collections/salle-02/models/Skunk.rbxmx"
+          "$path": "assets/combat/animaux/salle-2/models/Skunk.rbxmx"
         },
         "Beaver": {
-          "$path": "../roblox-survive/assets/collections/salle-02/models/Beaver.rbxmx"
+          "$path": "assets/combat/animaux/salle-2/models/Beaver.rbxmx"
         },
         "Raccoon": {
-          "$path": "../roblox-survive/assets/collections/salle-02/models/Raccoon.rbxmx"
+          "$path": "assets/combat/animaux/salle-2/models/Raccoon.rbxmx"
         },
         "Badger": {
-          "$path": "../roblox-survive/assets/collections/ultra-rares/models/Badger.rbxmx"
+          "$path": "assets/combat/animaux/salle-2/models/Badger.rbxmx"
         },
         "Duck": {
-          "$path": "../roblox-survive/assets/collections/salle-03/models/Duck.rbxmx"
+          "$path": "assets/combat/animaux/salle-3/models/Duck.rbxmx"
         },
         "Rooster": {
-          "$path": "../roblox-survive/assets/collections/salle-03/models/Rooster.rbxmx"
+          "$path": "assets/combat/animaux/salle-3/models/Rooster.rbxmx"
         },
         "Pig": {
-          "$path": "../roblox-survive/assets/collections/salle-03/models/Pig.rbxmx"
+          "$path": "assets/combat/animaux/salle-3/models/Pig.rbxmx"
         },
         "Sheep": {
-          "$path": "../roblox-survive/assets/collections/salle-03/models/Sheep.rbxmx"
+          "$path": "assets/combat/animaux/salle-3/models/Sheep.rbxmx"
         },
         "Goat": {
-          "$path": "../roblox-survive/assets/collections/salle-03/models/Goat.rbxmx"
+          "$path": "assets/combat/animaux/salle-3/models/Goat.rbxmx"
         },
         "Horse": {
-          "$path": "../roblox-survive/assets/collections/ultra-rares/models/Horse.rbxmx"
+          "$path": "assets/combat/animaux/salle-3/models/Horse.rbxmx"
         },
         "Boar": {
-          "$path": "../roblox-survive/assets/collections/salle-04/models/Boar.rbxmx"
+          "$path": "assets/combat/animaux/salle-4/models/Boar.rbxmx"
         },
         "Ram": {
-          "$path": "../roblox-survive/assets/collections/salle-04/models/Ram.rbxmx"
+          "$path": "assets/combat/animaux/salle-4/models/Ram.rbxmx"
         },
         "Deer": {
-          "$path": "../roblox-survive/assets/collections/salle-04/models/Deer.rbxmx"
+          "$path": "assets/combat/animaux/salle-4/models/Deer.rbxmx"
         },
         "Lynx": {
-          "$path": "../roblox-survive/assets/collections/salle-04/models/Lynx.rbxmx"
+          "$path": "assets/combat/animaux/salle-4/models/Lynx.rbxmx"
         },
         "Wolf": {
-          "$path": "../roblox-survive/assets/collections/salle-04/models/Wolf.rbxmx"
+          "$path": "assets/combat/animaux/salle-4/models/Wolf.rbxmx"
         },
         "Bear": {
-          "$path": "../roblox-survive/assets/collections/ultra-rares/models/Bear.rbxmx"
+          "$path": "assets/combat/animaux/salle-4/models/Bear.rbxmx"
         },
         "Capybara": {
-          "$path": "../roblox-survive/assets/collections/salle-05/models/Capybara.rbxmx"
+          "$path": "assets/combat/animaux/salle-5/models/Capybara.rbxmx"
         },
         "Toucan": {
-          "$path": "../roblox-survive/assets/collections/salle-05/models/Toucan.rbxmx"
+          "$path": "assets/combat/animaux/salle-5/models/Toucan.rbxmx"
         },
         "Monkey": {
-          "$path": "../roblox-survive/assets/collections/salle-05/models/Monkey.rbxmx"
+          "$path": "assets/combat/animaux/salle-5/models/Monkey.rbxmx"
         },
         "Anaconda": {
-          "$path": "../roblox-survive/assets/collections/salle-05/models/Anaconda.rbxmx"
+          "$path": "assets/combat/animaux/salle-5/models/Anaconda.rbxmx"
         },
         "Crocodile": {
-          "$path": "../roblox-survive/assets/collections/salle-05/models/Crocodile.rbxmx"
+          "$path": "assets/combat/animaux/salle-5/models/Crocodile.rbxmx"
         },
         "Jaguar": {
-          "$path": "../roblox-survive/assets/collections/ultra-rares/models/Jaguar.rbxmx"
+          "$path": "assets/combat/animaux/salle-5/models/Jaguar.rbxmx"
         }
       },
       "Shared": {

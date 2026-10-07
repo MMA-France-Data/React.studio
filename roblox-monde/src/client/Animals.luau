@@ -12,6 +12,7 @@ local UserInputService = game:GetService("UserInputService")
 local Pets = require(ReplicatedStorage.Shared.Pets)
 local PetRig = require(ReplicatedStorage.Shared.PetRig)
 local StarterAnimator = require(ReplicatedStorage.Shared.StarterAnimator)
+local ActionAnimator = require(ReplicatedStorage.Shared.ActionAnimator)
 local Config = require(ReplicatedStorage.Shared.Config)
 
 local EGG_COLORS = {
@@ -130,6 +131,11 @@ return function(env)
 				warn("[Survive] animation de " .. name .. " impossible : " .. tostring(rig))
 			end
 		end
+		local combat = nil
+		if starter and starter.clips.Attack then
+			local ok, actionRig = pcall(ActionAnimator.bind, model)
+			if ok then combat = actionRig else warn("[Monde] combat : " .. tostring(actionRig)) end
+		end
 		local skeleton = if model:GetAttribute("Starter") then nil else PetRig.bind(name, model)
 		model.Parent = folder
 		return {
@@ -137,6 +143,9 @@ return function(env)
 			model = model,
 			half = size.Y / 2,
 			starter = starter,
+			combat = combat,
+			nextAction = 0,
+			actionIndex = 0,
 			skeleton = skeleton,
 			limbs = if skeleton then {} else limbsOf(name, model),
 			clock = math.random() * 10,
@@ -150,10 +159,19 @@ return function(env)
 			pet.model:PivotTo(base)
 			return
 		end
-		if attacking and pet.starter and pet.starter.clips.Attack then
-			pet.model:PivotTo(base)
-			StarterAnimator.step(pet.starter, pet.clock, "Attack", 1)
-			return
+		if pet.combat then
+			if attacking and not pet.combat.attack and pet.clock >= pet.nextAction then
+				pet.actionIndex += 1
+				local action = if pet.combat.clips.Bite and pet.actionIndex % 2 == 0 then "Bite" else "Attack"
+				if ActionAnimator.playAttack(pet.combat, pet.clock, action) then
+					pet.nextAction = pet.clock + pet.combat.clips.Attack.duration + 0.12
+				end
+			end
+			if pet.combat.attack then
+				pet.model:PivotTo(base)
+				ActionAnimator.step(pet.combat, pet.clock, if moving then "Walk" else "Idle")
+				return
+			end
 		end
 		if pet.model:GetAttribute("Starter") then
 			-- La marche livrée est discrète : on la joue plus vite, les pattes tournent plus, et le corps sautille
@@ -436,6 +454,7 @@ return function(env)
 				entry.cframe = entry.cframe:Lerp(goal, 1 - math.exp(-(if target then 6 else 9) * dt))
 				entry.anchor.CFrame = CFrame.new(entry.cframe.Position)
 				if down then
+					if entry.pet.combat then ActionAnimator.cancelAttack(entry.pet.combat) end
 					entry.pet.model:PivotTo(entry.cframe * CFrame.Angles(0, 0, math.rad(90)))
 				else
 					animate(entry.pet, entry.cframe, moving, dt, target ~= nil)
