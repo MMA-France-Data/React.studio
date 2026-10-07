@@ -366,10 +366,10 @@ local function buildZone(parent: Instance, index: number, zMin: number)
 	-- La première zone commence au mur de la base, qui est moins large qu'elle : on ferme les deux côtés.
 	if index == 1 then
 		for _, sign in { -1, 1 } do
-			local wall = Build.part(folder, "StartWall", Vector3.new(HALF_X - 84, 80, 4), Vector3.new(sign * (84 + (HALF_X - 84) / 2), 40, zMin - 2), NAVY)
+			local wall = Build.part(folder, "StartWall", Vector3.new(HALF_X - 92, 80, 4), Vector3.new(sign * (92 + (HALF_X - 92) / 2), 40, zMin - 2), NAVY)
 			wall.Transparency = 1
 			wall.CanQuery = false
-			for x = 100, HALF_X, 16 do
+			for x = 108, HALF_X, 16 do
 				local height = random:NextNumber(18, 28)
 				deco(folder, "Cliff", Vector3.new(17, height, 12), CFrame.new(sign * x, height / 2 - 2, zMin - 4) * CFrame.Angles(0, random:NextNumber(-0.15, 0.15), 0), theme.cliff[1], theme.cliff[2])
 			end

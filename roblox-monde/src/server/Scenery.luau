@@ -6,6 +6,7 @@ local Lighting = game:GetService("Lighting")
 local Build = require(script.Parent.Build)
 
 local Scenery = {}
+local BUNTING = false
 
 local M = Enum.Material
 local function rgb(r: number, g: number, b: number): Color3
@@ -142,6 +143,10 @@ end
 
 -- Une guirlande de fanions de toutes les couleurs, tendue entre deux points (elle pend un peu au milieu).
 local function bunting(parent: Instance, from: Vector3, to: Vector3)
+	-- (Le joueur n aime pas les banderoles dans la ville : plus aucune n est posee. Remettre true pour les revoir.)
+	if not BUNTING then
+		return
+	end
 	local count = math.max(4, math.floor((to - from).Magnitude / 2))
 	local previous = from
 	for i = 1, count do

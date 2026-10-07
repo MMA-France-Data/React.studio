@@ -15,8 +15,8 @@ local Zones = require(script.Parent.Zones)
 local World = {}
 
 local GYM_Z, GYM_WALL = 30, 18 -- le mur du lobby où s'ouvre la porte des salles, et la hauteur de ses murs
-local LOBBY_X, LOBBY_BACK = 90, -170 -- demi-largeur du lobby, et son mur du fond
-local ALLEY = 20 -- demi-largeur de l'allée du milieu
+local LOBBY_X, LOBBY_BACK = 98, -170 -- demi-largeur du lobby, et son mur du fond
+local ALLEY = 28 -- demi-largeur de l'allée du milieu
 local PLOT_X, PLOT_Z = 70, 64 -- taille de l'espace d'un joueur
 local DOOR_W, DOOR_H = 12, 12
 local SAS_LEN, SAS_HALF, SAS_WALL = 20, 12, 14
@@ -30,7 +30,7 @@ World.ROOM_HALF_Z = ROOM_LEN / 2
 
 local WHITE = Color3.fromRGB(245, 245, 250)
 -- Où va le vrai stand des épées, et de combien de degrés il est tourné (pour que sa devanture regarde l'allée).
-local STAND_AT, STAND_TURN = Vector3.new(-13, 0, 14), -90
+local STAND_AT, STAND_TURN = Vector3.new(-16, 0, 24.6), 0
 
 -- Mur le long de l'axe X, à la profondeur z, avec le trou d'une porte au milieu.
 local function wallWithDoor(parent: Instance, z: number, halfX: number, height: number, color: Color3, material: Enum.Material?)
@@ -238,7 +238,7 @@ local function buildGym(parent: Instance)
 	end
 
 	-- La forge : un stand dans l'allée, près de la grande porte (on y améliore son épée).
-	local stand = Vector3.new(-11, 0, 16)
+	local stand = Vector3.new(-16, 0, 18.5)
 	local counter = Build.part(gym, "Forge", Vector3.new(9, 3.4, 4), stand + Vector3.new(0, 1.7, 0), Color3.fromRGB(70, 72, 84), Enum.Material.Slate)
 	Build.part(gym, "ShopTop", Vector3.new(10, 0.5, 5), stand + Vector3.new(0, 3.6, 0), Color3.fromRGB(150, 90, 40), Enum.Material.Wood)
 	for _, x in { -4.6, 4.6 } do

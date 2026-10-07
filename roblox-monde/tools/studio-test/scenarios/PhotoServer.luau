@@ -4,9 +4,8 @@
 local Players = game:GetService("Players")
 
 local SHOTS = {
-	{ "stand", Vector3.new(6, 9, 2), Vector3.new(-13, 6, 14) },
-	{ "stand_haut", Vector3.new(4, 30, -8), Vector3.new(-13, 4, 14) },
-	{ "stand_face", Vector3.new(8, 7, 14), Vector3.new(-13, 6, 14) },
+	{ "stand", Vector3.new(0, 9, -6), Vector3.new(-12, 6, 26) },
+	{ "stand_haut", Vector3.new(0, 45, -25), Vector3.new(0, 4, 22) },
 }
 
 return function(log)
