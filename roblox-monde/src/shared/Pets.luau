@@ -254,7 +254,13 @@ Pets.FIGHT_ZONE = 100
 Pets.RANK_XP = { 1, 2.5, 6, 14, 32, 80 }
 -- CHAQUE MONDE DURE PLUS LONGTEMPS QUE LE PRECEDENT (sa demande : « ralentir le monde deux pour qu il dure encore
 -- plus longtemps ») : a chaque monde, monter un familier demande LONG_XP fois plus de combats.
-Pets.LONG_XP = 2.5
+-- Par monde : { monde 1, monde 2, monde 3 } (regle avec tools/balance/mondes.py : 3,5 h, 8 h, 10 h). Les mondes
+-- suivants reprennent le dernier chiffre, x 1,25 a chaque monde.
+Pets.LONG_XP = { 1, 2.5, 3.2 }
+function Pets.longXp(room: number): number
+	local last = #Pets.LONG_XP
+	return if room <= last then Pets.LONG_XP[math.max(1, room)] else Pets.LONG_XP[last] * 1.25 ^ (room - last)
+end
 -- Chaque niveau multiplie la force par FIGHT_LEVEL : l'écart grandit à chaque niveau (niveau 10 : x 2,4 ; niveau
 -- 20 : x 6 ; niveau 30 : x 16). Et chaque niveau demande XP_LEVEL fois plus d'XP que le précédent.
 Pets.FIGHT_LEVEL = 1.1
@@ -284,7 +290,7 @@ end
 function Pets.xpNeed(spot): number
 	local def = Pets.DEFS[spot.a]
 	local rank = math.clamp(spot.q or (def and def.rank) or 1, 1, 6)
-	return math.floor(60 * Pets.XP_LEVEL ^ ((spot.lv or 1) - 1) * Pets.RANK_XP[rank] * (10 * Pets.LONG_XP) ^ ((def and def.room or 1) - 1))
+	return math.floor(60 * Pets.XP_LEVEL ^ ((spot.lv or 1) - 1) * Pets.RANK_XP[rank] * 10 ^ ((def and def.room or 1) - 1) * Pets.longXp(def and def.room or 1))
 end
 -- Toute l'XP qu'un familier a gagnée depuis sa naissance (celle de ses niveaux passés, plus celle du niveau en cours).
 function Pets.totalXp(spot): number

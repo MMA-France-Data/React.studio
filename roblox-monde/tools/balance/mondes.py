@@ -6,7 +6,7 @@
 #   python tools/balance/mondes.py -v     : le détail d'une partie
 import random, statistics, sys
 
-WORLDS = 2
+WORLDS = 3
 HP = [40, 300, 700, 1500, 3200, 9000]
 DMG = [3, 15, 30, 60, 125, 400]
 FIRST = (100, 7)                      # le premier camp des mondes suivants (pas l'exception du canard)
@@ -22,11 +22,17 @@ NEED = 60
 ZONE, COIN_ZONE, XP_ZONE = 100, 100, 10   # d'un monde au suivant : monstres et familiers, pièces, XP
 # D un monde au suivant, en plus : l XP des familiers est LONG_XP fois plus longue et les oeufs LONG_EGG fois plus rares
 # (Pets.LONG_XP, Config.LONG_EGG) : chaque monde dure plus longtemps que le precedent.
-LONG_XP, LONG_EGG = 2.5, 1.5
+LONG_XP, LONG_EGG = [1, 2.5, 3.2], [1, 1.5, 1.8]   # par monde (Pets.LONG_XP, Config.LONG_EGG)
 WALK = 4.0
 INCOME = [0.15, 0.3, 0.75, 2, 5, 12]  # pieces par seconde d un familier moyen de chaque rang, au monde 1 (Pets.INCOME)
 
+LONG_PRICE = 1.25   # Config.LONG_PRICE : les epees d un monde coutent 100 x LONG_PRICE fois celles du monde d avant
+# (Au-dela de la sixieme epee : les trois memes marches, 100 fois plus haut a chaque monde.)
+for i in range(6, 3 * WORLDS):
+    SWORDS.append((SWORDS[i - 3][0] * 100, SWORDS[i - 3][1] * 100 * LONG_PRICE))
 def sword_dps(level): return round(SWORDS[level - 1][0]) / 0.5
+LEVEL_GROW = 1.03
+def player_need(level): return int(30 * level ** 1.7 * LEVEL_GROW ** (level - 1))  # Config.xpNeed
 def monster(world, rank):
     hp, dmg = HP[rank], DMG[rank]
     if world > 0 and rank == 0:
@@ -44,7 +50,7 @@ class Pet:
     def factor(self): return (0.7 + 0.6 * self.along) * 1.1 ** (self.lv - 1) * ZONE ** self.world
     def dmg(self): return FIGHT_DMG[self.rank] * self.factor()
     def hp(self): return FIGHT_HP[self.rank] * self.factor()
-    def need(self): return int(NEED * 1.3 ** (self.lv - 1) * RANK_XP[self.rank] * (XP_ZONE * LONG_XP) ** self.world)
+    def need(self): return int(NEED * 1.3 ** (self.lv - 1) * RANK_XP[self.rank] * XP_ZONE ** self.world * LONG_XP[self.world])
     def gain(self, xp):
         self.xp += xp
         while self.xp >= self.need():
@@ -76,9 +82,9 @@ def run(seed):
         gain = XP[rank] * XP_ZONE ** world
         for p in team: p.gain(gain)
         xp += gain
-        while xp >= int(30 * level ** 1.7):
-            xp -= int(30 * level ** 1.7); level += 1
-        if rng.random() < EGG[rank] / LONG_EGG ** world:
+        while xp >= player_need(level):
+            xp -= player_need(level); level += 1
+        if rng.random() < EGG[rank] / LONG_EGG[world]:
             pen.append(Pet(world, rank, rng))
             pen.sort(key=lambda p: -p.dmg())
             team = pen[:3]
@@ -101,7 +107,8 @@ previous = [0] * len(results)
 for world in range(WORLDS):
     spans = [(r[0][world] - previous[i]) / 3600 for i, r in enumerate(results)]
     previous = [r[0][world] for r in results]
-    print('monde %d : mediane %.1f h, min %.1f h, max %.1f h' % (world + 1, statistics.median(spans), min(spans), max(spans)))
+    levels = [r[1][[i for i, step in enumerate(r[1]) if 'BOSS DU MONDE %d' % (world + 1) in step[1]][0]][3] for r in results]
+    print('monde %d : mediane %.1f h, min %.1f h, max %.1f h ; niveau du joueur au boss : %d' % (world + 1, statistics.median(spans), min(spans), max(spans), statistics.median(levels)))
 if '-v' in sys.argv:
     for step in results[0][1]:
         print('%4.1f h  niveau %2d  %s  [%s]' % (step[0] / 3600, step[3], step[1], ', '.join(p.name() for p in step[4])))

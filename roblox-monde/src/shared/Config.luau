@@ -55,8 +55,15 @@ Config.DAMAGE_ZONE = 100
 Config.COIN_ZONE = 100 -- (comme le reste : les pièces du monde 1 ne pèsent presque rien dans le monde 2)
 Config.XP_ZONE = 10
 -- Chaque monde dure plus longtemps que le precedent : les oeufs y sont LONG_EGG fois plus rares (et l XP des
--- familiers plus longue : Pets.LONG_XP). Simulation : monde 1 environ 3,5 heures, monde 2 environ 8 heures.
-Config.LONG_EGG = 1.5
+-- familiers plus longue : Pets.LONG_XP). Simulation : monde 1 environ 3,5 heures, monde 2 environ 8 heures, monde 3 environ 10 heures.
+-- Par monde : { monde 1, monde 2, monde 3 } ; ensuite le dernier chiffre, x 1,2 a chaque monde.
+Config.LONG_EGG = { 1, 1.5, 1.8 }
+function Config.longEgg(zone: number): number
+	local last = #Config.LONG_EGG
+	return if zone <= last then Config.LONG_EGG[math.max(1, zone)] else Config.LONG_EGG[last] * 1.2 ^ (zone - last)
+end
+-- Les epees d un monde au-dela de la table coutent 100 x LONG_PRICE fois celles du monde d avant.
+Config.LONG_PRICE = 1.25
 Config.RESPAWN = 2 -- secondes avant qu'un monstre revienne (son choix : 2 s, 3 s pour le boss : « si y a du monde ça sera rapide »)
 Config.BOSS_RESPAWN = 3
 Config.AGGRO = 22 -- distance à laquelle un monstre voit le joueur
@@ -76,7 +83,7 @@ function Config.monster(zone: number, rank: number)
 		damage = math.floor(damage * Config.DAMAGE_ZONE ^ (zone - 1) + 0.5),
 		coins = math.floor(m.coins[rank] * Config.COIN_ZONE ^ (zone - 1) + 0.5),
 		xp = math.floor(m.xp[rank] * Config.XP_ZONE ^ (zone - 1) + 0.5),
-		egg = m.egg[rank] / Config.LONG_EGG ^ (zone - 1),
+		egg = m.egg[rank] / Config.longEgg(zone),
 		scale = m.scale[rank],
 		speed = m.speed[rank],
 		level = (zone - 1) * 10 + rank * 2 - 1,
@@ -111,7 +118,9 @@ Config.PET_REACH = 26 -- les familiers attaquent un monstre jusqu'à cette dista
 
 -- XP qu'il faut pour passer du niveau `level` au suivant.
 function Config.xpNeed(level: number): number
-	return math.floor(30 * level ^ 1.7)
+	-- (x 1,03 par niveau en plus : sans ca, le joueur prenait des dizaines de niveaux par monde et finissait avec
+	-- plus de vie que ses familiers. Il arrive vers le niveau 22 au premier boss, 53 au deuxieme, 95 au troisieme.)
+	return math.floor(30 * level ^ 1.7 * 1.03 ^ (level - 1))
 end
 function Config.maxHealth(level: number): number
 	return math.floor(100 * 1.1 ^ (level - 1))
@@ -155,7 +164,8 @@ end
 -- Prix pour passer de l'épée `sword` à la suivante.
 function Config.swordPrice(sword: number): number
 	local step, factor = swordStep(sword + 1)
-	return step.price * factor
+	local worlds = math.max(0, math.ceil((sword + 1 - #Config.SWORDS) / Config.SWORD_PER_ZONE))
+	return step.price * factor * Config.LONG_PRICE ^ worlds
 end
 -- LES FAMILIERS AU COMBAT (leurs dégâts et leur vie : Pets.damageOf et Pets.healthOf). Les monstres s'en prennent
 -- d'abord à eux, dans l'ordre de l'équipe, et au joueur en dernier.
