@@ -16,9 +16,9 @@ SWORD_MAX = 3
 WALK = 4.0          # secondes pour aller d'un monstre au suivant
 INCOME = [0.35, 1.0, 3.75, 18, 90, 1050]  # pièces par seconde d'un familier moyen de chaque rang (valeur / 1000)
 
-def sword_dps(level): return round(1.5 * 3.2 ** (level - 1)) / 0.5
-PRICE, PRICE_STEP, NEED = 1000, 6, 45
-def sword_price(level): return int(PRICE * PRICE_STEP ** (level - 1))
+def sword_dps(level): return round(2.5 * 10 ** (level - 1)) / 0.5
+PRICE, PRICE_STEP, NEED = 8000, 15, 60
+def sword_price(level): return int(PRICE * 16 ** ((level - 1) // 2) * (PRICE_STEP if (level - 1) % 2 == 1 else 1))
 def pet_need(rank, lv): return int(NEED * 1.3 ** (lv - 1) * RANK_XP[rank])
 
 class Pet:

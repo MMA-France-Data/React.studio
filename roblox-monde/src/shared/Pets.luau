@@ -281,7 +281,7 @@ end
 function Pets.xpNeed(spot): number
 	local def = Pets.DEFS[spot.a]
 	local rank = math.clamp(spot.q or (def and def.rank) or 1, 1, 6)
-	return math.floor(45 * Pets.XP_LEVEL ^ ((spot.lv or 1) - 1) * Pets.RANK_XP[rank] * 10 ^ ((def and def.room or 1) - 1))
+	return math.floor(60 * Pets.XP_LEVEL ^ ((spot.lv or 1) - 1) * Pets.RANK_XP[rank] * 10 ^ ((def and def.room or 1) - 1))
 end
 -- Toute l'XP qu'un familier a gagnée depuis sa naissance (celle de ses niveaux passés, plus celle du niveau en cours).
 function Pets.totalXp(spot): number

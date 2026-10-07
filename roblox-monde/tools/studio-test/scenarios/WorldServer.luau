@@ -149,7 +149,7 @@ return function(log)
 	check(fed ~= nil and after2.spots["1"] == nil and after2.spots["3"] ~= nil, "nourrir : le familier mangé disparaît, l'autre reçoit son XP", tostring(fed) .. " XP, canard " .. tostring(duckXp and duckXp.a) .. ", mouton " .. tostring(sheep and sheep.a))
 
 	-- 5. La forge.
-	D("Give", 1000)
+	D("Give", 8000)
 	check(D("BuySword") == true and D("Data").sword == 2, "la forge améliore l'épée", D("Data").sword)
 
 	-- 6. La porte de la zone 2 : fermée, puis ouverte par le boss.

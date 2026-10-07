@@ -113,13 +113,16 @@ function Config.maxHealth(level: number): number
 end
 -- L'ÉPÉE : chaque épée tape SWORD_STEP fois plus fort que la précédente. On ne peut en acheter que SWORD_PER_ZONE
 -- par zone ouverte (battre un boss débloque les suivantes) : impossible de tout acheter d'un coup avec les pièces
--- de l'enclos. Prix : 1 000 pièces la deuxième, puis x 6 à chaque épée.
+-- de l'enclos. Prix : voir Config.swordPrice (8 000 puis 120 000 dans le monde 1).
 -- (Ces prix, les chances d oeuf et l XP des familiers sont regles avec tools/balance/monde1.py pour qu un joueur
 -- tres efficace mette environ 3 heures a battre le boss du monde 1.)
 -- (Son choix : « moins d'evolutions mais plus de multiplicateur, x3,2 par epee ». Deux epees par zone = x10, comme
 -- les monstres.)
 Config.SWORD_PER_ZONE = 2 -- (son choix, confirme : « 2 epees par monde mais familiers qui ont du poids »)
-Config.SWORD_STEP = 3.2
+-- (Sa demande : « calcule pour que mes familiers fassent chacun a peu pres mes degats ». Deux epees doivent
+-- couvrir tout un monde, ou les familiers passent de 5 a 500 de degats : chaque epee tape donc 10 fois plus fort.
+-- Epee 1 = un canard, epee 2 = un mouton, epee 3 = le familier du boss.)
+Config.SWORD_STEP = 10
 function Config.swordMax(zone: number): number
 	return 1 + Config.SWORD_PER_ZONE * zone
 end
@@ -127,7 +130,7 @@ end
 -- plus de dégâts pour soi ; monter le niveau d'un FAMILIER = ses dégâts et sa vie.
 function Config.swordDamage(sword: number): number
 	-- (L'épée seule fait peu : la force vient surtout des trois familiers.)
-	return 1.5 * Config.SWORD_STEP ^ (sword - 1)
+	return 2.5 * Config.SWORD_STEP ^ (sword - 1)
 end
 function Config.hitDamage(sword: number, level: number): number
 	local _ = level
@@ -135,7 +138,8 @@ function Config.hitDamage(sword: number, level: number): number
 end
 -- Prix pour passer de l'épée `sword` à la suivante.
 function Config.swordPrice(sword: number): number
-	return math.floor(1000 * 6 ^ (sword - 1))
+	-- La premiere epee d un monde : 8 000 pieces (x 16 a chaque monde) ; la deuxieme : 15 fois plus.
+	return math.floor(8000 * 16 ^ ((sword - 1) // 2) * (if (sword - 1) % 2 == 1 then 15 else 1))
 end
 -- LES FAMILIERS AU COMBAT (leurs dégâts et leur vie : Pets.damageOf et Pets.healthOf). Les monstres s'en prennent
 -- d'abord à eux, dans l'ordre de l'équipe, et au joueur en dernier.
