@@ -61,8 +61,8 @@ local function teamOf(player: Player)
 	for _, key in data and data.team or {} do
 		local pet = data.spots[key]
 		if pet and pet.v then
-			local max = Config.petHealth(pet.v, pet.lv)
-			table.insert(team, { key = key, pet = pet, max = max, hp = math.min(fight.hp[key] or max, max), damage = Config.petDamage(pet.v, pet.lv) })
+			local max = Pets.healthOf(pet)
+			table.insert(team, { key = key, pet = pet, max = max, hp = math.min(fight.hp[key] or max, max), damage = Pets.damageOf(pet) })
 		end
 	end
 	return team
@@ -130,8 +130,8 @@ local function reward(monster, player: Player)
 			pet.xp = (pet.xp or 0) + def.xp
 			pet.lv = pet.lv or 1
 			local before = pet.lv
-			while pet.xp >= Config.petXpNeed(pet.lv) do
-				pet.xp -= Config.petXpNeed(pet.lv)
+			while pet.xp >= Pets.xpNeed(pet) do
+				pet.xp -= Pets.xpNeed(pet)
 				pet.lv += 1
 			end
 			if pet.lv > before then

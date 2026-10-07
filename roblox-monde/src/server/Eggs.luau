@@ -218,10 +218,41 @@ function Eggs.follow(player: Player, spot: number): boolean
 			table.remove(data.team, 1)
 		end
 		table.insert(data.team, key)
-		notify(player, "teamJoined", data.spots[key].a, Config.petDamage(data.spots[key].v, data.spots[key].lv))
+		notify(player, "teamJoined", data.spots[key].a, Pets.damageOf(data.spots[key]))
 	end
 	PlayerData.changed(player)
 	return true
+end
+
+-- « Équiper les meilleurs » : l'équipe devient les familiers qui tapent le plus fort. « Tout déséquiper » : plus
+-- personne dans l'équipe.
+function Eggs.equipBest(player: Player)
+	local data = PlayerData.get(player)
+	if not data then
+		return
+	end
+	local keys = {}
+	for key, spot in data.spots do
+		if spot.v then
+			table.insert(keys, key)
+		end
+	end
+	table.sort(keys, function(a, b)
+		local x, y = Pets.damageOf(data.spots[a]), Pets.damageOf(data.spots[b])
+		return if x == y then tonumber(a) < tonumber(b) else x > y
+	end)
+	data.team = {}
+	for i = 1, math.min(Config.TEAM, #keys) do
+		data.team[i] = keys[i]
+	end
+	PlayerData.changed(player)
+end
+function Eggs.unequipAll(player: Player)
+	local data = PlayerData.get(player)
+	if data then
+		data.team = {}
+		PlayerData.changed(player)
+	end
 end
 
 -- owns(joueur, numéro de l'espace) : vrai si c'est son espace ; plotFor(joueur) : son espace (Gym.owns, Gym.plotOf).

@@ -31,6 +31,17 @@ equipEvent.OnServerEvent:Connect(function(player, spot)
 	end
 end)
 
+-- Les deux boutons du bas de la fenêtre des familiers.
+for name, action in { EquipBest = Eggs.equipBest, UnequipAll = Eggs.unequipAll } do
+	local event = Instance.new("RemoteEvent")
+	event.Name = name
+	event.Parent = ReplicatedStorage
+	event.OnServerEvent:Connect(function(player)
+		action(player)
+		Monsters.publishTeam(player)
+	end)
+end
+
 -- Poser l'œuf qu'on porte, là où on se tient dans son enclos.
 local placeEvent = Instance.new("RemoteEvent")
 placeEvent.Name = "PlaceEgg"

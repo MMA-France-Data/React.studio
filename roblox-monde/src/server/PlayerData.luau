@@ -116,6 +116,20 @@ local function publish(player: Player)
 	-- Le prochain œuf à poser (« Fox:6:73 » : l'animal, son rang, et la grosseur de l'œuf de 0 à 100).
 	local first = data.bag[1]
 	player:SetAttribute("BagNext", if first then first.a .. ":" .. first.q .. ":" .. math.floor((if first.b then Pets.along(first.q, first.b) else 0.5) * 100 + 0.5) else "")
+	-- Les œufs du sac, groupés pour la fenêtre des œufs (« Duck:1:12,Pig:3:2 » : animal, rang, nombre).
+	local groups, order = {}, {}
+	for _, egg in data.bag do
+		local key = egg.a .. ":" .. egg.q
+		if not groups[key] then
+			groups[key] = 0
+			table.insert(order, key)
+		end
+		groups[key] += 1
+	end
+	for i, key in order do
+		order[i] = key .. ":" .. groups[key]
+	end
+	player:SetAttribute("BagList", table.concat(order, ","))
 	player:SetAttribute("Places", data.places)
 	player:SetAttribute("Spots", Pets.encode(data.spots))
 	-- L'équipe de combat : les places (« 2,5,1 »), et de quoi dessiner chaque familier (« Fox:6:73;Dog:4:20 »).

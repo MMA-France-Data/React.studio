@@ -777,7 +777,169 @@ return function(env)
 		panel.Scale.Scale = math.min(1, view.Y / (panel.Size.Y.Offset + 60), (view.X - 110) / 440)
 	end
 
-	-- L'œuf : combien d'œufs à poser ou qui couvent, et le panneau « Œufs en croissance ».
+	-- LES FENÊTRES « MES FAMILIERS » ET « MES ŒUFS » -------------------------------------------------------------------
+	-- (Demande du joueur, sur des captures d'un jeu qu'il aime : une grille de cartes de la couleur du rang, avec la
+	-- note du rang (C, B, A, S, SS, SSS), le niveau, une coche sur ceux de l'équipe ; à droite, la fiche du familier
+	-- choisi ; et les œufs en grille avec leur nombre.)
+	local equipBestEvent = ReplicatedStorage:WaitForChild("EquipBest")
+	local unequipAllEvent = ReplicatedStorage:WaitForChild("UnequipAll")
+	local GRADES = { "C", "B", "A", "S", "SS", "SSS" }
+	local NAVY, GOLDEN = Color3.fromRGB(22, 32, 58), Color3.fromRGB(226, 178, 96)
+	local GOLD = Color3.fromRGB(255, 221, 51)
+	local function darker(color: Color3, k: number): Color3
+		return Color3.new(color.R * k, color.G * k, color.B * k)
+	end
+	local function button(parent: Instance, name: string, size: UDim2, position: UDim2, color: Color3, label: string): TextButton
+		local item = Instance.new("TextButton")
+		item.Name = name
+		item.Size = size
+		item.Position = position
+		item.BackgroundColor3 = color
+		item.Text = ""
+		item.ZIndex = 5
+		Instance.new("UICorner", item).CornerRadius = UDim.new(0, 8)
+		local stroke = Instance.new("UIStroke")
+		stroke.Thickness = 2.5
+		stroke.Color = Color3.fromRGB(14, 18, 30)
+		stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+		stroke.Parent = item
+		local text = env.text(item, "Label", UDim2.fromScale(0.92, 0.74), UDim2.fromScale(0.04, 0.13))
+		text.Text = label
+		text.ZIndex = 6
+		item.Parent = parent
+		return item
+	end
+	-- Une fenêtre au milieu de l'écran : fond bleu nuit, liseré doré, titre doré, croix rouge pour fermer.
+	local function window(name: string, title: string, width: number, height: number): Frame
+		local frame = env.box(env.gui, name, UDim2.fromOffset(width, height), UDim2.fromScale(0.5, 0.5), NAVY)
+		frame.AnchorPoint = Vector2.new(0.5, 0.5)
+		frame.Visible = false
+		frame.ZIndex = 4
+		frame.UIStroke.Color = GOLDEN
+		frame.UIStroke.Thickness = 3
+		local scale = Instance.new("UIScale")
+		scale.Name = "Scale"
+		scale.Parent = frame
+		local heading = env.text(frame, "Title", UDim2.new(1, -120, 0, 40), UDim2.fromOffset(60, 8), GOLDEN, 34)
+		heading.Text = title
+		heading.ZIndex = 5
+		local close = button(frame, "Close", UDim2.fromOffset(44, 44), UDim2.new(1, -30, 0, -14), Color3.fromRGB(226, 50, 50), "X")
+		close.Activated:Connect(function()
+			frame.Visible = false
+		end)
+		return frame
+	end
+	local function fitWindow(frame: Frame)
+		local view = workspace.CurrentCamera.ViewportSize
+		frame.Scale.Scale = math.min(1, (view.Y - 30) / (frame.Size.Y.Offset + 30), (view.X - 20) / (frame.Size.X.Offset + 20))
+	end
+	-- Le portrait en 3D d'un modèle, dans un cadre.
+	local function portrait(parent: Instance, size: UDim2, position: UDim2): ViewportFrame
+		local view = Instance.new("ViewportFrame")
+		view.Name = "Portrait"
+		view.Size = size
+		view.Position = position
+		view.BackgroundTransparency = 1
+		view.Ambient = Color3.fromRGB(210, 210, 220)
+		view.LightColor = Color3.new(1, 1, 1)
+		view.LightDirection = Vector3.new(1, -1.2, 1)
+		view.ZIndex = 5
+		view.Parent = parent
+		return view
+	end
+	local function show(view: ViewportFrame, key: string, build: () -> Model?)
+		if view:GetAttribute("Key") == key then
+			return
+		end
+		view:SetAttribute("Key", key)
+		view:ClearAllChildren()
+		local model = build()
+		if not model then
+			return
+		end
+		model.Parent = view
+		local center, size = model:GetBoundingBox()
+		local distance = math.max(size.X, size.Y, size.Z) * 1.45
+		local camera = Instance.new("Camera")
+		camera.FieldOfView = 40
+		camera.CFrame = CFrame.lookAt(center.Position + Vector3.new(-distance * 0.55, distance * 0.3, -distance), center.Position)
+		camera.Parent = view
+		view.CurrentCamera = camera
+	end
+	local function eggModel(animal: string): Model?
+		local visuals = ReplicatedStorage:FindFirstChild("EggVisuals")
+		local template = visuals and visuals:FindFirstChild(animal)
+		if template and template:IsA("Model") then
+			return template:Clone()
+		end
+		local model = Instance.new("Model")
+		local shell = Instance.new("Part")
+		shell.Shape = Enum.PartType.Ball
+		shell.Size = Vector3.new(2, 2.6, 2)
+		shell.Color = EGG_COLORS[animal] or Color3.new(1, 1, 1)
+		shell.Anchored = true
+		shell.Parent = model
+		return model
+	end
+	-- Une carte de la grille : la couleur du rang, la note, le portrait, une ligne en bas, une coche.
+	local function card(parent: Instance, name: string)
+		local item = Instance.new("TextButton")
+		item.Name = name
+		item.Size = UDim2.fromOffset(100, 100)
+		item.Text = ""
+		item.AutoButtonColor = false
+		item.ZIndex = 5
+		Instance.new("UICorner", item).CornerRadius = UDim.new(0, 10)
+		local stroke = Instance.new("UIStroke")
+		stroke.Thickness = 3
+		stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+		stroke.Parent = item
+		local view = portrait(item, UDim2.fromScale(0.9, 0.9), UDim2.fromScale(0.05, 0.02))
+		local grade = env.text(item, "Grade", UDim2.fromOffset(44, 26), UDim2.fromOffset(4, 2), nil, 24)
+		grade.TextXAlignment = Enum.TextXAlignment.Left
+		grade.ZIndex = 6
+		local line = env.text(item, "Line", UDim2.new(1, -6, 0, 20), UDim2.new(0, 3, 1, -22), nil, 17)
+		line.ZIndex = 6
+		local tick = env.text(item, "Tick", UDim2.fromOffset(30, 30), UDim2.new(1, -30, 0, -2), Color3.fromRGB(90, 255, 90), 28)
+		tick.Text = "✓"
+		tick.ZIndex = 6
+		item.Parent = parent
+		return { frame = item, stroke = stroke, view = view, grade = grade, line = line, tick = tick }
+	end
+	local function paint(item, rarity: number, selected: boolean)
+		local info = rarityInfo(rarity)
+		item.frame.BackgroundColor3 = darker(info.color, 0.45)
+		item.stroke.Color = if selected then Color3.new(1, 1, 1) else info.color
+		item.stroke.Thickness = if selected then 4 else 3
+		item.grade.Text = GRADES[rarity] or "?"
+		item.grade.TextColor3 = if rarity >= 5 then GOLD else info.color
+	end
+	local function grid(parent: Instance, size: UDim2, position: UDim2): ScrollingFrame
+		local back = env.box(parent, "GridBack", size, position, Color3.fromRGB(14, 22, 42))
+		back.ZIndex = 4
+		back.UIStroke.Thickness = 2
+		back.UIStroke.Color = Color3.fromRGB(40, 56, 96)
+		local list = Instance.new("ScrollingFrame")
+		list.Name = "Grid"
+		list.Size = UDim2.new(1, -12, 1, -12)
+		list.Position = UDim2.fromOffset(8, 6)
+		list.BackgroundTransparency = 1
+		list.BorderSizePixel = 0
+		list.ScrollBarThickness = 8
+		list.ZIndex = 5
+		list.Parent = back
+		local layout = Instance.new("UIGridLayout")
+		layout.CellSize = UDim2.fromOffset(100, 100)
+		layout.CellPadding = UDim2.fromOffset(10, 10)
+		layout.SortOrder = Enum.SortOrder.LayoutOrder
+		layout.Parent = list
+		layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+			list.CanvasSize = UDim2.fromOffset(0, layout.AbsoluteContentSize.Y / math.max(0.01, (list.Parent.Parent :: any).Scale.Scale) + 8)
+		end)
+		return list
+	end
+
+	-- LES ŒUFS : le bouton (avec le nombre d'œufs à poser ou qui couvent), et la fenêtre.
 	local eggButton = squareButton("EggButton", 0, Color3.fromRGB(235, 50, 50))
 	local eggIcon = Instance.new("Frame")
 	eggIcon.Name = "Icon"
@@ -796,117 +958,76 @@ return function(env)
 	badge:FindFirstChildOfClass("UICorner").CornerRadius = UDim.new(1, 0)
 	local badgeText = env.text(badge, "Label", UDim2.fromScale(0.9, 0.8), UDim2.fromScale(0.05, 0.1))
 
-	local eggPanel, eggTitle = sidePanel("EggPanel", 340)
-	eggTitle.Text = tr("eggsGrowing")
-	local eggInfo = env.text(eggPanel, "Info", UDim2.new(1, -20, 0, 22), UDim2.fromOffset(10, 58), Color3.fromRGB(255, 221, 51), 18)
-	eggInfo.TextXAlignment = Enum.TextXAlignment.Left
-	local eggRows = {}
-	for i = 1, 5 do
-		local row = env.box(eggPanel, "Egg" .. i, UDim2.new(1, -20, 0, 44), UDim2.fromOffset(10, 86 + (i - 1) * 50), Color3.fromRGB(74, 76, 90))
-		row.UIStroke.Thickness = 2
-		local icon = Instance.new("Frame")
-		icon.Name = "Icon"
-		icon.Position = UDim2.fromOffset(10, 5)
-		icon.Size = UDim2.fromOffset(26, 34)
-		icon.BorderSizePixel = 0
-		Instance.new("UICorner", icon).CornerRadius = UDim.new(0.5, 0)
-		icon.Parent = row
-		local track = env.box(row, "Track", UDim2.new(1, -150, 0, 26), UDim2.fromOffset(48, 9), Color3.fromRGB(20, 22, 30))
-		track.UIStroke.Thickness = 2
-		local fill = Instance.new("Frame")
-		fill.Name = "Fill"
-		fill.BorderSizePixel = 0
-		fill.BackgroundColor3 = Color3.fromRGB(60, 220, 70)
-		fill.Size = UDim2.fromScale(0, 1)
-		Instance.new("UICorner", fill).CornerRadius = UDim.new(0, 8)
-		fill.Parent = track
-		local label = env.text(track, "Label", UDim2.fromScale(1, 0.84), UDim2.fromScale(0, 0.08))
-		label.ZIndex = 2
-		local rarity = env.text(row, "Rarity", UDim2.fromOffset(92, 22), UDim2.new(1, -98, 0, 11), nil, 16)
-		eggRows[i] = { frame = row, icon = icon, fill = fill, label = label, rarity = rarity }
-	end
+	local eggPanel = window("EggPanel", tr("eggsTitle"), 600, 440)
+	local eggInfo = env.text(eggPanel, "Info", UDim2.new(1, -40, 0, 22), UDim2.fromOffset(20, 52), GOLD, 18)
+	eggInfo.ZIndex = 5
+	local eggGrid = grid(eggPanel, UDim2.new(1, -40, 1, -100), UDim2.fromOffset(20, 82))
+	local eggCards = {}
 
-	-- La patte : la liste de ses familiers, comme « 7/8 Actifs » avec le bouton pour acheter une place.
+	-- LES FAMILIERS : le bouton patte, et la fenêtre (la grille à gauche, la fiche à droite).
 	local pawButton = squareButton("PawButton", 1, Color3.fromRGB(255, 150, 40))
 	env.text(pawButton, "Label", UDim2.fromScale(0.8, 0.8), UDim2.fromScale(0.1, 0.1)).Text = "🐾"
-	local petPanel, petTitle = sidePanel("PetPanel", 470)
-	local addPlace = Instance.new("TextButton")
-	addPlace.Name = "AddPlace"
-	addPlace.AnchorPoint = Vector2.new(1, 0)
-	addPlace.Position = UDim2.new(1, -8, 0, 8)
-	addPlace.Size = UDim2.fromOffset(160, 36)
-	addPlace.BackgroundColor3 = Color3.fromRGB(110, 230, 40)
-	addPlace.Font = Enum.Font.FredokaOne
-	addPlace.TextScaled = true
-	addPlace.TextColor3 = Color3.new(1, 1, 1)
-	Instance.new("UICorner", addPlace).CornerRadius = UDim.new(0, 6)
-	local addStroke = Instance.new("UIStroke")
-	addStroke.Thickness = 2
-	addStroke.Parent = addPlace
-	addPlace.Parent = petPanel.Header
+	local petPanel = window("PetPanel", tr("petsTitle"), 800, 520)
+	local petCount = env.text(petPanel, "Count", UDim2.fromOffset(200, 22), UDim2.fromOffset(24, 54), GREEN, 18)
+	petCount.TextXAlignment = Enum.TextXAlignment.Left
+	petCount.ZIndex = 5
+	local addPlace = button(petPanel, "AddPlace", UDim2.fromOffset(200, 30), UDim2.fromOffset(276, 50), Color3.fromRGB(90, 200, 50), "")
 	addPlace.Activated:Connect(function()
 		upgradeEvent:FireServer()
 	end)
-	local petIncome = env.text(petPanel, "Income", UDim2.new(1, -20, 0, 22), UDim2.fromOffset(10, 58), GREEN, 18)
-	petIncome.TextXAlignment = Enum.TextXAlignment.Left
-	-- LA CHANCE : une ligne qui explique, et une ligne qui dit la chance du joueur en ce moment.
-	local GOLD = Color3.fromRGB(255, 221, 51)
-	local luckFrame = env.box(petPanel, "Luck", UDim2.new(1, -16, 0, 50), UDim2.fromOffset(8, 84), Color3.fromRGB(70, 56, 20))
-	luckFrame.UIStroke.Thickness = 2
-	luckFrame.UIStroke.Color = GOLD
-	local luckExplain = env.text(luckFrame, "Explain", UDim2.new(1, -12, 0, 20), UDim2.fromOffset(6, 3), GOLD, 16)
-	luckExplain.UIStroke.Thickness = 1.5
-	luckExplain.Text = tr("luckExplain")
-	local luckNow = env.text(luckFrame, "Now", UDim2.new(1, -12, 0, 22), UDim2.fromOffset(6, 25), nil, 18)
-	luckNow.UIStroke.Thickness = 1.5
-	local list = Instance.new("ScrollingFrame")
-	list.Name = "List"
-	list.Position = UDim2.fromOffset(8, 142)
-	list.Size = UDim2.new(1, -16, 1, -150)
-	list.BackgroundTransparency = 1
-	list.BorderSizePixel = 0
-	list.ScrollBarThickness = 8
-	list.ZIndex = 4
-	list.Parent = petPanel
-	local petRows = {}
-	local selling = 0 -- la place dont le bouton « Vendre » attend son 2e appui
-	local function petRow(i: number)
-		local row = env.box(list, "Pet" .. i, UDim2.new(1, -14, 0, 78), UDim2.fromOffset(2, 2 + (i - 1) * 84), Color3.fromRGB(74, 76, 90))
-		row.UIStroke.Thickness = 2
-		local name = env.text(row, "Animal", UDim2.new(1, -196, 0, 24), UDim2.fromOffset(10, 4), nil, 19)
-		name.TextXAlignment = Enum.TextXAlignment.Left
-		local info = env.text(row, "Info", UDim2.new(1, -196, 0, 20), UDim2.fromOffset(10, 29), GREEN, 16)
-		info.TextXAlignment = Enum.TextXAlignment.Left
-		info.UIStroke.Thickness = 1.5
-		-- Sa chance d'œuf rare, sur sa propre ligne dorée (toute la largeur : c'est ce qu'on compare).
-		local luck = env.text(row, "Luck", UDim2.new(1, -20, 0, 22), UDim2.fromOffset(10, 52), GOLD, 18)
-		luck.TextXAlignment = Enum.TextXAlignment.Left
-		luck.UIStroke.Thickness = 1.5
-		local function button(buttonName: string, x: number, width: number): TextButton
-			local item = Instance.new("TextButton")
-			item.Name = buttonName
-			item.Size = UDim2.fromOffset(width, 38)
-			item.Position = UDim2.new(1, x, 0, 9)
-			item.Font = Enum.Font.FredokaOne
-			item.TextScaled = true
-			item.TextColor3 = Color3.new(1, 1, 1)
-			Instance.new("UICorner", item).CornerRadius = UDim.new(0, 8)
-			item.Parent = row
-			return item
+	local petGrid = grid(petPanel, UDim2.fromOffset(470, 360), UDim2.fromOffset(20, 86))
+	local petCards = {}
+	local selected = 0 -- la place du familier dont on voit la fiche
+	local best = button(petPanel, "Best", UDim2.fromOffset(226, 46), UDim2.fromOffset(20, 458), Color3.fromRGB(60, 200, 70), tr("equipBest"))
+	local none = button(petPanel, "None", UDim2.fromOffset(226, 46), UDim2.fromOffset(264, 458), Color3.fromRGB(50, 130, 230), tr("unequipAll"))
+	best.Activated:Connect(function()
+		equipBestEvent:FireServer()
+	end)
+	none.Activated:Connect(function()
+		unequipAllEvent:FireServer()
+	end)
+	-- La fiche.
+	local sheet = env.box(petPanel, "Sheet", UDim2.fromOffset(280, 418), UDim2.fromOffset(502, 86), Color3.fromRGB(30, 44, 78))
+	sheet.ZIndex = 4
+	sheet.UIStroke.Thickness = 3
+	local sheetGrade = env.text(sheet, "Grade", UDim2.fromOffset(70, 40), UDim2.fromOffset(10, 4), GOLD, 38)
+	sheetGrade.TextXAlignment = Enum.TextXAlignment.Left
+	sheetGrade.ZIndex = 5
+	local sheetName = env.text(sheet, "Name", UDim2.new(1, -90, 0, 30), UDim2.fromOffset(82, 8), nil, 26)
+	sheetName.ZIndex = 5
+	local sheetRarity = env.text(sheet, "Rarity", UDim2.new(1, -20, 0, 20), UDim2.fromOffset(10, 44), nil, 18)
+	sheetRarity.ZIndex = 5
+	local sheetView = portrait(sheet, UDim2.fromOffset(200, 170), UDim2.fromOffset(40, 62))
+	local sheetFight = env.text(sheet, "Fight", UDim2.new(1, -20, 0, 30), UDim2.fromOffset(10, 236), nil, 26)
+	sheetFight.ZIndex = 5
+	local sheetIncome = env.text(sheet, "Income", UDim2.new(1, -20, 0, 20), UDim2.fromOffset(10, 270), GREEN, 17)
+	sheetIncome.ZIndex = 5
+	local sheetLuck = env.text(sheet, "Luck", UDim2.new(1, -20, 0, 20), UDim2.fromOffset(10, 292), GOLD, 17)
+	sheetLuck.ZIndex = 5
+	local xpBack = env.box(sheet, "Xp", UDim2.new(1, -24, 0, 26), UDim2.fromOffset(12, 322), Color3.fromRGB(14, 18, 30))
+	xpBack.ZIndex = 5
+	xpBack.UIStroke.Thickness = 2
+	local xpFill = Instance.new("Frame")
+	xpFill.BorderSizePixel = 0
+	xpFill.BackgroundColor3 = Color3.fromRGB(60, 200, 80)
+	xpFill.ZIndex = 5
+	Instance.new("UICorner", xpFill).CornerRadius = UDim.new(0, 8)
+	xpFill.Parent = xpBack
+	local xpLabel = env.text(xpBack, "Label", UDim2.fromScale(0.96, 0.8), UDim2.fromScale(0.02, 0.1), nil, 17)
+	xpLabel.ZIndex = 6
+	local equip = button(sheet, "Equip", UDim2.fromOffset(124, 44), UDim2.fromOffset(12, 362), Color3.fromRGB(50, 130, 230), "")
+	local sell = button(sheet, "Sell", UDim2.fromOffset(124, 44), UDim2.fromOffset(144, 362), Color3.fromRGB(226, 50, 50), "")
+	equip.Activated:Connect(function()
+		if selected > 0 then
+			equipEvent:FireServer(selected)
 		end
-		local follow = button("Follow", -178, 80)
-		local sell = button("Sell", -92, 86)
-		local item = { frame = row, name = name, info = info, luck = luck, follow = follow, sell = sell, spot = 0 }
-		follow.Activated:Connect(function()
-			equipEvent:FireServer(item.spot)
-		end)
-		-- « Vendre » : le joueur prend le familier dans ses bras pour le porter au stand (un 2e appui le repose).
-		sell.Activated:Connect(function()
-			sellEvent:FireServer(item.spot)
-		end)
-		petRows[i] = item
-		return item
-	end
+	end)
+	-- « Vendre » : le joueur prend le familier dans ses bras pour le porter au stand (un 2e appui le repose).
+	sell.Activated:Connect(function()
+		if selected > 0 then
+			sellEvent:FireServer(selected)
+		end
+	end)
 
 	local function refreshPanels()
 		local spots = Pets.decode(player:GetAttribute("Spots"))
@@ -917,95 +1038,130 @@ return function(env)
 		for index, spot in spots do
 			table.insert(if spot.v then pets else eggs, { index = tonumber(index), spot = spot })
 		end
+		-- Les plus forts d'abord.
 		table.sort(pets, function(a, b)
-			return Pets.incomeOf(a.spot.a, a.spot.v) > Pets.incomeOf(b.spot.a, b.spot.v)
+			local x, y = Pets.damageOf(a.spot), Pets.damageOf(b.spot)
+			return if x == y then a.index < b.index else x > y
 		end)
 		table.sort(eggs, function(a, b)
 			return a.spot.t < b.spot.t
 		end)
-
-		-- L'œuf : la pastille compte les œufs à poser et ceux qui couvent.
 		badgeText.Text = tostring(bag + #eggs)
 		badge.Visible = bag + #eggs > 0
-		eggInfo.Text = tr("stock", bag)
-		for i, row in eggRows do
-			local entry = eggs[i]
-			row.frame.Visible = entry ~= nil
-			if entry then
-				local left = entry.spot.t - workspace:GetServerTimeNow()
-				local total = math.max(1, entry.spot.d)
-				row.icon.BackgroundColor3 = EGG_COLORS[entry.spot.a] or Color3.new(1, 1, 1)
-				row.fill.Size = UDim2.fromScale(math.clamp(1 - left / total, 0, 1), 1)
-				row.label.Text = clock(left)
-				row.rarity.Text = tr(rarityInfo(entry.spot.q).key)
-				row.rarity.TextColor3 = rarityInfo(entry.spot.q).color
-			end
-		end
-		fit(eggPanel)
 
-		-- La patte : la liste, du familier qui rapporte le plus à celui qui rapporte le moins.
+		-- LES ŒUFS : d'abord ceux du sac, groupés (« x12 »), puis ceux qui couvent, avec le temps qu'il reste.
+		if eggPanel.Visible then
+			local entries = {}
+			for animal, rank, count in string.gmatch(player:GetAttribute("BagList") or "", "(%a+):(%d):(%d+)") do
+				table.insert(entries, { animal = animal, rank = tonumber(rank), line = "x" .. count })
+			end
+			for _, entry in eggs do
+				table.insert(entries, { animal = entry.spot.a, rank = entry.spot.q, line = "⏳ " .. clock(entry.spot.t - workspace:GetServerTimeNow()) })
+			end
+			eggInfo.Text = if #entries == 0 then tr("eggsEmpty") else tr("eggsHint")
+			for i, entry in entries do
+				local item = eggCards[i]
+				if not item then
+					item = card(eggGrid, "Egg" .. i)
+					item.frame.LayoutOrder = i
+					item.tick.Visible = false
+					eggCards[i] = item
+				end
+				item.frame.Visible = true
+				paint(item, entry.rank, false)
+				item.line.Text = entry.line
+				show(item.view, entry.animal, function()
+					return eggModel(entry.animal)
+				end)
+			end
+			for i = #entries + 1, #eggCards do
+				eggCards[i].frame.Visible = false
+			end
+			fitWindow(eggPanel)
+		end
+
+		-- LES FAMILIERS.
+		if not petPanel.Visible then
+			return
+		end
 		local price = Pets.spotPrice(places)
-		petTitle.Text = tr("active", #pets + #eggs, places)
+		petCount.Text = tr("active", #pets + #eggs, places)
 		addPlace.Visible = price ~= nil
-		addPlace.Text = if price then tr("addPlace", env.num(price)) else ""
-		petIncome.Text = tr("income", amount(Pets.income(spots)))
+		addPlace.Label.Text = if price then tr("addPlace", env.num(price)) else ""
+		if not spots[tostring(selected)] or not spots[tostring(selected)].v then
+			selected = if pets[1] then pets[1].index else 0
+		end
 		for i, entry in pets do
-			local row = petRows[i] or petRow(i)
-			local info = rarityInfo(entry.spot.q)
-			row.spot = entry.index
-			row.frame.Visible = true
-			row.name.Text = tr(entry.spot.a)
-			row.name.TextColor3 = info.color
-			row.info.Text = tr(info.key) .. "  " .. tr("perSecond", amount(Pets.incomeOf(entry.spot.a, entry.spot.v)))
-			row.luck.Text = tr("luckLine", Pets.luckOf(entry.spot))
-			local followed = table.find(inTeam, tostring(entry.index)) ~= nil
-			-- Au combat : son niveau, ses dégâts par seconde et sa vie.
-			local level = entry.spot.lv or 1
-			row.info.Text ..= "  •  " .. tr("lvl", level)
-			row.luck.Text = tr("petFight", Config.petDamage(entry.spot.v, level), Config.petHealth(entry.spot.v, level)) .. "   " .. tr("luckLine", Pets.luckOf(entry.spot))
-			-- Celui qui suit le joueur : son cadre passe au doré.
-			row.frame.UIStroke.Color = if followed then GOLD else Color3.fromRGB(20, 20, 30)
-			row.frame.BackgroundColor3 = if followed then Color3.fromRGB(96, 84, 50) else Color3.fromRGB(74, 76, 90)
-			row.follow.Text = if followed then tr("following") else tr("follow")
-			row.follow.BackgroundColor3 = if followed then Color3.fromRGB(70, 210, 90) else Color3.fromRGB(60, 150, 255)
-			local confirm = (player:GetAttribute("Held") or "") == tostring(entry.index)
-			row.sell.Text = if confirm then tr("putBack") else tr("sellButton")
-			row.sell.BackgroundColor3 = if confirm then Color3.fromRGB(255, 150, 40) else Color3.fromRGB(235, 50, 50)
+			local item = petCards[i]
+			if not item then
+				item = card(petGrid, "Pet" .. i)
+				item.frame.LayoutOrder = i
+				item.frame.Activated:Connect(function()
+					selected = item.spot
+					refreshPanels()
+				end)
+				petCards[i] = item
+			end
+			item.spot = entry.index
+			item.frame.Visible = true
+			paint(item, entry.spot.q, entry.index == selected)
+			item.line.Text = tr("lvlLong", entry.spot.lv or 1)
+			item.tick.Visible = table.find(inTeam, tostring(entry.index)) ~= nil
+			show(item.view, entry.spot.a .. entry.spot.q, function()
+				return Pets.build(entry.spot.a, entry.spot.q, true)
+			end)
 		end
-		for i = #pets + 1, #petRows do
-			petRows[i].frame.Visible = false
+		for i = #pets + 1, #petCards do
+			petCards[i].frame.Visible = false
 		end
-		list.CanvasSize = UDim2.fromOffset(0, #pets * 84 + 4)
-		local count = if inTeam[1] == "" then 0 else #inTeam
-		luckNow.Text = tr("teamNow", count, Config.TEAM, player:GetAttribute("PetLuck") or 0)
-		luckNow.TextColor3 = if count > 0 then Color3.fromRGB(110, 255, 80) else Color3.fromRGB(255, 120, 120)
-		fit(petPanel)
+		-- La fiche du familier choisi.
+		local spot = spots[tostring(selected)]
+		sheet.Visible = spot ~= nil
+		if spot then
+			local info = rarityInfo(spot.q)
+			local member = table.find(inTeam, tostring(selected)) ~= nil
+			sheet.UIStroke.Color = info.color
+			sheetGrade.Text = GRADES[spot.q]
+			sheetGrade.TextColor3 = if spot.q >= 5 then GOLD else info.color
+			sheetName.Text = tr(spot.a)
+			sheetRarity.Text = tr(info.key)
+			sheetRarity.TextColor3 = info.color
+			show(sheetView, spot.a .. spot.q, function()
+				return Pets.build(spot.a, spot.q, true)
+			end)
+			sheetFight.Text = tr("petFight", env.num(Pets.damageOf(spot)), env.num(Pets.healthOf(spot)))
+			sheetIncome.Text = tr("income", amount(Pets.incomeOf(spot.a, spot.v)))
+			sheetLuck.Text = tr("luckLine", Pets.luckOf(spot))
+			local need = Pets.xpNeed(spot)
+			xpFill.Size = UDim2.fromScale(math.clamp((spot.xp or 0) / need, 0, 1), 1)
+			xpLabel.Text = tr("lvlLong", spot.lv or 1) .. "   " .. env.num(spot.xp or 0) .. " / " .. env.num(need)
+			equip.Label.Text = if member then tr("unequip") else tr("equip")
+			equip.BackgroundColor3 = if member then Color3.fromRGB(50, 130, 230) else Color3.fromRGB(240, 170, 30)
+			local carrying = (player:GetAttribute("Held") or "") == tostring(selected)
+			sell.Label.Text = if carrying then tr("putBack") else tr("sellButton")
+			sell.BackgroundColor3 = if carrying then Color3.fromRGB(255, 150, 40) else Color3.fromRGB(226, 50, 50)
+		end
+		fitWindow(petPanel)
 	end
-	for _, name in { "Spots", "Places", "Team", "Bag" } do
+	for _, name in { "Spots", "Places", "Team", "Bag", "BagList", "Held" } do
 		player:GetAttributeChangedSignal(name):Connect(refreshPanels)
 	end
 	task.spawn(function()
-		-- Les barres des œufs avancent, et le bouton « Vendre » oublie son 1er appui au bout d'un moment.
-		local armed, since = 0, 0
+		-- (Le temps de couvaison des œufs avance.)
 		while true do
-			if selling ~= armed then
-				armed, since = selling, os.clock()
-			elseif selling ~= 0 and os.clock() - since > 3 then
-				selling = 0
-			end
 			refreshPanels()
 			task.wait(0.5)
 		end
 	end)
+	petPanel:GetPropertyChangedSignal("Visible"):Connect(refreshPanels)
+	eggPanel:GetPropertyChangedSignal("Visible"):Connect(refreshPanels)
 	eggButton.Activated:Connect(function()
 		eggPanel.Visible = not eggPanel.Visible
 		petPanel.Visible = false
-		refreshPanels()
 	end)
 	pawButton.Activated:Connect(function()
 		petPanel.Visible = not petPanel.Visible
 		eggPanel.Visible = false
-		refreshPanels()
 	end)
 
 	-- POSER L'ŒUF -----------------------------------------------------------------------------------------------------

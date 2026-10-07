@@ -116,7 +116,7 @@ return function(log)
 	shot("coffre", root + Vector3.new(8, 7, -12), chest.position + Vector3.new(0, 2, 0))
 	local before = D("Data").coins
 	D("Hurt", chest.id, 1e9)
-	check(D("Data").coins >= before + 120, "un coffre ouvert donne ses pièces", D("Data").coins - before)
+	check(D("Data").coins >= before + 150, "un coffre ouvert donne ses pièces", D("Data").coins - before)
 
 	-- 5. La forge.
 	D("Give", 1000)

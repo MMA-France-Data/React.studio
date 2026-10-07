@@ -22,19 +22,25 @@ Config.ZONE_SIZE = Vector3.new(300, 0, 300) -- largeur (X) et longueur (Z) d'une
 
 -- LES MONSTRES. Par rang (1 à 5, puis 6 = le boss), dans la zone 1 :
 Config.MONSTER = {
-	hp = { 30, 60, 130, 300, 700, 6000 },
-	damage = { 5, 8, 12, 18, 26, 40 }, -- ce qu'un coup du monstre enlève au joueur
-	coins = { 3, 6, 14, 35, 90, 1500 },
-	xp = { 4, 7, 12, 20, 35, 300 },
+	-- (Retour du joueur, 07/10/2026 : « trop facile, je détruis les cochons alors que je suis niveau 2 avec juste
+	-- un canard ». Chaque camp est maintenant bien plus solide et tape bien plus fort que le précédent.)
+	-- LA RÈGLE (sa demande : « calcule sur 3 animaux, les gens se battront avec 3 animaux ») : un monstre de rang r
+	-- est fait pour une équipe de TROIS familiers de ce rang, qui le battent en une dizaine de secondes pendant
+	-- qu'il met environ 8 secondes à en coucher un. Avec des familiers d'un rang en dessous, c'est perdu : ils ne
+	-- lui font presque rien et il les couche en deux coups.
+	hp = { 100, 300, 700, 1500, 3200, 12000 },
+	damage = { 7, 15, 30, 60, 125, 300 }, -- ce qu'un coup du monstre enlève (à un familier d'abord, au joueur en dernier)
+	coins = { 3, 8, 20, 50, 130, 2000 },
+	xp = { 4, 10, 24, 55, 130, 600 },
 	egg = { 0.07, 0.08, 0.09, 0.11, 0.13, 1 }, -- chance de lâcher un œuf
 	scale = { 1.5, 1.7, 1.9, 2.2, 2.5, 4.5 }, -- grosseur du modèle (un familier fait 1)
 	speed = { 11, 12, 13, 14, 15, 13 },
 }
 -- D'une zone à la suivante : vie et dégâts x HP_ZONE, pièces x COIN_ZONE (comme la valeur des familiers), XP x XP_ZONE.
-Config.HP_ZONE = 3.2
-Config.DAMAGE_ZONE = 1.8
+Config.HP_ZONE = 10
+Config.DAMAGE_ZONE = 10
 Config.COIN_ZONE = 10
-Config.XP_ZONE = 3
+Config.XP_ZONE = 4
 Config.RESPAWN = 6 -- secondes avant qu'un monstre revienne (le boss : BOSS_RESPAWN)
 Config.BOSS_RESPAWN = 25
 Config.AGGRO = 22 -- distance à laquelle un monstre voit le joueur
@@ -58,7 +64,7 @@ end
 
 -- LES COFFRES : quelques-uns dans chaque zone. On les ouvre à coups d'épée ; ils ne se défendent pas et donnent
 -- beaucoup de pièces, et souvent un œuf. Ils reviennent au bout de CHEST_RESPAWN secondes.
-Config.CHEST = { hp = 220, coins = 120, xp = 15, egg = 0.4 }
+Config.CHEST = { hp = 500, coins = 150, xp = 30, egg = 0.4 }
 Config.CHEST_RESPAWN = 75
 function Config.chest(zone: number)
 	local c = Config.CHEST
@@ -85,36 +91,29 @@ function Config.xpNeed(level: number): number
 	return math.floor(30 * level ^ 1.7)
 end
 function Config.maxHealth(level: number): number
-	return 100 + 20 * (level - 1)
+	return math.floor(100 * 1.1 ^ (level - 1))
+end
+-- L'ÉPÉE : +25 % de dégâts par niveau. Elle ne peut pas dépasser SWORD_PER_ZONE niveaux par zone ouverte (battre
+-- un boss débloque les dix niveaux suivants) : on ne peut pas tout acheter d'un coup avec les pièces de l'enclos.
+Config.SWORD_PER_ZONE = 10
+function Config.swordMax(zone: number): number
+	return Config.SWORD_PER_ZONE * zone
 end
 -- Dégâts d'un coup d'épée : l'épée, plus 6 % par niveau du joueur.
 function Config.swordDamage(sword: number): number
-	return 6 * 1.3 ^ (sword - 1)
+	-- (L'épée seule fait peu : la force vient surtout des trois familiers.)
+	return 3 * 1.25 ^ (sword - 1)
 end
 function Config.hitDamage(sword: number, level: number): number
 	return math.floor(Config.swordDamage(sword) * (1 + 0.06 * (level - 1)) + 0.5)
 end
 -- Prix pour passer de l'épée `sword` à la suivante.
 function Config.swordPrice(sword: number): number
-	return math.floor(40 * 2.1 ^ (sword - 1))
+	return math.floor(40 * 1.45 ^ (sword - 1))
 end
--- LES FAMILIERS AU COMBAT. Les monstres s'en prennent d'abord à eux (dans l'ordre de l'équipe), et au joueur en
--- dernier : le joueur a peu de vie, ses familiers encaissent. Chacun a ses dégâts par seconde et sa vie, tirés de
--- sa valeur (la racine carrée resserre l'écart : un super rare tape environ 40 fois plus fort qu'un commun, pas
--- 3 000 fois), et son NIVEAU, qui monte avec l'XP des monstres : +PET_LEVEL par niveau.
--- À niveau égal, le même animal de la zone suivante est toujours plus fort (sa valeur est 10 fois plus haute, donc
--- ses dégâts et sa vie 3,2 fois plus hauts).
-Config.PET_LEVEL = 0.1
+-- LES FAMILIERS AU COMBAT (leurs dégâts et leur vie : Pets.damageOf et Pets.healthOf). Les monstres s'en prennent
+-- d'abord à eux, dans l'ordre de l'équipe, et au joueur en dernier.
 Config.PET_REST = 5 -- secondes sans prendre de coup pour que les familiers se relèvent et se soignent
-function Config.petBoost(level: number?): number
-	return 1 + Config.PET_LEVEL * ((level or 1) - 1)
-end
-function Config.petDamage(value: number, level: number?): number
-	return math.max(1, math.floor(2 * math.sqrt(value / 100) * Config.petBoost(level) + 0.5))
-end
-function Config.petHealth(value: number, level: number?): number
-	return math.max(10, math.floor(30 * math.sqrt(value / 100) * Config.petBoost(level) + 0.5))
-end
 -- XP qu'il faut à un familier pour passer du niveau `level` au suivant.
 function Config.petXpNeed(level: number): number
 	return math.floor(15 * level ^ 1.6)

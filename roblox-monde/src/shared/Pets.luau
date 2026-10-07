@@ -228,6 +228,31 @@ function Pets.alongOf(spot): number
 	return if spot.b then Pets.along(spot.q, spot.b) else 0.5
 end
 
+-- AU COMBAT (jeu « Monde ») : les dégâts par seconde et la vie d'un familier. Ils dépendent de son RANG (FIGHT_DMG,
+-- FIGHT_HP : un rang de plus = environ deux fois plus fort), de sa place dans le palier de son rang (de -30 % à
+-- +30 %), de sa ZONE (x FIGHT_ZONE par zone : à niveau égal, le même animal de la zone suivante est toujours plus
+-- fort) et de son NIVEAU (+FIGHT_LEVEL par niveau, gagné avec l'XP des monstres).
+Pets.FIGHT_DMG = { 5, 10, 20, 40, 85, 220 }
+Pets.FIGHT_HP = { 45, 90, 180, 360, 760, 2000 }
+Pets.FIGHT_ZONE = 10
+Pets.FIGHT_LEVEL = 0.1
+local function fightFactor(spot): number
+	local def = Pets.DEFS[spot.a]
+	return (0.7 + 0.6 * Pets.alongOf(spot)) * Pets.FIGHT_ZONE ^ ((def and def.room or 1) - 1) * (1 + Pets.FIGHT_LEVEL * ((spot.lv or 1) - 1))
+end
+function Pets.damageOf(spot): number
+	return math.max(1, math.floor(Pets.FIGHT_DMG[math.clamp(spot.q, 1, 6)] * fightFactor(spot) + 0.5))
+end
+function Pets.healthOf(spot): number
+	return math.max(10, math.floor(Pets.FIGHT_HP[math.clamp(spot.q, 1, 6)] * fightFactor(spot) + 0.5))
+end
+-- XP gagnée dans son niveau, et XP qu'il faut pour le suivant (x FIGHT_ZONE par zone, comme l'XP des monstres... en
+-- moins vite : un familier d'une zone lointaine monte un peu plus lentement).
+function Pets.xpNeed(spot): number
+	local def = Pets.DEFS[spot.a]
+	return math.floor(15 * (spot.lv or 1) ^ 1.6 * 3 ^ ((def and def.room or 1) - 1))
+end
+
 -- Temps de couvaison d'un œuf, en secondes.
 function Pets.hatchSeconds(room: number, rarity: number): number
 	return math.floor(Pets.HATCH[math.clamp(rarity, 1, #Pets.HATCH)] * (0.5 + room / 10) + 0.5)
@@ -293,7 +318,7 @@ function Pets.encode(spots): string
 	for index = 1, Pets.SPOTS_MAX do
 		local spot = spots[tostring(index)]
 		if spot then
-			table.insert(parts, string.format("%d:%s:%d:%s:%d:%d:%d:%d:%d:%d", index, spot.a, spot.q, if spot.v then "v" else "t", spot.v or spot.t, math.round((spot.x or 0) * 10), math.round((spot.z or 0) * 10), if spot.v then Pets.luckOf(spot) else spot.d or 0, math.floor(Pets.alongOf(spot) * 100 + 0.5), spot.lv or 1))
+			table.insert(parts, string.format("%d:%s:%d:%s:%d:%d:%d:%d:%d:%d:%d", index, spot.a, spot.q, if spot.v then "v" else "t", spot.v or spot.t, math.round((spot.x or 0) * 10), math.round((spot.z or 0) * 10), if spot.v then Pets.luckOf(spot) else spot.d or 0, math.floor(Pets.alongOf(spot) * 100 + 0.5), spot.lv or 1, spot.xp or 0))
 		end
 	end
 	return table.concat(parts, ",")
@@ -302,8 +327,8 @@ end
 function Pets.decode(text: string?)
 	local spots = {}
 	-- (Le dernier nombre : le niveau du familier.)
-	for index, name, rarity, kind, number, x, z, duration, size, level in string.gmatch(text or "", "(%d+):(%a+):(%d):([vt]):(%d+):(-?%d+):(-?%d+):(%d+):(%d+):(%d+)") do
-		local spot = { a = name, q = tonumber(rarity), x = tonumber(x) / 10, z = tonumber(z) / 10, d = tonumber(duration), s = tonumber(size) / 100, lv = tonumber(level) }
+	for index, name, rarity, kind, number, x, z, duration, size, level, xp in string.gmatch(text or "", "(%d+):(%a+):(%d):([vt]):(%d+):(-?%d+):(-?%d+):(%d+):(%d+):(%d+):(%d+)") do
+		local spot = { a = name, q = tonumber(rarity), x = tonumber(x) / 10, z = tonumber(z) / 10, d = tonumber(duration), s = tonumber(size) / 100, lv = tonumber(level), xp = tonumber(xp) }
 		spot[kind] = tonumber(number)
 		if kind == "v" then
 			spot.l, spot.d = spot.d, nil

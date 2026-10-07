@@ -182,7 +182,7 @@ local function teamDamage(): number
 	for _, key in string.split(player:GetAttribute("Team") or "", ",") do
 		local pet = spots[key]
 		if pet and pet.v then
-			total += Config.petDamage(pet.v, pet.lv)
+			total += Pets.damageOf(pet)
 		end
 	end
 	return total
@@ -269,6 +269,8 @@ ReplicatedStorage:WaitForChild("Notify").OnClientEvent:Connect(function(key: str
 		showToast(tr("eggDrop", tr(a), tr(rarity.key)), rarity.color)
 	elseif key == "swordUp" then
 		showToast(tr("swordUp", a, compact(b)), GOLD)
+	elseif key == "swordMax" then
+		showToast(tr("swordMax", a), RED)
 	elseif key == "teamJoined" then
 		showToast(tr("teamJoined", tr(a), compact(b)), GOLD)
 	elseif key == "teamLeft" then
@@ -502,7 +504,8 @@ task.spawn(function()
 		local prompt = forge and forge:FindFirstChild("Prompt")
 		if prompt then
 			prompt.ObjectText = tr("forgeName")
-			prompt.ActionText = tr("forgeGo", compact(Config.swordPrice(player:GetAttribute("Sword") or 1)))
+			local sword = player:GetAttribute("Sword") or 1
+			prompt.ActionText = if sword >= Config.swordMax(unlocked) then tr("forgeMax", unlocked) else tr("forgeGo", compact(Config.swordPrice(sword)))
 		end
 		-- Le nom de la zone, quand on y entre.
 		local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")

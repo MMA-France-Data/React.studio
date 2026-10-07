@@ -72,6 +72,10 @@ function Gym.buySword(player: Player): (boolean, string?)
 	if not data then
 		return false, "data"
 	end
+	if data.sword >= Config.swordMax(data.zone) then
+		notify(player, "swordMax", data.zone)
+		return false, "max"
+	end
 	local price = Config.swordPrice(data.sword)
 	if data.coins < price then
 		notify(player, "poor", price - data.coins)
