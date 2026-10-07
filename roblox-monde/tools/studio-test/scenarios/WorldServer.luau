@@ -58,6 +58,10 @@ return function(log)
 	D("Peaceful", false)
 	go(first.position + Vector3.new(7, 0, 0))
 	workspace:SetAttribute("AutoAttack", true)
+	task.wait(1)
+	local idle = D("Monsters")[first.id]
+	log("Info", (if idle.hp == idle.max then "[PASS] " else "[FAIL] ") .. "attaque auto : rien tant qu on n a pas donne le premier coup")
+	D("Attack")
 	task.wait(1.6)
 	local root = player.Character.HumanoidRootPart.Position
 	shot("combat", root + Vector3.new(10, 8, -14), root + Vector3.new(-3, 2, 0))
@@ -158,6 +162,7 @@ return function(log)
 	-- Le coup d'epee en gros plan, contre le boss (il a beaucoup de vie : le combat dure).
 	go(boss.position + Vector3.new(9, 0, 0))
 	workspace:SetAttribute("AutoAttack", true)
+	D("Attack")
 	task.wait(1)
 	root = player.Character.HumanoidRootPart.Position
 	for i = 1, 4 do

@@ -225,7 +225,14 @@ function Monsters.attack(player: Player)
 	fight.swing = now
 	-- L'heure du coup : l'écran de tous les joueurs y joue le geste (Poses.luau).
 	player:SetAttribute("PunchAt", workspace:GetServerTimeNow())
-	local monster = nearest(root.Position, Config.ATTACK_REACH)
+	-- Le monstre deja vise passe d abord, tant qu il est a portee ; sinon le plus proche.
+	local current = fight.target and monsters[fight.target]
+	local monster = nil
+	if current and not current.dead and flat(current.position - root.Position).Magnitude - current.def.scale <= Config.ATTACK_REACH then
+		monster = current
+	else
+		monster = nearest(root.Position, Config.ATTACK_REACH)
+	end
 	if not monster then
 		return nil
 	end
@@ -334,7 +341,7 @@ local function stepMonster(monster, dt: number, now: number)
 			if now >= monster.nextWander then
 				monster.nextWander = now + random:NextNumber(3, 7)
 				local angle = random:NextNumber(0, math.pi * 2)
-				monster.wander = if monster.boss then monster.home else monster.home + Vector3.new(math.cos(angle), 0, math.sin(angle)) * random:NextNumber(2, 9)
+				monster.wander = if monster.boss then monster.home else monster.home + Vector3.new(math.cos(angle), 0, math.sin(angle)) * random:NextNumber(1, 4)
 			end
 			goal = monster.wander
 		end
@@ -483,6 +490,13 @@ function Monsters.start(world, notifier)
 					if busy then
 						fight.hurtAt = now
 					end
+				end
+				-- HORS COMBAT, la vie du joueur remonte vite : REGEN de sa vie par seconde, apres REGEN_DELAY secondes
+				-- sans combat. (Pendant un combat, seulement la petite regeneration de Roblox.)
+				local calm = fight == nil or now - fight.hurtAt > Config.REGEN_DELAY
+				local humanoid = root and root.Parent and root.Parent:FindFirstChildOfClass("Humanoid")
+				if calm and humanoid and humanoid.Health > 0 and humanoid.Health < humanoid.MaxHealth then
+					humanoid.Health = math.min(humanoid.MaxHealth, humanoid.Health + humanoid.MaxHealth * Config.REGEN)
 				end
 				if fight and next(fight.hp) and now - fight.hurtAt > Config.PET_REST then
 					fight.hp = {}

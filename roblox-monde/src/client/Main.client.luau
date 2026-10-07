@@ -442,9 +442,12 @@ task.spawn(function()
 	while true do
 		task.wait(0.1)
 		local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-		if auto and root then
+		-- L attaque automatique ne frappe QUE le monstre deja vise (celui qu on a frappe soi-meme) : quand il est
+		-- battu, elle s arrete. Il faut aller chercher le monstre suivant et lui donner le premier coup.
+		local target = player:GetAttribute("Target") or 0
+		if auto and root and target > 0 then
 			for _, part in CollectionService:GetTagged("Monster") do
-				if (part:GetAttribute("Hp") or 0) > 0 and (part.Position - root.Position).Magnitude <= Config.ATTACK_REACH + (part:GetAttribute("Scale") or 1) + 2 then
+				if part:GetAttribute("Id") == target and (part:GetAttribute("Hp") or 0) > 0 and (part.Position - root.Position).Magnitude <= Config.ATTACK_REACH + (part:GetAttribute("Scale") or 1) + 2 then
 					swing()
 					break
 				end

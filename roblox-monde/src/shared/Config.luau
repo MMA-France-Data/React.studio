@@ -86,6 +86,8 @@ function Config.chest(zone: number)
 end
 
 -- LE JOUEUR.
+Config.REGEN = 0.12 -- hors combat : part de sa vie que le joueur regagne chaque seconde
+Config.REGEN_DELAY = 3 -- secondes sans combat avant que cette regeneration commence
 Config.ATTACK_COOLDOWN = 0.42 -- secondes entre deux coups d'épée
 Config.ATTACK_REACH = 10 -- portée de l'épée
 Config.TEAM = 3 -- familiers qui se battent avec le joueur

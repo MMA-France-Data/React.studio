@@ -314,7 +314,8 @@ local THEMES = {
 -- Où sont les camps : cinq, du rang 1 (près de l'entrée) au rang 5 (près du boss), en zigzag de part et d'autre du
 -- chemin. { x, z (depuis l'entrée) }
 local CAMPS = { { -52, 48 }, { 56, 92 }, { -60, 138 }, { 58, 184 }, { -50, 226 } }
-local CAMP_RADIUS, CAMP_SIZE = 20, 5
+-- (Les monstres sont bien ecartes les uns des autres, sur un grand rond : on en combat un seul a la fois.)
+local CAMP_RADIUS, CAMP_SIZE = 30, 5
 -- Les coffres : dans les coins tranquilles de la zone. { x, z (depuis l'entrée) }
 local CHESTS = { { 118, 60 }, { -122, 150 }, { 120, 236 }, { -116, 262 } }
 local BOSS_Z = LENGTH - 46 -- l'arène du boss, au bout du chemin
@@ -452,7 +453,7 @@ local function buildZone(parent: Instance, index: number, zMin: number)
 	for rank, camp in CAMPS do
 		for i = 1, CAMP_SIZE do
 			local angle = i / CAMP_SIZE * math.pi * 2 + rank
-			local away = random:NextNumber(5, CAMP_RADIUS - 5)
+			local away = random:NextNumber(CAMP_RADIUS - 8, CAMP_RADIUS - 3)
 			table.insert(spawns, { rank = rank, position = Vector3.new(camp[1] + math.cos(angle) * away, 0, zMin + camp[2] + math.sin(angle) * away) })
 		end
 	end
