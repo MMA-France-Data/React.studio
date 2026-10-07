@@ -117,6 +117,20 @@ return function(env)
 	-- Un familier affiché : son modèle, son squelette (ou ses membres), sa demi-hauteur. factor : grossissement.
 	local function create(name: string, rarity: number, display: boolean, factor: number?)
 		local model = Pets.build(name, rarity, display)
+		-- (Retour du joueur : « au-dessus de la patte, la zone bleue et la violette se chevauchent parfois ». Deux
+		-- pieces de l animal avaient des faces exactement au meme endroit, ce qui clignote. Chaque piece est retrecie
+		-- d un cheveu different : plus aucune face ne tombe pile sur une autre.)
+		local index = 0
+		for _, part in model:GetDescendants() do
+			if part:IsA("BasePart") and part.Transparency < 1 then
+				index += 1
+				local shrink = 0.012 * (index % 9)
+				local size = part.Size
+				if math.min(size.X, size.Y, size.Z) > shrink * 3 then
+					part.Size = size - Vector3.one * shrink
+				end
+			end
+		end
 		if factor and factor ~= 1 then
 			model:ScaleTo(model:GetScale() * factor)
 		end
