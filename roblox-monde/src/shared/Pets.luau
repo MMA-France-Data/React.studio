@@ -62,7 +62,7 @@ Pets.VALUE = { { 200, 500 }, { 500, 1500 }, { 1500, 6000 }, { 6000, 30000 }, { 3
 -- 500 ; salle 3 : 100 à 5 000... salle 10 : x 1 milliard), puis par LATE_FACTOR après la salle LATE_ROOM (les
 -- salles à venir). Les prix des machines sont calculés là-dessus (tools/balance/machines.py) : si on change ces
 -- chiffres, il faut les recalculer.
-Pets.ROOM_FACTOR = 10
+Pets.ROOM_FACTOR = 100 -- (jeu « Monde » : x 100 par monde, comme les monstres et les prix)
 Pets.LATE_ROOM = 10
 Pets.LATE_FACTOR = 2
 function Pets.roomFactor(room: number): number

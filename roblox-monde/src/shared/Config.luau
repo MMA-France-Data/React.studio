@@ -35,7 +35,9 @@ Config.MONSTER = {
 	damage = { 3, 15, 30, 60, 125, 400 },
 	-- (Dans les mondes suivants, le premier camp n'a pas l'exception du canard : il suit l'échelle normale.)
 	first = { hp = 100, damage = 7 }, -- ce qu'un coup du monstre enlève (à un familier d'abord, au joueur en dernier)
-	coins = { 3, 8, 20, 50, 130, 2000 },
+	-- (Le boss revient en 3 secondes : il paie a peine plus qu une chevre, sinon le farmer en boucle au monde 1
+	-- paierait l epee 4 en une heure et l argent ne serait plus un verrou.)
+	coins = { 3, 8, 20, 50, 130, 200 },
 	xp = { 4, 10, 24, 55, 130, 600 },
 	-- Chance de lâcher SON œuf (un canard lâche un œuf de canard, un cochon un œuf de cochon...) : forte pour le
 	-- canard, de plus en plus faible ensuite. La chance d'œuf rare du joueur la multiplie.
@@ -50,7 +52,7 @@ Config.MONSTER = {
 -- tapent 100 fois plus fort. Son premier camp est déjà plus dur que le boss du monde d'avant.
 Config.HP_ZONE = 100
 Config.DAMAGE_ZONE = 100
-Config.COIN_ZONE = 10
+Config.COIN_ZONE = 100 -- (comme le reste : les pièces du monde 1 ne pèsent presque rien dans le monde 2)
 Config.XP_ZONE = 10
 Config.RESPAWN = 2 -- secondes avant qu'un monstre revienne (son choix : 2 s, 3 s pour le boss : « si y a du monde ça sera rapide »)
 Config.BOSS_RESPAWN = 3
@@ -111,26 +113,37 @@ end
 function Config.maxHealth(level: number): number
 	return math.floor(100 * 1.1 ^ (level - 1))
 end
--- L'ÉPÉE : chaque épée tape SWORD_STEP fois plus fort que la précédente. On ne peut en acheter que SWORD_PER_ZONE
--- par zone ouverte (battre un boss débloque les suivantes) : impossible de tout acheter d'un coup avec les pièces
--- de l'enclos. Prix : voir Config.swordPrice (8 000 puis 120 000 dans le monde 1).
--- (Ces prix, les chances d oeuf et l XP des familiers sont regles avec tools/balance/monde1.py pour qu un joueur
--- tres efficace mette environ 3 heures a battre le boss du monde 1.)
--- (Son choix : « moins d'evolutions mais plus de multiplicateur, x3,2 par epee ». Deux epees par zone = x10, comme
--- les monstres.)
-Config.SWORD_PER_ZONE = 2 -- (son choix, confirme : « 2 epees par monde mais familiers qui ont du poids »)
--- (Sa demande : « calcule pour que mes familiers fassent chacun a peu pres mes degats ». Deux epees doivent
--- couvrir tout un monde, ou les familiers passent de 5 a 500 de degats : chaque epee tape donc 10 fois plus fort.
--- Epee 1 = un canard, epee 2 = un mouton, epee 3 = le familier du boss.)
-Config.SWORD_STEP = 10
-function Config.swordMax(zone: number): number
-	return 1 + Config.SWORD_PER_ZONE * zone
+-- LES ÉPÉES. Rien n'est verrouillé : on peut acheter la suivante dès qu'on a les pièces. C'est LE PRIX qui sert de
+-- verrou (sa règle : « je veux pas que ça soit verrouillé mais que l'argent soit un verrou justement »).
+-- Trois épées par monde (ses six modèles : 1 à 3 pour le monde 1, 4 à 6 pour le monde 2).
+--   damage : dégâts d'un coup (deux coups par seconde environ). Calculé sur la progression simulée
+--   (tools/balance/monde1.py) : à l'achat, le joueur tape à peu près comme ses trois familiers réunis ; puis ses
+--   familiers progressent et chacun finit par le dépasser, jusqu'à l'épée suivante.
+--   price : le prix pour l'obtenir. Les pièces valent 100 fois plus dans le monde suivant (COIN_ZONE) : l'épée 4
+--   demanderait des heures de farm en plus au monde 1, et une demi-heure au monde 2.
+Config.SWORDS = {
+	{ damage = 2.5, price = 0 }, -- monde 1 : l'épée de départ (comme un canard)
+	{ damage = 25, price = 8000 }, -- monde 1, vers 45 minutes
+	{ damage = 250, price = 120000 }, -- monde 1, juste avant le boss
+	{ damage = 1160, price = 500000 }, -- monde 2, au début
+	{ damage = 5400, price = 3000000 }, -- monde 2, au milieu
+	{ damage = 25000, price = 12000000 }, -- monde 2, juste avant le boss
+}
+Config.SWORD_PER_ZONE = 3
+-- (Au-delà de la sixième : les trois mêmes marches, 100 fois plus haut à chaque monde.)
+local function swordStep(sword: number)
+	local worlds = math.max(0, math.ceil((sword - #Config.SWORDS) / Config.SWORD_PER_ZONE))
+	return Config.SWORDS[sword - worlds * Config.SWORD_PER_ZONE], 100 ^ worlds
+end
+-- (Plus de plafond : gardé pour l'écran, qui n'affiche donc jamais « MAX ».)
+function Config.swordMax(_zone: number): number
+	return math.huge
 end
 -- QUI DONNE QUOI (la règle du joueur) : monter de niveau SOI-MÊME = plus de vie, rien d'autre ; monter son ÉPÉE =
 -- plus de dégâts pour soi ; monter le niveau d'un FAMILIER = ses dégâts et sa vie.
 function Config.swordDamage(sword: number): number
-	-- (L'épée seule fait peu : la force vient surtout des trois familiers.)
-	return 2.5 * Config.SWORD_STEP ^ (sword - 1)
+	local step, factor = swordStep(math.max(1, sword))
+	return step.damage * factor
 end
 function Config.hitDamage(sword: number, level: number): number
 	local _ = level
@@ -138,8 +151,8 @@ function Config.hitDamage(sword: number, level: number): number
 end
 -- Prix pour passer de l'épée `sword` à la suivante.
 function Config.swordPrice(sword: number): number
-	-- La premiere epee d un monde : 8 000 pieces (x 16 a chaque monde) ; la deuxieme : 15 fois plus.
-	return math.floor(8000 * 16 ^ ((sword - 1) // 2) * (if (sword - 1) % 2 == 1 then 15 else 1))
+	local step, factor = swordStep(sword + 1)
+	return step.price * factor
 end
 -- LES FAMILIERS AU COMBAT (leurs dégâts et leur vie : Pets.damageOf et Pets.healthOf). Les monstres s'en prennent
 -- d'abord à eux, dans l'ordre de l'équipe, et au joueur en dernier.

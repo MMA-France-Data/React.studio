@@ -5,20 +5,21 @@ import random, statistics, sys
 
 HP = [40, 300, 700, 1500, 3200, 9000]
 DMG = [3, 15, 30, 60, 125, 400]
-COINS = [3, 8, 20, 50, 130, 2000]
+COINS = [3, 8, 20, 50, 130, 200]
 XP = [4, 10, 24, 55, 130, 600]
 EGG = [0.20, 0.05, 0.03, 0.02, 0.012, 0.02]
 FIGHT_DMG = [5, 10, 20, 40, 85, 600]
 FIGHT_HP = [45, 90, 180, 360, 760, 5400]
 RANK_XP = [1, 2.5, 6, 14, 32, 80]
 GRADE_ODDS = [70, 25, 4.6, 0.4]
-SWORD_MAX = 3
+SWORD_MAX = 6
 WALK = 4.0          # secondes pour aller d'un monstre au suivant
 INCOME = [0.35, 1.0, 3.75, 18, 90, 1050]  # pièces par seconde d'un familier moyen de chaque rang (valeur / 1000)
 
-def sword_dps(level): return round(2.5 * 10 ** (level - 1)) / 0.5
+SWORDS = [(2.5, 0), (25, 8000), (250, 120000), (1160, 500000), (5400, 3000000), (25000, 12000000)]  # (degats, prix), comme Config.SWORDS
+def sword_dps(level): return round(SWORDS[level - 1][0]) / 0.5
 PRICE, PRICE_STEP, NEED = 8000, 15, 60
-def sword_price(level): return int(PRICE * 16 ** ((level - 1) // 2) * (PRICE_STEP if (level - 1) % 2 == 1 else 1))
+def sword_price(level): return SWORDS[level][1]
 def pet_need(rank, lv): return int(NEED * 1.3 ** (lv - 1) * RANK_XP[rank])
 
 class Pet:
