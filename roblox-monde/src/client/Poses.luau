@@ -9,7 +9,7 @@
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 
-local PUNCH = 0.32 -- durée d'un coup de poing, en secondes
+local PUNCH = 0.38 -- durée d'un coup d'épée, en secondes
 local PRESS = 1 -- un aller-retour de la barre par seconde (deux pas d'entraînement)
 
 -- L'articulation d'un membre. Les personnages recents n'ont plus de Motor6D mais des AnimationConstraint : les
@@ -67,6 +67,27 @@ return function()
 			part.Parent = model
 		end
 		piece("Blade", Vector3.new(0.22, 0.6, 3.6), look[1], look[2])
+		-- LA TRAÎNÉE : un ruban de lumière entre le bas et la pointe de la lame, qui dessine l'arc du coup.
+		local blade = model.Blade
+		local low, tip = Instance.new("Attachment"), Instance.new("Attachment")
+		low.Position, tip.Position = Vector3.new(0, 0, 1.2), Vector3.new(0, 0, -3.2)
+		low.Parent, tip.Parent = blade, blade
+		local trail = Instance.new("Trail")
+		trail.Attachment0, trail.Attachment1 = low, tip
+		trail.Lifetime = 0.26
+		trail.MinLength = 0
+		trail.LightEmission = 1
+		trail.LightInfluence = 0
+		trail.FaceCamera = false
+		trail.Color = ColorSequence.new({
+			ColorSequenceKeypoint.new(0, Color3.new(1, 1, 1)),
+			ColorSequenceKeypoint.new(0.4, if tier == 1 then Color3.fromRGB(170, 225, 255) else look[1]),
+			ColorSequenceKeypoint.new(1, if tier == 1 then Color3.fromRGB(120, 170, 255) else look[1]),
+		})
+		trail.Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.05), NumberSequenceKeypoint.new(0.6, 0.45), NumberSequenceKeypoint.new(1, 1) })
+		trail.WidthScale = NumberSequence.new({ NumberSequenceKeypoint.new(0, 1), NumberSequenceKeypoint.new(1, 0.35) })
+		trail.Enabled = false
+		trail.Parent = blade
 		piece("Guard", Vector3.new(0.3, 1.5, 0.3), look[3], Enum.Material.Metal)
 		piece("Grip", Vector3.new(0.3, 0.3, 1), Color3.fromRGB(90, 60, 40), Enum.Material.Wood)
 		model.Parent = workspace
@@ -133,7 +154,11 @@ return function()
 			state.carry += ((if carrying then 1 else 0) - state.carry) * blend
 			state.press += ((if pressing then 1 else 0) - state.press) * blend
 			local sincePunch = now - (other:GetAttribute("PunchAt") or 0)
-			local punch = if sincePunch >= 0 and sincePunch < PUNCH then math.sin(math.pi * sincePunch / PUNCH) else 0
+			-- LE COUP D'ÉPÉE : le bras se lève d'un coup, puis l'épée fend l'air de haut en bas, en biais (un coup vers la
+			-- gauche, le suivant vers la droite), et le buste tourne avec elle. swing : où on en est, de 0 à 1.
+			local swing = if sincePunch >= 0 and sincePunch < PUNCH then sincePunch / PUNCH else -1
+			local punch = if swing < 0 then 0 elseif swing < 0.7 then 1 else (1 - swing) / 0.3
+			local sideways = if math.floor((other:GetAttribute("PunchAt") or 0) * 10) % 2 == 0 then 1 else -1
 
 			-- Les angles de chaque geste (une rotation positive autour de X lève le bras vers l'avant, puis vers le haut).
 			local right, left = CFrame.identity, CFrame.identity
@@ -153,10 +178,17 @@ return function()
 			end
 			if punch > 0 then
 				-- Le poing droit part droit devant ; le bras gauche reste en garde.
-				right = right:Lerp(CFrame.Angles(math.rad(95), 0, math.rad(6)), punch)
-				rightBend = rightBend:Lerp(CFrame.identity, punch)
-				left = left:Lerp(CFrame.Angles(math.rad(45), 0, 0), punch * 0.6)
-				leftBend = leftBend:Lerp(CFrame.Angles(math.rad(70), 0, 0), punch * 0.6)
+				-- Bras levé (175 degrés) en un dixième du temps, puis il descend jusqu'à 5 degrés en accélérant.
+				local lift = if swing < 0.12 then 175 * swing / 0.12 else 175 - 170 * math.clamp((swing - 0.12) / 0.5, 0, 1) ^ 1.6
+				local sweep = math.clamp((swing - 0.12) / 0.5, 0, 1) * 2 - 1 -- de -1 (début du coup) à 1 (fin)
+				right = CFrame.Angles(math.rad(lift), 0, math.rad(sideways * (30 - 18 * sweep)))
+				rightBend = CFrame.Angles(math.rad(18 * (1 - math.abs(sweep))), 0, 0)
+				left = left:Lerp(CFrame.Angles(math.rad(-25), 0, math.rad(12)), punch)
+				leftBend = leftBend:Lerp(CFrame.Angles(math.rad(40), 0, 0), punch)
+				local waist = joint(character, "UpperTorso", "Waist")
+				if waist then
+					waist.Transform = waist.Transform:Lerp(CFrame.Angles(math.rad(8 * sweep), math.rad(-sideways * 32 * sweep), 0), punch)
+				end
 			end
 			if weight > 0.01 then
 				rightShoulder.Transform = rightShoulder.Transform:Lerp(right, weight)
@@ -181,6 +213,8 @@ return function()
 				end
 				local grip = rightHand.CFrame * CFrame.new(0, -0.25, 0)
 				state.sword.Blade.CFrame = grip * CFrame.new(0, 0, -2.3)
+				-- La traînée de lumière ne s'allume que pendant le coup.
+				state.sword.Blade.Trail.Enabled = swing >= 0.08 and swing < 0.75
 				state.sword.Guard.CFrame = grip * CFrame.new(0, 0, -0.4)
 				state.sword.Grip.CFrame = grip * CFrame.new(0, 0, 0.1)
 			elseif state.sword then

@@ -295,7 +295,69 @@ end)
 local popups = Instance.new("Folder")
 popups.Name = "Popups"
 popups.Parent = workspace
+-- L'éclat d'un coup qui touche : une gerbe d'étincelles sur le monstre.
+local function sparks(position: Vector3, color: Color3, count: number)
+	local anchor = Instance.new("Part")
+	anchor.Anchored = true
+	anchor.CanCollide = false
+	anchor.CanQuery = false
+	anchor.CanTouch = false
+	anchor.Transparency = 1
+	anchor.Size = Vector3.new(1, 1, 1)
+	anchor.Position = position
+	anchor.Parent = popups
+	local emitter = Instance.new("ParticleEmitter")
+	emitter.Color = ColorSequence.new(Color3.new(1, 1, 1), color)
+	emitter.LightEmission = 1
+	emitter.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 1.4), NumberSequenceKeypoint.new(1, 0) })
+	emitter.Lifetime = NumberRange.new(0.25, 0.45)
+	emitter.Speed = NumberRange.new(14, 26)
+	emitter.SpreadAngle = Vector2.new(180, 180)
+	emitter.Drag = 4
+	emitter.Rate = 0
+	emitter.Parent = anchor
+	emitter:Emit(count)
+	task.delay(0.8, function()
+		anchor:Destroy()
+	end)
+end
+-- Les pièces qui jaillissent d'un monstre battu.
+local function coinBurst(position: Vector3)
+	for i = 1, 10 do
+		local coin = Instance.new("Part")
+		coin.Shape = Enum.PartType.Cylinder
+		coin.Size = Vector3.new(0.25, 1.1, 1.1)
+		coin.Color = Color3.fromRGB(255, 205, 50)
+		coin.Material = Enum.Material.Neon
+		coin.Anchored = true
+		coin.CanCollide = false
+		coin.CanQuery = false
+		coin.CanTouch = false
+		coin.CFrame = CFrame.new(position + Vector3.new(0, 2, 0)) * CFrame.Angles(0, i, math.rad(90))
+		coin.Parent = popups
+		local angle = i / 10 * math.pi * 2 + math.random()
+		local away = Vector3.new(math.cos(angle), 0, math.sin(angle)) * (3 + math.random() * 4)
+		-- Elles montent, puis retombent autour du monstre.
+		TweenService:Create(coin, TweenInfo.new(0.22, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { CFrame = coin.CFrame + away * 0.5 + Vector3.new(0, 3.5, 0) }):Play()
+		task.delay(0.22, function()
+			TweenService:Create(coin, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.In), { CFrame = CFrame.new(position + away + Vector3.new(0, 0.5, 0)) * CFrame.Angles(0, i, math.rad(90)) }):Play()
+		end)
+		task.delay(0.75, function()
+			TweenService:Create(coin, TweenInfo.new(0.25), { Transparency = 1 }):Play()
+		end)
+		task.delay(1.05, function()
+			coin:Destroy()
+		end)
+	end
+end
 ReplicatedStorage:WaitForChild("Loot").OnClientEvent:Connect(function(position: Vector3, a: number, b: number, kind: string?)
+	if kind == "sword" then
+		sparks(position + Vector3.new(0, 2.5, 0), Color3.fromRGB(255, 230, 120), 14)
+	elseif kind == "pet" then
+		sparks(position + Vector3.new(0, 2, 0), Color3.fromRGB(255, 150, 60), 6)
+	else
+		coinBurst(position)
+	end
 	local anchor = Instance.new("Part")
 	anchor.Anchored = true
 	anchor.CanCollide = false

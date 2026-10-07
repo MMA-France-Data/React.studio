@@ -136,6 +136,15 @@ return function(log)
 	task.wait(1)
 	root = player.Character.HumanoidRootPart.Position
 	shot("boss", root + Vector3.new(8, 10, -22), boss.position + Vector3.new(0, 6, 0))
+	-- Le coup d'epee en gros plan, contre le boss (il a beaucoup de vie : le combat dure).
+	go(boss.position + Vector3.new(9, 0, 0))
+	workspace:SetAttribute("AutoAttack", true)
+	task.wait(1)
+	root = player.Character.HumanoidRootPart.Position
+	for i = 1, 4 do
+		shot("frappe_" .. i, root + Vector3.new(5, 4, -9), root + Vector3.new(-1, 2, 0))
+	end
+	workspace:SetAttribute("AutoAttack", false)
 	local bag = D("Data").bag
 	D("Hurt", boss.id, 1e9)
 	task.wait(0.5)
