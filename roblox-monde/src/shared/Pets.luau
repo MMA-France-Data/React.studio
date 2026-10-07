@@ -101,7 +101,9 @@ end
 Pets.VALUE_PER_COIN = 1000
 -- Couvaison : secondes selon le rang, multipliées par (0,5 + numéro de la salle / 10).
 -- Exemples : commun de la salle 1 = 18 s ; super rare de la salle 1 = 12 min ; légendaire de la salle 10 = 15 min.
-Pets.HATCH = { 30, 60, 150, 300, 600, 1200 }
+-- (Jeu « Monde » : bien plus court, le joueur trouvait le debut mou. Monde 1 : canard 5 s, coq 9 s, cochon 18 s,
+-- mouton 36 s, chevre 1 min 12, familier du boss 3 min.)
+Pets.HATCH = { 8, 15, 30, 60, 120, 300 }
 
 -- L'ENCLOS : son niveau donne le nombre de places (niveau 1 = SPOTS_FREE places, +1 par niveau). Le prix de chaque
 -- place est CALCULÉ par tools/balance/machines.py, comme ceux des machines, sur ce que rapportent les familiers :
@@ -257,7 +259,7 @@ Pets.RANK_XP = { 1, 2.5, 6, 14, 32, 80 }
 -- plus longtemps ») : a chaque monde, monter un familier demande LONG_XP fois plus de combats.
 -- Par monde : { monde 1, monde 2, monde 3 } (regle avec tools/balance/mondes.py : 3,5 h, 8 h, 10 h). Les mondes
 -- suivants reprennent le dernier chiffre, x 1,25 a chaque monde.
-Pets.LONG_XP = { 1, 4.2, 5.6 }
+Pets.LONG_XP = { 1, 7.7, 10.3 }
 Pets.EARLY_XP = 0.3
 function Pets.longXp(room: number): number
 	local last = #Pets.LONG_XP
@@ -304,7 +306,7 @@ function Pets.xpNeed(spot): number
 	-- (Les cinq premiers niveaux vont vite : EARLY_XP de l'XP normale. Demande du joueur : « les 5 premiers niveaux
 	-- de familier plus rapidement, qu'on puisse monter de zone rapide au début ».)
 	local early = if (spot.lv or 1) <= 5 then Pets.EARLY_XP else 1
-	return math.floor(110 * early * Pets.XP_LEVEL ^ ((spot.lv or 1) - 1) * Pets.RANK_XP[rank] * 10 ^ ((def and def.room or 1) - 1) * Pets.longXp(def and def.room or 1))
+	return math.floor(60 * early * Pets.XP_LEVEL ^ ((spot.lv or 1) - 1) * Pets.RANK_XP[rank] * 10 ^ ((def and def.room or 1) - 1) * Pets.longXp(def and def.room or 1))
 end
 -- Toute l'XP qu'un familier a gagnée depuis sa naissance (celle de ses niveaux passés, plus celle du niveau en cours).
 function Pets.totalXp(spot): number

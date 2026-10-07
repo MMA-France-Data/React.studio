@@ -151,7 +151,10 @@ local function reward(monster, player: Player, share: number, best: boolean)
 		notify(player, "levelUp", PlayerData.get(player).level)
 	end
 	-- Un monstre lâche l'œuf de son animal ; un coffre, un œuf tiré au sort. La chance du joueur aide.
-	if best and random:NextNumber() < def.egg * Eggs.luck(player) then
+	-- LE TOUT PREMIER MONSTRE BATTU lache toujours son oeuf (un joueur qui n a encore ni oeuf ni familier) : on a son
+	-- premier familier dans la premiere minute.
+	local newcomer = next(data.spots) == nil and #data.bag == 0 and not monster.chest
+	if best and (newcomer or random:NextNumber() < def.egg * Eggs.luck(player)) then
 		Eggs.drop(player, monster.zone, if monster.chest then nil else monster.rank)
 	end
 	if monster.boss then
