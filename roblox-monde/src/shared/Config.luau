@@ -118,7 +118,7 @@ end
 -- tres efficace mette environ 3 heures a battre le boss du monde 1.)
 -- (Son choix : « moins d'evolutions mais plus de multiplicateur, x3,2 par epee ». Deux epees par zone = x10, comme
 -- les monstres.)
-Config.SWORD_PER_ZONE = 4 -- (quatre épées à x3,2 = x100 : le palier d'un monde)
+Config.SWORD_PER_ZONE = 2 -- (son choix, confirme : « 2 epees par monde mais familiers qui ont du poids »)
 Config.SWORD_STEP = 3.2
 function Config.swordMax(zone: number): number
 	return 1 + Config.SWORD_PER_ZONE * zone

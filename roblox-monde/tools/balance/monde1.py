@@ -12,7 +12,7 @@ FIGHT_DMG = [5, 10, 20, 40, 85, 600]
 FIGHT_HP = [45, 90, 180, 360, 760, 5400]
 RANK_XP = [1, 2.5, 6, 14, 32, 80]
 GRADE_ODDS = [70, 25, 4.6, 0.4]
-SWORD_MAX = 5
+SWORD_MAX = 3
 WALK = 4.0          # secondes pour aller d'un monstre au suivant
 INCOME = [0.35, 1.0, 3.75, 18, 90, 1050]  # pièces par seconde d'un familier moyen de chaque rang (valeur / 1000)
 
