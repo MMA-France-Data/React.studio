@@ -1,0 +1,177 @@
+{
+ "Iron": {
+  "trianglesBefore": 119302,
+  "triangles": 14000,
+  "size": [
+   0.499,
+   1.097,
+   5.2
+  ],
+  "gripAt": [
+   0,
+   0,
+   0
+  ],
+  "trailBase": [
+   0,
+   0,
+   -1.008
+  ],
+  "trailTip": [
+   0,
+   0,
+   -4.442
+  ],
+  "gripWasAtLowEnd": true
+ },
+ "Steel": {
+  "trianglesBefore": 111038,
+  "triangles": 13998,
+  "size": [
+   0.503,
+   1.325,
+   5.2
+  ],
+  "gripAt": [
+   0,
+   0,
+   0
+  ],
+  "trailBase": [
+   0,
+   0,
+   -1.052
+  ],
+  "trailTip": [
+   0,
+   0,
+   -4.398
+  ],
+  "gripWasAtLowEnd": true
+ },
+ "Gold": {
+  "trianglesBefore": 3987,
+  "triangles": 3987,
+  "size": [
+   0.334,
+   1.028,
+   5.2
+  ],
+  "gripAt": [
+   0,
+   0,
+   0
+  ],
+  "trailBase": [
+   0,
+   0,
+   -0.835
+  ],
+  "trailTip": [
+   0,
+   0,
+   -4.615
+  ],
+  "gripWasAtLowEnd": false
+ },
+ "Frost": {
+  "trianglesBefore": 5778,
+  "triangles": 5778,
+  "size": [
+   0.38,
+   1.366,
+   5.2
+  ],
+  "gripAt": [
+   0,
+   0,
+   0
+  ],
+  "trailBase": [
+   0,
+   0,
+   -1.138
+  ],
+  "trailTip": [
+   0,
+   0,
+   -4.312
+  ],
+  "gripWasAtLowEnd": true
+ },
+ "Flame": {
+  "trianglesBefore": 220154,
+  "triangles": 14000,
+  "size": [
+   0.496,
+   1.224,
+   5.2
+  ],
+  "gripAt": [
+   0,
+   0,
+   0
+  ],
+  "trailBase": [
+   0,
+   0,
+   -1.008
+  ],
+  "trailTip": [
+   0,
+   0,
+   -4.442
+  ],
+  "gripWasAtLowEnd": true
+ },
+ "Storm": {
+  "trianglesBefore": 252074,
+  "triangles": 14000,
+  "size": [
+   0.61,
+   1.166,
+   5.2
+  ],
+  "gripAt": [
+   0,
+   0,
+   0
+  ],
+  "trailBase": [
+   0,
+   0,
+   -1.182
+  ],
+  "trailTip": [
+   0,
+   0,
+   -4.268
+  ],
+  "gripWasAtLowEnd": true
+ },
+ "Prismatic": {
+  "trianglesBefore": 311622,
+  "triangles": 14000,
+  "size": [
+   0.662,
+   1.575,
+   5.2
+  ],
+  "gripAt": [
+   0,
+   0,
+   0
+  ],
+  "trailBase": [
+   0,
+   0,
+   -1.398
+  ],
+  "trailTip": [
+   0,
+   0,
+   -4.052
+  ],
+  "gripWasAtLowEnd": true
+ }
+}

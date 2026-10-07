@@ -1,0 +1,25 @@
+{
+ "trianglesBefore": 5778,
+ "triangles": 5778,
+ "size": [
+  0.38,
+  1.366,
+  5.2
+ ],
+ "gripAt": [
+  0,
+  0,
+  0
+ ],
+ "trailBase": [
+  0,
+  0,
+  -1.138
+ ],
+ "trailTip": [
+  0,
+  0,
+  -4.312
+ ],
+ "gripWasAtLowEnd": true
+}
