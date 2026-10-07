@@ -244,9 +244,14 @@ end
 -- FIGHT_HP : un rang de plus = environ deux fois plus fort), de sa place dans le palier de son rang (de -30 % à
 -- +30 %), de sa ZONE (x FIGHT_ZONE par zone : à niveau égal, le même animal de la zone suivante est toujours plus
 -- fort) et de son NIVEAU (+FIGHT_LEVEL par niveau, gagné avec l'XP des monstres).
-Pets.FIGHT_DMG = { 5, 10, 20, 40, 85, 220 }
-Pets.FIGHT_HP = { 45, 90, 180, 360, 760, 2000 }
-Pets.FIGHT_ZONE = 10
+-- Le familier du BOSS (rang 6) est un peu au-dessus du premier animal du monde suivant (5 x 100 = 500 de dégâts,
+-- 45 x 100 = 4 500 de vie) : c'est lui qui aide à y entrer.
+Pets.FIGHT_DMG = { 5, 10, 20, 40, 85, 600 }
+Pets.FIGHT_HP = { 45, 90, 180, 360, 760, 5400 }
+Pets.FIGHT_ZONE = 100
+-- L'XP que demande un niveau dépend du rang de l'animal (comme l'XP que donnent les monstres de son camp) : monter
+-- un cochon en battant des cochons prend autant de combats que monter un canard en battant des canards.
+Pets.RANK_XP = { 1, 2.5, 6, 14, 32, 80 }
 -- Chaque niveau multiplie la force par FIGHT_LEVEL : l'écart grandit à chaque niveau (niveau 10 : x 2,4 ; niveau
 -- 20 : x 6 ; niveau 30 : x 16). Et chaque niveau demande XP_LEVEL fois plus d'XP que le précédent.
 Pets.FIGHT_LEVEL = 1.1
@@ -275,13 +280,14 @@ end
 -- moins vite : un familier d'une zone lointaine monte un peu plus lentement).
 function Pets.xpNeed(spot): number
 	local def = Pets.DEFS[spot.a]
-	return math.floor(15 * Pets.XP_LEVEL ^ ((spot.lv or 1) - 1) * 3 ^ ((def and def.room or 1) - 1))
+	local rank = math.clamp(spot.q or (def and def.rank) or 1, 1, 6)
+	return math.floor(45 * Pets.XP_LEVEL ^ ((spot.lv or 1) - 1) * Pets.RANK_XP[rank] * 10 ^ ((def and def.room or 1) - 1))
 end
 -- Toute l'XP qu'un familier a gagnée depuis sa naissance (celle de ses niveaux passés, plus celle du niveau en cours).
 function Pets.totalXp(spot): number
 	local total = spot.xp or 0
 	for level = 1, (spot.lv or 1) - 1 do
-		total += Pets.xpNeed({ a = spot.a, lv = level })
+		total += Pets.xpNeed({ a = spot.a, q = spot.q, lv = level })
 	end
 	return total
 end

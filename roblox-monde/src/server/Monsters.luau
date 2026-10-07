@@ -118,16 +118,20 @@ local function create(zone, rank: number, home: Vector3)
 	return monster
 end
 
--- Ce que gagne chaque joueur qui a frappé le monstre.
-local function reward(monster, player: Player)
+-- CE QUE GAGNE UN JOUEUR QUI A FRAPPÉ LE MONSTRE (règle du joueur : « si plusieurs personnes tapent un monstre, XP
+-- et or partagés suivant les dégâts infligés, et l'œuf à celui qui a infligé le plus de dégâts, les autres rien »).
+--   share : sa part des dégâts, de 0 à 1 (1 quand il est seul) ; les pièces et l'XP sont multipliées par elle.
+--   best : c'est lui qui a fait le plus de dégâts ; lui seul peut recevoir l'œuf.
+local function reward(monster, player: Player, share: number, best: boolean)
 	local def = monster.def
-	PlayerData.addCoins(player, def.coins)
+	local coins, xp = math.floor(def.coins * share + 0.5), math.floor(def.xp * share + 0.5)
+	PlayerData.addCoins(player, coins)
 	-- Chaque familier de l'équipe reçoit l'XP du monstre, lui aussi.
 	local data = PlayerData.get(player)
 	for _, key in data.team do
 		local pet = data.spots[key]
 		if pet and pet.v then
-			pet.xp = (pet.xp or 0) + def.xp
+			pet.xp = (pet.xp or 0) + xp
 			pet.lv = pet.lv or 1
 			local before = pet.lv
 			while pet.xp >= Pets.xpNeed(pet) do
@@ -139,15 +143,15 @@ local function reward(monster, player: Player)
 			end
 		end
 	end
-	local levels = PlayerData.addXp(player, def.xp)
+	local levels = PlayerData.addXp(player, xp)
 	publishTeam(player)
-	lootEvent:FireClient(player, monster.position, def.coins, def.xp)
+	lootEvent:FireClient(player, monster.position, coins, xp)
 	if levels > 0 then
 		Gym.applyStats(player, true)
 		notify(player, "levelUp", PlayerData.get(player).level)
 	end
 	-- Un monstre lâche l'œuf de son animal ; un coffre, un œuf tiré au sort. La chance du joueur aide.
-	if random:NextNumber() < def.egg * Eggs.luck(player) then
+	if best and random:NextNumber() < def.egg * Eggs.luck(player) then
 		Eggs.drop(player, monster.zone, if monster.chest then nil else monster.rank)
 	end
 	if monster.boss then
@@ -163,9 +167,19 @@ local function die(monster)
 	monster.dead = true
 	monster.target = nil
 	monster.part:SetAttribute("Hp", 0)
+	-- La part de chacun, et celui qui a fait le plus de dégâts.
+	local total, top, topDealt = 0, nil, 0
 	for player, dealt in monster.hitters do
-		if player:IsDescendantOf(Players) and dealt >= monster.def.hp * 0.05 then
-			reward(monster, player)
+		if player:IsDescendantOf(Players) then
+			total += dealt
+			if dealt > topDealt then
+				top, topDealt = player, dealt
+			end
+		end
+	end
+	for player, dealt in monster.hitters do
+		if player:IsDescendantOf(Players) and total > 0 then
+			reward(monster, player, dealt / total, player == top)
 		end
 		local fight = fights[player]
 		if fight and fight.target == monster.id then
