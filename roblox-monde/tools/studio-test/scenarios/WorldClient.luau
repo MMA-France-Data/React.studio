@@ -12,5 +12,10 @@ return function(_log)
 		elseif camera.CameraType == Enum.CameraType.Scriptable then
 			camera.CameraType = Enum.CameraType.Custom
 		end
+		local panel = game:GetService("Players").LocalPlayer.PlayerGui:FindFirstChild("PetPanel", true)
+		local open = workspace:GetAttribute("OpenPets")
+		if panel and open ~= nil then
+			panel.Visible = open
+		end
 	end)
 end

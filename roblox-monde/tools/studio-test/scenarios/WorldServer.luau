@@ -86,11 +86,18 @@ return function(log)
 	task.wait(2.5)
 	check((player:GetAttribute("Target") or 0) == 0 and string.match(player:GetAttribute("TeamHp") or "", "^(%d+)/(%d+)") ~= nil, "un monstre qu'on ne frappe pas n'attaque pas", player:GetAttribute("TeamHp"))
 	D("Hurt", strong.id, 1)
-	task.wait(5)
+	-- (On guette le premier coup : le combat est court, et les familiers se soignent vite ensuite.)
+	local struck, seen = false, ""
+	local since = os.clock()
+	while os.clock() - since < 6 and not struck do
+		local now, max = string.match(player:GetAttribute("TeamHp") or "", "^(%d+)/(%d+)")
+		struck = tonumber(now) ~= nil and tonumber(now) < tonumber(max)
+		seen = player:GetAttribute("TeamHp")
+		task.wait(0.1)
+	end
 	root = player.Character.HumanoidRootPart.Position
 	shot("equipe", root + Vector3.new(12, 9, -15), root + Vector3.new(-4, 2, 0))
-	local now, max = string.match(player:GetAttribute("TeamHp") or "", "^(%d+)/(%d+)")
-	check(tonumber(now) ~= nil and tonumber(now) < tonumber(max), "le monstre frappe d'abord le premier familier", player:GetAttribute("TeamHp"))
+	check(struck, "le monstre frappe d'abord le premier familier", seen)
 	check(humanoid().Health >= humanoid().MaxHealth - 0.5, "le joueur n'a rien pris tant que ses familiers tiennent", humanoid().Health)
 	check(D("TeamDamage") > 0, "l'équipe fait des dégâts", D("TeamDamage"))
 	D("Peaceful", true)
@@ -138,6 +145,15 @@ return function(log)
 	go(Vector3.new(0, 0, zones[2].zMin + 12))
 	task.wait(2.2)
 	check(player.Character.HumanoidRootPart.Position.Z > zones[2].zMin, "zone 2 ouverte : le joueur y reste")
+	-- La liste des familiers, puis l'ecran des telephones.
+	root = player.Character.HumanoidRootPart.Position
+	workspace:SetAttribute("OpenPets", true)
+	shot("liste", root + Vector3.new(0, 7, -16), root + Vector3.new(0, 4, 20))
+	workspace:SetAttribute("OpenPets", false)
+	workspace:SetAttribute("PhoneHud", true)
+	shot("telephone", root + Vector3.new(0, 7, -16), root + Vector3.new(0, 4, 20))
+	workspace:SetAttribute("PhoneHud", nil)
+
 	-- 7. Les boutons de voyage.
 	D("Travel", "base")
 	task.wait(0.6)
