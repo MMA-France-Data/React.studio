@@ -17,5 +17,10 @@ return function(_log)
 		if panel and open ~= nil then
 			panel.Visible = open
 		end
+		local shop = game:GetService("Players").LocalPlayer.PlayerGui:FindFirstChild("ShopPanel", true)
+		local openShop = workspace:GetAttribute("OpenShop")
+		if shop and openShop ~= nil then
+			shop.Visible = openShop
+		end
 	end)
 end

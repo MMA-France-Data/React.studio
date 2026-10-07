@@ -216,7 +216,7 @@ local function applyHud()
 	wallet.AnchorPoint = if small then Vector2.new(1, 0) else Vector2.zero
 	wallet.Position = if small then UDim2.new(1, -6, 0, 2) else UDim2.fromOffset(0, 0)
 	walletScale.Scale = if small then 0.7 else 1
-	for _, name in { "EggButton", "PawButton" } do
+	for _, name in { "EggButton", "PawButton", "ShopButton" } do
 		local button = gui:FindFirstChild(name)
 		if button then
 			local scale = button:FindFirstChildOfClass("UIScale") or Instance.new("UIScale")

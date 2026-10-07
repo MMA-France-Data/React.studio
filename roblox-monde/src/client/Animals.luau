@@ -1153,15 +1153,83 @@ return function(env)
 			task.wait(0.5)
 		end
 	end)
+	-- LA BOUTIQUE : on y dépense ses pièces. L'épée (plus de dégâts pour soi) et les places de l'enclos.
+	local shopButton = squareButton("ShopButton", 2, Color3.fromRGB(60, 150, 255))
+	env.text(shopButton, "Label", UDim2.fromScale(0.8, 0.8), UDim2.fromScale(0.1, 0.1)).Text = "🛒"
+	local shopPanel = window("ShopPanel", tr("shopTitle"), 620, 330)
+	local swordEvent = ReplicatedStorage:WaitForChild("BuySword")
+	local function shopRow(y: number, icon: string, color: Color3)
+		local row = env.box(shopPanel, "Row", UDim2.new(1, -40, 0, 110), UDim2.fromOffset(20, y), Color3.fromRGB(30, 44, 78))
+		row.ZIndex = 4
+		row.UIStroke.Color = color
+		row.UIStroke.Thickness = 3
+		local picture = env.text(row, "Icon", UDim2.fromOffset(80, 80), UDim2.fromOffset(12, 15))
+		picture.Text = icon
+		picture.ZIndex = 5
+		local title = env.text(row, "Title", UDim2.new(1, -310, 0, 30), UDim2.fromOffset(104, 10), color, 26)
+		title.TextXAlignment = Enum.TextXAlignment.Left
+		title.ZIndex = 5
+		local line = env.text(row, "Line", UDim2.new(1, -310, 0, 26), UDim2.fromOffset(104, 44), nil, 22)
+		line.TextXAlignment = Enum.TextXAlignment.Left
+		line.ZIndex = 5
+		local note = env.text(row, "Note", UDim2.new(1, -310, 0, 20), UDim2.fromOffset(104, 76), Color3.fromRGB(190, 200, 220), 16)
+		note.TextXAlignment = Enum.TextXAlignment.Left
+		note.ZIndex = 5
+		local buy = button(row, "Buy", UDim2.fromOffset(180, 70), UDim2.new(1, -194, 0, 20), Color3.fromRGB(60, 200, 70), "")
+		return { title = title, line = line, note = note, buy = buy }
+	end
+	local swordRow = shopRow(62, "⚔", Color3.fromRGB(255, 110, 110))
+	local penRow = shopRow(186, "🐾", Color3.fromRGB(255, 170, 60))
+	swordRow.buy.Activated:Connect(function()
+		swordEvent:FireServer()
+	end)
+	penRow.buy.Activated:Connect(function()
+		upgradeEvent:FireServer()
+	end)
+	local function refreshShop()
+		if not shopPanel.Visible then
+			return
+		end
+		local coins = player:GetAttribute("Coins") or 0
+		local sword, zone = player:GetAttribute("Sword") or 1, player:GetAttribute("Zone") or 1
+		local level = player:GetAttribute("Level") or 1
+		local maxed = sword >= Config.swordMax(zone)
+		local price = Config.swordPrice(sword)
+		swordRow.title.Text = tr("shopSword", sword)
+		swordRow.line.Text = tr("shopSwordLine", env.num(Config.hitDamage(sword, level)), env.num(Config.hitDamage(sword + 1, level)))
+		swordRow.note.Text = if maxed then tr("forgeMax", zone) else tr("shopSwordNote")
+		swordRow.buy.Label.Text = if maxed then "MAX" else env.num(price) .. " $"
+		swordRow.buy.BackgroundColor3 = if maxed then Color3.fromRGB(90, 96, 120) elseif coins >= price then Color3.fromRGB(60, 200, 70) else Color3.fromRGB(200, 70, 70)
+		local places = player:GetAttribute("Places") or Pets.SPOTS_FREE
+		local spot = Pets.spotPrice(places)
+		penRow.title.Text = tr("shopPen", Pets.penLevel(places))
+		penRow.line.Text = tr("shopPenLine", places, places + 1)
+		penRow.note.Text = tr("shopPenNote")
+		penRow.buy.Label.Text = if spot then env.num(spot) .. " $" else "MAX"
+		penRow.buy.BackgroundColor3 = if not spot then Color3.fromRGB(90, 96, 120) elseif coins >= spot then Color3.fromRGB(60, 200, 70) else Color3.fromRGB(200, 70, 70)
+		fitWindow(shopPanel)
+	end
+	for _, name in { "Coins", "Sword", "Zone", "Places", "Level" } do
+		player:GetAttributeChangedSignal(name):Connect(refreshShop)
+	end
+	shopPanel:GetPropertyChangedSignal("Visible"):Connect(refreshShop)
+	shopButton.Activated:Connect(function()
+		shopPanel.Visible = not shopPanel.Visible
+		petPanel.Visible = false
+		eggPanel.Visible = false
+	end)
+
 	petPanel:GetPropertyChangedSignal("Visible"):Connect(refreshPanels)
 	eggPanel:GetPropertyChangedSignal("Visible"):Connect(refreshPanels)
 	eggButton.Activated:Connect(function()
 		eggPanel.Visible = not eggPanel.Visible
 		petPanel.Visible = false
+		shopPanel.Visible = false
 	end)
 	pawButton.Activated:Connect(function()
 		petPanel.Visible = not petPanel.Visible
 		eggPanel.Visible = false
+		shopPanel.Visible = false
 	end)
 
 	-- POSER L'ŒUF -----------------------------------------------------------------------------------------------------

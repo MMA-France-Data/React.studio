@@ -403,6 +403,13 @@ function Monsters.start(world, notifier)
 	attackEvent.OnServerEvent:Connect(function(player)
 		Monsters.attack(player)
 	end)
+	-- La boutique : améliorer l'épée (le même achat qu'à la forge).
+	local swordEvent = Instance.new("RemoteEvent")
+	swordEvent.Name = "BuySword"
+	swordEvent.Parent = ReplicatedStorage
+	swordEvent.OnServerEvent:Connect(function(player)
+		Gym.buySword(player)
+	end)
 	local travelEvent = Instance.new("RemoteEvent")
 	travelEvent.Name = "Travel"
 	travelEvent.Parent = ReplicatedStorage

@@ -104,13 +104,15 @@ Config.SWORD_PER_ZONE = 10
 function Config.swordMax(zone: number): number
 	return Config.SWORD_PER_ZONE * zone
 end
--- Dégâts d'un coup d'épée : l'épée, plus 6 % par niveau du joueur.
+-- QUI DONNE QUOI (la règle du joueur) : monter de niveau SOI-MÊME = plus de vie, rien d'autre ; monter son ÉPÉE =
+-- plus de dégâts pour soi ; monter le niveau d'un FAMILIER = ses dégâts et sa vie.
 function Config.swordDamage(sword: number): number
 	-- (L'épée seule fait peu : la force vient surtout des trois familiers.)
 	return 3 * 1.25 ^ (sword - 1)
 end
 function Config.hitDamage(sword: number, level: number): number
-	return math.floor(Config.swordDamage(sword) * (1 + 0.06 * (level - 1)) + 0.5)
+	local _ = level
+	return math.floor(Config.swordDamage(sword) + 0.5)
 end
 -- Prix pour passer de l'épée `sword` à la suivante.
 function Config.swordPrice(sword: number): number
