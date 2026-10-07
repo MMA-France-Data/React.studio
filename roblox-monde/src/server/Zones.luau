@@ -18,6 +18,7 @@ end
 local HALF_X = Config.ZONE_SIZE.X / 2
 local LENGTH = Config.ZONE_SIZE.Z
 local GATE_W, GATE_H = 16, 14
+local PATCHES = 0
 local NAVY = rgb(34, 40, 70)
 
 -- OUTILS ---------------------------------------------------------------------------------------------------------------
@@ -336,7 +337,8 @@ local function buildZone(parent: Instance, index: number, zMin: number)
 	-- Le sol, et des taches de couleur pour qu'il ne soit pas uni.
 	local ground = Build.part(folder, "Ground", Vector3.new(HALF_X * 2, 4, LENGTH), center + Vector3.new(0, -2, 0), theme.ground[1], theme.ground[2])
 	ground.CanQuery = true
-	for _ = 1, 26 do
+	-- (PATCHES = 0 : le joueur les voyait comme des ombres qui clignotent, deux taches superposees a la meme hauteur.)
+	for _ = 1, PATCHES do
 		local size = random:NextNumber(24, 60)
 		local patch = pillar(folder, "Patch", size, 0.1, center + Vector3.new(random:NextNumber(-HALF_X + 30, HALF_X - 30), 0, random:NextNumber(-LENGTH / 2 + 30, LENGTH / 2 - 30)), theme.patches[random:NextInteger(1, #theme.patches)], theme.ground[2])
 		patch.CastShadow = false
@@ -344,7 +346,9 @@ local function buildZone(parent: Instance, index: number, zMin: number)
 	-- Le chemin : de l'entrée à l'arène du boss, puis jusqu'à la porte suivante, avec un sentier vers chaque camp.
 	local function trail(from: Vector3, to: Vector3, width: number)
 		local middle = (from + to) / 2
-		deco(folder, "Path", Vector3.new(width, 0.16, (to - from).Magnitude + width * 0.6), CFrame.lookAt(middle + Vector3.new(0, 0.08, 0), to + Vector3.new(0, 0.08, 0)), theme.path[1], theme.path[2]).CastShadow = false
+		-- (Le chemin principal est plus haut que les sentiers : deux surfaces a la meme hauteur clignotent.)
+		local thick = if width > 8 then 0.16 else 0.1
+		deco(folder, "Path", Vector3.new(width, thick, (to - from).Magnitude + width * 0.6), CFrame.lookAt(middle + Vector3.new(0, thick / 2, 0), to + Vector3.new(0, thick / 2, 0)), theme.path[1], theme.path[2]).CastShadow = false
 	end
 	trail(Vector3.new(0, 0, zMin), Vector3.new(0, 0, zMax), 11)
 	for _, camp in CAMPS do

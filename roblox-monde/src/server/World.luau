@@ -31,6 +31,7 @@ World.ROOM_HALF_Z = ROOM_LEN / 2
 local WHITE = Color3.fromRGB(245, 245, 250)
 -- Où va le vrai stand des épées, et de combien de degrés il est tourné (pour que sa devanture regarde l'allée).
 local STAND_AT, STAND_TURN = Vector3.new(-16, 0, 24.6), 0
+local SELL_TURN = 0
 
 -- Mur le long de l'axe X, à la profondeur z, avec le trou d'une porte au milieu.
 local function wallWithDoor(parent: Instance, z: number, halfX: number, height: number, color: Color3, material: Enum.Material?)
@@ -257,53 +258,45 @@ local function buildGym(parent: Instance)
 	local ember = Build.part(gym, "ForgeFire", Vector3.new(2.2, 0.5, 2.2), stand + Vector3.new(-1.5, 3.75, 0), Color3.fromRGB(255, 120, 40), Enum.Material.Neon)
 	ember.CanCollide = false
 
-	-- LE VRAI STAND DES ÉPÉES (modèle du joueur, rangé par le plugin dans ReplicatedStorage > SwordMeshes > Stand) :
-	-- s'il est là, il remplace le stand en blocs. Le comptoir reste, invisible, pour porter le bouton de la forge.
-	local meshes = ReplicatedStorage:FindFirstChild("SwordMeshes")
-	local template = meshes and meshes:FindFirstChild("Stand")
-	-- (Ou enregistre a part : ReplicatedStorage > StandEpee, quel que soit le nom du dossier autour.)
-	local apart = ReplicatedStorage:FindFirstChild("StandEpee")
-	if not template and apart then
-		for _, item in apart:GetDescendants() do
-			if item:IsA("Model") and (item.Name == "Stand" or item.Name == "Stand_Epees") then
-				template = item
-				break
+	-- LES VRAIS STANDS (modèles du joueur, importés dans Studio et enregistrés en .rbxm) : s'ils sont là, ils
+	-- remplacent les stands en blocs. Le comptoir en blocs reste, invisible, pour porter le bouton du stand.
+	-- Toutes les pièces trouvées dans `container` forment le stand ; il est mis à 13 studs de haut, posé sur le sol à
+	-- `at`, tourné de `turn` degrés.
+	local function realStand(container: Instance?, name: string, at: Vector3, turn: number): boolean
+		if not container then
+			return false
+		end
+		local model = Instance.new("Model")
+		model.Name = name
+		for _, item in container:GetDescendants() do
+			if item:IsA("BasePart") then
+				local part = item:Clone()
+				part.Anchored = true
+				part.CanQuery = false
+				part.CastShadow = false
+				part.Parent = model
 			end
 		end
-		if not template then
-			-- Une piece seule : on l enveloppe dans un modele.
-			local part = apart:FindFirstChildWhichIsA("MeshPart", true)
-			if part then
-				template = Instance.new("Model")
-				part:Clone().Parent = template
-			end
+		if #model:GetChildren() == 0 then
+			return false
 		end
+		local _, measured = model:GetBoundingBox()
+		model:ScaleTo(13 / measured.Y)
+		model:PivotTo(CFrame.new(at) * CFrame.Angles(0, math.rad(turn), 0))
+		local box, size = model:GetBoundingBox()
+		model:PivotTo(model:GetPivot() + Vector3.new(at.X - box.Position.X, size.Y / 2 - box.Position.Y, at.Z - box.Position.Z))
+		model.Parent = gym
+		return true
 	end
-	if template and template:IsA("Model") then
+	if realStand(ReplicatedStorage:FindFirstChild("StandEpee"), "ForgeStand", STAND_AT, STAND_TURN) then
 		for _, item in gym:GetChildren() do
 			local name = item.Name
-			if name == "ShopTop" or name == "ShopPost" or name == "ShopRoof" or name == "ShopSign" or name == "Anvil" or name == "AnvilFoot" or string.sub(name, 1, 5) == "Forge" and name ~= "Forge" then
+			if name == "ShopTop" or name == "ShopPost" or name == "ShopRoof" or name == "ShopSign" or name == "Anvil" or name == "AnvilFoot" or string.sub(name, 1, 5) == "Forge" and name ~= "Forge" and name ~= "ForgeStand" then
 				item:Destroy()
 			end
 		end
 		counter.Transparency = 1
 		counter.CanCollide = false
-		local model = template:Clone()
-		model.Name = "ForgeStand"
-		for _, part in model:GetDescendants() do
-			if part:IsA("BasePart") then
-				part.Anchored = true
-				part.CanQuery = false
-			end
-		end
-		-- Toujours 13 studs de haut, quelle que soit la taille a laquelle il a ete enregistre.
-		local _, measured = model:GetBoundingBox()
-		model:ScaleTo(model:GetScale() * 13 / measured.Y)
-		-- Posé sur le sol, sa devanture tournée vers l'allée.
-		model:PivotTo(CFrame.new(STAND_AT) * CFrame.Angles(0, math.rad(STAND_TURN), 0))
-		local box, size = model:GetBoundingBox()
-		model:PivotTo(model:GetPivot() + Vector3.new(STAND_AT.X - box.Position.X, size.Y / 2 - box.Position.Y, STAND_AT.Z - box.Position.Z))
-		model.Parent = gym
 	end
 
 	-- Le stand « VENDRE » : on y vend ses familiers. Un comptoir et un auvent rayé rouge et blanc.
@@ -320,6 +313,18 @@ local function buildGym(parent: Instance)
 	local sellBoard = Build.part(gym, "SellSign", Vector3.new(10, 2.8, 0.5), sellAt + Vector3.new(0, 12.4, 0), NAVY)
 	Build.sign(sellBoard, Enum.NormalId.Front, "sell", Color3.fromRGB(255, 70, 70))
 	Build.sign(sellBoard, Enum.NormalId.Back, "sell", Color3.fromRGB(255, 70, 70))
+	-- Le vrai stand de vente : de l'autre côté de la grande porte, plaqué au mur comme celui des épées.
+	local sellStandAt = Vector3.new(-STAND_AT.X, 0, STAND_AT.Z)
+	if realStand(ReplicatedStorage:FindFirstChild("StandVente"), "SellStand", sellStandAt, SELL_TURN) then
+		for _, item in gym:GetChildren() do
+			if item.Name == "SellPost" or item.Name == "SellAwning" or item.Name == "SellSign" then
+				item:Destroy()
+			end
+		end
+		sell.Position = Vector3.new(sellStandAt.X, 1.6, 18.5)
+		sell.Transparency = 1
+		sell.CanCollide = false
+	end
 
 	-- L'habillage : le haut des murs, les lampadaires, les guirlandes, la fontaine, la grande porte des salles.
 	Scenery.lobby(gym, { halfX = LOBBY_X, back = LOBBY_BACK, front = GYM_Z, wall = GYM_WALL, alley = ALLEY, doorWidth = DOOR_W, lamps = { 12, -37, -103, -160 }, fountain = Vector3.new(0, 0, -112) })
