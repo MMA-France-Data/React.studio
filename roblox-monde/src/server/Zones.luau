@@ -348,7 +348,7 @@ local function buildZone(parent: Instance, index: number, zMin: number)
 		local middle = (from + to) / 2
 		-- (Le chemin principal est plus haut que les sentiers : deux surfaces a la meme hauteur clignotent.)
 		local thick = if width > 8 then 0.16 else 0.1
-		deco(folder, "Path", Vector3.new(width, thick, (to - from).Magnitude + width * 0.6), CFrame.lookAt(middle + Vector3.new(0, thick / 2, 0), to + Vector3.new(0, thick / 2, 0)), theme.path[1], theme.path[2]).CastShadow = false
+		deco(folder, "Path", Vector3.new(width, thick, (to - from).Magnitude + (if width > 8 then 0 else width * 0.6)), CFrame.lookAt(middle + Vector3.new(0, thick / 2, 0), to + Vector3.new(0, thick / 2, 0)), theme.path[1], theme.path[2]).CastShadow = false
 	end
 	trail(Vector3.new(0, 0, zMin), Vector3.new(0, 0, zMax), 11)
 	for _, camp in CAMPS do
