@@ -16,7 +16,7 @@ const norm = (p) => p.split(path.sep).join('/');
 //   jump : mesure la hauteur de marche qu'un personnage peut grimper d'un saut (réglage des salles de lave)
 const scenarios = {
 	world: ['WorldServer.luau', 'WorldClient.luau'],
-	photo: ['PhotoServer.luau', 'WorldClient.luau'],
+	photo: ['PhotoServer.luau', 'PhotoClient.luau'],
 };
 if (!scenarios[mode]) {
 	console.error(`Test inconnu : ${mode} (attendu : ${Object.keys(scenarios).join(', ')})`);

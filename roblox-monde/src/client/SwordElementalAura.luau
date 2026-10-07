@@ -13,6 +13,7 @@ local TEXTURES = {
 	glow = "rbxasset://textures/glow.png",
 }
 Aura.textures = TEXTURES
+Aura.BOOST = 3
 local COLORS = {
 	Flame = Color3.fromRGB(255, 123, 24),
 	Frost = Color3.fromRGB(84, 218, 255),
@@ -137,6 +138,23 @@ function Aura.create(model: Model, id: string, base: Attachment, tip: Attachment
 			table.insert(state.bolts, bolt)
 		end
 	end
+	-- (Claude, 07/10 : avec les epees enormes du jeu, 8 studs, ces effets etaient trop petits pour se voir : rien
+	-- sur les photos, alors que tout etait allume. BOOST fois plus gros et plus nombreux ; le halo sans texture, car
+	-- avec « glow.png » il ne s affichait pas du tout.)
+	for _, entry in state.emitters do
+		local keys = {}
+		for _, key in entry.item.Size.Keypoints do
+			table.insert(keys, NumberSequenceKeypoint.new(key.Time, key.Value * Aura.BOOST))
+		end
+		entry.item.Size = NumberSequence.new(keys)
+		entry.rate *= Aura.BOOST
+		entry.item.Rate = entry.rate
+		entry.item.Speed = NumberRange.new(entry.item.Speed.Min * Aura.BOOST, entry.item.Speed.Max * Aura.BOOST)
+	end
+	state.halo.Texture, state.core.Texture = "", ""
+	state.halo.Transparency = curve({ {0, 1}, {0.15, 0.72}, {0.8, 0.78}, {1, 1} })
+	state.core.Width0, state.core.Width1 = 0.16, 0.08
+	state.light.Range = 14
 	return state
 end
 function Aura.dispose(state)
