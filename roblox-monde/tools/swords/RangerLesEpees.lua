@@ -141,43 +141,33 @@ button.Click:Connect(function()
 			table.insert(missing, name)
 		end
 	end
-	-- LE STAND DES ÉPÉES (« Stand_Epees », importé de A-IMPORTER) : rangé dans le même dossier sous le nom « Stand »,
-	-- à 13 studs de haut. Le jeu le pose lui-même à la place de la forge.
-	local stand = nil
-	for _, item in workspace:GetDescendants() do
-		if item.Name == "Stand_Epees" and (item:IsA("Model") or item:IsA("MeshPart")) then
-			stand = if item:IsA("MeshPart") and item.Parent and item.Parent:IsA("Model") and item.Parent.Name == item.Name then item.Parent else item
-			break
-		end
-	end
-	if stand then
-		local model = Instance.new("Model")
-		model.Name = "Stand"
-		local copy = stand:Clone()
-		local parts = if copy:IsA("BasePart") then { copy } else {}
-		for _, item in copy:GetDescendants() do
+	-- LES STANDS (importés de A-IMPORTER) : « Stand_Epees » est rangé sous le nom « Stand », « Stand_Vente » (en
+	-- plusieurs morceaux) sous le nom « StandVente », dans le même dossier. Le jeu les pose lui-même à leur place.
+	for imported, name in { Stand_Epees = "Stand", Stand_Vente = "StandVente" } do
+		local parts = {}
+		for _, item in workspace:GetDescendants() do
 			if item:IsA("BasePart") then
-				table.insert(parts, item)
+				local inside = item:FindFirstAncestor(imported) ~= nil
+				if inside or string.sub(item.Name, 1, #imported) == imported then
+					table.insert(parts, item)
+				end
 			end
 		end
-		table.sort(parts, function(a, b)
-			return a.Size.Magnitude > b.Size.Magnitude
-		end)
-		for _, part in parts do
-			part.Anchored = true
-			part.Parent = model
-		end
-		if parts[1] then
-			model.PrimaryPart = parts[1]
-			local _, size = model:GetBoundingBox()
-			model:ScaleTo(13 / size.Y)
-			local old = folder:FindFirstChild("Stand")
+		if #parts > 0 then
+			local model = Instance.new("Model")
+			model.Name = name
+			for _, part in parts do
+				local copy = part:Clone()
+				copy.Name = name .. "Piece"
+				copy.Anchored = true
+				copy.Parent = model
+			end
+			local old = folder:FindFirstChild(name)
 			if old then
 				old:Destroy()
 			end
-			model:PivotTo(CFrame.new(-14, 8, 0))
 			model.Parent = folder
-			table.insert(done, "Stand")
+			table.insert(done, name)
 		end
 	end
 	folder.Parent = ReplicatedStorage

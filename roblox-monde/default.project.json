@@ -215,6 +215,12 @@
         "Contenu": {
           "$path": "assets/swords-roblox/Stand.rbxm"
         }
+      },
+      "StandVente": {
+        "$className": "Folder",
+        "Contenu": {
+          "$path": "assets/swords-roblox/StandVente.rbxm"
+        }
       }
     },
     "ServerScriptService": {

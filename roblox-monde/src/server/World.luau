@@ -272,17 +272,27 @@ local function buildGym(parent: Instance)
 		-- (Le fichier enregistre peut contenir autre chose que le stand : les epees importees y etaient aussi, et le
 		-- stand se retrouvait minuscule et decale. On ne garde que les pieces dont le nom contient « Stand » ; s il
 		-- n y en a pas, la plus grosse piece.)
+		-- (Dans un fichier enregistre a la main, le stand de vente s appelle « Stand_Vente... » ou « StandVente... »,
+		-- celui des epees « Stand », « Stand_Epees » ou « StandPiece ».)
+		local sale = name == "SellStand"
+		local function isStand(item: Instance): boolean
+			local label = string.gsub(item.Name, "_", "")
+			if string.find(label, "Stand") == nil then
+				return false
+			end
+			return (string.find(label, "StandVente") ~= nil) == sale
+		end
 		local named, biggest = false, nil
 		for _, item in container:GetDescendants() do
 			if item:IsA("BasePart") then
-				named = named or string.find(item.Name, "Stand") ~= nil
+				named = named or isStand(item)
 				if not biggest or item.Size.Magnitude > biggest.Size.Magnitude then
 					biggest = item
 				end
 			end
 		end
 		for _, item in container:GetDescendants() do
-			if item:IsA("BasePart") and (if named then string.find(item.Name, "Stand") ~= nil else item == biggest) then
+			if item:IsA("BasePart") and (if named then isStand(item) else item == biggest) then
 				local part = item:Clone()
 				part.Anchored = true
 				part.CanQuery = false
@@ -325,7 +335,8 @@ local function buildGym(parent: Instance)
 		model.Parent = gym
 		return true
 	end
-	if realStand(ReplicatedStorage:FindFirstChild("StandEpee"), "ForgeStand", STAND_AT, STAND_TURN) then
+	local ranged = ReplicatedStorage:FindFirstChild("SwordMeshes")
+	if realStand((ranged and ranged:FindFirstChild("Stand")) or ReplicatedStorage:FindFirstChild("StandEpee"), "ForgeStand", STAND_AT, STAND_TURN) then
 		for _, item in gym:GetChildren() do
 			local name = item.Name
 			if name == "ShopTop" or name == "ShopPost" or name == "ShopRoof" or name == "ShopSign" or name == "Anvil" or name == "AnvilFoot" or string.sub(name, 1, 5) == "Forge" and name ~= "Forge" and name ~= "ForgeStand" then
@@ -352,7 +363,7 @@ local function buildGym(parent: Instance)
 	Build.sign(sellBoard, Enum.NormalId.Back, "sell", Color3.fromRGB(255, 70, 70))
 	-- Le vrai stand de vente : de l'autre côté de la grande porte, plaqué au mur comme celui des épées.
 	local sellStandAt = Vector3.new(-STAND_AT.X, 0, STAND_AT.Z)
-	if realStand(ReplicatedStorage:FindFirstChild("StandVente"), "SellStand", sellStandAt, SELL_TURN) then
+	if realStand((ranged and ranged:FindFirstChild("StandVente")) or ReplicatedStorage:FindFirstChild("StandVente"), "SellStand", sellStandAt, SELL_TURN) then
 		for _, item in gym:GetChildren() do
 			if item.Name == "SellPost" or item.Name == "SellAwning" or item.Name == "SellSign" then
 				item:Destroy()
