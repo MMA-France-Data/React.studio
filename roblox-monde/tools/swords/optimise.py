@@ -5,7 +5,7 @@
 #                     lame le long de -Z, poignée à l'origine, longueur totale LENGTH studs ;
 #   info.json       : triangles, dimensions, et où sont le bas et la pointe de la lame (pour TrailBase / TrailTip).
 # Les fichiers d'origine ne sont jamais modifiés.
-import bpy, json, os, sys
+import bpy, json, os, shutil, sys
 from mathutils import Matrix, Vector
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
@@ -87,6 +87,12 @@ for name in NAMES:
     for v in mesh.vertices:
         v.co.z += grip
     mesh.update()
+    # Dernier quart de tour : l'export FBX (Y vers le haut) transforme le point Blender (x, y, z) en (x, z, -y) dans
+    # Roblox. Pour que Roblox reçoive (épaisseur, largeur, -longueur), le point Blender doit être (épaisseur,
+    # longueur, largeur).
+    for v in mesh.vertices:
+        v.co = Vector((v.co.x, -v.co.z, v.co.y))
+    mesh.update()
     obj.name = 'Sword_' + name
     mesh.name = 'Sword_' + name
 
@@ -127,6 +133,9 @@ for name in NAMES:
         'gripWasAtLowEnd': grip_low,
     }
     json.dump(info, open(os.path.join(OUT, name, 'info.json'), 'w'), indent=1)
+    # Tous les fichiers à importer dans le même dossier (les textures sont dans le FBX).
+    os.makedirs(os.path.join(OUT, 'A-IMPORTER'), exist_ok=True)
+    shutil.copyfile(os.path.join(OUT, name, 'Sword_%s.fbx' % name), os.path.join(OUT, 'A-IMPORTER', 'Sword_%s.fbx' % name))
     report[name] = info
     print('EPEE', name, json.dumps(info))
 

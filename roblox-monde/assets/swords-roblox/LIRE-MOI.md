@@ -15,9 +15,15 @@ pour chacune, le nombre de triangles et la place du bas et de la pointe de la la
 
 Importer un modèle l'envoie sur le compte Roblox du créateur : c'est à lui de le faire.
 
-1. Ouvrir le jeu dans Studio, puis **Accueil → Importer** (« Import 3D »).
-2. Choisir `Iron/Sword_Iron.fbx`, laisser les réglages, cliquer **Importer**. Recommencer pour les six autres.
-3. Les sept modèles sont dans le Workspace (`Sword_Iron`, `Sword_Steel`, …). Les sélectionner tous les sept, clic droit
-   → **Enregistrer dans un fichier…**, et enregistrer ici sous le nom **`Epees.rbxm`**.
+Les sept fichiers à importer sont tous dans le même dossier : **`A-IMPORTER`** (les textures sont dedans).
 
-Ensuite Claude branche `Epees.rbxm` dans le jeu (prise dans la main, traînée, une épée par niveau).
+1. Ouvrir le jeu dans Studio, puis **Accueil → Importer** (« Import 3D »), et importer les sept fichiers de
+   `A-IMPORTER` (on peut les choisir tous d'un coup). Ils arrivent dans le Workspace : `Sword_Iron`, `Sword_Steel`…
+2. Onglet **Plugins** → bouton **« Ranger les épées »** (plugin `tools/swords/RangerLesEpees.lua`, installé dans
+   Studio). Il retrouve chaque épée par son nom, la met à la bonne taille, lui ajoute sa prise et les points de la
+   traînée, et range le tout dans `ReplicatedStorage > SwordMeshes` (Iron, Steel, Gold, Frost, Flame, Storm,
+   Prismatic). Les épées rangées apparaissent côte à côte, dans l'ordre.
+3. Le dossier `SwordMeshes` est sélectionné : clic droit → **Enregistrer dans un fichier…**, ici, sous le nom
+   **`SwordMeshes.rbxm`**.
+
+Ensuite Claude branche `SwordMeshes.rbxm` dans le projet (une ligne dans `default.project.json`).

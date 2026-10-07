@@ -12,7 +12,7 @@ bpy.ops.wm.read_factory_settings(use_empty=True)
 for row, name in enumerate(NAMES):
     bpy.ops.import_scene.fbx(filepath=os.path.join(OUT, name, 'Sword_%s.fbx' % name))
     obj = bpy.context.selected_objects[0]
-    obj.location = Vector((0, row * 2.0, 0))   # (apres import, la lame est verticale : les epees sont cote a cote)
+    obj.location = Vector((0, 0, -row * 2.0))   # (apres import, la lame est couchee, pointe a droite : une epee par ligne)
     mat = bpy.data.materials.new(name)
     mat.use_nodes = True
     tex = mat.node_tree.nodes.new('ShaderNodeTexImage')
@@ -26,17 +26,17 @@ for row, name in enumerate(NAMES):
     dot = bpy.context.active_object
     red = bpy.data.materials.new('red'); red.diffuse_color = (1, 0, 0, 1)
     dot.data.materials.append(red)
-cam = bpy.data.cameras.new('cam'); cam.type = 'ORTHO'; cam.ortho_scale = 15
+cam = bpy.data.cameras.new('cam'); cam.type = 'ORTHO'; cam.ortho_scale = 15.5
 camera = bpy.data.objects.new('cam', cam); bpy.context.scene.collection.objects.link(camera)
 # Vue de face : on regarde le long de l epaisseur. Apres import (-Z avant, Y haut), la lame (Roblox -Z) est sur +Y Blender.
-camera.location = (20, 6, -1.6); camera.rotation_euler = (1.5708, 0, 1.5708)
+camera.location = (20, 1.6, -6); camera.rotation_euler = (1.5708, 0, 1.5708)
 bpy.context.scene.camera = camera
 light = bpy.data.objects.new('sun', bpy.data.lights.new('sun', 'SUN')); light.rotation_euler = (1.2, 0, 1.2); light.data.energy = 4
 bpy.context.scene.collection.objects.link(light)
 scene = bpy.context.scene
 scene.render.engine = 'BLENDER_WORKBENCH'
 scene.display.shading.light = 'STUDIO'; scene.display.shading.color_type = 'TEXTURE'
-scene.render.resolution_x, scene.render.resolution_y = 1500, 900
+scene.render.resolution_x, scene.render.resolution_y = 900, 1500
 scene.render.filepath = os.path.join(OUT, 'apercu.png')
 bpy.ops.render.render(write_still=True)
 print('RENDU')
