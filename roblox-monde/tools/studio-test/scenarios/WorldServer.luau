@@ -166,6 +166,21 @@ return function(log)
 	task.wait(1)
 	root = player.Character.HumanoidRootPart.Position
 	shot("boss", root + Vector3.new(8, 10, -22), boss.position + Vector3.new(0, 6, 0))
+	-- L attaque du boss (le cheval se cabre et retombe) : on le laisse frapper, et on le photographie de profil.
+	D("Level", 60)
+	D("Peaceful", false)
+	go(boss.position + Vector3.new(9, 0, 0))
+	D("Hurt", boss.id, 1)
+	task.wait(1.5)
+	for i = 1, 6 do
+		local at = D("Monsters")[boss.id].position
+		workspace:SetAttribute("ShotCam", CFrame.lookAt(at + Vector3.new(2, 7, -24), at + Vector3.new(2, 6, 0)))
+		task.wait(0.25 + i * 0.17)
+		log("Info", "SHOT:world_cheval_" .. i)
+		task.wait(1.1)
+	end
+	workspace:SetAttribute("ShotCam", nil)
+	D("Peaceful", true)
 	-- Le coup d'epee en gros plan, contre le boss (il a beaucoup de vie : le combat dure).
 	go(boss.position + Vector3.new(9, 0, 0))
 	workspace:SetAttribute("AutoAttack", true)
