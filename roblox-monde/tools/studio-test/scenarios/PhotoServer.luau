@@ -11,7 +11,7 @@ return function(log)
 		task.wait(0.1)
 	end
 	task.wait(3)
-	for _, sword in { 5 } do
+	for _, sword in { 4, 5, 6 } do
 		debug:Invoke("Sword", sword)
 		task.wait(2.5)
 		local root = player.Character.HumanoidRootPart.Position
