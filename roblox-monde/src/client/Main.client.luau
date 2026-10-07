@@ -233,7 +233,7 @@ task.defer(applyHud)
 task.delay(3, applyHud)
 
 -- LES MESSAGES --------------------------------------------------------------------------------------------------
-local toast = text(gui, "Toast", UDim2.new(0.8, 0, 0, 40), UDim2.new(0.1, 0, 0.3, 0), Color3.fromRGB(110, 255, 80), 34)
+local toast = text(gui, "Toast", UDim2.new(0.8, 0, 0, 40), UDim2.new(0.1, 0, 0.24, 0), Color3.fromRGB(110, 255, 80), 34)
 toast.Visible = false
 local toastId = 0
 local function showToast(message: string, color: Color3?)
@@ -386,6 +386,42 @@ task.spawn(function()
 		end
 	end
 end)
+
+-- VOYAGER : deux boutons en haut de l'écran. « BASE » ramène dans son espace (pour poser ses œufs, la forge) ;
+-- « ZONE n » pose à l'entrée de la zone la plus lointaine que le joueur a ouverte.
+local travelEvent = ReplicatedStorage:WaitForChild("Travel")
+local function travelButton(name: string, x: number, color: Color3): (TextButton, TextLabel)
+	local button = Instance.new("TextButton")
+	button.Name = name
+	button.AnchorPoint = Vector2.new(0.5, 0)
+	button.Position = UDim2.new(0.5, x, 0, 6)
+	button.Size = UDim2.fromOffset(132, 40)
+	button.BackgroundColor3 = color
+	button.Text = ""
+	Instance.new("UICorner", button).CornerRadius = UDim.new(0, 8)
+	local stroke = Instance.new("UIStroke")
+	stroke.Thickness = 3
+	stroke.Color = Color3.fromRGB(20, 20, 30)
+	stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	stroke.Parent = button
+	local label = text(button, "Label", UDim2.fromScale(0.9, 0.76), UDim2.fromScale(0.05, 0.12))
+	button.Parent = gui
+	return button, label
+end
+local baseButton, baseLabel = travelButton("ToBase", -72, Color3.fromRGB(50, 190, 80))
+local zoneButton, zoneLabel = travelButton("ToZone", 72, Color3.fromRGB(60, 150, 255))
+baseLabel.Text = tr("travelBase")
+baseButton.Activated:Connect(function()
+	travelEvent:FireServer("base")
+end)
+zoneButton.Activated:Connect(function()
+	travelEvent:FireServer(player:GetAttribute("Zone") or 1)
+end)
+local function refreshTravel()
+	zoneLabel.Text = tr("travelZone", player:GetAttribute("Zone") or 1)
+end
+player:GetAttributeChangedSignal("Zone"):Connect(refreshTravel)
+refreshTravel()
 
 -- LES PORTES DES ZONES, LA FORGE ET LE NOM DE LA ZONE -------------------------------------------------------------
 local zonesFolder = workspace:WaitForChild("Zones")

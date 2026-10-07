@@ -138,5 +138,15 @@ return function(log)
 	go(Vector3.new(0, 0, zones[2].zMin + 12))
 	task.wait(2.2)
 	check(player.Character.HumanoidRootPart.Position.Z > zones[2].zMin, "zone 2 ouverte : le joueur y reste")
+	-- 7. Les boutons de voyage.
+	D("Travel", "base")
+	task.wait(0.6)
+	check(player.Character.HumanoidRootPart.Position.Z < zones[1].zMin, "le bouton BASE ramène dans son espace")
+	D("Travel", 2)
+	task.wait(0.6)
+	local z = player.Character.HumanoidRootPart.Position.Z
+	check(z > zones[2].zMin and z < zones[2].zMin + 30, "le bouton ZONE pose à l'entrée de la zone ouverte", math.floor(z))
+	root = player.Character.HumanoidRootPart.Position
+	shot("voyage", root + Vector3.new(0, 7, -16), root + Vector3.new(0, 4, 20))
 	log("Info", "[SURVIVE] TEST:done")
 end

@@ -344,6 +344,30 @@ local function stepMonster(monster, dt: number, now: number)
 	end
 end
 
+-- VOYAGER : le bouton « BASE » ramène le joueur dans son espace ; le bouton « ZONE » le pose à l'entrée de la zone
+-- la plus lointaine qu'il a ouverte (ou d'une zone ouverte donnée). Le combat en cours est oublié.
+function Monsters.travel(player: Player, where: any): boolean
+	local data = PlayerData.get(player)
+	if not data or not rootOf(player) then
+		return false
+	end
+	local fight = fightOf(player)
+	fight.target = nil
+	player:SetAttribute("Target", 0)
+	for _, monster in monsters do
+		if monster.target == player then
+			monster.target = nil
+		end
+	end
+	if where == "base" then
+		Gym.toGym(player)
+		return true
+	end
+	local index = math.clamp(if type(where) == "number" then math.floor(where) else data.zone, 1, data.zone)
+	player.Character:PivotTo(CFrame.new(0, 4, zones[index].zMin + 10) * CFrame.Angles(0, math.pi, 0))
+	return true
+end
+
 -- Pour les tests : la liste des monstres { id, zone, rank, animal, hp, dead, position }, et de quoi en blesser un.
 function Monsters.list()
 	local list = {}
@@ -369,6 +393,17 @@ function Monsters.start(world, notifier)
 	attackEvent.Parent = ReplicatedStorage
 	attackEvent.OnServerEvent:Connect(function(player)
 		Monsters.attack(player)
+	end)
+	local travelEvent = Instance.new("RemoteEvent")
+	travelEvent.Name = "Travel"
+	travelEvent.Parent = ReplicatedStorage
+	local traveled = {}
+	travelEvent.OnServerEvent:Connect(function(player, where)
+		-- (Pas plus d'un voyage par seconde.)
+		if os.clock() - (traveled[player] or 0) > 1 then
+			traveled[player] = os.clock()
+			Monsters.travel(player, where)
+		end
 	end)
 
 	for _, zone in zones do

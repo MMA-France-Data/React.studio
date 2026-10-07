@@ -43,6 +43,8 @@ return function(world)
 			-- Un coup d'épée, comme le bouton. Renvoie l'animal touché.
 			local monster = Monsters.attack(player)
 			return monster and monster.animal
+		elseif action == "Travel" then
+			return Monsters.travel(player, a)
 		elseif action == "Hurt" then
 			Monsters.hurt(player, a, b)
 		elseif action == "TeamDamage" then
