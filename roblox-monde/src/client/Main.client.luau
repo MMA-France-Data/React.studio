@@ -275,6 +275,13 @@ for i, item in { { "Sword", Color3.fromRGB(240, 80, 80) }, { "Team", Color3.from
 	pills[item[1]] = text(pill, "Label", UDim2.fromScale(0.92, 0.78), UDim2.fromScale(0.04, 0.11))
 end
 pills.Luck.TextColor3 = Color3.fromRGB(255, 221, 51)
+local luckClick = Instance.new("TextButton")
+luckClick.Name = "Explain"
+luckClick.BackgroundTransparency = 1
+luckClick.Text = ""
+luckClick.Size = UDim2.fromScale(1, 1)
+luckClick.ZIndex = 3
+luckClick.Parent = pills.Luck.Parent
 pills.Luck.Parent.UIStroke.Color = Color3.fromRGB(255, 221, 51)
 
 local function teamDamage(): number
@@ -317,25 +324,27 @@ local autoButton: TextButton? = nil
 --   bas à gauche, avec l'épée, l'équipe et la chance juste au-dessus ; la grande barre de niveau en bas au milieu ;
 --   au-dessus d'elle, les deux actions avec leur touche : F = frapper, R = attaque automatique ;
 --   sur téléphone : tout est plus petit et sur les bords, les deux boutons d'attaque ronds sous le pouce droit.
-local MENU = { "EggButton", "PawButton", "BagButton", "ShopButton" }
+local MENU = { "EggButton", "PawButton", "BagButton", "SwordButton", "ShopButton" }
 local function applyHud()
 	local view = workspace.CurrentCamera.ViewportSize
 	small = workspace:GetAttribute("PhoneHud") == true or (UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled) or view.Y < 520
 	-- Les pièces.
 	wallet.Parent = gui
 	wallet.AnchorPoint = if small then Vector2.new(1, 0) else Vector2.new(0, 1)
-	wallet.Position = if small then UDim2.new(1, -6, 0, 2) else UDim2.new(0, 16, 1, -4)
+	wallet.Position = if small then UDim2.new(1, -6, 0, 0) else UDim2.new(0, 16, 1, -26)
 	walletScale.Scale = if small then 0.7 else 1.25
 	-- L'épée, l'équipe, la chance.
 	side.AnchorPoint = if small then Vector2.new(0, 0.5) else Vector2.new(0, 1)
-	side.Position = if small then UDim2.new(0, 12, 0.5, 0) else UDim2.new(0, 14, 1, -84)
+	side.Position = if small then UDim2.new(0, 12, 0.5, 0) else UDim2.new(0, 14, 1, -106)
 	side.Size = if small then UDim2.fromOffset(240, 250) else UDim2.fromOffset(380, 34)
 	sideScale.Scale = if small then 0.72 else 1
-	for i, name in { "Sword", "Team", "Luck" } do
-		local pill = pills[name].Parent
-		pill.Size = if small then UDim2.fromOffset(150, 34) else UDim2.fromOffset(118, 32)
-		pill.Position = if small then UDim2.fromOffset(2, 66 + i * 42) else UDim2.fromOffset((i - 1) * 126, 0)
-	end
+	-- (Les pastilles « épée » et « équipe » sont enlevées, sa demande : l'épée a son bouton et sa fenêtre. Il reste
+	-- la chance, sur laquelle on peut cliquer pour savoir ce que c'est.)
+	pills.Sword.Parent.Visible = false
+	pills.Team.Parent.Visible = false
+	local luck = pills.Luck.Parent
+	luck.Size = if small then UDim2.fromOffset(150, 34) else UDim2.fromOffset(118, 32)
+	luck.Position = if small then UDim2.fromOffset(2, 108) else UDim2.fromOffset(0, 0)
 	-- La barre de niveau.
 	levelPill.Parent = if small then side else gui
 	levelPill.AnchorPoint = if small then Vector2.zero else Vector2.new(0.5, 1)
@@ -346,10 +355,11 @@ local function applyHud()
 		local button = gui:FindFirstChild(name)
 		if button then
 			local scale = button:FindFirstChildOfClass("UIScale") or Instance.new("UIScale")
-			scale.Scale = if small then 0.78 else 1
+			-- (Téléphone : tous les boutons un peu plus petits que le bouton de saut de Roblox, 70 points.)
+			scale.Scale = if small then 0.7 else 0.9
 			scale.Parent = button
 			button.AnchorPoint = if small then Vector2.new(1, 0.5) else Vector2.new(0, 0.5)
-			button.Position = if small then UDim2.new(1, -12, 0.5, -110 + (order - 1) * 76) else UDim2.new(0, 22, 0.5, -170 + (order - 1) * 104)
+			button.Position = if small then UDim2.new(1, -8, 0.5, -150 + (order - 1) * 52) else UDim2.new(0, 22, 0.5, -210 + (order - 1) * 92)
 			local caption = button:FindFirstChild("Caption")
 			if caption then
 				caption.Visible = not small
@@ -359,11 +369,12 @@ local function applyHud()
 	-- Les deux actions.
 	for index, button in { attackButton, autoButton } do
 		if button then
-			local size = if small then (if index == 1 then 104 else 66) else 76
+			local size = if small then 58 else 76
 			button.Size = UDim2.fromOffset(size, size)
 			button.AnchorPoint = if small then Vector2.new(1, 1) else Vector2.new(0.5, 1)
 			if small then
-				button.Position = if index == 1 then UDim2.new(1, -110, 1, -30) else UDim2.new(1, -124, 1, -146)
+				-- À gauche du bouton de saut : l'attaque en bas, l'automatique juste au-dessus.
+				button.Position = if index == 1 then UDim2.new(1, -106, 1, -26) else UDim2.new(1, -106, 1, -92)
 			else
 				button.Position = UDim2.new(0.5, if index == 1 then -50 else 50, 1, -54)
 			end
@@ -799,6 +810,13 @@ local function travelButton(name: string, x: number, color: Color3): (TextButton
 end
 local baseButton, baseLabel = travelButton("ToBase", -72, Color3.fromRGB(50, 190, 80))
 local zoneButton, zoneLabel = travelButton("ToZone", 72, Color3.fromRGB(60, 150, 255))
+-- (Sa demande : plus de bouton « ZONE », et « BASE » deux fois plus petit, collé tout en haut de l'écran.)
+zoneButton.Visible = false
+baseButton.Size = UDim2.fromOffset(64, 20)
+baseButton.Position = UDim2.new(0.5, 0, 0, 0)
+luckClick.Activated:Connect(function()
+	showToast(tr("luckInfo", player:GetAttribute("PetLuck") or 0), GOLD)
+end)
 baseLabel.Text = tr("travelBase")
 baseButton.Activated:Connect(function()
 	travelEvent:FireServer("base")

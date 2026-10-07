@@ -1313,15 +1313,77 @@ return function(env)
 	bagPanel:GetPropertyChangedSignal("Visible"):Connect(refreshBag)
 	bagButton.Activated:Connect(function()
 		bagPanel.Visible = not bagPanel.Visible
-		local shop = env.gui:FindFirstChild("ShopPanel")
-		if shop then
-			shop.Visible = false
+		for _, name in { "ShopPanel", "SwordPanel" } do
+			local other = env.gui:FindFirstChild(name)
+			if other then
+				other.Visible = false
+			end
 		end
 		petPanel.Visible = false
 		eggPanel.Visible = false
 	end)
 
-	local shopButton = squareButton("ShopButton", 3, Color3.fromRGB(60, 150, 255))
+	-- L'ÉPÉE : un bouton, et une fenêtre qui montre seulement mon épée et la suivante, avec leurs dégâts.
+	local swordButton = squareButton("SwordButton", 3, Color3.fromRGB(240, 80, 80))
+	env.text(swordButton, "Label", UDim2.fromScale(0.8, 0.8), UDim2.fromScale(0.1, 0.1)).Text = "⚔"
+	local swordPanel = window("SwordPanel", tr("swordTitle"), 560, 380)
+	local SWORD_MODELS = { "Iron", "Steel", "Gold", "Frost", "Flame", "Storm" }
+	local function swordCard(x: number, title: string)
+		local frame = env.box(swordPanel, "Card", UDim2.fromOffset(240, 240), UDim2.fromOffset(x, 60), Color3.fromRGB(30, 44, 78))
+		frame.ZIndex = 4
+		frame.UIStroke.Thickness = 3
+		local head = env.text(frame, "Head", UDim2.new(1, -16, 0, 26), UDim2.fromOffset(8, 6), GOLD, 22)
+		head.Text = title
+		head.ZIndex = 5
+		local view = portrait(frame, UDim2.fromOffset(220, 150), UDim2.fromOffset(10, 34))
+		local damage = env.text(frame, "Damage", UDim2.new(1, -16, 0, 40), UDim2.fromOffset(8, 192), nil, 34)
+		damage.ZIndex = 5
+		return { frame = frame, view = view, damage = damage }
+	end
+	local swordNow, swordNext = swordCard(24, tr("swordNow")), swordCard(296, tr("swordNext"))
+	env.text(swordPanel, "Arrow", UDim2.fromOffset(32, 40), UDim2.fromOffset(264, 160), GOLD, 34).Text = ">"
+	local swordBuy = button(swordPanel, "Buy", UDim2.fromOffset(512, 54), UDim2.fromOffset(24, 312), Color3.fromRGB(60, 200, 70), "")
+	local buySwordEvent = ReplicatedStorage:WaitForChild("BuySword")
+	swordBuy.Activated:Connect(function()
+		buySwordEvent:FireServer()
+	end)
+	local function swordModel(level: number): Model?
+		local meshes = ReplicatedStorage:FindFirstChild("SwordMeshes")
+		local template = meshes and meshes:FindFirstChild(SWORD_MODELS[math.clamp(level, 1, #SWORD_MODELS)])
+		return if template and template:IsA("Model") then template:Clone() else nil
+	end
+	local function refreshSword()
+		if not swordPanel.Visible then
+			return
+		end
+		local sword, level = player:GetAttribute("Sword") or 1, player:GetAttribute("Level") or 1
+		local coins, price = player:GetAttribute("Coins") or 0, Config.swordPrice(sword)
+		for offset, item in { [0] = swordNow, [1] = swordNext } do
+			item.damage.Text = tr("swordDmg", env.num(Config.hitDamage(sword + offset, level)))
+			item.frame.UIStroke.Color = if offset == 0 then Color3.fromRGB(120, 200, 255) else GOLD
+			show(item.view, "sword" .. math.clamp(sword + offset, 1, #SWORD_MODELS), function()
+				return swordModel(sword + offset)
+			end)
+		end
+		swordBuy.Label.Text = tr("swordBuy", env.num(price))
+		swordBuy.BackgroundColor3 = if coins >= price then Color3.fromRGB(60, 200, 70) else Color3.fromRGB(200, 70, 70)
+		fitWindow(swordPanel)
+	end
+	for _, name in { "Coins", "Sword", "Level" } do
+		player:GetAttributeChangedSignal(name):Connect(refreshSword)
+	end
+	swordPanel:GetPropertyChangedSignal("Visible"):Connect(refreshSword)
+	swordButton.Activated:Connect(function()
+		swordPanel.Visible = not swordPanel.Visible
+		for _, name in { "PetPanel", "EggPanel", "BagPanel", "ShopPanel" } do
+			local other = env.gui:FindFirstChild(name)
+			if other then
+				other.Visible = false
+			end
+		end
+	end)
+
+	local shopButton = squareButton("ShopButton", 4, Color3.fromRGB(60, 150, 255))
 	env.text(shopButton, "Label", UDim2.fromScale(0.8, 0.8), UDim2.fromScale(0.1, 0.1)).Text = "🛒"
 	local shopPanel = window("ShopPanel", tr("shopTitle"), 620, 330)
 	local swordEvent = ReplicatedStorage:WaitForChild("BuySword")
@@ -1382,6 +1444,7 @@ return function(env)
 	shopPanel:GetPropertyChangedSignal("Visible"):Connect(refreshShop)
 	shopButton.Activated:Connect(function()
 		shopPanel.Visible = not shopPanel.Visible
+		swordPanel.Visible = false
 		bagPanel.Visible = false
 		petPanel.Visible = false
 		eggPanel.Visible = false
@@ -1391,12 +1454,14 @@ return function(env)
 	eggPanel:GetPropertyChangedSignal("Visible"):Connect(refreshPanels)
 	eggButton.Activated:Connect(function()
 		eggPanel.Visible = not eggPanel.Visible
+		swordPanel.Visible = false
 		bagPanel.Visible = false
 		petPanel.Visible = false
 		shopPanel.Visible = false
 	end)
 	pawButton.Activated:Connect(function()
 		petPanel.Visible = not petPanel.Visible
+		swordPanel.Visible = false
 		bagPanel.Visible = false
 		eggPanel.Visible = false
 		shopPanel.Visible = false

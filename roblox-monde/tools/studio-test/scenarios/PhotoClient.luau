@@ -12,6 +12,15 @@ return function(log)
 			camera.CameraType = Enum.CameraType.Custom
 		end
 	end)
+	workspace:GetAttributeChangedSignal("OpenPanel"):Connect(function()
+		local gui = game:GetService("Players").LocalPlayer.PlayerGui:FindFirstChild("Hud")
+		for _, name in { "SwordPanel", "BagPanel", "PetPanel", "EggPanel", "ShopPanel" } do
+			local panel = gui and gui:FindFirstChild(name)
+			if panel then
+				panel.Visible = name == workspace:GetAttribute("OpenPanel")
+			end
+		end
+	end)
 	workspace:GetAttributeChangedSignal("Diag"):Connect(function()
 		for _, sword in workspace:GetChildren() do
 			if sword.Name == "Sword" and sword:IsA("Model") then
