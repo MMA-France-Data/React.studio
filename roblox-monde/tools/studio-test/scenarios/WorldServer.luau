@@ -240,6 +240,9 @@ return function(log)
 	check(z > zones[2].zMin and z < zones[2].zMin + 30, "le bouton ZONE pose à l'entrée de la zone ouverte", math.floor(z))
 	root = player.Character.HumanoidRootPart.Position
 	shot("voyage", root + Vector3.new(0, 7, -16), root + Vector3.new(0, 4, 20))
+	-- Le stand des epees, vu depuis l allee puis d en haut.
+	shot("stand", Vector3.new(6, 9, 2), Vector3.new(-13, 6, 14))
+	shot("stand_haut", Vector3.new(4, 30, -8), Vector3.new(-13, 4, 14))
 	-- Les six epees, une par une, dans la main (de profil, au repos).
 	D("Travel", "base")
 	task.wait(1)

@@ -209,6 +209,12 @@
       },
       "SwordMeshes": {
         "$path": "assets/swords-roblox/SwordMeshes.rbxm"
+      },
+      "StandEpee": {
+        "$className": "Folder",
+        "Contenu": {
+          "$path": "assets/swords-roblox/Stand.rbxm"
+        }
       }
     },
     "ServerScriptService": {

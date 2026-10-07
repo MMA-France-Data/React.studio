@@ -30,7 +30,7 @@ World.ROOM_HALF_Z = ROOM_LEN / 2
 
 local WHITE = Color3.fromRGB(245, 245, 250)
 -- Où va le vrai stand des épées, et de combien de degrés il est tourné (pour que sa devanture regarde l'allée).
-local STAND_AT, STAND_TURN = Vector3.new(-13, 0, 14), 90
+local STAND_AT, STAND_TURN = Vector3.new(-13, 0, 14), -90
 
 -- Mur le long de l'axe X, à la profondeur z, avec le trou d'une porte au milieu.
 local function wallWithDoor(parent: Instance, z: number, halfX: number, height: number, color: Color3, material: Enum.Material?)
@@ -261,6 +261,24 @@ local function buildGym(parent: Instance)
 	-- s'il est là, il remplace le stand en blocs. Le comptoir reste, invisible, pour porter le bouton de la forge.
 	local meshes = ReplicatedStorage:FindFirstChild("SwordMeshes")
 	local template = meshes and meshes:FindFirstChild("Stand")
+	-- (Ou enregistre a part : ReplicatedStorage > StandEpee, quel que soit le nom du dossier autour.)
+	local apart = ReplicatedStorage:FindFirstChild("StandEpee")
+	if not template and apart then
+		for _, item in apart:GetDescendants() do
+			if item:IsA("Model") and (item.Name == "Stand" or item.Name == "Stand_Epees") then
+				template = item
+				break
+			end
+		end
+		if not template then
+			-- Une piece seule : on l enveloppe dans un modele.
+			local part = apart:FindFirstChildWhichIsA("MeshPart", true)
+			if part then
+				template = Instance.new("Model")
+				part:Clone().Parent = template
+			end
+		end
+	end
 	if template and template:IsA("Model") then
 		for _, item in gym:GetChildren() do
 			local name = item.Name
@@ -278,6 +296,9 @@ local function buildGym(parent: Instance)
 				part.CanQuery = false
 			end
 		end
+		-- Toujours 13 studs de haut, quelle que soit la taille a laquelle il a ete enregistre.
+		local _, measured = model:GetBoundingBox()
+		model:ScaleTo(model:GetScale() * 13 / measured.Y)
 		-- Posé sur le sol, sa devanture tournée vers l'allée.
 		model:PivotTo(CFrame.new(STAND_AT) * CFrame.Angles(0, math.rad(STAND_TURN), 0))
 		local box, size = model:GetBoundingBox()
