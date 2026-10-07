@@ -42,7 +42,9 @@ Config.MONSTER = {
 	-- Chance de lâcher SON œuf (un canard lâche un œuf de canard, un cochon un œuf de cochon...) : forte pour le
 	-- canard, de plus en plus faible ensuite. La chance d'œuf rare du joueur la multiplie.
 	-- (Le boss revient en 3 secondes : 2 % d'œuf suffisent, son familier est le plus fort du monde.)
-	egg = { 0.20, 0.05, 0.03, 0.02, 0.012, 0.02 },
+	-- (Son choix du 07/10 au soir : 5 % pour TOUS les animaux sauf le canard, dans tous les mondes. La duree des
+	-- mondes est tenue par l XP des familiers et le prix des epees, plus par la rarete des oeufs.)
+	egg = { 0.20, 0.05, 0.05, 0.05, 0.05, 0.05 },
 	scale = { 1.5, 1.7, 1.9, 2.2, 2.5, 4.5 }, -- grosseur du modèle (un familier fait 1)
 	speed = { 11, 12, 13, 14, 15, 13 },
 }
@@ -57,10 +59,10 @@ Config.XP_ZONE = 10
 -- Chaque monde dure plus longtemps que le precedent : les oeufs y sont LONG_EGG fois plus rares (et l XP des
 -- familiers plus longue : Pets.LONG_XP). Simulation : monde 1 environ 3,5 heures, monde 2 environ 8 heures, monde 3 environ 10 heures.
 -- Par monde : { monde 1, monde 2, monde 3 } ; ensuite le dernier chiffre, x 1,2 a chaque monde.
-Config.LONG_EGG = { 1, 1.5, 1.8 }
+Config.LONG_EGG = { 1, 1, 1 }
 function Config.longEgg(zone: number): number
 	local last = #Config.LONG_EGG
-	return if zone <= last then Config.LONG_EGG[math.max(1, zone)] else Config.LONG_EGG[last] * 1.2 ^ (zone - last)
+	return if zone <= last then Config.LONG_EGG[math.max(1, zone)] else Config.LONG_EGG[last]
 end
 -- Les epees d un monde au-dela de la table coutent 100 x LONG_PRICE fois celles du monde d avant.
 Config.LONG_PRICE = 1.25
@@ -157,10 +159,10 @@ Config.SWORDS = {
 	-- (La deuxième épée sert de TUTORIEL, sa demande : 30 pièces, soit une dizaine de canards ; elle triple les
 	-- dégâts. La vraie grosse épée du monde 1 est la troisième.)
 	{ damage = 8, price = 30 }, -- monde 1, après deux minutes
-	{ damage = 250, price = 260000 }, -- monde 1, juste avant le boss (vers 3 h 20)
-	{ damage = 1160, price = 1500000 }, -- monde 2, après 2 heures
-	{ damage = 5400, price = 9000000 }, -- monde 2, après 4 h 30
-	{ damage = 25000, price = 40000000 }, -- monde 2, juste avant le boss (après 7 h 30)
+	{ damage = 250, price = 400000 }, -- monde 1, juste avant le boss (vers 3 h 20)
+	{ damage = 1160, price = 2200000 }, -- monde 2, après 2 heures
+	{ damage = 5400, price = 13000000 }, -- monde 2, après 4 h 30
+	{ damage = 25000, price = 60000000 }, -- monde 2, juste avant le boss (après 7 h 30)
 }
 Config.SWORD_PER_ZONE = 3
 -- (Au-delà de la sixième : les trois mêmes marches, 100 fois plus haut à chaque monde.)
