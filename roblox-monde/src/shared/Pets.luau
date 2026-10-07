@@ -104,6 +104,7 @@ Pets.VALUE_PER_COIN = 1000
 -- (Son avis : ces temps sont bien ; et l'œuf d'un BOSS couve 1 heure, dans tous les mondes : HATCH_BOSS.)
 Pets.HATCH = { 30, 60, 150, 300, 600, 1200 }
 Pets.HATCH_BOSS = 3600
+Pets.HATCH_BOSS_LATE = 5400
 
 -- L'ENCLOS : son niveau donne le nombre de places (niveau 1 = SPOTS_FREE places, +1 par niveau). Le prix de chaque
 -- place est CALCULÉ par tools/balance/machines.py, comme ceux des machines, sur ce que rapportent les familiers :
@@ -325,8 +326,9 @@ Pets.FEED = 0.75
 -- 6 min. L oeuf d un boss : 1 heure, partout.)
 Pets.HATCH_LATE = { 720, 1440, 2880 }
 function Pets.hatchSeconds(room: number, rarity: number): number
+	-- (L oeuf d un boss : 1 heure pour le cheval du monde 1, 1 h 30 pour tous les suivants.)
 	if rarity >= 6 then
-		return Pets.HATCH_BOSS
+		return if room <= 1 then Pets.HATCH_BOSS else Pets.HATCH_BOSS_LATE
 	end
 	if room <= 1 then
 		return math.floor(Pets.HATCH[math.clamp(rarity, 1, 5)] * 0.6 + 0.5)
