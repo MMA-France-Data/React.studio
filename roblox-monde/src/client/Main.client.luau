@@ -456,6 +456,8 @@ ReplicatedStorage:WaitForChild("Notify").OnClientEvent:Connect(function(key: str
 		showToast(tr("petLevel", tr(a), b), Color3.fromRGB(120, 200, 255))
 	elseif key == "fed" then
 		showToast(tr("fed", tr(a), tr(b), compact(c), d), GOLD)
+	elseif key == "inCombat" then
+		showToast(tr("inCombat"), RED)
 	elseif key == "eggOut" then
 		showToast(tr("eggOut", tr(a)), GOLD)
 	elseif key == "petDown" then

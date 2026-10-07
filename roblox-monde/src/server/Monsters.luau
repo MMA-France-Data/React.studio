@@ -405,6 +405,21 @@ function Monsters.travel(player: Player, where: any): boolean
 	return true
 end
 
+-- EN COMBAT : le joueur vise un monstre, ou un monstre en a apres lui. (Pendant ce temps, on ne change pas son
+-- equipe : sinon il remplacerait a volonte un familier a terre par un autre tout neuf.)
+function Monsters.inCombat(player: Player): boolean
+	local fight = fights[player]
+	if fight and fight.target then
+		return true
+	end
+	for _, monster in monsters do
+		if monster.target == player and not monster.dead then
+			return true
+		end
+	end
+	return false
+end
+
 -- Pour les tests : la liste des monstres { id, zone, rank, animal, hp, dead, position }, et de quoi en blesser un.
 function Monsters.list()
 	local list = {}

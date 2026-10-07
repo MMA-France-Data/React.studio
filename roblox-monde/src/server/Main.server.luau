@@ -20,12 +20,22 @@ local function notify(player: Player, key: string, ...)
 	notifyEvent:FireClient(player, key, ...)
 end
 
+-- PAS DE CHANGEMENT D'ÉQUIPE EN COMBAT (retour du joueur : « je peux équiper un familier pendant le combat, faudrait
+-- désactiver ») : équiper, déséquiper, « les meilleurs » et nourrir sont refusés tant que le combat dure.
+local function calm(player: Player): boolean
+	if Monsters.inCombat(player) then
+		notify(player, "inCombat")
+		return false
+	end
+	return true
+end
+
 -- Le bouton de la liste des familiers : ajoute ce familier à l'équipe de combat, ou l'en retire.
 local equipEvent = Instance.new("RemoteEvent")
 equipEvent.Name = "Equip"
 equipEvent.Parent = ReplicatedStorage
 equipEvent.OnServerEvent:Connect(function(player, spot)
-	if typeof(spot) == "number" then
+	if typeof(spot) == "number" and calm(player) then
 		Eggs.follow(player, spot)
 		Monsters.publishTeam(player)
 	end
@@ -37,6 +47,9 @@ for name, action in { EquipBest = Eggs.equipBest, UnequipAll = Eggs.unequipAll }
 	event.Name = name
 	event.Parent = ReplicatedStorage
 	event.OnServerEvent:Connect(function(player)
+		if not calm(player) then
+			return
+		end
 		action(player)
 		Monsters.publishTeam(player)
 	end)
@@ -47,7 +60,7 @@ local feedEvent = Instance.new("RemoteEvent")
 feedEvent.Name = "FeedPet"
 feedEvent.Parent = ReplicatedStorage
 feedEvent.OnServerEvent:Connect(function(player, eater, food)
-	if typeof(eater) == "number" and typeof(food) == "number" then
+	if typeof(eater) == "number" and typeof(food) == "number" and calm(player) then
 		Eggs.feed(player, eater, food)
 		Monsters.publishTeam(player)
 	end
