@@ -306,14 +306,24 @@ function Pets.size(name: string): number
 end
 
 -- Pièces par seconde d'un familier de cette valeur.
+-- (Jeu « Monde » : le revenu ne vient plus de la valeur brute. Avec elle, une chèvre rapportait 90 pièces par
+-- seconde, bien plus que les combats : l'argent de l'enclos payait toutes les épées et ne servait plus de verrou.)
+-- INCOME : pièces par seconde d'un familier moyen de chaque rang, au monde 1 (une chèvre : 1,5 ; le familier du
+-- boss : 4). Un petit rapporte 30 % de moins, un gros 30 % de plus ; x 100 à chaque monde, comme les monstres.
+-- Cinq familiers du rang du camp où l'on combat rapportent à peu près ce que rapportent les combats.
+Pets.INCOME = { 0.05, 0.1, 0.25, 0.6, 1.5, 4 }
 function Pets.incomeOf(name: string, value: number): number
 	local def = Pets.DEFS[name]
-	return if def then value / Pets.VALUE_PER_COIN * def.income else 0
+	if not def or not def.rank then
+		return if def then value / Pets.VALUE_PER_COIN * def.income else 0
+	end
+	local factor = Pets.roomFactor(def.room or 1)
+	return Pets.INCOME[def.rank] * (0.7 + 0.6 * Pets.along(def.rank, value / factor)) * factor
 end
 
--- Pièces reçues en vendant un familier (ce qu'il rapporte en 20 secondes : un canard, 4 à 10 pièces).
+-- Pièces reçues en vendant un familier : ce qu'il rapporte en une minute (un canard : 2 à 4 pièces).
 function Pets.sellPrice(name: string, value: number): number
-	return math.max(1, math.floor(Pets.incomeOf(name, value) * 20 + 0.5))
+	return math.max(1, math.floor(Pets.incomeOf(name, value) * 60 + 0.5))
 end
 
 -- Prix de la place suivante quand on en a `places` (nil au maximum).

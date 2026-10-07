@@ -117,17 +117,17 @@ end
 -- verrou (sa règle : « je veux pas que ça soit verrouillé mais que l'argent soit un verrou justement »).
 -- Trois épées par monde (ses six modèles : 1 à 3 pour le monde 1, 4 à 6 pour le monde 2).
 --   damage : dégâts d'un coup (deux coups par seconde environ). Calculé sur la progression simulée
---   (tools/balance/monde1.py) : à l'achat, le joueur tape à peu près comme ses trois familiers réunis ; puis ses
+--   (tools/balance/mondes.py) : à l'achat, le joueur tape à peu près comme ses trois familiers réunis ; puis ses
 --   familiers progressent et chacun finit par le dépasser, jusqu'à l'épée suivante.
 --   price : le prix pour l'obtenir. Les pièces valent 100 fois plus dans le monde suivant (COIN_ZONE) : l'épée 4
 --   demanderait des heures de farm en plus au monde 1, et une demi-heure au monde 2.
 Config.SWORDS = {
 	{ damage = 2.5, price = 0 }, -- monde 1 : l'épée de départ (comme un canard)
-	{ damage = 25, price = 8000 }, -- monde 1, vers 45 minutes
-	{ damage = 250, price = 120000 }, -- monde 1, juste avant le boss
-	{ damage = 1160, price = 500000 }, -- monde 2, au début
-	{ damage = 5400, price = 3000000 }, -- monde 2, au milieu
-	{ damage = 25000, price = 12000000 }, -- monde 2, juste avant le boss
+	{ damage = 25, price = 4000 }, -- monde 1, vers 1 heure
+	{ damage = 250, price = 100000 }, -- monde 1, juste avant le boss (vers 3 h 20)
+	{ damage = 1160, price = 400000 }, -- monde 2, après 1 heure
+	{ damage = 5400, price = 2000000 }, -- monde 2, après 2 heures
+	{ damage = 25000, price = 8000000 }, -- monde 2, juste avant le boss (après 3 h 30)
 }
 Config.SWORD_PER_ZONE = 3
 -- (Au-delà de la sixième : les trois mêmes marches, 100 fois plus haut à chaque monde.)
