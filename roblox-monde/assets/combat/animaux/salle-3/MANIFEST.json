@@ -1,0 +1,161 @@
+{
+  "room": 3,
+  "pets": [
+    {
+      "id": "Duck",
+      "label": "Canard",
+      "parts": 49,
+      "motors": 7,
+      "ultraRare": false,
+      "sourceSha256": "773e9b7bd4ddb42a4652949ee30583b40137385b595e7f307f1dd7cd045a10e9",
+      "sha256": "e79bd6da896a466aae7a11e20b7c71dcf2463e82c3c5d49db6a6c06e4748c538",
+      "jaw": null,
+      "animations": {
+        "Idle": {
+          "duration": 2.4,
+          "loop": true
+        },
+        "Walk": {
+          "duration": 1.25,
+          "loop": true
+        },
+        "Attack": {
+          "duration": 0.98,
+          "loop": false,
+          "impactTime": 0.45080000000000003,
+          "label": "Coup de bec"
+        }
+      }
+    },
+    {
+      "id": "Rooster",
+      "label": "Coq",
+      "parts": 57,
+      "motors": 7,
+      "ultraRare": false,
+      "sourceSha256": "4277dee371f7c8d5444cf667ebe1daec71f3ff85f7367dcb33cbe22fac1db99b",
+      "sha256": "40d3b6e59e83fb665695e2a68503fd8c7e78ef01c8b3fa03b35c6ffd4d01f68c",
+      "jaw": null,
+      "animations": {
+        "Idle": {
+          "duration": 2.4,
+          "loop": true
+        },
+        "Walk": {
+          "duration": 1.2,
+          "loop": true
+        },
+        "Attack": {
+          "duration": 1.06,
+          "loop": false,
+          "impactTime": 0.48760000000000003,
+          "label": "Coup de bec bondissant"
+        }
+      }
+    },
+    {
+      "id": "Pig",
+      "label": "Cochon",
+      "parts": 61,
+      "motors": 10,
+      "ultraRare": false,
+      "sourceSha256": "65ed224bb7361cd079c5a485b5fb9add5ef9e663921450503589722215b8b885",
+      "sha256": "7b2c6d3563f5defadb95f8e759c8403bb03f6d28e4e88a9201c6a3899a99bf39",
+      "jaw": null,
+      "animations": {
+        "Idle": {
+          "duration": 2.4,
+          "loop": true
+        },
+        "Walk": {
+          "duration": 1.65,
+          "loop": true
+        },
+        "Attack": {
+          "duration": 1.25,
+          "loop": false,
+          "impactTime": 0.5750000000000001,
+          "label": "Charge du groin"
+        }
+      }
+    },
+    {
+      "id": "Sheep",
+      "label": "Mouton",
+      "parts": 67,
+      "motors": 9,
+      "ultraRare": false,
+      "sourceSha256": "2eb49990d53f4c458bcab111b482b7e0e32db8fe768f6104f7058f8385ebc6f4",
+      "sha256": "1da694c020f2a3b3808c6c9ea75174158cd671c2747c7d7774745d3ffeb9c740",
+      "jaw": null,
+      "animations": {
+        "Idle": {
+          "duration": 2.4,
+          "loop": true
+        },
+        "Walk": {
+          "duration": 1.6,
+          "loop": true
+        },
+        "Attack": {
+          "duration": 1.28,
+          "loop": false,
+          "impactTime": 0.5888,
+          "label": "Coup de tête"
+        }
+      }
+    },
+    {
+      "id": "Goat",
+      "label": "Chèvre",
+      "parts": 50,
+      "motors": 9,
+      "ultraRare": false,
+      "sourceSha256": "a248a91d9ca05f74e27c25bd115cdc00f316be15da24e4295b958cc8182ec0cb",
+      "sha256": "4cd89ea7c359dcf35f6ce071a4cf7c0848c1efc482176ff5c00c543f82897cd5",
+      "jaw": null,
+      "animations": {
+        "Idle": {
+          "duration": 2.4,
+          "loop": true
+        },
+        "Walk": {
+          "duration": 1.35,
+          "loop": true
+        },
+        "Attack": {
+          "duration": 1.16,
+          "loop": false,
+          "impactTime": 0.5336,
+          "label": "Charge des cornes"
+        }
+      }
+    },
+    {
+      "id": "Horse",
+      "label": "Cheval",
+      "parts": 76,
+      "motors": 15,
+      "ultraRare": true,
+      "sourceSha256": "e442e1f703b95745826acc832039290b7388b81975b913e26a85b7ec57fbbd63",
+      "sha256": "1f92281392dd4386e7b6d2ee0fbdc55801e4038565e4f1bf0df6356b5e5ad780",
+      "jaw": null,
+      "animations": {
+        "Idle": {
+          "duration": 2.4,
+          "loop": true
+        },
+        "Walk": {
+          "duration": 1.4,
+          "loop": true
+        },
+        "Attack": {
+          "duration": 1.85,
+          "loop": false,
+          "impactTime": 1.221,
+          "label": "Cabré puis frappe des sabots avant"
+        }
+      }
+    }
+  ]
+}

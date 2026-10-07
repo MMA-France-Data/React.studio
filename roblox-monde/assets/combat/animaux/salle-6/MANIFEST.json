@@ -1,0 +1,179 @@
+{
+  "room": 6,
+  "pets": [
+    {
+      "id": "Porcupine",
+      "label": "Porc-épic",
+      "parts": 110,
+      "motors": 9,
+      "ultraRare": false,
+      "sourceSha256": "72ea864446d0e5316a88e0ebdff12984943a45940032d803fa318054897f87a1",
+      "sha256": "4e45ee92953109b483b8839a4ff4db353f6d2a24d852d4bd2e02412f81af8b94",
+      "jaw": null,
+      "animations": {
+        "Idle": {
+          "duration": 3.2,
+          "loop": true
+        },
+        "Walk": {
+          "duration": 1.9,
+          "loop": true
+        },
+        "Attack": {
+          "duration": 1.4,
+          "loop": false,
+          "impactTime": 0.644,
+          "label": "Poussée des piquants"
+        }
+      }
+    },
+    {
+      "id": "Mongoose",
+      "label": "Mangouste",
+      "parts": 49,
+      "motors": 12,
+      "ultraRare": false,
+      "sourceSha256": "4436a7c2507f12d5c03c6c92b3edaaa3c9379fe731b1e2fb62bd2ba3883ae5a0",
+      "sha256": "d879eac1206d29e4fdc612f7e05653e26c0fc0d84201a20d9db15f02d6c44d51",
+      "jaw": "muzzle-split",
+      "animations": {
+        "Idle": {
+          "duration": 3.2,
+          "loop": true
+        },
+        "Walk": {
+          "duration": 1.25,
+          "loop": true
+        },
+        "Attack": {
+          "duration": 1.06,
+          "loop": false,
+          "impactTime": 0.53,
+          "label": "Morsure rapide"
+        },
+        "Bite": {
+          "duration": 1.06,
+          "loop": false,
+          "impactTime": 0.53,
+          "label": "Morsure rapide"
+        }
+      }
+    },
+    {
+      "id": "Otter",
+      "label": "Loutre",
+      "parts": 77,
+      "motors": 11,
+      "ultraRare": false,
+      "sourceSha256": "1ac7fa98af84fb0a60c558489365f48b422b37e68f0657c27449a26d2dd39438",
+      "sha256": "cc0c05dea77bd43bc7b24b11b7f40212d449749eadcaf618fb3aa82133fd80e5",
+      "jaw": "muzzle-split",
+      "animations": {
+        "Idle": {
+          "duration": 3.2,
+          "loop": true
+        },
+        "Walk": {
+          "duration": 1.6,
+          "loop": true
+        },
+        "Attack": {
+          "duration": 1.06,
+          "loop": false,
+          "impactTime": 0.53,
+          "label": "Morsure rapide"
+        },
+        "Bite": {
+          "duration": 1.06,
+          "loop": false,
+          "impactTime": 0.53,
+          "label": "Morsure rapide"
+        }
+      }
+    },
+    {
+      "id": "Pelican",
+      "label": "Pélican",
+      "parts": 54,
+      "motors": 9,
+      "ultraRare": false,
+      "sourceSha256": "5ad18fa898b056e80fe670fbf9b2799ab6bc6164b9821e37d2c1438aeaec4c3f",
+      "sha256": "e3223d105f32e97959ddafc619abe684c05b4faaced3c20eba0715a67e05103a",
+      "jaw": null,
+      "animations": {
+        "Idle": {
+          "duration": 3.2,
+          "loop": true
+        },
+        "Walk": {
+          "duration": 1.9,
+          "loop": true
+        },
+        "Attack": {
+          "duration": 1.4,
+          "loop": false,
+          "impactTime": 0.644,
+          "label": "Claquement du grand bec"
+        }
+      }
+    },
+    {
+      "id": "Flamingo",
+      "label": "Flamant rose",
+      "parts": 49,
+      "motors": 12,
+      "ultraRare": false,
+      "sourceSha256": "45f1dc0fb6c72ec16ff329626c221f1ef2933ce3ad375e86d591f97033d98864",
+      "sha256": "2522e6155393e5fe9f3ef5c72525f9ee8b5def5c782175c5cc9f363c796ef5e7",
+      "jaw": null,
+      "animations": {
+        "Idle": {
+          "duration": 3.2,
+          "loop": true
+        },
+        "Walk": {
+          "duration": 2.1,
+          "loop": true
+        },
+        "Attack": {
+          "duration": 1.25,
+          "loop": false,
+          "impactTime": 0.5750000000000001,
+          "label": "Frappe du bec recourbé"
+        }
+      }
+    },
+    {
+      "id": "MonitorLizard",
+      "label": "Varan",
+      "parts": 133,
+      "motors": 18,
+      "ultraRare": true,
+      "sourceSha256": "53af64732fd4dabb3a0ca4b8758102cbe31fc3059eeb2ca4a353806eacc0c570",
+      "sha256": "4c2a577c663b634a2fe0be1b58027afcc9eca350d91b932d13ed0ba3a388ea2e",
+      "jaw": "existing",
+      "animations": {
+        "Idle": {
+          "duration": 3.2,
+          "loop": true
+        },
+        "Walk": {
+          "duration": 2.2,
+          "loop": true
+        },
+        "Attack": {
+          "duration": 1.4,
+          "loop": false,
+          "impactTime": 0.7,
+          "label": "Morsure lourde"
+        },
+        "Bite": {
+          "duration": 1.4,
+          "loop": false,
+          "impactTime": 0.7,
+          "label": "Morsure lourde"
+        }
+      }
+    }
+  ]
+}

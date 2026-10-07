@@ -1,0 +1,93 @@
+{
+  "created": "2026-10-07",
+  "project": "roblox-monde",
+  "source": "roblox-monde/src/client/Poses.luau",
+  "sourceSha256": "10328f1985b0ff2c9e0ccdd67ecb118055fbb69a38f15b288b2a90a4721c4bd0",
+  "mainSource": "roblox-monde/src/client/Main.client.luau",
+  "mainSourceSha256": "139c767b5a0abd9d785666375142535c54bb494821f18eb9fcb0cfce39e1db17",
+  "gameFilesModified": false,
+  "rig": "R15: Motor6D or AnimationConstraint",
+  "damageAndPricesUnchanged": true,
+  "attackCooldownUnchanged": 0.42,
+  "visualClipDuration": 0.38,
+  "swords": [
+    {
+      "id": "Iron",
+      "label": "Fer",
+      "tier": 1,
+      "from": 1,
+      "to": 1,
+      "parts": 14
+    },
+    {
+      "id": "Steel",
+      "label": "Acier",
+      "tier": 2,
+      "from": 2,
+      "to": 2,
+      "parts": 18
+    },
+    {
+      "id": "Frost",
+      "label": "Glace",
+      "tier": 3,
+      "from": 3,
+      "to": 3,
+      "parts": 21
+    },
+    {
+      "id": "Flame",
+      "label": "Feu",
+      "tier": 4,
+      "from": 4,
+      "to": 4,
+      "parts": 30
+    },
+    {
+      "id": "Storm",
+      "label": "Foudre",
+      "tier": 5,
+      "from": 5,
+      "to": 5,
+      "parts": 32
+    },
+    {
+      "id": "Prismatic",
+      "label": "Arc-en-ciel",
+      "tier": 6,
+      "from": 6,
+      "to": null,
+      "parts": 36
+    }
+  ],
+  "clips": [
+    "SlashRight",
+    "SlashLeft"
+  ],
+  "studioRuntimeTest": false,
+  "effects": {
+    "whiteCrescent": true,
+    "elementalEdge": true,
+    "confirmedHitRing": true,
+    "sparks": true,
+    "noTexturesToUpload": true,
+    "mobileCaps": {
+      "arcAnchors": 8,
+      "sparks": 48
+    }
+  },
+  "swordMapping": "Appearance only: 1=iron, 2=steel, 3=ice, 4=fire, 5=lightning, all levels >=6=rainbow. Gameplay levels above 7 remain unchanged. Never write the visual tier to Sword.",
+  "sourceHead": "df10219 (plus existing local Poses/Config changes, not modified by this pack)",
+  "animalsSource": "roblox-monde/src/client/Animals.luau",
+  "animalsSourceSha256": "f865ef5a3fa505d11f730176d6f14142025867d0d09e8b0134198a4662351d2b",
+  "candidateAnimalsLinked": 30,
+  "githubPublishedAtCreation": false,
+  "publication": {
+    "liveRobloxDeployment": false,
+    "baseCommit": "456314d",
+    "targetBranch": "claude/exciting-gauss-ggwcwm",
+    "actualGameSourceReplaced": false,
+    "repository": "MMA-France-Data/React.studio",
+    "deliveryKind": "asset-handoff-only"
+  }
+}

@@ -1,0 +1,179 @@
+{
+  "room": 1,
+  "pets": [
+    {
+      "id": "Rabbit",
+      "label": "Lapin",
+      "parts": 69,
+      "motors": 9,
+      "ultraRare": false,
+      "sourceSha256": "b3ce7208a28aa35ea0e316a3d24478c9d2f07a6f0007f31922195fe667c6237d",
+      "sha256": "01f634a3ec446b8e0ae0ee04b7e5546f35baeb2f3d457acb9927c63a42ae06f2",
+      "jaw": null,
+      "animations": {
+        "Idle": {
+          "duration": 2.4,
+          "loop": true
+        },
+        "Walk": {
+          "duration": 1.15,
+          "loop": true
+        },
+        "Attack": {
+          "duration": 1.12,
+          "loop": false,
+          "impactTime": 0.48160000000000003,
+          "label": "Bond et coup de pattes"
+        }
+      }
+    },
+    {
+      "id": "Turtle",
+      "label": "Tortue",
+      "parts": 75,
+      "motors": 7,
+      "ultraRare": false,
+      "sourceSha256": "731142456f60b194c32f4ebf1c803151fb04e167e195ff2835bec76e5b66964a",
+      "sha256": "cd4581e1a65865caffa6015d4612c148d45a3ad0b45432db054f56ee76e4c58e",
+      "jaw": null,
+      "animations": {
+        "Idle": {
+          "duration": 2.2,
+          "loop": true
+        },
+        "Walk": {
+          "duration": 2.2,
+          "loop": true
+        },
+        "Attack": {
+          "duration": 1.38,
+          "loop": false,
+          "impactTime": 0.6348,
+          "label": "Coup de carapace"
+        }
+      }
+    },
+    {
+      "id": "Cat",
+      "label": "Chat",
+      "parts": 89,
+      "motors": 11,
+      "ultraRare": false,
+      "sourceSha256": "9d515f3ad8b3ca9cf9da98d2b6f5ecc376f114cd9d6921171dd1cc3b16059a12",
+      "sha256": "48c27b5b0242725f60e81d5e15f6d83298c1e61a63febc6936e85e741239ab29",
+      "jaw": "muzzle-split",
+      "animations": {
+        "Idle": {
+          "duration": 2.4,
+          "loop": true
+        },
+        "Walk": {
+          "duration": 1.15,
+          "loop": true
+        },
+        "Attack": {
+          "duration": 1,
+          "loop": false,
+          "impactTime": 0.44,
+          "label": "Griffade de la patte droite"
+        },
+        "Bite": {
+          "duration": 1.06,
+          "loop": false,
+          "impactTime": 0.53,
+          "label": "Morsure rapide"
+        }
+      }
+    },
+    {
+      "id": "Dog",
+      "label": "Chien",
+      "parts": 59,
+      "motors": 10,
+      "ultraRare": false,
+      "sourceSha256": "631657d94a86f57494ddcc2c6228a9d6f93ac5275d054ea7be7a609e84624159",
+      "sha256": "cd1a9eef0c4894cb4c6170b5f33a6a7aeea999f624a676859fd489d2359da45b",
+      "jaw": "muzzle-split",
+      "animations": {
+        "Idle": {
+          "duration": 2.4,
+          "loop": true
+        },
+        "Walk": {
+          "duration": 1.15,
+          "loop": true
+        },
+        "Attack": {
+          "duration": 1.15,
+          "loop": false,
+          "impactTime": 0.506,
+          "label": "Charge bondissante"
+        },
+        "Bite": {
+          "duration": 1.06,
+          "loop": false,
+          "impactTime": 0.53,
+          "label": "Morsure rapide"
+        }
+      }
+    },
+    {
+      "id": "Owl",
+      "label": "Chouette",
+      "parts": 72,
+      "motors": 9,
+      "ultraRare": false,
+      "sourceSha256": "6aba7c0a6b0349968edc5ce083d76d85b92bf28d88ef3a2571610f95fc3b53e1",
+      "sha256": "c0ba0237e8e5712e1510c4560da79d306045cf4ad40eed3e81f95cb625725039",
+      "jaw": null,
+      "animations": {
+        "Idle": {
+          "duration": 1.2,
+          "loop": true
+        },
+        "Walk": {
+          "duration": 1.2,
+          "loop": true
+        },
+        "Attack": {
+          "duration": 1.42,
+          "loop": false,
+          "impactTime": 0.6958,
+          "label": "Piqué ailes déployées"
+        }
+      }
+    },
+    {
+      "id": "Fox",
+      "label": "Renard",
+      "parts": 89,
+      "motors": 11,
+      "ultraRare": true,
+      "sourceSha256": "c1758dabe7a9eef6419c13aafbbd265d000a90a638c403f2f2c3cbfd204834a9",
+      "sha256": "4c1ee2fea011f64579391b868fd11a320bb27939c12270d8bc79df25b4b57366",
+      "jaw": "muzzle-split",
+      "animations": {
+        "Idle": {
+          "duration": 2.4,
+          "loop": true
+        },
+        "Walk": {
+          "duration": 1.15,
+          "loop": true
+        },
+        "Attack": {
+          "duration": 1.1,
+          "loop": false,
+          "impactTime": 0.47300000000000003,
+          "label": "Bond rapide"
+        },
+        "Bite": {
+          "duration": 1.06,
+          "loop": false,
+          "impactTime": 0.53,
+          "label": "Morsure rapide"
+        }
+      }
+    }
+  ]
+}

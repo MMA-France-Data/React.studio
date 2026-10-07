@@ -1,0 +1,1208 @@
+{
+  "date": "2026-10-07",
+  "baseCommit": "456314d",
+  "animalModels": 36,
+  "animalAttacks": 36,
+  "animalBites": 17,
+  "playerClips": 2,
+  "swordForms": 6,
+  "nativeXmlAssets": 45,
+  "luauSyntaxFiles": 38,
+  "timingAndAlternationAssertions": 388,
+  "portableGalleryBuilds": 7,
+  "studioRuntimeTest": false,
+  "gameSourceReplaced": false,
+  "liveRobloxDeployment": false,
+  "files": [
+    {
+      "path": ".gitattributes",
+      "bytes": 88,
+      "sha256": "91af4abbe683d935389b087bba14f102ba6d1dbd76f579a3b8672e6321b210dc"
+    },
+    {
+      "path": "animaux/LIRE-MOI.md",
+      "bytes": 2336,
+      "sha256": "ee0149da89fd802c3e00b28ce503ba0c806a294046eb5280260e67ebff56d417"
+    },
+    {
+      "path": "animaux/MANIFEST.json",
+      "bytes": 32603,
+      "sha256": "0c80b7464035e885042174393adbe46ecb6dba0d421f3f4418f077b9cf2719d3"
+    },
+    {
+      "path": "animaux/salle-1/ActionAnimator.luau",
+      "bytes": 1466,
+      "sha256": "2120e6d2b3ec9ea686b294c2361f7f472b9babba7e8cc1a72abe083cf33b10f3"
+    },
+    {
+      "path": "animaux/salle-1/Apercu-combat.gif",
+      "bytes": 1428878,
+      "sha256": "6da50344b145561577edff53d6742f1a8598dfe58c4cf4f679f9b91f424463e8"
+    },
+    {
+      "path": "animaux/salle-1/Apercu-combat.png",
+      "bytes": 58199,
+      "sha256": "ebf59376a92b556f8a3bffbe06c81753d6499664bfc77fe9bc0cefa284150308"
+    },
+    {
+      "path": "animaux/salle-1/AttackTimeline.luau",
+      "bytes": 1344,
+      "sha256": "76dafa672c57284d4275ec2fcf7e573a3dafe06a89f093814cf30a56efd6f751"
+    },
+    {
+      "path": "animaux/salle-1/combat-gallery.project.json",
+      "bytes": 1265,
+      "sha256": "201742fe0127931887dd7e75014c874a8c2e1251f0a52d22e851e6de866b0591"
+    },
+    {
+      "path": "animaux/salle-1/CombatAnimator.luau",
+      "bytes": 4272,
+      "sha256": "205a1223398dacdf4d685a34f325db6704ece98596ba950f1ee7d29475f8f911"
+    },
+    {
+      "path": "animaux/salle-1/CombatGallery.client.luau",
+      "bytes": 4627,
+      "sha256": "3b444ac30fb7522b08870900bac9a1bed067a04684674ac7849a33c3d50e878f"
+    },
+    {
+      "path": "animaux/salle-1/Galerie-combat-salle-1.rbxl",
+      "bytes": 89125,
+      "sha256": "21e4f58dd603668c2b11a21547bfe4648e81ddad81de34643c979ed957ff929f"
+    },
+    {
+      "path": "animaux/salle-1/MANIFEST.json",
+      "bytes": 4487,
+      "sha256": "4cb4f67ac527f7cd1c03185e971914b30ec316535e5bcb3b6aabb96505ccea78"
+    },
+    {
+      "path": "animaux/salle-1/models/Cat.rbxmx",
+      "bytes": 739690,
+      "sha256": "48c27b5b0242725f60e81d5e15f6d83298c1e61a63febc6936e85e741239ab29"
+    },
+    {
+      "path": "animaux/salle-1/models/Dog.rbxmx",
+      "bytes": 664016,
+      "sha256": "cd1a9eef0c4894cb4c6170b5f33a6a7aeea999f624a676859fd489d2359da45b"
+    },
+    {
+      "path": "animaux/salle-1/models/Fox.rbxmx",
+      "bytes": 769635,
+      "sha256": "4c1ee2fea011f64579391b868fd11a320bb27939c12270d8bc79df25b4b57366"
+    },
+    {
+      "path": "animaux/salle-1/models/Owl.rbxmx",
+      "bytes": 520365,
+      "sha256": "c0ba0237e8e5712e1510c4560da79d306045cf4ad40eed3e81f95cb625725039"
+    },
+    {
+      "path": "animaux/salle-1/models/Rabbit.rbxmx",
+      "bytes": 473973,
+      "sha256": "01f634a3ec446b8e0ae0ee04b7e5546f35baeb2f3d457acb9927c63a42ae06f2"
+    },
+    {
+      "path": "animaux/salle-1/models/Turtle.rbxmx",
+      "bytes": 443562,
+      "sha256": "cd4581e1a65865caffa6015d4612c148d45a3ad0b45432db054f56ee76e4c58e"
+    },
+    {
+      "path": "animaux/salle-1/previews/Cat-Attack.gif",
+      "bytes": 260484,
+      "sha256": "56166da6c091a5b0ba17304544d4feea35e4c71e91494c18557c042453b078cb"
+    },
+    {
+      "path": "animaux/salle-1/previews/Cat-Attack.png",
+      "bytes": 9764,
+      "sha256": "d1cc80d0771066a038e4ec64a711546526b734dc3562f07d45e70b7893ab4227"
+    },
+    {
+      "path": "animaux/salle-1/previews/Cat-Bite.gif",
+      "bytes": 253403,
+      "sha256": "60d734bd75f89ff096ee1444137c13d63aa29c6b68286b849c704c0f2925a6fd"
+    },
+    {
+      "path": "animaux/salle-1/previews/Cat-Bite.png",
+      "bytes": 10028,
+      "sha256": "fc4d2ade12ac6d14300c4a4b5d8a79cb0da5bf2b185fe5e172f1cae59a3e3661"
+    },
+    {
+      "path": "animaux/salle-1/previews/Dog-Attack.gif",
+      "bytes": 253340,
+      "sha256": "0f18f87a4f564618c0026f04fd91825bda95a62a5780f1b10c6d7aedaf9470cb"
+    },
+    {
+      "path": "animaux/salle-1/previews/Dog-Attack.png",
+      "bytes": 10655,
+      "sha256": "7275ea1cace24d0bb0e85c6b6e37893de4ba63b5f98e70f79f89309a2486e4a1"
+    },
+    {
+      "path": "animaux/salle-1/previews/Dog-Bite.gif",
+      "bytes": 249696,
+      "sha256": "770c250585ee84946acef51f3ef6574c5cb43380b52e8e5420a1e5bb71321c59"
+    },
+    {
+      "path": "animaux/salle-1/previews/Dog-Bite.png",
+      "bytes": 9240,
+      "sha256": "fe18dd6e3f5cdef4d3cfb60cce1a178d6e31efad72b76c44e25668d5259c454b"
+    },
+    {
+      "path": "animaux/salle-1/previews/Fox-Attack.gif",
+      "bytes": 287584,
+      "sha256": "006f8cfe0190b611a7241517d321babcbe2ca6758235960166956179efc8132d"
+    },
+    {
+      "path": "animaux/salle-1/previews/Fox-Attack.png",
+      "bytes": 12167,
+      "sha256": "278703e2824eefc59450a6c97ebdd72597feab502bd3b97cefd1aac051b2db61"
+    },
+    {
+      "path": "animaux/salle-1/previews/Fox-Bite.gif",
+      "bytes": 293138,
+      "sha256": "b9ac73131c4c45a0b10067d9c552b983c0bd5249e435205231c0444da10c010b"
+    },
+    {
+      "path": "animaux/salle-1/previews/Fox-Bite.png",
+      "bytes": 11299,
+      "sha256": "81a02773ab3d3d0dde584416fd55d846dc8fe3c66443066314b65fc372950983"
+    },
+    {
+      "path": "animaux/salle-1/previews/Owl-Attack.gif",
+      "bytes": 252642,
+      "sha256": "a4447f6cfa77d540acc22da4e6066bb47e61cee690fc668e55aac6ed9f3d03f8"
+    },
+    {
+      "path": "animaux/salle-1/previews/Owl-Attack.png",
+      "bytes": 9851,
+      "sha256": "25071e6b3e7777696e9231023b4a69078ee94361c3d392f35a4a0fcb0679b952"
+    },
+    {
+      "path": "animaux/salle-1/previews/Rabbit-Attack.gif",
+      "bytes": 242898,
+      "sha256": "dddd3f9caebe71b26cdbd03a468746770fd1675596d3d2ca996c45f4492bd231"
+    },
+    {
+      "path": "animaux/salle-1/previews/Rabbit-Attack.png",
+      "bytes": 10640,
+      "sha256": "01d259d5d12891ff5cd6deb0ceee9ec670b1e78dade2d818ec399855807169ba"
+    },
+    {
+      "path": "animaux/salle-1/previews/Turtle-Attack.gif",
+      "bytes": 213319,
+      "sha256": "51629d72bbb697a5d83b6558225adc32bce20404bf00cdc6d76eb85e2b794b21"
+    },
+    {
+      "path": "animaux/salle-1/previews/Turtle-Attack.png",
+      "bytes": 8374,
+      "sha256": "b1dc5678231a5842acff77bebb4266abfdcc3cf687e6d1c05c48b23aba7ae25a"
+    },
+    {
+      "path": "animaux/salle-2/ActionAnimator.luau",
+      "bytes": 1466,
+      "sha256": "2120e6d2b3ec9ea686b294c2361f7f472b9babba7e8cc1a72abe083cf33b10f3"
+    },
+    {
+      "path": "animaux/salle-2/Apercu-combat.gif",
+      "bytes": 1337740,
+      "sha256": "281754f26cea4c51024cc355e2a9c1c362c8db782adbedca7c1725b80303e373"
+    },
+    {
+      "path": "animaux/salle-2/Apercu-combat.png",
+      "bytes": 60259,
+      "sha256": "26ad11702b80079452bb44758f683a1fec2f6a64950fc9bf6888bf30070c036a"
+    },
+    {
+      "path": "animaux/salle-2/AttackTimeline.luau",
+      "bytes": 1344,
+      "sha256": "76dafa672c57284d4275ec2fcf7e573a3dafe06a89f093814cf30a56efd6f751"
+    },
+    {
+      "path": "animaux/salle-2/combat-gallery.project.json",
+      "bytes": 1297,
+      "sha256": "bfbcf622bca2799a08bb10a3a0b2f4c2dc2cbf9ba4d4d09977a2ca14332de9c1"
+    },
+    {
+      "path": "animaux/salle-2/CombatAnimator.luau",
+      "bytes": 4272,
+      "sha256": "205a1223398dacdf4d685a34f325db6704ece98596ba950f1ee7d29475f8f911"
+    },
+    {
+      "path": "animaux/salle-2/CombatGallery.client.luau",
+      "bytes": 4661,
+      "sha256": "1242631d818c2233e0a9d2883b611d3e744eaac36b1ad3c4eabef9d836b3fcd5"
+    },
+    {
+      "path": "animaux/salle-2/Galerie-combat-salle-2.rbxl",
+      "bytes": 91741,
+      "sha256": "973c9a9623df6287c88f059e21a6195eb8f1efff491a61ed54b3b42a1140f297"
+    },
+    {
+      "path": "animaux/salle-2/MANIFEST.json",
+      "bytes": 4690,
+      "sha256": "0eb10adb73f001b33206f497d9a06c0d70a49813485e36698a52d7a7e85a41a3"
+    },
+    {
+      "path": "animaux/salle-2/models/Badger.rbxmx",
+      "bytes": 819862,
+      "sha256": "9444fa2282d4212cbeba6d7b64cdde5e6c7ec0dd79d6b175d41bf1fd7cd35dbc"
+    },
+    {
+      "path": "animaux/salle-2/models/Beaver.rbxmx",
+      "bytes": 792349,
+      "sha256": "7ba44fdb33017791d0dfa1bb3bafd349f7319b18ad9392a628b96a69d450738a"
+    },
+    {
+      "path": "animaux/salle-2/models/Hedgehog.rbxmx",
+      "bytes": 524903,
+      "sha256": "7806f45c501dff436357960605875daff55207e5abbb0981d094395e45bd5ca5"
+    },
+    {
+      "path": "animaux/salle-2/models/Raccoon.rbxmx",
+      "bytes": 749589,
+      "sha256": "2d04e4963a6a20bf5496bed1e31a06ff0cea720a33446714d546a18bfdf62f48"
+    },
+    {
+      "path": "animaux/salle-2/models/Skunk.rbxmx",
+      "bytes": 505647,
+      "sha256": "96cdefe17df2f890b31f85f50c9ab3e467a2a6ca3920ca23891aac107c34e540"
+    },
+    {
+      "path": "animaux/salle-2/models/Squirrel.rbxmx",
+      "bytes": 681368,
+      "sha256": "f0b50734717343b140be2397700926a119c57d382a4880f9a43a4cc4ffbca3c7"
+    },
+    {
+      "path": "animaux/salle-2/previews/Badger-Attack.gif",
+      "bytes": 272192,
+      "sha256": "fd89faa0d711417bf26170e937fc9a6591ddd85062ae25ebe3daa3df48c53550"
+    },
+    {
+      "path": "animaux/salle-2/previews/Badger-Attack.png",
+      "bytes": 11917,
+      "sha256": "95c1be98a7fc8e4cd94acfe3e96eea9aa14ba13c4e6aa3eda606d125fbc18b0c"
+    },
+    {
+      "path": "animaux/salle-2/previews/Badger-Bite.gif",
+      "bytes": 272192,
+      "sha256": "fd89faa0d711417bf26170e937fc9a6591ddd85062ae25ebe3daa3df48c53550"
+    },
+    {
+      "path": "animaux/salle-2/previews/Badger-Bite.png",
+      "bytes": 11917,
+      "sha256": "95c1be98a7fc8e4cd94acfe3e96eea9aa14ba13c4e6aa3eda606d125fbc18b0c"
+    },
+    {
+      "path": "animaux/salle-2/previews/Beaver-Attack.gif",
+      "bytes": 216971,
+      "sha256": "1a023aab62cc925fb48155407839c289b74f66ae1b1de16e9b27966e6e595d11"
+    },
+    {
+      "path": "animaux/salle-2/previews/Beaver-Attack.png",
+      "bytes": 9590,
+      "sha256": "0b5b129959fa92859528be2da8059b344937fdcbc8a1084536fa5ecd27c3152e"
+    },
+    {
+      "path": "animaux/salle-2/previews/Beaver-Bite.gif",
+      "bytes": 216214,
+      "sha256": "cc71b8fc97bd8414af7096dd0b9df7c5e916fb0404f517f1132944c35a7a4f3f"
+    },
+    {
+      "path": "animaux/salle-2/previews/Beaver-Bite.png",
+      "bytes": 9575,
+      "sha256": "f3098c8d51e2c731cc864d866db451484ef1bd2c5fbb60edbb1044548050ba24"
+    },
+    {
+      "path": "animaux/salle-2/previews/Hedgehog-Attack.gif",
+      "bytes": 281575,
+      "sha256": "19464986865d76ad2c51b44b6235b3ccb33358148e4b37a05338ed7dedfd72c6"
+    },
+    {
+      "path": "animaux/salle-2/previews/Hedgehog-Attack.png",
+      "bytes": 14038,
+      "sha256": "792703651a31b7d1a42a5e355fbf72cbc05dc53b6d9679b158eee850a2101974"
+    },
+    {
+      "path": "animaux/salle-2/previews/Raccoon-Attack.gif",
+      "bytes": 233953,
+      "sha256": "347283bfc3e7788f6de34e253d246fa8e8abe723b730d453c554c0b4a6783bf8"
+    },
+    {
+      "path": "animaux/salle-2/previews/Raccoon-Attack.png",
+      "bytes": 10575,
+      "sha256": "4a7f1ae428ec02ce724a2be5c3b3fab7ea1a54d603293dffb1353711aa9bafea"
+    },
+    {
+      "path": "animaux/salle-2/previews/Raccoon-Bite.gif",
+      "bytes": 232537,
+      "sha256": "2cd85ce42e470e3cad902e83c7c4cf7bf81f8abd798047de476bc1554f691056"
+    },
+    {
+      "path": "animaux/salle-2/previews/Raccoon-Bite.png",
+      "bytes": 10330,
+      "sha256": "567915814a9085fd7fe10310f1e17137398ad3a8589b1d30a189e9cbe5027605"
+    },
+    {
+      "path": "animaux/salle-2/previews/Skunk-Attack.gif",
+      "bytes": 195895,
+      "sha256": "4dda4d4c67003295cfcfe4ad24b1ed0d9a3686212330fe9ccc407fb99a8d6bbc"
+    },
+    {
+      "path": "animaux/salle-2/previews/Skunk-Attack.png",
+      "bytes": 8368,
+      "sha256": "6112182754f36d71a0a6d1a7331938123a0d74603b3b17da8e252f87b8aa3b6e"
+    },
+    {
+      "path": "animaux/salle-2/previews/Squirrel-Attack.gif",
+      "bytes": 257378,
+      "sha256": "7433604af557a62a611c45b0fb5ca8466ee1f6a3954c6602e5816d8b4098ced8"
+    },
+    {
+      "path": "animaux/salle-2/previews/Squirrel-Attack.png",
+      "bytes": 9768,
+      "sha256": "e2af876e85837176aa8a0048330c8b7099aa8a4d03ae9a46ec60616580d860ac"
+    },
+    {
+      "path": "animaux/salle-2/previews/Squirrel-Bite.gif",
+      "bytes": 255855,
+      "sha256": "ba7944c0efe57852836a789b4767c601eab898e6b6aded45426f9cc145e9a1f7"
+    },
+    {
+      "path": "animaux/salle-2/previews/Squirrel-Bite.png",
+      "bytes": 9996,
+      "sha256": "89ecd7732af6d2e9c5e2a92a0a27b315bbdc44d921a0057b62c19991c89a688d"
+    },
+    {
+      "path": "animaux/salle-3/ActionAnimator.luau",
+      "bytes": 1466,
+      "sha256": "2120e6d2b3ec9ea686b294c2361f7f472b9babba7e8cc1a72abe083cf33b10f3"
+    },
+    {
+      "path": "animaux/salle-3/Apercu-combat.gif",
+      "bytes": 1316589,
+      "sha256": "bcbe4e8b67c17f6a8daa20bcfd1e60a63ea8a069089ef785c4decee758665156"
+    },
+    {
+      "path": "animaux/salle-3/Apercu-combat.png",
+      "bytes": 54308,
+      "sha256": "209238b4ef0e541f785127045992529a8faf5fecbe8232aba89f24d66440c89c"
+    },
+    {
+      "path": "animaux/salle-3/AttackTimeline.luau",
+      "bytes": 1344,
+      "sha256": "76dafa672c57284d4275ec2fcf7e573a3dafe06a89f093814cf30a56efd6f751"
+    },
+    {
+      "path": "animaux/salle-3/combat-gallery.project.json",
+      "bytes": 1273,
+      "sha256": "773935e4fc6e69d9120bb68c07990bdb5073e13f0ee5ca9c8a06b89b87b8471c"
+    },
+    {
+      "path": "animaux/salle-3/CombatAnimator.luau",
+      "bytes": 4272,
+      "sha256": "205a1223398dacdf4d685a34f325db6704ece98596ba950f1ee7d29475f8f911"
+    },
+    {
+      "path": "animaux/salle-3/CombatGallery.client.luau",
+      "bytes": 4631,
+      "sha256": "ab6ff9a501fa1bc976e46fa993ca318beb15c2d4e9ad4eafc13771c43b031c6a"
+    },
+    {
+      "path": "animaux/salle-3/Galerie-combat-salle-3.rbxl",
+      "bytes": 74788,
+      "sha256": "ee4cfc64014257af5562d8d84c23caf8427ad25b72d60d785f2c8c878ffb9b7f"
+    },
+    {
+      "path": "animaux/salle-3/MANIFEST.json",
+      "bytes": 4028,
+      "sha256": "ae77bc4ff89407ca5240fcc6ee92ead83c6ab73371ec14cff960b29eaba9289d"
+    },
+    {
+      "path": "animaux/salle-3/models/Duck.rbxmx",
+      "bytes": 348108,
+      "sha256": "e79bd6da896a466aae7a11e20b7c71dcf2463e82c3c5d49db6a6c06e4748c538"
+    },
+    {
+      "path": "animaux/salle-3/models/Goat.rbxmx",
+      "bytes": 433782,
+      "sha256": "4cd89ea7c359dcf35f6ce071a4cf7c0848c1efc482176ff5c00c543f82897cd5"
+    },
+    {
+      "path": "animaux/salle-3/models/Horse.rbxmx",
+      "bytes": 849184,
+      "sha256": "1f92281392dd4386e7b6d2ee0fbdc55801e4038565e4f1bf0df6356b5e5ad780"
+    },
+    {
+      "path": "animaux/salle-3/models/Pig.rbxmx",
+      "bytes": 499099,
+      "sha256": "7b2c6d3563f5defadb95f8e759c8403bb03f6d28e4e88a9201c6a3899a99bf39"
+    },
+    {
+      "path": "animaux/salle-3/models/Rooster.rbxmx",
+      "bytes": 371787,
+      "sha256": "40d3b6e59e83fb665695e2a68503fd8c7e78ef01c8b3fa03b35c6ffd4d01f68c"
+    },
+    {
+      "path": "animaux/salle-3/models/Sheep.rbxmx",
+      "bytes": 485875,
+      "sha256": "1da694c020f2a3b3808c6c9ea75174158cd671c2747c7d7774745d3ffeb9c740"
+    },
+    {
+      "path": "animaux/salle-3/previews/Duck-Attack.gif",
+      "bytes": 235126,
+      "sha256": "44717412eda169ea33ffa08b82290ad34f776da2bb4acab6d70da395cf71bac0"
+    },
+    {
+      "path": "animaux/salle-3/previews/Duck-Attack.png",
+      "bytes": 9074,
+      "sha256": "d5f00e6fd465cd7ecea796ad92a8446974dadfdad691ac88296492ce19aa5cd9"
+    },
+    {
+      "path": "animaux/salle-3/previews/Goat-Attack.gif",
+      "bytes": 244297,
+      "sha256": "1b18dcdd77ff6abd7ed5b952f35711825e1e46ec8d4fce2e463eb43d37f7b7ba"
+    },
+    {
+      "path": "animaux/salle-3/previews/Goat-Attack.png",
+      "bytes": 9717,
+      "sha256": "f002454452ec7daaee9bd391f1f6ca312952aa1870822202ebd2d7a239f750b7"
+    },
+    {
+      "path": "animaux/salle-3/previews/Horse-Attack.gif",
+      "bytes": 234358,
+      "sha256": "0c6fce7dab4455d94bce3a54e2cecc7fe56cab9e7d4c85c43d0e46f7829b8148"
+    },
+    {
+      "path": "animaux/salle-3/previews/Horse-Attack.png",
+      "bytes": 9682,
+      "sha256": "7dffd1a58fd16baa527ab0a9ebe5bd3970aee263675da272e50908b2b61c65ba"
+    },
+    {
+      "path": "animaux/salle-3/previews/Pig-Attack.gif",
+      "bytes": 242502,
+      "sha256": "21ff133bd6028d29de165ee79b29b06ad1446a17fb7bb83006ca11d4fdcaa22d"
+    },
+    {
+      "path": "animaux/salle-3/previews/Pig-Attack.png",
+      "bytes": 10114,
+      "sha256": "8de802fb07eb0688283884e46b6a85dce678accbeb6f774b61b1c821058e174b"
+    },
+    {
+      "path": "animaux/salle-3/previews/Rooster-Attack.gif",
+      "bytes": 241221,
+      "sha256": "d42d1ab42a588f45da940e6ad8b0ff551ef59abf31405bc6401b1dbea4f57e21"
+    },
+    {
+      "path": "animaux/salle-3/previews/Rooster-Attack.png",
+      "bytes": 9881,
+      "sha256": "5ad3257fb78db61096204618b231b17f8c12572d8572c0b6f60cf5892b5a09c4"
+    },
+    {
+      "path": "animaux/salle-3/previews/Sheep-Attack.gif",
+      "bytes": 253562,
+      "sha256": "7a2595d7709b0beebbd51bd945763b4de5cbafb11c018999d2ca1f0fd19da2fd"
+    },
+    {
+      "path": "animaux/salle-3/previews/Sheep-Attack.png",
+      "bytes": 10281,
+      "sha256": "46713e4dda3d04bd4c78c1c1e392e946ffc28339032fe56dafa0a9b059a71351"
+    },
+    {
+      "path": "animaux/salle-4/ActionAnimator.luau",
+      "bytes": 1466,
+      "sha256": "2120e6d2b3ec9ea686b294c2361f7f472b9babba7e8cc1a72abe083cf33b10f3"
+    },
+    {
+      "path": "animaux/salle-4/Apercu-combat.gif",
+      "bytes": 1436642,
+      "sha256": "c09f2c5b7ed3109226a6072d4e86e51f51ec9610ed6feefe477d1225dfd2071b"
+    },
+    {
+      "path": "animaux/salle-4/Apercu-combat.png",
+      "bytes": 61913,
+      "sha256": "077f1254426aa2c7520d585fa79aec7a408acc94321cf97d0c14a307e4cde1c3"
+    },
+    {
+      "path": "animaux/salle-4/AttackTimeline.luau",
+      "bytes": 1344,
+      "sha256": "76dafa672c57284d4275ec2fcf7e573a3dafe06a89f093814cf30a56efd6f751"
+    },
+    {
+      "path": "animaux/salle-4/combat-gallery.project.json",
+      "bytes": 1263,
+      "sha256": "b98c5da8727e974f59c698ac0725fb393d888509a6d1bf34d60f2edf56e2a1ca"
+    },
+    {
+      "path": "animaux/salle-4/CombatAnimator.luau",
+      "bytes": 4272,
+      "sha256": "205a1223398dacdf4d685a34f325db6704ece98596ba950f1ee7d29475f8f911"
+    },
+    {
+      "path": "animaux/salle-4/CombatGallery.client.luau",
+      "bytes": 4628,
+      "sha256": "a7e6203910dcc0f76e2676b0c30841f0012782809668a33fd78b904f543749fa"
+    },
+    {
+      "path": "animaux/salle-4/Galerie-combat-salle-4.rbxl",
+      "bytes": 87028,
+      "sha256": "609d596a5be0b7535acfb1d7cbbe0b0a287013b7df935c8199a44b102651c253"
+    },
+    {
+      "path": "animaux/salle-4/MANIFEST.json",
+      "bytes": 4465,
+      "sha256": "03abbbb48480c3cb016720410a4f54c443715801cccc08ad33e46623bec34a9a"
+    },
+    {
+      "path": "animaux/salle-4/models/Bear.rbxmx",
+      "bytes": 827975,
+      "sha256": "4c8c9ac08b34b2bb49c45061e78d4c364403d55035f97b4cfed7b97e18a4458a"
+    },
+    {
+      "path": "animaux/salle-4/models/Boar.rbxmx",
+      "bytes": 499542,
+      "sha256": "f366fa0643d2b5a7ccc92631a16f7979a6e1517c5460655ecf7ed891d66a9352"
+    },
+    {
+      "path": "animaux/salle-4/models/Deer.rbxmx",
+      "bytes": 660171,
+      "sha256": "cd6f69005ca166f94fee04b7e9d422d030541b38a788c2db7f1ce277f0fcee76"
+    },
+    {
+      "path": "animaux/salle-4/models/Lynx.rbxmx",
+      "bytes": 666882,
+      "sha256": "02d6bf8b069e03e2d23d06bfdd34920c0bba4595f42e4459f747a41296d836ce"
+    },
+    {
+      "path": "animaux/salle-4/models/Ram.rbxmx",
+      "bytes": 508001,
+      "sha256": "d12ebef7fe54e9ff601c9fd05815544cc6ac4bfc3bc97e51322c27567c5a92f2"
+    },
+    {
+      "path": "animaux/salle-4/models/Wolf.rbxmx",
+      "bytes": 1028893,
+      "sha256": "54b7f17a30b5347ef233228419cbdfabef17363a7bf99a0ac0f41dbbcbb28820"
+    },
+    {
+      "path": "animaux/salle-4/previews/Bear-Attack.gif",
+      "bytes": 300742,
+      "sha256": "3b87d595a4d89a29a30de3d6d10eab4c16a025fe0cf42f67027e45d3ed304108"
+    },
+    {
+      "path": "animaux/salle-4/previews/Bear-Attack.png",
+      "bytes": 11313,
+      "sha256": "9994bf5bf5c724ab0dd3c77b1fd8a2945457567b221b5d1760b9daa114109200"
+    },
+    {
+      "path": "animaux/salle-4/previews/Bear-Bite.gif",
+      "bytes": 301737,
+      "sha256": "c7bae752917de74347e479373ff975e869f624cec532aec0ea414a76932eb7b4"
+    },
+    {
+      "path": "animaux/salle-4/previews/Bear-Bite.png",
+      "bytes": 12207,
+      "sha256": "a830274a41622e3ad46fa84f80dda5f8d81b3cdad261a900e3e7af8bc4d8607a"
+    },
+    {
+      "path": "animaux/salle-4/previews/Boar-Attack.gif",
+      "bytes": 255884,
+      "sha256": "2d5c4617a28e3297b0cae8a2e874e951a83a6ee06f2ab90f85e8cd62c056040a"
+    },
+    {
+      "path": "animaux/salle-4/previews/Boar-Attack.png",
+      "bytes": 11024,
+      "sha256": "a5c52ad89965b010f91b30781354c081e239a6d09cfce66c29f5b0e4499fc133"
+    },
+    {
+      "path": "animaux/salle-4/previews/Deer-Attack.gif",
+      "bytes": 218661,
+      "sha256": "050b871b4ef03eb50e124e122f551ced3991f2e7f994f38ef4ce9c10637575f8"
+    },
+    {
+      "path": "animaux/salle-4/previews/Deer-Attack.png",
+      "bytes": 9025,
+      "sha256": "c632d2beda8968da30957b91d3e89258ddb547aeb5d78a89b29ce3ef4f60496e"
+    },
+    {
+      "path": "animaux/salle-4/previews/Lynx-Attack.gif",
+      "bytes": 257520,
+      "sha256": "5e6306eae6a4ab0f3a9981bc3b8fcc5ebecaddf6b582ecace64d0321ae8e5243"
+    },
+    {
+      "path": "animaux/salle-4/previews/Lynx-Attack.png",
+      "bytes": 11045,
+      "sha256": "44b6391cfa42b913af1adac6a7ab080924f3c291725b9d309b7462e90a6a4ee0"
+    },
+    {
+      "path": "animaux/salle-4/previews/Lynx-Bite.gif",
+      "bytes": 257885,
+      "sha256": "5beaf3c31885b5347145ebcc32cbbeaa75cb802795151cd7fb8f73b227ca3f75"
+    },
+    {
+      "path": "animaux/salle-4/previews/Lynx-Bite.png",
+      "bytes": 10155,
+      "sha256": "504be33451a4dee151cb7911388b680a30d1c6f9718cbe11254319bd06ffe7ef"
+    },
+    {
+      "path": "animaux/salle-4/previews/Ram-Attack.gif",
+      "bytes": 272006,
+      "sha256": "433cb330b8a4dacda77709a9118b6af5856d6fd7cb63f0258d03bff146301751"
+    },
+    {
+      "path": "animaux/salle-4/previews/Ram-Attack.png",
+      "bytes": 10899,
+      "sha256": "91366f2231ae4e0ece430db10f2d344d286e3bc1c0fe2e752a31f7a68ee782ad"
+    },
+    {
+      "path": "animaux/salle-4/previews/Wolf-Attack.gif",
+      "bytes": 244737,
+      "sha256": "f99a4fbaa2cb8354007d0c70833eb3e1b5402f000048e2ff44d0507390e9d030"
+    },
+    {
+      "path": "animaux/salle-4/previews/Wolf-Attack.png",
+      "bytes": 10947,
+      "sha256": "a530cf66fe11d153778d8a351b464b0670074cb07d57a2dd76637cbb6e6cf67f"
+    },
+    {
+      "path": "animaux/salle-4/previews/Wolf-Bite.gif",
+      "bytes": 244737,
+      "sha256": "f99a4fbaa2cb8354007d0c70833eb3e1b5402f000048e2ff44d0507390e9d030"
+    },
+    {
+      "path": "animaux/salle-4/previews/Wolf-Bite.png",
+      "bytes": 10947,
+      "sha256": "a530cf66fe11d153778d8a351b464b0670074cb07d57a2dd76637cbb6e6cf67f"
+    },
+    {
+      "path": "animaux/salle-5/ActionAnimator.luau",
+      "bytes": 1466,
+      "sha256": "2120e6d2b3ec9ea686b294c2361f7f472b9babba7e8cc1a72abe083cf33b10f3"
+    },
+    {
+      "path": "animaux/salle-5/Apercu-combat.gif",
+      "bytes": 1208614,
+      "sha256": "ea20d4e0cb2af04ef359b17d85b7e86346bc23e10435aed2a567824838ec671b"
+    },
+    {
+      "path": "animaux/salle-5/Apercu-combat.png",
+      "bytes": 55754,
+      "sha256": "8f515e589b2f13b065d393b9720a8d65256c069bcb83cb1c44606abf67e1bdd3"
+    },
+    {
+      "path": "animaux/salle-5/AttackTimeline.luau",
+      "bytes": 1344,
+      "sha256": "76dafa672c57284d4275ec2fcf7e573a3dafe06a89f093814cf30a56efd6f751"
+    },
+    {
+      "path": "animaux/salle-5/combat-gallery.project.json",
+      "bytes": 1303,
+      "sha256": "50a12faee0f4c15bb8524fca6ea07e208b88bcfe990f9b0e3ee51474f174d456"
+    },
+    {
+      "path": "animaux/salle-5/CombatAnimator.luau",
+      "bytes": 4272,
+      "sha256": "205a1223398dacdf4d685a34f325db6704ece98596ba950f1ee7d29475f8f911"
+    },
+    {
+      "path": "animaux/salle-5/CombatGallery.client.luau",
+      "bytes": 4654,
+      "sha256": "bfa96651a98ca946d19015aa29507a55f350296e8d8478ccac730d2a325326fd"
+    },
+    {
+      "path": "animaux/salle-5/Galerie-combat-salle-5.rbxl",
+      "bytes": 98847,
+      "sha256": "2a53a2b7bf849f0e3b245ac56b1211f28db77a549882e5c82630bf63aa33b42a"
+    },
+    {
+      "path": "animaux/salle-5/MANIFEST.json",
+      "bytes": 4643,
+      "sha256": "63f98dd9a8bee81ca30243789dfbbfd91a7f1dfbe8c2baeb55ac46e7b5e04adb"
+    },
+    {
+      "path": "animaux/salle-5/models/Anaconda.rbxmx",
+      "bytes": 878592,
+      "sha256": "9071eba0d4be4bb922efcd962dfa285c5b8cf1cc50c323562ea1825fa47d836b"
+    },
+    {
+      "path": "animaux/salle-5/models/Capybara.rbxmx",
+      "bytes": 458637,
+      "sha256": "a2d74d16089af3f4f2d5f390fffc60216cef73c32cbb9e5432627fd1f3cb73b1"
+    },
+    {
+      "path": "animaux/salle-5/models/Crocodile.rbxmx",
+      "bytes": 910995,
+      "sha256": "948539992f2be61d9db246e0a33a4380d8a41add23407a99813a49b2aab2104b"
+    },
+    {
+      "path": "animaux/salle-5/models/Jaguar.rbxmx",
+      "bytes": 874849,
+      "sha256": "9a7d651f2fe0c6a743fdb2790d7f17c896eefc4a7732ade1792e33e4c059234a"
+    },
+    {
+      "path": "animaux/salle-5/models/Monkey.rbxmx",
+      "bytes": 831827,
+      "sha256": "ff65d28de548b8dd841c1e15b9db28f2cb169b18717ac2e3e9f9e3c35448a38e"
+    },
+    {
+      "path": "animaux/salle-5/models/Toucan.rbxmx",
+      "bytes": 358085,
+      "sha256": "f14cc78d3106ebbcab407eb58613b0ce270ca114353dcc475d1d35939ad49464"
+    },
+    {
+      "path": "animaux/salle-5/previews/Anaconda-Attack.gif",
+      "bytes": 178287,
+      "sha256": "417c1184c5b9eb6eb5d2801c570a97070f7a998afcaeb5540f354db02bc36826"
+    },
+    {
+      "path": "animaux/salle-5/previews/Anaconda-Attack.png",
+      "bytes": 9380,
+      "sha256": "2b932deb4af5c79ed31ac1226a8eff8e8ad5c525e1c4e3f10b39d16dc36ae7bb"
+    },
+    {
+      "path": "animaux/salle-5/previews/Anaconda-Bite.gif",
+      "bytes": 178287,
+      "sha256": "417c1184c5b9eb6eb5d2801c570a97070f7a998afcaeb5540f354db02bc36826"
+    },
+    {
+      "path": "animaux/salle-5/previews/Anaconda-Bite.png",
+      "bytes": 9380,
+      "sha256": "2b932deb4af5c79ed31ac1226a8eff8e8ad5c525e1c4e3f10b39d16dc36ae7bb"
+    },
+    {
+      "path": "animaux/salle-5/previews/Capybara-Attack.gif",
+      "bytes": 243668,
+      "sha256": "20b6271e4ccf72d0939f415203739abec3201ac19932b04b4b26c330a6e51fca"
+    },
+    {
+      "path": "animaux/salle-5/previews/Capybara-Attack.png",
+      "bytes": 10175,
+      "sha256": "af14803a8ceeda620e66b6968105933ebb1a429b6af2f0e092179cae6ad061c3"
+    },
+    {
+      "path": "animaux/salle-5/previews/Crocodile-Attack.gif",
+      "bytes": 187756,
+      "sha256": "8623e6a62c11ef35c10b60e476b6bbbe1942dfec92d4547e395be1e55eba83d3"
+    },
+    {
+      "path": "animaux/salle-5/previews/Crocodile-Attack.png",
+      "bytes": 10280,
+      "sha256": "5f4ed8ae54c8ce0c4509b57e7ee5965f448e07f04483b5ff64c8479177c12747"
+    },
+    {
+      "path": "animaux/salle-5/previews/Crocodile-Bite.gif",
+      "bytes": 187756,
+      "sha256": "8623e6a62c11ef35c10b60e476b6bbbe1942dfec92d4547e395be1e55eba83d3"
+    },
+    {
+      "path": "animaux/salle-5/previews/Crocodile-Bite.png",
+      "bytes": 10280,
+      "sha256": "5f4ed8ae54c8ce0c4509b57e7ee5965f448e07f04483b5ff64c8479177c12747"
+    },
+    {
+      "path": "animaux/salle-5/previews/Jaguar-Attack.gif",
+      "bytes": 246069,
+      "sha256": "143b7433f3d9ed4cadc4e6c7c39028c08a138393e4d1779ef095f9e0d927096c"
+    },
+    {
+      "path": "animaux/salle-5/previews/Jaguar-Attack.png",
+      "bytes": 11000,
+      "sha256": "d606b47466d81d1a03a1c8ddd4a8c399a28194a4c00b2b0ae361aa75aa845be3"
+    },
+    {
+      "path": "animaux/salle-5/previews/Jaguar-Bite.gif",
+      "bytes": 242133,
+      "sha256": "86bb390b8e0144c2d33c9561b1248d6343fa5bd9aa1edb01dd053a0b2a0aca3e"
+    },
+    {
+      "path": "animaux/salle-5/previews/Jaguar-Bite.png",
+      "bytes": 10474,
+      "sha256": "a7db9bacb6619fb5487787e13aad2c0ee89dc40fe7f69af3b5abdca3427a3f75"
+    },
+    {
+      "path": "animaux/salle-5/previews/Monkey-Attack.gif",
+      "bytes": 245534,
+      "sha256": "38c0e37f17980015789f2e9bdbc363ebd846b07c47a7cbe07ac14ca5b0a29748"
+    },
+    {
+      "path": "animaux/salle-5/previews/Monkey-Attack.png",
+      "bytes": 9881,
+      "sha256": "ec7cb509f146da37e880bf394dc7d597bf467e2cf0e031075ecf2ce2c2531dff"
+    },
+    {
+      "path": "animaux/salle-5/previews/Monkey-Bite.gif",
+      "bytes": 245184,
+      "sha256": "a575ad6a43cb51d76884798fc090dfc692a0c990bdc64ac246ed50c44282032f"
+    },
+    {
+      "path": "animaux/salle-5/previews/Monkey-Bite.png",
+      "bytes": 9943,
+      "sha256": "57134882d0e5f84174e2f6bb4674744cdfa1dbf394f9b9a45d80dbbc91eaa541"
+    },
+    {
+      "path": "animaux/salle-5/previews/Toucan-Attack.gif",
+      "bytes": 251084,
+      "sha256": "a353573fe8c80ae8e9ab495de8bed99e09bce4094dd0f7dfb960c9cbdcb19f6c"
+    },
+    {
+      "path": "animaux/salle-5/previews/Toucan-Attack.png",
+      "bytes": 9077,
+      "sha256": "6f7fe414a686e7b63f0d421de1df5d360ca6f01dc0d5c8fa75bd99b58885bafa"
+    },
+    {
+      "path": "animaux/salle-6/ActionAnimator.luau",
+      "bytes": 1466,
+      "sha256": "2120e6d2b3ec9ea686b294c2361f7f472b9babba7e8cc1a72abe083cf33b10f3"
+    },
+    {
+      "path": "animaux/salle-6/Apercu-combat.gif",
+      "bytes": 1208673,
+      "sha256": "0b73d7bbe2790f14bb28c080516d106c773aebf294f21b3c667c3a0c95157352"
+    },
+    {
+      "path": "animaux/salle-6/Apercu-combat.png",
+      "bytes": 57231,
+      "sha256": "a58520bb9ceef2dcf488cb0e78ead821cc1567ffe9c7ff2d2239b6c1c0f4e1fb"
+    },
+    {
+      "path": "animaux/salle-6/AttackTimeline.luau",
+      "bytes": 1344,
+      "sha256": "76dafa672c57284d4275ec2fcf7e573a3dafe06a89f093814cf30a56efd6f751"
+    },
+    {
+      "path": "animaux/salle-6/combat-gallery.project.json",
+      "bytes": 1317,
+      "sha256": "3200bc40c8ba2bd9fd35a0c4a29ec622e182db249ffbe7e2c274c50e4b61f4f8"
+    },
+    {
+      "path": "animaux/salle-6/CombatAnimator.luau",
+      "bytes": 4272,
+      "sha256": "205a1223398dacdf4d685a34f325db6704ece98596ba950f1ee7d29475f8f911"
+    },
+    {
+      "path": "animaux/salle-6/CombatGallery.client.luau",
+      "bytes": 4669,
+      "sha256": "d02a97fdba51278a3bd00ea804ed36596f000cd3d2a11ec0c76b0ba4d2e995cc"
+    },
+    {
+      "path": "animaux/salle-6/Galerie-combat-salle-6.rbxl",
+      "bytes": 92290,
+      "sha256": "e0c9bd957cd196b123b4ddb9e89c95bad50a070cb87fc798b640e473a2dd8db0"
+    },
+    {
+      "path": "animaux/salle-6/MANIFEST.json",
+      "bytes": 4495,
+      "sha256": "840e318a18ecf29dac4151c5a9d8d16db014bb457d6341238534d9a5888e26cf"
+    },
+    {
+      "path": "animaux/salle-6/models/Flamingo.rbxmx",
+      "bytes": 558457,
+      "sha256": "2522e6155393e5fe9f3ef5c72525f9ee8b5def5c782175c5cc9f363c796ef5e7"
+    },
+    {
+      "path": "animaux/salle-6/models/Mongoose.rbxmx",
+      "bytes": 736583,
+      "sha256": "d879eac1206d29e4fdc612f7e05653e26c0fc0d84201a20d9db15f02d6c44d51"
+    },
+    {
+      "path": "animaux/salle-6/models/MonitorLizard.rbxmx",
+      "bytes": 1356072,
+      "sha256": "4c2a577c663b634a2fe0be1b58027afcc9eca350d91b932d13ed0ba3a388ea2e"
+    },
+    {
+      "path": "animaux/salle-6/models/Otter.rbxmx",
+      "bytes": 734074,
+      "sha256": "cc0c05dea77bd43bc7b24b11b7f40212d449749eadcaf618fb3aa82133fd80e5"
+    },
+    {
+      "path": "animaux/salle-6/models/Pelican.rbxmx",
+      "bytes": 479580,
+      "sha256": "e3223d105f32e97959ddafc619abe684c05b4faaced3c20eba0715a67e05103a"
+    },
+    {
+      "path": "animaux/salle-6/models/Porcupine.rbxmx",
+      "bytes": 585346,
+      "sha256": "4e45ee92953109b483b8839a4ff4db353f6d2a24d852d4bd2e02412f81af8b94"
+    },
+    {
+      "path": "animaux/salle-6/previews/Flamingo-Attack.gif",
+      "bytes": 200567,
+      "sha256": "2dfb375fd2c66cd47c2789968c9f2dbd540c8830e1400d6206ac9745d4c0cd14"
+    },
+    {
+      "path": "animaux/salle-6/previews/Flamingo-Attack.png",
+      "bytes": 8753,
+      "sha256": "fa669de6dbc2d21fcc994c4dc23acb0e04601f73dc1f441474a61fd2ab344b19"
+    },
+    {
+      "path": "animaux/salle-6/previews/Mongoose-Attack.gif",
+      "bytes": 211523,
+      "sha256": "24792d09b320828ff4aca89737060a3b037fa33070cc66e398dec5b100a9332c"
+    },
+    {
+      "path": "animaux/salle-6/previews/Mongoose-Attack.png",
+      "bytes": 10066,
+      "sha256": "44ddf1b7344b258f2f8b729849bdcf7f649198b3d859ebd964f4715e91848188"
+    },
+    {
+      "path": "animaux/salle-6/previews/Mongoose-Bite.gif",
+      "bytes": 211523,
+      "sha256": "24792d09b320828ff4aca89737060a3b037fa33070cc66e398dec5b100a9332c"
+    },
+    {
+      "path": "animaux/salle-6/previews/Mongoose-Bite.png",
+      "bytes": 10066,
+      "sha256": "44ddf1b7344b258f2f8b729849bdcf7f649198b3d859ebd964f4715e91848188"
+    },
+    {
+      "path": "animaux/salle-6/previews/MonitorLizard-Attack.gif",
+      "bytes": 199368,
+      "sha256": "570d05981f0730f1bd37ac6f4e6bea3b9c3873590c3ec9a1c3cb1fbb22d1b501"
+    },
+    {
+      "path": "animaux/salle-6/previews/MonitorLizard-Attack.png",
+      "bytes": 9691,
+      "sha256": "527ae09edc37a8da3eb98b3bb1b54480d1e958d9f82ba733d4b3c5f0879710be"
+    },
+    {
+      "path": "animaux/salle-6/previews/MonitorLizard-Bite.gif",
+      "bytes": 199368,
+      "sha256": "570d05981f0730f1bd37ac6f4e6bea3b9c3873590c3ec9a1c3cb1fbb22d1b501"
+    },
+    {
+      "path": "animaux/salle-6/previews/MonitorLizard-Bite.png",
+      "bytes": 9691,
+      "sha256": "527ae09edc37a8da3eb98b3bb1b54480d1e958d9f82ba733d4b3c5f0879710be"
+    },
+    {
+      "path": "animaux/salle-6/previews/Otter-Attack.gif",
+      "bytes": 194229,
+      "sha256": "fb11ba85d87361008a7cf9b31be4e144ba6022b2e299903ebe8fbfc501e8c11c"
+    },
+    {
+      "path": "animaux/salle-6/previews/Otter-Attack.png",
+      "bytes": 8856,
+      "sha256": "c1a5d3c715755a6a5ca0f0a1081583cc329c577411b24780e24a2abbcbdc088e"
+    },
+    {
+      "path": "animaux/salle-6/previews/Otter-Bite.gif",
+      "bytes": 194229,
+      "sha256": "fb11ba85d87361008a7cf9b31be4e144ba6022b2e299903ebe8fbfc501e8c11c"
+    },
+    {
+      "path": "animaux/salle-6/previews/Otter-Bite.png",
+      "bytes": 8856,
+      "sha256": "c1a5d3c715755a6a5ca0f0a1081583cc329c577411b24780e24a2abbcbdc088e"
+    },
+    {
+      "path": "animaux/salle-6/previews/Pelican-Attack.gif",
+      "bytes": 247625,
+      "sha256": "95e1c20b54ab250d80a313a04b27bbd03a6443d8c0e70733094e097553f34caa"
+    },
+    {
+      "path": "animaux/salle-6/previews/Pelican-Attack.png",
+      "bytes": 10569,
+      "sha256": "559477adc455fc6970cd08dbece0dd52c5f7cf82ef444c676b704efeb42c5692"
+    },
+    {
+      "path": "animaux/salle-6/previews/Porcupine-Attack.gif",
+      "bytes": 303906,
+      "sha256": "052c84e47718e7e2390b074efda629d857dcb89b69e43838b9df46b6593fa1b7"
+    },
+    {
+      "path": "animaux/salle-6/previews/Porcupine-Attack.png",
+      "bytes": 13140,
+      "sha256": "9228cefb41a3b5eb32e80c3d959b43f756b1a8b500c944922fe8b26b37773cce"
+    },
+    {
+      "path": "animaux/VALIDATION.json",
+      "bytes": 10155,
+      "sha256": "b899020c73f85eb1fda8e926d59f5a6e2657375a435451e26697579a4e955ff2"
+    },
+    {
+      "path": "personnage/animations/SlashLeft.rbxmx",
+      "bytes": 149368,
+      "sha256": "3b27f833d7fc3d5e24c7f53e5550d2092705fbc3b9bc00cd621a76b2615e349c"
+    },
+    {
+      "path": "personnage/animations/SlashRight.rbxmx",
+      "bytes": 149535,
+      "sha256": "7ef7f696ce4f29e982e43dc1c2ae3a3fb0b15686aeed259eede4d4cd3ea9fd3c"
+    },
+    {
+      "path": "personnage/Apercu-personnage-effets.gif",
+      "bytes": 151987,
+      "sha256": "b80de33ba8cccca19d10da3a6dfe07e55c8953dc6ec041ea649ca26983c57917"
+    },
+    {
+      "path": "personnage/Apercu-personnage-effets.png",
+      "bytes": 20994,
+      "sha256": "1c86f2a4ff4ec2db6d6367c02e4be2cddb3463f41bf5e74ae28b79320131968b"
+    },
+    {
+      "path": "personnage/AttackTimeline.luau",
+      "bytes": 1344,
+      "sha256": "76dafa672c57284d4275ec2fcf7e573a3dafe06a89f093814cf30a56efd6f751"
+    },
+    {
+      "path": "personnage/CombatAnimator.luau",
+      "bytes": 4272,
+      "sha256": "205a1223398dacdf4d685a34f325db6704ece98596ba950f1ee7d29475f8f911"
+    },
+    {
+      "path": "personnage/Deux-coups-circulaires.gif",
+      "bytes": 251942,
+      "sha256": "d27c965969db69e618538acb3d996c37cae9731414b1a1f05e1cdeb4f5279ed3"
+    },
+    {
+      "path": "personnage/Evolutions-epees.png",
+      "bytes": 36569,
+      "sha256": "5bc31a7faa465970ac30a4e76bf2741f3b59e5731232dc4f5b24996a5b50f691"
+    },
+    {
+      "path": "personnage/Galerie-personnage-epees-effets.rbxl",
+      "bytes": 41351,
+      "sha256": "2f60c5f21cc22258650162791534f0124402b90597a2576a6ce29430995fc948"
+    },
+    {
+      "path": "personnage/gallery.project.json",
+      "bytes": 1515,
+      "sha256": "91143c1d99aca55d8f6a54cb3506f585baa9aa9011fa00e4704f70d7a7bb1465"
+    },
+    {
+      "path": "personnage/LIRE-MOI.md",
+      "bytes": 4205,
+      "sha256": "ac6be571101275257d7989a9765a69d3d729249976f12a2687a468af98a54da2"
+    },
+    {
+      "path": "personnage/MANIFEST.json",
+      "bytes": 2475,
+      "sha256": "216902130dcca79ccc17b0809c8694a5c3a1b3ba5c2c5640c17023a73f7f4d86"
+    },
+    {
+      "path": "personnage/models/R15Preview.rbxmx",
+      "bytes": 533044,
+      "sha256": "3298e40c72a7375fa923b2f07db9231f9cfd3daaee801672dd4f1dac592bff8e"
+    },
+    {
+      "path": "personnage/models/Sword_Flame.rbxmx",
+      "bytes": 49794,
+      "sha256": "6e210d9e3ef907092f71d8d130bbcad84c32bc192aa2d205eadffcf3e1792e06"
+    },
+    {
+      "path": "personnage/models/Sword_Frost.rbxmx",
+      "bytes": 34576,
+      "sha256": "5d5e01c45fc0a5a6b359f9fec3321b18e3d3922c1ca08e17e0e89801ba67af0b"
+    },
+    {
+      "path": "personnage/models/Sword_Iron.rbxmx",
+      "bytes": 23304,
+      "sha256": "d58ef415c4150aa5b30dc22a859a00f583db0d05c1b605602fa7c082659a8358"
+    },
+    {
+      "path": "personnage/models/Sword_Prismatic.rbxmx",
+      "bytes": 58643,
+      "sha256": "e76130f65f2baaf8907b73c4a130eeef01b6950ae83cfa89ea1de9ef7d7fc1bc"
+    },
+    {
+      "path": "personnage/models/Sword_Steel.rbxmx",
+      "bytes": 29684,
+      "sha256": "3a38592615ee111419ce2e6e6b29d690bbc4c3427dbbb5a901047ff8b4c4894b"
+    },
+    {
+      "path": "personnage/models/Sword_Storm.rbxmx",
+      "bytes": 53265,
+      "sha256": "fc59f83e189653986571598744cedaab2333d14e45fa5c63300ba6660f4b8422"
+    },
+    {
+      "path": "personnage/Monde-COMBAT-A-TESTER.rbxl",
+      "bytes": 618502,
+      "sha256": "bb83d8453d7beb377d99e94d94a1a7f411b40eb3d487d76997e06d1b1f6db1f0"
+    },
+    {
+      "path": "personnage/PlayerGallery.client.luau",
+      "bytes": 3585,
+      "sha256": "7fd9926555b0cde5e77103738563521c8a499e7de5bd103143938aa194ed849d"
+    },
+    {
+      "path": "personnage/Profil-appuis-etapes.png",
+      "bytes": 31728,
+      "sha256": "d2187ad6080a7537c510f9d72dd143aca518d5f06342b884b95cd01fb5d7470c"
+    },
+    {
+      "path": "personnage/Profil-appuis.gif",
+      "bytes": 137509,
+      "sha256": "6ac314ee31b9549d6d1b9264d7ccca5374bd7aa9c0347c0ae82884b2b9abf39f"
+    },
+    {
+      "path": "personnage/Profil-appuis.png",
+      "bytes": 17743,
+      "sha256": "edf3a9aed40241f5b8b7cdccecfcfc3d917e75b1998305364b375f4d440ce880"
+    },
+    {
+      "path": "personnage/src/client/Animals.luau",
+      "bytes": 57976,
+      "sha256": "0d4add1ccdc18a066137f67bc908a965f6fcfef6148206d50225eec4a5a0d247"
+    },
+    {
+      "path": "personnage/src/client/CombatMotion.luau",
+      "bytes": 55016,
+      "sha256": "1332d1950ff8431c4c7c5da71e17631ed20a2e93f7ce43914e2837a4c28b0b1a"
+    },
+    {
+      "path": "personnage/src/client/CombatVFX.luau",
+      "bytes": 7725,
+      "sha256": "2e3f6fa2065f908bb99dac6079818b66849cb5598e8fa682bbab201b4c7f13a9"
+    },
+    {
+      "path": "personnage/src/client/Main.client.luau",
+      "bytes": 22908,
+      "sha256": "cc6e63c22a2cfc1dab6d7dec89d24e7c573d51a3261c1e89660ab2c875a590ff"
+    },
+    {
+      "path": "personnage/src/client/Poses.luau",
+      "bytes": 9287,
+      "sha256": "4d58cd33c6fc620cba304e3a3ee6d769ee090004e69049dee46a0360f3cf2c2b"
+    },
+    {
+      "path": "personnage/src/client/SwordVisuals.luau",
+      "bytes": 44043,
+      "sha256": "100847005dac8259a3473181b0646bb854604d8a65b1a5e9f7dc7acd5b8b9d7c"
+    },
+    {
+      "path": "personnage/VALIDATION.json",
+      "bytes": 892,
+      "sha256": "bee94612cfd0b1929ebbbb02e77e557456ad33f1932f3bec1696f5dc93b19ca0"
+    },
+    {
+      "path": "README.md",
+      "bytes": 4745,
+      "sha256": "1a205c3b92a70fb7c01a57ad51b8db59dcbf74e5c9bfee481388a50e3536d96d"
+    },
+    {
+      "path": "shared/ActionAnimator.luau",
+      "bytes": 1466,
+      "sha256": "2120e6d2b3ec9ea686b294c2361f7f472b9babba7e8cc1a72abe083cf33b10f3"
+    },
+    {
+      "path": "shared/AttackTimeline.luau",
+      "bytes": 1344,
+      "sha256": "76dafa672c57284d4275ec2fcf7e573a3dafe06a89f093814cf30a56efd6f751"
+    },
+    {
+      "path": "shared/CombatAnimator.luau",
+      "bytes": 4272,
+      "sha256": "205a1223398dacdf4d685a34f325db6704ece98596ba950f1ee7d29475f8f911"
+    },
+    {
+      "path": "tests/test-combat-timeline.luau",
+      "bytes": 2174,
+      "sha256": "608936a84c29fb322c3c1e395640fdd5ba5851b74f81cbf1d4a93d29287bec4c"
+    },
+    {
+      "path": "tests/test-player-alternation.luau",
+      "bytes": 1555,
+      "sha256": "52dd39331d72de8a04325cad7782150c2506d99e4d7f9605828fe5ba7306e2e4"
+    },
+    {
+      "path": "tools/check-combat.ps1",
+      "bytes": 5635,
+      "sha256": "7ed6b21ee6f4e65e0017f47471a8eeda12beef219b8b36b971964b4b7713ed4c"
+    }
+  ]
+}

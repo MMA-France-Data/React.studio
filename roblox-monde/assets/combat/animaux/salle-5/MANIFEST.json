@@ -1,0 +1,185 @@
+{
+  "room": 5,
+  "pets": [
+    {
+      "id": "Capybara",
+      "label": "Capybara",
+      "parts": 66,
+      "motors": 8,
+      "ultraRare": false,
+      "sourceSha256": "3c8b8b0b9a0a1f510a6aa1d5760f0acbd47059b5a8afbdfec13ba3ffd5b16d96",
+      "sha256": "a2d74d16089af3f4f2d5f390fffc60216cef73c32cbb9e5432627fd1f3cb73b1",
+      "jaw": null,
+      "animations": {
+        "Idle": {
+          "duration": 2.8,
+          "loop": true
+        },
+        "Walk": {
+          "duration": 1.9,
+          "loop": true
+        },
+        "Attack": {
+          "duration": 1.4,
+          "loop": false,
+          "impactTime": 0.644,
+          "label": "Coup d’épaule"
+        }
+      }
+    },
+    {
+      "id": "Toucan",
+      "label": "Toucan",
+      "parts": 46,
+      "motors": 7,
+      "ultraRare": false,
+      "sourceSha256": "3449717209eb210080ba2fc0472adbfa262d74c77a83c2198a734685802879db",
+      "sha256": "f14cc78d3106ebbcab407eb58613b0ce270ca114353dcc475d1d35939ad49464",
+      "jaw": null,
+      "animations": {
+        "Idle": {
+          "duration": 2.8,
+          "loop": true
+        },
+        "Walk": {
+          "duration": 1.2,
+          "loop": true
+        },
+        "Attack": {
+          "duration": 1.08,
+          "loop": false,
+          "impactTime": 0.4968000000000001,
+          "label": "Frappe du grand bec"
+        }
+      }
+    },
+    {
+      "id": "Monkey",
+      "label": "Singe",
+      "parts": 54,
+      "motors": 14,
+      "ultraRare": false,
+      "sourceSha256": "d62ff41f9a844635995ba32d2b711ec53eb49b9bfdd1d82203e24e4050b5dbb3",
+      "sha256": "ff65d28de548b8dd841c1e15b9db28f2cb169b18717ac2e3e9f9e3c35448a38e",
+      "jaw": "muzzle-split",
+      "animations": {
+        "Idle": {
+          "duration": 2.8,
+          "loop": true
+        },
+        "Walk": {
+          "duration": 1.4,
+          "loop": true
+        },
+        "Attack": {
+          "duration": 1,
+          "loop": false,
+          "impactTime": 0.46,
+          "label": "Coup de poing"
+        },
+        "Bite": {
+          "duration": 1.06,
+          "loop": false,
+          "impactTime": 0.53,
+          "label": "Morsure rapide"
+        }
+      }
+    },
+    {
+      "id": "Anaconda",
+      "label": "Anaconda",
+      "parts": 87,
+      "motors": 11,
+      "ultraRare": false,
+      "sourceSha256": "7c6dc1a90eb09cd03948eb11d817d919adf65ad0257aa514865a43162c515ec8",
+      "sha256": "9071eba0d4be4bb922efcd962dfa285c5b8cf1cc50c323562ea1825fa47d836b",
+      "jaw": "promoted",
+      "animations": {
+        "Idle": {
+          "duration": 2.8,
+          "loop": true
+        },
+        "Walk": {
+          "duration": 2.4,
+          "loop": true
+        },
+        "Attack": {
+          "duration": 1.28,
+          "loop": false,
+          "impactTime": 0.64,
+          "label": "Morsure ondulante"
+        },
+        "Bite": {
+          "duration": 1.28,
+          "loop": false,
+          "impactTime": 0.64,
+          "label": "Morsure ondulante"
+        }
+      }
+    },
+    {
+      "id": "Crocodile",
+      "label": "Crocodile",
+      "parts": 106,
+      "motors": 11,
+      "ultraRare": false,
+      "sourceSha256": "bf4714996e5371efdba1f7cc9798f5b2cae70d71e073f9ba8eb94e82af8dab7f",
+      "sha256": "948539992f2be61d9db246e0a33a4380d8a41add23407a99813a49b2aab2104b",
+      "jaw": "existing",
+      "animations": {
+        "Idle": {
+          "duration": 2.8,
+          "loop": true
+        },
+        "Walk": {
+          "duration": 2.2,
+          "loop": true
+        },
+        "Attack": {
+          "duration": 1.4,
+          "loop": false,
+          "impactTime": 0.7,
+          "label": "Morsure puissante"
+        },
+        "Bite": {
+          "duration": 1.4,
+          "loop": false,
+          "impactTime": 0.7,
+          "label": "Morsure puissante"
+        }
+      }
+    },
+    {
+      "id": "Jaguar",
+      "label": "Jaguar",
+      "parts": 119,
+      "motors": 12,
+      "ultraRare": true,
+      "sourceSha256": "b70754fcf01ec30ba7b45596d18afafdd496cbbd5893d0ec0d483b0012e18cdf",
+      "sha256": "9a7d651f2fe0c6a743fdb2790d7f17c896eefc4a7732ade1792e33e4c059234a",
+      "jaw": "muzzle-split",
+      "animations": {
+        "Idle": {
+          "duration": 2.8,
+          "loop": true
+        },
+        "Walk": {
+          "duration": 1.5,
+          "loop": true
+        },
+        "Attack": {
+          "duration": 1.13,
+          "loop": false,
+          "impactTime": 0.5197999999999999,
+          "label": "Griffade bondissante"
+        },
+        "Bite": {
+          "duration": 1.06,
+          "loop": false,
+          "impactTime": 0.53,
+          "label": "Morsure rapide"
+        }
+      }
+    }
+  ]
+}

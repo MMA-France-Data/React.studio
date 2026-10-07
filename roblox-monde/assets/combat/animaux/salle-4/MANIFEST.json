@@ -1,0 +1,179 @@
+{
+  "room": 4,
+  "pets": [
+    {
+      "id": "Boar",
+      "label": "Sanglier",
+      "parts": 68,
+      "motors": 9,
+      "ultraRare": false,
+      "sourceSha256": "a1bb46899bf5ef7786615a3dda97c60b07ff5634d72835e7b31ff096a0403226",
+      "sha256": "f366fa0643d2b5a7ccc92631a16f7979a6e1517c5460655ecf7ed891d66a9352",
+      "jaw": null,
+      "animations": {
+        "Idle": {
+          "duration": 2.8,
+          "loop": true
+        },
+        "Walk": {
+          "duration": 1.75,
+          "loop": true
+        },
+        "Attack": {
+          "duration": 1.35,
+          "loop": false,
+          "impactTime": 0.6210000000000001,
+          "label": "Charge des défenses"
+        }
+      }
+    },
+    {
+      "id": "Ram",
+      "label": "Bélier",
+      "parts": 74,
+      "motors": 9,
+      "ultraRare": false,
+      "sourceSha256": "ea9f0691ed6295972e771478fbb409ff500d423fc702c0376d9eb23529b6e72b",
+      "sha256": "d12ebef7fe54e9ff601c9fd05815544cc6ac4bfc3bc97e51322c27567c5a92f2",
+      "jaw": null,
+      "animations": {
+        "Idle": {
+          "duration": 2.8,
+          "loop": true
+        },
+        "Walk": {
+          "duration": 1.6,
+          "loop": true
+        },
+        "Attack": {
+          "duration": 1.4,
+          "loop": false,
+          "impactTime": 0.644,
+          "label": "Coup de cornes lourd"
+        }
+      }
+    },
+    {
+      "id": "Deer",
+      "label": "Cerf",
+      "parts": 58,
+      "motors": 14,
+      "ultraRare": false,
+      "sourceSha256": "f96f68b9e3b13eeb0469f61ca4b3327f18fa47834e8d9bb4397b96bf590d85ff",
+      "sha256": "cd6f69005ca166f94fee04b7e9d422d030541b38a788c2db7f1ce277f0fcee76",
+      "jaw": null,
+      "animations": {
+        "Idle": {
+          "duration": 2.8,
+          "loop": true
+        },
+        "Walk": {
+          "duration": 1.45,
+          "loop": true
+        },
+        "Attack": {
+          "duration": 1.38,
+          "loop": false,
+          "impactTime": 0.6348,
+          "label": "Coup de bois"
+        }
+      }
+    },
+    {
+      "id": "Lynx",
+      "label": "Lynx",
+      "parts": 71,
+      "motors": 10,
+      "ultraRare": false,
+      "sourceSha256": "5f450c7a64524d791c455a178a3be415796fd3c9036f268221d8b2bd099b90b0",
+      "sha256": "02d6bf8b069e03e2d23d06bfdd34920c0bba4595f42e4459f747a41296d836ce",
+      "jaw": "muzzle-split",
+      "animations": {
+        "Idle": {
+          "duration": 2.8,
+          "loop": true
+        },
+        "Walk": {
+          "duration": 1.25,
+          "loop": true
+        },
+        "Attack": {
+          "duration": 1,
+          "loop": false,
+          "impactTime": 0.46,
+          "label": "Griffade du lynx"
+        },
+        "Bite": {
+          "duration": 1.06,
+          "loop": false,
+          "impactTime": 0.53,
+          "label": "Morsure rapide"
+        }
+      }
+    },
+    {
+      "id": "Wolf",
+      "label": "Loup",
+      "parts": 85,
+      "motors": 17,
+      "ultraRare": false,
+      "sourceSha256": "16b8fba7735d44c7435984b7c21b22b3bc087261e1f205d16ac98ae757671ad4",
+      "sha256": "54b7f17a30b5347ef233228419cbdfabef17363a7bf99a0ac0f41dbbcbb28820",
+      "jaw": "existing",
+      "animations": {
+        "Idle": {
+          "duration": 2.8,
+          "loop": true
+        },
+        "Walk": {
+          "duration": 1.4,
+          "loop": true
+        },
+        "Attack": {
+          "duration": 1.06,
+          "loop": false,
+          "impactTime": 0.53,
+          "label": "Morsure rapide"
+        },
+        "Bite": {
+          "duration": 1.06,
+          "loop": false,
+          "impactTime": 0.53,
+          "label": "Morsure rapide"
+        }
+      }
+    },
+    {
+      "id": "Bear",
+      "label": "Ours brun",
+      "parts": 93,
+      "motors": 10,
+      "ultraRare": true,
+      "sourceSha256": "02ea02e6e100c84d8fe20bebb609dbd7009bae9e32d8313f66a3f636a4261af5",
+      "sha256": "4c8c9ac08b34b2bb49c45061e78d4c364403d55035f97b4cfed7b97e18a4458a",
+      "jaw": "muzzle-split",
+      "animations": {
+        "Idle": {
+          "duration": 2.8,
+          "loop": true
+        },
+        "Walk": {
+          "duration": 1.95,
+          "loop": true
+        },
+        "Attack": {
+          "duration": 1.48,
+          "loop": false,
+          "impactTime": 0.6808000000000001,
+          "label": "Coup de patte lourd"
+        },
+        "Bite": {
+          "duration": 1.4,
+          "loop": false,
+          "impactTime": 0.7,
+          "label": "Morsure puissante"
+        }
+      }
+    }
+  ]
+}

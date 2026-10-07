@@ -1,0 +1,485 @@
+{
+  "checks": 387434,
+  "animals": 36,
+  "oneShotClips": 53,
+  "studioRuntimeTest": false,
+  "results": [
+    {
+      "room": 1,
+      "id": "Rabbit",
+      "clip": "Attack",
+      "duration": 1.12,
+      "impact": 0.48160000000000003,
+      "grounded": true,
+      "maxRootLift": 0.2705830512167482
+    },
+    {
+      "room": 1,
+      "id": "Turtle",
+      "clip": "Attack",
+      "duration": 1.38,
+      "impact": 0.6348,
+      "grounded": true,
+      "maxRootLift": 0.08079158456031178
+    },
+    {
+      "room": 1,
+      "id": "Cat",
+      "clip": "Attack",
+      "duration": 1,
+      "impact": 0.44,
+      "grounded": true,
+      "maxRootLift": 0.059959512480173636
+    },
+    {
+      "room": 1,
+      "id": "Cat",
+      "clip": "Bite",
+      "duration": 1.06,
+      "impact": 0.53,
+      "grounded": true,
+      "maxRootLift": 0.0481336461065157
+    },
+    {
+      "room": 1,
+      "id": "Dog",
+      "clip": "Attack",
+      "duration": 1.15,
+      "impact": 0.506,
+      "grounded": true,
+      "maxRootLift": 0.1992315444696397
+    },
+    {
+      "room": 1,
+      "id": "Dog",
+      "clip": "Bite",
+      "duration": 1.06,
+      "impact": 0.53,
+      "grounded": true,
+      "maxRootLift": 0.06357277859167897
+    },
+    {
+      "room": 1,
+      "id": "Owl",
+      "clip": "Attack",
+      "duration": 1.42,
+      "impact": 0.6958,
+      "grounded": true,
+      "maxRootLift": 0.5162942736501712
+    },
+    {
+      "room": 1,
+      "id": "Fox",
+      "clip": "Attack",
+      "duration": 1.1,
+      "impact": 0.47300000000000003,
+      "grounded": true,
+      "maxRootLift": 0.22774348422496574
+    },
+    {
+      "room": 1,
+      "id": "Fox",
+      "clip": "Bite",
+      "duration": 1.06,
+      "impact": 0.53,
+      "grounded": true,
+      "maxRootLift": 0.04748904843001377
+    },
+    {
+      "room": 2,
+      "id": "Hedgehog",
+      "clip": "Attack",
+      "duration": 1.32,
+      "impact": 0.6072000000000001,
+      "grounded": true,
+      "maxRootLift": 0.10516082872260424
+    },
+    {
+      "room": 2,
+      "id": "Squirrel",
+      "clip": "Attack",
+      "duration": 0.92,
+      "impact": 0.4232,
+      "grounded": true,
+      "maxRootLift": 0.09925377736963438
+    },
+    {
+      "room": 2,
+      "id": "Squirrel",
+      "clip": "Bite",
+      "duration": 1.06,
+      "impact": 0.53,
+      "grounded": true,
+      "maxRootLift": 0.10807640267966821
+    },
+    {
+      "room": 2,
+      "id": "Skunk",
+      "clip": "Attack",
+      "duration": 1.34,
+      "impact": 0.6164000000000001,
+      "grounded": true,
+      "maxRootLift": 0.060255717626099166
+    },
+    {
+      "room": 2,
+      "id": "Beaver",
+      "clip": "Attack",
+      "duration": 1.45,
+      "impact": 0.667,
+      "grounded": true,
+      "maxRootLift": 0.3981425829933518
+    },
+    {
+      "room": 2,
+      "id": "Beaver",
+      "clip": "Bite",
+      "duration": 1.06,
+      "impact": 0.53,
+      "grounded": true,
+      "maxRootLift": 0.11338150201857987
+    },
+    {
+      "room": 2,
+      "id": "Raccoon",
+      "clip": "Attack",
+      "duration": 1.08,
+      "impact": 0.4968000000000001,
+      "grounded": true,
+      "maxRootLift": 0.05991382900831667
+    },
+    {
+      "room": 2,
+      "id": "Raccoon",
+      "clip": "Bite",
+      "duration": 1.06,
+      "impact": 0.53,
+      "grounded": true,
+      "maxRootLift": 0.04147540596076314
+    },
+    {
+      "room": 2,
+      "id": "Badger",
+      "clip": "Attack",
+      "duration": 1.4,
+      "impact": 0.7,
+      "grounded": true,
+      "maxRootLift": 0.04704217795397235
+    },
+    {
+      "room": 2,
+      "id": "Badger",
+      "clip": "Bite",
+      "duration": 1.4,
+      "impact": 0.7,
+      "grounded": true,
+      "maxRootLift": 0.04704217795397235
+    },
+    {
+      "room": 3,
+      "id": "Duck",
+      "clip": "Attack",
+      "duration": 0.98,
+      "impact": 0.45080000000000003,
+      "grounded": true,
+      "maxRootLift": 0.08995437192550473
+    },
+    {
+      "room": 3,
+      "id": "Rooster",
+      "clip": "Attack",
+      "duration": 1.06,
+      "impact": 0.48760000000000003,
+      "grounded": true,
+      "maxRootLift": 0.08966991361714535
+    },
+    {
+      "room": 3,
+      "id": "Pig",
+      "clip": "Attack",
+      "duration": 1.25,
+      "impact": 0.5750000000000001,
+      "grounded": true,
+      "maxRootLift": 0.10275062793454239
+    },
+    {
+      "room": 3,
+      "id": "Sheep",
+      "clip": "Attack",
+      "duration": 1.28,
+      "impact": 0.5888,
+      "grounded": true,
+      "maxRootLift": 0.08973575655935721
+    },
+    {
+      "room": 3,
+      "id": "Goat",
+      "clip": "Attack",
+      "duration": 1.16,
+      "impact": 0.5336,
+      "grounded": true,
+      "maxRootLift": 0.0893877551020408
+    },
+    {
+      "room": 3,
+      "id": "Horse",
+      "clip": "Attack",
+      "duration": 1.85,
+      "impact": 1.221,
+      "grounded": true,
+      "maxRootLift": 0.4413455414670124
+    },
+    {
+      "room": 4,
+      "id": "Boar",
+      "clip": "Attack",
+      "duration": 1.35,
+      "impact": 0.6210000000000001,
+      "grounded": true,
+      "maxRootLift": 0.08989813251177647
+    },
+    {
+      "room": 4,
+      "id": "Ram",
+      "clip": "Attack",
+      "duration": 1.4,
+      "impact": 0.644,
+      "grounded": true,
+      "maxRootLift": 0.08969392218179005
+    },
+    {
+      "room": 4,
+      "id": "Deer",
+      "clip": "Attack",
+      "duration": 1.38,
+      "impact": 0.6348,
+      "grounded": true,
+      "maxRootLift": 0.08969392218179005
+    },
+    {
+      "room": 4,
+      "id": "Lynx",
+      "clip": "Attack",
+      "duration": 1,
+      "impact": 0.46,
+      "grounded": true,
+      "maxRootLift": 0.05995437192550474
+    },
+    {
+      "room": 4,
+      "id": "Lynx",
+      "clip": "Bite",
+      "duration": 1.06,
+      "impact": 0.53,
+      "grounded": true,
+      "maxRootLift": 0.03925017790951429
+    },
+    {
+      "room": 4,
+      "id": "Wolf",
+      "clip": "Attack",
+      "duration": 1.06,
+      "impact": 0.53,
+      "grounded": true,
+      "maxRootLift": 0.034540952217062555
+    },
+    {
+      "room": 4,
+      "id": "Wolf",
+      "clip": "Bite",
+      "duration": 1.06,
+      "impact": 0.53,
+      "grounded": true,
+      "maxRootLift": 0.034540952217062555
+    },
+    {
+      "room": 4,
+      "id": "Bear",
+      "clip": "Attack",
+      "duration": 1.48,
+      "impact": 0.6808000000000001,
+      "grounded": true,
+      "maxRootLift": 0.07802229216431328
+    },
+    {
+      "room": 4,
+      "id": "Bear",
+      "clip": "Bite",
+      "duration": 1.4,
+      "impact": 0.7,
+      "grounded": true,
+      "maxRootLift": 0.06715130632155818
+    },
+    {
+      "room": 5,
+      "id": "Capybara",
+      "clip": "Attack",
+      "duration": 1.4,
+      "impact": 0.644,
+      "grounded": true,
+      "maxRootLift": 0.10479474363284605
+    },
+    {
+      "room": 5,
+      "id": "Toucan",
+      "clip": "Attack",
+      "duration": 1.08,
+      "impact": 0.4968000000000001,
+      "grounded": true,
+      "maxRootLift": 0.08991382900831667
+    },
+    {
+      "room": 5,
+      "id": "Monkey",
+      "clip": "Attack",
+      "duration": 1,
+      "impact": 0.46,
+      "grounded": true,
+      "maxRootLift": 0.0760649884574019
+    },
+    {
+      "room": 5,
+      "id": "Monkey",
+      "clip": "Bite",
+      "duration": 1.06,
+      "impact": 0.53,
+      "grounded": true,
+      "maxRootLift": 0.08194006749443893
+    },
+    {
+      "room": 5,
+      "id": "Anaconda",
+      "clip": "Attack",
+      "duration": 1.28,
+      "impact": 0.64,
+      "grounded": true,
+      "maxRootLift": 0.1013887624651414
+    },
+    {
+      "room": 5,
+      "id": "Anaconda",
+      "clip": "Bite",
+      "duration": 1.28,
+      "impact": 0.64,
+      "grounded": true,
+      "maxRootLift": 0.1013887624651414
+    },
+    {
+      "room": 5,
+      "id": "Crocodile",
+      "clip": "Attack",
+      "duration": 1.4,
+      "impact": 0.7,
+      "grounded": true,
+      "maxRootLift": 0.4756984354508548
+    },
+    {
+      "room": 5,
+      "id": "Crocodile",
+      "clip": "Bite",
+      "duration": 1.4,
+      "impact": 0.7,
+      "grounded": true,
+      "maxRootLift": 0.4756984354508548
+    },
+    {
+      "room": 5,
+      "id": "Jaguar",
+      "clip": "Attack",
+      "duration": 1.13,
+      "impact": 0.5197999999999999,
+      "grounded": true,
+      "maxRootLift": 0.05977787037733028
+    },
+    {
+      "room": 5,
+      "id": "Jaguar",
+      "clip": "Bite",
+      "duration": 1.06,
+      "impact": 0.53,
+      "grounded": true,
+      "maxRootLift": 0.034789374125608945
+    },
+    {
+      "room": 6,
+      "id": "Porcupine",
+      "clip": "Attack",
+      "duration": 1.4,
+      "impact": 0.644,
+      "grounded": true,
+      "maxRootLift": 0.08969392218179005
+    },
+    {
+      "room": 6,
+      "id": "Mongoose",
+      "clip": "Attack",
+      "duration": 1.06,
+      "impact": 0.53,
+      "grounded": true,
+      "maxRootLift": 0.034540952217062555
+    },
+    {
+      "room": 6,
+      "id": "Mongoose",
+      "clip": "Bite",
+      "duration": 1.06,
+      "impact": 0.53,
+      "grounded": true,
+      "maxRootLift": 0.034540952217062555
+    },
+    {
+      "room": 6,
+      "id": "Otter",
+      "clip": "Attack",
+      "duration": 1.06,
+      "impact": 0.53,
+      "grounded": true,
+      "maxRootLift": 0.035465752939941905
+    },
+    {
+      "room": 6,
+      "id": "Otter",
+      "clip": "Bite",
+      "duration": 1.06,
+      "impact": 0.53,
+      "grounded": true,
+      "maxRootLift": 0.035465752939941905
+    },
+    {
+      "room": 6,
+      "id": "Pelican",
+      "clip": "Attack",
+      "duration": 1.4,
+      "impact": 0.644,
+      "grounded": true,
+      "maxRootLift": 0.08982995676766113
+    },
+    {
+      "room": 6,
+      "id": "Flamingo",
+      "clip": "Attack",
+      "duration": 1.25,
+      "impact": 0.5750000000000001,
+      "grounded": true,
+      "maxRootLift": 0.08979593714768214
+    },
+    {
+      "room": 6,
+      "id": "MonitorLizard",
+      "clip": "Attack",
+      "duration": 1.4,
+      "impact": 0.7,
+      "grounded": true,
+      "maxRootLift": 0.05242273510859417
+    },
+    {
+      "room": 6,
+      "id": "MonitorLizard",
+      "clip": "Bite",
+      "duration": 1.4,
+      "impact": 0.7,
+      "grounded": true,
+      "maxRootLift": 0.05242273510859417
+    }
+  ]
+}

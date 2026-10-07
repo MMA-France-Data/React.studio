@@ -1,0 +1,32 @@
+{
+  "checks": 105425,
+  "swords": 6,
+  "playerClips": 2,
+  "duration": 0.38,
+  "trajectories": [
+    {
+      "clip": "SlashRight",
+      "fromX": -4.643361941701643,
+      "toX": 4.731924815935791,
+      "heightRange": 0.03664499019301659,
+      "maxBladePitchDegrees": 0.3758310453685675
+    },
+    {
+      "clip": "SlashLeft",
+      "fromX": 4.731924815935791,
+      "toX": -4.649966985045102,
+      "heightRange": 0.03379411300082502,
+      "maxBladePitchDegrees": 0.5337261756567496
+    }
+  ],
+  "alternationUnitChecks": 88,
+  "linkedAnimals": 30,
+  "finiteGeometry": true,
+  "originalSourcesUnchanged": true,
+  "damageAndPricesUnchanged": true,
+  "studioRuntimeTest": false,
+  "note": "Offline geometry, timing, references, source hashes and syntax; not a Studio runtime test.",
+  "nativeXmlVerified": 9,
+  "luauSyntaxVerified": true,
+  "rojoBuilds": 2
+}

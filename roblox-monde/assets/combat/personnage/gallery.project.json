@@ -1,0 +1,68 @@
+{
+  "name": "MONDE-Combat-Visuel-Galerie",
+  "tree": {
+    "$className": "DataModel",
+    "ReplicatedStorage": {
+      "Models": {
+        "$className": "Folder",
+        "R15Preview": {
+          "$path": "models/R15Preview.rbxmx"
+        },
+        "Sword_Iron": {
+          "$path": "models/Sword_Iron.rbxmx"
+        },
+        "Sword_Steel": {
+          "$path": "models/Sword_Steel.rbxmx"
+        },
+        "Sword_Frost": {
+          "$path": "models/Sword_Frost.rbxmx"
+        },
+        "Sword_Flame": {
+          "$path": "models/Sword_Flame.rbxmx"
+        },
+        "Sword_Storm": {
+          "$path": "models/Sword_Storm.rbxmx"
+        },
+        "Sword_Prismatic": {
+          "$path": "models/Sword_Prismatic.rbxmx"
+        }
+      },
+      "CombatAnimator": {
+        "$path": "CombatAnimator.luau"
+      },
+      "AttackTimeline": {
+        "$path": "AttackTimeline.luau"
+      },
+      "CombatVFX": {
+        "$path": "src/client/CombatVFX.luau"
+      },
+      "SwordVisuals": {
+        "$path": "src/client/SwordVisuals.luau"
+      }
+    },
+    "StarterPlayer": {
+      "StarterPlayerScripts": {
+        "PlayerGallery": {
+          "$path": "PlayerGallery.client.luau"
+        }
+      }
+    },
+    "Workspace": {
+      "$properties": {
+        "StreamingEnabled": false,
+        "Gravity": 0
+      }
+    },
+    "Lighting": {
+      "$properties": {
+        "Brightness": 2,
+        "ClockTime": 12,
+        "Ambient": [
+          0.55,
+          0.55,
+          0.55
+        ]
+      }
+    }
+  }
+}
