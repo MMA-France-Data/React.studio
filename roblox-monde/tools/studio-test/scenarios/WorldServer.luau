@@ -240,5 +240,14 @@ return function(log)
 	check(z > zones[2].zMin and z < zones[2].zMin + 30, "le bouton ZONE pose à l'entrée de la zone ouverte", math.floor(z))
 	root = player.Character.HumanoidRootPart.Position
 	shot("voyage", root + Vector3.new(0, 7, -16), root + Vector3.new(0, 4, 20))
+	-- Les six epees, une par une, dans la main (de profil, au repos).
+	D("Travel", "base")
+	task.wait(1)
+	for sword = 1, 6 do
+		D("Sword", sword)
+		task.wait(0.8)
+		root = player.Character.HumanoidRootPart.Position
+		shot("epee_" .. sword, root + Vector3.new(7, 2, -3), root + Vector3.new(0, 0.5, -1))
+	end
 	log("Info", "[SURVIVE] TEST:done")
 end

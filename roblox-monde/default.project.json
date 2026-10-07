@@ -206,6 +206,9 @@
         "Jaguar": {
           "$path": "../roblox-survive/assets/collections/oeufs/models/JaguarEgg.rbxmx"
         }
+      },
+      "SwordMeshes": {
+        "$path": "assets/swords-roblox/SwordMeshes.rbxm"
       }
     },
     "ServerScriptService": {

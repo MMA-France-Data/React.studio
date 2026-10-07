@@ -19,6 +19,14 @@ function Swords.build(tier: number, parent: Instance): Model
 		and template:FindFirstChild("TrailBase", true) and template:FindFirstChild("TrailTip", true) then
 		local imported = template:Clone()
 		imported.Name = "Sword"
+		-- (Premier rangement des epees : la prise etait posee du mauvais cote, on tenait l epee par la lame. Les
+		-- modeles ranges depuis par le plugin corrige portent l attribut « Calibre » ; les autres sont retournes ici :
+		-- la prise passe de l autre cote du milieu de l epee, et regarde vers la vraie pointe.)
+		local hold, far = imported.PrimaryPart, imported:FindFirstChild("TrailTip", true)
+		if not imported:GetAttribute("Calibre") and hold and far then
+			local fromPommel = 5.2 + far.Position.Z
+			hold.CFrame = hold.CFrame * CFrame.new(0, 0, -2 * (2.6 - fromPommel)) * CFrame.Angles(0, math.pi, 0)
+		end
 		for _, item in imported:GetDescendants() do
 			if item:IsA("BasePart") then
 				item.Anchored, item.Massless = true, true

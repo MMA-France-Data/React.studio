@@ -31,7 +31,7 @@ local INFO = {
 }
 
 local toolbar = plugin:CreateToolbar("MONDE")
-local button = toolbar:CreateButton("Ranger les épées", "Range les épées importées dans ReplicatedStorage > SwordMeshes", "rbxassetid://0")
+local button = toolbar:CreateButton("Ranger les épées", "Range les épées importées dans ReplicatedStorage > SwordMeshes", "")
 button.ClickableWhenViewportHidden = true
 
 -- L'épée importée qui porte ce nom : un modèle, ou directement une pièce.
@@ -87,7 +87,7 @@ local function arrange(name: string, source: Instance): Model
 	table.sort(axes, function(a, b)
 		return a[1] < b[1]
 	end)
-	local wide, tip = axes[2][2], -axes[3][2]
+	local wide, tip = axes[2][2], axes[3][2]
 	local info = INFO[name]
 	local pommel = main.Position - tip * (LENGTH / 2)
 	local at = pommel + tip * info.grip
@@ -101,6 +101,8 @@ local function arrange(name: string, source: Instance): Model
 	grip.CFrame = CFrame.lookAt(at, at + tip, wide)
 	grip.Parent = model
 	model.PrimaryPart = grip
+	-- (Version du rangement : la premiere tenait l epee par la lame, la pointe est du cote positif de l axe.)
+	model:SetAttribute("Calibre", 2)
 	for key, distance in { TrailBase = info.base, TrailTip = info.tip } do
 		local point = Instance.new("Attachment")
 		point.Name = key
