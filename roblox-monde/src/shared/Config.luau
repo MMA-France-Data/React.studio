@@ -72,6 +72,22 @@ Config.RESET = 32 -- le joueur s'éloigne à plus de cette distance : le monstre
 Config.MONSTER_REACH = 5.5
 Config.MONSTER_COOLDOWN = 1.3
 
+-- LE NIVEAU AFFICHE DES MONSTRES suit celui du joueur (sa demande : « calculer mon niveau pour qu il soit coherent
+-- au niveau des monstres que j affronte »). C est le niveau que le joueur a, dans la simulation
+-- (tools/balance/mondes.py), au moment ou il devient capable de battre ce camp : il arrive donc devant des monstres
+-- de son niveau, et le camp suivant est quelques niveaux au-dessus. { camps 1 a 5, puis le boss }, par monde.
+-- (Si on change Config.xpNeed ou la difficulte, il faut refaire ce tableau.)
+Config.LEVELS = {
+	{ 1, 3, 6, 8, 13, 22 },
+	{ 24, 25, 27, 32, 38, 53 },
+	{ 56, 57, 59, 66, 74, 95 },
+}
+function Config.monsterLevel(zone: number, rank: number): number
+	local last = #Config.LEVELS
+	local row = Config.LEVELS[math.clamp(zone, 1, last)]
+	-- (Au-dela du dernier monde regle : 42 niveaux de plus par monde.)
+	return row[math.clamp(rank, 1, 6)] + math.max(0, zone - last) * 42
+end
 function Config.monster(zone: number, rank: number)
 	local m = Config.MONSTER
 	local hp, damage = m.hp[rank], m.damage[rank]
@@ -86,7 +102,7 @@ function Config.monster(zone: number, rank: number)
 		egg = m.egg[rank] / Config.longEgg(zone),
 		scale = m.scale[rank],
 		speed = m.speed[rank],
-		level = (zone - 1) * 10 + rank * 2 - 1,
+		level = Config.monsterLevel(zone, rank),
 	}
 end
 
@@ -104,7 +120,7 @@ function Config.chest(zone: number)
 		egg = c.egg,
 		scale = 1.6,
 		speed = 0,
-		level = (zone - 1) * 10 + 5,
+		level = Config.monsterLevel(zone, 3),
 	}
 end
 
