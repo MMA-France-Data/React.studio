@@ -100,4 +100,17 @@ return function(world)
 		return nil
 	end
 	debug.Parent = ServerStorage
+
+	-- LE BOUTON « VISITER » (dans Studio seulement) : ouvre toutes les zones au joueur, pour aller voir les mondes
+	-- suivants sans battre les boss. Les monstres n attaquent jamais les premiers : on peut se promener partout.
+	local visit = Instance.new("RemoteEvent")
+	visit.Name = "DebugVisit"
+	visit.OnServerEvent:Connect(function(player)
+		local data = PlayerData.get(player)
+		if data then
+			data.zone = #world.zones
+			PlayerData.changed(player)
+		end
+	end)
+	visit.Parent = ReplicatedStorage
 end

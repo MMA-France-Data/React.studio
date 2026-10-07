@@ -730,5 +730,29 @@ require(script.Parent.Animals)({ gui = gui, side = side, text = text, box = box,
 -- L'épée dans la main et les gestes des bras (frapper, porter un œuf ou un familier).
 require(script.Parent.Poses)()
 
--- (RunService : gardé pour les tests.)
-local _ = RunService
+-- DANS STUDIO SEULEMENT : le bouton « VISITER » ouvre toutes les zones (pour aller voir les mondes suivants sans
+-- battre les boss). Il n existe pas dans le jeu publie.
+if RunService:IsStudio() then
+	task.spawn(function()
+		local visit = ReplicatedStorage:WaitForChild("DebugVisit", 15)
+		if not visit then
+			return
+		end
+		local button = Instance.new("TextButton")
+		button.Name = "Visit"
+		button.Position = UDim2.fromOffset(200, 8)
+		button.Size = UDim2.fromOffset(190, 34)
+		button.BackgroundColor3 = Color3.fromRGB(34, 40, 70)
+		button.Font = Enum.Font.FredokaOne
+		button.TextSize = 16
+		button.TextColor3 = Color3.fromRGB(255, 221, 51)
+		button.Text = "VISITER : tout ouvrir"
+		Instance.new("UICorner", button).CornerRadius = UDim.new(0, 8)
+		button.Parent = gui
+		button.Activated:Connect(function()
+			visit:FireServer()
+			button.Text = "Tout est ouvert"
+			showToast("Studio : toutes les zones sont ouvertes", GOLD)
+		end)
+	end)
+end
