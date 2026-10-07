@@ -1,0 +1,238 @@
+{
+  "name": "Monde",
+  "tree": {
+    "$className": "DataModel",
+    "ReplicatedStorage": {
+      "PetVisuals": {
+        "$className": "Folder",
+        "Dragon": {
+          "$path": "../roblox-survive/assets/pets/Dragon.rbxmx"
+        },
+        "Rock": {
+          "$path": "../roblox-survive/assets/pets/Rock.rbxmx"
+        },
+        "Rabbit": {
+          "$path": "../roblox-survive/assets/pets/Rabbit.rbxmx"
+        },
+        "Golem": {
+          "$path": "../roblox-survive/assets/pets/Golem.rbxmx"
+        },
+        "Owl": {
+          "$path": "../roblox-survive/assets/pets/Owl.rbxmx"
+        },
+        "Bunny": {
+          "$path": "../roblox-survive/assets/collections/salle-01/models/Rabbit.rbxmx"
+        },
+        "Turtle": {
+          "$path": "../roblox-survive/assets/collections/salle-01/models/Turtle.rbxmx"
+        },
+        "Cat": {
+          "$path": "../roblox-survive/assets/collections/salle-01/models/Cat.rbxmx"
+        },
+        "Dog": {
+          "$path": "../roblox-survive/assets/collections/salle-01/models/Dog.rbxmx"
+        },
+        "Owlet": {
+          "$path": "../roblox-survive/assets/collections/salle-01/models/Owl.rbxmx"
+        },
+        "Fox": {
+          "$path": "../roblox-survive/assets/collections/ultra-rares/models/Fox.rbxmx"
+        },
+        "Hedgehog": {
+          "$path": "../roblox-survive/assets/collections/salle-02/models/Hedgehog.rbxmx"
+        },
+        "Squirrel": {
+          "$path": "../roblox-survive/assets/collections/salle-02/models/Squirrel.rbxmx"
+        },
+        "Skunk": {
+          "$path": "../roblox-survive/assets/collections/salle-02/models/Skunk.rbxmx"
+        },
+        "Beaver": {
+          "$path": "../roblox-survive/assets/collections/salle-02/models/Beaver.rbxmx"
+        },
+        "Raccoon": {
+          "$path": "../roblox-survive/assets/collections/salle-02/models/Raccoon.rbxmx"
+        },
+        "Badger": {
+          "$path": "../roblox-survive/assets/collections/ultra-rares/models/Badger.rbxmx"
+        },
+        "Duck": {
+          "$path": "../roblox-survive/assets/collections/salle-03/models/Duck.rbxmx"
+        },
+        "Rooster": {
+          "$path": "../roblox-survive/assets/collections/salle-03/models/Rooster.rbxmx"
+        },
+        "Pig": {
+          "$path": "../roblox-survive/assets/collections/salle-03/models/Pig.rbxmx"
+        },
+        "Sheep": {
+          "$path": "../roblox-survive/assets/collections/salle-03/models/Sheep.rbxmx"
+        },
+        "Goat": {
+          "$path": "../roblox-survive/assets/collections/salle-03/models/Goat.rbxmx"
+        },
+        "Horse": {
+          "$path": "../roblox-survive/assets/collections/ultra-rares/models/Horse.rbxmx"
+        },
+        "Boar": {
+          "$path": "../roblox-survive/assets/collections/salle-04/models/Boar.rbxmx"
+        },
+        "Ram": {
+          "$path": "../roblox-survive/assets/collections/salle-04/models/Ram.rbxmx"
+        },
+        "Deer": {
+          "$path": "../roblox-survive/assets/collections/salle-04/models/Deer.rbxmx"
+        },
+        "Lynx": {
+          "$path": "../roblox-survive/assets/collections/salle-04/models/Lynx.rbxmx"
+        },
+        "Wolf": {
+          "$path": "../roblox-survive/assets/collections/salle-04/models/Wolf.rbxmx"
+        },
+        "Bear": {
+          "$path": "../roblox-survive/assets/collections/ultra-rares/models/Bear.rbxmx"
+        },
+        "Capybara": {
+          "$path": "../roblox-survive/assets/collections/salle-05/models/Capybara.rbxmx"
+        },
+        "Toucan": {
+          "$path": "../roblox-survive/assets/collections/salle-05/models/Toucan.rbxmx"
+        },
+        "Monkey": {
+          "$path": "../roblox-survive/assets/collections/salle-05/models/Monkey.rbxmx"
+        },
+        "Anaconda": {
+          "$path": "../roblox-survive/assets/collections/salle-05/models/Anaconda.rbxmx"
+        },
+        "Crocodile": {
+          "$path": "../roblox-survive/assets/collections/salle-05/models/Crocodile.rbxmx"
+        },
+        "Jaguar": {
+          "$path": "../roblox-survive/assets/collections/ultra-rares/models/Jaguar.rbxmx"
+        }
+      },
+      "Shared": {
+        "$path": "src/shared"
+      },
+      "EggVisuals": {
+        "$className": "Folder",
+        "Bunny": {
+          "$path": "../roblox-survive/assets/collections/oeufs/models/RabbitEgg.rbxmx"
+        },
+        "Turtle": {
+          "$path": "../roblox-survive/assets/collections/oeufs/models/TurtleEgg.rbxmx"
+        },
+        "Cat": {
+          "$path": "../roblox-survive/assets/collections/oeufs/models/CatEgg.rbxmx"
+        },
+        "Dog": {
+          "$path": "../roblox-survive/assets/collections/oeufs/models/DogEgg.rbxmx"
+        },
+        "Owlet": {
+          "$path": "../roblox-survive/assets/collections/oeufs/models/OwlEgg.rbxmx"
+        },
+        "Fox": {
+          "$path": "../roblox-survive/assets/collections/oeufs/models/FoxEgg.rbxmx"
+        },
+        "Hedgehog": {
+          "$path": "../roblox-survive/assets/collections/oeufs/models/HedgehogEgg.rbxmx"
+        },
+        "Squirrel": {
+          "$path": "../roblox-survive/assets/collections/oeufs/models/SquirrelEgg.rbxmx"
+        },
+        "Skunk": {
+          "$path": "../roblox-survive/assets/collections/oeufs/models/SkunkEgg.rbxmx"
+        },
+        "Beaver": {
+          "$path": "../roblox-survive/assets/collections/oeufs/models/BeaverEgg.rbxmx"
+        },
+        "Raccoon": {
+          "$path": "../roblox-survive/assets/collections/oeufs/models/RaccoonEgg.rbxmx"
+        },
+        "Badger": {
+          "$path": "../roblox-survive/assets/collections/oeufs/models/BadgerEgg.rbxmx"
+        },
+        "Duck": {
+          "$path": "../roblox-survive/assets/collections/oeufs/models/DuckEgg.rbxmx"
+        },
+        "Rooster": {
+          "$path": "../roblox-survive/assets/collections/oeufs/models/RoosterEgg.rbxmx"
+        },
+        "Pig": {
+          "$path": "../roblox-survive/assets/collections/oeufs/models/PigEgg.rbxmx"
+        },
+        "Sheep": {
+          "$path": "../roblox-survive/assets/collections/oeufs/models/SheepEgg.rbxmx"
+        },
+        "Goat": {
+          "$path": "../roblox-survive/assets/collections/oeufs/models/GoatEgg.rbxmx"
+        },
+        "Horse": {
+          "$path": "../roblox-survive/assets/collections/oeufs/models/HorseEgg.rbxmx"
+        },
+        "Boar": {
+          "$path": "../roblox-survive/assets/collections/oeufs/models/BoarEgg.rbxmx"
+        },
+        "Ram": {
+          "$path": "../roblox-survive/assets/collections/oeufs/models/RamEgg.rbxmx"
+        },
+        "Deer": {
+          "$path": "../roblox-survive/assets/collections/oeufs/models/DeerEgg.rbxmx"
+        },
+        "Lynx": {
+          "$path": "../roblox-survive/assets/collections/oeufs/models/LynxEgg.rbxmx"
+        },
+        "Wolf": {
+          "$path": "../roblox-survive/assets/collections/oeufs/models/WolfEgg.rbxmx"
+        },
+        "Bear": {
+          "$path": "../roblox-survive/assets/collections/oeufs/models/BearEgg.rbxmx"
+        },
+        "Capybara": {
+          "$path": "../roblox-survive/assets/collections/oeufs/models/CapybaraEgg.rbxmx"
+        },
+        "Toucan": {
+          "$path": "../roblox-survive/assets/collections/oeufs/models/ToucanEgg.rbxmx"
+        },
+        "Monkey": {
+          "$path": "../roblox-survive/assets/collections/oeufs/models/MonkeyEgg.rbxmx"
+        },
+        "Anaconda": {
+          "$path": "../roblox-survive/assets/collections/oeufs/models/AnacondaEgg.rbxmx"
+        },
+        "Crocodile": {
+          "$path": "../roblox-survive/assets/collections/oeufs/models/CrocodileEgg.rbxmx"
+        },
+        "Jaguar": {
+          "$path": "../roblox-survive/assets/collections/oeufs/models/JaguarEgg.rbxmx"
+        }
+      }
+    },
+    "ServerScriptService": {
+      "Server": {
+        "$path": "src/server"
+      }
+    },
+    "ServerStorage": {},
+    "StarterPlayer": {
+      "$properties": {
+        "CharacterUseJumpPower": false
+      },
+      "StarterPlayerScripts": {
+        "Client": {
+          "$path": "src/client"
+        }
+      }
+    },
+    "Workspace": {
+      "$properties": {
+        "StreamingEnabled": false
+      }
+    },
+    "TextChatService": {
+      "$properties": {
+        "ChatVersion": "TextChatService"
+      }
+    }
+  }
+}
