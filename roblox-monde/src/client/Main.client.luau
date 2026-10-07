@@ -373,11 +373,56 @@ local function applyHud()
 	end
 	pcall(function()
 		StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.PlayerList, not small)
+		-- (La petite barre de vie de Roblox, en haut a droite : remplacee par celle au-dessus de la tete.)
+		StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Health, false)
 	end)
 end
 workspace:GetAttributeChangedSignal("PhoneHud"):Connect(applyHud)
 task.defer(applyHud)
 task.delay(3, applyHud)
+
+-- MA VIE, AU-DESSUS DE MA TETE (sa demande : « la vie, je la vois mal : au-dessus de la tete, mais uniquement quand
+-- je perds de la vie »). Une barre avec le chiffre ; elle disparait des que la vie est de nouveau pleine.
+local function lifeBar(character: Model)
+	local humanoid = character:WaitForChild("Humanoid", 10)
+	local head = character:WaitForChild("Head", 10)
+	if not humanoid or not head then
+		return
+	end
+	local board = Instance.new("BillboardGui")
+	board.Name = "Life"
+	board.Size = UDim2.fromScale(5, 0.9)
+	board.StudsOffsetWorldSpace = Vector3.new(0, 2.6, 0)
+	board.AlwaysOnTop = true
+	board.AutoLocalize = false
+	board.Adornee = head
+	board.Enabled = false
+	board.Parent = head
+	local back = box(board, "Back", UDim2.fromScale(1, 0.62), UDim2.fromScale(0, 0.19), Color3.fromRGB(30, 30, 40))
+	back.UIStroke.Thickness = 2
+	local fill = Instance.new("Frame")
+	fill.Name = "Fill"
+	fill.BorderSizePixel = 0
+	Instance.new("UICorner", fill).CornerRadius = UDim.new(0, 8)
+	fill.Parent = back
+	local label = text(back, "Label", UDim2.fromScale(0.96, 0.9), UDim2.fromScale(0.02, 0.05))
+	label.ZIndex = 2
+	local function refresh()
+		local health, max = math.max(0, humanoid.Health), math.max(1, humanoid.MaxHealth)
+		local part = math.clamp(health / max, 0, 1)
+		board.Enabled = health > 0 and health < max - 0.5
+		fill.Size = UDim2.fromScale(part, 1)
+		fill.BackgroundColor3 = if part > 0.5 then Color3.fromRGB(80, 220, 90) elseif part > 0.25 then Color3.fromRGB(255, 190, 50) else Color3.fromRGB(240, 70, 70)
+		label.Text = compact(math.ceil(health)) .. " / " .. compact(math.floor(max + 0.5))
+	end
+	humanoid.HealthChanged:Connect(refresh)
+	humanoid:GetPropertyChangedSignal("MaxHealth"):Connect(refresh)
+	refresh()
+end
+player.CharacterAdded:Connect(lifeBar)
+if player.Character then
+	task.spawn(lifeBar, player.Character)
+end
 
 -- LES MESSAGES --------------------------------------------------------------------------------------------------
 local toast = text(gui, "Toast", UDim2.new(0.8, 0, 0, 40), UDim2.new(0.1, 0, 0.24, 0), Color3.fromRGB(110, 255, 80), 34)
