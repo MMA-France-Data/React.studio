@@ -43,11 +43,41 @@ for v in mesh.vertices:
 mesh.update()
 size = (hi - lo) * scale
 obj.name = mesh.name = NAME
-# Les textures : reduites a 1024 et enregistrees a cote, pour etre rangees dans le FBX.
-for index, image in enumerate([i for i in bpy.data.images if i.size[0] > 0]):
-    if max(image.size) > 1024:
-        image.scale(1024, 1024)
-    image.filepath_raw = os.path.join(OUT, '%s-texture%d.png' % (NAME, index)); image.file_format = 'PNG'; image.save()
+# LA COULEUR : on retrouve l image branchee sur la couleur de la matiere d origine, on la reduit a 2048, et on refait
+# une matiere toute simple (image -> couleur). Les matieres compliquees des GLB ne passent pas dans le FBX : le
+# modele arrivait gris dans Studio.
+def colour_image():
+    for mat in mesh.materials:
+        if not mat or not mat.use_nodes:
+            continue
+        for node in mat.node_tree.nodes:
+            if node.type == 'BSDF_PRINCIPLED':
+                seen, todo = set(), [l.from_node for l in node.inputs['Base Color'].links]
+                while todo:
+                    n = todo.pop()
+                    if n in seen:
+                        continue
+                    seen.add(n)
+                    if n.type == 'TEX_IMAGE' and n.image:
+                        return n.image
+                    for inp in n.inputs:
+                        todo.extend(l.from_node for l in inp.links)
+    images = [i for i in bpy.data.images if i.size[0] > 0]
+    return max(images, key=lambda i: i.size[0]) if images else None
+image = colour_image()
+if image:
+    if max(image.size) > 2048:
+        image.scale(2048, 2048)
+    image.filepath_raw = os.path.join(OUT, 'A-IMPORTER', NAME + '_couleur.png'); image.file_format = 'PNG'
+    os.makedirs(os.path.join(OUT, 'A-IMPORTER'), exist_ok=True)
+    image.save()
+    mat = bpy.data.materials.new(NAME); mat.use_nodes = True
+    tex = mat.node_tree.nodes.new('ShaderNodeTexImage'); tex.image = image
+    mat.node_tree.links.new(tex.outputs['Color'], mat.node_tree.nodes['Principled BSDF'].inputs['Base Color'])
+    mesh.materials.clear(); mesh.materials.append(mat)
+    for poly in mesh.polygons:
+        poly.material_index = 0
+print('COULEUR', image.name if image else None, list(image.size) if image else None)
 os.makedirs(os.path.join(OUT, 'A-IMPORTER'), exist_ok=True)
 # Coupe en morceaux : des tranches de gauche a droite, avec le meme nombre de triangles chacune.
 pieces = [obj]

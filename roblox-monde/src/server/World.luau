@@ -287,6 +287,12 @@ local function buildGym(parent: Instance)
 				part.Anchored = true
 				part.CanQuery = false
 				part.CastShadow = false
+				-- (Un modele allege a des faces a l envers : sans ca, on voit des trous a travers.)
+				if part:IsA("MeshPart") then
+					pcall(function()
+						part.DoubleSided = true
+					end)
+				end
 				part.Parent = model
 			end
 		end
