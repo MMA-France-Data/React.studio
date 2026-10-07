@@ -15,9 +15,17 @@ local TEXTURES = {
 Aura.textures = TEXTURES
 Aura.BOOST = 3
 local COLORS = {
-	Flame = Color3.fromRGB(255, 123, 24),
-	Frost = Color3.fromRGB(84, 218, 255),
-	Storm = Color3.fromRGB(255, 214, 34),
+	Flame = Color3.fromRGB(255, 94, 0),
+	Frost = Color3.fromRGB(0, 230, 255),
+	Storm = Color3.fromRGB(255, 226, 0),
+}
+local GLOW_COLORS = {
+	Flame = ColorSequence.new({ ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 218, 0)),
+		ColorSequenceKeypoint.new(0.35, COLORS.Flame), ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 32, 16)) }),
+	Frost = ColorSequence.new({ ColorSequenceKeypoint.new(0, Color3.fromRGB(210, 255, 255)),
+		ColorSequenceKeypoint.new(0.25, COLORS.Frost), ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 132, 255)) }),
+	Storm = ColorSequence.new({ ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 255, 180)),
+		ColorSequenceKeypoint.new(0.3, COLORS.Storm), ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 171, 0)) }),
 }
 function Aura.supports(id: string): boolean
 	return COLORS[id] ~= nil
@@ -75,11 +83,24 @@ function Aura.create(model: Model, id: string, base: Attachment, tip: Attachment
 	state.folder.Name, state.folder.Parent = "ElementalBladeAura", model
 	allocated += 1
 	state.glowBase, state.glowTip = anchor(state, "AuraBladeBase"), anchor(state, "AuraBladeTip")
-	state.halo = beam(state, "SoftBladeHalo", state.glowBase, state.glowTip, COLORS[id], 0.76, TEXTURES.glow)
-	state.halo.Transparency = curve({ {0, 1}, {0.13, 0.62}, {0.78, 0.68}, {1, 1} })
 	state.core = beam(state, "LuminousBladeEdge", state.glowBase, state.glowTip,
 		Color3.new(1, 1, 1):Lerp(COLORS[id], 0.18), 0.055, TEXTURES.glow)
 	state.core.Transparency = curve({ {0, 1}, {0.08, 0.38}, {0.86, 0.3}, {1, 1} })
+	-- Test style: loose, softly textured patches instead of a long geometric
+	-- beam/cone. Their birth, size and motion vary independently along the blade.
+	for i = 1, 5 do
+		local at = anchor(state, "IrregularGlowPoint" .. i)
+		table.insert(state.points, { at = at, fraction = 0.08 + (i - 1) * 0.21 })
+		local glow = emitter(state, at, "IrregularElementalGlow", TEXTURES.mist, 3.5, GLOW_COLORS[id])
+		-- BOOST is applied below: keep these compact so an edge-on/back view
+		-- does not acquire a thick camera-facing shell around the real blade.
+		glow.Lifetime, glow.Speed = NumberRange.new(0.25, 0.45), NumberRange.new(0.02, 0.06)
+		glow.SpreadAngle = Vector2.new(180, 180)
+		glow.Size = curve({ {0, 0.015}, {0.3, 0.10}, {0.75, 0.065}, {1, 0} })
+		glow.Transparency = curve({ {0, 1}, {0.2, 0.62}, {0.65, 0.76}, {1, 1} })
+		glow.Rotation, glow.RotSpeed = NumberRange.new(0, 360), NumberRange.new(-55, 55)
+		glow.Drag, glow.ZOffset = 1.5, 0.03
+	end
 	for i = 1, 3 do
 		local at = anchor(state, "ElementalBladePoint" .. i)
 		table.insert(state.points, { at = at, fraction = 0.12 + (i - 1) * 0.34 })
@@ -139,8 +160,9 @@ function Aura.create(model: Model, id: string, base: Attachment, tip: Attachment
 		end
 	end
 	-- (Claude, 07/10 : avec les epees enormes du jeu, 8 studs, ces effets etaient trop petits pour se voir : rien
-	-- sur les photos, alors que tout etait allume. BOOST fois plus gros et plus nombreux ; le halo sans texture, car
-	-- avec « glow.png » il ne s affichait pas du tout.)
+	-- sur les photos, alors que tout etait allume. BOOST fois plus gros et plus nombreux ; le coeur sans texture, car
+	-- avec « glow.png » il ne s affichait pas du tout. Le grand halo en Beam a depuis ete remplace par les lueurs
+	-- irregulieres : le joueur n aimait pas son voile conique.)
 	for _, entry in state.emitters do
 		local keys = {}
 		for _, key in entry.item.Size.Keypoints do
@@ -151,9 +173,9 @@ function Aura.create(model: Model, id: string, base: Attachment, tip: Attachment
 		entry.item.Rate = entry.rate
 		entry.item.Speed = NumberRange.new(entry.item.Speed.Min * Aura.BOOST, entry.item.Speed.Max * Aura.BOOST)
 	end
-	state.halo.Texture, state.core.Texture = "", ""
-	state.halo.Transparency = curve({ {0, 1}, {0.15, 0.72}, {0.8, 0.78}, {1, 1} })
-	state.core.Width0, state.core.Width1 = 0.16, 0.08
+	state.core.Texture = ""
+	-- Keep a fine, parallel highlight instead of another pointed ribbon.
+	state.core.Width0, state.core.Width1 = 0.12, 0.12
 	state.light.Range = 14
 	return state
 end
@@ -187,7 +209,6 @@ function Aura.update(state, dt: number, visible: boolean, swinging: boolean, cle
 	state.glowBase.WorldPosition, state.glowTip.WorldPosition = a, b
 	state.lightAt.WorldPosition = a:Lerp(b, 0.46)
 	local pulse = 0.5 + 0.5 * math.sin(state.time * 2.1)
-	state.halo.Width0, state.halo.Width1 = length * (0.24 + 0.018 * pulse), length * 0.085
 	state.light.Brightness = (if MOBILE then 0.18 else 0.42) * (0.85 + pulse * 0.15) * (if swinging then 1.25 else 1)
 	for _, point in state.points do
 		point.at.WorldCFrame = CFrame.new(a:Lerp(b, point.fraction))

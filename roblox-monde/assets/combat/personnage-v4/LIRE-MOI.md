@@ -11,6 +11,16 @@ Les anciens dossiers de personnages sont des archives, pas des modules à recopi
 - Feu : halo orangé, cœur clair, flammes et braises montantes.
 - Glace : halo cyan, brume froide et scintillements blancs.
 - Foudre : halo doré, éclairs jaunes ramifiés avec cœur blanc. Jamais bleue.
+- Test demandé après le retour du joueur : plus de grande surface conique.
+  Des petites lueurs texturées naissent indépendamment en cinq endroits autour
+  de la lame : silhouette irrégulière, orange-jaune/rouge pour le feu, cyan vif
+  pour la glace et jaune doré pour la foudre. Ces nouvelles lueurs restent fines
+  et proches de la lame (0,30 stud au maximum avec le BOOST actuel), pour ne pas
+  épaissir sa silhouette vue de dos. Le fin cœur lumineux a une largeur
+  constante. Les flammes, la brume, les braises et les éclairs sont conservés,
+  ainsi que le renforcement `Aura.BOOST` ajouté par Claude pour les grandes épées.
+  Cette variante visuelle reste à juger dans Studio : ce n'est pas un nouveau
+  rendu validé par le GIF.
 - Particules et lumière réduites sur mobile, effets coupés à distance, quotas
   d'auras et nettoyage à la destruction ou après une téléportation.
 
