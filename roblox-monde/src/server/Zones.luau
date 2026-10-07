@@ -318,7 +318,9 @@ local CAMPS = { { -52, 48 }, { 56, 92 }, { -60, 138 }, { 58, 184 }, { -50, 226 }
 -- (Les monstres sont bien ecartes les uns des autres, sur un grand rond : on en combat un seul a la fois.)
 local CAMP_RADIUS, CAMP_SIZE = 30, 5
 -- Les coffres : dans les coins tranquilles de la zone. { x, z (depuis l'entrée) }
-local CHESTS = { { 118, 60 }, { -122, 150 }, { 120, 236 }, { -116, 262 } }
+-- (Plus aucun coffre : le joueur les a fait enlever. Ils donnaient un œuf 4 fois sur 10 sans combattre l'animal,
+-- un raccourci autour de ses règles. Pour en remettre : { { 118, 60 }, { -122, 150 }, { 120, 236 }, { -116, 262 } }.)
+local CHESTS = {}
 local BOSS_Z = LENGTH - 46 -- l'arène du boss, au bout du chemin
 local ARENA = 30
 

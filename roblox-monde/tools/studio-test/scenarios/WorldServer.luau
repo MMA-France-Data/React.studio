@@ -37,7 +37,7 @@ return function(log)
 	-- 1. Le départ : sans familier.
 	local data = D("Data")
 	check(#data.team == 0 and next(data.spots) == nil, "un nouveau joueur commence sans familier")
-	check(#D("Monsters") == 3 * 30, "30 par zone : 5 camps de 5 monstres, le boss et 4 coffres", #D("Monsters"))
+	check(#D("Monsters") == 3 * 26, "26 par zone : 5 camps de 5 monstres et le boss", #D("Monsters"))
 
 	-- 2. Les décors.
 	shot("base", Vector3.new(0, 70, -130), Vector3.new(0, 0, 10))
@@ -133,6 +133,7 @@ return function(log)
 			break
 		end
 	end
+	if chest then
 	go(chest.position + Vector3.new(7, 0, 0))
 	task.wait(0.8)
 	root = player.Character.HumanoidRootPart.Position
@@ -148,6 +149,7 @@ return function(log)
 	local after2 = D("Data")
 	check(fed ~= nil and after2.spots["1"] == nil and after2.spots["3"] ~= nil, "nourrir : le familier mangé disparaît, l'autre reçoit son XP", tostring(fed) .. " XP, canard " .. tostring(duckXp and duckXp.a) .. ", mouton " .. tostring(sheep and sheep.a))
 
+	end
 	-- 5. La forge.
 	D("Give", 8000)
 	check(D("BuySword") == true and D("Data").sword == 2, "la forge améliore l'épée", D("Data").sword)

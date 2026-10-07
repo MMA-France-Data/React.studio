@@ -487,6 +487,18 @@ task.delay(6, function()
 	end
 end)
 
+-- LE TUTORIEL DE L'ÉPÉE : dès que le joueur a de quoi payer sa première amélioration, on le lui dit (et on le
+-- répète toutes les 20 secondes tant qu'il ne l'a pas achetée).
+task.spawn(function()
+	while (player:GetAttribute("Sword") or 1) <= 1 do
+		task.wait(1)
+		if player:GetAttribute("Loaded") and (player:GetAttribute("Sword") or 1) == 1 and (player:GetAttribute("Coins") or 0) >= Config.swordPrice(1) then
+			showToast(tr("swordHint", Config.swordPrice(1)), GOLD)
+			task.wait(20)
+		end
+	end
+end)
+
 -- LES CHIFFRES QUI S'ENVOLENT -------------------------------------------------------------------------------------
 -- Un coup porté : le chiffre des dégâts (blanc pour l'épée, orange pour les familiers). Un monstre battu : ses
 -- pièces et son XP.

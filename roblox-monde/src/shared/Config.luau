@@ -154,8 +154,10 @@ end
 --   demanderait des heures de farm en plus au monde 1, et une demi-heure au monde 2.
 Config.SWORDS = {
 	{ damage = 2.5, price = 0 }, -- monde 1 : l'épée de départ (comme un canard)
-	{ damage = 25, price = 8000 }, -- monde 1, vers 1 heure
-	{ damage = 250, price = 220000 }, -- monde 1, juste avant le boss (vers 3 h 20)
+	-- (La deuxième épée sert de TUTORIEL, sa demande : 30 pièces, soit une dizaine de canards ; elle triple les
+	-- dégâts. La vraie grosse épée du monde 1 est la troisième.)
+	{ damage = 8, price = 30 }, -- monde 1, après deux minutes
+	{ damage = 250, price = 260000 }, -- monde 1, juste avant le boss (vers 3 h 20)
 	{ damage = 1160, price = 1500000 }, -- monde 2, après 2 heures
 	{ damage = 5400, price = 9000000 }, -- monde 2, après 4 h 30
 	{ damage = 25000, price = 40000000 }, -- monde 2, juste avant le boss (après 7 h 30)
