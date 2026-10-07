@@ -262,6 +262,8 @@ ReplicatedStorage:WaitForChild("Notify").OnClientEvent:Connect(function(key: str
 		showToast(tr("levelUp", a), GOLD)
 	elseif key == "petLevel" then
 		showToast(tr("petLevel", tr(a), b), Color3.fromRGB(120, 200, 255))
+	elseif key == "eggOut" then
+		showToast(tr("eggOut", tr(a)), GOLD)
 	elseif key == "petDown" then
 		showToast(tr("petDown", tr(a)), RED)
 	elseif key == "eggDrop" then
@@ -393,6 +395,10 @@ end)
 local attackEvent = ReplicatedStorage:WaitForChild("Attack")
 local lastSwing = 0
 local function swing()
+	-- (Pas de coup d'épée avec un œuf sur la tête ou un familier dans les bras : le clic sert à le poser.)
+	if (player:GetAttribute("BagNext") or "") ~= "" or (player:GetAttribute("Held") or "") ~= "" then
+		return
+	end
 	if os.clock() - lastSwing >= Config.ATTACK_COOLDOWN then
 		lastSwing = os.clock()
 		attackEvent:FireServer()
@@ -419,12 +425,39 @@ local function roundButton(name: string, size: number, position: UDim2, color: C
 end
 local attackButton = roundButton("Attack", 104, UDim2.new(1, -110, 1, -30), Color3.fromRGB(235, 60, 60), "⚔")
 local autoButton = roundButton("Auto", 66, UDim2.new(1, -124, 1, -146), Color3.fromRGB(90, 96, 120), tr("auto"))
+-- L'ATTAQUE AUTOMATIQUE (sa demande : « que je puisse mettre l'attaque auto et faire autre chose sur mon PC ») : le
+-- personnage va tout seul jusqu'au monstre le plus proche, le combat, puis passe au suivant. Il ne s'éloigne pas à
+-- plus de AUTO_RADIUS de l'endroit où on l'a laissé (là où l'AUTO a été allumé, ou là où on a marché en dernier).
+local AUTO_RADIUS = 70
 local auto = false
+local anchor: Vector3? = nil
+local function setAuto(on: boolean)
+	auto = on
+	local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+	anchor = if on and root then root.Position else nil
+	autoButton.BackgroundColor3 = if auto then Color3.fromRGB(60, 200, 90) else Color3.fromRGB(90, 96, 120)
+end
 attackButton.Activated:Connect(swing)
 autoButton.Activated:Connect(function()
-	auto = not auto
-	autoButton.BackgroundColor3 = if auto then Color3.fromRGB(60, 200, 90) else Color3.fromRGB(90, 96, 120)
+	setAuto(not auto)
 end)
+player.CharacterAdded:Connect(function()
+	anchor = nil
+end)
+-- Ce que le joueur demande avec ses touches ou sa manette (rien = le personnage est libre pour l'AUTO).
+local controls = nil
+task.spawn(function()
+	local ok, module = pcall(function()
+		return require(player:WaitForChild("PlayerScripts"):WaitForChild("PlayerModule", 10)):GetControls()
+	end)
+	controls = if ok then module else nil
+end)
+local function steering(): boolean
+	local ok, vector = pcall(function()
+		return controls:GetMoveVector()
+	end)
+	return ok and typeof(vector) == "Vector3" and vector.Magnitude > 0.1
+end
 UserInputService.InputBegan:Connect(function(input, typing)
 	if typing then
 		return
@@ -435,21 +468,41 @@ UserInputService.InputBegan:Connect(function(input, typing)
 end)
 -- (Pour les tests : « AutoAttack » sur le Workspace met l'attaque automatique.)
 workspace:GetAttributeChangedSignal("AutoAttack"):Connect(function()
-	auto = workspace:GetAttribute("AutoAttack") == true
-	autoButton.BackgroundColor3 = if auto then Color3.fromRGB(60, 200, 90) else Color3.fromRGB(90, 96, 120)
+	setAuto(workspace:GetAttribute("AutoAttack") == true)
 end)
 task.spawn(function()
 	while true do
 		task.wait(0.1)
 		local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-		-- L attaque automatique ne frappe QUE le monstre deja vise (celui qu on a frappe soi-meme) : quand il est
-		-- battu, elle s arrete. Il faut aller chercher le monstre suivant et lui donner le premier coup.
-		local target = player:GetAttribute("Target") or 0
-		if auto and root and target > 0 then
-			for _, part in CollectionService:GetTagged("Monster") do
-				if part:GetAttribute("Id") == target and (part:GetAttribute("Hp") or 0) > 0 and (part.Position - root.Position).Magnitude <= Config.ATTACK_REACH + (part:GetAttribute("Scale") or 1) + 2 then
-					swing()
-					break
+		local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+		local busy = (player:GetAttribute("BagNext") or "") ~= "" or (player:GetAttribute("Held") or "") ~= ""
+		if auto and root and humanoid and humanoid.Health > 0 and not busy then
+			if steering() or not anchor then
+				-- Le joueur marche lui-même : l'AUTO repart d'ici.
+				anchor = root.Position
+			else
+				-- La cible : le monstre déjà visé, sinon le plus proche de soi dans le rayon.
+				local wanted = player:GetAttribute("Target") or 0
+				local best, bestDistance = nil, math.huge
+				for _, part in CollectionService:GetTagged("Monster") do
+					if (part:GetAttribute("Hp") or 0) > 0 and (part.Position - anchor).Magnitude <= AUTO_RADIUS then
+						local distance = (part.Position - root.Position).Magnitude
+						if part:GetAttribute("Id") == wanted then
+							best, bestDistance = part, distance
+							break
+						elseif distance < bestDistance then
+							best, bestDistance = part, distance
+						end
+					end
+				end
+				if best then
+					local reach = Config.ATTACK_REACH + (best:GetAttribute("Scale") or 1) - 1.5
+					local away = Vector3.new(root.Position.X - best.Position.X, 0, root.Position.Z - best.Position.Z)
+					if away.Magnitude > reach then
+						humanoid:MoveTo(best.Position + away.Unit * (reach - 2.5))
+					else
+						swing()
+					end
 				end
 			end
 		end

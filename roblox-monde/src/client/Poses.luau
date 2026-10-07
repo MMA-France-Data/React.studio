@@ -115,7 +115,7 @@ return function()
 				states[character] = state
 			end
 			-- (Un oeuf ne se porte bras leves que dans la base : dehors, on se bat.)
-			local base = character:GetPivot().Position.Z < 34
+			local base = true -- (un œuf ne se voit que si le joueur l'a sorti de son sac : il le porte alors partout)
 			local carrying = (base and (other:GetAttribute("BagNext") or "") ~= "") or (other:GetAttribute("Held") or "") ~= ""
 			local pressing = other:GetAttribute("Workout") == "Force"
 			local blend = 1 - math.exp(-12 * dt)

@@ -84,7 +84,14 @@ return function(world)
 			-- Un œuf de la zone a (et du rang b, sinon tiré au sort).
 			return Eggs.drop(player, a or 1, b) ~= nil
 		elseif action == "Place" then
+			player:SetAttribute("Carrying", true)
 			return Eggs.place(player, a, b)
+		elseif action == "Take" then
+			return Eggs.take(player, a, b)
+		elseif action == "PutDown" then
+			return Eggs.putDown(player, a, b)
+		elseif action == "Hold" then
+			return Eggs.hold(player, a)
 		elseif action == "Hatch" then
 			return Eggs.hatch(player, true)
 		end

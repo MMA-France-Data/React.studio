@@ -347,7 +347,7 @@ return function(env)
 			-- L'œuf à poser, porté au-dessus de la tête.
 			local nextEgg = other:GetAttribute("BagNext") or ""
 			-- (Seulement dans la base : dehors, l'œuf est dans le sac.)
-			if nextEgg == "" or not head or head.Position.Z > 34 then
+			if nextEgg == "" or not head then
 				dropCarried(other)
 			else
 				local item = carried[other]
@@ -801,6 +801,7 @@ return function(env)
 	-- note du rang (C, B, A, S, SS, SSS), le niveau, une coche sur ceux de l'équipe ; à droite, la fiche du familier
 	-- choisi ; et les œufs en grille avec leur nombre.)
 	local equipBestEvent = ReplicatedStorage:WaitForChild("EquipBest")
+	local takeEvent = ReplicatedStorage:WaitForChild("TakeEgg")
 	local unequipAllEvent = ReplicatedStorage:WaitForChild("UnequipAll")
 	local GRADES = { "C", "B", "A", "S", "SS", "SSS" }
 	local NAVY, GOLDEN = Color3.fromRGB(22, 32, 58), Color3.fromRGB(226, 178, 96)
@@ -1044,7 +1045,12 @@ return function(env)
 	-- « Vendre » : le joueur prend le familier dans ses bras pour le porter au stand (un 2e appui le repose).
 	sell.Activated:Connect(function()
 		if selected > 0 then
+			local out = (player:GetAttribute("Held") or "") == tostring(selected)
 			sellEvent:FireServer(selected)
+			-- (La fenêtre se ferme quand on le prend : on peut cliquer dans l'enclos tout de suite.)
+			if not out then
+				petPanel.Visible = false
+			end
 		end
 	end)
 
@@ -1072,7 +1078,7 @@ return function(env)
 		if eggPanel.Visible then
 			local entries = {}
 			for animal, rank, count in string.gmatch(player:GetAttribute("BagList") or "", "(%a+):(%d):(%d+)") do
-				table.insert(entries, { animal = animal, rank = tonumber(rank), line = "x" .. count })
+				table.insert(entries, { animal = animal, rank = tonumber(rank), line = "x" .. count, bag = true })
 			end
 			for _, entry in eggs do
 				table.insert(entries, { animal = entry.spot.a, rank = entry.spot.q, line = "⏳ " .. clock(entry.spot.t - workspace:GetServerTimeNow()) })
@@ -1083,11 +1089,22 @@ return function(env)
 				if not item then
 					item = card(eggGrid, "Egg" .. i)
 					item.frame.LayoutOrder = i
-					item.tick.Visible = false
+					-- Un clic sur un œuf du sac le SORT (sur la tête) ; un clic sur celui qu'on porte le RENTRE.
+					item.frame.Activated:Connect(function()
+						if item.bag then
+							takeEvent:FireServer(item.animal, item.rank)
+							if not item.out then
+								eggPanel.Visible = false
+							end
+						end
+					end)
 					eggCards[i] = item
 				end
 				item.frame.Visible = true
-				paint(item, entry.rank, false)
+				item.animal, item.rank, item.bag = entry.animal, entry.rank, entry.bag == true
+				item.out = entry.bag == true and string.match(player:GetAttribute("BagNext") or "", "^(%a+:%d)") == entry.animal .. ":" .. entry.rank
+				item.tick.Visible = item.out
+				paint(item, entry.rank, item.out)
 				item.line.Text = entry.line
 				show(item.view, entry.animal, function()
 					return eggModel(entry.animal)
@@ -1157,12 +1174,12 @@ return function(env)
 			equip.Label.Text = if member then tr("unequip") else tr("equip")
 			equip.BackgroundColor3 = if member then Color3.fromRGB(50, 130, 230) else Color3.fromRGB(240, 170, 30)
 			local carrying = (player:GetAttribute("Held") or "") == tostring(selected)
-			sell.Label.Text = if carrying then tr("putBack") else tr("sellButton")
+			sell.Label.Text = if carrying then tr("putBack") else tr("takeOut")
 			sell.BackgroundColor3 = if carrying then Color3.fromRGB(255, 150, 40) else Color3.fromRGB(226, 50, 50)
 		end
 		fitWindow(petPanel)
 	end
-	for _, name in { "Spots", "Places", "Team", "Bag", "BagList", "Held" } do
+	for _, name in { "Spots", "Places", "Team", "Bag", "BagList", "Held", "BagNext" } do
 		player:GetAttributeChangedSignal(name):Connect(refreshPanels)
 	end
 	task.spawn(function()
@@ -1251,50 +1268,39 @@ return function(env)
 		shopPanel.Visible = false
 	end)
 
-	-- POSER L'ŒUF -----------------------------------------------------------------------------------------------------
-	-- Quand le joueur porte un œuf et se tient dans son enclos : un gros bouton (ou la touche E) le pose à ses pieds.
-	local placeButton = Instance.new("TextButton")
-	placeButton.Name = "PlaceEgg"
-	placeButton.AnchorPoint = Vector2.new(0.5, 1)
-	placeButton.Position = UDim2.new(0.5, 0, 1, -120)
-	placeButton.Size = UDim2.fromOffset(280, 58)
-	placeButton.BackgroundColor3 = Color3.fromRGB(110, 230, 40)
-	placeButton.Text = ""
-	placeButton.Visible = false
-	Instance.new("UICorner", placeButton).CornerRadius = UDim.new(0, 10)
-	local placeStroke = Instance.new("UIStroke")
-	placeStroke.Thickness = 4
-	placeStroke.Color = Color3.fromRGB(20, 20, 30)
-	placeStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-	placeStroke.Parent = placeButton
-	placeButton.Parent = env.gui
-	env.text(placeButton, "Label", UDim2.fromScale(0.94, 0.7), UDim2.fromScale(0.03, 0.15)).Text = tr("placeEgg")
-	local function inOwnPen(): boolean
-		local plot = gym:FindFirstChild("Plot" .. (player:GetAttribute("Plot") or 0))
-		local origin = plot and plot:GetAttribute("Origin")
-		local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-		if not origin or not root then
-			return false
+	-- POSER D'UN CLIC -------------------------------------------------------------------------------------------------
+	-- Avec un œuf sorti sur la tête, ou un familier dans les bras : un clic (ou un doigt) dans son enclos le pose à
+	-- cet endroit. Plus de bouton. (Le serveur vérifie que c'est bien dans l'enclos, sinon il le dit.)
+	local putEvent = ReplicatedStorage:WaitForChild("PutPet")
+	local function carrying(): string?
+		if (player:GetAttribute("BagNext") or "") ~= "" then
+			return "egg"
+		elseif (player:GetAttribute("Held") or "") ~= "" then
+			return "pet"
 		end
-		local x, z = root.Position.X - origin.X, root.Position.Z - origin.Z
-		local pen = Pets.PEN
-		return x >= pen.minX - 1 and x <= pen.maxX + 1 and z >= pen.minZ - 1 and z <= pen.maxZ + 1
+		return nil
 	end
-	local function placeEgg()
-		if placeButton.Visible then
-			placeEvent:FireServer()
+	local function clickGround(ray: Ray)
+		local what = carrying()
+		if not what or ray.Direction.Y > -0.02 then
+			return
+		end
+		local point = ray.Origin + ray.Direction * ((0.3 - ray.Origin.Y) / ray.Direction.Y)
+		if what == "egg" then
+			placeEvent:FireServer(point)
+		else
+			putEvent:FireServer(point)
 		end
 	end
-	placeButton.Activated:Connect(placeEgg)
-	UserInputService.InputBegan:Connect(function(input, typing)
-		if not typing and input.KeyCode == Enum.KeyCode.E then
-			placeEgg()
+	UserInputService.InputBegan:Connect(function(input, processed)
+		if not processed and input.UserInputType == Enum.UserInputType.MouseButton1 then
+			local mouse = UserInputService:GetMouseLocation()
+			clickGround(workspace.CurrentCamera:ViewportPointToRay(mouse.X, mouse.Y))
 		end
 	end)
-	task.spawn(function()
-		while true do
-			placeButton.Visible = (player:GetAttribute("BagNext") or "") ~= "" and inOwnPen()
-			task.wait(0.15)
+	UserInputService.TouchTapInWorld:Connect(function(position, processed)
+		if not processed then
+			clickGround(workspace.CurrentCamera:ScreenPointToRay(position.X, position.Y))
 		end
 	end)
 

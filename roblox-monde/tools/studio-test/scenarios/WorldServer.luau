@@ -57,11 +57,9 @@ return function(log)
 	end
 	D("Peaceful", false)
 	go(first.position + Vector3.new(7, 0, 0))
+	-- (Posé à 25 studs du canard : l'attaque automatique doit y aller toute seule.)
+	go(first.position + Vector3.new(25, 0, 0))
 	workspace:SetAttribute("AutoAttack", true)
-	task.wait(1)
-	local idle = D("Monsters")[first.id]
-	log("Info", (if idle.hp == idle.max then "[PASS] " else "[FAIL] ") .. "attaque auto : rien tant qu on n a pas donne le premier coup")
-	D("Attack")
 	task.wait(1.6)
 	local root = player.Character.HumanoidRootPart.Position
 	shot("combat", root + Vector3.new(10, 8, -14), root + Vector3.new(-3, 2, 0))
@@ -74,7 +72,9 @@ return function(log)
 	check(humanoid().Health > 40, "seul, à l'épée, on bat un canard sans presque rien perdre", math.floor(humanoid().Health))
 	workspace:SetAttribute("AutoAttack", false)
 	-- Un canard lâche un œuf de canard.
-	check(D("Egg", 1, 1) == true and string.match(player:GetAttribute("BagNext") or "", "^Duck:1:") ~= nil, "l'œuf d'un canard est un œuf de canard", player:GetAttribute("BagNext"))
+	check(D("Egg", 1, 1) == true and (player:GetAttribute("BagNext") or "") == "", "un œuf trouvé va dans le sac, pas sur la tête")
+	check(D("Take", "Duck", 1) == true and string.match(player:GetAttribute("BagNext") or "", "^Duck:1:") ~= nil, "cliquer sur l'œuf le sort sur la tête (un canard lâche un œuf de canard)", player:GetAttribute("BagNext"))
+	check(D("Take", "Duck", 1) == true and (player:GetAttribute("BagNext") or "") == "", "recliquer dessus le range")
 	D("Pet", "Duck", 1)
 
 	-- 4. Les familiers encaissent d'abord : le joueur garde toute sa vie.

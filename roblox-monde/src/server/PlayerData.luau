@@ -115,6 +115,10 @@ local function publish(player: Player)
 	player:SetAttribute("Bag", #data.bag)
 	-- Le prochain œuf à poser (« Fox:6:73 » : l'animal, son rang, et la grosseur de l'œuf de 0 à 100).
 	local first = data.bag[1]
+	-- (Seulement si le joueur l'a SORTI de son sac : attribut « Carrying », posé par Eggs.take.)
+	if not player:GetAttribute("Carrying") then
+		first = nil
+	end
 	player:SetAttribute("BagNext", if first then first.a .. ":" .. first.q .. ":" .. math.floor((if first.b then Pets.along(first.q, first.b) else 0.5) * 100 + 0.5) else "")
 	-- Les œufs du sac, groupés pour la fenêtre des œufs (« Duck:1:12,Pig:3:2 » : animal, rang, nombre).
 	local groups, order = {}, {}

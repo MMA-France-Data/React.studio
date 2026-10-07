@@ -47,6 +47,33 @@ function Eggs.drop(player: Player, zone: number, rank: number?)
 	return egg
 end
 
+-- SORTIR UN ŒUF DE SON SAC, OU LE RENTRER (demande du joueur : « pouvoir sortir celui que je veux sur ma tête et le
+-- rentrer »). Cliquer sur un œuf de la fenêtre le met sur la tête du joueur ; recliquer dessus le range. Tant qu'il
+-- n'est pas sorti, un œuf ne se voit pas et ne se pose pas.
+function Eggs.take(player: Player, animal: string, rank: number): boolean
+	local data = PlayerData.get(player)
+	if not data then
+		return false
+	end
+	local first = data.bag[1]
+	if player:GetAttribute("Carrying") and first and first.a == animal and first.q == rank then
+		player:SetAttribute("Carrying", false)
+		PlayerData.changed(player)
+		return true
+	end
+	for index, egg in data.bag do
+		if egg.a == animal and egg.q == rank then
+			table.insert(data.bag, 1, table.remove(data.bag, index))
+			Eggs.release(player)
+			player:SetAttribute("Carrying", true)
+			PlayerData.changed(player)
+			notify(player, "eggOut", egg.a, egg.q)
+			return true
+		end
+	end
+	return false
+end
+
 -- Pose l'œuf que le joueur porte, là où il se tient dans son enclos (x, z : par rapport au milieu de son espace ;
 -- sans eux, c'est la place du personnage). Renvoie true, ou false et la raison.
 function Eggs.place(player: Player, x: number?, z: number?): (boolean, string?)
@@ -62,7 +89,7 @@ function Eggs.place(player: Player, x: number?, z: number?): (boolean, string?)
 		end
 		x, z = root.Position.X - plot.origin.X, root.Position.Z - plot.origin.Z
 	end
-	if #data.bag == 0 then
+	if #data.bag == 0 or not player:GetAttribute("Carrying") then
 		notify(player, "noEgg")
 		return false, "noEgg"
 	end
@@ -84,6 +111,7 @@ function Eggs.place(player: Player, x: number?, z: number?): (boolean, string?)
 		return false, "penFull"
 	end
 	local egg = table.remove(data.bag, 1)
+	player:SetAttribute("Carrying", false)
 	local seconds = Pets.hatchSeconds(egg.r, egg.q)
 	data.spots[key] = {
 		a = egg.a,
@@ -157,12 +185,41 @@ local function setHeld(player: Player, key: string?)
 	player:SetAttribute("Held", if pet then key else "")
 	player:SetAttribute("HeldPet", if pet then pet.a .. ":" .. pet.q .. ":" .. math.floor(Pets.alongOf(pet) * 100 + 0.5) else "")
 end
+-- Repose sans rien dire le familier porté (quand le joueur sort un œuf à la place).
+function Eggs.release(player: Player)
+	if held[player] then
+		setHeld(player, nil)
+	end
+end
+-- POSER LE FAMILIER PORTÉ là où le joueur clique dans son enclos (x, z : par rapport au milieu de son espace).
+function Eggs.putDown(player: Player, x: number, z: number): boolean
+	local data = PlayerData.get(player)
+	local key = held[player]
+	local pet = key and data and data.spots[key]
+	if not pet then
+		return false
+	end
+	local pen = Pets.PEN
+	if x < pen.minX - 1 or x > pen.maxX + 1 or z < pen.minZ - 1 or z > pen.maxZ + 1 then
+		notify(player, "notInPen")
+		return false
+	end
+	pet.x, pet.z = math.clamp(x, pen.minX, pen.maxX), math.clamp(z, pen.minZ, pen.maxZ)
+	setHeld(player, nil)
+	PlayerData.changed(player)
+	return true
+end
 function Eggs.hold(player: Player, spot: number): boolean
 	local data = PlayerData.get(player)
 	local key = tostring(spot)
 	local pet = data and data.spots[key]
 	if not pet or not pet.v then
 		return false
+	end
+	-- (On ne porte qu'une chose à la fois : l'œuf sorti retourne dans le sac.)
+	if player:GetAttribute("Carrying") then
+		player:SetAttribute("Carrying", false)
+		PlayerData.changed(player)
 	end
 	if held[player] == key then
 		setHeld(player, nil)

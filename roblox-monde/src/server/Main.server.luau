@@ -46,8 +46,34 @@ end
 local placeEvent = Instance.new("RemoteEvent")
 placeEvent.Name = "PlaceEgg"
 placeEvent.Parent = ReplicatedStorage
-placeEvent.OnServerEvent:Connect(function(player)
-	Eggs.place(player)
+-- (position : là où le joueur a cliqué, dans le monde ; sans elle, là où il se tient.)
+local function local2(player: Player, position: any): (number?, number?)
+	local plot = Gym.plotOf(player)
+	if plot and typeof(position) == "Vector3" then
+		return position.X - plot.origin.X, position.Z - plot.origin.Z
+	end
+	return nil, nil
+end
+placeEvent.OnServerEvent:Connect(function(player, position)
+	Eggs.place(player, local2(player, position))
+end)
+-- Sortir un œuf de son sac (ou le rentrer), et poser le familier qu'on porte là où on clique dans son enclos.
+local takeEvent = Instance.new("RemoteEvent")
+takeEvent.Name = "TakeEgg"
+takeEvent.Parent = ReplicatedStorage
+takeEvent.OnServerEvent:Connect(function(player, animal, rank)
+	if typeof(animal) == "string" and typeof(rank) == "number" then
+		Eggs.take(player, animal, rank)
+	end
+end)
+local putEvent = Instance.new("RemoteEvent")
+putEvent.Name = "PutPet"
+putEvent.Parent = ReplicatedStorage
+putEvent.OnServerEvent:Connect(function(player, position)
+	local x, z = local2(player, position)
+	if x and z then
+		Eggs.putDown(player, x, z)
+	end
 end)
 -- Le bouton « Vendre » de la liste : le joueur PREND le familier dans ses bras et le porte jusqu'au stand
 -- « VENDRE ». Un 2e appui le repose dans l'enclos.
