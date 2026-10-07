@@ -69,10 +69,13 @@ def run(seed):
             new = Pet(target, rng)
             pen.append(new)
             team = sorted(pen, key=lambda p: -p.dmg())[:3]
-            if len(log) < 60 and (not log or log[-1][1] != target):
+            if False:
                 log.append((t, target, sword, level, [(p.rank + 1, p.lv) for p in team]))
         while sword < SWORD_MAX and coins >= sword_price(sword):
             coins -= sword_price(sword); sword += 1
+            log.append((t, 'EPEE %d achetee : %d/s ; equipe %s = %d/s' % (sword, sword_dps(sword), [round(p.dmg()) for p in team], sum(p.dmg() for p in team)), sword, level, [(p.rank + 1, p.lv) for p in team]))
+        if int(t / 1200) > int((t - dt) / 1200):
+            log.append((t, 'point : epee %d/s, chaque familier %s/s, camp %d' % (sword_dps(sword), [round(p.dmg()) for p in team], target + 1), sword, level, [(p.rank + 1, p.lv) for p in team]))
     return None
 
 results = [run(s) for s in range(40)]
