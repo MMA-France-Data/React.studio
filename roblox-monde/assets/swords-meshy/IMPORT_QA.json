@@ -1,0 +1,363 @@
+{
+  "models": [
+    {
+      "id": "Iron",
+      "model": "Iron/Sword_Iron.fbx",
+      "fbxReadSuccess": true,
+      "objects": [
+        {
+          "name": "Mesh_0",
+          "triangles": 119302,
+          "uvLayers": 1,
+          "invalidVertices": 0
+        }
+      ],
+      "triangles": 119302,
+      "sourceTextureNodes": 4,
+      "brokenSourceTextureNodes": [],
+      "textures": {
+        "metallic": {
+          "file": "Iron/Meshy_AI_Iron_Sword_3D_1007172042_image-to-3d-texture_metallic.png",
+          "dimensions": [
+            2048,
+            2048
+          ]
+        },
+        "baseColor": {
+          "file": "Iron/Meshy_AI_Iron_Sword_3D_1007172042_image-to-3d-texture.png",
+          "dimensions": [
+            4096,
+            4096
+          ]
+        },
+        "normal": {
+          "file": "Iron/Meshy_AI_Iron_Sword_3D_1007172042_image-to-3d-texture_normal.png",
+          "dimensions": [
+            4096,
+            4096
+          ]
+        },
+        "roughness": {
+          "file": "Iron/Meshy_AI_Iron_Sword_3D_1007172042_image-to-3d-texture_roughness.png",
+          "dimensions": [
+            2048,
+            2048
+          ]
+        }
+      },
+      "preview": "Iron/preview.png",
+      "previewUsesDeliveredPBRMaps": true,
+      "sourceSha256Unchanged": true,
+      "studioImportTested": false,
+      "exceeds20000TrianglesPerMesh": true
+    },
+    {
+      "id": "Steel",
+      "model": "Steel/Sword_Steel.fbx",
+      "fbxReadSuccess": true,
+      "objects": [
+        {
+          "name": "Mesh_0",
+          "triangles": 111038,
+          "uvLayers": 1,
+          "invalidVertices": 0
+        }
+      ],
+      "triangles": 111038,
+      "sourceTextureNodes": 4,
+      "brokenSourceTextureNodes": [],
+      "textures": {
+        "metallic": {
+          "file": "Steel/Meshy_AI_Steel_Sword_3D_1007171826_image-to-3d-texture_metallic.png",
+          "dimensions": [
+            2048,
+            2048
+          ]
+        },
+        "baseColor": {
+          "file": "Steel/Meshy_AI_Steel_Sword_3D_1007171826_image-to-3d-texture.png",
+          "dimensions": [
+            4096,
+            4096
+          ]
+        },
+        "normal": {
+          "file": "Steel/Meshy_AI_Steel_Sword_3D_1007171826_image-to-3d-texture_normal.png",
+          "dimensions": [
+            4096,
+            4096
+          ]
+        },
+        "roughness": {
+          "file": "Steel/Meshy_AI_Steel_Sword_3D_1007171826_image-to-3d-texture_roughness.png",
+          "dimensions": [
+            2048,
+            2048
+          ]
+        }
+      },
+      "preview": "Steel/preview.png",
+      "previewUsesDeliveredPBRMaps": true,
+      "sourceSha256Unchanged": true,
+      "studioImportTested": false,
+      "exceeds20000TrianglesPerMesh": true
+    },
+    {
+      "id": "Gold",
+      "model": "Gold/Sword_Gold.fbx",
+      "fbxReadSuccess": true,
+      "objects": [
+        {
+          "name": "Gold_SingleGrip_Repaired",
+          "triangles": 3987,
+          "uvLayers": 1,
+          "invalidVertices": 0
+        }
+      ],
+      "triangles": 3987,
+      "sourceTextureNodes": 4,
+      "brokenSourceTextureNodes": [],
+      "textures": {
+        "metallic": {
+          "file": "Gold/texture_0_metallic.png",
+          "dimensions": [
+            2048,
+            2048
+          ]
+        },
+        "baseColor": {
+          "file": "Gold/texture_0_base_color.png",
+          "dimensions": [
+            2048,
+            2048
+          ]
+        },
+        "normal": {
+          "file": "Gold/texture_0_normal.png",
+          "dimensions": [
+            2048,
+            2048
+          ]
+        },
+        "roughness": {
+          "file": "Gold/texture_0_roughness.png",
+          "dimensions": [
+            2048,
+            2048
+          ]
+        }
+      },
+      "preview": "Gold/preview.png",
+      "previewUsesDeliveredPBRMaps": true,
+      "sourceSha256Unchanged": true,
+      "studioImportTested": false,
+      "exceeds20000TrianglesPerMesh": false
+    },
+    {
+      "id": "Frost",
+      "model": "Frost/Sword_Frost.fbx",
+      "fbxReadSuccess": true,
+      "objects": [
+        {
+          "name": "Mesh_0",
+          "triangles": 5778,
+          "uvLayers": 1,
+          "invalidVertices": 0
+        }
+      ],
+      "triangles": 5778,
+      "sourceTextureNodes": 4,
+      "brokenSourceTextureNodes": [],
+      "textures": {
+        "metallic": {
+          "file": "Frost/texture_0_metallic.png",
+          "dimensions": [
+            2048,
+            2048
+          ]
+        },
+        "baseColor": {
+          "file": "Frost/texture_0_base_color.png",
+          "dimensions": [
+            2048,
+            2048
+          ]
+        },
+        "normal": {
+          "file": "Frost/texture_0_normal.png",
+          "dimensions": [
+            2048,
+            2048
+          ]
+        },
+        "roughness": {
+          "file": "Frost/texture_0_roughness.png",
+          "dimensions": [
+            2048,
+            2048
+          ]
+        }
+      },
+      "preview": "Frost/preview.png",
+      "previewUsesDeliveredPBRMaps": true,
+      "sourceSha256Unchanged": true,
+      "studioImportTested": false,
+      "exceeds20000TrianglesPerMesh": false
+    },
+    {
+      "id": "Flame",
+      "model": "Flame/Sword_Flame.fbx",
+      "fbxReadSuccess": true,
+      "objects": [
+        {
+          "name": "Mesh_0",
+          "triangles": 220154,
+          "uvLayers": 1,
+          "invalidVertices": 0
+        }
+      ],
+      "triangles": 220154,
+      "sourceTextureNodes": 4,
+      "brokenSourceTextureNodes": [],
+      "textures": {
+        "metallic": {
+          "file": "Flame/Meshy_AI_Fire_Sword_3D_1007172743_image-to-3d-texture_metallic.png",
+          "dimensions": [
+            2048,
+            2048
+          ]
+        },
+        "baseColor": {
+          "file": "Flame/Meshy_AI_Fire_Sword_3D_1007172743_image-to-3d-texture.png",
+          "dimensions": [
+            4096,
+            4096
+          ]
+        },
+        "normal": {
+          "file": "Flame/Meshy_AI_Fire_Sword_3D_1007172743_image-to-3d-texture_normal.png",
+          "dimensions": [
+            4096,
+            4096
+          ]
+        },
+        "roughness": {
+          "file": "Flame/Meshy_AI_Fire_Sword_3D_1007172743_image-to-3d-texture_roughness.png",
+          "dimensions": [
+            2048,
+            2048
+          ]
+        }
+      },
+      "preview": "Flame/preview.png",
+      "previewUsesDeliveredPBRMaps": true,
+      "sourceSha256Unchanged": true,
+      "studioImportTested": false,
+      "exceeds20000TrianglesPerMesh": true
+    },
+    {
+      "id": "Storm",
+      "model": "Storm/Sword_Storm.fbx",
+      "fbxReadSuccess": true,
+      "objects": [
+        {
+          "name": "Mesh_0",
+          "triangles": 252074,
+          "uvLayers": 1,
+          "invalidVertices": 0
+        }
+      ],
+      "triangles": 252074,
+      "sourceTextureNodes": 4,
+      "brokenSourceTextureNodes": [],
+      "textures": {
+        "metallic": {
+          "file": "Storm/Meshy_AI_Lightning_Sword_3D_1007172949_image-to-3d-texture_metallic.png",
+          "dimensions": [
+            2048,
+            2048
+          ]
+        },
+        "baseColor": {
+          "file": "Storm/Meshy_AI_Lightning_Sword_3D_1007172949_image-to-3d-texture.png",
+          "dimensions": [
+            4096,
+            4096
+          ]
+        },
+        "normal": {
+          "file": "Storm/Meshy_AI_Lightning_Sword_3D_1007172949_image-to-3d-texture_normal.png",
+          "dimensions": [
+            4096,
+            4096
+          ]
+        },
+        "roughness": {
+          "file": "Storm/Meshy_AI_Lightning_Sword_3D_1007172949_image-to-3d-texture_roughness.png",
+          "dimensions": [
+            2048,
+            2048
+          ]
+        }
+      },
+      "preview": "Storm/preview.png",
+      "previewUsesDeliveredPBRMaps": true,
+      "sourceSha256Unchanged": true,
+      "studioImportTested": false,
+      "exceeds20000TrianglesPerMesh": true
+    },
+    {
+      "id": "Prismatic",
+      "model": "Prismatic/Sword_Prismatic.fbx",
+      "fbxReadSuccess": true,
+      "objects": [
+        {
+          "name": "Mesh_0",
+          "triangles": 311622,
+          "uvLayers": 1,
+          "invalidVertices": 0
+        }
+      ],
+      "triangles": 311622,
+      "sourceTextureNodes": 4,
+      "brokenSourceTextureNodes": [],
+      "textures": {
+        "metallic": {
+          "file": "Prismatic/Meshy_AI_Rainbow_Sword_3D_1007173134_image-to-3d-texture_metallic.png",
+          "dimensions": [
+            2048,
+            2048
+          ]
+        },
+        "baseColor": {
+          "file": "Prismatic/Meshy_AI_Rainbow_Sword_3D_1007173134_image-to-3d-texture.png",
+          "dimensions": [
+            4096,
+            4096
+          ]
+        },
+        "normal": {
+          "file": "Prismatic/Meshy_AI_Rainbow_Sword_3D_1007173134_image-to-3d-texture_normal.png",
+          "dimensions": [
+            4096,
+            4096
+          ]
+        },
+        "roughness": {
+          "file": "Prismatic/Meshy_AI_Rainbow_Sword_3D_1007173134_image-to-3d-texture_roughness.png",
+          "dimensions": [
+            2048,
+            2048
+          ]
+        }
+      },
+      "preview": "Prismatic/preview.png",
+      "previewUsesDeliveredPBRMaps": true,
+      "sourceSha256Unchanged": true,
+      "studioImportTested": false,
+      "exceeds20000TrianglesPerMesh": true
+    }
+  ],
+  "studioImportTested": false,
+  "geometryReexported": false
+}

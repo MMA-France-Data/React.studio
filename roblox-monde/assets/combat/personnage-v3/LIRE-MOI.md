@@ -26,6 +26,8 @@ Depuis `roblox-monde`, `tools/combat-v3/check.ps1` vérifie la syntaxe, l'altern
 
 Les nouveaux fichiers Meshy téléchargés ne sont **pas encore importés comme assets Roblox dans ce dépôt**. En leur absence, le jeu utilise ses visuels de secours existants. Ne pas confondre ces visuels avec les nouveaux modèles choisis.
 
+Les **sept vrais modèles source** et leurs textures sont maintenant regroupés dans [`../../swords-meshy`](../../swords-meshy/README.md), avec une fiche d'import. Ils restent à importer/publier dans Roblox Studio avant de remplacer les visuels de secours.
+
 `SwordVisuals` peut cloner un modèle déjà importé dans `ReplicatedStorage/SwordMeshes`, avec son identité (`Iron`, `Steel`, `Frost`, `Flame`, `Storm`, `Prismatic`). Le modèle doit posséder :
 
 - un `PrimaryPart` de prise, au **centre du manche**, dont les axes sont calibrés : longueur de lame vers **-Z**, largeur sur **Y**, épaisseur sur **X** ;

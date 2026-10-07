@@ -1,0 +1,347 @@
+{
+  "deliveryCreditsConsumed": 0,
+  "date": "2026-10-07",
+  "format": "FBX + original PNG PBR maps",
+  "studioImportTested": false,
+  "newMeshyApiOperations": 0,
+  "sourceBytesPreserved": true,
+  "assets": [
+    {
+      "files": [
+        {
+          "bytes": 32674092,
+          "archiveEntry": "Meshy_AI_Iron_Sword_3D_1007172042_image-to-3d-texture_fbx/Meshy_AI_Iron_Sword_3D_1007172042_image-to-3d-texture.fbx",
+          "sha256": "ceda323f1eaf8faa82ef7c56df95cf76498e1cc456b78c08dfe9e0c474295d04",
+          "path": "Iron/Sword_Iron.fbx"
+        },
+        {
+          "bytes": 24399435,
+          "archiveEntry": "Meshy_AI_Iron_Sword_3D_1007172042_image-to-3d-texture_fbx/Meshy_AI_Iron_Sword_3D_1007172042_image-to-3d-texture.png",
+          "sha256": "b9ebe2a00c556b33902892937d4ad59dee11967d4f72c1f04afa69dfcefa443d",
+          "path": "Iron/Meshy_AI_Iron_Sword_3D_1007172042_image-to-3d-texture.png"
+        },
+        {
+          "bytes": 1176792,
+          "archiveEntry": "Meshy_AI_Iron_Sword_3D_1007172042_image-to-3d-texture_fbx/Meshy_AI_Iron_Sword_3D_1007172042_image-to-3d-texture_metallic.png",
+          "sha256": "e9c9bc3e4bb779559714bedce614f813b688ee0b2aea21d69a6f1c34814e5b38",
+          "path": "Iron/Meshy_AI_Iron_Sword_3D_1007172042_image-to-3d-texture_metallic.png"
+        },
+        {
+          "bytes": 21750281,
+          "archiveEntry": "Meshy_AI_Iron_Sword_3D_1007172042_image-to-3d-texture_fbx/Meshy_AI_Iron_Sword_3D_1007172042_image-to-3d-texture_normal.png",
+          "sha256": "463a6d29611193194f8dc88d54c44e65502cf69bbf715dba74da93d773e82c4c",
+          "path": "Iron/Meshy_AI_Iron_Sword_3D_1007172042_image-to-3d-texture_normal.png"
+        },
+        {
+          "bytes": 1278087,
+          "archiveEntry": "Meshy_AI_Iron_Sword_3D_1007172042_image-to-3d-texture_fbx/Meshy_AI_Iron_Sword_3D_1007172042_image-to-3d-texture_roughness.png",
+          "sha256": "5c644c2d5fdb8b939a598288b9825f03d536c183d8702edb9877f99af3e26687",
+          "path": "Iron/Meshy_AI_Iron_Sword_3D_1007172042_image-to-3d-texture_roughness.png"
+        }
+      ],
+      "producingTaskId": null,
+      "label": "Fer",
+      "textures": {
+        "metallic": "Iron/Meshy_AI_Iron_Sword_3D_1007172042_image-to-3d-texture_metallic.png",
+        "baseColor": "Iron/Meshy_AI_Iron_Sword_3D_1007172042_image-to-3d-texture.png",
+        "normal": "Iron/Meshy_AI_Iron_Sword_3D_1007172042_image-to-3d-texture_normal.png",
+        "roughness": "Iron/Meshy_AI_Iron_Sword_3D_1007172042_image-to-3d-texture_roughness.png"
+      },
+      "source": "Meshy_AI_Iron_Sword_3D_1007172042_image-to-3d-texture_fbx.zip",
+      "knownEarlierGoldRepair": false,
+      "resource": null,
+      "geometryModifiedDuringThisDelivery": false,
+      "id": "Iron",
+      "model": "Iron/Sword_Iron.fbx"
+    },
+    {
+      "files": [
+        {
+          "bytes": 27764540,
+          "archiveEntry": "Meshy_AI_Steel_Sword_3D_1007171826_image-to-3d-texture_fbx/Meshy_AI_Steel_Sword_3D_1007171826_image-to-3d-texture.fbx",
+          "sha256": "89e141d3f325f95828aa2a65a907bd0031ce0c31f758cd123bcc12fb8e4a8f0f",
+          "path": "Steel/Sword_Steel.fbx"
+        },
+        {
+          "bytes": 22025438,
+          "archiveEntry": "Meshy_AI_Steel_Sword_3D_1007171826_image-to-3d-texture_fbx/Meshy_AI_Steel_Sword_3D_1007171826_image-to-3d-texture.png",
+          "sha256": "9d8427d7358755c779363b4108406fc7dc950832af58b6ea38ad154885adb42a",
+          "path": "Steel/Meshy_AI_Steel_Sword_3D_1007171826_image-to-3d-texture.png"
+        },
+        {
+          "bytes": 1034859,
+          "archiveEntry": "Meshy_AI_Steel_Sword_3D_1007171826_image-to-3d-texture_fbx/Meshy_AI_Steel_Sword_3D_1007171826_image-to-3d-texture_metallic.png",
+          "sha256": "1f01af4c05d8a540d9f9f11ca62fde153a665d8e4079e01ff7fd78104eaf0ebf",
+          "path": "Steel/Meshy_AI_Steel_Sword_3D_1007171826_image-to-3d-texture_metallic.png"
+        },
+        {
+          "bytes": 19118754,
+          "archiveEntry": "Meshy_AI_Steel_Sword_3D_1007171826_image-to-3d-texture_fbx/Meshy_AI_Steel_Sword_3D_1007171826_image-to-3d-texture_normal.png",
+          "sha256": "9ddc2b0d6ba0996a18a010a94e0a1499a2cd831a02e4b418f136a92342ecd9a3",
+          "path": "Steel/Meshy_AI_Steel_Sword_3D_1007171826_image-to-3d-texture_normal.png"
+        },
+        {
+          "bytes": 996600,
+          "archiveEntry": "Meshy_AI_Steel_Sword_3D_1007171826_image-to-3d-texture_fbx/Meshy_AI_Steel_Sword_3D_1007171826_image-to-3d-texture_roughness.png",
+          "sha256": "79a432056fceb6b8552666c00c004f7e03a7398dd1dbaf8e9d6c47f666c08ed0",
+          "path": "Steel/Meshy_AI_Steel_Sword_3D_1007171826_image-to-3d-texture_roughness.png"
+        }
+      ],
+      "producingTaskId": null,
+      "label": "Acier",
+      "textures": {
+        "metallic": "Steel/Meshy_AI_Steel_Sword_3D_1007171826_image-to-3d-texture_metallic.png",
+        "baseColor": "Steel/Meshy_AI_Steel_Sword_3D_1007171826_image-to-3d-texture.png",
+        "normal": "Steel/Meshy_AI_Steel_Sword_3D_1007171826_image-to-3d-texture_normal.png",
+        "roughness": "Steel/Meshy_AI_Steel_Sword_3D_1007171826_image-to-3d-texture_roughness.png"
+      },
+      "source": "Meshy_AI_Steel_Sword_3D_1007171826_image-to-3d-texture_fbx.zip",
+      "knownEarlierGoldRepair": false,
+      "resource": null,
+      "geometryModifiedDuringThisDelivery": false,
+      "id": "Steel",
+      "model": "Steel/Sword_Steel.fbx"
+    },
+    {
+      "files": [
+        {
+          "sourceFilename": "Gold_SingleGrip.fbx",
+          "bytes": 12479756,
+          "sha256": "d707661d5d1da999218eea83df4f87ceb6dc5750b70dc58f97c149550ff7fbe9",
+          "path": "Gold/Sword_Gold.fbx"
+        },
+        {
+          "sourceFilename": "texture_0_base_color.png",
+          "bytes": 5508284,
+          "sha256": "dc4ba1fc1226c19d13b29571a5c0337f94ad229bae3f262fee44a24d9a2f04d2",
+          "path": "Gold/texture_0_base_color.png"
+        },
+        {
+          "sourceFilename": "texture_0_metallic.png",
+          "bytes": 938948,
+          "sha256": "36d6bd4b3551f4cf8078166efbf1d20516d14d0990496452a0a7503c36df0e81",
+          "path": "Gold/texture_0_metallic.png"
+        },
+        {
+          "sourceFilename": "texture_0_normal.png",
+          "bytes": 4806499,
+          "sha256": "277e8229f4ae2e8a0088be51cebd03b87a3ccaefc14682e17c0457dad09d2c29",
+          "path": "Gold/texture_0_normal.png"
+        },
+        {
+          "sourceFilename": "texture_0_roughness.png",
+          "bytes": 1037381,
+          "sha256": "d44738f3da30b422aa4342721ac92c512a265c25a8c79339320c440fa31ec455",
+          "path": "Gold/texture_0_roughness.png"
+        }
+      ],
+      "producingTaskId": "01a11701-1ef8-72fb-ab75-b4a48dabd47b",
+      "label": "Or",
+      "textures": {
+        "metallic": "Gold/texture_0_metallic.png",
+        "baseColor": "Gold/texture_0_base_color.png",
+        "normal": "Gold/texture_0_normal.png",
+        "roughness": "Gold/texture_0_roughness.png"
+      },
+      "source": "repairs/Gold-single-grip-v2",
+      "knownEarlierGoldRepair": true,
+      "resource": "text-to-3d",
+      "geometryModifiedDuringThisDelivery": false,
+      "id": "Gold",
+      "model": "Gold/Sword_Gold.fbx"
+    },
+    {
+      "files": [
+        {
+          "sourceFilename": "model.fbx",
+          "bytes": 11840844,
+          "sha256": "3ce15ee809e152d8d67909115e0b5d7ebd350797a3917c07c2d80b4f0da0fb55",
+          "path": "Frost/Sword_Frost.fbx"
+        },
+        {
+          "sourceFilename": "texture_0_base_color.png",
+          "bytes": 5338619,
+          "sha256": "149b5c865dfe1454c7e26bb670d08dfec6e36a52801ee53d9a4336edaf50d01f",
+          "path": "Frost/texture_0_base_color.png"
+        },
+        {
+          "sourceFilename": "texture_0_metallic.png",
+          "bytes": 803332,
+          "sha256": "c5489f0c8b924ec1cc11e52d5a2da18e18f1e2240bbffb127f0890c54da3f02b",
+          "path": "Frost/texture_0_metallic.png"
+        },
+        {
+          "sourceFilename": "texture_0_normal.png",
+          "bytes": 4230848,
+          "sha256": "6c7bba710b1faaabc2a3df797ee023996e379abd3a459546e195c324aa5f063e",
+          "path": "Frost/texture_0_normal.png"
+        },
+        {
+          "sourceFilename": "texture_0_roughness.png",
+          "bytes": 1201431,
+          "sha256": "f5e8d4e1c1d8082e9620aac65b08627ecb6a3563b23a9023b43e47d938dccbd3",
+          "path": "Frost/texture_0_roughness.png"
+        }
+      ],
+      "producingTaskId": "01a11702-686b-7749-a83f-066ffa979129",
+      "label": "Glace",
+      "textures": {
+        "metallic": "Frost/texture_0_metallic.png",
+        "baseColor": "Frost/texture_0_base_color.png",
+        "normal": "Frost/texture_0_normal.png",
+        "roughness": "Frost/texture_0_roughness.png"
+      },
+      "source": "models/Frost",
+      "knownEarlierGoldRepair": false,
+      "resource": "text-to-3d",
+      "geometryModifiedDuringThisDelivery": false,
+      "id": "Frost",
+      "model": "Frost/Sword_Frost.fbx"
+    },
+    {
+      "files": [
+        {
+          "bytes": 35261404,
+          "archiveEntry": "Meshy_AI_Fire_Sword_3D_1007172743_image-to-3d-texture_fbx/Meshy_AI_Fire_Sword_3D_1007172743_image-to-3d-texture.fbx",
+          "sha256": "8be4795be5e8d3b502e5781a0f48fcca45ccfeda8393f7eba9092d3bdc80f7f9",
+          "path": "Flame/Sword_Flame.fbx"
+        },
+        {
+          "bytes": 25980198,
+          "archiveEntry": "Meshy_AI_Fire_Sword_3D_1007172743_image-to-3d-texture_fbx/Meshy_AI_Fire_Sword_3D_1007172743_image-to-3d-texture.png",
+          "sha256": "750531a6925d3ceb56ec0d3cb10d396b9a9998d91fbc568f133a69de503fa479",
+          "path": "Flame/Meshy_AI_Fire_Sword_3D_1007172743_image-to-3d-texture.png"
+        },
+        {
+          "bytes": 1124767,
+          "archiveEntry": "Meshy_AI_Fire_Sword_3D_1007172743_image-to-3d-texture_fbx/Meshy_AI_Fire_Sword_3D_1007172743_image-to-3d-texture_metallic.png",
+          "sha256": "77d1086dc48609133c417d128b03330760981e59047eb983a0882c1d621dc7ef",
+          "path": "Flame/Meshy_AI_Fire_Sword_3D_1007172743_image-to-3d-texture_metallic.png"
+        },
+        {
+          "bytes": 19598805,
+          "archiveEntry": "Meshy_AI_Fire_Sword_3D_1007172743_image-to-3d-texture_fbx/Meshy_AI_Fire_Sword_3D_1007172743_image-to-3d-texture_normal.png",
+          "sha256": "caa20fcc7a59dc6cdcb374e017ac13b7888b3f4db148f97ffa0bfd93afcb0eac",
+          "path": "Flame/Meshy_AI_Fire_Sword_3D_1007172743_image-to-3d-texture_normal.png"
+        },
+        {
+          "bytes": 1301076,
+          "archiveEntry": "Meshy_AI_Fire_Sword_3D_1007172743_image-to-3d-texture_fbx/Meshy_AI_Fire_Sword_3D_1007172743_image-to-3d-texture_roughness.png",
+          "sha256": "263e8ca9429b7051672053252c2c8fceeaa3a81aa4132b9ec1a96200618cbce5",
+          "path": "Flame/Meshy_AI_Fire_Sword_3D_1007172743_image-to-3d-texture_roughness.png"
+        }
+      ],
+      "producingTaskId": null,
+      "label": "Feu",
+      "textures": {
+        "metallic": "Flame/Meshy_AI_Fire_Sword_3D_1007172743_image-to-3d-texture_metallic.png",
+        "baseColor": "Flame/Meshy_AI_Fire_Sword_3D_1007172743_image-to-3d-texture.png",
+        "normal": "Flame/Meshy_AI_Fire_Sword_3D_1007172743_image-to-3d-texture_normal.png",
+        "roughness": "Flame/Meshy_AI_Fire_Sword_3D_1007172743_image-to-3d-texture_roughness.png"
+      },
+      "source": "Meshy_AI_Fire_Sword_3D_1007172743_image-to-3d-texture_fbx.zip",
+      "knownEarlierGoldRepair": false,
+      "resource": null,
+      "geometryModifiedDuringThisDelivery": false,
+      "id": "Flame",
+      "model": "Flame/Sword_Flame.fbx"
+    },
+    {
+      "files": [
+        {
+          "bytes": 38415660,
+          "archiveEntry": "Meshy_AI_Lightning_Sword_3D_1007172949_image-to-3d-texture_fbx/Meshy_AI_Lightning_Sword_3D_1007172949_image-to-3d-texture.fbx",
+          "sha256": "1f5a092728ddd688da74924f70c9de28917764cefd3240bc54ef098b1217b026",
+          "path": "Storm/Sword_Storm.fbx"
+        },
+        {
+          "bytes": 26817065,
+          "archiveEntry": "Meshy_AI_Lightning_Sword_3D_1007172949_image-to-3d-texture_fbx/Meshy_AI_Lightning_Sword_3D_1007172949_image-to-3d-texture.png",
+          "sha256": "c47717f87b408a4e94c8f39f186504205c7226a3badb5a3d537b6d624fd13fdf",
+          "path": "Storm/Meshy_AI_Lightning_Sword_3D_1007172949_image-to-3d-texture.png"
+        },
+        {
+          "bytes": 1380309,
+          "archiveEntry": "Meshy_AI_Lightning_Sword_3D_1007172949_image-to-3d-texture_fbx/Meshy_AI_Lightning_Sword_3D_1007172949_image-to-3d-texture_metallic.png",
+          "sha256": "0bfc6ca7ef6a91c6f4e97e83a7ef875e77f3818d88cb97ac7568251a7650c61b",
+          "path": "Storm/Meshy_AI_Lightning_Sword_3D_1007172949_image-to-3d-texture_metallic.png"
+        },
+        {
+          "bytes": 20910863,
+          "archiveEntry": "Meshy_AI_Lightning_Sword_3D_1007172949_image-to-3d-texture_fbx/Meshy_AI_Lightning_Sword_3D_1007172949_image-to-3d-texture_normal.png",
+          "sha256": "c0ae74926d6b585e11c2a5b9327b06020bbc1178c642123dccf825c2c3edad44",
+          "path": "Storm/Meshy_AI_Lightning_Sword_3D_1007172949_image-to-3d-texture_normal.png"
+        },
+        {
+          "bytes": 1339101,
+          "archiveEntry": "Meshy_AI_Lightning_Sword_3D_1007172949_image-to-3d-texture_fbx/Meshy_AI_Lightning_Sword_3D_1007172949_image-to-3d-texture_roughness.png",
+          "sha256": "43aaaed17f61e38848f80902c73e6c79e45764aa1c29ef6e8dbf4af69b07c84d",
+          "path": "Storm/Meshy_AI_Lightning_Sword_3D_1007172949_image-to-3d-texture_roughness.png"
+        }
+      ],
+      "producingTaskId": null,
+      "label": "Foudre",
+      "textures": {
+        "metallic": "Storm/Meshy_AI_Lightning_Sword_3D_1007172949_image-to-3d-texture_metallic.png",
+        "baseColor": "Storm/Meshy_AI_Lightning_Sword_3D_1007172949_image-to-3d-texture.png",
+        "normal": "Storm/Meshy_AI_Lightning_Sword_3D_1007172949_image-to-3d-texture_normal.png",
+        "roughness": "Storm/Meshy_AI_Lightning_Sword_3D_1007172949_image-to-3d-texture_roughness.png"
+      },
+      "source": "Meshy_AI_Lightning_Sword_3D_1007172949_image-to-3d-texture_fbx.zip",
+      "knownEarlierGoldRepair": false,
+      "resource": null,
+      "geometryModifiedDuringThisDelivery": false,
+      "id": "Storm",
+      "model": "Storm/Sword_Storm.fbx"
+    },
+    {
+      "files": [
+        {
+          "bytes": 41321660,
+          "archiveEntry": "Meshy_AI_Rainbow_Sword_3D_1007173134_image-to-3d-texture_fbx/Meshy_AI_Rainbow_Sword_3D_1007173134_image-to-3d-texture.fbx",
+          "sha256": "f37c4a0e9c5fbc8950699dc5879428cff69251ed232ae56aef081938a62b5608",
+          "path": "Prismatic/Sword_Prismatic.fbx"
+        },
+        {
+          "bytes": 27678818,
+          "archiveEntry": "Meshy_AI_Rainbow_Sword_3D_1007173134_image-to-3d-texture_fbx/Meshy_AI_Rainbow_Sword_3D_1007173134_image-to-3d-texture.png",
+          "sha256": "9bcde8e846839e1f81a5735c128425f3699ea9673b2a3a2c5394ee00e3b81d7f",
+          "path": "Prismatic/Meshy_AI_Rainbow_Sword_3D_1007173134_image-to-3d-texture.png"
+        },
+        {
+          "bytes": 1489501,
+          "archiveEntry": "Meshy_AI_Rainbow_Sword_3D_1007173134_image-to-3d-texture_fbx/Meshy_AI_Rainbow_Sword_3D_1007173134_image-to-3d-texture_metallic.png",
+          "sha256": "d083f4bd6b48092ba34eda680b9fffdc92628585341439dd45f85bbabe7c04cc",
+          "path": "Prismatic/Meshy_AI_Rainbow_Sword_3D_1007173134_image-to-3d-texture_metallic.png"
+        },
+        {
+          "bytes": 20722467,
+          "archiveEntry": "Meshy_AI_Rainbow_Sword_3D_1007173134_image-to-3d-texture_fbx/Meshy_AI_Rainbow_Sword_3D_1007173134_image-to-3d-texture_normal.png",
+          "sha256": "fa1d717321686a08ea3f0d3aba777501ef82b36b8d494610e24847f1bd785a01",
+          "path": "Prismatic/Meshy_AI_Rainbow_Sword_3D_1007173134_image-to-3d-texture_normal.png"
+        },
+        {
+          "bytes": 1347362,
+          "archiveEntry": "Meshy_AI_Rainbow_Sword_3D_1007173134_image-to-3d-texture_fbx/Meshy_AI_Rainbow_Sword_3D_1007173134_image-to-3d-texture_roughness.png",
+          "sha256": "59424f928d266ab1d03a880389612d3dd8c8952a7cad662b9ec6e7a5cb30ce16",
+          "path": "Prismatic/Meshy_AI_Rainbow_Sword_3D_1007173134_image-to-3d-texture_roughness.png"
+        }
+      ],
+      "producingTaskId": null,
+      "label": "Arc-en-ciel",
+      "textures": {
+        "metallic": "Prismatic/Meshy_AI_Rainbow_Sword_3D_1007173134_image-to-3d-texture_metallic.png",
+        "baseColor": "Prismatic/Meshy_AI_Rainbow_Sword_3D_1007173134_image-to-3d-texture.png",
+        "normal": "Prismatic/Meshy_AI_Rainbow_Sword_3D_1007173134_image-to-3d-texture_normal.png",
+        "roughness": "Prismatic/Meshy_AI_Rainbow_Sword_3D_1007173134_image-to-3d-texture_roughness.png"
+      },
+      "source": "Meshy_AI_Rainbow_Sword_3D_1007173134_image-to-3d-texture_fbx.zip",
+      "knownEarlierGoldRepair": false,
+      "resource": null,
+      "geometryModifiedDuringThisDelivery": false,
+      "id": "Prismatic",
+      "model": "Prismatic/Sword_Prismatic.fbx"
+    }
+  ],
+  "modelCount": 7
+}

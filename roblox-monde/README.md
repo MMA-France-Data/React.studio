@@ -16,6 +16,8 @@ Tous les chiffres sont dans `src/shared/Config.luau`.
 
 ## Pour ChatGPT : les animations de combat
 
+Les sept **vrais modèles d'épées Meshy retenus** (FBX + textures) sont dans [`assets/swords-meshy`](assets/swords-meshy/README.md). Les animations et mini-auras v3 sont déjà branchées dans `src/client` ; les nouveaux meshes restent à importer et calibrer dans Studio. Ne pas confondre ces fichiers avec les anciens modèles de secours en Parts ni les lames témoins de la galerie.
+
 Les animaux sont ceux de `roblox-survive/assets/collections` (ce projet lit ces fichiers, il n'en a pas de copie).
 Le jeu joue déjà les séquences `Idle` et `Walk` de chaque modèle avec `StarterAnimator`.
 
