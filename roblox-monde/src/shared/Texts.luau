@@ -419,7 +419,7 @@ local MONDE = {
 		lvlLong = "Niveau %s",
 		swordMax = "Épée au maximum : bats le boss de la zone %d pour aller plus loin",
 		forgeMax = "Épée au maximum (bats le boss de la zone %d)",
-		firstHint = "Sors par la grande porte et frappe un monstre (clic ou ⚔)",
+		firstHint = "Sors par la grande porte et bats des CANARDS à l'épée (clic ou ⚔) : ils lâchent des œufs",
 		bossSign = "👑 BOSS : %s",
 	},
 	en = {
@@ -476,7 +476,7 @@ local MONDE = {
 		lvlLong = "Level %s",
 		swordMax = "Sword maxed: beat the zone %d boss to go further",
 		forgeMax = "Sword maxed (beat the zone %d boss)",
-		firstHint = "Go through the big gate and hit a monster (click or ⚔)",
+		firstHint = "Go through the big gate and beat DUCKS with your sword (click or ⚔): they drop eggs",
 		bossSign = "👑 BOSS: %s",
 	},
 }

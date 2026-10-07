@@ -73,18 +73,8 @@ Gym.start(world, notify)
 Eggs.start(world, notify, Gym.owns, Gym.plotOf)
 Monsters.start(world, notify)
 
--- Un nouveau joueur reçoit son premier familier : un caneton commun, déjà dans son équipe.
-PlayerData.onLoaded(function(player)
-	local data = PlayerData.get(player)
-	if data and next(data.spots) == nil and #data.bag == 0 and data.level == 1 and data.xp == 0 then
-		local range = Pets.VALUE[1]
-		local value = (range[1] + range[2]) // 2
-		data.spots["1"] = { a = Pets.COLLECTIONS[1][1], q = 1, v = value, l = Pets.luckPercent(value, 1), x = 10, z = 16, lv = 1, xp = 0 }
-		data.team = { "1" }
-		PlayerData.changed(player)
-		Monsters.publishTeam(player)
-	end
-end)
+-- (Un nouveau joueur commence SANS familier : il bat des canards à l'épée, qui lâchent souvent leur œuf.)
+local _ = Pets
 
 if RunService:IsStudio() then
 	require(script.Parent.Debug)(world)

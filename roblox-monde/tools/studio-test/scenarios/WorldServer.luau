@@ -34,9 +34,9 @@ return function(log)
 	task.wait(2)
 	local zones = D("Zones")
 
-	-- 1. Le départ : un caneton dans l'équipe.
+	-- 1. Le départ : sans familier.
 	local data = D("Data")
-	check(#data.team == 1 and data.spots["1"] and data.spots["1"].a == "Duck", "un nouveau joueur a un caneton dans son équipe", data.spots["1"] and data.spots["1"].a)
+	check(#data.team == 0 and next(data.spots) == nil, "un nouveau joueur commence sans familier")
 	check(#D("Monsters") == 3 * 30, "30 par zone : 5 camps de 5 monstres, le boss et 4 coffres", #D("Monsters"))
 
 	-- 2. Les décors.
@@ -67,8 +67,11 @@ return function(log)
 	end
 	data = D("Data")
 	check(data.coins > 0 and (data.xp > 0 or data.level > 1), "un monstre battu donne des pièces et de l'XP", data.coins .. " pièces, " .. data.xp .. " XP")
-	check((data.spots["1"].xp or 0) > 0 or (data.spots["1"].lv or 1) > 1, "le familier de l'équipe gagne de l'XP aussi", data.spots["1"].xp)
+	check(humanoid().Health > 40, "seul, à l'épée, on bat un canard sans presque rien perdre", math.floor(humanoid().Health))
 	workspace:SetAttribute("AutoAttack", false)
+	-- Un canard lâche un œuf de canard.
+	check(D("Egg", 1, 1) == true and string.match(player:GetAttribute("BagNext") or "", "^Duck:1:") ~= nil, "l'œuf d'un canard est un œuf de canard", player:GetAttribute("BagNext"))
+	D("Pet", "Duck", 1)
 
 	-- 4. Les familiers encaissent d'abord : le joueur garde toute sa vie.
 	D("Pet", "Goat", 5)
@@ -85,6 +88,7 @@ return function(log)
 	-- Un monstre n'attaque pas le premier : sans le frapper, rien ne se passe.
 	task.wait(2.5)
 	check((player:GetAttribute("Target") or 0) == 0 and string.match(player:GetAttribute("TeamHp") or "", "^(%d+)/(%d+)") ~= nil, "un monstre qu'on ne frappe pas n'attaque pas", player:GetAttribute("TeamHp"))
+	local healthBefore = humanoid().Health
 	D("Hurt", strong.id, 1)
 	-- (On guette le premier coup : le combat est court, et les familiers se soignent vite ensuite.)
 	local struck, seen = false, ""
@@ -98,9 +102,24 @@ return function(log)
 	root = player.Character.HumanoidRootPart.Position
 	shot("equipe", root + Vector3.new(12, 9, -15), root + Vector3.new(-4, 2, 0))
 	check(struck, "le monstre frappe d'abord le premier familier", seen)
-	check(humanoid().Health >= humanoid().MaxHealth - 0.5, "le joueur n'a rien pris tant que ses familiers tiennent", humanoid().Health)
+	check(humanoid().Health >= healthBefore - 0.5, "le joueur n'a rien pris tant que ses familiers tiennent", humanoid().Health)
 	check(D("TeamDamage") > 0, "l'équipe fait des dégâts", D("TeamDamage"))
 	D("Peaceful", true)
+	-- S'eloigner : le monstre abandonne et retrouve toute sa vie.
+	local far
+	for _, monster in D("Monsters") do
+		if monster.zone == 1 and monster.rank == 5 and not monster.dead then
+			far = monster
+			break
+		end
+	end
+	go(far.position + Vector3.new(8, 0, 0))
+	D("Hurt", far.id, 500)
+	task.wait(0.5)
+	go(far.position + Vector3.new(60, 0, 0))
+	task.wait(1.5)
+	local after = D("Monsters")[far.id]
+	check(after.hp == after.max and (player:GetAttribute("Target") or 0) == 0, "on s'eloigne : le monstre abandonne et retrouve toute sa vie", after.hp .. "/" .. after.max)
 
 	-- Un coffre : il ne se défend pas, et donne beaucoup de pièces.
 	local chest
@@ -150,7 +169,12 @@ return function(log)
 	task.wait(0.5)
 	data = D("Data")
 	check(data.zone == 2, "battre le boss ouvre la zone 2", data.zone)
-	check(data.bag == bag + 1, "le boss lâche toujours un œuf", data.bag)
+	local leveled = false
+	for _, key in data.team do
+		leveled = leveled or (data.spots[key].lv or 1) > 1 or (data.spots[key].xp or 0) > 0
+	end
+	check(leveled, "les familiers de l'équipe gagnent de l'XP aussi")
+	local _ = bag
 	go(Vector3.new(0, 0, zones[2].zMin + 12))
 	task.wait(2.2)
 	check(player.Character.HumanoidRootPart.Position.Z > zones[2].zMin, "zone 2 ouverte : le joueur y reste")

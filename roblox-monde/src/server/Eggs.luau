@@ -33,12 +33,13 @@ end
 -- UN MONSTRE LÂCHE UN ŒUF de sa zone : le rang est tiré ici (avec la chance du joueur), il donne l'animal, et la
 -- valeur cachée du futur familier est tirée aussi (`b`) : l'œuf est d'autant plus gros qu'elle est haute.
 -- Renvoie l'œuf, ou nil si le joueur ne peut plus en porter.
-function Eggs.drop(player: Player, zone: number)
+-- rank : le rang de l'œuf (un monstre lâche l'œuf de SON animal) ; sans lui (un coffre), le rang est tiré au sort.
+function Eggs.drop(player: Player, zone: number, rank: number?)
 	local data = PlayerData.get(player)
 	if not data or not Pets.COLLECTIONS[zone] or #data.bag >= Pets.MAX_BAG then
 		return nil
 	end
-	local rank = Pets.roll(random, zone, Eggs.luck(player))
+	rank = rank or Pets.roll(random, zone, Eggs.luck(player))
 	local egg = { a = Pets.COLLECTIONS[zone][rank], q = rank, r = zone, b = Pets.rollValue(random, rank) }
 	table.insert(data.bag, egg)
 	PlayerData.changed(player)

@@ -146,8 +146,9 @@ local function reward(monster, player: Player)
 		Gym.applyStats(player, true)
 		notify(player, "levelUp", PlayerData.get(player).level)
 	end
-	if random:NextNumber() < def.egg then
-		Eggs.drop(player, monster.zone)
+	-- Un monstre lâche l'œuf de son animal ; un coffre, un œuf tiré au sort. La chance du joueur aide.
+	if random:NextNumber() < def.egg * Eggs.luck(player) then
+		Eggs.drop(player, monster.zone, if monster.chest then nil else monster.rank)
 	end
 	if monster.boss then
 		if PlayerData.openZone(player, monster.zone + 1) then
@@ -252,7 +253,6 @@ local function strike(monster, player: Player, humanoid: Humanoid?): boolean
 	for _, member in teamOf(player) do
 		if member.hp > 0 then
 			fight.hp[member.key] = math.max(0, member.hp - monster.def.damage)
-			fight.hurtAt = os.clock()
 			if fight.hp[member.key] == 0 then
 				notify(player, "petDown", member.pet.a)
 			end
@@ -281,8 +281,17 @@ local function stepMonster(monster, dt: number, now: number)
 	local target, targetRoot = monster.target, nil
 	if target then
 		targetRoot = rootOf(target)
-		if not targetRoot or flat(position - monster.home).Magnitude > Config.LEASH or flat(targetRoot.Position - position).Magnitude > Config.AGGRO * 2.5 then
+		if not targetRoot or flat(position - monster.home).Magnitude > Config.LEASH or flat(targetRoot.Position - position).Magnitude > Config.RESET then
+			-- Le joueur est parti (ou mort) : le monstre abandonne, et retrouve toute sa vie tout de suite.
+			local fight = fights[target]
+			if fight and fight.target == monster.id then
+				fight.target = nil
+				target:SetAttribute("Target", 0)
+			end
 			monster.target, target, targetRoot = nil, nil, nil
+			monster.hp = monster.def.hp
+			monster.hitters = {}
+			monster.part:SetAttribute("Hp", monster.hp)
 		end
 	end
 	-- (Un monstre n'attaque JAMAIS le premier : il ne se bat que contre le joueur qui l'a frappé. Demande du joueur :
@@ -452,7 +461,22 @@ function Monsters.start(world, notifier)
 				local root = rootOf(player)
 				local data = PlayerData.get(player)
 				local fight = fights[player]
-				-- Quelques secondes sans prendre de coup : les familiers se relèvent, soignés.
+				-- Les familiers ne se relèvent JAMAIS pendant un combat : seulement après quelques secondes sans cible
+				-- et sans monstre aux trousses.
+				if fight then
+					local busy = fight.target ~= nil
+					if not busy then
+						for _, monster in monsters do
+							if monster.target == player and not monster.dead then
+								busy = true
+								break
+							end
+						end
+					end
+					if busy then
+						fight.hurtAt = now
+					end
+				end
 				if fight and next(fight.hp) and now - fight.hurtAt > Config.PET_REST then
 					fight.hp = {}
 					publishTeam(player)

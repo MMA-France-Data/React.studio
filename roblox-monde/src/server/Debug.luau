@@ -81,7 +81,8 @@ return function(world)
 			end
 			return false
 		elseif action == "Egg" then
-			return Eggs.drop(player, a or 1) ~= nil
+			-- Un œuf de la zone a (et du rang b, sinon tiré au sort).
+			return Eggs.drop(player, a or 1, b) ~= nil
 		elseif action == "Place" then
 			return Eggs.place(player, a, b)
 		elseif action == "Hatch" then

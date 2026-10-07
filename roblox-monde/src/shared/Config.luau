@@ -28,11 +28,15 @@ Config.MONSTER = {
 	-- est fait pour une équipe de TROIS familiers de ce rang, qui le battent en une dizaine de secondes pendant
 	-- qu'il met environ 8 secondes à en coucher un. Avec des familiers d'un rang en dessous, c'est perdu : ils ne
 	-- lui font presque rien et il les couche en deux coups.
-	hp = { 100, 300, 700, 1500, 3200, 12000 },
-	damage = { 7, 15, 30, 60, 125, 300 }, -- ce qu'un coup du monstre enlève (à un familier d'abord, au joueur en dernier)
+	-- EXCEPTION, le premier camp (le canard) : on commence SANS familier, il doit donc se battre seul, à l'épée
+	-- (40 de vie = une dizaine de secondes, et il enlève peu de vie au joueur).
+	hp = { 40, 300, 700, 1500, 3200, 12000 },
+	damage = { 3, 15, 30, 60, 125, 300 }, -- ce qu'un coup du monstre enlève (à un familier d'abord, au joueur en dernier)
 	coins = { 3, 8, 20, 50, 130, 2000 },
 	xp = { 4, 10, 24, 55, 130, 600 },
-	egg = { 0.07, 0.08, 0.09, 0.11, 0.13, 1 }, -- chance de lâcher un œuf
+	-- Chance de lâcher SON œuf (un canard lâche un œuf de canard, un cochon un œuf de cochon...) : forte pour le
+	-- canard, de plus en plus faible ensuite. La chance d'œuf rare du joueur la multiplie.
+	egg = { 0.25, 0.12, 0.08, 0.05, 0.03, 0.15 },
 	scale = { 1.5, 1.7, 1.9, 2.2, 2.5, 4.5 }, -- grosseur du modèle (un familier fait 1)
 	speed = { 11, 12, 13, 14, 15, 13 },
 }
@@ -44,7 +48,8 @@ Config.XP_ZONE = 4
 Config.RESPAWN = 6 -- secondes avant qu'un monstre revienne (le boss : BOSS_RESPAWN)
 Config.BOSS_RESPAWN = 25
 Config.AGGRO = 22 -- distance à laquelle un monstre voit le joueur
-Config.LEASH = 70 -- il abandonne au-delà de cette distance de chez lui
+Config.LEASH = 45 -- il abandonne au-delà de cette distance de chez lui
+Config.RESET = 32 -- le joueur s'éloigne à plus de cette distance : le monstre abandonne, rentre et retrouve toute sa vie
 Config.MONSTER_REACH = 5.5
 Config.MONSTER_COOLDOWN = 1.3
 
@@ -113,7 +118,7 @@ function Config.swordPrice(sword: number): number
 end
 -- LES FAMILIERS AU COMBAT (leurs dégâts et leur vie : Pets.damageOf et Pets.healthOf). Les monstres s'en prennent
 -- d'abord à eux, dans l'ordre de l'équipe, et au joueur en dernier.
-Config.PET_REST = 5 -- secondes sans prendre de coup pour que les familiers se relèvent et se soignent
+Config.PET_REST = 5 -- secondes HORS COMBAT pour que les familiers se relèvent et se soignent (jamais pendant)
 -- XP qu'il faut à un familier pour passer du niveau `level` au suivant.
 function Config.petXpNeed(level: number): number
 	return math.floor(15 * level ^ 1.6)
