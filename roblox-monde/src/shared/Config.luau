@@ -98,17 +98,21 @@ end
 function Config.maxHealth(level: number): number
 	return math.floor(100 * 1.1 ^ (level - 1))
 end
--- L'ÉPÉE : +25 % de dégâts par niveau. Elle ne peut pas dépasser SWORD_PER_ZONE niveaux par zone ouverte (battre
--- un boss débloque les dix niveaux suivants) : on ne peut pas tout acheter d'un coup avec les pièces de l'enclos.
-Config.SWORD_PER_ZONE = 10
+-- L'ÉPÉE : chaque épée tape SWORD_STEP fois plus fort que la précédente. On ne peut en acheter que SWORD_PER_ZONE
+-- par zone ouverte (battre un boss débloque les suivantes) : impossible de tout acheter d'un coup avec les pièces
+-- de l'enclos. Prix : 300 pièces la deuxième, puis x 4 à chaque épée.
+-- (Son choix : « moins d'evolutions mais plus de multiplicateur, x3,2 par epee ». Deux epees par zone = x10, comme
+-- les monstres.)
+Config.SWORD_PER_ZONE = 2
+Config.SWORD_STEP = 3.2
 function Config.swordMax(zone: number): number
-	return Config.SWORD_PER_ZONE * zone
+	return 1 + Config.SWORD_PER_ZONE * zone
 end
 -- QUI DONNE QUOI (la règle du joueur) : monter de niveau SOI-MÊME = plus de vie, rien d'autre ; monter son ÉPÉE =
 -- plus de dégâts pour soi ; monter le niveau d'un FAMILIER = ses dégâts et sa vie.
 function Config.swordDamage(sword: number): number
 	-- (L'épée seule fait peu : la force vient surtout des trois familiers.)
-	return 3 * 1.25 ^ (sword - 1)
+	return 3 * Config.SWORD_STEP ^ (sword - 1)
 end
 function Config.hitDamage(sword: number, level: number): number
 	local _ = level
@@ -116,7 +120,7 @@ function Config.hitDamage(sword: number, level: number): number
 end
 -- Prix pour passer de l'épée `sword` à la suivante.
 function Config.swordPrice(sword: number): number
-	return math.floor(40 * 1.45 ^ (sword - 1))
+	return math.floor(300 * 4 ^ (sword - 1))
 end
 -- LES FAMILIERS AU COMBAT (leurs dégâts et leur vie : Pets.damageOf et Pets.healthOf). Les monstres s'en prennent
 -- d'abord à eux, dans l'ordre de l'équipe, et au joueur en dernier.

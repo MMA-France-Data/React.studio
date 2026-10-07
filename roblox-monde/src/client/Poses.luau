@@ -49,6 +49,8 @@ return function()
 		{ Color3.fromRGB(90, 220, 255), Enum.Material.Neon, Color3.fromRGB(40, 70, 160) },
 		{ Color3.fromRGB(190, 110, 255), Enum.Material.Neon, Color3.fromRGB(60, 30, 110) },
 		{ Color3.fromRGB(255, 80, 70), Enum.Material.Neon, Color3.fromRGB(40, 40, 50) },
+		{ Color3.fromRGB(90, 255, 140), Enum.Material.Neon, Color3.fromRGB(30, 80, 50) },
+		{ Color3.fromRGB(255, 255, 255), Enum.Material.Neon, Color3.fromRGB(236, 176, 48) },
 	}
 	local function sword(tier: number): Model
 		local look = SWORDS[tier]
@@ -203,7 +205,7 @@ return function()
 
 			-- L'EPEE, dans la main droite (sa couleur change tous les cinq niveaux). Pas pendant qu'on porte.
 			local rightHand, leftHand = character:FindFirstChild("RightHand"), character:FindFirstChild("LeftHand")
-			local tier = math.clamp(((other:GetAttribute("Sword") or 1) - 1) // 5 + 1, 1, #SWORDS)
+			local tier = math.clamp(other:GetAttribute("Sword") or 1, 1, #SWORDS)
 			if rightHand and not carrying then
 				if not state.sword or state.swordTier ~= tier then
 					if state.sword then
