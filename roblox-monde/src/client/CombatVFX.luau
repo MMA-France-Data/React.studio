@@ -3,11 +3,7 @@
 local RunService = game:GetService("RunService")
 local Input = game:GetService("UserInputService")
 local VFX = {}
-local COLORS = {
-	Color3.fromRGB(191, 215, 241), Color3.fromRGB(220, 240, 255),
-	Color3.fromRGB(83, 226, 255), Color3.fromRGB(255, 104, 35),
-	Color3.fromRGB(167, 100, 255), Color3.fromRGB(255, 57, 201),
-}
+local Palette = require(script.Parent.SwordPalette)
 local ARC_CAP = if Input.TouchEnabled then 8 else 14
 local SPARK_CAP = if Input.TouchEnabled then 48 else 80
 local live, arcPool, sparkPool = {}, {}, {}
@@ -26,8 +22,7 @@ local function visible(position: Vector3): boolean
 	return camera ~= nil and (camera.CFrame.Position - position).Magnitude <= 85
 end
 local function color(tier: number, index: number?): Color3
-	if tier >= 6 and index then return Color3.fromHSV((index * 0.16) % 1, 0.90, 1) end
-	return COLORS[math.clamp(tier, 1, #COLORS)]
+	return Palette.color(tier, if index then index * 0.16 else nil)
 end
 local function piece(): Part
 	local p = Instance.new("Part")

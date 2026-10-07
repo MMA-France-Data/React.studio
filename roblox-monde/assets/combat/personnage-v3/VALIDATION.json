@@ -1,0 +1,31 @@
+{
+  "checks": 2624,
+  "trajectories": [
+    {
+      "clip": "SlashRight",
+      "sweepDegrees": 224,
+      "previousSweepDegrees": 166.72441069085178,
+      "maxBladePitchDegrees": 0.08818750871723864,
+      "maxBladeNormalTiltDegrees": 0.12179775870813866,
+      "tipHeightRange": 0.07312328039685378,
+      "feetSeparation": 1.3847528217754157
+    },
+    {
+      "clip": "SlashLeft",
+      "sweepDegrees": 224,
+      "previousSweepDegrees": 167.76128454946544,
+      "maxBladePitchDegrees": 0.062215653344228176,
+      "maxBladeNormalTiltDegrees": 0.0836731041615651,
+      "tipHeightRange": 0.07541492390742943,
+      "feetSeparation": 1.3847528217754155
+    }
+  ],
+  "originalSourcesUnchanged": true,
+  "damageAndCooldownUnchanged": true,
+  "nativeClipDuration": 0.38,
+  "studioRuntimeTest": false,
+  "meshShapesChanged": false,
+  "gripChecks": 242,
+  "grip": "RightGripAttachment position, wrist rotation, pivot offset compensated",
+  "notes": "Offline geometric / source checks, not a Roblox runtime test."
+}

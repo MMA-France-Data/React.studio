@@ -11,6 +11,7 @@ local RunService = game:GetService("RunService")
 
 local CombatMotion = require(script.Parent.CombatMotion)
 local SwordVisuals = require(script.Parent.SwordVisuals)
+local SwordGrip = require(script.Parent.SwordGrip)
 local CombatVFX = require(script.Parent.CombatVFX)
 local PUNCH = CombatMotion.duration
 local PRESS = 1 -- un aller-retour de la barre par seconde (deux pas d'entraînement)
@@ -125,11 +126,8 @@ return function()
 			local sincePunch = now - stamp
 			local variant = CombatMotion.observeAttack(state, stamp, sincePunch)
 			local combat = if not carrying and not pressing then CombatMotion.sample(variant, sincePunch) else nil
-			if combat and sincePunch >= 0.065 and state.lastVfxStamp ~= stamp then
-				state.lastVfxStamp = stamp
-				local root = character:FindFirstChild("HumanoidRootPart")
-				if root then CombatVFX.slash(root.CFrame, SwordVisuals.tier(other:GetAttribute("Sword") or 1), variant) end
-			end
+			-- The slash now comes from the blade's actual Trail attachments.
+			-- No separately drawn root-centred arc; confirmed-hit FX stay in Main.
 
 
 			-- Les angles de chaque geste (une rotation positive autour de X lève le bras vers l'avant, puis vers le haut).
@@ -159,11 +157,13 @@ return function()
 				end
 			end
 
-			-- Full-body authored combat, layered over walking. No root displacement.
+			-- Override the walking arm during the cut, so its wrist rotation cannot
+			-- tip the authored cutting plane. Blend back to locomotion at the ends.
 			if combat then
+				local attackWeight = CombatMotion.weight(sincePunch)
 				for name, value in combat do
 					local link = joint(character, BONE_PARTS[name] or "", name)
-					if link then apply(link, value * link.Transform) end
+					if link then apply(link, link.Transform:Lerp(value, attackWeight)) end
 				end
 			end
 			local rightHand, leftHand = character:FindFirstChild("RightHand"), character:FindFirstChild("LeftHand")
@@ -199,11 +199,11 @@ return function()
 			end
 		end
 	end)
-	RunService.PreRender:Connect(function()
+	RunService.PreRender:Connect(function(dt)
 		for _, state in states do
 			if state.sword and state.swordHand and state.swordHand.Parent then
-				state.sword:PivotTo(state.swordHand.CFrame * CFrame.new(0, -0.25, 0))
-				SwordVisuals.setSwing(state.sword, state.swordSwing == true)
+				SwordGrip.place(state.sword, state.swordHand)
+				SwordVisuals.update(state.sword, dt, state.swordSwing == true)
 			end
 		end
 	end)
