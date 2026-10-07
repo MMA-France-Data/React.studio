@@ -38,7 +38,9 @@ Config.MONSTER = {
 	-- (Le boss revient en 3 secondes : il paie a peine plus qu une chevre, sinon le farmer en boucle au monde 1
 	-- paierait l epee 4 en une heure et l argent ne serait plus un verrou.)
 	coins = { 3, 8, 20, 50, 130, 200 },
-	xp = { 4, 10, 24, 55, 130, 600 },
+	-- (Son constat : « avec mes coqs niveau 7, j XP mieux au canard qu ailleurs ». L XP suit maintenant la solidite
+	-- du monstre : le camp le plus fort qu on peut battre est toujours celui qui rapporte le plus d XP a la minute.)
+	xp = { 4, 26, 60, 125, 260, 600 },
 	-- Chance de lâcher SON œuf (un canard lâche un œuf de canard, un cochon un œuf de cochon...) : forte pour le
 	-- canard, de plus en plus faible ensuite. La chance d'œuf rare du joueur la multiplie.
 	-- (Le boss revient en 3 secondes : 2 % d'œuf suffisent, son familier est le plus fort du monde.)

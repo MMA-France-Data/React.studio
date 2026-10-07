@@ -255,7 +255,7 @@ Pets.FIGHT_HP = { 45, 90, 180, 360, 760, 5400 }
 Pets.FIGHT_ZONE = 100
 -- L'XP que demande un niveau dépend du rang de l'animal (comme l'XP que donnent les monstres de son camp) : monter
 -- un cochon en battant des cochons prend autant de combats que monter un canard en battant des canards.
-Pets.RANK_XP = { 1, 2.5, 6, 14, 32, 80 }
+Pets.RANK_XP = { 1, 6.5, 15, 32, 64, 80 }
 -- CHAQUE MONDE DURE PLUS LONGTEMPS QUE LE PRECEDENT (sa demande : « ralentir le monde deux pour qu il dure encore
 -- plus longtemps ») : a chaque monde, monter un familier demande LONG_XP fois plus de combats.
 -- Par monde : { monde 1, monde 2, monde 3 } (regle avec tools/balance/mondes.py : 3,5 h, 8 h, 10 h). Les mondes
