@@ -1071,9 +1071,11 @@ return function(env)
 	-- familier choisi reçoit 75 % de son XP).
 	local feedEvent = ReplicatedStorage:WaitForChild("FeedPet")
 	local feeding = false
+	local doomed = 0 -- la place du familier qui attend la confirmation « es-tu sûr ? »
 	local feed = button(sheet, "Feed", UDim2.fromOffset(256, 44), UDim2.fromOffset(12, 414), Color3.fromRGB(240, 170, 30), "")
 	feed.Activated:Connect(function()
 		feeding = not feeding
+		doomed = 0
 		if feeding then
 			showToast(tr("feedPick"), GOLD)
 		end
@@ -1176,12 +1178,21 @@ return function(env)
 				item.frame.LayoutOrder = i
 				item.frame.Activated:Connect(function()
 					if feeding and item.spot ~= selected then
-						-- Celui-ci est mangé par le familier de la fiche.
-						feeding = false
+						-- Celui-ci sera mangé par le familier de la fiche. PREMIER clic : on demande « es-tu sûr ? »
+						-- (il disparaît pour toujours). DEUXIÈME clic sur le même : c'est fait.
+						if doomed ~= item.spot then
+							doomed = item.spot
+							local spots = Pets.decode(player:GetAttribute("Spots"))
+							local meal = spots[tostring(item.spot)]
+							showToast(tr("feedSure", tr(meal and meal.a or "?")), RED)
+							refreshPanels()
+							return
+						end
+						feeding, doomed = false, 0
 						feedEvent:FireServer(selected, item.spot)
 						return
 					end
-					feeding = false
+					feeding, doomed = false, 0
 					selected = item.spot
 					refreshPanels()
 				end)
@@ -1190,7 +1201,8 @@ return function(env)
 			item.spot = entry.index
 			item.frame.Visible = true
 			paint(item, entry.spot.q, entry.index == selected, Pets.gradeOf(entry.spot))
-			item.line.Text = if feeding and entry.index ~= selected then tr("feedThis") else tr("lvlLong", Pets.levelOf(entry.spot))
+			item.line.Text = if feeding and entry.index == doomed then tr("feedConfirm") elseif feeding and entry.index ~= selected then tr("feedThis") else tr("lvlLong", Pets.levelOf(entry.spot))
+			item.line.TextColor3 = if feeding and entry.index == doomed then RED else Color3.new(1, 1, 1)
 			item.tick.Visible = table.find(inTeam, tostring(entry.index)) ~= nil
 			show(item.view, entry.spot.a .. entry.spot.q, function()
 				return Pets.build(entry.spot.a, entry.spot.q, true)
