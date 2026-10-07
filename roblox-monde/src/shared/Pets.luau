@@ -259,7 +259,9 @@ end
 -- Un petit canard est C, un gros canard est S ; un petit cochon est C lui aussi. GRADE_ODDS : la chance de chaque
 -- note quand un œuf est trouvé (sur 100) ; elle est écrite sur le panneau de chaque camp.
 Pets.GRADES = { "C", "B", "A", "S" }
-Pets.GRADE_ODDS = { 50, 30, 15, 5 }
+-- (Son retour : « 5 % de S c'est beaucoup trop, ça doit être supra rare, genre 0,1 % » par monstre battu. Avec la
+-- chance d'œuf du canard (25 %), 0,4 % de S par œuf = 0,1 % par canard battu : un S tous les 1 000 canards.)
+Pets.GRADE_ODDS = { 70, 25, 4.6, 0.4 }
 function Pets.gradeOf(spot): string
 	return Pets.GRADES[math.clamp(math.floor(Pets.alongOf(spot) * #Pets.GRADES) + 1, 1, #Pets.GRADES)]
 end

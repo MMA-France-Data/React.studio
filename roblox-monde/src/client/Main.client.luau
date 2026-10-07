@@ -156,18 +156,19 @@ local function dressOdds(part: Instance)
 	for _, face in { Enum.NormalId.Front, Enum.NormalId.Back } do
 		local board = surface(part, face)
 		local count = #Pets.GRADES
-		for index = count, 1, -1 do
+		-- (Le moins rare en haut, le plus rare en bas.)
+		for index = 1, count do
 			local grade = Pets.GRADES[index]
 			local row = Instance.new("Frame")
 			row.BackgroundColor3 = Color3.fromRGB(118, 74, 38)
 			row.BorderSizePixel = 0
 			row.Size = UDim2.fromScale(0.9, 0.9 / count - 0.03)
-			row.Position = UDim2.fromScale(0.05, 0.05 + (count - index) * 0.9 / count)
+			row.Position = UDim2.fromScale(0.05, 0.05 + (index - 1) * 0.9 / count)
 			Instance.new("UICorner", row).CornerRadius = UDim.new(0.2, 0)
 			row.Parent = board
 			campText(row, UDim2.fromScale(0.26, 0.86), UDim2.fromScale(0.04, 0.07), GRADE_COLORS[grade]).Text = grade
 			local chance = egg * Pets.GRADE_ODDS[index]
-			local text = if chance >= 10 then string.format("%d", chance + 0.5) else string.format("%.1f", chance)
+			local text = if chance >= 10 then string.format("%d", chance + 0.5) elseif chance >= 1 then string.format("%.1f", chance) else string.format("%.2f", chance)
 			campText(row, UDim2.fromScale(0.64, 0.8), UDim2.fromScale(0.32, 0.1)).Text = (if lang == "fr" then (text:gsub("%.", ",")) else text) .. " %"
 		end
 	end
