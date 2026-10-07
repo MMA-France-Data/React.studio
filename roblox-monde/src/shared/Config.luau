@@ -161,10 +161,10 @@ Config.SWORDS = {
 	-- (La deuxième épée sert de TUTORIEL, sa demande : 30 pièces, soit une dizaine de canards ; elle triple les
 	-- dégâts. La vraie grosse épée du monde 1 est la troisième.)
 	{ damage = 8, price = 30 }, -- monde 1, après deux minutes
-	{ damage = 250, price = 400000 }, -- monde 1, juste avant le boss (vers 3 h 20)
-	{ damage = 1160, price = 2200000 }, -- monde 2, après 2 heures
-	{ damage = 5400, price = 13000000 }, -- monde 2, après 4 h 30
-	{ damage = 25000, price = 60000000 }, -- monde 2, juste avant le boss (après 7 h 30)
+	{ damage = 250, price = 200000 }, -- monde 1, juste avant le boss (vers 3 h 20)
+	{ damage = 1160, price = 2500000 }, -- monde 2, après 2 heures
+	{ damage = 5400, price = 10000000 }, -- monde 2, après 4 h 30
+	{ damage = 25000, price = 25000000 }, -- monde 2, juste avant le boss (après 7 h 30)
 }
 Config.SWORD_PER_ZONE = 3
 -- (Au-delà de la sixième : les trois mêmes marches, 100 fois plus haut à chaque monde.)

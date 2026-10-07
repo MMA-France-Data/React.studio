@@ -15,15 +15,15 @@ XP = [4, 26, 60, 125, 260, 600]
 EGG = [0.20, 0.05, 0.05, 0.05, 0.05, 0.05]
 FIGHT_DMG = [5, 10, 20, 40, 85, 600]
 FIGHT_HP = [45, 90, 180, 360, 760, 5400]
-RANK_XP = [1, 6.5, 15, 32, 64, 80]
+RANK_XP = [1, 10, 30, 70, 110, 80]
 GRADE_ODDS = [70, 25, 4.6, 0.4]
-SWORDS = [(2.5, 0), (8, 30), (250, 400000), (1160, 2200000), (5400, 13000000), (25000, 60000000)]
+SWORDS = [(2.5, 0), (8, 30), (250, 200000), (1160, 2500000), (5400, 10000000), (25000, 25000000)]
 NEED = 60
 EARLY = 0.3   # Pets.EARLY_XP : les cinq premiers niveaux d un familier demandent cette part de l XP normale
 ZONE, COIN_ZONE, XP_ZONE = 100, 100, 10   # d'un monde au suivant : monstres et familiers, pièces, XP
 # D un monde au suivant, en plus : l XP des familiers est LONG_XP fois plus longue et les oeufs LONG_EGG fois plus rares
 # (Pets.LONG_XP, Config.LONG_EGG) : chaque monde dure plus longtemps que le precedent.
-LONG_XP, LONG_EGG = [1, 7.7, 10.3], [1, 1, 1]   # par monde (Pets.LONG_XP, Config.LONG_EGG)
+LONG_XP, LONG_EGG = [1, 10, 13], [1, 1, 1]   # par monde (Pets.LONG_XP, Config.LONG_EGG)
 WALK = 4.0
 INCOME = [0.15, 0.3, 0.75, 2, 5, 12]  # pieces par seconde d un familier moyen de chaque rang, au monde 1 (Pets.INCOME)
 
