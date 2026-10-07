@@ -759,6 +759,9 @@ return function(env)
 		stroke.Color = Color3.fromRGB(20, 20, 30)
 		stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 		stroke.Parent = button
+		-- Son nom, écrit dessous (sur PC).
+		local caption = env.text(button, "Caption", UDim2.new(1, 60, 0, 24), UDim2.new(0, -30, 1, 0), nil, 20)
+		caption.Text = tr(name)
 		button.Parent = env.gui
 		return button
 	end

@@ -309,20 +309,66 @@ refreshHud()
 -- L'ÉCRAN ALLÉGÉ DES TÉLÉPHONES : les pièces en haut à droite, le bloc de gauche plus petit, les boutons de droite
 -- plus petits, et pas de liste des joueurs. (« PhoneHud » sur le Workspace : pour l'essayer sur un PC.)
 local small = false
+-- (Les boutons d'attaque sont créés plus bas : applyHud les range quand ils existent.)
+local attackButton: TextButton? = nil
+local autoButton: TextButton? = nil
+-- LA DISPOSITION DE L'ÉCRAN (refaite sur le modèle que le joueur a montré) :
+--   sur PC : le menu (Œufs, Familiers, Boutique) en colonne à gauche, avec le nom sous chaque bouton ; les pièces en
+--   bas à gauche, avec l'épée, l'équipe et la chance juste au-dessus ; la grande barre de niveau en bas au milieu ;
+--   au-dessus d'elle, les deux actions avec leur touche : F = frapper, R = attaque automatique ;
+--   sur téléphone : tout est plus petit et sur les bords, les deux boutons d'attaque ronds sous le pouce droit.
+local MENU = { "EggButton", "PawButton", "ShopButton" }
 local function applyHud()
 	local view = workspace.CurrentCamera.ViewportSize
 	small = workspace:GetAttribute("PhoneHud") == true or (UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled) or view.Y < 520
+	-- Les pièces.
+	wallet.Parent = gui
+	wallet.AnchorPoint = if small then Vector2.new(1, 0) else Vector2.new(0, 1)
+	wallet.Position = if small then UDim2.new(1, -6, 0, 2) else UDim2.new(0, 16, 1, -4)
+	walletScale.Scale = if small then 0.7 else 1.25
+	-- L'épée, l'équipe, la chance.
+	side.AnchorPoint = if small then Vector2.new(0, 0.5) else Vector2.new(0, 1)
+	side.Position = if small then UDim2.new(0, 12, 0.5, 0) else UDim2.new(0, 14, 1, -84)
+	side.Size = if small then UDim2.fromOffset(240, 250) else UDim2.fromOffset(380, 34)
 	sideScale.Scale = if small then 0.72 else 1
-	wallet.Parent = if small then gui else side
-	wallet.AnchorPoint = if small then Vector2.new(1, 0) else Vector2.zero
-	wallet.Position = if small then UDim2.new(1, -6, 0, 2) else UDim2.fromOffset(0, 0)
-	walletScale.Scale = if small then 0.7 else 1
-	for _, name in { "EggButton", "PawButton", "ShopButton" } do
+	for i, name in { "Sword", "Team", "Luck" } do
+		local pill = pills[name].Parent
+		pill.Size = if small then UDim2.fromOffset(150, 34) else UDim2.fromOffset(118, 32)
+		pill.Position = if small then UDim2.fromOffset(2, 66 + i * 42) else UDim2.fromOffset((i - 1) * 126, 0)
+	end
+	-- La barre de niveau.
+	levelPill.Parent = if small then side else gui
+	levelPill.AnchorPoint = if small then Vector2.zero else Vector2.new(0.5, 1)
+	levelPill.Position = if small then UDim2.fromOffset(2, 62) else UDim2.new(0.5, 0, 1, -10)
+	levelPill.Size = if small then UDim2.fromOffset(200, 38) else UDim2.fromOffset(540, 32)
+	-- Le menu.
+	for order, name in MENU do
 		local button = gui:FindFirstChild(name)
 		if button then
 			local scale = button:FindFirstChildOfClass("UIScale") or Instance.new("UIScale")
 			scale.Scale = if small then 0.78 else 1
 			scale.Parent = button
+			button.AnchorPoint = if small then Vector2.new(1, 0.5) else Vector2.new(0, 0.5)
+			button.Position = if small then UDim2.new(1, -12, 0.5, -110 + (order - 1) * 76) else UDim2.new(0, 22, 0.5, -170 + (order - 1) * 104)
+			local caption = button:FindFirstChild("Caption")
+			if caption then
+				caption.Visible = not small
+			end
+		end
+	end
+	-- Les deux actions.
+	for index, button in { attackButton, autoButton } do
+		if button then
+			local size = if small then (if index == 1 then 104 else 66) else 76
+			button.Size = UDim2.fromOffset(size, size)
+			button.AnchorPoint = if small then Vector2.new(1, 1) else Vector2.new(0.5, 1)
+			if small then
+				button.Position = if index == 1 then UDim2.new(1, -110, 1, -30) else UDim2.new(1, -124, 1, -146)
+			else
+				button.Position = UDim2.new(0.5, if index == 1 then -50 else 50, 1, -54)
+			end
+			button:FindFirstChildOfClass("UICorner").CornerRadius = if small then UDim.new(1, 0) else UDim.new(0, 12)
+			button.Key.Visible = not small
 		end
 	end
 	pcall(function()
@@ -523,11 +569,16 @@ local function roundButton(name: string, size: number, position: UDim2, color: C
 	stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 	stroke.Parent = button
 	text(button, "Label", UDim2.fromScale(0.86, 0.5), UDim2.fromScale(0.07, 0.25)).Text = label
+	-- La touche du clavier, en haut à gauche du bouton (sur PC).
+	local key = text(button, "Key", UDim2.fromOffset(30, 30), UDim2.fromOffset(-8, -14))
+	key.TextXAlignment = Enum.TextXAlignment.Left
 	button.Parent = gui
 	return button
 end
-local attackButton = roundButton("Attack", 104, UDim2.new(1, -110, 1, -30), Color3.fromRGB(235, 60, 60), "⚔")
-local autoButton = roundButton("Auto", 66, UDim2.new(1, -124, 1, -146), Color3.fromRGB(90, 96, 120), tr("auto"))
+attackButton = roundButton("Attack", 104, UDim2.new(1, -110, 1, -30), Color3.fromRGB(235, 60, 60), "⚔")
+autoButton = roundButton("Auto", 66, UDim2.new(1, -124, 1, -146), Color3.fromRGB(90, 96, 120), tr("auto"))
+attackButton.Key.Text = "F"
+autoButton.Key.Text = "R"
 -- L'ATTAQUE AUTOMATIQUE (sa demande : « que je puisse mettre l'attaque auto et faire autre chose sur mon PC ») : le
 -- personnage va tout seul jusqu'au monstre le plus proche, le combat, puis passe au suivant. Il ne s'éloigne pas à
 -- plus de AUTO_RADIUS de l'endroit où on l'a laissé (là où l'AUTO a été allumé, ou là où on a marché en dernier).
@@ -558,6 +609,12 @@ end
 attackButton.Activated:Connect(swing)
 autoButton.Activated:Connect(function()
 	setAuto(not auto)
+end)
+-- La touche R allume ou éteint l'attaque automatique.
+UserInputService.InputBegan:Connect(function(input, typing)
+	if not typing and input.KeyCode == Enum.KeyCode.R then
+		setAuto(not auto)
+	end
 end)
 player.CharacterAdded:Connect(function()
 	anchor = nil
@@ -730,6 +787,7 @@ end)
 
 -- LES ŒUFS, LES FAMILIERS ET LES MONSTRES -------------------------------------------------------------------------
 require(script.Parent.Animals)({ gui = gui, side = side, text = text, box = box, tr = tr, num = num, lang = lang, showToast = showToast })
+applyHud()
 
 -- L'épée dans la main et les gestes des bras (frapper, porter un œuf ou un familier).
 require(script.Parent.Poses)()
