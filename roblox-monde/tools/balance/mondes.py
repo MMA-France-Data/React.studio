@@ -17,9 +17,12 @@ FIGHT_DMG = [5, 10, 20, 40, 85, 600]
 FIGHT_HP = [45, 90, 180, 360, 760, 5400]
 RANK_XP = [1, 2.5, 6, 14, 32, 80]
 GRADE_ODDS = [70, 25, 4.6, 0.4]
-SWORDS = [(2.5, 0), (25, 8000), (250, 220000), (1160, 900000), (5400, 4500000), (25000, 18000000)]
+SWORDS = [(2.5, 0), (25, 8000), (250, 220000), (1160, 1500000), (5400, 9000000), (25000, 40000000)]
 NEED = 60
 ZONE, COIN_ZONE, XP_ZONE = 100, 100, 10   # d'un monde au suivant : monstres et familiers, pièces, XP
+# D un monde au suivant, en plus : l XP des familiers est LONG_XP fois plus longue et les oeufs LONG_EGG fois plus rares
+# (Pets.LONG_XP, Config.LONG_EGG) : chaque monde dure plus longtemps que le precedent.
+LONG_XP, LONG_EGG = 2.5, 1.5
 WALK = 4.0
 INCOME = [0.15, 0.3, 0.75, 2, 5, 12]  # pieces par seconde d un familier moyen de chaque rang, au monde 1 (Pets.INCOME)
 
@@ -41,7 +44,7 @@ class Pet:
     def factor(self): return (0.7 + 0.6 * self.along) * 1.1 ** (self.lv - 1) * ZONE ** self.world
     def dmg(self): return FIGHT_DMG[self.rank] * self.factor()
     def hp(self): return FIGHT_HP[self.rank] * self.factor()
-    def need(self): return int(NEED * 1.3 ** (self.lv - 1) * RANK_XP[self.rank] * XP_ZONE ** self.world)
+    def need(self): return int(NEED * 1.3 ** (self.lv - 1) * RANK_XP[self.rank] * (XP_ZONE * LONG_XP) ** self.world)
     def gain(self, xp):
         self.xp += xp
         while self.xp >= self.need():
@@ -75,7 +78,7 @@ def run(seed):
         xp += gain
         while xp >= int(30 * level ** 1.7):
             xp -= int(30 * level ** 1.7); level += 1
-        if rng.random() < EGG[rank]:
+        if rng.random() < EGG[rank] / LONG_EGG ** world:
             pen.append(Pet(world, rank, rng))
             pen.sort(key=lambda p: -p.dmg())
             team = pen[:3]

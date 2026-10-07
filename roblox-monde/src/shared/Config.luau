@@ -54,6 +54,9 @@ Config.HP_ZONE = 100
 Config.DAMAGE_ZONE = 100
 Config.COIN_ZONE = 100 -- (comme le reste : les pièces du monde 1 ne pèsent presque rien dans le monde 2)
 Config.XP_ZONE = 10
+-- Chaque monde dure plus longtemps que le precedent : les oeufs y sont LONG_EGG fois plus rares (et l XP des
+-- familiers plus longue : Pets.LONG_XP). Simulation : monde 1 environ 3,5 heures, monde 2 environ 8 heures.
+Config.LONG_EGG = 1.5
 Config.RESPAWN = 2 -- secondes avant qu'un monstre revienne (son choix : 2 s, 3 s pour le boss : « si y a du monde ça sera rapide »)
 Config.BOSS_RESPAWN = 3
 Config.AGGRO = 22 -- distance à laquelle un monstre voit le joueur
@@ -73,7 +76,7 @@ function Config.monster(zone: number, rank: number)
 		damage = math.floor(damage * Config.DAMAGE_ZONE ^ (zone - 1) + 0.5),
 		coins = math.floor(m.coins[rank] * Config.COIN_ZONE ^ (zone - 1) + 0.5),
 		xp = math.floor(m.xp[rank] * Config.XP_ZONE ^ (zone - 1) + 0.5),
-		egg = m.egg[rank],
+		egg = m.egg[rank] / Config.LONG_EGG ^ (zone - 1),
 		scale = m.scale[rank],
 		speed = m.speed[rank],
 		level = (zone - 1) * 10 + rank * 2 - 1,
@@ -125,9 +128,9 @@ Config.SWORDS = {
 	{ damage = 2.5, price = 0 }, -- monde 1 : l'épée de départ (comme un canard)
 	{ damage = 25, price = 8000 }, -- monde 1, vers 1 heure
 	{ damage = 250, price = 220000 }, -- monde 1, juste avant le boss (vers 3 h 20)
-	{ damage = 1160, price = 900000 }, -- monde 2, après 1 heure
-	{ damage = 5400, price = 4500000 }, -- monde 2, après 2 heures
-	{ damage = 25000, price = 18000000 }, -- monde 2, juste avant le boss (après 3 h 30)
+	{ damage = 1160, price = 1500000 }, -- monde 2, après 2 heures
+	{ damage = 5400, price = 9000000 }, -- monde 2, après 4 h 30
+	{ damage = 25000, price = 40000000 }, -- monde 2, juste avant le boss (après 7 h 30)
 }
 Config.SWORD_PER_ZONE = 3
 -- (Au-delà de la sixième : les trois mêmes marches, 100 fois plus haut à chaque monde.)
