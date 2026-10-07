@@ -66,10 +66,15 @@ local function fill(label: Instance)
 	elseif key == "zoneGate" then
 		gateSigns[label] = tonumber(parts[2])
 		fillGate(label, tonumber(parts[2]) :: number)
-	elseif key == "camp" then
-		label.Text = tr("campSign", tr(parts[2]), parts[3])
-	elseif key == "boss" then
-		label.Text = tr("bossSign", tr(parts[2]))
+	elseif key == "camp" or key == "boss" then
+		-- Le panneau d'un camp : l'animal, son niveau, la chance qu'il lâche son œuf, et la chance de chaque note
+		-- de taille (C, B, A, S) pour cet œuf.
+		local grades = {}
+		for index, grade in Pets.GRADES do
+			table.insert(grades, grade .. " " .. Pets.GRADE_ODDS[index] .. "%")
+		end
+		local title = if key == "boss" then tr("bossSign", tr(parts[2])) else tr("campSign", tr(parts[2]), parts[3])
+		label.Text = title .. "\n" .. tr("campEgg", parts[if key == "boss" then 3 else 4] or "?") .. "\n" .. table.concat(grades, "  ")
 	else
 		label.Text = tr(key)
 	end
@@ -255,13 +260,15 @@ local function showToast(message: string, color: Color3?)
 end
 
 local RED, GOLD = Color3.fromRGB(255, 90, 90), Color3.fromRGB(255, 221, 51)
-ReplicatedStorage:WaitForChild("Notify").OnClientEvent:Connect(function(key: string, a, b)
+ReplicatedStorage:WaitForChild("Notify").OnClientEvent:Connect(function(key: string, a, b, c, d)
 	if key == "poor" then
 		showToast(tr("poor", num(a)), RED)
 	elseif key == "levelUp" then
 		showToast(tr("levelUp", a), GOLD)
 	elseif key == "petLevel" then
 		showToast(tr("petLevel", tr(a), b), Color3.fromRGB(120, 200, 255))
+	elseif key == "fed" then
+		showToast(tr("fed", tr(a), tr(b), compact(c), d), GOLD)
 	elseif key == "eggOut" then
 		showToast(tr("eggOut", tr(a)), GOLD)
 	elseif key == "petDown" then
@@ -428,7 +435,7 @@ local autoButton = roundButton("Auto", 66, UDim2.new(1, -124, 1, -146), Color3.f
 -- L'ATTAQUE AUTOMATIQUE (sa demande : « que je puisse mettre l'attaque auto et faire autre chose sur mon PC ») : le
 -- personnage va tout seul jusqu'au monstre le plus proche, le combat, puis passe au suivant. Il ne s'éloigne pas à
 -- plus de AUTO_RADIUS de l'endroit où on l'a laissé (là où l'AUTO a été allumé, ou là où on a marché en dernier).
-local AUTO_RADIUS = 70
+local AUTO_RADIUS = 34
 local auto = false
 local anchor: Vector3? = nil
 local function setAuto(on: boolean)
@@ -476,7 +483,13 @@ task.spawn(function()
 		local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
 		local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
 		local busy = (player:GetAttribute("BagNext") or "") ~= "" or (player:GetAttribute("Held") or "") ~= ""
-		if auto and root and humanoid and humanoid.Health > 0 and not busy then
+		-- (Jamais dans la base : il n'y a rien à combattre, et le personnage partirait tout seul vers la zone.)
+		local zone1 = workspace:FindFirstChild("Zones") and workspace.Zones:FindFirstChild("Zone1")
+		local inBase = root ~= nil and root.Position.Z < ((zone1 and zone1:GetAttribute("ZMin")) or 30) + 4
+		if inBase then
+			anchor = nil
+		end
+		if auto and root and humanoid and humanoid.Health > 0 and not busy and not inBase then
 			if steering() or not anchor then
 				-- Le joueur marche lui-même : l'AUTO repart d'ici.
 				anchor = root.Position

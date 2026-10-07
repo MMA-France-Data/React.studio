@@ -102,7 +102,7 @@ function Config.maxHealth(level: number): number
 end
 -- L'ÉPÉE : chaque épée tape SWORD_STEP fois plus fort que la précédente. On ne peut en acheter que SWORD_PER_ZONE
 -- par zone ouverte (battre un boss débloque les suivantes) : impossible de tout acheter d'un coup avec les pièces
--- de l'enclos. Prix : 300 pièces la deuxième, puis x 4 à chaque épée.
+-- de l'enclos. Prix : 500 pièces la deuxième, puis x 3,2 à chaque épée.
 -- (Son choix : « moins d'evolutions mais plus de multiplicateur, x3,2 par epee ». Deux epees par zone = x10, comme
 -- les monstres.)
 Config.SWORD_PER_ZONE = 2
@@ -122,11 +122,13 @@ function Config.hitDamage(sword: number, level: number): number
 end
 -- Prix pour passer de l'épée `sword` à la suivante.
 function Config.swordPrice(sword: number): number
-	return math.floor(300 * 4 ^ (sword - 1))
+	return math.floor(500 * 3.2 ^ (sword - 1))
 end
 -- LES FAMILIERS AU COMBAT (leurs dégâts et leur vie : Pets.damageOf et Pets.healthOf). Les monstres s'en prennent
 -- d'abord à eux, dans l'ordre de l'équipe, et au joueur en dernier.
-Config.PET_REST = 5 -- secondes HORS COMBAT pour que les familiers se relèvent et se soignent (jamais pendant)
+-- Dès la fin du combat (jamais pendant), les familiers à terre se relèvent et toute l'équipe regagne PET_REGEN de
+-- sa vie par seconde.
+Config.PET_REGEN = 0.25
 -- XP qu'il faut à un familier pour passer du niveau `level` au suivant.
 function Config.petXpNeed(level: number): number
 	return math.floor(15 * level ^ 1.6)

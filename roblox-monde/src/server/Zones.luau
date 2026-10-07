@@ -438,15 +438,15 @@ local function buildZone(parent: Instance, index: number, zMin: number)
 	-- Un panneau à l'entrée de chaque camp (l'animal et son niveau), et un devant l'arène du boss.
 	local function signpost(at: Vector3, key: string, color: Color3)
 		Build.part(folder, "SignPost", Vector3.new(0.8, 6, 0.8), at + Vector3.new(0, 3, 0), rgb(120, 80, 46), M.Wood).CanQuery = false
-		local board = Build.part(folder, "CampSign", Vector3.new(9, 4.2, 0.5), at + Vector3.new(0, 7.4, 0), rgb(24, 26, 36))
+		local board = Build.part(folder, "CampSign", Vector3.new(12, 6.4, 0.5), at + Vector3.new(0, 8.4, 0), rgb(24, 26, 36))
 		board.CanQuery = false
 		Build.sign(board, Enum.NormalId.Front, key, color)
 		Build.sign(board, Enum.NormalId.Back, key, color)
 	end
 	for rank, camp in CAMPS do
-		signpost(Vector3.new(if camp[1] > 0 then 9 else -9, 0, zMin + camp[2] - 7), "camp|" .. Pets.COLLECTIONS[index][rank] .. "|" .. Config.monster(index, rank).level, rgb(255, 221, 51))
+		signpost(Vector3.new(if camp[1] > 0 then 9 else -9, 0, zMin + camp[2] - 7), "camp|" .. Pets.COLLECTIONS[index][rank] .. "|" .. Config.monster(index, rank).level .. "|" .. math.floor(Config.monster(index, rank).egg * 100 + 0.5), rgb(255, 221, 51))
 	end
-	signpost(Vector3.new(11, 0, zMin + BOSS_Z - ARENA - 4), "boss|" .. Pets.COLLECTIONS[index][6], rgb(255, 90, 90))
+	signpost(Vector3.new(11, 0, zMin + BOSS_Z - ARENA - 4), "boss|" .. Pets.COLLECTIONS[index][6] .. "|" .. math.floor(Config.monster(index, 6).egg * 100 + 0.5), rgb(255, 90, 90))
 
 	-- Où naissent les monstres : CAMP_SIZE par camp, en rond ; et le boss au milieu de son arène.
 	local spawns = {}

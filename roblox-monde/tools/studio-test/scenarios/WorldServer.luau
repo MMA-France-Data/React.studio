@@ -141,6 +141,13 @@ return function(log)
 	D("Hurt", chest.id, 1e9)
 	check(D("Data").coins >= before + 150, "un coffre ouvert donne ses pièces", D("Data").coins - before)
 
+	-- Nourrir : le mouton (place 3) mange le canard (place 1) et reçoit 75 % de son XP.
+	local before2 = D("Data")
+	local duckXp, sheep = before2.spots["1"], before2.spots["3"]
+	local fed = D("Feed", 3, 1)
+	local after2 = D("Data")
+	check(fed ~= nil and after2.spots["1"] == nil and after2.spots["3"] ~= nil, "nourrir : le familier mangé disparaît, l'autre reçoit son XP", tostring(fed) .. " XP, canard " .. tostring(duckXp and duckXp.a) .. ", mouton " .. tostring(sheep and sheep.a))
+
 	-- 5. La forge.
 	D("Give", 1000)
 	check(D("BuySword") == true and D("Data").sword == 2, "la forge améliore l'épée", D("Data").sword)
@@ -189,6 +196,17 @@ return function(log)
 	shot("liste", root + Vector3.new(0, 7, -16), root + Vector3.new(0, 4, 20))
 	workspace:SetAttribute("OpenPets", false)
 	task.wait(1.2)
+	-- La fenetre des oeufs : trois dans le sac, un qui couve.
+	D("Egg", 1, 1)
+	D("Egg", 1, 1)
+	D("Egg", 1, 3)
+	D("Egg", 1, 2)
+	D("Place", 12, 16)
+	workspace:SetAttribute("OpenEggs", true)
+	shot("oeufs", root + Vector3.new(0, 7, -16), root + Vector3.new(0, 4, 20))
+	workspace:SetAttribute("OpenEggs", false)
+	task.wait(1.2)
+	shot("panneau", Vector3.new(-9, 8, zones[1].zMin + 26), Vector3.new(-9, 8.4, zones[1].zMin + 41))
 	workspace:SetAttribute("OpenShop", true)
 	shot("boutique", root + Vector3.new(0, 7, -16), root + Vector3.new(0, 4, 20))
 	workspace:SetAttribute("OpenShop", false)

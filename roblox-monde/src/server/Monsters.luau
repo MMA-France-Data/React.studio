@@ -498,8 +498,14 @@ function Monsters.start(world, notifier)
 				if calm and humanoid and humanoid.Health > 0 and humanoid.Health < humanoid.MaxHealth then
 					humanoid.Health = math.min(humanoid.MaxHealth, humanoid.Health + humanoid.MaxHealth * Config.REGEN)
 				end
-				if fight and next(fight.hp) and now - fight.hurtAt > Config.PET_REST then
-					fight.hp = {}
+				if fight and next(fight.hp) and fight.hurtAt ~= now then
+					-- Le combat est fini : les familiers à terre se relèvent, et tous se soignent, seconde après seconde.
+					for _, member in teamOf(player) do
+						if fight.hp[member.key] then
+							local hp = math.min(member.max, fight.hp[member.key] + math.ceil(member.max * Config.PET_REGEN))
+							fight.hp[member.key] = if hp >= member.max then nil else hp
+						end
+					end
 					publishTeam(player)
 				end
 				if fight and fight.target then

@@ -282,6 +282,36 @@ function Eggs.follow(player: Player, spot: number): boolean
 	return true
 end
 
+-- NOURRIR (demande du joueur : « quand j'ai un nouveau mieux, il mange les anciens et récupère 75 % de son XP ») :
+-- le familier `eater` mange le familier `food`, qui disparaît ; il reçoit Pets.FEED de toute l'XP que l'autre avait
+-- gagnée. Renvoie l'XP reçue, ou nil.
+function Eggs.feed(player: Player, eater: number, food: number): number?
+	local data = PlayerData.get(player)
+	local eaterKey, foodKey = tostring(eater), tostring(food)
+	local pet, meal = data and data.spots[eaterKey], data and data.spots[foodKey]
+	if not pet or not meal or not pet.v or not meal.v or eaterKey == foodKey then
+		return nil
+	end
+	local gain = math.floor(Pets.totalXp(meal) * Pets.FEED)
+	if held[player] == foodKey then
+		setHeld(player, nil)
+	end
+	data.spots[foodKey] = nil
+	local member = table.find(data.team, foodKey)
+	if member then
+		table.remove(data.team, member)
+	end
+	pet.xp = (pet.xp or 0) + gain
+	pet.lv = pet.lv or 1
+	while pet.xp >= Pets.xpNeed(pet) do
+		pet.xp -= Pets.xpNeed(pet)
+		pet.lv += 1
+	end
+	PlayerData.changed(player)
+	notify(player, "fed", pet.a, meal.a, gain, pet.lv)
+	return gain
+end
+
 -- « Équiper les meilleurs » : l'équipe devient les familiers qui tapent le plus fort. « Tout déséquiper » : plus
 -- personne dans l'équipe.
 function Eggs.equipBest(player: Player)

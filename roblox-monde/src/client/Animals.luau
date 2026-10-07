@@ -926,13 +926,15 @@ return function(env)
 		item.Parent = parent
 		return { frame = item, stroke = stroke, view = view, grade = grade, line = line, tick = tick }
 	end
-	local function paint(item, rarity: number, selected: boolean)
+	-- grade : la note de taille (B, A, S) ; rien pour un œuf du sac.
+	local GRADE_COLORS = { C = Color3.fromRGB(200, 204, 214), B = Color3.fromRGB(120, 200, 255), A = Color3.fromRGB(120, 255, 120), S = GOLD }
+	local function paint(item, rarity: number, selected: boolean, grade: string?)
 		local info = rarityInfo(rarity)
 		item.frame.BackgroundColor3 = darker(info.color, 0.45)
 		item.stroke.Color = if selected then Color3.new(1, 1, 1) else info.color
 		item.stroke.Thickness = if selected then 4 else 3
-		item.grade.Text = GRADES[rarity] or "?"
-		item.grade.TextColor3 = if rarity >= 5 then GOLD else info.color
+		item.grade.Text = grade or ""
+		item.grade.TextColor3 = GRADE_COLORS[grade or ""] or info.color
 	end
 	local function grid(parent: Instance, size: UDim2, position: UDim2): ScrollingFrame
 		local back = env.box(parent, "GridBack", size, position, Color3.fromRGB(14, 22, 42))
@@ -978,16 +980,22 @@ return function(env)
 	badge:FindFirstChildOfClass("UICorner").CornerRadius = UDim.new(1, 0)
 	local badgeText = env.text(badge, "Label", UDim2.fromScale(0.9, 0.8), UDim2.fromScale(0.05, 0.1))
 
-	local eggPanel = window("EggPanel", tr("eggsTitle"), 600, 440)
-	local eggInfo = env.text(eggPanel, "Info", UDim2.new(1, -40, 0, 22), UDim2.fromOffset(20, 52), GOLD, 18)
+	-- Deux parties bien séparées : en haut les œufs DISPONIBLES (dans le sac, à sortir), en bas ceux qui COUVENT.
+	local eggPanel = window("EggPanel", tr("eggsTitle"), 600, 560)
+	local eggInfo = env.text(eggPanel, "Info", UDim2.new(1, -40, 0, 24), UDim2.fromOffset(20, 52), GOLD, 20)
+	eggInfo.TextXAlignment = Enum.TextXAlignment.Left
 	eggInfo.ZIndex = 5
-	local eggGrid = grid(eggPanel, UDim2.new(1, -40, 1, -100), UDim2.fromOffset(20, 82))
-	local eggCards = {}
+	local eggGrid = grid(eggPanel, UDim2.new(1, -40, 0, 236), UDim2.fromOffset(20, 80))
+	local hatchInfo = env.text(eggPanel, "Hatching", UDim2.new(1, -40, 0, 24), UDim2.fromOffset(20, 324), Color3.fromRGB(120, 200, 255), 20)
+	hatchInfo.TextXAlignment = Enum.TextXAlignment.Left
+	hatchInfo.ZIndex = 5
+	local hatchGrid = grid(eggPanel, UDim2.new(1, -40, 0, 190), UDim2.fromOffset(20, 352))
+	local eggCards, hatchCards = {}, {}
 
 	-- LES FAMILIERS : le bouton patte, et la fenêtre (la grille à gauche, la fiche à droite).
 	local pawButton = squareButton("PawButton", 1, Color3.fromRGB(255, 150, 40))
 	env.text(pawButton, "Label", UDim2.fromScale(0.8, 0.8), UDim2.fromScale(0.1, 0.1)).Text = "🐾"
-	local petPanel = window("PetPanel", tr("petsTitle"), 800, 520)
+	local petPanel = window("PetPanel", tr("petsTitle"), 800, 570)
 	local petCount = env.text(petPanel, "Count", UDim2.fromOffset(200, 22), UDim2.fromOffset(24, 54), GREEN, 18)
 	petCount.TextXAlignment = Enum.TextXAlignment.Left
 	petCount.ZIndex = 5
@@ -995,11 +1003,11 @@ return function(env)
 	addPlace.Activated:Connect(function()
 		upgradeEvent:FireServer()
 	end)
-	local petGrid = grid(petPanel, UDim2.fromOffset(470, 360), UDim2.fromOffset(20, 86))
+	local petGrid = grid(petPanel, UDim2.fromOffset(470, 410), UDim2.fromOffset(20, 86))
 	local petCards = {}
 	local selected = 0 -- la place du familier dont on voit la fiche
-	local best = button(petPanel, "Best", UDim2.fromOffset(226, 46), UDim2.fromOffset(20, 458), Color3.fromRGB(60, 200, 70), tr("equipBest"))
-	local none = button(petPanel, "None", UDim2.fromOffset(226, 46), UDim2.fromOffset(264, 458), Color3.fromRGB(50, 130, 230), tr("unequipAll"))
+	local best = button(petPanel, "Best", UDim2.fromOffset(226, 46), UDim2.fromOffset(20, 508), Color3.fromRGB(60, 200, 70), tr("equipBest"))
+	local none = button(petPanel, "None", UDim2.fromOffset(226, 46), UDim2.fromOffset(264, 508), Color3.fromRGB(50, 130, 230), tr("unequipAll"))
 	best.Activated:Connect(function()
 		equipBestEvent:FireServer()
 	end)
@@ -1007,7 +1015,7 @@ return function(env)
 		unequipAllEvent:FireServer()
 	end)
 	-- La fiche.
-	local sheet = env.box(petPanel, "Sheet", UDim2.fromOffset(280, 418), UDim2.fromOffset(502, 86), Color3.fromRGB(30, 44, 78))
+	local sheet = env.box(petPanel, "Sheet", UDim2.fromOffset(280, 468), UDim2.fromOffset(502, 86), Color3.fromRGB(30, 44, 78))
 	sheet.ZIndex = 4
 	sheet.UIStroke.Thickness = 3
 	local sheetGrade = env.text(sheet, "Grade", UDim2.fromOffset(70, 40), UDim2.fromOffset(10, 4), GOLD, 38)
@@ -1042,6 +1050,17 @@ return function(env)
 			equipEvent:FireServer(selected)
 		end
 	end)
+	-- NOURRIR : on appuie sur « Nourrir », puis on clique sur le familier à lui donner à manger (il disparaît, et le
+	-- familier choisi reçoit 75 % de son XP).
+	local feedEvent = ReplicatedStorage:WaitForChild("FeedPet")
+	local feeding = false
+	local feed = button(sheet, "Feed", UDim2.fromOffset(256, 44), UDim2.fromOffset(12, 414), Color3.fromRGB(240, 170, 30), "")
+	feed.Activated:Connect(function()
+		feeding = not feeding
+		if feeding then
+			showToast(tr("feedPick"), GOLD)
+		end
+	end)
 	-- « Vendre » : le joueur prend le familier dans ses bras pour le porter au stand (un 2e appui le repose).
 	sell.Activated:Connect(function()
 		if selected > 0 then
@@ -1074,45 +1093,51 @@ return function(env)
 		badgeText.Text = tostring(bag + #eggs)
 		badge.Visible = bag + #eggs > 0
 
-		-- LES ŒUFS : d'abord ceux du sac, groupés (« x12 »), puis ceux qui couvent, avec le temps qu'il reste.
+		-- LES ŒUFS : en haut ceux du sac, groupés (« x12 »), à sortir d'un clic ; en bas ceux qui couvent dans l'enclos,
+		-- avec le temps qu'il reste.
 		if eggPanel.Visible then
-			local entries = {}
+			local ready, hatching = {}, {}
 			for animal, rank, count in string.gmatch(player:GetAttribute("BagList") or "", "(%a+):(%d):(%d+)") do
-				table.insert(entries, { animal = animal, rank = tonumber(rank), line = "x" .. count, bag = true })
+				table.insert(ready, { animal = animal, rank = tonumber(rank), line = "x" .. count, bag = true })
 			end
 			for _, entry in eggs do
-				table.insert(entries, { animal = entry.spot.a, rank = entry.spot.q, line = "⏳ " .. clock(entry.spot.t - workspace:GetServerTimeNow()) })
+				table.insert(hatching, { animal = entry.spot.a, rank = entry.spot.q, line = "⏳ " .. clock(entry.spot.t - workspace:GetServerTimeNow()), grade = Pets.gradeOf(entry.spot) })
 			end
-			eggInfo.Text = if #entries == 0 then tr("eggsEmpty") else tr("eggsHint")
-			for i, entry in entries do
-				local item = eggCards[i]
-				if not item then
-					item = card(eggGrid, "Egg" .. i)
-					item.frame.LayoutOrder = i
-					-- Un clic sur un œuf du sac le SORT (sur la tête) ; un clic sur celui qu'on porte le RENTRE.
-					item.frame.Activated:Connect(function()
-						if item.bag then
-							takeEvent:FireServer(item.animal, item.rank)
-							if not item.out then
-								eggPanel.Visible = false
+			eggInfo.Text = if #ready == 0 then tr("eggsEmpty") else tr("eggsReady", bag)
+			hatchInfo.Text = if #hatching == 0 then tr("eggsNoHatch") else tr("eggsHatching", #hatching)
+			local function fillGrid(list, cards, parent, name: string)
+				for i, entry in list do
+					local item = cards[i]
+					if not item then
+						item = card(parent, name .. i)
+						item.frame.LayoutOrder = i
+						-- Un clic sur un œuf du sac le SORT (sur la tête) ; un clic sur celui qu'on porte le RENTRE.
+						item.frame.Activated:Connect(function()
+							if item.bag then
+								takeEvent:FireServer(item.animal, item.rank)
+								if not item.out then
+									eggPanel.Visible = false
+								end
 							end
-						end
+						end)
+						cards[i] = item
+					end
+					item.frame.Visible = true
+					item.animal, item.rank, item.bag = entry.animal, entry.rank, entry.bag == true
+					item.out = entry.bag == true and string.match(player:GetAttribute("BagNext") or "", "^(%a+:%d)") == entry.animal .. ":" .. entry.rank
+					item.tick.Visible = item.out
+					paint(item, entry.rank, item.out, entry.grade)
+					item.line.Text = entry.line
+					show(item.view, entry.animal, function()
+						return eggModel(entry.animal)
 					end)
-					eggCards[i] = item
 				end
-				item.frame.Visible = true
-				item.animal, item.rank, item.bag = entry.animal, entry.rank, entry.bag == true
-				item.out = entry.bag == true and string.match(player:GetAttribute("BagNext") or "", "^(%a+:%d)") == entry.animal .. ":" .. entry.rank
-				item.tick.Visible = item.out
-				paint(item, entry.rank, item.out)
-				item.line.Text = entry.line
-				show(item.view, entry.animal, function()
-					return eggModel(entry.animal)
-				end)
+				for i = #list + 1, #cards do
+					cards[i].frame.Visible = false
+				end
 			end
-			for i = #entries + 1, #eggCards do
-				eggCards[i].frame.Visible = false
-			end
+			fillGrid(ready, eggCards, eggGrid, "Egg")
+			fillGrid(hatching, hatchCards, hatchGrid, "Hatch")
 			fitWindow(eggPanel)
 		end
 
@@ -1133,6 +1158,13 @@ return function(env)
 				item = card(petGrid, "Pet" .. i)
 				item.frame.LayoutOrder = i
 				item.frame.Activated:Connect(function()
+					if feeding and item.spot ~= selected then
+						-- Celui-ci est mangé par le familier de la fiche.
+						feeding = false
+						feedEvent:FireServer(selected, item.spot)
+						return
+					end
+					feeding = false
 					selected = item.spot
 					refreshPanels()
 				end)
@@ -1140,8 +1172,8 @@ return function(env)
 			end
 			item.spot = entry.index
 			item.frame.Visible = true
-			paint(item, entry.spot.q, entry.index == selected)
-			item.line.Text = tr("lvlLong", entry.spot.lv or 1)
+			paint(item, entry.spot.q, entry.index == selected, Pets.gradeOf(entry.spot))
+			item.line.Text = if feeding and entry.index ~= selected then tr("feedThis") else tr("lvlLong", entry.spot.lv or 1)
 			item.tick.Visible = table.find(inTeam, tostring(entry.index)) ~= nil
 			show(item.view, entry.spot.a .. entry.spot.q, function()
 				return Pets.build(entry.spot.a, entry.spot.q, true)
@@ -1157,8 +1189,10 @@ return function(env)
 			local info = rarityInfo(spot.q)
 			local member = table.find(inTeam, tostring(selected)) ~= nil
 			sheet.UIStroke.Color = info.color
-			sheetGrade.Text = GRADES[spot.q]
-			sheetGrade.TextColor3 = if spot.q >= 5 then GOLD else info.color
+			sheetGrade.Text = Pets.gradeOf(spot)
+			sheetGrade.TextColor3 = GRADE_COLORS[Pets.gradeOf(spot)]
+			feed.Label.Text = if feeding then tr("feedCancel") else tr("feed")
+			feed.BackgroundColor3 = if feeding then Color3.fromRGB(90, 96, 120) else Color3.fromRGB(240, 170, 30)
 			sheetName.Text = tr(spot.a)
 			sheetRarity.Text = tr(info.key)
 			sheetRarity.TextColor3 = info.color

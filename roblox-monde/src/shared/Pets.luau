@@ -95,7 +95,9 @@ function Pets.luckOf(spot): number
 end
 -- Ce qu'un familier rapporte par seconde = sa valeur / VALUE_PER_COIN x le facteur de son animal.
 -- Exemples (salle 1) : lapin commun 2 à 5 par seconde ; renard super rare 6 000 à 15 000 par seconde.
-Pets.VALUE_PER_COIN = 100
+-- (Jeu « Monde » : dix fois moins que dans SURVIVE!. Retour du joueur : « je monte trop vite en pièces, j'ai déjà
+-- 5 000, je suis juste au coq, j'en ai qu'un et j'ai déjà l'épée 3 ». Un canard rapporte 0,2 à 0,5 pièce par seconde.)
+Pets.VALUE_PER_COIN = 1000
 -- Couvaison : secondes selon le rang, multipliées par (0,5 + numéro de la salle / 10).
 -- Exemples : commun de la salle 1 = 18 s ; super rare de la salle 1 = 12 min ; légendaire de la salle 10 = 15 min.
 Pets.HATCH = { 30, 60, 150, 300, 600, 1200 }
@@ -207,9 +209,19 @@ function Pets.roll(random: Random, room: number, luck: number?): number
 end
 
 -- Tire la valeur cachée d'un familier dans le palier de sa rareté.
+-- (Jeu « Monde » : on tire d'abord la NOTE, avec GRADE_ODDS, puis une valeur dans le quart du palier de cette note.)
 function Pets.rollValue(random: Random, rarity: number): number
 	local range = Pets.VALUE[math.clamp(rarity, 1, #Pets.VALUE)]
-	return random:NextInteger(range[1], range[2])
+	local pick, grade = random:NextNumber(0, 100), #Pets.GRADES
+	for index, odds in Pets.GRADE_ODDS do
+		pick -= odds
+		if pick <= 0 then
+			grade = index
+			break
+		end
+	end
+	local along = (grade - 1 + random:NextNumber(0.04, 0.96)) / #Pets.GRADES
+	return math.floor(range[1] + (range[2] - range[1]) * along + 0.5)
 end
 
 -- Où se place cette valeur (celle de la salle 1) dans le palier de son rang : 0 = tout en bas, 1 = tout en haut.
@@ -235,10 +247,21 @@ end
 Pets.FIGHT_DMG = { 5, 10, 20, 40, 85, 220 }
 Pets.FIGHT_HP = { 45, 90, 180, 360, 760, 2000 }
 Pets.FIGHT_ZONE = 10
-Pets.FIGHT_LEVEL = 0.1
+-- Chaque niveau multiplie la force par FIGHT_LEVEL : l'écart grandit à chaque niveau (niveau 10 : x 2,4 ; niveau
+-- 20 : x 6 ; niveau 30 : x 16). Et chaque niveau demande XP_LEVEL fois plus d'XP que le précédent.
+Pets.FIGHT_LEVEL = 1.1
+Pets.XP_LEVEL = 1.3
 local function fightFactor(spot): number
 	local def = Pets.DEFS[spot.a]
-	return (0.7 + 0.6 * Pets.alongOf(spot)) * Pets.FIGHT_ZONE ^ ((def and def.room or 1) - 1) * (1 + Pets.FIGHT_LEVEL * ((spot.lv or 1) - 1))
+	return (0.7 + 0.6 * Pets.alongOf(spot)) * Pets.FIGHT_ZONE ^ ((def and def.room or 1) - 1) * Pets.FIGHT_LEVEL ^ ((spot.lv or 1) - 1)
+end
+-- LA NOTE d'un familier : C, B, A ou S selon sa TAILLE (sa place dans le palier de son animal), pas selon son rang.
+-- Un petit canard est C, un gros canard est S ; un petit cochon est C lui aussi. GRADE_ODDS : la chance de chaque
+-- note quand un œuf est trouvé (sur 100) ; elle est écrite sur le panneau de chaque camp.
+Pets.GRADES = { "C", "B", "A", "S" }
+Pets.GRADE_ODDS = { 50, 30, 15, 5 }
+function Pets.gradeOf(spot): string
+	return Pets.GRADES[math.clamp(math.floor(Pets.alongOf(spot) * #Pets.GRADES) + 1, 1, #Pets.GRADES)]
 end
 function Pets.damageOf(spot): number
 	return math.max(1, math.floor(Pets.FIGHT_DMG[math.clamp(spot.q, 1, 6)] * fightFactor(spot) + 0.5))
@@ -250,8 +273,18 @@ end
 -- moins vite : un familier d'une zone lointaine monte un peu plus lentement).
 function Pets.xpNeed(spot): number
 	local def = Pets.DEFS[spot.a]
-	return math.floor(15 * (spot.lv or 1) ^ 1.6 * 3 ^ ((def and def.room or 1) - 1))
+	return math.floor(15 * Pets.XP_LEVEL ^ ((spot.lv or 1) - 1) * 3 ^ ((def and def.room or 1) - 1))
 end
+-- Toute l'XP qu'un familier a gagnée depuis sa naissance (celle de ses niveaux passés, plus celle du niveau en cours).
+function Pets.totalXp(spot): number
+	local total = spot.xp or 0
+	for level = 1, (spot.lv or 1) - 1 do
+		total += Pets.xpNeed({ a = spot.a, lv = level })
+	end
+	return total
+end
+-- NOURRIR : la part de l'XP du familier mangé que reçoit celui qui le mange.
+Pets.FEED = 0.75
 
 -- Temps de couvaison d'un œuf, en secondes.
 function Pets.hatchSeconds(room: number, rarity: number): number
@@ -270,9 +303,9 @@ function Pets.incomeOf(name: string, value: number): number
 	return if def then value / Pets.VALUE_PER_COIN * def.income else 0
 end
 
--- Pièces reçues en vendant un familier (ce qu'il rapporte en 100 secondes).
+-- Pièces reçues en vendant un familier (ce qu'il rapporte en 20 secondes : un canard, 4 à 10 pièces).
 function Pets.sellPrice(name: string, value: number): number
-	return math.floor(Pets.incomeOf(name, value) * 100 + 0.5)
+	return math.max(1, math.floor(Pets.incomeOf(name, value) * 20 + 0.5))
 end
 
 -- Prix de la place suivante quand on en a `places` (nil au maximum).

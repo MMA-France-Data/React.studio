@@ -42,6 +42,17 @@ for name, action in { EquipBest = Eggs.equipBest, UnequipAll = Eggs.unequipAll }
 	end)
 end
 
+-- Nourrir un familier avec un autre.
+local feedEvent = Instance.new("RemoteEvent")
+feedEvent.Name = "FeedPet"
+feedEvent.Parent = ReplicatedStorage
+feedEvent.OnServerEvent:Connect(function(player, eater, food)
+	if typeof(eater) == "number" and typeof(food) == "number" then
+		Eggs.feed(player, eater, food)
+		Monsters.publishTeam(player)
+	end
+end)
+
 -- Poser l'œuf qu'on porte, là où on se tient dans son enclos.
 local placeEvent = Instance.new("RemoteEvent")
 placeEvent.Name = "PlaceEgg"

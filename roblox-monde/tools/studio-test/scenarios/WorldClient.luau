@@ -17,6 +17,11 @@ return function(_log)
 		if panel and open ~= nil then
 			panel.Visible = open
 		end
+		local eggsPanel = game:GetService("Players").LocalPlayer.PlayerGui:FindFirstChild("EggPanel", true)
+		local openEggs = workspace:GetAttribute("OpenEggs")
+		if eggsPanel and openEggs ~= nil then
+			eggsPanel.Visible = openEggs
+		end
 		local shop = game:GetService("Players").LocalPlayer.PlayerGui:FindFirstChild("ShopPanel", true)
 		local openShop = workspace:GetAttribute("OpenShop")
 		if shop and openShop ~= nil then
