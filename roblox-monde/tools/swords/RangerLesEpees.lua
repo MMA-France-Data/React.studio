@@ -113,18 +113,22 @@ local function arrange(name: string, source: Instance): Model
 end
 
 button.Click:Connect(function()
+	-- (Le dossier déjà rangé est gardé : seules les épées retrouvées dans le Workspace sont remplacées.)
 	local folder = ReplicatedStorage:FindFirstChild("SwordMeshes")
-	if folder then
-		folder:Destroy()
+	if not folder then
+		folder = Instance.new("Folder")
+		folder.Name = "SwordMeshes"
 	end
-	folder = Instance.new("Folder")
-	folder.Name = "SwordMeshes"
 	local done, missing = {}, {}
 	for index, name in ORDER do
 		local source = find(name)
 		if source then
 			local ok, result = pcall(arrange, name, source)
 			if ok then
+				local old = folder:FindFirstChild(name)
+				if old then
+					old:Destroy()
+				end
 				-- Rangées côte à côte, dans l'ordre, pour qu'on les voie d'un coup d'œil.
 				result:PivotTo(CFrame.new(index * 3, 6, 0) * CFrame.Angles(math.rad(90), 0, 0))
 				result.Parent = folder
@@ -133,8 +137,47 @@ button.Click:Connect(function()
 				warn("[MONDE] Sword_" .. name .. " : " .. tostring(result))
 				table.insert(missing, name)
 			end
-		else
+		elseif not folder:FindFirstChild(name) then
 			table.insert(missing, name)
+		end
+	end
+	-- LE STAND DES ÉPÉES (« Stand_Epees », importé de A-IMPORTER) : rangé dans le même dossier sous le nom « Stand »,
+	-- à 13 studs de haut. Le jeu le pose lui-même à la place de la forge.
+	local stand = nil
+	for _, item in workspace:GetDescendants() do
+		if item.Name == "Stand_Epees" and (item:IsA("Model") or item:IsA("MeshPart")) then
+			stand = if item:IsA("MeshPart") and item.Parent and item.Parent:IsA("Model") and item.Parent.Name == item.Name then item.Parent else item
+			break
+		end
+	end
+	if stand then
+		local model = Instance.new("Model")
+		model.Name = "Stand"
+		local copy = stand:Clone()
+		local parts = if copy:IsA("BasePart") then { copy } else {}
+		for _, item in copy:GetDescendants() do
+			if item:IsA("BasePart") then
+				table.insert(parts, item)
+			end
+		end
+		table.sort(parts, function(a, b)
+			return a.Size.Magnitude > b.Size.Magnitude
+		end)
+		for _, part in parts do
+			part.Anchored = true
+			part.Parent = model
+		end
+		if parts[1] then
+			model.PrimaryPart = parts[1]
+			local _, size = model:GetBoundingBox()
+			model:ScaleTo(13 / size.Y)
+			local old = folder:FindFirstChild("Stand")
+			if old then
+				old:Destroy()
+			end
+			model:PivotTo(CFrame.new(-14, 8, 0))
+			model.Parent = folder
+			table.insert(done, "Stand")
 		end
 	end
 	folder.Parent = ReplicatedStorage

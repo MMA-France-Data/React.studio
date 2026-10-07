@@ -29,6 +29,8 @@ World.ROOM_HALF_X = ROOM_HALF_X
 World.ROOM_HALF_Z = ROOM_LEN / 2
 
 local WHITE = Color3.fromRGB(245, 245, 250)
+-- Où va le vrai stand des épées, et de combien de degrés il est tourné (pour que sa devanture regarde l'allée).
+local STAND_AT, STAND_TURN = Vector3.new(-13, 0, 14), 90
 
 -- Mur le long de l'axe X, à la profondeur z, avec le trou d'une porte au milieu.
 local function wallWithDoor(parent: Instance, z: number, halfX: number, height: number, color: Color3, material: Enum.Material?)
@@ -254,6 +256,34 @@ local function buildGym(parent: Instance)
 	Build.part(gym, "ForgeGrip", Vector3.new(0.4, 1.2, 0.4), stand + Vector3.new(2.4, 8.6, 0), Color3.fromRGB(120, 70, 40), Enum.Material.Wood)
 	local ember = Build.part(gym, "ForgeFire", Vector3.new(2.2, 0.5, 2.2), stand + Vector3.new(-1.5, 3.75, 0), Color3.fromRGB(255, 120, 40), Enum.Material.Neon)
 	ember.CanCollide = false
+
+	-- LE VRAI STAND DES ÉPÉES (modèle du joueur, rangé par le plugin dans ReplicatedStorage > SwordMeshes > Stand) :
+	-- s'il est là, il remplace le stand en blocs. Le comptoir reste, invisible, pour porter le bouton de la forge.
+	local meshes = ReplicatedStorage:FindFirstChild("SwordMeshes")
+	local template = meshes and meshes:FindFirstChild("Stand")
+	if template and template:IsA("Model") then
+		for _, item in gym:GetChildren() do
+			local name = item.Name
+			if name == "ShopTop" or name == "ShopPost" or name == "ShopRoof" or name == "ShopSign" or name == "Anvil" or name == "AnvilFoot" or string.sub(name, 1, 5) == "Forge" and name ~= "Forge" then
+				item:Destroy()
+			end
+		end
+		counter.Transparency = 1
+		counter.CanCollide = false
+		local model = template:Clone()
+		model.Name = "ForgeStand"
+		for _, part in model:GetDescendants() do
+			if part:IsA("BasePart") then
+				part.Anchored = true
+				part.CanQuery = false
+			end
+		end
+		-- Posé sur le sol, sa devanture tournée vers l'allée.
+		model:PivotTo(CFrame.new(STAND_AT) * CFrame.Angles(0, math.rad(STAND_TURN), 0))
+		local box, size = model:GetBoundingBox()
+		model:PivotTo(model:GetPivot() + Vector3.new(STAND_AT.X - box.Position.X, size.Y / 2 - box.Position.Y, STAND_AT.Z - box.Position.Z))
+		model.Parent = gym
+	end
 
 	-- Le stand « VENDRE » : on y vend ses familiers. Un comptoir et un auvent rayé rouge et blanc.
 	local sellAt = Vector3.new(11, 0, -2)
