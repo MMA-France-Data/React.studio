@@ -17,11 +17,11 @@ FIGHT_DMG = [5, 10, 20, 40, 85, 600]
 FIGHT_HP = [45, 90, 180, 360, 760, 5400]
 RANK_XP = [1, 2.5, 6, 14, 32, 80]
 GRADE_ODDS = [70, 25, 4.6, 0.4]
-SWORDS = [(2.5, 0), (25, 4000), (250, 100000), (1160, 400000), (5400, 2000000), (25000, 8000000)]
+SWORDS = [(2.5, 0), (25, 8000), (250, 220000), (1160, 900000), (5400, 4500000), (25000, 18000000)]
 NEED = 60
 ZONE, COIN_ZONE, XP_ZONE = 100, 100, 10   # d'un monde au suivant : monstres et familiers, pièces, XP
 WALK = 4.0
-INCOME = [0.05, 0.1, 0.25, 0.6, 1.5, 4]  # pieces par seconde d un familier moyen de chaque rang, au monde 1 (Pets.INCOME)
+INCOME = [0.15, 0.3, 0.75, 2, 5, 12]  # pieces par seconde d un familier moyen de chaque rang, au monde 1 (Pets.INCOME)
 
 def sword_dps(level): return round(SWORDS[level - 1][0]) / 0.5
 def monster(world, rank):

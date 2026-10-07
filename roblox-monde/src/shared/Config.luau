@@ -123,11 +123,11 @@ end
 --   demanderait des heures de farm en plus au monde 1, et une demi-heure au monde 2.
 Config.SWORDS = {
 	{ damage = 2.5, price = 0 }, -- monde 1 : l'épée de départ (comme un canard)
-	{ damage = 25, price = 4000 }, -- monde 1, vers 1 heure
-	{ damage = 250, price = 100000 }, -- monde 1, juste avant le boss (vers 3 h 20)
-	{ damage = 1160, price = 400000 }, -- monde 2, après 1 heure
-	{ damage = 5400, price = 2000000 }, -- monde 2, après 2 heures
-	{ damage = 25000, price = 8000000 }, -- monde 2, juste avant le boss (après 3 h 30)
+	{ damage = 25, price = 8000 }, -- monde 1, vers 1 heure
+	{ damage = 250, price = 220000 }, -- monde 1, juste avant le boss (vers 3 h 20)
+	{ damage = 1160, price = 900000 }, -- monde 2, après 1 heure
+	{ damage = 5400, price = 4500000 }, -- monde 2, après 2 heures
+	{ damage = 25000, price = 18000000 }, -- monde 2, juste avant le boss (après 3 h 30)
 }
 Config.SWORD_PER_ZONE = 3
 -- (Au-delà de la sixième : les trois mêmes marches, 100 fois plus haut à chaque monde.)

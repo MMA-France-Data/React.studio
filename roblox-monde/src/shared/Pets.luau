@@ -311,7 +311,9 @@ end
 -- INCOME : pièces par seconde d'un familier moyen de chaque rang, au monde 1 (une chèvre : 1,5 ; le familier du
 -- boss : 4). Un petit rapporte 30 % de moins, un gros 30 % de plus ; x 100 à chaque monde, comme les monstres.
 -- Cinq familiers du rang du camp où l'on combat rapportent à peu près ce que rapportent les combats.
-Pets.INCOME = { 0.05, 0.1, 0.25, 0.6, 1.5, 4 }
+-- (Juste milieu demande par le joueur : trois fois plus que mon premier reglage. Cinq familiers du rang du camp
+-- rapportent environ deux fois ce que rapportent les combats.)
+Pets.INCOME = { 0.15, 0.3, 0.75, 2, 5, 12 }
 function Pets.incomeOf(name: string, value: number): number
 	local def = Pets.DEFS[name]
 	if not def or not def.rank then
