@@ -636,12 +636,16 @@ task.spawn(function()
 					end
 				end
 				if best then
-					local reach = Config.ATTACK_REACH + (best:GetAttribute("Scale") or 1) - 1.5
+					local reach = Config.ATTACK_REACH + (best:GetAttribute("Scale") or 1) - 1
 					local away = Vector3.new(root.Position.X - best.Position.X, 0, root.Position.Z - best.Position.Z)
 					if away.Magnitude > reach then
-						humanoid:MoveTo(best.Position + away.Unit * (reach - 2.5))
+						humanoid:MoveTo(best.Position + away.Unit * (reach - 1.5))
 						walking = true
 					else
+						-- (Face au monstre : un coup donne de dos ne touche pas.)
+						if away.Magnitude > 0.5 then
+							root.CFrame = CFrame.lookAt(root.Position, root.Position - away)
+						end
 						swing()
 					end
 				end

@@ -247,6 +247,13 @@ function Monsters.attack(player: Player)
 	else
 		monster = nearest(root.Position, Config.ATTACK_REACH)
 	end
+	-- Et il faut l avoir devant soi : un coup donne dos au monstre part dans le vide.
+	if monster then
+		local toward = flat(monster.position - root.Position)
+		if toward.Magnitude > 1 and toward.Unit:Dot(flat(root.CFrame.LookVector).Unit) < -0.25 then
+			monster = nil
+		end
+	end
 	if not monster then
 		return nil
 	end

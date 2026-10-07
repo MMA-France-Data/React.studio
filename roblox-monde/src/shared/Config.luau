@@ -128,7 +128,9 @@ end
 Config.REGEN = 0.12 -- hors combat : part de sa vie que le joueur regagne chaque seconde
 Config.REGEN_DELAY = 3 -- secondes sans combat avant que cette regeneration commence
 Config.ATTACK_COOLDOWN = 0.42 -- secondes entre deux coups d'épée
-Config.ATTACK_REACH = 10 -- portée de l'épée
+-- Portee de l epee, comptee depuis le bord du monstre : la longueur du bras et de la lame, pas plus. Il faut un vrai
+-- contact (retour du joueur : « je tape dans le vide devant le monstre qui est trop eloigne et ca touche »).
+Config.ATTACK_REACH = 4.5
 Config.TEAM = 3 -- familiers qui se battent avec le joueur
 Config.PET_REACH = 26 -- les familiers attaquent un monstre jusqu'à cette distance du joueur
 
