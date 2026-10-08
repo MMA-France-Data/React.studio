@@ -1,0 +1,10 @@
+{
+  "passed": true,
+  "actualStudioTest": false,
+  "id": "Bear",
+  "rigidMeshes": 16,
+  "bones": 0,
+  "triangles": 4706,
+  "maxRoundTripBoundsError": 1.4305114737211966e-07,
+  "texturesAndUV": true
+}

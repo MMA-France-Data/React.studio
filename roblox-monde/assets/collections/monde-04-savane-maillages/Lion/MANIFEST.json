@@ -1,0 +1,40 @@
+{
+  "id": "Lion",
+  "world": 4,
+  "folder": "monde-04-savane-maillages",
+  "theme": "Savane",
+  "created": "2026-10-08",
+  "boss": true,
+  "rainbowBoss": true,
+  "triangles": 4744,
+  "meshPieces": 18,
+  "basePartsAfterAssembly": 19,
+  "Motor6D": 17,
+  "rigidWelds": 1,
+  "animations": [
+    "Idle",
+    "Walk",
+    "Attack",
+    "Bite"
+  ],
+  "requiredReaderChanges": false,
+  "requiresStudioMeshImport": true,
+  "actualStudioTest": false,
+  "eggsModified": false,
+  "paidGenerations": 0,
+  "files": {
+    "Lion.fbx": "2163cbe5774b9ce3b1ddaf0687496aa151fd50d5750ee7ef2a201c2aaa35b96d",
+    "Lion-rig-template.rbxmx": "3dd3c9125409dda5232ce79ac28b224a690f9b64c509164d7c4e869d1eddced6",
+    "Assembler-Lion.luau": "018da8ac2572c729dd611d08a3bec142696d3ef5db6d2a43dad24e49a3201d39",
+    "Lion_Colour_512.png": "c440f4849468f0e7578c8cfee9420276995c3e096dd0b48e9eb8b909e3c1bd16",
+    "Lion.blend": "ab064f19a11e4f49f63f4e9e2ce42aeed1ae05b81ead4a0ee58fbf3234bcdde2",
+    "Lion.png": "fc1f305eb76d161d9c8e990a81a31b63443e5bb772800a7791405942c3929da8",
+    "Lion-profil.png": "61c3e9fde6d5b766c8fd1d434a955d0388b94e0860e92b8f3f767883e6f220a1",
+    "Lion-visage.png": "edf973fb9aa44af75d8c795110d644773a7523de27d986e229a061baafa53f55",
+    "native-rig-spec.json": "e576a8690199d439d7a3e839e67acae7b47a0672fbc58180e62f38dccc470400",
+    "source-rig-and-clips.json": "570efd1204c5e76dbf274268df1377eaf3f7973269a2ea036df2123ac22814ae",
+    "NATIVE-VALIDATION.json": "7758a30c8226d80338a9b26a8943dcdb4a99dcf3699350740c1d2712e6c3a713",
+    "FBX-VALIDATION.json": "1f5dd11a9351461ef3c5014a2ec85842c5e8b98d8bf333398fc301dc69a72591",
+    "CONTACT-VALIDATION.json": "97517496d513cceb1106063334754e0ce1e00af05973fa95c691a50cf36bcc9c"
+  }
+}

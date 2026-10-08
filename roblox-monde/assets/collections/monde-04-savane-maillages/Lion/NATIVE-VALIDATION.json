@@ -1,0 +1,38 @@
+{
+  "passed": true,
+  "actualStudioTest": false,
+  "id": "Lion",
+  "basePartsAfterAssembly": 19,
+  "motor6D": 17,
+  "rigidWelds": 1,
+  "originalJointNames": true,
+  "originalClipsUnchanged": true,
+  "vertexPoseCases": 5832,
+  "maxRetargetMatrixError": 9.147572122003567e-8,
+  "clips": {
+    "Idle": {
+      "duration": 3,
+      "loop": true,
+      "minHeight": -1.5770418053205932,
+      "maxHeight": 1.5409393626999872
+    },
+    "Walk": {
+      "duration": 1.65,
+      "loop": true,
+      "minHeight": -1.606058378609431,
+      "maxHeight": 1.5449426762018614
+    },
+    "Attack": {
+      "duration": 1.42,
+      "loop": false,
+      "minHeight": -1.5699999570846557,
+      "maxHeight": 1.787763682731462
+    },
+    "Bite": {
+      "duration": 1.18,
+      "loop": false,
+      "minHeight": -1.5699999570846557,
+      "maxHeight": 1.657236181607668
+    }
+  }
+}

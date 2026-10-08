@@ -1,0 +1,40 @@
+{
+  "id": "Bear",
+  "world": 2,
+  "folder": "monde-02-foret-maillages",
+  "theme": "Forêt",
+  "created": "2026-10-08",
+  "boss": true,
+  "rainbowBoss": true,
+  "triangles": 4706,
+  "meshPieces": 16,
+  "basePartsAfterAssembly": 17,
+  "Motor6D": 10,
+  "rigidWelds": 6,
+  "animations": [
+    "Idle",
+    "Walk",
+    "Attack",
+    "Bite"
+  ],
+  "requiredReaderChanges": false,
+  "requiresStudioMeshImport": true,
+  "actualStudioTest": false,
+  "eggsModified": false,
+  "paidGenerations": 0,
+  "files": {
+    "Bear.fbx": "48166accfba35660832d35e2746aedb9220c78de30659afaecece7d6e11d5d5e",
+    "Bear-rig-template.rbxmx": "eee2796a7f5a07ff282eaf91ce21a86ff89930064f377bb6fa83265a661393cc",
+    "Assembler-Bear.luau": "cda65fa0dafbbc60157beeea444df7b67283b6aea4b9f6758bd7874f323df7a5",
+    "Bear_Colour_512.png": "c440f4849468f0e7578c8cfee9420276995c3e096dd0b48e9eb8b909e3c1bd16",
+    "Bear.blend": "69602522a7bc339d9f7d39ac7d7eeeadd6fab10b53e25dc59a895b2f10a7c0eb",
+    "Bear.png": "5061f444627865641ff2ade22043a3a499db1bc253dd0eb82e0195d80d516caf",
+    "Bear-profil.png": "d21f4a96783456161b7601536c4dfc2dfe53eaf773dc63f58dd5c313e1b4ae93",
+    "Bear-visage.png": "0233ff87ccc5ac345580e58711c9ee24bc972dc1393d6771a89e49076e19af45",
+    "native-rig-spec.json": "6a6e1055f9608b8eb69e12b7805c565576f74d16d92e842a48ef458c8a64309a",
+    "source-rig-and-clips.json": "f7bbcd9900e4a5b2e8c49514079c7dbbae1219f509cd63e39839c78627887f76",
+    "NATIVE-VALIDATION.json": "722c4b897a2821610520ca1ecefaaca5e03f2b41dd847128b0cebb9779623d9e",
+    "FBX-VALIDATION.json": "7a873d68ace188713d79edb8c2f30a84fa7637b0551cec40061c882c766bfe60",
+    "CONTACT-VALIDATION.json": "b0021c4f77a1d2b731b78f9668955a9e3c232bad091d02e7c3644b305d34e4a0"
+  }
+}

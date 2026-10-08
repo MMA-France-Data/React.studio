@@ -1,0 +1,38 @@
+{
+  "passed": true,
+  "actualStudioTest": false,
+  "id": "Bear",
+  "basePartsAfterAssembly": 17,
+  "motor6D": 10,
+  "rigidWelds": 6,
+  "originalJointNames": true,
+  "originalClipsUnchanged": true,
+  "vertexPoseCases": 5184,
+  "maxRetargetMatrixError": 4.5951279670219947e-8,
+  "clips": {
+    "Idle": {
+      "duration": 2.8,
+      "loop": true,
+      "minHeight": -1.1024970490904646,
+      "maxHeight": 1.0607303502271153
+    },
+    "Walk": {
+      "duration": 1.95,
+      "loop": true,
+      "minHeight": -1.1652395470983696,
+      "maxHeight": 1.0702830037925297
+    },
+    "Attack": {
+      "duration": 1.48,
+      "loop": false,
+      "minHeight": -1.085,
+      "maxHeight": 1.1118614338148431
+    },
+    "Bite": {
+      "duration": 1.4,
+      "loop": false,
+      "minHeight": -1.085,
+      "maxHeight": 1.1045435099067602
+    }
+  }
+}
