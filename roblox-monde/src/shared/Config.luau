@@ -18,6 +18,7 @@ Config.ZONES = {
 	{ theme = "Forest" },
 	{ theme = "Jungle" },
 	{ theme = "Savanna" },
+	{ theme = "Dino" },
 }
 Config.ZONE_SIZE = Vector3.new(300, 0, 300) -- largeur (X) et longueur (Z) d'une zone
 

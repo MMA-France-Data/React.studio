@@ -197,6 +197,13 @@ return function(env)
 			-- (Les animaux en maillage du nouveau style : leurs mouvements tels quels. Grossis comme ceux des anciens
 			-- animaux en blocs, la tête se décollait du corps.)
 			local mesh = pet.model:GetAttribute("MeshStyle") == true
+			local plain = Pets.PLAIN_WALK[pet.name] == true
+			-- (Le ptéranodon vole : il reste en l'air, et bat des ailes même à l'arrêt.)
+			local flying = Pets.FLYING[pet.name]
+			if flying then
+				base *= CFrame.new(0, pet.half * 2 * flying, 0)
+				moving = true
+			end
 			local walk = pet.starter and pet.starter.clips.Walk
 			local hop = 0
 			if moving and walk then
@@ -207,7 +214,7 @@ return function(env)
 			pet.model:PivotTo(base * CFrame.new(0, hop, 0))
 			if pet.starter then
 				if moving then
-					StarterAnimator.step(pet.starter, pet.clock * WALK_SPEED, "Walk", if mesh then MESH_WALK_GAIN else WALK_GAIN, mesh)
+					StarterAnimator.step(pet.starter, pet.clock * (if plain then 1 else WALK_SPEED), "Walk", if plain then 1 elseif mesh then MESH_WALK_GAIN else WALK_GAIN, mesh)
 				else
 					StarterAnimator.step(pet.starter, pet.clock, "Idle", if mesh then 1 else 1.5)
 				end

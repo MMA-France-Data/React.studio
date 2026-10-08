@@ -1,9 +1,10 @@
--- PETIT TEST EN IMAGES (une trentaine de secondes) : seulement des photos, sans rejouer tout le jeu.
---   powershell -ExecutionPolicy Bypass -File tools/studio-test/run.ps1 -Test photo -Seconds 40
--- Ici : le revenu hors ligne. Huit chèvres dans l'enclos, puis un retour après une nuit de 10 heures et après
--- trois jours (compté 24 h au plus) : le message et les pièces gagnées.
+-- PETIT TEST EN IMAGES : seulement des photos, sans rejouer tout le jeu.
+--   powershell -ExecutionPolicy Bypass -File tools/studio-test/run.ps1 -Test photo -Seconds 70
+-- Ici : chaque camp d'un monde (ZONES) vu d'en haut, avec son décor et ses animaux, puis le coin du boss.
 local Players = game:GetService("Players")
 local ServerStorage = game:GetService("ServerStorage")
+
+local ZONES = { 5 }
 
 return function(log)
 	local player = Players:GetPlayers()[1] or Players.PlayerAdded:Wait()
@@ -13,21 +14,37 @@ return function(log)
 	task.wait(8)
 	local debug = ServerStorage:WaitForChild("SurviveDebug")
 	local function shot(name: string)
-		task.wait(1)
+		task.wait(0.8)
 		log("Info", "SHOT:photo_" .. name)
-		task.wait(1.2)
+		task.wait(1.1)
 	end
-	for _ = 1, 8 do
-		debug:Invoke("Pet", "Goat", 5)
+	debug:Invoke("Zone", 5)
+	debug:Invoke("Peaceful", true)
+	local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+	for _, zone in ZONES do
+		debug:Invoke("Travel", zone)
+		task.wait(2)
+		local sums, counts, animals = {}, {}, {}
+		for _, monster in debug:Invoke("Monsters") do
+			if monster.zone == zone then
+				sums[monster.rank] = (sums[monster.rank] or Vector3.zero) + monster.position
+				counts[monster.rank] = (counts[monster.rank] or 0) + 1
+				animals[monster.rank] = monster.animal
+			end
+		end
+		for rank = 1, 6 do
+			if counts[rank] then
+				local at = sums[rank] / counts[rank]
+				local side = if at.X > 0 then -1 else 1
+				if root then
+					root.CFrame = CFrame.new(at + Vector3.new(side * 70, 5, -30))
+				end
+				task.wait(1.2)
+				workspace:SetAttribute("ShotCam", CFrame.lookAt(at + Vector3.new(side * 30, 18, -24), at + Vector3.new(0, 3, 0)))
+				shot("camp_" .. zone .. "_" .. rank .. "_" .. animals[rank])
+			end
+		end
 	end
-	task.wait(2)
-	local income = player:GetAttribute("Income")
-	local night = debug:Invoke("Offline", 10 * 3600)
-	log("Info", string.format("[DIAG] revenu de l'enclos %.1f par seconde ; 10 h d'absence = %d pieces (attendu %d)", income, night, math.floor(income * 36000 / 3)))
-	shot("horsligne_nuit")
-	task.wait(6)
-	local long = debug:Invoke("Offline", 72 * 3600)
-	log("Info", string.format("[DIAG] 72 h d'absence = %d pieces (attendu, plafond de 24 h : %d)", long, math.floor(income * 86400 / 3)))
-	shot("horsligne_3jours")
+	workspace:SetAttribute("ShotCam", nil)
 	log("Info", "[SURVIVE] TEST:done")
 end

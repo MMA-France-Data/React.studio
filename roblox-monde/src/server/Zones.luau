@@ -399,14 +399,13 @@ local THEMES = {
 			local _ = random
 		end,
 	},
-	-- (Préparé le 08/10 pour le monde 5. Pas encore dans Config.ZONES : il attend ses six dinosaures.)
+	-- (Le monde 5, la préhistoire.)
 	Dino = {
 		ground = { rgb(104, 124, 76), M.Grass },
 		path = { rgb(116, 96, 78), M.Ground },
 		cliff = { rgb(66, 60, 62), M.Basalt },
 		patches = { rgb(92, 112, 68), rgb(120, 138, 84), rgb(96, 84, 70) },
 		scatter = { treefern = 44, cycad = 46, fern = 60, basalt = 14, spire = 12, bones = 8, lava = 7 },
-		habitats = { "Raptor", "Dilophosaurus", "Ankylosaurus", "Triceratops", "Spinosaurus", "TRex" },
 		set = function(folder, center: Vector3, random: Random)
 			props.volcano(folder, center + Vector3.new(108, 0, -110), random)
 			props.volcano(folder, center + Vector3.new(-112, 0, 112), random, 0.62)
@@ -820,8 +819,8 @@ function HABITATS.Lion(parent, at, toward, random)
 	local _ = toward
 end
 
--- LES DINOSAURES (les noms des animaux attendus : Raptor, Dilophosaurus, Ankylosaurus, Triceratops, Spinosaurus, TRex)
-function HABITATS.Raptor(parent, at, toward, random)
+-- LES DINOSAURES
+function HABITATS.Velociraptor(parent, at, toward, random)
 	campFloor(parent, at, 15, rgb(150, 124, 84), M.Ground)
 	around(at, -toward, random, 5, 6, 14, function(spot) props.dinoNest(parent, spot, random) end)
 	around(at, toward, random, 10, 31, 34, function(spot, direction)
@@ -833,8 +832,10 @@ function HABITATS.Dilophosaurus(parent, at, toward, random)
 	around(at, -toward, random, 10, 7, 16, function(spot) props.fern(parent, spot, random) end)
 	around(at, toward, random, 11, 31, 35, function(spot) props.treefern(parent, spot, random) end)
 end
-function HABITATS.Ankylosaurus(parent, at, toward, random)
+-- (Le ptéranodon : des aiguilles de roche et, au milieu, un grand nid.)
+function HABITATS.Pteranodon(parent, at, toward, random)
 	campFloor(parent, at, 14, rgb(96, 90, 90), M.Basalt)
+	props.dinoNest(parent, at, random)
 	around(at, toward, random, 10, 31, 34, function(spot, direction)
 		if math.abs(direction.Z) > 0.5 then props.spire(parent, spot, random) else props.basalt(parent, spot, random) end
 	end)
@@ -854,7 +855,7 @@ function HABITATS.Spinosaurus(parent, at, toward, random)
 		if direction.Z > 0 then props.treefern(parent, spot, random) else props.log(parent, spot, random) end
 	end)
 end
-function HABITATS.TRex(parent, at, toward, random)
+function HABITATS.Trex(parent, at, toward, random)
 	props.giantBones(parent, at, random, 3)
 	props.lava(parent, at + Vector3.new(4, 0, 22), random, 14)
 	props.spire(parent, at + Vector3.new(10, 0, -18), random)

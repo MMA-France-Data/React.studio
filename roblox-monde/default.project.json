@@ -224,6 +224,24 @@
         "Lion": {
           "$path": "assets/collections/salle-07-savane/oeufs/models/LionEgg.rbxmx"
         },
+        "Velociraptor": {
+          "$path": "assets/collections/monde-05-prehistoire-maillages/Velociraptor/VelociraptorEgg.rbxmx"
+        },
+        "Dilophosaurus": {
+          "$path": "assets/collections/monde-05-prehistoire-maillages/Dilophosaurus/DilophosaurusEgg.rbxmx"
+        },
+        "Pteranodon": {
+          "$path": "assets/collections/monde-05-prehistoire-maillages/Pteranodon/PteranodonEgg.rbxmx"
+        },
+        "Triceratops": {
+          "$path": "assets/collections/monde-05-prehistoire-maillages/Triceratops/TriceratopsEgg.rbxmx"
+        },
+        "Spinosaurus": {
+          "$path": "assets/collections/monde-05-prehistoire-maillages/Spinosaurus/SpinosaurusEgg.rbxmx"
+        },
+        "Trex": {
+          "$path": "assets/collections/monde-05-prehistoire-maillages/Trex/TrexEgg.rbxmx"
+        },
         "Gorilla": {
           "$path": "assets/collections/monde-03-jungle-maillages/Gorilla/GorillaEgg.rbxmx"
         },
@@ -251,6 +269,24 @@
       },
       "MeshRigs": {
         "$className": "Folder",
+        "Velociraptor": {
+          "$path": "assets/collections/monde-05-prehistoire-maillages/Velociraptor/Velociraptor-rig-template.rbxmx"
+        },
+        "Dilophosaurus": {
+          "$path": "assets/collections/monde-05-prehistoire-maillages/Dilophosaurus/Dilophosaurus-rig-template.rbxmx"
+        },
+        "Pteranodon": {
+          "$path": "assets/collections/monde-05-prehistoire-maillages/Pteranodon/Pteranodon-rig-template.rbxmx"
+        },
+        "Triceratops": {
+          "$path": "assets/collections/monde-05-prehistoire-maillages/Triceratops/Triceratops-rig-template.rbxmx"
+        },
+        "Spinosaurus": {
+          "$path": "assets/collections/monde-05-prehistoire-maillages/Spinosaurus/Spinosaurus-rig-template.rbxmx"
+        },
+        "Trex": {
+          "$path": "assets/collections/monde-05-prehistoire-maillages/Trex/Trex-rig-template.rbxmx"
+        },
         "Hyena": {
           "$path": "assets/collections/monde-04-savane-maillages/Hyena/Hyena-rig-template.rbxmx"
         },

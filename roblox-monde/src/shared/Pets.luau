@@ -44,6 +44,8 @@ Pets.COLLECTIONS = {
 	{ "Capybara", "Anaconda", "Crocodile", "Jaguar", "Gorilla", "Tiger" },
 	-- (Monde 4, la savane, livrée par ChatGPT le 08/10 : assets/collections/salle-07-savane.)
 	{ "Hyena", "Buffalo", "Cheetah", "Rhino", "Elephant", "Lion" },
+	-- (Monde 5, la préhistoire, livrée par ChatGPT le 09/10 : assets/collections/monde-05-prehistoire-maillages.)
+	{ "Velociraptor", "Dilophosaurus", "Pteranodon", "Triceratops", "Spinosaurus", "Trex" },
 	{ "Hedgehog", "Squirrel", "Skunk", "Beaver", "Raccoon", "Badger" },
 	{ "Bunny", "Turtle", "Cat", "Dog", "Owlet", "Fox" },
 }
@@ -351,6 +353,11 @@ end
 -- GROSSEUR EN PLUS de certains animaux, partout (camps, équipe, enclos). Le crocodile en maillage était trop petit
 -- (retour du joueur, 08/10 : « c'est les crocos que je trouve petits »).
 Pets.BIGGER = { Crocodile = 1.6 }
+-- LES DINOSAURES : leurs animations sont faites pour être lues telles quelles (consigne de leur auteur : « gain 1 ; le
+-- gain 2,6 des anciens animaux casserait les appuis et exagérerait les ailes »).
+Pets.PLAIN_WALK = { Velociraptor = true, Dilophosaurus = true, Pteranodon = true, Triceratops = true, Spinosaurus = true, Trex = true }
+-- Le ptéranodon vole : il se tient à cette hauteur au-dessus du sol (en parts de sa propre hauteur).
+Pets.FLYING = { Pteranodon = 1.1 }
 function Pets.size(name: string): number
 	local def = Pets.DEFS[name]
 	return def and def.size or 1

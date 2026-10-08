@@ -6,7 +6,7 @@
 #   python tools/balance/mondes.py -v     : le détail d'une partie
 import random, statistics, sys
 
-WORLDS = 4
+WORLDS = 5
 HP = [400, 3000, 7000, 15000, 32000, 90000]
 DMG = [30, 150, 300, 600, 1250, 4000]
 FIRST = (1000, 70)                      # le premier camp des mondes suivants (pas l'exception du canard)
@@ -23,7 +23,7 @@ EARLY = 0.3   # Pets.EARLY_XP : les cinq premiers niveaux d un familier demanden
 ZONE, COIN_ZONE, XP_ZONE = 100, 100, 10   # d'un monde au suivant : monstres et familiers, pièces, XP
 # D un monde au suivant, en plus : l XP des familiers est LONG_XP fois plus longue et les oeufs LONG_EGG fois plus rares
 # (Pets.LONG_XP, Config.LONG_EGG) : chaque monde dure plus longtemps que le precedent.
-LONG_XP, LONG_EGG = [0.7, 10, 13, 13 * 1.25], [1 / 1.5, 1, 1, 1]   # par monde (Pets.LONG_XP, Config.LONG_EGG)
+LONG_XP, LONG_EGG = [0.7, 10, 13, 13 * 1.25, 13 * 1.25 * 1.25], [1 / 1.5, 1, 1, 1, 1]   # par monde (Pets.LONG_XP, Config.LONG_EGG)
 WALK = 4.0
 INCOME = [0.75, 1.5, 3.75, 10, 25, 60]  # pieces par seconde d un familier moyen de chaque rang, au monde 1 (Pets.INCOME)
 
