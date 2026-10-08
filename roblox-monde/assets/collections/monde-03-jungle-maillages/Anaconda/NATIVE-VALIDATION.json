@@ -1,0 +1,38 @@
+{
+  "passed": true,
+  "actualStudioTest": false,
+  "id": "Anaconda",
+  "basePartsAfterAssembly": 15,
+  "motor6D": 11,
+  "rigidWelds": 3,
+  "originalJointNames": true,
+  "originalClipsUnchanged": true,
+  "vertexPoseCases": 4536,
+  "maxRetargetMatrixError": 5.975312777906083e-8,
+  "clips": {
+    "Idle": {
+      "duration": 2.8,
+      "loop": true,
+      "minHeight": -0.2710767847779836,
+      "maxHeight": 0.263521857597421
+    },
+    "Walk": {
+      "duration": 2.4,
+      "loop": true,
+      "minHeight": -0.2770656461900724,
+      "maxHeight": 0.2677627344003866
+    },
+    "Attack": {
+      "duration": 1.28,
+      "loop": false,
+      "minHeight": -0.2841990494923187,
+      "maxHeight": 0.2847247659274766
+    },
+    "Bite": {
+      "duration": 1.28,
+      "loop": false,
+      "minHeight": -0.2841990494923187,
+      "maxHeight": 0.2847247659274766
+    }
+  }
+}

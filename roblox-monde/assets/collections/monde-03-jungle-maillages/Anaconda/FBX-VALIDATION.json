@@ -1,0 +1,10 @@
+{
+  "passed": true,
+  "actualStudioTest": false,
+  "id": "Anaconda",
+  "rigidMeshes": 14,
+  "bones": 0,
+  "triangles": 4694,
+  "maxRoundTripBoundsError": 1.1920928955078125e-07,
+  "texturesAndUV": true
+}

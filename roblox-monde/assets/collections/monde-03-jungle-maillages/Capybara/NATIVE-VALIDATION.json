@@ -1,0 +1,32 @@
+{
+  "passed": true,
+  "actualStudioTest": false,
+  "id": "Capybara",
+  "basePartsAfterAssembly": 15,
+  "motor6D": 8,
+  "rigidWelds": 6,
+  "originalJointNames": true,
+  "originalClipsUnchanged": true,
+  "vertexPoseCases": 3402,
+  "maxRetargetMatrixError": 4.645617579512873e-8,
+  "clips": {
+    "Idle": {
+      "duration": 2.8,
+      "loop": true,
+      "minHeight": -0.8150057795397614,
+      "maxHeight": 0.7551541175059333
+    },
+    "Walk": {
+      "duration": 1.9,
+      "loop": true,
+      "minHeight": -0.8550466882129317,
+      "maxHeight": 0.7698913522690665
+    },
+    "Attack": {
+      "duration": 1.4,
+      "loop": false,
+      "minHeight": -0.7999999999999999,
+      "maxHeight": 0.8037137567469682
+    }
+  }
+}

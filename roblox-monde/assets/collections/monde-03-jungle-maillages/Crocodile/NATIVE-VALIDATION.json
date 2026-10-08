@@ -1,0 +1,38 @@
+{
+  "passed": true,
+  "actualStudioTest": false,
+  "id": "Crocodile",
+  "basePartsAfterAssembly": 18,
+  "motor6D": 11,
+  "rigidWelds": 6,
+  "originalJointNames": true,
+  "originalClipsUnchanged": true,
+  "vertexPoseCases": 5508,
+  "maxRetargetMatrixError": 2.9710552018613612e-8,
+  "clips": {
+    "Idle": {
+      "duration": 2.8,
+      "loop": true,
+      "minHeight": -0.34861382815974307,
+      "maxHeight": 0.32813697422684923
+    },
+    "Walk": {
+      "duration": 2.2,
+      "loop": true,
+      "minHeight": -0.3623149892580608,
+      "maxHeight": 0.3335408832222089
+    },
+    "Attack": {
+      "duration": 1.4,
+      "loop": false,
+      "minHeight": -0.36504439890520457,
+      "maxHeight": 0.8050445264062192
+    },
+    "Bite": {
+      "duration": 1.4,
+      "loop": false,
+      "minHeight": -0.36504439890520457,
+      "maxHeight": 0.8050445264062192
+    }
+  }
+}

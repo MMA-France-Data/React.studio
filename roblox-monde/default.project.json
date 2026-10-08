@@ -251,6 +251,18 @@
       },
       "MeshRigs": {
         "$className": "Folder",
+        "Capybara": {
+          "$path": "assets/collections/monde-03-jungle-maillages/Capybara/Capybara-rig-template.rbxmx"
+        },
+        "Anaconda": {
+          "$path": "assets/collections/monde-03-jungle-maillages/Anaconda/Anaconda-rig-template.rbxmx"
+        },
+        "Crocodile": {
+          "$path": "assets/collections/monde-03-jungle-maillages/Crocodile/Crocodile-rig-template.rbxmx"
+        },
+        "Jaguar": {
+          "$path": "assets/collections/monde-03-jungle-maillages/Jaguar/Jaguar-rig-template.rbxmx"
+        },
         "Bear": {
           "$path": "assets/collections/monde-02-foret-maillages/Bear/Bear-rig-template.rbxmx"
         },

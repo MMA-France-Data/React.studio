@@ -1,0 +1,40 @@
+{
+  "id": "Crocodile",
+  "world": 3,
+  "theme": "Jungle",
+  "created": "2026-10-08",
+  "boss": false,
+  "rainbowCoat": false,
+  "triangles": 4694,
+  "meshPieces": 17,
+  "reliefStuds": 217,
+  "basePartsAfterAssembly": 18,
+  "Motor6D": 11,
+  "rigidWelds": 6,
+  "animations": [
+    "Idle",
+    "Walk",
+    "Attack",
+    "Bite"
+  ],
+  "requiredReaderChanges": false,
+  "requiresStudioMeshImport": true,
+  "actualStudioTest": false,
+  "eggsModified": false,
+  "paidGenerations": 0,
+  "files": {
+    "Crocodile.fbx": "0595be127d394c8db0e3d553d65d320f36bb2b4bceda47b04ec9b6280a0909d5",
+    "Crocodile-rig-template.rbxmx": "efa4babc3fee1a2c33d5570ba1cf850f853c34ad99cc8b18e56e0001b954240e",
+    "Assembler-Crocodile.luau": "038f315bdb4e36c84cd072efa7699bfb57f5823a2cb117946f12b766eeec7ea2",
+    "Crocodile_Colour_512.png": "301316858c1bf7cfd552caa86ddd1148473b2cb616c62c256b690d46208def8e",
+    "Crocodile.blend": "b7f2ae526592507318652e21efdc651dc5f7d2d707bd1e1590b8e04aba352edb",
+    "Crocodile.png": "6629565bfd99de20c4128af842531465495bd50ec2c31d898bce3f360fe1d97f",
+    "Crocodile-profil.png": "7265655d9d67bdbe8e72f020d9d42408d7cf9fbf30c9f598fb31fe5771454558",
+    "Crocodile-visage.png": "81f0aab4b1f0112c14a2808beb7b296de4f1bc6e4bb2254e5b06cc019692b18d",
+    "native-rig-spec.json": "8ff7579cb66e69dd700ab9f39616282edac8ab59c0390af81f9a09db883bb65c",
+    "source-rig-and-clips.json": "f61ae91da060c487af8041978d6330a6f23551d05e9960711e43411ed8c15048",
+    "NATIVE-VALIDATION.json": "66fc49b85cdaccfe1dbf7ee62964bdc6b2975802feafc9cf733da622ce6f75ed",
+    "FBX-VALIDATION.json": "d3c4b2fd4a76295f2c1f0ab0f4ce252be3db5958a9ac3089f65afbf77e561d0e",
+    "CONTACT-VALIDATION.json": "5fae582b3843d8dbd64e276271e9f29c032d260d3b1f61fc13f8530e8d342d12"
+  }
+}

@@ -4,6 +4,7 @@
 *.luau text eol=lf
 *.ps1 text eol=lf
 *.cjs text eol=lf
+*.py text eol=lf
 *.fbx binary
 *.blend binary
 *.png binary

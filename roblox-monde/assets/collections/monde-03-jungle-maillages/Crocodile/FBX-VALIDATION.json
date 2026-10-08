@@ -1,0 +1,10 @@
+{
+  "passed": true,
+  "actualStudioTest": false,
+  "id": "Crocodile",
+  "rigidMeshes": 17,
+  "bones": 0,
+  "triangles": 4694,
+  "maxRoundTripBoundsError": 1.0112656456673363e-07,
+  "texturesAndUV": true
+}

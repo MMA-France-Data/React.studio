@@ -1,0 +1,40 @@
+{
+  "id": "Jaguar",
+  "world": 3,
+  "theme": "Jungle",
+  "created": "2026-10-08",
+  "boss": false,
+  "rainbowCoat": false,
+  "triangles": 4694,
+  "meshPieces": 16,
+  "reliefStuds": 70,
+  "basePartsAfterAssembly": 17,
+  "Motor6D": 12,
+  "rigidWelds": 4,
+  "animations": [
+    "Idle",
+    "Walk",
+    "Attack",
+    "Bite"
+  ],
+  "requiredReaderChanges": false,
+  "requiresStudioMeshImport": true,
+  "actualStudioTest": false,
+  "eggsModified": false,
+  "paidGenerations": 0,
+  "files": {
+    "Jaguar.fbx": "20d99dc3c710fcf3ec3ddb00223e2e626ee5b4a4fa8946a71a9ca3f6a9ac08dc",
+    "Jaguar-rig-template.rbxmx": "d22af196c970c5f61097b3fe3424e395807f5b9770dfab1c0f775faef576b574",
+    "Assembler-Jaguar.luau": "d0c142e7cfba473312cd0e7928f9afc65373425cd92fe04d66d6150d35c52af6",
+    "Jaguar_Colour_512.png": "c97172be6b83863672f8d48068e111c9488efc8aadd5ee723cffdd7d1c0b2a2f",
+    "Jaguar.blend": "7ee031a9f53da8a90ed84214c9578c0484f9630d9554c61e6fba11088a9290c9",
+    "Jaguar.png": "4ca2d2919fc3058a3afbaee320d0ccbf6cc66ae7b519c41072e91a9a6b1afd78",
+    "Jaguar-profil.png": "d15c40b69a87ba1dcc69e4c363c83dd8e27c80a1505b2596b56371d9b56d5c80",
+    "Jaguar-visage.png": "1de805e0cd17518e4df2ada9e7a94df645bdf0e1292c691c1e1d4cc80f599d82",
+    "native-rig-spec.json": "18ca1f6143a89180fb4f205486cfcebefb5cb6c544b72dbfe0d22e632dc94f19",
+    "source-rig-and-clips.json": "536b748c9466bb987ae5a2bc7ccf008b98c43f0808217dcd1a35c84ff8738a6d",
+    "NATIVE-VALIDATION.json": "5959633659e5ab66536259198b9b32dfc1d552efa11e55a5462c345dde45d8bb",
+    "FBX-VALIDATION.json": "fe727bcc2740824f3b866b8cc7d1db81430f7d1ffb8f942546baa1cb7359f78e",
+    "CONTACT-VALIDATION.json": "74dbc109524a4c3f7b7d1f009e93138b5573a633ec305d7b0934e1f52383522d"
+  }
+}

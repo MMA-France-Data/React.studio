@@ -1,0 +1,40 @@
+{
+  "id": "Anaconda",
+  "world": 3,
+  "theme": "Jungle",
+  "created": "2026-10-08",
+  "boss": false,
+  "rainbowCoat": false,
+  "triangles": 4694,
+  "meshPieces": 14,
+  "reliefStuds": 143,
+  "basePartsAfterAssembly": 15,
+  "Motor6D": 11,
+  "rigidWelds": 3,
+  "animations": [
+    "Idle",
+    "Walk",
+    "Attack",
+    "Bite"
+  ],
+  "requiredReaderChanges": false,
+  "requiresStudioMeshImport": true,
+  "actualStudioTest": false,
+  "eggsModified": false,
+  "paidGenerations": 0,
+  "files": {
+    "Anaconda.fbx": "c0b0f3ac04ab5b55cfd7768137a48be43216673bda94b23a1e22c55eeb6976d4",
+    "Anaconda-rig-template.rbxmx": "a9b81f756d05b6fe4168ed462241783882135a7f3a0ba55b5525de50ccf862f1",
+    "Assembler-Anaconda.luau": "7cb7f97f64e591952a5b4dc541a7d6023172d8375b0954cfea4eb65e26d15b59",
+    "Anaconda_Colour_512.png": "e8f0338448a6703932aeb84d48e68844b6dacfc15f4f5f39765f0f26ddb43eb9",
+    "Anaconda.blend": "5787684db9d971b19bdd1b4cfc6ab1c68706aa323e99181c15e473305668c467",
+    "Anaconda.png": "4425463630e25a2b8bb8d0ad818cf594f45eddae5bfafa5ada8ef68b5cc9bb97",
+    "Anaconda-profil.png": "6ead800ba9b966424e9131f1d0bf9dc3968bbed0fcd4b318e93501a2f38ccd33",
+    "Anaconda-visage.png": "d6f40fa17609024b321e1372668e40004579975f0100fb4676c6be8da4522c8a",
+    "native-rig-spec.json": "d1479be20aba435e21d95b4c97d96ad4c769a70426648c70374044497003c136",
+    "source-rig-and-clips.json": "7e9bd9f4a47217028db65998e8af43b40e302005103a430fcc5384c2d8243ccd",
+    "NATIVE-VALIDATION.json": "808c849f576b5423d018b322db882c4cf3a9480a7465f029dc82079fe1e7d603",
+    "FBX-VALIDATION.json": "a8758ddad644dc67bcff0e7fcb260df32dbccf08054ced8f623695bd33b8f8d8",
+    "CONTACT-VALIDATION.json": "a5f8519e04493d6304918db4f7ade5645ac52803af2e19a12d5b214e36eeba34"
+  }
+}

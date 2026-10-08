@@ -1,0 +1,39 @@
+{
+  "id": "Capybara",
+  "world": 3,
+  "theme": "Jungle",
+  "created": "2026-10-08",
+  "boss": false,
+  "rainbowCoat": false,
+  "triangles": 4696,
+  "meshPieces": 14,
+  "reliefStuds": 325,
+  "basePartsAfterAssembly": 15,
+  "Motor6D": 8,
+  "rigidWelds": 6,
+  "animations": [
+    "Idle",
+    "Walk",
+    "Attack"
+  ],
+  "requiredReaderChanges": false,
+  "requiresStudioMeshImport": true,
+  "actualStudioTest": false,
+  "eggsModified": false,
+  "paidGenerations": 0,
+  "files": {
+    "Capybara.fbx": "fd30c878a81667583e8a0f2559e6cc0c7d4d409c40c5480a286e9842a0d6391d",
+    "Capybara-rig-template.rbxmx": "12c9770f1889597a46415626a40ac2e21c135c38afdf6459f77ebc33b92d5c4d",
+    "Assembler-Capybara.luau": "45c1e4ccc00236979e8094ec75c21b36e5ca17b63dc15740d9a7f5a43ff0b017",
+    "Capybara_Colour_512.png": "6fe14c6c00325dc127d943205c45f768e984fe85efd4040561f7e9c3f04fd2b5",
+    "Capybara.blend": "176197076cc5857064788af88fde78b54cf854210e9f94bb25514d0eb15a7fe6",
+    "Capybara.png": "93ecbd64e58a6c1cf4ca8372bce31085c7d1aa5f909e28187231887426dde11a",
+    "Capybara-profil.png": "4df4209d37cb343392416d6f2934d953a687529e444ed744e0d17771bfff286a",
+    "Capybara-visage.png": "aa330041c9a0048162377743a56e5adfdbec4768f194c6b6bfc416a3789af0b0",
+    "native-rig-spec.json": "4e4c75e380ea2ec89ba0158a7fb4f894c8c2fca52c142b73f26edf36800ee9a7",
+    "source-rig-and-clips.json": "202ff7232b59286042d68da6f30c9ff52516cb58c0e4ac085f837b7ca0188869",
+    "NATIVE-VALIDATION.json": "d0588d05c81f0244533854d0a82a868fbcd810f03bd2f4868bdfe9348466ec64",
+    "FBX-VALIDATION.json": "3777e6ccaa996cb7493508c5de704c9193c8b5b15950c7e898b7bac60a8638c7",
+    "CONTACT-VALIDATION.json": "d7a7110348d5272ff69f143e60ad59bb1972dbed20197df0afc2556199ccd12b"
+  }
+}

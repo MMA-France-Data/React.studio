@@ -1,0 +1,38 @@
+{
+  "passed": true,
+  "actualStudioTest": false,
+  "id": "Jaguar",
+  "basePartsAfterAssembly": 17,
+  "motor6D": 12,
+  "rigidWelds": 4,
+  "originalJointNames": true,
+  "originalClipsUnchanged": true,
+  "vertexPoseCases": 5184,
+  "maxRetargetMatrixError": 5.4845957553339986e-8,
+  "clips": {
+    "Idle": {
+      "duration": 2.8,
+      "loop": true,
+      "minHeight": -0.9041934718036502,
+      "maxHeight": 0.8412142781228047
+    },
+    "Walk": {
+      "duration": 1.5,
+      "loop": true,
+      "minHeight": -0.9329937873864677,
+      "maxHeight": 0.8473432535968419
+    },
+    "Attack": {
+      "duration": 1.13,
+      "loop": false,
+      "minHeight": -0.8920000133514404,
+      "maxHeight": 0.8728396054545998
+    },
+    "Bite": {
+      "duration": 1.06,
+      "loop": false,
+      "minHeight": -0.8920000133514404,
+      "maxHeight": 0.8612670980397912
+    }
+  }
+}
