@@ -1,0 +1,70 @@
+{
+  "passed": true,
+  "actualStudioTest": false,
+  "swords": [
+    {
+      "id": "TigerClaw",
+      "passed": true,
+      "actualStudioTest": false,
+      "triangles": 18950,
+      "visibleMeshes": 1,
+      "length": 5.204154,
+      "maxGripCenterError": 0.000955,
+      "trailSurfaceDistances": {
+        "trailBase": 0.118142,
+        "trailTip": 0.000952
+      },
+      "UVs": true,
+      "PBRMaps": 4,
+      "maxTextureSize": 1024
+    },
+    {
+      "id": "HyenaFang",
+      "passed": true,
+      "actualStudioTest": false,
+      "triangles": 18950,
+      "visibleMeshes": 1,
+      "length": 5.207093,
+      "maxGripCenterError": 0.004143,
+      "trailSurfaceDistances": {
+        "trailBase": 0.122878,
+        "trailTip": 0.00538
+      },
+      "UVs": true,
+      "PBRMaps": 4,
+      "maxTextureSize": 1024
+    },
+    {
+      "id": "TrexJaw",
+      "passed": true,
+      "actualStudioTest": false,
+      "triangles": 18950,
+      "visibleMeshes": 1,
+      "length": 5.201064,
+      "maxGripCenterError": 0.000229,
+      "trailSurfaceDistances": {
+        "trailBase": 0.139301,
+        "trailTip": 0.000186
+      },
+      "UVs": true,
+      "PBRMaps": 4,
+      "maxTextureSize": 1024
+    },
+    {
+      "id": "Meteorite",
+      "passed": true,
+      "actualStudioTest": false,
+      "triangles": 18950,
+      "visibleMeshes": 1,
+      "length": 5.199674,
+      "maxGripCenterError": 0.000772,
+      "trailSurfaceDistances": {
+        "trailBase": 0.134205,
+        "trailTip": 0.001932
+      },
+      "UVs": true,
+      "PBRMaps": 4,
+      "maxTextureSize": 1024
+    }
+  ]
+}

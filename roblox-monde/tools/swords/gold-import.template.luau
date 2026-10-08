@@ -15,6 +15,10 @@ function V.__div(a,b) return a*(1/b) end
 function V:Cross(b) return Vector3.new(self.Y*b.Z-self.Z*b.Y,self.Z*b.X-self.X*b.Z,self.X*b.Y-self.Y*b.X) end
 local zero, x, y, z = Vector3.new(),Vector3.new(1,0,0),Vector3.new(0,1,0),Vector3.new(0,0,1)
 local CFrame = {}
+local CF = {}; CF.__index=CF
+function CF.__mul(a, _b) return a end
+function CFrame.new(a,b,c) return setmetatable({Position=Vector3.new(a,b,c)},CF) end
+function CFrame.Angles(_a,_b,_c) return CFrame.new() end
 function CFrame.lookAt(at, to, up)
 	local forward = to-at; forward = forward/forward.Magnitude
 	local right = forward:Cross(up); right = right/right.Magnitude
@@ -52,6 +56,8 @@ function Obj:Clone()
 	return copy
 end
 function Obj:Destroy() self.Parent=nil; self.destroyed=true end
+function Obj:FindFirstChild(name) for _,child in self.children do if child.Name==name then return child end end; return nil end
+function Obj:PivotTo(frame) self.props.pivot=frame end
 function Obj:SetAttribute(k,v) self.props["attr_"..k]=v end
 function Obj:ScaleTo(factor)
 	for _,item in self:GetDescendants() do if item:IsA("BasePart") then
@@ -59,9 +65,15 @@ function Obj:ScaleTo(factor)
 	end end
 end
 local workspace=Instance.new("Workspace")
-local game={GetService=function() return {} end}
-local plugin={CreateToolbar=function() return {CreateButton=function()
-	return {Click={Connect=function() end}}
+local mockStorage=Instance.new("ReplicatedStorage")
+local mockSelection={Set=function(self,items) self.items=items end}
+local mockHistory={SetWaypoint=function(self,name) self.waypoint=name end}
+local game={GetService=function(_self,name)
+ return ({ReplicatedStorage=mockStorage,Selection=mockSelection,ChangeHistoryService=mockHistory})[name]
+end}
+local callbacks={}
+local plugin={CreateToolbar=function() return {CreateButton=function(_self,label)
+	return {Click={Connect=function(_event,callback) callbacks[label]=callback end}}
 end} end}
 local imports=(function()
 --[[IMPORT_PLUGIN_SOURCE]]
@@ -107,4 +119,5 @@ check(mesh.Size.Y==10.4 and #new:GetDescendants()==2,"Imported original remains 
 new:Destroy(); old:Destroy()
 local absent=imports.chooseSource("Gold")
 check(absent==nil,"No source must not fabricate or replace an existing stored sword")
+--[[NEW_SWORD_CASES]]
 print("GOLD_IMPORT_CONTRACT_OK",checks,"(mock objects, not Studio Import 3D)")

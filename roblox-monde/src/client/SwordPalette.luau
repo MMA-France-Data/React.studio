@@ -11,6 +11,9 @@ Palette.colors = {
 	Prismatic = Color3.fromRGB(255, 57, 201),
 	Fusion = Color3.fromRGB(95, 220, 255),
 	Void = Color3.fromRGB(181, 82, 255),
+	-- Import catalogue only: saved ranks/shop progression remain unchanged.
+	TigerClaw = Color3.fromRGB(255, 157, 45), HyenaFang = Color3.fromRGB(222, 169, 83),
+	TrexJaw = Color3.fromRGB(224, 100, 46), Meteorite = Color3.fromRGB(255, 97, 38),
 }
 function Palette.id(value: any): string
 	if type(value) == "string" and Palette.colors[value] then return value end

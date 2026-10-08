@@ -11,6 +11,7 @@ local RunService = game:GetService("RunService")
 
 local CombatMotion = require(script.Parent.CombatMotion)
 local DualMotion = require(script.Parent.DualSwordMotion)
+local TwoHandMotion = require(script.Parent.TwoHandSwordMotion)
 local SwordVisuals = require(script.Parent.SwordVisuals)
 local SwordGrip = require(script.Parent.SwordGrip)
 local CombatVFX = require(script.Parent.CombatVFX)
@@ -129,6 +130,7 @@ return function()
 			local variant = CombatMotion.observeAttack(state, stamp, sincePunch)
 			local tier = SwordVisuals.tier(other:GetAttribute("Sword") or 1)
 			local dual = SwordVisuals.dual(tier)
+			local twoHanded = SwordVisuals.twoHanded(tier) and TwoHandMotion.supported(character, joint)
 			local combat = nil
 			if not carrying and not pressing then
 				combat = if dual then DualMotion.sample(CombatMotion, variant, sincePunch)
@@ -168,7 +170,7 @@ return function()
 			-- LA GARDE (demande du joueur, sur une capture : « la posture de base avec le coude replie, l epee vers le
 			-- ciel ») : tant qu il tient son epee sans frapper, le bras droit est un peu avance, le coude plie, et la lame
 			-- pointe vers le haut, legerement penchee. Elle tient aussi en marchant ; le coup d epee la remplace.
-			if not carrying and not pressing then
+			if not carrying and not pressing and not twoHanded then
 				local guard = 1 - (if combat then CombatMotion.weight(sincePunch) else 0)
 				if guard > 0.01 then
 					local sway = math.sin(now * 1.6) * 2 -- (un tout petit balancement, pour qu elle ait l air vivante)
@@ -194,6 +196,7 @@ return function()
 			if combat then
 				local attackWeight = CombatMotion.weight(sincePunch)
 				for name, value in combat do
+					if twoHanded and (string.find(name, "Shoulder") or string.find(name, "Elbow") or string.find(name, "Wrist")) then continue end
 					local link = joint(character, BONE_PARTS[name] or "", name)
 					if link then apply(link, link.Transform:Lerp(value, attackWeight)) end
 				end
@@ -206,6 +209,15 @@ return function()
 					state.sword, state.swordTier = SwordVisuals.build(tier, workspace), tier
 				end
 				state.swordHand = rightHand
+				if twoHanded then
+					local pose = TwoHandMotion.pose(character, joint, state.sword, variant, sincePunch)
+					if pose then
+						for name, value in pose do
+							local link = joint(character, BONE_PARTS[name], name)
+							if link then apply(link, value) end
+						end
+					end
+				end
 				local leftCut = dual and DualMotion.activeHand(variant) == "Left"
 				local cutting = combat ~= nil and CombatMotion.trail(sincePunch)
 				state.swordSwing = cutting and not leftCut

@@ -19,9 +19,10 @@ import numpy as np
 from mathutils import Matrix, Vector
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--id', choices=['Fusion', 'Void', 'GoldV2'], required=True)
+parser.add_argument('--id', choices=['Fusion', 'Void', 'GoldV2', 'TigerClaw', 'HyenaFang', 'TrexJaw', 'Meteorite'], required=True)
 parser.add_argument('--source', required=True)
 parser.add_argument('--output', required=True)
+parser.add_argument('--calibration', help='Inspected grip/basis settings for a new sword; never inferred from the bbox alone')
 args = parser.parse_args(sys.argv[sys.argv.index('--') + 1:])
 source, output = os.path.abspath(args.source), os.path.abspath(args.output)
 dest = os.path.join(output, args.id)
@@ -38,7 +39,13 @@ settings = {
     # Source X bounds measured at 16/18/20/22/24% of the sword's length.
     'GoldV2': {'handle': (.15, .25), 'bladeStart': .365,
                'handleWideRange': (-.055, .06)},
-}[args.id]
+}.get(args.id)
+if args.calibration:
+    with open(args.calibration, encoding='utf-8') as handle:
+        calibration = json.load(handle)
+    assert calibration['id'] == args.id, 'Calibration belongs to a different sword'
+    settings = calibration
+assert settings is not None, 'New sword requires an inspected calibration'
 grip_from_pommel = sum(settings['handle']) * .5 * LENGTH
 
 bpy.ops.wm.read_factory_settings(use_empty=True)
@@ -54,6 +61,10 @@ if len(meshes) > 1:
 obj = bpy.context.view_layer.objects.active
 bpy.ops.object.parent_clear(type='CLEAR_KEEP_TRANSFORM')
 bpy.ops.object.transform_apply(location=True, rotation=True, scale=True)
+if 'sourceBasis' in settings:
+    basis = Matrix(settings['sourceBasis'])
+    assert max(abs((basis @ basis.transposed())[i][j] - (1 if i == j else 0)) for i in range(3) for j in range(3)) < 1e-5, 'Source basis is not orthonormal'
+    obj.data.transform(basis.to_4x4())
 original = obj.copy()
 original.data = obj.data.copy()
 bpy.context.scene.collection.objects.link(original)
@@ -166,7 +177,7 @@ def cross_center(pts):
 tip_x, tip_z = cross_center(tip_points)
 base_x, base_z = cross_center(base_points)
 box_x, box_z = cross_center([v.co for v in mesh.vertices])
-groups = {'Fusion': ['Hot', 'Cold'], 'Void': ['Shadow'], 'GoldV2': []}[args.id]
+groups = {'Fusion': ['Hot', 'Cold'], 'Void': ['Shadow']}.get(args.id, [])
 for group in groups:
     valid = []
     for p, rgb in samples:
@@ -213,6 +224,8 @@ info = {
     'markers': markers, 'preparation': 'local Blender, source unchanged, no Meshy API calls',
     'robloxImportCompleted': False,
 }
+if args.calibration:
+    info['calibration'] = settings
 if args.id == 'GoldV2':
     info['replaces'] = 'Gold'
     info['handleCoreHalfWidth'] = .19

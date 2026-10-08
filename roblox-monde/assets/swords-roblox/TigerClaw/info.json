@@ -1,0 +1,44 @@
+{
+  "id": "TigerClaw",
+  "sourceFile": "Meshy_AI_Primal_Tiger_Claw_Swo_1008222807_image-to-3d-texture.fbx",
+  "sourceSha256": "c39e3125a526d7de909df4e9369541a7f6bbf93344988b6ba05bb86f510d6944",
+  "trianglesBefore": 944334,
+  "triangles": 18950,
+  "size": [
+    1.3929,
+    1.6798,
+    5.2
+  ],
+  "gripFromPommel": 0.988,
+  "gripAt": [
+    0,
+    0,
+    0
+  ],
+  "gripCrossOffset": [
+    -0.015,
+    -0.0053
+  ],
+  "trailBase": [
+    0.0168,
+    -0.0063,
+    -1.482
+  ],
+  "trailTip": [
+    0.0131,
+    0.4269,
+    -4.212
+  ],
+  "markers": {},
+  "preparation": "local Blender, source unchanged, no Meshy API calls",
+  "robloxImportCompleted": false,
+  "calibration": {
+    "id": "TigerClaw",
+    "handle": [
+      0.14,
+      0.24
+    ],
+    "bladeStart": 0.475,
+    "inspection": "Wrapped shaft below the tiger skull guard, measured source sections 14-24 percent"
+  }
+}

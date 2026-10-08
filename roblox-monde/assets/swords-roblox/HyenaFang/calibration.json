@@ -1,0 +1,11 @@
+{
+  "id": "HyenaFang",
+  "handle": [0.18, 0.245],
+  "bladeStart": 0.335,
+  "sourceBasis": [
+    [0.9817327210326628, -0.19017985357260522, 0.005699802532239784],
+    [-0.14066101630780392, -0.7456313027729154, -0.6513435643471275],
+    [-0.12812237488065778, -0.6386435497366799, 0.7587615392431751]
+  ],
+  "inspection": "Full model straightened using measured principal axes. Grip on the narrow wrapped shaft at 18-24.5 percent, below the fang collar, not the skull or pommel"
+}

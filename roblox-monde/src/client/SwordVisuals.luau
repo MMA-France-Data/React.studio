@@ -11,6 +11,16 @@ end
 function Swords.dual(tier: number): boolean
 	return Palette.gameOrder[Swords.tier(tier)] == "Void"
 end
+function Swords.twoHanded(tier: number): boolean
+	local wanted = Palette.gameOrder[Swords.tier(tier)]
+	if wanted ~= "HyenaFang" then return false end
+	local assets = Storage:FindFirstChild("SwordMeshes")
+	local template = assets and assets:FindFirstChild(wanted)
+	local primary = template and template:IsA("Model") and template.PrimaryPart
+	return primary ~= nil and template:GetAttribute("TwoHanded") == true
+		and primary:FindFirstChild("RightHold") ~= nil and primary:FindFirstChild("LeftHold") ~= nil
+		and template:FindFirstChild("TrailBase", true) ~= nil and template:FindFirstChild("TrailTip", true) ~= nil
+end
 -- LA NOUVELLE EPEE OR (08/10) : le createur a enregistre le modele importe tel quel (« SwordGoldV2 », fichier
 -- assets/swords-roblox/GoldV2.rbxm) au lieu du dossier range. Le jeu la range donc lui-meme, une seule fois, avec les
 -- memes chiffres que le plugin (tools/swords/RangerLesEpees.lua, REPLACEMENTS.Gold) : elle prend la place de « Gold ».

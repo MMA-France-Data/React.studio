@@ -1,0 +1,9 @@
+{
+  "bothHandMaximumError": 2.886579864025407e-15,
+  "unreachableTargetResidual": 0,
+  "samplesPerClip": 145,
+  "duration": 0.38,
+  "holdSpacing": 0.512,
+  "oneWeapon": true,
+  "studioRuntimeTest": false
+}

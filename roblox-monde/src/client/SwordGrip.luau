@@ -11,6 +11,10 @@ function Grip.place(model: Model, hand: BasePart): CFrame
 	local primary = model.PrimaryPart
 	assert(primary, "Épée : point de prise PrimaryPart requis")
 	local target = Grip.frame(hand)
+	local socket = primary:FindFirstChild("RightHold")
+	if model:GetAttribute("TwoHanded") and socket and socket:IsA("Attachment") then
+		target *= socket.CFrame:Inverse()
+	end
 	-- Model PivotOffset / cached pivot must not move the HANDLE off the hand.
 	local gripToPivot = primary.CFrame:ToObjectSpace(model:GetPivot())
 	model:PivotTo(target * gripToPivot)

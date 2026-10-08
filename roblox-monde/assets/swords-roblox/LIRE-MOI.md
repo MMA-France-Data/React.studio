@@ -1,5 +1,7 @@
 # Les 7 épées, prêtes à importer dans Roblox Studio
 
+**Ajout du 9 octobre :** quatre nouvelles épées préparées — tigre, hyène, mâchoire de T-rex, météorite. Les fichiers `Sword_TigerClaw.fbx`, `Sword_HyenaFang.fbx`, `Sword_TrexJaw.fbx`, `Sword_Meteorite.fbx` sont dans `A-IMPORTER`. [Guide et contrôles du nouveau lot](AJOUTS-EPEES-MONDES-20261009.md). Import Studio et attribution dans la progression encore à faire ; aucun remplacement automatique.
+
 **Nouvelle épée or du 8 octobre :** `A-IMPORTER/Sword_GoldV2.fbx` prépare le remplacement visuel de Gold.
 L'ancienne et `SwordMeshes.rbxm` restent intacts en attendant l'import dans Studio.
 Voir [les instructions de remplacement et les vérifications](AJOUT-GOLD-V2.md).

@@ -13,12 +13,15 @@
 -- (Fichier installé dans %LOCALAPPDATA%\Roblox\Plugins par Claude ; l'original est dans roblox-monde/tools/swords.)
 -- Ajouts : Sword_Fusion et Sword_Void (18 950 triangles), prises calibrées et points de petites fumées.
 -- Remplacement optionnel : Sword_GoldV2 devient Gold ; l'ancien Sword_Gold reste compatible.
+-- Ajouts du 09/10 : TigerClaw, HyenaFang, TrexJaw, Meteorite. Catalogue d'import
+-- uniquement : ce plugin ne fixe pas leur rang en boutique ni leurs dégâts.
 local ChangeHistoryService = game:GetService("ChangeHistoryService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Selection = game:GetService("Selection")
 
 local LENGTH = 5.2
-local ORDER = { "Iron", "Steel", "Gold", "Frost", "Flame", "Storm", "Fusion", "Void", "Prismatic" }
+local ORDER = { "Iron", "Steel", "Gold", "Frost", "Flame", "Storm", "Fusion", "Void", "Prismatic", "TigerClaw", "HyenaFang", "TrexJaw", "Meteorite" }
+local NEW_ORDER = { "TigerClaw", "HyenaFang", "TrexJaw", "Meteorite" }
 -- En studs : grip = du pommeau au milieu de la poignée ; base et tip = de la poignée au bas de la lame (un peu après
 -- la garde) et à la pointe.
 -- (Chiffres de assets/swords-roblox/RAPPORT.json, calculés par tools/swords/optimise.py.)
@@ -32,6 +35,10 @@ local INFO = {
 	Prismatic = { grip = 1.148, base = 1.398, tip = 4.052 },
 	Fusion = { grip = 0.910, cross = {0.0016, 0.0014}, base = {0.0159, -0.0030, -0.988}, tip = {0.0007, 0.0898, -4.290} },
 	Void = { grip = 0.819, cross = {-0.0013, 0.1861}, base = {0.0004, -0.0403, -1.079}, tip = {-0.0008, 0.2716, -4.381} },
+	TigerClaw = { grip = 0.988, cross = {-0.0150, -0.0053}, base = {0.0168, -0.0063, -1.482}, tip = {0.0131, 0.4269, -4.212} },
+	HyenaFang = { grip = 1.105, cross = {0.1846, -0.1060}, base = {-0.0358, -0.0224, -0.637}, tip = {0.2048, -0.0403, -4.095} },
+	TrexJaw = { grip = 1.196, cross = {0.0005, -0.0240}, base = {0.0033, -0.0216, -1.066}, tip = {-0.0048, 0.5873, -4.004} },
+	Meteorite = { grip = 0.845, cross = {-0.0010, -0.0205}, base = {0.0006, 0.0901, -1.157}, tip = {0.0057, 0.5473, -4.355} },
 }
 -- Une version importée séparément n'utilise jamais la calibration de l'ancien
 -- modèle. Sans cette nouvelle source, le rangement garde le comportement habituel.
@@ -60,6 +67,8 @@ local WISPS = {
 local toolbar = plugin:CreateToolbar("MONDE")
 local button = toolbar:CreateButton("Ranger les épées", "Range les épées importées dans ReplicatedStorage > SwordMeshes", "")
 button.ClickableWhenViewportHidden = true
+local newButton = toolbar:CreateButton("Ranger les nouvelles épées", "Range uniquement les quatre nouvelles épées sans toucher aux anciennes ni aux stands", "")
+newButton.ClickableWhenViewportHidden = true
 
 -- L'épée importée qui porte ce nom : un modèle, ou directement une pièce.
 local function find(name: string): Instance?
@@ -143,6 +152,18 @@ local function arrange(name: string, source: Instance, info): Model
 	model.PrimaryPart = grip
 	-- (Version du rangement : la premiere tenait l epee par la lame, la pointe est du cote positif de l axe.)
 	model:SetAttribute("Calibre", 2)
+	if name == "HyenaFang" then
+		model:SetAttribute("TwoHanded", true)
+		-- Both points lie inside the actual wrapped shaft (not the guard/pommel).
+		-- ScaleTo in SwordVisuals scales the spacing together with the mesh.
+		for side, offset in { Right = -0.16, Left = 0.16 } do
+			local socket = Instance.new("Attachment")
+			socket.Name = side .. "Hold"
+			socket.Position = Vector3.new(0, 0, offset)
+			socket.CFrame = CFrame.new(0, 0, offset) * CFrame.Angles(0, 0, if side == "Left" then math.pi else 0)
+			socket.Parent = grip
+		end
+	end
 	for key, distance in { TrailBase = info.base, TrailTip = info.tip } do
 		local point = Instance.new("Attachment")
 		point.Name = key
@@ -156,7 +177,7 @@ local function arrange(name: string, source: Instance, info): Model
 	return model
 end
 
-button.Click:Connect(function()
+local function rangerListe(order: {string}, includeStands: boolean)
 	-- (Le dossier déjà rangé est gardé : seules les épées retrouvées dans le Workspace sont remplacées.)
 	local folder = ReplicatedStorage:FindFirstChild("SwordMeshes")
 	if not folder then
@@ -164,7 +185,7 @@ button.Click:Connect(function()
 		folder.Name = "SwordMeshes"
 	end
 	local done, missing = {}, {}
-	for index, name in ORDER do
+	for index, name in order do
 		local source, info = chooseSource(name)
 		if source then
 			local ok, result = pcall(arrange, name, source, info)
@@ -187,6 +208,7 @@ button.Click:Connect(function()
 	end
 	-- LES STANDS (importés de A-IMPORTER) : « Stand_Epees » est rangé sous le nom « Stand », « Stand_Vente » (en
 	-- plusieurs morceaux) sous le nom « StandVente », dans le même dossier. Le jeu les pose lui-même à leur place.
+	if includeStands then
 	for imported, name in { Stand_Epees = "Stand", Stand_Vente = "StandVente" } do
 		local parts = {}
 		for _, item in workspace:GetDescendants() do
@@ -214,6 +236,7 @@ button.Click:Connect(function()
 			table.insert(done, name)
 		end
 	end
+	end
 	folder.Parent = ReplicatedStorage
 	Selection:Set({ folder })
 	ChangeHistoryService:SetWaypoint("Ranger les épées")
@@ -222,4 +245,6 @@ button.Click:Connect(function()
 		warn("[MONDE] Pas trouvées dans le Workspace (à importer d'abord) : Sword_" .. table.concat(missing, ", Sword_"))
 	end
 	print("[MONDE] Dernière étape : clic droit sur SwordMeshes > Enregistrer dans un fichier... > roblox-monde/assets/swords-roblox/SwordMeshes.rbxm")
-end)
+end
+button.Click:Connect(function() rangerListe(ORDER, true) end)
+newButton.Click:Connect(function() rangerListe(NEW_ORDER, false) end)

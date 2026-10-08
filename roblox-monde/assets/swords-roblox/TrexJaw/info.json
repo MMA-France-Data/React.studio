@@ -1,0 +1,44 @@
+{
+  "id": "TrexJaw",
+  "sourceFile": "Meshy_AI_TRex_Jaw_Greatsword_3_1008200437_image-to-3d-texture.fbx",
+  "sourceSha256": "79f14b5b05d766c8e792e27a83d4d8215488be4d0760913bdc2192ce631b7dfa",
+  "trianglesBefore": 497274,
+  "triangles": 18950,
+  "size": [
+    0.7188,
+    1.3639,
+    5.2
+  ],
+  "gripFromPommel": 1.196,
+  "gripAt": [
+    0,
+    0,
+    0
+  ],
+  "gripCrossOffset": [
+    0.0005,
+    -0.024
+  ],
+  "trailBase": [
+    0.0033,
+    -0.0216,
+    -1.066
+  ],
+  "trailTip": [
+    -0.0048,
+    0.5873,
+    -4.004
+  ],
+  "markers": {},
+  "preparation": "local Blender, source unchanged, no Meshy API calls",
+  "robloxImportCompleted": false,
+  "calibration": {
+    "id": "TrexJaw",
+    "handle": [
+      0.18,
+      0.28
+    ],
+    "bladeStart": 0.435,
+    "inspection": "Narrow wrapped shaft below the red-eyed skull guard, measured source sections 18-28 percent"
+  }
+}

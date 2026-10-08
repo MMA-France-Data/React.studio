@@ -1,5 +1,7 @@
 $ErrorActionPreference = 'Stop'
 $taskRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
+& node (Join-Path $PSScriptRoot 'check-two-hand.cjs')
+if ($LASTEXITCODE -ne 0) { throw 'Hyena shared-handle / two-hand R15 FK failed' }
 & luau (Join-Path $PSScriptRoot 'dual-and-wisps.luau')
 if ($LASTEXITCODE -ne 0) { throw 'Dual mirror / particle profile checks failed' }
 & node (Join-Path $PSScriptRoot 'verify-dual-geometry.cjs')
