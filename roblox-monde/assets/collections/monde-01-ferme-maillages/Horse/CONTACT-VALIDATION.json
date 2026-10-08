@@ -10,7 +10,7 @@
       "parent": "Core",
       "intersectingSurfaces": true,
       "embeddedVertex": true,
-      "minimumGap": 3.146618473692797e-05,
+      "minimumGap": 0.0019019882893189788,
       "connected": true
     },
     {
@@ -50,7 +50,7 @@
       "parent": "LegFL",
       "intersectingSurfaces": true,
       "embeddedVertex": true,
-      "minimumGap": 0.0012597081949934363,
+      "minimumGap": 0.005336824804544449,
       "connected": true
     },
     {
@@ -66,7 +66,7 @@
       "parent": "LegFR",
       "intersectingSurfaces": true,
       "embeddedVertex": true,
-      "minimumGap": 0.0012596439337357879,
+      "minimumGap": 0.005336824804544449,
       "connected": true
     },
     {
@@ -74,7 +74,7 @@
       "parent": "Core",
       "intersectingSurfaces": true,
       "embeddedVertex": true,
-      "minimumGap": 2.666666841832921e-05,
+      "minimumGap": 0.0017033717595040798,
       "connected": true
     },
     {
@@ -82,7 +82,7 @@
       "parent": "LegBL",
       "intersectingSurfaces": true,
       "embeddedVertex": true,
-      "minimumGap": 0.0012597177410498261,
+      "minimumGap": 0.005435033701360226,
       "connected": true
     },
     {
@@ -90,7 +90,7 @@
       "parent": "Core",
       "intersectingSurfaces": true,
       "embeddedVertex": true,
-      "minimumGap": 2.6676541892811656e-05,
+      "minimumGap": 0.0017033717595040798,
       "connected": true
     },
     {
@@ -98,7 +98,7 @@
       "parent": "LegBR",
       "intersectingSurfaces": true,
       "embeddedVertex": true,
-      "minimumGap": 0.0012596986489370465,
+      "minimumGap": 0.005435033701360226,
       "connected": true
     },
     {

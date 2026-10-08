@@ -4,7 +4,7 @@
   "id": "Horse",
   "rigidMeshes": 17,
   "bones": 0,
-  "triangles": 4482,
+  "triangles": 4496,
   "maxRoundTripBoundsError": 2.384185791015625e-07,
   "texturesAndUV": true
 }
