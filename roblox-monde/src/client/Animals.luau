@@ -993,6 +993,7 @@ return function(env)
 	eggStroke.Color = Color3.fromRGB(60, 30, 20)
 	eggStroke.Parent = eggIcon
 	eggIcon.Parent = eggButton
+	local seenEggs = 0
 	local badge = env.box(eggButton, "Badge", UDim2.fromOffset(28, 28), UDim2.new(1, -14, 1, -14), Color3.fromRGB(40, 190, 60))
 	badge:FindFirstChildOfClass("UICorner").CornerRadius = UDim.new(1, 0)
 	local badgeText = env.text(badge, "Label", UDim2.fromScale(0.9, 0.8), UDim2.fromScale(0.05, 0.1))
@@ -1117,8 +1118,15 @@ return function(env)
 		table.sort(eggs, function(a, b)
 			return a.spot.t < b.spot.t
 		end)
-		badgeText.Text = tostring(bag + #eggs)
-		badge.Visible = bag + #eggs > 0
+		-- La pastille ne compte que les œufs NOUVEAUX depuis la dernière fois que la fenêtre a été ouverte (sa
+		-- demande : « quand j'ouvre, les notifs se ferment »).
+		local total = bag + #eggs
+		if eggPanel.Visible then
+			seenEggs = total
+		end
+		seenEggs = math.min(seenEggs, total)
+		badgeText.Text = tostring(total - seenEggs)
+		badge.Visible = total > seenEggs
 
 		-- LES ŒUFS : en haut ceux du sac, groupés (« x12 »), à sortir d'un clic ; en bas ceux qui couvent dans l'enclos,
 		-- avec le temps qu'il reste.

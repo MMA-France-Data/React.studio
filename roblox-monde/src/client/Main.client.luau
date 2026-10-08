@@ -331,7 +331,14 @@ local function applyHud()
 	-- Les pièces.
 	wallet.Parent = gui
 	wallet.AnchorPoint = if small then Vector2.new(1, 0) else Vector2.new(0, 1)
-	wallet.Position = if small then UDim2.new(1, -6, 0, 0) else UDim2.new(0, 16, 1, -26)
+	-- (Téléphone : tout en haut de l'écran, dans la bande des boutons de Roblox, et décalées vers la gauche pour ne
+	-- pas passer sur le bouton des œufs. Sa demande.)
+	local top = -game:GetService("GuiService"):GetGuiInset().Y + 4
+	wallet.Position = if small then UDim2.new(1, -84, 0, top) else UDim2.new(0, 16, 1, -26)
+	local toBase = gui:FindFirstChild("ToBase")
+	if toBase then
+		toBase.Position = UDim2.new(0.5, 0, 0, if small then top else 0)
+	end
 	walletScale.Scale = if small then 0.7 else 1.25
 	-- L'épée, l'équipe, la chance.
 	side.AnchorPoint = if small then Vector2.new(0, 0.5) else Vector2.new(0, 1)
