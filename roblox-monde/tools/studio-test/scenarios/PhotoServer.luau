@@ -1,7 +1,7 @@
 -- PETIT TEST EN IMAGES (une trentaine de secondes) : seulement des photos, sans rejouer tout le jeu.
 --   powershell -ExecutionPolicy Bypass -File tools/studio-test/run.ps1 -Test photo -Seconds 45
--- Ici : le décor d'une zone (attribut de test : mettre le thème voulu sur la zone 3 dans Config le temps de la
--- photo), vu de l'entrée, d'en haut et de près. À changer selon le besoin.
+-- Ici : l'enclos plein de familiers (un de chaque animal de la ferme, et deux gros du monde 2), pour juger leur
+-- taille. À changer selon le besoin.
 local Players = game:GetService("Players")
 local ServerStorage = game:GetService("ServerStorage")
 
@@ -17,29 +17,23 @@ return function(log)
 		log("Info", "SHOT:photo_" .. name)
 		task.wait(1.2)
 	end
-	local ZONE = 3
-	debug:Invoke("Zone", ZONE)
-	debug:Invoke("Peaceful", true)
-	debug:Invoke("Travel", ZONE)
-	task.wait(2.5)
-	local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-	local at = if root then root.Position else Vector3.zero
-	-- (L'entrée de la zone : le joueur y arrive, la zone s'étend vers les Z qui montent.)
-	local views = {
-		entree = { Vector3.new(0, 16, -6), Vector3.new(0, 4, 90) },
-		haut = { Vector3.new(-150, 120, -30), Vector3.new(0, 0, 140) },
-		eau = { Vector3.new(30, 14, 60), Vector3.new(78, 2, 86) },
-		baobab = { Vector3.new(-50, 12, 30), Vector3.new(-100, 10, 58) },
-	}
-	for _, name in { "entree", "haut", "eau", "baobab" } do
-		local view = views[name]
-		if root then
-			root.CFrame = CFrame.new(at + view[1] * Vector3.new(1, 0, 1) + Vector3.new(0, 3, 0))
-		end
-		task.wait(1)
-		workspace:SetAttribute("ShotCam", CFrame.lookAt(at + view[1], at + view[2]))
-		shot("decor_" .. name)
+	for rank, animal in { "Duck", "Rooster", "Pig", "Sheep", "Goat", "Horse" } do
+		debug:Invoke("Pet", animal, rank)
 	end
+	debug:Invoke("Pet", "Wolf", 5)
+	debug:Invoke("Pet", "Bear", 6)
+	task.wait(6)
+	local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+	local plot = debug:Invoke("Plot")
+	local origin = if typeof(plot) == "table" and plot.origin then plot.origin elseif root then root.Position else Vector3.zero
+	if root then
+		root.CFrame = CFrame.new(origin + Vector3.new(10, 3, 0))
+	end
+	task.wait(1)
+	workspace:SetAttribute("ShotCam", CFrame.lookAt(origin + Vector3.new(10, 22, -22), origin + Vector3.new(10, 2, 16)))
+	shot("enclos_haut")
+	workspace:SetAttribute("ShotCam", CFrame.lookAt(origin + Vector3.new(-14, 7, 2), origin + Vector3.new(12, 3, 18)))
+	shot("enclos_pres")
 	workspace:SetAttribute("ShotCam", nil)
 	log("Info", "[SURVIVE] TEST:done")
 end

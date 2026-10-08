@@ -29,7 +29,7 @@ for room, color in { Color3.fromRGB(255, 226, 150), Color3.fromRGB(190, 140, 90)
 	end
 end
 local ANIMATE_DISTANCE = 120 -- au-delà, les familiers d'un enclos ne bougent plus (ils restent où ils sont)
-local PEN_SCALE = 1.5 -- les familiers de l'enclos sont plus gros que celui qui suit le joueur
+local PEN_SCALE = 3 -- (double le 08/10, sa demande : « je veux des enclos avec des gros animaux ») les familiers de l'enclos sont plus gros que celui qui suit le joueur
 local WALK_SPEED = 1.8 -- animaux des collections : la marche est jouée plus vite que le clip livré...
 local WALK_GAIN = 2.4 -- ... et les pattes tournent plus (voir StarterAnimator)
 local PEN_WALK = 3 -- studs par seconde d'un animal des collections qui se promène (les autres : 4,5)
