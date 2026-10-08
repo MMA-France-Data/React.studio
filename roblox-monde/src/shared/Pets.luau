@@ -41,6 +41,8 @@ Pets.COLLECTIONS = {
 	-- l'ours » : la forêt a maintenant les GROS animaux ; les petits, hérisson et compagnie, attendent un autre monde.)
 	{ "Boar", "Ram", "Deer", "Lynx", "Wolf", "Bear" },
 	{ "Capybara", "Toucan", "Monkey", "Anaconda", "Crocodile", "Jaguar" },
+	-- (Monde 4, la savane, livrée par ChatGPT le 08/10 : assets/collections/salle-07-savane.)
+	{ "Hyena", "Buffalo", "Cheetah", "Rhino", "Elephant", "Lion" },
 	{ "Hedgehog", "Squirrel", "Skunk", "Beaver", "Raccoon", "Badger" },
 	{ "Bunny", "Turtle", "Cat", "Dog", "Owlet", "Fox" },
 }

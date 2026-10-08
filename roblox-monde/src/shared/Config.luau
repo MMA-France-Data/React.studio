@@ -17,6 +17,7 @@ Config.ZONES = {
 	{ theme = "Farm" },
 	{ theme = "Forest" },
 	{ theme = "Jungle" },
+	{ theme = "Savanna" },
 }
 Config.ZONE_SIZE = Vector3.new(300, 0, 300) -- largeur (X) et longueur (Z) d'une zone
 
@@ -47,7 +48,8 @@ Config.MONSTER = {
 	-- (Son choix du 07/10 au soir : 5 % pour TOUS les animaux sauf le canard, dans tous les mondes. La duree des
 	-- mondes est tenue par l XP des familiers et le prix des epees, plus par la rarete des oeufs.)
 	egg = { 0.20, 0.05, 0.05, 0.05, 0.05, 0.05 },
-	scale = { 1.5, 1.7, 1.9, 2.2, 2.5, 4.5 }, -- grosseur du modèle (un familier fait 1)
+	-- (Les cinq camps grossis une fois et demie le 08/10, sa demande ; le boss reste à 4,5.)
+	scale = { 2.25, 2.55, 2.85, 3.3, 3.75, 4.5 }, -- grosseur du modèle (un familier fait 1)
 	speed = { 11, 12, 13, 14, 15, 13 },
 }
 -- D'une zone à la suivante : vie et dégâts x HP_ZONE, pièces x COIN_ZONE (comme la valeur des familiers), XP x XP_ZONE.

@@ -92,6 +92,24 @@
         "Bear": {
           "$path": "assets/combat/animaux/salle-4/models/Bear.rbxmx"
         },
+        "Hyena": {
+          "$path": "assets/collections/salle-07-savane/animaux/models/Hyena.rbxmx"
+        },
+        "Buffalo": {
+          "$path": "assets/collections/salle-07-savane/animaux/models/Buffalo.rbxmx"
+        },
+        "Cheetah": {
+          "$path": "assets/collections/salle-07-savane/animaux/models/Cheetah.rbxmx"
+        },
+        "Rhino": {
+          "$path": "assets/collections/salle-07-savane/animaux/models/Rhino.rbxmx"
+        },
+        "Elephant": {
+          "$path": "assets/collections/salle-07-savane/animaux/models/Elephant.rbxmx"
+        },
+        "Lion": {
+          "$path": "assets/collections/salle-07-savane/animaux/models/Lion.rbxmx"
+        },
         "Capybara": {
           "$path": "assets/combat/animaux/salle-5/models/Capybara.rbxmx"
         },
@@ -187,6 +205,24 @@
         },
         "Bear": {
           "$path": "../roblox-survive/assets/collections/oeufs/models/BearEgg.rbxmx"
+        },
+        "Hyena": {
+          "$path": "assets/collections/salle-07-savane/oeufs/models/HyenaEgg.rbxmx"
+        },
+        "Buffalo": {
+          "$path": "assets/collections/salle-07-savane/oeufs/models/BuffaloEgg.rbxmx"
+        },
+        "Cheetah": {
+          "$path": "assets/collections/salle-07-savane/oeufs/models/CheetahEgg.rbxmx"
+        },
+        "Rhino": {
+          "$path": "assets/collections/salle-07-savane/oeufs/models/RhinoEgg.rbxmx"
+        },
+        "Elephant": {
+          "$path": "assets/collections/salle-07-savane/oeufs/models/ElephantEgg.rbxmx"
+        },
+        "Lion": {
+          "$path": "assets/collections/salle-07-savane/oeufs/models/LionEgg.rbxmx"
         },
         "Capybara": {
           "$path": "../roblox-survive/assets/collections/oeufs/models/CapybaraEgg.rbxmx"
