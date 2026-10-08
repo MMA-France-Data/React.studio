@@ -162,8 +162,8 @@ Config.SWORDS = {
 	{ damage = 3, price = 0 }, -- monde 1 : l'épée de départ (comme un canard)
 	-- (La deuxième épée sert de TUTORIEL, sa demande : 30 pièces, soit une dizaine de canards.)
 	{ damage = 8, price = 30 }, -- monde 1, après deux minutes
-	{ damage = 25, price = 800 }, -- monde 1, vers un quart d'heure
-	{ damage = 78, price = 10000 }, -- monde 1, vers 35 minutes
+	{ damage = 25, price = 1500 }, -- monde 1, vers 20 minutes (son prix)
+	{ damage = 78, price = 20000 }, -- monde 1, vers 50 minutes (son prix)
 	{ damage = 250, price = 200000 }, -- monde 1, juste avant le boss (vers 1 h 50)
 	{ damage = 1160, price = 2500000 }, -- monde 2, après 2 heures
 	{ damage = 5400, price = 10000000 }, -- monde 2, après 4 h 30
