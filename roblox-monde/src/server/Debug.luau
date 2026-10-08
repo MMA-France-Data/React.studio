@@ -133,7 +133,7 @@ return function(world)
 	swap.OnServerEvent:Connect(function(player, step)
 		local data = PlayerData.get(player)
 		if data and (step == 1 or step == -1) then
-			data.sword = (data.sword - 1 + step) % 8 + 1
+			data.sword = (data.sword - 1 + step) % 16 + 1
 			PlayerData.changed(player)
 		end
 	end)

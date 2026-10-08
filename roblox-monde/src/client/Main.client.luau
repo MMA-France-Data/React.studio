@@ -927,7 +927,7 @@ if RunService:IsStudio() then
 		-- touches I et O zooment toujours). Le nom de l epee s affiche a chaque cran.
 		local swap = ReplicatedStorage:WaitForChild("DebugSword", 5)
 		if swap then
-			local names = { "Fer", "Acier", "Or", "Glace", "Feu", "Foudre", "Feu + glace", "Doubles lames violettes" }
+			local names = { "Fer", "Acier", "Or", "Glace", "Feu", "Foudre", "Feu + glace", "Doubles lames violettes", "(double violette)", "(double violette)", "Griffe du tigre", "(griffe du tigre)", "(griffe du tigre)", "Crâne de hyène, à deux mains", "Météorite", "Mâchoire de T-rex" }
 			game:GetService("ContextActionService"):BindActionAtPriority("DebugSword", function(_, _, input)
 				swap:FireServer(if input.Position.Z > 0 then 1 else -1)
 				return Enum.ContextActionResult.Sink

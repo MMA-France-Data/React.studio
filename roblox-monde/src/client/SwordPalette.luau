@@ -2,7 +2,16 @@
 local Palette = {}
 Palette.order = { "Iron", "Steel", "Gold", "Frost", "Flame", "Storm", "Fusion", "Void", "Prismatic" }
 -- Runtime appearance only: saved sword numbers and server prices are unchanged.
-Palette.gameOrder = { "Iron", "Steel", "Gold", "Frost", "Flame", "Storm", "Fusion", "Void" }
+-- (09/10 : les épées des mondes 3 à 5. Monde 1 = 1 à 5, monde 2 = 6 à 8, jungle = 9 à 11, savane = 12 à 14,
+-- préhistoire = 15 à 17. Les places sans modèle à elles gardent l'épée d'avant, en attendant : 9 et 10 la double
+-- violette, 12 et 13 la griffe du tigre. La 17 sera l'arc-en-ciel, que le créateur garde de côté.)
+Palette.gameOrder = {
+	"Iron", "Steel", "Gold", "Frost", "Flame",
+	"Storm", "Fusion", "Void",
+	"Void", "Void", "TigerClaw",
+	"TigerClaw", "TigerClaw", "HyenaFang",
+	"Meteorite", "TrexJaw",
+}
 Palette.legacy = { "Iron", "Steel", "Frost", "Flame", "Storm", "Prismatic" }
 Palette.colors = {
 	Iron = Color3.fromRGB(191, 215, 241), Steel = Color3.fromRGB(220, 240, 255),

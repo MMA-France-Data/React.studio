@@ -1353,7 +1353,7 @@ return function(env)
 	local swordButton = squareButton("SwordButton", 3, Color3.fromRGB(240, 80, 80))
 	env.text(swordButton, "Label", UDim2.fromScale(0.8, 0.8), UDim2.fromScale(0.1, 0.1)).Text = "⚔"
 	local swordPanel = window("SwordPanel", tr("swordTitle"), 560, 380)
-	local SWORD_MODELS = { "Iron", "Steel", "Gold", "Frost", "Flame", "Storm", "Fusion", "Void" }
+	local SWORD_MODELS = require(script.Parent.SwordPalette).gameOrder
 	local function swordCard(x: number, title: string)
 		local frame = env.box(swordPanel, "Card", UDim2.fromOffset(240, 240), UDim2.fromOffset(x, 60), Color3.fromRGB(30, 44, 78))
 		frame.ZIndex = 4
