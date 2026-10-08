@@ -399,6 +399,21 @@ local THEMES = {
 			local _ = random
 		end,
 	},
+	-- (Préparé le 08/10 pour le monde 5. Pas encore dans Config.ZONES : il attend ses six dinosaures.)
+	Dino = {
+		ground = { rgb(104, 124, 76), M.Grass },
+		path = { rgb(116, 96, 78), M.Ground },
+		cliff = { rgb(66, 60, 62), M.Basalt },
+		patches = { rgb(92, 112, 68), rgb(120, 138, 84), rgb(96, 84, 70) },
+		scatter = { treefern = 44, cycad = 46, fern = 60, basalt = 14, spire = 12, bones = 8, lava = 7 },
+		habitats = { "Raptor", "Dilophosaurus", "Ankylosaurus", "Triceratops", "Spinosaurus", "TRex" },
+		set = function(folder, center: Vector3, random: Random)
+			props.volcano(folder, center + Vector3.new(108, 0, -110), random)
+			props.volcano(folder, center + Vector3.new(-112, 0, 112), random, 0.62)
+			props.giantBones(folder, center + Vector3.new(-104, 0, -40), random)
+			props.giantBones(folder, center + Vector3.new(112, 0, 104), random)
+		end,
+	},
 }
 
 -- L'HABITAT DE CHAQUE ANIMAL -------------------------------------------------------------------------------------------
@@ -521,6 +536,129 @@ function props.stable(parent, at: Vector3, facing: Vector3, random: Random)
 	deco(parent, "StableRoof", Vector3.new(20, 1, 14), turn * CFrame.new(0, 11.6, 0) * CFrame.Angles(math.rad(-8), 0, 0), rgb(246, 244, 238), M.WoodPlanks)
 	props.hay(parent, (turn * CFrame.new(-4, 0, 1)).Position, random)
 	props.trough(parent, (turn * CFrame.new(4, 0, 0)).Position, facing, rgb(90, 170, 230))
+end
+
+-- LA TERRE DES DINOSAURES (monde 5) -----------------------------------------------------------------------------------
+-- Une fougère arborescente : un tronc écailleux et une couronne de grandes palmes qui retombent.
+function props.treefern(parent, at: Vector3, random: Random)
+	local k = random:NextNumber(0.9, 1.6)
+	local height = 11 * k
+	pillar(parent, "Trunk", 2 * k, height, at, rgb(92, 70, 48), M.Wood, true)
+	for i = 1, 4 do
+		pillar(parent, "TrunkRing", 2.5 * k, 0.5, at + Vector3.new(0, height * i / 5, 0), rgb(74, 56, 40), M.Wood)
+	end
+	local top = at + Vector3.new(0, height, 0)
+	for i = 1, 9 do
+		local angle = i / 9 * math.pi * 2 + random:NextNumber(-0.15, 0.15)
+		deco(parent, "Frond", Vector3.new(2 * k, 0.35, 9 * k), CFrame.new(top) * CFrame.Angles(0, angle, 0) * CFrame.Angles(math.rad(-30), 0, 0) * CFrame.new(0, 0, -4.5 * k), if i % 2 == 0 then rgb(48, 150, 70) else rgb(64, 172, 80), M.Grass)
+	end
+end
+-- Un cycas : un gros tronc court en tonneau, des palmes raides en étoile et un cône orange au milieu.
+function props.cycad(parent, at: Vector3, random: Random)
+	local k = random:NextNumber(0.8, 1.4)
+	pillar(parent, "Trunk", 3.4 * k, 3 * k, at, rgb(110, 84, 54), M.Wood, true)
+	local top = at + Vector3.new(0, 3 * k, 0)
+	for i = 1, 10 do
+		local angle = i / 10 * math.pi * 2
+		deco(parent, "Frond", Vector3.new(1.2 * k, 0.3, 6 * k), CFrame.new(top) * CFrame.Angles(0, angle, 0) * CFrame.Angles(math.rad(22), 0, 0) * CFrame.new(0, 0, -3 * k), if i % 2 == 0 then rgb(40, 128, 64) else rgb(56, 148, 70), M.Grass)
+	end
+	pillar(parent, "Cone", 1.4 * k, 2 * k, top, rgb(226, 140, 50))
+end
+-- Une aiguille de roche sombre.
+function props.spire(parent, at: Vector3, random: Random)
+	local k = random:NextNumber(0.8, 1.7)
+	local dark = { rgb(70, 64, 66), rgb(84, 76, 76), rgb(60, 56, 60) }
+	for i = 0, 2 do
+		local width = (7 - i * 2) * k
+		deco(parent, "Spire", Vector3.new(width, 7 * k, width), CFrame.new(at + Vector3.new(i * 0.6 * k, 3.5 * k + i * 6 * k, 0)) * CFrame.Angles(0, random:NextNumber(0, 1.5), math.rad(random:NextNumber(-6, 6))), dark[i + 1], M.Basalt, nil, true)
+	end
+end
+function props.basalt(parent, at: Vector3, random: Random)
+	props.rock(parent, at, random, 1.5, rgb(78, 72, 74))
+end
+-- Une flaque de lave : un bord de roche noire, la lave qui brille, et sa lumière.
+function props.lava(parent, at: Vector3, random: Random, size: number?)
+	local width = size or random:NextNumber(8, 15)
+	pillar(parent, "LavaRim", width + 3, 0.24, at, rgb(46, 40, 42), M.Basalt).CastShadow = false
+	local lava = pillar(parent, "Lava", width, 0.31, at, rgb(255, 84, 16), M.Neon)
+	lava.CastShadow = false
+	pillar(parent, "LavaCore", width * 0.5, 0.37, at + Vector3.new(width * 0.1, 0, 0), rgb(255, 160, 40), M.Neon).CastShadow = false
+	local light = Instance.new("PointLight")
+	light.Color = rgb(255, 130, 40)
+	light.Range = width * 1.6
+	light.Brightness = 1.2
+	light.Parent = lava
+end
+-- Un volcan : des étages de roche de plus en plus étroits, le cratère plein de lave, de la fumée, des coulées.
+function props.volcano(parent, at: Vector3, random: Random, scale: number?)
+	local k = scale or 1
+	local dark = { rgb(64, 58, 60), rgb(76, 68, 68), rgb(56, 52, 56) }
+	-- Les coulées : quatre directions ; sur chaque étage, la lave descend le long du mur puis s'étale sur le rebord.
+	local flows = {}
+	for i = 1, 4 do
+		local angle = i * 1.7 + random:NextNumber(-0.3, 0.3)
+		flows[i] = CFrame.new(at) * CFrame.Angles(0, angle, 0)
+	end
+	local lavaColor = rgb(255, 84, 16)
+	local height = 0
+	for i = 0, 5 do
+		local width, tall = (70 - i * 10) * k, (9 - i * 0.4) * k
+		pillar(parent, "Volcano", width, tall, at + Vector3.new(0, height, 0), dark[i % 3 + 1], M.Basalt, true).CastShadow = true
+		for _, flow in flows do
+			deco(parent, "LavaFall", Vector3.new(4 * k, tall, 0.8), flow * CFrame.new(0, height + tall / 2, -width / 2 - 0.2), lavaColor, M.Neon)
+			if i > 0 then
+				deco(parent, "LavaLedge", Vector3.new(4 * k, 0.5, 5 * k + 0.6), flow * CFrame.new(0, height + 0.25, -width / 2 - 2.5 * k), lavaColor, M.Neon)
+			end
+		end
+		height += tall
+	end
+	local top = at + Vector3.new(0, height, 0)
+	local crater = pillar(parent, "Crater", 15 * k, 0.6, top, lavaColor, M.Neon)
+	local light = Instance.new("PointLight")
+	light.Color = rgb(255, 130, 40)
+	light.Range = 60
+	light.Brightness = 2
+	light.Parent = crater
+	local smoke = Instance.new("Smoke")
+	smoke.Color = rgb(70, 64, 66)
+	smoke.Size = 22 * k
+	smoke.RiseVelocity = 9
+	smoke.Opacity = 0.35
+	smoke.Parent = crater
+	-- Au pied de chaque coulée, une flaque.
+	for _, flow in flows do
+		props.lava(parent, (flow * CFrame.new(0, 0, -39 * k)).Position, random, 9 * k)
+	end
+end
+-- Le squelette d'un géant : une grande cage thoracique, une colonne et un crâne à dents.
+function props.giantBones(parent, at: Vector3, random: Random, scale: number?)
+	local k = scale or 2.4
+	local turn = CFrame.new(at) * CFrame.Angles(0, random:NextNumber(0, math.pi * 2), 0)
+	local bone = rgb(236, 228, 204)
+	deco(parent, "Spine", Vector3.new(12 * k, 0.8 * k, 0.8 * k), turn * CFrame.new(0, 3.4 * k, 0), bone, M.SmoothPlastic, Enum.PartType.Cylinder)
+	for i = -3, 3 do
+		for _, side in { -1, 1 } do
+			deco(parent, "Rib", Vector3.new(0.5 * k, 4.2 * k, 0.5 * k), turn * CFrame.new(i * 1.6 * k, 1.9 * k, side * 1.5 * k) * CFrame.Angles(math.rad(side * -26), 0, 0), bone, M.SmoothPlastic)
+		end
+	end
+	deco(parent, "Skull", Vector3.new(4 * k, 2.4 * k, 2.6 * k), turn * CFrame.new(8 * k, 1.4 * k, 0), bone, M.SmoothPlastic, nil, true)
+	deco(parent, "Jaw", Vector3.new(3.4 * k, 0.6 * k, 2.2 * k), turn * CFrame.new(8.4 * k, 0.3 * k, 0) * CFrame.Angles(0, 0, math.rad(-8)), rgb(222, 212, 186), M.SmoothPlastic)
+	for i = 0, 4 do
+		for _, side in { -1, 1 } do
+			deco(parent, "Tooth", Vector3.new(0.3 * k, 0.7 * k, 0.3 * k), turn * CFrame.new((7 + i * 0.6) * k, 0.9 * k, side * 1.1 * k), rgb(250, 248, 240))
+		end
+	end
+end
+-- Un grand nid de branches avec de gros œufs tachetés.
+function props.dinoNest(parent, at: Vector3, random: Random)
+	pillar(parent, "Nest", 9, 1.1, at, rgb(120, 90, 56), M.Wood)
+	pillar(parent, "NestStraw", 7.4, 1.4, at, rgb(196, 166, 96), M.Grass)
+	for i = 1, 4 do
+		local spot = at + Vector3.new(math.cos(i * 1.6) * 1.7, 2.3, math.sin(i * 1.6) * 1.7)
+		local egg = ball(parent, "DinoEgg", 2.4, spot, if i % 2 == 0 then rgb(232, 222, 190) else rgb(190, 214, 180))
+		egg.Size = Vector3.new(2.2, 3, 2.2)
+	end
+	local _ = random
 end
 
 local BLUE, MUD, STONE = rgb(70, 180, 250), rgb(112, 78, 52), rgb(150, 150, 156)
@@ -679,6 +817,47 @@ function HABITATS.Lion(parent, at, toward, random)
 	props.rock(parent, at, random, 4.6, rgb(204, 156, 108))
 	props.rock(parent, at + Vector3.new(8, 0, 12), random, 3, rgb(190, 144, 98))
 	props.acacia(parent, at + Vector3.new(6, 0, -16), random)
+	local _ = toward
+end
+
+-- LES DINOSAURES (les noms des animaux attendus : Raptor, Dilophosaurus, Ankylosaurus, Triceratops, Spinosaurus, TRex)
+function HABITATS.Raptor(parent, at, toward, random)
+	campFloor(parent, at, 15, rgb(150, 124, 84), M.Ground)
+	around(at, -toward, random, 5, 6, 14, function(spot) props.dinoNest(parent, spot, random) end)
+	around(at, toward, random, 10, 31, 34, function(spot, direction)
+		if direction.Z > 0 then props.bones(parent, spot, random) else props.cycad(parent, spot, random) end
+	end)
+end
+function HABITATS.Dilophosaurus(parent, at, toward, random)
+	campFloor(parent, at, 15, rgb(70, 132, 66), M.Grass)
+	around(at, -toward, random, 10, 7, 16, function(spot) props.fern(parent, spot, random) end)
+	around(at, toward, random, 11, 31, 35, function(spot) props.treefern(parent, spot, random) end)
+end
+function HABITATS.Ankylosaurus(parent, at, toward, random)
+	campFloor(parent, at, 14, rgb(96, 90, 90), M.Basalt)
+	around(at, toward, random, 10, 31, 34, function(spot, direction)
+		if math.abs(direction.Z) > 0.5 then props.spire(parent, spot, random) else props.basalt(parent, spot, random) end
+	end)
+end
+function HABITATS.Triceratops(parent, at, toward, random)
+	campFloor(parent, at, 18, rgb(120, 176, 84), M.Grass)
+	around(at, -toward, random, 8, 8, 17, function(spot) props.flowers(parent, spot, random) end)
+	around(at, toward, random, 10, 31, 35, function(spot, direction)
+		if direction.Z > 0 then props.cycad(parent, spot, random) else props.treefern(parent, spot, random) end
+	end)
+end
+function HABITATS.Spinosaurus(parent, at, toward, random)
+	campWater(parent, at, 20, rgb(70, 130, 110), rgb(84, 76, 56), M.Mud)
+	lilies(parent, at, 20, random, 10)
+	around(at, toward, random, 11, 22, 25, function(spot) props.reeds(parent, spot, random) end)
+	around(at, toward, random, 8, 32, 35, function(spot, direction)
+		if direction.Z > 0 then props.treefern(parent, spot, random) else props.log(parent, spot, random) end
+	end)
+end
+function HABITATS.TRex(parent, at, toward, random)
+	props.giantBones(parent, at, random, 3)
+	props.lava(parent, at + Vector3.new(4, 0, 22), random, 14)
+	props.spire(parent, at + Vector3.new(10, 0, -18), random)
 	local _ = toward
 end
 
@@ -866,7 +1045,8 @@ local function buildZone(parent: Instance, index: number, zMin: number)
 	local nature = Instance.new("Folder")
 	nature.Name = "Habitats"
 	nature.Parent = folder
-	local animals = Pets.COLLECTIONS[index]
+	-- (Un thème peut donner lui-même ses habitats : le monde des dinosaures, tant que ses animaux ne sont pas là.)
+	local animals = theme.habitats or Pets.COLLECTIONS[index]
 	for rank, camp in CAMPS do
 		local make = HABITATS[animals[rank]]
 		if make then
