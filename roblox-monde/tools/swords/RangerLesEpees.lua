@@ -244,7 +244,12 @@ local function rangerListe(order: {string}, includeStands: boolean)
 	if #missing > 0 then
 		warn("[MONDE] Pas trouvées dans le Workspace (à importer d'abord) : Sword_" .. table.concat(missing, ", Sword_"))
 	end
-	print("[MONDE] Dernière étape : clic droit sur SwordMeshes > Enregistrer dans un fichier... > roblox-monde/assets/swords-roblox/SwordMeshes.rbxm")
+	print("[MONDE] Enregistrer le dossier dans : roblox-monde/assets/swords-roblox/SwordMeshes.rbxm")
+	-- (Le créateur a plusieurs fois enregistré le mauvais objet à la main : le dossier complet est sélectionné et la
+	-- fenêtre d'enregistrement s'ouvre toute seule.)
+	if #done > 0 then
+		plugin:PromptSaveSelection("SwordMeshes")
+	end
 end
 button.Click:Connect(function() rangerListe(ORDER, true) end)
 newButton.Click:Connect(function() rangerListe(NEW_ORDER, false) end)
