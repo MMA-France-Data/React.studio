@@ -44,6 +44,7 @@ local function importedMeshes(spec): { [string]: MeshPart }?
 	end
 	-- Les pièces de tous les animaux portent des noms proches (« Core », « Head »...) : on cherche le groupe importé
 	-- qui a EXACTEMENT les pièces de cet animal.
+	local best, bestMiss = nil, 0
 	local groups = {}
 	for _, item in imports:GetDescendants() do
 		if item:IsA("MeshPart") and item.Parent then
@@ -69,10 +70,21 @@ local function importedMeshes(spec): { [string]: MeshPart }?
 			end
 		end
 		if count == #spec.members and extra == 0 then
-			return found
+			-- (Un animal peut avoir été importé deux fois, après une retouche : on garde l'import dont les pièces ont
+			-- les proportions attendues. L'import est en centièmes de stud, d'où le rapport à la première pièce.)
+			local first = spec.members[1]
+			local unit = found[first.name].Size.Z / first.size[3]
+			local miss = 0
+			for _, member in spec.members do
+				local size = found[member.name].Size / unit
+				miss += (size - Vector3.new(table.unpack(member.size))).Magnitude
+			end
+			if not best or miss < bestMiss then
+				best, bestMiss = found, miss
+			end
 		end
 	end
-	return nil
+	return best
 end
 local function meshTemplate(name: string): Model?
 	if meshCache[name] ~= nil then
