@@ -2,6 +2,10 @@
 -- Reflect the entire authored right-hand cut, including hips and footwork,
 -- rather than only moving the left wrist or replaying a right-arm animation.
 local Dual = {}
+-- Names select the active HAND, not the direction of the old one-hand clip.
+-- SlashLeft is authored on the right arm: it starts on the right and crosses
+-- the torso toward the left. Reflecting it gives the opposite left-arm cut.
+Dual.sourceClip = "SlashLeft"
 function Dual.activeHand(variant: string): string
 	return if variant == "SlashLeft" then "Left" else "Right"
 end
@@ -23,7 +27,7 @@ function Dual.mirror(pose)
 	return result
 end
 function Dual.sample(motion, variant: string, elapsed: number)
-	local pose = motion.sample("SlashRight", elapsed)
+	local pose = motion.sample(Dual.sourceClip, elapsed)
 	if not pose or Dual.activeHand(variant) == "Right" then return pose end
 	return Dual.mirror(pose)
 end

@@ -99,7 +99,7 @@ RunService.PreRender:Connect(function(dt)
 	local variant = Motion.variant(attackIndex + 1)
 	if time >= nextAttack then
 		attackIndex += 1
-		rig.clips.Attack = rig.clips[if leftSword then "SlashRight" else Motion.variant(attackIndex)]
+		rig.clips.Attack = rig.clips[if leftSword then Dual.sourceClip else Motion.variant(attackIndex)]
 		if Animator.playAttack(rig,time) then attackAt = time end
 		nextAttack = time + .72
 	end

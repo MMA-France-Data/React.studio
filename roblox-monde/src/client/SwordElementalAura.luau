@@ -2,6 +2,7 @@
 -- Uses Roblox's bundled particle textures: no uploads or third-party scripts.
 local Input = game:GetService("UserInputService")
 local Wisp = require(script.Parent.SwordWispProfile)
+local Void = require(script.Parent.VoidBladeAura)
 local Aura = {}
 local MOBILE = Input.TouchEnabled
 local CAP = if MOBILE then 6 else 16
@@ -29,7 +30,7 @@ local GLOW_COLORS = {
 		ColorSequenceKeypoint.new(0.3, COLORS.Storm), ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 171, 0)) }),
 }
 function Aura.supports(id: string): boolean
-	return Wisp.groups[id] ~= nil or COLORS[id] ~= nil
+	return id == "Void" or Wisp.groups[id] ~= nil or COLORS[id] ~= nil
 end
 local function curve(values)
 	local keys = {}
@@ -73,7 +74,7 @@ local function emitter(state, point, name, texture, rate, color): ParticleEmitte
 	table.insert(state.emitters, { item = item, rate = item.Rate })
 	return item
 end
--- Small detached wisps, NOT the wide boosted halo used by the older swords.
+-- Colored detached wisps, NOT the wide boosted halo used by the older swords.
 -- Calibrated hot/cold markers follow the real colored regions of this mesh.
 local function wisps(model: Model, id: string, base: Attachment, tip: Attachment)
 	local state = {
@@ -106,7 +107,7 @@ local function wisps(model: Model, id: string, base: Attachment, tip: Attachment
 				ColorSequenceKeypoint.new(0, Color3.fromRGB(table.unpack(group.first))),
 				ColorSequenceKeypoint.new(1, Color3.fromRGB(table.unpack(group.last))),
 			})
-			local puff = emitter(state, at, id .. side .. "Wisp", TEXTURES.mist, Wisp.rate, color)
+			local puff = emitter(state, at, id .. side .. "Wisp", if side == "Hot" then TEXTURES.flame else TEXTURES.mist, Wisp.rate, color)
 			-- Mobile throttling is explicit here and covered by the budget tests.
 			local rate = Wisp.rate * (if MOBILE then Wisp.mobileRate else 1)
 			puff.Rate, state.emitters[#state.emitters].rate = rate, rate
@@ -118,13 +119,18 @@ local function wisps(model: Model, id: string, base: Attachment, tip: Attachment
 			-- dragged rigidly by the sword or sticking to the character's hand.
 			puff.LockedToPart, puff.VelocityInheritance = Wisp.locked, Wisp.inheritance
 			puff.Acceleration, puff.Drag = Vector3.new(0, group.rise, 0), 0.55
-			puff.LightEmission, puff.LightInfluence, puff.ZOffset = 0.6, 0.2, 0
+			puff.LightEmission, puff.LightInfluence, puff.ZOffset = if side == "Hot" then 0.8 else 0.6, 0.15, 0
 		end
 	end
 	return state
 end
 function Aura.create(model: Model, id: string, base: Attachment, tip: Attachment)
 	if not Aura.supports(id) or allocated >= CAP or not model.PrimaryPart then return nil end
+	if id == "Void" then
+		local state = Void.create(model, base, tip, allocated)
+		allocated += 1
+		return state
+	end
 	if Wisp.groups[id] then return wisps(model, id, base, tip) end
 	local state = {
 		id = id, primary = model.PrimaryPart, base = base, tip = tip,
@@ -161,9 +167,11 @@ function Aura.create(model: Model, id: string, base: Attachment, tip: Attachment
 				ColorSequence.new({ ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 238, 130)),
 				ColorSequenceKeypoint.new(0.25, Color3.fromRGB(255, 158, 20)),
 				ColorSequenceKeypoint.new(1, Color3.fromRGB(240, 45, 8)) }))
-			fire.Size = curve({ {0, 0.12}, {0.2, 0.48}, {0.65, 0.36}, {1, 0} })
+			-- Broad living flames, not an opaque rigid outline on the back face.
+			fire.Size = curve({ {0, 0.12}, {0.2, 0.70}, {0.65, 0.50}, {1, 0} })
 			fire.Squash = curve({ {0, 0.25}, {0.5, 0.8}, {1, 1.1} })
-			fire.Acceleration, fire.Drag = Vector3.new(0, 0.95, 0), 1.4
+			fire.LockedToPart = false
+			fire.Acceleration, fire.Drag = Vector3.new(0, 1.15, 0), 1.1
 			local sparks = emitter(state, at, "RisingEmbers", TEXTURES.ember, 3,
 				ColorSequence.new(Color3.fromRGB(255, 183, 47)))
 			sparks.LockedToPart, sparks.Speed = false, NumberRange.new(0.55, 1.4)
@@ -172,9 +180,10 @@ function Aura.create(model: Model, id: string, base: Attachment, tip: Attachment
 		elseif id == "Frost" then
 			local mist = emitter(state, at, "ColdBladeMist", TEXTURES.mist, 3.5,
 				ColorSequence.new(Color3.fromRGB(169, 237, 255)))
-			mist.Size = curve({ {0, 0.05}, {0.35, 0.45}, {1, 0.64} })
-			mist.Transparency = curve({ {0, 1}, {0.22, 0.85}, {0.7, 0.92}, {1, 1} })
-			mist.Acceleration, mist.Drag = Vector3.new(0, -0.18, 0), 1.2
+			mist.Size = curve({ {0, 0.05}, {0.35, 0.70}, {0.7, 0.82}, {1, 0.20} })
+			mist.Transparency = curve({ {0, 1}, {0.22, 0.48}, {0.7, 0.68}, {1, 1} })
+			mist.LockedToPart = false
+			mist.Acceleration, mist.Drag = Vector3.new(0, 0.35, 0), 0.85
 			local frost = emitter(state, at, "IceScintillation", TEXTURES.spark, 2.5,
 				ColorSequence.new(Color3.fromRGB(224, 252, 255)))
 			frost.Rotation, frost.RotSpeed = NumberRange.new(0, 360), NumberRange.new(-70, 70)
@@ -249,6 +258,7 @@ function Aura.update(state, dt: number, visible: boolean, swinging: boolean, cle
 		entry.item.Rate = entry.rate * (if swinging then 1.25 else 1)
 	end
 	for _, ray in state.beams do ray.Enabled = visible end
+	if state.kind == "VoidShroud" then Void.update(state, dt, visible, clear); return end
 	-- Fusion only has detached particles: no long Beam, cone, orbiting parts,
 	-- point light or BOOST. Existing visibility and teleport clearing still apply.
 	if Wisp.groups[state.id] then return end

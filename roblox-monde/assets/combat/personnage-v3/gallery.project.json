@@ -11,6 +11,8 @@
       "SwordEffects": { "$path": "../../../src/client/SwordEffects.luau" },
       "SwordElementalAura": { "$path": "../../../src/client/SwordElementalAura.luau" },
       "SwordWispProfile": { "$path": "../../../src/client/SwordWispProfile.luau" },
+      "VoidAuraProfile": { "$path": "../../../src/client/VoidAuraProfile.luau" },
+      "VoidBladeAura": { "$path": "../../../src/client/VoidBladeAura.luau" },
       "CombatVFX": { "$path": "../../../src/client/CombatVFX.luau" },
       "CombatMotion": { "$path": "../../../src/client/CombatMotion.luau" }
     },

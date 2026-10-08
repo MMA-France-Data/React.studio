@@ -2,6 +2,19 @@ $ErrorActionPreference = 'Stop'
 $taskRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '../..'))
 & luau (Join-Path $PSScriptRoot 'dual-and-wisps.luau')
 if ($LASTEXITCODE -ne 0) { throw 'Dual mirror / particle profile checks failed' }
+& node (Join-Path $PSScriptRoot 'verify-dual-geometry.cjs')
+if ($LASTEXITCODE -ne 0) { throw 'Actual R15 inward hand trajectories failed' }
+$taskFixture = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'aura-runtime.template.luau') -Raw
+foreach ($taskSource in @(@('WISP','SwordWispProfile'),@('PROFILE','VoidAuraProfile'),@('VOID','VoidBladeAura'),@('AURA','SwordElementalAura'))) {
+    $taskCode = Get-Content -LiteralPath (Join-Path $taskRoot "src/client/$($taskSource[1]).luau") -Raw
+    $taskFixture = $taskFixture.Replace("--[[$($taskSource[0])_SOURCE]]", $taskCode)
+}
+$taskFixtureDir = Join-Path ([System.IO.Path]::GetTempPath()) ('sword-aura-contract-' + [guid]::NewGuid().ToString('N'))
+New-Item -ItemType Directory -Path $taskFixtureDir | Out-Null
+$taskFixturePath = Join-Path $taskFixtureDir 'contract.luau'
+[System.IO.File]::WriteAllText($taskFixturePath, $taskFixture)
+& luau $taskFixturePath
+if ($LASTEXITCODE -ne 0) { throw 'Aura object lifecycle / mobile contract failed (mock objects, not Studio rendering)' }
 & luau-compile --null (Join-Path $PSScriptRoot 'RangerLesEpees.lua') | Out-Null
 if ($LASTEXITCODE -ne 0) { throw 'Import plugin syntax error' }
 foreach ($taskId in @('Fusion', 'Void')) {
@@ -22,4 +35,4 @@ foreach ($taskId in @('Fusion', 'Void')) {
 }
 & (Join-Path $taskRoot 'tools/combat-v4/check.ps1')
 if ($LASTEXITCODE -ne 0) { throw 'Combat regression check failed' }
-Write-Output 'SWORD_ADDITIONS_OK (Roblox upload and Studio/mobile runtime still required)'
+Write-Output 'SWORD_ADDITIONS_OK (Studio/mobile runtime still required)'
