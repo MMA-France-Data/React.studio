@@ -64,7 +64,18 @@ local function sample(track, t)
 end
 
 local MAX_ANGLE = math.rad(55)
-function StarterAnimator.step(rig, time: number, mode: string?, gain: number?)
+-- limbs : le grossissement `gain` ne touche que les pattes, les ailes, les bras et la queue (pas la tête ni le
+-- corps), pour les animaux en maillage dont les pièces sont ajustées serré.
+local LIMBS = { "Leg", "Knee", "Foot", "Wing", "Arm", "Hand", "Tail", "Paw" }
+local function isLimb(name: string): boolean
+	for _, word in LIMBS do
+		if string.find(name, word, 1, true) then
+			return true
+		end
+	end
+	return false
+end
+function StarterAnimator.step(rig, time: number, mode: string?, gain: number?, limbs: boolean?)
 	local playing = rig.clips[mode or "Idle"] or rig.clips.Idle
 	local t = time % playing.duration
 	local scale = rig.model:GetScale()
@@ -75,7 +86,7 @@ function StarterAnimator.step(rig, time: number, mode: string?, gain: number?)
 			if track then
 				local value = sample(track, t)
 				local rotation = value.Rotation
-				if gain and gain ~= 1 then
+				if gain and gain ~= 1 and (not limbs or isLimb(joint.Part1.Name)) then
 					local axis, angle = rotation:ToAxisAngle()
 					rotation = CFrame.fromAxisAngle(axis, math.clamp(angle * gain, -MAX_ANGLE, MAX_ANGLE))
 				end

@@ -32,6 +32,7 @@ local ANIMATE_DISTANCE = 120 -- au-delà, les familiers d'un enclos ne bougent p
 local TEAM_SCALE = 2 -- les familiers de l equipe, qui suivent le joueur (sa demande du 08/10 : « je veux qu ils soient big »)
 local PEN_SCALE = 3 -- (double le 08/10, sa demande : « je veux des enclos avec des gros animaux ») les familiers de l'enclos sont plus gros que celui qui suit le joueur
 local WALK_SPEED = 1.8 -- animaux des collections : la marche est jouée plus vite que le clip livré...
+local MESH_WALK_GAIN = 2.6 -- les pattes des animaux en maillage, quand ils marchent
 local WALK_GAIN = 2.4 -- ... et les pattes tournent plus (voir StarterAnimator)
 local PEN_WALK = 3 -- studs par seconde d'un animal des collections qui se promène (les autres : 4,5)
 local DARK = Color3.fromRGB(40, 44, 60)
@@ -199,12 +200,14 @@ return function(env)
 			local walk = pet.starter and pet.starter.clips.Walk
 			local hop = 0
 			if moving and walk then
-				hop = math.abs(math.sin(pet.clock * WALK_SPEED / walk.duration * math.pi * 2)) * 0.16 * pet.model:GetScale()
+				-- (Animaux en maillage : presque plus de sautillement, ce sont les pattes qui marchent. Retour du
+				-- joueur, 08/10 : « je vois plus les animaux sautiller qu'utiliser vraiment leurs pattes ».)
+				hop = math.abs(math.sin(pet.clock * WALK_SPEED / walk.duration * math.pi * 2)) * (if mesh then 0.03 else 0.16) * pet.model:GetScale()
 			end
 			pet.model:PivotTo(base * CFrame.new(0, hop, 0))
 			if pet.starter then
 				if moving then
-					StarterAnimator.step(pet.starter, pet.clock * WALK_SPEED, "Walk", if mesh then 1 else WALK_GAIN)
+					StarterAnimator.step(pet.starter, pet.clock * WALK_SPEED, "Walk", if mesh then MESH_WALK_GAIN else WALK_GAIN, mesh)
 				else
 					StarterAnimator.step(pet.starter, pet.clock, "Idle", if mesh then 1 else 1.5)
 				end
