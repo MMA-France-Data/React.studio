@@ -29,6 +29,7 @@ for room, color in { Color3.fromRGB(255, 226, 150), Color3.fromRGB(190, 140, 90)
 	end
 end
 local ANIMATE_DISTANCE = 120 -- au-delà, les familiers d'un enclos ne bougent plus (ils restent où ils sont)
+local TEAM_SCALE = 2 -- les familiers de l equipe, qui suivent le joueur (sa demande du 08/10 : « je veux qu ils soient big »)
 local PEN_SCALE = 3 -- (double le 08/10, sa demande : « je veux des enclos avec des gros animaux ») les familiers de l'enclos sont plus gros que celui qui suit le joueur
 local WALK_SPEED = 1.8 -- animaux des collections : la marche est jouée plus vite que le clip livré...
 local WALK_GAIN = 2.4 -- ... et les pattes tournent plus (voir StarterAnimator)
@@ -432,7 +433,7 @@ return function(env)
 					anchor.Transparency = 1
 					anchor.Size = Vector3.new(1, 1, 1)
 					anchor.Parent = folder
-					entry = { key = members[index], pet = create(petName, tonumber(rank), false, 0.4 + 1.6 * tonumber(size) / 100), cframe = root.CFrame, anchor = anchor }
+					entry = { key = members[index], pet = create(petName, tonumber(rank), false, TEAM_SCALE * (0.4 + 1.6 * tonumber(size) / 100)), cframe = root.CFrame, anchor = anchor }
 					entry.pet.model.Name = "Team_" .. petName
 					entry.bar = healthBar(anchor, entry.pet.half + 1.6, 3.6)
 					entry.bar.gui.MaxDistance = 60
@@ -447,7 +448,7 @@ return function(env)
 				entry.bar.fill.BackgroundColor3 = if now / max > 0.5 then Color3.fromRGB(80, 220, 90) elseif now / max > 0.2 then Color3.fromRGB(255, 190, 50) else Color3.fromRGB(240, 70, 70)
 
 				-- Sa place : autour du monstre visé, sinon derrière le joueur.
-				local slot = ({ Vector3.new(3.6, 0, 2.6), Vector3.new(-3.6, 0, 2.6), Vector3.new(0, 0, 5) })[index]
+				local slot = ({ Vector3.new(6.5, 0, 4), Vector3.new(-6.5, 0, 4), Vector3.new(0, 0, 9) })[index]
 				local ground = root.Position.Y - 3
 				local goal: CFrame
 				local moving = walking
@@ -456,7 +457,7 @@ return function(env)
 					moving = false
 				elseif target then
 					local scale = target:GetAttribute("Scale") or 1
-					local around = CFrame.new(target.Position) * CFrame.Angles(0, index * 2.1 + (other.UserId % 7), 0) * CFrame.new(0, 0, scale * 1.6 + 2.2)
+					local around = CFrame.new(target.Position) * CFrame.Angles(0, index * 2.1 + (other.UserId % 7), 0) * CFrame.new(0, 0, scale * 1.6 + 2.2 + entry.pet.half)
 					local lunge = math.max(0, math.sin((os.clock() + index * 0.33) * math.pi * 2)) * 1.2
 					local at = around.Position + (target.Position - around.Position).Unit * lunge
 					goal = CFrame.lookAt(Vector3.new(at.X, target.Position.Y + entry.pet.half, at.Z), Vector3.new(target.Position.X, target.Position.Y + entry.pet.half, target.Position.Z))
