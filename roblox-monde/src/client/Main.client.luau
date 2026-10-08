@@ -35,9 +35,10 @@ local function compact(value: number): string
 	end
 	return plain(value)
 end
--- Un nombre écrit en entier (1 234 567) ; à partir de 10 millions, en court (les pièces montent très haut).
+-- Un nombre en court dès mille : 2 500 -> « 2,5K », 200 000 -> « 200K » (sa demande du 08/10 : « refais les
+-- nombres comme lui », les abréviations des menus de ChatGPT, dont le reste a été annulé).
 local function num(value: number): string
-	return if value >= 1e7 then compact(value) else plain(value)
+	return if value >= 1e3 then compact(value) else plain(value)
 end
 
 -- LES TEXTES DU DÉCOR -------------------------------------------------------------------------------------------
