@@ -35,7 +35,7 @@ local function defaults()
 		xp = 0, -- XP gagnée dans le niveau en cours
 		sword = 1, -- niveau de l'épée
 		sv = 3, -- version de la liste des épées (3 = cinq épées au monde 1)
-		cv = 2, -- version des collections (2 = le monde 2 a le sanglier, le loup, l'ours...)
+		cv = 3, -- version des collections (3 = la jungle a le gorille et le tigre)
 		zone = 1, -- la zone la plus lointaine ouverte (battre le boss de la zone n ouvre la n + 1)
 		bag = {}, -- œufs pas encore posés : { a = animal, q = rang, r = zone, b = valeur tirée }
 		places = Pets.SPOTS_FREE, -- places de l'enclos
@@ -55,7 +55,20 @@ local function clean(raw)
 	end
 	-- (08/10 : les animaux du monde 2 ont changé. Les œufs et les familiers des anciens, hérisson et compagnie,
 	-- deviennent l'animal du même rang de la nouvelle liste : ils gardent leur force.)
-	if raw.cv ~= 2 then
+	-- (Puis la jungle : chaque ancien animal devient celui du même rang de la nouvelle liste.)
+	if raw.cv ~= 3 then
+		local swap = { Toucan = "Anaconda", Monkey = "Crocodile", Anaconda = "Jaguar", Crocodile = "Gorilla", Jaguar = "Tiger" }
+		for _, list in { raw.bag, raw.spots, raw.store } do
+			if type(list) == "table" then
+				for _, item in list do
+					if type(item) == "table" and swap[item.a] then
+						item.a = swap[item.a]
+					end
+				end
+			end
+		end
+	end
+	if raw.cv ~= 2 and raw.cv ~= 3 then
 		local swap = { Hedgehog = "Boar", Squirrel = "Ram", Skunk = "Deer", Beaver = "Lynx", Raccoon = "Wolf", Badger = "Bear" }
 		for _, list in { raw.bag, raw.spots, raw.store } do
 			if type(list) == "table" then

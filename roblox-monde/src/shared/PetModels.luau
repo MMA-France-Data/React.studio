@@ -88,13 +88,39 @@ local function meshTemplate(name: string): Model?
 	end
 	local rig = template:Clone()
 	local ok, problem = pcall(function()
+		-- DANS QUEL SENS L'IMPORT EST-IL ARRIVÉ ? Selon les réglages d'Import 3D, les pièces arrivent telles que le
+		-- squelette les attend, ou retournées d'un demi-tour (l'avant à la place de l'arrière : le tigre du 08/10 avait
+		-- la tête et la mâchoire à l'envers). On compare la place de deux pièces éloignées d'avant en arrière.
+		local first, far, depth = spec.members[1], nil, 0
 		for _, member in spec.members do
-			local old = rig:FindFirstChild(member.name)
-			assert(old and old:IsA("BasePart"), "piece absente du squelette : " .. member.name)
+			local dz = math.abs(member.cf[3] - first.cf[3])
+			if dz > depth then
+				far, depth = member, dz
+			end
+		end
+		local turned = false
+		if far then
+			local wanted = far.cf[3] - first.cf[3]
+			local got = meshes[far.name].Position.Z - meshes[first.name].Position.Z
+			turned = wanted * got < 0
+		end
+		local turn = if turned then CFrame.Angles(0, math.pi, 0) else CFrame.identity
+		local placed = {}
+		for _, member in spec.members do
+			-- (Une articulation porte le meme nom que sa piece : on cherche bien la PIECE.)
+			local old = nil
+			for _, child in rig:GetChildren() do
+				if child.Name == member.name and child:IsA("BasePart") then
+					old = child
+					break
+				end
+			end
+			assert(old, "piece absente du squelette : " .. member.name)
 			local mesh = meshes[member.name]:Clone()
 			mesh.Name = member.name
 			mesh.Size = Vector3.new(table.unpack(member.size))
-			mesh.CFrame = CFrame.new(table.unpack(member.cf))
+			mesh.CFrame = CFrame.new(table.unpack(member.cf)) * turn
+			placed[mesh] = true
 			mesh.Color = Color3.new(1, 1, 1)
 			mesh.Transparency = 0
 			mesh.Anchored, mesh.Massless = true, true
@@ -118,6 +144,19 @@ local function meshTemplate(name: string): Model?
 			end
 			old:Destroy()
 		end
+		-- (Les articulations ont été réglées pour des pièces à l'endroit : on y reporte le demi-tour.)
+		if turned then
+			for _, joint in rig:GetDescendants() do
+				if joint:IsA("Motor6D") or joint:IsA("Weld") then
+					if placed[joint.Part0] then
+						joint.C0 = turn * joint.C0
+					end
+					if placed[joint.Part1] then
+						joint.C1 = turn * joint.C1
+					end
+				end
+			end
+		end
 		local root = rig:FindFirstChild("RigRoot")
 		assert(root and root:IsA("BasePart"), "RigRoot absent")
 		rig.PrimaryPart = root
@@ -128,6 +167,7 @@ local function meshTemplate(name: string): Model?
 		return nil
 	end
 	rig.Name = name
+	rig:SetAttribute("MeshStyle", true)
 	meshCache[name] = rig
 	return rig
 end

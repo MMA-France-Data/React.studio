@@ -40,7 +40,8 @@ Pets.COLLECTIONS = {
 	-- (Monde 2, sa demande du 08/10 : « le monde deux est pas assez impressionnant, on pourrait partir sur le loup,
 	-- l'ours » : la forêt a maintenant les GROS animaux ; les petits, hérisson et compagnie, attendent un autre monde.)
 	{ "Boar", "Ram", "Deer", "Lynx", "Wolf", "Bear" },
-	{ "Capybara", "Toucan", "Monkey", "Anaconda", "Crocodile", "Jaguar" },
+	-- (Monde 3, son choix du 08/10 : le toucan et le singe sortent, le gorille et le TIGRE, en boss, arrivent.)
+	{ "Capybara", "Anaconda", "Crocodile", "Jaguar", "Gorilla", "Tiger" },
 	-- (Monde 4, la savane, livrée par ChatGPT le 08/10 : assets/collections/salle-07-savane.)
 	{ "Hyena", "Buffalo", "Cheetah", "Rhino", "Elephant", "Lion" },
 	{ "Hedgehog", "Squirrel", "Skunk", "Beaver", "Raccoon", "Badger" },
@@ -624,7 +625,8 @@ function Pets.build(name: string, rarity: number, display: boolean?): Model
 		local content = gradient(rarity)
 		local count = 0
 		for _, part in model:GetDescendants() do
-			if part:IsA("MeshPart") and content then
+			-- (Pas les animaux des collections : ceux du nouveau style en maillage gardent leur vraie texture.)
+			if part:IsA("MeshPart") and content and not starter then
 				for _, child in part:GetChildren() do
 					if child:IsA("SurfaceAppearance") then
 						child:Destroy()

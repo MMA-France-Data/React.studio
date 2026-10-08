@@ -1,8 +1,11 @@
 -- PETIT TEST EN IMAGES (une trentaine de secondes) : seulement des photos, sans rejouer tout le jeu.
---   powershell -ExecutionPolicy Bypass -File tools/studio-test/run.ps1 -Test photo -Seconds 55
--- Ici : les animaux d'un monde (ZONE), un camp après l'autre, puis la zone vue d'en haut. À changer selon le besoin.
+--   powershell -ExecutionPolicy Bypass -File tools/studio-test/run.ps1 -Test photo -Seconds 70
+-- Ici : quelques animaux choisis (LIST : { monde, camp }), photographiés de côté, pour juger leur assemblage.
+-- À changer selon le besoin.
 local Players = game:GetService("Players")
 local ServerStorage = game:GetService("ServerStorage")
+
+local LIST = { { 1, 1 }, { 1, 2 }, { 1, 3 }, { 1, 4 }, { 1, 5 }, { 1, 6 }, { 3, 5 }, { 3, 6 } }
 
 return function(log)
 	local player = Players:GetPlayers()[1] or Players.PlayerAdded:Wait()
@@ -16,37 +19,34 @@ return function(log)
 		log("Info", "SHOT:photo_" .. name)
 		task.wait(1.2)
 	end
-	local ZONE = 4
-	debug:Invoke("Zone", ZONE)
+	debug:Invoke("Zone", 4)
 	debug:Invoke("Peaceful", true)
-	debug:Invoke("Travel", ZONE)
-	task.wait(2)
 	local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-	local entry = if root then root.Position else Vector3.zero
-	local seen = {}
-	for _, monster in debug:Invoke("Monsters") do
-		if monster.zone == ZONE and not seen[monster.rank] then
-			seen[monster.rank] = monster
+	local zone = 0
+	for _, pick in LIST do
+		if pick[1] ~= zone then
+			zone = pick[1]
+			debug:Invoke("Travel", zone)
+			task.wait(2)
 		end
-	end
-	for rank = 1, 6 do
-		local monster = seen[rank]
+		local monster
+		for _, item in debug:Invoke("Monsters") do
+			if item.zone == pick[1] and item.rank == pick[2] then
+				monster = item
+				break
+			end
+		end
 		if monster then
 			local at = monster.position
 			if root then
-				root.CFrame = CFrame.new(at + Vector3.new(0, 4, -40))
+				root.CFrame = CFrame.new(at + Vector3.new(0, 4, -45))
 			end
 			task.wait(1.5)
-			workspace:SetAttribute("ShotCam", CFrame.lookAt(at + Vector3.new(7, 8, -19), at + Vector3.new(0, 3, 0)))
-			shot("monde" .. ZONE .. "_" .. rank .. "_" .. monster.animal)
+			local far = if pick[2] == 6 then 3.2 else 1.9
+			workspace:SetAttribute("ShotCam", CFrame.lookAt(at + Vector3.new(7, 2.5, -4) * far, at + Vector3.new(0, 1.1 * far, 0)))
+			shot("pres_" .. monster.animal)
 		end
 	end
-	if root then
-		root.CFrame = CFrame.new(entry + Vector3.new(0, 3, 100))
-	end
-	task.wait(1.5)
-	workspace:SetAttribute("ShotCam", CFrame.lookAt(entry + Vector3.new(-150, 120, -30), entry + Vector3.new(0, 0, 140)))
-	shot("monde" .. ZONE .. "_haut")
 	workspace:SetAttribute("ShotCam", nil)
 	log("Info", "[SURVIVE] TEST:done")
 end

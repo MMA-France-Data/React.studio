@@ -191,6 +191,9 @@ return function(env)
 		if pet.model:GetAttribute("Starter") then
 			-- La marche livrée est discrète : on la joue plus vite, les pattes tournent plus, et le corps sautille
 			-- à chaque pas (deux pas par tour d'animation), pour qu'on voie l'animal marcher et non glisser.
+			-- (Les animaux en maillage du nouveau style : leurs mouvements tels quels. Grossis comme ceux des anciens
+			-- animaux en blocs, la tête se décollait du corps.)
+			local mesh = pet.model:GetAttribute("MeshStyle") == true
 			local walk = pet.starter and pet.starter.clips.Walk
 			local hop = 0
 			if moving and walk then
@@ -199,9 +202,9 @@ return function(env)
 			pet.model:PivotTo(base * CFrame.new(0, hop, 0))
 			if pet.starter then
 				if moving then
-					StarterAnimator.step(pet.starter, pet.clock * WALK_SPEED, "Walk", WALK_GAIN)
+					StarterAnimator.step(pet.starter, pet.clock * WALK_SPEED, "Walk", if mesh then 1 else WALK_GAIN)
 				else
-					StarterAnimator.step(pet.starter, pet.clock, "Idle", 1.5)
+					StarterAnimator.step(pet.starter, pet.clock, "Idle", if mesh then 1 else 1.5)
 				end
 			end
 			return
