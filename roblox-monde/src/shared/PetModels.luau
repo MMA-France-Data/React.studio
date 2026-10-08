@@ -30,9 +30,111 @@ local function accent(model: Model, name: string, position: Vector3, size: Vecto
 	return part
 end
 
+-- LES ANIMAUX EN MAILLAGE (le nouveau style, 08/10). Deux morceaux pour chacun :
+--   ReplicatedStorage.MeshRigs.<Nom> : son squelette (RigRoot, Motor6D) et ses animations, avec des pièces vides ;
+--   ReplicatedStorage.MeshImports : ce que le créateur a importé dans Studio (Import 3D du FBX), en vrac.
+-- Le jeu fait lui-même l'assemblage (celui des « Assembler-*.luau » de ChatGPT) : chaque pièce vide du squelette est
+-- remplacée par son maillage. Tant qu'un animal n'est pas importé, on garde son ancien modèle en blocs.
+local MeshRigs = require(script.Parent.MeshRigs)
+local meshCache = {}
+local function importedMeshes(spec): { [string]: MeshPart }?
+	local imports = ReplicatedStorage:FindFirstChild("MeshImports")
+	if not imports then
+		return nil
+	end
+	-- Les pièces de tous les animaux portent des noms proches (« Core », « Head »...) : on cherche le groupe importé
+	-- qui a EXACTEMENT les pièces de cet animal.
+	local groups = {}
+	for _, item in imports:GetDescendants() do
+		if item:IsA("MeshPart") and item.Parent then
+			groups[item.Parent] = true
+		end
+	end
+	for group in groups do
+		local found, count, extra = {}, 0, 0
+		for _, item in group:GetChildren() do
+			if item:IsA("MeshPart") then
+				local short = string.gsub(item.Name, "^Import3D_", "")
+				local known = false
+				for _, member in spec.members do
+					if member.name == short and not found[short] then
+						found[short], known = item, true
+						count += 1
+						break
+					end
+				end
+				if not known then
+					extra += 1
+				end
+			end
+		end
+		if count == #spec.members and extra == 0 then
+			return found
+		end
+	end
+	return nil
+end
+local function meshTemplate(name: string): Model?
+	if meshCache[name] ~= nil then
+		return meshCache[name] or nil
+	end
+	meshCache[name] = false
+	local spec = MeshRigs[name]
+	local rigs = ReplicatedStorage:FindFirstChild("MeshRigs")
+	local template = rigs and rigs:FindFirstChild(name)
+	local meshes = spec and template and importedMeshes(spec)
+	if not meshes then
+		return nil
+	end
+	local rig = template:Clone()
+	local ok, problem = pcall(function()
+		for _, member in spec.members do
+			local old = rig:FindFirstChild(member.name)
+			assert(old and old:IsA("BasePart"), "piece absente du squelette : " .. member.name)
+			local mesh = meshes[member.name]:Clone()
+			mesh.Name = member.name
+			mesh.Size = Vector3.new(table.unpack(member.size))
+			mesh.CFrame = CFrame.new(table.unpack(member.cf))
+			mesh.Color = Color3.new(1, 1, 1)
+			mesh.Transparency = 0
+			mesh.Anchored, mesh.Massless = true, true
+			mesh.CanCollide, mesh.CanTouch, mesh.CanQuery = false, false, false
+			mesh.CastShadow = false
+			for _, child in mesh:GetDescendants() do
+				if child:IsA("LuaSourceContainer") or child:IsA("JointInstance") or child:IsA("WeldConstraint") then
+					child:Destroy()
+				end
+			end
+			mesh.Parent = rig
+			for _, joint in rig:GetDescendants() do
+				if joint:IsA("Motor6D") or joint:IsA("Weld") then
+					if joint.Part0 == old then
+						joint.Part0 = mesh
+					end
+					if joint.Part1 == old then
+						joint.Part1 = mesh
+					end
+				end
+			end
+			old:Destroy()
+		end
+		local root = rig:FindFirstChild("RigRoot")
+		assert(root and root:IsA("BasePart"), "RigRoot absent")
+		rig.PrimaryPart = root
+	end)
+	if not ok then
+		warn("[MONDE] animal en maillage " .. name .. " : " .. tostring(problem))
+		rig:Destroy()
+		return nil
+	end
+	rig.Name = name
+	meshCache[name] = rig
+	return rig
+end
+
 function PetModels.build(name: string): Model?
 	local folder = ReplicatedStorage:FindFirstChild("PetVisuals")
-	local template = folder and folder:FindFirstChild(name)
+	local template = meshTemplate(name) or (folder and folder:FindFirstChild(name))
 	if not template or not template:IsA("Model") then
 		-- Anciennes places et tests isolés : Pets garde son modèle de secours.
 		return nil

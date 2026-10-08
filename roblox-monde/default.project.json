@@ -224,6 +224,12 @@
         "Lion": {
           "$path": "assets/collections/salle-07-savane/oeufs/models/LionEgg.rbxmx"
         },
+        "Gorilla": {
+          "$path": "assets/collections/monde-03-jungle-maillages/Gorilla/GorillaEgg.rbxmx"
+        },
+        "Tiger": {
+          "$path": "assets/collections/monde-03-jungle-maillages/Tiger/TigerEgg.rbxmx"
+        },
         "Capybara": {
           "$path": "../roblox-survive/assets/collections/oeufs/models/CapybaraEgg.rbxmx"
         },
@@ -242,6 +248,36 @@
         "Jaguar": {
           "$path": "../roblox-survive/assets/collections/oeufs/models/JaguarEgg.rbxmx"
         }
+      },
+      "MeshRigs": {
+        "$className": "Folder",
+        "Duck": {
+          "$path": "assets/collections/monde-01-ferme-maillages/Duck/Duck-rig-template.rbxmx"
+        },
+        "Goat": {
+          "$path": "assets/collections/monde-01-ferme-maillages/Goat/Goat-rig-template.rbxmx"
+        },
+        "Horse": {
+          "$path": "assets/collections/monde-01-ferme-maillages/Horse/Horse-rig-template.rbxmx"
+        },
+        "Pig": {
+          "$path": "assets/collections/monde-01-ferme-maillages/Pig/Pig-rig-template.rbxmx"
+        },
+        "Rooster": {
+          "$path": "assets/collections/monde-01-ferme-maillages/Rooster/Rooster-rig-template.rbxmx"
+        },
+        "Sheep": {
+          "$path": "assets/collections/monde-01-ferme-maillages/Sheep/Sheep-rig-template.rbxmx"
+        },
+        "Gorilla": {
+          "$path": "assets/collections/monde-03-jungle-maillages/Gorilla/Gorilla-rig-template.rbxmx"
+        },
+        "Tiger": {
+          "$path": "assets/collections/monde-03-jungle-maillages/Tiger/Tiger-rig-template.rbxmx"
+        }
+      },
+      "MeshImports": {
+        "$path": "assets/collections/imports"
       },
       "SwordGoldV2": {
         "$path": "assets/swords-roblox/GoldV2.rbxm"

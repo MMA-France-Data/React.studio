@@ -1,0 +1,2 @@
+Ici : les animaux en maillage importes dans Studio par le createur (Import 3D), enregistres en .rbxm.
+Le jeu les assemble tout seul avec leur squelette (src/shared/PetModels.luau, MeshRigs).
