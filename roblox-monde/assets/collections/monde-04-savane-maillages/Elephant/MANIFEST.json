@@ -1,0 +1,39 @@
+{
+  "id": "Elephant",
+  "world": 4,
+  "theme": "Savane",
+  "created": "2026-10-08",
+  "boss": false,
+  "rainbowCoat": false,
+  "triangles": 4692,
+  "meshPieces": 18,
+  "reliefStuds": 191,
+  "basePartsAfterAssembly": 19,
+  "Motor6D": 18,
+  "rigidWelds": 0,
+  "animations": [
+    "Idle",
+    "Walk",
+    "Attack"
+  ],
+  "requiredReaderChanges": false,
+  "requiresStudioMeshImport": true,
+  "actualStudioTest": false,
+  "eggsModified": false,
+  "paidGenerations": 0,
+  "files": {
+    "Elephant.fbx": "4bef4e6eda1e75b9723f4f84867f6878a24df6506e7ec7321c2f4f9b22ff7932",
+    "Elephant-rig-template.rbxmx": "f57b10c6d690ee7d9634b720011d500eeb2e46474eab4927ee29894ce26ddfc2",
+    "Assembler-Elephant.luau": "ed902c99b2a669a93cca820b2a85d1670d05e95d7a564fae5dfdfebfde94e0b5",
+    "Elephant_Colour_512.png": "0110cee621c83d31b48bae1af75a96d9fb6a7218f2a769fab1c21ed5b72d5c54",
+    "Elephant.blend": "f2c50c5a7ec37a7b237c1d9ddcf62fbeb2ceef44d6e38df5dc0e031aa93c920b",
+    "Elephant.png": "ecc4acc331f9c64ae5509db3049d1600b31e83a02bed5ea4bed81fb6b8b6cc19",
+    "Elephant-profil.png": "cd3afc383abaf965a6747d20fefa3fbd3a91fa1dc9975d11e598db06305a2243",
+    "Elephant-visage.png": "7bbf2e5f82122728e0d5222b6be30867dac6b1545f56c782e68a8387eaf6bcbd",
+    "native-rig-spec.json": "b4c44d756914195230984af50a9e3acc447ade3da183fe1f321b977c129ccf0a",
+    "source-rig-and-clips.json": "13e0a93d71d6786e6a4a398a36da8ff4deeaed1c26ec11dbaa8e24c2d55244bf",
+    "NATIVE-VALIDATION.json": "39d0b81e1ccfe210ad0095cbbecdaab3d5d17b4cb794c9aa5305d082329c0113",
+    "FBX-VALIDATION.json": "5a6a72b13963f29b811d2a6b8a0fc4ea4c770afcac760bb863b7c6a77beffb6d",
+    "CONTACT-VALIDATION.json": "967810265a09e8bd784b4a6176642ebc506360ca5de0efa9175f40be24c6a047"
+  }
+}

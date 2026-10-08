@@ -1,0 +1,39 @@
+{
+  "id": "Buffalo",
+  "world": 4,
+  "theme": "Savane",
+  "created": "2026-10-08",
+  "boss": false,
+  "rainbowCoat": false,
+  "triangles": 4710,
+  "meshPieces": 17,
+  "reliefStuds": 264,
+  "basePartsAfterAssembly": 18,
+  "Motor6D": 15,
+  "rigidWelds": 2,
+  "animations": [
+    "Idle",
+    "Walk",
+    "Attack"
+  ],
+  "requiredReaderChanges": false,
+  "requiresStudioMeshImport": true,
+  "actualStudioTest": false,
+  "eggsModified": false,
+  "paidGenerations": 0,
+  "files": {
+    "Buffalo.fbx": "d9a4e0de7740dc84813a9634795e6613178d4e7a299ea4f362a64ce79db74664",
+    "Buffalo-rig-template.rbxmx": "bb5d4258797cda287fee486b1760cb3d921cb88ca51d78883fae4f62dea3f47c",
+    "Assembler-Buffalo.luau": "7afc29da6f970f52eaac726d4540e789c7a513a2b123d73f8e887fd5e3ae9705",
+    "Buffalo_Colour_512.png": "98f267d4e9cd48cc234c250e398b536b1c41c461192aa48fb0e8a6055b20bc7c",
+    "Buffalo.blend": "0b27c2d282c46c57f1ec525940f2580d06f6f0bf719a3285b0ee5371fd490e7c",
+    "Buffalo.png": "a0338ef4314780e48fe951ac444d7cfb217f57c83d4378e61297dc2f75b16e8c",
+    "Buffalo-profil.png": "d06e99639e2b9b0f77d55437cb254dccb3f037ad52c1fdb0c5416560138afc0a",
+    "Buffalo-visage.png": "a14c034d4da4b56c80075c45c46c6022df1581de8ef9c81e33b2731872f64eb6",
+    "native-rig-spec.json": "babff6b1c10461cc5b573c9ad48e26cc71eec5869c6e75349fac2c79c15b9e5b",
+    "source-rig-and-clips.json": "c4530b97674cade95f90096e0f3e63907d5ab5be45e03a29b2cea40c087feaf3",
+    "NATIVE-VALIDATION.json": "911094909a1cafe61d96ab3fe38d3dbfa84bfab5392f13ae10a125c6aad08de3",
+    "FBX-VALIDATION.json": "c05b156fd64139c45180f5657e60b3c1c3a080603cf0e34b4a7c60e7c66c5b08",
+    "CONTACT-VALIDATION.json": "adf4d7d900e92cf45fe3905575ec22455b48d5e74f8bd515aea6d98b72546d80"
+  }
+}

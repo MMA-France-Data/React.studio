@@ -1,0 +1,10 @@
+{
+  "passed": true,
+  "actualStudioTest": false,
+  "id": "Hyena",
+  "rigidMeshes": 18,
+  "bones": 0,
+  "triangles": 4696,
+  "maxRoundTripBoundsError": 2.2172927849339885e-07,
+  "texturesAndUV": true
+}

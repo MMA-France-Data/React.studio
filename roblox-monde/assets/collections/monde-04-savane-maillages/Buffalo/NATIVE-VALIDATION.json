@@ -1,0 +1,32 @@
+{
+  "passed": true,
+  "actualStudioTest": false,
+  "id": "Buffalo",
+  "basePartsAfterAssembly": 18,
+  "motor6D": 15,
+  "rigidWelds": 2,
+  "originalJointNames": true,
+  "originalClipsUnchanged": true,
+  "vertexPoseCases": 4131,
+  "maxRetargetMatrixError": 5.5933642828520647e-8,
+  "clips": {
+    "Idle": {
+      "duration": 3,
+      "loop": true,
+      "minHeight": -1.1754379598743459,
+      "maxHeight": 1.0402534640556507
+    },
+    "Walk": {
+      "duration": 1.8,
+      "loop": true,
+      "minHeight": -1.196474374397889,
+      "maxHeight": 1.0594026833191799
+    },
+    "Attack": {
+      "duration": 1.45,
+      "loop": false,
+      "minHeight": -1.1680000039339065,
+      "maxHeight": 1.111514623458131
+    }
+  }
+}

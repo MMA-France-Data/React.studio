@@ -1,0 +1,38 @@
+{
+  "passed": true,
+  "actualStudioTest": false,
+  "id": "Hyena",
+  "basePartsAfterAssembly": 19,
+  "motor6D": 16,
+  "rigidWelds": 2,
+  "originalJointNames": true,
+  "originalClipsUnchanged": true,
+  "vertexPoseCases": 5832,
+  "maxRetargetMatrixError": 5.474503828040156e-8,
+  "clips": {
+    "Idle": {
+      "duration": 3,
+      "loop": true,
+      "minHeight": -1.1438945852433806,
+      "maxHeight": 1.0742326961931181
+    },
+    "Walk": {
+      "duration": 1.3,
+      "loop": true,
+      "minHeight": -1.1663848042293643,
+      "maxHeight": 1.0791950949655136
+    },
+    "Attack": {
+      "duration": 1.02,
+      "loop": false,
+      "minHeight": -1.1379999908208847,
+      "maxHeight": 1.1242311700169965
+    },
+    "Bite": {
+      "duration": 1.02,
+      "loop": false,
+      "minHeight": -1.1379999908208847,
+      "maxHeight": 1.1242311700169965
+    }
+  }
+}

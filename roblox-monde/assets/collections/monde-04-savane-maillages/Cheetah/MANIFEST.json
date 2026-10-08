@@ -1,0 +1,40 @@
+{
+  "id": "Cheetah",
+  "world": 4,
+  "theme": "Savane",
+  "created": "2026-10-08",
+  "boss": false,
+  "rainbowCoat": false,
+  "triangles": 4700,
+  "meshPieces": 18,
+  "reliefStuds": 68,
+  "basePartsAfterAssembly": 19,
+  "Motor6D": 17,
+  "rigidWelds": 1,
+  "animations": [
+    "Idle",
+    "Walk",
+    "Attack",
+    "Bite"
+  ],
+  "requiredReaderChanges": false,
+  "requiresStudioMeshImport": true,
+  "actualStudioTest": false,
+  "eggsModified": false,
+  "paidGenerations": 0,
+  "files": {
+    "Cheetah.fbx": "6521a50a62f612fe56990f1006f032f7f641692891985b1134be3952b7ccd9e7",
+    "Cheetah-rig-template.rbxmx": "ad7500d57c1d83ec9ecd00c92bc410ba150a4c7e24724e12ca1d6fb7437145f3",
+    "Assembler-Cheetah.luau": "64e77a85a6954c883d7a24b4afb53cb74b857de6e682c9604c3d949acedf9634",
+    "Cheetah_Colour_512.png": "4f991b74d21fdafc4541815cfd75eb61ba5d7a03206e955890f7211516db5285",
+    "Cheetah.blend": "db1928cdcf272dd9bcadb0c3636e2c07d14288c2c4080e3c8bb59fd4a15f8b50",
+    "Cheetah.png": "11d5c72b9a3918e42b44765e41d96a4db31358758c3db51c357845a8b9695536",
+    "Cheetah-profil.png": "47489a88bb66f8d169ba7599d4a3420057e39af1dc652d21311dd2f7f60c59fd",
+    "Cheetah-visage.png": "afc62836d1dca7fafcf958e097a51b5567fb3b4d6b6fc1b78688fc06e06cff2f",
+    "native-rig-spec.json": "89a40460a73e78dd9e08814c2d99af10541c054190478aca9d746bb3b89f3483",
+    "source-rig-and-clips.json": "87b5c7a3d0c8eca13808ebada9e04c81327a9bf7c3e7110180a29c29714e6716",
+    "NATIVE-VALIDATION.json": "9144d757c9b14e8b420b5bc23559b1ce9dc39a814042b1dacc2b047689c0270b",
+    "FBX-VALIDATION.json": "4bd48f9d5c1b350eeacbb4b0667bd97c241bf5300b757e963187a16b0d5f2702",
+    "CONTACT-VALIDATION.json": "935f96528a3b2cac26773e59227e6ed7411ccdccc72ced8765962802ebe91f95"
+  }
+}

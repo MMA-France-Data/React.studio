@@ -1,22 +1,39 @@
-# Monde 4 — savane : Lion en maillage
+# Monde 4 — savane en maillages
 
-Premier lot de la migration demandée : le boss **Lion**. Hyena, Buffalo, Cheetah, Rhino et Elephant restent inchangés ; leur migration vient après la jungle et la forêt. Les œufs ne sont pas refaits.
+Dernier lot de la migration : **Hyena, Buffalo, Cheetah, Rhino et Elephant**, dans le style facetté du tigre. Le **Lion boss arc-en-ciel déjà livré est conservé à l'identique**, et les œufs ne sont pas refaits.
 
-![Rendu du vrai maillage](Lion/Lion.png)
+![Rendus des vrais maillages](Apercu-savane.png)
 
-Lion au poitrail large, crinière continue et mèches effilées raccordées à sa tête, museau félin en deux lobes, joues claires, yeux noirs et longue queue articulée terminée par un toupet. Le dégradé arc-en-ciel du boss est gardé, avec une crinière aux teintes plus profondes.
+- **Hyena** : épaules hautes, dos descendant, museau puissant, oreilles arrondies, petites taches et crête sombre.
+- **Buffalo** : corps massif, tête large, cornes balayées sur les côtés et sabots fendus.
+- **Cheetah** : silhouette fine, longues pattes, taches pleines, marques noires sous les yeux et longue queue annelée ; pas les rosettes du jaguar.
+- **Rhino** : corps lourd, tête allongée, deux cornes, plis de peau discrets et pieds à trois ongles.
+- **Elephant** : larges oreilles plates raccordées à la tête, défenses, trompe articulée en quatre membres et pieds à ongles.
+- **Lion** : boss au dégradé arc-en-ciel, vraie crinière raccordée et longue queue. Son dossier et ses fichiers n'ont pas changé.
 
-**19 pièces, racine comprise ; 4 744 triangles ; les 17 Motor6D d'origine.** Les détails du visage et la crinière sont intégrés au membre `Head`, sans pièces flottantes ajoutées. Le toupet `TailTuft` d'origine suit `Tail2` par un Weld ; sa présence distingue cet import du tigre, dont les articulations ont les mêmes noms. Les clips `Animations/Idle`, `Walk`, `Attack`, `Bite`, en `KeyframeSequence`, sont conservés avec leurs poses, durées et repères Impact. Le modèle s'appelle toujours `Lion`, avec `RigRoot` comme racine. Aucun lecteur d'animations n'est changé.
+Les cinq nouveaux animaux restent sous **20 pièces, racine comprise**, avec environ **4 700 triangles** chacun. Les yeux sont noirs et les détails raccordés aux membres ; les paires d'oreilles, de pattes et les yeux séparés sont symétriques. Les défenses, cornes et détails sont intégrés au membre auquel ils appartiennent, sans objets physiques supplémentaires.
 
-## Importer
+## Structure compatible avec le jeu
 
-1. Importer **`Lion/Lion.fbx`** dans Studio avec Import 3D, sans fusionner les maillages et sans générer de rig à Bones. Garder les noms `Import3D_*` et la texture `Lion_Colour_512.png`.
-2. Mettre l'import dans `ReplicatedStorage.MeshImports` et l'enregistrer avec le workflow existant. Le nouveau template est monté dans `ReplicatedStorage.MeshRigs.Lion` et ses dimensions sont ajoutées à `src/shared/MeshRigs.luau` : le lecteur actuel peut l'assembler automatiquement. L'ancien visuel reste le secours tant que le FBX n'est pas importé.
-3. Pour un assemblage manuel, insérer `Lion-rig-template.rbxmx`, sélectionner l'import et le template, puis exécuter `Assembler-Lion.luau` en mode édition. Les deux originaux sont conservés. Le template seul est transparent, il n'est pas un modèle visuel complet.
-4. Vérifier les quatre clips en jeu avant de remplacer l'ancien visuel. Les fichiers faciles à importer sont aussi dans `../A-IMPORTER/`.
+Chaque modèle garde son nom anglais, la racine `RigRoot`, exactement les noms et relations Motor6D d'origine, ainsi que le dossier `Animations` avec ses `KeyframeSequence`.
+
+Tous conservent `Idle`, `Walk` et `Attack`. **Hyena et Cheetah conservent aussi leur clip `Bite` existant** ; les trois autres n'en avaient pas. Les poses, durées, boucles et repères des clips restent inchangés. Aucun lecteur d'animations, aucune règle de combat ou probabilité n'est changé.
+
+Le guépard garde le nom décoratif d'origine `TailRingTail20`, relié à `Tail2` par un Weld, pour distinguer son import des autres félins partageant les mêmes noms d'articulations. Les yeux séparés de Hyena, Buffalo et Rhino suivent `Head` par des Welds ; ceux de Cheetah et Elephant sont directement intégrés à la tête.
+
+## Fichiers et import Studio
+
+Chaque dossier contient **`Animal.fbx`**, sa texture `Animal_Colour_512.png`, le template `Animal-rig-template.rbxmx`, `Assembler-Animal.luau`, un `.blend` retouchable, trois rendus et les rapports de validation. Les FBX et textures sont aussi regroupés dans [A-IMPORTER](../A-IMPORTER/).
+
+1. Importer le FBX avec **Import 3D**, sans fusionner les maillages et sans générer de rig à Bones. Garder les noms `Import3D_*` et la texture associée. Ces FBX sont des maillages rigides destinés aux Motor6D existants, pas des rigs à os.
+2. Placer l'import publié dans `ReplicatedStorage.MeshImports` et l'enregistrer avec le workflow existant. Les cinq templates et leurs dimensions sont raccordés à `MeshRigs` ; le lecteur existant peut les assembler. Les imports déjà livrés, notamment `imports/Lot2.rbxm`, sont conservés.
+3. Pour un assemblage manuel en mode édition, insérer le template, sélectionner l'import et le template, puis exécuter `Assembler-Animal.luau`. Les deux originaux sont conservés. **Le template seul est transparent : il ne remplace pas le FBX.**
+4. Vérifier les clips en jeu et sur téléphone avant de retirer les anciens visuels de secours.
 
 ## Contrôles
 
-Réimportation du FBX, UV et texture, dimensions, budget, références XML, noms d'articulations et clips, syntaxe Luau, suivi des vertices dans les poses échantillonnées, contacts des membres au repos et symétrie des oreilles et pattes vérifiés. Les rapports détaillés accompagnent le modèle. `checks/check-native-mesh.ps1` peut être relancé sur le dossier `Lion`.
+Réimportation des FBX, UV/texture, nombre réel de maillages et de triangles, dimensions, références XML, syntaxe Luau, conservation des articulations et des clips, suivi des vertices dans les poses échantillonnées, contacts au repos et symétrie contrôlés. La comparaison des `KeyframeSequence` avec les anciens RBXMX est également vérifiée, hors identifiants internes XML.
 
-**Import et exécution dans Studio non testés ici.** Aucun identifiant Roblox n'est inventé ; le FBX nécessite votre publication/import. Aucun crédit Meshy n'a été consommé.
+Les rapports `NATIVE-VALIDATION.json`, `FBX-VALIDATION.json` et `CONTACT-VALIDATION.json` sont dans chaque dossier. Relancer `checks/check-native-mesh.ps1 -AssetDirectory CHEMIN_ANIMAL` pour vérifier le rig ; les vérifications FBX et contacts utilisent les scripts Blender dans `checks/`.
+
+**Les nouveaux FBX ne sont pas encore importés ni testés dans Roblox Studio ici.** Aucun identifiant de maillage Roblox n'est inventé. Aucun crédit Meshy n'a été consommé : fabrication et contrôles locaux. Les œufs et le Lion boss restent inchangés.

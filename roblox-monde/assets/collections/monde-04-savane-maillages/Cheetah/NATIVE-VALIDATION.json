@@ -1,0 +1,38 @@
+{
+  "passed": true,
+  "actualStudioTest": false,
+  "id": "Cheetah",
+  "basePartsAfterAssembly": 19,
+  "motor6D": 17,
+  "rigidWelds": 1,
+  "originalJointNames": true,
+  "originalClipsUnchanged": true,
+  "vertexPoseCases": 5832,
+  "maxRetargetMatrixError": 6.551099795970572e-8,
+  "clips": {
+    "Idle": {
+      "duration": 3,
+      "loop": true,
+      "minHeight": -1.152379893631644,
+      "maxHeight": 1.1302012950494196
+    },
+    "Walk": {
+      "duration": 1.05,
+      "loop": true,
+      "minHeight": -1.1674884886988532,
+      "maxHeight": 1.135726683529344
+    },
+    "Attack": {
+      "duration": 1.2,
+      "loop": false,
+      "minHeight": -1.1459999948740005,
+      "maxHeight": 1.5639160183578475
+    },
+    "Bite": {
+      "duration": 1.02,
+      "loop": false,
+      "minHeight": -1.1459999948740005,
+      "maxHeight": 1.1888936006828246
+    }
+  }
+}

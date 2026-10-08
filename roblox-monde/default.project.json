@@ -251,6 +251,21 @@
       },
       "MeshRigs": {
         "$className": "Folder",
+        "Hyena": {
+          "$path": "assets/collections/monde-04-savane-maillages/Hyena/Hyena-rig-template.rbxmx"
+        },
+        "Buffalo": {
+          "$path": "assets/collections/monde-04-savane-maillages/Buffalo/Buffalo-rig-template.rbxmx"
+        },
+        "Cheetah": {
+          "$path": "assets/collections/monde-04-savane-maillages/Cheetah/Cheetah-rig-template.rbxmx"
+        },
+        "Rhino": {
+          "$path": "assets/collections/monde-04-savane-maillages/Rhino/Rhino-rig-template.rbxmx"
+        },
+        "Elephant": {
+          "$path": "assets/collections/monde-04-savane-maillages/Elephant/Elephant-rig-template.rbxmx"
+        },
         "Boar": {
           "$path": "assets/collections/monde-02-foret-maillages/Boar/Boar-rig-template.rbxmx"
         },

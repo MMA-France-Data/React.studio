@@ -1,0 +1,39 @@
+{
+  "id": "Rhino",
+  "world": 4,
+  "theme": "Savane",
+  "created": "2026-10-08",
+  "boss": false,
+  "rainbowCoat": false,
+  "triangles": 4694,
+  "meshPieces": 16,
+  "reliefStuds": 223,
+  "basePartsAfterAssembly": 17,
+  "Motor6D": 14,
+  "rigidWelds": 2,
+  "animations": [
+    "Idle",
+    "Walk",
+    "Attack"
+  ],
+  "requiredReaderChanges": false,
+  "requiresStudioMeshImport": true,
+  "actualStudioTest": false,
+  "eggsModified": false,
+  "paidGenerations": 0,
+  "files": {
+    "Rhino.fbx": "a6406587317900d202f671d0af7b3b44a1f5add26579999d5775cc2135ae69fc",
+    "Rhino-rig-template.rbxmx": "94618bbf44fd60681a060b86552604bcedd085d7b3226d16c5306d974c1048dd",
+    "Assembler-Rhino.luau": "00f3a731be5d8dc9aff2f534ec639b1af6b09faf4e31bc8ccd0bf5d5835d27df",
+    "Rhino_Colour_512.png": "fd6690162750c0c080b86903c4ff22ff23d29dd18486801e9c7c772d3a0d3958",
+    "Rhino.blend": "d45c07d139450e3f7e50cbf32afcba4ef690023029b132865149ac71086895bd",
+    "Rhino.png": "c31df9b521703d7859e6aac102986dbbb57aac7380a2be78ff140b3ac211c6fd",
+    "Rhino-profil.png": "56aa3e749502104d9bef6a289849853739b087238e9ce89d790f13d3968d454c",
+    "Rhino-visage.png": "67b86c7fced9367869517bb7e0967ca6fc01418fa3e313e36a4988af19a6cf62",
+    "native-rig-spec.json": "b03ce748f50e45d174311bf2a500a275ea594b39274cf5aef6840acd895aa8b2",
+    "source-rig-and-clips.json": "7a5ce5db4c1d57c023d66f67793e58880a9d2bf2f5ae345fd043cf331bc7625d",
+    "NATIVE-VALIDATION.json": "1821fbe622f04623ac2472673d2bf0e2c2a6dabb8adf34c994ad513d5b20a3cb",
+    "FBX-VALIDATION.json": "16055b163ed598fb08d949532a0f486237a15b4cd2b70ad5e3537116b336fc59",
+    "CONTACT-VALIDATION.json": "63306daf65f1d2722a221eda145315dce64979f287b5a89177e538055ee996df"
+  }
+}

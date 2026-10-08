@@ -1,0 +1,32 @@
+{
+  "passed": true,
+  "actualStudioTest": false,
+  "id": "Rhino",
+  "basePartsAfterAssembly": 17,
+  "motor6D": 14,
+  "rigidWelds": 2,
+  "originalJointNames": true,
+  "originalClipsUnchanged": true,
+  "vertexPoseCases": 3888,
+  "maxRetargetMatrixError": 9.733756578533814e-8,
+  "clips": {
+    "Idle": {
+      "duration": 3,
+      "loop": true,
+      "minHeight": -1.3719739013276298,
+      "maxHeight": 1.3023669124891344
+    },
+    "Walk": {
+      "duration": 2,
+      "loop": true,
+      "minHeight": -1.401871933604744,
+      "maxHeight": 1.3061777869846711
+    },
+    "Attack": {
+      "duration": 1.7,
+      "loop": false,
+      "minHeight": -1.3640000520944595,
+      "maxHeight": 1.577165114578929
+    }
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "id": "Hyena",
+  "world": 4,
+  "theme": "Savane",
+  "created": "2026-10-08",
+  "boss": false,
+  "rainbowCoat": false,
+  "triangles": 4696,
+  "meshPieces": 18,
+  "reliefStuds": 203,
+  "basePartsAfterAssembly": 19,
+  "Motor6D": 16,
+  "rigidWelds": 2,
+  "animations": [
+    "Idle",
+    "Walk",
+    "Attack",
+    "Bite"
+  ],
+  "requiredReaderChanges": false,
+  "requiresStudioMeshImport": true,
+  "actualStudioTest": false,
+  "eggsModified": false,
+  "paidGenerations": 0,
+  "files": {
+    "Hyena.fbx": "d04fb20ead75d5ec7985b3f8cf0d10d37b77222ed683b907f3646b3d41d2aafa",
+    "Hyena-rig-template.rbxmx": "e45d22916b231ac03843fcc4a9f8bff8636f932afa1108d9894406d3b28faa39",
+    "Assembler-Hyena.luau": "847234a2a1cfa55fc0c2824e813a172e403eaac1711aa2988f31c53efaee703b",
+    "Hyena_Colour_512.png": "d3271f5c7828f9f52c54245be6dd64f2c0db1f1d0f96a20294f548cfa331d78b",
+    "Hyena.blend": "20c46ef6b106920f9a90a23d16108ad3f1962fbe375de038f11beefc25e55bb5",
+    "Hyena.png": "4b1d5555ee54efefba157af2a23074cc1fe96a8f8807867bd7056b6b41dadcc5",
+    "Hyena-profil.png": "c426076848c62f1e7075deba21a25a107345a585d6d72849b65581f273595692",
+    "Hyena-visage.png": "376ea968d4a3f200ca8445298c34913b19fe1e412ebdf79a6db11f5fae66b078",
+    "native-rig-spec.json": "704149483656a1a576bb8c5f027262cf52f27fe572938a66210e6d843a7d2f10",
+    "source-rig-and-clips.json": "78d75acb74c1fcba467c13e405e3c91d1667a4a010852c3450e0d480b6225137",
+    "NATIVE-VALIDATION.json": "1b8e0a9db7e367c3d4a19c8e971f7d5f3bc7c7822031c2deb08c4114055c6624",
+    "FBX-VALIDATION.json": "2cfa1889b3ba1f4a0ec99ebc759c2a321dda9661e501eaa5eb1d4f28929058a0",
+    "CONTACT-VALIDATION.json": "321a6586a6c7192e257b00813ffc18dc7e1cabbce18fe9708d833c7028a28974"
+  }
+}

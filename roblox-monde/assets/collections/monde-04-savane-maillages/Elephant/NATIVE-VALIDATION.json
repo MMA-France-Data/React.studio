@@ -1,0 +1,32 @@
+{
+  "passed": true,
+  "actualStudioTest": false,
+  "id": "Elephant",
+  "basePartsAfterAssembly": 19,
+  "motor6D": 18,
+  "rigidWelds": 0,
+  "originalJointNames": true,
+  "originalClipsUnchanged": true,
+  "vertexPoseCases": 4374,
+  "maxRetargetMatrixError": 9.613987284051717e-8,
+  "clips": {
+    "Idle": {
+      "duration": 3,
+      "loop": true,
+      "minHeight": -1.6980290622534309,
+      "maxHeight": 1.6752897642300666
+    },
+    "Walk": {
+      "duration": 2.2,
+      "loop": true,
+      "minHeight": -1.7430362048388324,
+      "maxHeight": 1.6811384370421911
+    },
+    "Attack": {
+      "duration": 1.7,
+      "loop": false,
+      "minHeight": -1.6900000673532487,
+      "maxHeight": 1.7376707277701173
+    }
+  }
+}
