@@ -14,8 +14,6 @@ local PetRig = require(ReplicatedStorage.Shared.PetRig)
 local StarterAnimator = require(ReplicatedStorage.Shared.StarterAnimator)
 local ActionAnimator = require(ReplicatedStorage.Shared.ActionAnimator)
 local Config = require(ReplicatedStorage.Shared.Config)
-local UI = require(script.Parent.MenuUI)
-local MenuLayout = require(script.Parent.MenuLayout)
 
 local EGG_COLORS = {
 	Dragon = Color3.fromRGB(240, 90, 40),
@@ -778,10 +776,16 @@ return function(env)
 		button.AnchorPoint = Vector2.new(1, 0.5)
 		button.Position = UDim2.new(1, -12, 0.5, -110 + order * 76)
 		button.Size = UDim2.fromOffset(66, 66)
-		UI.button(button, UI.Menu[name].color)
+		button.BackgroundColor3 = color
 		button.Text = ""
-		-- Son nom reste visible sous le pictogramme, aussi sur téléphone.
-		local caption = env.text(button, "Caption", UDim2.new(1, -4, 0, 18), UDim2.new(0, 2, 1, -20), nil, 16)
+		Instance.new("UICorner", button).CornerRadius = UDim.new(0, 10)
+		local stroke = Instance.new("UIStroke")
+		stroke.Thickness = 4
+		stroke.Color = Color3.fromRGB(20, 20, 30)
+		stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+		stroke.Parent = button
+		-- Son nom, écrit dessous (sur PC).
+		local caption = env.text(button, "Caption", UDim2.new(1, 60, 0, 24), UDim2.new(0, -30, 1, 0), nil, 20)
 		caption.Text = tr(name)
 		button.Parent = env.gui
 		return button
@@ -828,8 +832,8 @@ return function(env)
 	local takeEvent = ReplicatedStorage:WaitForChild("TakeEgg")
 	local unequipAllEvent = ReplicatedStorage:WaitForChild("UnequipAll")
 	local GRADES = { "C", "B", "A", "S", "SS", "SSS" }
-	local NAVY, GOLDEN = UI.Colors.Panel, UI.Colors.Text
-	local GOLD = UI.Colors.Gold
+	local NAVY, GOLDEN = Color3.fromRGB(22, 32, 58), Color3.fromRGB(226, 178, 96)
+	local GOLD = Color3.fromRGB(255, 221, 51)
 	local function darker(color: Color3, k: number): Color3
 		return Color3.new(color.R * k, color.G * k, color.B * k)
 	end
@@ -838,9 +842,15 @@ return function(env)
 		item.Name = name
 		item.Size = size
 		item.Position = position
-		UI.button(item, color)
+		item.BackgroundColor3 = color
 		item.Text = ""
 		item.ZIndex = 5
+		Instance.new("UICorner", item).CornerRadius = UDim.new(0, 8)
+		local stroke = Instance.new("UIStroke")
+		stroke.Thickness = 2.5
+		stroke.Color = Color3.fromRGB(14, 18, 30)
+		stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+		stroke.Parent = item
 		local text = env.text(item, "Label", UDim2.fromScale(0.92, 0.74), UDim2.fromScale(0.04, 0.13))
 		text.Text = label
 		text.ZIndex = 6
@@ -853,31 +863,23 @@ return function(env)
 		frame.AnchorPoint = Vector2.new(0.5, 0.5)
 		frame.Visible = false
 		frame.ZIndex = 4
-		frame.UIStroke.Color = UI.Colors.Edge
-		local header = env.box(frame, "MenuHeader", UDim2.new(1, -4, 0, 44), UDim2.fromOffset(2, 2), UI.Menu[UI.Panels[name]].color)
-		header.ZIndex = 4
-		header.UIStroke.Thickness = 0
-		UI.gradient(header)
-		local icon = env.text(frame, "MenuIcon", UDim2.fromOffset(30, 30), UDim2.fromOffset(14, 8))
-		icon.ZIndex = 5
-		UI.icon(icon, UI.Menu[UI.Panels[name]].icon)
+		frame.UIStroke.Color = GOLDEN
+		frame.UIStroke.Thickness = 3
 		local scale = Instance.new("UIScale")
 		scale.Name = "Scale"
 		scale.Parent = frame
-		local heading = env.text(frame, "Title", UDim2.new(1, -130, 0, 32), UDim2.fromOffset(54, 6), GOLDEN, 30)
-		heading.TextXAlignment = Enum.TextXAlignment.Left
+		local heading = env.text(frame, "Title", UDim2.new(1, -120, 0, 40), UDim2.fromOffset(60, 8), GOLDEN, 34)
 		heading.Text = title
 		heading.ZIndex = 5
-		local close = button(frame, "Close", UDim2.fromOffset(44, 44), UDim2.new(1, -48, 0, 2), UI.Colors.Red, "X")
+		local close = button(frame, "Close", UDim2.fromOffset(44, 44), UDim2.new(1, -30, 0, -14), Color3.fromRGB(226, 50, 50), "X")
 		close.Activated:Connect(function()
 			frame.Visible = false
 		end)
 		return frame
 	end
-	local layoutWindow: ((Frame) -> ())? = nil
 	local function fitWindow(frame: Frame)
-		if layoutWindow then layoutWindow(frame) end
-		UI.fitWindow(frame, UI.screenSize(env.gui))
+		local view = workspace.CurrentCamera.ViewportSize
+		frame.Scale.Scale = math.min(1, (view.Y - 30) / (frame.Size.Y.Offset + 30), (view.X - 20) / (frame.Size.X.Offset + 20))
 	end
 	-- Le portrait en 3D d'un modèle, dans un cadre.
 	local function portrait(parent: Instance, size: UDim2, position: UDim2): ViewportFrame
@@ -931,7 +933,7 @@ return function(env)
 	local function card(parent: Instance, name: string)
 		local item = Instance.new("TextButton")
 		item.Name = name
-		item.Size = UDim2.fromOffset(100, 122)
+		item.Size = UDim2.fromOffset(100, 100)
 		item.Text = ""
 		item.AutoButtonColor = false
 		item.ZIndex = 5
@@ -940,32 +942,30 @@ return function(env)
 		stroke.Thickness = 3
 		stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 		stroke.Parent = item
-		local view = portrait(item, UDim2.new(1, -10, 1, -54), UDim2.fromOffset(5, 6))
+		local view = portrait(item, UDim2.fromScale(0.9, 0.9), UDim2.fromScale(0.05, 0.02))
 		local grade = env.text(item, "Grade", UDim2.fromOffset(44, 26), UDim2.fromOffset(4, 2), nil, 24)
 		grade.TextXAlignment = Enum.TextXAlignment.Left
 		grade.ZIndex = 6
-		local display = env.text(item, "AnimalName", UDim2.new(1, -8, 0, 28), UDim2.new(0, 4, 1, -48), nil, 16)
-		display.ZIndex = 6
 		local line = env.text(item, "Line", UDim2.new(1, -6, 0, 20), UDim2.new(0, 3, 1, -22), nil, 17)
 		line.ZIndex = 6
 		local tick = env.text(item, "Tick", UDim2.fromOffset(30, 30), UDim2.new(1, -30, 0, -2), Color3.fromRGB(90, 255, 90), 28)
 		tick.Text = "✓"
 		tick.ZIndex = 6
 		item.Parent = parent
-		return { frame = item, stroke = stroke, view = view, grade = grade, line = line, tick = tick, display = display }
+		return { frame = item, stroke = stroke, view = view, grade = grade, line = line, tick = tick }
 	end
 	-- grade : la note de taille (B, A, S) ; rien pour un œuf du sac.
 	local GRADE_COLORS = { C = Color3.fromRGB(200, 204, 214), B = Color3.fromRGB(120, 200, 255), A = Color3.fromRGB(120, 255, 120), S = GOLD }
 	local function paint(item, rarity: number, selected: boolean, grade: string?)
 		local info = rarityInfo(rarity)
-		item.frame.BackgroundColor3 = UI.Colors.Card:Lerp(info.color, 0.22)
+		item.frame.BackgroundColor3 = darker(info.color, 0.45)
 		item.stroke.Color = if selected then Color3.new(1, 1, 1) else info.color
-		item.stroke.Thickness = if selected then 3 else 2
+		item.stroke.Thickness = if selected then 4 else 3
 		item.grade.Text = grade or ""
 		item.grade.TextColor3 = GRADE_COLORS[grade or ""] or info.color
 	end
 	local function grid(parent: Instance, size: UDim2, position: UDim2): ScrollingFrame
-		local back = env.box(parent, "GridBack", size, position, UI.Colors.Well)
+		local back = env.box(parent, "GridBack", size, position, Color3.fromRGB(14, 22, 42))
 		back.ZIndex = 4
 		back.UIStroke.Thickness = 2
 		back.UIStroke.Color = Color3.fromRGB(40, 56, 96)
@@ -976,16 +976,16 @@ return function(env)
 		list.BackgroundTransparency = 1
 		list.BorderSizePixel = 0
 		list.ScrollBarThickness = 8
-		list.ScrollBarImageColor3 = UI.Colors.Muted
 		list.ZIndex = 5
 		list.Parent = back
 		local layout = Instance.new("UIGridLayout")
-		layout.CellSize = UDim2.fromOffset(100, 122)
+		layout.CellSize = UDim2.fromOffset(100, 100)
 		layout.CellPadding = UDim2.fromOffset(10, 10)
 		layout.SortOrder = Enum.SortOrder.LayoutOrder
 		layout.Parent = list
-		list.AutomaticCanvasSize = Enum.AutomaticSize.Y
-		list.CanvasSize = UDim2.fromOffset(0, 0)
+		layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+			list.CanvasSize = UDim2.fromOffset(0, layout.AbsoluteContentSize.Y / math.max(0.01, (list.Parent.Parent :: any).Scale.Scale) + 8)
+		end)
 		return list
 	end
 
@@ -1004,13 +1004,8 @@ return function(env)
 	eggStroke.Color = Color3.fromRGB(60, 30, 20)
 	eggStroke.Parent = eggIcon
 	eggIcon.Parent = eggButton
-	UI.icon(eggIcon, "egg")
-	eggIcon.BackgroundTransparency = 1
-	eggStroke.Transparency = 1
-	eggIcon.Position = UDim2.fromScale(0.5, 0.34)
-	eggIcon.Size = UDim2.fromOffset(34, 34)
 	local seenEggs = 0
-	local badge = env.box(eggButton, "Badge", UDim2.fromOffset(24, 24), UDim2.new(1, -16, 0, -8), UI.Colors.Red)
+	local badge = env.box(eggButton, "Badge", UDim2.fromOffset(28, 28), UDim2.new(1, -14, 1, -14), Color3.fromRGB(40, 190, 60))
 	badge:FindFirstChildOfClass("UICorner").CornerRadius = UDim.new(1, 0)
 	local badgeText = env.text(badge, "Label", UDim2.fromScale(0.9, 0.8), UDim2.fromScale(0.05, 0.1))
 
@@ -1027,24 +1022,21 @@ return function(env)
 	local eggCards, hatchCards = {}, {}
 
 	-- LES FAMILIERS : le bouton patte, et la fenêtre (la grille à gauche, la fiche à droite).
-	local pawButton = squareButton("PawButton", 1, UI.Colors.Orange)
+	local pawButton = squareButton("PawButton", 1, Color3.fromRGB(255, 150, 40))
 	env.text(pawButton, "Label", UDim2.fromScale(0.8, 0.8), UDim2.fromScale(0.1, 0.1)).Text = "🐾"
-	pawButton.Label.TextTransparency = 1
-	pawButton.Label.Position, pawButton.Label.Size = UDim2.fromOffset(14, 4), UDim2.fromOffset(38, 38)
-	UI.icon(pawButton.Label, "paw")
 	local petPanel = window("PetPanel", tr("petsTitle"), 800, 570)
 	local petCount = env.text(petPanel, "Count", UDim2.fromOffset(200, 22), UDim2.fromOffset(24, 54), GREEN, 18)
 	petCount.TextXAlignment = Enum.TextXAlignment.Left
 	petCount.ZIndex = 5
-	local addPlace = button(petPanel, "AddPlace", UDim2.fromOffset(200, 30), UDim2.fromOffset(276, 50), UI.Colors.Green, "")
+	local addPlace = button(petPanel, "AddPlace", UDim2.fromOffset(200, 30), UDim2.fromOffset(276, 50), Color3.fromRGB(90, 200, 50), "")
 	addPlace.Activated:Connect(function()
 		upgradeEvent:FireServer()
 	end)
 	local petGrid = grid(petPanel, UDim2.fromOffset(470, 410), UDim2.fromOffset(20, 86))
 	local petCards = {}
 	local selected = 0 -- la place du familier dont on voit la fiche
-	local best = button(petPanel, "Best", UDim2.fromOffset(226, 46), UDim2.fromOffset(20, 508), UI.Colors.Green, tr("equipBest"))
-	local none = button(petPanel, "None", UDim2.fromOffset(226, 46), UDim2.fromOffset(264, 508), UI.Colors.Blue, tr("unequipAll"))
+	local best = button(petPanel, "Best", UDim2.fromOffset(226, 46), UDim2.fromOffset(20, 508), Color3.fromRGB(60, 200, 70), tr("equipBest"))
+	local none = button(petPanel, "None", UDim2.fromOffset(226, 46), UDim2.fromOffset(264, 508), Color3.fromRGB(50, 130, 230), tr("unequipAll"))
 	best.Activated:Connect(function()
 		equipBestEvent:FireServer()
 	end)
@@ -1052,7 +1044,7 @@ return function(env)
 		unequipAllEvent:FireServer()
 	end)
 	-- La fiche.
-	local sheet = UI.scrolling(petPanel, "Sheet", UDim2.fromOffset(280, 468), UDim2.fromOffset(502, 86))
+	local sheet = env.box(petPanel, "Sheet", UDim2.fromOffset(280, 468), UDim2.fromOffset(502, 86), Color3.fromRGB(30, 44, 78))
 	sheet.ZIndex = 4
 	sheet.UIStroke.Thickness = 3
 	local sheetGrade = env.text(sheet, "Grade", UDim2.fromOffset(70, 40), UDim2.fromOffset(10, 4), GOLD, 38)
@@ -1080,8 +1072,8 @@ return function(env)
 	xpFill.Parent = xpBack
 	local xpLabel = env.text(xpBack, "Label", UDim2.fromScale(0.96, 0.8), UDim2.fromScale(0.02, 0.1), nil, 17)
 	xpLabel.ZIndex = 6
-	local equip = button(sheet, "Equip", UDim2.fromOffset(124, 44), UDim2.fromOffset(12, 362), UI.Colors.Blue, "")
-	local sell = button(sheet, "Sell", UDim2.fromOffset(124, 44), UDim2.fromOffset(144, 362), UI.Colors.Red, "")
+	local equip = button(sheet, "Equip", UDim2.fromOffset(124, 44), UDim2.fromOffset(12, 362), Color3.fromRGB(50, 130, 230), "")
+	local sell = button(sheet, "Sell", UDim2.fromOffset(124, 44), UDim2.fromOffset(144, 362), Color3.fromRGB(226, 50, 50), "")
 	equip.Activated:Connect(function()
 		if selected > 0 then
 			equipEvent:FireServer(selected)
@@ -1092,10 +1084,10 @@ return function(env)
 	local feedEvent = ReplicatedStorage:WaitForChild("FeedPet")
 	local feeding = false
 	local doomed = 0 -- la place du familier qui attend la confirmation « es-tu sûr ? »
-	local feed = button(sheet, "Feed", UDim2.fromOffset(160, 44), UDim2.fromOffset(12, 414), UI.Colors.Orange, "")
+	local feed = button(sheet, "Feed", UDim2.fromOffset(160, 44), UDim2.fromOffset(12, 414), Color3.fromRGB(240, 170, 30), "")
 	-- « Au sac » : range ce familier dans le sac (il libère sa place dans l'enclos).
 	local bagEvent = ReplicatedStorage:WaitForChild("BagPet")
-	local toBag = button(sheet, "ToBag", UDim2.fromOffset(88, 44), UDim2.fromOffset(180, 414), UI.Colors.Purple, tr("toBag"))
+	local toBag = button(sheet, "ToBag", UDim2.fromOffset(88, 44), UDim2.fromOffset(180, 414), Color3.fromRGB(120, 90, 200), tr("toBag"))
 	toBag.Activated:Connect(function()
 		if selected > 0 then
 			bagEvent:FireServer(selected)
@@ -1182,7 +1174,6 @@ return function(env)
 					item.tick.Visible = item.out
 					paint(item, entry.rank, item.out, entry.grade)
 					item.line.Text = entry.line
-					item.display.Text = tr(entry.animal)
 					show(item.view, entry.animal, function()
 						return eggModel(entry.animal)
 					end)
@@ -1235,7 +1226,6 @@ return function(env)
 				petCards[i] = item
 			end
 			item.spot = entry.index
-			item.display.Text = tr(entry.spot.a)
 			item.frame.Visible = true
 			paint(item, entry.spot.q, entry.index == selected, Pets.gradeOf(entry.spot))
 			item.line.Text = if feeding and entry.index == doomed then tr("feedConfirm") elseif feeding and entry.index ~= selected then tr("feedThis") else tr("lvlLong", Pets.levelOf(entry.spot))
@@ -1258,7 +1248,7 @@ return function(env)
 			sheetGrade.Text = Pets.gradeOf(spot)
 			sheetGrade.TextColor3 = GRADE_COLORS[Pets.gradeOf(spot)]
 			feed.Label.Text = if feeding then tr("feedCancel") else tr("feed")
-			feed.BackgroundColor3 = if feeding then UI.Colors.Card else UI.Colors.Orange
+			feed.BackgroundColor3 = if feeding then Color3.fromRGB(90, 96, 120) else Color3.fromRGB(240, 170, 30)
 			sheetName.Text = tr(spot.a)
 			sheetRarity.Text = tr(info.key)
 			sheetRarity.TextColor3 = info.color
@@ -1272,10 +1262,10 @@ return function(env)
 			xpFill.Size = UDim2.fromScale(math.clamp((spot.xp or 0) / need, 0, 1), 1)
 			xpLabel.Text = tr("lvlLong", Pets.levelOf(spot)) .. "   " .. env.num(spot.xp or 0) .. " / " .. env.num(need)
 			equip.Label.Text = if member then tr("unequip") else tr("equip")
-			equip.BackgroundColor3 = if member then UI.Colors.Blue else UI.Colors.Orange
+			equip.BackgroundColor3 = if member then Color3.fromRGB(50, 130, 230) else Color3.fromRGB(240, 170, 30)
 			local carrying = (player:GetAttribute("Held") or "") == tostring(selected)
 			sell.Label.Text = if carrying then tr("putBack") else tr("takeOut")
-			sell.BackgroundColor3 = if carrying then UI.Colors.Orange else UI.Colors.Red
+			sell.BackgroundColor3 = if carrying then Color3.fromRGB(255, 150, 40) else Color3.fromRGB(226, 50, 50)
 		end
 		fitWindow(petPanel)
 	end
@@ -1291,11 +1281,8 @@ return function(env)
 	end)
 	-- LA BOUTIQUE : on y dépense ses pièces. L'épée (plus de dégâts pour soi) et les places de l'enclos.
 	-- LE SAC : les familiers rangés hors de l'enclos. Un clic sur l'un d'eux le remet dans l'enclos.
-	local bagButton = squareButton("BagButton", 2, UI.Colors.Purple)
+	local bagButton = squareButton("BagButton", 2, Color3.fromRGB(120, 90, 200))
 	env.text(bagButton, "Label", UDim2.fromScale(0.8, 0.8), UDim2.fromScale(0.1, 0.1)).Text = "🎒"
-	bagButton.Label.TextTransparency = 1
-	bagButton.Label.Position, bagButton.Label.Size = UDim2.fromOffset(14, 4), UDim2.fromOffset(38, 38)
-	UI.icon(bagButton.Label, "bag")
 	local bagPanel = window("BagPanel", tr("bagTitle"), 600, 460)
 	local bagInfo = env.text(bagPanel, "Info", UDim2.new(1, -40, 0, 24), UDim2.fromOffset(20, 52), GOLD, 18)
 	bagInfo.TextXAlignment = Enum.TextXAlignment.Left
@@ -1330,7 +1317,6 @@ return function(env)
 			item.frame.Visible = true
 			paint(item, pet.q, false, Pets.gradeOf(pet))
 			item.line.Text = tr("lvlLong", Pets.levelOf(pet))
-			item.display.Text = tr(pet.a)
 			show(item.view, pet.a .. pet.q, function()
 				return Pets.build(pet.a, pet.q, true)
 			end)
@@ -1359,13 +1345,10 @@ return function(env)
 	-- L'ÉPÉE : un bouton, et une fenêtre qui montre seulement mon épée et la suivante, avec leurs dégâts.
 	local swordButton = squareButton("SwordButton", 3, Color3.fromRGB(240, 80, 80))
 	env.text(swordButton, "Label", UDim2.fromScale(0.8, 0.8), UDim2.fromScale(0.1, 0.1)).Text = "⚔"
-	swordButton.Label.TextTransparency = 1
-	swordButton.Label.Position, swordButton.Label.Size = UDim2.fromOffset(14, 4), UDim2.fromOffset(38, 38)
-	UI.icon(swordButton.Label, "sword")
 	local swordPanel = window("SwordPanel", tr("swordTitle"), 560, 380)
 	local SWORD_MODELS = { "Iron", "Steel", "Gold", "Frost", "Flame", "Storm", "Fusion", "Void" }
 	local function swordCard(x: number, title: string)
-		local frame = env.box(swordPanel, "Card", UDim2.fromOffset(240, 240), UDim2.fromOffset(x, 60), UI.Colors.Card)
+		local frame = env.box(swordPanel, "Card", UDim2.fromOffset(240, 240), UDim2.fromOffset(x, 60), Color3.fromRGB(30, 44, 78))
 		frame.ZIndex = 4
 		frame.UIStroke.Thickness = 3
 		local head = env.text(frame, "Head", UDim2.new(1, -16, 0, 26), UDim2.fromOffset(8, 6), GOLD, 22)
@@ -1374,11 +1357,11 @@ return function(env)
 		local view = portrait(frame, UDim2.fromOffset(220, 150), UDim2.fromOffset(10, 34))
 		local damage = env.text(frame, "Damage", UDim2.new(1, -16, 0, 40), UDim2.fromOffset(8, 192), nil, 34)
 		damage.ZIndex = 5
-		return { frame = frame, view = view, damage = damage, head = head }
+		return { frame = frame, view = view, damage = damage }
 	end
 	local swordNow, swordNext = swordCard(24, tr("swordNow")), swordCard(296, tr("swordNext"))
 	env.text(swordPanel, "Arrow", UDim2.fromOffset(32, 40), UDim2.fromOffset(264, 160), GOLD, 34).Text = ">"
-	local swordBuy = button(swordPanel, "Buy", UDim2.fromOffset(512, 54), UDim2.fromOffset(24, 312), UI.Colors.Green, "")
+	local swordBuy = button(swordPanel, "Buy", UDim2.fromOffset(512, 54), UDim2.fromOffset(24, 312), Color3.fromRGB(60, 200, 70), "")
 	local buySwordEvent = ReplicatedStorage:WaitForChild("BuySword")
 	swordBuy.Activated:Connect(function()
 		buySwordEvent:FireServer()
@@ -1402,7 +1385,7 @@ return function(env)
 			end)
 		end
 		swordBuy.Label.Text = tr("swordBuy", env.num(price))
-		swordBuy.BackgroundColor3 = if coins >= price then UI.Colors.Green else UI.Colors.Red
+		swordBuy.BackgroundColor3 = if coins >= price then Color3.fromRGB(60, 200, 70) else Color3.fromRGB(200, 70, 70)
 		fitWindow(swordPanel)
 	end
 	for _, name in { "Coins", "Sword", "Level" } do
@@ -1421,21 +1404,16 @@ return function(env)
 
 	local shopButton = squareButton("ShopButton", 4, Color3.fromRGB(60, 150, 255))
 	env.text(shopButton, "Label", UDim2.fromScale(0.8, 0.8), UDim2.fromScale(0.1, 0.1)).Text = "🛒"
-	shopButton.Label.TextTransparency = 1
-	shopButton.Label.Position, shopButton.Label.Size = UDim2.fromOffset(14, 4), UDim2.fromOffset(38, 38)
-	UI.icon(shopButton.Label, "shop")
 	local shopPanel = window("ShopPanel", tr("shopTitle"), 620, 330)
 	local swordEvent = ReplicatedStorage:WaitForChild("BuySword")
 	local function shopRow(y: number, icon: string, color: Color3)
-		local row = env.box(shopPanel, "Row", UDim2.new(1, -40, 0, 110), UDim2.fromOffset(20, y), UI.Colors.Card)
+		local row = env.box(shopPanel, "Row", UDim2.new(1, -40, 0, 110), UDim2.fromOffset(20, y), Color3.fromRGB(30, 44, 78))
 		row.ZIndex = 4
 		row.UIStroke.Color = color
 		row.UIStroke.Thickness = 3
 		local picture = env.text(row, "Icon", UDim2.fromOffset(80, 80), UDim2.fromOffset(12, 15))
 		picture.Text = icon
-		picture.TextTransparency = 1
 		picture.ZIndex = 5
-		UI.icon(picture, if icon == "⚔" then "sword" else "paw")
 		local title = env.text(row, "Title", UDim2.new(1, -310, 0, 30), UDim2.fromOffset(104, 10), color, 26)
 		title.TextXAlignment = Enum.TextXAlignment.Left
 		title.ZIndex = 5
@@ -1445,8 +1423,8 @@ return function(env)
 		local note = env.text(row, "Note", UDim2.new(1, -310, 0, 20), UDim2.fromOffset(104, 76), Color3.fromRGB(190, 200, 220), 16)
 		note.TextXAlignment = Enum.TextXAlignment.Left
 		note.ZIndex = 5
-		local buy = button(row, "Buy", UDim2.fromOffset(180, 70), UDim2.new(1, -194, 0, 20), UI.Colors.Green, "")
-		return { frame = row, picture = picture, title = title, line = line, note = note, buy = buy }
+		local buy = button(row, "Buy", UDim2.fromOffset(180, 70), UDim2.new(1, -194, 0, 20), Color3.fromRGB(60, 200, 70), "")
+		return { title = title, line = line, note = note, buy = buy }
 	end
 	local swordRow = shopRow(62, "⚔", Color3.fromRGB(255, 110, 110))
 	local penRow = shopRow(186, "🐾", Color3.fromRGB(255, 170, 60))
@@ -1469,14 +1447,14 @@ return function(env)
 		swordRow.line.Text = tr("shopSwordLine", env.num(Config.hitDamage(sword, level)), env.num(Config.hitDamage(sword + 1, level)))
 		swordRow.note.Text = if maxed then tr("forgeMax", zone) else tr("shopSwordNote")
 		swordRow.buy.Label.Text = if maxed then "MAX" else env.num(price) .. " $"
-		swordRow.buy.BackgroundColor3 = if maxed then UI.Colors.Card elseif coins >= price then UI.Colors.Green else UI.Colors.Red
+		swordRow.buy.BackgroundColor3 = if maxed then Color3.fromRGB(90, 96, 120) elseif coins >= price then Color3.fromRGB(60, 200, 70) else Color3.fromRGB(200, 70, 70)
 		local places = player:GetAttribute("Places") or Pets.SPOTS_FREE
 		local spot = Pets.spotPrice(places)
 		penRow.title.Text = tr("shopPen", Pets.penLevel(places))
 		penRow.line.Text = tr("shopPenLine", places, places + 1)
 		penRow.note.Text = tr("shopPenNote")
 		penRow.buy.Label.Text = if spot then env.num(spot) .. " $" else "MAX"
-		penRow.buy.BackgroundColor3 = if not spot then UI.Colors.Card elseif coins >= spot then UI.Colors.Green else UI.Colors.Red
+		penRow.buy.BackgroundColor3 = if not spot then Color3.fromRGB(90, 96, 120) elseif coins >= spot then Color3.fromRGB(60, 200, 70) else Color3.fromRGB(200, 70, 70)
 		fitWindow(shopPanel)
 	end
 	for _, name in { "Coins", "Sword", "Zone", "Places", "Level" } do
@@ -1490,129 +1468,6 @@ return function(env)
 		petPanel.Visible = false
 		eggPanel.Visible = false
 	end)
-
-	-- One layout contract per window; narrow screens reflow instead of shrinking a desktop page.
-	local windows = { eggPanel, petPanel, bagPanel, swordPanel, shopPanel }
-	local references = {
-		EggPanel = { Info = eggInfo, ReadyGrid = eggGrid.Parent, Hatching = hatchInfo, HatchGrid = hatchGrid.Parent },
-		PetPanel = { Count = petCount, AddPlace = addPlace, PetGrid = petGrid.Parent, Best = best, None = none, Sheet = sheet },
-		BagPanel = { Info = bagInfo, BagGrid = bagGrid.Parent },
-		SwordPanel = { Current = swordNow.frame, Next = swordNext.frame, Arrow = swordPanel.Arrow, Buy = swordBuy },
-		ShopPanel = { SwordRow = swordRow.frame, PenRow = penRow.frame },
-	}
-	local function rectangle(object: GuiObject, x: number, y: number, width: number, height: number)
-		object.Position = UDim2.fromOffset(x, y)
-		object.Size = UDim2.fromOffset(width, height)
-	end
-	layoutWindow = function(frame: Frame)
-		local screen = UI.screenSize(env.gui)
-		local geometry, mode = MenuLayout.window(frame.Name, screen.X, screen.Y, UI.compact(screen))
-		frame.Size = UDim2.fromOffset(geometry.size[1], geometry.size[2])
-		for name, object in references[frame.Name] do
-			rectangle(object, table.unpack(geometry[name]))
-		end
-		local narrow = mode ~= "desktop"
-		if frame == petPanel then
-			petGrid.UIGridLayout.CellSize = UDim2.fromOffset(100, if mode == "wide" then 96 else 122)
-			sheet.ScrollBarThickness = if narrow then 5 else 0
-			sheet.CanvasSize = UDim2.fromOffset(0, if narrow then 286 else 0)
-			if narrow then
-				rectangle(sheetGrade, 10, 6, 40, 30)
-				rectangle(sheetName, 56, 8, 214, 26)
-				rectangle(sheetRarity, 56, 36, 214, 20)
-				rectangle(sheetView, 188, 62, 82, if mode == "portrait" then 54 else 70)
-				rectangle(sheetFight, 10, 64, 170, 26)
-				rectangle(sheetIncome, 10, 96, 170, 20)
-				rectangle(sheetLuck, 10, 120, 170, 22)
-				rectangle(equip, 12, if mode == "portrait" then 150 else 148, 124, 44)
-				rectangle(sell, 144, if mode == "portrait" then 150 else 148, 124, 44)
-				rectangle(xpBack, 12, 202, 256, 24)
-				rectangle(feed, 12, 236, 160, 44)
-				rectangle(toBag, 180, 236, 88, 44)
-			else
-				rectangle(sheetGrade, 10, 4, 70, 40)
-				rectangle(sheetName, 82, 8, 200, 30)
-				rectangle(sheetRarity, 10, 44, 274, 20)
-				rectangle(sheetView, 47, 62, 200, 170)
-				rectangle(sheetFight, 10, 236, 274, 30)
-				rectangle(sheetIncome, 10, 270, 274, 20)
-				rectangle(sheetLuck, 10, 292, 274, 20)
-				rectangle(xpBack, 12, 322, 270, 26)
-				rectangle(equip, 12, 362, 128, 48)
-				rectangle(sell, 154, 362, 128, 48)
-				rectangle(feed, 12, 426, 176, 48)
-				rectangle(toBag, 198, 426, 84, 48)
-			end
-			UI.label(sheetName, if narrow then 22 else 26)
-			UI.label(sheetFight, if narrow then 20 else 26)
-		elseif frame == swordPanel then
-			for _, item in { swordNow, swordNext } do
-				if narrow then
-					rectangle(item.head, 12, 8, 280, 28)
-					rectangle(item.view, 8, 40, 112, 96)
-					rectangle(item.damage, 128, 70, 164, 40)
-				else
-					rectangle(item.head, 12, 8, 272, 30)
-					rectangle(item.view, 20, 44, 256, 190)
-					rectangle(item.damage, 12, 242, 272, 38)
-				end
-			end
-			swordPanel.Arrow.Rotation = if mode == "portrait" then 90 else 0
-		elseif frame == shopPanel then
-			for _, row in { swordRow, penRow } do
-				if mode == "portrait" then
-					rectangle(row.picture, 12, 10, 44, 44)
-					rectangle(row.title, 68, 10, 232, 30)
-					rectangle(row.line, 12, 66, 288, 34)
-					rectangle(row.note, 12, 104, 288, 40)
-					rectangle(row.buy, 12, 160, 288, 44)
-				else
-					rectangle(row.picture, 12, 18, 56, 56)
-					rectangle(row.title, 80, 8, 372, 28)
-					rectangle(row.line, 80, 38, 372, 26)
-					rectangle(row.note, 80, 68, 372, if narrow then 20 else 42)
-					rectangle(row.buy, 464, if narrow then 20 else 30, 176, 56)
-				end
-				UI.label(row.title, 22)
-				row.title.TextColor3 = UI.Colors.Gold
-				UI.label(row.line, 20)
-				UI.label(row.note, 17)
-				row.note.TextColor3 = UI.Colors.Muted
-			end
-		end
-	end
-	-- A visual backdrop, not a second input flow: existing close/menu callbacks remain intact.
-	local backdrop = Instance.new("Frame")
-	backdrop.Name = "MenuBackdrop"
-	backdrop.Size = UDim2.fromScale(1, 1)
-	backdrop.BackgroundColor3 = UI.Colors.Ink
-	backdrop.BackgroundTransparency = 0.28
-	backdrop.BorderSizePixel = 0
-	backdrop.ZIndex = 3
-	backdrop.Visible = false
-	backdrop.Parent = env.gui
-	local function syncMenus()
-		local anyOpen = false
-		for _, frame in windows do
-			local navigation = env.gui:FindFirstChild(UI.Panels[frame.Name])
-			if navigation then
-				navigation.UIStroke.Color = if frame.Visible then UI.Colors.Text else UI.Colors.Ink
-				navigation.UIStroke.Thickness = if frame.Visible then 3 else 2
-			end
-			if frame.Visible then anyOpen = true end
-		end
-		backdrop.Visible = anyOpen
-	end
-	local function fitMenus()
-		for _, frame in windows do fitWindow(frame) end
-	end
-	for _, frame in windows do
-		frame:GetPropertyChangedSignal("Visible"):Connect(syncMenus)
-	end
-	env.gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(fitMenus)
-	workspace:GetAttributeChangedSignal("PhoneHud"):Connect(fitMenus)
-	fitMenus()
-	syncMenus()
 
 	petPanel:GetPropertyChangedSignal("Visible"):Connect(refreshPanels)
 	eggPanel:GetPropertyChangedSignal("Visible"):Connect(refreshPanels)
