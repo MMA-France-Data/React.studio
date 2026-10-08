@@ -5,7 +5,7 @@
 local Players = game:GetService("Players")
 local ServerStorage = game:GetService("ServerStorage")
 
-local LIST = { { 2, 2 }, { 2, 1 } }
+local LIST = { { 3, 3 } }
 
 return function(log)
 	local player = Players:GetPlayers()[1] or Players.PlayerAdded:Wait()

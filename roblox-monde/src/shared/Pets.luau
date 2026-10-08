@@ -345,6 +345,9 @@ function Pets.hatchSeconds(room: number, rarity: number): number
 end
 
 -- Grosseur de cet animal par rapport aux autres.
+-- GROSSEUR EN PLUS de certains animaux, partout (camps, équipe, enclos). Le crocodile en maillage était trop petit
+-- (retour du joueur, 08/10 : « c'est les crocos que je trouve petits »).
+Pets.BIGGER = { Crocodile = 1.6 }
 function Pets.size(name: string): number
 	local def = Pets.DEFS[name]
 	return def and def.size or 1
@@ -665,7 +668,7 @@ function Pets.build(name: string, rarity: number, display: boolean?): Model
 		sparkles.Parent = body
 	end
 	-- La taille de base du rig importé n'est pas forcément 1 ; mêmes tailles relatives et mêmes pouvoirs.
-	model:ScaleTo((model:GetAttribute("VisualBaseScale") or 1) * info.scale * if display then 1 else Pets.size(name))
+	model:ScaleTo((model:GetAttribute("VisualBaseScale") or 1) * info.scale * (Pets.BIGGER[name] or 1) * if display then 1 else Pets.size(name))
 	Pets.shimmer(model, 0)
 	return model
 end
