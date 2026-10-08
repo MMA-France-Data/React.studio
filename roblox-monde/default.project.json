@@ -292,12 +292,6 @@
         },
         "Tiger": {
           "$path": "assets/collections/monde-03-jungle-maillages/Tiger/Tiger-rig-template.rbxmx"
-        },
-        "Bear": {
-          "$path": "assets/collections/monde-02-foret-maillages/Bear/Bear-rig-template.rbxmx"
-        },
-        "Lion": {
-          "$path": "assets/collections/monde-04-savane-maillages/Lion/Lion-rig-template.rbxmx"
         }
       },
       "MeshImports": {
