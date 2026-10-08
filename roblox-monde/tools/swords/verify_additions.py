@@ -5,7 +5,7 @@ import os
 from mathutils import Vector
 
 root = os.path.abspath(os.path.join(os.path.dirname(__file__), '../..'))
-for identity in ['Fusion', 'Void']:
+for identity in ['Fusion', 'Void', 'GoldV2']:
     directory = os.path.join(root, 'assets/swords-roblox', identity)
     with open(os.path.join(directory, 'info.json'), encoding='utf-8') as handle:
         info = json.load(handle)
@@ -21,6 +21,10 @@ for identity in ['Fusion', 'Void']:
     low, high = min(p.y for p in points), max(p.y for p in points)
     assert abs(high - low - 5.2) < .015, 'Length/orientation differs after FBX round-trip'
     grip_points = [p for p in points if abs(p.y) < .09]
+    if 'handleCoreHalfWidth' in info:
+        # Ignore GoldV2's large knuckle guard: the hand belongs on the shaft.
+        grip_points = [p for p in grip_points if abs(p.z) < info['handleCoreHalfWidth']]
+    assert grip_points, 'No handle section after FBX round-trip'
     for axis in [0, 2]:
         center = (min(p[axis] for p in grip_points) + max(p[axis] for p in grip_points)) * .5
         assert abs(center) < .035, 'Handle not centered on the hand pivot'
@@ -36,4 +40,10 @@ for identity in ['Fusion', 'Void']:
     assert len(textures) >= 4, 'Incomplete PBR maps after FBX round-trip'
     for image in textures:
         assert max(image.size) <= 1024, 'Oversized PBR map'
+    if identity == 'GoldV2':
+        assert obj.name == 'Sword_GoldV2' and info['replaces'] == 'Gold'
+        for key in ['trailBase', 'trailTip']:
+            v = info[key]
+            p = Vector((v[0], -v[2], v[1]))
+            assert min((p - vertex).length for vertex in points) < .16, 'Trail detached from curved gold blade'
     print('FBX_ROUND_TRIP_OK', identity, triangles, 'UV/PBR/handle/markers', round(worst, 5))

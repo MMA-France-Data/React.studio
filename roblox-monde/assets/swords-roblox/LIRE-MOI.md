@@ -1,5 +1,9 @@
 # Les 7 épées, prêtes à importer dans Roblox Studio
 
+**Nouvelle épée or du 8 octobre :** `A-IMPORTER/Sword_GoldV2.fbx` prépare le remplacement visuel de Gold.
+L'ancienne et `SwordMeshes.rbxm` restent intacts en attendant l'import dans Studio.
+Voir [les instructions de remplacement et les vérifications](AJOUT-GOLD-V2.md).
+
 **Ajout du 8 octobre :** deux modèles supplémentaires, `Sword_Fusion.fbx` et `Sword_Void.fbx`, sont prêts dans
 `A-IMPORTER`. Le créateur les a depuis importés dans `SwordMeshes.rbxm` (commit `0d38f6a`). Les doubles frappes
 traversent maintenant le corps vers le côté opposé, et les auras sont renforcées : brume violet sombre continue,

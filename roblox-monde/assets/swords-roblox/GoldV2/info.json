@@ -1,0 +1,41 @@
+{
+  "id": "GoldV2",
+  "sourceFile": "Meshy_AI_Golden_Nature_Cutlass_1008094110_image-to-3d-texture.fbx",
+  "sourceSha256": "d8cf8b6f8091b7cb9bfbc90e91441f2d6e6a8a40ea0159e41649d6e9c0cf5a3c",
+  "trianglesBefore": 362086,
+  "triangles": 18950,
+  "size": [
+    0.5084,
+    1.4532,
+    5.2
+  ],
+  "gripFromPommel": 1.04,
+  "gripAt": [
+    0,
+    0,
+    0
+  ],
+  "gripCrossOffset": [
+    -0.0005,
+    0.0421
+  ],
+  "trailBase": [
+    -0.0413,
+    0.0814,
+    -0.858
+  ],
+  "trailTip": [
+    -0.0023,
+    0.657,
+    -4.16
+  ],
+  "markers": {},
+  "preparation": "local Blender, source unchanged, no Meshy API calls",
+  "robloxImportCompleted": false,
+  "replaces": "Gold",
+  "handleCoreHalfWidth": 0.19,
+  "handleWideRangeSource": [
+    -0.055,
+    0.06
+  ]
+}

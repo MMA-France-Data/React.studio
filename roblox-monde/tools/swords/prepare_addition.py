@@ -4,7 +4,8 @@ blender --background --python tools/swords/prepare_addition.py -- \
   --id Fusion --source /path/to/extracted --output /path/to/assets/swords-roblox
 
 The source is read-only; existing swords and SwordMeshes.rbxm are never changed.
-Grip intervals were checked against these two models, not guessed from the bbox.
+Grip intervals were checked against the downloaded models, not guessed from the bbox.
+GoldV2 is a separate replacement asset: it never overwrites the existing Gold.
 """
 import argparse
 import hashlib
@@ -18,7 +19,7 @@ import numpy as np
 from mathutils import Matrix, Vector
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--id', choices=['Fusion', 'Void'], required=True)
+parser.add_argument('--id', choices=['Fusion', 'Void', 'GoldV2'], required=True)
 parser.add_argument('--source', required=True)
 parser.add_argument('--output', required=True)
 args = parser.parse_args(sys.argv[sys.argv.index('--') + 1:])
@@ -33,6 +34,10 @@ LENGTH, TARGET = 5.2, 19000
 settings = {
     'Fusion': {'handle': (.125, .225), 'bladeStart': .365},
     'Void': {'handle': (.12, .195), 'bladeStart': .365},
+    # Golden Nature Cutlass: central wrapped shaft, NOT the broad knuckle guard.
+    # Source X bounds measured at 16/18/20/22/24% of the sword's length.
+    'GoldV2': {'handle': (.15, .25), 'bladeStart': .365,
+               'handleWideRange': (-.055, .06)},
 }[args.id]
 grip_from_pommel = sum(settings['handle']) * .5 * LENGTH
 
@@ -59,7 +64,7 @@ lo = Vector(tuple(min(p[i] for p in points) for i in range(3)))
 hi = Vector(tuple(max(p[i] for p in points) for i in range(3)))
 span, center = hi - lo, (lo + hi) * .5
 thick, wide, long = sorted(range(3), key=lambda i: span[i])
-# Both inspected downloads: handle at low Z, point at high Z.
+# Inspected downloads: handle at low Z, point at high Z.
 assert long == 2, 'Unrecognized orientation: inspect rather than guess'
 scale = LENGTH / span[long]
 for mesh in [obj.data, original.data]:
@@ -73,6 +78,9 @@ for mesh in [obj.data, original.data]:
 # the actual grip cross-section, including its small sideways displacement.
 handle_points = [v.co.copy() for v in original.data.vertices
                  if abs(v.co.y) < .09]
+if 'handleWideRange' in settings:
+    wide_low, wide_high = [(p - center[wide]) * scale for p in settings['handleWideRange']]
+    handle_points = [p for p in handle_points if wide_low <= p.z <= wide_high]
 assert handle_points, 'Actual handle section not found'
 handle_x = (min(p.x for p in handle_points) + max(p.x for p in handle_points)) * .5
 handle_z = (min(p.z for p in handle_points) + max(p.z for p in handle_points)) * .5
@@ -146,6 +154,11 @@ base_distance = settings['bladeStart'] * LENGTH - grip_from_pommel
 tip_distance = LENGTH - grip_from_pommel
 tip_points = [v.co.copy() for v in mesh.vertices if v.co.y > tip_distance - .015]
 base_points = [v.co.copy() for v in mesh.vertices if abs(v.co.y - base_distance) < .025]
+if args.id == 'GoldV2':
+    # Branches climb the blade: measure the actual gold face, not their bbox.
+    gold_samples = [p for p, rgb in samples
+                    if rgb[0] > .60 and rgb[1] > .55 and rgb[2] < rgb[1] * .75]
+    base_points = [p for p in gold_samples if abs(p.y - base_distance) < .045]
 assert tip_points and base_points, 'Blade endpoints not found'
 def cross_center(pts):
     return ((min(p.x for p in pts) + max(p.x for p in pts)) * .5,
@@ -153,7 +166,8 @@ def cross_center(pts):
 tip_x, tip_z = cross_center(tip_points)
 base_x, base_z = cross_center(base_points)
 box_x, box_z = cross_center([v.co for v in mesh.vertices])
-for group in (['Hot', 'Cold'] if args.id == 'Fusion' else ['Shadow']):
+groups = {'Fusion': ['Hot', 'Cold'], 'Void': ['Shadow'], 'GoldV2': []}[args.id]
+for group in groups:
     valid = []
     for p, rgb in samples:
         r, g, b = rgb
@@ -199,6 +213,10 @@ info = {
     'markers': markers, 'preparation': 'local Blender, source unchanged, no Meshy API calls',
     'robloxImportCompleted': False,
 }
+if args.id == 'GoldV2':
+    info['replaces'] = 'Gold'
+    info['handleCoreHalfWidth'] = .19
+    info['handleWideRangeSource'] = list(settings['handleWideRange'])
 with open(os.path.join(dest, 'info.json'), 'w', encoding='utf-8') as handle:
     json.dump(info, handle, indent=2)
 print('SWORD_ADDITION', json.dumps(info))
