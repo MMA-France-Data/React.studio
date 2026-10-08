@@ -123,7 +123,9 @@ return function(env)
 		-- d un cheveu different : plus aucune face ne tombe pile sur une autre.)
 		local index = 0
 		for _, part in model:GetDescendants() do
-			if part:IsA("BasePart") and part.Transparency < 1 then
+			-- (Pas les animaux en maillage : leurs pièces sont petites et ajustées au millimètre, ce rétrécissement
+			-- ouvrait des fentes, la tête de la chèvre avait l'air décollée.)
+			if part:IsA("BasePart") and part.Transparency < 1 and not model:GetAttribute("MeshStyle") then
 				index += 1
 				local shrink = 0.012 * (index % 9)
 				local size = part.Size

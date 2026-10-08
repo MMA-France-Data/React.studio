@@ -5,7 +5,7 @@
 local Players = game:GetService("Players")
 local ServerStorage = game:GetService("ServerStorage")
 
-local LIST = { { 1, 1 }, { 1, 2 }, { 1, 3 }, { 1, 4 }, { 1, 5 }, { 1, 6 }, { 3, 5 }, { 3, 6 } }
+local LIST = { { 1, 5 }, { 1, 1 }, { 1, 3 }, { 1, 2 } }
 
 return function(log)
 	local player = Players:GetPlayers()[1] or Players.PlayerAdded:Wait()
@@ -42,9 +42,10 @@ return function(log)
 				root.CFrame = CFrame.new(at + Vector3.new(0, 4, -45))
 			end
 			task.wait(1.5)
-			local far = if pick[2] == 6 then 3.2 else 1.9
-			workspace:SetAttribute("ShotCam", CFrame.lookAt(at + Vector3.new(7, 2.5, -4) * far, at + Vector3.new(0, 1.1 * far, 0)))
+			workspace:SetAttribute("ShotCam", CFrame.lookAt(at + Vector3.new(11, 4, -5), at + Vector3.new(0, 3, 0)))
 			shot("pres_" .. monster.animal)
+			workspace:SetAttribute("ShotCam", CFrame.lookAt(at + Vector3.new(-11, 4, -5), at + Vector3.new(0, 3, 0)))
+			shot("pres2_" .. monster.animal)
 		end
 	end
 	workspace:SetAttribute("ShotCam", nil)
