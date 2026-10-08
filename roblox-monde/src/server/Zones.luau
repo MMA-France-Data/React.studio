@@ -255,6 +255,83 @@ function props.fern(parent, at: Vector3, random: Random)
 	end
 end
 
+-- LA SAVANE (monde 4) ------------------------------------------------------------------------------------------------
+-- Un acacia : un tronc fin qui penche, deux branches, et de larges plateaux de feuilles tout plats.
+function props.acacia(parent, at: Vector3, random: Random)
+	local k = random:NextNumber(0.9, 1.5)
+	local turn = CFrame.new(at) * CFrame.Angles(0, random:NextNumber(0, math.pi * 2), 0)
+	local height = 13 * k
+	local bark = rgb(104, 76, 52)
+	local trunk = deco(parent, "Trunk", Vector3.new(height, 1.7 * k, 1.7 * k), turn * CFrame.Angles(0, 0, math.rad(7)) * CFrame.new(0, height / 2, 0) * CFrame.Angles(0, 0, math.rad(90)), bark, M.Wood, Enum.PartType.Cylinder, true)
+	trunk.CanQuery = false
+	local top = (turn * CFrame.Angles(0, 0, math.rad(7)) * CFrame.new(0, height, 0)).Position
+	local greens = { rgb(120, 150, 62), rgb(138, 164, 70), rgb(104, 136, 56) }
+	for i, side in { -1, 1 } do
+		local reach = random:NextNumber(4, 6.5) * k
+		local tip = top + (turn.RightVector * side * reach) + Vector3.new(0, 2.6 * k, 0)
+		deco(parent, "Branch", Vector3.new((tip - top).Magnitude + 0.6, 0.9 * k, 0.9 * k), CFrame.lookAt((top + tip) / 2, tip) * CFrame.Angles(0, math.rad(90), 0), bark, M.Wood, Enum.PartType.Cylinder)
+		pillar(parent, "Canopy", random:NextNumber(12, 16) * k, 1.5 * k, tip, greens[i], M.Grass)
+	end
+	pillar(parent, "Canopy", random:NextNumber(14, 18) * k, 1.7 * k, top + Vector3.new(0, 3.6 * k, 0), greens[3], M.Grass)
+end
+
+-- Un baobab : un énorme tronc en tonneau, et quelques branches courtes avec de petites touffes.
+function props.baobab(parent, at: Vector3, random: Random)
+	local k = random:NextNumber(1, 1.4)
+	local bark = rgb(176, 136, 98)
+	pillar(parent, "Trunk", 11 * k, 9 * k, at, bark, M.Wood, true)
+	pillar(parent, "Trunk", 9 * k, 8 * k, at + Vector3.new(0, 9 * k, 0), rgb(188, 148, 108), M.Wood, true)
+	pillar(parent, "Trunk", 6.5 * k, 5 * k, at + Vector3.new(0, 17 * k, 0), bark, M.Wood)
+	local top = at + Vector3.new(0, 21 * k, 0)
+	for i = 1, 6 do
+		local angle = i / 6 * math.pi * 2 + random:NextNumber(-0.3, 0.3)
+		local tip = top + Vector3.new(math.cos(angle) * 9 * k, random:NextNumber(3, 6) * k, math.sin(angle) * 9 * k)
+		deco(parent, "Branch", Vector3.new((tip - top).Magnitude, 1.4 * k, 1.4 * k), CFrame.lookAt((top + tip) / 2, tip) * CFrame.Angles(0, math.rad(90), 0), bark, M.Wood, Enum.PartType.Cylinder)
+		ball(parent, "Leaves", random:NextNumber(4.5, 6.5) * k, tip + Vector3.new(0, 1.2 * k, 0), if i % 2 == 0 then rgb(126, 160, 66) else rgb(108, 142, 58), M.Grass)
+	end
+end
+
+-- Une termitière : une tour de terre rouge, plus étroite en haut, avec une petite voisine.
+function props.termite(parent, at: Vector3, random: Random)
+	local k = random:NextNumber(0.8, 1.6)
+	local earth = { rgb(176, 96, 60), rgb(190, 108, 66), rgb(162, 86, 54) }
+	for i = 0, 3 do
+		pillar(parent, "Mound", (5.4 - i * 1.2) * k, 2.6 * k, at + Vector3.new(i * 0.25 * k, i * 2.4 * k, 0), earth[i % 3 + 1], M.Sandstone, i == 0)
+	end
+	ball(parent, "MoundTop", 1.8 * k, at + Vector3.new(0.9 * k, 10 * k, 0), earth[1], M.Sandstone)
+	pillar(parent, "Mound", 2.6 * k, 3 * k, at + Vector3.new(-3 * k, 0, 1.5 * k), earth[2], M.Sandstone)
+end
+
+-- Une touffe de hautes herbes sèches.
+function props.drygrass(parent, at: Vector3, random: Random)
+	local straws = { rgb(226, 196, 104), rgb(212, 178, 88), rgb(236, 210, 124) }
+	for i = 1, 7 do
+		local height = random:NextNumber(2.4, 4.4)
+		deco(parent, "Straw", Vector3.new(0.35, height, 0.35), CFrame.new(at + Vector3.new(random:NextNumber(-1.6, 1.6), 0, random:NextNumber(-1.6, 1.6))) * CFrame.Angles(math.rad(random:NextNumber(-14, 14)), 0, math.rad(random:NextNumber(-14, 14))) * CFrame.new(0, height / 2, 0), straws[i % 3 + 1], M.Grass)
+	end
+end
+
+-- Un amas de gros rochers ronds et ocre, comme ceux où les lions se couchent.
+function props.kopje(parent, at: Vector3, random: Random)
+	props.rock(parent, at, random, 2.2, rgb(196, 150, 104))
+end
+
+-- Les os d'un grand animal : des côtes en arc et un crâne.
+function props.bones(parent, at: Vector3, random: Random)
+	local turn = CFrame.new(at) * CFrame.Angles(0, random:NextNumber(0, math.pi * 2), 0)
+	local bone = rgb(240, 234, 214)
+	deco(parent, "Spine", Vector3.new(9, 0.7, 0.7), turn * CFrame.new(0, 2.6, 0), bone, M.SmoothPlastic, Enum.PartType.Cylinder)
+	for i = -2, 2 do
+		for _, side in { -1, 1 } do
+			deco(parent, "Rib", Vector3.new(0.5, 3.2, 0.5), turn * CFrame.new(i * 1.7, 1.5, side * 1.3) * CFrame.Angles(math.rad(side * -24), 0, 0), bone, M.SmoothPlastic)
+		end
+	end
+	deco(parent, "Skull", Vector3.new(2.6, 2, 2.2), turn * CFrame.new(6, 1, 0), bone, M.SmoothPlastic)
+	for _, side in { -1, 1 } do
+		deco(parent, "Horn", Vector3.new(0.5, 0.5, 2.6), turn * CFrame.new(6.2, 2.2, side * 1.8) * CFrame.Angles(math.rad(side * -30), 0, 0), rgb(222, 212, 186), M.SmoothPlastic)
+	end
+end
+
 -- LES THÈMES ------------------------------------------------------------------------------------------------------------
 -- ground : la couleur et la matière du sol ; path : celles du chemin ; cliff : celles des falaises ; patches : des
 -- taches de couleur sur le sol ; scatter : ce qu'on sème partout, avec combien de chaque ; set : les grands décors,
@@ -307,6 +384,30 @@ local THEMES = {
 			props.ruin(folder, center + Vector3.new(104, 0, 30))
 			props.pond(folder, center + Vector3.new(70, 0, -70), random, rgb(60, 200, 170))
 			props.pond(folder, center + Vector3.new(-76, 0, 50), random, rgb(60, 200, 170))
+		end,
+	},
+	-- (Préparé le 08/10 pour le monde 4. Pas encore dans Config.ZONES : il attend ses animaux, la hyène, le buffle,
+	-- le guépard, le rhinocéros, l'éléphant et le lion royal.)
+	Savanna = {
+		ground = { rgb(214, 184, 102), M.Grass },
+		path = { rgb(186, 124, 78), M.Ground },
+		cliff = { rgb(190, 122, 76), M.Sandstone },
+		patches = { rgb(226, 198, 116), rgb(198, 166, 88), rgb(182, 132, 82) },
+		scatter = { acacia = 30, drygrass = 110, termite = 14, kopje = 12, bush = 14, bones = 5 },
+		set = function(folder, center: Vector3, random: Random)
+			props.baobab(folder, center + Vector3.new(-100, 0, -92), random)
+			props.baobab(folder, center + Vector3.new(104, 0, 44), random)
+			props.baobab(folder, center + Vector3.new(-112, 0, 96), random)
+			-- Le point d'eau, entouré de rochers et d'herbes.
+			local water = center + Vector3.new(78, 0, -64)
+			props.pond(folder, water, random, rgb(96, 170, 190))
+			for i = 1, 5 do
+				props.kopje(folder, water + Vector3.new(math.cos(i * 1.3) * 24, 0, math.sin(i * 1.3) * 24), random)
+			end
+			-- Le grand rocher du lion, près de l'arène du boss.
+			local pride = center + Vector3.new(-88, 0, 112)
+			props.rock(folder, pride, random, 4.5, rgb(204, 156, 108))
+			props.rock(folder, pride + Vector3.new(12, 0, 6), random, 3, rgb(190, 144, 98))
 		end,
 	},
 }
