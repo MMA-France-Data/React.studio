@@ -37,9 +37,11 @@ Pets.DEFS = {
 -- collections attendent leurs zones.)
 Pets.COLLECTIONS = {
 	{ "Duck", "Rooster", "Pig", "Sheep", "Goat", "Horse" },
-	{ "Hedgehog", "Squirrel", "Skunk", "Beaver", "Raccoon", "Badger" },
-	{ "Capybara", "Toucan", "Monkey", "Anaconda", "Crocodile", "Jaguar" },
+	-- (Monde 2, sa demande du 08/10 : « le monde deux est pas assez impressionnant, on pourrait partir sur le loup,
+	-- l'ours » : la forêt a maintenant les GROS animaux ; les petits, hérisson et compagnie, attendent un autre monde.)
 	{ "Boar", "Ram", "Deer", "Lynx", "Wolf", "Bear" },
+	{ "Capybara", "Toucan", "Monkey", "Anaconda", "Crocodile", "Jaguar" },
+	{ "Hedgehog", "Squirrel", "Skunk", "Beaver", "Raccoon", "Badger" },
 	{ "Bunny", "Turtle", "Cat", "Dog", "Owlet", "Fox" },
 }
 for room, list in Pets.COLLECTIONS do
