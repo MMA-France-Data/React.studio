@@ -8,7 +8,7 @@
   "originalJointNames": true,
   "originalClipsUnchanged": true,
   "vertexPoseCases": 4131,
-  "maxRetargetMatrixError": 1.49040828345548e-7,
+  "maxRetargetMatrixError": 1.490408284565703e-7,
   "clips": {
     "Idle": {
       "duration": 2.4,
@@ -26,7 +26,7 @@
       "duration": 1.85,
       "loop": false,
       "minHeight": -1.6083593899122886,
-      "maxHeight": 2.2635207334667897
+      "maxHeight": 2.2635207334667893
     }
   }
 }

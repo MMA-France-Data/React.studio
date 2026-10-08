@@ -10,7 +10,7 @@ Le modèle assemblé garde son nom `Duck`, `Horse`, `Rooster`, `Pig`, `Sheep` ou
 
 Les yeux sont symétriques, noirs et plaqués sur la surface du crâne ; la chèvre a une pupille noire horizontale. Les petits détails séparés utilisent des `Weld` vers leur membre existant : ils le suivent exactement et n'ajoutent pas de nouvelle piste d'animation. Le lecteur actuel accepte déjà ces attaches ; aucun lecteur ou script du jeu n'est modifié.
 
-Le corps du cheval est élargi, le poitrail renforcé, les pattes épaissies, l'encolure arquée. Une crinière continue et une longue queue remplacent les anciennes formes. Les oreilles, queues et reliefs sont raccordés à leur anatomie.
+Le corps du cheval est élargi, le poitrail renforcé, les pattes épaissies, l'encolure arquée. Une vraie crinière épaisse, continue et en mèches descend de la nuque au garrot ; elle est intégrée au maillage `Neck` et suit son articulation sans nouvelle pièce. Ses teintes arc-en-ciel sont plus profondes pour la distinguer du cou. Le cheval conserve sa longue queue. Les oreilles, queues et reliefs sont raccordés à leur anatomie.
 
 ## Importer chaque animal
 
