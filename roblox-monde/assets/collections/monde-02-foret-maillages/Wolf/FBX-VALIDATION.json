@@ -1,0 +1,10 @@
+{
+  "passed": true,
+  "actualStudioTest": false,
+  "id": "Wolf",
+  "rigidMeshes": 18,
+  "bones": 0,
+  "triangles": 4696,
+  "maxRoundTripBoundsError": 1.251548528702351e-07,
+  "texturesAndUV": true
+}

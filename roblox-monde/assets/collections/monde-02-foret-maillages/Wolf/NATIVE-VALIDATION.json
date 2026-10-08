@@ -1,0 +1,38 @@
+{
+  "passed": true,
+  "actualStudioTest": false,
+  "id": "Wolf",
+  "basePartsAfterAssembly": 19,
+  "motor6D": 17,
+  "rigidWelds": 1,
+  "originalJointNames": true,
+  "originalClipsUnchanged": true,
+  "vertexPoseCases": 5832,
+  "maxRetargetMatrixError": 6.557706599963353e-8,
+  "clips": {
+    "Idle": {
+      "duration": 2.8,
+      "loop": true,
+      "minHeight": -0.8527268970770402,
+      "maxHeight": 0.8678201167675856
+    },
+    "Walk": {
+      "duration": 1.4,
+      "loop": true,
+      "minHeight": -0.8713614826900002,
+      "maxHeight": 0.8727502669499616
+    },
+    "Attack": {
+      "duration": 1.06,
+      "loop": false,
+      "minHeight": -0.8419999799728393,
+      "maxHeight": 0.8935671628576635
+    },
+    "Bite": {
+      "duration": 1.06,
+      "loop": false,
+      "minHeight": -0.8419999799728393,
+      "maxHeight": 0.8935671628576635
+    }
+  }
+}

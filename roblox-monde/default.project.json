@@ -251,6 +251,21 @@
       },
       "MeshRigs": {
         "$className": "Folder",
+        "Boar": {
+          "$path": "assets/collections/monde-02-foret-maillages/Boar/Boar-rig-template.rbxmx"
+        },
+        "Ram": {
+          "$path": "assets/collections/monde-02-foret-maillages/Ram/Ram-rig-template.rbxmx"
+        },
+        "Deer": {
+          "$path": "assets/collections/monde-02-foret-maillages/Deer/Deer-rig-template.rbxmx"
+        },
+        "Lynx": {
+          "$path": "assets/collections/monde-02-foret-maillages/Lynx/Lynx-rig-template.rbxmx"
+        },
+        "Wolf": {
+          "$path": "assets/collections/monde-02-foret-maillages/Wolf/Wolf-rig-template.rbxmx"
+        },
         "Capybara": {
           "$path": "assets/collections/monde-03-jungle-maillages/Capybara/Capybara-rig-template.rbxmx"
         },

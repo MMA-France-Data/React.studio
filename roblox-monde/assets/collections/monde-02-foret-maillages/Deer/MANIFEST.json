@@ -1,0 +1,39 @@
+{
+  "id": "Deer",
+  "world": 2,
+  "theme": "Forêt",
+  "created": "2026-10-08",
+  "boss": false,
+  "rainbowCoat": false,
+  "triangles": 4694,
+  "meshPieces": 16,
+  "reliefStuds": 252,
+  "basePartsAfterAssembly": 17,
+  "Motor6D": 14,
+  "rigidWelds": 2,
+  "animations": [
+    "Idle",
+    "Walk",
+    "Attack"
+  ],
+  "requiredReaderChanges": false,
+  "requiresStudioMeshImport": true,
+  "actualStudioTest": false,
+  "eggsModified": false,
+  "paidGenerations": 0,
+  "files": {
+    "Deer.fbx": "917ad48678d3da3cacc154a91fac8e79f028bb8d760ce89b3f65d169930e3a0a",
+    "Deer-rig-template.rbxmx": "122e9c2511879c23a447d614c238ac640859d21ebc35ef93b67ef51142fd7df0",
+    "Assembler-Deer.luau": "9c7a7aa7d811a1e7af37d8e6922b5ddfbea57c9a6361f5a2a7bffcc7c79c9e61",
+    "Deer_Colour_512.png": "a3eae19d7fe62720210fea228dc1c7dfe2d4bd76251fa3e1c52c09334c920e2b",
+    "Deer.blend": "a6598b2b52179ea8899fe53cc99f670fb7ff9cc47514d1efe1ab7adbea5595ee",
+    "Deer.png": "0a0c3427f9117f2927f3988b5d5d73f2bad332278f709a208174581dbc73523e",
+    "Deer-profil.png": "1aa202a328b9f90a8f765b82aaf86fe5774c692814247b6914002e8b667143be",
+    "Deer-visage.png": "c562e1bc28ef36af938a42df587b87dd044aab4c213313ddcc3b937178e1341a",
+    "native-rig-spec.json": "ee6fbdfef0156c8689c06d8a4a4cc5d902641f4f399bafa35ebd6b1784805fff",
+    "source-rig-and-clips.json": "36813f62d18691954ee57b7b6719906419fa43d96fca88ae72ca4c7735152906",
+    "NATIVE-VALIDATION.json": "3abf4c62ac914281a68e4363353c24ccaef4ab7b4d011fa45e8d1ba322eef19e",
+    "FBX-VALIDATION.json": "a3db559cf853b38d9383e68f343fc92311d5bf12808930613197a2b3c0161c8d",
+    "CONTACT-VALIDATION.json": "0290898415bb9df2dc4eb20baa8b387b8a668817ca02d981009a543bb43dd2dc"
+  }
+}

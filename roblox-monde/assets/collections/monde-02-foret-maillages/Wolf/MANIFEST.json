@@ -1,0 +1,40 @@
+{
+  "id": "Wolf",
+  "world": 2,
+  "theme": "Forêt",
+  "created": "2026-10-08",
+  "boss": false,
+  "rainbowCoat": false,
+  "triangles": 4696,
+  "meshPieces": 18,
+  "reliefStuds": 247,
+  "basePartsAfterAssembly": 19,
+  "Motor6D": 17,
+  "rigidWelds": 1,
+  "animations": [
+    "Idle",
+    "Walk",
+    "Attack",
+    "Bite"
+  ],
+  "requiredReaderChanges": false,
+  "requiresStudioMeshImport": true,
+  "actualStudioTest": false,
+  "eggsModified": false,
+  "paidGenerations": 0,
+  "files": {
+    "Wolf.fbx": "1a89f0244a3ac93e47aff65732cc5f00d2e2bd47d1471249179416e7b57c4c10",
+    "Wolf-rig-template.rbxmx": "0fd1d79f2390aaf11cf9a319b0ef9d5c3330d3784476bcc42b46593e022cd95b",
+    "Assembler-Wolf.luau": "ae93e2264be0f999f85dce69c4e84cd0e2741c3cb0bfdc3ab06777edc7271759",
+    "Wolf_Colour_512.png": "39a0db770b691d2b33c259ddceeb2b0b408315b2d3b8c671f7645d7e1d3de7d5",
+    "Wolf.blend": "c107c4ce9e3362b273027a75887ec67f0d4bc9e833bc93c02990ff455520b6a1",
+    "Wolf.png": "c015efed75b3afc4c13b6eb8265c2a6b2494b5a53daeed1e4a176f43a94332a1",
+    "Wolf-profil.png": "aded92f555db7c1ba1bc127f0d623d425e879f9f4f576bb3974a9a6840f2927c",
+    "Wolf-visage.png": "1d8cb46fa315ed1ccb9aa079629e4526cc5c0bffc62dd39a04822e2641b99dc3",
+    "native-rig-spec.json": "49eb71e64843560225369f44c84fab920eae6afc607f985b099539523557fba6",
+    "source-rig-and-clips.json": "05d926889be4a9711ac145b368c1977d65c523c259d3c6b1727d531ea7ace63d",
+    "NATIVE-VALIDATION.json": "2a1ce4d59e1b2ab1e4ed020f5f6a972e978c4ce47ac77977c6a9fbb5f24c7a50",
+    "FBX-VALIDATION.json": "8d73c292bd171c70af3ceb96c9415bd39f571cdfc2577e1118c8a8e9caa2b545",
+    "CONTACT-VALIDATION.json": "363afb025fb008c41e65bce3e6a71ca9283e6edc1b6fac1dd3b412e7b8445185"
+  }
+}

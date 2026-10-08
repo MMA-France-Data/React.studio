@@ -1,0 +1,32 @@
+{
+  "passed": true,
+  "actualStudioTest": false,
+  "id": "Deer",
+  "basePartsAfterAssembly": 17,
+  "motor6D": 14,
+  "rigidWelds": 2,
+  "originalJointNames": true,
+  "originalClipsUnchanged": true,
+  "vertexPoseCases": 3888,
+  "maxRetargetMatrixError": 6.812473107853378e-8,
+  "clips": {
+    "Idle": {
+      "duration": 2.8,
+      "loop": true,
+      "minHeight": -1.5642011913845402,
+      "maxHeight": 1.8393437982563468
+    },
+    "Walk": {
+      "duration": 1.45,
+      "loop": true,
+      "minHeight": -1.5769470023397234,
+      "maxHeight": 1.8451672885152326
+    },
+    "Attack": {
+      "duration": 1.38,
+      "loop": false,
+      "minHeight": -1.5520000371932983,
+      "maxHeight": 1.8777826947169696
+    }
+  }
+}

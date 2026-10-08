@@ -1,0 +1,38 @@
+{
+  "passed": true,
+  "actualStudioTest": false,
+  "id": "Lynx",
+  "basePartsAfterAssembly": 18,
+  "motor6D": 10,
+  "rigidWelds": 7,
+  "originalJointNames": true,
+  "originalClipsUnchanged": true,
+  "vertexPoseCases": 5508,
+  "maxRetargetMatrixError": 5.232271882427142e-8,
+  "clips": {
+    "Idle": {
+      "duration": 2.8,
+      "loop": true,
+      "minHeight": -1.2938708911798817,
+      "maxHeight": 1.2365844547716847
+    },
+    "Walk": {
+      "duration": 1.25,
+      "loop": true,
+      "minHeight": -1.3177234224418064,
+      "maxHeight": 1.2455176535162182
+    },
+    "Attack": {
+      "duration": 1,
+      "loop": false,
+      "minHeight": -1.28,
+      "maxHeight": 1.2915503844555125
+    },
+    "Bite": {
+      "duration": 1.06,
+      "loop": false,
+      "minHeight": -1.28,
+      "maxHeight": 1.266255630585819
+    }
+  }
+}

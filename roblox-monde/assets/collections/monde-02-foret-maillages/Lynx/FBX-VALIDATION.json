@@ -1,0 +1,10 @@
+{
+  "passed": true,
+  "actualStudioTest": false,
+  "id": "Lynx",
+  "rigidMeshes": 17,
+  "bones": 0,
+  "triangles": 4688,
+  "maxRoundTripBoundsError": 1.7261505136367816e-07,
+  "texturesAndUV": true
+}

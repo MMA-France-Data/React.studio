@@ -1,0 +1,39 @@
+{
+  "id": "Ram",
+  "world": 2,
+  "theme": "Forêt",
+  "created": "2026-10-08",
+  "boss": false,
+  "rainbowCoat": false,
+  "triangles": 4684,
+  "meshPieces": 17,
+  "reliefStuds": 244,
+  "basePartsAfterAssembly": 18,
+  "Motor6D": 9,
+  "rigidWelds": 8,
+  "animations": [
+    "Idle",
+    "Walk",
+    "Attack"
+  ],
+  "requiredReaderChanges": false,
+  "requiresStudioMeshImport": true,
+  "actualStudioTest": false,
+  "eggsModified": false,
+  "paidGenerations": 0,
+  "files": {
+    "Ram.fbx": "a6667a4aacc836df14df724ae3b60bea49452d046bfdf81f7c0f150dcf236217",
+    "Ram-rig-template.rbxmx": "dd79b9b293e4faebcc2e0903a8c4b6c0f2bca34899735568224ce8ae88ac8107",
+    "Assembler-Ram.luau": "95235f16c7d5fc3b12761a5c62e6d8188a47e80107c0a86624ab65ab366c0105",
+    "Ram_Colour_512.png": "b1957db1cd5c24f997f3a3a6262b6dc60ddb2fb6bade494c389425892cba1d5d",
+    "Ram.blend": "13903f8117f01eca2bb70deba80610f499ba95d1a729490184168089a0e4baa5",
+    "Ram.png": "c5834d08944f3204d2f72629eb39d317427da5cb806882343a3fb827e92cfa4f",
+    "Ram-profil.png": "03d751ca38671b1480ca092487464418c492ef51350b5b5ec7c334d02578eb6f",
+    "Ram-visage.png": "0280776f2bc0e2c36bc6ad4377514300ad6c09d73e05ed10843662c3d146670f",
+    "native-rig-spec.json": "5b33eaea12857da31ce37a3ab6fb53bfaeabe32d15780bf967ab5a61bed6ceee",
+    "source-rig-and-clips.json": "a994a622cf241fb928a8ff5127dd3b3b94897a47fa02b5d9212ecd370c660034",
+    "NATIVE-VALIDATION.json": "42887388e643502b5dc5549fd52f56f2af287e50e7bd3bc396eab34c76f67bcf",
+    "FBX-VALIDATION.json": "d15b57a00772737733a421049446c9cc914f2d4888b9452adf35598850acf415",
+    "CONTACT-VALIDATION.json": "f085fa6968a1ccc2b2b04041d6532cac42f61fe090bced7b57e5a79064a933de"
+  }
+}

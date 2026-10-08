@@ -44,11 +44,12 @@ for out in directories:
     for left in members:
         right=left[:-1]+'R' if left.endswith('L') else None
         if right not in members:continue
-        lv=members[left][0].copy();lv[:,0]*=-1;rv=members[right][0]
+        lv=members[left][0].copy();lv[:,0]=2*spec.get('symmetryAxis',0)-lv[:,0];rv=members[right][0]
         # Compare unordered coordinate sets, including relief studs.
         ordered=lambda a:np.array(sorted(map(tuple,np.round(a,5))))
         error=float(np.max(np.abs(ordered(lv)-ordered(rv)))) if len(lv)==len(rv) else None
         symmetry.append({'left':left,'right':right,'sameVertexCount':len(lv)==len(rv),'maximumMirrorError':error})
-    report={'id':spec['id'],'restPoseOnly':True,'actualStudioTest':False,'passed':not failed,'detachedMembers':failed,'contacts':contacts,'symmetry':symmetry}
+    symmetry_ok=all(s['maximumMirrorError'] is not None and s['maximumMirrorError']<.00003 for s in symmetry)
+    report={'id':spec['id'],'restPoseOnly':True,'actualStudioTest':False,'passed':not failed and symmetry_ok,'detachedMembers':failed,'contacts':contacts,'symmetry':symmetry}
     (out/'CONTACT-VALIDATION.json').write_text(json.dumps(report,indent=2)+'\n',encoding='utf-8')
     print('MESH_CONTACTS',spec['id'],'DETACHED',failed,'SYMMETRY',symmetry,flush=True)

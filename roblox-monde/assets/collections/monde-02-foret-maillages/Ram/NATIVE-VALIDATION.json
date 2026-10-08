@@ -1,0 +1,32 @@
+{
+  "passed": true,
+  "actualStudioTest": false,
+  "id": "Ram",
+  "basePartsAfterAssembly": 18,
+  "motor6D": 9,
+  "rigidWelds": 8,
+  "originalJointNames": true,
+  "originalClipsUnchanged": true,
+  "vertexPoseCases": 4131,
+  "maxRetargetMatrixError": 4.331574787741488e-8,
+  "clips": {
+    "Idle": {
+      "duration": 2.8,
+      "loop": true,
+      "minHeight": -1.1262894874493157,
+      "maxHeight": 0.9461299715103778
+    },
+    "Walk": {
+      "duration": 1.6,
+      "loop": true,
+      "minHeight": -1.1445162594169953,
+      "maxHeight": 0.9542078412334041
+    },
+    "Attack": {
+      "duration": 1.4,
+      "loop": false,
+      "minHeight": -1.1119999999999999,
+      "maxHeight": 0.9963958084349612
+    }
+  }
+}

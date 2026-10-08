@@ -1,0 +1,40 @@
+{
+  "id": "Lynx",
+  "world": 2,
+  "theme": "Forêt",
+  "created": "2026-10-08",
+  "boss": false,
+  "rainbowCoat": false,
+  "triangles": 4688,
+  "meshPieces": 17,
+  "reliefStuds": 287,
+  "basePartsAfterAssembly": 18,
+  "Motor6D": 10,
+  "rigidWelds": 7,
+  "animations": [
+    "Idle",
+    "Walk",
+    "Attack",
+    "Bite"
+  ],
+  "requiredReaderChanges": false,
+  "requiresStudioMeshImport": true,
+  "actualStudioTest": false,
+  "eggsModified": false,
+  "paidGenerations": 0,
+  "files": {
+    "Lynx.fbx": "778facc4aba48cf48de9505aa33029b03a82c3233d33a088131939356fba57d4",
+    "Lynx-rig-template.rbxmx": "504274c5ab4996b182695b5797f8b0e0b495741e5466c7b395112b57f3d94250",
+    "Assembler-Lynx.luau": "14044c620b790b349ef939b42bf2abd9d25ec67f1edb7c5f36d79fbb8fec5e44",
+    "Lynx_Colour_512.png": "42d3900903fcc50c7f8808cfa24e89fee880b48f90cb238b67b479150dd1d9d3",
+    "Lynx.blend": "9db4187e1c68727f4f1c0b3d663afbef4b6c26b1fe9b90f6c5adf52b05413bca",
+    "Lynx.png": "681b4f90f9eff50b41a0800ec25cf60e2f26bf6bc72cad1a58fc0888efe80d02",
+    "Lynx-profil.png": "2a454d8eab682afd397eba46c019cf4e0f2ee4b19cf35c7856b33a285660d454",
+    "Lynx-visage.png": "b41879fcf5918c3a32dc7e39c1c92bbadaf76731539c3c386730ee2ac57f73e2",
+    "native-rig-spec.json": "eae4949e8d2cbb13c065070c9a0d8e34656e3e566a2a22e5334f1f120925d078",
+    "source-rig-and-clips.json": "73640996c5d5dd84a44f81be15794efb817ca90028f76954ff73e5706b8ea58e",
+    "NATIVE-VALIDATION.json": "311e1fd828d6db68584e399d00fc7504c500eaf9cd94d7b2d46f0b808baaaa7b",
+    "FBX-VALIDATION.json": "ae8fbf935f49afe978edec68d30ab5281e79e32391a4f6682cba33091f2d7a50",
+    "CONTACT-VALIDATION.json": "dcdd73749d44d30feae9a9eca8f757c78b9639a41f9991cfef25852eb29ffece"
+  }
+}

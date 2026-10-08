@@ -1,0 +1,39 @@
+{
+  "id": "Boar",
+  "world": 2,
+  "theme": "Forêt",
+  "created": "2026-10-08",
+  "boss": false,
+  "rainbowCoat": false,
+  "triangles": 4690,
+  "meshPieces": 17,
+  "reliefStuds": 295,
+  "basePartsAfterAssembly": 18,
+  "Motor6D": 9,
+  "rigidWelds": 8,
+  "animations": [
+    "Idle",
+    "Walk",
+    "Attack"
+  ],
+  "requiredReaderChanges": false,
+  "requiresStudioMeshImport": true,
+  "actualStudioTest": false,
+  "eggsModified": false,
+  "paidGenerations": 0,
+  "files": {
+    "Boar.fbx": "f398a6ea34cb04c3341d0577a74f24359ba18efc295d6d35b446609a0ace8219",
+    "Boar-rig-template.rbxmx": "69610f3ff93cfe4282a2c88f46fd030c90f2bcefbada21c1b43dc18850e9426c",
+    "Assembler-Boar.luau": "98dee436194e60afae118a69197e032098e1f849fbb8734c17c4837b0754605b",
+    "Boar_Colour_512.png": "48d46f2e16590a097d6a7dbc597bf0373c73e437fcbe6a4ac5a6da55366bb1ed",
+    "Boar.blend": "3b2e7cc3636dd44c4ca9c8052e171800aaabd3381421a0d39fa72a9221068ca3",
+    "Boar.png": "6d0be848b3cb3c9ec1793ed73584fca05c8d297d02ecba648e7f7e7345441ccc",
+    "Boar-profil.png": "bbab2cc1e7371d67f009c9707faf2737074d4a1a394d83d3475647939225a2e0",
+    "Boar-visage.png": "5dbd4636d1ca4fc5fb81fcd7b89c87efa77744ecac0d16e019acb3e7c8b26d2a",
+    "native-rig-spec.json": "71452f6cd28944a429d221f3586de1714a681531624baae068ab3455877ec8d0",
+    "source-rig-and-clips.json": "6e9dddcd4857dc937fe62029456bbb04df48aaef1dfcb4562eb9d05c5cfefdec",
+    "NATIVE-VALIDATION.json": "b2d84e6b5f8e304eb7b314511e6d462b1231dc91f4b5b1db6926c690189f5c80",
+    "FBX-VALIDATION.json": "7c90dc777e3b0f365e9816cadee99c7057d47d8389bd1278b2b66c5c54fb49e9",
+    "CONTACT-VALIDATION.json": "f3f2dbb4082713f0cbc99ad050faf1f672ebc87f5a177e9927b7902855160394"
+  }
+}

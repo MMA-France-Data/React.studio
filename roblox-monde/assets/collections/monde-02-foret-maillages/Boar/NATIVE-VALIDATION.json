@@ -1,0 +1,32 @@
+{
+  "passed": true,
+  "actualStudioTest": false,
+  "id": "Boar",
+  "basePartsAfterAssembly": 18,
+  "motor6D": 9,
+  "rigidWelds": 8,
+  "originalJointNames": true,
+  "originalClipsUnchanged": true,
+  "vertexPoseCases": 4131,
+  "maxRetargetMatrixError": 4.536374509367391e-8,
+  "clips": {
+    "Idle": {
+      "duration": 2.8,
+      "loop": true,
+      "minHeight": -0.9529986578775413,
+      "maxHeight": 0.8177236255951293
+    },
+    "Walk": {
+      "duration": 1.75,
+      "loop": true,
+      "minHeight": -0.971297965854886,
+      "maxHeight": 0.8262230904443622
+    },
+    "Attack": {
+      "duration": 1.35,
+      "loop": false,
+      "minHeight": -0.9390000000000001,
+      "maxHeight": 0.867519059780461
+    }
+  }
+}
