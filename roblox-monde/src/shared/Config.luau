@@ -32,13 +32,19 @@ Config.MONSTER = {
 	-- EXCEPTION, le premier camp (le canard) : on commence SANS familier, il doit donc se battre seul, à l'épée
 	-- (40 de vie = une dizaine de secondes, et il enlève peu de vie au joueur).
 	-- LE BOSS (sa règle) : il donne beaucoup, mais il reste PLUS FACILE que les premiers monstres du monde suivant.
-	hp = { 40, 300, 700, 1500, 3200, 9000 },
-	damage = { 3, 15, 30, 60, 125, 400 },
+	-- (08/10, sa demande : « modifie les valeurs de tout par 10, coûts et pièces gagnées, que t'aies vite l'impression
+	-- d'avoir beaucoup de sous ; et dégâts aussi, santé ». TOUT est multiplié par 10 : la vie et les dégâts des
+	-- monstres, des familiers, du joueur et des épées, les pièces et les prix. L'équilibre ne change pas.)
+	hp = { 400, 3000, 7000, 15000, 32000, 90000 },
+	damage = { 30, 150, 300, 600, 1250, 4000 },
 	-- (Dans les mondes suivants, le premier camp n'a pas l'exception du canard : il suit l'échelle normale.)
-	first = { hp = 100, damage = 7 }, -- ce qu'un coup du monstre enlève (à un familier d'abord, au joueur en dernier)
+	first = { hp = 1000, damage = 70 }, -- ce qu'un coup du monstre enlève (à un familier d'abord, au joueur en dernier)
 	-- (Le boss revient en 3 secondes : il paie a peine plus qu une chevre, sinon le farmer en boucle au monde 1
 	-- paierait l epee 4 en une heure et l argent ne serait plus un verrou.)
-	coins = { 3, 8, 20, 50, 130, 200 },
+	-- (Le COMBAT paie quatre fois plus qu'avant, et l'enclos deux fois moins (Pets.INCOME) : sa demande du 08/10,
+	-- « que ce soit plus lucratif, le farm ». Simulation : les trois quarts des pièces du monde 1 viennent du combat,
+	-- contre un quart avant. Puis x 10 comme tout le reste.)
+	coins = { 120, 320, 800, 2000, 5200, 8000 },
 	-- (Son constat : « avec mes coqs niveau 7, j XP mieux au canard qu ailleurs ». L XP suit maintenant la solidite
 	-- du monstre : le camp le plus fort qu on peut battre est toujours celui qui rapporte le plus d XP a la minute.)
 	xp = { 4, 26, 60, 125, 260, 600 },
@@ -63,7 +69,8 @@ Config.XP_ZONE = 10
 -- Chaque monde dure plus longtemps que le precedent : les oeufs y sont LONG_EGG fois plus rares (et l XP des
 -- familiers plus longue : Pets.LONG_XP). Simulation : monde 1 environ 3,5 heures, monde 2 environ 8 heures, monde 3 environ 10 heures.
 -- Par monde : { monde 1, monde 2, monde 3 } ; ensuite le dernier chiffre, x 1,2 a chaque monde.
-Config.LONG_EGG = { 1, 1, 1 }
+-- (Monde 1 : les œufs tombent une fois et demie plus souvent, pour un début rapide.)
+Config.LONG_EGG = { 1 / 1.5, 1, 1 }
 function Config.longEgg(zone: number): number
 	local last = #Config.LONG_EGG
 	return if zone <= last then Config.LONG_EGG[math.max(1, zone)] else Config.LONG_EGG[last]
@@ -148,7 +155,7 @@ function Config.xpNeed(level: number): number
 	return math.floor(30 * level ^ 1.7 * 1.03 ^ (level - 1))
 end
 function Config.maxHealth(level: number): number
-	return math.floor(100 * 1.1 ^ (level - 1))
+	return math.floor(1000 * 1.1 ^ (level - 1))
 end
 -- LES ÉPÉES. Rien n'est verrouillé : on peut acheter la suivante dès qu'on a les pièces. C'est LE PRIX qui sert de
 -- verrou (sa règle : « je veux pas que ça soit verrouillé mais que l'argent soit un verrou justement »).
@@ -161,15 +168,15 @@ end
 --   price : le prix pour l'obtenir. Les pièces valent 100 fois plus dans le monde suivant (COIN_ZONE) : l'épée 6
 --   demanderait des heures de farm en plus au monde 1, et une demi-heure au monde 2.
 Config.SWORDS = {
-	{ damage = 3, price = 0 }, -- monde 1 : l'épée de départ (comme un canard)
+	{ damage = 30, price = 0 }, -- monde 1 : l'épée de départ (comme un canard)
 	-- (La deuxième épée sert de TUTORIEL, sa demande : 30 pièces, soit une dizaine de canards.)
-	{ damage = 8, price = 30 }, -- monde 1, après deux minutes
-	{ damage = 25, price = 1500 }, -- monde 1, vers 20 minutes (son prix)
-	{ damage = 78, price = 20000 }, -- monde 1, vers 50 minutes (son prix)
-	{ damage = 250, price = 200000 }, -- monde 1, juste avant le boss (vers 1 h 50)
-	{ damage = 1160, price = 2500000 }, -- monde 2, après 2 heures
-	{ damage = 5400, price = 10000000 }, -- monde 2, après 4 h 30
-	{ damage = 25000, price = 25000000 }, -- monde 2, juste avant le boss (après 7 h 30)
+	{ damage = 80, price = 300 }, -- monde 1, après une minute
+	{ damage = 250, price = 15000 }, -- monde 1, vers 9 minutes
+	{ damage = 780, price = 150000 }, -- monde 1, vers 27 minutes
+	{ damage = 2500, price = 1000000 }, -- monde 1, juste avant le boss (vers 55 minutes)
+	{ damage = 11600, price = 25000000 }, -- monde 2, après 2 heures
+	{ damage = 54000, price = 100000000 }, -- monde 2, après 4 h 30
+	{ damage = 250000, price = 250000000 }, -- monde 2, juste avant le boss (après 7 h 30)
 }
 Config.SWORD_PER_ZONE = 3
 -- (Au-delà de la huitième : les trois mêmes marches que le monde 2, 100 fois plus haut à chaque monde.)

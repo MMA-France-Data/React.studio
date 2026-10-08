@@ -35,6 +35,7 @@ local function defaults()
 		xp = 0, -- XP gagnée dans le niveau en cours
 		sword = 1, -- niveau de l'épée
 		sv = 3, -- version de la liste des épées (3 = cinq épées au monde 1)
+		mv = 2, -- version de la monnaie (2 = tout est multiplié par 10)
 		cv = 3, -- version des collections (3 = la jungle a le gorille et le tigre)
 		zone = 1, -- la zone la plus lointaine ouverte (battre le boss de la zone n ouvre la n + 1)
 		bag = {}, -- œufs pas encore posés : { a = animal, q = rang, r = zone, b = valeur tirée }
@@ -81,7 +82,8 @@ local function clean(raw)
 		end
 	end
 	if type(raw.coins) == "number" and raw.coins >= 0 then
-		data.coins = math.floor(raw.coins)
+		-- (08/10 : tous les prix ont été multipliés par 10 ; les pièces des anciennes sauvegardes aussi.)
+		data.coins = math.floor(raw.coins * (if raw.mv == 2 then 1 else 10))
 	end
 	if type(raw.level) == "number" then
 		data.level = math.max(1, math.floor(raw.level))

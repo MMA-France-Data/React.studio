@@ -118,7 +118,7 @@ Pets.HATCH_BOSS_LATE = 5400
 Pets.SPOTS_FREE = 5
 Pets.SPOTS_MAX = 20
 -- Prix de la 6e place, de la 7e, etc.
-Pets.SPOT_PRICES = { 400, 1800, 8100, 36450, 164025, 738112, 3321506, 14946778, 67260501, 302672257, 1362025156, 6129113204, 27581009421, 124114542398, 558515440794 } -- jeu « Monde » : 400 pièces, puis x 4,5 à chaque place
+Pets.SPOT_PRICES = { 4000, 18000, 81000, 364500, 1640250, 7381120, 33215060, 149467780, 672605010, 3026722570, 13620251560, 61291132040, 275810094210, 1241145423980, 5585154407940 } -- jeu « Monde » : 400 pièces, puis x 4,5 à chaque place
 Pets.MAX_BAG = 60 -- œufs gardés en attente d'être posés
 -- La zone de l'enclos où marchent les familiers et où on pose les œufs, par rapport au milieu de l'espace du joueur.
 Pets.PEN = { minX = -7, maxX = 27, minZ = 4, maxZ = 29 }
@@ -255,8 +255,9 @@ end
 -- fort) et de son NIVEAU (+FIGHT_LEVEL par niveau, gagné avec l'XP des monstres).
 -- Le familier du BOSS (rang 6) est un peu au-dessus du premier animal du monde suivant (5 x 100 = 500 de dégâts,
 -- 45 x 100 = 4 500 de vie) : c'est lui qui aide à y entrer.
-Pets.FIGHT_DMG = { 5, 10, 20, 40, 85, 600 }
-Pets.FIGHT_HP = { 45, 90, 180, 360, 760, 5400 }
+-- (x 10 le 08/10, comme tout le jeu : Config.MONSTER.)
+Pets.FIGHT_DMG = { 50, 100, 200, 400, 850, 6000 }
+Pets.FIGHT_HP = { 450, 900, 1800, 3600, 7600, 54000 }
 Pets.FIGHT_ZONE = 100
 -- L'XP que demande un niveau dépend du rang de l'animal (comme l'XP que donnent les monstres de son camp) : monter
 -- un cochon en battant des cochons prend autant de combats que monter un canard en battant des canards.
@@ -267,7 +268,9 @@ Pets.RANK_XP = { 1, 10, 30, 70, 110, 80 }
 -- plus longtemps ») : a chaque monde, monter un familier demande LONG_XP fois plus de combats.
 -- Par monde : { monde 1, monde 2, monde 3 } (regle avec tools/balance/mondes.py : 3,5 h, 8 h, 10 h). Les mondes
 -- suivants reprennent le dernier chiffre, x 1,25 a chaque monde.
-Pets.LONG_XP = { 1, 10, 13 }
+-- (Monde 1 : 0,7, pour un début plus rapide. Sa demande du 08/10 : « rendre encore plus rapide le monde 1 pour
+-- rendre accro au début ».)
+Pets.LONG_XP = { 0.7, 10, 13 }
 Pets.EARLY_XP = 0.3
 function Pets.longXp(room: number): number
 	local last = #Pets.LONG_XP
@@ -361,7 +364,8 @@ end
 -- Cinq familiers du rang du camp où l'on combat rapportent à peu près ce que rapportent les combats.
 -- (Juste milieu demande par le joueur : trois fois plus que mon premier reglage. Cinq familiers du rang du camp
 -- rapportent environ deux fois ce que rapportent les combats.)
-Pets.INCOME = { 0.15, 0.3, 0.75, 2, 5, 12 }
+-- (08/10 : deux fois moins qu'avant face au combat, puis x 10 comme tout le jeu.)
+Pets.INCOME = { 0.75, 1.5, 3.75, 10, 25, 60 }
 function Pets.incomeOf(name: string, value: number): number
 	local def = Pets.DEFS[name]
 	if not def or not def.rank then

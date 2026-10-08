@@ -17,8 +17,8 @@ return function(log)
 		task.wait(1.2)
 	end
 	debug:Invoke("Pet", "Goat", 5)
-	debug:Invoke("Give", 2540)
-	debug:Invoke("Sword", 4)
+	debug:Invoke("Give", 25400)
+	debug:Invoke("Sword", 2)
 	task.wait(3)
 	shot("nombres_ecran")
 	for _, panel in { "SwordPanel", "ShopPanel", "PetPanel" } do

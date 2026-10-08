@@ -7,25 +7,25 @@
 import random, statistics, sys
 
 WORLDS = 4
-HP = [40, 300, 700, 1500, 3200, 9000]
-DMG = [3, 15, 30, 60, 125, 400]
-FIRST = (100, 7)                      # le premier camp des mondes suivants (pas l'exception du canard)
-COINS = [3, 8, 20, 50, 130, 200]
+HP = [400, 3000, 7000, 15000, 32000, 90000]
+DMG = [30, 150, 300, 600, 1250, 4000]
+FIRST = (1000, 70)                      # le premier camp des mondes suivants (pas l'exception du canard)
+COINS = [120, 320, 800, 2000, 5200, 8000]
 XP = [4, 26, 60, 125, 260, 600]
 EGG = [0.20, 0.05, 0.05, 0.05, 0.05, 0.05]
-FIGHT_DMG = [5, 10, 20, 40, 85, 600]
-FIGHT_HP = [45, 90, 180, 360, 760, 5400]
+FIGHT_DMG = [50, 100, 200, 400, 850, 6000]
+FIGHT_HP = [450, 900, 1800, 3600, 7600, 54000]
 RANK_XP = [1, 10, 30, 70, 110, 80]
 GRADE_ODDS = [70, 25, 4.6, 0.4]
-SWORDS = [(3, 0), (8, 30), (25, 1500), (78, 20000), (250, 200000), (1160, 2500000), (5400, 10000000), (25000, 25000000)]
+SWORDS = [(30, 0), (80, 300), (250, 15000), (780, 150000), (2500, 1000000), (11600, 25000000), (54000, 100000000), (250000, 250000000)]
 NEED = 60
 EARLY = 0.3   # Pets.EARLY_XP : les cinq premiers niveaux d un familier demandent cette part de l XP normale
 ZONE, COIN_ZONE, XP_ZONE = 100, 100, 10   # d'un monde au suivant : monstres et familiers, pièces, XP
 # D un monde au suivant, en plus : l XP des familiers est LONG_XP fois plus longue et les oeufs LONG_EGG fois plus rares
 # (Pets.LONG_XP, Config.LONG_EGG) : chaque monde dure plus longtemps que le precedent.
-LONG_XP, LONG_EGG = [1, 10, 13, 13 * 1.25], [1, 1, 1, 1]   # par monde (Pets.LONG_XP, Config.LONG_EGG)
+LONG_XP, LONG_EGG = [0.7, 10, 13, 13 * 1.25], [1 / 1.5, 1, 1, 1]   # par monde (Pets.LONG_XP, Config.LONG_EGG)
 WALK = 4.0
-INCOME = [0.15, 0.3, 0.75, 2, 5, 12]  # pieces par seconde d un familier moyen de chaque rang, au monde 1 (Pets.INCOME)
+INCOME = [0.75, 1.5, 3.75, 10, 25, 60]  # pieces par seconde d un familier moyen de chaque rang, au monde 1 (Pets.INCOME)
 
 LONG_PRICE = 1.25   # Config.LONG_PRICE : les epees d un monde coutent 100 x LONG_PRICE fois celles du monde d avant
 # (Cinq epees au monde 1, trois au monde 2 ; au-dela : les trois memes marches, 100 fois plus haut a chaque monde.)
@@ -63,7 +63,7 @@ def run(seed):
     t, coins, sword, level, xp, team, pen, opened = 0.0, 0.0, 1, 1, 0, [], [], 0
     log, bosses = [], []
     while t < 200 * 3600:
-        php = 100 * 1.1 ** (level - 1)
+        php = 1000 * 1.1 ** (level - 1)
         dps = sword_dps(sword) + sum(p.dmg() for p in team)
         def winnable(world, rank):
             hp, dmg = monster(world, rank)
