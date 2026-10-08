@@ -251,6 +251,12 @@
       },
       "MeshRigs": {
         "$className": "Folder",
+        "Bear": {
+          "$path": "assets/collections/monde-02-foret-maillages/Bear/Bear-rig-template.rbxmx"
+        },
+        "Lion": {
+          "$path": "assets/collections/monde-04-savane-maillages/Lion/Lion-rig-template.rbxmx"
+        },
         "Duck": {
           "$path": "assets/collections/monde-01-ferme-maillages/Duck/Duck-rig-template.rbxmx"
         },
