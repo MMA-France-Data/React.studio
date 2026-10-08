@@ -10,7 +10,7 @@ Le modèle assemblé garde son nom `Duck`, `Horse`, `Rooster`, `Pig`, `Sheep` ou
 
 Les yeux sont symétriques, noirs et plaqués sur la surface du crâne ; la chèvre a une pupille noire horizontale. Les petits détails séparés utilisent des `Weld` vers leur membre existant : ils le suivent exactement et n'ajoutent pas de nouvelle piste d'animation. Le lecteur actuel accepte déjà ces attaches ; aucun lecteur ou script du jeu n'est modifié.
 
-Le corps du cheval est élargi, le poitrail renforcé, les pattes épaissies, l'encolure arquée. Une vraie crinière épaisse, continue et en mèches descend de la nuque au garrot ; elle est intégrée au maillage `Neck` et suit son articulation sans nouvelle pièce. Ses teintes arc-en-ciel sont plus profondes pour la distinguer du cou. Le cheval conserve sa longue queue. Les oreilles, queues et reliefs sont raccordés à leur anatomie.
+Le corps du cheval est élargi, le poitrail renforcé, les pattes épaissies, l'encolure arquée. Une vraie crinière épaisse, continue et en mèches descend de la nuque au garrot ; elle est intégrée au maillage `Neck` et suit son articulation sans nouvelle pièce. Ses teintes arc-en-ciel sont plus profondes pour la distinguer du cou. Son visage a un chanfrein continu, un museau large et arrondi, des naseaux plaqués et un toupet raccordé au front : les anciens blocs de museau et bandes du front sont retirés. Le cheval conserve sa longue queue. Les oreilles, queues et reliefs sont raccordés à leur anatomie. `Horse/Horse-visage.png` montre le gros plan du vrai maillage.
 
 ## Importer chaque animal
 
@@ -27,4 +27,4 @@ Chaque animal a **17 pièces au total, sauf Horse : 18**, racine invisible inclu
 
 `NATIVE-VALIDATION.json` contrôle la structure et les poses des maillages avec les attaches. `FBX-VALIDATION.json` contrôle une réimportation du FBX : nombre de maillages, absence de Bones, UV, texture et dimensions. `CONTACT-VALIDATION.json` contrôle les contacts au repos et les paires gauche/droite sur le FBX réel. `checks/check-native-mesh.ps1` vérifie aussi XML, références, noms de clips et syntaxe Luau.
 
-**L'import et l'exécution dans Roblox Studio restent à vérifier.** Les sources du jeu, sa configuration, les anciens modèles et les œufs restent inchangés. Aucun crédit Meshy n'a été consommé.
+**L'import et l'exécution dans Roblox Studio restent à vérifier.** Seules les dimensions générées de `Horse` dans `MeshRigs.luau` sont synchronisées avec le FBX retouché ; le lecteur et les règles du jeu, sa configuration, les anciens modèles et les œufs restent inchangés. Aucun crédit Meshy n'a été consommé.

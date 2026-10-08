@@ -1,8 +1,8 @@
 {
   "created": "2026-10-08",
   "id": "Horse",
-  "triangles": 4496,
-  "reliefStuds": 182,
+  "triangles": 4484,
+  "reliefStuds": 191,
   "meshPieces": 17,
   "basePartsAfterAssembly": 18,
   "Motor6D": 15,
@@ -22,17 +22,18 @@
   "rainbowBoss": true,
   "order": 2,
   "files": {
-    "Horse.fbx": "08213839f0e914d66258f364ff7140b6bdc194c0b842f3fc39b7fec54d409899",
-    "Horse-rig-template.rbxmx": "4257b4a2d56cacea8d79ffae4f787f5a85456880c74bde5fc1950e56368d0180",
-    "Assembler-Horse.luau": "df67a6c436306cdbb7d4a91afdcb59473af40273285d55e319b7784ab90d3a48",
-    "native-rig-spec.json": "3e7e77b1f110659cba139a91efd4466c513dff412e66fb772299b3f669a3e5e9",
+    "Horse.fbx": "eca0289b6cf4c31877fe25ec1f4d3177bc4b6e342922f61d86ee2a29135ad4e0",
+    "Horse-rig-template.rbxmx": "8693d13ff092e33d63099bab3ca2ba9c65a26a40cae7b6bb6f23796235c258fe",
+    "Assembler-Horse.luau": "2a8b962f846fa4c4e92824a679e1b2832582250fb635d50c3cf2aa89e4184331",
+    "native-rig-spec.json": "2343955936fe5a05120f69267bc1088aa37a8d530e94bffd239f7bc75c87a996",
     "source-rig-and-clips.json": "d9e92cf64f2d461c0f634db9b472a63c7b22110525e2fc25b0a4b314b072aebf",
-    "NATIVE-VALIDATION.json": "cc391f701162d0bb80fd9a4a9ecfa2cab094da2ef363ff6ed5262438a302bd89",
-    "FBX-VALIDATION.json": "ac159c3a94fbd47b3a766deac83e3fc3367208d6cfd701ef7bd4c4a6856862f1",
-    "CONTACT-VALIDATION.json": "6a5afe97c871d47894116dc68e211459e017b4f3335355adcfc20f5454420e94",
+    "NATIVE-VALIDATION.json": "a54ff3b3bf15f811a0eb338c52c46cc619a16102cc66fdec15d127a2685ae976",
+    "FBX-VALIDATION.json": "09fadde2de5a005037d4c55df0c9db1a0e3cd49448e6f18587cda599ee9a7e69",
+    "CONTACT-VALIDATION.json": "76dca53242339b68565061c6d56e350326ace595bf9575b57480cf4aeb3c32af",
     "Horse_Colour_512.png": "94bea350cf9d41a33c06309a0bd00f2fbf248d72c2d89e7ce47fc0dc0f00812c",
-    "Horse.png": "1ec950aa1a3795c0fd9ddc8a1a5affaa9509f65586adf2ef57c5579e4c435a82",
-    "Horse-profil.png": "d016b1b8ae98e28e4fca14874bae62148faa9fe8e5332e5398b22c82436522e6",
-    "Horse.blend": "7ae36d3369ef6e3c49349291307ea722b4b9d49735b41b7ee3b1f8b878225ea4"
+    "Horse.png": "46ddee488f1e364b06f7624782d0d858f0c71ebfbcdcd28bddb89e6eb36d54ff",
+    "Horse-profil.png": "343ed686ca2dfdabd62eb43009851940b7adb1edb6a9b42ac9a28ae47463b66e",
+    "Horse.blend": "1080d129225f9b92fe3805ca591b3a9a4f5055bc9566c18a7033eb8f00dcb044",
+    "Horse-visage.png": "672c124dc084afb8d39a19d6086d0bf371bcd8ee01889bff4e8e4bc8481c8d2b"
   }
 }

@@ -14,19 +14,19 @@
       "duration": 2.4,
       "loop": true,
       "minHeight": -1.5714833418832823,
-      "maxHeight": 1.3734459343376269
+      "maxHeight": 1.3652708434159884
     },
     "Walk": {
       "duration": 1.4,
       "loop": true,
       "minHeight": -1.579346419802619,
-      "maxHeight": 1.3734513675022144
+      "maxHeight": 1.3649770397527905
     },
     "Attack": {
       "duration": 1.85,
       "loop": false,
       "minHeight": -1.6083593899122886,
-      "maxHeight": 2.2635207334667893
+      "maxHeight": 2.2662832818184886
     }
   }
 }
