@@ -4,6 +4,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerStorage = game:GetService("ServerStorage")
 
 local Pets = require(ReplicatedStorage.Shared.Pets)
+local Config = require(ReplicatedStorage.Shared.Config)
 local PlayerData = require(script.Parent.PlayerData)
 local Gym = require(script.Parent.Gym)
 local Eggs = require(script.Parent.Eggs)
@@ -19,6 +20,14 @@ return function(world)
 			return data and { coins = data.coins, level = data.level, xp = data.xp, sword = data.sword, zone = data.zone, bag = #data.bag, team = table.clone(data.team), spots = data.spots }
 		elseif action == "Give" then
 			PlayerData.addCoins(player, a)
+		elseif action == "Offline" then
+			-- Comme si le joueur revenait après `a` secondes d'absence (même calcul que PlayerData au chargement).
+			local away = math.clamp(a, 0, Config.OFFLINE_MAX)
+			local earned = math.floor(Pets.income(data.spots) * away * Config.OFFLINE_SHARE)
+			PlayerData.addCoins(player, earned)
+			player:SetAttribute("OfflineTime", away)
+			player:SetAttribute("Offline", earned)
+			return earned
 		elseif action == "Reset" then
 			PlayerData.reset(player)
 			Gym.applyStats(player, true)

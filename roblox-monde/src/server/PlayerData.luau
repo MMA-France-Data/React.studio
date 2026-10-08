@@ -36,6 +36,7 @@ local function defaults()
 		sword = 1, -- niveau de l'épée
 		sv = 3, -- version de la liste des épées (3 = cinq épées au monde 1)
 		mv = 2, -- version de la monnaie (2 = tout est multiplié par 10)
+		seen = 0, -- heure (os.time) de la dernière sauvegarde : sert au revenu hors ligne
 		cv = 3, -- version des collections (3 = la jungle a le gorille et le tigre)
 		zone = 1, -- la zone la plus lointaine ouverte (battre le boss de la zone n ouvre la n + 1)
 		bag = {}, -- œufs pas encore posés : { a = animal, q = rang, r = zone, b = valeur tirée }
@@ -101,6 +102,9 @@ local function clean(raw)
 	end
 	if type(raw.zone) == "number" then
 		data.zone = math.clamp(math.floor(raw.zone), 1, #Config.ZONES)
+	end
+	if type(raw.seen) == "number" then
+		data.seen = math.floor(raw.seen)
 	end
 	local function validEgg(egg): boolean
 		return type(egg) == "table" and Pets.DEFS[egg.a] ~= nil and type(egg.q) == "number" and Pets.RARITIES[egg.q] ~= nil
@@ -227,8 +231,19 @@ local function load(player: Player)
 	if not player:IsDescendantOf(Players) then
 		return
 	end
+	-- LE REVENU HORS LIGNE : ce que l'enclos a rapporté pendant l'absence (Config.OFFLINE_SHARE, OFFLINE_MAX).
+	-- L'écran du joueur le lui annonce (attributs « Offline » et « OfflineTime »).
+	local away = if data.seen > 0 then math.clamp(os.time() - data.seen, 0, Config.OFFLINE_MAX) else 0
+	local earned = 0
+	if canSave and away >= Config.OFFLINE_MIN then
+		earned = math.floor(Pets.income(data.spots) * away * Config.OFFLINE_SHARE)
+		data.coins += earned
+	end
+	data.seen = os.time()
+	player:SetAttribute("Offline", earned)
+	player:SetAttribute("OfflineTime", away)
 	-- Lecture impossible : le joueur joue quand même, mais rien n'est enregistré (sinon on écraserait sa sauvegarde).
-	sessions[player] = { data = data, canSave = canSave, dirty = false }
+	sessions[player] = { data = data, canSave = canSave, dirty = earned > 0 }
 
 	local stats = Instance.new("Folder")
 	stats.Name = "leaderstats"
@@ -253,6 +268,7 @@ local function save(player: Player)
 		return
 	end
 	session.dirty = false
+	session.data.seen = os.time()
 	local ok, result = pcall(function()
 		store:SetAsync("p" .. player.UserId, session.data)
 	end)
@@ -337,6 +353,10 @@ function PlayerData.start()
 		task.spawn(load, player)
 	end
 	Players.PlayerRemoving:Connect(function(player)
+		-- (Toujours enregistrer l'heure du départ : c'est d'elle que part le revenu hors ligne.)
+		if sessions[player] then
+			sessions[player].dirty = true
+		end
 		save(player)
 		sessions[player] = nil
 	end)

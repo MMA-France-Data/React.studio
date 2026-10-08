@@ -209,6 +209,12 @@ end
 -- Dès la fin du combat (jamais pendant), les familiers à terre se relèvent et toute l'équipe regagne PET_REGEN de
 -- sa vie par seconde.
 Config.PET_REGEN = 0.25
+-- LE REVENU HORS LIGNE (sa règle du 08/10 : « un tiers du revenu pendant l'absence, soit 8 h max par jour ») :
+-- quand le joueur revient, son enclos lui a rapporté OFFLINE_SHARE de ce qu'il rapporte en jeu, pendant toute son
+-- absence, comptée jusqu'à OFFLINE_MAX secondes (24 h : au plus l'équivalent de 8 heures d'enclos par jour).
+Config.OFFLINE_SHARE = 1 / 3
+Config.OFFLINE_MAX = 24 * 3600
+Config.OFFLINE_MIN = 5 * 60 -- en dessous de cinq minutes d'absence : rien (un simple retour de connexion)
 -- XP qu'il faut à un familier pour passer du niveau `level` au suivant.
 function Config.petXpNeed(level: number): number
 	return math.floor(15 * level ^ 1.6)

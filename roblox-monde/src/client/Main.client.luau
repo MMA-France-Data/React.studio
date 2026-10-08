@@ -514,6 +514,27 @@ task.delay(6, function()
 	end
 end)
 
+-- LE REVENU HORS LIGNE : au retour, on annonce ce que l'enclos a rapporté pendant l'absence.
+local function announceOffline()
+	local earned = player:GetAttribute("Offline") or 0
+	if earned > 0 then
+		local minutes = math.floor((player:GetAttribute("OfflineTime") or 0) / 60)
+		local away = if minutes >= 60 then tr("awayHours", math.floor(minutes / 60)) else tr("awayMinutes", minutes)
+		for _ = 1, 2 do
+			showToast(tr("offline", num(earned), away), GOLD)
+			task.wait(3.2)
+		end
+	end
+end
+task.spawn(function()
+	while not player:GetAttribute("Loaded") do
+		task.wait(0.2)
+	end
+	task.wait(2.5)
+	announceOffline()
+	player:GetAttributeChangedSignal("Offline"):Connect(announceOffline)
+end)
+
 -- LE TUTORIEL DE L'ÉPÉE : dès que le joueur a de quoi payer sa première amélioration, on le lui dit (et on le
 -- répète toutes les 20 secondes tant qu'il ne l'a pas achetée).
 task.spawn(function()
