@@ -14,6 +14,9 @@ local UserInputService = game:GetService("UserInputService")
 local Config = require(ReplicatedStorage.Shared.Config)
 local Pets = require(ReplicatedStorage.Shared.Pets)
 local Texts = require(ReplicatedStorage.Shared.Texts)
+local NumberFormat = require(ReplicatedStorage.Shared.NumberFormat)
+local UI = require(script.Parent.MenuUI)
+local MenuLayout = require(script.Parent.MenuLayout)
 
 local player = Players.LocalPlayer
 local lang = if LocalizationService.RobloxLocaleId:lower():sub(1, 2) == "fr" then "fr" else "en"
@@ -21,23 +24,13 @@ local lang = if LocalizationService.RobloxLocaleId:lower():sub(1, 2) == "fr" the
 local function tr(key: string, ...): string
 	return Texts.get(lang, key, ...)
 end
-local function plain(value: number): string
-	return Texts.number(lang, value)
-end
 -- Un gros nombre en court : 950 -> « 950 », 12 500 -> « 12,5K », 2 400 000 000 -> « 2,4B », puis T, Qa, Qi, Sx...
 local function compact(value: number): string
-	for _, unit in { { 1e27, "Oc" }, { 1e24, "Sp" }, { 1e21, "Sx" }, { 1e18, "Qi" }, { 1e15, "Qa" }, { 1e12, "T" }, { 1e9, "B" }, { 1e6, "M" }, { 1e3, "K" } } do
-		if value >= unit[1] then
-			local short = math.floor(value / unit[1] * 10) / 10
-			local digits = if short == math.floor(short) then string.format("%d", short) else string.format("%.1f", short)
-			return (if lang == "fr" then (digits:gsub("%.", ",")) else digits) .. unit[2]
-		end
-	end
-	return plain(value)
+	return NumberFormat.short(value, lang)
 end
--- Un nombre écrit en entier (1 234 567) ; à partir de 10 millions, en court (les pièces montent très haut).
+-- Affichage abrégé uniquement ; aucune modification des montants du jeu.
 local function num(value: number): string
-	return if value >= 1e7 then compact(value) else plain(value)
+	return NumberFormat.short(value, lang)
 end
 
 -- LES TEXTES DU DÉCOR -------------------------------------------------------------------------------------------
@@ -194,18 +187,9 @@ local function text(parent: Instance, name: string, size: UDim2, position: UDim2
 	label.BackgroundTransparency = 1
 	label.Size = size
 	label.Position = position
-	label.Font = Enum.Font.FredokaOne
-	label.TextScaled = true
-	label.TextColor3 = color or Color3.new(1, 1, 1)
 	label.Text = ""
-	local stroke = Instance.new("UIStroke")
-	stroke.Thickness = 2.5
-	stroke.Parent = label
-	if maxSize then
-		local limit = Instance.new("UITextSizeConstraint")
-		limit.MaxTextSize = maxSize
-		limit.Parent = label
-	end
+	UI.label(label, maxSize)
+	label.TextColor3 = color or UI.Colors.Text
 	label.Parent = parent
 	return label
 end
@@ -217,13 +201,7 @@ local function box(parent: Instance, name: string, size: UDim2, position: UDim2,
 	frame.Position = position
 	frame.BackgroundColor3 = color
 	frame.BorderSizePixel = 0
-	local corner = Instance.new("UICorner")
-	corner.CornerRadius = UDim.new(0, 8)
-	corner.Parent = frame
-	local stroke = Instance.new("UIStroke")
-	stroke.Thickness = 3
-	stroke.Color = Color3.fromRGB(20, 20, 30)
-	stroke.Parent = frame
+	UI.chrome(frame)
 	frame.Parent = parent
 	return frame
 end
@@ -247,22 +225,29 @@ wallet.Size = UDim2.fromOffset(190, 58)
 wallet.Parent = side
 local walletScale = Instance.new("UIScale")
 walletScale.Parent = wallet
+wallet.BackgroundColor3 = UI.Colors.Panel
+wallet.BackgroundTransparency = 0
+wallet.Size = UDim2.fromOffset(210, 60)
+UI.chrome(wallet, UI.Colors.Edge)
 local coinIcon = box(wallet, "Coin", UDim2.fromOffset(40, 40), UDim2.fromOffset(0, 2), Color3.fromRGB(255, 205, 50))
 coinIcon:FindFirstChildOfClass("UICorner").CornerRadius = UDim.new(1, 0)
 text(coinIcon, "Sign", UDim2.fromScale(1, 0.8), UDim2.fromScale(0, 0.1), Color3.fromRGB(255, 245, 170)).Text = "$"
 local coinsLabel = text(wallet, "Coins", UDim2.fromOffset(140, 44), UDim2.fromOffset(48, 0), Color3.fromRGB(110, 255, 80))
 coinsLabel.TextXAlignment = Enum.TextXAlignment.Left
+UI.label(coinsLabel, 30)
+coinsLabel.TextColor3 = UI.Colors.Gold
 local incomeLabel = text(wallet, "Income", UDim2.fromOffset(140, 18), UDim2.fromOffset(48, 38), Color3.fromRGB(255, 221, 51))
 incomeLabel.TextXAlignment = Enum.TextXAlignment.Left
 incomeLabel.UIStroke.Thickness = 1.5
 incomeLabel.Visible = false
 
 -- Le niveau : une barre qui se remplit avec l'XP.
-local levelPill = box(side, "Level", UDim2.fromOffset(200, 38), UDim2.fromOffset(2, 62), Color3.fromRGB(30, 34, 50))
+local levelPill = box(side, "Level", UDim2.fromOffset(200, 38), UDim2.fromOffset(2, 62), UI.Colors.Panel)
 local xpFill = Instance.new("Frame")
 xpFill.Name = "Fill"
 xpFill.BorderSizePixel = 0
 xpFill.BackgroundColor3 = Color3.fromRGB(60, 150, 255)
+UI.gradient(xpFill)
 xpFill.Size = UDim2.fromScale(0, 1)
 Instance.new("UICorner", xpFill).CornerRadius = UDim.new(0, 8)
 xpFill.Parent = levelPill
@@ -299,7 +284,7 @@ local function refreshHud()
 	coinsLabel.Text = num(player:GetAttribute("Coins") or 0)
 	local income = player:GetAttribute("Income") or 0
 	incomeLabel.Visible = income > 0
-	incomeLabel.Text = tr("income", if income == math.floor(income) then num(income) else (string.format("%.1f", income):gsub("%.", if lang == "fr" then "," else ".")))
+	incomeLabel.Text = tr("income", if income >= 1000 or income == math.floor(income) then num(income) else (string.format("%.1f", income):gsub("%.", if lang == "fr" then "," else ".")))
 	local level, xp, need = player:GetAttribute("Level") or 1, player:GetAttribute("Xp") or 0, player:GetAttribute("XpNeed") or 1
 	levelLabel.Text = tr("hudLevel", level) .. "   " .. compact(xp) .. " / " .. compact(need)
 	xpFill.Size = UDim2.fromScale(math.clamp(xp / need, 0, 1), 1)
@@ -326,76 +311,60 @@ local autoButton: TextButton? = nil
 --   sur téléphone : tout est plus petit et sur les bords, les deux boutons d'attaque ronds sous le pouce droit.
 local MENU = { "EggButton", "PawButton", "BagButton", "SwordButton", "ShopButton" }
 local function applyHud()
-	local view = workspace.CurrentCamera.ViewportSize
-	small = workspace:GetAttribute("PhoneHud") == true or (UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled) or view.Y < 520
-	-- Les pièces.
-	wallet.Parent = gui
-	wallet.AnchorPoint = if small then Vector2.new(1, 0) else Vector2.new(0, 1)
-	-- (Téléphone : tout en haut de l'écran, dans la bande des boutons de Roblox, et décalées vers la gauche pour ne
-	-- pas passer sur le bouton des œufs. Sa demande.)
-	local top = -game:GetService("GuiService"):GetGuiInset().Y + 4
-	wallet.Position = if small then UDim2.new(1, -84, 0, top) else UDim2.new(0, 16, 1, -26)
-	local toBase = gui:FindFirstChild("ToBase")
-	if toBase then
-		toBase.Position = UDim2.new(0.5, 0, 0, if small then top else 0)
+	local view = UI.screenSize(gui)
+	small = UI.compact(view)
+	local layout = MenuLayout.hud(view.X, view.Y, small)
+	local function place(item: GuiObject, rect)
+		item.AnchorPoint = Vector2.zero
+		item.Position = UDim2.fromOffset(rect[1], rect[2])
+		item.Size = UDim2.fromOffset(rect[3], rect[4])
 	end
-	walletScale.Scale = if small then 0.7 else 1.25
-	-- L'épée, l'équipe, la chance.
-	side.AnchorPoint = if small then Vector2.new(0, 0.5) else Vector2.new(0, 1)
-	side.Position = if small then UDim2.new(0, 12, 0.5, 0) else UDim2.new(0, 14, 1, -106)
-	side.Size = if small then UDim2.fromOffset(240, 250) else UDim2.fromOffset(380, 34)
-	sideScale.Scale = if small then 0.72 else 1
-	-- (Les pastilles « épée » et « équipe » sont enlevées, sa demande : l'épée a son bouton et sa fenêtre. Il reste
-	-- la chance, sur laquelle on peut cliquer pour savoir ce que c'est.)
+	wallet.Parent = gui
+	place(wallet, layout.wallet)
+	walletScale.Scale = layout.wallet[5]
+	coinIcon.Position = UDim2.fromOffset(8, 10)
+	coinsLabel.Position = UDim2.fromOffset(54, 2)
+	incomeLabel.Position = UDim2.fromOffset(54, 38)
+	local toBase = gui:FindFirstChild("ToBase")
+	if toBase then place(toBase, layout.base) end
+	-- Keep the requested hidden sword/team pills; their menu buttons show the detail.
 	pills.Sword.Parent.Visible = false
 	pills.Team.Parent.Visible = false
-	local luck = pills.Luck.Parent
-	luck.Size = if small then UDim2.fromOffset(150, 34) else UDim2.fromOffset(118, 32)
-	luck.Position = if small then UDim2.fromOffset(2, 108) else UDim2.fromOffset(0, 0)
-	-- La barre de niveau.
-	levelPill.Parent = if small then side else gui
-	levelPill.AnchorPoint = if small then Vector2.zero else Vector2.new(0.5, 1)
-	levelPill.Position = if small then UDim2.fromOffset(2, 62) else UDim2.new(0.5, 0, 1, -10)
-	levelPill.Size = if small then UDim2.fromOffset(200, 38) else UDim2.fromOffset(540, 32)
-	-- Le menu.
+	side.AnchorPoint = Vector2.zero
+	side.Position = UDim2.fromOffset(0, 0)
+	sideScale.Scale = 1
+	place(pills.Luck.Parent, layout.luck)
+	levelPill.Parent = gui
+	place(levelPill, layout.level)
 	for order, name in MENU do
 		local button = gui:FindFirstChild(name)
 		if button then
 			local scale = button:FindFirstChildOfClass("UIScale") or Instance.new("UIScale")
-			-- (Téléphone : tous les boutons un peu plus petits que le bouton de saut de Roblox, 70 points.)
-			scale.Scale = if small then 0.7 else 0.9
+			scale.Scale = layout.menus[order][5]
 			scale.Parent = button
-			button.AnchorPoint = if small then Vector2.new(1, 0.5) else Vector2.new(0, 0.5)
-			button.Position = if small then UDim2.new(1, -8, 0.5, -150 + (order - 1) * 52) else UDim2.new(0, 22, 0.5, -210 + (order - 1) * 92)
+			place(button, layout.menus[order])
 			local caption = button:FindFirstChild("Caption")
 			if caption then
-				caption.Visible = not small
+				caption.Visible = true
+				caption.Size = UDim2.new(1, -4, 0, 18)
+				caption.Position = UDim2.new(0, 2, 1, -20)
 			end
 		end
 	end
-	-- Les deux actions.
 	for index, button in { attackButton, autoButton } do
 		if button then
-			local size = if small then 58 else 76
-			button.Size = UDim2.fromOffset(size, size)
-			button.AnchorPoint = if small then Vector2.new(1, 1) else Vector2.new(0.5, 1)
-			if small then
-				-- À gauche du bouton de saut : l'attaque en bas, l'automatique juste au-dessus.
-				button.Position = if index == 1 then UDim2.new(1, -106, 1, -26) else UDim2.new(1, -106, 1, -92)
-			else
-				button.Position = UDim2.new(0.5, if index == 1 then -50 else 50, 1, -54)
-			end
-			button:FindFirstChildOfClass("UICorner").CornerRadius = if small then UDim.new(1, 0) else UDim.new(0, 12)
+			place(button, if index == 1 then layout.attack else layout.auto)
+			button:FindFirstChildOfClass("UICorner").CornerRadius = UDim.new(0, 12)
 			button.Key.Visible = not small
 		end
 	end
 	pcall(function()
 		StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.PlayerList, not small)
-		-- (La petite barre de vie de Roblox, en haut a droite : remplacee par celle au-dessus de la tete.)
 		StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Health, false)
 	end)
 end
 workspace:GetAttributeChangedSignal("PhoneHud"):Connect(applyHud)
+gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(applyHud)
 task.defer(applyHud)
 task.delay(3, applyHud)
 
@@ -443,7 +412,8 @@ if player.Character then
 end
 
 -- LES MESSAGES --------------------------------------------------------------------------------------------------
-local toast = text(gui, "Toast", UDim2.new(0.8, 0, 0, 40), UDim2.new(0.1, 0, 0.24, 0), Color3.fromRGB(110, 255, 80), 34)
+local toast = text(gui, "Toast", UDim2.new(0.8, 0, 0, 54), UDim2.new(0.1, 0, 0.35, 0), Color3.fromRGB(110, 255, 80), 26)
+toast.ZIndex = 20
 toast.Visible = false
 local toastId = 0
 local function showToast(message: string, color: Color3?)
@@ -644,13 +614,7 @@ local function roundButton(name: string, size: number, position: UDim2, color: C
 	button.Size = UDim2.fromOffset(size, size)
 	button.BackgroundColor3 = color
 	button.Text = ""
-	button.AutoButtonColor = true
-	Instance.new("UICorner", button).CornerRadius = UDim.new(1, 0)
-	local stroke = Instance.new("UIStroke")
-	stroke.Thickness = 4
-	stroke.Color = Color3.fromRGB(20, 20, 30)
-	stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-	stroke.Parent = button
+	UI.button(button, color)
 	text(button, "Label", UDim2.fromScale(0.86, 0.5), UDim2.fromScale(0.07, 0.25)).Text = label
 	-- La touche du clavier, en haut à gauche du bouton (sur PC).
 	local key = text(button, "Key", UDim2.fromOffset(30, 30), UDim2.fromOffset(-8, -14))
@@ -658,10 +622,23 @@ local function roundButton(name: string, size: number, position: UDim2, color: C
 	button.Parent = gui
 	return button
 end
-attackButton = roundButton("Attack", 104, UDim2.new(1, -110, 1, -30), Color3.fromRGB(235, 60, 60), "⚔")
-autoButton = roundButton("Auto", 66, UDim2.new(1, -124, 1, -146), Color3.fromRGB(90, 96, 120), tr("auto"))
+attackButton = roundButton("Attack", 104, UDim2.new(1, -110, 1, -30), UI.Colors.Red, "⚔")
+autoButton = roundButton("Auto", 66, UDim2.new(1, -124, 1, -146), UI.Colors.Card, tr("auto"))
 attackButton.Key.Text = "F"
 autoButton.Key.Text = "R"
+attackButton.Label.TextTransparency = 1
+UI.icon(attackButton.Label, "attack")
+attackButton.Label.Position = UDim2.fromScale(0.20, 0.08)
+attackButton.Label.Size = UDim2.fromScale(0.60, 0.60)
+local attackCaption = text(attackButton, "ActionCaption", UDim2.fromScale(0.96, 0.22), UDim2.fromScale(0.02, 0.73), nil, 16)
+attackCaption.Text = tr("attack")
+autoButton.Label.Position = UDim2.fromScale(0.03, 0.62)
+autoButton.Label.Size = UDim2.fromScale(0.94, 0.28)
+local autoIcon = text(autoButton, "ActionIcon", UDim2.fromScale(0.60, 0.54), UDim2.fromScale(0.20, 0.06))
+UI.icon(autoIcon, "auto")
+local autoMark = text(autoButton, "ActiveMark", UDim2.fromOffset(18, 18), UDim2.new(1, -16, 0, -4), UI.Colors.Gold, 18)
+autoMark.Text = "✓"
+autoMark.Visible = false
 -- L'ATTAQUE AUTOMATIQUE (sa demande : « que je puisse mettre l'attaque auto et faire autre chose sur mon PC ») : le
 -- personnage va tout seul jusqu'au monstre le plus proche, le combat, puis passe au suivant. Il ne s'éloigne pas à
 -- plus de AUTO_RADIUS de l'endroit où on l'a laissé (là où l'AUTO a été allumé, ou là où on a marché en dernier).
@@ -687,7 +664,10 @@ local function setAuto(on: boolean)
 	end
 	local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
 	anchor = if on and root then root.Position else nil
-	autoButton.BackgroundColor3 = if auto then Color3.fromRGB(60, 200, 90) else Color3.fromRGB(90, 96, 120)
+	autoButton.BackgroundColor3 = if auto then UI.Colors.Green else UI.Colors.Card
+	autoMark.Visible = auto
+	autoButton.UIStroke.Color = if auto then UI.Colors.Gold else UI.Colors.Ink
+	autoButton.UIStroke.Thickness = if auto then 3 else 2
 end
 attackButton.Activated:Connect(swing)
 autoButton.Activated:Connect(function()
@@ -805,21 +785,16 @@ local function travelButton(name: string, x: number, color: Color3): (TextButton
 	button.Size = UDim2.fromOffset(132, 40)
 	button.BackgroundColor3 = color
 	button.Text = ""
-	Instance.new("UICorner", button).CornerRadius = UDim.new(0, 8)
-	local stroke = Instance.new("UIStroke")
-	stroke.Thickness = 3
-	stroke.Color = Color3.fromRGB(20, 20, 30)
-	stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-	stroke.Parent = button
+	UI.button(button, color)
 	local label = text(button, "Label", UDim2.fromScale(0.9, 0.76), UDim2.fromScale(0.05, 0.12))
 	button.Parent = gui
 	return button, label
 end
-local baseButton, baseLabel = travelButton("ToBase", -72, Color3.fromRGB(50, 190, 80))
-local zoneButton, zoneLabel = travelButton("ToZone", 72, Color3.fromRGB(60, 150, 255))
+local baseButton, baseLabel = travelButton("ToBase", -72, UI.Colors.Green)
+local zoneButton, zoneLabel = travelButton("ToZone", 72, UI.Colors.Blue)
 -- (Sa demande : plus de bouton « ZONE », et « BASE » deux fois plus petit, collé tout en haut de l'écran.)
 zoneButton.Visible = false
-baseButton.Size = UDim2.fromOffset(64, 20)
+baseButton.Size = UDim2.fromOffset(92, 36)
 baseButton.Position = UDim2.new(0.5, 0, 0, 0)
 luckClick.Activated:Connect(function()
 	showToast(tr("luckInfo", player:GetAttribute("PetLuck") or 0), GOLD)
