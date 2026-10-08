@@ -207,6 +207,9 @@
           "$path": "../roblox-survive/assets/collections/oeufs/models/JaguarEgg.rbxmx"
         }
       },
+      "SwordGoldV2": {
+        "$path": "assets/swords-roblox/GoldV2.rbxm"
+      },
       "SwordMeshes": {
         "$path": "assets/swords-roblox/SwordMeshes.rbxm"
       },

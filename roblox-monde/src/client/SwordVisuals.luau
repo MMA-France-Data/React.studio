@@ -11,10 +11,64 @@ end
 function Swords.dual(tier: number): boolean
 	return Palette.gameOrder[Swords.tier(tier)] == "Void"
 end
+-- LA NOUVELLE EPEE OR (08/10) : le createur a enregistre le modele importe tel quel (« SwordGoldV2 », fichier
+-- assets/swords-roblox/GoldV2.rbxm) au lieu du dossier range. Le jeu la range donc lui-meme, une seule fois, avec les
+-- memes chiffres que le plugin (tools/swords/RangerLesEpees.lua, REPLACEMENTS.Gold) : elle prend la place de « Gold ».
+local goldDone = false
+function Swords.newGold(assets: Instance?)
+	local raw = Storage:FindFirstChild("SwordGoldV2")
+	if goldDone or not assets or not raw then return end
+	goldDone = true
+	local ok, problem = pcall(function()
+		local LENGTH = 5.2
+		local info = { grip = 1.040, cross = { -0.0005, 0.0421 }, base = { -0.0413, 0.0814, -0.858 }, tip = { -0.0023, 0.6570, -4.160 } }
+		local model = Instance.new("Model")
+		model.Name = "Gold"
+		local copy = raw:Clone()
+		local parts = {}
+		if copy:IsA("BasePart") then table.insert(parts, copy) end
+		for _, item in copy:GetDescendants() do
+			if item:IsA("BasePart") then table.insert(parts, item) end
+		end
+		assert(#parts > 0, "aucune piece")
+		table.sort(parts, function(a, b) return a.Size.Magnitude > b.Size.Magnitude end)
+		local main = parts[1]
+		for _, part in parts do
+			part.Anchored, part.Massless = true, true
+			part.CanCollide, part.CanTouch, part.CanQuery = false, false, false
+			part.Parent = model
+		end
+		model:ScaleTo(LENGTH / math.max(main.Size.X, main.Size.Y, main.Size.Z))
+		local size, frame = main.Size, main.CFrame
+		local axes = { { size.X, frame.XVector }, { size.Y, frame.YVector }, { size.Z, frame.ZVector } }
+		table.sort(axes, function(a, b) return a[1] < b[1] end)
+		local wide, tip = axes[2][2], axes[3][2]
+		local at = main.Position - tip * (LENGTH / 2) + tip * info.grip + tip:Cross(wide) * info.cross[1] + wide * info.cross[2]
+		local grip = Instance.new("Part")
+		grip.Name = "Grip"
+		grip.Size = Vector3.new(0.2, 0.2, 0.2)
+		grip.Transparency = 1
+		grip.Anchored, grip.Massless = true, true
+		grip.CanCollide, grip.CanTouch, grip.CanQuery = false, false, false
+		grip.CFrame = CFrame.lookAt(at, at + tip, wide)
+		grip.Parent = model
+		model.PrimaryPart = grip
+		model:SetAttribute("Calibre", 2)
+		for key, position in { TrailBase = info.base, TrailTip = info.tip } do
+			local point = Instance.new("Attachment")
+			point.Name, point.Position, point.Parent = key, Vector3.new(table.unpack(position)), grip
+		end
+		local old = assets:FindFirstChild("Gold")
+		if old then old:Destroy() end
+		model.Parent = assets
+	end)
+	if not ok then warn("[MONDE] nouvelle epee or : " .. tostring(problem)) end
+end
 function Swords.build(tier: number, parent: Instance): Model
 	local data = DESIGNS[math.clamp(tier, 1, #DESIGNS)]
 	-- Optional calibrated Meshy imports. No mesh deformation or re-generation.
 	local assets = Storage:FindFirstChild("SwordMeshes")
+	Swords.newGold(assets)
 	-- Fire/ice fusion follows Storm. Prismatic stays outside the shop progression.
 	local order = Palette.gameOrder
 	local wanted = order[math.clamp(tier, 1, #order)]

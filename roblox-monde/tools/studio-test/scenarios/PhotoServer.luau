@@ -1,6 +1,6 @@
 -- PETIT TEST EN IMAGES (une trentaine de secondes) : seulement des photos, sans rejouer tout le jeu.
 --   powershell -ExecutionPolicy Bypass -File tools/studio-test/run.ps1 -Test photo -Seconds 40
--- Ici : l'écran des téléphones (BASE et pièces tout en haut) et la pastille des œufs. À changer selon le besoin.
+-- Ici : la nouvelle épée or (épée 3) dans la main, de face et de côté. À changer selon le besoin.
 local Players = game:GetService("Players")
 local ServerStorage = game:GetService("ServerStorage")
 
@@ -16,13 +16,21 @@ return function(log)
 		log("Info", "SHOT:photo_" .. name)
 		task.wait(1.2)
 	end
-	workspace:SetAttribute("PhoneHud", true)
-	debug:Invoke("Egg", 1, 1)
-	shot("tel_oeuf_nouveau")
-	workspace:SetAttribute("OpenPanel", "EggPanel")
-	task.wait(1)
-	workspace:SetAttribute("OpenPanel", "")
-	shot("tel_apres_ouverture")
-	workspace:SetAttribute("PhoneHud", nil)
+	local function look(side: number)
+		local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+		if root then
+			local at = root.Position
+			workspace:SetAttribute("ShotCam", CFrame.lookAt(at + root.CFrame.LookVector * 11 + root.CFrame.RightVector * side + Vector3.new(0, 3, 0), at + Vector3.new(0, 3, 0)))
+		end
+	end
+	debug:Invoke("Sword", 3)
+	task.wait(2.5)
+	look(0)
+	shot("or_face")
+	look(8)
+	shot("or_cote")
+	workspace:SetAttribute("ShotCam", nil)
+	workspace:SetAttribute("OpenPanel", "SwordPanel")
+	shot("or_fenetre")
 	log("Info", "[SURVIVE] TEST:done")
 end
