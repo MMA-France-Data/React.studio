@@ -1,0 +1,61 @@
+{
+  "name": "MONDE-Savane-Oeufs-Salle-7-Preview",
+  "tree": {
+    "$className": "DataModel",
+    "ReplicatedStorage": {
+      "Models": {
+        "$className": "Folder",
+        "HyenaEgg": {
+          "$path": "models/HyenaEgg.rbxmx"
+        },
+        "BuffaloEgg": {
+          "$path": "models/BuffaloEgg.rbxmx"
+        },
+        "CheetahEgg": {
+          "$path": "models/CheetahEgg.rbxmx"
+        },
+        "RhinoEgg": {
+          "$path": "models/RhinoEgg.rbxmx"
+        },
+        "ElephantEgg": {
+          "$path": "models/ElephantEgg.rbxmx"
+        },
+        "LionEgg": {
+          "$path": "models/LionEgg.rbxmx"
+        }
+      }
+    },
+    "StarterPlayer": {
+      "StarterPlayerScripts": {
+        "Gallery": {
+          "$path": "Gallery.client.luau"
+        }
+      }
+    },
+    "Workspace": {
+      "$properties": {
+        "Gravity": 0,
+        "StreamingEnabled": false
+      }
+    },
+    "Lighting": {
+      "$properties": {
+        "Brightness": 2,
+        "ClockTime": 12,
+        "Ambient": [
+          0.58,
+          0.62,
+          0.59
+        ]
+      },
+      "RareEggBloom": {
+        "$className": "BloomEffect",
+        "$properties": {
+          "Intensity": 0.3,
+          "Size": 20,
+          "Threshold": 1.1
+        }
+      }
+    }
+  }
+}

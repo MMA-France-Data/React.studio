@@ -1,0 +1,112 @@
+{
+  "created": "2026-10-08",
+  "nests": false,
+  "paidGenerations": 0,
+  "gameModified": false,
+  "embeddedScripts": false,
+  "notes": "Native original Roblox Parts; static visual assets, not yet integrated or tested in Studio.",
+  "eggs": [
+    {
+      "id": "HyenaEgg",
+      "animalId": "Hyena",
+      "label": "Hyène",
+      "room": 7,
+      "parts": 91,
+      "welds": 90,
+      "size": [
+        2.02,
+        2.572,
+        2.091
+      ],
+      "referenceChancePercent": 45,
+      "rareViolet": false,
+      "rareRainbow": false,
+      "sha256": "9a65dfafbc3690fb05a984641f5f6d599a3f2dae8f6143a35bbed12d82d4611a"
+    },
+    {
+      "id": "BuffaloEgg",
+      "animalId": "Buffalo",
+      "label": "Buffle",
+      "room": 7,
+      "parts": 84,
+      "welds": 83,
+      "size": [
+        2.991746754097347,
+        2.732008770425762,
+        1.8840000000000001
+      ],
+      "referenceChancePercent": 30,
+      "rareViolet": false,
+      "rareRainbow": false,
+      "sha256": "23edf2ecd20f6cdab0d1125d1ac223b9e36d8214a0e519b3d0e0951810e4239b"
+    },
+    {
+      "id": "CheetahEgg",
+      "animalId": "Cheetah",
+      "label": "Guépard",
+      "room": 7,
+      "parts": 124,
+      "welds": 123,
+      "size": [
+        2.2225969985718153,
+        2.4872,
+        1.9820000000000002
+      ],
+      "referenceChancePercent": 14,
+      "rareViolet": false,
+      "rareRainbow": false,
+      "sha256": "546d2c5f814f42a3ee6432782ec01d5227b7475547ad86cf10f3ceacf707a4a8"
+    },
+    {
+      "id": "RhinoEgg",
+      "animalId": "Rhino",
+      "label": "Rhinocéros",
+      "room": 7,
+      "parts": 80,
+      "welds": 79,
+      "size": [
+        2.02,
+        3.2390235692787415,
+        1.8840000000000001
+      ],
+      "referenceChancePercent": 7,
+      "rareViolet": false,
+      "rareRainbow": false,
+      "sha256": "6f6ba303d2b66da3eac09cc54abb6baf7cebb919e96ffd1a16b82325b076dc5e"
+    },
+    {
+      "id": "ElephantEgg",
+      "animalId": "Elephant",
+      "label": "Éléphant",
+      "room": 7,
+      "parts": 92,
+      "welds": 91,
+      "size": [
+        2.817883047862083,
+        2.505279850572073,
+        2.4381619916746415
+      ],
+      "referenceChancePercent": 3.5,
+      "rareViolet": false,
+      "rareRainbow": false,
+      "sha256": "7d6ecd17fa9448449eb6ac5a7eb1425a280b33b3f985f900be210c9ad38ca955"
+    },
+    {
+      "id": "LionEgg",
+      "animalId": "Lion",
+      "label": "Lion royal",
+      "room": 7,
+      "parts": 85,
+      "welds": 84,
+      "size": [
+        2.252929582138293,
+        2.59,
+        1.8545
+      ],
+      "referenceChancePercent": 0.5,
+      "rareViolet": true,
+      "rareRainbow": true,
+      "sha256": "323715ad8648eb4aa32ce8f66c2de98114093be399f76de2074e34d642b4616b"
+    }
+  ]
+}

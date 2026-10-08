@@ -1,5 +1,7 @@
 # SURVIVE! — collections originales et super animaux ultra-rares
 
+**Nouvelle collection savane pour MONDE :** [salle 7 — six animaux, attaques et œufs sans nid](../../../roblox-monde/assets/collections/salle-07-savane/README.md). Ce pack reste séparé du jeu actif.
+
 30 animaux originaux en pièces Roblox natives, avec rigs Motor6D, détails soudés
 et séquences locales `Idle` / `Walk`. Versions retenues après les retours visuels
 du joueur, préparées le 6 octobre 2026. Aucun modèle ou script de bibliothèque.

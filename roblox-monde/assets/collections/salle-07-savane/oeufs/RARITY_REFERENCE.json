@@ -1,0 +1,42 @@
+{
+  "source": "Room 7 selection approved by user, same six rarity ranks as rooms 1–5",
+  "referenceOnly": true,
+  "gameDropRatesModified": false,
+  "rooms": [
+    {
+      "room": 7,
+      "eggs": [
+        {
+          "animalId": "Hyena",
+          "chancePercent": 45,
+          "violet": false
+        },
+        {
+          "animalId": "Buffalo",
+          "chancePercent": 30,
+          "violet": false
+        },
+        {
+          "animalId": "Cheetah",
+          "chancePercent": 14,
+          "violet": false
+        },
+        {
+          "animalId": "Rhino",
+          "chancePercent": 7,
+          "violet": false
+        },
+        {
+          "animalId": "Elephant",
+          "chancePercent": 3.5,
+          "violet": false
+        },
+        {
+          "animalId": "Lion",
+          "chancePercent": 0.5,
+          "violet": true
+        }
+      ]
+    }
+  ]
+}

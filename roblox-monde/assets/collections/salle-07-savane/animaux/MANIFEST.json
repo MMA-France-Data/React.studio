@@ -1,0 +1,247 @@
+{
+  "created": "2026-10-08",
+  "author": "Original models authored locally with Codex",
+  "paidGenerations": 0,
+  "gameModified": false,
+  "pets": [
+    {
+      "id": "Hyena",
+      "label": "Hyène",
+      "parts": 80,
+      "motors": 16,
+      "size": [
+        1.0340718342468846,
+        2.2050735258002634,
+        3.8
+      ],
+      "sha256": "17be7f0da06c12a6fa1c232b1b8ae3d5952a4a2749823d4579b281b5083187df",
+      "animations": [
+        "Idle",
+        "Walk",
+        "Attack",
+        "Bite"
+      ],
+      "attack": "Morsure en bondissant",
+      "clips": {
+        "Idle": {
+          "duration": 3,
+          "loop": true
+        },
+        "Walk": {
+          "duration": 1.3,
+          "loop": true
+        },
+        "Attack": {
+          "duration": 1.02,
+          "loop": false,
+          "label": "Morsure en bondissant",
+          "impactTime": 0.4896
+        },
+        "Bite": {
+          "duration": 1.02,
+          "loop": false,
+          "label": "Morsure — Hyène",
+          "impactTime": 0.4896
+        }
+      }
+    },
+    {
+      "id": "Buffalo",
+      "label": "Buffle",
+      "parts": 66,
+      "motors": 15,
+      "size": [
+        3.0657765617032027,
+        2.3235686217861193,
+        4.5
+      ],
+      "sha256": "f06427bf49cef1a1d99a4a700b004cfb0680e667f5e3c5ac8d48b2d63b3e21ab",
+      "animations": [
+        "Idle",
+        "Walk",
+        "Attack"
+      ],
+      "attack": "Charge et coup de cornes",
+      "clips": {
+        "Idle": {
+          "duration": 3,
+          "loop": true
+        },
+        "Walk": {
+          "duration": 1.8,
+          "loop": true
+        },
+        "Attack": {
+          "duration": 1.45,
+          "loop": false,
+          "label": "Charge et coup de cornes",
+          "impactTime": 0.6815
+        }
+      }
+    },
+    {
+      "id": "Cheetah",
+      "label": "Guépard",
+      "parts": 89,
+      "motors": 17,
+      "size": [
+        0.8554703002027048,
+        2.2974055898958063,
+        4.7
+      ],
+      "sha256": "405c6ab355d40d46ec39e26869c6f319cb50f64905f29ecd4e0dc2d949ef6314",
+      "animations": [
+        "Idle",
+        "Walk",
+        "Attack",
+        "Bite"
+      ],
+      "attack": "Bond du guépard",
+      "clips": {
+        "Idle": {
+          "duration": 3,
+          "loop": true
+        },
+        "Walk": {
+          "duration": 1.05,
+          "loop": true
+        },
+        "Attack": {
+          "duration": 1.2,
+          "loop": false,
+          "label": "Bond du guépard",
+          "impactTime": 0.624
+        },
+        "Bite": {
+          "duration": 1.02,
+          "loop": false,
+          "label": "Morsure — Guépard",
+          "impactTime": 0.4896
+        }
+      }
+    },
+    {
+      "id": "Rhino",
+      "label": "Rhinocéros",
+      "parts": 74,
+      "motors": 14,
+      "size": [
+        2.1061639110899057,
+        2.664447938105291,
+        5.3963981109886605
+      ],
+      "sha256": "220a1d1f26bc2a5569c099825ac123a613d01192e80517413ca99c0899454527",
+      "animations": [
+        "Idle",
+        "Walk",
+        "Attack"
+      ],
+      "attack": "Charge lourde du rhinocéros",
+      "clips": {
+        "Idle": {
+          "duration": 3,
+          "loop": true
+        },
+        "Walk": {
+          "duration": 2,
+          "loop": true
+        },
+        "Attack": {
+          "duration": 1.7,
+          "loop": false,
+          "label": "Charge lourde du rhinocéros",
+          "impactTime": 0.7989999999999999
+        }
+      }
+    },
+    {
+      "id": "Elephant",
+      "label": "Éléphant",
+      "parts": 78,
+      "motors": 18,
+      "size": [
+        3.6721594957999626,
+        3.3450000000000006,
+        5.328495051487825
+      ],
+      "sha256": "02ebd6e1fd1ed41a521212616f525e6b8c07a9545479f33299df8fdc47027d4e",
+      "animations": [
+        "Idle",
+        "Walk",
+        "Attack"
+      ],
+      "attack": "Balayage de trompe",
+      "clips": {
+        "Idle": {
+          "duration": 3,
+          "loop": true
+        },
+        "Walk": {
+          "duration": 2.2,
+          "loop": true
+        },
+        "Attack": {
+          "duration": 1.7,
+          "loop": false,
+          "label": "Balayage de trompe",
+          "impactTime": 0.867
+        }
+      }
+    },
+    {
+      "id": "Lion",
+      "label": "Lion royal",
+      "parts": 96,
+      "motors": 17,
+      "size": [
+        1.8683082820980026,
+        3.104411236415368,
+        5.2
+      ],
+      "sha256": "6e0f21f4114a1b42a42b103244d8fb1af2221d8f6429774628e60efce6c32c0d",
+      "animations": [
+        "Idle",
+        "Walk",
+        "Attack",
+        "Bite"
+      ],
+      "ultraRare": true,
+      "referenceChancePercent": 0.5,
+      "rainbowPalette": [
+        "ff1599",
+        "951cff",
+        "184eff",
+        "00c9f5",
+        "36ee28",
+        "ffe414",
+        "ff9414",
+        "ff287d"
+      ],
+      "attack": "Grand coup de patte du lion",
+      "clips": {
+        "Idle": {
+          "duration": 3,
+          "loop": true
+        },
+        "Walk": {
+          "duration": 1.65,
+          "loop": true
+        },
+        "Attack": {
+          "duration": 1.42,
+          "loop": false,
+          "label": "Grand coup de patte du lion",
+          "impactTime": 0.71
+        },
+        "Bite": {
+          "duration": 1.18,
+          "loop": false,
+          "label": "Morsure — Lion royal",
+          "impactTime": 0.5663999999999999
+        }
+      }
+    }
+  ],
+  "actualStudioTest": false,
+  "room": 7
+}

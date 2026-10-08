@@ -1,0 +1,100 @@
+{
+  "status": "SAVANNA_GEOMETRY_RIG_CLIPS_GROUND_CHANCES_HASH_OK",
+  "actualStudioTest": false,
+  "gameModified": false,
+  "paidGenerations": 0,
+  "animals": [
+    {
+      "id": "Hyena",
+      "parts": 80,
+      "motors": 16,
+      "clips": [
+        "Idle",
+        "Walk",
+        "Attack",
+        "Bite"
+      ],
+      "sampledPoses": 404,
+      "lowestPoint": -2.220446049250313e-16,
+      "highestPoint": 2.2718853108323245
+    },
+    {
+      "id": "Buffalo",
+      "parts": 66,
+      "motors": 15,
+      "clips": [
+        "Idle",
+        "Walk",
+        "Attack"
+      ],
+      "sampledPoses": 303,
+      "lowestPoint": -2.220446049250313e-16,
+      "highestPoint": 2.4144269337072455
+    },
+    {
+      "id": "Cheetah",
+      "parts": 89,
+      "motors": 17,
+      "clips": [
+        "Idle",
+        "Walk",
+        "Attack",
+        "Bite"
+      ],
+      "sampledPoses": 404,
+      "lowestPoint": -2.220446049250313e-16,
+      "highestPoint": 2.7463027808071194
+    },
+    {
+      "id": "Rhino",
+      "parts": 74,
+      "motors": 14,
+      "clips": [
+        "Idle",
+        "Walk",
+        "Attack"
+      ],
+      "sampledPoses": 303,
+      "lowestPoint": -2.220446049250313e-16,
+      "highestPoint": 2.9791871912021586
+    },
+    {
+      "id": "Elephant",
+      "parts": 78,
+      "motors": 18,
+      "clips": [
+        "Idle",
+        "Walk",
+        "Attack"
+      ],
+      "sampledPoses": 303,
+      "lowestPoint": -2.220446049250313e-16,
+      "highestPoint": 3.445608335138887
+    },
+    {
+      "id": "Lion",
+      "parts": 96,
+      "motors": 17,
+      "clips": [
+        "Idle",
+        "Walk",
+        "Attack",
+        "Bite"
+      ],
+      "sampledPoses": 404,
+      "lowestPoint": -2.220446049250313e-16,
+      "highestPoint": 3.3714603805577648
+    }
+  ],
+  "eggs": 6,
+  "rareAnimal": "Lion",
+  "rareEgg": "LionEgg",
+  "referenceChances": [
+    45,
+    30,
+    14,
+    7,
+    3.5,
+    0.5
+  ]
+}
