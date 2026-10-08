@@ -17,7 +17,7 @@ return function(log)
 		task.wait(1.2)
 	end
 	workspace:SetAttribute("PhoneHud", true)
-	debug:Invoke("Egg", "Duck", 1)
+	debug:Invoke("Egg", 1, 1)
 	shot("tel_oeuf_nouveau")
 	workspace:SetAttribute("OpenPanel", "EggPanel")
 	task.wait(1)

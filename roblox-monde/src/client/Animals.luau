@@ -571,7 +571,9 @@ return function(env)
 			local board = title and title:FindFirstChild("Label")
 			if board then
 				board.Title.Text = tr("enclosure")
-				board.Level.Text = if owner then tr("active", pets + eggs, places) else ""
+				-- (Seulement les familiers : les œufs qui couvent ne prennent plus de place dans l'enclos.)
+				local _ = eggs
+				board.Level.Text = if owner then tr("active", pets, places) else ""
 				board.Info.Text = if owner then tr("income", amount(owner:GetAttribute("Income") or 0)) else ""
 			end
 			local upgrade = enclosure:FindFirstChild("Upgrade")
