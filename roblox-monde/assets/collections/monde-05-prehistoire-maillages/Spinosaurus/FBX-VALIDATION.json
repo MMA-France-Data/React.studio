@@ -1,0 +1,10 @@
+{
+  "passed": true,
+  "actualStudioTest": false,
+  "id": "Spinosaurus",
+  "rigidMeshes": 17,
+  "bones": 0,
+  "triangles": 4698,
+  "maxRoundTripBoundsError": 3.659725189564256e-07,
+  "texturesAndUV": true
+}

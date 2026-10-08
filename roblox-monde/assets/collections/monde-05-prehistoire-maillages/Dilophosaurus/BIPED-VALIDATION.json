@@ -1,0 +1,19 @@
+{
+  "passed": true,
+  "actualStudioTest": false,
+  "sampledWalkFrames": 121,
+  "supportLimbs": [
+    "LegBL",
+    "LegBR"
+  ],
+  "forelimbs": [
+    "ArmL",
+    "ArmR"
+  ],
+  "forelimbsWeightBearing": false,
+  "ground": -1.637285674640159,
+  "minimumArmClearance": 0.9430017857393282,
+  "maximumStanceError": 0.00014423824878484481,
+  "maximumFootPitch": 7.61512247954288e-7,
+  "maximumSwingLift": 0.17999999212663953
+}

@@ -1,0 +1,38 @@
+{
+  "passed": true,
+  "actualStudioTest": false,
+  "id": "Pteranodon",
+  "basePartsAfterAssembly": 18,
+  "motor6D": 17,
+  "rigidWelds": 0,
+  "originalJointNames": true,
+  "originalClipsUnchanged": true,
+  "vertexPoseCases": 5508,
+  "maxRetargetMatrixError": 5.1680649537644285e-8,
+  "clips": {
+    "Idle": {
+      "duration": 4,
+      "loop": true,
+      "minHeight": -0.99573027500369,
+      "maxHeight": 1.5949999782443047
+    },
+    "Walk": {
+      "duration": 0.95,
+      "loop": true,
+      "minHeight": -1.4217703058830298,
+      "maxHeight": 1.748247363713024
+    },
+    "Attack": {
+      "duration": 1.2,
+      "loop": false,
+      "minHeight": -0.918922388800012,
+      "maxHeight": 1.9401497472330065
+    },
+    "Bite": {
+      "duration": 0.91,
+      "loop": false,
+      "minHeight": -0.918922388800012,
+      "maxHeight": 1.7022478280610023
+    }
+  }
+}

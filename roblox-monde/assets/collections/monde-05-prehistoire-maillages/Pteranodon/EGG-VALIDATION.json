@@ -1,0 +1,10 @@
+{
+  "passed": true,
+  "actualStudioTest": false,
+  "id": "PteranodonEgg",
+  "baseParts": 72,
+  "noNest": true,
+  "connectedGeometryPieces": 71,
+  "detachedGeometryPieces": [],
+  "method": "15-axis oriented-box contact, connected component"
+}

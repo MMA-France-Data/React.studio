@@ -1,0 +1,10 @@
+{
+  "passed": true,
+  "actualStudioTest": false,
+  "id": "Pteranodon",
+  "rigidMeshes": 17,
+  "bones": 0,
+  "triangles": 4560,
+  "maxRoundTripBoundsError": 2.3001391369348312e-07,
+  "texturesAndUV": true
+}

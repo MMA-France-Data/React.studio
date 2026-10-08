@@ -1,0 +1,16 @@
+{
+  "passed": true,
+  "id": "Pteranodon",
+  "actualStudioTest": false,
+  "sampledWalkFrames": 121,
+  "locomotion": "flight",
+  "forelimbs": [
+    "WingL",
+    "WingR"
+  ],
+  "supportLimbs": [],
+  "maxStrokeRadians": 0.43000000000000005,
+  "maxWingMismatch": 0,
+  "minimumWingTipSpan": 4.957064922371429,
+  "forelimbsWeightBearing": false
+}

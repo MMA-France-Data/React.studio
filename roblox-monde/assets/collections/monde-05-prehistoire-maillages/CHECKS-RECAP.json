@@ -1,0 +1,94 @@
+{
+  "actualStudioTest": false,
+  "gameModified": false,
+  "paidGenerations": 0,
+  "models": [
+    {
+      "id": "Velociraptor",
+      "pieces": 17,
+      "triangles": 4712,
+      "passedReports": [
+        "BIPED-VALIDATION.json",
+        "CONTACT-VALIDATION.json",
+        "EGG-VALIDATION.json",
+        "FBX-VALIDATION.json",
+        "NATIVE-VALIDATION.json"
+      ],
+      "requiredFilesPresent": true
+    },
+    {
+      "id": "Dilophosaurus",
+      "pieces": 19,
+      "triangles": 4100,
+      "passedReports": [
+        "BIPED-VALIDATION.json",
+        "CONTACT-VALIDATION.json",
+        "EGG-VALIDATION.json",
+        "FBX-VALIDATION.json",
+        "MOVING-FRILL-VALIDATION.json",
+        "NATIVE-VALIDATION.json"
+      ],
+      "requiredFilesPresent": true
+    },
+    {
+      "id": "Pteranodon",
+      "pieces": 18,
+      "triangles": 4560,
+      "passedReports": [
+        "CONTACT-VALIDATION.json",
+        "EGG-VALIDATION.json",
+        "FBX-VALIDATION.json",
+        "LOCOMOTION-VALIDATION.json",
+        "MOVING-CONTACT-VALIDATION.json",
+        "NATIVE-VALIDATION.json"
+      ],
+      "requiredFilesPresent": true
+    },
+    {
+      "id": "Triceratops",
+      "pieces": 19,
+      "triangles": 4698,
+      "passedReports": [
+        "CONTACT-VALIDATION.json",
+        "EGG-VALIDATION.json",
+        "FBX-VALIDATION.json",
+        "LOCOMOTION-VALIDATION.json",
+        "MOVING-CONTACT-VALIDATION.json",
+        "NATIVE-VALIDATION.json"
+      ],
+      "requiredFilesPresent": true
+    },
+    {
+      "id": "Spinosaurus",
+      "pieces": 18,
+      "triangles": 4698,
+      "passedReports": [
+        "BIPED-VALIDATION.json",
+        "CONTACT-VALIDATION.json",
+        "EGG-VALIDATION.json",
+        "FBX-VALIDATION.json",
+        "LOCOMOTION-VALIDATION.json",
+        "MOVING-CONTACT-VALIDATION.json",
+        "NATIVE-VALIDATION.json"
+      ],
+      "requiredFilesPresent": true
+    },
+    {
+      "id": "Trex",
+      "pieces": 17,
+      "triangles": 4686,
+      "passedReports": [
+        "BIPED-VALIDATION.json",
+        "CONTACT-VALIDATION.json",
+        "EGG-VALIDATION.json",
+        "FBX-VALIDATION.json",
+        "LOCOMOTION-VALIDATION.json",
+        "MOVING-CONTACT-VALIDATION.json",
+        "NATIVE-VALIDATION.json",
+        "REVISION-VALIDATION.json"
+      ],
+      "requiredFilesPresent": true
+    }
+  ],
+  "passed": true
+}

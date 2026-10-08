@@ -1,0 +1,98 @@
+{
+  "created": "2026-10-09",
+  "world": 5,
+  "theme": "Préhistoire",
+  "order": [
+    "Velociraptor",
+    "Dilophosaurus",
+    "Pteranodon",
+    "Triceratops",
+    "Spinosaurus",
+    "Trex"
+  ],
+  "animals": [
+    {
+      "id": "Velociraptor",
+      "basePartsAfterAssembly": 17,
+      "triangles": 4712,
+      "Motor6D": 16,
+      "locomotion": "biped",
+      "boss": false,
+      "shapeRevision": 1
+    },
+    {
+      "id": "Dilophosaurus",
+      "basePartsAfterAssembly": 19,
+      "triangles": 4100,
+      "Motor6D": 18,
+      "locomotion": "biped",
+      "boss": false,
+      "shapeRevision": 1
+    },
+    {
+      "id": "Pteranodon",
+      "basePartsAfterAssembly": 18,
+      "triangles": 4560,
+      "Motor6D": 17,
+      "locomotion": "flight",
+      "boss": false,
+      "shapeRevision": 1
+    },
+    {
+      "id": "Triceratops",
+      "basePartsAfterAssembly": 19,
+      "triangles": 4698,
+      "Motor6D": 18,
+      "locomotion": "quadruped",
+      "boss": false,
+      "shapeRevision": 1
+    },
+    {
+      "id": "Spinosaurus",
+      "basePartsAfterAssembly": 18,
+      "triangles": 4698,
+      "Motor6D": 17,
+      "locomotion": "biped",
+      "boss": false,
+      "shapeRevision": 1
+    },
+    {
+      "id": "Trex",
+      "basePartsAfterAssembly": 17,
+      "triangles": 4686,
+      "Motor6D": 16,
+      "locomotion": "biped",
+      "boss": true,
+      "shapeRevision": 2
+    }
+  ],
+  "gameModified": false,
+  "actualStudioTest": false,
+  "paidGenerations": 0,
+  "requiresStudioMeshImport": true,
+  "requiresGameIntegration": true,
+  "referenceAnimationGain": 1,
+  "integrationNotes": [
+    "Generic animation reader retained. Configure gain 1 for these clips.",
+    "Pteranodon Walk is flight; aerial positioning and collision integration remain to do.",
+    "FBX contains rigid meshes; Motor6D and KeyframeSequence are in the RBXMX template."
+  ],
+  "files": {
+    "README.md": "047a7e7b996d15e3942fb577cc19ea7e4696da59de4d961622e7e4efe4ecb128",
+    "CONTRAT-ANIMATIONS-PREHISTOIRE.md": "b1906698f98d23d5a099f0c6c250127b79f4f9137e6948c800e95c6c5837959c",
+    "CHECKS-RECAP.json": "e8d9faed9e8e5859c779a004c7e03c393400a69ce519a02153f9fae0cd86822e",
+    "Apercu-collection-prehistoire.png": "e0110bbea09c15a26ee2bb31bf472992d70b456ca3fe6b34a540eda33a53b93f",
+    "checks/check-native-mesh.ps1": "6e74b677ce1a18e99ff7a83bfb95378eb449011cb4a52f875870fd8f6f1a35fa",
+    "checks/verify-native-mesh.cjs": "8b28c83b5c5e5e55468bdf128bc5dfb365d759657c3e19d2a1be4a8e197a03ca",
+    "checks/combat-math.cjs": "af4dcfe7cf323c43a3296ca43538441d4db53b8c027600408dedf4e5eca6dc61",
+    "checks/check-raptor-egg.cjs": "7f72c050c122cb54829fda11afbc928bcf0d739bf27d0e4ef1f942ddb8038209",
+    "checks/verify-rigid-fbx.py": "3541485d3f8b298988774622c5896097579472a6dfbb0917fd3556bc377ee052",
+    "checks/verify-mesh-contacts.py": "9e1e77e7c40aeea5805b64def9481b85418e58621e993e879e709fda78282343",
+    "checks/verify-prehistory-moving-contacts.py": "93c3255149d02ef5d1a94151638d415a659eec86c4b51270205d873e69ac2e3d",
+    "checks/verify-moving-frill.py": "9f7b29cf8decce564499eae344d387f1cba9551d96c1ca2bd512062661f1489c",
+    "checks/preview-prehistory-poses.cjs": "4df7f6a6c61ea0bcaeac75836722e34bc74b4e4d3be4bda28e14e09575b87d25",
+    "checks/preview-raptor-poses.cjs": "dc26d12888cd0f49bf0c558103a725613b696622bd41a450a6a2c1cdca83d13a",
+    ".gitattributes": "3748ef332955cc89fe66aeb386864853e4e70e1182f502a407d0dacd0b04aad7",
+    "checks/README.md": "31adf3c67e318503a8532a60382202d9044afef11140fb279994c94f9146cf13"
+  }
+}

@@ -1,0 +1,12 @@
+.gitattributes text eol=lf
+*.md text eol=lf
+*.json text eol=lf
+*.rbxmx text eol=lf
+*.luau text eol=lf
+*.ps1 text eol=lf
+*.cjs text eol=lf
+*.py text eol=lf
+*.fbx binary
+*.blend binary
+*.png binary
+*.gif binary

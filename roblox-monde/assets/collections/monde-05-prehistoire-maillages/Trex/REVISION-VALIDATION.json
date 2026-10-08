@@ -1,0 +1,13 @@
+{
+  "passed": true,
+  "actualStudioTest": false,
+  "id": "Trex",
+  "shapeRevision": 2,
+  "sameMemberNames": true,
+  "sameJointNamesAndParents": true,
+  "sameJointPivots": true,
+  "clipsUnchanged": true,
+  "eggUnchanged": true,
+  "colourAtlasUnchanged": true,
+  "gameModified": false
+}

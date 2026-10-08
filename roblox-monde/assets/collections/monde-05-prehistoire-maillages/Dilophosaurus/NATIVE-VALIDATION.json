@@ -1,0 +1,38 @@
+{
+  "passed": true,
+  "actualStudioTest": false,
+  "id": "Dilophosaurus",
+  "basePartsAfterAssembly": 19,
+  "motor6D": 18,
+  "rigidWelds": 0,
+  "originalJointNames": true,
+  "originalClipsUnchanged": true,
+  "vertexPoseCases": 5832,
+  "maxRetargetMatrixError": 1.4348848642598e-7,
+  "clips": {
+    "Idle": {
+      "duration": 3.8,
+      "loop": true,
+      "minHeight": -1.6412783414698155,
+      "maxHeight": 1.7311083965699123
+    },
+    "Walk": {
+      "duration": 1.25,
+      "loop": true,
+      "minHeight": -1.6374477020564775,
+      "maxHeight": 1.7504478761934674
+    },
+    "Attack": {
+      "duration": 1.35,
+      "loop": false,
+      "minHeight": -1.6330495788233519,
+      "maxHeight": 1.8955079471998142
+    },
+    "Bite": {
+      "duration": 1.04,
+      "loop": false,
+      "minHeight": -1.6329736968808746,
+      "maxHeight": 1.8353587902251385
+    }
+  }
+}

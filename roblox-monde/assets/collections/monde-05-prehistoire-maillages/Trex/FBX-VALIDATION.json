@@ -1,0 +1,10 @@
+{
+  "passed": true,
+  "actualStudioTest": false,
+  "id": "Trex",
+  "rigidMeshes": 16,
+  "bones": 0,
+  "triangles": 4686,
+  "maxRoundTripBoundsError": 2.835240948684259e-07,
+  "texturesAndUV": true
+}

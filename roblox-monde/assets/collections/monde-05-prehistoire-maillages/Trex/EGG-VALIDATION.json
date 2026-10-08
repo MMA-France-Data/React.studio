@@ -1,0 +1,10 @@
+{
+  "passed": true,
+  "actualStudioTest": false,
+  "id": "TrexEgg",
+  "baseParts": 56,
+  "noNest": true,
+  "connectedGeometryPieces": 55,
+  "detachedGeometryPieces": [],
+  "method": "15-axis oriented-box contact, connected component"
+}

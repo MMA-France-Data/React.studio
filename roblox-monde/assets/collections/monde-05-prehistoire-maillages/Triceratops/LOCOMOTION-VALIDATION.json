@@ -1,0 +1,20 @@
+{
+  "passed": true,
+  "id": "Triceratops",
+  "actualStudioTest": false,
+  "sampledWalkFrames": 121,
+  "locomotion": "quadruped",
+  "ground": -1.5422526432763977,
+  "supportLimbs": [
+    "LegFL",
+    "LegBL",
+    "LegFR",
+    "LegBR"
+  ],
+  "forelimbs": [],
+  "forelimbsWeightBearing": false,
+  "maximumStanceError": 0.00007758259748813501,
+  "maximumFootPitch": 8.280786522874006e-7,
+  "maximumSwingLift": 0.10000000986055957,
+  "minimumArmClearance": null
+}

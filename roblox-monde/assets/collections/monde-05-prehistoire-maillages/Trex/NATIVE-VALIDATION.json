@@ -1,0 +1,38 @@
+{
+  "passed": true,
+  "actualStudioTest": false,
+  "id": "Trex",
+  "basePartsAfterAssembly": 17,
+  "motor6D": 16,
+  "rigidWelds": 0,
+  "originalJointNames": true,
+  "originalClipsUnchanged": true,
+  "vertexPoseCases": 5184,
+  "maxRetargetMatrixError": 1.0531245875355921e-7,
+  "clips": {
+    "Idle": {
+      "duration": 4,
+      "loop": true,
+      "minHeight": -2.7518926382841093,
+      "maxHeight": 2.1796517624594527
+    },
+    "Walk": {
+      "duration": 1.55,
+      "loop": true,
+      "minHeight": -2.7514809057357232,
+      "maxHeight": 2.2064007301237942
+    },
+    "Attack": {
+      "duration": 1.65,
+      "loop": false,
+      "minHeight": -2.7574222877931023,
+      "maxHeight": 2.3507595531104077
+    },
+    "Bite": {
+      "duration": 1.2,
+      "loop": false,
+      "minHeight": -2.754090958583258,
+      "maxHeight": 2.2950566818458844
+    }
+  }
+}

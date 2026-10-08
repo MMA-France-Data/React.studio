@@ -1,0 +1,982 @@
+{
+  "passed": true,
+  "actualStudioTest": false,
+  "id": "Dilophosaurus",
+  "testedFrames": 36,
+  "memberContactCases": 108,
+  "detached": [],
+  "contacts": [
+    {
+      "clip": "Walk",
+      "sample": 0,
+      "member": "FrillL",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "minimumGap": 0.006786853075027466,
+      "connected": true
+    },
+    {
+      "clip": "Walk",
+      "sample": 0,
+      "member": "FrillR",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "minimumGap": 0.006786853075027466,
+      "connected": true
+    },
+    {
+      "clip": "Walk",
+      "sample": 0,
+      "member": "Jaw",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "minimumGap": 0.004334622994065285,
+      "connected": true
+    },
+    {
+      "clip": "Walk",
+      "sample": 1,
+      "member": "FrillL",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "minimumGap": 0.006798639893531799,
+      "connected": true
+    },
+    {
+      "clip": "Walk",
+      "sample": 1,
+      "member": "FrillR",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "minimumGap": 0.006798639893531799,
+      "connected": true
+    },
+    {
+      "clip": "Walk",
+      "sample": 1,
+      "member": "Jaw",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "minimumGap": 0.0043345969170331955,
+      "connected": true
+    },
+    {
+      "clip": "Walk",
+      "sample": 2,
+      "member": "FrillL",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "minimumGap": 0.006831184029579163,
+      "connected": true
+    },
+    {
+      "clip": "Walk",
+      "sample": 2,
+      "member": "FrillR",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "minimumGap": 0.006831184029579163,
+      "connected": true
+    },
+    {
+      "clip": "Walk",
+      "sample": 2,
+      "member": "Jaw",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "minimumGap": 0.004334575962275267,
+      "connected": true
+    },
+    {
+      "clip": "Walk",
+      "sample": 3,
+      "member": "FrillL",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "minimumGap": 0.006877914071083069,
+      "connected": true
+    },
+    {
+      "clip": "Walk",
+      "sample": 3,
+      "member": "FrillR",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "minimumGap": 0.006877914071083069,
+      "connected": true
+    },
+    {
+      "clip": "Walk",
+      "sample": 3,
+      "member": "Jaw",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "minimumGap": 0.004334561992436647,
+      "connected": true
+    },
+    {
+      "clip": "Walk",
+      "sample": 4,
+      "member": "FrillL",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "minimumGap": 0.006929501891136169,
+      "connected": true
+    },
+    {
+      "clip": "Walk",
+      "sample": 4,
+      "member": "FrillR",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "minimumGap": 0.006929501891136169,
+      "connected": true
+    },
+    {
+      "clip": "Walk",
+      "sample": 4,
+      "member": "Jaw",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "minimumGap": 0.0043346029706299305,
+      "connected": true
+    },
+    {
+      "clip": "Walk",
+      "sample": 5,
+      "member": "FrillL",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "minimumGap": 0.006975799798965454,
+      "connected": true
+    },
+    {
+      "clip": "Walk",
+      "sample": 5,
+      "member": "FrillR",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "minimumGap": 0.006975799798965454,
+      "connected": true
+    },
+    {
+      "clip": "Walk",
+      "sample": 5,
+      "member": "Jaw",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "minimumGap": 0.004334641620516777,
+      "connected": true
+    },
+    {
+      "clip": "Walk",
+      "sample": 6,
+      "member": "FrillL",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "minimumGap": 0.0070078372955322266,
+      "connected": true
+    },
+    {
+      "clip": "Walk",
+      "sample": 6,
+      "member": "FrillR",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "minimumGap": 0.0070078372955322266,
+      "connected": true
+    },
+    {
+      "clip": "Walk",
+      "sample": 6,
+      "member": "Jaw",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "minimumGap": 0.004334593657404184,
+      "connected": true
+    },
+    {
+      "clip": "Walk",
+      "sample": 7,
+      "member": "FrillL",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "minimumGap": 0.007019400596618652,
+      "connected": true
+    },
+    {
+      "clip": "Walk",
+      "sample": 7,
+      "member": "FrillR",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "minimumGap": 0.007019400596618652,
+      "connected": true
+    },
+    {
+      "clip": "Walk",
+      "sample": 7,
+      "member": "Jaw",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "minimumGap": 0.004334622994065285,
+      "connected": true
+    },
+    {
+      "clip": "Walk",
+      "sample": 8,
+      "member": "FrillL",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "minimumGap": 0.0070078372955322266,
+      "connected": true
+    },
+    {
+      "clip": "Walk",
+      "sample": 8,
+      "member": "FrillR",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "minimumGap": 0.0070078372955322266,
+      "connected": true
+    },
+    {
+      "clip": "Walk",
+      "sample": 8,
+      "member": "Jaw",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "minimumGap": 0.0043345969170331955,
+      "connected": true
+    },
+    {
+      "clip": "Walk",
+      "sample": 9,
+      "member": "FrillL",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "minimumGap": 0.006975799798965454,
+      "connected": true
+    },
+    {
+      "clip": "Walk",
+      "sample": 9,
+      "member": "FrillR",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "minimumGap": 0.006975799798965454,
+      "connected": true
+    },
+    {
+      "clip": "Walk",
+      "sample": 9,
+      "member": "Jaw",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "minimumGap": 0.004334575962275267,
+      "connected": true
+    },
+    {
+      "clip": "Walk",
+      "sample": 10,
+      "member": "FrillL",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "minimumGap": 0.006929501891136169,
+      "connected": true
+    },
+    {
+      "clip": "Walk",
+      "sample": 10,
+      "member": "FrillR",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "minimumGap": 0.006929501891136169,
+      "connected": true
+    },
+    {
+      "clip": "Walk",
+      "sample": 10,
+      "member": "Jaw",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "minimumGap": 0.004334561992436647,
+      "connected": true
+    },
+    {
+      "clip": "Walk",
+      "sample": 11,
+      "member": "FrillL",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "minimumGap": 0.006877914071083069,
+      "connected": true
+    },
+    {
+      "clip": "Walk",
+      "sample": 11,
+      "member": "FrillR",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "minimumGap": 0.006877914071083069,
+      "connected": true
+    },
+    {
+      "clip": "Walk",
+      "sample": 11,
+      "member": "Jaw",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "minimumGap": 0.0043346029706299305,
+      "connected": true
+    },
+    {
+      "clip": "Walk",
+      "sample": 12,
+      "member": "FrillL",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "minimumGap": 0.006831184029579163,
+      "connected": true
+    },
+    {
+      "clip": "Walk",
+      "sample": 12,
+      "member": "FrillR",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "minimumGap": 0.006831184029579163,
+      "connected": true
+    },
+    {
+      "clip": "Walk",
+      "sample": 12,
+      "member": "Jaw",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "minimumGap": 0.004334641620516777,
+      "connected": true
+    },
+    {
+      "clip": "Walk",
+      "sample": 13,
+      "member": "FrillL",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "minimumGap": 0.006798639893531799,
+      "connected": true
+    },
+    {
+      "clip": "Walk",
+      "sample": 13,
+      "member": "FrillR",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "minimumGap": 0.006798639893531799,
+      "connected": true
+    },
+    {
+      "clip": "Walk",
+      "sample": 13,
+      "member": "Jaw",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "minimumGap": 0.004334593657404184,
+      "connected": true
+    },
+    {
+      "clip": "Attack",
+      "sample": 0,
+      "member": "FrillL",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "minimumGap": 0.006786853075027466,
+      "connected": true
+    },
+    {
+      "clip": "Attack",
+      "sample": 0,
+      "member": "FrillR",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "minimumGap": 0.006786853075027466,
+      "connected": true
+    },
+    {
+      "clip": "Attack",
+      "sample": 0,
+      "member": "Jaw",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "minimumGap": 0.004334622994065285,
+      "connected": true
+    },
+    {
+      "clip": "Attack",
+      "sample": 1,
+      "member": "FrillL",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "minimumGap": 0.008909295313060284,
+      "connected": true
+    },
+    {
+      "clip": "Attack",
+      "sample": 1,
+      "member": "FrillR",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "minimumGap": 0.0089093167334795,
+      "connected": true
+    },
+    {
+      "clip": "Attack",
+      "sample": 1,
+      "member": "Jaw",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "minimumGap": 0.005368518177419901,
+      "connected": true
+    },
+    {
+      "clip": "Attack",
+      "sample": 2,
+      "member": "FrillL",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "minimumGap": 0.009987722150981426,
+      "connected": true
+    },
+    {
+      "clip": "Attack",
+      "sample": 2,
+      "member": "FrillR",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "minimumGap": 0.009987732395529747,
+      "connected": true
+    },
+    {
+      "clip": "Attack",
+      "sample": 2,
+      "member": "Jaw",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "minimumGap": 0.0013254734221845865,
+      "connected": true
+    },
+    {
+      "clip": "Attack",
+      "sample": 3,
+      "member": "FrillL",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "minimumGap": 0.0009340380784124136,
+      "connected": true
+    },
+    {
+      "clip": "Attack",
+      "sample": 3,
+      "member": "FrillR",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "minimumGap": 0.0009340244578197598,
+      "connected": true
+    },
+    {
+      "clip": "Attack",
+      "sample": 3,
+      "member": "Jaw",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "minimumGap": 0.002882615430280566,
+      "connected": true
+    },
+    {
+      "clip": "Attack",
+      "sample": 4,
+      "member": "FrillL",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "minimumGap": 0.001200009253807366,
+      "connected": true
+    },
+    {
+      "clip": "Attack",
+      "sample": 4,
+      "member": "FrillR",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "minimumGap": 0.001199994352646172,
+      "connected": true
+    },
+    {
+      "clip": "Attack",
+      "sample": 4,
+      "member": "Jaw",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "minimumGap": 0.0005680066533386707,
+      "connected": true
+    },
+    {
+      "clip": "Attack",
+      "sample": 5,
+      "member": "FrillL",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "minimumGap": 0.001199993072077632,
+      "connected": true
+    },
+    {
+      "clip": "Attack",
+      "sample": 5,
+      "member": "FrillR",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "minimumGap": 0.001199993072077632,
+      "connected": true
+    },
+    {
+      "clip": "Attack",
+      "sample": 5,
+      "member": "Jaw",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "minimumGap": 0.0017509403405711055,
+      "connected": true
+    },
+    {
+      "clip": "Attack",
+      "sample": 6,
+      "member": "FrillL",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "minimumGap": 0.0005736506427638233,
+      "connected": true
+    },
+    {
+      "clip": "Attack",
+      "sample": 6,
+      "member": "FrillR",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "minimumGap": 0.0005736350431106985,
+      "connected": true
+    },
+    {
+      "clip": "Attack",
+      "sample": 6,
+      "member": "Jaw",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "minimumGap": 0.0005749372066929936,
+      "connected": true
+    },
+    {
+      "clip": "Attack",
+      "sample": 7,
+      "member": "FrillL",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "minimumGap": 0.0009734256309457123,
+      "connected": true
+    },
+    {
+      "clip": "Attack",
+      "sample": 7,
+      "member": "FrillR",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "minimumGap": 0.0009734433842822909,
+      "connected": true
+    },
+    {
+      "clip": "Attack",
+      "sample": 7,
+      "member": "Jaw",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "minimumGap": 0.0011061981786042452,
+      "connected": true
+    },
+    {
+      "clip": "Attack",
+      "sample": 8,
+      "member": "FrillL",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "minimumGap": 0.0013355085393413901,
+      "connected": true
+    },
+    {
+      "clip": "Attack",
+      "sample": 8,
+      "member": "FrillR",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "minimumGap": 0.0013355024857446551,
+      "connected": true
+    },
+    {
+      "clip": "Attack",
+      "sample": 8,
+      "member": "Jaw",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "minimumGap": 0.00026962076663039625,
+      "connected": true
+    },
+    {
+      "clip": "Attack",
+      "sample": 9,
+      "member": "FrillL",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "minimumGap": 0.0026427300181239843,
+      "connected": true
+    },
+    {
+      "clip": "Attack",
+      "sample": 9,
+      "member": "FrillR",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "minimumGap": 0.002642754465341568,
+      "connected": true
+    },
+    {
+      "clip": "Attack",
+      "sample": 9,
+      "member": "Jaw",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "minimumGap": 0.001751880394294858,
+      "connected": true
+    },
+    {
+      "clip": "Attack",
+      "sample": 10,
+      "member": "FrillL",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "minimumGap": 0.007514885161072016,
+      "connected": true
+    },
+    {
+      "clip": "Attack",
+      "sample": 10,
+      "member": "FrillR",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "minimumGap": 0.007514855358749628,
+      "connected": true
+    },
+    {
+      "clip": "Attack",
+      "sample": 10,
+      "member": "Jaw",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "minimumGap": 0.002551865065470338,
+      "connected": true
+    },
+    {
+      "clip": "Attack",
+      "sample": 11,
+      "member": "FrillL",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "minimumGap": 0.006786853075027466,
+      "connected": true
+    },
+    {
+      "clip": "Attack",
+      "sample": 11,
+      "member": "FrillR",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "minimumGap": 0.006786853075027466,
+      "connected": true
+    },
+    {
+      "clip": "Attack",
+      "sample": 11,
+      "member": "Jaw",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "minimumGap": 0.004334622994065285,
+      "connected": true
+    },
+    {
+      "clip": "Bite",
+      "sample": 0,
+      "member": "FrillL",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "minimumGap": 0.006786853075027466,
+      "connected": true
+    },
+    {
+      "clip": "Bite",
+      "sample": 0,
+      "member": "FrillR",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "minimumGap": 0.006786853075027466,
+      "connected": true
+    },
+    {
+      "clip": "Bite",
+      "sample": 0,
+      "member": "Jaw",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "minimumGap": 0.004334622994065285,
+      "connected": true
+    },
+    {
+      "clip": "Bite",
+      "sample": 1,
+      "member": "FrillL",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "minimumGap": 0.008597372099757195,
+      "connected": true
+    },
+    {
+      "clip": "Bite",
+      "sample": 1,
+      "member": "FrillR",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "minimumGap": 0.00859736930578947,
+      "connected": true
+    },
+    {
+      "clip": "Bite",
+      "sample": 1,
+      "member": "Jaw",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "minimumGap": 0.0012647814583033323,
+      "connected": true
+    },
+    {
+      "clip": "Bite",
+      "sample": 2,
+      "member": "FrillL",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "minimumGap": 0.010023278184235096,
+      "connected": true
+    },
+    {
+      "clip": "Bite",
+      "sample": 2,
+      "member": "FrillR",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "minimumGap": 0.010023278184235096,
+      "connected": true
+    },
+    {
+      "clip": "Bite",
+      "sample": 2,
+      "member": "Jaw",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "minimumGap": 0.001364103751257062,
+      "connected": true
+    },
+    {
+      "clip": "Bite",
+      "sample": 3,
+      "member": "FrillL",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "minimumGap": 0.0034503925126045942,
+      "connected": true
+    },
+    {
+      "clip": "Bite",
+      "sample": 3,
+      "member": "FrillR",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "minimumGap": 0.0034504220820963383,
+      "connected": true
+    },
+    {
+      "clip": "Bite",
+      "sample": 3,
+      "member": "Jaw",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "minimumGap": 4.717812316812342e-06,
+      "connected": true
+    },
+    {
+      "clip": "Bite",
+      "sample": 4,
+      "member": "FrillL",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "minimumGap": 0.0031476691365242004,
+      "connected": true
+    },
+    {
+      "clip": "Bite",
+      "sample": 4,
+      "member": "FrillR",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "minimumGap": 0.003147742012515664,
+      "connected": true
+    },
+    {
+      "clip": "Bite",
+      "sample": 4,
+      "member": "Jaw",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "minimumGap": 0.0056407093070447445,
+      "connected": true
+    },
+    {
+      "clip": "Bite",
+      "sample": 5,
+      "member": "FrillL",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "minimumGap": 0.0077091725543141365,
+      "connected": true
+    },
+    {
+      "clip": "Bite",
+      "sample": 5,
+      "member": "FrillR",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "minimumGap": 0.00770919444039464,
+      "connected": true
+    },
+    {
+      "clip": "Bite",
+      "sample": 5,
+      "member": "Jaw",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "minimumGap": 0.0016889519756659865,
+      "connected": true
+    },
+    {
+      "clip": "Bite",
+      "sample": 6,
+      "member": "FrillL",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "minimumGap": 0.00890292413532734,
+      "connected": true
+    },
+    {
+      "clip": "Bite",
+      "sample": 6,
+      "member": "FrillR",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "minimumGap": 0.00890292413532734,
+      "connected": true
+    },
+    {
+      "clip": "Bite",
+      "sample": 6,
+      "member": "Jaw",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "minimumGap": 9.456642146687955e-05,
+      "connected": true
+    },
+    {
+      "clip": "Bite",
+      "sample": 7,
+      "member": "FrillL",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "minimumGap": 0.008057087659835815,
+      "connected": true
+    },
+    {
+      "clip": "Bite",
+      "sample": 7,
+      "member": "FrillR",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "minimumGap": 0.00805710256099701,
+      "connected": true
+    },
+    {
+      "clip": "Bite",
+      "sample": 7,
+      "member": "Jaw",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "minimumGap": 0.001984794856980443,
+      "connected": true
+    },
+    {
+      "clip": "Bite",
+      "sample": 8,
+      "member": "FrillL",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "minimumGap": 0.0068625337444245815,
+      "connected": true
+    },
+    {
+      "clip": "Bite",
+      "sample": 8,
+      "member": "FrillR",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "minimumGap": 0.006862534210085869,
+      "connected": true
+    },
+    {
+      "clip": "Bite",
+      "sample": 8,
+      "member": "Jaw",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "minimumGap": 0.003435805905610323,
+      "connected": true
+    },
+    {
+      "clip": "Bite",
+      "sample": 9,
+      "member": "FrillL",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "minimumGap": 0.006786853075027466,
+      "connected": true
+    },
+    {
+      "clip": "Bite",
+      "sample": 9,
+      "member": "FrillR",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "minimumGap": 0.006786853075027466,
+      "connected": true
+    },
+    {
+      "clip": "Bite",
+      "sample": 9,
+      "member": "Jaw",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "minimumGap": 0.004334622994065285,
+      "connected": true
+    }
+  ]
+}

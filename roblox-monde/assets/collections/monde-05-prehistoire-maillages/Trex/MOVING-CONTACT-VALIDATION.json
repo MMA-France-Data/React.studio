@@ -1,0 +1,4330 @@
+{
+  "passed": true,
+  "id": "Trex",
+  "actualStudioTest": false,
+  "testedFrames": 36,
+  "memberContactCases": 540,
+  "detached": [],
+  "contacts": [
+    {
+      "clip": "Walk",
+      "sample": 0,
+      "member": "Neck",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.002457047114148736
+    },
+    {
+      "clip": "Walk",
+      "sample": 0,
+      "member": "Head",
+      "parent": "Neck",
+      "connected": true,
+      "minimumGap": 0.013386928476393223
+    },
+    {
+      "clip": "Walk",
+      "sample": 0,
+      "member": "Jaw",
+      "parent": "Head",
+      "connected": true,
+      "minimumGap": 0.0
+    },
+    {
+      "clip": "Walk",
+      "sample": 0,
+      "member": "Tail",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.01304483413696289
+    },
+    {
+      "clip": "Walk",
+      "sample": 0,
+      "member": "Tail1",
+      "parent": "Tail",
+      "connected": true,
+      "minimumGap": 0.0023120385594666004
+    },
+    {
+      "clip": "Walk",
+      "sample": 0,
+      "member": "ArmL",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.006527388002723455
+    },
+    {
+      "clip": "Walk",
+      "sample": 0,
+      "member": "ForearmL",
+      "parent": "ArmL",
+      "connected": true,
+      "minimumGap": 0.0006015867693349719
+    },
+    {
+      "clip": "Walk",
+      "sample": 0,
+      "member": "LegBL",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.0053934864699840546
+    },
+    {
+      "clip": "Walk",
+      "sample": 0,
+      "member": "KneeBL",
+      "parent": "LegBL",
+      "connected": true,
+      "minimumGap": 0.008603435941040516
+    },
+    {
+      "clip": "Walk",
+      "sample": 0,
+      "member": "FootBL",
+      "parent": "KneeBL",
+      "connected": true,
+      "minimumGap": 0.002872500102967024
+    },
+    {
+      "clip": "Walk",
+      "sample": 0,
+      "member": "ArmR",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.006527388002723455
+    },
+    {
+      "clip": "Walk",
+      "sample": 0,
+      "member": "ForearmR",
+      "parent": "ArmR",
+      "connected": true,
+      "minimumGap": 0.0006015867693349719
+    },
+    {
+      "clip": "Walk",
+      "sample": 0,
+      "member": "LegBR",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.006808280013501644
+    },
+    {
+      "clip": "Walk",
+      "sample": 0,
+      "member": "KneeBR",
+      "parent": "LegBR",
+      "connected": true,
+      "minimumGap": 0.011057784780859947
+    },
+    {
+      "clip": "Walk",
+      "sample": 0,
+      "member": "FootBR",
+      "parent": "KneeBR",
+      "connected": true,
+      "minimumGap": 0.017412574961781502
+    },
+    {
+      "clip": "Walk",
+      "sample": 1,
+      "member": "Neck",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.0013861499028280377
+    },
+    {
+      "clip": "Walk",
+      "sample": 1,
+      "member": "Head",
+      "parent": "Neck",
+      "connected": true,
+      "minimumGap": 0.012581105343997478
+    },
+    {
+      "clip": "Walk",
+      "sample": 1,
+      "member": "Jaw",
+      "parent": "Head",
+      "connected": true,
+      "minimumGap": 2.9802322387695312e-08
+    },
+    {
+      "clip": "Walk",
+      "sample": 1,
+      "member": "Tail",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.006363868713378906
+    },
+    {
+      "clip": "Walk",
+      "sample": 1,
+      "member": "Tail1",
+      "parent": "Tail",
+      "connected": true,
+      "minimumGap": 0.00223358953371644
+    },
+    {
+      "clip": "Walk",
+      "sample": 1,
+      "member": "ArmL",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.00929506029933691
+    },
+    {
+      "clip": "Walk",
+      "sample": 1,
+      "member": "ForearmL",
+      "parent": "ArmL",
+      "connected": true,
+      "minimumGap": 0.0005937875830568373
+    },
+    {
+      "clip": "Walk",
+      "sample": 1,
+      "member": "LegBL",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.007475102320313454
+    },
+    {
+      "clip": "Walk",
+      "sample": 1,
+      "member": "KneeBL",
+      "parent": "LegBL",
+      "connected": true,
+      "minimumGap": 0.008779282681643963
+    },
+    {
+      "clip": "Walk",
+      "sample": 1,
+      "member": "FootBL",
+      "parent": "KneeBL",
+      "connected": true,
+      "minimumGap": 0.0032964074052870274
+    },
+    {
+      "clip": "Walk",
+      "sample": 1,
+      "member": "ArmR",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.003701414680108428
+    },
+    {
+      "clip": "Walk",
+      "sample": 1,
+      "member": "ForearmR",
+      "parent": "ArmR",
+      "connected": true,
+      "minimumGap": 0.0006226138793863356
+    },
+    {
+      "clip": "Walk",
+      "sample": 1,
+      "member": "LegBR",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.0014757857425138354
+    },
+    {
+      "clip": "Walk",
+      "sample": 1,
+      "member": "KneeBR",
+      "parent": "LegBR",
+      "connected": true,
+      "minimumGap": 0.01154576800763607
+    },
+    {
+      "clip": "Walk",
+      "sample": 1,
+      "member": "FootBR",
+      "parent": "KneeBR",
+      "connected": true,
+      "minimumGap": 0.018146274611353874
+    },
+    {
+      "clip": "Walk",
+      "sample": 2,
+      "member": "Neck",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.0011253595585003495
+    },
+    {
+      "clip": "Walk",
+      "sample": 2,
+      "member": "Head",
+      "parent": "Neck",
+      "connected": true,
+      "minimumGap": 0.01238445844501257
+    },
+    {
+      "clip": "Walk",
+      "sample": 2,
+      "member": "Jaw",
+      "parent": "Head",
+      "connected": true,
+      "minimumGap": 0.0
+    },
+    {
+      "clip": "Walk",
+      "sample": 2,
+      "member": "Tail",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.0016952753067016602
+    },
+    {
+      "clip": "Walk",
+      "sample": 2,
+      "member": "Tail1",
+      "parent": "Tail",
+      "connected": true,
+      "minimumGap": 0.0025079844053834677
+    },
+    {
+      "clip": "Walk",
+      "sample": 2,
+      "member": "ArmL",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.011465610936284065
+    },
+    {
+      "clip": "Walk",
+      "sample": 2,
+      "member": "ForearmL",
+      "parent": "ArmL",
+      "connected": true,
+      "minimumGap": 0.00023890093143563718
+    },
+    {
+      "clip": "Walk",
+      "sample": 2,
+      "member": "LegBL",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.014341841451823711
+    },
+    {
+      "clip": "Walk",
+      "sample": 2,
+      "member": "KneeBL",
+      "parent": "LegBL",
+      "connected": true,
+      "minimumGap": 0.00964331068098545
+    },
+    {
+      "clip": "Walk",
+      "sample": 2,
+      "member": "FootBL",
+      "parent": "KneeBL",
+      "connected": true,
+      "minimumGap": 0.003102166811004281
+    },
+    {
+      "clip": "Walk",
+      "sample": 2,
+      "member": "ArmR",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.0014001467498019338
+    },
+    {
+      "clip": "Walk",
+      "sample": 2,
+      "member": "ForearmR",
+      "parent": "ArmR",
+      "connected": true,
+      "minimumGap": 0.0006492206011898816
+    },
+    {
+      "clip": "Walk",
+      "sample": 2,
+      "member": "LegBR",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.007561317179352045
+    },
+    {
+      "clip": "Walk",
+      "sample": 2,
+      "member": "KneeBR",
+      "parent": "LegBR",
+      "connected": true,
+      "minimumGap": 0.012290631420910358
+    },
+    {
+      "clip": "Walk",
+      "sample": 2,
+      "member": "FootBR",
+      "parent": "KneeBR",
+      "connected": true,
+      "minimumGap": 0.003081385511904955
+    },
+    {
+      "clip": "Walk",
+      "sample": 3,
+      "member": "Neck",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.001868698513135314
+    },
+    {
+      "clip": "Walk",
+      "sample": 3,
+      "member": "Head",
+      "parent": "Neck",
+      "connected": true,
+      "minimumGap": 0.012944525107741356
+    },
+    {
+      "clip": "Walk",
+      "sample": 3,
+      "member": "Jaw",
+      "parent": "Head",
+      "connected": true,
+      "minimumGap": 0.0
+    },
+    {
+      "clip": "Walk",
+      "sample": 3,
+      "member": "Tail",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 8.320809138240293e-05
+    },
+    {
+      "clip": "Walk",
+      "sample": 3,
+      "member": "Tail1",
+      "parent": "Tail",
+      "connected": true,
+      "minimumGap": 0.002731880871579051
+    },
+    {
+      "clip": "Walk",
+      "sample": 3,
+      "member": "ArmL",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.012651391327381134
+    },
+    {
+      "clip": "Walk",
+      "sample": 3,
+      "member": "ForearmL",
+      "parent": "ArmL",
+      "connected": true,
+      "minimumGap": 0.0006024463218636811
+    },
+    {
+      "clip": "Walk",
+      "sample": 3,
+      "member": "LegBL",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.015196125023066998
+    },
+    {
+      "clip": "Walk",
+      "sample": 3,
+      "member": "KneeBL",
+      "parent": "LegBL",
+      "connected": true,
+      "minimumGap": 0.010950760915875435
+    },
+    {
+      "clip": "Walk",
+      "sample": 3,
+      "member": "FootBL",
+      "parent": "KneeBL",
+      "connected": true,
+      "minimumGap": 0.002122568665072322
+    },
+    {
+      "clip": "Walk",
+      "sample": 3,
+      "member": "ArmR",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.0001098536085919477
+    },
+    {
+      "clip": "Walk",
+      "sample": 3,
+      "member": "ForearmR",
+      "parent": "ArmR",
+      "connected": true,
+      "minimumGap": 0.0006676955381408334
+    },
+    {
+      "clip": "Walk",
+      "sample": 3,
+      "member": "LegBR",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.010155785828828812
+    },
+    {
+      "clip": "Walk",
+      "sample": 3,
+      "member": "KneeBR",
+      "parent": "LegBR",
+      "connected": true,
+      "minimumGap": 0.012859398499131203
+    },
+    {
+      "clip": "Walk",
+      "sample": 3,
+      "member": "FootBR",
+      "parent": "KneeBR",
+      "connected": true,
+      "minimumGap": 0.005532712209969759
+    },
+    {
+      "clip": "Walk",
+      "sample": 4,
+      "member": "Neck",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.0030407679732888937
+    },
+    {
+      "clip": "Walk",
+      "sample": 4,
+      "member": "Head",
+      "parent": "Neck",
+      "connected": true,
+      "minimumGap": 0.013824669644236565
+    },
+    {
+      "clip": "Walk",
+      "sample": 4,
+      "member": "Jaw",
+      "parent": "Head",
+      "connected": true,
+      "minimumGap": 2.9802322387695312e-08
+    },
+    {
+      "clip": "Walk",
+      "sample": 4,
+      "member": "Tail",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.0013575553894042969
+    },
+    {
+      "clip": "Walk",
+      "sample": 4,
+      "member": "Tail1",
+      "parent": "Tail",
+      "connected": true,
+      "minimumGap": 0.0028295291122049093
+    },
+    {
+      "clip": "Walk",
+      "sample": 4,
+      "member": "ArmL",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.012651391327381134
+    },
+    {
+      "clip": "Walk",
+      "sample": 4,
+      "member": "ForearmL",
+      "parent": "ArmL",
+      "connected": true,
+      "minimumGap": 0.0006024463218636811
+    },
+    {
+      "clip": "Walk",
+      "sample": 4,
+      "member": "LegBL",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.01453443057835102
+    },
+    {
+      "clip": "Walk",
+      "sample": 4,
+      "member": "KneeBL",
+      "parent": "LegBL",
+      "connected": true,
+      "minimumGap": 0.011600824072957039
+    },
+    {
+      "clip": "Walk",
+      "sample": 4,
+      "member": "FootBL",
+      "parent": "KneeBL",
+      "connected": true,
+      "minimumGap": 0.005995462648570538
+    },
+    {
+      "clip": "Walk",
+      "sample": 4,
+      "member": "ArmR",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.0001098536085919477
+    },
+    {
+      "clip": "Walk",
+      "sample": 4,
+      "member": "ForearmR",
+      "parent": "ArmR",
+      "connected": true,
+      "minimumGap": 0.0006676955381408334
+    },
+    {
+      "clip": "Walk",
+      "sample": 4,
+      "member": "LegBR",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.015369703061878681
+    },
+    {
+      "clip": "Walk",
+      "sample": 4,
+      "member": "KneeBR",
+      "parent": "LegBR",
+      "connected": true,
+      "minimumGap": 0.01214758213609457
+    },
+    {
+      "clip": "Walk",
+      "sample": 4,
+      "member": "FootBR",
+      "parent": "KneeBR",
+      "connected": true,
+      "minimumGap": 0.00042053349898196757
+    },
+    {
+      "clip": "Walk",
+      "sample": 5,
+      "member": "Neck",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.003765009343624115
+    },
+    {
+      "clip": "Walk",
+      "sample": 5,
+      "member": "Head",
+      "parent": "Neck",
+      "connected": true,
+      "minimumGap": 0.014366482384502888
+    },
+    {
+      "clip": "Walk",
+      "sample": 5,
+      "member": "Jaw",
+      "parent": "Head",
+      "connected": true,
+      "minimumGap": 0.0
+    },
+    {
+      "clip": "Walk",
+      "sample": 5,
+      "member": "Tail",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.005748152732849121
+    },
+    {
+      "clip": "Walk",
+      "sample": 5,
+      "member": "Tail1",
+      "parent": "Tail",
+      "connected": true,
+      "minimumGap": 0.002780947834253311
+    },
+    {
+      "clip": "Walk",
+      "sample": 5,
+      "member": "ArmL",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.011465610936284065
+    },
+    {
+      "clip": "Walk",
+      "sample": 5,
+      "member": "ForearmL",
+      "parent": "ArmL",
+      "connected": true,
+      "minimumGap": 0.00023890093143563718
+    },
+    {
+      "clip": "Walk",
+      "sample": 5,
+      "member": "LegBL",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.015389378182590008
+    },
+    {
+      "clip": "Walk",
+      "sample": 5,
+      "member": "KneeBL",
+      "parent": "LegBL",
+      "connected": true,
+      "minimumGap": 0.011312119662761688
+    },
+    {
+      "clip": "Walk",
+      "sample": 5,
+      "member": "FootBL",
+      "parent": "KneeBL",
+      "connected": true,
+      "minimumGap": 0.007267028093338013
+    },
+    {
+      "clip": "Walk",
+      "sample": 5,
+      "member": "ArmR",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.0014001467498019338
+    },
+    {
+      "clip": "Walk",
+      "sample": 5,
+      "member": "ForearmR",
+      "parent": "ArmR",
+      "connected": true,
+      "minimumGap": 0.0006492206011898816
+    },
+    {
+      "clip": "Walk",
+      "sample": 5,
+      "member": "LegBR",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.018561793491244316
+    },
+    {
+      "clip": "Walk",
+      "sample": 5,
+      "member": "KneeBR",
+      "parent": "LegBR",
+      "connected": true,
+      "minimumGap": 0.010495469905436039
+    },
+    {
+      "clip": "Walk",
+      "sample": 5,
+      "member": "FootBR",
+      "parent": "KneeBR",
+      "connected": true,
+      "minimumGap": 0.018156878650188446
+    },
+    {
+      "clip": "Walk",
+      "sample": 6,
+      "member": "Neck",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.003512562485411763
+    },
+    {
+      "clip": "Walk",
+      "sample": 6,
+      "member": "Head",
+      "parent": "Neck",
+      "connected": true,
+      "minimumGap": 0.014177855104207993
+    },
+    {
+      "clip": "Walk",
+      "sample": 6,
+      "member": "Jaw",
+      "parent": "Head",
+      "connected": true,
+      "minimumGap": 0.0
+    },
+    {
+      "clip": "Walk",
+      "sample": 6,
+      "member": "Tail",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.012262225151062012
+    },
+    {
+      "clip": "Walk",
+      "sample": 6,
+      "member": "Tail1",
+      "parent": "Tail",
+      "connected": true,
+      "minimumGap": 0.002595808357000351
+    },
+    {
+      "clip": "Walk",
+      "sample": 6,
+      "member": "ArmL",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.00929506029933691
+    },
+    {
+      "clip": "Walk",
+      "sample": 6,
+      "member": "ForearmL",
+      "parent": "ArmL",
+      "connected": true,
+      "minimumGap": 0.0005937875830568373
+    },
+    {
+      "clip": "Walk",
+      "sample": 6,
+      "member": "LegBL",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.01328293327242136
+    },
+    {
+      "clip": "Walk",
+      "sample": 6,
+      "member": "KneeBL",
+      "parent": "LegBL",
+      "connected": true,
+      "minimumGap": 0.011023024097084999
+    },
+    {
+      "clip": "Walk",
+      "sample": 6,
+      "member": "FootBL",
+      "parent": "KneeBL",
+      "connected": true,
+      "minimumGap": 0.010879132896661758
+    },
+    {
+      "clip": "Walk",
+      "sample": 6,
+      "member": "ArmR",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.003701414680108428
+    },
+    {
+      "clip": "Walk",
+      "sample": 6,
+      "member": "ForearmR",
+      "parent": "ArmR",
+      "connected": true,
+      "minimumGap": 0.0006226138793863356
+    },
+    {
+      "clip": "Walk",
+      "sample": 6,
+      "member": "LegBR",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.01759539172053337
+    },
+    {
+      "clip": "Walk",
+      "sample": 6,
+      "member": "KneeBR",
+      "parent": "LegBR",
+      "connected": true,
+      "minimumGap": 0.009207451716065407
+    },
+    {
+      "clip": "Walk",
+      "sample": 6,
+      "member": "FootBR",
+      "parent": "KneeBR",
+      "connected": true,
+      "minimumGap": 0.013943042606115341
+    },
+    {
+      "clip": "Walk",
+      "sample": 7,
+      "member": "Neck",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.002457047114148736
+    },
+    {
+      "clip": "Walk",
+      "sample": 7,
+      "member": "Head",
+      "parent": "Neck",
+      "connected": true,
+      "minimumGap": 0.013386928476393223
+    },
+    {
+      "clip": "Walk",
+      "sample": 7,
+      "member": "Jaw",
+      "parent": "Head",
+      "connected": true,
+      "minimumGap": 0.0
+    },
+    {
+      "clip": "Walk",
+      "sample": 7,
+      "member": "Tail",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.013056278228759766
+    },
+    {
+      "clip": "Walk",
+      "sample": 7,
+      "member": "Tail1",
+      "parent": "Tail",
+      "connected": true,
+      "minimumGap": 0.0023120385594666004
+    },
+    {
+      "clip": "Walk",
+      "sample": 7,
+      "member": "ArmL",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.006527388002723455
+    },
+    {
+      "clip": "Walk",
+      "sample": 7,
+      "member": "ForearmL",
+      "parent": "ArmL",
+      "connected": true,
+      "minimumGap": 0.0006015867693349719
+    },
+    {
+      "clip": "Walk",
+      "sample": 7,
+      "member": "LegBL",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.006808280013501644
+    },
+    {
+      "clip": "Walk",
+      "sample": 7,
+      "member": "KneeBL",
+      "parent": "LegBL",
+      "connected": true,
+      "minimumGap": 0.011057814583182335
+    },
+    {
+      "clip": "Walk",
+      "sample": 7,
+      "member": "FootBL",
+      "parent": "KneeBL",
+      "connected": true,
+      "minimumGap": 0.017412694171071053
+    },
+    {
+      "clip": "Walk",
+      "sample": 7,
+      "member": "ArmR",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.006527388002723455
+    },
+    {
+      "clip": "Walk",
+      "sample": 7,
+      "member": "ForearmR",
+      "parent": "ArmR",
+      "connected": true,
+      "minimumGap": 0.0006015867693349719
+    },
+    {
+      "clip": "Walk",
+      "sample": 7,
+      "member": "LegBR",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.0053934939205646515
+    },
+    {
+      "clip": "Walk",
+      "sample": 7,
+      "member": "KneeBR",
+      "parent": "LegBR",
+      "connected": true,
+      "minimumGap": 0.008603405207395554
+    },
+    {
+      "clip": "Walk",
+      "sample": 7,
+      "member": "FootBR",
+      "parent": "KneeBR",
+      "connected": true,
+      "minimumGap": 0.002872500102967024
+    },
+    {
+      "clip": "Walk",
+      "sample": 8,
+      "member": "Neck",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.0013861499028280377
+    },
+    {
+      "clip": "Walk",
+      "sample": 8,
+      "member": "Head",
+      "parent": "Neck",
+      "connected": true,
+      "minimumGap": 0.012581105343997478
+    },
+    {
+      "clip": "Walk",
+      "sample": 8,
+      "member": "Jaw",
+      "parent": "Head",
+      "connected": true,
+      "minimumGap": 2.9802322387695312e-08
+    },
+    {
+      "clip": "Walk",
+      "sample": 8,
+      "member": "Tail",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.0063751935958862305
+    },
+    {
+      "clip": "Walk",
+      "sample": 8,
+      "member": "Tail1",
+      "parent": "Tail",
+      "connected": true,
+      "minimumGap": 0.00223358953371644
+    },
+    {
+      "clip": "Walk",
+      "sample": 8,
+      "member": "ArmL",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.003701414680108428
+    },
+    {
+      "clip": "Walk",
+      "sample": 8,
+      "member": "ForearmL",
+      "parent": "ArmL",
+      "connected": true,
+      "minimumGap": 0.0006226138793863356
+    },
+    {
+      "clip": "Walk",
+      "sample": 8,
+      "member": "LegBL",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.0014757857425138354
+    },
+    {
+      "clip": "Walk",
+      "sample": 8,
+      "member": "KneeBL",
+      "parent": "LegBL",
+      "connected": true,
+      "minimumGap": 0.01154576800763607
+    },
+    {
+      "clip": "Walk",
+      "sample": 8,
+      "member": "FootBL",
+      "parent": "KneeBL",
+      "connected": true,
+      "minimumGap": 0.01814638450741768
+    },
+    {
+      "clip": "Walk",
+      "sample": 8,
+      "member": "ArmR",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.00929506029933691
+    },
+    {
+      "clip": "Walk",
+      "sample": 8,
+      "member": "ForearmR",
+      "parent": "ArmR",
+      "connected": true,
+      "minimumGap": 0.0005937875830568373
+    },
+    {
+      "clip": "Walk",
+      "sample": 8,
+      "member": "LegBR",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.007475109770894051
+    },
+    {
+      "clip": "Walk",
+      "sample": 8,
+      "member": "KneeBR",
+      "parent": "LegBR",
+      "connected": true,
+      "minimumGap": 0.008779240772128105
+    },
+    {
+      "clip": "Walk",
+      "sample": 8,
+      "member": "FootBR",
+      "parent": "KneeBR",
+      "connected": true,
+      "minimumGap": 0.0032964074052870274
+    },
+    {
+      "clip": "Walk",
+      "sample": 9,
+      "member": "Neck",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.0011253595585003495
+    },
+    {
+      "clip": "Walk",
+      "sample": 9,
+      "member": "Head",
+      "parent": "Neck",
+      "connected": true,
+      "minimumGap": 0.01238445844501257
+    },
+    {
+      "clip": "Walk",
+      "sample": 9,
+      "member": "Jaw",
+      "parent": "Head",
+      "connected": true,
+      "minimumGap": 0.0
+    },
+    {
+      "clip": "Walk",
+      "sample": 9,
+      "member": "Tail",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.0017064809799194336
+    },
+    {
+      "clip": "Walk",
+      "sample": 9,
+      "member": "Tail1",
+      "parent": "Tail",
+      "connected": true,
+      "minimumGap": 0.0025079844053834677
+    },
+    {
+      "clip": "Walk",
+      "sample": 9,
+      "member": "ArmL",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.0014001467498019338
+    },
+    {
+      "clip": "Walk",
+      "sample": 9,
+      "member": "ForearmL",
+      "parent": "ArmL",
+      "connected": true,
+      "minimumGap": 0.0006493213586509228
+    },
+    {
+      "clip": "Walk",
+      "sample": 9,
+      "member": "LegBL",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.007561317179352045
+    },
+    {
+      "clip": "Walk",
+      "sample": 9,
+      "member": "KneeBL",
+      "parent": "LegBL",
+      "connected": true,
+      "minimumGap": 0.012290631420910358
+    },
+    {
+      "clip": "Walk",
+      "sample": 9,
+      "member": "FootBL",
+      "parent": "KneeBL",
+      "connected": true,
+      "minimumGap": 0.003081385511904955
+    },
+    {
+      "clip": "Walk",
+      "sample": 9,
+      "member": "ArmR",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.011465610936284065
+    },
+    {
+      "clip": "Walk",
+      "sample": 9,
+      "member": "ForearmR",
+      "parent": "ArmR",
+      "connected": true,
+      "minimumGap": 0.00023909179435577244
+    },
+    {
+      "clip": "Walk",
+      "sample": 9,
+      "member": "LegBR",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.0143418675288558
+    },
+    {
+      "clip": "Walk",
+      "sample": 9,
+      "member": "KneeBR",
+      "parent": "LegBR",
+      "connected": true,
+      "minimumGap": 0.00964341126382351
+    },
+    {
+      "clip": "Walk",
+      "sample": 9,
+      "member": "FootBR",
+      "parent": "KneeBR",
+      "connected": true,
+      "minimumGap": 0.003102129092440009
+    },
+    {
+      "clip": "Walk",
+      "sample": 10,
+      "member": "Neck",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.001868698513135314
+    },
+    {
+      "clip": "Walk",
+      "sample": 10,
+      "member": "Head",
+      "parent": "Neck",
+      "connected": true,
+      "minimumGap": 0.012944525107741356
+    },
+    {
+      "clip": "Walk",
+      "sample": 10,
+      "member": "Jaw",
+      "parent": "Head",
+      "connected": true,
+      "minimumGap": 0.0
+    },
+    {
+      "clip": "Walk",
+      "sample": 10,
+      "member": "Tail",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 7.200241088867188e-05
+    },
+    {
+      "clip": "Walk",
+      "sample": 10,
+      "member": "Tail1",
+      "parent": "Tail",
+      "connected": true,
+      "minimumGap": 0.002731880871579051
+    },
+    {
+      "clip": "Walk",
+      "sample": 10,
+      "member": "ArmL",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.0001098536085919477
+    },
+    {
+      "clip": "Walk",
+      "sample": 10,
+      "member": "ForearmL",
+      "parent": "ArmL",
+      "connected": true,
+      "minimumGap": 0.000667679647449404
+    },
+    {
+      "clip": "Walk",
+      "sample": 10,
+      "member": "LegBL",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.010155785828828812
+    },
+    {
+      "clip": "Walk",
+      "sample": 10,
+      "member": "KneeBL",
+      "parent": "LegBL",
+      "connected": true,
+      "minimumGap": 0.01285928301513195
+    },
+    {
+      "clip": "Walk",
+      "sample": 10,
+      "member": "FootBL",
+      "parent": "KneeBL",
+      "connected": true,
+      "minimumGap": 0.005532712209969759
+    },
+    {
+      "clip": "Walk",
+      "sample": 10,
+      "member": "ArmR",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.012651391327381134
+    },
+    {
+      "clip": "Walk",
+      "sample": 10,
+      "member": "ForearmR",
+      "parent": "ArmR",
+      "connected": true,
+      "minimumGap": 0.000602498825173825
+    },
+    {
+      "clip": "Walk",
+      "sample": 10,
+      "member": "LegBR",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.015196121297776699
+    },
+    {
+      "clip": "Walk",
+      "sample": 10,
+      "member": "KneeBR",
+      "parent": "LegBR",
+      "connected": true,
+      "minimumGap": 0.010950777679681778
+    },
+    {
+      "clip": "Walk",
+      "sample": 10,
+      "member": "FootBR",
+      "parent": "KneeBR",
+      "connected": true,
+      "minimumGap": 0.00212268577888608
+    },
+    {
+      "clip": "Walk",
+      "sample": 11,
+      "member": "Neck",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.0030407679732888937
+    },
+    {
+      "clip": "Walk",
+      "sample": 11,
+      "member": "Head",
+      "parent": "Neck",
+      "connected": true,
+      "minimumGap": 0.013824669644236565
+    },
+    {
+      "clip": "Walk",
+      "sample": 11,
+      "member": "Jaw",
+      "parent": "Head",
+      "connected": true,
+      "minimumGap": 2.9802322387695312e-08
+    },
+    {
+      "clip": "Walk",
+      "sample": 11,
+      "member": "Tail",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.0013687610626220703
+    },
+    {
+      "clip": "Walk",
+      "sample": 11,
+      "member": "Tail1",
+      "parent": "Tail",
+      "connected": true,
+      "minimumGap": 0.002829501172527671
+    },
+    {
+      "clip": "Walk",
+      "sample": 11,
+      "member": "ArmL",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.0001098536085919477
+    },
+    {
+      "clip": "Walk",
+      "sample": 11,
+      "member": "ForearmL",
+      "parent": "ArmL",
+      "connected": true,
+      "minimumGap": 0.000667679647449404
+    },
+    {
+      "clip": "Walk",
+      "sample": 11,
+      "member": "LegBL",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.015369703061878681
+    },
+    {
+      "clip": "Walk",
+      "sample": 11,
+      "member": "KneeBL",
+      "parent": "LegBL",
+      "connected": true,
+      "minimumGap": 0.012147543020546436
+    },
+    {
+      "clip": "Walk",
+      "sample": 11,
+      "member": "FootBL",
+      "parent": "KneeBL",
+      "connected": true,
+      "minimumGap": 0.0004206630401313305
+    },
+    {
+      "clip": "Walk",
+      "sample": 11,
+      "member": "ArmR",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.012651391327381134
+    },
+    {
+      "clip": "Walk",
+      "sample": 11,
+      "member": "ForearmR",
+      "parent": "ArmR",
+      "connected": true,
+      "minimumGap": 0.000602498825173825
+    },
+    {
+      "clip": "Walk",
+      "sample": 11,
+      "member": "LegBR",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.01453443430364132
+    },
+    {
+      "clip": "Walk",
+      "sample": 11,
+      "member": "KneeBR",
+      "parent": "LegBR",
+      "connected": true,
+      "minimumGap": 0.011600824072957039
+    },
+    {
+      "clip": "Walk",
+      "sample": 11,
+      "member": "FootBR",
+      "parent": "KneeBR",
+      "connected": true,
+      "minimumGap": 0.005995462648570538
+    },
+    {
+      "clip": "Walk",
+      "sample": 12,
+      "member": "Neck",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.003765009343624115
+    },
+    {
+      "clip": "Walk",
+      "sample": 12,
+      "member": "Head",
+      "parent": "Neck",
+      "connected": true,
+      "minimumGap": 0.014366482384502888
+    },
+    {
+      "clip": "Walk",
+      "sample": 12,
+      "member": "Jaw",
+      "parent": "Head",
+      "connected": true,
+      "minimumGap": 0.0
+    },
+    {
+      "clip": "Walk",
+      "sample": 12,
+      "member": "Tail",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.005759477615356445
+    },
+    {
+      "clip": "Walk",
+      "sample": 12,
+      "member": "Tail1",
+      "parent": "Tail",
+      "connected": true,
+      "minimumGap": 0.0027809219900518656
+    },
+    {
+      "clip": "Walk",
+      "sample": 12,
+      "member": "ArmL",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.0014001467498019338
+    },
+    {
+      "clip": "Walk",
+      "sample": 12,
+      "member": "ForearmL",
+      "parent": "ArmL",
+      "connected": true,
+      "minimumGap": 0.0006493213586509228
+    },
+    {
+      "clip": "Walk",
+      "sample": 12,
+      "member": "LegBL",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.018561793491244316
+    },
+    {
+      "clip": "Walk",
+      "sample": 12,
+      "member": "KneeBL",
+      "parent": "LegBL",
+      "connected": true,
+      "minimumGap": 0.010495469905436039
+    },
+    {
+      "clip": "Walk",
+      "sample": 12,
+      "member": "FootBL",
+      "parent": "KneeBL",
+      "connected": true,
+      "minimumGap": 0.01815711334347725
+    },
+    {
+      "clip": "Walk",
+      "sample": 12,
+      "member": "ArmR",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.011465610936284065
+    },
+    {
+      "clip": "Walk",
+      "sample": 12,
+      "member": "ForearmR",
+      "parent": "ArmR",
+      "connected": true,
+      "minimumGap": 0.00023909179435577244
+    },
+    {
+      "clip": "Walk",
+      "sample": 12,
+      "member": "LegBR",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.01538938656449318
+    },
+    {
+      "clip": "Walk",
+      "sample": 12,
+      "member": "KneeBR",
+      "parent": "LegBR",
+      "connected": true,
+      "minimumGap": 0.011312119662761688
+    },
+    {
+      "clip": "Walk",
+      "sample": 12,
+      "member": "FootBR",
+      "parent": "KneeBR",
+      "connected": true,
+      "minimumGap": 0.00726702343672514
+    },
+    {
+      "clip": "Walk",
+      "sample": 13,
+      "member": "Neck",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.003512562485411763
+    },
+    {
+      "clip": "Walk",
+      "sample": 13,
+      "member": "Head",
+      "parent": "Neck",
+      "connected": true,
+      "minimumGap": 0.014177855104207993
+    },
+    {
+      "clip": "Walk",
+      "sample": 13,
+      "member": "Jaw",
+      "parent": "Head",
+      "connected": true,
+      "minimumGap": 0.0
+    },
+    {
+      "clip": "Walk",
+      "sample": 13,
+      "member": "Tail",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.012273788452148438
+    },
+    {
+      "clip": "Walk",
+      "sample": 13,
+      "member": "Tail1",
+      "parent": "Tail",
+      "connected": true,
+      "minimumGap": 0.0025958330370485783
+    },
+    {
+      "clip": "Walk",
+      "sample": 13,
+      "member": "ArmL",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.003701414680108428
+    },
+    {
+      "clip": "Walk",
+      "sample": 13,
+      "member": "ForearmL",
+      "parent": "ArmL",
+      "connected": true,
+      "minimumGap": 0.0006226138793863356
+    },
+    {
+      "clip": "Walk",
+      "sample": 13,
+      "member": "LegBL",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.01759539172053337
+    },
+    {
+      "clip": "Walk",
+      "sample": 13,
+      "member": "KneeBL",
+      "parent": "LegBL",
+      "connected": true,
+      "minimumGap": 0.009207460097968578
+    },
+    {
+      "clip": "Walk",
+      "sample": 13,
+      "member": "FootBL",
+      "parent": "KneeBL",
+      "connected": true,
+      "minimumGap": 0.013943042606115341
+    },
+    {
+      "clip": "Walk",
+      "sample": 13,
+      "member": "ArmR",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.00929506029933691
+    },
+    {
+      "clip": "Walk",
+      "sample": 13,
+      "member": "ForearmR",
+      "parent": "ArmR",
+      "connected": true,
+      "minimumGap": 0.0005937875830568373
+    },
+    {
+      "clip": "Walk",
+      "sample": 13,
+      "member": "LegBR",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.01328293327242136
+    },
+    {
+      "clip": "Walk",
+      "sample": 13,
+      "member": "KneeBR",
+      "parent": "LegBR",
+      "connected": true,
+      "minimumGap": 0.011023038066923618
+    },
+    {
+      "clip": "Walk",
+      "sample": 13,
+      "member": "FootBR",
+      "parent": "KneeBR",
+      "connected": true,
+      "minimumGap": 0.010879152454435825
+    },
+    {
+      "clip": "Attack",
+      "sample": 0,
+      "member": "Neck",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.002457047114148736
+    },
+    {
+      "clip": "Attack",
+      "sample": 0,
+      "member": "Head",
+      "parent": "Neck",
+      "connected": true,
+      "minimumGap": 0.013386928476393223
+    },
+    {
+      "clip": "Attack",
+      "sample": 0,
+      "member": "Jaw",
+      "parent": "Head",
+      "connected": true,
+      "minimumGap": 0.0
+    },
+    {
+      "clip": "Attack",
+      "sample": 0,
+      "member": "Tail",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.016341686248779297
+    },
+    {
+      "clip": "Attack",
+      "sample": 0,
+      "member": "Tail1",
+      "parent": "Tail",
+      "connected": true,
+      "minimumGap": 0.0022066670935600996
+    },
+    {
+      "clip": "Attack",
+      "sample": 0,
+      "member": "ArmL",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.006527388002723455
+    },
+    {
+      "clip": "Attack",
+      "sample": 0,
+      "member": "ForearmL",
+      "parent": "ArmL",
+      "connected": true,
+      "minimumGap": 0.0006015867693349719
+    },
+    {
+      "clip": "Attack",
+      "sample": 0,
+      "member": "LegBL",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.006808280013501644
+    },
+    {
+      "clip": "Attack",
+      "sample": 0,
+      "member": "KneeBL",
+      "parent": "LegBL",
+      "connected": true,
+      "minimumGap": 0.011057814583182335
+    },
+    {
+      "clip": "Attack",
+      "sample": 0,
+      "member": "FootBL",
+      "parent": "KneeBL",
+      "connected": true,
+      "minimumGap": 0.017412694171071053
+    },
+    {
+      "clip": "Attack",
+      "sample": 0,
+      "member": "ArmR",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.006527388002723455
+    },
+    {
+      "clip": "Attack",
+      "sample": 0,
+      "member": "ForearmR",
+      "parent": "ArmR",
+      "connected": true,
+      "minimumGap": 0.0006015867693349719
+    },
+    {
+      "clip": "Attack",
+      "sample": 0,
+      "member": "LegBR",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.006808280013501644
+    },
+    {
+      "clip": "Attack",
+      "sample": 0,
+      "member": "KneeBR",
+      "parent": "LegBR",
+      "connected": true,
+      "minimumGap": 0.011057784780859947
+    },
+    {
+      "clip": "Attack",
+      "sample": 0,
+      "member": "FootBR",
+      "parent": "KneeBR",
+      "connected": true,
+      "minimumGap": 0.017412574961781502
+    },
+    {
+      "clip": "Attack",
+      "sample": 1,
+      "member": "Neck",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.0004580304375849664
+    },
+    {
+      "clip": "Attack",
+      "sample": 1,
+      "member": "Head",
+      "parent": "Neck",
+      "connected": true,
+      "minimumGap": 0.0072217825800180435
+    },
+    {
+      "clip": "Attack",
+      "sample": 1,
+      "member": "Jaw",
+      "parent": "Head",
+      "connected": true,
+      "minimumGap": 0.0060602095909416676
+    },
+    {
+      "clip": "Attack",
+      "sample": 1,
+      "member": "Tail",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.01634165458381176
+    },
+    {
+      "clip": "Attack",
+      "sample": 1,
+      "member": "Tail1",
+      "parent": "Tail",
+      "connected": true,
+      "minimumGap": 0.00220668432302773
+    },
+    {
+      "clip": "Attack",
+      "sample": 1,
+      "member": "ArmL",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.0003678930224850774
+    },
+    {
+      "clip": "Attack",
+      "sample": 1,
+      "member": "ForearmL",
+      "parent": "ArmL",
+      "connected": true,
+      "minimumGap": 0.0006016012630425394
+    },
+    {
+      "clip": "Attack",
+      "sample": 1,
+      "member": "LegBL",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.006808186881244183
+    },
+    {
+      "clip": "Attack",
+      "sample": 1,
+      "member": "KneeBL",
+      "parent": "LegBL",
+      "connected": true,
+      "minimumGap": 0.011057820171117783
+    },
+    {
+      "clip": "Attack",
+      "sample": 1,
+      "member": "FootBL",
+      "parent": "KneeBL",
+      "connected": true,
+      "minimumGap": 0.017412608489394188
+    },
+    {
+      "clip": "Attack",
+      "sample": 1,
+      "member": "ArmR",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.0003678930224850774
+    },
+    {
+      "clip": "Attack",
+      "sample": 1,
+      "member": "ForearmR",
+      "parent": "ArmR",
+      "connected": true,
+      "minimumGap": 0.000601515406742692
+    },
+    {
+      "clip": "Attack",
+      "sample": 1,
+      "member": "LegBR",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.006808189675211906
+    },
+    {
+      "clip": "Attack",
+      "sample": 1,
+      "member": "KneeBR",
+      "parent": "LegBR",
+      "connected": true,
+      "minimumGap": 0.01105778943747282
+    },
+    {
+      "clip": "Attack",
+      "sample": 1,
+      "member": "FootBR",
+      "parent": "KneeBR",
+      "connected": true,
+      "minimumGap": 0.017412591725587845
+    },
+    {
+      "clip": "Attack",
+      "sample": 2,
+      "member": "Neck",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.0020063132978975773
+    },
+    {
+      "clip": "Attack",
+      "sample": 2,
+      "member": "Head",
+      "parent": "Neck",
+      "connected": true,
+      "minimumGap": 0.000864037312567234
+    },
+    {
+      "clip": "Attack",
+      "sample": 2,
+      "member": "Jaw",
+      "parent": "Head",
+      "connected": true,
+      "minimumGap": 0.07270576804876328
+    },
+    {
+      "clip": "Attack",
+      "sample": 2,
+      "member": "Tail",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.01634165458381176
+    },
+    {
+      "clip": "Attack",
+      "sample": 2,
+      "member": "Tail1",
+      "parent": "Tail",
+      "connected": true,
+      "minimumGap": 0.0022065879311412573
+    },
+    {
+      "clip": "Attack",
+      "sample": 2,
+      "member": "ArmL",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.007574443705379963
+    },
+    {
+      "clip": "Attack",
+      "sample": 2,
+      "member": "ForearmL",
+      "parent": "ArmL",
+      "connected": true,
+      "minimumGap": 0.0006015381077304482
+    },
+    {
+      "clip": "Attack",
+      "sample": 2,
+      "member": "LegBL",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.006808218080550432
+    },
+    {
+      "clip": "Attack",
+      "sample": 2,
+      "member": "KneeBL",
+      "parent": "LegBL",
+      "connected": true,
+      "minimumGap": 0.011057911440730095
+    },
+    {
+      "clip": "Attack",
+      "sample": 2,
+      "member": "FootBL",
+      "parent": "KneeBL",
+      "connected": true,
+      "minimumGap": 0.017412666231393814
+    },
+    {
+      "clip": "Attack",
+      "sample": 2,
+      "member": "ArmR",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.007574442308396101
+    },
+    {
+      "clip": "Attack",
+      "sample": 2,
+      "member": "ForearmR",
+      "parent": "ArmR",
+      "connected": true,
+      "minimumGap": 0.0006014513201080263
+    },
+    {
+      "clip": "Attack",
+      "sample": 2,
+      "member": "LegBR",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.006808217614889145
+    },
+    {
+      "clip": "Attack",
+      "sample": 2,
+      "member": "KneeBR",
+      "parent": "LegBR",
+      "connected": true,
+      "minimumGap": 0.011057796888053417
+    },
+    {
+      "clip": "Attack",
+      "sample": 2,
+      "member": "FootBR",
+      "parent": "KneeBR",
+      "connected": true,
+      "minimumGap": 0.017412647604942322
+    },
+    {
+      "clip": "Attack",
+      "sample": 3,
+      "member": "Neck",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.0016796862473711371
+    },
+    {
+      "clip": "Attack",
+      "sample": 3,
+      "member": "Head",
+      "parent": "Neck",
+      "connected": true,
+      "minimumGap": 0.008417291566729546
+    },
+    {
+      "clip": "Attack",
+      "sample": 3,
+      "member": "Jaw",
+      "parent": "Head",
+      "connected": true,
+      "minimumGap": 0.08430249243974686
+    },
+    {
+      "clip": "Attack",
+      "sample": 3,
+      "member": "Tail",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.01634150743484497
+    },
+    {
+      "clip": "Attack",
+      "sample": 3,
+      "member": "Tail1",
+      "parent": "Tail",
+      "connected": true,
+      "minimumGap": 0.0022066221572458744
+    },
+    {
+      "clip": "Attack",
+      "sample": 3,
+      "member": "ArmL",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.013071113266050816
+    },
+    {
+      "clip": "Attack",
+      "sample": 3,
+      "member": "ForearmL",
+      "parent": "ArmL",
+      "connected": true,
+      "minimumGap": 0.0006014835089445114
+    },
+    {
+      "clip": "Attack",
+      "sample": 3,
+      "member": "LegBL",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.006808256730437279
+    },
+    {
+      "clip": "Attack",
+      "sample": 3,
+      "member": "KneeBL",
+      "parent": "LegBL",
+      "connected": true,
+      "minimumGap": 0.011057810857892036
+    },
+    {
+      "clip": "Attack",
+      "sample": 3,
+      "member": "FootBL",
+      "parent": "KneeBL",
+      "connected": true,
+      "minimumGap": 0.017412669956684113
+    },
+    {
+      "clip": "Attack",
+      "sample": 3,
+      "member": "ArmR",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.013071113266050816
+    },
+    {
+      "clip": "Attack",
+      "sample": 3,
+      "member": "ForearmR",
+      "parent": "ArmR",
+      "connected": true,
+      "minimumGap": 0.0006014835089445114
+    },
+    {
+      "clip": "Attack",
+      "sample": 3,
+      "member": "LegBR",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.006808233447372913
+    },
+    {
+      "clip": "Attack",
+      "sample": 3,
+      "member": "KneeBR",
+      "parent": "LegBR",
+      "connected": true,
+      "minimumGap": 0.011057810857892036
+    },
+    {
+      "clip": "Attack",
+      "sample": 3,
+      "member": "FootBR",
+      "parent": "KneeBR",
+      "connected": true,
+      "minimumGap": 0.017412593588232994
+    },
+    {
+      "clip": "Attack",
+      "sample": 4,
+      "member": "Neck",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.004017913248389959
+    },
+    {
+      "clip": "Attack",
+      "sample": 4,
+      "member": "Head",
+      "parent": "Neck",
+      "connected": true,
+      "minimumGap": 0.011452270671725273
+    },
+    {
+      "clip": "Attack",
+      "sample": 4,
+      "member": "Jaw",
+      "parent": "Head",
+      "connected": true,
+      "minimumGap": 0.011544895358383656
+    },
+    {
+      "clip": "Attack",
+      "sample": 4,
+      "member": "Tail",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.016208352521061897
+    },
+    {
+      "clip": "Attack",
+      "sample": 4,
+      "member": "Tail1",
+      "parent": "Tail",
+      "connected": true,
+      "minimumGap": 0.002206629142165184
+    },
+    {
+      "clip": "Attack",
+      "sample": 4,
+      "member": "ArmL",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.011712510138750076
+    },
+    {
+      "clip": "Attack",
+      "sample": 4,
+      "member": "ForearmL",
+      "parent": "ArmL",
+      "connected": true,
+      "minimumGap": 0.0006014987011440098
+    },
+    {
+      "clip": "Attack",
+      "sample": 4,
+      "member": "LegBL",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.00680819945409894
+    },
+    {
+      "clip": "Attack",
+      "sample": 4,
+      "member": "KneeBL",
+      "parent": "LegBL",
+      "connected": true,
+      "minimumGap": 0.011057810857892036
+    },
+    {
+      "clip": "Attack",
+      "sample": 4,
+      "member": "FootBL",
+      "parent": "KneeBL",
+      "connected": true,
+      "minimumGap": 0.017412619665265083
+    },
+    {
+      "clip": "Attack",
+      "sample": 4,
+      "member": "ArmR",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.011712622828781605
+    },
+    {
+      "clip": "Attack",
+      "sample": 4,
+      "member": "ForearmR",
+      "parent": "ArmR",
+      "connected": true,
+      "minimumGap": 0.0006015855469740927
+    },
+    {
+      "clip": "Attack",
+      "sample": 4,
+      "member": "LegBR",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.006808197125792503
+    },
+    {
+      "clip": "Attack",
+      "sample": 4,
+      "member": "KneeBR",
+      "parent": "LegBR",
+      "connected": true,
+      "minimumGap": 0.011057781986892223
+    },
+    {
+      "clip": "Attack",
+      "sample": 4,
+      "member": "FootBR",
+      "parent": "KneeBR",
+      "connected": true,
+      "minimumGap": 0.017412520945072174
+    },
+    {
+      "clip": "Attack",
+      "sample": 5,
+      "member": "Neck",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.00813691969960928
+    },
+    {
+      "clip": "Attack",
+      "sample": 5,
+      "member": "Head",
+      "parent": "Neck",
+      "connected": true,
+      "minimumGap": 0.008696271106600761
+    },
+    {
+      "clip": "Attack",
+      "sample": 5,
+      "member": "Jaw",
+      "parent": "Head",
+      "connected": true,
+      "minimumGap": 0.06807174533605576
+    },
+    {
+      "clip": "Attack",
+      "sample": 5,
+      "member": "Tail",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.0033506788313388824
+    },
+    {
+      "clip": "Attack",
+      "sample": 5,
+      "member": "Tail1",
+      "parent": "Tail",
+      "connected": true,
+      "minimumGap": 0.0022066098172217607
+    },
+    {
+      "clip": "Attack",
+      "sample": 5,
+      "member": "ArmL",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.010333605110645294
+    },
+    {
+      "clip": "Attack",
+      "sample": 5,
+      "member": "ForearmL",
+      "parent": "ArmL",
+      "connected": true,
+      "minimumGap": 0.0006015634280629456
+    },
+    {
+      "clip": "Attack",
+      "sample": 5,
+      "member": "LegBL",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.00680827721953392
+    },
+    {
+      "clip": "Attack",
+      "sample": 5,
+      "member": "KneeBL",
+      "parent": "LegBL",
+      "connected": true,
+      "minimumGap": 0.011057766154408455
+    },
+    {
+      "clip": "Attack",
+      "sample": 5,
+      "member": "FootBL",
+      "parent": "KneeBL",
+      "connected": true,
+      "minimumGap": 0.017412647604942322
+    },
+    {
+      "clip": "Attack",
+      "sample": 5,
+      "member": "ArmR",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.010333548299968243
+    },
+    {
+      "clip": "Attack",
+      "sample": 5,
+      "member": "ForearmR",
+      "parent": "ArmR",
+      "connected": true,
+      "minimumGap": 0.0006015647086314857
+    },
+    {
+      "clip": "Attack",
+      "sample": 5,
+      "member": "LegBR",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.0068082609213888645
+    },
+    {
+      "clip": "Attack",
+      "sample": 5,
+      "member": "KneeBR",
+      "parent": "LegBR",
+      "connected": true,
+      "minimumGap": 0.011057808995246887
+    },
+    {
+      "clip": "Attack",
+      "sample": 5,
+      "member": "FootBR",
+      "parent": "KneeBR",
+      "connected": true,
+      "minimumGap": 0.017412714660167694
+    },
+    {
+      "clip": "Attack",
+      "sample": 6,
+      "member": "Neck",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.0099181504920125
+    },
+    {
+      "clip": "Attack",
+      "sample": 6,
+      "member": "Head",
+      "parent": "Neck",
+      "connected": true,
+      "minimumGap": 0.00636384217068553
+    },
+    {
+      "clip": "Attack",
+      "sample": 6,
+      "member": "Jaw",
+      "parent": "Head",
+      "connected": true,
+      "minimumGap": 0.000795045169070363
+    },
+    {
+      "clip": "Attack",
+      "sample": 6,
+      "member": "Tail",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.0011682912008836865
+    },
+    {
+      "clip": "Attack",
+      "sample": 6,
+      "member": "Tail1",
+      "parent": "Tail",
+      "connected": true,
+      "minimumGap": 0.002206641249358654
+    },
+    {
+      "clip": "Attack",
+      "sample": 6,
+      "member": "ArmL",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.0057941316626966
+    },
+    {
+      "clip": "Attack",
+      "sample": 6,
+      "member": "ForearmL",
+      "parent": "ArmL",
+      "connected": true,
+      "minimumGap": 0.0006014344398863614
+    },
+    {
+      "clip": "Attack",
+      "sample": 6,
+      "member": "LegBL",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.006808243691921234
+    },
+    {
+      "clip": "Attack",
+      "sample": 6,
+      "member": "KneeBL",
+      "parent": "LegBL",
+      "connected": true,
+      "minimumGap": 0.011057808063924313
+    },
+    {
+      "clip": "Attack",
+      "sample": 6,
+      "member": "FootBL",
+      "parent": "KneeBL",
+      "connected": true,
+      "minimumGap": 0.017412757501006126
+    },
+    {
+      "clip": "Attack",
+      "sample": 6,
+      "member": "ArmR",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.008877241052687168
+    },
+    {
+      "clip": "Attack",
+      "sample": 6,
+      "member": "ForearmR",
+      "parent": "ArmR",
+      "connected": true,
+      "minimumGap": 0.0006015096441842616
+    },
+    {
+      "clip": "Attack",
+      "sample": 6,
+      "member": "LegBR",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.006808243691921234
+    },
+    {
+      "clip": "Attack",
+      "sample": 6,
+      "member": "KneeBR",
+      "parent": "LegBR",
+      "connected": true,
+      "minimumGap": 0.01105793658643961
+    },
+    {
+      "clip": "Attack",
+      "sample": 6,
+      "member": "FootBR",
+      "parent": "KneeBR",
+      "connected": true,
+      "minimumGap": 0.017412608489394188
+    },
+    {
+      "clip": "Attack",
+      "sample": 7,
+      "member": "Neck",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.007171287201344967
+    },
+    {
+      "clip": "Attack",
+      "sample": 7,
+      "member": "Head",
+      "parent": "Neck",
+      "connected": true,
+      "minimumGap": 0.005769840441644192
+    },
+    {
+      "clip": "Attack",
+      "sample": 7,
+      "member": "Jaw",
+      "parent": "Head",
+      "connected": true,
+      "minimumGap": 0.0008849009755067527
+    },
+    {
+      "clip": "Attack",
+      "sample": 7,
+      "member": "Tail",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.0009187813266180456
+    },
+    {
+      "clip": "Attack",
+      "sample": 7,
+      "member": "Tail1",
+      "parent": "Tail",
+      "connected": true,
+      "minimumGap": 0.002206632401794195
+    },
+    {
+      "clip": "Attack",
+      "sample": 7,
+      "member": "ArmL",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.010881914757192135
+    },
+    {
+      "clip": "Attack",
+      "sample": 7,
+      "member": "ForearmL",
+      "parent": "ArmL",
+      "connected": true,
+      "minimumGap": 0.0006014210521243513
+    },
+    {
+      "clip": "Attack",
+      "sample": 7,
+      "member": "LegBL",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.006808213423937559
+    },
+    {
+      "clip": "Attack",
+      "sample": 7,
+      "member": "KneeBL",
+      "parent": "LegBL",
+      "connected": true,
+      "minimumGap": 0.011057781055569649
+    },
+    {
+      "clip": "Attack",
+      "sample": 7,
+      "member": "FootBL",
+      "parent": "KneeBL",
+      "connected": true,
+      "minimumGap": 0.017412668094038963
+    },
+    {
+      "clip": "Attack",
+      "sample": 7,
+      "member": "ArmR",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.010881858877837658
+    },
+    {
+      "clip": "Attack",
+      "sample": 7,
+      "member": "ForearmR",
+      "parent": "ArmR",
+      "connected": true,
+      "minimumGap": 0.0006014210521243513
+    },
+    {
+      "clip": "Attack",
+      "sample": 7,
+      "member": "LegBR",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.0068082045763731
+    },
+    {
+      "clip": "Attack",
+      "sample": 7,
+      "member": "KneeBR",
+      "parent": "LegBR",
+      "connected": true,
+      "minimumGap": 0.011057822965085506
+    },
+    {
+      "clip": "Attack",
+      "sample": 7,
+      "member": "FootBR",
+      "parent": "KneeBR",
+      "connected": true,
+      "minimumGap": 0.017412688583135605
+    },
+    {
+      "clip": "Attack",
+      "sample": 8,
+      "member": "Neck",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.002631016308441758
+    },
+    {
+      "clip": "Attack",
+      "sample": 8,
+      "member": "Head",
+      "parent": "Neck",
+      "connected": true,
+      "minimumGap": 0.011467560194432735
+    },
+    {
+      "clip": "Attack",
+      "sample": 8,
+      "member": "Jaw",
+      "parent": "Head",
+      "connected": true,
+      "minimumGap": 9.307447908213362e-05
+    },
+    {
+      "clip": "Attack",
+      "sample": 8,
+      "member": "Tail",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.01573265716433525
+    },
+    {
+      "clip": "Attack",
+      "sample": 8,
+      "member": "Tail1",
+      "parent": "Tail",
+      "connected": true,
+      "minimumGap": 0.0022066645324230194
+    },
+    {
+      "clip": "Attack",
+      "sample": 8,
+      "member": "ArmL",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.006474577821791172
+    },
+    {
+      "clip": "Attack",
+      "sample": 8,
+      "member": "ForearmL",
+      "parent": "ArmL",
+      "connected": true,
+      "minimumGap": 0.0006014327518641949
+    },
+    {
+      "clip": "Attack",
+      "sample": 8,
+      "member": "LegBL",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.00680827721953392
+    },
+    {
+      "clip": "Attack",
+      "sample": 8,
+      "member": "KneeBL",
+      "parent": "LegBL",
+      "connected": true,
+      "minimumGap": 0.011057804338634014
+    },
+    {
+      "clip": "Attack",
+      "sample": 8,
+      "member": "FootBL",
+      "parent": "KneeBL",
+      "connected": true,
+      "minimumGap": 0.017412567511200905
+    },
+    {
+      "clip": "Attack",
+      "sample": 8,
+      "member": "ArmR",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.006474577821791172
+    },
+    {
+      "clip": "Attack",
+      "sample": 8,
+      "member": "ForearmR",
+      "parent": "ArmR",
+      "connected": true,
+      "minimumGap": 0.0006014327518641949
+    },
+    {
+      "clip": "Attack",
+      "sample": 8,
+      "member": "LegBR",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.00680827721953392
+    },
+    {
+      "clip": "Attack",
+      "sample": 8,
+      "member": "KneeBR",
+      "parent": "LegBR",
+      "connected": true,
+      "minimumGap": 0.011057804338634014
+    },
+    {
+      "clip": "Attack",
+      "sample": 8,
+      "member": "FootBR",
+      "parent": "KneeBR",
+      "connected": true,
+      "minimumGap": 0.017412545159459114
+    },
+    {
+      "clip": "Attack",
+      "sample": 9,
+      "member": "Neck",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.002457080874592066
+    },
+    {
+      "clip": "Attack",
+      "sample": 9,
+      "member": "Head",
+      "parent": "Neck",
+      "connected": true,
+      "minimumGap": 0.01278512179851532
+    },
+    {
+      "clip": "Attack",
+      "sample": 9,
+      "member": "Jaw",
+      "parent": "Head",
+      "connected": true,
+      "minimumGap": 0.0005026712315157056
+    },
+    {
+      "clip": "Attack",
+      "sample": 9,
+      "member": "Tail",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.0163416750729084
+    },
+    {
+      "clip": "Attack",
+      "sample": 9,
+      "member": "Tail1",
+      "parent": "Tail",
+      "connected": true,
+      "minimumGap": 0.002206614473834634
+    },
+    {
+      "clip": "Attack",
+      "sample": 9,
+      "member": "ArmL",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.0015654470771551132
+    },
+    {
+      "clip": "Attack",
+      "sample": 9,
+      "member": "ForearmL",
+      "parent": "ArmL",
+      "connected": true,
+      "minimumGap": 0.0006016098195686936
+    },
+    {
+      "clip": "Attack",
+      "sample": 9,
+      "member": "LegBL",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.006808220874518156
+    },
+    {
+      "clip": "Attack",
+      "sample": 9,
+      "member": "KneeBL",
+      "parent": "LegBL",
+      "connected": true,
+      "minimumGap": 0.011057832278311253
+    },
+    {
+      "clip": "Attack",
+      "sample": 9,
+      "member": "FootBL",
+      "parent": "KneeBL",
+      "connected": true,
+      "minimumGap": 0.017412591725587845
+    },
+    {
+      "clip": "Attack",
+      "sample": 9,
+      "member": "ArmR",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.0015654470771551132
+    },
+    {
+      "clip": "Attack",
+      "sample": 9,
+      "member": "ForearmR",
+      "parent": "ArmR",
+      "connected": true,
+      "minimumGap": 0.0006016098195686936
+    },
+    {
+      "clip": "Attack",
+      "sample": 9,
+      "member": "LegBR",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.006808220874518156
+    },
+    {
+      "clip": "Attack",
+      "sample": 9,
+      "member": "KneeBR",
+      "parent": "LegBR",
+      "connected": true,
+      "minimumGap": 0.011057820171117783
+    },
+    {
+      "clip": "Attack",
+      "sample": 9,
+      "member": "FootBR",
+      "parent": "KneeBR",
+      "connected": true,
+      "minimumGap": 0.017412617802619934
+    },
+    {
+      "clip": "Attack",
+      "sample": 10,
+      "member": "Neck",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.0024569991510361433
+    },
+    {
+      "clip": "Attack",
+      "sample": 10,
+      "member": "Head",
+      "parent": "Neck",
+      "connected": true,
+      "minimumGap": 0.014071129262447357
+    },
+    {
+      "clip": "Attack",
+      "sample": 10,
+      "member": "Jaw",
+      "parent": "Head",
+      "connected": true,
+      "minimumGap": 7.323761383304372e-05
+    },
+    {
+      "clip": "Attack",
+      "sample": 10,
+      "member": "Tail",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.016341570764780045
+    },
+    {
+      "clip": "Attack",
+      "sample": 10,
+      "member": "Tail1",
+      "parent": "Tail",
+      "connected": true,
+      "minimumGap": 0.0022066538222134113
+    },
+    {
+      "clip": "Attack",
+      "sample": 10,
+      "member": "ArmL",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.005688906647264957
+    },
+    {
+      "clip": "Attack",
+      "sample": 10,
+      "member": "ForearmL",
+      "parent": "ArmL",
+      "connected": true,
+      "minimumGap": 0.0006015372928231955
+    },
+    {
+      "clip": "Attack",
+      "sample": 10,
+      "member": "LegBL",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.006808185949921608
+    },
+    {
+      "clip": "Attack",
+      "sample": 10,
+      "member": "KneeBL",
+      "parent": "LegBL",
+      "connected": true,
+      "minimumGap": 0.011057804338634014
+    },
+    {
+      "clip": "Attack",
+      "sample": 10,
+      "member": "FootBL",
+      "parent": "KneeBL",
+      "connected": true,
+      "minimumGap": 0.017412591725587845
+    },
+    {
+      "clip": "Attack",
+      "sample": 10,
+      "member": "ArmR",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.005688906647264957
+    },
+    {
+      "clip": "Attack",
+      "sample": 10,
+      "member": "ForearmR",
+      "parent": "ArmR",
+      "connected": true,
+      "minimumGap": 0.0006015372928231955
+    },
+    {
+      "clip": "Attack",
+      "sample": 10,
+      "member": "LegBR",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.006808182690292597
+    },
+    {
+      "clip": "Attack",
+      "sample": 10,
+      "member": "KneeBR",
+      "parent": "LegBR",
+      "connected": true,
+      "minimumGap": 0.011057804338634014
+    },
+    {
+      "clip": "Attack",
+      "sample": 10,
+      "member": "FootBR",
+      "parent": "KneeBR",
+      "connected": true,
+      "minimumGap": 0.017412515357136726
+    },
+    {
+      "clip": "Attack",
+      "sample": 11,
+      "member": "Neck",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.002457047114148736
+    },
+    {
+      "clip": "Attack",
+      "sample": 11,
+      "member": "Head",
+      "parent": "Neck",
+      "connected": true,
+      "minimumGap": 0.013386928476393223
+    },
+    {
+      "clip": "Attack",
+      "sample": 11,
+      "member": "Jaw",
+      "parent": "Head",
+      "connected": true,
+      "minimumGap": 0.0
+    },
+    {
+      "clip": "Attack",
+      "sample": 11,
+      "member": "Tail",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.016341686248779297
+    },
+    {
+      "clip": "Attack",
+      "sample": 11,
+      "member": "Tail1",
+      "parent": "Tail",
+      "connected": true,
+      "minimumGap": 0.0022066670935600996
+    },
+    {
+      "clip": "Attack",
+      "sample": 11,
+      "member": "ArmL",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.006527388002723455
+    },
+    {
+      "clip": "Attack",
+      "sample": 11,
+      "member": "ForearmL",
+      "parent": "ArmL",
+      "connected": true,
+      "minimumGap": 0.0006015867693349719
+    },
+    {
+      "clip": "Attack",
+      "sample": 11,
+      "member": "LegBL",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.006808280013501644
+    },
+    {
+      "clip": "Attack",
+      "sample": 11,
+      "member": "KneeBL",
+      "parent": "LegBL",
+      "connected": true,
+      "minimumGap": 0.011057814583182335
+    },
+    {
+      "clip": "Attack",
+      "sample": 11,
+      "member": "FootBL",
+      "parent": "KneeBL",
+      "connected": true,
+      "minimumGap": 0.017412694171071053
+    },
+    {
+      "clip": "Attack",
+      "sample": 11,
+      "member": "ArmR",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.006527388002723455
+    },
+    {
+      "clip": "Attack",
+      "sample": 11,
+      "member": "ForearmR",
+      "parent": "ArmR",
+      "connected": true,
+      "minimumGap": 0.0006015867693349719
+    },
+    {
+      "clip": "Attack",
+      "sample": 11,
+      "member": "LegBR",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.006808280013501644
+    },
+    {
+      "clip": "Attack",
+      "sample": 11,
+      "member": "KneeBR",
+      "parent": "LegBR",
+      "connected": true,
+      "minimumGap": 0.011057784780859947
+    },
+    {
+      "clip": "Attack",
+      "sample": 11,
+      "member": "FootBR",
+      "parent": "KneeBR",
+      "connected": true,
+      "minimumGap": 0.017412574961781502
+    },
+    {
+      "clip": "Bite",
+      "sample": 0,
+      "member": "Neck",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.002457047114148736
+    },
+    {
+      "clip": "Bite",
+      "sample": 0,
+      "member": "Head",
+      "parent": "Neck",
+      "connected": true,
+      "minimumGap": 0.013386928476393223
+    },
+    {
+      "clip": "Bite",
+      "sample": 0,
+      "member": "Jaw",
+      "parent": "Head",
+      "connected": true,
+      "minimumGap": 0.0
+    },
+    {
+      "clip": "Bite",
+      "sample": 0,
+      "member": "Tail",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.016341686248779297
+    },
+    {
+      "clip": "Bite",
+      "sample": 0,
+      "member": "Tail1",
+      "parent": "Tail",
+      "connected": true,
+      "minimumGap": 0.0022066670935600996
+    },
+    {
+      "clip": "Bite",
+      "sample": 0,
+      "member": "ArmL",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.006527388002723455
+    },
+    {
+      "clip": "Bite",
+      "sample": 0,
+      "member": "ForearmL",
+      "parent": "ArmL",
+      "connected": true,
+      "minimumGap": 0.0006015867693349719
+    },
+    {
+      "clip": "Bite",
+      "sample": 0,
+      "member": "LegBL",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.006808280013501644
+    },
+    {
+      "clip": "Bite",
+      "sample": 0,
+      "member": "KneeBL",
+      "parent": "LegBL",
+      "connected": true,
+      "minimumGap": 0.011057814583182335
+    },
+    {
+      "clip": "Bite",
+      "sample": 0,
+      "member": "FootBL",
+      "parent": "KneeBL",
+      "connected": true,
+      "minimumGap": 0.017412694171071053
+    },
+    {
+      "clip": "Bite",
+      "sample": 0,
+      "member": "ArmR",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.006527388002723455
+    },
+    {
+      "clip": "Bite",
+      "sample": 0,
+      "member": "ForearmR",
+      "parent": "ArmR",
+      "connected": true,
+      "minimumGap": 0.0006015867693349719
+    },
+    {
+      "clip": "Bite",
+      "sample": 0,
+      "member": "LegBR",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.006808280013501644
+    },
+    {
+      "clip": "Bite",
+      "sample": 0,
+      "member": "KneeBR",
+      "parent": "LegBR",
+      "connected": true,
+      "minimumGap": 0.011057784780859947
+    },
+    {
+      "clip": "Bite",
+      "sample": 0,
+      "member": "FootBR",
+      "parent": "KneeBR",
+      "connected": true,
+      "minimumGap": 0.017412574961781502
+    },
+    {
+      "clip": "Bite",
+      "sample": 1,
+      "member": "Neck",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.0005036414368078113
+    },
+    {
+      "clip": "Bite",
+      "sample": 1,
+      "member": "Head",
+      "parent": "Neck",
+      "connected": true,
+      "minimumGap": 0.013409150764346123
+    },
+    {
+      "clip": "Bite",
+      "sample": 1,
+      "member": "Jaw",
+      "parent": "Head",
+      "connected": true,
+      "minimumGap": 0.04428195580840111
+    },
+    {
+      "clip": "Bite",
+      "sample": 1,
+      "member": "Tail",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.016341689974069595
+    },
+    {
+      "clip": "Bite",
+      "sample": 1,
+      "member": "Tail1",
+      "parent": "Tail",
+      "connected": true,
+      "minimumGap": 0.0022065993398427963
+    },
+    {
+      "clip": "Bite",
+      "sample": 1,
+      "member": "ArmL",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.006527359131723642
+    },
+    {
+      "clip": "Bite",
+      "sample": 1,
+      "member": "ForearmL",
+      "parent": "ArmL",
+      "connected": true,
+      "minimumGap": 0.0006014134851284325
+    },
+    {
+      "clip": "Bite",
+      "sample": 1,
+      "member": "LegBL",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.006808255333453417
+    },
+    {
+      "clip": "Bite",
+      "sample": 1,
+      "member": "KneeBL",
+      "parent": "LegBL",
+      "connected": true,
+      "minimumGap": 0.011057835072278976
+    },
+    {
+      "clip": "Bite",
+      "sample": 1,
+      "member": "FootBL",
+      "parent": "KneeBL",
+      "connected": true,
+      "minimumGap": 0.017412595450878143
+    },
+    {
+      "clip": "Bite",
+      "sample": 1,
+      "member": "ArmR",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.006527359131723642
+    },
+    {
+      "clip": "Bite",
+      "sample": 1,
+      "member": "ForearmR",
+      "parent": "ArmR",
+      "connected": true,
+      "minimumGap": 0.0006013982929289341
+    },
+    {
+      "clip": "Bite",
+      "sample": 1,
+      "member": "LegBR",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.006808255333453417
+    },
+    {
+      "clip": "Bite",
+      "sample": 1,
+      "member": "KneeBR",
+      "parent": "LegBR",
+      "connected": true,
+      "minimumGap": 0.011057805269956589
+    },
+    {
+      "clip": "Bite",
+      "sample": 1,
+      "member": "FootBR",
+      "parent": "KneeBR",
+      "connected": true,
+      "minimumGap": 0.017412599176168442
+    },
+    {
+      "clip": "Bite",
+      "sample": 2,
+      "member": "Neck",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.0013217467349022627
+    },
+    {
+      "clip": "Bite",
+      "sample": 2,
+      "member": "Head",
+      "parent": "Neck",
+      "connected": true,
+      "minimumGap": 0.011259841732680798
+    },
+    {
+      "clip": "Bite",
+      "sample": 2,
+      "member": "Jaw",
+      "parent": "Head",
+      "connected": true,
+      "minimumGap": 0.05863803252577782
+    },
+    {
+      "clip": "Bite",
+      "sample": 2,
+      "member": "Tail",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.016341647133231163
+    },
+    {
+      "clip": "Bite",
+      "sample": 2,
+      "member": "Tail1",
+      "parent": "Tail",
+      "connected": true,
+      "minimumGap": 0.0022066133096814156
+    },
+    {
+      "clip": "Bite",
+      "sample": 2,
+      "member": "ArmL",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.006527389865368605
+    },
+    {
+      "clip": "Bite",
+      "sample": 2,
+      "member": "ForearmL",
+      "parent": "ArmL",
+      "connected": true,
+      "minimumGap": 0.0006016094703227282
+    },
+    {
+      "clip": "Bite",
+      "sample": 2,
+      "member": "LegBL",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.006808303762227297
+    },
+    {
+      "clip": "Bite",
+      "sample": 2,
+      "member": "KneeBL",
+      "parent": "LegBL",
+      "connected": true,
+      "minimumGap": 0.011057806201279163
+    },
+    {
+      "clip": "Bite",
+      "sample": 2,
+      "member": "FootBL",
+      "parent": "KneeBL",
+      "connected": true,
+      "minimumGap": 0.01741252839565277
+    },
+    {
+      "clip": "Bite",
+      "sample": 2,
+      "member": "ArmR",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.006527389865368605
+    },
+    {
+      "clip": "Bite",
+      "sample": 2,
+      "member": "ForearmR",
+      "parent": "ArmR",
+      "connected": true,
+      "minimumGap": 0.0006014964310452342
+    },
+    {
+      "clip": "Bite",
+      "sample": 2,
+      "member": "LegBR",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.00680827721953392
+    },
+    {
+      "clip": "Bite",
+      "sample": 2,
+      "member": "KneeBR",
+      "parent": "LegBR",
+      "connected": true,
+      "minimumGap": 0.011057817377150059
+    },
+    {
+      "clip": "Bite",
+      "sample": 2,
+      "member": "FootBR",
+      "parent": "KneeBR",
+      "connected": true,
+      "minimumGap": 0.017412632703781128
+    },
+    {
+      "clip": "Bite",
+      "sample": 3,
+      "member": "Neck",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.003381511429324746
+    },
+    {
+      "clip": "Bite",
+      "sample": 3,
+      "member": "Head",
+      "parent": "Neck",
+      "connected": true,
+      "minimumGap": 0.010198470205068588
+    },
+    {
+      "clip": "Bite",
+      "sample": 3,
+      "member": "Jaw",
+      "parent": "Head",
+      "connected": true,
+      "minimumGap": 0.04545477405190468
+    },
+    {
+      "clip": "Bite",
+      "sample": 3,
+      "member": "Tail",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.016341667622327805
+    },
+    {
+      "clip": "Bite",
+      "sample": 3,
+      "member": "Tail1",
+      "parent": "Tail",
+      "connected": true,
+      "minimumGap": 0.0022066012024879456
+    },
+    {
+      "clip": "Bite",
+      "sample": 3,
+      "member": "ArmL",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.006527396384626627
+    },
+    {
+      "clip": "Bite",
+      "sample": 3,
+      "member": "ForearmL",
+      "parent": "ArmL",
+      "connected": true,
+      "minimumGap": 0.0006015239050611854
+    },
+    {
+      "clip": "Bite",
+      "sample": 3,
+      "member": "LegBL",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.006808191537857056
+    },
+    {
+      "clip": "Bite",
+      "sample": 3,
+      "member": "KneeBL",
+      "parent": "LegBL",
+      "connected": true,
+      "minimumGap": 0.011057798750698566
+    },
+    {
+      "clip": "Bite",
+      "sample": 3,
+      "member": "FootBL",
+      "parent": "KneeBL",
+      "connected": true,
+      "minimumGap": 0.01741258054971695
+    },
+    {
+      "clip": "Bite",
+      "sample": 3,
+      "member": "ArmR",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.006527396384626627
+    },
+    {
+      "clip": "Bite",
+      "sample": 3,
+      "member": "ForearmR",
+      "parent": "ArmR",
+      "connected": true,
+      "minimumGap": 0.000601509353145957
+    },
+    {
+      "clip": "Bite",
+      "sample": 3,
+      "member": "LegBR",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.006808193866163492
+    },
+    {
+      "clip": "Bite",
+      "sample": 3,
+      "member": "KneeBR",
+      "parent": "LegBR",
+      "connected": true,
+      "minimumGap": 0.011057828553020954
+    },
+    {
+      "clip": "Bite",
+      "sample": 3,
+      "member": "FootBR",
+      "parent": "KneeBR",
+      "connected": true,
+      "minimumGap": 0.017412567511200905
+    },
+    {
+      "clip": "Bite",
+      "sample": 4,
+      "member": "Neck",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.008232497610151768
+    },
+    {
+      "clip": "Bite",
+      "sample": 4,
+      "member": "Head",
+      "parent": "Neck",
+      "connected": true,
+      "minimumGap": 0.0013686732854694128
+    },
+    {
+      "clip": "Bite",
+      "sample": 4,
+      "member": "Jaw",
+      "parent": "Head",
+      "connected": true,
+      "minimumGap": 0.008057220838963985
+    },
+    {
+      "clip": "Bite",
+      "sample": 4,
+      "member": "Tail",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.01634163409471512
+    },
+    {
+      "clip": "Bite",
+      "sample": 4,
+      "member": "Tail1",
+      "parent": "Tail",
+      "connected": true,
+      "minimumGap": 0.0022066670935600996
+    },
+    {
+      "clip": "Bite",
+      "sample": 4,
+      "member": "ArmL",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.006527335848659277
+    },
+    {
+      "clip": "Bite",
+      "sample": 4,
+      "member": "ForearmL",
+      "parent": "ArmL",
+      "connected": true,
+      "minimumGap": 0.0006014661630615592
+    },
+    {
+      "clip": "Bite",
+      "sample": 4,
+      "member": "LegBL",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.006808246951550245
+    },
+    {
+      "clip": "Bite",
+      "sample": 4,
+      "member": "KneeBL",
+      "parent": "LegBL",
+      "connected": true,
+      "minimumGap": 0.011057793162763119
+    },
+    {
+      "clip": "Bite",
+      "sample": 4,
+      "member": "FootBL",
+      "parent": "KneeBL",
+      "connected": true,
+      "minimumGap": 0.01741274632513523
+    },
+    {
+      "clip": "Bite",
+      "sample": 4,
+      "member": "ArmR",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.006527335848659277
+    },
+    {
+      "clip": "Bite",
+      "sample": 4,
+      "member": "ForearmR",
+      "parent": "ArmR",
+      "connected": true,
+      "minimumGap": 0.0006015868275426328
+    },
+    {
+      "clip": "Bite",
+      "sample": 4,
+      "member": "LegBR",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.006808246951550245
+    },
+    {
+      "clip": "Bite",
+      "sample": 4,
+      "member": "KneeBR",
+      "parent": "LegBR",
+      "connected": true,
+      "minimumGap": 0.011057793162763119
+    },
+    {
+      "clip": "Bite",
+      "sample": 4,
+      "member": "FootBR",
+      "parent": "KneeBR",
+      "connected": true,
+      "minimumGap": 0.017412519082427025
+    },
+    {
+      "clip": "Bite",
+      "sample": 5,
+      "member": "Neck",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.007126207929104567
+    },
+    {
+      "clip": "Bite",
+      "sample": 5,
+      "member": "Head",
+      "parent": "Neck",
+      "connected": true,
+      "minimumGap": 0.005322234705090523
+    },
+    {
+      "clip": "Bite",
+      "sample": 5,
+      "member": "Jaw",
+      "parent": "Head",
+      "connected": true,
+      "minimumGap": 0.00036885676672682166
+    },
+    {
+      "clip": "Bite",
+      "sample": 5,
+      "member": "Tail",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.016341673210263252
+    },
+    {
+      "clip": "Bite",
+      "sample": 5,
+      "member": "Tail1",
+      "parent": "Tail",
+      "connected": true,
+      "minimumGap": 0.0022066247183829546
+    },
+    {
+      "clip": "Bite",
+      "sample": 5,
+      "member": "ArmL",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.006527318153530359
+    },
+    {
+      "clip": "Bite",
+      "sample": 5,
+      "member": "ForearmL",
+      "parent": "ArmL",
+      "connected": true,
+      "minimumGap": 0.0006015414837747812
+    },
+    {
+      "clip": "Bite",
+      "sample": 5,
+      "member": "LegBL",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.00680826511234045
+    },
+    {
+      "clip": "Bite",
+      "sample": 5,
+      "member": "KneeBL",
+      "parent": "LegBL",
+      "connected": true,
+      "minimumGap": 0.01105777733027935
+    },
+    {
+      "clip": "Bite",
+      "sample": 5,
+      "member": "FootBL",
+      "parent": "KneeBL",
+      "connected": true,
+      "minimumGap": 0.017412656918168068
+    },
+    {
+      "clip": "Bite",
+      "sample": 5,
+      "member": "ArmR",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.006527318153530359
+    },
+    {
+      "clip": "Bite",
+      "sample": 5,
+      "member": "ForearmR",
+      "parent": "ArmR",
+      "connected": true,
+      "minimumGap": 0.0006015414837747812
+    },
+    {
+      "clip": "Bite",
+      "sample": 5,
+      "member": "LegBR",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.0068083456717431545
+    },
+    {
+      "clip": "Bite",
+      "sample": 5,
+      "member": "KneeBR",
+      "parent": "LegBR",
+      "connected": true,
+      "minimumGap": 0.011057806201279163
+    },
+    {
+      "clip": "Bite",
+      "sample": 5,
+      "member": "FootBR",
+      "parent": "KneeBR",
+      "connected": true,
+      "minimumGap": 0.0174125786870718
+    },
+    {
+      "clip": "Bite",
+      "sample": 6,
+      "member": "Neck",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.002699954668059945
+    },
+    {
+      "clip": "Bite",
+      "sample": 6,
+      "member": "Head",
+      "parent": "Neck",
+      "connected": true,
+      "minimumGap": 0.01156153716146946
+    },
+    {
+      "clip": "Bite",
+      "sample": 6,
+      "member": "Jaw",
+      "parent": "Head",
+      "connected": true,
+      "minimumGap": 0.000865669222548604
+    },
+    {
+      "clip": "Bite",
+      "sample": 6,
+      "member": "Tail",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.01634170487523079
+    },
+    {
+      "clip": "Bite",
+      "sample": 6,
+      "member": "Tail1",
+      "parent": "Tail",
+      "connected": true,
+      "minimumGap": 0.0022066838573664427
+    },
+    {
+      "clip": "Bite",
+      "sample": 6,
+      "member": "ArmL",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.006527342367917299
+    },
+    {
+      "clip": "Bite",
+      "sample": 6,
+      "member": "ForearmL",
+      "parent": "ArmL",
+      "connected": true,
+      "minimumGap": 0.0006014779792167246
+    },
+    {
+      "clip": "Bite",
+      "sample": 6,
+      "member": "LegBL",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.006808242294937372
+    },
+    {
+      "clip": "Bite",
+      "sample": 6,
+      "member": "KneeBL",
+      "parent": "LegBL",
+      "connected": true,
+      "minimumGap": 0.011057796888053417
+    },
+    {
+      "clip": "Bite",
+      "sample": 6,
+      "member": "FootBL",
+      "parent": "KneeBL",
+      "connected": true,
+      "minimumGap": 0.017412682995200157
+    },
+    {
+      "clip": "Bite",
+      "sample": 6,
+      "member": "ArmR",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.006527342367917299
+    },
+    {
+      "clip": "Bite",
+      "sample": 6,
+      "member": "ForearmR",
+      "parent": "ArmR",
+      "connected": true,
+      "minimumGap": 0.0006016092374920845
+    },
+    {
+      "clip": "Bite",
+      "sample": 6,
+      "member": "LegBR",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.006808242294937372
+    },
+    {
+      "clip": "Bite",
+      "sample": 6,
+      "member": "KneeBR",
+      "parent": "LegBR",
+      "connected": true,
+      "minimumGap": 0.011057814583182335
+    },
+    {
+      "clip": "Bite",
+      "sample": 6,
+      "member": "FootBR",
+      "parent": "KneeBR",
+      "connected": true,
+      "minimumGap": 0.017412502318620682
+    },
+    {
+      "clip": "Bite",
+      "sample": 7,
+      "member": "Neck",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.002457165392115712
+    },
+    {
+      "clip": "Bite",
+      "sample": 7,
+      "member": "Head",
+      "parent": "Neck",
+      "connected": true,
+      "minimumGap": 0.012718427926301956
+    },
+    {
+      "clip": "Bite",
+      "sample": 7,
+      "member": "Jaw",
+      "parent": "Head",
+      "connected": true,
+      "minimumGap": 0.0002792566956486553
+    },
+    {
+      "clip": "Bite",
+      "sample": 7,
+      "member": "Tail",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.016341567039489746
+    },
+    {
+      "clip": "Bite",
+      "sample": 7,
+      "member": "Tail1",
+      "parent": "Tail",
+      "connected": true,
+      "minimumGap": 0.002206607721745968
+    },
+    {
+      "clip": "Bite",
+      "sample": 7,
+      "member": "ArmL",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.006527388002723455
+    },
+    {
+      "clip": "Bite",
+      "sample": 7,
+      "member": "ForearmL",
+      "parent": "ArmL",
+      "connected": true,
+      "minimumGap": 0.0006013555685058236
+    },
+    {
+      "clip": "Bite",
+      "sample": 7,
+      "member": "LegBL",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.006808280944824219
+    },
+    {
+      "clip": "Bite",
+      "sample": 7,
+      "member": "KneeBL",
+      "parent": "LegBL",
+      "connected": true,
+      "minimumGap": 0.011057784780859947
+    },
+    {
+      "clip": "Bite",
+      "sample": 7,
+      "member": "FootBL",
+      "parent": "KneeBL",
+      "connected": true,
+      "minimumGap": 0.01741267368197441
+    },
+    {
+      "clip": "Bite",
+      "sample": 7,
+      "member": "ArmR",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.006527388002723455
+    },
+    {
+      "clip": "Bite",
+      "sample": 7,
+      "member": "ForearmR",
+      "parent": "ArmR",
+      "connected": true,
+      "minimumGap": 0.0006013705860823393
+    },
+    {
+      "clip": "Bite",
+      "sample": 7,
+      "member": "LegBR",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.006808280944824219
+    },
+    {
+      "clip": "Bite",
+      "sample": 7,
+      "member": "KneeBR",
+      "parent": "LegBR",
+      "connected": true,
+      "minimumGap": 0.011057784780859947
+    },
+    {
+      "clip": "Bite",
+      "sample": 7,
+      "member": "FootBR",
+      "parent": "KneeBR",
+      "connected": true,
+      "minimumGap": 0.017412574961781502
+    },
+    {
+      "clip": "Bite",
+      "sample": 8,
+      "member": "Neck",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.0024569989182054996
+    },
+    {
+      "clip": "Bite",
+      "sample": 8,
+      "member": "Head",
+      "parent": "Neck",
+      "connected": true,
+      "minimumGap": 0.0138953672721982
+    },
+    {
+      "clip": "Bite",
+      "sample": 8,
+      "member": "Jaw",
+      "parent": "Head",
+      "connected": true,
+      "minimumGap": 0.0005228531081229448
+    },
+    {
+      "clip": "Bite",
+      "sample": 8,
+      "member": "Tail",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.016341686248779297
+    },
+    {
+      "clip": "Bite",
+      "sample": 8,
+      "member": "Tail1",
+      "parent": "Tail",
+      "connected": true,
+      "minimumGap": 0.002206607721745968
+    },
+    {
+      "clip": "Bite",
+      "sample": 8,
+      "member": "ArmL",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.006527388002723455
+    },
+    {
+      "clip": "Bite",
+      "sample": 8,
+      "member": "ForearmL",
+      "parent": "ArmL",
+      "connected": true,
+      "minimumGap": 0.0006014857208356261
+    },
+    {
+      "clip": "Bite",
+      "sample": 8,
+      "member": "LegBL",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.006808295380324125
+    },
+    {
+      "clip": "Bite",
+      "sample": 8,
+      "member": "KneeBL",
+      "parent": "LegBL",
+      "connected": true,
+      "minimumGap": 0.011057784780859947
+    },
+    {
+      "clip": "Bite",
+      "sample": 8,
+      "member": "FootBL",
+      "parent": "KneeBL",
+      "connected": true,
+      "minimumGap": 0.01741267368197441
+    },
+    {
+      "clip": "Bite",
+      "sample": 8,
+      "member": "ArmR",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.006527388002723455
+    },
+    {
+      "clip": "Bite",
+      "sample": 8,
+      "member": "ForearmR",
+      "parent": "ArmR",
+      "connected": true,
+      "minimumGap": 0.0006015867693349719
+    },
+    {
+      "clip": "Bite",
+      "sample": 8,
+      "member": "LegBR",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.00680828420445323
+    },
+    {
+      "clip": "Bite",
+      "sample": 8,
+      "member": "KneeBR",
+      "parent": "LegBR",
+      "connected": true,
+      "minimumGap": 0.011057784780859947
+    },
+    {
+      "clip": "Bite",
+      "sample": 8,
+      "member": "FootBR",
+      "parent": "KneeBR",
+      "connected": true,
+      "minimumGap": 0.01741255447268486
+    },
+    {
+      "clip": "Bite",
+      "sample": 9,
+      "member": "Neck",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.002457047114148736
+    },
+    {
+      "clip": "Bite",
+      "sample": 9,
+      "member": "Head",
+      "parent": "Neck",
+      "connected": true,
+      "minimumGap": 0.013386928476393223
+    },
+    {
+      "clip": "Bite",
+      "sample": 9,
+      "member": "Jaw",
+      "parent": "Head",
+      "connected": true,
+      "minimumGap": 0.0
+    },
+    {
+      "clip": "Bite",
+      "sample": 9,
+      "member": "Tail",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.016341686248779297
+    },
+    {
+      "clip": "Bite",
+      "sample": 9,
+      "member": "Tail1",
+      "parent": "Tail",
+      "connected": true,
+      "minimumGap": 0.0022066670935600996
+    },
+    {
+      "clip": "Bite",
+      "sample": 9,
+      "member": "ArmL",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.006527388002723455
+    },
+    {
+      "clip": "Bite",
+      "sample": 9,
+      "member": "ForearmL",
+      "parent": "ArmL",
+      "connected": true,
+      "minimumGap": 0.0006015867693349719
+    },
+    {
+      "clip": "Bite",
+      "sample": 9,
+      "member": "LegBL",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.006808280013501644
+    },
+    {
+      "clip": "Bite",
+      "sample": 9,
+      "member": "KneeBL",
+      "parent": "LegBL",
+      "connected": true,
+      "minimumGap": 0.011057814583182335
+    },
+    {
+      "clip": "Bite",
+      "sample": 9,
+      "member": "FootBL",
+      "parent": "KneeBL",
+      "connected": true,
+      "minimumGap": 0.017412694171071053
+    },
+    {
+      "clip": "Bite",
+      "sample": 9,
+      "member": "ArmR",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.006527388002723455
+    },
+    {
+      "clip": "Bite",
+      "sample": 9,
+      "member": "ForearmR",
+      "parent": "ArmR",
+      "connected": true,
+      "minimumGap": 0.0006015867693349719
+    },
+    {
+      "clip": "Bite",
+      "sample": 9,
+      "member": "LegBR",
+      "parent": "Core",
+      "connected": true,
+      "minimumGap": 0.006808280013501644
+    },
+    {
+      "clip": "Bite",
+      "sample": 9,
+      "member": "KneeBR",
+      "parent": "LegBR",
+      "connected": true,
+      "minimumGap": 0.011057784780859947
+    },
+    {
+      "clip": "Bite",
+      "sample": 9,
+      "member": "FootBR",
+      "parent": "KneeBR",
+      "connected": true,
+      "minimumGap": 0.017412574961781502
+    }
+  ]
+}

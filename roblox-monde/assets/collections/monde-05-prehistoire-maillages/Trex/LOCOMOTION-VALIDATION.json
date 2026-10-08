@@ -1,0 +1,21 @@
+{
+  "passed": true,
+  "id": "Trex",
+  "actualStudioTest": false,
+  "sampledWalkFrames": 121,
+  "locomotion": "biped",
+  "ground": -2.7512804909186057,
+  "supportLimbs": [
+    "LegBL",
+    "LegBR"
+  ],
+  "forelimbs": [
+    "ArmL",
+    "ArmR"
+  ],
+  "forelimbsWeightBearing": false,
+  "maximumStanceError": 0.00017823807289918392,
+  "maximumFootPitch": 2.2703698085435597e-7,
+  "maximumSwingLift": 0.19999999104943722,
+  "minimumArmClearance": 2.039472819390273
+}

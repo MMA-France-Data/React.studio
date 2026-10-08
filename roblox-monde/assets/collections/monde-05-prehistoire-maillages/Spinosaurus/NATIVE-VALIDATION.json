@@ -1,0 +1,38 @@
+{
+  "passed": true,
+  "actualStudioTest": false,
+  "id": "Spinosaurus",
+  "basePartsAfterAssembly": 18,
+  "motor6D": 17,
+  "rigidWelds": 0,
+  "originalJointNames": true,
+  "originalClipsUnchanged": true,
+  "vertexPoseCases": 5508,
+  "maxRetargetMatrixError": 1.4632873313047412e-7,
+  "clips": {
+    "Idle": {
+      "duration": 4,
+      "loop": true,
+      "minHeight": -2.044710062181102,
+      "maxHeight": 2.150901352798363
+    },
+    "Walk": {
+      "duration": 1.35,
+      "loop": true,
+      "minHeight": -2.042474201621934,
+      "maxHeight": 2.1999999952316287
+    },
+    "Attack": {
+      "duration": 1.4,
+      "loop": false,
+      "minHeight": -2.061975533630254,
+      "maxHeight": 2.192200322991158
+    },
+    "Bite": {
+      "duration": 1.08,
+      "loop": false,
+      "minHeight": -2.042410572053843,
+      "maxHeight": 2.16892003353476
+    }
+  }
+}

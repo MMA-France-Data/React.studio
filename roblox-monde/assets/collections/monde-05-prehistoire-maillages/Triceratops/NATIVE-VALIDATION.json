@@ -1,0 +1,38 @@
+{
+  "passed": true,
+  "actualStudioTest": false,
+  "id": "Triceratops",
+  "basePartsAfterAssembly": 19,
+  "motor6D": 18,
+  "rigidWelds": 0,
+  "originalJointNames": true,
+  "originalClipsUnchanged": true,
+  "vertexPoseCases": 5832,
+  "maxRetargetMatrixError": 1.0898299729333871e-7,
+  "clips": {
+    "Idle": {
+      "duration": 4,
+      "loop": true,
+      "minHeight": -1.5488058614464517,
+      "maxHeight": 1.5722596420290404
+    },
+    "Walk": {
+      "duration": 1.55,
+      "loop": true,
+      "minHeight": -1.54233990564164,
+      "maxHeight": 1.5807264840057607
+    },
+    "Attack": {
+      "duration": 1.46,
+      "loop": false,
+      "minHeight": -1.5512240091297986,
+      "maxHeight": 2.3109687047740963
+    },
+    "Bite": {
+      "duration": 1.08,
+      "loop": false,
+      "minHeight": -1.5497842825989343,
+      "maxHeight": 1.676003029805245
+    }
+  }
+}

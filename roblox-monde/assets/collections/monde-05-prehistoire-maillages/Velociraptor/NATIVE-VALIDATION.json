@@ -1,0 +1,38 @@
+{
+  "passed": true,
+  "actualStudioTest": false,
+  "id": "Velociraptor",
+  "basePartsAfterAssembly": 17,
+  "motor6D": 16,
+  "rigidWelds": 0,
+  "originalJointNames": true,
+  "originalClipsUnchanged": true,
+  "vertexPoseCases": 5184,
+  "maxRetargetMatrixError": 6.128611884648194e-8,
+  "clips": {
+    "Idle": {
+      "duration": 3.2,
+      "loop": true,
+      "minHeight": -1.192584534956078,
+      "maxHeight": 1.3048603479756964
+    },
+    "Walk": {
+      "duration": 1.05,
+      "loop": true,
+      "minHeight": -1.1876801195325422,
+      "maxHeight": 1.3200021897834653
+    },
+    "Attack": {
+      "duration": 1.02,
+      "loop": false,
+      "minHeight": -1.1874425153805996,
+      "maxHeight": 1.3941780112732074
+    },
+    "Bite": {
+      "duration": 0.92,
+      "loop": false,
+      "minHeight": -1.1889879131096994,
+      "maxHeight": 1.426346099246567
+    }
+  }
+}

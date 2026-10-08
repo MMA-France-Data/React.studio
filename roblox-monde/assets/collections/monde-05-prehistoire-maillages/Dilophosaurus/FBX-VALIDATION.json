@@ -1,0 +1,10 @@
+{
+  "passed": true,
+  "actualStudioTest": false,
+  "id": "Dilophosaurus",
+  "rigidMeshes": 18,
+  "bones": 0,
+  "triangles": 4100,
+  "maxRoundTripBoundsError": 2.577228650491037e-07,
+  "texturesAndUV": true
+}
