@@ -1,0 +1,38 @@
+{
+  "created": "2026-10-08",
+  "id": "Duck",
+  "triangles": 4506,
+  "reliefStuds": 300,
+  "meshPieces": 16,
+  "basePartsAfterAssembly": 17,
+  "Motor6D": 7,
+  "rigidWelds": 9,
+  "animations": [
+    "Idle",
+    "Walk",
+    "Attack"
+  ],
+  "requiredReaderChanges": false,
+  "requiresStudioMeshImport": true,
+  "actualStudioTest": false,
+  "gameModified": false,
+  "eggsModified": false,
+  "paidGenerations": 0,
+  "boss": false,
+  "rainbowBoss": false,
+  "order": 1,
+  "files": {
+    "Duck.fbx": "443de45792422204518598f5cbd32a8d3a6d79b6a77227a828d60d287fb8d15d",
+    "Duck-rig-template.rbxmx": "d08bbc6dbfae40eed2ff96e0d54239c1d4ec4d205d127f6d6c895ade95b04531",
+    "Assembler-Duck.luau": "f16a4c6e344b1782598cd61e457cbbfd7a281ef1c8979251a2d25261096aa556",
+    "native-rig-spec.json": "9074a2b1513a964f677d09efff4bbed15bc2b0918f96277ecf1ca85834584448",
+    "source-rig-and-clips.json": "f15a3f8e314f9723327010e82a0f88bdf5121d31f3c2a91cc2c0311e45605fbb",
+    "NATIVE-VALIDATION.json": "9ab058f3fea4ecc6a7b8152766a1283dc8a9147693f650cadc16f546870a83e0",
+    "FBX-VALIDATION.json": "64727f0ea75984f4d0ec7a555a2c4439c386281e05b57a1654b6d670c081250c",
+    "CONTACT-VALIDATION.json": "2f813435f4f8892c1dd55c33dec8815feb68360402eddfa41cb55d9b4dec63a4",
+    "Duck_Colour_512.png": "53d1aa18fae5bf5a4cbf0c401c6985b0ced88c3211739baedd314cbfe8824a86",
+    "Duck.png": "3f675e91323b11a025d66ef2309879bb17a073a877ad5882145e52a02b770b9c",
+    "Duck-profil.png": "5bda21879ebc7c620f8752cde6208ea4c586ca02855caa1221a9f45da8ce4aec",
+    "Duck.blend": "4f8f2128adf8498ea521fea3906f839b31370c454bf4a8103dbe74014cab1219"
+  }
+}

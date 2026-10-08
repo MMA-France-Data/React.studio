@@ -1,0 +1,94 @@
+{
+  "created": "2026-10-08",
+  "world": 3,
+  "theme": "Jungle",
+  "order": [
+    "Tiger",
+    "Gorilla"
+  ],
+  "gameModified": false,
+  "actualStudioTest": false,
+  "animals": [
+    {
+      "created": "2026-10-08",
+      "id": "Tiger",
+      "triangles": 4088,
+      "reliefStuds": 253,
+      "meshPieces": 17,
+      "basePartsAfterAssembly": 18,
+      "Motor6D": 17,
+      "rigidWelds": 0,
+      "animations": [
+        "Idle",
+        "Walk",
+        "Attack",
+        "Bite"
+      ],
+      "requiredReaderChanges": false,
+      "requiresStudioMeshImport": true,
+      "actualStudioTest": false,
+      "gameModified": false,
+      "eggsModified": "One new themed egg; farm eggs unchanged",
+      "paidGenerations": 0,
+      "boss": true,
+      "files": {
+        "Tiger.fbx": "6918c68d3c8c43e2de57b82c4c8474ed1491400214ab7caba4f993faefa0a14d",
+        "Tiger-rig-template.rbxmx": "d810540ddca17ad79a2d88975b02e1ad04f3a9509b9ab22ec429ac2f5a063d21",
+        "Assembler-Tiger.luau": "d2004399231adbbaafb4ce84803bd83963f34cffe645d31b31dc73eedce8bc42",
+        "native-rig-spec.json": "e8fe3f478fbedab1dc36fe9b9d74ffc81d960f9db564834311a44240ae14c2ff",
+        "source-rig-and-clips.json": "9381238d731d06fd865c98eefdcc2bb5a93ce895ff80a37732415599fa2add67",
+        "NATIVE-VALIDATION.json": "803bbc91835dc61478bd0d3b14723d2bc49183b2e1e3e32eb9871e6c96042c2e",
+        "FBX-VALIDATION.json": "101963877e261d2ac3eafe07993c5e73da42cf990883380386e0dfc033cfee9e",
+        "CONTACT-VALIDATION.json": "7c4d808fe26530b7a87e6a12552cc84cfd1f1d83827a2061439f6d0db5139c2e",
+        "Tiger_Colour_1024.png": "bb2eaf0994baa542136de4024ebb822cb1f26cd26fa7cb3e06d7ef1830d55f8a",
+        "Tiger-facettes.png": "3974312b63e34de9dfa618e4a0acf943831cc10fe871625e7b7d75fbf7efb5d5",
+        "Tiger-profil.png": "127d33a3bfe5823862922b3fb13046efa8d52d79534e1c099d3d0321f505bdc5",
+        "Tiger-facettes.blend": "6e72e9127afb3bf1625fba8ddeee7b0e72afa3fa632b8b68a70cddc463a38e8c",
+        "Tiger-face.png": "e5dc21cdb82c1fa04c5b8918174cf4153195af732af926561b170e7b399e68cb",
+        "TigerEgg.rbxmx": "2a905e6056b88efbae116c28d251987bbaa8e75861a9735ba0979d67727cf110",
+        "TigerEgg.png": "476945229dd522ffa1d0c82818426264a33fca094d7dd5b63b24a45f1a381ca4",
+        "tiger-egg-data.json": "9e8c9f1996ddd235d11dd95c38b8ecd916cc9f9ffb8f8894b349f4b9b2d466cf",
+        "README.md": "1c955b8dc4145f964ca662e1cec1c2b751b42bdf777ec592ae14d96f73f19587"
+      }
+    },
+    {
+      "created": "2026-10-08",
+      "id": "Gorilla",
+      "triangles": 4506,
+      "reliefStuds": 150,
+      "meshPieces": 16,
+      "basePartsAfterAssembly": 17,
+      "Motor6D": 16,
+      "rigidWelds": 0,
+      "animations": [
+        "Idle",
+        "Walk",
+        "Attack"
+      ],
+      "requiredReaderChanges": false,
+      "requiresStudioMeshImport": true,
+      "actualStudioTest": false,
+      "gameModified": false,
+      "eggsModified": "One new themed egg; farm eggs unchanged",
+      "paidGenerations": 0,
+      "boss": false,
+      "files": {
+        "Gorilla.fbx": "83b2a4890e963fe72ee8f1c5a7fb6887c3a2bed4294d9944052c3d52af1c1e4a",
+        "Gorilla-rig-template.rbxmx": "5ede318f0f1d714d17c0c5c2f423fab0e92d993a46c91ae3248470423906c3f8",
+        "Assembler-Gorilla.luau": "35f4fdb185937b9ff262751f50ad420e6a947429e0d125f3026cfd9fe1183689",
+        "native-rig-spec.json": "ba7bd83c66b2622b6a7f7817c3a411dfe2bdc577e4534a46f92577d3857975cc",
+        "source-rig-and-clips.json": "993440dd2c62930e8a3e76fa503341348b6aa4176bc7f06d6f458edc9ac912af",
+        "NATIVE-VALIDATION.json": "45a8ee66aafe12dc1191dcad69aae2bdcb0575e7b00256c994ff1cd9f301df17",
+        "FBX-VALIDATION.json": "22d86e777d477637fe46fa239e4ccea98c12057db75b10b88361fe40dcb80145",
+        "CONTACT-VALIDATION.json": "4e9cc55e5b78254b588deac178121cc60e4999a951a8892bfedac7a4b8f913c4",
+        "Gorilla_Colour_512.png": "c669fd094121851b1ec1e52f459fbaf7b848181aa85b4ef3df60d0e24739f862",
+        "Gorilla.png": "5d4527cdef5c10c17e7f6d2186fb36065e3deaf972fd9b1056773c963a689579",
+        "Gorilla-profil.png": "fec509a85ad30aea9140cb03dacb8cb95cc3c668053e1186c20edabf90bb7142",
+        "Gorilla.blend": "41b00c2504601fcd966c6ef2b141902c0bb2e22671146cc8b3d1b3d8df383ed7",
+        "GorillaEgg.rbxmx": "7585246f0ce6f0de22375693cdc3d2bf2f1b66198b691a2730e2769d85d70bd9",
+        "GorillaEgg.png": "1884a7bd915dcd3b4b52163754f1ac205ca1d7ffe845204c78e304e3f776dcf2",
+        "gorilla-egg-data.json": "44020eb6bf3b12ba8ef2250c962d48c80619b176fcafc2a978f517f390eaac0b"
+      }
+    }
+  ]
+}

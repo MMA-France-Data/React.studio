@@ -1,0 +1,32 @@
+{
+  "passed": true,
+  "actualStudioTest": false,
+  "id": "Rooster",
+  "basePartsAfterAssembly": 17,
+  "motor6D": 7,
+  "rigidWelds": 9,
+  "originalJointNames": true,
+  "originalClipsUnchanged": true,
+  "vertexPoseCases": 3888,
+  "maxRetargetMatrixError": 3.117544811193085e-8,
+  "clips": {
+    "Idle": {
+      "duration": 2.4,
+      "loop": true,
+      "minHeight": -1.1258325365116724,
+      "maxHeight": 1.1073306238287708
+    },
+    "Walk": {
+      "duration": 1.2,
+      "loop": true,
+      "minHeight": -1.1932864044541247,
+      "maxHeight": 1.107342511284022
+    },
+    "Attack": {
+      "duration": 1.06,
+      "loop": false,
+      "minHeight": -1.1086000055074692,
+      "maxHeight": 1.1590757490879842
+    }
+  }
+}

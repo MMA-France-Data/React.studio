@@ -1,0 +1,167 @@
+{
+  "id": "Gorilla",
+  "restPoseOnly": true,
+  "actualStudioTest": false,
+  "passed": true,
+  "detachedMembers": [],
+  "contacts": [
+    {
+      "member": "Neck",
+      "parent": "Core",
+      "intersectingSurfaces": true,
+      "embeddedVertex": true,
+      "minimumGap": 0.038835812360048294,
+      "connected": true
+    },
+    {
+      "member": "Head",
+      "parent": "Neck",
+      "intersectingSurfaces": true,
+      "embeddedVertex": true,
+      "minimumGap": 0.07570675015449524,
+      "connected": true
+    },
+    {
+      "member": "EarL",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "embeddedVertex": true,
+      "minimumGap": 0.0004672134236898273,
+      "connected": true
+    },
+    {
+      "member": "ArmL",
+      "parent": "Core",
+      "intersectingSurfaces": true,
+      "embeddedVertex": true,
+      "minimumGap": 0.001223695115186274,
+      "connected": true
+    },
+    {
+      "member": "ElbowL",
+      "parent": "ArmL",
+      "intersectingSurfaces": true,
+      "embeddedVertex": true,
+      "minimumGap": 0.04041600599884987,
+      "connected": true
+    },
+    {
+      "member": "WristL",
+      "parent": "ElbowL",
+      "intersectingSurfaces": true,
+      "embeddedVertex": true,
+      "minimumGap": 0.023205144330859184,
+      "connected": true
+    },
+    {
+      "member": "LegBL",
+      "parent": "Core",
+      "intersectingSurfaces": true,
+      "embeddedVertex": true,
+      "minimumGap": 0.005923748016357422,
+      "connected": true
+    },
+    {
+      "member": "KneeBL",
+      "parent": "LegBL",
+      "intersectingSurfaces": true,
+      "embeddedVertex": true,
+      "minimumGap": 0.006651762407273054,
+      "connected": true
+    },
+    {
+      "member": "EarR",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "embeddedVertex": true,
+      "minimumGap": 0.0004671767237596214,
+      "connected": true
+    },
+    {
+      "member": "ArmR",
+      "parent": "Core",
+      "intersectingSurfaces": true,
+      "embeddedVertex": true,
+      "minimumGap": 0.0012237037299200892,
+      "connected": true
+    },
+    {
+      "member": "ElbowR",
+      "parent": "ArmR",
+      "intersectingSurfaces": true,
+      "embeddedVertex": true,
+      "minimumGap": 0.04041600599884987,
+      "connected": true
+    },
+    {
+      "member": "WristR",
+      "parent": "ElbowR",
+      "intersectingSurfaces": true,
+      "embeddedVertex": true,
+      "minimumGap": 0.023205168545246124,
+      "connected": true
+    },
+    {
+      "member": "LegBR",
+      "parent": "Core",
+      "intersectingSurfaces": true,
+      "embeddedVertex": true,
+      "minimumGap": 0.005923748016357422,
+      "connected": true
+    },
+    {
+      "member": "KneeBR",
+      "parent": "LegBR",
+      "intersectingSurfaces": true,
+      "embeddedVertex": true,
+      "minimumGap": 0.006651752162724733,
+      "connected": true
+    },
+    {
+      "member": "Jaw",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "embeddedVertex": true,
+      "minimumGap": 4.6997065510367975e-05,
+      "connected": true
+    }
+  ],
+  "symmetry": [
+    {
+      "left": "EarL",
+      "right": "EarR",
+      "sameVertexCount": true,
+      "maximumMirrorError": 0.0
+    },
+    {
+      "left": "ArmL",
+      "right": "ArmR",
+      "sameVertexCount": true,
+      "maximumMirrorError": 0.0
+    },
+    {
+      "left": "ElbowL",
+      "right": "ElbowR",
+      "sameVertexCount": true,
+      "maximumMirrorError": 0.0
+    },
+    {
+      "left": "WristL",
+      "right": "WristR",
+      "sameVertexCount": true,
+      "maximumMirrorError": 0.0
+    },
+    {
+      "left": "LegBL",
+      "right": "LegBR",
+      "sameVertexCount": true,
+      "maximumMirrorError": 0.0
+    },
+    {
+      "left": "KneeBL",
+      "right": "KneeBR",
+      "sameVertexCount": true,
+      "maximumMirrorError": 0.0
+    }
+  ]
+}

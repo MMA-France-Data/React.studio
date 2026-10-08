@@ -1,0 +1,149 @@
+{
+  "id": "Rooster",
+  "restPoseOnly": true,
+  "actualStudioTest": false,
+  "passed": true,
+  "detachedMembers": [],
+  "contacts": [
+    {
+      "member": "Head",
+      "parent": "Core",
+      "intersectingSurfaces": true,
+      "embeddedVertex": true,
+      "minimumGap": 0.024699795991182327,
+      "connected": true
+    },
+    {
+      "member": "WingL",
+      "parent": "Core",
+      "intersectingSurfaces": true,
+      "embeddedVertex": true,
+      "minimumGap": 0.00019083452934864908,
+      "connected": true
+    },
+    {
+      "member": "LegFL",
+      "parent": "Core",
+      "intersectingSurfaces": true,
+      "embeddedVertex": false,
+      "minimumGap": 0.0021285763941705227,
+      "connected": true
+    },
+    {
+      "member": "WingR",
+      "parent": "Core",
+      "intersectingSurfaces": true,
+      "embeddedVertex": true,
+      "minimumGap": 0.00019083452934864908,
+      "connected": true
+    },
+    {
+      "member": "LegFR",
+      "parent": "Core",
+      "intersectingSurfaces": true,
+      "embeddedVertex": false,
+      "minimumGap": 0.0021285891998559237,
+      "connected": true
+    },
+    {
+      "member": "Tail",
+      "parent": "Core",
+      "intersectingSurfaces": true,
+      "embeddedVertex": true,
+      "minimumGap": 0.001041645766235888,
+      "connected": true
+    },
+    {
+      "member": "Comb0",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "embeddedVertex": true,
+      "minimumGap": 0.00040906333015300333,
+      "connected": true
+    },
+    {
+      "member": "Comb1",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "embeddedVertex": true,
+      "minimumGap": 0.0012972026597708464,
+      "connected": true
+    },
+    {
+      "member": "Comb2",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "embeddedVertex": true,
+      "minimumGap": 0.0004091720038559288,
+      "connected": true
+    },
+    {
+      "member": "Comb3",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "embeddedVertex": true,
+      "minimumGap": 0.0012972967233508825,
+      "connected": true
+    },
+    {
+      "member": "Wattle",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "embeddedVertex": true,
+      "minimumGap": 0.0013494949089363217,
+      "connected": true
+    },
+    {
+      "member": "EyeL",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "embeddedVertex": true,
+      "minimumGap": 0.0003906351048499346,
+      "connected": true
+    },
+    {
+      "member": "WingFeather-10",
+      "parent": "WingL",
+      "intersectingSurfaces": true,
+      "embeddedVertex": true,
+      "minimumGap": 0.00025528916739858687,
+      "connected": true
+    },
+    {
+      "member": "EyeR",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "embeddedVertex": true,
+      "minimumGap": 0.0003906351048499346,
+      "connected": true
+    },
+    {
+      "member": "WingFeather10",
+      "parent": "WingR",
+      "intersectingSurfaces": true,
+      "embeddedVertex": true,
+      "minimumGap": 0.002691438654437661,
+      "connected": true
+    }
+  ],
+  "symmetry": [
+    {
+      "left": "WingL",
+      "right": "WingR",
+      "sameVertexCount": true,
+      "maximumMirrorError": 0.0
+    },
+    {
+      "left": "LegFL",
+      "right": "LegFR",
+      "sameVertexCount": true,
+      "maximumMirrorError": 0.0
+    },
+    {
+      "left": "EyeL",
+      "right": "EyeR",
+      "sameVertexCount": true,
+      "maximumMirrorError": 0.0
+    }
+  ]
+}

@@ -1,0 +1,38 @@
+{
+  "passed": true,
+  "actualStudioTest": false,
+  "id": "Tiger",
+  "basePartsAfterAssembly": 18,
+  "motor6D": 17,
+  "rigidWelds": 0,
+  "originalJointNames": true,
+  "originalClipsUnchanged": true,
+  "vertexPoseCases": 5508,
+  "maxRetargetMatrixError": 7.1073920526743e-8,
+  "clips": {
+    "Idle": {
+      "duration": 3,
+      "loop": true,
+      "minHeight": -1.208968416677608,
+      "maxHeight": 0.9308622403559261
+    },
+    "Walk": {
+      "duration": 1.45,
+      "loop": true,
+      "minHeight": -1.289068412158664,
+      "maxHeight": 0.9307524288088853
+    },
+    "Attack": {
+      "duration": 1.36,
+      "loop": false,
+      "minHeight": -1.198510766029358,
+      "maxHeight": 1.11693457155967
+    },
+    "Bite": {
+      "duration": 1.1,
+      "loop": false,
+      "minHeight": -1.198510766029358,
+      "maxHeight": 1.0463728608690963
+    }
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "passed": true,
+  "actualStudioTest": false,
+  "id": "Goat",
+  "basePartsAfterAssembly": 17,
+  "motor6D": 9,
+  "rigidWelds": 7,
+  "originalJointNames": true,
+  "originalClipsUnchanged": true,
+  "vertexPoseCases": 3888,
+  "maxRetargetMatrixError": 6.43320852145024e-8,
+  "clips": {
+    "Idle": {
+      "duration": 2.4,
+      "loop": true,
+      "minHeight": -1.152762779387004,
+      "maxHeight": 1.0941453928793334
+    },
+    "Walk": {
+      "duration": 1.35,
+      "loop": true,
+      "minHeight": -1.1614258924428151,
+      "maxHeight": 1.0939711882836731
+    },
+    "Attack": {
+      "duration": 1.16,
+      "loop": false,
+      "minHeight": -1.1327574402093887,
+      "maxHeight": 1.1553314972399988
+    }
+  }
+}

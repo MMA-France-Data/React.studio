@@ -1,0 +1,175 @@
+{
+  "id": "Horse",
+  "restPoseOnly": true,
+  "actualStudioTest": false,
+  "passed": true,
+  "detachedMembers": [],
+  "contacts": [
+    {
+      "member": "Neck",
+      "parent": "Core",
+      "intersectingSurfaces": true,
+      "embeddedVertex": true,
+      "minimumGap": 3.146618473692797e-05,
+      "connected": true
+    },
+    {
+      "member": "Head",
+      "parent": "Neck",
+      "intersectingSurfaces": true,
+      "embeddedVertex": true,
+      "minimumGap": 0.0017609328497201204,
+      "connected": true
+    },
+    {
+      "member": "EarL",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "embeddedVertex": true,
+      "minimumGap": 0.0009831940988078713,
+      "connected": true
+    },
+    {
+      "member": "EarR",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "embeddedVertex": true,
+      "minimumGap": 0.0009831833885982633,
+      "connected": true
+    },
+    {
+      "member": "LegFL",
+      "parent": "Core",
+      "intersectingSurfaces": true,
+      "embeddedVertex": true,
+      "minimumGap": 0.00011243530025240034,
+      "connected": true
+    },
+    {
+      "member": "KneeFL",
+      "parent": "LegFL",
+      "intersectingSurfaces": true,
+      "embeddedVertex": true,
+      "minimumGap": 0.0012597081949934363,
+      "connected": true
+    },
+    {
+      "member": "LegFR",
+      "parent": "Core",
+      "intersectingSurfaces": true,
+      "embeddedVertex": true,
+      "minimumGap": 0.00011243530025240034,
+      "connected": true
+    },
+    {
+      "member": "KneeFR",
+      "parent": "LegFR",
+      "intersectingSurfaces": true,
+      "embeddedVertex": true,
+      "minimumGap": 0.0012596439337357879,
+      "connected": true
+    },
+    {
+      "member": "LegBL",
+      "parent": "Core",
+      "intersectingSurfaces": true,
+      "embeddedVertex": true,
+      "minimumGap": 2.666666841832921e-05,
+      "connected": true
+    },
+    {
+      "member": "KneeBL",
+      "parent": "LegBL",
+      "intersectingSurfaces": true,
+      "embeddedVertex": true,
+      "minimumGap": 0.0012597177410498261,
+      "connected": true
+    },
+    {
+      "member": "LegBR",
+      "parent": "Core",
+      "intersectingSurfaces": true,
+      "embeddedVertex": true,
+      "minimumGap": 2.6676541892811656e-05,
+      "connected": true
+    },
+    {
+      "member": "KneeBR",
+      "parent": "LegBR",
+      "intersectingSurfaces": true,
+      "embeddedVertex": true,
+      "minimumGap": 0.0012596986489370465,
+      "connected": true
+    },
+    {
+      "member": "Tail",
+      "parent": "Core",
+      "intersectingSurfaces": true,
+      "embeddedVertex": true,
+      "minimumGap": 0.05513119697570801,
+      "connected": true
+    },
+    {
+      "member": "TailTip",
+      "parent": "Tail",
+      "intersectingSurfaces": true,
+      "embeddedVertex": false,
+      "minimumGap": 1.1920928955078125e-07,
+      "connected": true
+    },
+    {
+      "member": "HorseEyeL",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "embeddedVertex": true,
+      "minimumGap": 0.0029997588135302067,
+      "connected": true
+    },
+    {
+      "member": "HorseEyeR",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "embeddedVertex": true,
+      "minimumGap": 0.0029997786041349173,
+      "connected": true
+    }
+  ],
+  "symmetry": [
+    {
+      "left": "EarL",
+      "right": "EarR",
+      "sameVertexCount": true,
+      "maximumMirrorError": 0.0
+    },
+    {
+      "left": "LegFL",
+      "right": "LegFR",
+      "sameVertexCount": true,
+      "maximumMirrorError": 0.0
+    },
+    {
+      "left": "KneeFL",
+      "right": "KneeFR",
+      "sameVertexCount": true,
+      "maximumMirrorError": 0.0
+    },
+    {
+      "left": "LegBL",
+      "right": "LegBR",
+      "sameVertexCount": true,
+      "maximumMirrorError": 0.0
+    },
+    {
+      "left": "KneeBL",
+      "right": "KneeBR",
+      "sameVertexCount": true,
+      "maximumMirrorError": 0.0
+    },
+    {
+      "left": "HorseEyeL",
+      "right": "HorseEyeR",
+      "sameVertexCount": true,
+      "maximumMirrorError": 0.0
+    }
+  ]
+}

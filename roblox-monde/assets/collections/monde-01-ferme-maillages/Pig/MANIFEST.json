@@ -1,0 +1,38 @@
+{
+  "created": "2026-10-08",
+  "id": "Pig",
+  "triangles": 4494,
+  "reliefStuds": 285,
+  "meshPieces": 16,
+  "basePartsAfterAssembly": 17,
+  "Motor6D": 10,
+  "rigidWelds": 6,
+  "animations": [
+    "Idle",
+    "Walk",
+    "Attack"
+  ],
+  "requiredReaderChanges": false,
+  "requiresStudioMeshImport": true,
+  "actualStudioTest": false,
+  "gameModified": false,
+  "eggsModified": false,
+  "paidGenerations": 0,
+  "boss": false,
+  "rainbowBoss": false,
+  "order": 4,
+  "files": {
+    "Pig.fbx": "0095fe51fd5759732f8d29fb5849ea06905de1db07216b27ff51efbd4029570f",
+    "Pig-rig-template.rbxmx": "3d3001580cd73c05fefa802e139b121bc845fe25b552832bd05e1ce1bcbf6734",
+    "Assembler-Pig.luau": "053a53bfa7e43c6b42cf1ccd2565a88d24b17675e0eabf84d7339e7e7772fade",
+    "native-rig-spec.json": "2c1a4f71ec8328765ed653454ae88252bc82283473fe0cdaf0861f0273fdf4da",
+    "source-rig-and-clips.json": "6d160b240e7c79fc63fd6dc43f6e1695c947f480b9dd028e1d48f190f096bbc2",
+    "NATIVE-VALIDATION.json": "4e0130092f3b15983bf0ce2b0d2260cae40c99280b14931a1648e5b59f3d1b29",
+    "FBX-VALIDATION.json": "a5b8484cbd02b8f02b8ce5a111845a7801da790590df3247e178d09496e487bd",
+    "CONTACT-VALIDATION.json": "1a5ab2e5f75b4d7cb210a6dd3813850e56abb95391c2aa644026ade0ead19679",
+    "Pig_Colour_512.png": "a8c9bed365cd1bef3faf71f6864dd5c75873a75e2db4085fc537b715434d926e",
+    "Pig.png": "a132f4a30c6eea975adc7fa873d3fba77b123e2b0115eb9fa4c14a8e98fc3dba",
+    "Pig-profil.png": "4ab1dfddafde58c9731e432fdffbd54ce97090fc5578a53fe6b798c30546fd20",
+    "Pig.blend": "f6f7d38e0a4789d48e2e40af6f7babff35a007c0dab836e94ef68538a795d574"
+  }
+}

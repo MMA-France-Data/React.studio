@@ -1,0 +1,161 @@
+{
+  "id": "Goat",
+  "restPoseOnly": true,
+  "actualStudioTest": false,
+  "passed": true,
+  "detachedMembers": [],
+  "contacts": [
+    {
+      "member": "Head",
+      "parent": "Core",
+      "intersectingSurfaces": true,
+      "embeddedVertex": true,
+      "minimumGap": 0.0057122246362268925,
+      "connected": true
+    },
+    {
+      "member": "EarL",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "embeddedVertex": true,
+      "minimumGap": 0.008524008095264435,
+      "connected": true
+    },
+    {
+      "member": "EarR",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "embeddedVertex": true,
+      "minimumGap": 0.008524008095264435,
+      "connected": true
+    },
+    {
+      "member": "LegFL",
+      "parent": "Core",
+      "intersectingSurfaces": true,
+      "embeddedVertex": true,
+      "minimumGap": 0.00012127026275265962,
+      "connected": true
+    },
+    {
+      "member": "LegFR",
+      "parent": "Core",
+      "intersectingSurfaces": true,
+      "embeddedVertex": true,
+      "minimumGap": 0.00012127026275265962,
+      "connected": true
+    },
+    {
+      "member": "LegBL",
+      "parent": "Core",
+      "intersectingSurfaces": true,
+      "embeddedVertex": true,
+      "minimumGap": 0.00024224798835348338,
+      "connected": true
+    },
+    {
+      "member": "LegBR",
+      "parent": "Core",
+      "intersectingSurfaces": true,
+      "embeddedVertex": true,
+      "minimumGap": 0.00024227530229836702,
+      "connected": true
+    },
+    {
+      "member": "Tail",
+      "parent": "Core",
+      "intersectingSurfaces": true,
+      "embeddedVertex": true,
+      "minimumGap": 0.006680488586425781,
+      "connected": true
+    },
+    {
+      "member": "LongFace",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "embeddedVertex": true,
+      "minimumGap": 0.00259644933976233,
+      "connected": true
+    },
+    {
+      "member": "Nose",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "embeddedVertex": true,
+      "minimumGap": 7.088587153702974e-05,
+      "connected": true
+    },
+    {
+      "member": "Beard",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "embeddedVertex": true,
+      "minimumGap": 0.00417553773149848,
+      "connected": true
+    },
+    {
+      "member": "EyeL",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "embeddedVertex": true,
+      "minimumGap": 0.0009614080772735178,
+      "connected": true
+    },
+    {
+      "member": "HornBaseL",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "embeddedVertex": true,
+      "minimumGap": 0.0017301690531894565,
+      "connected": true
+    },
+    {
+      "member": "EyeR",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "embeddedVertex": true,
+      "minimumGap": 0.0009613799629732966,
+      "connected": true
+    },
+    {
+      "member": "HornBaseR",
+      "parent": "Head",
+      "intersectingSurfaces": true,
+      "embeddedVertex": true,
+      "minimumGap": 0.007288886234164238,
+      "connected": true
+    }
+  ],
+  "symmetry": [
+    {
+      "left": "EarL",
+      "right": "EarR",
+      "sameVertexCount": true,
+      "maximumMirrorError": 0.0
+    },
+    {
+      "left": "LegFL",
+      "right": "LegFR",
+      "sameVertexCount": true,
+      "maximumMirrorError": 0.0
+    },
+    {
+      "left": "LegBL",
+      "right": "LegBR",
+      "sameVertexCount": true,
+      "maximumMirrorError": 0.0
+    },
+    {
+      "left": "EyeL",
+      "right": "EyeR",
+      "sameVertexCount": true,
+      "maximumMirrorError": 0.0
+    },
+    {
+      "left": "HornBaseL",
+      "right": "HornBaseR",
+      "sameVertexCount": true,
+      "maximumMirrorError": 0.0
+    }
+  ]
+}

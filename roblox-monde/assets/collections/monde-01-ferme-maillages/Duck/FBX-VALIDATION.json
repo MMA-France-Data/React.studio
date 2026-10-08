@@ -1,0 +1,10 @@
+{
+  "passed": true,
+  "actualStudioTest": false,
+  "id": "Duck",
+  "rigidMeshes": 16,
+  "bones": 0,
+  "triangles": 4506,
+  "maxRoundTripBoundsError": 6.705522537231445e-08,
+  "texturesAndUV": true
+}

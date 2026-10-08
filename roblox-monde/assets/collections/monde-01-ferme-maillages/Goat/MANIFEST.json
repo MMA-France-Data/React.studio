@@ -1,0 +1,38 @@
+{
+  "created": "2026-10-08",
+  "id": "Goat",
+  "triangles": 4472,
+  "reliefStuds": 282,
+  "meshPieces": 16,
+  "basePartsAfterAssembly": 17,
+  "Motor6D": 9,
+  "rigidWelds": 7,
+  "animations": [
+    "Idle",
+    "Walk",
+    "Attack"
+  ],
+  "requiredReaderChanges": false,
+  "requiresStudioMeshImport": true,
+  "actualStudioTest": false,
+  "gameModified": false,
+  "eggsModified": false,
+  "paidGenerations": 0,
+  "boss": false,
+  "rainbowBoss": false,
+  "order": 6,
+  "files": {
+    "Goat.fbx": "bb55c8331e9f8a38d6997dcc2743dd910a8402a4978e2917c80e7b06d14bb309",
+    "Goat-rig-template.rbxmx": "172893e12dc2a75239a30a072ef45877256991d0bc2a0ed89cf9a7d3c0f6368f",
+    "Assembler-Goat.luau": "1aa734ee5fea008edd7d85702e2c3508f3df4c1dd0efa4573cfb5ac79b3c075b",
+    "native-rig-spec.json": "d76a932d33296d98984965bf1b90a650c566350f745fc16438d79e48d74cc3b2",
+    "source-rig-and-clips.json": "943ccd5e36a082924477e95b16dad94c622462b83d1c9a31a63af02586c2bcf3",
+    "NATIVE-VALIDATION.json": "98d977c644d937d3ccf60878c367aa1fadfbf2ce08c3d5daf185fa2c91066960",
+    "FBX-VALIDATION.json": "eaad6e57ad54e396b74dd7272fd4fa25894467f52c4db75699a639f385da4f24",
+    "CONTACT-VALIDATION.json": "f44d9bf870e0e8c65214d35e5c17a3a884c29454e4c9d1fa861575811f2350a2",
+    "Goat_Colour_512.png": "0e40d290ee15640c20921040875d86c7e72d68204703df1adb933b3685f9f088",
+    "Goat.png": "750a6569df101256f1e2a142d56bd9eb2c0d8858ececd08395b9e5a659527933",
+    "Goat-profil.png": "9f1de230544990d10f743cecfef5eb9bfe4377e1e7ea2eea3d8d9dee0c6bfe88",
+    "Goat.blend": "47bf824153ff1e79cf74ea0b55b67a7bca773f53c308f70f829a59ba7257f497"
+  }
+}

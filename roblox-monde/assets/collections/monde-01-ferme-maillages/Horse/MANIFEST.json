@@ -1,0 +1,38 @@
+{
+  "created": "2026-10-08",
+  "id": "Horse",
+  "triangles": 4482,
+  "reliefStuds": 262,
+  "meshPieces": 17,
+  "basePartsAfterAssembly": 18,
+  "Motor6D": 15,
+  "rigidWelds": 2,
+  "animations": [
+    "Idle",
+    "Walk",
+    "Attack"
+  ],
+  "requiredReaderChanges": false,
+  "requiresStudioMeshImport": true,
+  "actualStudioTest": false,
+  "gameModified": false,
+  "eggsModified": false,
+  "paidGenerations": 0,
+  "boss": true,
+  "rainbowBoss": true,
+  "order": 2,
+  "files": {
+    "Horse.fbx": "f896bdc614720b24c0b906a534e8c421892c61f43dda289c0d04db073a4bbbdf",
+    "Horse-rig-template.rbxmx": "80a9ba5ce556d9fdd4bd539823a7abb4a6a00489c0176e10bdff8a8bd7ac772e",
+    "Assembler-Horse.luau": "93002e90a15735c6679ceba3105c3a80a9e64b2ec95e06275e8df8bf9f22c6f0",
+    "native-rig-spec.json": "2575651a41f07747fc747ed67dbf1f36ae7f6ef23bd96b9cda19755e6f2f4214",
+    "source-rig-and-clips.json": "d9e92cf64f2d461c0f634db9b472a63c7b22110525e2fc25b0a4b314b072aebf",
+    "NATIVE-VALIDATION.json": "0a9f8cd7493e7fca5f01b811714d5450131cb1795b20ecd8876de885b1710c7b",
+    "FBX-VALIDATION.json": "a5c33698748bc26312301bc30671bc620075127aae5b917390ec6314209d6f8e",
+    "CONTACT-VALIDATION.json": "cbd6aeb6c9b242d3f17fbf1ed74fabe21e047b7e0093682721d043ee3529d6e8",
+    "Horse_Colour_512.png": "80e803de915bfc3eac150a4538d25b176a0c8259b56fcfeca0fcd7f23c7d985e",
+    "Horse.png": "be7c86abbf19f3fd13a3e8e958b9842bfd2ecbe937b8ceac74c3209f3c5a8db4",
+    "Horse-profil.png": "c1a668f6165660a072d66aea954f7daeb441dcc773a7340b84dbad931ececcee",
+    "Horse.blend": "bbef5ac25883bc0a53e110565d26c899b15508a1835851af1624c98259222391"
+  }
+}

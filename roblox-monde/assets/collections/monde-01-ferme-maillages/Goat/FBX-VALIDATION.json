@@ -1,0 +1,10 @@
+{
+  "passed": true,
+  "actualStudioTest": false,
+  "id": "Goat",
+  "rigidMeshes": 16,
+  "bones": 0,
+  "triangles": 4472,
+  "maxRoundTripBoundsError": 1.7881393432617188e-07,
+  "texturesAndUV": true
+}

@@ -1,0 +1,32 @@
+{
+  "passed": true,
+  "actualStudioTest": false,
+  "id": "Gorilla",
+  "basePartsAfterAssembly": 17,
+  "motor6D": 16,
+  "rigidWelds": 0,
+  "originalJointNames": true,
+  "originalClipsUnchanged": true,
+  "vertexPoseCases": 3888,
+  "maxRetargetMatrixError": 4.7200818253934074e-8,
+  "clips": {
+    "Idle": {
+      "duration": 3,
+      "loop": true,
+      "minHeight": -1.963400478907649,
+      "maxHeight": 1.8297428010579722
+    },
+    "Walk": {
+      "duration": 1.85,
+      "loop": true,
+      "minHeight": -2.121274724108167,
+      "maxHeight": 1.8287758070926883
+    },
+    "Attack": {
+      "duration": 1.68,
+      "loop": false,
+      "minHeight": -1.950600028038025,
+      "maxHeight": 3.276169215314301
+    }
+  }
+}

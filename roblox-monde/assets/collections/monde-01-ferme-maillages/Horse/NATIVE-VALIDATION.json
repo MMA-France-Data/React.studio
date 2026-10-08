@@ -1,0 +1,32 @@
+{
+  "passed": true,
+  "actualStudioTest": false,
+  "id": "Horse",
+  "basePartsAfterAssembly": 18,
+  "motor6D": 15,
+  "rigidWelds": 2,
+  "originalJointNames": true,
+  "originalClipsUnchanged": true,
+  "vertexPoseCases": 4131,
+  "maxRetargetMatrixError": 1.49040828345548e-7,
+  "clips": {
+    "Idle": {
+      "duration": 2.4,
+      "loop": true,
+      "minHeight": -1.5714833418832823,
+      "maxHeight": 1.3734459343376269
+    },
+    "Walk": {
+      "duration": 1.4,
+      "loop": true,
+      "minHeight": -1.579346419802619,
+      "maxHeight": 1.3734513675022144
+    },
+    "Attack": {
+      "duration": 1.85,
+      "loop": false,
+      "minHeight": -1.6083593899122886,
+      "maxHeight": 2.2635207334667897
+    }
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "created": "2026-10-08",
+  "id": "Rooster",
+  "triangles": 4510,
+  "reliefStuds": 240,
+  "meshPieces": 16,
+  "basePartsAfterAssembly": 17,
+  "Motor6D": 7,
+  "rigidWelds": 9,
+  "animations": [
+    "Idle",
+    "Walk",
+    "Attack"
+  ],
+  "requiredReaderChanges": false,
+  "requiresStudioMeshImport": true,
+  "actualStudioTest": false,
+  "gameModified": false,
+  "eggsModified": false,
+  "paidGenerations": 0,
+  "boss": false,
+  "rainbowBoss": false,
+  "order": 3,
+  "files": {
+    "Rooster.fbx": "438145bcba4a86a9ef4ac2f2e182ac4fd03725b595971afdfa6e9bfe785bb1f5",
+    "Rooster-rig-template.rbxmx": "8d80f9a38fa80359d3381b45cbd5af569a9a10a120ae9dc41a14a661ba9969df",
+    "Assembler-Rooster.luau": "7b32958560627317337b0bd41c07606b222b9dd45a0ff14fb0c4d833b96c0588",
+    "native-rig-spec.json": "952aea782992cf3eab23deebbcb7a1eb6572532916eebabf8bd478f869152c4b",
+    "source-rig-and-clips.json": "b030a14c8ee6f296e60cf9bb6624f569d5ab5e89b52bbeb27113e96a5eef0ea5",
+    "NATIVE-VALIDATION.json": "ab66d753df7af02ef1647feb7b98b473df4fbc59f8b3283c7792ff8288a8e286",
+    "FBX-VALIDATION.json": "ce565438a229df6e5f59b91980662f6445187599b6b325b2fb4ae0d5bce105de",
+    "CONTACT-VALIDATION.json": "73d1c3b900017e5fcd5018f72f5857f8c21d2e899340caa00152025744d4b3b8",
+    "Rooster_Colour_512.png": "f5c040f3776277d55ca266b7872aa176a48c7ed5b74878d048a907e6013c434d",
+    "Rooster.png": "685737d3b28c5ff65ad2e15f87d925ac5afecacb014c175de79f6d20350b1750",
+    "Rooster-profil.png": "4e709347f4af1e11c88708917280abcafdb1ffdfebe0a23993c5010c8460f70c",
+    "Rooster.blend": "7f6c2dad7f1c2b0f66e76a4196c97e364507d88ca323062d9dc50d82aa309988"
+  }
+}

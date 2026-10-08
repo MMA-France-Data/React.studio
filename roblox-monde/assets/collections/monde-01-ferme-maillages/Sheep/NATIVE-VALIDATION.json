@@ -1,0 +1,32 @@
+{
+  "passed": true,
+  "actualStudioTest": false,
+  "id": "Sheep",
+  "basePartsAfterAssembly": 17,
+  "motor6D": 9,
+  "rigidWelds": 7,
+  "originalJointNames": true,
+  "originalClipsUnchanged": true,
+  "vertexPoseCases": 3888,
+  "maxRetargetMatrixError": 5.979833006541924e-8,
+  "clips": {
+    "Idle": {
+      "duration": 2.4,
+      "loop": true,
+      "minHeight": -0.8616218879657391,
+      "maxHeight": 0.7421159177712149
+    },
+    "Walk": {
+      "duration": 1.6,
+      "loop": true,
+      "minHeight": -0.8741236374517369,
+      "maxHeight": 0.7421159177712149
+    },
+    "Attack": {
+      "duration": 1.28,
+      "loop": false,
+      "minHeight": -0.8417035016027512,
+      "maxHeight": 0.8164780673544418
+    }
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "passed": true,
+  "actualStudioTest": false,
+  "id": "Duck",
+  "basePartsAfterAssembly": 17,
+  "motor6D": 7,
+  "rigidWelds": 9,
+  "originalJointNames": true,
+  "originalClipsUnchanged": true,
+  "vertexPoseCases": 3888,
+  "maxRetargetMatrixError": 3.00895036664528e-8,
+  "clips": {
+    "Idle": {
+      "duration": 2.4,
+      "loop": true,
+      "minHeight": -0.7387702495229327,
+      "maxHeight": 0.6671640604468441
+    },
+    "Walk": {
+      "duration": 1.25,
+      "loop": true,
+      "minHeight": -0.7741702454797494,
+      "maxHeight": 0.6671432811933838
+    },
+    "Attack": {
+      "duration": 0.98,
+      "loop": false,
+      "minHeight": -0.7196499705314635,
+      "maxHeight": 0.7500553453656514
+    }
+  }
+}

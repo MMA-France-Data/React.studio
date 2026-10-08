@@ -1,0 +1,38 @@
+{
+  "created": "2026-10-08",
+  "id": "Sheep",
+  "triangles": 4478,
+  "reliefStuds": 181,
+  "meshPieces": 16,
+  "basePartsAfterAssembly": 17,
+  "Motor6D": 9,
+  "rigidWelds": 7,
+  "animations": [
+    "Idle",
+    "Walk",
+    "Attack"
+  ],
+  "requiredReaderChanges": false,
+  "requiresStudioMeshImport": true,
+  "actualStudioTest": false,
+  "gameModified": false,
+  "eggsModified": false,
+  "paidGenerations": 0,
+  "boss": false,
+  "rainbowBoss": false,
+  "order": 5,
+  "files": {
+    "Sheep.fbx": "9c27d05e937bc6e083d765570c610c42408048f91ce9595b9dc2149b4a7592ee",
+    "Sheep-rig-template.rbxmx": "c900b55f0d7a1f45bd9ea4c366cd69de8ecc80e3c41c22d6d420f03655c8b7ef",
+    "Assembler-Sheep.luau": "b69f4b6fba49cf3b556ced40b2a32532349bb824a75a91d23a8223b1e71dcae4",
+    "native-rig-spec.json": "60d1a710976d371c19b8b1b45bfafd67c3f8429460cf274efb68ee421fe7ab7a",
+    "source-rig-and-clips.json": "1b1ba80e14f23302f8e043920ad7741d048f10e96d852972c6356e40d593590c",
+    "NATIVE-VALIDATION.json": "4174cddd4d80f46e636c7f62fe1d13eab9e9fe6f71ebc7d6d4e7eed867d27b06",
+    "FBX-VALIDATION.json": "a46863f5fdb2779622e0a7235bc905335e788040e11bf89ce32b659158eb5d9e",
+    "CONTACT-VALIDATION.json": "f40ee40c0a77f9ad2e258a8497e85fc405db9373bf0a39bd5588f9f9a55c303f",
+    "Sheep_Colour_512.png": "bdf722f82a9ee0ac22545ba82dbfec49287dba4835f9ec56a14643efe192991c",
+    "Sheep.png": "2f963cb4ca0b6f28367fef028365d12f94f77e2a6ded0e588112a31d3d0b3e1b",
+    "Sheep-profil.png": "2ec5a4122ac2ce0e54164a5dcb86a78d5ad0f33b886e0f3942e0eacc7dd49357",
+    "Sheep.blend": "f5000ff20e90a89947e625cd3fa2a8afa3b52810d500c59fa91ff965c09b57fc"
+  }
+}

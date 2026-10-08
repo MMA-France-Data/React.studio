@@ -1,0 +1,32 @@
+{
+  "passed": true,
+  "actualStudioTest": false,
+  "id": "Pig",
+  "basePartsAfterAssembly": 17,
+  "motor6D": 10,
+  "rigidWelds": 6,
+  "originalJointNames": true,
+  "originalClipsUnchanged": true,
+  "vertexPoseCases": 3888,
+  "maxRetargetMatrixError": 6.089897053307425e-8,
+  "clips": {
+    "Idle": {
+      "duration": 2.4,
+      "loop": true,
+      "minHeight": -0.7752450920582754,
+      "maxHeight": 0.568863278024894
+    },
+    "Walk": {
+      "duration": 1.65,
+      "loop": true,
+      "minHeight": -0.8001428575575227,
+      "maxHeight": 0.5689223470634548
+    },
+    "Attack": {
+      "duration": 1.25,
+      "loop": false,
+      "minHeight": -0.751762330532074,
+      "maxHeight": 0.7100547268088099
+    }
+  }
+}
