@@ -17,7 +17,7 @@ FIGHT_DMG = [5, 10, 20, 40, 85, 600]
 FIGHT_HP = [45, 90, 180, 360, 760, 5400]
 RANK_XP = [1, 10, 30, 70, 110, 80]
 GRADE_ODDS = [70, 25, 4.6, 0.4]
-SWORDS = [(3, 0), (8, 30), (78, 30000), (250, 200000), (1160, 2500000), (5400, 10000000), (25000, 25000000)]
+SWORDS = [(3, 0), (8, 30), (25, 800), (78, 10000), (250, 200000), (1160, 2500000), (5400, 10000000), (25000, 25000000)]
 NEED = 60
 EARLY = 0.3   # Pets.EARLY_XP : les cinq premiers niveaux d un familier demandent cette part de l XP normale
 ZONE, COIN_ZONE, XP_ZONE = 100, 100, 10   # d'un monde au suivant : monstres et familiers, pièces, XP
@@ -28,8 +28,8 @@ WALK = 4.0
 INCOME = [0.15, 0.3, 0.75, 2, 5, 12]  # pieces par seconde d un familier moyen de chaque rang, au monde 1 (Pets.INCOME)
 
 LONG_PRICE = 1.25   # Config.LONG_PRICE : les epees d un monde coutent 100 x LONG_PRICE fois celles du monde d avant
-# (Quatre epees au monde 1, trois au monde 2 ; au-dela : les trois memes marches, 100 fois plus haut a chaque monde.)
-for i in range(len(SWORDS), 1 + 3 * WORLDS):
+# (Cinq epees au monde 1, trois au monde 2 ; au-dela : les trois memes marches, 100 fois plus haut a chaque monde.)
+for i in range(len(SWORDS), 2 + 3 * WORLDS):
     SWORDS.append((SWORDS[i - 3][0] * 100, SWORDS[i - 3][1] * 100 * LONG_PRICE))
 def sword_dps(level): return round(SWORDS[level - 1][0]) / 0.5
 LEVEL_GROW = 1.03

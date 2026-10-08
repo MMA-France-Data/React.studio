@@ -34,7 +34,7 @@ local function defaults()
 		level = 1,
 		xp = 0, -- XP gagnée dans le niveau en cours
 		sword = 1, -- niveau de l'épée
-		sv = 2, -- version de la liste des épées (2 = quatre épées au monde 1)
+		sv = 3, -- version de la liste des épées (3 = cinq épées au monde 1)
 		zone = 1, -- la zone la plus lointaine ouverte (battre le boss de la zone n ouvre la n + 1)
 		bag = {}, -- œufs pas encore posés : { a = animal, q = rang, r = zone, b = valeur tirée }
 		places = Pets.SPOTS_FREE, -- places de l'enclos
@@ -64,8 +64,9 @@ local function clean(raw)
 	if type(raw.sword) == "number" then
 		data.sword = math.max(1, math.floor(raw.sword))
 		-- (Une épée a été glissée entre la 2 et la 3 le 08/10 : les anciennes sauvegardes gardent leurs dégâts.)
-		if raw.sv ~= 2 and data.sword >= 3 then
-			data.sword += 1
+		-- (Une autre le même jour, encore entre la 2 et la 3 : sv 3.)
+		if data.sword >= 3 and raw.sv ~= 3 then
+			data.sword += if raw.sv == 2 then 1 else 2
 		end
 	end
 	if type(raw.zone) == "number" then

@@ -150,26 +150,27 @@ function Config.maxHealth(level: number): number
 end
 -- LES ÉPÉES. Rien n'est verrouillé : on peut acheter la suivante dès qu'on a les pièces. C'est LE PRIX qui sert de
 -- verrou (sa règle : « je veux pas que ça soit verrouillé mais que l'argent soit un verrou justement »).
--- QUATRE épées au monde 1, puis TROIS par monde (son oui du 08/10 : « on avait dit x 3 et quelque », le saut de 8 à
--- 250 était trop grand). Chaque épée tape environ 3,2 fois plus fort que celle d'avant, sauf la toute première
--- marche (le tutoriel) et la marche du milieu du monde 1.
+-- CINQ épées au monde 1, puis TROIS par monde. Chaque épée tape environ 3,2 fois plus fort que celle d'avant (sa
+-- règle). Le monde 1 en a cinq pour donner des achats rapprochés au début (sa demande du 08/10 : « je veux des
+-- objectifs atteignables rapidement au début, que ça stimule à pas quitter ») : 2 min, 14 min, 37 min, puis le boss.
 --   damage : dégâts d'un coup (deux coups par seconde environ). Calculé sur la progression simulée
 --   (tools/balance/mondes.py) : à l'achat, le joueur tape à peu près comme ses trois familiers réunis ; puis ses
 --   familiers progressent et chacun finit par le dépasser, jusqu'à l'épée suivante.
---   price : le prix pour l'obtenir. Les pièces valent 100 fois plus dans le monde suivant (COIN_ZONE) : l'épée 5
+--   price : le prix pour l'obtenir. Les pièces valent 100 fois plus dans le monde suivant (COIN_ZONE) : l'épée 6
 --   demanderait des heures de farm en plus au monde 1, et une demi-heure au monde 2.
 Config.SWORDS = {
 	{ damage = 3, price = 0 }, -- monde 1 : l'épée de départ (comme un canard)
 	-- (La deuxième épée sert de TUTORIEL, sa demande : 30 pièces, soit une dizaine de canards.)
 	{ damage = 8, price = 30 }, -- monde 1, après deux minutes
-	{ damage = 78, price = 30000 }, -- monde 1, vers 1 heure
-	{ damage = 250, price = 200000 }, -- monde 1, juste avant le boss (vers 2 h 15)
+	{ damage = 25, price = 800 }, -- monde 1, vers un quart d'heure
+	{ damage = 78, price = 10000 }, -- monde 1, vers 35 minutes
+	{ damage = 250, price = 200000 }, -- monde 1, juste avant le boss (vers 1 h 50)
 	{ damage = 1160, price = 2500000 }, -- monde 2, après 2 heures
 	{ damage = 5400, price = 10000000 }, -- monde 2, après 4 h 30
 	{ damage = 25000, price = 25000000 }, -- monde 2, juste avant le boss (après 7 h 30)
 }
 Config.SWORD_PER_ZONE = 3
--- (Au-delà de la septième : les trois mêmes marches que le monde 2, 100 fois plus haut à chaque monde.)
+-- (Au-delà de la huitième : les trois mêmes marches que le monde 2, 100 fois plus haut à chaque monde.)
 local function swordStep(sword: number)
 	local worlds = math.max(0, math.ceil((sword - #Config.SWORDS) / Config.SWORD_PER_ZONE))
 	return Config.SWORDS[sword - worlds * Config.SWORD_PER_ZONE], 100 ^ worlds
