@@ -248,7 +248,7 @@ return function(log)
 	-- Les six epees, une par une, dans la main (de profil, au repos).
 	D("Travel", "base")
 	task.wait(1)
-	for sword = 1, 6 do
+	for sword = 1, 8 do
 		D("Sword", sword)
 		task.wait(0.8)
 		root = player.Character.HumanoidRootPart.Position
