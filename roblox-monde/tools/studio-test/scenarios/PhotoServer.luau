@@ -1,11 +1,11 @@
--- PETIT TEST EN IMAGES (une trentaine de secondes) : seulement des photos, sans rejouer tout le jeu.
---   powershell -ExecutionPolicy Bypass -File tools/studio-test/run.ps1 -Test photo -Seconds 70
--- Ici : quelques animaux choisis (LIST : { monde, camp }), photographiés de côté, pour juger leur assemblage.
+-- PETIT TEST EN IMAGES : seulement des photos, sans rejouer tout le jeu.
+--   powershell -ExecutionPolicy Bypass -File tools/studio-test/run.ps1 -Test photo -Seconds 110
+-- Ici : chaque camp de chaque monde vu d'en haut (son décor, « l'habitat » de l'animal), puis le coin du boss.
 -- À changer selon le besoin.
 local Players = game:GetService("Players")
 local ServerStorage = game:GetService("ServerStorage")
 
-local LIST = { { 3, 3 } }
+local ZONES = { 1, 2, 3, 4 }
 
 return function(log)
 	local player = Players:GetPlayers()[1] or Players.PlayerAdded:Wait()
@@ -15,36 +15,40 @@ return function(log)
 	task.wait(8)
 	local debug = ServerStorage:WaitForChild("SurviveDebug")
 	local function shot(name: string)
-		task.wait(1)
+		task.wait(0.8)
 		log("Info", "SHOT:photo_" .. name)
-		task.wait(1.2)
+		task.wait(1.1)
 	end
 	debug:Invoke("Zone", 4)
 	debug:Invoke("Peaceful", true)
 	local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-	local zone = 0
-	for _, pick in LIST do
-		if pick[1] ~= zone then
-			zone = pick[1]
-			debug:Invoke("Travel", zone)
-			task.wait(2)
-		end
-		local monster
-		for _, item in debug:Invoke("Monsters") do
-			if item.zone == pick[1] and item.rank == pick[2] then
-				monster = item
-				break
+	for _, zone in ZONES do
+		debug:Invoke("Travel", zone)
+		task.wait(2)
+		-- Le milieu de chaque camp : la moyenne de ses monstres.
+		local sums, counts, animals = {}, {}, {}
+		for _, monster in debug:Invoke("Monsters") do
+			if monster.zone == zone then
+				sums[monster.rank] = (sums[monster.rank] or Vector3.zero) + monster.position
+				counts[monster.rank] = (counts[monster.rank] or 0) + 1
+				animals[monster.rank] = monster.animal
 			end
 		end
-		if monster then
-			local at = monster.position
-			if root then
-				root.CFrame = CFrame.new(at + Vector3.new(0, 4, -45))
+		for rank = 1, 6 do
+			if counts[rank] then
+				local at = sums[rank] / counts[rank]
+				local side = if at.X > 0 then -1 else 1
+				if rank == 6 then
+					at += Vector3.new(24, 0, 4)
+					side = -1
+				end
+				if root then
+					root.CFrame = CFrame.new(at + Vector3.new(side * 70, 5, -30))
+				end
+				task.wait(1.2)
+				workspace:SetAttribute("ShotCam", CFrame.lookAt(at + Vector3.new(side * 44, 34, -30), at + Vector3.new(0, 2, 0)))
+				shot("camp_" .. zone .. "_" .. rank .. "_" .. animals[rank])
 			end
-			task.wait(1.5)
-			local far = if pick[2] == 6 then 1.7 else 1
-			workspace:SetAttribute("ShotCam", CFrame.lookAt(at + Vector3.new(13, 6, -9) * far, at + Vector3.new(0, 3.5 * far, 0)))
-			shot("lot2_" .. pick[1] .. "_" .. monster.animal)
 		end
 	end
 	workspace:SetAttribute("ShotCam", nil)

@@ -349,7 +349,6 @@ local THEMES = {
 			props.wheat(folder, center + Vector3.new(-108, 0, -30), random)
 			props.wheat(folder, center + Vector3.new(112, 0, 20), random)
 			props.wheat(folder, center + Vector3.new(-112, 0, 80), random)
-			props.pond(folder, center + Vector3.new(60, 0, -40), random)
 			-- Un pré clôturé près de la grange.
 			local a, b = center + Vector3.new(-128, 0, -84), center + Vector3.new(-62, 0, -66)
 			props.fence(folder, a, Vector3.new(b.X, 0, a.Z))
@@ -382,7 +381,6 @@ local THEMES = {
 		set = function(folder, center: Vector3, random: Random)
 			props.ruin(folder, center + Vector3.new(-98, 0, -96))
 			props.ruin(folder, center + Vector3.new(104, 0, 30))
-			props.pond(folder, center + Vector3.new(70, 0, -70), random, rgb(60, 200, 170))
 			props.pond(folder, center + Vector3.new(-76, 0, 50), random, rgb(60, 200, 170))
 		end,
 	},
@@ -398,19 +396,291 @@ local THEMES = {
 			props.baobab(folder, center + Vector3.new(-100, 0, -92), random)
 			props.baobab(folder, center + Vector3.new(104, 0, 44), random)
 			props.baobab(folder, center + Vector3.new(-112, 0, 96), random)
-			-- Le point d'eau, entouré de rochers et d'herbes.
-			local water = center + Vector3.new(78, 0, -64)
-			props.pond(folder, water, random, rgb(96, 170, 190))
-			for i = 1, 5 do
-				props.kopje(folder, water + Vector3.new(math.cos(i * 1.3) * 24, 0, math.sin(i * 1.3) * 24), random)
-			end
-			-- Le grand rocher du lion, près de l'arène du boss.
-			local pride = center + Vector3.new(-88, 0, 112)
-			props.rock(folder, pride, random, 4.5, rgb(204, 156, 108))
-			props.rock(folder, pride + Vector3.new(12, 0, 6), random, 3, rgb(190, 144, 98))
+			local _ = random
 		end,
 	},
 }
+
+-- L'HABITAT DE CHAQUE ANIMAL -------------------------------------------------------------------------------------------
+-- Demande du joueur (08/10) : « je veux que tu travailles les zones cohérentes avec les animaux : le coin crocodile,
+-- il faut de l'eau, le coin canard, etc. » Chaque camp reçoit le décor de son animal : au milieu, un sol ou une
+-- mare qu'on traverse (rien n'y gêne le combat) ; sur le bord du rond, les gros décors. Le côté par où le sentier
+-- arrive (`toward`) reste dégagé. (Hauteurs toutes différentes de celles du chemin et de l'arène : deux surfaces à
+-- la même hauteur clignotent.)
+local function campFloor(parent, at: Vector3, radius: number, color: Color3, material: Enum.Material?)
+	pillar(parent, "CampFloor", radius * 2, 0.22, at, color, material).CastShadow = false
+end
+local function campWater(parent, at: Vector3, radius: number, color: Color3, shore: Color3?, shoreMaterial: Enum.Material?)
+	pillar(parent, "CampShore", radius * 2 + 6, 0.26, at, shore or rgb(214, 196, 150), shoreMaterial or M.Sand).CastShadow = false
+	local water = pillar(parent, "CampWater", radius * 2, 0.33, at, color, M.Glass)
+	water.Transparency = 0.25
+	water.CastShadow = false
+end
+local function lilies(parent, at: Vector3, radius: number, random: Random, count: number)
+	for i = 1, count do
+		local angle, away = random:NextNumber(0, math.pi * 2), random:NextNumber(radius * 0.25, radius * 0.85)
+		local spot = at + Vector3.new(math.cos(angle) * away, 0, math.sin(angle) * away)
+		pillar(parent, "Lily", random:NextNumber(1.8, 2.8), 0.4, spot, if i % 2 == 0 then rgb(70, 170, 80) else rgb(96, 190, 96)).CastShadow = false
+		if i % 3 == 0 then
+			ball(parent, "LilyFlower", 0.9, spot + Vector3.new(0, 0.7, 0), rgb(255, 170, 210))
+		end
+	end
+end
+-- Appelle `each(position, direction)` `count` fois, en rond autour du camp, entre `near` et `far` du milieu.
+local function around(at: Vector3, toward: Vector3, random: Random, count: number, near: number, far: number, each)
+	for i = 1, count do
+		local angle = (i + random:NextNumber(-0.3, 0.3)) / count * math.pi * 2
+		local direction = Vector3.new(math.cos(angle), 0, math.sin(angle))
+		if direction:Dot(toward) < 0.7 then
+			each(at + direction * random:NextNumber(near, far), direction)
+		end
+	end
+end
+-- Une clôture en rond, ouverte du côté du sentier.
+local function fenceRing(parent, at: Vector3, toward: Vector3, radius: number)
+	local steps = 14
+	for i = 1, steps do
+		local a, b = (i - 1) / steps * math.pi * 2, i / steps * math.pi * 2
+		local from, to = Vector3.new(math.cos(a), 0, math.sin(a)), Vector3.new(math.cos(b), 0, math.sin(b))
+		if from:Dot(toward) < 0.7 and to:Dot(toward) < 0.7 then
+			props.fence(parent, at + from * radius, at + to * radius)
+		end
+	end
+end
+
+function props.reeds(parent, at: Vector3, random: Random)
+	for _ = 1, 6 do
+		local height = random:NextNumber(3, 5.5)
+		local spot = at + Vector3.new(random:NextNumber(-1.4, 1.4), 0, random:NextNumber(-1.4, 1.4))
+		deco(parent, "Reed", Vector3.new(0.3, height, 0.3), spot + Vector3.new(0, height / 2, 0), rgb(96, 160, 70), M.Grass)
+		deco(parent, "ReedTop", Vector3.new(0.6, 1.3, 0.6), spot + Vector3.new(0, height + 0.5, 0), rgb(120, 78, 44))
+	end
+end
+-- Un poulailler sur pilotis, avec sa petite rampe.
+function props.coop(parent, at: Vector3, facing: Vector3)
+	local turn = CFrame.lookAt(at, at + facing)
+	for _, x in { -3, 3 } do
+		for _, z in { -2.4, 2.4 } do
+			deco(parent, "CoopLeg", Vector3.new(0.6, 2.4, 0.6), turn * CFrame.new(x, 1.2, z), rgb(120, 82, 50), M.Wood, nil, true)
+		end
+	end
+	deco(parent, "Coop", Vector3.new(7.4, 4.6, 6), turn * CFrame.new(0, 4.7, 0), rgb(196, 70, 60), M.WoodPlanks, nil, true)
+	deco(parent, "CoopRoof", Vector3.new(8.6, 0.8, 7.2), turn * CFrame.new(0, 7.4, 0) * CFrame.Angles(math.rad(-10), 0, 0), rgb(246, 244, 238), M.WoodPlanks)
+	deco(parent, "CoopDoor", Vector3.new(2, 2.4, 0.3), turn * CFrame.new(0, 3.8, -3.05), rgb(40, 30, 26))
+	deco(parent, "CoopRamp", Vector3.new(2, 0.3, 5), turn * CFrame.new(0, 1.3, -5.2) * CFrame.Angles(math.rad(-28), 0, 0), rgb(170, 120, 70), M.Wood)
+end
+-- Un nid de paille avec ses œufs.
+function props.nest(parent, at: Vector3, random: Random)
+	pillar(parent, "Nest", 3.4, 0.7, at, rgb(226, 190, 96), M.Grass)
+	for i = 1, 3 do
+		ball(parent, "NestEgg", 0.9, at + Vector3.new(math.cos(i * 2.1) * 0.6, 0.95, math.sin(i * 2.1) * 0.6), rgb(250, 244, 230))
+	end
+	local _ = random
+end
+-- Une auge en bois.
+function props.trough(parent, at: Vector3, facing: Vector3, fill: Color3)
+	local turn = CFrame.lookAt(at, at + facing)
+	deco(parent, "Trough", Vector3.new(7, 1.4, 2.6), turn * CFrame.new(0, 0.9, 0), rgb(134, 92, 56), M.WoodPlanks)
+	deco(parent, "TroughFill", Vector3.new(6.2, 0.3, 1.8), turn * CFrame.new(0, 1.62, 0), fill)
+	for _, x in { -3, 3 } do
+		deco(parent, "TroughFoot", Vector3.new(0.7, 0.5, 3), turn * CFrame.new(x, 0.47, 0), rgb(110, 74, 46), M.Wood)
+	end
+end
+-- Une tanière : deux gros rochers, une dalle par-dessus, et le trou noir de l'entrée.
+function props.den(parent, at: Vector3, facing: Vector3, random: Random, scale: number?, color: Color3?)
+	local k = scale or 1
+	local stone = color or rgb(118, 118, 126)
+	local turn = CFrame.lookAt(at, at + facing)
+	for _, x in { -1, 1 } do
+		deco(parent, "DenSide", Vector3.new(6, 8, 9) * k, turn * CFrame.new(x * 5.4 * k, 3.6 * k, 0) * CFrame.Angles(0, random:NextNumber(-0.2, 0.2), math.rad(x * -8)), stone, M.Slate, nil, true)
+	end
+	deco(parent, "DenTop", Vector3.new(17, 4.4, 10) * k, turn * CFrame.new(0, 8.6 * k, 0.4 * k) * CFrame.Angles(math.rad(4), 0, 0), stone, M.Slate, nil, true)
+	deco(parent, "DenBack", Vector3.new(12, 8, 3) * k, turn * CFrame.new(0, 3.6 * k, 4.6 * k), stone, M.Slate, nil, true)
+	deco(parent, "DenDark", Vector3.new(5, 6.4, 0.6) * k, turn * CFrame.new(0, 3.2 * k, -2.2 * k), rgb(16, 14, 18))
+end
+function props.bamboo(parent, at: Vector3, random: Random)
+	for _ = 1, 5 do
+		local height = random:NextNumber(12, 20)
+		local spot = at + Vector3.new(random:NextNumber(-1.8, 1.8), 0, random:NextNumber(-1.8, 1.8))
+		pillar(parent, "Bamboo", 0.8, height, spot, rgb(132, 190, 84), M.SmoothPlastic, true)
+		for step = 1, 3 do
+			pillar(parent, "BambooRing", 1, 0.3, spot + Vector3.new(0, height * step / 4, 0), rgb(96, 150, 62))
+		end
+		ball(parent, "BambooLeaves", 3.4, spot + Vector3.new(0, height + 0.6, 0), rgb(84, 176, 76), M.Grass)
+	end
+end
+-- Une écurie ouverte : quatre poteaux, un toit, de la paille.
+function props.stable(parent, at: Vector3, facing: Vector3, random: Random)
+	local turn = CFrame.lookAt(at, at + facing)
+	for _, x in { -8, 8 } do
+		for _, z in { -5, 5 } do
+			deco(parent, "StablePost", Vector3.new(1.2, 11, 1.2), turn * CFrame.new(x, 5.5, z), rgb(134, 92, 56), M.Wood, nil, true)
+		end
+	end
+	deco(parent, "StableBack", Vector3.new(17, 9, 0.8), turn * CFrame.new(0, 4.5, 5.2), rgb(176, 62, 54), M.WoodPlanks, nil, true)
+	deco(parent, "StableRoof", Vector3.new(20, 1, 14), turn * CFrame.new(0, 11.6, 0) * CFrame.Angles(math.rad(-8), 0, 0), rgb(246, 244, 238), M.WoodPlanks)
+	props.hay(parent, (turn * CFrame.new(-4, 0, 1)).Position, random)
+	props.trough(parent, (turn * CFrame.new(4, 0, 0)).Position, facing, rgb(90, 170, 230))
+end
+
+local BLUE, MUD, STONE = rgb(70, 180, 250), rgb(112, 78, 52), rgb(150, 150, 156)
+local HABITATS = {}
+-- LA FERME
+function HABITATS.Duck(parent, at, toward, random)
+	campWater(parent, at, 16, BLUE)
+	lilies(parent, at, 16, random, 9)
+	around(at, toward, random, 12, 17, 20, function(spot) props.reeds(parent, spot, random) end)
+	around(at, toward, random, 6, 31, 34, function(spot) props.bush(parent, spot, random) end)
+end
+function HABITATS.Rooster(parent, at, toward, random)
+	campFloor(parent, at, 15, rgb(196, 160, 104), M.Ground)
+	around(at, -toward, random, 6, 6, 13, function(spot) props.nest(parent, spot, random) end)
+	props.coop(parent, at - toward * 34, toward)
+	around(at, toward, random, 7, 31, 34, function(spot, direction)
+		if direction:Dot(-toward) < 0.8 then props.hay(parent, spot, random) end
+	end)
+end
+function HABITATS.Pig(parent, at, toward, random)
+	campFloor(parent, at, 16, MUD, M.Mud)
+	props.trough(parent, at, toward, rgb(224, 150, 150))
+	fenceRing(parent, at, toward, 32.5)
+	around(at, toward, random, 4, 34, 36, function(spot) props.hay(parent, spot, random) end)
+end
+function HABITATS.Sheep(parent, at, toward, random)
+	campFloor(parent, at, 17, rgb(150, 220, 110), M.Grass)
+	around(at, -toward, random, 8, 5, 15, function(spot) props.flowers(parent, spot, random) end)
+	fenceRing(parent, at, toward, 32.5)
+	props.trough(parent, at - toward * 4, toward, rgb(90, 170, 230))
+	around(at, toward, random, 3, 34, 36, function(spot) props.hay(parent, spot, random) end)
+end
+function HABITATS.Goat(parent, at, toward, random)
+	campFloor(parent, at, 13, STONE, M.Slate)
+	around(at, toward, random, 10, 31, 34, function(spot) props.rock(parent, spot, random, 1.7) end)
+	deco(parent, "GoatRock", Vector3.new(9, 2.2, 8), CFrame.new(at + Vector3.new(0, 1.1, 0)) * CFrame.Angles(0, 0.5, 0), rgb(136, 136, 144), M.Slate, nil, true)
+end
+function HABITATS.Horse(parent, at, toward, random)
+	props.stable(parent, at, toward, random)
+	props.fence(parent, at + Vector3.new(-10, 0, -12), at + Vector3.new(-10, 0, -26))
+	props.fence(parent, at + Vector3.new(10, 0, -12), at + Vector3.new(10, 0, -26))
+end
+-- LA FORÊT
+function HABITATS.Boar(parent, at, toward, random)
+	campFloor(parent, at, 15, rgb(96, 70, 48), M.Mud)
+	around(at, -toward, random, 9, 6, 15, function(spot) props.mushroom(parent, spot, random) end)
+	around(at, toward, random, 8, 31, 34, function(spot) props.log(parent, spot, random) end)
+end
+function HABITATS.Ram(parent, at, toward, random)
+	campFloor(parent, at, 14, rgb(132, 134, 142), M.Slate)
+	around(at, toward, random, 9, 31, 34, function(spot) props.rock(parent, spot, random, 2.1) end)
+	deco(parent, "RamRock", Vector3.new(10, 3, 9), CFrame.new(at + Vector3.new(0, 1.5, 0)) * CFrame.Angles(0, 0.4, math.rad(5)), rgb(120, 122, 130), M.Slate, nil, true)
+end
+function HABITATS.Deer(parent, at, toward, random)
+	campFloor(parent, at, 18, rgb(104, 190, 100), M.Grass)
+	campWater(parent, at - toward * 7, 6, rgb(90, 190, 230), rgb(140, 150, 120), M.Ground)
+	around(at, -toward, random, 12, 9, 17, function(spot) props.flowers(parent, spot, random) end)
+	around(at, toward, random, 6, 32, 35, function(spot) props.tree(parent, spot, random, 1.1) end)
+end
+function HABITATS.Lynx(parent, at, toward, random)
+	campFloor(parent, at, 14, rgb(120, 98, 70), M.Ground)
+	around(at, toward, random, 12, 31, 35, function(spot, direction)
+		if math.abs(direction.X * 7 % 2) < 1 then props.rock(parent, spot, random, 1.9) else props.pine(parent, spot, random) end
+	end)
+end
+function HABITATS.Wolf(parent, at, toward, random)
+	campFloor(parent, at, 15, rgb(84, 72, 62), M.Ground)
+	props.den(parent, at - toward * 35, toward, random)
+	around(at, -toward, random, 5, 7, 15, function(spot) props.bones(parent, spot, random) end)
+	around(at, toward, random, 7, 31, 34, function(spot, direction)
+		if direction:Dot(-toward) < 0.75 then props.rock(parent, spot, random, 1.5, rgb(104, 104, 114)) end
+	end)
+end
+function HABITATS.Bear(parent, at, toward, random)
+	props.den(parent, at, toward, random, 1.7, rgb(104, 100, 100))
+	props.pine(parent, at + Vector3.new(0, 0, 16), random, 1.3)
+	props.pine(parent, at + Vector3.new(4, 0, -17), random, 1.2)
+end
+-- LA JUNGLE
+function HABITATS.Capybara(parent, at, toward, random)
+	campWater(parent, at, 14, rgb(70, 190, 170), rgb(150, 124, 84), M.Mud)
+	lilies(parent, at, 14, random, 6)
+	around(at, toward, random, 10, 15, 18, function(spot) props.reeds(parent, spot, random) end)
+	around(at, toward, random, 8, 31, 34, function(spot) props.fern(parent, spot, random) end)
+end
+function HABITATS.Anaconda(parent, at, toward, random)
+	campWater(parent, at, 17, rgb(70, 124, 84), rgb(92, 82, 54), M.Mud)
+	lilies(parent, at, 17, random, 12)
+	around(at, toward, random, 9, 19, 22, function(spot) props.reeds(parent, spot, random) end)
+	around(at, toward, random, 9, 31, 34, function(spot, direction)
+		if direction.Z > 0 then props.log(parent, spot, random) else props.fern(parent, spot, random) end
+	end)
+end
+function HABITATS.Crocodile(parent, at, toward, random)
+	campWater(parent, at, 21, rgb(60, 170, 180))
+	lilies(parent, at, 21, random, 7)
+	around(at, toward, random, 10, 23, 26, function(spot) props.reeds(parent, spot, random) end)
+	around(at, toward, random, 8, 32, 35, function(spot, direction)
+		if direction.Z > 0 then props.palm(parent, spot, random) else props.rock(parent, spot, random, 1.3, rgb(150, 150, 130)) end
+	end)
+end
+function HABITATS.Jaguar(parent, at, toward, random)
+	campFloor(parent, at, 15, rgb(62, 124, 58), M.Grass)
+	around(at, -toward, random, 10, 7, 16, function(spot) props.fern(parent, spot, random) end)
+	around(at, toward, random, 9, 32, 35, function(spot, direction)
+		if direction.Z > 0 then props.tree(parent, spot, random, 1.6) else props.log(parent, spot, random) end
+	end)
+end
+function HABITATS.Gorilla(parent, at, toward, random)
+	campFloor(parent, at, 13, rgb(104, 156, 74), M.Grass)
+	around(at, toward, random, 13, 31, 35, function(spot, direction)
+		if math.abs(direction.Z) > 0.5 then props.bamboo(parent, spot, random) else props.rock(parent, spot, random, 1.8, rgb(110, 116, 96)) end
+	end)
+end
+function HABITATS.Tiger(parent, at, toward, random)
+	props.ruin(parent, at + Vector3.new(6, 0, 0))
+	props.bamboo(parent, at + Vector3.new(-6, 0, 16), random)
+	props.bamboo(parent, at + Vector3.new(-6, 0, -16), random)
+	local _ = toward
+end
+-- LA SAVANE
+function HABITATS.Hyena(parent, at, toward, random)
+	campFloor(parent, at, 16, rgb(186, 150, 104), M.Sandstone)
+	around(at, -toward, random, 6, 6, 15, function(spot) props.bones(parent, spot, random) end)
+	around(at, toward, random, 12, 31, 34, function(spot, direction)
+		if direction.Z > 0.3 then props.kopje(parent, spot, random) else props.drygrass(parent, spot, random) end
+	end)
+end
+function HABITATS.Buffalo(parent, at, toward, random)
+	campWater(parent, at, 13, rgb(120, 150, 130), rgb(140, 104, 72), M.Mud)
+	around(at, toward, random, 12, 16, 19, function(spot) props.drygrass(parent, spot, random) end)
+	around(at, toward, random, 4, 33, 36, function(spot) props.acacia(parent, spot, random) end)
+end
+function HABITATS.Cheetah(parent, at, toward, random)
+	campFloor(parent, at, 18, rgb(232, 208, 140), M.Sand)
+	around(at, toward, random, 12, 31, 35, function(spot, direction)
+		if math.abs(direction.Z) > 0.6 then props.termite(parent, spot, random) else props.drygrass(parent, spot, random) end
+	end)
+	deco(parent, "LookoutRock", Vector3.new(9, 2.4, 7), CFrame.new(at + Vector3.new(0, 1.2, 0)) * CFrame.Angles(0, 0.7, 0), rgb(196, 150, 104), M.Slate, nil, true)
+end
+function HABITATS.Rhino(parent, at, toward, random)
+	campFloor(parent, at, 16, rgb(140, 104, 72), M.Mud)
+	around(at, toward, random, 9, 31, 34, function(spot, direction)
+		if direction.Z > 0 then props.kopje(parent, spot, random) else props.drygrass(parent, spot, random) end
+	end)
+end
+function HABITATS.Elephant(parent, at, toward, random)
+	campWater(parent, at, 19, rgb(96, 170, 190), rgb(170, 130, 88), M.Mud)
+	around(at, toward, random, 10, 21, 24, function(spot) props.reeds(parent, spot, random) end)
+	props.baobab(parent, at - toward * 40, random)
+	around(at, toward, random, 5, 33, 36, function(spot, direction)
+		if direction:Dot(-toward) < 0.7 then props.acacia(parent, spot, random) end
+	end)
+end
+function HABITATS.Lion(parent, at, toward, random)
+	props.rock(parent, at, random, 4.6, rgb(204, 156, 108))
+	props.rock(parent, at + Vector3.new(8, 0, 12), random, 3, rgb(190, 144, 98))
+	props.acacia(parent, at + Vector3.new(6, 0, -16), random)
+	local _ = toward
+end
 
 -- UNE ZONE ---------------------------------------------------------------------------------------------------------------
 -- Où sont les camps : cinq, du rang 1 (près de l'entrée) au rang 5 (près du boss), en zigzag de part et d'autre du
@@ -591,6 +861,21 @@ local function buildZone(parent: Instance, index: number, zMin: number)
 	end
 	for rank, camp in CAMPS do
 		signpost(Vector3.new(if camp[1] > 0 then 10 else -10, 0, zMin + camp[2] - 7), rank)
+	end
+	-- L'habitat de chaque animal, dans son camp ; celui du boss, à droite de son arène.
+	local nature = Instance.new("Folder")
+	nature.Name = "Habitats"
+	nature.Parent = folder
+	local animals = Pets.COLLECTIONS[index]
+	for rank, camp in CAMPS do
+		local make = HABITATS[animals[rank]]
+		if make then
+			make(nature, Vector3.new(camp[1], 0, zMin + camp[2]), Vector3.new(if camp[1] > 0 then -1 else 1, 0, 0), Random.new(index * 100 + rank))
+		end
+	end
+	local bossHome = HABITATS[animals[6]]
+	if bossHome then
+		bossHome(nature, Vector3.new(ARENA + 20, 0, zMin + BOSS_Z + 4), Vector3.new(-1, 0, 0), Random.new(index * 100 + 6))
 	end
 	signpost(Vector3.new(12, 0, zMin + BOSS_Z - ARENA - 4), 6)
 
