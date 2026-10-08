@@ -17,7 +17,14 @@ $taskFixturePath = Join-Path $taskFixtureDir 'contract.luau'
 if ($LASTEXITCODE -ne 0) { throw 'Aura object lifecycle / mobile contract failed (mock objects, not Studio rendering)' }
 & luau-compile --null (Join-Path $PSScriptRoot 'RangerLesEpees.lua') | Out-Null
 if ($LASTEXITCODE -ne 0) { throw 'Import plugin syntax error' }
-foreach ($taskId in @('Fusion', 'Void')) {
+$taskImportFixture = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'gold-import.template.luau') -Raw
+$taskImportCode = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'RangerLesEpees.lua') -Raw
+$taskImportFixture = $taskImportFixture.Replace('--[[IMPORT_PLUGIN_SOURCE]]', $taskImportCode)
+$taskImportFixturePath = Join-Path $taskFixtureDir 'gold-import.luau'
+[System.IO.File]::WriteAllText($taskImportFixturePath, $taskImportFixture)
+& luau $taskImportFixturePath
+if ($LASTEXITCODE -ne 0) { throw 'New/legacy Gold importer contract failed (mock objects, not Studio)' }
+foreach ($taskId in @('Fusion', 'Void', 'GoldV2')) {
     $taskDir = Join-Path $taskRoot "assets/swords-roblox/$taskId"
     $taskInfo = Get-Content -LiteralPath (Join-Path $taskDir 'info.json') -Raw | ConvertFrom-Json
     if ($taskInfo.triangles -gt 19000 -or $taskInfo.triangles -le 0) { throw "Triangle budget: $taskId" }

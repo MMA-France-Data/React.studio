@@ -12,6 +12,7 @@
 -- Les épées importées restent dans le Workspace, intactes. On peut recliquer autant de fois qu'on veut.
 -- (Fichier installé dans %LOCALAPPDATA%\Roblox\Plugins par Claude ; l'original est dans roblox-monde/tools/swords.)
 -- Ajouts : Sword_Fusion et Sword_Void (18 950 triangles), prises calibrées et points de petites fumées.
+-- Remplacement optionnel : Sword_GoldV2 devient Gold ; l'ancien Sword_Gold reste compatible.
 local ChangeHistoryService = game:GetService("ChangeHistoryService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Selection = game:GetService("Selection")
@@ -31,6 +32,15 @@ local INFO = {
 	Prismatic = { grip = 1.148, base = 1.398, tip = 4.052 },
 	Fusion = { grip = 0.910, cross = {0.0016, 0.0014}, base = {0.0159, -0.0030, -0.988}, tip = {0.0007, 0.0898, -4.290} },
 	Void = { grip = 0.819, cross = {-0.0013, 0.1861}, base = {0.0004, -0.0403, -1.079}, tip = {-0.0008, 0.2716, -4.381} },
+}
+-- Une version importée séparément n'utilise jamais la calibration de l'ancien
+-- modèle. Sans cette nouvelle source, le rangement garde le comportement habituel.
+local REPLACEMENTS = {
+	Gold = {
+		source = "GoldV2",
+		info = { grip = 1.040, cross = {-0.0005, 0.0421},
+			base = {-0.0413, 0.0814, -0.858}, tip = {-0.0023, 0.6570, -4.160} },
+	},
 }
 -- Positions measured on the actual orange/cyan/violet texture regions. These
 -- are canonical offsets from the middle of the handle, not from the mesh bbox.
@@ -68,7 +78,16 @@ local function find(name: string): Instance?
 	return found
 end
 
-local function arrange(name: string, source: Instance): Model
+local function chooseSource(name: string): (Instance?, any)
+	local replacement = REPLACEMENTS[name]
+	if replacement then
+		local source = find(replacement.source)
+		if source then return source, replacement.info end
+	end
+	return find(name), INFO[name]
+end
+
+local function arrange(name: string, source: Instance, info): Model
 	local model = Instance.new("Model")
 	model.Name = name
 	local copy = source:Clone()
@@ -105,7 +124,6 @@ local function arrange(name: string, source: Instance): Model
 		return a[1] < b[1]
 	end)
 	local wide, tip = axes[2][2], axes[3][2]
-	local info = INFO[name]
 	local pommel = main.Position - tip * (LENGTH / 2)
 	local at = pommel + tip * info.grip
 	if info.cross then
@@ -147,9 +165,9 @@ button.Click:Connect(function()
 	end
 	local done, missing = {}, {}
 	for index, name in ORDER do
-		local source = find(name)
+		local source, info = chooseSource(name)
 		if source then
-			local ok, result = pcall(arrange, name, source)
+			local ok, result = pcall(arrange, name, source, info)
 			if ok then
 				local old = folder:FindFirstChild(name)
 				if old then
