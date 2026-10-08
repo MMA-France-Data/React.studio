@@ -126,8 +126,8 @@ local function wisps(model: Model, id: string, base: Attachment, tip: Attachment
 end
 function Aura.create(model: Model, id: string, base: Attachment, tip: Attachment)
 	if not Aura.supports(id) or allocated >= CAP or not model.PrimaryPart then return nil end
-	if id == "Void" then
-		local state = Void.create(model, base, tip, allocated)
+	if Void.supports(id) then
+		local state = Void.create(model, base, tip, allocated, id)
 		allocated += 1
 		return state
 	end
@@ -258,9 +258,9 @@ function Aura.update(state, dt: number, visible: boolean, swinging: boolean, cle
 		entry.item.Rate = entry.rate * (if swinging then 1.25 else 1)
 	end
 	for _, ray in state.beams do ray.Enabled = visible end
-	if state.kind == "VoidShroud" then Void.update(state, dt, visible, clear); return end
-	-- Fusion only has detached particles: no long Beam, cone, orbiting parts,
-	-- point light or BOOST. Existing visibility and teleport clearing still apply.
+	if state.shroud then Void.update(state, dt, visible, clear); return end
+	-- Particle-only legacy fallback. Current Fusion/Void use the smooth shroud
+	-- above, before this branch (Fusion no longer creates round particles).
 	if Wisp.groups[state.id] then return end
 	if not visible then state.light.Brightness = 0; return end
 	local primary, a, b = state.primary, state.base.WorldPosition, state.tip.WorldPosition

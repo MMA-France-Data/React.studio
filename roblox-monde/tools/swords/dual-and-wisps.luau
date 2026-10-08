@@ -53,29 +53,33 @@ end
 check(#Wisp.groups.Fusion == 2 and not Wisp.groups.Void, "Two-colored fusion; void has its own connected shroud")
 check(Wisp.groups.Fusion[1].first[1] > Wisp.groups.Fusion[1].first[3], "Warm fire wisps")
 check(Wisp.groups.Fusion[2].first[3] > Wisp.groups.Fusion[2].first[1], "Cold ice wisps")
-check(math.abs(Shadow.nodes[#Shadow.nodes] - 1 - Shadow.lengthAbove) < 1e-8, "Smoke extends above the real blade tip")
-check(Shadow.widthAt(1 + Shadow.lengthAbove, 0, 0) < 1e-8, "The upper end narrows completely")
-check(math.abs(Shadow.opacityAt(1 + Shadow.lengthAbove, 0) - 1) < 1e-8, "The upper end becomes fully invisible")
-for _, nodes in {Shadow.nodes, Shadow.mobileNodes} do
-	local previous = -1
-	for _, f in nodes do
-		check(f > previous, "A continuous ordered smoke spine")
-		previous = f
-	end
-end
-check((#Shadow.mobileNodes - 1) * #Shadow.layers <= 10, "At most ten smoke segments per mobile blade")
+check(Shadow.lengthAbove > 0, "Smoke extends above the real blade tip")
+check(Shadow.endWidth > 0 and Shadow.endWidth < 0.4, "Alpha taper, not a zero-width triangular cap")
+check(Shadow.opacityAt(1, 0) == 1 and Shadow.opacityAt(0, 0) == 1, "Both physical endpoints fully fade")
+check(#Shadow.layersFor("Void") == 1, "One dark sheet, no overlapping violet overlay")
+check(#Shadow.layersFor("Fusion") == 2, "One elongated smoke sheet per elemental side")
+check(Shadow.mobileSegments >= 12 and Shadow.mobileSegments <= 20, "Smooth but bounded mobile curve")
+check(Shadow.segments > Shadow.mobileSegments, "More curve samples on desktop")
 check(Shadow.plume.mobileRate * Shadow.plume.lifetime[2] * 1.25 <= 8, "Mobile free-smoke budget even while attacking")
 check(Shadow.plume.size[#Shadow.plume.size][2] == 0 and Shadow.plume.transparency[#Shadow.plume.transparency][2] == 1, "Detached smoke thins and dies")
 for _, layer in Shadow.layers do
-	check(layer.emission < 0.3, "Dark purple smoke, not a white/pink additive glow")
-	check(layer.color[3] > layer.color[1] and layer.color[1] > layer.color[2], "Menacing violet palette")
+	check(layer.emission == 0, "Dark purple smoke has no additive brightening")
+	for _, color in {layer.first, layer.middle, layer.last} do
+		check(color[3] > color[1] and color[1] > color[2], "Menacing violet palette")
+		check(math.max(table.unpack(color)) <= 90, "Much darker than the former pale violet layer")
+	end
 end
+check(Shadow.plume.emission == 0 and math.max(table.unpack(Shadow.plume.first)) <= 90, "Free smoke is also dark")
+check(Shadow.fusionLayers[1].marker == "Hot" and Shadow.fusionLayers[2].marker == "Cold", "Each sheet follows its correct coloured side")
+check(Shadow.fusionLayers[1].middle[1] > Shadow.fusionLayers[1].middle[3], "Fire smoke stays orange")
+check(Shadow.fusionLayers[2].middle[3] > Shadow.fusionLayers[2].middle[1], "Ice smoke stays blue")
 for step = 0, 20 do
 	local time = step * 0.2
-	for _, f in Shadow.nodes do
-		local width = Shadow.widthAt(f, time, 0.3)
-		check(width >= 0 and width <= 1.16, "Bounded billowing silhouette")
-		for _, layer in Shadow.layers do
+	local width = Shadow.widthAt(time, 0.3)
+	check(width >= 0.87 and width <= 1.13, "Bounded billowing silhouette")
+	for i = 0, 20 do
+		local f = i / 20
+		for _, layer in Shadow.layersFor(if step % 2 == 0 then "Void" else "Fusion") do
 			local opacity = Shadow.opacityAt(f, layer.fade)
 			check(opacity >= 0 and opacity <= 1, "Valid opacity throughout the single cloud")
 		end

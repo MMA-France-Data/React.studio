@@ -44,16 +44,20 @@ Garder les étapes 1 à 5 comme procédure pour un nouvel import seulement, puis
 
 ## Auras renforcées, sans coque rigide
 
-- **Void** : une silhouette continue de brume violet sombre enveloppe chaque lame. Les sections partagent
-  leurs points, leurs largeurs et une phase de texture commune : pas une suite de petites boules séparées.
-  Son contour ondule, suit la courbure de la lame et se rétrécit au-dessus de la pointe jusqu'à devenir invisible.
-  La tête flottante est légèrement retardée pendant les coups. Une seule source de fumée libre, au-dessus
-  de chaque pointe, monte, rétrécit et disparaît en 0,8 à 1,25 seconde. Pas de cône solide, de pièce orbitante,
-  de gros bloom blanc ou de lumière supplémentaire. Au plus dix rubans texturés et huit particules vivantes
-  par lame sur téléphone ; quatorze rubans sur PC. Les deux couches forment la même masse visuelle.
-- **Fusion** : flammes orange sur les points du côté feu, fumée bleue sur ceux du côté glace. Maximum 0,95 stud
-  au lieu de 0,38 ; opacité renforcée, mouvement libre et disparition en 0,5 à 0,95 seconde. Six sources sur
-  téléphone, huit sur PC. Pas de large ruban ni de BOOST global sur cette épée.
+- **Void** : un seul voile courbe de fumée par lame, au lieu de dix/quatorze morceaux orientés séparément.
+  Le créateur voyait des angles triangulaires : l'ancienne construction pouvait faire se chevaucher les
+  bords de ces rubans. Elle est remplacée par un unique Beam cubique, échantillonné en 16 subdivisions
+  sur téléphone et 24 sur PC. Une seule texture étirée, pas de motif de ronds répété. Les deux bouts sont
+  transparents ; le bout supérieur garde une petite largeur physique pour éviter un capuchon triangulaire.
+  Le violet est nettement plus foncé (RGB central 54/5/84), sans surcouche lumineuse, émission additive ni
+  influence de l'éclairage ambiant. Son opacité est renforcée. La fumée libre au-dessus de la pointe est
+  elle aussi sombre ; elle monte, s'affine et meurt en 0,8 à 1,25 seconde. Au plus huit particules vivantes
+  par lame sur téléphone. Le voile respire, ondule doucement et son sommet flotte pendant les coups.
+- **Fusion** : le même principe de voiles courbes, un orange et un bleu, placés selon les points Hot/Cold
+  mesurés sur le modèle. Leur séparation minimale évite de les superposer entièrement en un nuage gris.
+  **Aucun ParticleEmitter sur Fusion**, ni le long de la lame ni à sa pointe : plus de ronds distincts.
+  Deux voiles au total, 16 subdivisions chacun sur téléphone, 24 sur PC. Les sommets s'affinent et deviennent
+  invisibles au-dessus de la pointe. Pas de BOOST global ni de nouvel asset.
 - **Feu** : flammes plus amples (pic 2,1 studs), qui quittent la lame et montent ; les braises sont conservées.
 - **Glace** : brume cyan plus visible, pic 2,46 studs, au lieu de fumée presque entièrement transparente.
 - **Foudre** : inchangée par ces retouches.
@@ -79,19 +83,21 @@ du personnage. Les six anciennes épées restent à une main avec leurs attaques
 
 - Réimport des deux FBX dans Blender : 18 950 triangles chacun, UV, quatre textures PBR 1024 et pivots contrôlés.
 - Points de fumée à environ 0,025 stud de la surface réelle ; traînées à la pointe réelle.
-- `tools/swords/check.ps1` : 662 contrôles du miroir et des profils de fumée, 89 contrôles du rythme des attaques,
+- `tools/swords/check.ps1` : contrôles du miroir et des profils de fumée, 89 contrôles du rythme des attaques,
   syntaxe de 34 fichiers Luau et du plugin, deux clips XML inchangés, construction du jeu et de l'aperçu.
 - Contrôle indépendant sur le **tableau de poses actuel de production** et le vrai squelette R15 de la galerie :
   32 poses pendant le balayage. Prise droite : de +0,665 à -0,313 stud par rapport au torse ; gauche exactement
   inverse. Tranchant horizontal. Ce contrôle ne se contente pas de vérifier les noms des clips.
-- Contrat d'objets simulés : 6 813 assertions PC et 4 871 téléphone. Aucune instance créée par frame, raccords
-  de brume continus, pointe affinée et transparente, fumée libre, nettoyage au changement de visibilité et
-  à la téléportation, destruction répétée sans erreur et capacité réutilisable. **Ce n'est pas le moteur Roblox.**
+- Contrat d'objets simulés PC/téléphone : un seul voile sur Void, deux sur Fusion, aucun rond sur Fusion,
+  aucune instance créée par frame, base orthonormale des courbes, bouts entièrement transparents et sans
+  géométrie dégénérée, texture étirée non répétée, séparation des couleurs, violet non additif, nettoyage
+  à la téléportation et au changement de visibilité, destruction idempotente et capacité réutilisable.
+  **Ce n'est pas le moteur Roblox ; ces contrôles ne prouvent pas l'absence de tout artefact à l'écran.**
 - Comparaisons rendues : `Fusion/comparaison.png`, `Void/comparaison.png`. Original à gauche, version allégée à
   droite. Les trois `Void/duo-*.png` sont des poses rendues **hors Roblox**, avec le vrai modèle, sans fumées.
 
 **Pas de capture ni de test Play Studio/téléphone pendant ces retouches.** L'écran du créateur n'a pas été
-piloté. Le rendu réel de la brume texturée, la visibilité des deux couches et l'animation sur l'avatar du joueur
+piloté. Le rendu réel de la brume texturée, l'amélioration des angles visibles et l'animation sur l'avatar du joueur
 restent à vérifier dans Studio. Les anciennes images `duo-*.png` sont des poses de la préparation précédente,
 sans aura : elles ne montrent pas la nouvelle brume ni le nouveau sens du mouvement.
 

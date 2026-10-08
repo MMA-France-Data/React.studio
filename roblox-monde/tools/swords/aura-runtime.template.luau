@@ -16,11 +16,13 @@ for _, mobile in {false, true} do
 	function V.__mul(a,b) return Vector3.new(a.X*b,a.Y*b,a.Z*b) end
 	function V.__div(a,b) return a * (1/b) end
 	function V:Dot(b) return self.X*b.X + self.Y*b.Y + self.Z*b.Z end
+	function V:Cross(b) return Vector3.new(self.Y*b.Z-self.Z*b.Y,self.Z*b.X-self.X*b.Z,self.X*b.Y-self.Y*b.X) end
 	function V:Lerp(b,t) return self + (b-self)*t end
 	Vector3.zero, Vector3.xAxis, Vector3.yAxis, Vector3.zAxis = Vector3.new(), Vector3.new(1,0,0), Vector3.new(0,1,0), Vector3.new(0,0,1)
 	local CF = {}; CF.__index = CF
 	local CFrame = {}
 	function CFrame.new(position) return setmetatable({Position=position or Vector3.zero,RightVector=Vector3.xAxis,UpVector=Vector3.yAxis,LookVector=-Vector3.zAxis}, CF) end
+	function CFrame.fromMatrix(position,right,up,back) return setmetatable({Position=position,RightVector=right,UpVector=up,LookVector=-back},CF) end
 	function CF:PointToObjectSpace(p) return p-self.Position end
 	function CF:VectorToWorldSpace(v) return v end
 	function CF:ToObjectSpace(c) return CFrame.new(c.Position-self.Position) end
@@ -73,32 +75,36 @@ for _, mobile in {false, true} do
 	local a,b=endpoints()
 	local state=Aura.create(model(),"Void",a,b)
 	check(state.kind=="VoidShroud","Void must not use old small wisps")
-	check(#state.beams==(if mobile then 10 else 14),"Bounded connected smoke layers")
+	check(#state.beams==1 and #state.layers==1,"Single uninterrupted dark sheet; no sectional overlaps")
 	check(#state.emitters==1,"Only one detached upper smoke source per blade")
 	local born=#made
 	Aura.update(state,1/60,true,false,false)
-	check(state.nodes[#state.nodes].at.WorldPosition.Y>b.WorldPosition.Y,"Smoke rises beyond the tip")
+	check(state.layers[1].to.WorldCFrame.Position.Y>b.WorldPosition.Y,"Smoke rises beyond the tip")
 	local emitter=state.emitters[1].item
 	check(emitter.Enabled and not emitter.LockedToPart and emitter.VelocityInheritance==0,"Upper smoke escapes freely")
 	for frame=1,240 do
 		if frame==60 then b.WorldPosition=Vector3.new(5.3,0,0) end
 		Aura.update(state,1/60,true,frame>100,false)
-		for _, segment in state.segments do
-			check(segment.ray.Enabled and segment.ray.Width0>=0 and segment.ray.Width1>=0,"Live finite smoke widths")
-			check(segment.ray.offset>=0 and segment.ray.offset<1,"Continuous normalized texture flow")
+		for _, layer in state.layers do
+			local ray=layer.ray
+			check(ray.Enabled and ray.Width0>0 and ray.Width1>0,"No degenerate pointed geometric end")
+			check(ray.offset>=0 and ray.offset<1,"Continuous normalized texture flow")
+			check(ray.TextureMode=="Stretch","No tiled circular puffs along the blade")
+			check(ray.Segments==(if mobile then 16 else 24),"One smooth curve instead of independent sections")
+			for _, at in {layer.from,layer.to} do
+				local frame=at.WorldCFrame
+				check(math.abs(frame.RightVector.Magnitude-1)<1e-8,"Unit Bezier tangent")
+				check(math.abs(frame.UpVector.Magnitude-1)<1e-8 and math.abs(frame.UpVector:Dot(frame.RightVector))<1e-8,"Non-distorted curve basis")
+			end
 		end
 	end
 	check(#made==born,"No per-frame object creation")
-	check(state.nodes[#state.nodes].at.WorldPosition.Y>0,"Horizontal swings still shed upward smoke")
-	for _, layer in modules.Profile.layers do
-		local segments={}
-		for _, s in state.segments do if s.layer==layer then table.insert(segments,s) end end
-		for i=2,#segments do
-			check(math.abs(segments[i-1].ray.Width1-segments[i].ray.Width0)<1e-8,"No geometric gap between smoke sections")
-		end
-		check(segments[#segments].ray.Width1<1e-8,"Smoke upper end thins completely")
-		local keys=segments[#segments].ray.Transparency.Keypoints
-		check(keys[#keys].Value>1-1e-8,"Smoke upper end fully fades")
+	check(state.layers[1].to.WorldCFrame.Position.Y>0,"Horizontal swings still shed upward smoke")
+	for _, layer in state.layers do
+		check(layer.ray.Width1<layer.ray.Width0*.4,"Smoke upper end narrows")
+		local keys=layer.ray.Transparency.Keypoints
+		check(keys[1].Value==1 and keys[#keys].Value==1,"Physical endpoints are hidden by alpha")
+		check(layer.ray.LightEmission==0 and layer.ray.LightInfluence==0,"Scene lighting cannot wash the dark colour into pastel")
 	end
 	local before=emitter.clearCount or 0
 	Aura.update(state,1/60,true,false,true)
@@ -111,7 +117,22 @@ for _, mobile in {false, true} do
 	Aura.dispose(state); Aura.dispose(state)
 	check(state.folder.destroyed,"Shroud folder is disposed idempotently")
 	for _, at in state.owned do check(at.destroyed,"Owned smoke anchors disposed") end
-	for _, id in {"Fusion","Flame","Frost"} do
+	local fusion=Aura.create(model(),"Fusion",a,b)
+	check(fusion.kind=="FusionShroud" and #fusion.beams==2,"Actual Fusion dispatch uses the continuous smoke")
+	check(#fusion.emitters==0 and not fusion.plumeAt,"No round Fusion particles, including at its tip")
+	local fusionBorn=#made
+	for _=1,60 do Aura.update(fusion,1/60,true,true,false) end
+	check(#made==fusionBorn,"No per-frame Fusion object creation")
+	for _, layer in fusion.layers do
+		check(layer.ray.Enabled and layer.ray.TextureMode=="Stretch","Orange/blue sheets have a single elongated texture")
+		check(layer.data.marker=="Hot" or layer.data.marker=="Cold","Correct elemental marker group")
+	end
+	check(fusion.layers[1].data.side<0 and fusion.layers[2].data.side>0,"Fire and ice stay on opposite sides without markers")
+	check((fusion.layers[1].offset-fusion.layers[2].offset).Magnitude>0.8,"Fusion colours do not collapse into overlapping grey smoke")
+	Aura.update(fusion,1/60,false,false,false)
+	for _, ray in fusion.beams do check(not ray.Enabled,"Fusion sheets are culled too") end
+	Aura.dispose(fusion)
+	for _, id in {"Flame","Frost"} do
 		local old=Aura.create(model(),id,a,b)
 		check(old~=nil,"Other elemental sword still supported")
 		Aura.update(old,1/60,true,false,false)
