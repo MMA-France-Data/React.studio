@@ -1,0 +1,163 @@
+{
+  "status": "SAVANNA_GEOMETRY_RIG_CLIPS_GROUND_CHANCES_HASH_OK",
+  "actualStudioTest": false,
+  "gameModified": false,
+  "paidGenerations": 0,
+  "animals": [
+    {
+      "id": "Hyena",
+      "parts": 80,
+      "motors": 16,
+      "clips": [
+        "Idle",
+        "Walk",
+        "Attack",
+        "Bite"
+      ],
+      "sampledPoses": 404,
+      "lowestPoint": -2.220446049250313e-16,
+      "highestPoint": 2.2718853108323245
+    },
+    {
+      "id": "Buffalo",
+      "parts": 66,
+      "motors": 15,
+      "clips": [
+        "Idle",
+        "Walk",
+        "Attack"
+      ],
+      "sampledPoses": 303,
+      "lowestPoint": -2.220446049250313e-16,
+      "highestPoint": 2.4144269337072455
+    },
+    {
+      "id": "Cheetah",
+      "parts": 89,
+      "motors": 17,
+      "clips": [
+        "Idle",
+        "Walk",
+        "Attack",
+        "Bite"
+      ],
+      "sampledPoses": 404,
+      "lowestPoint": -2.220446049250313e-16,
+      "highestPoint": 2.7463027808071194
+    },
+    {
+      "id": "Rhino",
+      "parts": 74,
+      "motors": 14,
+      "clips": [
+        "Idle",
+        "Walk",
+        "Attack"
+      ],
+      "sampledPoses": 303,
+      "lowestPoint": -2.220446049250313e-16,
+      "highestPoint": 2.9791871912021586
+    },
+    {
+      "id": "Elephant",
+      "parts": 78,
+      "motors": 18,
+      "clips": [
+        "Idle",
+        "Walk",
+        "Attack"
+      ],
+      "sampledPoses": 303,
+      "lowestPoint": -2.220446049250313e-16,
+      "highestPoint": 3.445608335138887
+    },
+    {
+      "id": "Lion",
+      "parts": 96,
+      "motors": 17,
+      "clips": [
+        "Idle",
+        "Walk",
+        "Attack",
+        "Bite"
+      ],
+      "sampledPoses": 404,
+      "lowestPoint": -2.220446049250313e-16,
+      "highestPoint": 3.3714603805577648
+    }
+  ],
+  "eggs": 6,
+  "rareAnimal": "Lion",
+  "rareEgg": "LionEgg",
+  "referenceChances": [
+    45,
+    30,
+    14,
+    7,
+    3.5,
+    0.5
+  ],
+  "completedOfflineChecks": {
+    "xmlInternalReferences": true,
+    "safeEmbeddedClasses": true,
+    "luauFilesParsed": 5,
+    "timelineAssertionsPassed": 300,
+    "rojoGalleriesBuilt": 2,
+    "renderedAttackFrames": 16,
+    "previewInspected": true
+  },
+  "files": {
+    ".gitattributes": "a19ed51ee17f765d3134d234b04af5d0d26faf30ac24243e5e67505ea67dcdda",
+    "animaux/ActionAnimator.luau": "28fb9b1a916b35202dd716e3f9e1b8ca650e3246a14c6818d81c478627215a14",
+    "animaux/AttackTimeline.luau": "76dafa672c57284d4275ec2fcf7e573a3dafe06a89f093814cf30a56efd6f751",
+    "animaux/Buffalo.png": "27b636c0adb4b063cf94a4e20390863d11bf73274d285f23e01eff356c1b96a4",
+    "animaux/Cheetah-profile.png": "9b0e7245894ecb53f10c7dc80a59569995c3666c3570a494d0dda5250128cde7",
+    "animaux/Cheetah.png": "031e02451961705daed486b8257928473ea8290de81687bfc399a06fa6b1738e",
+    "animaux/Collection-6-animaux.blend": "b92fed8a16c6aac1049926925a6cb8297308565ef21d1da8703352d45a1901ea",
+    "animaux/Collection-6-animaux.rbxmx": "4a93bbd870cd64fe35ec2f15b4444d32993181d5e6245d6dbbf2cb8dbecdbf48",
+    "animaux/collection-data.json": "e10c3b4ffbbe9aee32d6163ed27a77c3fd849c96662750844313881d3f31d9b7",
+    "animaux/collection-render.png": "b4edade1f72890678fd96f658ecffee099c080b23aae55719031d4068c3fa6aa",
+    "animaux/combat-gallery.project.json": "c9c126b68e14cb9832d116bc5c6bc42c9bbf47fa08e3a32ce72ea57c973e4ab3",
+    "animaux/CombatAnimator.luau": "205a1223398dacdf4d685a34f325db6704ece98596ba950f1ee7d29475f8f911",
+    "animaux/CombatGallery.client.luau": "1f575bdb04eb42244ccd541e6ff423a9fd3293f70c200b011132ce2250c3a3df",
+    "animaux/Elephant.png": "46ab6e2ad052c29afe852f11e692190a172298d9547c8c98e9566b51a20d2c10",
+    "animaux/Galerie-6-animaux.rbxl": "32868f322f29b51194410b723f18b2f01e6dcaddb58ad6e856e150f1a0aa941e",
+    "animaux/Hyena.png": "43f4ad77a11a006092a0523fcf217fee24ed1722991b0def1e6566bf0179e7e7",
+    "animaux/Lion.png": "06ceb7b137f6931c8415c7a4ce8f22087e74e7f435987a967ddc4efc93d65905",
+    "animaux/MANIFEST.json": "f0eb78cee628704fce7ba6a79e06cbc62f09381b03fb07a2369740c919a1c91f",
+    "animaux/models/Buffalo.rbxmx": "f06427bf49cef1a1d99a4a700b004cfb0680e667f5e3c5ac8d48b2d63b3e21ab",
+    "animaux/models/Cheetah.rbxmx": "405c6ab355d40d46ec39e26869c6f319cb50f64905f29ecd4e0dc2d949ef6314",
+    "animaux/models/Elephant.rbxmx": "02ebd6e1fd1ed41a521212616f525e6b8c07a9545479f33299df8fdc47027d4e",
+    "animaux/models/Hyena.rbxmx": "17be7f0da06c12a6fa1c232b1b8ae3d5952a4a2749823d4579b281b5083187df",
+    "animaux/models/Lion.rbxmx": "6e0f21f4114a1b42a42b103244d8fb1af2221d8f6429774628e60efce6c32c0d",
+    "animaux/models/Rhino.rbxmx": "220a1d1f26bc2a5569c099825ac123a613d01192e80517413ca99c0899454527",
+    "animaux/Rhino.png": "235b4c3be0075bc67ff4207c48a7a463ffe1657a0682c1e3fe98d5beb636b791",
+    "Apercu-animaux.png": "06e823086fa825a62e34de720cdcd6f203b06d2299d817604a2ece0def488982",
+    "Apercu-attaques.gif": "d88b5c067d4b1e023634eb0be34cae7da61e0b125cb3452211d4030c22e8dd67",
+    "Apercu-attaques.png": "55d63f1e40321ba74c491f1f11ab9fd0df56de67a218865e72b33246abbdbd54",
+    "Apercu-oeufs.png": "de59f77fc6454409387dd15f5f22bcec81f3af4287e693b93c22e439cda64370",
+    "oeufs/Collection-6-oeufs.rbxmx": "31e99d7de7e92b77788a52e3a429108218eec9eaf06272daca91c0b2b353df91",
+    "oeufs/egg-data.json": "ef3b52735ee382b5fd00759fbe15c10828abfa64120efe86fa9ae95429f41a95",
+    "oeufs/Galerie-6-oeufs.rbxl": "eb137d994904d0a086b484cc5107c172760832a013fb179a6bc6eab0415089ab",
+    "oeufs/Gallery.client.luau": "538a2ddb5ea3fd168680faac869c1864981e5fd1d98536e87960c4e39f113e58",
+    "oeufs/gallery.project.json": "eb9427abb1cd740a2d50c4cffd3fa21cd7bb22e7fa2a03b863cb1af11850a257",
+    "oeufs/MANIFEST.json": "13a56bee8cb896ffb226c1c21c0bb9d9f3c5c8b07f1243b734b03d6d4f3fcabe",
+    "oeufs/models/BuffaloEgg.rbxmx": "23edf2ecd20f6cdab0d1125d1ac223b9e36d8214a0e519b3d0e0951810e4239b",
+    "oeufs/models/CheetahEgg.rbxmx": "546d2c5f814f42a3ee6432782ec01d5227b7475547ad86cf10f3ceacf707a4a8",
+    "oeufs/models/ElephantEgg.rbxmx": "7d6ecd17fa9448449eb6ac5a7eb1425a280b33b3f985f900be210c9ad38ca955",
+    "oeufs/models/HyenaEgg.rbxmx": "9a65dfafbc3690fb05a984641f5f6d599a3f2dae8f6143a35bbed12d82d4611a",
+    "oeufs/models/LionEgg.rbxmx": "323715ad8648eb4aa32ce8f66c2de98114093be399f76de2074e34d642b4616b",
+    "oeufs/models/RhinoEgg.rbxmx": "6f6ba303d2b66da3eac09cc54abb6baf7cebb919e96ffd1a16b82325b076dc5e",
+    "oeufs/previews/BuffaloEgg.png": "801c265e24fd321307ea531b130e3c88d032801393e98fe3dd73fd0cad88d5c9",
+    "oeufs/previews/CheetahEgg.png": "0f5ebd372b52b1fdc409a748dab0e3dd53d9ebf517c6c213ddb74531fc0651f2",
+    "oeufs/previews/ElephantEgg.png": "ab26c45babfa79e7003238cfec4c638363bc92688a057fe4dffcc5c579d4f7a5",
+    "oeufs/previews/HyenaEgg.png": "fab7987c736643a9447978ea273df9d72624cd68def42ecf65b94c934f749a3f",
+    "oeufs/previews/LionEgg.png": "9df2a4ef0fa612cbc63aca5e574acdf4a3d7a9589d975992c172040f0a4c9449",
+    "oeufs/previews/RhinoEgg.png": "44b4d7e05918feca9217ac7950ece5d7fcdea965dd1502776b7284cf175add2f",
+    "oeufs/previews/Salle-7-scene.png": "f5b2ef964acf4c27b5cde095a6fc80532144f2615ea1f9b343f1ef147f8883ac",
+    "oeufs/RARITY_REFERENCE.json": "50b42da38a5c6b81d42b572dd3cbf004b38166ee0caddba6e44b530b20993c8c",
+    "oeufs/Salle-7-6-oeufs.blend": "aa2c0ca69da08403b6a53840c5b40d82dbe345367f8ce283798f27cbca457671",
+    "oeufs/Salle-7-6-oeufs.rbxmx": "31e99d7de7e92b77788a52e3a429108218eec9eaf06272daca91c0b2b353df91",
+    "README.md": "a6244b843e06d3096dc7323ac7f3e69e078c513b2d27640d477cb684ef342a03"
+  }
+}
