@@ -5,7 +5,7 @@
 local Players = game:GetService("Players")
 local ServerStorage = game:GetService("ServerStorage")
 
-local ZONES = { 1, 2, 3, 4 }
+local ZONES = { 4 }
 
 return function(log)
 	local player = Players:GetPlayers()[1] or Players.PlayerAdded:Wait()
@@ -46,7 +46,7 @@ return function(log)
 					root.CFrame = CFrame.new(at + Vector3.new(side * 70, 5, -30))
 				end
 				task.wait(1.2)
-				workspace:SetAttribute("ShotCam", CFrame.lookAt(at + Vector3.new(side * 44, 34, -30), at + Vector3.new(0, 2, 0)))
+				workspace:SetAttribute("ShotCam", CFrame.lookAt(at + Vector3.new(side * 30, 16, -22), at + Vector3.new(0, 3, 0)))
 				shot("camp_" .. zone .. "_" .. rank .. "_" .. animals[rank])
 			end
 		end
