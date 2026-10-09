@@ -246,12 +246,15 @@ Config.STORE = {
 	},
 	products = {
 		rank = { id = 0, robux = 40, count = 1 },
-		xp = { id = 0, robux = 10, count = 3 },
-		coins = { id = 0, robux = 10, count = 3 },
-		damage = { id = 0, robux = 10, count = 3 },
+		-- (Son choix du 09/10 : UNE potion par achat, 10 minutes, pas un lot de 3 : le « x3 » se confondait avec le x2.)
+		xp = { id = 0, robux = 10, count = 1 },
+		coins = { id = 0, robux = 10, count = 1 },
+		damage = { id = 0, robux = 10, count = 1 },
 	},
 }
 Config.PASS_ORDER = { "xp", "coins" }
+-- LE MINI TUTORIEL des nouveaux joueurs (Tutorial.luau) : le nombre d'étapes.
+Config.TUTORIAL_STEPS = 6
 -- LES MONDES SONT TOUJOURS OUVERTS (sa demande du 09/10 : « ouvrir tous les mondes tout le temps permet de visiter ;
 -- de toute manière ils ne géreront pas les monstres, à quoi bon les fermer »). Le monde CONQUIS (data.zone : le
 -- dernier boss battu + 1) sert toujours pour la forge, les cadeaux et les œufs.

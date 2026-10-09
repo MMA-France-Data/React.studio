@@ -511,6 +511,11 @@ ReplicatedStorage:WaitForChild("Notify").OnClientEvent:Connect(function(key: str
 		showToast(tr("potionNone"), RED)
 	elseif key == "adminSent" or key == "adminStopped" then
 		showToast(tr(key), GOLD)
+	elseif key == "tutoDone" then
+		showToast(tr("tutoDone"), GOLD)
+		Sounds.play("level")
+	elseif key == "tutoStep" then
+		Sounds.play("level")
 	elseif key == "storeBought" then
 		showToast(tr("storeBought", b, tr("potion_" .. a)), GOLD)
 		Sounds.play("hatch")
@@ -1190,6 +1195,122 @@ task.spawn(function()
 	announceOffline()
 	player:GetAttributeChangedSignal("Offline"):Connect(announceOffline)
 end)
+
+-- LE MINI TUTORIEL des nouveaux joueurs (Tutorial.luau ; attribut « Tutorial » = l'étape, 0 = rien) : l'objectif
+-- est écrit dans un cadre en haut de l'écran, le bouton à cliquer est entouré d'un cadre jaune qui bat, et à
+-- l'étape 1 un trait jaune part du joueur vers le canard le plus proche.
+do
+	local RING = Color3.fromRGB(255, 230, 40)
+	local frame = box(gui, "Tutorial", UDim2.fromOffset(660, 76), UDim2.new(0.5, 0, 0, 30), Color3.fromRGB(34, 28, 70))
+	frame.AnchorPoint = Vector2.new(0.5, 0)
+	frame.Visible = false
+	frame.ZIndex = 6
+	frame.UIStroke.Color = RING
+	frame.UIStroke.Thickness = 4
+	local frameScale = Instance.new("UIScale")
+	frameScale.Parent = frame
+	local stepLabel = text(frame, "Step", UDim2.new(1, -20, 0, 20), UDim2.fromOffset(10, 4), RING, 18)
+	stepLabel.ZIndex = 7
+	local goal = text(frame, "Goal", UDim2.new(1, -24, 0, 46), UDim2.fromOffset(12, 25), nil, 28)
+	goal.ZIndex = 7
+	-- Le cadre jaune autour du bouton de l'étape.
+	local ring = Instance.new("Frame")
+	ring.Name = "TutorialRing"
+	ring.BackgroundTransparency = 1
+	ring.Size = UDim2.new(1, 16, 1, 16)
+	ring.Position = UDim2.fromOffset(-8, -8)
+	ring.ZIndex = 30
+	Instance.new("UICorner", ring).CornerRadius = UDim.new(0, 14)
+	local ringLine = Instance.new("UIStroke")
+	ringLine.Color = RING
+	ringLine.Thickness = 5
+	ringLine.Parent = ring
+	local function target(step: number): Instance?
+		if step == 1 then
+			return attackButton
+		elseif step == 2 then
+			return gui:FindFirstChild("EggButton")
+		elseif step == 5 then
+			return gui:FindFirstChild("ShopButton")
+		elseif step == 6 then
+			return side:FindFirstChild("Gift")
+		end
+		return nil
+	end
+	-- Le trait jaune de l'étape 1 : du joueur au canard le plus proche.
+	local guideFrom, guideTo = Instance.new("Attachment"), Instance.new("Attachment")
+	local anchor = Instance.new("Part")
+	anchor.Name = "TutorialGuide"
+	anchor.Anchored = true
+	anchor.CanCollide = false
+	anchor.CanQuery = false
+	anchor.CanTouch = false
+	anchor.Transparency = 1
+	anchor.Size = Vector3.new(1, 1, 1)
+	guideTo.Parent = anchor
+	local beam = Instance.new("Beam")
+	beam.Attachment0 = guideFrom
+	beam.Attachment1 = guideTo
+	beam.Color = ColorSequence.new(RING)
+	beam.Width0 = 0.7
+	beam.Width1 = 0.7
+	beam.FaceCamera = true
+	beam.LightEmission = 0.6
+	beam.Transparency = NumberSequence.new(0.25)
+	beam.Enabled = false
+	beam.Parent = anchor
+	anchor.Parent = workspace
+	local function refresh()
+		local step = player:GetAttribute("Tutorial") or 0
+		frame.Visible = step > 0
+		ring.Parent = if step > 0 then target(step) else nil
+		if step <= 0 then
+			return
+		end
+		stepLabel.Text = tr("tutoStepTitle", step, Config.TUTORIAL_STEPS)
+		if step == 4 then
+			local price = Config.swordPrice(1)
+			goal.Text = tr("tuto4", num(price), num(math.min(player:GetAttribute("Coins") or 0, price)), num(price))
+		else
+			goal.Text = tr("tuto" .. step)
+		end
+		local view = workspace.CurrentCamera.ViewportSize
+		frameScale.Scale = math.min(1, view.X / 860)
+	end
+	for _, name in { "Tutorial", "Coins" } do
+		player:GetAttributeChangedSignal(name):Connect(refresh)
+	end
+	task.spawn(function()
+		while true do
+			local step = player:GetAttribute("Tutorial") or 0
+			if step > 0 then
+				refresh() -- (les boutons du menu sont créés après ce bloc : on les retrouve ici)
+				ringLine.Thickness = 4 + 3 * math.abs(math.sin(os.clock() * 4))
+			end
+			-- Le trait vers le canard le plus proche encore debout.
+			local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+			local nearest, best = nil, math.huge
+			if step == 1 and root then
+				for _, part in CollectionService:GetTagged("Monster") do
+					if part:IsA("BasePart") and part:GetAttribute("Rank") == 1 and (part:GetAttribute("Hp") or 0) > 0 then
+						local distance = (part.Position - root.Position).Magnitude
+						if distance < best then
+							nearest, best = part, distance
+						end
+					end
+				end
+			end
+			if nearest and root then
+				guideFrom.Parent = root
+				anchor.Position = nearest.Position
+				beam.Enabled = true
+			else
+				beam.Enabled = false
+			end
+			task.wait(0.1)
+		end
+	end)
+end
 
 -- LE TUTORIEL DE L'ÉPÉE : dès que le joueur a de quoi payer sa première amélioration, on le lui dit (et on le
 -- répète toutes les 20 secondes tant qu'il ne l'a pas achetée).

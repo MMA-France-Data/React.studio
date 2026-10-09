@@ -96,7 +96,7 @@ def flask(image, color, glyph, cx, cy, size):
     pen.ellipse(box(60, 76, 7, 7), fill=(255, 255, 255, 76))
     image.alpha_composite(shine)
     if glyph:
-        text(image, glyph, (x0 + 55 * unit, y0 + 70 * unit), 34 * unit if len(glyph) > 1 else 40 * unit)
+        text(image, glyph, (x0 + 55 * unit, y0 + 70 * unit), (40 if len(glyph) == 1 else 34 if len(glyph) == 2 else 26) * unit)
 
 
 def coin(image, cx, cy, size):
@@ -134,11 +134,11 @@ def main():
     banner(image, "RANK UP", (40, 170, 70))
     finish(image, os.path.join(out, "produit-Rank-Potion.png"))
 
-    for name, color, glyph in (("Double-XP-Potions", blue, "XP"), ("Double-Coins-Potions", gold, "$"), ("Double-Damage-Potions", red, "x2")):
+    for name, color, glyph in (("Double-XP-Potion", blue, "XP"), ("Double-Coins-Potion", gold, "$"), ("Double-Damage-Potion", red, "DMG")):
         image = backdrop(color)
+        # (Une potion par achat : pas de pastille « x3 », elle se confondait avec le x2 de l'effet.)
         flask(image, color, glyph, U * 0.5, U * 0.42, U * 0.66)
-        badge(image, "x3", U * 0.80, U * 0.20, U * 0.13)
-        banner(image, "x2  •  30 MIN", tuple(int(c * 0.78) for c in color))
+        banner(image, "x2  •  10 MIN", tuple(int(c * 0.78) for c in color))
         finish(image, os.path.join(out, "produit-" + name + ".png"))
 
     image = backdrop(blue)

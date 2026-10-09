@@ -50,6 +50,7 @@ local function defaults()
 		bx = 0, -- ... et l'heure (os.time) où le bonus d'XP s'arrête
 		po = { rank = 0, xp = 0, coins = 0, damage = 0 }, -- les potions en réserve (Potions.luau)
 		rc = {}, -- les reçus des derniers achats en Robux déjà comptés (Store.luau)
+		tu = 1, -- l'étape du mini tutoriel (Tutorial.luau) ; 0 = pas de tutoriel, ou fini
 		px = 0, -- ... et l'heure (os.time) où s'arrêtent celles qui ont été bues : XP, pièces, dégâts
 		pc = 0,
 		pd = 0,
@@ -134,6 +135,12 @@ local function clean(raw)
 		if type(raw[key]) == "number" and raw[key] >= 0 then
 			data[key] = math.floor(raw[key])
 		end
+	end
+	-- (Une sauvegarde d'avant le tutoriel : seul celui qui n'a encore rien fait le voit.)
+	if type(raw.tu) == "number" then
+		data.tu = math.clamp(math.floor(raw.tu), 0, Config.TUTORIAL_STEPS)
+	else
+		data.tu = if (tonumber(raw.level) or 1) <= 1 and (tonumber(raw.sword) or 1) <= 1 then 1 else 0
 	end
 	if type(raw.rc) == "table" then
 		for _, id in raw.rc do
@@ -263,6 +270,7 @@ local function publish(player: Player)
 	player:SetAttribute("PetLuck", luck)
 	player:SetAttribute("Income", Pets.income(data.spots) * PlayerData.passMult(player, "coins"))
 	player:SetAttribute("XpBoostUntil", data.bx)
+	player:SetAttribute("Tutorial", data.tu or 0)
 	player:SetAttribute("Potions", string.format("rank:%d,xp:%d,coins:%d,damage:%d", data.po.rank or 0, data.po.xp or 0, data.po.coins or 0, data.po.damage or 0))
 	player:SetAttribute("PotXpUntil", data.px)
 	player:SetAttribute("PotCoinsUntil", data.pc)

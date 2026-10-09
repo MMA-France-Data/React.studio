@@ -1,6 +1,6 @@
--- PETIT TEST (une trentaine de secondes), sans rejouer tout le jeu.
---   powershell -ExecutionPolicy Bypass -File tools/studio-test/run.ps1 -Test photo -Seconds 40
--- Ici : un œuf posé d'un clic (Eggs.placeNow), et la fenêtre « enclos plein : qui remplacer ? » puis l'échange.
+-- PETIT TEST (une quarantaine de secondes), sans rejouer tout le jeu.
+--   powershell -ExecutionPolicy Bypass -File tools/studio-test/run.ps1 -Test photo -Seconds 55
+-- Ici : le mini tutoriel d'un nouveau joueur, étape par étape (Tutorial.luau), avec une photo de chaque étape.
 local Players = game:GetService("Players")
 local ServerStorage = game:GetService("ServerStorage")
 
@@ -11,40 +11,26 @@ return function(log)
 	end
 	local debug = ServerStorage:WaitForChild("SurviveDebug")
 	task.wait(8)
-	local function state(): string
-		local data = debug:Invoke("Data")
-		local pets, eggs, names = 0, 0, {}
-		for key, spot in data.spots do
-			if spot.v then
-				pets += 1
-				table.insert(names, key .. "=" .. spot.a)
-			else
-				eggs += 1
-			end
-		end
-		table.sort(names)
-		return "enclos " .. pets .. " (" .. table.concat(names, " ") .. "), œufs qui couvent " .. eggs .. ", œufs au sac " .. data.bag .. ", équipe " .. table.concat(data.team, ",")
+	local function shot(name: string, what: string)
+		task.wait(1.6)
+		log("Info", "[PHOTO] " .. what .. " → étape " .. tostring(player:GetAttribute("Tutorial")) .. ", potions " .. tostring(player:GetAttribute("Potions")))
+		log("Info", "SHOT:photo_tuto_" .. name)
+		task.wait(1.2)
 	end
-	-- Une chèvre épique part au sac, puis l'enclos est rempli (5 places).
-	debug:Invoke("Pet", "Goat", 5)
-	debug:Invoke("ToBag", 1)
-	for _, pet in { { "Duck", 1 }, { "Rooster", 2 }, { "Pig", 3 }, { "Sheep", 4 }, { "Duck", 1 } } do
-		debug:Invoke("Pet", pet[1], pet[2])
-	end
-	debug:Invoke("Egg", 1, 2)
+	shot("1", "nouveau joueur")
+	debug:Invoke("Level", 2)
 	debug:Invoke("Egg", 1, 1)
-	task.wait(1)
-	log("Info", "[PHOTO] départ : " .. state())
-	log("Info", "[PHOTO] œuf posé d'un clic : " .. tostring(debug:Invoke("EggNow", "Rooster", 2)) .. " → " .. state())
-	workspace:SetAttribute("OpenReplace", 1)
-	task.wait(2)
-	log("Info", "SHOT:photo_remplacer")
-	task.wait(1.5)
-	log("Info", "[PHOTO] échange (sac 1 ↔ place 1) : " .. tostring(debug:Invoke("Swap", 1, 1)) .. " → " .. state())
-	task.wait(1.5)
-	workspace:SetAttribute("OpenPanel", "BagPanel")
-	task.wait(1.5)
-	log("Info", "SHOT:photo_remplacer_apres")
-	task.wait(1.2)
+	shot("2", "un canard battu, un œuf dans le sac")
+	debug:Invoke("EggNow", "Duck", 1)
+	shot("3", "œuf posé")
+	debug:Invoke("Hatch")
+	shot("4", "œuf éclos")
+	debug:Invoke("Give", 300)
+	shot("5", "300 pièces")
+	debug:Invoke("Sword", 2)
+	shot("6", "épée 2")
+	debug:Invoke("Gift", 0)
+	debug:Invoke("Claim")
+	shot("fin", "cadeau pris")
 	log("Info", "[SURVIVE] TEST:done")
 end

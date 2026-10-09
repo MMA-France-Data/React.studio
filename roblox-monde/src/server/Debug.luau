@@ -26,6 +26,11 @@ return function(world)
 				data.sd = 0
 			end
 			return require(script.Parent.Rewards).leaving(player)
+		elseif action == "Tuto" then
+			-- Met le mini tutoriel à l'étape a (0 = fini).
+			data.tu = a
+			PlayerData.changed(player)
+			return true
 		elseif action == "EggNow" then
 			-- Pose d'un clic l'œuf de l'animal a et du rang b (comme la fenêtre des œufs).
 			return Eggs.placeNow(player, a, b)

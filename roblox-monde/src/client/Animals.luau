@@ -1975,7 +1975,10 @@ return function(env)
 		name.Text = tr("potion_" .. kind)
 		name.ZIndex = 6
 		local pack = env.text(card, "Pack", UDim2.new(1, -10, 0, 22), UDim2.fromOffset(5, 154), nil, 17)
-		pack.Text = if def.seconds then tr("storePackTime", item.count, item.count * def.seconds // 60) else tr("storePack", item.count)
+		-- (Un lot : « x3 • 30 min ». Une seule potion : sa durée, ou rien pour la potion de rang.)
+		pack.Text = if item.count > 1 then (if def.seconds then tr("storePackTime", item.count, item.count * def.seconds // 60) else tr("storePack", item.count))
+			elseif def.seconds then tr("storeTime", def.seconds // 60)
+			else ""
 		pack.ZIndex = 6
 		local buy = button(card, "Buy", UDim2.new(1, -16, 0, 40), UDim2.new(0, 8, 1, -48), GREEN_BUY, "")
 		buy.Activated:Connect(function()
