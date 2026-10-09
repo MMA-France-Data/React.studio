@@ -39,7 +39,7 @@ local function done(step: number, data): boolean
 	elseif step == 5 then
 		return data.sword > 1
 	elseif step == 6 then
-		return (data.gs or 1) ~= 1
+		return (data.gd or 0) > 0 -- (il a déjà pris un cadeau, un jour)
 	end
 	return true
 end

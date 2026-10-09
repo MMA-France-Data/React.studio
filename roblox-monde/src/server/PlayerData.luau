@@ -83,6 +83,8 @@ local function defaults()
 		pd = 0,
 		gt = Config.GIFT_EVERY - Config.GIFT_FIRST, -- cadeau du temps de jeu : secondes jouées depuis le dernier cadeau (Rewards.luau)
 		gs = 1, -- ... et le numéro du prochain cadeau (Config.GIFTS)
+		gd = 0, -- le jour (os.time() // 86400) du dernier cadeau pris ; 0 = jamais
+		gc = 0, -- ... et combien il en a pris ce jour-là (limite : #Config.GIFTS par jour)
 		vm = 60, -- réglages du joueur : volume de la musique et des sons, de 0 à 100 (Sounds.luau)
 		vf = 10,
 		vv = 2, -- version de ces réglages (2 = départ à 60 et 10)
@@ -185,6 +187,11 @@ local function clean(raw)
 	end
 	if type(raw.gt) == "number" and raw.gt >= 0 then
 		data.gt = math.floor(raw.gt)
+	end
+	for _, key in { "gd", "gc" } do
+		if type(raw[key]) == "number" and raw[key] >= 0 then
+			data[key] = math.floor(raw[key])
+		end
 	end
 	if type(raw.gs) == "number" then
 		data.gs = math.clamp(math.floor(raw.gs), 1, #Config.GIFTS)

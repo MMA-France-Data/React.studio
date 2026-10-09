@@ -219,7 +219,10 @@ Config.PET_REGEN = 0.25
 Config.GIFT_EVERY = 15 * 60
 -- (Le tout premier cadeau d'un nouveau joueur arrive bien plus vite : il ouvre la fenêtre, et voit les suivants.)
 Config.GIFT_FIRST = 150
-Config.GIFTS = { { coins = 10 }, { egg = 2 }, { potion = "coins" }, { coins = 90 }, { potion = "xp" }, { egg = 4 }, { potion = "rank" }, { coins = 150 } }
+-- (10/10, sa demande : « cadeau toutes les 15 mn mais limite 4 par jour », « pas d'œufs, que des potions, la 4e
+-- le rang ». Ce sont les quatre cadeaux DU JOUR, dans cet ordre : le compte repart à zéro chaque jour (minuit UTC),
+-- et après le quatrième il n'y en a plus jusqu'au lendemain.)
+Config.GIFTS = { { potion = "coins" }, { potion = "xp" }, { potion = "damage" }, { potion = "rank" } }
 -- LES POTIONS (sa demande du 09/10 : « une potion pour monter de rang (un rang de compagnon, A à S), une potion
 -- double XP et une potion double argent, comme ça on pourra les vendre aussi en Robux, avec une potion double
 -- dégâts »). Celles à durée s'additionnent : en boire une autre avant la fin rallonge le temps. (Potions.luau)

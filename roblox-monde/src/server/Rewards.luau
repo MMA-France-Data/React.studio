@@ -1,9 +1,9 @@
 -- CE QUI FAIT REVENIR ET INVITER (demande du créateur, 09/10 : « une récompense toutes les 15 mn de jeu, inviter les
 -- amis, ton ami est en ligne, ajoute-le pour + 10 % d'XP et de cash, tout ce marketing-là »).
 --   1. LE CADEAU DU TEMPS DE JEU : toutes les Config.GIFT_EVERY secondes de jeu (comptées même d'une session à
---      l'autre), un cadeau à réclamer : des pièces, puis un œuf, puis plus de pièces, puis un œuf rare ; et ça
---      recommence. Le temps ne compte plus tant qu'un cadeau attend : il faut venir le prendre.
---      (Attributs du joueur : « GiftIn » = secondes avant le prochain, 0 = prêt ; « GiftStep » = lequel, 1 à 4.)
+--      l'autre), un cadeau à réclamer, QUATRE PAR JOUR au plus (Config.GIFTS : les quatre du jour, dans l'ordre ;
+--      que des potions, la quatrième est la potion de rang). Le temps ne compte plus tant qu'un cadeau attend, ni
+--      quand ceux du jour sont tous pris. Le compte repart à zéro chaque jour (data.gd, data.gc).
 --   2. LE BONUS D'AMIS : chaque ami Roblox présent dans le même serveur donne Config.FRIEND_BONUS d'XP et de pièces
 --      de combat en plus, jusqu'à Config.FRIEND_MAX amis. (Attribut « FriendBonus » : le bonus en %, lu par
 --      Monsters.luau quand il paie un monstre battu.)
@@ -20,24 +20,44 @@ local Rewards = {}
 
 local notify
 
+local function today(): number
+	return os.time() // 86400
+end
+-- Combien de cadeaux il a déjà pris AUJOURD'HUI (le compte repart à zéro chaque jour).
+local function taken(data): number
+	return if (data.gd or 0) == today() then (data.gc or 0) else 0
+end
+
+-- Attributs du joueur : « GiftIn » = secondes de jeu avant le prochain (0 = prêt) ; « GiftsTaken » = pris
+-- aujourd'hui ; « GiftStep » = le numéro du prochain ; « GiftReset » = l'heure (os.time) des cadeaux de demain.
 local function publish(player: Player)
 	local data = PlayerData.get(player)
 	if data then
 		player:SetAttribute("GiftIn", math.max(0, Config.GIFT_EVERY - (data.gt or 0)))
-		player:SetAttribute("GiftStep", data.gs or 1)
+		player:SetAttribute("GiftsTaken", taken(data))
+		player:SetAttribute("GiftStep", taken(data) + 1)
+		player:SetAttribute("GiftReset", (today() + 1) * 86400)
 	end
 end
 
 -- Le joueur réclame son cadeau. Renvoie true s'il l'a reçu.
 function Rewards.claim(player: Player): boolean
 	local data = PlayerData.get(player)
-	if not data or (data.gt or 0) < Config.GIFT_EVERY then
+	if not data then
 		return false
 	end
-	local step = math.clamp(data.gs or 1, 1, #Config.GIFTS)
-	local gift = Config.GIFTS[step]
+	local count = taken(data)
+	if count >= #Config.GIFTS then
+		notify(player, "giftDayDone", #Config.GIFTS)
+		return false
+	end
+	if (data.gt or 0) < Config.GIFT_EVERY then
+		return false
+	end
+	local gift = Config.GIFTS[count + 1]
 	data.gt = 0
-	data.gs = step % #Config.GIFTS + 1
+	data.gd, data.gc = today(), count + 1
+	data.gs = data.gc + 1
 	if gift.coins then
 		-- (En pièces du monde où il est arrivé : autant que `coins` monstres de son camp du milieu.)
 		local amount = Config.monster(data.zone, 3).coins * gift.coins
@@ -133,14 +153,15 @@ function Rewards.start(notifier)
 			task.wait(1)
 			for _, player in Players:GetPlayers() do
 				local data = PlayerData.get(player)
-				if data and (data.gt or 0) < Config.GIFT_EVERY then
+				-- (Le temps ne compte plus quand un cadeau attend, ni quand les cadeaux du jour sont tous pris.)
+				if data and (data.gt or 0) < Config.GIFT_EVERY and taken(data) < #Config.GIFTS then
 					data.gt = (data.gt or 0) + 1
-					publish(player)
 					if data.gt >= Config.GIFT_EVERY then
 						PlayerData.changed(player)
 						notify(player, "giftReady")
 					end
 				end
+				publish(player) -- (toutes les secondes : un nouveau jour remet le compte à zéro)
 			end
 		end
 	end)

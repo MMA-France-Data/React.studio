@@ -835,7 +835,11 @@ do
 	local function showGift()
 		local left = player:GetAttribute("GiftIn")
 		if left == nil then
-			giftLabel.Text = "🎁"
+			giftLabel.Text = ""
+		elseif (player:GetAttribute("GiftsTaken") or 0) >= #Config.GIFTS then
+			-- (Les cadeaux du jour sont tous pris.)
+			giftLabel.Text = tr("giftTomorrow")
+			gift.BackgroundColor3 = Color3.fromRGB(90, 96, 120)
 		elseif left <= 0 then
 			giftLabel.Text = tr("giftGo")
 			gift.BackgroundColor3 = Color3.fromRGB(50, 200, 80)
@@ -845,6 +849,7 @@ do
 		end
 	end
 	player:GetAttributeChangedSignal("GiftIn"):Connect(showGift)
+	player:GetAttributeChangedSignal("GiftsTaken"):Connect(showGift)
 	showGift()
 	-- LA FENÊTRE DES CADEAUX (demande du créateur, 09/10 : « une fenêtre où tu vois les récompenses avec le timer ») :
 	-- les prochains cadeaux côte à côte, chacun avec ce qu'il donne et le temps de jeu qu'il reste avant de l'avoir.
@@ -875,7 +880,7 @@ do
 	giftTitle.UIStroke.Thickness = 4
 	drawGift(giftHeader, UDim2.fromOffset(54, 22), 0.95, Color3.fromRGB(235, 50, 80)).Rotation = -8
 	local giftSub = text(giftPanel, "Sub", UDim2.new(1, -40, 0, 26), UDim2.fromOffset(20, 42), Color3.fromRGB(120, 225, 255), 24)
-	giftSub.Text = tr("giftSub", Config.GIFT_EVERY // 60)
+	giftSub.Text = tr("giftSub", #Config.GIFTS, Config.GIFT_EVERY // 60)
 	local giftClose = Instance.new("TextButton")
 	giftClose.Name = "Close"
 	giftClose.Size = UDim2.fromOffset(46, 44)
@@ -940,15 +945,16 @@ do
 		barLabel.UIStroke.Thickness = 3.5
 		bar.Activated:Connect(function()
 			local left = player:GetAttribute("GiftIn") or 1
-			if index == 1 and left <= 0 then
+			local taken = player:GetAttribute("GiftsTaken") or 0
+			if index == taken + 1 and left <= 0 then
 				claimEvent:FireServer()
-			else
-				showToast(tr("giftSoon", clockText(math.max(left, 0) + (index - 1) * Config.GIFT_EVERY)), GOLD)
+			elseif index > taken then
+				showToast(tr("giftSoon", clockText(math.max(left, 0) + (index - taken - 1) * Config.GIFT_EVERY)), GOLD)
 			end
 		end)
 		giftCards[index] = { card = card, head = head, rays = rays, present = present, view = view, coin = coin, potion = potionIcon, reward = reward, barColor = barColor, label = barLabel }
 	end
-	local giftReady = false
+	local giftReady, giftNext = false, 1
 	local function showGifts()
 		if not giftPanel.Visible then
 			return
@@ -956,13 +962,23 @@ do
 		local step = math.clamp(player:GetAttribute("GiftStep") or 1, 1, #Config.GIFTS)
 		local left = math.max(player:GetAttribute("GiftIn") or Config.GIFT_EVERY, 0)
 		local zone = math.clamp(player:GetAttribute("Zone") or 1, 1, #Pets.COLLECTIONS)
-		giftReady = left <= 0
+		-- (Les cartes sont les quatre cadeaux DU JOUR, dans l'ordre : ceux déjà pris, le prochain, ceux d'après.)
+		local taken = player:GetAttribute("GiftsTaken") or 0
+		local _ = step
+		giftReady = left <= 0 and taken < #Config.GIFTS
+		giftNext = taken + 1
+		if taken >= #Config.GIFTS then
+			local back = math.max(0, (player:GetAttribute("GiftReset") or 0) - workspace:GetServerTimeNow())
+			giftSub.Text = tr("giftBack", string.format("%d h %02d", back // 3600, back % 3600 // 60))
+		else
+			giftSub.Text = tr("giftSub", #Config.GIFTS, Config.GIFT_EVERY // 60)
+		end
 		for index, parts in giftCards do
-			local number = (step - 1 + index - 1) % #Config.GIFTS + 1
+			local number = index
 			local info = Config.GIFTS[number]
 			local color = GIFT_COLORS[(number - 1) % #GIFT_COLORS + 1]
 			parts.card.BackgroundColor3 = color:Lerp(Color3.fromRGB(10, 10, 26), 0.82)
-			parts.head.Text = if index == 1 then tr("giftNext") else tr("giftCard", number)
+			parts.head.Text = if index == taken + 1 then tr("giftNext") else tr("giftCard", number)
 			parts.head.TextColor3 = color:Lerp(Color3.new(1, 1, 1), 0.45)
 			for _, ray in parts.rays:GetChildren() do
 				ray.BackgroundColor3 = color:Lerp(Color3.new(1, 1, 1), 0.5)
@@ -987,16 +1003,29 @@ do
 				parts.reward.Text = tr("potion_" .. info.potion)
 				parts.reward.TextColor3 = look.color:Lerp(Color3.new(1, 1, 1), 0.35)
 			end
-			local wait = left + (index - 1) * Config.GIFT_EVERY
-			parts.label.Text = if wait <= 0 then tr("giftTake") else clockText(wait)
-			parts.barColor.Color = if wait <= 0
-				then ColorSequence.new(Color3.fromRGB(120, 245, 90), Color3.fromRGB(30, 170, 60))
-				else ColorSequence.new(Color3.fromRGB(255, 80, 80), Color3.fromRGB(190, 25, 45))
+			local wait = left + (index - taken - 1) * Config.GIFT_EVERY
+			if index <= taken then
+				parts.label.Text = tr("giftTaken")
+				parts.barColor.Color = ColorSequence.new(Color3.fromRGB(120, 130, 170), Color3.fromRGB(70, 76, 110))
+			elseif wait <= 0 then
+				parts.label.Text = tr("giftTake")
+				parts.barColor.Color = ColorSequence.new(Color3.fromRGB(120, 245, 90), Color3.fromRGB(30, 170, 60))
+			else
+				parts.label.Text = clockText(wait)
+				parts.barColor.Color = ColorSequence.new(Color3.fromRGB(255, 80, 80), Color3.fromRGB(190, 25, 45))
+			end
 		end
 	end
-	for _, name in { "GiftIn", "GiftStep", "Zone" } do
+	for _, name in { "GiftIn", "GiftStep", "GiftsTaken", "Zone" } do
 		player:GetAttributeChangedSignal(name):Connect(showGifts)
 	end
+	-- (Quand tout est pris, plus rien ne change : on rafraîchit quand même le temps avant demain.)
+	task.spawn(function()
+		while true do
+			task.wait(5)
+			showGifts()
+		end
+	end)
 	giftPanel:GetPropertyChangedSignal("Visible"):Connect(showGifts)
 	-- Les rayons tournent ; le paquet prêt se dandine pour qu'on le prenne.
 	RunService.RenderStepped:Connect(function()
@@ -1006,7 +1035,7 @@ do
 		local now = os.clock()
 		for index, parts in giftCards do
 			parts.rays.Rotation = now * 25 + index * 15
-			parts.present.Rotation = if index == 1 and giftReady then math.sin(now * 9) * 9 else -4
+			parts.present.Rotation = if index == giftNext and giftReady then math.sin(now * 9) * 9 else -4
 		end
 	end)
 	gift.Activated:Connect(function()

@@ -42,7 +42,7 @@ return function(world)
 			end
 			return {
 				read = ok, locked = type(raw) == "table" and raw.lk ~= nil,
-				gt = back.gt, gs = back.gs, coins = back.coins, level = back.level, sword = back.sword, tu = back.tu,
+				gt = back.gt, gs = back.gs, gc = back.gc, gd = back.gd, coins = back.coins, level = back.level, sword = back.sword, tu = back.tu,
 				potions = back.po.rank .. "/" .. back.po.xp .. "/" .. back.po.coins .. "/" .. back.po.damage,
 				pets = pets, eggs = eggs, store = #back.store, bag = #back.bag, team = #back.team,
 			}
@@ -97,11 +97,14 @@ return function(world)
 			-- Le cadeau du temps de jeu : prêt dans a secondes (0 = tout de suite) ; « Claim » le réclame.
 			data.gt = Config.GIFT_EVERY - (a or 0)
 			player:SetAttribute("GiftIn", a or 0)
-			-- (b : le numéro du prochain cadeau dans Config.GIFTS.)
+			-- (b : le numéro du prochain cadeau du jour : b - 1 sont déjà pris aujourd'hui.)
 			if b then
-				data.gs = b
-				player:SetAttribute("GiftStep", b)
+				data.gd, data.gc = os.time() // 86400, b - 1
 			end
+			return true
+		elseif action == "GiftDay" then
+			-- Comme si son dernier cadeau datait d'il y a a jours (1 = hier : le compte du jour repart à zéro).
+			data.gd = os.time() // 86400 - a
 			return true
 		elseif action == "Claim" then
 			return require(script.Parent.Rewards).claim(player)
