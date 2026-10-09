@@ -38,6 +38,8 @@ local function defaults()
 		mv = 2, -- version de la monnaie (2 = tout est multiplié par 10)
 		seen = 0, -- heure (os.time) de la dernière sauvegarde : sert au revenu hors ligne
 		played = 0, -- temps de jeu, en secondes (compté par Leaderboards.luau, pour le classement)
+		sd = 0, -- bonus « reste encore » : le jour (os.time() // 86400) où il a été donné en dernier
+		bx = 0, -- ... et l'heure (os.time) où le bonus d'XP s'arrête
 		gt = 0, -- cadeau du temps de jeu : secondes jouées depuis le dernier cadeau (Rewards.luau)
 		gs = 1, -- ... et le numéro du prochain cadeau (Config.GIFTS)
 		vm = 60, -- réglages du joueur : volume de la musique et des sons, de 0 à 100 (Sounds.luau)
@@ -114,6 +116,11 @@ local function clean(raw)
 	end
 	if type(raw.played) == "number" and raw.played >= 0 then
 		data.played = math.floor(raw.played)
+	end
+	for _, key in { "sd", "bx" } do
+		if type(raw[key]) == "number" and raw[key] >= 0 then
+			data[key] = math.floor(raw[key])
+		end
 	end
 	if type(raw.gt) == "number" and raw.gt >= 0 then
 		data.gt = math.floor(raw.gt)
@@ -228,6 +235,7 @@ local function publish(player: Player)
 	-- Le bonus de chance d'œuf rare (en %) : celui du meilleur familier de l'équipe.
 	player:SetAttribute("PetLuck", luck)
 	player:SetAttribute("Income", Pets.income(data.spots))
+	player:SetAttribute("XpBoostUntil", data.bx)
 	player:SetAttribute("VolMusic", data.vm)
 	player:SetAttribute("VolFx", data.vf)
 	local stats = player:FindFirstChild("leaderstats")

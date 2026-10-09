@@ -126,7 +126,9 @@ local function reward(monster, player: Player, share: number, best: boolean)
 	local def = monster.def
 	-- (Le bonus d'amis : + 10 % par ami présent dans le serveur, Rewards.luau.)
 	local friends = 1 + (player:GetAttribute("FriendBonus") or 0) / 100
-	local coins, xp = math.floor(def.coins * share * friends + 0.5), math.floor(def.xp * share * friends + 0.5)
+	-- (Le bonus « reste encore » : + 50 % d'XP pendant un quart d'heure, Rewards.leaving.)
+	local stay = if os.time() < (PlayerData.get(player).bx or 0) then 1 + Config.STAY_XP else 1
+	local coins, xp = math.floor(def.coins * share * friends + 0.5), math.floor(def.xp * share * friends * stay + 0.5)
 	PlayerData.addCoins(player, coins)
 	-- Chaque familier de l'équipe reçoit l'XP du monstre, lui aussi.
 	local data = PlayerData.get(player)

@@ -51,6 +51,25 @@ function Rewards.claim(player: Player): boolean
 	return true
 end
 
+-- LE JOUEUR OUVRE LE MENU DE ROBLOX (il va peut-être partir). La première fois de la journée : + Config.STAY_XP d'XP
+-- pendant Config.STAY_SECONDS, tout de suite (demande du créateur, 09/10). Renvoie true si le bonus vient d'être donné.
+function Rewards.leaving(player: Player): boolean
+	local data = PlayerData.get(player)
+	if not data then
+		return false
+	end
+	local today = os.time() // 86400
+	if (data.sd or 0) >= today then
+		notify(player, "stayBye")
+		return false
+	end
+	data.sd = today
+	data.bx = os.time() + Config.STAY_SECONDS
+	PlayerData.changed(player)
+	notify(player, "stayBonus", math.floor(Config.STAY_XP * 100 + 0.5), Config.STAY_SECONDS // 60)
+	return true
+end
+
 -- Le bonus d'amis de chaque joueur, recompté à chaque arrivée ou départ. `joined` : celui qui vient d'arriver.
 local function countFriends(joined: Player?)
 	local players = Players:GetPlayers()
@@ -82,6 +101,20 @@ function Rewards.start(notifier)
 	claim.Parent = ReplicatedStorage
 	claim.OnServerEvent:Connect(function(player)
 		Rewards.claim(player)
+	end)
+	local leaving = Instance.new("RemoteEvent")
+	leaving.Name = "Leaving"
+	leaving.Parent = ReplicatedStorage
+	local asked = {}
+	leaving.OnServerEvent:Connect(function(player)
+		-- (Pas plus d'une fois toutes les 20 secondes : le menu s'ouvre et se ferme à volonté.)
+		if os.clock() - (asked[player] or -100) > 20 then
+			asked[player] = os.clock()
+			Rewards.leaving(player)
+		end
+	end)
+	Players.PlayerRemoving:Connect(function(player)
+		asked[player] = nil
 	end)
 	PlayerData.onLoaded(function(player)
 		publish(player)

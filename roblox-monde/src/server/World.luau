@@ -242,6 +242,19 @@ local function buildGym(parent: Instance)
 	local arrow = Build.part(gym, "ToRooms", Vector3.new(20, 3.4, 0.6), Vector3.new(0, DOOR_H + 3, GYM_Z - WALL), Color3.fromRGB(40, 44, 56))
 	Build.sign(arrow, Enum.NormalId.Front, "toWorld", Color3.fromRGB(120, 255, 110))
 
+	-- LE PANNEAU « TU GAGNES DES PIÈCES HORS LIGNE » (demande du créateur, 09/10 : « un panneau dans la ville ») : une
+	-- banderole au-dessus de l'allée, entre deux poteaux, lisible des deux côtés.
+	local offlineZ = -52
+	for _, x in { -ALLEY + 1.5, ALLEY - 1.5 } do
+		Build.part(gym, "OfflinePost", Vector3.new(1.2, 19, 1.2), Vector3.new(x, 9.5, offlineZ), NAVY).CanQuery = false
+	end
+	local offline = Build.part(gym, "OfflineSign", Vector3.new(ALLEY * 2 - 3, 5.4, 0.7), Vector3.new(0, 17.4, offlineZ), Color3.fromRGB(28, 34, 62))
+	offline.CanQuery = false
+	offline.CanCollide = false
+	Build.part(gym, "OfflineTrim", Vector3.new(ALLEY * 2 - 1, 0.7, 1), Vector3.new(0, 20.4, offlineZ), Color3.fromRGB(255, 205, 60)).CanCollide = false
+	Build.sign(offline, Enum.NormalId.Front, "offlineBoard", Color3.fromRGB(255, 221, 51))
+	Build.sign(offline, Enum.NormalId.Back, "offlineBoard", Color3.fromRGB(255, 221, 51))
+
 	local plots = {}
 	for index = 1, World.PLOTS do
 		plots[index] = buildPlot(gym, index)

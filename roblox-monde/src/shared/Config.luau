@@ -220,6 +220,10 @@ Config.GIFT_EVERY = 15 * 60
 Config.GIFTS = { { coins = 40 }, { egg = 2 }, { coins = 90 }, { egg = 4 } }
 -- LE BONUS D'AMIS : chaque ami Roblox dans le même serveur donne FRIEND_BONUS d'XP et de pièces de combat en plus,
 -- jusqu'à FRIEND_MAX amis (sa règle : « + 10 % d'XP et de cash »).
+-- LE BONUS « RESTE ENCORE » (Rewards.luau) : la première fois de la journée que le joueur ouvre le menu de Roblox
+-- (pour partir), il reçoit STAY_XP d'XP en plus pendant STAY_SECONDS. Les fois suivantes : un simple au revoir.
+Config.STAY_XP = 0.5
+Config.STAY_SECONDS = 15 * 60
 Config.FRIEND_BONUS = 0.10
 Config.FRIEND_MAX = 3
 Config.OFFLINE_SHARE = 1 / 3

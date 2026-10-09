@@ -358,7 +358,7 @@ local function applyHud()
 	luck.Size = if small then UDim2.fromOffset(150, 34) else UDim2.fromOffset(118, 32)
 	luck.Position = if small then UDim2.fromOffset(2, 108) else UDim2.fromOffset(0, 0)
 	-- Le cadeau du temps de jeu et les amis, à côté de la chance (en dessous sur téléphone).
-	for index, name in { "Gift", "Friends" } do
+	for index, name in { "Gift", "Friends", "Boost" } do
 		local pill = side:FindFirstChild(name)
 		if pill then
 			pill.Size = luck.Size
@@ -775,6 +775,57 @@ do
 			end
 		end)
 	end)
+	-- LE MENU DE ROBLOX S'OUVRE (le joueur va peut-être partir) : on prévient le serveur, qui répond par un message
+	-- (« stayBonus » la première fois de la journée, « stayBye » ensuite), affiché dans un grand BANDEAU en haut de
+	-- l'écran. Et, tant que le bonus d'XP dure, une pastille ⚡ avec le temps qu'il reste.
+	local GuiService = game:GetService("GuiService")
+	local leavingEvent = ReplicatedStorage:WaitForChild("Leaving")
+	local banner = box(gui, "StayBanner", UDim2.new(0.86, 0, 0, 74), UDim2.new(0.5, 0, 0, 44), Color3.fromRGB(28, 34, 62))
+	banner.AnchorPoint = Vector2.new(0.5, 0)
+	banner.Visible = false
+	banner.ZIndex = 20
+	banner.UIStroke.Color = GOLD
+	banner.UIStroke.Thickness = 4
+	local bannerText = text(banner, "Label", UDim2.fromScale(0.96, 0.8), UDim2.fromScale(0.02, 0.1), GOLD, 34)
+	bannerText.ZIndex = 21
+	local bannerId = 0
+	local function showBanner(message: string, color: Color3)
+		bannerId += 1
+		local id = bannerId
+		bannerText.Text = message
+		bannerText.TextColor3 = color
+		banner.UIStroke.Color = color
+		banner.Visible = true
+		task.delay(9, function()
+			if id == bannerId then
+				banner.Visible = false
+			end
+		end)
+	end
+	GuiService.MenuOpened:Connect(function()
+		leavingEvent:FireServer()
+	end)
+	ReplicatedStorage:WaitForChild("Notify").OnClientEvent:Connect(function(key: string, a, b)
+		if key == "stayBonus" then
+			showBanner(tr("stayBonus", a, b), Color3.fromRGB(110, 255, 80))
+			Sounds.play("level")
+		elseif key == "stayBye" then
+			showBanner(tr("stayBye"), GOLD)
+		end
+	end)
+	local boost, boostLabel = pillButton("Boost", Color3.fromRGB(150, 70, 220))
+	boost.Visible = false
+	task.spawn(function()
+		while true do
+			local left = (player:GetAttribute("XpBoostUntil") or 0) - workspace:GetServerTimeNow()
+			boost.Visible = left > 0
+			if left > 0 then
+				boostLabel.Text = tr("boostPill", math.floor(Config.STAY_XP * 100 + 0.5), clockText(math.floor(left)))
+			end
+			task.wait(1)
+		end
+	end)
+
 	-- « TON AMI EST EN LIGNE » : de temps en temps, on regarde les amis connectés à Roblox qui ne sont pas dans ce
 	-- serveur, et on le dit (une seule fois par ami et par partie).
 	task.spawn(function()
