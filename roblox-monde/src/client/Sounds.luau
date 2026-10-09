@@ -75,21 +75,51 @@ end
 
 -- La musique de fond, et les bruits de pas du personnage (ceux de Roblox), qui suivent les réglages.
 function Sounds.start()
-	local music = Instance.new("Sound")
-	music.Name = "Monde_Music"
-	music.Parent = SoundService
-	local track = 0
+	-- (Un Sound par musique, créé d'avance : changer le SoundId d'un seul Sound à la fin d'un morceau ne relançait pas
+	-- toujours le suivant, retour du créateur le 09/10 : « les deux musiques ne s'enchaînent pas ». Et une veille, au
+	-- cas où : si plus rien ne joue depuis deux secondes, on lance le morceau suivant.)
+	local tracks = {}
+	for index, id in Sounds.MUSIC do
+		local music = Instance.new("Sound")
+		music.Name = "Monde_Music" .. index
+		music.SoundId = id
+		music.Looped = false
+		music.Parent = SoundService
+		tracks[index] = music
+	end
+	local track, silence = 0, 0
 	local function nextTrack()
-		if #Sounds.MUSIC == 0 then
+		if #tracks == 0 then
 			return
 		end
-		track = track % #Sounds.MUSIC + 1
-		music.SoundId = Sounds.MUSIC[track]
-		music:Play()
+		for _, music in tracks do
+			music:Stop()
+		end
+		track = track % #tracks + 1
+		tracks[track].TimePosition = 0
+		tracks[track]:Play()
 	end
-	music.Ended:Connect(nextTrack)
+	for _, music in tracks do
+		music.Ended:Connect(nextTrack)
+	end
+	task.spawn(function()
+		while true do
+			task.wait(1)
+			local playing = false
+			for _, music in tracks do
+				playing = playing or music.IsPlaying
+			end
+			silence = if playing then 0 else silence + 1
+			if silence >= 2 then
+				silence = 0
+				nextTrack()
+			end
+		end
+	end)
 	local function tune()
-		music.Volume = Sounds.MUSIC_VOLUME * level("VolMusic", Sounds.DEFAULT_MUSIC)
+		for _, music in tracks do
+			music.Volume = Sounds.MUSIC_VOLUME * level("VolMusic", Sounds.DEFAULT_MUSIC)
+		end
 		local character = player.Character
 		local root = character and character:FindFirstChild("HumanoidRootPart")
 		if root then

@@ -582,6 +582,35 @@ return function(env)
 			if plotLabel then
 				plotLabel.Text = if ownerName == "" then tr("plotFree") else tr("plotOwner", ownerName)
 			end
+			-- La vignette du propriétaire, sur les deux faces du cadre (le portrait que Roblox fournit pour chaque joueur).
+			local avatar = plot:FindFirstChild("Avatar")
+			local ownerId = plot:GetAttribute("OwnerId") or 0
+			if avatar and avatar:IsA("BasePart") and avatar:GetAttribute("Shown") ~= ownerId then
+				avatar:SetAttribute("Shown", ownerId)
+				avatar.Transparency = if ownerId > 0 then 0 else 1
+				for _, face in { Enum.NormalId.Front, Enum.NormalId.Back } do
+					local gui = avatar:FindFirstChild("Face" .. face.Name)
+					if not gui then
+						gui = Instance.new("SurfaceGui")
+						gui.Name = "Face" .. face.Name
+						gui.Face = face
+						gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+						gui.PixelsPerStud = 40
+						gui.LightInfluence = 0
+						gui.Parent = avatar
+						local image = Instance.new("ImageLabel")
+						image.Name = "Portrait"
+						image.Size = UDim2.fromScale(0.88, 0.88)
+						image.Position = UDim2.fromScale(0.06, 0.06)
+						image.BackgroundColor3 = Color3.fromRGB(28, 34, 62)
+						image.BorderSizePixel = 0
+						Instance.new("UICorner", image).CornerRadius = UDim.new(0.12, 0)
+						image.Parent = gui
+					end
+					gui.Enabled = ownerId > 0
+					gui.Portrait.Image = if ownerId > 0 then "rbxthumb://type=AvatarHeadShot&id=" .. ownerId .. "&w=420&h=420" else ""
+				end
+			end
 			local pets, eggs = Pets.count(spots)
 			local title = enclosure:FindFirstChild("Title")
 			local board = title and title:FindFirstChild("Label")

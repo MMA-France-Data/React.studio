@@ -163,6 +163,14 @@ local function buildPlot(parent: Instance, index: number)
 	local board = Build.part(folder, "Sign", Vector3.new(26, 5, 0.6), origin + Vector3.new(-side * (PLOT_X / 2 - 1), 12, 0), Color3.fromRGB(40, 44, 56))
 	board.CFrame = CFrame.new(board.Position) * CFrame.Angles(0, math.rad(side * 90), 0)
 	Build.sign(board, Enum.NormalId.Front, "plot|" .. index, colors[1])
+	-- LA VIGNETTE DU PROPRIÉTAIRE (demande du créateur, 09/10 : « les icônes sur chaque espace, avec la vignette du gars
+	-- qui la possède ») : un cadre carré au-dessus du panneau, à la couleur de l'espace. L'écran de chacun y met le
+	-- portrait du joueur (Animals.luau) ; il est invisible tant que l'espace est libre.
+	local avatar = Build.part(folder, "Avatar", Vector3.new(8.4, 8.4, 0.7), board.Position + Vector3.new(0, 7.2, 0), colors[1])
+	avatar.CFrame = CFrame.new(avatar.Position) * CFrame.Angles(0, math.rad(side * 90), 0)
+	avatar.Transparency = 1
+	avatar.CanCollide = false
+	avatar.CanQuery = false
 	for _, z in { -12, 12 } do
 		Build.part(folder, "SignPost", Vector3.new(0.7, 10, 0.7), origin + Vector3.new(-side * (PLOT_X / 2 - 1), 5, z), Color3.fromRGB(40, 44, 56))
 	end

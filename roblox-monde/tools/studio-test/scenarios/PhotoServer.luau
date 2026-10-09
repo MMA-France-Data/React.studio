@@ -1,6 +1,6 @@
 -- PETIT TEST EN IMAGES (une trentaine de secondes) : seulement des photos, sans rejouer tout le jeu.
---   powershell -ExecutionPolicy Bypass -File tools/studio-test/run.ps1 -Test photo -Seconds 45
--- Ici : le cadeau du temps de jeu (compte à rebours, prêt, réclamé quatre fois) et le bouton des amis, PC et téléphone.
+--   powershell -ExecutionPolicy Bypass -File tools/studio-test/run.ps1 -Test photo -Seconds 40
+-- Ici : le panneau de l'espace du joueur, avec la vignette de son propriétaire, et un espace libre à côté.
 local Players = game:GetService("Players")
 local ServerStorage = game:GetService("ServerStorage")
 
@@ -16,22 +16,14 @@ return function(log)
 		log("Info", "SHOT:photo_" .. name)
 		task.wait(1.2)
 	end
-	log("Info", "[DIAG] cadeau dans " .. tostring(player:GetAttribute("GiftIn")) .. " s, etape " .. tostring(player:GetAttribute("GiftStep")) .. ", amis " .. tostring(player:GetAttribute("FriendBonus")))
-	shot("cadeau_attente")
-	debug:Invoke("Gift", 2)
-	task.wait(3.5)
-	shot("cadeau_pret")
-	for step = 1, 4 do
-		debug:Invoke("Gift", 0)
-		task.wait(1.2)
-		local before = debug:Invoke("Data")
-		local ok = debug:Invoke("Claim")
-		local after = debug:Invoke("Data")
-		log("Info", string.format("[DIAG] cadeau %d : recu %s, pieces %d -> %d, oeufs au sac %d -> %d, prochain dans %s s", step, tostring(ok), before.coins, after.coins, before.bag, after.bag, tostring(player:GetAttribute("GiftIn"))))
-	end
-	shot("cadeau_recu")
-	workspace:SetAttribute("PhoneHud", true)
-	shot("cadeau_tel")
-	workspace:SetAttribute("PhoneHud", nil)
+	local plot = debug:Invoke("Plot")
+	local origin: Vector3 = plot.origin
+	local side = if origin.X > 0 then 1 else -1
+	local sign = origin + Vector3.new(-side * 34, 14, 0)
+	workspace:SetAttribute("ShotCam", CFrame.lookAt(sign + Vector3.new(-side * 30, 2, 0), sign))
+	shot("espace_vignette")
+	workspace:SetAttribute("ShotCam", CFrame.lookAt(Vector3.new(0, 18, origin.Z + 60), Vector3.new(0, 10, origin.Z - 60)))
+	shot("espace_allee")
+	workspace:SetAttribute("ShotCam", nil)
 	log("Info", "[SURVIVE] TEST:done")
 end
