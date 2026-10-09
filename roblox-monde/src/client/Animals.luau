@@ -1401,7 +1401,7 @@ return function(env)
 			sellPick = ""
 		end
 		sellInfo.Text = if #sellList == 0 then tr("sellEmpty") else tr("sellHint")
-		sellGo.Label.Text = if chosen then tr("sellGo", tr(chosen.pet.a), tr("lvlLong", Pets.levelOf(chosen.pet)), env.num(Pets.sellPrice(chosen.pet.a, chosen.pet.v))) else tr("sellPick")
+		sellGo.Label.Text = if chosen then tr("sellNowGo", tr(chosen.pet.a), tr("lvlLong", Pets.levelOf(chosen.pet)), env.num(Pets.sellPrice(chosen.pet.a, chosen.pet.v))) else tr("sellPick")
 		sellGo.BackgroundColor3 = if chosen then Color3.fromRGB(226, 50, 50) else Color3.fromRGB(90, 96, 120)
 		sellGo:SetAttribute("Kind", chosen and chosen.kind or "")
 		sellGo:SetAttribute("Index", chosen and chosen.index or 0)
