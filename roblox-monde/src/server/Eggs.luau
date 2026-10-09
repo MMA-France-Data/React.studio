@@ -443,13 +443,18 @@ function Eggs.start(world, notifier, owns, plotFor)
 	end
 	-- Le panneau « Améliorer l'enclos » de chaque espace.
 	for index, plot in world.gym.plots do
-		local item = prompt(plot.upgrade, "PenUpgrade", 12)
-		item:SetAttribute("Plot", index)
-		item.Triggered:Connect(function(player)
+		-- (Plus de bouton « cliquer » qui s'affiche à côté : on clique, ou on touche, directement le panneau, sur son
+		-- prix vert. Demande du créateur, 09/10.)
+		local click = Instance.new("ClickDetector")
+		click.Name = "PenUpgrade"
+		click.MaxActivationDistance = 40
+		click:SetAttribute("Plot", index)
+		click.MouseClick:Connect(function(player)
 			if owns(player, index) then
 				Eggs.buyPlace(player)
 			end
 		end)
+		click.Parent = plot.upgrade
 	end
 	-- Le stand « VENDRE » (qui ouvre la fenêtre des familiers).
 	prompt(world.gym.sell, "Sell", 14).Triggered:Connect(function(player)
