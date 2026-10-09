@@ -41,12 +41,13 @@ return function(log)
 	-- LA CAMÉRA : `shotCamera` (une fonction du temps écoulé depuis le début du plan) la place à chaque image.
 	local shotCamera: ((number) -> CFrame)? = nil
 	local shotStart = os.clock()
+	local shotFov = 62
 	RunService:BindToRenderStep("VideoCamera", Enum.RenderPriority.Camera.Value + 5, function()
 		local camera = workspace.CurrentCamera
 		if shotCamera then
 			camera.CameraType = Enum.CameraType.Scriptable
 			camera.CFrame = shotCamera(os.clock() - shotStart)
-			camera.FieldOfView = 62
+			camera.FieldOfView = shotFov
 		end
 	end)
 	local function film(path: (number) -> CFrame)
@@ -258,9 +259,12 @@ return function(log)
 	task.wait(1)
 	local start5 = root()
 	local dinos = if start5 then start5.Position else Vector3.zero
-	teleport(CFrame.lookAt(dinos + Vector3.new(0, 0, 100), dinos + Vector3.new(0, 0, 300)))
+	-- (Sa retouche du 09/10 : « le voir au loin, et voir les autres dinosaures autour ». Il part de l'entrée du monde :
+	-- les camps défilent des deux côtés du chemin, le T-rex et le volcan sont loin devant. Caméra haute, grand angle.)
+	teleport(CFrame.lookAt(dinos + Vector3.new(0, 0, 4), dinos + Vector3.new(0, 0, 300)))
 	task.wait(1.5)
-	film(behind(22, 17, 0, 20))
+	shotFov = 78
+	film(behind(24, 19, 0, 45))
 	run(dinos + Vector3.new(0, 0, 250))
 	task.wait(1.8)
 	record("r5", 7)
