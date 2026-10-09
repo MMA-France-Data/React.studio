@@ -1236,13 +1236,11 @@ return function(env)
 					if not item then
 						item = card(parent, name .. i)
 						item.frame.LayoutOrder = i
-						-- Un clic sur un œuf du sac le SORT (sur la tête) ; un clic sur celui qu'on porte le RENTRE.
+						-- Un clic sur un œuf du sac le POSE dans l'enclos (Eggs.placeNow). La fenêtre reste ouverte : on
+						-- peut en poser plusieurs à la suite.
 						item.frame.Activated:Connect(function()
 							if item.bag then
 								takeEvent:FireServer(item.animal, item.rank)
-								if not item.out then
-									eggPanel.Visible = false
-								end
 							end
 						end)
 						cards[i] = item

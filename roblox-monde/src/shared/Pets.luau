@@ -248,7 +248,9 @@ function Pets.alongOf(spot): number
 		local def = Pets.DEFS[spot.a]
 		return Pets.along(spot.q, spot.v / Pets.roomFactor(def and def.room or 1))
 	end
-	return if spot.b then Pets.along(spot.q, spot.b) else 0.5
+	-- (Sur l'écran du joueur, un œuf qui couve n'a pas sa valeur `b` : le serveur envoie sa place dans le palier,
+	-- `s`. Sans ça, tous les œufs affichaient la note « A » : 0,5. Retour du créateur, 10/10.)
+	return if spot.b then Pets.along(spot.q, spot.b) elseif spot.s then spot.s else 0.5
 end
 
 -- AU COMBAT (jeu « Monde ») : les dégâts par seconde et la vie d'un familier. Ils dépendent de son RANG (FIGHT_DMG,
