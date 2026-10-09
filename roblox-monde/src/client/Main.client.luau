@@ -795,11 +795,28 @@ local function coinBurst(position: Vector3)
 		task.delay(0.22, function()
 			TweenService:Create(coin, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.In), { CFrame = CFrame.new(position + away + Vector3.new(0, 0.5, 0)) * CFrame.Angles(0, i, math.rad(90)) }):Play()
 		end)
-		task.delay(0.75, function()
-			TweenService:Create(coin, TweenInfo.new(0.25), { Transparency = 1 }):Play()
-		end)
-		task.delay(1.05, function()
-			coin:Destroy()
+		-- Une demi-seconde par terre, puis elles FILENT vers le joueur (où qu'il soit allé entre-temps), et font leur
+		-- bruit en arrivant (sa demande du 09/10). Elles partent l'une après l'autre, pour faire un petit ruban.
+		task.delay(0.52 + 0.5 + i * 0.025, function()
+			local from, started = coin.Position, os.clock()
+			local flight
+			flight = RunService.RenderStepped:Connect(function()
+				local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+				local t = (os.clock() - started) / 0.28
+				if not root or t >= 1 then
+					flight:Disconnect()
+					coin:Destroy()
+					if root then
+						Sounds.play("coin")
+					end
+					return
+				end
+				-- (Lente au départ puis de plus en plus vite, en passant un peu en hauteur.)
+				local eased = t * t
+				local at = from:Lerp(root.Position, eased) + Vector3.new(0, math.sin(t * math.pi) * 2.5, 0)
+				coin.CFrame = CFrame.new(at) * CFrame.Angles(0, t * 12 + i, math.rad(90))
+				coin.Size = Vector3.new(0.25, 1.1, 1.1) * (1 - 0.5 * eased)
+			end)
 		end)
 	end
 end
@@ -809,9 +826,9 @@ ReplicatedStorage:WaitForChild("Loot").OnClientEvent:Connect(function(position: 
 	elseif kind == "pet" then
 		sparks(position + Vector3.new(0, 2, 0), Color3.fromRGB(255, 150, 60), 6)
 	else
-		coinBurst(position)
+		-- Le cri du monstre tout de suite ; le bruit des pièces, lui, quand elles arrivent sur le joueur (coinBurst).
 		Sounds.play("down")
-		Sounds.play("coin")
+		coinBurst(position)
 	end
 	local anchor = Instance.new("Part")
 	anchor.Anchored = true
