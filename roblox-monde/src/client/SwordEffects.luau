@@ -3,6 +3,7 @@
 local Input = game:GetService("UserInputService")
 local Palette = require(script.Parent.SwordPalette)
 local Elemental = require(script.Parent.SwordElementalAura)
+local Tiger = require(script.Parent.TigerClawFX)
 local Effects = {}
 local MOBILE = Input.TouchEnabled
 local PART_CAP = if MOBILE then 48 else 128
@@ -53,6 +54,7 @@ function Effects.attach(model: Model, identity: any)
 		state.disposed = true
 		allocated -= #state.bits
 		Elemental.dispose(state.elemental)
+		Tiger.dispose(state.tiger)
 		registry[model] = nil
 	end)
 	return state
@@ -122,6 +124,15 @@ function Effects.update(model: Model, dt: number, swinging: boolean)
 	state.last, state.swinging = a, swinging
 	state.core.Enabled, state.edge.Enabled = visible and swinging, visible and swinging
 	state.elapsed += math.min(math.max(dt, 0), 0.10)
+	-- La griffe du tigre a ses propres effets (trois traînées, yeux, braises) : pas la traînée unique des autres.
+	if state.id == "TigerClaw" then
+		state.core.Enabled, state.edge.Enabled = false, false
+		if visible and not state.tiger then
+			state.tiger = Tiger.create(model, state.b)
+		end
+		Tiger.update(state.tiger, math.min(math.max(dt, 0), 0.10), visible, swinging, teleport == true)
+		return
+	end
 	if Elemental.supports(state.id) then
 		if visible and not state.elemental then
 			state.elemental = Elemental.create(model, state.id, state.a, state.b)
