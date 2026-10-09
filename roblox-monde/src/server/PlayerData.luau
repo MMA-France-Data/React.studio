@@ -40,6 +40,10 @@ local function defaults()
 		played = 0, -- temps de jeu, en secondes (compté par Leaderboards.luau, pour le classement)
 		sd = 0, -- bonus « reste encore » : le jour (os.time() // 86400) où il a été donné en dernier
 		bx = 0, -- ... et l'heure (os.time) où le bonus d'XP s'arrête
+		po = { rank = 0, xp = 0, coins = 0, damage = 0 }, -- les potions en réserve (Potions.luau)
+		px = 0, -- ... et l'heure (os.time) où s'arrêtent celles qui ont été bues : XP, pièces, dégâts
+		pc = 0,
+		pd = 0,
 		gt = Config.GIFT_EVERY - Config.GIFT_FIRST, -- cadeau du temps de jeu : secondes jouées depuis le dernier cadeau (Rewards.luau)
 		gs = 1, -- ... et le numéro du prochain cadeau (Config.GIFTS)
 		vm = 60, -- réglages du joueur : volume de la musique et des sons, de 0 à 100 (Sounds.luau)
@@ -117,9 +121,16 @@ local function clean(raw)
 	if type(raw.played) == "number" and raw.played >= 0 then
 		data.played = math.floor(raw.played)
 	end
-	for _, key in { "sd", "bx" } do
+	for _, key in { "sd", "bx", "px", "pc", "pd" } do
 		if type(raw[key]) == "number" and raw[key] >= 0 then
 			data[key] = math.floor(raw[key])
+		end
+	end
+	if type(raw.po) == "table" then
+		for kind in Config.POTIONS do
+			if type(raw.po[kind]) == "number" and raw.po[kind] >= 0 then
+				data.po[kind] = math.floor(raw.po[kind])
+			end
 		end
 	end
 	if type(raw.gt) == "number" and raw.gt >= 0 then
@@ -236,6 +247,10 @@ local function publish(player: Player)
 	player:SetAttribute("PetLuck", luck)
 	player:SetAttribute("Income", Pets.income(data.spots))
 	player:SetAttribute("XpBoostUntil", data.bx)
+	player:SetAttribute("Potions", string.format("rank:%d,xp:%d,coins:%d,damage:%d", data.po.rank or 0, data.po.xp or 0, data.po.coins or 0, data.po.damage or 0))
+	player:SetAttribute("PotXpUntil", data.px)
+	player:SetAttribute("PotCoinsUntil", data.pc)
+	player:SetAttribute("PotDamageUntil", data.pd)
 	player:SetAttribute("VolMusic", data.vm)
 	player:SetAttribute("VolFx", data.vf)
 	local stats = player:FindFirstChild("leaderstats")

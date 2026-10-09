@@ -26,10 +26,21 @@ return function(world)
 				data.sd = 0
 			end
 			return require(script.Parent.Rewards).leaving(player)
+		elseif action == "Potion" then
+			-- Donne b potions de la sorte a (rank, xp, coins, damage).
+			return require(script.Parent.Potions).give(player, a, b)
+		elseif action == "Drink" then
+			-- Boit une potion de la sorte a (b = la place du familier, pour la potion de rang).
+			return require(script.Parent.Potions).use(player, a, b)
 		elseif action == "Gift" then
 			-- Le cadeau du temps de jeu : prêt dans a secondes (0 = tout de suite) ; « Claim » le réclame.
 			data.gt = Config.GIFT_EVERY - (a or 0)
 			player:SetAttribute("GiftIn", a or 0)
+			-- (b : le numéro du prochain cadeau dans Config.GIFTS.)
+			if b then
+				data.gs = b
+				player:SetAttribute("GiftStep", b)
+			end
 			return true
 		elseif action == "Claim" then
 			return require(script.Parent.Rewards).claim(player)

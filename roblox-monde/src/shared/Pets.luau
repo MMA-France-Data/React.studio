@@ -296,6 +296,25 @@ Pets.GRADE_ODDS = { 70, 25, 4.6, 0.4 }
 function Pets.gradeOf(spot): string
 	return Pets.GRADES[math.clamp(math.floor(Pets.alongOf(spot) * #Pets.GRADES) + 1, 1, #Pets.GRADES)]
 end
+-- LA POTION DE RANG (Potions.luau) : monte la note de ce familier d'un cran (C → B → A → S), en gardant sa place
+-- dans le quart de la note. Sa valeur cachée (`v`, ou `b` pour un œuf) change avec. Renvoie false s'il est déjà S.
+function Pets.raiseGrade(spot): boolean
+	local along = Pets.alongOf(spot)
+	local grade = math.clamp(math.floor(along * #Pets.GRADES) + 1, 1, #Pets.GRADES)
+	if grade >= #Pets.GRADES then
+		return false
+	end
+	local inside = math.clamp(along * #Pets.GRADES - (grade - 1), 0.04, 0.96)
+	local range = Pets.VALUE[math.clamp(spot.q, 1, #Pets.VALUE)]
+	local base = range[1] + (range[2] - range[1]) * (grade + inside) / #Pets.GRADES
+	if spot.v then
+		local def = Pets.DEFS[spot.a]
+		spot.v = math.floor(base * Pets.roomFactor(def and def.room or 1) + 0.5)
+	else
+		spot.b = math.floor(base + 0.5)
+	end
+	return true
+end
 -- LE NIVEAU AFFICHE d un familier (demande du joueur : coherent avec les monstres, « pareil pour mes familiers ») :
 -- il nait au niveau des monstres de son camp (un canard niveau 1, une chevre niveau 13, un animal du monde 2 niveau
 -- 24 et plus), puis gagne ses niveaux par-dessus. Sa force ne change pas : elle depend toujours des niveaux GAGNES
@@ -331,6 +350,18 @@ function Pets.totalXp(spot): number
 end
 -- NOURRIR : la part de l'XP du familier mangé que reçoit celui qui le mange.
 Pets.FEED = 0.75
+-- NOURRIR, EN PRÉVISION : le niveau qu'atteindra `eater` en mangeant `meal` (demande du créateur, 09/10 : « une
+-- prévisu, quand un familier va en manger un autre, du niveau qu'il atteindra »).
+function Pets.levelAfter(eater, meal): number
+	local copy = table.clone(eater)
+	copy.xp = (copy.xp or 0) + math.floor(Pets.totalXp(meal) * Pets.FEED)
+	copy.lv = copy.lv or 1
+	while copy.xp >= Pets.xpNeed(copy) do
+		copy.xp -= Pets.xpNeed(copy)
+		copy.lv += 1
+	end
+	return Pets.levelOf(copy)
+end
 
 -- Temps de couvaison d'un œuf, en secondes.
 -- (Sa regle : les oeufs des mondes suivants continuent apres la chevre, en doublant : 12, 24, puis 48 minutes ;

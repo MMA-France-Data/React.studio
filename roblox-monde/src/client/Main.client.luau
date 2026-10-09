@@ -16,6 +16,7 @@ local Pets = require(ReplicatedStorage.Shared.Pets)
 local Texts = require(ReplicatedStorage.Shared.Texts)
 local Sounds = require(script.Parent.Sounds)
 local SwordPalette = require(script.Parent.SwordPalette)
+local Draw = require(script.Parent.Draw)
 
 local player = Players.LocalPlayer
 -- (L'attribut « Lang » du Workspace force la langue : le tournage de la vidéo se fait en anglais, video.ps1.)
@@ -55,9 +56,10 @@ local function fillGate(label: TextLabel, opens: number)
 		label.TextColor3 = Color3.fromRGB(200, 200, 210)
 		return
 	end
-	local open = (player:GetAttribute("Zone") or 1) >= opens
-	label.Text = tr("zoneTitle", opens, tr(zone.theme)) .. "\n" .. tr(if open then "zoneOpenSign" else "zoneLockedSign")
-	label.TextColor3 = if open then Color3.fromRGB(110, 255, 80) else Color3.fromRGB(255, 120, 120)
+	local conquered = (player:GetAttribute("Zone") or 1) >= opens
+	local open = conquered or Config.FREE_TRAVEL
+	label.Text = tr("zoneTitle", opens, tr(zone.theme)) .. "\n" .. tr(if conquered then "zoneOpenSign" elseif open then "zoneVisitSign" else "zoneLockedSign")
+	label.TextColor3 = if conquered then Color3.fromRGB(110, 255, 80) elseif open then Color3.fromRGB(255, 190, 60) else Color3.fromRGB(255, 120, 120)
 end
 local function fill(label: Instance)
 	if not label:IsA("TextLabel") then
@@ -329,7 +331,7 @@ local autoButton: TextButton? = nil
 --   bas à gauche, avec l'épée, l'équipe et la chance juste au-dessus ; la grande barre de niveau en bas au milieu ;
 --   au-dessus d'elle, les deux actions avec leur touche : F = frapper, R = attaque automatique ;
 --   sur téléphone : tout est plus petit et sur les bords, les deux boutons d'attaque ronds sous le pouce droit.
-local MENU = { "EggButton", "PawButton", "BagButton", "SwordButton", "ShopButton" }
+local MENU = { "EggButton", "PawButton", "BagButton", "SwordButton", "ShopButton", "PotionButton" }
 local function applyHud()
 	local view = workspace.CurrentCamera.ViewportSize
 	small = workspace:GetAttribute("PhoneHud") == true or (UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled) or view.Y < 520
@@ -358,11 +360,14 @@ local function applyHud()
 	luck.Size = if small then UDim2.fromOffset(150, 34) else UDim2.fromOffset(118, 32)
 	luck.Position = if small then UDim2.fromOffset(2, 108) else UDim2.fromOffset(0, 0)
 	-- Le cadeau du temps de jeu et les amis, à côté de la chance (en dessous sur téléphone).
-	for index, name in { "Gift", "Friends", "Boost" } do
+	-- (Les pastilles des bonus n'apparaissent que pendant le bonus : on range à la suite celles qui sont visibles.)
+	local slot = 0
+	for _, name in { "Gift", "Friends", "Boost", "PotXp", "PotCoins", "PotDamage" } do
 		local pill = side:FindFirstChild(name)
-		if pill then
+		if pill and pill.Visible then
+			slot += 1
 			pill.Size = luck.Size
-			pill.Position = if small then UDim2.fromOffset(2, 108 + index * 42) else UDim2.fromOffset(index * 126, 0)
+			pill.Position = if small then UDim2.fromOffset(2, 108 + slot * 42) else UDim2.fromOffset(slot * 126, 0)
 		end
 	end
 	-- La barre de niveau.
@@ -379,7 +384,7 @@ local function applyHud()
 			scale.Scale = if small then 0.7 else 0.9
 			scale.Parent = button
 			button.AnchorPoint = if small then Vector2.new(1, 0.5) else Vector2.new(0, 0.5)
-			button.Position = if small then UDim2.new(1, -8, 0.5, -150 + (order - 1) * 52) else UDim2.new(0, 22, 0.5, -210 + (order - 1) * 92)
+			button.Position = if small then UDim2.new(1, -8, 0.5, -150 + (order - 1) * 52) else UDim2.new(0, 22, 0.5, -250 + (order - 1) * 84)
 			local caption = button:FindFirstChild("Caption")
 			if caption then
 				caption.Visible = not small
@@ -491,6 +496,19 @@ ReplicatedStorage:WaitForChild("Notify").OnClientEvent:Connect(function(key: str
 	elseif key == "friendHere" then
 		showToast(tr("friendHere", a, b), GOLD)
 		Sounds.play("level")
+	elseif key == "giftPotion" then
+		showToast(tr("giftPotion", tr("potion_" .. a)), GOLD)
+		Sounds.play("hatch")
+	elseif key == "potionDrunk" then
+		showToast(tr("potionDrunk", tr("potion_" .. a), b), GOLD)
+		Sounds.play("level")
+	elseif key == "potionRank" then
+		showToast(tr("potionRank", tr(a), b), GOLD)
+		Sounds.play("level")
+	elseif key == "potionMax" then
+		showToast(tr("potionMax", tr(a)), RED)
+	elseif key == "potionNone" then
+		showToast(tr("potionNone"), RED)
 	end
 	if key == "playerLevel" or key == "petLevel" or key == "zoneOpen" then
 		Sounds.play("level")
@@ -712,108 +730,9 @@ do
 	local SocialService = game:GetService("SocialService")
 	local claimEvent = ReplicatedStorage:WaitForChild("ClaimGift")
 	local RunService = game:GetService("RunService")
-	local DARK = Color3.fromRGB(20, 20, 30)
-	local function round(parent: Instance, name: string, size: UDim2, position: UDim2, color: Color3, radius: UDim, outline: number?): Frame
-		local frame = Instance.new("Frame")
-		frame.Name = name
-		frame.Size = size
-		frame.Position = position
-		frame.BackgroundColor3 = color
-		frame.BorderSizePixel = 0
-		local corner = Instance.new("UICorner")
-		corner.CornerRadius = radius
-		corner.Parent = frame
-		if outline then
-			local stroke = Instance.new("UIStroke")
-			stroke.Thickness = outline
-			stroke.Color = DARK
-			stroke.Parent = frame
-		end
-		frame.Parent = parent
-		return frame
-	end
-	-- Un dégradé du haut (clair) vers le bas (sombre) : du relief sur un bouton ou une boîte.
-	local function shade(frame: GuiObject, top: number, bottom: number): UIGradient
-		local gradient = Instance.new("UIGradient")
-		gradient.Rotation = 90
-		gradient.Color = ColorSequence.new(Color3.new(top, top, top), Color3.new(bottom, bottom, bottom))
-		gradient.Parent = frame
-		return gradient
-	end
-	-- UN PAQUET CADEAU DESSINÉ (110 x 110 avant `scale`) : la boîte, son couvercle, le ruban doré et son nœud.
-	local RIBBON = Color3.fromRGB(255, 200, 40)
-	local function drawGift(parent: Instance, position: UDim2, scale: number, color: Color3): Frame
-		local holder = Instance.new("Frame")
-		holder.Name = "GiftBox"
-		holder.BackgroundTransparency = 1
-		holder.Size = UDim2.fromOffset(110, 110)
-		holder.AnchorPoint = Vector2.new(0.5, 0.5)
-		holder.Position = position
-		local size = Instance.new("UIScale")
-		size.Scale = scale
-		size.Parent = holder
-		local light = color:Lerp(Color3.new(1, 1, 1), 0.25)
-		local left = round(holder, "BowLeft", UDim2.fromOffset(36, 26), UDim2.fromOffset(17, 6), RIBBON, UDim.new(0.5, 0), 3)
-		left.Rotation = 24
-		local right = round(holder, "BowRight", UDim2.fromOffset(36, 26), UDim2.fromOffset(57, 6), RIBBON, UDim.new(0.5, 0), 3)
-		right.Rotation = -24
-		shade(round(holder, "Body", UDim2.fromOffset(84, 54), UDim2.fromOffset(13, 50), color, UDim.new(0, 8), 3), 1, 0.62)
-		shade(round(holder, "BandBody", UDim2.fromOffset(20, 54), UDim2.fromOffset(45, 50), RIBBON, UDim.new(0, 0)), 1, 0.7)
-		shade(round(holder, "Lid", UDim2.fromOffset(98, 24), UDim2.fromOffset(6, 30), light, UDim.new(0, 7), 3), 1, 0.8)
-		round(holder, "BandLid", UDim2.fromOffset(20, 24), UDim2.fromOffset(45, 30), RIBBON, UDim.new(0, 0))
-		round(holder, "Knot", UDim2.fromOffset(20, 20), UDim2.fromOffset(45, 13), Color3.fromRGB(255, 160, 20), UDim.new(0.5, 0), 3)
-		round(holder, "Shine", UDim2.fromOffset(8, 30), UDim2.fromOffset(22, 60), Color3.new(1, 1, 1), UDim.new(0.5, 0)).BackgroundTransparency = 0.6
-		holder.Parent = parent
-		return holder
-	end
-	-- Deux bonshommes (des amis), dessinés : deux têtes rondes et deux épaules.
-	local function drawPeople(parent: Instance, position: UDim2, scale: number)
-		local holder = Instance.new("Frame")
-		holder.Name = "People"
-		holder.BackgroundTransparency = 1
-		holder.Size = UDim2.fromOffset(110, 110)
-		holder.AnchorPoint = Vector2.new(0.5, 0.5)
-		holder.Position = position
-		local size = Instance.new("UIScale")
-		size.Scale = scale
-		size.Parent = holder
-		for index, info in { { 64, Color3.fromRGB(120, 200, 255) }, { 28, Color3.fromRGB(255, 220, 120) } } do
-			local x, color = info[1], info[2]
-			shade(round(holder, "Body" .. index, UDim2.fromOffset(56, 40), UDim2.fromOffset(x - 10, 64), color, UDim.new(0, 18), 4), 1, 0.7)
-			shade(round(holder, "Head" .. index, UDim2.fromOffset(40, 40), UDim2.fromOffset(x - 2, 22), color, UDim.new(0.5, 0), 4), 1, 0.75)
-		end
-		holder.Parent = parent
-		return holder
-	end
-	-- Les rayons qui tournent derrière un paquet.
-	local function drawRays(parent: Instance, position: UDim2, color: Color3): Frame
-		local holder = Instance.new("Frame")
-		holder.Name = "Rays"
-		holder.BackgroundTransparency = 1
-		holder.Size = UDim2.fromOffset(2, 2)
-		holder.AnchorPoint = Vector2.new(0.5, 0.5)
-		holder.Position = position
-		for index = 1, 6 do
-			local ray = Instance.new("Frame")
-			ray.AnchorPoint = Vector2.new(0.5, 0.5)
-			ray.Position = UDim2.fromScale(0.5, 0.5)
-			ray.Size = UDim2.fromOffset(18, 132)
-			ray.Rotation = index * 30
-			ray.BorderSizePixel = 0
-			ray.BackgroundColor3 = color:Lerp(Color3.new(1, 1, 1), 0.5)
-			local fade = Instance.new("UIGradient")
-			fade.Rotation = 90
-			fade.Transparency = NumberSequence.new({
-				NumberSequenceKeypoint.new(0, 1),
-				NumberSequenceKeypoint.new(0.5, 0.55),
-				NumberSequenceKeypoint.new(1, 1),
-			})
-			fade.Parent = ray
-			ray.Parent = holder
-		end
-		holder.Parent = parent
-		return holder
-	end
+	-- (Les dessins : Draw.luau.)
+	local DARK = Draw.DARK
+	local round, shade, drawGift, drawPeople, drawRays, drawPotion = Draw.round, Draw.shade, Draw.gift, Draw.people, Draw.rays, Draw.potion
 	-- L'œuf en 3D (le vrai, celui du jeu) dans un petit cadre.
 	local function showEgg(view: ViewportFrame, animal: string, color: Color3)
 		if view:GetAttribute("Key") == animal then
@@ -947,7 +866,8 @@ do
 	end)
 	local GIFT_COLORS = { Color3.fromRGB(50, 200, 80), Color3.fromRGB(235, 50, 80), Color3.fromRGB(110, 80, 255), Color3.fromRGB(255, 140, 30) }
 	local giftCards = {}
-	for index = 1, #Config.GIFTS do
+	local GIFT_CARDS = 4 -- (les quatre prochains, dans le cycle de Config.GIFTS)
+	for index = 1, GIFT_CARDS do
 		local card = round(giftPanel, "Card" .. index, UDim2.fromOffset(166, 286), UDim2.fromOffset(16 + (index - 1) * 178, 74), Color3.fromRGB(14, 14, 30), UDim.new(0, 10), 4)
 		local head = text(card, "Head", UDim2.new(1, -8, 0, 26), UDim2.fromOffset(4, 6), nil, 24)
 		local rays = drawRays(card, UDim2.fromOffset(83, 96), Color3.new(1, 1, 1))
@@ -965,6 +885,8 @@ do
 		local coin = round(card, "Coin", UDim2.fromOffset(46, 46), UDim2.fromOffset(12, 170), Color3.fromRGB(255, 205, 40), UDim.new(0.5, 0), 4)
 		shade(coin, 1, 0.75)
 		text(coin, "Sign", UDim2.fromScale(0.8, 0.8), UDim2.fromScale(0.1, 0.1), Color3.fromRGB(255, 240, 150)).Text = "$"
+		local potionIcon = drawPotion(card, UDim2.fromOffset(35, 193), 0.6, Color3.new(1, 1, 1), "")
+		potionIcon.Visible = false
 		local reward = text(card, "Reward", UDim2.fromOffset(94, 62), UDim2.fromOffset(66, 162), nil, 26)
 		local bar = Instance.new("TextButton")
 		bar.Name = "Bar"
@@ -992,7 +914,7 @@ do
 				showToast(tr("giftSoon", clockText(math.max(left, 0) + (index - 1) * Config.GIFT_EVERY)), GOLD)
 			end
 		end)
-		giftCards[index] = { card = card, head = head, rays = rays, present = present, view = view, coin = coin, reward = reward, barColor = barColor, label = barLabel }
+		giftCards[index] = { card = card, head = head, rays = rays, present = present, view = view, coin = coin, potion = potionIcon, reward = reward, barColor = barColor, label = barLabel }
 	end
 	local giftReady = false
 	local function showGifts()
@@ -1016,15 +938,22 @@ do
 			parts.present.Body.BackgroundColor3 = color
 			parts.present.Lid.BackgroundColor3 = color:Lerp(Color3.new(1, 1, 1), 0.25)
 			parts.coin.Visible = info.coins ~= nil
-			parts.view.Visible = info.coins == nil
+			parts.view.Visible = info.egg ~= nil
+			parts.potion.Visible = info.potion ~= nil
 			if info.coins then
 				parts.reward.Text = tr("giftCardCoins", num(Config.monster(zone, 3).coins * info.coins))
 				parts.reward.TextColor3 = GOLD
-			else
+			elseif info.egg then
 				local rarity = Pets.RARITIES[info.egg]
 				showEgg(parts.view, Pets.COLLECTIONS[zone][info.egg], rarity.color)
 				parts.reward.Text = tr("giftCardEgg", tr(rarity.key))
 				parts.reward.TextColor3 = rarity.color
+			else
+				local look = Draw.POTIONS[info.potion]
+				parts.potion.Body.BackgroundColor3 = look.color
+				parts.potion.Glyph.Text = look.glyph
+				parts.reward.Text = tr("potion_" .. info.potion)
+				parts.reward.TextColor3 = look.color:Lerp(Color3.new(1, 1, 1), 0.35)
 			end
 			local wait = left + (index - 1) * Config.GIFT_EVERY
 			parts.label.Text = if wait <= 0 then tr("giftTake") else clockText(wait)
@@ -1109,14 +1038,44 @@ do
 			showBanner(tr("stayBye"), GOLD)
 		end
 	end)
-	local boost, boostLabel = pillButton("Boost", Color3.fromRGB(150, 70, 220))
-	boost.Visible = false
+	-- Les pastilles des bonus en cours (le bonus du jour, et les potions bues), avec le temps qu'il reste. Elles
+	-- n'apparaissent que pendant le bonus ; applyHud les range à la suite.
+	local boosts = {
+		{ name = "Boost", attr = "XpBoostUntil", color = Color3.fromRGB(150, 70, 220) },
+		{ name = "PotXp", attr = "PotXpUntil", color = Color3.fromRGB(60, 120, 230), potion = "xp" },
+		{ name = "PotCoins", attr = "PotCoinsUntil", color = Color3.fromRGB(200, 150, 20), potion = "coins" },
+		{ name = "PotDamage", attr = "PotDamageUntil", color = Color3.fromRGB(200, 50, 60), potion = "damage" },
+	}
+	for _, info in boosts do
+		local pill, label = pillButton(info.name, info.color)
+		pill.Visible = false
+		if info.potion then
+			local look = Draw.POTIONS[info.potion]
+			drawPotion(pill, UDim2.fromOffset(17, 16), 0.27, look.color, look.glyph)
+		else
+			label.Size = UDim2.new(1, -10, 0.8, 0)
+			label.Position = UDim2.new(0, 6, 0.1, 0)
+			label.TextXAlignment = Enum.TextXAlignment.Center
+		end
+		info.pill, info.label = pill, label
+	end
 	task.spawn(function()
 		while true do
-			local left = (player:GetAttribute("XpBoostUntil") or 0) - workspace:GetServerTimeNow()
-			boost.Visible = left > 0
-			if left > 0 then
-				boostLabel.Text = tr("boostPill", math.floor(Config.STAY_XP * 100 + 0.5), clockText(math.floor(left)))
+			local changed = false
+			for _, info in boosts do
+				local left = (player:GetAttribute(info.attr) or 0) - workspace:GetServerTimeNow()
+				if info.pill.Visible ~= (left > 0) then
+					info.pill.Visible = left > 0
+					changed = true
+				end
+				if left > 0 then
+					info.label.Text = if info.potion
+						then tr("potionPill", tr("potionShort_" .. info.potion), clockText(math.floor(left)))
+						else tr("boostPill", math.floor(Config.STAY_XP * 100 + 0.5), clockText(math.floor(left)))
+				end
+			end
+			if changed then
+				applyHud()
 			end
 			task.wait(1)
 		end
@@ -1555,7 +1514,7 @@ task.spawn(function()
 		local unlocked = player:GetAttribute("Zone") or 1
 		-- Une porte ne retient que le joueur qui n'a pas battu le boss de la zone d'avant.
 		for _, gate in CollectionService:GetTagged("ZoneGate") do
-			local open = unlocked >= (gate:GetAttribute("Opens") or 99)
+			local open = Config.FREE_TRAVEL or unlocked >= (gate:GetAttribute("Opens") or 99)
 			gate.CanCollide = not open
 			gate.Transparency = if open then 1 else 0.25
 		end

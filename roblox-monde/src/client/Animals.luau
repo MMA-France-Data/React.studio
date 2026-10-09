@@ -14,6 +14,7 @@ local PetRig = require(ReplicatedStorage.Shared.PetRig)
 local StarterAnimator = require(ReplicatedStorage.Shared.StarterAnimator)
 local ActionAnimator = require(ReplicatedStorage.Shared.ActionAnimator)
 local Config = require(ReplicatedStorage.Shared.Config)
+local Draw = require(script.Parent.Draw)
 
 local EGG_COLORS = {
 	Dragon = Color3.fromRGB(240, 90, 40),
@@ -865,6 +866,11 @@ return function(env)
 	-- note du rang (C, B, A, S, SS, SSS), le niveau, une coche sur ceux de l'équipe ; à droite, la fiche du familier
 	-- choisi ; et les œufs en grille avec leur nombre.)
 	local equipBestEvent = ReplicatedStorage:WaitForChild("EquipBest")
+	-- Les potions du joueur (Potions.luau ; attribut « Potions » : « rank:1,xp:0,coins:2,damage:0 »).
+	local potionEvent = ReplicatedStorage:WaitForChild("UsePotion")
+	local function potionCount(kind: string): number
+		return tonumber(string.match(player:GetAttribute("Potions") or "", kind .. ":(%d+)")) or 0
+	end
 	local takeEvent = ReplicatedStorage:WaitForChild("TakeEgg")
 	local unequipAllEvent = ReplicatedStorage:WaitForChild("UnequipAll")
 	local GRADES = { "C", "B", "A", "S", "SS", "SSS" }
@@ -1086,7 +1092,7 @@ return function(env)
 	local sheetGrade = env.text(sheet, "Grade", UDim2.fromOffset(70, 40), UDim2.fromOffset(10, 4), GOLD, 38)
 	sheetGrade.TextXAlignment = Enum.TextXAlignment.Left
 	sheetGrade.ZIndex = 5
-	local sheetName = env.text(sheet, "Name", UDim2.new(1, -90, 0, 30), UDim2.fromOffset(82, 8), nil, 26)
+	local sheetName = env.text(sheet, "Name", UDim2.new(1, -104, 0, 30), UDim2.fromOffset(96, 8), nil, 26)
 	sheetName.ZIndex = 5
 	local sheetRarity = env.text(sheet, "Rarity", UDim2.new(1, -20, 0, 20), UDim2.fromOffset(10, 44), nil, 18)
 	sheetRarity.ZIndex = 5
@@ -1110,6 +1116,16 @@ return function(env)
 	xpLabel.ZIndex = 6
 	local equip = button(sheet, "Equip", UDim2.fromOffset(124, 44), UDim2.fromOffset(12, 362), Color3.fromRGB(50, 130, 230), "")
 	local sell = button(sheet, "Sell", UDim2.fromOffset(124, 44), UDim2.fromOffset(144, 362), Color3.fromRGB(226, 50, 50), "")
+	-- LA FIOLE VERTE à côté de la note : boire une potion de rang sur ce familier (visible quand on en a une et
+	-- qu'il n'est pas déjà S).
+	local rankUp = button(sheet, "RankUp", UDim2.fromOffset(40, 40), UDim2.fromOffset(50, 6), Color3.fromRGB(50, 200, 80), "")
+	Draw.potion(rankUp, UDim2.fromScale(0.5, 0.5), 0.3, Draw.POTIONS.rank.color, Draw.POTIONS.rank.glyph)
+	rankUp.Visible = false
+	rankUp.Activated:Connect(function()
+		if selected > 0 then
+			potionEvent:FireServer("rank", selected)
+		end
+	end)
 	equip.Activated:Connect(function()
 		if selected > 0 then
 			equipEvent:FireServer(selected)
@@ -1246,8 +1262,12 @@ return function(env)
 						if doomed ~= item.spot then
 							doomed = item.spot
 							local spots = Pets.decode(player:GetAttribute("Spots"))
-							local meal = spots[tostring(item.spot)]
-							showToast(tr("feedSure", tr(meal and meal.a or "?")), RED)
+							local meal, eater = spots[tostring(item.spot)], spots[tostring(selected)]
+							local sure = tr("feedSure", tr(meal and meal.a or "?"))
+							if meal and eater then
+								sure ..= "  " .. tr("feedLevel", tr(eater.a), Pets.levelOf(eater), Pets.levelAfter(eater, meal))
+							end
+							showToast(sure, RED)
 							refreshPanels()
 							return
 						end
@@ -1264,7 +1284,11 @@ return function(env)
 			item.spot = entry.index
 			item.frame.Visible = true
 			paint(item, entry.spot.q, entry.index == selected, Pets.gradeOf(entry.spot))
-			item.line.Text = if feeding and entry.index == doomed then tr("feedConfirm") elseif feeding and entry.index ~= selected then tr("feedThis") else tr("lvlLong", Pets.levelOf(entry.spot))
+			-- (En nourrissant : sur chaque familier, le niveau qu'atteindrait celui de la fiche en le mangeant.)
+			local eater = spots[tostring(selected)]
+			item.line.Text = if feeding and entry.index == doomed then tr("feedConfirm")
+				elseif feeding and entry.index ~= selected then (if eater then tr("feedTo", Pets.levelAfter(eater, entry.spot)) else tr("feedThis"))
+				else tr("lvlLong", Pets.levelOf(entry.spot))
 			item.line.TextColor3 = if feeding and entry.index == doomed then RED else Color3.new(1, 1, 1)
 			item.tick.Visible = table.find(inTeam, tostring(entry.index)) ~= nil
 			show(item.view, entry.spot.a .. entry.spot.q, function()
@@ -1283,6 +1307,7 @@ return function(env)
 			sheet.UIStroke.Color = info.color
 			sheetGrade.Text = Pets.gradeOf(spot)
 			sheetGrade.TextColor3 = GRADE_COLORS[Pets.gradeOf(spot)]
+			rankUp.Visible = potionCount("rank") > 0 and Pets.gradeOf(spot) ~= "S"
 			feed.Label.Text = if feeding then tr("feedCancel") else tr("feed")
 			feed.BackgroundColor3 = if feeding then Color3.fromRGB(90, 96, 120) else Color3.fromRGB(240, 170, 30)
 			sheetName.Text = tr(spot.a)
@@ -1305,7 +1330,7 @@ return function(env)
 		end
 		fitWindow(petPanel)
 	end
-	for _, name in { "Spots", "Places", "Team", "Bag", "BagList", "Held", "BagNext" } do
+	for _, name in { "Spots", "Places", "Team", "Bag", "BagList", "Held", "BagNext", "Potions" } do
 		player:GetAttributeChangedSignal(name):Connect(refreshPanels)
 	end
 	task.spawn(function()
@@ -1316,6 +1341,67 @@ return function(env)
 		end
 	end)
 	-- LA BOUTIQUE : on y dépense ses pièces. L'épée (plus de dégâts pour soi) et les places de l'enclos.
+	-- LES POTIONS (sa demande du 09/10) : le bouton « Potions » et la fenêtre où l'on voit ses fioles et où on les boit.
+	-- Les potions à durée se boivent ici ; la potion de rang se boit sur la fiche d'un familier (la fiole verte).
+	local potionButton = squareButton("PotionButton", 5, Color3.fromRGB(170, 60, 210))
+	Draw.potion(potionButton, UDim2.fromScale(0.5, 0.5), 0.5, Color3.fromRGB(255, 90, 220), "")
+	local potionPanel = window("PotionPanel", tr("potionsTitle"), 760, 430)
+	local potionNote = env.text(potionPanel, "Note", UDim2.new(1, -40, 0, 22), UDim2.new(0, 20, 1, -30), GOLD, 17)
+	potionNote.Text = tr("potionsNote")
+	potionNote.ZIndex = 5
+	local potionCards = {}
+	for index, kind in Config.POTION_ORDER do
+		local look = Draw.POTIONS[kind]
+		local card = env.box(potionPanel, "Card" .. index, UDim2.fromOffset(172, 312), UDim2.fromOffset(16 + (index - 1) * 184, 66), look.color:Lerp(Color3.fromRGB(10, 10, 26), 0.82))
+		card.ZIndex = 5
+		card.UIStroke.Color = look.color
+		card.UIStroke.Thickness = 3
+		local rays = Draw.rays(card, UDim2.fromOffset(86, 92), look.color)
+		Draw.potion(card, UDim2.fromOffset(86, 92), 1.15, look.color, look.glyph)
+		local name = env.text(card, "Name", UDim2.new(1, -12, 0, 30), UDim2.fromOffset(6, 170), look.color:Lerp(Color3.new(1, 1, 1), 0.35), 22)
+		name.Text = tr("potion_" .. kind)
+		name.ZIndex = 6
+		local desc = env.text(card, "Desc", UDim2.new(1, -16, 0, 44), UDim2.fromOffset(8, 202), nil, 15)
+		local def = Config.POTIONS[kind]
+		desc.Text = if def.seconds then tr("potionDesc_" .. kind, def.seconds // 60) else tr("potionDesc_" .. kind)
+		desc.ZIndex = 6
+		local drink = button(card, "Drink", UDim2.new(1, -20, 0, 44), UDim2.new(0, 10, 1, -54), Color3.fromRGB(50, 200, 80), "")
+		drink.Activated:Connect(function()
+			if potionCount(kind) <= 0 then
+				showToast(tr("potionNone"), RED)
+			elseif kind == "rank" then
+				potionPanel.Visible = false
+				petPanel.Visible = true
+				showToast(tr("potionPick"), GOLD)
+			else
+				potionEvent:FireServer(kind)
+			end
+		end)
+		potionCards[kind] = { drink = drink, rays = rays }
+	end
+	local function refreshPotions()
+		if not potionPanel.Visible then
+			return
+		end
+		for kind, parts in potionCards do
+			local count = potionCount(kind)
+			parts.drink.Label.Text = if count > 0 then tr("potionDrink", count) else tr("potionEmpty")
+			parts.drink.BackgroundColor3 = if count > 0 then Color3.fromRGB(50, 200, 80) else Color3.fromRGB(90, 96, 120)
+		end
+		fitWindow(potionPanel)
+	end
+	player:GetAttributeChangedSignal("Potions"):Connect(refreshPotions)
+	potionPanel:GetPropertyChangedSignal("Visible"):Connect(refreshPotions)
+	game:GetService("RunService").RenderStepped:Connect(function()
+		if potionPanel.Visible then
+			for _, parts in potionCards do
+				parts.rays.Rotation = os.clock() * 20
+			end
+		end
+	end)
+	potionButton.Activated:Connect(function()
+		potionPanel.Visible = not potionPanel.Visible
+	end)
 	-- LE SAC : les familiers rangés hors de l'enclos. Un clic sur l'un d'eux le remet dans l'enclos.
 	local bagButton = squareButton("BagButton", 2, Color3.fromRGB(120, 90, 200))
 	env.text(bagButton, "Label", UDim2.fromScale(0.8, 0.8), UDim2.fromScale(0.1, 0.1)).Text = "🎒"

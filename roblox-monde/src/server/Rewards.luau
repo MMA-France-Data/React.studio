@@ -14,6 +14,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Config = require(ReplicatedStorage.Shared.Config)
 local Eggs = require(script.Parent.Eggs)
 local PlayerData = require(script.Parent.PlayerData)
+local Potions = require(script.Parent.Potions)
 
 local Rewards = {}
 
@@ -42,10 +43,13 @@ function Rewards.claim(player: Player): boolean
 		local amount = Config.monster(data.zone, 3).coins * gift.coins
 		PlayerData.addCoins(player, amount)
 		notify(player, "giftCoins", amount)
-	else
+	elseif gift.egg then
 		Eggs.drop(player, data.zone, gift.egg)
 		PlayerData.changed(player)
 		notify(player, "giftEgg")
+	else
+		Potions.give(player, gift.potion, 1)
+		notify(player, "giftPotion", gift.potion)
 	end
 	publish(player)
 	return true

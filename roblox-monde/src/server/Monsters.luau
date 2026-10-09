@@ -127,11 +127,15 @@ local function reward(monster, player: Player, share: number, best: boolean)
 	-- (Le bonus d'amis : + 10 % par ami présent dans le serveur, Rewards.luau.)
 	local friends = 1 + (player:GetAttribute("FriendBonus") or 0) / 100
 	-- (Le bonus « reste encore » : + 50 % d'XP pendant un quart d'heure, Rewards.leaving.)
-	local stay = if os.time() < (PlayerData.get(player).bx or 0) then 1 + Config.STAY_XP else 1
-	local coins, xp = math.floor(def.coins * share * friends + 0.5), math.floor(def.xp * share * friends * stay + 0.5)
+	local data = PlayerData.get(player)
+	local now = os.time()
+	local stay = if now < (data.bx or 0) then 1 + Config.STAY_XP else 1
+	-- (Les potions bues : double XP, double pièces, tant qu'elles durent. Potions.luau.)
+	local potXp = if now < (data.px or 0) then Config.POTIONS.xp.mult else 1
+	local potCoins = if now < (data.pc or 0) then Config.POTIONS.coins.mult else 1
+	local coins, xp = math.floor(def.coins * share * friends * potCoins + 0.5), math.floor(def.xp * share * friends * stay * potXp + 0.5)
 	PlayerData.addCoins(player, coins)
 	-- Chaque familier de l'équipe reçoit l'XP du monstre, lui aussi.
-	local data = PlayerData.get(player)
 	for _, key in data.team do
 		local pet = data.spots[key]
 		if pet and pet.v then
@@ -203,6 +207,11 @@ end
 local function hurt(monster, player: Player, amount: number, kind: string)
 	if monster.dead then
 		return
+	end
+	-- (La potion double dégâts : tous les coups du joueur et de ses familiers. Potions.luau.)
+	local data = PlayerData.get(player)
+	if data and os.time() < (data.pd or 0) then
+		amount *= Config.POTIONS.damage.mult
 	end
 	amount = math.min(amount, monster.hp)
 	monster.hp -= amount
@@ -407,7 +416,9 @@ function Monsters.travel(player: Player, where: any): boolean
 		Gym.toGym(player)
 		return true
 	end
-	local index = math.clamp(if type(where) == "number" then math.floor(where) else data.zone, 1, data.zone)
+	-- (Config.FREE_TRAVEL : on peut aller voir tous les mondes, même sans avoir battu les boss.)
+	local top = if Config.FREE_TRAVEL then #zones else data.zone
+	local index = math.clamp(if type(where) == "number" then math.floor(where) else data.zone, 1, top)
 	player.Character:PivotTo(CFrame.new(0, 4, zones[index].zMin + 10) * CFrame.Angles(0, math.pi, 0))
 	return true
 end
@@ -567,7 +578,7 @@ function Monsters.start(world, notifier)
 				end
 				if root and data then
 					for index, zone in zones do
-						if index > data.zone and root.Position.Z > zone.zMin + 3 then
+						if not Config.FREE_TRAVEL and index > data.zone and root.Position.Z > zone.zMin + 3 then
 							player.Character:PivotTo(CFrame.new(0, 4, zones[data.zone].zMax - 14))
 							notify(player, "zoneLocked", index)
 							break

@@ -219,7 +219,21 @@ Config.PET_REGEN = 0.25
 Config.GIFT_EVERY = 15 * 60
 -- (Le tout premier cadeau d'un nouveau joueur arrive bien plus vite : il ouvre la fenêtre, et voit les suivants.)
 Config.GIFT_FIRST = 150
-Config.GIFTS = { { coins = 10 }, { egg = 2 }, { coins = 90 }, { egg = 4 } }
+Config.GIFTS = { { coins = 10 }, { egg = 2 }, { potion = "coins" }, { coins = 90 }, { potion = "xp" }, { egg = 4 }, { potion = "rank" }, { coins = 150 } }
+-- LES POTIONS (sa demande du 09/10 : « une potion pour monter de rang (un rang de compagnon, A à S), une potion
+-- double XP et une potion double argent, comme ça on pourra les vendre aussi en Robux, avec une potion double
+-- dégâts »). Celles à durée s'additionnent : en boire une autre avant la fin rallonge le temps. (Potions.luau)
+Config.POTIONS = {
+	rank = {}, -- monte la NOTE d'un familier d'un cran (C → B → A → S) : Pets.raiseGrade
+	xp = { mult = 2, seconds = 10 * 60 },
+	coins = { mult = 2, seconds = 10 * 60 },
+	damage = { mult = 2, seconds = 10 * 60 }, -- (pas dans les cadeaux : pour la boutique en Robux)
+}
+Config.POTION_ORDER = { "rank", "xp", "coins", "damage" }
+-- LES MONDES SONT TOUJOURS OUVERTS (sa demande du 09/10 : « ouvrir tous les mondes tout le temps permet de visiter ;
+-- de toute manière ils ne géreront pas les monstres, à quoi bon les fermer »). Le monde CONQUIS (data.zone : le
+-- dernier boss battu + 1) sert toujours pour la forge, les cadeaux et les œufs.
+Config.FREE_TRAVEL = true
 -- LE BONUS D'AMIS : chaque ami Roblox dans le même serveur donne FRIEND_BONUS d'XP et de pièces de combat en plus,
 -- jusqu'à FRIEND_MAX amis (sa règle : « + 10 % d'XP et de cash »).
 -- LE BONUS « RESTE ENCORE » (Rewards.luau) : la première fois de la journée que le joueur ouvre le menu de Roblox
