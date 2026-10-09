@@ -1520,12 +1520,42 @@ autoButton.Key.Text = "R"
 -- personnage va tout seul jusqu'au monstre le plus proche, le combat, puis passe au suivant. Il ne s'éloigne pas à
 -- plus de AUTO_RADIUS de l'endroit où on l'a laissé (là où l'AUTO a été allumé, ou là où on a marché en dernier).
 local AUTO_RADIUS = 34
+-- CONTOURNER LES OBSTACLES (10/10, son retour : « l'attaque auto ne me fait pas contourner les obstacles mais me
+-- bloque dedans »). Le personnage va tout droit vers le monstre ; s'il n'avance plus (un rocher, un arbre, une
+-- clôture), on demande à Roblox un chemin qui contourne (PathfindingService) et on le suit point par point, en
+-- sautant là où il le dit. Pas de chemin : un saut, pour passer par-dessus ce qui est bas.
+local PathfindingService = game:GetService("PathfindingService")
+local route: { PathWaypoint }? = nil
+local routeIndex, routeGoal, routeUntil = 1, Vector3.zero, 0
+local planning = false
+local stuckAt: Vector3? = nil
+local stuckSince = 0
+local function planRoute(from: Vector3, goal: Vector3, humanoid: Humanoid)
+	if planning then
+		return
+	end
+	planning = true
+	task.spawn(function()
+		local path = PathfindingService:CreatePath({ AgentRadius = 2.5, AgentHeight = 5, AgentCanJump = true })
+		local ok = pcall(function()
+			path:ComputeAsync(from, goal)
+		end)
+		if ok and path.Status == Enum.PathStatus.Success then
+			route, routeIndex, routeGoal, routeUntil = path:GetWaypoints(), 2, goal, os.clock() + 8
+		else
+			route = nil
+			humanoid.Jump = true
+		end
+		planning = false
+	end)
+end
 local auto = false
 local anchor: Vector3? = nil
 -- (walking : l AUTO a lance une marche ; il faut l arreter quand l AUTO s eteint ou se met en pause, sinon le
 -- personnage continue tout seul vers le dernier monstre.)
 local walking = false
 local function halt()
+	route, stuckAt = nil, nil
 	local character = player.Character
 	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
 	local root = character and character:FindFirstChild("HumanoidRootPart")
@@ -1637,9 +1667,37 @@ task.spawn(function()
 					local reach = Config.ATTACK_REACH + (best:GetAttribute("Scale") or 1) - 1
 					local away = Vector3.new(root.Position.X - best.Position.X, 0, root.Position.Z - best.Position.Z)
 					if away.Magnitude > reach then
-						humanoid:MoveTo(best.Position + away.Unit * (reach - 1.5))
+						local goal = best.Position + away.Unit * (reach - 1.5)
+						local now = os.clock()
+						local point = route and route[routeIndex]
+						if point and now < routeUntil and (goal - routeGoal).Magnitude < 8 then
+							-- On suit le chemin qui contourne, point par point.
+							if Vector3.new(point.Position.X - root.Position.X, 0, point.Position.Z - root.Position.Z).Magnitude < 3 then
+								routeIndex += 1
+								point = (route :: any)[routeIndex]
+							end
+							if point then
+								if point.Action == Enum.PathWaypointAction.Jump then
+									humanoid.Jump = true
+								end
+								humanoid:MoveTo(point.Position)
+							else
+								route = nil
+							end
+						else
+							route = nil
+							humanoid:MoveTo(goal)
+						end
+						-- Il n'avance plus depuis plus d'une demi-seconde : il est bloqué, on cherche un chemin.
+						if not stuckAt or (root.Position - stuckAt).Magnitude > 1.2 then
+							stuckAt, stuckSince = root.Position, now
+						elseif now - stuckSince > 0.6 then
+							stuckSince = now
+							planRoute(root.Position, goal, humanoid)
+						end
 						walking = true
 					else
+						route, stuckAt = nil, nil
 						-- (Face au monstre : un coup donne de dos ne touche pas.)
 						if away.Magnitude > 0.5 then
 							root.CFrame = CFrame.lookAt(root.Position, root.Position - away)

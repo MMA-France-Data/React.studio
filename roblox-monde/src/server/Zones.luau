@@ -441,12 +441,28 @@ local function lilies(parent, at: Vector3, radius: number, random: Random, count
 	end
 end
 -- Appelle `each(position, direction)` `count` fois, en rond autour du camp, entre `near` et `far` du milieu.
+-- LA COURONNE DU DEHORS (10/10, retour du créateur : « j'ai un problème de décor, des béliers qui rentrent dans les
+-- pierres », « l'attaque auto me bloque dedans »). Les monstres d'un camp vivent sur un rond de 22 à 27 de rayon et
+-- se promènent jusqu'à 31 ; avec leur grosseur, ils entraient dans les rochers et les arbres posés entre 31 et 36.
+-- Tout ce qui est posé au-delà de RING_FROM est donc repoussé de RING_PUSH : plus rien de dur là où ils vivent.
+-- `allowed` (posé par buildZone) refuse en plus un endroit pris par autre chose : le sentier, l'entrée de la zone,
+-- l'arène du boss, le rond d'un autre camp.
+local RING_FROM, RING_PUSH = 28, 12
+local allowed: ((Vector3, boolean) -> boolean)? = nil
 local function around(at: Vector3, toward: Vector3, random: Random, count: number, near: number, far: number, each)
+	local ring = near >= RING_FROM
+	if ring then
+		near += RING_PUSH
+		far += RING_PUSH
+	end
 	for i = 1, count do
 		local angle = (i + random:NextNumber(-0.3, 0.3)) / count * math.pi * 2
 		local direction = Vector3.new(math.cos(angle), 0, math.sin(angle))
 		if direction:Dot(toward) < 0.7 then
-			each(at + direction * random:NextNumber(near, far), direction)
+			local spot = at + direction * random:NextNumber(near, far)
+			if not allowed or allowed(spot, ring) then
+				each(spot, direction)
+			end
 		end
 	end
 end
@@ -672,7 +688,7 @@ end
 function HABITATS.Rooster(parent, at, toward, random)
 	campFloor(parent, at, 15, rgb(196, 160, 104), M.Ground)
 	around(at, -toward, random, 6, 6, 13, function(spot) props.nest(parent, spot, random) end)
-	props.coop(parent, at - toward * 34, toward)
+	props.coop(parent, at - toward * 46, toward)
 	around(at, toward, random, 7, 31, 34, function(spot, direction)
 		if direction:Dot(-toward) < 0.8 then props.hay(parent, spot, random) end
 	end)
@@ -680,20 +696,21 @@ end
 function HABITATS.Pig(parent, at, toward, random)
 	campFloor(parent, at, 16, MUD, M.Mud)
 	props.trough(parent, at, toward, rgb(224, 150, 150))
-	fenceRing(parent, at, toward, 32.5)
+	fenceRing(parent, at, toward, 38)
 	around(at, toward, random, 4, 34, 36, function(spot) props.hay(parent, spot, random) end)
 end
 function HABITATS.Sheep(parent, at, toward, random)
 	campFloor(parent, at, 17, rgb(150, 220, 110), M.Grass)
 	around(at, -toward, random, 8, 5, 15, function(spot) props.flowers(parent, spot, random) end)
-	fenceRing(parent, at, toward, 32.5)
+	fenceRing(parent, at, toward, 38)
 	props.trough(parent, at - toward * 4, toward, rgb(90, 170, 230))
 	around(at, toward, random, 3, 34, 36, function(spot) props.hay(parent, spot, random) end)
 end
 function HABITATS.Goat(parent, at, toward, random)
 	campFloor(parent, at, 13, STONE, M.Slate)
 	around(at, toward, random, 10, 31, 34, function(spot) props.rock(parent, spot, random, 1.7) end)
-	deco(parent, "GoatRock", Vector3.new(9, 2.2, 8), CFrame.new(at + Vector3.new(0, 1.1, 0)) * CFrame.Angles(0, 0.5, 0), rgb(136, 136, 144), M.Slate, nil, true)
+	-- (Le gros rocher n'est plus au milieu du camp, où les monstres passent : il est au fond.)
+	deco(parent, "GoatRock", Vector3.new(9, 2.2, 8), CFrame.new(at - toward * 48 + Vector3.new(0, 1.1, 0)) * CFrame.Angles(0, 0.5, 0), rgb(136, 136, 144), M.Slate, nil, true)
 end
 function HABITATS.Horse(parent, at, toward, random)
 	props.stable(parent, at, toward, random)
@@ -709,7 +726,7 @@ end
 function HABITATS.Ram(parent, at, toward, random)
 	campFloor(parent, at, 14, rgb(132, 134, 142), M.Slate)
 	around(at, toward, random, 9, 31, 34, function(spot) props.rock(parent, spot, random, 2.1) end)
-	deco(parent, "RamRock", Vector3.new(10, 3, 9), CFrame.new(at + Vector3.new(0, 1.5, 0)) * CFrame.Angles(0, 0.4, math.rad(5)), rgb(120, 122, 130), M.Slate, nil, true)
+	deco(parent, "RamRock", Vector3.new(10, 3, 9), CFrame.new(at - toward * 48 + Vector3.new(0, 1.5, 0)) * CFrame.Angles(0, 0.4, math.rad(5)), rgb(120, 122, 130), M.Slate, nil, true)
 end
 function HABITATS.Deer(parent, at, toward, random)
 	campFloor(parent, at, 18, rgb(104, 190, 100), M.Grass)
@@ -725,7 +742,7 @@ function HABITATS.Lynx(parent, at, toward, random)
 end
 function HABITATS.Wolf(parent, at, toward, random)
 	campFloor(parent, at, 15, rgb(84, 72, 62), M.Ground)
-	props.den(parent, at - toward * 35, toward, random)
+	props.den(parent, at - toward * 47, toward, random)
 	around(at, -toward, random, 5, 7, 15, function(spot) props.bones(parent, spot, random) end)
 	around(at, toward, random, 7, 31, 34, function(spot, direction)
 		if direction:Dot(-toward) < 0.75 then props.rock(parent, spot, random, 1.5, rgb(104, 104, 114)) end
@@ -796,7 +813,7 @@ function HABITATS.Cheetah(parent, at, toward, random)
 	around(at, toward, random, 12, 31, 35, function(spot, direction)
 		if math.abs(direction.Z) > 0.6 then props.termite(parent, spot, random) else props.drygrass(parent, spot, random) end
 	end)
-	deco(parent, "LookoutRock", Vector3.new(9, 2.4, 7), CFrame.new(at + Vector3.new(0, 1.2, 0)) * CFrame.Angles(0, 0.7, 0), rgb(196, 150, 104), M.Slate, nil, true)
+	deco(parent, "LookoutRock", Vector3.new(9, 2.4, 7), CFrame.new(at - toward * 48 + Vector3.new(0, 1.2, 0)) * CFrame.Angles(0, 0.7, 0), rgb(196, 150, 104), M.Slate, nil, true)
 end
 function HABITATS.Rhino(parent, at, toward, random)
 	campFloor(parent, at, 16, rgb(140, 104, 72), M.Mud)
@@ -807,7 +824,7 @@ end
 function HABITATS.Elephant(parent, at, toward, random)
 	campWater(parent, at, 19, rgb(96, 170, 190), rgb(170, 130, 88), M.Mud)
 	around(at, toward, random, 10, 21, 24, function(spot) props.reeds(parent, spot, random) end)
-	props.baobab(parent, at - toward * 40, random)
+	props.baobab(parent, at - toward * 52, random)
 	around(at, toward, random, 5, 33, 36, function(spot, direction)
 		if direction:Dot(-toward) < 0.7 then props.acacia(parent, spot, random) end
 	end)
@@ -1051,9 +1068,28 @@ local function buildZone(parent: Instance, index: number, zMin: number)
 	for rank, camp in CAMPS do
 		local make = HABITATS[animals[rank]]
 		if make then
+			-- Où ce camp a le droit de poser son décor (voir `around`).
+			allowed = function(spot: Vector3, ring: boolean): boolean
+				local z = spot.Z - zMin
+				if z < 10 or math.abs(spot.X) < 16 or math.abs(spot.X) > HALF_X - 10 then
+					return false
+				end
+				if Vector3.new(spot.X, 0, z - BOSS_Z).Magnitude < ARENA + 8 then
+					return false
+				end
+				if ring then
+					for other, place in CAMPS do
+						if other ~= rank and Vector3.new(spot.X - place[1], 0, z - place[2]).Magnitude < CAMP_RADIUS + 8 then
+							return false
+						end
+					end
+				end
+				return true
+			end
 			make(nature, Vector3.new(camp[1], 0, zMin + camp[2]), Vector3.new(if camp[1] > 0 then -1 else 1, 0, 0), Random.new(index * 100 + rank))
 		end
 	end
+	allowed = nil
 	local bossHome = HABITATS[animals[6]]
 	if bossHome then
 		bossHome(nature, Vector3.new(ARENA + 20, 0, zMin + BOSS_Z + 4), Vector3.new(-1, 0, 0), Random.new(index * 100 + 6))
