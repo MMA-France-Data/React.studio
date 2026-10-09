@@ -15,7 +15,7 @@ return function(log)
 	workspace:GetAttributeChangedSignal("OpenPanel"):Connect(function()
 		local gui = game:GetService("Players").LocalPlayer.PlayerGui:FindFirstChild("Hud")
 		local wanted = workspace:GetAttribute("OpenPanel")
-		for _, name in { "SwordPanel", "BagPanel", "PetPanel", "EggPanel", "ShopPanel", "SellPanel", "SettingsPanel", "GiftPanel" } do
+		for _, name in { "SwordPanel", "BagPanel", "PetPanel", "EggPanel", "ShopPanel", "SellPanel", "SettingsPanel", "GiftPanel", "AdminPanel" } do
 			local panel = gui and gui:FindFirstChild(name)
 			if panel then
 				panel.Visible = name == wanted or (name == "BagPanel" and wanted == "BagPotions")

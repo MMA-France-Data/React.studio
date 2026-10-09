@@ -362,7 +362,7 @@ local function applyHud()
 	-- Le cadeau du temps de jeu et les amis, à côté de la chance (en dessous sur téléphone).
 	-- (Les pastilles des bonus n'apparaissent que pendant le bonus : on range à la suite celles qui sont visibles.)
 	local slot = 0
-	for _, name in { "Gift", "Friends", "Boost", "PotXp", "PotCoins", "PotDamage" } do
+	for _, name in { "Gift", "Friends", "EvCoins", "EvXp", "EvEggs", "Boost", "PotXp", "PotCoins", "PotDamage" } do
 		local pill = side:FindFirstChild(name)
 		if pill and pill.Visible then
 			slot += 1
@@ -509,6 +509,8 @@ ReplicatedStorage:WaitForChild("Notify").OnClientEvent:Connect(function(key: str
 		showToast(tr("potionMax", tr(a)), RED)
 	elseif key == "potionNone" then
 		showToast(tr("potionNone"), RED)
+	elseif key == "adminSent" or key == "adminStopped" then
+		showToast(tr(key), GOLD)
 	end
 	if key == "playerLevel" or key == "petLevel" or key == "zoneOpen" then
 		Sounds.play("level")
@@ -1064,6 +1066,10 @@ do
 		{ name = "PotXp", attr = "PotXpUntil", color = Color3.fromRGB(60, 120, 230), potion = "xp" },
 		{ name = "PotCoins", attr = "PotCoinsUntil", color = Color3.fromRGB(200, 150, 20), potion = "coins" },
 		{ name = "PotDamage", attr = "PotDamageUntil", color = Color3.fromRGB(200, 50, 60), potion = "damage" },
+		-- (Les événements de l'admin, pour tout le monde : l'heure de fin est sur workspace. Admin.luau.)
+		{ name = "EvCoins", attr = Config.EVENT.coins.attr, color = Color3.fromRGB(230, 60, 150), event = "coins", icon = "coin" },
+		{ name = "EvXp", attr = Config.EVENT.xp.attr, color = Color3.fromRGB(230, 60, 150), event = "xp", icon = "potion" },
+		{ name = "EvEggs", attr = Config.EVENT.eggs.attr, color = Color3.fromRGB(230, 60, 150), event = "eggs", icon = "egg" },
 	}
 	for _, info in boosts do
 		local pill, label = pillButton(info.name, info.color)
@@ -1071,6 +1077,8 @@ do
 		if info.potion then
 			local look = Draw.POTIONS[info.potion]
 			drawPotion(pill, UDim2.fromOffset(17, 16), 0.27, look.color, look.glyph)
+		elseif info.event then
+			Draw.icon(pill, info.icon, UDim2.fromOffset(17, 16), 0.27, if info.icon == "potion" then Draw.POTIONS.xp.color else nil)
 		else
 			label.Size = UDim2.new(1, -10, 0.8, 0)
 			label.Position = UDim2.new(0, 6, 0.1, 0)
@@ -1082,15 +1090,22 @@ do
 		while true do
 			local changed = false
 			for _, info in boosts do
-				local left = (player:GetAttribute(info.attr) or 0) - workspace:GetServerTimeNow()
+				local ends = (if info.event then workspace else player):GetAttribute(info.attr) or 0
+				local left = ends - workspace:GetServerTimeNow()
 				if info.pill.Visible ~= (left > 0) then
 					info.pill.Visible = left > 0
 					changed = true
 				end
 				if left > 0 then
-					info.label.Text = if info.potion
-						then tr("potionPill", tr("potionShort_" .. info.potion), clockText(math.floor(left)))
+					info.label.Text = if info.potion then tr("potionPill", tr("potionShort_" .. info.potion), clockText(math.floor(left)))
+						elseif info.event then tr("potionPill", tr("eventShort_" .. info.event, Config.EVENT[info.event].mult), clockText(math.floor(left)))
 						else tr("boostPill", math.floor(Config.STAY_XP * 100 + 0.5), clockText(math.floor(left)))
+				end
+				-- UN ÉVÉNEMENT COMMENCE (ou court déjà quand on arrive) : le grand bandeau, une fois par événement.
+				if info.event and left > 0 and info.told ~= ends then
+					info.told = ends
+					showBanner(tr("eventStart", tr("event_" .. info.event, Config.EVENT[info.event].mult), math.max(1, math.floor(left / 60 + 0.5))), Color3.fromRGB(255, 120, 200))
+					Sounds.play("level")
 				end
 			end
 			if changed then

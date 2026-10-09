@@ -133,6 +133,9 @@ local function reward(monster, player: Player, share: number, best: boolean)
 	-- (Les potions bues : double XP, double pièces, tant qu'elles durent. Potions.luau.)
 	local potXp = if now < (data.px or 0) then Config.POTIONS.xp.mult else 1
 	local potCoins = if now < (data.pc or 0) then Config.POTIONS.coins.mult else 1
+	-- (Et les événements de l'admin, pour tout le monde : Admin.luau.)
+	potCoins *= Config.eventMult("coins")
+	potXp *= Config.eventMult("xp")
 	local coins, xp = math.floor(def.coins * share * friends * potCoins + 0.5), math.floor(def.xp * share * friends * stay * potXp + 0.5)
 	PlayerData.addCoins(player, coins)
 	-- Chaque familier de l'équipe reçoit l'XP du monstre, lui aussi.
@@ -162,7 +165,7 @@ local function reward(monster, player: Player, share: number, best: boolean)
 	-- LE TOUT PREMIER MONSTRE BATTU lache toujours son oeuf (un joueur qui n a encore ni oeuf ni familier) : on a son
 	-- premier familier dans la premiere minute.
 	local newcomer = next(data.spots) == nil and #data.bag == 0 and not monster.chest
-	if best and (newcomer or random:NextNumber() < def.egg * Eggs.luck(player)) then
+	if best and (newcomer or random:NextNumber() < def.egg * Eggs.luck(player) * Config.eventMult("eggs")) then
 		Eggs.drop(player, monster.zone, if monster.chest then nil else monster.rank)
 	end
 	if monster.boss then

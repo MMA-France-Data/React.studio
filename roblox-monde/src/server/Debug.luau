@@ -26,6 +26,9 @@ return function(world)
 				data.sd = 0
 			end
 			return require(script.Parent.Rewards).leaving(player)
+		elseif action == "Event" then
+			-- L'admin lance l'événement a (coins, xp, eggs) pour b minutes (0 = l'arrêter).
+			return require(script.Parent.Admin).launch(player, a, b)
 		elseif action == "Potion" then
 			-- Donne b potions de la sorte a (rank, xp, coins, damage).
 			return require(script.Parent.Potions).give(player, a, b)

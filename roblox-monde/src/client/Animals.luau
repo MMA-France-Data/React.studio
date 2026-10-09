@@ -1818,4 +1818,68 @@ return function(env)
 		end
 	end)
 	refreshPanels()
+
+	-- LE MODE ADMIN (Admin.luau) : un petit bouton rouge en haut, que SEUL le créateur du jeu voit, et sa fenêtre :
+	-- une ligne par événement (pièces, XP, chance d'œuf), à lancer pour 5, 15 ou 30 minutes dans tous les serveurs,
+	-- ou à arrêter. (Le serveur revérifie que c'est bien lui à chaque clic.)
+	local adminEvent = ReplicatedStorage:WaitForChild("AdminEvent")
+	local adminButton = button(env.gui, "AdminButton", UDim2.fromOffset(64, 20), UDim2.fromOffset(0, 0), Color3.fromRGB(230, 60, 150), tr("adminButton"))
+	adminButton.AnchorPoint = Vector2.new(0.5, 0)
+	adminButton.Visible = false
+	local adminPanel = window("AdminPanel", tr("adminTitle"), 700, 360, "gear", Color3.fromRGB(230, 60, 150))
+	local adminNote = env.text(adminPanel, "Note", UDim2.new(1, -40, 0, 22), UDim2.new(0, 20, 1, -30), GOLD, 17)
+	adminNote.Text = tr("adminNote")
+	adminNote.ZIndex = 5
+	local EVENT_ICONS = { coins = "coin", xp = "potion", eggs = "egg" }
+	local adminRows = {}
+	for index, kind in Config.EVENT_ORDER do
+		local def = Config.EVENT[kind]
+		local row = env.box(adminPanel, "Row" .. index, UDim2.new(1, -40, 0, 82), UDim2.fromOffset(20, 50 + (index - 1) * 92), Color3.fromRGB(22, 18, 50))
+		row.ZIndex = 4
+		row.UIStroke.Color = Color3.fromRGB(230, 60, 150)
+		row.UIStroke.Thickness = 3
+		Draw.icon(row, EVENT_ICONS[kind], UDim2.fromOffset(44, 41), 0.62, if kind == "xp" then Draw.POTIONS.xp.color else nil)
+		local name = env.text(row, "Name", UDim2.fromOffset(190, 32), UDim2.fromOffset(86, 8), nil, 26)
+		name.Text = tr("event_" .. kind, def.mult)
+		name.TextXAlignment = Enum.TextXAlignment.Left
+		name.ZIndex = 5
+		local state = env.text(row, "State", UDim2.fromOffset(190, 24), UDim2.fromOffset(86, 44), nil, 19)
+		state.TextXAlignment = Enum.TextXAlignment.Left
+		state.ZIndex = 5
+		for slot, minutes in Config.EVENT_MINUTES do
+			local go = button(row, "Go" .. minutes, UDim2.fromOffset(86, 50), UDim2.fromOffset(282 + (slot - 1) * 96, 16), Color3.fromRGB(50, 200, 80), tr("eventMinutes", minutes))
+			go.Activated:Connect(function()
+				adminEvent:FireServer(kind, minutes)
+			end)
+		end
+		local stop = button(row, "Stop", UDim2.fromOffset(80, 50), UDim2.new(1, -92, 0, 16), Color3.fromRGB(226, 50, 50), tr("eventStop"))
+		stop.Activated:Connect(function()
+			adminEvent:FireServer(kind, 0)
+		end)
+		adminRows[kind] = { state = state, attr = def.attr }
+	end
+	adminButton.Activated:Connect(function()
+		adminPanel.Visible = not adminPanel.Visible
+		fitWindow(adminPanel)
+	end)
+	local function showAdmin()
+		adminButton.Visible = player:GetAttribute("Admin") == true
+	end
+	player:GetAttributeChangedSignal("Admin"):Connect(showAdmin)
+	showAdmin()
+	task.spawn(function()
+		-- (Il suit le bouton BASE, comme la roue dentée ; et les lignes disent le temps qu'il reste.)
+		local base = env.gui:WaitForChild("ToBase")
+		while true do
+			adminButton.Position = base.Position + UDim2.fromOffset(-70, 0)
+			if adminPanel.Visible then
+				for _, parts in adminRows do
+					local left = (workspace:GetAttribute(parts.attr) or 0) - workspace:GetServerTimeNow()
+					parts.state.Text = if left > 0 then tr("eventLeft", clock(math.floor(left))) else tr("eventOff")
+					parts.state.TextColor3 = if left > 0 then Color3.fromRGB(110, 255, 80) else Color3.fromRGB(170, 170, 200)
+				end
+			end
+			task.wait(0.5)
+		end
+	end)
 end

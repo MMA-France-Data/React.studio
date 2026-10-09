@@ -234,6 +234,22 @@ Config.POTION_ORDER = { "rank", "xp", "coins", "damage" }
 -- de toute manière ils ne géreront pas les monstres, à quoi bon les fermer »). Le monde CONQUIS (data.zone : le
 -- dernier boss battu + 1) sert toujours pour la forge, les cadeaux et les œufs.
 Config.FREE_TRAVEL = true
+-- LES ÉVÉNEMENTS DE L'ADMIN (Admin.luau ; sa demande du 09/10 : « un mode uniquement pour moi, pour les admin
+-- abuse ») : des bonus pour TOUS les joueurs de TOUS les serveurs, lancés par le créateur pour EVENT_MINUTES minutes.
+-- mult : par combien c'est multiplié ; attr : l'attribut de workspace qui garde l'heure de fin (os.time).
+--   coins : les pièces des monstres ; xp : l'XP des monstres ; eggs : la chance qu'un monstre lâche son œuf.
+Config.EVENT = {
+	coins = { mult = 2, attr = "EventCoinsUntil" },
+	xp = { mult = 2, attr = "EventXpUntil" },
+	eggs = { mult = 2, attr = "EventEggsUntil" },
+}
+Config.EVENT_ORDER = { "coins", "xp", "eggs" }
+Config.EVENT_MINUTES = { 5, 15, 30 }
+-- (Côté serveur.) Le multiplicateur du moment pour cette sorte : 1 quand aucun événement ne court.
+function Config.eventMult(kind: string): number
+	local def = Config.EVENT[kind]
+	return if def and os.time() < (workspace:GetAttribute(def.attr) or 0) then def.mult else 1
+end
 -- LE BONUS D'AMIS : chaque ami Roblox dans le même serveur donne FRIEND_BONUS d'XP et de pièces de combat en plus,
 -- jusqu'à FRIEND_MAX amis (sa règle : « + 10 % d'XP et de cash »).
 -- LE BONUS « RESTE ENCORE » (Rewards.luau) : la première fois de la journée que le joueur ouvre le menu de Roblox
