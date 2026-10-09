@@ -10,7 +10,7 @@ local Input = game:GetService("UserInputService")
 local Tiger = {}
 local MOBILE = Input.TouchEnabled
 
-local ORANGE, AMBER, GREEN = Color3.fromRGB(255, 120, 20), Color3.fromRGB(255, 205, 70), Color3.fromRGB(70, 255, 120)
+local ORANGE, AMBER, GREEN = Color3.fromRGB(255, 120, 20), Color3.fromRGB(255, 205, 70), Color3.fromRGB(50, 255, 70)
 local SPARK = "rbxasset://textures/particles/sparkles_main.dds"
 local EMBER = "rbxasset://textures/particles/fire_sparks_main.dds"
 local FLAME = "rbxasset://textures/particles/fire_main.dds"
@@ -25,7 +25,8 @@ local CLAWS = {
 	{ Vector3.new(0, -0.05, -1.92), Vector3.new(0, 0.50, -2.80) },
 }
 -- Les deux yeux du crâne de la garde, des deux côtés de l'épée (le crâne est sculpté sur ses deux faces).
-local EYES = { Vector3.new(0.56, 0.15, -1.06), Vector3.new(0.56, -0.15, -1.06), Vector3.new(-0.56, 0.15, -1.06), Vector3.new(-0.56, -0.15, -1.06) }
+-- (Enfoncés dans les orbites, retour du créateur : posés en surface, ils dépassaient et se voyaient de profil.)
+local EYES = { Vector3.new(0.45, 0.15, -1.06), Vector3.new(0.45, -0.15, -1.06), Vector3.new(-0.45, 0.15, -1.06), Vector3.new(-0.45, -0.15, -1.06) }
 local TIP_Z = -4.212 -- où se trouve TrailTip dans ces mesures : sert à trouver l'échelle réelle
 
 local function curve(values): NumberSequence
@@ -104,7 +105,7 @@ function Tiger.create(model: Model, tip: Attachment)
 		ball.Name = "TigerEyeGlow"
 		ball.Shape = Enum.PartType.Ball
 		ball.Material, ball.Color = Enum.Material.Neon, GREEN
-		ball.Size = Vector3.one * 0.11 * k
+		ball.Size = Vector3.one * 0.085 * k
 		ball.Anchored, ball.Massless = true, true
 		ball.CanCollide, ball.CanTouch, ball.CanQuery, ball.CastShadow = false, false, false, false
 		ball.Parent = model
@@ -287,7 +288,7 @@ function Tiger.update(state, dt: number, visible: boolean, swinging: boolean, cl
 	for _, eye in state.eyes do
 		eye.ball.CFrame = CFrame.new(eye.at.WorldPosition)
 		eye.ball.Transparency = if visible then 0 else 1
-		eye.ball.Size = Vector3.one * (0.11 + 0.025 * pulse + 0.07 * heat) * state.k
+		eye.ball.Size = Vector3.one * (0.085 + 0.015 * pulse + 0.03 * heat) * state.k
 		eye.ball.Color = GREEN:Lerp(Color3.new(1, 1, 0.7), heat * 0.6)
 	end
 	state.eyeLight.Enabled = visible
