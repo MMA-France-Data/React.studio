@@ -14,21 +14,26 @@ local Sounds = {}
 
 Sounds.LIST = {
 	-- LE COUP D'ÉPÉE : faible (sa demande), et par-dessus le son propre à l'épée (SWORD_VOICE), très faible lui aussi.
-	swing = { id = "rbxassetid://12222216", volume = 0.22, pitch = { 0.9, 1.15 }, gap = 0.05 },
-	swingBig = { id = "rbxassetid://12222208", volume = 0.25, pitch = { 0.85, 1 }, gap = 0.05 }, -- un coup sur trois
+	-- (Les six sons marqués « le sien » ont été choisis par le créateur dans la boutique de Roblox, le 09/10.)
+	swing = { id = "rbxassetid://137901267020570", volume = 0.22, pitch = { 0.92, 1.12 }, gap = 0.05 }, -- le sien : « sword swing »
+	swingBig = { id = "rbxassetid://137901267020570", volume = 0.26, pitch = { 0.8, 0.9 }, gap = 0.05 }, -- un coup sur trois, plus grave
 	sword = { id = "rbxassetid://12222225", volume = 0.6, pitch = { 1, 1 } }, -- une nouvelle épée
 	coin = { id = "rbxasset://sounds/volume_slider.ogg", volume = 0.5, pitch = { 1.5, 1.9 }, gap = 0.08 }, -- des pièces
 	boss = { id = "rbxasset://sounds/impact_explosion_03.mp3", volume = 0.6, pitch = { 0.9, 1 } }, -- un boss battu
 	level = { id = "rbxasset://sounds/action_get_up.mp3", volume = 0.6, pitch = { 1.25, 1.25 } }, -- un niveau gagné
 	hatch = { id = "rbxasset://sounds/action_jump_land.mp3", volume = 0.6, pitch = { 1.3, 1.5 } }, -- un œuf qui éclot
-	click = { id = "rbxasset://sounds/volume_slider.ogg", volume = 0.35, pitch = { 1, 1 }, gap = 0.04 }, -- un bouton
+	click = { id = "rbxassetid://88442833509532", volume = 0.3, pitch = { 1, 1 }, gap = 0.04 }, -- le sien : « ui-simple-button-click »
 	-- LES SONS PROPRES AUX ÉPÉES (voir SWORD_VOICE) : à remplir avec les numéros du créateur.
-	tiger = { id = "", volume = 0.12, pitch = { 0.9, 1.1 }, gap = 0.35 }, -- le grognement du tigre
+	tiger = { id = "rbxassetid://9120048710", volume = 0.1, pitch = { 0.9, 1.1 }, gap = 2.6 }, -- le sien : « Tiger Roars 11 » (2,8 s : pas deux à la fois)
 }
 -- Le son qu'une épée ajoute à chacun de ses coups, selon son modèle (SwordPalette.gameOrder).
 Sounds.SWORD_VOICE = { TigerClaw = "tiger" }
 -- LES MUSIQUES : jouées l'une après l'autre, en boucle, doucement. À remplir avec les numéros du créateur.
-Sounds.MUSIC = {}
+-- (Les siennes : « Chill Bossa Nova Lounge Music » et « Enchanted Forest ».)
+Sounds.MUSIC = { "rbxassetid://127251981695845", "rbxassetid://103048093081041" }
+-- LES PAS du personnage (le sien : « classic walk sound effect ») : remplace le bruit de pas de Roblox. Vide = on garde
+-- celui de Roblox. Volume faible, sa demande.
+Sounds.WALK = { id = "rbxassetid://17600293022", volume = 0.25 }
 Sounds.MUSIC_VOLUME = 0.35 -- le volume de la musique quand son réglage est à 100
 -- Les réglages au départ (de 0 à 100).
 Sounds.DEFAULT_MUSIC, Sounds.DEFAULT_FX = 30, 70
@@ -87,6 +92,10 @@ function Sounds.start()
 		if root then
 			for _, sound in root:GetChildren() do
 				if sound:IsA("Sound") then
+					if sound.Name == "Running" and Sounds.WALK.id ~= "" and sound.SoundId ~= Sounds.WALK.id then
+						sound.SoundId = Sounds.WALK.id
+						sound:SetAttribute("Base", Sounds.WALK.volume)
+					end
 					if not sound:GetAttribute("Base") then
 						sound:SetAttribute("Base", sound.Volume)
 					end
