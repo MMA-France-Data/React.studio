@@ -86,8 +86,8 @@ function Tiger.create(model: Model, tip: Attachment)
 		ember.Color = ColorSequence.new(AMBER, ORANGE)
 		ember.LightEmission, ember.LightInfluence, ember.Brightness = 0.7, 0, 4
 		ember.Rate = if MOBILE then 5 else 10
-		ember.Lifetime, ember.Speed = NumberRange.new(0.5, 0.9), NumberRange.new(0.6, 1.4)
-		ember.SpreadAngle = Vector2.new(35, 35)
+		ember.Lifetime, ember.Speed = NumberRange.new(0.5, 0.9), NumberRange.new(0.3, 1.2)
+		ember.SpreadAngle = Vector2.new(180, 180)
 		ember.Acceleration = Vector3.new(0, 2.2, 0)
 		ember.Size = curve({ { 0, 0.1 * k }, { 0.3, 0.5 * k }, { 1, 0 } })
 		ember.Transparency = curve({ { 0, 1 }, { 0.15, 0.1 }, { 0.7, 0.4 }, { 1, 1 } })
@@ -154,24 +154,34 @@ function Tiger.create(model: Model, tip: Attachment)
 	-- 7) L'AURA : toute la lame brûle. Des flammes orange montent le long des trois griffes, un grand halo l'entoure,
 	-- une flamme verte sort de la garde (l'esprit de la jungle).
 	state.aura = {}
-	for index = 0, 5 do
-		local flame = Instance.new("ParticleEmitter")
-		flame.Name = "TigerAura" .. index
-		flame.Texture = FLAME
-		flame.Color = ColorSequence.new({ ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 240, 150)), ColorSequenceKeypoint.new(0.3, AMBER), ColorSequenceKeypoint.new(0.7, ORANGE), ColorSequenceKeypoint.new(1, Color3.fromRGB(200, 40, 10)) })
-		-- (En plein jour, des flammes seulement lumineuses ne se voient pas : elles sont aussi opaques et vives.)
-		flame.LightEmission, flame.LightInfluence, flame.Brightness = 0.55, 0, 3
-		flame.Rate = if MOBILE then 10 else 24
-		flame.Lifetime, flame.Speed = NumberRange.new(0.45, 0.8), NumberRange.new(0.8, 2)
-		flame.SpreadAngle = Vector2.new(40, 40)
-		flame.Acceleration = Vector3.new(0, 4, 0)
-		flame.Size = curve({ { 0, 0.4 * k }, { 0.25, 1.5 * k }, { 0.7, 0.9 * k }, { 1, 0 } })
-		flame.Transparency = curve({ { 0, 1 }, { 0.1, 0.05 }, { 0.6, 0.3 }, { 1, 1 } })
-		flame.Rotation, flame.RotSpeed = NumberRange.new(-20, 20), NumberRange.new(-40, 40)
-		flame.LockedToPart = false
-		flame.ZOffset = -0.4
-		flame.Parent = point("TigerAuraPoint" .. index, Vector3.new(0, 0.12, -1.7 - index * 0.48))
-		table.insert(state.aura, { item = flame, rate = flame.Rate })
+	-- (Retour du créateur, 09/10 : « l'aura n'est pas centrée, et sa forme est trop régulière ». Les flammes partaient
+	-- sur le côté — un émetteur lance ses particules vers le « haut » de son point d'attache, ici la largeur de la
+	-- lame — et elles étaient alignées en colonne. Elles naissent maintenant SUR chaque griffe, du pied à la pointe,
+	-- sans élan de côté, de tailles et de durées différentes, et chacune bat à son rythme : des langues de feu.)
+	local SPOTS = { { 0.1, 0.9, 0.45 }, { 0.5, 1.15, 0.55 }, { 0.92, 1.6, 0.8 } } -- { où sur la griffe, grosseur, durée }
+	for index, claw in CLAWS do
+		for spot, info in SPOTS do
+			local big = info[2] * (1 + 0.18 * ((index * 2 + spot) % 3 - 1))
+			local flame = Instance.new("ParticleEmitter")
+			flame.Name = "TigerAura" .. index .. spot
+			flame.Texture = FLAME
+			flame.Color = ColorSequence.new({ ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 240, 150)), ColorSequenceKeypoint.new(0.3, AMBER), ColorSequenceKeypoint.new(0.7, ORANGE), ColorSequenceKeypoint.new(1, Color3.fromRGB(200, 40, 10)) })
+			-- (En plein jour, des flammes seulement lumineuses ne se voient pas : elles sont aussi opaques et vives.)
+			flame.LightEmission, flame.LightInfluence, flame.Brightness = 0.55, 0, 3
+			flame.Rate = if MOBILE then 11 else 26
+			flame.Lifetime = NumberRange.new(info[3] * 0.6, info[3])
+			flame.Speed, flame.SpreadAngle = NumberRange.new(0, 0.35), Vector2.new(180, 180)
+			flame.Acceleration = Vector3.new(0, 1.8, 0)
+			flame.Size = curve({ { 0, 0.3 * k * big }, { 0.2, 0.95 * k * big }, { 0.6, 0.5 * k * big }, { 1, 0 } })
+			flame.Transparency = curve({ { 0, 1 }, { 0.12, 0.12 }, { 0.6, 0.4 }, { 1, 1 } })
+			flame.Rotation, flame.RotSpeed = NumberRange.new(-35, 35), NumberRange.new(-60, 60)
+			flame.LockedToPart = false
+			-- (Surtout pas de recul vers le fond : les flammes passaient DERRIÈRE la lame, on ne voyait que celles qui
+			-- dépassaient d'un côté, d'où l'aura décentrée.)
+			flame.ZOffset = 0.25
+			flame.Parent = point("TigerAuraPoint" .. index .. spot, claw[1]:Lerp(claw[2], info[1]))
+			table.insert(state.aura, { item = flame, rate = flame.Rate, seed = index * 7.3 + spot * 3.1 })
+		end
 	end
 	local spirit = Instance.new("ParticleEmitter")
 	spirit.Name = "TigerSpirit"
@@ -179,15 +189,15 @@ function Tiger.create(model: Model, tip: Attachment)
 	spirit.Color = ColorSequence.new({ ColorSequenceKeypoint.new(0, Color3.fromRGB(210, 255, 190)), ColorSequenceKeypoint.new(0.4, GREEN), ColorSequenceKeypoint.new(1, Color3.fromRGB(10, 120, 60)) })
 	spirit.LightEmission, spirit.LightInfluence, spirit.Brightness = 0.55, 0, 3
 	spirit.Rate = if MOBILE then 8 else 20
-	spirit.Lifetime, spirit.Speed = NumberRange.new(0.5, 0.9), NumberRange.new(0.6, 1.6)
-	spirit.SpreadAngle = Vector2.new(50, 50)
+	spirit.Lifetime, spirit.Speed = NumberRange.new(0.4, 0.8), NumberRange.new(0, 0.3)
+	spirit.SpreadAngle = Vector2.new(180, 180)
 	spirit.Acceleration = Vector3.new(0, 3, 0)
 	spirit.Size = curve({ { 0, 0.3 * k }, { 0.3, 1.3 * k }, { 1, 0 } })
-	spirit.Transparency = curve({ { 0, 1 }, { 0.12, 0.08 }, { 0.6, 0.35 }, { 1, 1 } })
+	spirit.Transparency = curve({ { 0, 1 }, { 0.12, 0.3 }, { 0.6, 0.5 }, { 1, 1 } })
 	spirit.LockedToPart = false
-	spirit.ZOffset = -0.4
+	spirit.ZOffset = 0.2
 	spirit.Parent = point("TigerSpiritPoint", Vector3.new(0, 0, -1.0))
-	table.insert(state.aura, { item = spirit, rate = spirit.Rate })
+	table.insert(state.aura, { item = spirit, rate = spirit.Rate, seed = 91.7 })
 	local low, high = point("TigerHaloLow", Vector3.new(0, 0.05, -1.3)), point("TigerHaloHigh", Vector3.new(0, 0.4, -4.5))
 	local halo = Instance.new("Beam")
 	halo.Name = "TigerHalo"
@@ -197,7 +207,7 @@ function Tiger.create(model: Model, tip: Attachment)
 	halo.Texture, halo.TextureMode = "rbxasset://textures/glow.png", Enum.TextureMode.Stretch
 	halo.LightEmission, halo.LightInfluence, halo.Brightness = 0.6, 0, 3
 	halo.Color = ColorSequence.new({ ColorSequenceKeypoint.new(0, ORANGE), ColorSequenceKeypoint.new(1, AMBER) })
-	halo.Transparency = NumberSequence.new(0.6)
+	halo.Transparency = NumberSequence.new(1)
 	halo.ZOffset = -0.6
 	halo.Parent = primary
 	state.halo = halo
@@ -288,10 +298,13 @@ function Tiger.update(state, dt: number, visible: boolean, swinging: boolean, cl
 	-- L'aura : plus forte et plus large pendant le coup.
 	for _, flame in state.aura do
 		flame.item.Enabled = visible
-		flame.item.Rate = flame.rate * (1 + 1.5 * heat)
+		-- (Chaque flamme bat à son rythme : tantôt presque éteinte, tantôt deux fois plus forte.)
+		local flicker = math.clamp(1 + 1.3 * math.noise(state.time * 1.9, flame.seed), 0.35, 2)
+		flame.item.Rate = flame.rate * flicker * (1 + 1.5 * heat)
 	end
 	state.halo.Enabled = visible
-	state.halo.Transparency = NumberSequence.new(math.clamp(0.38 - 0.12 * pulse - 0.25 * heat, 0.05, 1))
+	-- (Le halo, une bande droite et régulière, ne s'allume plus que pendant le coup.)
+	state.halo.Transparency = NumberSequence.new(math.clamp(1 - 0.55 * heat, 0.3, 1))
 	state.halo.Width0 = (3.0 + 1.4 * heat) * state.k
 	state.auraLight.Enabled = visible
 	state.auraLight.Brightness = 1.4 + 0.6 * pulse
