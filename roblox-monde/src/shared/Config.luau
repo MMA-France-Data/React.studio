@@ -217,7 +217,9 @@ Config.PET_REGEN = 0.25
 -- recommence. coins = autant de pièces que ce nombre de monstres du camp du milieu de son monde ; egg = un œuf de
 -- son monde, de ce rang (2 = peu commun, 4 = épique).
 Config.GIFT_EVERY = 15 * 60
-Config.GIFTS = { { coins = 40 }, { egg = 2 }, { coins = 90 }, { egg = 4 } }
+-- (Le tout premier cadeau d'un nouveau joueur arrive bien plus vite : il ouvre la fenêtre, et voit les suivants.)
+Config.GIFT_FIRST = 150
+Config.GIFTS = { { coins = 10 }, { egg = 2 }, { coins = 90 }, { egg = 4 } }
 -- LE BONUS D'AMIS : chaque ami Roblox dans le même serveur donne FRIEND_BONUS d'XP et de pièces de combat en plus,
 -- jusqu'à FRIEND_MAX amis (sa règle : « + 10 % d'XP et de cash »).
 -- LE BONUS « RESTE ENCORE » (Rewards.luau) : la première fois de la journée que le joueur ouvre le menu de Roblox

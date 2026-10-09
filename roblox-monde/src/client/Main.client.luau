@@ -711,6 +711,139 @@ end
 do
 	local SocialService = game:GetService("SocialService")
 	local claimEvent = ReplicatedStorage:WaitForChild("ClaimGift")
+	local RunService = game:GetService("RunService")
+	local DARK = Color3.fromRGB(20, 20, 30)
+	local function round(parent: Instance, name: string, size: UDim2, position: UDim2, color: Color3, radius: UDim, outline: number?): Frame
+		local frame = Instance.new("Frame")
+		frame.Name = name
+		frame.Size = size
+		frame.Position = position
+		frame.BackgroundColor3 = color
+		frame.BorderSizePixel = 0
+		local corner = Instance.new("UICorner")
+		corner.CornerRadius = radius
+		corner.Parent = frame
+		if outline then
+			local stroke = Instance.new("UIStroke")
+			stroke.Thickness = outline
+			stroke.Color = DARK
+			stroke.Parent = frame
+		end
+		frame.Parent = parent
+		return frame
+	end
+	-- Un dégradé du haut (clair) vers le bas (sombre) : du relief sur un bouton ou une boîte.
+	local function shade(frame: GuiObject, top: number, bottom: number): UIGradient
+		local gradient = Instance.new("UIGradient")
+		gradient.Rotation = 90
+		gradient.Color = ColorSequence.new(Color3.new(top, top, top), Color3.new(bottom, bottom, bottom))
+		gradient.Parent = frame
+		return gradient
+	end
+	-- UN PAQUET CADEAU DESSINÉ (110 x 110 avant `scale`) : la boîte, son couvercle, le ruban doré et son nœud.
+	local RIBBON = Color3.fromRGB(255, 200, 40)
+	local function drawGift(parent: Instance, position: UDim2, scale: number, color: Color3): Frame
+		local holder = Instance.new("Frame")
+		holder.Name = "GiftBox"
+		holder.BackgroundTransparency = 1
+		holder.Size = UDim2.fromOffset(110, 110)
+		holder.AnchorPoint = Vector2.new(0.5, 0.5)
+		holder.Position = position
+		local size = Instance.new("UIScale")
+		size.Scale = scale
+		size.Parent = holder
+		local light = color:Lerp(Color3.new(1, 1, 1), 0.25)
+		local left = round(holder, "BowLeft", UDim2.fromOffset(36, 26), UDim2.fromOffset(17, 6), RIBBON, UDim.new(0.5, 0), 3)
+		left.Rotation = 24
+		local right = round(holder, "BowRight", UDim2.fromOffset(36, 26), UDim2.fromOffset(57, 6), RIBBON, UDim.new(0.5, 0), 3)
+		right.Rotation = -24
+		shade(round(holder, "Body", UDim2.fromOffset(84, 54), UDim2.fromOffset(13, 50), color, UDim.new(0, 8), 3), 1, 0.62)
+		shade(round(holder, "BandBody", UDim2.fromOffset(20, 54), UDim2.fromOffset(45, 50), RIBBON, UDim.new(0, 0)), 1, 0.7)
+		shade(round(holder, "Lid", UDim2.fromOffset(98, 24), UDim2.fromOffset(6, 30), light, UDim.new(0, 7), 3), 1, 0.8)
+		round(holder, "BandLid", UDim2.fromOffset(20, 24), UDim2.fromOffset(45, 30), RIBBON, UDim.new(0, 0))
+		round(holder, "Knot", UDim2.fromOffset(20, 20), UDim2.fromOffset(45, 13), Color3.fromRGB(255, 160, 20), UDim.new(0.5, 0), 3)
+		round(holder, "Shine", UDim2.fromOffset(8, 30), UDim2.fromOffset(22, 60), Color3.new(1, 1, 1), UDim.new(0.5, 0)).BackgroundTransparency = 0.6
+		holder.Parent = parent
+		return holder
+	end
+	-- Deux bonshommes (des amis), dessinés : deux têtes rondes et deux épaules.
+	local function drawPeople(parent: Instance, position: UDim2, scale: number)
+		local holder = Instance.new("Frame")
+		holder.Name = "People"
+		holder.BackgroundTransparency = 1
+		holder.Size = UDim2.fromOffset(110, 110)
+		holder.AnchorPoint = Vector2.new(0.5, 0.5)
+		holder.Position = position
+		local size = Instance.new("UIScale")
+		size.Scale = scale
+		size.Parent = holder
+		for index, info in { { 64, Color3.fromRGB(120, 200, 255) }, { 28, Color3.fromRGB(255, 220, 120) } } do
+			local x, color = info[1], info[2]
+			shade(round(holder, "Body" .. index, UDim2.fromOffset(56, 40), UDim2.fromOffset(x - 10, 64), color, UDim.new(0, 18), 4), 1, 0.7)
+			shade(round(holder, "Head" .. index, UDim2.fromOffset(40, 40), UDim2.fromOffset(x - 2, 22), color, UDim.new(0.5, 0), 4), 1, 0.75)
+		end
+		holder.Parent = parent
+		return holder
+	end
+	-- Les rayons qui tournent derrière un paquet.
+	local function drawRays(parent: Instance, position: UDim2, color: Color3): Frame
+		local holder = Instance.new("Frame")
+		holder.Name = "Rays"
+		holder.BackgroundTransparency = 1
+		holder.Size = UDim2.fromOffset(2, 2)
+		holder.AnchorPoint = Vector2.new(0.5, 0.5)
+		holder.Position = position
+		for index = 1, 6 do
+			local ray = Instance.new("Frame")
+			ray.AnchorPoint = Vector2.new(0.5, 0.5)
+			ray.Position = UDim2.fromScale(0.5, 0.5)
+			ray.Size = UDim2.fromOffset(18, 132)
+			ray.Rotation = index * 30
+			ray.BorderSizePixel = 0
+			ray.BackgroundColor3 = color:Lerp(Color3.new(1, 1, 1), 0.5)
+			local fade = Instance.new("UIGradient")
+			fade.Rotation = 90
+			fade.Transparency = NumberSequence.new({
+				NumberSequenceKeypoint.new(0, 1),
+				NumberSequenceKeypoint.new(0.5, 0.55),
+				NumberSequenceKeypoint.new(1, 1),
+			})
+			fade.Parent = ray
+			ray.Parent = holder
+		end
+		holder.Parent = parent
+		return holder
+	end
+	-- L'œuf en 3D (le vrai, celui du jeu) dans un petit cadre.
+	local function showEgg(view: ViewportFrame, animal: string, color: Color3)
+		if view:GetAttribute("Key") == animal then
+			return
+		end
+		view:SetAttribute("Key", animal)
+		view:ClearAllChildren()
+		local visuals = ReplicatedStorage:FindFirstChild("EggVisuals")
+		local template = visuals and visuals:FindFirstChild(animal)
+		local model
+		if template and template:IsA("Model") then
+			model = template:Clone()
+		else
+			model = Instance.new("Model")
+			local shell = Instance.new("Part")
+			shell.Shape = Enum.PartType.Ball
+			shell.Size = Vector3.new(2, 2.6, 2)
+			shell.Color = color
+			shell.Anchored = true
+			shell.Parent = model
+		end
+		model.Parent = view
+		local center, size = model:GetBoundingBox()
+		local distance = math.max(size.X, size.Y, size.Z) * 1.3
+		local camera = Instance.new("Camera")
+		camera.FieldOfView = 40
+		camera.CFrame = CFrame.lookAt(center.Position + Vector3.new(-distance * 0.55, distance * 0.3, -distance), center.Position)
+		camera.Parent = view
+		view.CurrentCamera = camera
+	end
 	local function pillButton(name: string, color: Color3): (TextButton, TextLabel)
 		local button = Instance.new("TextButton")
 		button.Name = name
@@ -720,16 +853,31 @@ do
 		button.AutoButtonColor = true
 		Instance.new("UICorner", button).CornerRadius = UDim.new(0, 8)
 		local outline = Instance.new("UIStroke")
-		outline.Thickness = 3
-		outline.Color = Color3.fromRGB(20, 20, 30)
+		outline.Thickness = 4
+		outline.Color = DARK
 		outline.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 		outline.Parent = button
-		local label = text(button, "Label", UDim2.fromScale(0.92, 0.78), UDim2.fromScale(0.04, 0.11))
+		shade(button, 1, 0.68)
+		local label = text(button, "Label", UDim2.new(1, -36, 0.8, 0), UDim2.new(0, 32, 0.1, 0))
+		label.TextXAlignment = Enum.TextXAlignment.Left
+		label.UIStroke.Thickness = 3
 		button.Parent = side
 		return button, label
 	end
 	local gift, giftLabel = pillButton("Gift", Color3.fromRGB(90, 96, 120))
+	drawGift(gift, UDim2.fromOffset(17, 15), 0.26, Color3.fromRGB(235, 50, 80))
 	local friends, friendsLabel = pillButton("Friends", Color3.fromRGB(60, 120, 220))
+	drawPeople(friends, UDim2.fromOffset(17, 16), 0.3)
+	-- (La chance, à côté, prend le même relief et le même contour.)
+	do
+		local luck = side:FindFirstChild("Luck")
+		if luck then
+			luck.UIStroke.Thickness = 4
+			luck.UIStroke.Color = DARK
+			luck.BackgroundColor3 = Color3.fromRGB(150, 110, 20)
+			shade(luck, 1, 0.65)
+		end
+	end
 	local function clockText(seconds: number): string
 		return string.format("%d:%02d", seconds // 60, seconds % 60)
 	end
@@ -747,13 +895,161 @@ do
 	end
 	player:GetAttributeChangedSignal("GiftIn"):Connect(showGift)
 	showGift()
-	gift.Activated:Connect(function()
-		local left = player:GetAttribute("GiftIn") or 1
-		if left <= 0 then
-			claimEvent:FireServer()
-		else
-			showToast(tr("giftSoon", clockText(left)), GOLD)
+	-- LA FENÊTRE DES CADEAUX (demande du créateur, 09/10 : « une fenêtre où tu vois les récompenses avec le timer ») :
+	-- les prochains cadeaux côte à côte, chacun avec ce qu'il donne et le temps de jeu qu'il reste avant de l'avoir.
+	-- Le premier de la rangée est le prochain : sa barre devient verte « PRENDRE ! » quand il est prêt.
+	local giftPanel = box(gui, "GiftPanel", UDim2.fromOffset(732, 372), UDim2.fromScale(0.5, 0.54), Color3.fromRGB(34, 28, 70))
+	giftPanel.AnchorPoint = Vector2.new(0.5, 0.5)
+	giftPanel.Visible = false
+	giftPanel.ZIndex = 8
+	giftPanel.UIStroke.Color = DARK
+	giftPanel.UIStroke.Thickness = 5
+	shade(giftPanel, 1, 0.6)
+	local giftScale = Instance.new("UIScale")
+	giftScale.Parent = giftPanel
+	local function fitGifts()
+		local view = workspace.CurrentCamera.ViewportSize
+		giftScale.Scale = math.min(1.3, view.X / 800, view.Y / 470)
+	end
+	workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(fitGifts)
+	fitGifts()
+	local giftHeader = round(giftPanel, "Header", UDim2.new(1, 16, 0, 58), UDim2.fromOffset(-8, -22), Color3.fromRGB(255, 170, 30), UDim.new(0, 10), 5)
+	local headerShade = Instance.new("UIGradient")
+	headerShade.Rotation = 90
+	headerShade.Color = ColorSequence.new(Color3.fromRGB(255, 240, 150), Color3.fromRGB(255, 150, 60))
+	headerShade.Parent = giftHeader
+	local giftTitle = text(giftHeader, "Title", UDim2.new(1, -190, 0.86, 0), UDim2.new(0, 112, 0.07, 0), nil, 42)
+	giftTitle.Text = tr("giftTitle")
+	giftTitle.TextXAlignment = Enum.TextXAlignment.Left
+	giftTitle.UIStroke.Thickness = 4
+	drawGift(giftHeader, UDim2.fromOffset(54, 22), 0.95, Color3.fromRGB(235, 50, 80)).Rotation = -8
+	local giftSub = text(giftPanel, "Sub", UDim2.new(1, -40, 0, 26), UDim2.fromOffset(20, 42), Color3.fromRGB(120, 225, 255), 24)
+	giftSub.Text = tr("giftSub", Config.GIFT_EVERY // 60)
+	local giftClose = Instance.new("TextButton")
+	giftClose.Name = "Close"
+	giftClose.Size = UDim2.fromOffset(46, 44)
+	giftClose.Position = UDim2.new(1, -56, 0, 7)
+	giftClose.BackgroundColor3 = Color3.fromRGB(235, 40, 50)
+	giftClose.Font = Enum.Font.FredokaOne
+	giftClose.TextSize = 30
+	giftClose.TextColor3 = Color3.new(1, 1, 1)
+	giftClose.Text = "X"
+	Instance.new("UICorner", giftClose).CornerRadius = UDim.new(0, 8)
+	local closeLine = Instance.new("UIStroke")
+	closeLine.Thickness = 4
+	closeLine.Color = DARK
+	closeLine.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	closeLine.Parent = giftClose
+	shade(giftClose, 1, 0.7)
+	giftClose.Parent = giftHeader
+	giftClose.Activated:Connect(function()
+		giftPanel.Visible = false
+	end)
+	local GIFT_COLORS = { Color3.fromRGB(50, 200, 80), Color3.fromRGB(235, 50, 80), Color3.fromRGB(110, 80, 255), Color3.fromRGB(255, 140, 30) }
+	local giftCards = {}
+	for index = 1, #Config.GIFTS do
+		local card = round(giftPanel, "Card" .. index, UDim2.fromOffset(166, 286), UDim2.fromOffset(16 + (index - 1) * 178, 74), Color3.fromRGB(14, 14, 30), UDim.new(0, 10), 4)
+		local head = text(card, "Head", UDim2.new(1, -8, 0, 26), UDim2.fromOffset(4, 6), nil, 24)
+		local rays = drawRays(card, UDim2.fromOffset(83, 96), Color3.new(1, 1, 1))
+		local present = drawGift(card, UDim2.fromOffset(83, 96), 1.12, Color3.new(1, 1, 1))
+		-- Ce qu'il y a dedans : l'œuf en 3D, ou une pièce d'or ; et son nom à côté.
+		local view = Instance.new("ViewportFrame")
+		view.Name = "Egg"
+		view.Size = UDim2.fromOffset(62, 62)
+		view.Position = UDim2.fromOffset(4, 162)
+		view.BackgroundTransparency = 1
+		view.Ambient = Color3.fromRGB(215, 215, 225)
+		view.LightColor = Color3.new(1, 1, 1)
+		view.LightDirection = Vector3.new(1, -1.2, 1)
+		view.Parent = card
+		local coin = round(card, "Coin", UDim2.fromOffset(46, 46), UDim2.fromOffset(12, 170), Color3.fromRGB(255, 205, 40), UDim.new(0.5, 0), 4)
+		shade(coin, 1, 0.75)
+		text(coin, "Sign", UDim2.fromScale(0.8, 0.8), UDim2.fromScale(0.1, 0.1), Color3.fromRGB(255, 240, 150)).Text = "$"
+		local reward = text(card, "Reward", UDim2.fromOffset(94, 62), UDim2.fromOffset(66, 162), nil, 26)
+		local bar = Instance.new("TextButton")
+		bar.Name = "Bar"
+		bar.Size = UDim2.new(1, -16, 0, 46)
+		bar.Position = UDim2.new(0, 8, 1, -54)
+		bar.Text = ""
+		bar.BackgroundColor3 = Color3.new(1, 1, 1)
+		Instance.new("UICorner", bar).CornerRadius = UDim.new(0, 8)
+		local barLine = Instance.new("UIStroke")
+		barLine.Thickness = 4
+		barLine.Color = DARK
+		barLine.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+		barLine.Parent = bar
+		local barColor = Instance.new("UIGradient")
+		barColor.Rotation = 90
+		barColor.Parent = bar
+		bar.Parent = card
+		local barLabel = text(bar, "Label", UDim2.fromScale(0.92, 0.84), UDim2.fromScale(0.04, 0.08), nil, 34)
+		barLabel.UIStroke.Thickness = 3.5
+		bar.Activated:Connect(function()
+			local left = player:GetAttribute("GiftIn") or 1
+			if index == 1 and left <= 0 then
+				claimEvent:FireServer()
+			else
+				showToast(tr("giftSoon", clockText(math.max(left, 0) + (index - 1) * Config.GIFT_EVERY)), GOLD)
+			end
+		end)
+		giftCards[index] = { card = card, head = head, rays = rays, present = present, view = view, coin = coin, reward = reward, barColor = barColor, label = barLabel }
+	end
+	local giftReady = false
+	local function showGifts()
+		if not giftPanel.Visible then
+			return
 		end
+		local step = math.clamp(player:GetAttribute("GiftStep") or 1, 1, #Config.GIFTS)
+		local left = math.max(player:GetAttribute("GiftIn") or Config.GIFT_EVERY, 0)
+		local zone = math.clamp(player:GetAttribute("Zone") or 1, 1, #Pets.COLLECTIONS)
+		giftReady = left <= 0
+		for index, parts in giftCards do
+			local number = (step - 1 + index - 1) % #Config.GIFTS + 1
+			local info = Config.GIFTS[number]
+			local color = GIFT_COLORS[(number - 1) % #GIFT_COLORS + 1]
+			parts.card.BackgroundColor3 = color:Lerp(Color3.fromRGB(10, 10, 26), 0.82)
+			parts.head.Text = if index == 1 then tr("giftNext") else tr("giftCard", number)
+			parts.head.TextColor3 = color:Lerp(Color3.new(1, 1, 1), 0.45)
+			for _, ray in parts.rays:GetChildren() do
+				ray.BackgroundColor3 = color:Lerp(Color3.new(1, 1, 1), 0.5)
+			end
+			parts.present.Body.BackgroundColor3 = color
+			parts.present.Lid.BackgroundColor3 = color:Lerp(Color3.new(1, 1, 1), 0.25)
+			parts.coin.Visible = info.coins ~= nil
+			parts.view.Visible = info.coins == nil
+			if info.coins then
+				parts.reward.Text = tr("giftCardCoins", num(Config.monster(zone, 3).coins * info.coins))
+				parts.reward.TextColor3 = GOLD
+			else
+				local rarity = Pets.RARITIES[info.egg]
+				showEgg(parts.view, Pets.COLLECTIONS[zone][info.egg], rarity.color)
+				parts.reward.Text = tr("giftCardEgg", tr(rarity.key))
+				parts.reward.TextColor3 = rarity.color
+			end
+			local wait = left + (index - 1) * Config.GIFT_EVERY
+			parts.label.Text = if wait <= 0 then tr("giftTake") else clockText(wait)
+			parts.barColor.Color = if wait <= 0
+				then ColorSequence.new(Color3.fromRGB(120, 245, 90), Color3.fromRGB(30, 170, 60))
+				else ColorSequence.new(Color3.fromRGB(255, 80, 80), Color3.fromRGB(190, 25, 45))
+		end
+	end
+	for _, name in { "GiftIn", "GiftStep", "Zone" } do
+		player:GetAttributeChangedSignal(name):Connect(showGifts)
+	end
+	giftPanel:GetPropertyChangedSignal("Visible"):Connect(showGifts)
+	-- Les rayons tournent ; le paquet prêt se dandine pour qu'on le prenne.
+	RunService.RenderStepped:Connect(function()
+		if not giftPanel.Visible then
+			return
+		end
+		local now = os.clock()
+		for index, parts in giftCards do
+			parts.rays.Rotation = now * 25 + index * 15
+			parts.present.Rotation = if index == 1 and giftReady then math.sin(now * 9) * 9 else -4
+		end
+	end)
+	gift.Activated:Connect(function()
+		giftPanel.Visible = not giftPanel.Visible
 	end)
 	local function showFriends()
 		local bonus = player:GetAttribute("FriendBonus") or 0

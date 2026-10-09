@@ -40,7 +40,7 @@ local function defaults()
 		played = 0, -- temps de jeu, en secondes (compté par Leaderboards.luau, pour le classement)
 		sd = 0, -- bonus « reste encore » : le jour (os.time() // 86400) où il a été donné en dernier
 		bx = 0, -- ... et l'heure (os.time) où le bonus d'XP s'arrête
-		gt = 0, -- cadeau du temps de jeu : secondes jouées depuis le dernier cadeau (Rewards.luau)
+		gt = Config.GIFT_EVERY - Config.GIFT_FIRST, -- cadeau du temps de jeu : secondes jouées depuis le dernier cadeau (Rewards.luau)
 		gs = 1, -- ... et le numéro du prochain cadeau (Config.GIFTS)
 		vm = 60, -- réglages du joueur : volume de la musique et des sons, de 0 à 100 (Sounds.luau)
 		vf = 10,

@@ -29,6 +29,7 @@ return function(world)
 		elseif action == "Gift" then
 			-- Le cadeau du temps de jeu : prêt dans a secondes (0 = tout de suite) ; « Claim » le réclame.
 			data.gt = Config.GIFT_EVERY - (a or 0)
+			player:SetAttribute("GiftIn", a or 0)
 			return true
 		elseif action == "Claim" then
 			return require(script.Parent.Rewards).claim(player)
