@@ -152,7 +152,7 @@ function Tiger.create(model: Model, tip: Attachment)
 	state.burst = burst
 
 	-- 7) L'AURA : toute la lame brûle. Des flammes orange montent le long des trois griffes, un grand halo l'entoure,
-	-- une flamme verte sort de la garde (l'esprit de la jungle), et trois éclats de griffe tournent autour.
+	-- une flamme verte sort de la garde (l'esprit de la jungle).
 	state.aura = {}
 	for index = 0, 5 do
 		local flame = Instance.new("ParticleEmitter")
@@ -208,7 +208,8 @@ function Tiger.create(model: Model, tip: Attachment)
 	aglow.Parent = heart
 	state.auraLight = aglow
 	state.shards = {}
-	for index = 1, 3 do
+	-- (Retirés le 09/10 : en jeu, ces éclats faisaient des triangles jaunes plats, pas beaux. Mettre 3 pour les revoir.)
+	for index = 1, 0 do
 		local shard = Instance.new("WedgePart")
 		shard.Name = "TigerShard"
 		shard.Material, shard.Color = Enum.Material.Neon, if index == 2 then AMBER else ORANGE
