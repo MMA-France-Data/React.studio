@@ -1337,6 +1337,87 @@ return function(env)
 		player:GetAttributeChangedSignal(name):Connect(refreshBag)
 	end
 	bagPanel:GetPropertyChangedSignal("Visible"):Connect(refreshBag)
+
+	-- LA FENÊTRE DE VENTE (au stand du vendeur) : tous les familiers, ceux de l'enclos puis ceux du sac, avec leur
+	-- prix. Un clic en choisit un, le bouton du bas le vend. Ceux de l'équipe portent leur coche.
+	local sellPanel = window("SellPanel", tr("sellTitle"), 600, 520)
+	local sellInfo = env.text(sellPanel, "Info", UDim2.new(1, -40, 0, 24), UDim2.fromOffset(20, 52), GOLD, 18)
+	sellInfo.TextXAlignment = Enum.TextXAlignment.Left
+	sellInfo.ZIndex = 5
+	local sellGrid = grid(sellPanel, UDim2.new(1, -40, 1, -168), UDim2.fromOffset(20, 84))
+	local sellGo = button(sellPanel, "Go", UDim2.new(1, -40, 0, 54), UDim2.new(0, 20, 1, -70), Color3.fromRGB(226, 50, 50), "")
+	local sellCards, sellList, sellPick = {}, {}, ""
+	local sellNow = ReplicatedStorage:WaitForChild("SellNow")
+	local function refreshSell()
+		if not sellPanel.Visible then
+			return
+		end
+		local spots = Pets.decode(player:GetAttribute("Spots"))
+		local store = Pets.decodeStore(player:GetAttribute("Store"))
+		local team = string.split(player:GetAttribute("Team") or "", ",")
+		sellList = {}
+		local keys = {}
+		for key, spot in spots do
+			if spot.v then
+				table.insert(keys, tonumber(key))
+			end
+		end
+		table.sort(keys)
+		for _, index in keys do
+			table.insert(sellList, { id = "pen" .. index, kind = "pen", index = index, pet = spots[tostring(index)], team = table.find(team, tostring(index)) ~= nil })
+		end
+		for index, pet in store do
+			table.insert(sellList, { id = "bag" .. index, kind = "bag", index = index, pet = pet, team = false })
+		end
+		local chosen = nil
+		for i, entry in sellList do
+			local item = sellCards[i]
+			if not item then
+				item = card(sellGrid, "Sell" .. i)
+				item.frame.LayoutOrder = i
+				item.frame.Activated:Connect(function()
+					local now = sellList[i]
+					sellPick = if now and sellPick ~= now.id then now.id else ""
+					refreshSell()
+				end)
+				sellCards[i] = item
+			end
+			local pet = entry.pet
+			item.frame.Visible = true
+			item.tick.Visible = entry.team
+			paint(item, pet.q, sellPick == entry.id, Pets.gradeOf(pet))
+			item.line.Text = env.num(Pets.sellPrice(pet.a, pet.v)) .. " $"
+			show(item.view, pet.a .. pet.q, function()
+				return Pets.build(pet.a, pet.q, true)
+			end)
+			if sellPick == entry.id then
+				chosen = entry
+			end
+		end
+		for i = #sellList + 1, #sellCards do
+			sellCards[i].frame.Visible = false
+		end
+		if not chosen then
+			sellPick = ""
+		end
+		sellInfo.Text = if #sellList == 0 then tr("sellEmpty") else tr("sellHint")
+		sellGo.Label.Text = if chosen then tr("sellGo", tr(chosen.pet.a), tr("lvlLong", Pets.levelOf(chosen.pet)), env.num(Pets.sellPrice(chosen.pet.a, chosen.pet.v))) else tr("sellPick")
+		sellGo.BackgroundColor3 = if chosen then Color3.fromRGB(226, 50, 50) else Color3.fromRGB(90, 96, 120)
+		sellGo:SetAttribute("Kind", chosen and chosen.kind or "")
+		sellGo:SetAttribute("Index", chosen and chosen.index or 0)
+		fitWindow(sellPanel)
+	end
+	sellGo.Activated:Connect(function()
+		local kind, index = sellGo:GetAttribute("Kind"), sellGo:GetAttribute("Index")
+		if kind ~= "" and index > 0 then
+			sellPick = ""
+			sellNow:FireServer(kind, index)
+		end
+	end)
+	for _, name in { "Store", "Spots", "Team" } do
+		player:GetAttributeChangedSignal(name):Connect(refreshSell)
+	end
+	sellPanel:GetPropertyChangedSignal("Visible"):Connect(refreshSell)
 	bagButton.Activated:Connect(function()
 		bagPanel.Visible = not bagPanel.Visible
 		for _, name in { "ShopPanel", "SwordPanel" } do
@@ -1550,6 +1631,16 @@ return function(env)
 			showToast(tr("sold", tr(a), env.num(b)))
 		elseif key == "placeBought" then
 			showToast(tr("placeBought", a, b))
+		elseif key == "openSell" then
+			for _, name in { "PetPanel", "EggPanel", "BagPanel", "ShopPanel", "SwordPanel" } do
+				local other = env.gui:FindFirstChild(name)
+				if other then
+					other.Visible = false
+				end
+			end
+			env.gui.SellPanel.Visible = true
+		elseif key == "sellFar" then
+			showToast(tr("sellFar"), RED)
 		elseif key == "openPets" then
 			petPanel.Visible = true
 			eggPanel.Visible = false

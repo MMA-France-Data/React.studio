@@ -14,6 +14,7 @@ local UserInputService = game:GetService("UserInputService")
 local Config = require(ReplicatedStorage.Shared.Config)
 local Pets = require(ReplicatedStorage.Shared.Pets)
 local Texts = require(ReplicatedStorage.Shared.Texts)
+local Sounds = require(script.Parent.Sounds)
 
 local player = Players.LocalPlayer
 local lang = if LocalizationService.RobloxLocaleId:lower():sub(1, 2) == "fr" then "fr" else "en"
@@ -467,6 +468,15 @@ end
 
 local RED, GOLD = Color3.fromRGB(255, 90, 90), Color3.fromRGB(255, 221, 51)
 ReplicatedStorage:WaitForChild("Notify").OnClientEvent:Connect(function(key: string, a, b, c, d)
+	if key == "playerLevel" or key == "petLevel" or key == "zoneOpen" then
+		Sounds.play("level")
+	elseif key == "bossDown" then
+		Sounds.play("boss")
+	elseif key == "hatched" or key == "hatchedBag" then
+		Sounds.play("hatch")
+	elseif key == "sold" or key == "placeBought" then
+		Sounds.play("coin")
+	end
 	if key == "poor" then
 		showToast(tr("poor", num(a)), RED)
 	elseif key == "playerLevel" then
@@ -512,6 +522,67 @@ task.delay(6, function()
 	if (player:GetAttribute("Level") or 1) == 1 and (player:GetAttribute("Xp") or 0) == 0 then
 		showToast(tr("firstHint"), GOLD)
 	end
+end)
+
+-- LES TROIS CLASSEMENTS de la base (Leaderboards.luau pose le résultat sur chaque panneau, attribut « Rows ») : on
+-- les écrit ici, sur les deux faces du panneau.
+do
+	local MEDALS = { Color3.fromRGB(255, 215, 60), Color3.fromRGB(214, 222, 236), Color3.fromRGB(226, 150, 90) }
+	local function duration(seconds: number): string
+		local minutes = math.floor(seconds / 60)
+		return if minutes >= 60 then string.format("%d h %02d", minutes // 60, minutes % 60) else string.format("%d min", minutes)
+	end
+	local function draw(board: BasePart)
+		local kind = board:GetAttribute("Kind") or "coins"
+		for _, face in { Enum.NormalId.Front, Enum.NormalId.Back } do
+			local gui = board:FindFirstChild("Top" .. face.Name)
+			if not gui then
+				gui = Instance.new("SurfaceGui")
+				gui.Name = "Top" .. face.Name
+				gui.Face = face
+				gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+				gui.PixelsPerStud = 40
+				gui.LightInfluence = 0
+				gui.AutoLocalize = false
+				gui.Parent = board
+				-- (Marges larges : les deux poteaux passent devant les bords du panneau.)
+				text(gui, "Title", UDim2.fromScale(0.78, 0.1), UDim2.fromScale(0.11, 0.02), GOLD)
+				for index = 1, 10 do
+					local y = 0.135 + (index - 1) * 0.085
+					local color = MEDALS[index] or Color3.new(1, 1, 1)
+					text(gui, "Rank" .. index, UDim2.fromScale(0.08, 0.07), UDim2.fromScale(0.1, y), color).Text = tostring(index)
+					text(gui, "Name" .. index, UDim2.fromScale(0.42, 0.07), UDim2.fromScale(0.19, y), color).TextXAlignment = Enum.TextXAlignment.Left
+					text(gui, "Value" .. index, UDim2.fromScale(0.28, 0.07), UDim2.fromScale(0.62, y), color).TextXAlignment = Enum.TextXAlignment.Right
+				end
+			end
+			gui.Title.Text = tr("top_" .. kind)
+			local rows = string.split(board:GetAttribute("Rows") or "", string.char(10))
+			for index = 1, 10 do
+				local name, value = string.match(rows[index] or "", "^(.-)	(%d+)$")
+				gui["Rank" .. index].Visible = name ~= nil
+				gui["Name" .. index].Text = name or ""
+				local number = tonumber(value) or 0
+				gui["Value" .. index].Text = if not name then "" elseif kind == "time" then duration(number) else num(number)
+			end
+		end
+	end
+	local function watch(board: Instance)
+		if board:IsA("BasePart") then
+			board:GetAttributeChangedSignal("Rows"):Connect(function()
+				draw(board)
+			end)
+			draw(board)
+		end
+	end
+	CollectionService:GetInstanceAddedSignal("Leaderboard"):Connect(watch)
+	for _, board in CollectionService:GetTagged("Leaderboard") do
+		watch(board)
+	end
+end
+
+-- (Le son d'une nouvelle épée.)
+player:GetAttributeChangedSignal("Sword"):Connect(function()
+	Sounds.play("sword")
 end)
 
 -- LE REVENU HORS LIGNE : au retour, on annonce ce que l'enclos a rapporté pendant l'absence.
@@ -617,6 +688,7 @@ ReplicatedStorage:WaitForChild("Loot").OnClientEvent:Connect(function(position: 
 		sparks(position + Vector3.new(0, 2, 0), Color3.fromRGB(255, 150, 60), 6)
 	else
 		coinBurst(position)
+		Sounds.play("coin")
 	end
 	local anchor = Instance.new("Part")
 	anchor.Anchored = true
@@ -647,7 +719,7 @@ end)
 -- Un clic (ou la touche F, ou le gros bouton sur téléphone) donne un coup d'épée au monstre le plus proche. Le
 -- bouton « AUTO » frappe tout seul dès qu'un monstre est à portée.
 local attackEvent = ReplicatedStorage:WaitForChild("Attack")
-local lastSwing = 0
+local lastSwing, swings = 0, 0
 local function swing()
 	-- (Pas de coup d'épée avec un œuf sur la tête ou un familier dans les bras : le clic sert à le poser.)
 	if (player:GetAttribute("BagNext") or "") ~= "" or (player:GetAttribute("Held") or "") ~= "" then
@@ -655,6 +727,8 @@ local function swing()
 	end
 	if os.clock() - lastSwing >= Config.ATTACK_COOLDOWN then
 		lastSwing = os.clock()
+		swings += 1
+		Sounds.play(if swings % 3 == 0 then "swingBig" else "swing")
 		attackEvent:FireServer()
 	end
 end

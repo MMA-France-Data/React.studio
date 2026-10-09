@@ -1,11 +1,8 @@
 -- PETIT TEST EN IMAGES (une trentaine de secondes) : seulement des photos, sans rejouer tout le jeu.
---   powershell -ExecutionPolicy Bypass -File tools/studio-test/run.ps1 -Test photo -Seconds 60
--- Ici : une épée (TIER) de très près, des deux côtés, au repos puis pendant des coups (le joueur est posé devant un
--- monstre et frappe). À changer selon le besoin.
+--   powershell -ExecutionPolicy Bypass -File tools/studio-test/run.ps1 -Test photo -Seconds 50
+-- Ici : les trois classements du fond de l'allée, et la fenêtre de vente du vendeur (enclos + sac).
 local Players = game:GetService("Players")
 local ServerStorage = game:GetService("ServerStorage")
-
-local TIER = 11
 
 return function(log)
 	local player = Players:GetPlayers()[1] or Players.PlayerAdded:Wait()
@@ -14,54 +11,45 @@ return function(log)
 	end
 	task.wait(8)
 	local debug = ServerStorage:WaitForChild("SurviveDebug")
-	local function shot(name: string, wait: number?)
-		task.wait(wait or 1)
+	local function shot(name: string)
+		task.wait(1)
 		log("Info", "SHOT:photo_" .. name)
 		task.wait(1.2)
 	end
-	debug:Invoke("Sword", TIER)
-	task.wait(3)
+	for rank, animal in { "Duck", "Rooster", "Pig", "Sheep", "Goat" } do
+		debug:Invoke("Pet", animal, rank)
+	end
+	debug:Invoke("ToBag", 1)
+	debug:Invoke("ToBag", 2)
+	debug:Invoke("Give", 123456)
+	task.wait(12)
+	-- Les sons se chargent-ils ?
+	for _, id in { "rbxassetid://12222216", "rbxassetid://12222208", "rbxassetid://12222225", "rbxasset://sounds/volume_slider.ogg", "rbxasset://sounds/impact_water.mp3", "rbxasset://sounds/impact_explosion_03.mp3", "rbxasset://sounds/action_get_up.mp3", "rbxasset://sounds/action_jump_land.mp3" } do
+		local sound = Instance.new("Sound")
+		sound.SoundId = id
+		sound.Parent = workspace
+		local waited = 0
+		while not sound.IsLoaded and waited < 4 do
+			waited += task.wait(0.2)
+		end
+		log("Info", string.format("[DIAG] son %s : charge %s, duree %.2f s", id, tostring(sound.IsLoaded), sound.TimeLength))
+		sound:Destroy()
+	end
+	local found = workspace:FindFirstChild("Leaderboards", true)
+	log("Info", "[DIAG] dossier des classements : " .. tostring(found and found:GetFullName()) .. " ; pieces " .. tostring(found and #found:GetChildren()))
+	for _, board in game:GetService("CollectionService"):GetTagged("Leaderboard") do
+		log("Info", "[DIAG] panneau " .. tostring(board:GetAttribute("Kind")) .. " a " .. tostring(board.Position) .. " : " .. string.gsub(board:GetAttribute("Rows") or "", "%c", " / "))
+	end
 	local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-	local function look(offset: Vector3, target: Vector3)
-		local frame = root.CFrame
-		workspace:SetAttribute("ShotCam", CFrame.lookAt(frame:PointToWorldSpace(offset), frame:PointToWorldSpace(target)))
+	if root then
+		root.CFrame = CFrame.new(0, 4, -105)
 	end
-	-- L'épée est dans la main droite, pointe vers le ciel : à droite du joueur, au-dessus de sa tête.
-	-- (L'épée se tient de profil : ses deux faces regardent à gauche et à droite du joueur.)
-	look(Vector3.new(-9, 5, 0), Vector3.new(1.5, 5, 0))
-	shot("tigre_face_gauche")
-	look(Vector3.new(11, 5, 0), Vector3.new(1.5, 5, 0))
-	shot("tigre_face_droite")
-	look(Vector3.new(-3.2, 2.4, -0.4), Vector3.new(1.5, 2.4, -0.4))
-	shot("tigre_crane")
-	look(Vector3.new(-1.2, 2.6, -3.6), Vector3.new(1.5, 2.4, -0.4))
-	shot("tigre_crane_biais")
-	look(Vector3.new(1.5, 2.6, -4.2), Vector3.new(1.5, 2.4, -0.4))
-	shot("tigre_crane_profil")
-	look(Vector3.new(-5, 6.5, -0.5), Vector3.new(1.5, 6.5, -0.5))
-	shot("tigre_lame")
-	-- Des coups : un canard à côté, et on frappe.
-	debug:Invoke("Zone", 5)
-	debug:Invoke("Peaceful", true)
-	debug:Invoke("Travel", 5)
-	task.wait(2)
-	local target
-	for _, monster in debug:Invoke("Monsters") do
-		if monster.zone == 5 and monster.rank == 6 then
-			target = monster
-		end
-	end
-	if target and root then
-		root.CFrame = CFrame.lookAt(target.position + Vector3.new(0, 3, -9), target.position + Vector3.new(0, 3, 0))
-		task.wait(1)
-		look(Vector3.new(-11, 5, -2), Vector3.new(0, 4, -2))
-		for index = 1, 4 do
-			debug:Invoke("Attack")
-			task.wait(0.12 + index * 0.05)
-			log("Info", "SHOT:photo_tigre_coup" .. index)
-			task.wait(1.1)
-		end
-	end
+	task.wait(1)
+	workspace:SetAttribute("ShotCam", CFrame.lookAt(Vector3.new(0, 13, -112), Vector3.new(0, 12, -148)))
+	shot("classements")
 	workspace:SetAttribute("ShotCam", nil)
+	workspace:SetAttribute("OpenPanel", "SellPanel")
+	shot("vente")
+	workspace:SetAttribute("OpenPanel", "")
 	log("Info", "[SURVIVE] TEST:done")
 end

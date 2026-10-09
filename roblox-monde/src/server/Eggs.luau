@@ -174,6 +174,7 @@ function Eggs.hatch(player: Player, all: boolean?): number
 end
 
 -- Vend le familier de cette place : des pièces, et la place est libre.
+local setHeld
 function Eggs.sell(player: Player, spot: number): boolean
 	local data = PlayerData.get(player)
 	local key = tostring(spot)
@@ -182,6 +183,9 @@ function Eggs.sell(player: Player, spot: number): boolean
 		return false
 	end
 	local coins = Pets.sellPrice(pet.a, pet.v)
+	if held[player] == key then
+		setHeld(player, nil)
+	end
 	data.spots[key] = nil
 	local member = table.find(data.team, key)
 	if member then
@@ -196,7 +200,7 @@ end
 -- = la place, « HeldPet » = « animal:rang:grosseur » pour que les écrans le dessinent au-dessus de sa tête). Il va
 -- au stand « VENDRE » et y appuie sur E. Rappeler avec la même place : il le repose dans l'enclos.
 local held = {} -- [joueur] = clé de la place
-local function setHeld(player: Player, key: string?)
+function setHeld(player: Player, key: string?)
 	held[player] = key
 	local data = PlayerData.get(player)
 	local pet = key and data and data.spots[key]
@@ -245,6 +249,20 @@ function Eggs.hold(player: Player, spot: number): boolean
 	end
 	setHeld(player, key)
 	notify(player, "holdPet", pet.a, Pets.sellPrice(pet.a, pet.v))
+	return true
+end
+-- Vend un familier du SAC (son rang dans le sac). Demande du créateur, 09/10 : la vente se fait au vendeur, sans y
+-- porter le familier, et le sac y est listé aussi.
+function Eggs.sellStored(player: Player, index: number): boolean
+	local data = PlayerData.get(player)
+	local pet = data and data.store[index]
+	if not pet then
+		return false
+	end
+	table.remove(data.store, index)
+	local coins = Pets.sellPrice(pet.a, pet.v)
+	PlayerData.addCoins(player, coins)
+	notify(player, "sold", pet.a, coins)
 	return true
 end
 -- Au stand « VENDRE » : vend le familier porté. Renvoie false si le joueur ne porte rien.
@@ -435,9 +453,9 @@ function Eggs.start(world, notifier, owns, plotFor)
 	end
 	-- Le stand « VENDRE » (qui ouvre la fenêtre des familiers).
 	prompt(world.gym.sell, "Sell", 14).Triggered:Connect(function(player)
-		-- Avec un familier dans les bras : il est vendu. Sinon : la fenêtre des familiers, pour en choisir un.
+		-- Avec un familier dans les bras : il est vendu. Sinon : la fenêtre de VENTE (l'enclos et le sac).
 		if not Eggs.sellHeld(player) then
-			notify(player, "openPets")
+			notify(player, "openSell")
 		end
 	end)
 

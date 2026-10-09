@@ -37,6 +37,7 @@ local function defaults()
 		sv = 3, -- version de la liste des épées (3 = cinq épées au monde 1)
 		mv = 2, -- version de la monnaie (2 = tout est multiplié par 10)
 		seen = 0, -- heure (os.time) de la dernière sauvegarde : sert au revenu hors ligne
+		played = 0, -- temps de jeu, en secondes (compté par Leaderboards.luau, pour le classement)
 		cv = 3, -- version des collections (3 = la jungle a le gorille et le tigre)
 		zone = 1, -- la zone la plus lointaine ouverte (battre le boss de la zone n ouvre la n + 1)
 		bag = {}, -- œufs pas encore posés : { a = animal, q = rang, r = zone, b = valeur tirée }
@@ -105,6 +106,9 @@ local function clean(raw)
 	end
 	if type(raw.seen) == "number" then
 		data.seen = math.floor(raw.seen)
+	end
+	if type(raw.played) == "number" and raw.played >= 0 then
+		data.played = math.floor(raw.played)
 	end
 	local function validEgg(egg): boolean
 		return type(egg) == "table" and Pets.DEFS[egg.a] ~= nil and type(egg.q) == "number" and Pets.RARITIES[egg.q] ~= nil

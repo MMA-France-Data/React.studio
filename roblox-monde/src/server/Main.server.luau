@@ -122,6 +122,27 @@ sellEvent.OnServerEvent:Connect(function(player, spot)
 		Eggs.hold(player, spot)
 	end
 end)
+-- LA VENTE AU VENDEUR : le joueur, à côté du stand, choisit dans la fenêtre un familier de l'enclos (« pen », sa
+-- place) ou du sac (« bag », son rang), et il est vendu tout de suite.
+local world -- (construit plus bas)
+local sellNow = Instance.new("RemoteEvent")
+sellNow.Name = "SellNow"
+sellNow.Parent = ReplicatedStorage
+sellNow.OnServerEvent:Connect(function(player, kind, index)
+	if typeof(index) ~= "number" or not world or not calm(player) then
+		return
+	end
+	local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+	if not root or (root.Position - world.gym.sell.Position).Magnitude > 40 then
+		notify(player, "sellFar")
+		return
+	end
+	if kind == "pen" then
+		Eggs.sell(player, index)
+	elseif kind == "bag" then
+		Eggs.sellStored(player, index)
+	end
+end)
 -- Le bouton « +1 place » de la liste.
 local upgradeEvent = Instance.new("RemoteEvent")
 upgradeEvent.Name = "UpgradePen"
@@ -130,11 +151,12 @@ upgradeEvent.OnServerEvent:Connect(function(player)
 	Eggs.buyPlace(player)
 end)
 
-local world = World.build()
+world = World.build()
 PlayerData.start()
 Gym.start(world, notify)
 Eggs.start(world, notify, Gym.owns, Gym.plotOf)
 Monsters.start(world, notify)
+require(script.Parent.Leaderboards).start(world)
 
 -- (Un nouveau joueur commence SANS familier : il bat des canards à l'épée, qui lâchent souvent leur œuf.)
 local _ = Pets
