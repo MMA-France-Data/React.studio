@@ -18,8 +18,13 @@ return function(log)
 		for _, name in { "SwordPanel", "BagPanel", "PetPanel", "EggPanel", "ShopPanel", "SellPanel", "SettingsPanel", "GiftPanel", "AdminPanel" } do
 			local panel = gui and gui:FindFirstChild(name)
 			if panel then
-				panel.Visible = name == wanted or (name == "BagPanel" and wanted == "BagPotions")
+				panel.Visible = name == wanted or (name == "BagPanel" and wanted == "BagPotions") or (name == "ShopPanel" and wanted == "ShopBonus")
 			end
+		end
+		-- (« ShopBonus » : la boutique, ouverte sur son onglet des bonus en Robux.)
+		local shop = gui and gui:FindFirstChild("ShopPanel")
+		if shop then
+			shop:SetAttribute("Tab", if wanted == "ShopBonus" then 2 else 1)
 		end
 		-- (« BagPotions » : le sac, ouvert sur son onglet des potions.)
 		local bag = gui and gui:FindFirstChild("BagPanel")

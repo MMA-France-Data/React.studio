@@ -479,7 +479,8 @@ function Eggs.start(world, notifier, owns, plotFor)
 				end
 				local data = PlayerData.get(player)
 				if data and not Eggs.incomePaused then
-					local total = (owed[player] or 0) + Pets.income(data.spots)
+					-- (Le pass « pièces x2 » double aussi l'enclos : Store.luau.)
+					local total = (owed[player] or 0) + Pets.income(data.spots) * PlayerData.passMult(player, "coins")
 					local coins = math.floor(total)
 					owed[player] = total - coins
 					if coins > 0 then

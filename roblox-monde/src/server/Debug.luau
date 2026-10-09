@@ -26,6 +26,13 @@ return function(world)
 				data.sd = 0
 			end
 			return require(script.Parent.Rewards).leaving(player)
+		elseif action == "Buy" then
+			-- Comme un achat en Robux réussi du produit a (rank, xp, coins, damage), sans passer par Roblox.
+			return require(script.Parent.Store).grant(player, a)
+		elseif action == "Pass" then
+			-- Donne (b = true) ou enlève le pass à vie a (xp, coins).
+			PlayerData.setPass(player, a, b)
+			return true
 		elseif action == "Event" then
 			-- L'admin lance l'événement a (coins, xp, eggs) pour b minutes (0 = l'arrêter).
 			return require(script.Parent.Admin).launch(player, a, b)

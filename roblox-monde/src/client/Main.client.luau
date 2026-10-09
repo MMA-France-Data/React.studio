@@ -511,6 +511,12 @@ ReplicatedStorage:WaitForChild("Notify").OnClientEvent:Connect(function(key: str
 		showToast(tr("potionNone"), RED)
 	elseif key == "adminSent" or key == "adminStopped" then
 		showToast(tr(key), GOLD)
+	elseif key == "storeBought" then
+		showToast(tr("storeBought", b, tr("potion_" .. a)), GOLD)
+		Sounds.play("hatch")
+	elseif key == "passBought" then
+		showToast(tr("passBought", tr("pass_" .. a)), GOLD)
+		Sounds.play("level")
 	end
 	if key == "playerLevel" or key == "petLevel" or key == "zoneOpen" then
 		Sounds.play("level")

@@ -230,6 +230,28 @@ Config.POTIONS = {
 	damage = { mult = 2, seconds = 10 * 60 }, -- (pas dans les cadeaux : pour la boutique en Robux)
 }
 Config.POTION_ORDER = { "rank", "xp", "coins", "damage" }
+-- LA BOUTIQUE EN ROBUX (Store.luau ; sa demande du 09/10 : « mettre dans la boutique les potions et XP x2, revenu
+-- x2 » : les deux bonus sont À VIE, les potions durent un temps).
+--   id : le numéro du pass ou du produit, créé par le créateur dans le tableau de bord de Roblox. 0 = pas encore
+--        créé : l'article affiche « Bientôt » et ne peut pas être acheté.
+--   robux : le prix affiché en attendant (le vrai prix est celui du tableau de bord : l'écran le relit chez Roblox).
+--   passes : achetés une fois, pour toujours. coins = TOUTES les pièces (monstres, enclos, hors ligne) x PASS_MULT.
+--   products : chaque achat donne `count` potions de cette sorte.
+Config.STORE = {
+	PASS_MULT = 2,
+	-- (Ses prix du 09/10 : « x2 XP 199 et x2 argent 299, les potions à 10 sauf l'augmentation de note à 40 ».)
+	passes = {
+		xp = { id = 0, robux = 199 },
+		coins = { id = 0, robux = 299 },
+	},
+	products = {
+		rank = { id = 0, robux = 40, count = 1 },
+		xp = { id = 0, robux = 10, count = 3 },
+		coins = { id = 0, robux = 10, count = 3 },
+		damage = { id = 0, robux = 10, count = 3 },
+	},
+}
+Config.PASS_ORDER = { "xp", "coins" }
 -- LES MONDES SONT TOUJOURS OUVERTS (sa demande du 09/10 : « ouvrir tous les mondes tout le temps permet de visiter ;
 -- de toute manière ils ne géreront pas les monstres, à quoi bon les fermer »). Le monde CONQUIS (data.zone : le
 -- dernier boss battu + 1) sert toujours pour la forge, les cadeaux et les œufs.

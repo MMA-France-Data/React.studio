@@ -1375,38 +1375,41 @@ return function(env)
 	local bagButton = squareButton("BagButton", 2, Color3.fromRGB(120, 90, 200))
 	Draw.icon(bagButton, "bag", UDim2.fromScale(0.5, 0.5), 0.56)
 	local bagPanel = window("BagPanel", tr("bagTitle"), 780, 470, "bag", Color3.fromRGB(120, 90, 200))
-	-- Les onglets, sous le bandeau : un bouton par onglet, et une page (un cadre) par onglet.
-	local bagTabs = {}
-	local function selectTab(index: number)
-		for i, tab in bagTabs do
-			tab.page.Visible = i == index
-			-- (L'onglet choisi : orange vif, écriture blanche. Les autres : sombres, écriture grisée. Jamais d'écriture
-			-- foncée : avec son contour noir, on ne la lit pas. Son retour du 09/10 : « on voit pas bien l'écriture ».)
-			tab.pick.BackgroundColor3 = if i == index then Color3.fromRGB(255, 150, 30) else Color3.fromRGB(46, 42, 92)
-			tab.pick.Label.TextColor3 = if i == index then Color3.new(1, 1, 1) else Color3.fromRGB(170, 170, 200)
+	-- LES ONGLETS d'une fenêtre, sous le bandeau : un bouton par onglet, et une page (un cadre) par onglet. L'onglet
+	-- choisi est gardé dans l'attribut « Tab » de la fenêtre. Renvoie la fonction qui ajoute un onglet.
+	local function tabbed(panel: Frame)
+		local tabs = {}
+		local function select()
+			local index = panel:GetAttribute("Tab") or 1
+			for i, tab in tabs do
+				tab.page.Visible = i == index
+				-- (L'onglet choisi : orange vif, écriture blanche. Les autres : sombres, écriture grisée. Jamais
+				-- d'écriture foncée : avec son contour noir, on ne la lit pas. Son retour du 09/10.)
+				tab.pick.BackgroundColor3 = if i == index then Color3.fromRGB(255, 150, 30) else Color3.fromRGB(46, 42, 92)
+				tab.pick.Label.TextColor3 = if i == index then Color3.new(1, 1, 1) else Color3.fromRGB(170, 170, 200)
+			end
+		end
+		panel:GetAttributeChangedSignal("Tab"):Connect(select)
+		return function(index: number, name: string, label: string): Frame
+			local page = Instance.new("Frame")
+			page.Name = name
+			page.BackgroundTransparency = 1
+			page.Size = UDim2.new(1, 0, 1, -112)
+			page.Position = UDim2.fromOffset(0, 92)
+			page.ZIndex = 5
+			page.Parent = panel
+			local pick = button(panel, name .. "Pick", UDim2.fromOffset(160, 36), UDim2.fromOffset(20 + (index - 1) * 170, 48), Color3.fromRGB(40, 36, 80), label)
+			tabs[index] = { page = page, pick = pick }
+			pick.Activated:Connect(function()
+				panel:SetAttribute("Tab", index)
+			end)
+			select()
+			return page
 		end
 	end
-	local function bagTab(index: number, name: string, label: string): Frame
-		local page = Instance.new("Frame")
-		page.Name = name
-		page.BackgroundTransparency = 1
-		page.Size = UDim2.new(1, 0, 1, -112)
-		page.Position = UDim2.fromOffset(0, 92)
-		page.ZIndex = 5
-		page.Parent = bagPanel
-		local pick = button(bagPanel, name .. "Pick", UDim2.fromOffset(160, 36), UDim2.fromOffset(20 + (index - 1) * 170, 48), Color3.fromRGB(40, 36, 80), label)
-		bagTabs[index] = { page = page, pick = pick }
-		pick.Activated:Connect(function()
-			bagPanel:SetAttribute("Tab", index)
-		end)
-		return page
-	end
+	local bagTab = tabbed(bagPanel)
 	local petTab = bagTab(1, "PetTab", tr("PawButton"))
 	local potionTab = bagTab(2, "PotionTab", tr("PotionButton"))
-	bagPanel:GetAttributeChangedSignal("Tab"):Connect(function()
-		selectTab(bagPanel:GetAttribute("Tab") or 1)
-	end)
-	selectTab(1)
 	local potionNote = env.text(potionTab, "Note", UDim2.new(1, -40, 0, 22), UDim2.new(0, 20, 1, -24), GOLD, 17)
 	potionNote.Text = tr("potionsNote")
 	potionNote.ZIndex = 5
@@ -1694,10 +1697,14 @@ return function(env)
 
 	local shopButton = squareButton("ShopButton", 4, Color3.fromRGB(60, 150, 255))
 	Draw.icon(shopButton, "cart", UDim2.fromScale(0.5, 0.5), 0.56)
-	local shopPanel = window("ShopPanel", tr("shopTitle"), 620, 330, "cart", Color3.fromRGB(60, 150, 255))
+	-- (Deux onglets : « Améliorer », ce qu'on paie en pièces ; « Bonus », ce qu'on paie en Robux : Store.luau.)
+	local shopPanel = window("ShopPanel", tr("shopTitle"), 640, 470, "cart", Color3.fromRGB(60, 150, 255))
+	local shopTab = tabbed(shopPanel)
+	local upTab = shopTab(1, "UpTab", tr("shopTabUp"))
+	local bonusTab = shopTab(2, "BonusTab", tr("shopTabBonus"))
 	local swordEvent = ReplicatedStorage:WaitForChild("BuySword")
 	local function shopRow(y: number, icon: string, color: Color3)
-		local row = env.box(shopPanel, "Row", UDim2.new(1, -40, 0, 110), UDim2.fromOffset(20, y), Color3.fromRGB(30, 44, 78))
+		local row = env.box(upTab, "Row", UDim2.new(1, -40, 0, 110), UDim2.fromOffset(20, y), Color3.fromRGB(30, 44, 78))
 		row.ZIndex = 4
 		row.UIStroke.Color = color
 		row.UIStroke.Thickness = 3
@@ -1717,8 +1724,8 @@ return function(env)
 		table.insert(iconPairs, pair)
 		return { title = title, line = line, note = note, buy = buy, pair = pair }
 	end
-	local swordRow = shopRow(62, "sword", Color3.fromRGB(255, 110, 110))
-	local penRow = shopRow(186, "paw", Color3.fromRGB(255, 170, 60))
+	local swordRow = shopRow(4, "sword", Color3.fromRGB(255, 110, 110))
+	local penRow = shopRow(128, "paw", Color3.fromRGB(255, 170, 60))
 	swordRow.buy.Activated:Connect(function()
 		swordEvent:FireServer()
 	end)
@@ -1753,6 +1760,107 @@ return function(env)
 	for _, name in { "Coins", "Sword", "Zone", "Places", "Level" } do
 		player:GetAttributeChangedSignal(name):Connect(refreshShop)
 	end
+
+	-- L'ONGLET « BONUS » (Store.luau) : en haut les deux pass À VIE (XP x2, pièces x2), en dessous les quatre potions.
+	-- Le bouton de chaque article montre son prix en Robux et ouvre la fenêtre d'achat de Roblox. Un article dont le
+	-- numéro vaut 0 (Config.STORE) n'existe pas encore : son bouton est gris, « Bientôt ».
+	local MarketplaceService = game:GetService("MarketplaceService")
+	local GREEN_BUY, GREY = Color3.fromRGB(60, 200, 70), Color3.fromRGB(90, 96, 120)
+	local realPrice = {} -- [numéro] = le vrai prix, relu chez Roblox
+	local function priceText(item): string
+		return if item.id == 0 then tr("storeSoon") else tr("storePrice", tostring(realPrice[item.id] or item.robux))
+	end
+	local PASS_LOOK = {
+		xp = { color = Draw.POTIONS.xp.color, attr = "PassXp" },
+		coins = { color = Color3.fromRGB(255, 200, 40), attr = "PassCoins" },
+	}
+	local passCards = {}
+	for index, kind in Config.PASS_ORDER do
+		local look, item = PASS_LOOK[kind], Config.STORE.passes[kind]
+		local card = env.box(bonusTab, "Pass" .. index, UDim2.fromOffset(295, 108), UDim2.fromOffset(20 + (index - 1) * 305, 0), look.color:Lerp(Color3.fromRGB(10, 10, 26), 0.8))
+		card.ZIndex = 5
+		card.UIStroke.Color = look.color
+		card.UIStroke.Thickness = 3
+		if kind == "xp" then
+			Draw.potion(card, UDim2.fromOffset(46, 52), 0.72, look.color, "x2")
+		else
+			Draw.icon(card, "coin", UDim2.fromOffset(46, 54), 0.72)
+		end
+		local name = env.text(card, "Name", UDim2.fromOffset(196, 28), UDim2.fromOffset(92, 6), look.color:Lerp(Color3.new(1, 1, 1), 0.35), 24)
+		name.Text = tr("pass_" .. kind)
+		name.TextXAlignment = Enum.TextXAlignment.Left
+		name.ZIndex = 6
+		local desc = env.text(card, "Desc", UDim2.fromOffset(196, 30), UDim2.fromOffset(92, 34), nil, 13)
+		desc.Text = tr("passDesc_" .. kind)
+		desc.TextXAlignment = Enum.TextXAlignment.Left
+		desc.ZIndex = 6
+		local buy = button(card, "Buy", UDim2.fromOffset(150, 36), UDim2.fromOffset(92, 66), GREEN_BUY, "")
+		buy.Activated:Connect(function()
+			if player:GetAttribute(look.attr) == true then
+				return
+			elseif item.id == 0 then
+				showToast(tr("storeSoonInfo"), GOLD)
+			else
+				MarketplaceService:PromptGamePassPurchase(player, item.id)
+			end
+		end)
+		passCards[kind] = { buy = buy, attr = look.attr, item = item }
+	end
+	local productCards = {}
+	for index, kind in Config.POTION_ORDER do
+		local look, item, def = Draw.POTIONS[kind], Config.STORE.products[kind], Config.POTIONS[kind]
+		local card = env.box(bonusTab, "Product" .. index, UDim2.fromOffset(142, 232), UDim2.fromOffset(20 + (index - 1) * 152, 122), look.color:Lerp(Color3.fromRGB(10, 10, 26), 0.82))
+		card.ZIndex = 5
+		card.UIStroke.Color = look.color
+		card.UIStroke.Thickness = 3
+		Draw.potion(card, UDim2.fromOffset(71, 58), 0.88, look.color, look.glyph)
+		local name = env.text(card, "Name", UDim2.new(1, -10, 0, 40), UDim2.fromOffset(5, 112), look.color:Lerp(Color3.new(1, 1, 1), 0.35), 18)
+		name.Text = tr("potion_" .. kind)
+		name.ZIndex = 6
+		local pack = env.text(card, "Pack", UDim2.new(1, -10, 0, 22), UDim2.fromOffset(5, 154), nil, 17)
+		pack.Text = if def.seconds then tr("storePackTime", item.count, item.count * def.seconds // 60) else tr("storePack", item.count)
+		pack.ZIndex = 6
+		local buy = button(card, "Buy", UDim2.new(1, -16, 0, 40), UDim2.new(0, 8, 1, -48), GREEN_BUY, "")
+		buy.Activated:Connect(function()
+			if item.id == 0 then
+				showToast(tr("storeSoonInfo"), GOLD)
+			else
+				MarketplaceService:PromptProductPurchase(player, item.id)
+			end
+		end)
+		productCards[kind] = { buy = buy, item = item }
+	end
+	local function refreshBonus()
+		for _, parts in passCards do
+			local owned = player:GetAttribute(parts.attr) == true
+			parts.buy.Label.Text = if owned then tr("passOwned") else priceText(parts.item)
+			parts.buy.BackgroundColor3 = if owned then Color3.fromRGB(60, 120, 230) elseif parts.item.id == 0 then GREY else GREEN_BUY
+		end
+		for _, parts in productCards do
+			parts.buy.Label.Text = priceText(parts.item)
+			parts.buy.BackgroundColor3 = if parts.item.id == 0 then GREY else GREEN_BUY
+		end
+	end
+	for _, look in PASS_LOOK do
+		player:GetAttributeChangedSignal(look.attr):Connect(refreshBonus)
+	end
+	refreshBonus()
+	-- Les vrais prix, relus chez Roblox (celui du tableau de bord fait foi).
+	task.spawn(function()
+		for _, group in { { Config.STORE.passes, Enum.InfoType.GamePass }, { Config.STORE.products, Enum.InfoType.Product } } do
+			for _, item in group[1] do
+				if item.id ~= 0 then
+					local ok, info = pcall(function()
+						return MarketplaceService:GetProductInfo(item.id, group[2])
+					end)
+					if ok and type(info) == "table" and type(info.PriceInRobux) == "number" then
+						realPrice[item.id] = info.PriceInRobux
+					end
+				end
+			end
+		end
+		refreshBonus()
+	end)
 	-- Le bouton « Épée » du menu montre l'épée du joueur.
 	local buttonPair = { image = swordButtonImage, behind = swordDrawn }
 	table.insert(iconPairs, buttonPair)

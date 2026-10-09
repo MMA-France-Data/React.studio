@@ -4,6 +4,7 @@
 -- Les valeurs sont aussi posées en attributs sur le joueur (Coins, Level, Xp, XpNeed, Sword, Zone, Bag, BagNext,
 -- Places, Spots, Team, TeamPets, PetLuck, Income) : l'écran les lit là.
 local DataStoreService = game:GetService("DataStoreService")
+local MarketplaceService = game:GetService("MarketplaceService")
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -28,6 +29,13 @@ end
 local sessions = {}
 local loadedCallbacks = {}
 
+-- LES PASS À VIE (Store.luau) : XP x2 et pièces x2. Roblox garde l'achat ; il est posé en attribut sur le joueur à
+-- son arrivée (load) et lu ici. coins : TOUTES les pièces (monstres, enclos, hors ligne).
+local PASS_ATTR = { xp = "PassXp", coins = "PassCoins" }
+function PlayerData.passMult(player: Player, kind: string): number
+	return if player:GetAttribute(PASS_ATTR[kind]) == true then Config.STORE.PASS_MULT else 1
+end
+
 local function defaults()
 	return {
 		coins = 0,
@@ -41,6 +49,7 @@ local function defaults()
 		sd = 0, -- bonus « reste encore » : le jour (os.time() // 86400) où il a été donné en dernier
 		bx = 0, -- ... et l'heure (os.time) où le bonus d'XP s'arrête
 		po = { rank = 0, xp = 0, coins = 0, damage = 0 }, -- les potions en réserve (Potions.luau)
+		rc = {}, -- les reçus des derniers achats en Robux déjà comptés (Store.luau)
 		px = 0, -- ... et l'heure (os.time) où s'arrêtent celles qui ont été bues : XP, pièces, dégâts
 		pc = 0,
 		pd = 0,
@@ -124,6 +133,13 @@ local function clean(raw)
 	for _, key in { "sd", "bx", "px", "pc", "pd" } do
 		if type(raw[key]) == "number" and raw[key] >= 0 then
 			data[key] = math.floor(raw[key])
+		end
+	end
+	if type(raw.rc) == "table" then
+		for _, id in raw.rc do
+			if type(id) == "string" and #data.rc < 40 then
+				table.insert(data.rc, id)
+			end
 		end
 	end
 	if type(raw.po) == "table" then
@@ -245,7 +261,7 @@ local function publish(player: Player)
 	player:SetAttribute("TeamPets", table.concat(members, ";"))
 	-- Le bonus de chance d'œuf rare (en %) : celui du meilleur familier de l'équipe.
 	player:SetAttribute("PetLuck", luck)
-	player:SetAttribute("Income", Pets.income(data.spots))
+	player:SetAttribute("Income", Pets.income(data.spots) * PlayerData.passMult(player, "coins"))
 	player:SetAttribute("XpBoostUntil", data.bx)
 	player:SetAttribute("Potions", string.format("rank:%d,xp:%d,coins:%d,damage:%d", data.po.rank or 0, data.po.xp or 0, data.po.coins or 0, data.po.damage or 0))
 	player:SetAttribute("PotXpUntil", data.px)
@@ -278,12 +294,32 @@ local function load(player: Player)
 	if not player:IsDescendantOf(Players) then
 		return
 	end
+	-- SES PASS À VIE (avant de compter les pièces hors ligne, que le pass des pièces double aussi).
+	for kind, pass in Config.STORE.passes do
+		local owns = false
+		if pass.id ~= 0 then
+			for attempt = 1, 2 do
+				local ok, result = pcall(function()
+					return MarketplaceService:UserOwnsGamePassAsync(player.UserId, pass.id)
+				end)
+				if ok then
+					owns = result == true
+					break
+				end
+				task.wait(1)
+			end
+		end
+		player:SetAttribute(PASS_ATTR[kind], owns)
+	end
+	if not player:IsDescendantOf(Players) then
+		return
+	end
 	-- LE REVENU HORS LIGNE : ce que l'enclos a rapporté pendant l'absence (Config.OFFLINE_SHARE, OFFLINE_MAX).
 	-- L'écran du joueur le lui annonce (attributs « Offline » et « OfflineTime »).
 	local away = if data.seen > 0 then math.clamp(os.time() - data.seen, 0, Config.OFFLINE_MAX) else 0
 	local earned = 0
 	if canSave and away >= Config.OFFLINE_MIN then
-		earned = math.floor(Pets.income(data.spots) * away * Config.OFFLINE_SHARE)
+		earned = math.floor(Pets.income(data.spots) * away * Config.OFFLINE_SHARE * PlayerData.passMult(player, "coins"))
 		data.coins += earned
 	end
 	data.seen = os.time()
@@ -347,6 +383,33 @@ function PlayerData.changed(player: Player)
 	if sessions[player] then
 		touch(player)
 	end
+end
+
+-- Le joueur vient d'acheter (ou d'avoir, pour un test) ce pass : il sert tout de suite.
+function PlayerData.setPass(player: Player, kind: string, owns: boolean)
+	if PASS_ATTR[kind] then
+		player:SetAttribute(PASS_ATTR[kind], owns == true)
+		if sessions[player] then
+			publish(player)
+		end
+	end
+end
+
+-- Sauvegarde tout de suite (après un achat en Robux). Renvoie true si c'est bien enregistré.
+function PlayerData.saveNow(player: Player): boolean
+	local session = sessions[player]
+	if not session then
+		return false
+	end
+	if not store then
+		return true -- (Studio : rien n'est écrit chez Roblox)
+	end
+	if not session.canSave then
+		return false
+	end
+	session.dirty = true
+	save(player)
+	return not session.dirty
 end
 
 function PlayerData.addCoins(player: Player, amount: number)

@@ -172,6 +172,7 @@ require(script.Parent.Leaderboards).start(world)
 require(script.Parent.Rewards).start(notify)
 require(script.Parent.Potions).start(notify)
 require(script.Parent.Admin).start(notify)
+require(script.Parent.Store).start(notify)
 
 -- (Un nouveau joueur commence SANS familier : il bat des canards à l'épée, qui lâchent souvent leur œuf.)
 local _ = Pets
