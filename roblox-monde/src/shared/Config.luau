@@ -241,15 +241,16 @@ Config.STORE = {
 	PASS_MULT = 2,
 	-- (Ses prix du 09/10 : « x2 XP 199 et x2 argent 299, les potions à 10 sauf l'augmentation de note à 40 ».)
 	passes = {
-		xp = { id = 0, robux = 199 },
-		coins = { id = 0, robux = 299 },
+		-- (Ses numéros du 10/10/2026 : les pass « 2x XP » et « 2x Coins », les quatre produits des potions.)
+		xp = { id = 2022266478, robux = 199 },
+		coins = { id = 2024966437, robux = 299 },
 	},
 	products = {
-		rank = { id = 0, robux = 40, count = 1 },
+		rank = { id = 3717474700, robux = 40, count = 1 },
 		-- (Son choix du 09/10 : UNE potion par achat, 10 minutes, pas un lot de 3 : le « x3 » se confondait avec le x2.)
-		xp = { id = 0, robux = 10, count = 1 },
-		coins = { id = 0, robux = 10, count = 1 },
-		damage = { id = 0, robux = 10, count = 1 },
+		xp = { id = 3717474831, robux = 10, count = 1 },
+		coins = { id = 3717475499, robux = 10, count = 1 },
+		damage = { id = 3717475723, robux = 10, count = 1 },
 	},
 }
 Config.PASS_ORDER = { "xp", "coins" }

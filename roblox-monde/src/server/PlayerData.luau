@@ -305,7 +305,9 @@ local function load(player: Player)
 	-- SES PASS À VIE (avant de compter les pièces hors ligne, que le pass des pièces double aussi).
 	for kind, pass in Config.STORE.passes do
 		local owns = false
-		if pass.id ~= 0 then
+		-- (Pas dans Studio : le créateur possède d'office ses propres pass, et tous les essais seraient doublés.
+		-- Là, on donne un pass avec la commande de test « Pass ».)
+		if pass.id ~= 0 and not RunService:IsStudio() then
 			for attempt = 1, 2 do
 				local ok, result = pcall(function()
 					return MarketplaceService:UserOwnsGamePassAsync(player.UserId, pass.id)
