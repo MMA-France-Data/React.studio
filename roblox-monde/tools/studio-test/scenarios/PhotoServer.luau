@@ -1,7 +1,6 @@
 -- PETIT TEST EN IMAGES (une trentaine de secondes) : seulement des photos, sans rejouer tout le jeu.
---   powershell -ExecutionPolicy Bypass -File tools/studio-test/run.ps1 -Test photo -Seconds 45
--- Ici : les potions (la fenêtre, la fiole verte sur la fiche d'un familier, les pastilles après les avoir bues) et
--- la potion dans la fenêtre des cadeaux.
+--   powershell -ExecutionPolicy Bypass -File tools/studio-test/run.ps1 -Test photo -Seconds 55
+-- Ici : chaque fenêtre du jeu, l'une après l'autre (le sac sur ses deux onglets).
 local Players = game:GetService("Players")
 local ServerStorage = game:GetService("ServerStorage")
 
@@ -14,32 +13,18 @@ return function(log)
 	task.wait(8)
 	debug:Invoke("Potion", "rank", 2)
 	debug:Invoke("Potion", "xp", 3)
-	debug:Invoke("Potion", "coins", 1)
 	debug:Invoke("Pet", "Pig", 3)
+	debug:Invoke("Pet", "Duck", 1)
+	debug:Invoke("Egg", 1, 2)
+	debug:Invoke("Egg", 1, 1)
+	debug:Invoke("ToBag", 2)
+	debug:Invoke("Give", 50000)
 	task.wait(1)
-	log("Info", "[PHOTO] potions : " .. tostring(player:GetAttribute("Potions")))
-	workspace:SetAttribute("OpenPanel", "PotionPanel")
-	task.wait(1.5)
-	log("Info", "SHOT:photo_potions")
-	task.wait(1.5)
-	workspace:SetAttribute("OpenPanel", "PetPanel")
-	task.wait(1.5)
-	log("Info", "SHOT:photo_potion_rang")
-	task.wait(1.5)
-	log("Info", "[PHOTO] rang bu : " .. tostring(debug:Invoke("Drink", "rank", 1)))
-	task.wait(1.5)
-	log("Info", "SHOT:photo_potion_rang_apres")
-	task.wait(1.5)
-	log("Info", "[PHOTO] xp bue : " .. tostring(debug:Invoke("Drink", "xp")) .. ", pièces bue : " .. tostring(debug:Invoke("Drink", "coins")))
-	workspace:SetAttribute("OpenPanel", "")
-	task.wait(1.5)
-	log("Info", "SHOT:photo_potion_pilules")
-	task.wait(1.5)
-	debug:Invoke("Gift", 300, 3)
-	workspace:SetAttribute("OpenPanel", "GiftPanel")
-	task.wait(1.5)
-	log("Info", "SHOT:photo_cadeaux_potion")
-	task.wait(1.5)
-	log("Info", "[PHOTO] potions à la fin : " .. tostring(player:GetAttribute("Potions")))
+	for _, panel in { "ShopPanel", "BagPanel", "BagPotions", "EggPanel", "PetPanel", "SwordPanel", "SettingsPanel", "SellPanel" } do
+		workspace:SetAttribute("OpenPanel", panel)
+		task.wait(1.5)
+		log("Info", "SHOT:photo_" .. string.lower(panel))
+		task.wait(1.2)
+	end
 	log("Info", "[SURVIVE] TEST:done")
 end

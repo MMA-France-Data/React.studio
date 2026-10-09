@@ -145,4 +145,128 @@ function Draw.rays(parent: Instance, position: UDim2, color: Color3): Frame
 	return star
 end
 
+-- UN ŒUF : la coquille, trois taches, un reflet.
+function Draw.egg(parent: Instance, position: UDim2, scale: number, color: Color3?): Frame
+	local egg = holder(parent, "Egg", position, scale)
+	local shell = color or Color3.fromRGB(250, 240, 220)
+	Draw.shade(Draw.round(egg, "Shell", UDim2.fromOffset(72, 92), UDim2.fromOffset(19, 9), shell, UDim.new(0.5, 0), 3), 1, 0.72)
+	for index, spot in { { 36, 40, 14 }, { 58, 58, 11 }, { 44, 72, 9 } } do
+		Draw.round(egg, "Spot" .. index, UDim2.fromOffset(spot[3], spot[3]), UDim2.fromOffset(spot[1], spot[2]), shell:Lerp(Color3.fromRGB(120, 80, 40), 0.35), UDim.new(0.5, 0)).BackgroundTransparency = 0.25
+	end
+	Draw.round(egg, "Shine", UDim2.fromOffset(10, 22), UDim2.fromOffset(32, 20), Color3.new(1, 1, 1), UDim.new(0.5, 0)).BackgroundTransparency = 0.45
+	return egg
+end
+
+-- UNE PATTE : le coussinet et quatre doigts.
+function Draw.paw(parent: Instance, position: UDim2, scale: number, color: Color3?): Frame
+	local paw = holder(parent, "Paw", position, scale)
+	local pad = color or Color3.fromRGB(255, 244, 222)
+	for index, toe in { { 12, 34 }, { 34, 14 }, { 58, 14 }, { 80, 34 } } do
+		Draw.shade(Draw.round(paw, "Toe" .. index, UDim2.fromOffset(22, 24), UDim2.fromOffset(toe[1], toe[2]), pad, UDim.new(0.5, 0), 3), 1, 0.75)
+	end
+	Draw.shade(Draw.round(paw, "Pad", UDim2.fromOffset(60, 50), UDim2.fromOffset(25, 50), pad, UDim.new(0.5, 0), 3), 1, 0.7)
+	return paw
+end
+
+-- UN SAC : le corps, le rabat, la boucle et la bride.
+function Draw.bag(parent: Instance, position: UDim2, scale: number, color: Color3?): Frame
+	local bag = holder(parent, "Bag", position, scale)
+	local cloth = color or Color3.fromRGB(225, 140, 55)
+	Draw.round(bag, "Strap", UDim2.fromOffset(26, 22), UDim2.fromOffset(42, 6), cloth:Lerp(Color3.new(0, 0, 0), 0.3), UDim.new(0, 8), 3)
+	Draw.shade(Draw.round(bag, "Body", UDim2.fromOffset(80, 74), UDim2.fromOffset(15, 30), cloth, UDim.new(0, 12), 3), 1, 0.65)
+	Draw.shade(Draw.round(bag, "Flap", UDim2.fromOffset(86, 32), UDim2.fromOffset(12, 22), cloth:Lerp(Color3.new(1, 1, 1), 0.25), UDim.new(0, 10), 3), 1, 0.8)
+	Draw.round(bag, "Buckle", UDim2.fromOffset(18, 18), UDim2.fromOffset(46, 46), RIBBON, UDim.new(0.5, 0), 3)
+	return bag
+end
+
+-- UNE ÉPÉE (penchée) : la lame, la garde, la poignée, le pommeau.
+function Draw.sword(parent: Instance, position: UDim2, scale: number, color: Color3?): Frame
+	local sword = holder(parent, "Sword", position, scale)
+	sword.Rotation = 40
+	local steel = color or Color3.fromRGB(215, 220, 235)
+	Draw.shade(Draw.round(sword, "Blade", UDim2.fromOffset(18, 68), UDim2.fromOffset(46, -2), steel, UDim.new(0, 5), 3), 1, 0.7)
+	Draw.round(sword, "Edge", UDim2.fromOffset(4, 54), UDim2.fromOffset(50, 4), Color3.new(1, 1, 1), UDim.new(0.5, 0)).BackgroundTransparency = 0.4
+	Draw.shade(Draw.round(sword, "Guard", UDim2.fromOffset(54, 12), UDim2.fromOffset(28, 64), RIBBON, UDim.new(0, 4), 3), 1, 0.7)
+	Draw.shade(Draw.round(sword, "Grip", UDim2.fromOffset(16, 26), UDim2.fromOffset(47, 76), Color3.fromRGB(120, 70, 40), UDim.new(0, 4), 3), 1, 0.7)
+	Draw.round(sword, "Pommel", UDim2.fromOffset(20, 20), UDim2.fromOffset(45, 98), RIBBON, UDim.new(0.5, 0), 3)
+	return sword
+end
+
+-- UN CADDIE (la boutique) : le panier, la poignée, deux roues.
+function Draw.cart(parent: Instance, position: UDim2, scale: number, color: Color3?): Frame
+	local cart = holder(parent, "Cart", position, scale)
+	local paint = color or Color3.fromRGB(245, 248, 255)
+	Draw.round(cart, "Handle", UDim2.fromOffset(10, 46), UDim2.fromOffset(10, 22), paint:Lerp(Color3.new(0, 0, 0), 0.25), UDim.new(0, 4), 3).Rotation = 22
+	Draw.shade(Draw.round(cart, "Basket", UDim2.fromOffset(70, 42), UDim2.fromOffset(24, 40), paint, UDim.new(0, 8), 3), 1, 0.65)
+	for index, x in { 44, 62 } do
+		Draw.round(cart, "Bar" .. index, UDim2.fromOffset(3, 32), UDim2.fromOffset(x, 45), Color3.new(0, 0, 0), UDim.new(0.5, 0)).BackgroundTransparency = 0.6
+	end
+	for index, x in { 30, 68 } do
+		local wheel = Draw.round(cart, "Wheel" .. index, UDim2.fromOffset(20, 20), UDim2.fromOffset(x, 86), Color3.fromRGB(40, 40, 60), UDim.new(0.5, 0), 3)
+		Draw.round(wheel, "Hub", UDim2.fromOffset(8, 8), UDim2.fromOffset(6, 6), Color3.fromRGB(200, 200, 215), UDim.new(0.5, 0))
+	end
+	return cart
+end
+
+-- UNE PIÈCE D'OR avec son « $ ».
+function Draw.coin(parent: Instance, position: UDim2, scale: number, color: Color3?): Frame
+	local coin = holder(parent, "Coin", position, scale)
+	local gold = color or Color3.fromRGB(255, 205, 40)
+	Draw.shade(Draw.round(coin, "Disc", UDim2.fromOffset(86, 86), UDim2.fromOffset(12, 12), gold, UDim.new(0.5, 0), 3), 1, 0.72)
+	Draw.round(coin, "Ring", UDim2.fromOffset(66, 66), UDim2.fromOffset(22, 22), gold:Lerp(Color3.new(0, 0, 0), 0.18), UDim.new(0.5, 0))
+	local label = Instance.new("TextLabel")
+	label.Name = "Sign"
+	label.BackgroundTransparency = 1
+	label.Size = UDim2.fromOffset(60, 56)
+	label.Position = UDim2.fromOffset(25, 27)
+	label.Font = Enum.Font.FredokaOne
+	label.TextScaled = true
+	label.TextColor3 = Color3.fromRGB(255, 240, 150)
+	label.Text = "$"
+	local stroke = Instance.new("UIStroke")
+	stroke.Thickness = 3
+	stroke.Color = DARK
+	stroke.Parent = label
+	label.Parent = coin
+	return coin
+end
+
+-- UNE ROUE DENTÉE (les réglages) : huit dents, le disque, le trou du milieu.
+function Draw.gear(parent: Instance, position: UDim2, scale: number, color: Color3?): Frame
+	local gear = holder(parent, "Gear", position, scale)
+	local metal = color or Color3.fromRGB(84, 92, 124)
+	for index = 0, 7 do
+		local angle = index * math.pi / 4
+		local tooth = Draw.round(gear, "Tooth" .. index, UDim2.fromOffset(20, 18), UDim2.fromOffset(55 + math.cos(angle) * 40, 55 + math.sin(angle) * 40), metal, UDim.new(0, 4), 3)
+		tooth.AnchorPoint = Vector2.new(0.5, 0.5)
+		tooth.Rotation = math.deg(angle)
+	end
+	Draw.shade(Draw.round(gear, "Disc", UDim2.fromOffset(66, 66), UDim2.fromOffset(22, 22), metal, UDim.new(0.5, 0), 3), 1, 0.7)
+	Draw.round(gear, "Hole", UDim2.fromOffset(26, 26), UDim2.fromOffset(42, 42), DARK, UDim.new(0.5, 0))
+	return gear
+end
+
+-- L'ICÔNE PAR SON NOM (pour les bandeaux des fenêtres et les boutons du menu).
+local ICONS = {
+	gift = function(parent, position, scale, color)
+		return Draw.gift(parent, position, scale, color or Color3.fromRGB(235, 50, 80))
+	end,
+	potion = function(parent, position, scale, color)
+		return Draw.potion(parent, position, scale, color or Color3.fromRGB(255, 90, 220), "")
+	end,
+	people = function(parent, position, scale)
+		return Draw.people(parent, position, scale)
+	end,
+	egg = Draw.egg,
+	paw = Draw.paw,
+	bag = Draw.bag,
+	sword = Draw.sword,
+	cart = Draw.cart,
+	coin = Draw.coin,
+	gear = Draw.gear,
+}
+function Draw.icon(parent: Instance, kind: string, position: UDim2, scale: number, color: Color3?): Frame
+	return ICONS[kind](parent, position, scale, color)
+end
+
 return Draw

@@ -889,31 +889,48 @@ return function(env)
 		item.ZIndex = 5
 		Instance.new("UICorner", item).CornerRadius = UDim.new(0, 8)
 		local stroke = Instance.new("UIStroke")
-		stroke.Thickness = 2.5
-		stroke.Color = Color3.fromRGB(14, 18, 30)
+		stroke.Thickness = 4
+		stroke.Color = Draw.DARK
 		stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 		stroke.Parent = item
+		Draw.shade(item, 1, 0.7)
 		local text = env.text(item, "Label", UDim2.fromScale(0.92, 0.74), UDim2.fromScale(0.04, 0.13))
 		text.Text = label
 		text.ZIndex = 6
 		item.Parent = parent
 		return item
 	end
-	-- Une fenêtre au milieu de l'écran : fond bleu nuit, liseré doré, titre doré, croix rouge pour fermer.
-	local function window(name: string, title: string, width: number, height: number): Frame
-		local frame = env.box(env.gui, name, UDim2.fromOffset(width, height), UDim2.fromScale(0.5, 0.5), NAVY)
+	-- Une fenêtre au milieu de l'écran, dans le style « Cadeaux gratuits » (sa demande du 09/10 : « mets tous les
+	-- menus dans le même style ») : fond violet nuit en dégradé, gros contour sombre, et un BANDEAU coloré qui déborde
+	-- un peu, avec une icône dessinée (Draw.luau), le titre en blanc et la croix rouge.
+	local function window(name: string, title: string, width: number, height: number, icon: string?, color: Color3?): Frame
+		local tint = color or Color3.fromRGB(255, 170, 30)
+		local frame = env.box(env.gui, name, UDim2.fromOffset(width, height), UDim2.fromScale(0.5, 0.52), Color3.fromRGB(34, 28, 70))
 		frame.AnchorPoint = Vector2.new(0.5, 0.5)
 		frame.Visible = false
 		frame.ZIndex = 4
-		frame.UIStroke.Color = GOLDEN
-		frame.UIStroke.Thickness = 3
+		frame.UIStroke.Color = Draw.DARK
+		frame.UIStroke.Thickness = 5
+		Draw.shade(frame, 1, 0.6)
 		local scale = Instance.new("UIScale")
 		scale.Name = "Scale"
 		scale.Parent = frame
-		local heading = env.text(frame, "Title", UDim2.new(1, -120, 0, 40), UDim2.fromOffset(60, 8), GOLDEN, 34)
+		local header = Draw.round(frame, "Header", UDim2.new(1, 16, 0, 58), UDim2.fromOffset(-8, -22), tint, UDim.new(0, 10), 5)
+		header.ZIndex = 6
+		local gradient = Instance.new("UIGradient")
+		gradient.Rotation = 90
+		gradient.Color = ColorSequence.new(tint:Lerp(Color3.new(1, 1, 1), 0.45), tint:Lerp(Color3.new(0, 0, 0), 0.12))
+		gradient.Parent = header
+		local heading = env.text(header, "Title", UDim2.new(1, -190, 0.86, 0), UDim2.new(0, if icon then 112 else 20, 0.07, 0), nil, 42)
 		heading.Text = title
-		heading.ZIndex = 5
-		local close = button(frame, "Close", UDim2.fromOffset(44, 44), UDim2.new(1, -30, 0, -14), Color3.fromRGB(226, 50, 50), "X")
+		heading.TextXAlignment = Enum.TextXAlignment.Left
+		heading.UIStroke.Thickness = 4
+		heading.ZIndex = 7
+		if icon then
+			Draw.icon(header, icon, UDim2.fromOffset(54, 22), 0.95).Rotation = -8
+		end
+		local close = button(header, "Close", UDim2.fromOffset(46, 44), UDim2.new(1, -56, 0, 7), Color3.fromRGB(235, 40, 50), "X")
+		close.ZIndex = 7
 		close.Activated:Connect(function()
 			frame.Visible = false
 		end)
@@ -1026,7 +1043,17 @@ return function(env)
 		layout.SortOrder = Enum.SortOrder.LayoutOrder
 		layout.Parent = list
 		layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-			list.CanvasSize = UDim2.fromOffset(0, layout.AbsoluteContentSize.Y / math.max(0.01, (list.Parent.Parent :: any).Scale.Scale) + 8)
+			-- (L'échelle de la fenêtre : celle du premier parent qui en a une ; la grille peut être dans un onglet.)
+			local scale, at = 1, list.Parent
+			while at and at ~= env.gui do
+				local found = at:FindFirstChild("Scale")
+				if found and found:IsA("UIScale") then
+					scale = found.Scale
+					break
+				end
+				at = at.Parent
+			end
+			list.CanvasSize = UDim2.fromOffset(0, layout.AbsoluteContentSize.Y / math.max(0.01, scale) + 8)
 		end)
 		return list
 	end
@@ -1052,7 +1079,7 @@ return function(env)
 	local badgeText = env.text(badge, "Label", UDim2.fromScale(0.9, 0.8), UDim2.fromScale(0.05, 0.1))
 
 	-- Deux parties bien séparées : en haut les œufs DISPONIBLES (dans le sac, à sortir), en bas ceux qui COUVENT.
-	local eggPanel = window("EggPanel", tr("eggsTitle"), 600, 560)
+	local eggPanel = window("EggPanel", tr("eggsTitle"), 600, 560, "egg", Color3.fromRGB(235, 50, 50))
 	local eggInfo = env.text(eggPanel, "Info", UDim2.new(1, -40, 0, 24), UDim2.fromOffset(20, 52), GOLD, 20)
 	eggInfo.TextXAlignment = Enum.TextXAlignment.Left
 	eggInfo.ZIndex = 5
@@ -1065,8 +1092,8 @@ return function(env)
 
 	-- LES FAMILIERS : le bouton patte, et la fenêtre (la grille à gauche, la fiche à droite).
 	local pawButton = squareButton("PawButton", 1, Color3.fromRGB(255, 150, 40))
-	env.text(pawButton, "Label", UDim2.fromScale(0.8, 0.8), UDim2.fromScale(0.1, 0.1)).Text = "🐾"
-	local petPanel = window("PetPanel", tr("petsTitle"), 800, 570)
+	Draw.icon(pawButton, "paw", UDim2.fromScale(0.5, 0.5), 0.56)
+	local petPanel = window("PetPanel", tr("petsTitle"), 800, 570, "paw", Color3.fromRGB(255, 150, 40))
 	local petCount = env.text(petPanel, "Count", UDim2.fromOffset(200, 22), UDim2.fromOffset(24, 54), GREEN, 18)
 	petCount.TextXAlignment = Enum.TextXAlignment.Left
 	petCount.ZIndex = 5
@@ -1343,16 +1370,50 @@ return function(env)
 	-- LA BOUTIQUE : on y dépense ses pièces. L'épée (plus de dégâts pour soi) et les places de l'enclos.
 	-- LES POTIONS (sa demande du 09/10) : le bouton « Potions » et la fenêtre où l'on voit ses fioles et où on les boit.
 	-- Les potions à durée se boivent ici ; la potion de rang se boit sur la fiche d'un familier (la fiole verte).
-	local potionButton = squareButton("PotionButton", 5, Color3.fromRGB(170, 60, 210))
-	Draw.potion(potionButton, UDim2.fromScale(0.5, 0.5), 0.5, Color3.fromRGB(255, 90, 220), "")
-	local potionPanel = window("PotionPanel", tr("potionsTitle"), 760, 430)
-	local potionNote = env.text(potionPanel, "Note", UDim2.new(1, -40, 0, 22), UDim2.new(0, 20, 1, -30), GOLD, 17)
+	-- (Elles sont dans LE SAC, onglet « Potions » : sa demande, « on met les potions dans le sac, le sac a plusieurs
+	-- onglets, familiers, potions, etc. ».)
+	local bagButton = squareButton("BagButton", 2, Color3.fromRGB(120, 90, 200))
+	Draw.icon(bagButton, "bag", UDim2.fromScale(0.5, 0.5), 0.56)
+	local bagPanel = window("BagPanel", tr("bagTitle"), 780, 470, "bag", Color3.fromRGB(120, 90, 200))
+	-- Les onglets, sous le bandeau : un bouton par onglet, et une page (un cadre) par onglet.
+	local bagTabs = {}
+	local function selectTab(index: number)
+		for i, tab in bagTabs do
+			tab.page.Visible = i == index
+			-- (L'onglet choisi : orange vif, écriture blanche. Les autres : sombres, écriture grisée. Jamais d'écriture
+			-- foncée : avec son contour noir, on ne la lit pas. Son retour du 09/10 : « on voit pas bien l'écriture ».)
+			tab.pick.BackgroundColor3 = if i == index then Color3.fromRGB(255, 150, 30) else Color3.fromRGB(46, 42, 92)
+			tab.pick.Label.TextColor3 = if i == index then Color3.new(1, 1, 1) else Color3.fromRGB(170, 170, 200)
+		end
+	end
+	local function bagTab(index: number, name: string, label: string): Frame
+		local page = Instance.new("Frame")
+		page.Name = name
+		page.BackgroundTransparency = 1
+		page.Size = UDim2.new(1, 0, 1, -112)
+		page.Position = UDim2.fromOffset(0, 92)
+		page.ZIndex = 5
+		page.Parent = bagPanel
+		local pick = button(bagPanel, name .. "Pick", UDim2.fromOffset(160, 36), UDim2.fromOffset(20 + (index - 1) * 170, 48), Color3.fromRGB(40, 36, 80), label)
+		bagTabs[index] = { page = page, pick = pick }
+		pick.Activated:Connect(function()
+			bagPanel:SetAttribute("Tab", index)
+		end)
+		return page
+	end
+	local petTab = bagTab(1, "PetTab", tr("PawButton"))
+	local potionTab = bagTab(2, "PotionTab", tr("PotionButton"))
+	bagPanel:GetAttributeChangedSignal("Tab"):Connect(function()
+		selectTab(bagPanel:GetAttribute("Tab") or 1)
+	end)
+	selectTab(1)
+	local potionNote = env.text(potionTab, "Note", UDim2.new(1, -40, 0, 22), UDim2.new(0, 20, 1, -24), GOLD, 17)
 	potionNote.Text = tr("potionsNote")
 	potionNote.ZIndex = 5
 	local potionCards = {}
 	for index, kind in Config.POTION_ORDER do
 		local look = Draw.POTIONS[kind]
-		local card = env.box(potionPanel, "Card" .. index, UDim2.fromOffset(172, 312), UDim2.fromOffset(16 + (index - 1) * 184, 66), look.color:Lerp(Color3.fromRGB(10, 10, 26), 0.82))
+		local card = env.box(potionTab, "Card" .. index, UDim2.fromOffset(172, 312), UDim2.fromOffset(28 + (index - 1) * 184, 0), look.color:Lerp(Color3.fromRGB(10, 10, 26), 0.82))
 		card.ZIndex = 5
 		card.UIStroke.Color = look.color
 		card.UIStroke.Thickness = 3
@@ -1370,7 +1431,7 @@ return function(env)
 			if potionCount(kind) <= 0 then
 				showToast(tr("potionNone"), RED)
 			elseif kind == "rank" then
-				potionPanel.Visible = false
+				bagPanel.Visible = false
 				petPanel.Visible = true
 				showToast(tr("potionPick"), GOLD)
 			else
@@ -1380,7 +1441,7 @@ return function(env)
 		potionCards[kind] = { drink = drink, rays = rays }
 	end
 	local function refreshPotions()
-		if not potionPanel.Visible then
+		if not (bagPanel.Visible and potionTab.Visible) then
 			return
 		end
 		for kind, parts in potionCards do
@@ -1388,28 +1449,24 @@ return function(env)
 			parts.drink.Label.Text = if count > 0 then tr("potionDrink", count) else tr("potionEmpty")
 			parts.drink.BackgroundColor3 = if count > 0 then Color3.fromRGB(50, 200, 80) else Color3.fromRGB(90, 96, 120)
 		end
-		fitWindow(potionPanel)
+		fitWindow(bagPanel)
 	end
 	player:GetAttributeChangedSignal("Potions"):Connect(refreshPotions)
-	potionPanel:GetPropertyChangedSignal("Visible"):Connect(refreshPotions)
+	bagPanel:GetPropertyChangedSignal("Visible"):Connect(refreshPotions)
+	potionTab:GetPropertyChangedSignal("Visible"):Connect(refreshPotions)
 	game:GetService("RunService").RenderStepped:Connect(function()
-		if potionPanel.Visible then
+		if bagPanel.Visible and potionTab.Visible then
 			for _, parts in potionCards do
 				parts.rays.Rotation = os.clock() * 20
 			end
 		end
 	end)
-	potionButton.Activated:Connect(function()
-		potionPanel.Visible = not potionPanel.Visible
-	end)
 	-- LE SAC : les familiers rangés hors de l'enclos. Un clic sur l'un d'eux le remet dans l'enclos.
-	local bagButton = squareButton("BagButton", 2, Color3.fromRGB(120, 90, 200))
-	env.text(bagButton, "Label", UDim2.fromScale(0.8, 0.8), UDim2.fromScale(0.1, 0.1)).Text = "🎒"
-	local bagPanel = window("BagPanel", tr("bagTitle"), 600, 460)
-	local bagInfo = env.text(bagPanel, "Info", UDim2.new(1, -40, 0, 24), UDim2.fromOffset(20, 52), GOLD, 18)
+	-- (Onglet « Familiers » du sac ; le sac lui-même est créé plus haut, avec les potions.)
+	local bagInfo = env.text(petTab, "Info", UDim2.new(1, -40, 0, 24), UDim2.fromOffset(20, 0), GOLD, 18)
 	bagInfo.TextXAlignment = Enum.TextXAlignment.Left
 	bagInfo.ZIndex = 5
-	local bagGrid = grid(bagPanel, UDim2.new(1, -40, 1, -104), UDim2.fromOffset(20, 84))
+	local bagGrid = grid(petTab, UDim2.new(1, -40, 1, -32), UDim2.fromOffset(20, 32))
 	local bagCards = {}
 	local unbagEvent = ReplicatedStorage:WaitForChild("UnbagPet")
 	local function refreshBag()
@@ -1455,7 +1512,7 @@ return function(env)
 
 	-- LA FENÊTRE DE VENTE (au stand du vendeur) : tous les familiers, ceux de l'enclos puis ceux du sac, avec leur
 	-- prix. Un clic en choisit un, le bouton du bas le vend. Ceux de l'équipe portent leur coche.
-	local sellPanel = window("SellPanel", tr("sellTitle"), 600, 520)
+	local sellPanel = window("SellPanel", tr("sellTitle"), 600, 520, "coin", Color3.fromRGB(255, 200, 40))
 	local sellInfo = env.text(sellPanel, "Info", UDim2.new(1, -40, 0, 24), UDim2.fromOffset(20, 52), GOLD, 18)
 	sellInfo.TextXAlignment = Enum.TextXAlignment.Left
 	sellInfo.ZIndex = 5
@@ -1547,8 +1604,8 @@ return function(env)
 
 	-- L'ÉPÉE : un bouton, et une fenêtre qui montre seulement mon épée et la suivante, avec leurs dégâts.
 	local swordButton = squareButton("SwordButton", 3, Color3.fromRGB(240, 80, 80))
-	env.text(swordButton, "Label", UDim2.fromScale(0.8, 0.8), UDim2.fromScale(0.1, 0.1)).Text = "⚔"
-	local swordPanel = window("SwordPanel", tr("swordTitle"), 560, 380)
+	Draw.icon(swordButton, "sword", UDim2.fromScale(0.5, 0.5), 0.56)
+	local swordPanel = window("SwordPanel", tr("swordTitle"), 560, 380, "sword", Color3.fromRGB(240, 80, 80))
 	local SWORD_MODELS = require(script.Parent.SwordPalette).gameOrder
 	local function swordCard(x: number, title: string)
 		local frame = env.box(swordPanel, "Card", UDim2.fromOffset(240, 240), UDim2.fromOffset(x, 60), Color3.fromRGB(30, 44, 78))
@@ -1606,17 +1663,15 @@ return function(env)
 	end)
 
 	local shopButton = squareButton("ShopButton", 4, Color3.fromRGB(60, 150, 255))
-	env.text(shopButton, "Label", UDim2.fromScale(0.8, 0.8), UDim2.fromScale(0.1, 0.1)).Text = "🛒"
-	local shopPanel = window("ShopPanel", tr("shopTitle"), 620, 330)
+	Draw.icon(shopButton, "cart", UDim2.fromScale(0.5, 0.5), 0.56)
+	local shopPanel = window("ShopPanel", tr("shopTitle"), 620, 330, "cart", Color3.fromRGB(60, 150, 255))
 	local swordEvent = ReplicatedStorage:WaitForChild("BuySword")
 	local function shopRow(y: number, icon: string, color: Color3)
 		local row = env.box(shopPanel, "Row", UDim2.new(1, -40, 0, 110), UDim2.fromOffset(20, y), Color3.fromRGB(30, 44, 78))
 		row.ZIndex = 4
 		row.UIStroke.Color = color
 		row.UIStroke.Thickness = 3
-		local picture = env.text(row, "Icon", UDim2.fromOffset(80, 80), UDim2.fromOffset(12, 15))
-		picture.Text = icon
-		picture.ZIndex = 5
+		Draw.icon(row, icon, UDim2.fromOffset(54, 55), 0.78)
 		local title = env.text(row, "Title", UDim2.new(1, -310, 0, 30), UDim2.fromOffset(104, 10), color, 26)
 		title.TextXAlignment = Enum.TextXAlignment.Left
 		title.ZIndex = 5
@@ -1629,8 +1684,8 @@ return function(env)
 		local buy = button(row, "Buy", UDim2.fromOffset(180, 70), UDim2.new(1, -194, 0, 20), Color3.fromRGB(60, 200, 70), "")
 		return { title = title, line = line, note = note, buy = buy }
 	end
-	local swordRow = shopRow(62, "⚔", Color3.fromRGB(255, 110, 110))
-	local penRow = shopRow(186, "🐾", Color3.fromRGB(255, 170, 60))
+	local swordRow = shopRow(62, "sword", Color3.fromRGB(255, 110, 110))
+	local penRow = shopRow(186, "paw", Color3.fromRGB(255, 170, 60))
 	swordRow.buy.Activated:Connect(function()
 		swordEvent:FireServer()
 	end)

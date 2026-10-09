@@ -14,11 +14,17 @@ return function(log)
 	end)
 	workspace:GetAttributeChangedSignal("OpenPanel"):Connect(function()
 		local gui = game:GetService("Players").LocalPlayer.PlayerGui:FindFirstChild("Hud")
-		for _, name in { "SwordPanel", "BagPanel", "PetPanel", "EggPanel", "ShopPanel", "SellPanel", "SettingsPanel", "GiftPanel", "PotionPanel" } do
+		local wanted = workspace:GetAttribute("OpenPanel")
+		for _, name in { "SwordPanel", "BagPanel", "PetPanel", "EggPanel", "ShopPanel", "SellPanel", "SettingsPanel", "GiftPanel" } do
 			local panel = gui and gui:FindFirstChild(name)
 			if panel then
-				panel.Visible = name == workspace:GetAttribute("OpenPanel")
+				panel.Visible = name == wanted or (name == "BagPanel" and wanted == "BagPotions")
 			end
+		end
+		-- (« BagPotions » : le sac, ouvert sur son onglet des potions.)
+		local bag = gui and gui:FindFirstChild("BagPanel")
+		if bag then
+			bag:SetAttribute("Tab", if wanted == "BagPotions" then 2 else 1)
 		end
 	end)
 	workspace:GetAttributeChangedSignal("Diag"):Connect(function()

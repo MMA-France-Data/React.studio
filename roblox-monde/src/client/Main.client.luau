@@ -331,7 +331,7 @@ local autoButton: TextButton? = nil
 --   bas à gauche, avec l'épée, l'équipe et la chance juste au-dessus ; la grande barre de niveau en bas au milieu ;
 --   au-dessus d'elle, les deux actions avec leur touche : F = frapper, R = attaque automatique ;
 --   sur téléphone : tout est plus petit et sur les bords, les deux boutons d'attaque ronds sous le pouce droit.
-local MENU = { "EggButton", "PawButton", "BagButton", "SwordButton", "ShopButton", "PotionButton" }
+local MENU = { "EggButton", "PawButton", "BagButton", "SwordButton", "ShopButton" }
 local function applyHud()
 	local view = workspace.CurrentCamera.ViewportSize
 	small = workspace:GetAttribute("PhoneHud") == true or (UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled) or view.Y < 520
@@ -384,7 +384,7 @@ local function applyHud()
 			scale.Scale = if small then 0.7 else 0.9
 			scale.Parent = button
 			button.AnchorPoint = if small then Vector2.new(1, 0.5) else Vector2.new(0, 0.5)
-			button.Position = if small then UDim2.new(1, -8, 0.5, -150 + (order - 1) * 52) else UDim2.new(0, 22, 0.5, -250 + (order - 1) * 84)
+			button.Position = if small then UDim2.new(1, -8, 0.5, -150 + (order - 1) * 52) else UDim2.new(0, 22, 0.5, -210 + (order - 1) * 92)
 			local caption = button:FindFirstChild("Caption")
 			if caption then
 				caption.Visible = not small
@@ -655,33 +655,52 @@ do
 		follow()
 	end)
 
-	local panel = box(gui, "SettingsPanel", UDim2.fromOffset(380, 210), UDim2.fromScale(0.5, 0.5), Color3.fromRGB(28, 34, 62))
+	-- (Même style que les autres fenêtres : bandeau avec la roue dentée dessinée, fond violet nuit.)
+	local panel = box(gui, "SettingsPanel", UDim2.fromOffset(400, 220), UDim2.fromScale(0.5, 0.5), Color3.fromRGB(34, 28, 70))
 	panel.AnchorPoint = Vector2.new(0.5, 0.5)
 	panel.Visible = false
 	panel.ZIndex = 8
-	panel.UIStroke.Color = GOLD
-	text(panel, "Title", UDim2.new(1, -90, 0, 36), UDim2.fromOffset(45, 8), GOLD, 30).Text = tr("settingsTitle")
-	panel.Title.ZIndex = 9
+	panel.UIStroke.Color = Draw.DARK
+	panel.UIStroke.Thickness = 5
+	Draw.shade(panel, 1, 0.6)
+	local header = Draw.round(panel, "Header", UDim2.new(1, 16, 0, 58), UDim2.fromOffset(-8, -22), Color3.fromRGB(150, 160, 190), UDim.new(0, 10), 5)
+	header.ZIndex = 9
+	local headerShade = Instance.new("UIGradient")
+	headerShade.Rotation = 90
+	headerShade.Color = ColorSequence.new(Color3.fromRGB(225, 230, 245), Color3.fromRGB(130, 140, 170))
+	headerShade.Parent = header
+	local settingsTitle = text(header, "Title", UDim2.new(1, -170, 0.86, 0), UDim2.new(0, 100, 0.07, 0), nil, 40)
+	settingsTitle.Text = tr("settingsTitle")
+	settingsTitle.TextXAlignment = Enum.TextXAlignment.Left
+	settingsTitle.UIStroke.Thickness = 4
+	settingsTitle.ZIndex = 10
+	Draw.icon(header, "gear", UDim2.fromOffset(50, 22), 0.8)
 	local function small(parent: Instance, name: string, label: string, position: UDim2, color: Color3): TextButton
 		local button = Instance.new("TextButton")
 		button.Name = name
-		button.Size = UDim2.fromOffset(44, 40)
+		button.Size = UDim2.fromOffset(46, 42)
 		button.Position = position
 		button.BackgroundColor3 = color
 		button.Font = Enum.Font.FredokaOne
 		button.TextSize = 28
 		button.TextColor3 = Color3.new(1, 1, 1)
 		button.Text = label
-		button.ZIndex = 9
+		button.ZIndex = 10
 		Instance.new("UICorner", button).CornerRadius = UDim.new(0, 8)
+		local line = Instance.new("UIStroke")
+		line.Thickness = 4
+		line.Color = Draw.DARK
+		line.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+		line.Parent = button
+		Draw.shade(button, 1, 0.7)
 		button.Parent = parent
 		return button
 	end
-	small(panel, "Close", "X", UDim2.new(1, -34, 0, -12), Color3.fromRGB(226, 50, 50)).Activated:Connect(function()
+	small(header, "Close", "X", UDim2.new(1, -56, 0, 8), Color3.fromRGB(235, 40, 50)).Activated:Connect(function()
 		panel.Visible = false
 	end)
 	for row, info in { { "VolMusic", "settingsMusic", Sounds.DEFAULT_MUSIC }, { "VolFx", "settingsFx", Sounds.DEFAULT_FX } } do
-		local y = 56 + (row - 1) * 70
+		local y = 62 + (row - 1) * 70
 		local name = text(panel, info[1] .. "Name", UDim2.fromOffset(150, 40), UDim2.fromOffset(18, y), nil, 24)
 		name.Text = tr(info[2])
 		name.TextXAlignment = Enum.TextXAlignment.Left
