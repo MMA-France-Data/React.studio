@@ -1,0 +1,210 @@
+[
+  {
+    "model": "Iron",
+    "source_model": "Iron",
+    "label": "Fer",
+    "original_size": [
+      1254,
+      1254
+    ],
+    "transparent_fraction": 0.8095,
+    "alpha_bbox": [
+      0,
+      27,
+      1186,
+      1226
+    ]
+  },
+  {
+    "model": "Steel",
+    "source_model": "Steel",
+    "label": "Acier",
+    "original_size": [
+      1254,
+      1254
+    ],
+    "transparent_fraction": 0.8922,
+    "alpha_bbox": [
+      65,
+      53,
+      1194,
+      1214
+    ]
+  },
+  {
+    "model": "Gold",
+    "source_model": "GoldV2",
+    "label": "Or",
+    "original_size": [
+      1254,
+      1254
+    ],
+    "transparent_fraction": 0.7661,
+    "alpha_bbox": [
+      23,
+      13,
+      1242,
+      1254
+    ]
+  },
+  {
+    "model": "Frost",
+    "source_model": "Frost",
+    "label": "Glace",
+    "original_size": [
+      1254,
+      1254
+    ],
+    "transparent_fraction": 0.804,
+    "alpha_bbox": [
+      17,
+      0,
+      1238,
+      1236
+    ]
+  },
+  {
+    "model": "Flame",
+    "source_model": "Flame",
+    "label": "Feu",
+    "original_size": [
+      1254,
+      1254
+    ],
+    "transparent_fraction": 0.7275,
+    "alpha_bbox": [
+      0,
+      7,
+      1240,
+      1254
+    ]
+  },
+  {
+    "model": "Storm",
+    "source_model": "Storm",
+    "label": "Foudre",
+    "original_size": [
+      1254,
+      1254
+    ],
+    "transparent_fraction": 0.752,
+    "alpha_bbox": [
+      0,
+      11,
+      1234,
+      1254
+    ]
+  },
+  {
+    "model": "Fusion",
+    "source_model": "Fusion",
+    "label": "Feu + glace",
+    "original_size": [
+      1254,
+      1254
+    ],
+    "transparent_fraction": 0.7387,
+    "alpha_bbox": [
+      0,
+      9,
+      1240,
+      1254
+    ]
+  },
+  {
+    "model": "Void",
+    "source_model": "Void",
+    "label": "Doubles violettes",
+    "original_size": [
+      1254,
+      1254
+    ],
+    "transparent_fraction": 0.5715,
+    "alpha_bbox": [
+      0,
+      2,
+      1244,
+      1254
+    ]
+  },
+  {
+    "model": "Prismatic",
+    "source_model": "Prismatic",
+    "label": "Arc-en-ciel",
+    "original_size": [
+      1254,
+      1254
+    ],
+    "transparent_fraction": 0.7834,
+    "alpha_bbox": [
+      0,
+      0,
+      1242,
+      1254
+    ]
+  },
+  {
+    "model": "TigerClaw",
+    "source_model": "TigerClaw",
+    "label": "Tigre",
+    "original_size": [
+      1254,
+      1254
+    ],
+    "transparent_fraction": 0.763,
+    "alpha_bbox": [
+      0,
+      10,
+      1222,
+      1254
+    ]
+  },
+  {
+    "model": "HyenaFang",
+    "source_model": "HyenaFang",
+    "label": "Hyène",
+    "original_size": [
+      1254,
+      1254
+    ],
+    "transparent_fraction": 0.7163,
+    "alpha_bbox": [
+      0,
+      26,
+      1228,
+      1254
+    ]
+  },
+  {
+    "model": "TrexJaw",
+    "source_model": "TrexJaw",
+    "label": "T-rex",
+    "original_size": [
+      1254,
+      1254
+    ],
+    "transparent_fraction": 0.7863,
+    "alpha_bbox": [
+      0,
+      1,
+      1232,
+      1254
+    ]
+  },
+  {
+    "model": "Meteorite",
+    "source_model": "Meteorite",
+    "label": "Météorite",
+    "original_size": [
+      1254,
+      1254
+    ],
+    "transparent_fraction": 0.7246,
+    "alpha_bbox": [
+      0,
+      0,
+      1240,
+      1254
+    ]
+  }
+]

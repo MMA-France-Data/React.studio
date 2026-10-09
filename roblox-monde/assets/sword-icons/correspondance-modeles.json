@@ -1,0 +1,106 @@
+[
+  {
+    "model_name": "Iron",
+    "label": "Fer",
+    "png": "PNG-512/Iron.png",
+    "high_res_png": "PNG-1024/Iron.png",
+    "roblox_image_asset_id": null,
+    "representation": "single sword"
+  },
+  {
+    "model_name": "Steel",
+    "label": "Acier",
+    "png": "PNG-512/Steel.png",
+    "high_res_png": "PNG-1024/Steel.png",
+    "roblox_image_asset_id": null,
+    "representation": "single sword"
+  },
+  {
+    "model_name": "Gold",
+    "label": "Or",
+    "png": "PNG-512/Gold.png",
+    "high_res_png": "PNG-1024/Gold.png",
+    "roblox_image_asset_id": null,
+    "representation": "single sword"
+  },
+  {
+    "model_name": "Frost",
+    "label": "Glace",
+    "png": "PNG-512/Frost.png",
+    "high_res_png": "PNG-1024/Frost.png",
+    "roblox_image_asset_id": null,
+    "representation": "single sword"
+  },
+  {
+    "model_name": "Flame",
+    "label": "Feu",
+    "png": "PNG-512/Flame.png",
+    "high_res_png": "PNG-1024/Flame.png",
+    "roblox_image_asset_id": null,
+    "representation": "single sword"
+  },
+  {
+    "model_name": "Storm",
+    "label": "Foudre",
+    "png": "PNG-512/Storm.png",
+    "high_res_png": "PNG-1024/Storm.png",
+    "roblox_image_asset_id": null,
+    "representation": "single sword"
+  },
+  {
+    "model_name": "Fusion",
+    "label": "Feu + glace",
+    "png": "PNG-512/Fusion.png",
+    "high_res_png": "PNG-1024/Fusion.png",
+    "roblox_image_asset_id": null,
+    "representation": "single sword"
+  },
+  {
+    "model_name": "Void",
+    "label": "Doubles violettes",
+    "png": "PNG-512/Void.png",
+    "high_res_png": "PNG-1024/Void.png",
+    "roblox_image_asset_id": null,
+    "representation": "dual swords"
+  },
+  {
+    "model_name": "Prismatic",
+    "label": "Arc-en-ciel",
+    "png": "PNG-512/Prismatic.png",
+    "high_res_png": "PNG-1024/Prismatic.png",
+    "roblox_image_asset_id": null,
+    "representation": "single sword"
+  },
+  {
+    "model_name": "TigerClaw",
+    "label": "Tigre",
+    "png": "PNG-512/TigerClaw.png",
+    "high_res_png": "PNG-1024/TigerClaw.png",
+    "roblox_image_asset_id": null,
+    "representation": "single sword"
+  },
+  {
+    "model_name": "HyenaFang",
+    "label": "Hyène",
+    "png": "PNG-512/HyenaFang.png",
+    "high_res_png": "PNG-1024/HyenaFang.png",
+    "roblox_image_asset_id": null,
+    "representation": "single sword"
+  },
+  {
+    "model_name": "TrexJaw",
+    "label": "T-rex",
+    "png": "PNG-512/TrexJaw.png",
+    "high_res_png": "PNG-1024/TrexJaw.png",
+    "roblox_image_asset_id": null,
+    "representation": "single sword"
+  },
+  {
+    "model_name": "Meteorite",
+    "label": "Météorite",
+    "png": "PNG-512/Meteorite.png",
+    "high_res_png": "PNG-1024/Meteorite.png",
+    "roblox_image_asset_id": null,
+    "representation": "single sword"
+  }
+]
