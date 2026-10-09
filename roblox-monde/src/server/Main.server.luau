@@ -122,6 +122,18 @@ sellEvent.OnServerEvent:Connect(function(player, spot)
 		Eggs.hold(player, spot)
 	end
 end)
+-- LES RÉGLAGES du joueur (la roue dentée) : le volume de la musique et celui des sons.
+local settingsEvent = Instance.new("RemoteEvent")
+settingsEvent.Name = "Settings"
+settingsEvent.Parent = ReplicatedStorage
+settingsEvent.OnServerEvent:Connect(function(player, name, value)
+	local data = PlayerData.get(player)
+	local key = if name == "VolMusic" then "vm" elseif name == "VolFx" then "vf" else nil
+	if data and key and typeof(value) == "number" then
+		data[key] = math.clamp(math.floor(value), 0, 100)
+		PlayerData.changed(player)
+	end
+end)
 -- LA VENTE AU VENDEUR : le joueur, à côté du stand, choisit dans la fenêtre un familier de l'enclos (« pen », sa
 -- place) ou du sac (« bag », son rang), et il est vendu tout de suite.
 local world -- (construit plus bas)

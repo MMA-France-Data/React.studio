@@ -15,6 +15,7 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local Pets = require(ReplicatedStorage.Shared.Pets)
 local Texts = require(ReplicatedStorage.Shared.Texts)
 local Sounds = require(script.Parent.Sounds)
+local SwordPalette = require(script.Parent.SwordPalette)
 
 local player = Players.LocalPlayer
 local lang = if LocalizationService.RobloxLocaleId:lower():sub(1, 2) == "fr" then "fr" else "en"
@@ -580,6 +581,107 @@ do
 	end
 end
 
+-- LES RÉGLAGES (la roue dentée, à côté du bouton BASE) : le volume de la musique et celui des sons, de 0 à 100, par
+-- pas de 10. Le serveur les garde dans la sauvegarde (attributs « VolMusic » et « VolFx »).
+do
+	local settingsEvent = ReplicatedStorage:WaitForChild("Settings")
+	local gear = Instance.new("TextButton")
+	gear.Name = "Gear"
+	gear.AnchorPoint = Vector2.new(0.5, 0)
+	gear.Size = UDim2.fromOffset(26, 20)
+	gear.BackgroundColor3 = Color3.fromRGB(245, 245, 250)
+	gear.Font = Enum.Font.FredokaOne
+	gear.TextSize = 18
+	gear.TextColor3 = Color3.fromRGB(30, 34, 50)
+	gear.Text = "⚙"
+	Instance.new("UICorner", gear).CornerRadius = UDim.new(0, 8)
+	local outline = Instance.new("UIStroke")
+	outline.Thickness = 3
+	outline.Color = Color3.fromRGB(20, 20, 30)
+	outline.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	outline.Parent = gear
+	gear.Parent = gui
+	local function follow()
+		local base = gui:FindFirstChild("ToBase")
+		if base then
+			gear.Position = base.Position + UDim2.fromOffset(52, 0)
+		end
+	end
+	follow()
+	task.spawn(function()
+		-- (Le bouton BASE est créé plus bas dans ce fichier.)
+		gui:WaitForChild("ToBase"):GetPropertyChangedSignal("Position"):Connect(follow)
+		follow()
+	end)
+
+	local panel = box(gui, "SettingsPanel", UDim2.fromOffset(380, 210), UDim2.fromScale(0.5, 0.5), Color3.fromRGB(28, 34, 62))
+	panel.AnchorPoint = Vector2.new(0.5, 0.5)
+	panel.Visible = false
+	panel.ZIndex = 8
+	panel.UIStroke.Color = GOLD
+	text(panel, "Title", UDim2.new(1, -90, 0, 36), UDim2.fromOffset(45, 8), GOLD, 30).Text = tr("settingsTitle")
+	panel.Title.ZIndex = 9
+	local function small(parent: Instance, name: string, label: string, position: UDim2, color: Color3): TextButton
+		local button = Instance.new("TextButton")
+		button.Name = name
+		button.Size = UDim2.fromOffset(44, 40)
+		button.Position = position
+		button.BackgroundColor3 = color
+		button.Font = Enum.Font.FredokaOne
+		button.TextSize = 28
+		button.TextColor3 = Color3.new(1, 1, 1)
+		button.Text = label
+		button.ZIndex = 9
+		Instance.new("UICorner", button).CornerRadius = UDim.new(0, 8)
+		button.Parent = parent
+		return button
+	end
+	small(panel, "Close", "X", UDim2.new(1, -34, 0, -12), Color3.fromRGB(226, 50, 50)).Activated:Connect(function()
+		panel.Visible = false
+	end)
+	for row, info in { { "VolMusic", "settingsMusic", Sounds.DEFAULT_MUSIC }, { "VolFx", "settingsFx", Sounds.DEFAULT_FX } } do
+		local y = 56 + (row - 1) * 70
+		local name = text(panel, info[1] .. "Name", UDim2.fromOffset(150, 40), UDim2.fromOffset(18, y), nil, 24)
+		name.Text = tr(info[2])
+		name.TextXAlignment = Enum.TextXAlignment.Left
+		name.ZIndex = 9
+		local value = text(panel, info[1] .. "Value", UDim2.fromOffset(80, 40), UDim2.fromOffset(222, y), GOLD, 26)
+		value.ZIndex = 9
+		local function current(): number
+			return math.clamp(tonumber(player:GetAttribute(info[1])) or info[3], 0, 100)
+		end
+		local function show()
+			value.Text = current() .. " %"
+		end
+		for _, step in { -10, 10 } do
+			local button = small(panel, info[1] .. (if step < 0 then "Less" else "More"), if step < 0 then "-" else "+", UDim2.fromOffset(if step < 0 then 174 else 308, y), if step < 0 then Color3.fromRGB(200, 70, 70) else Color3.fromRGB(60, 190, 80))
+			button.Activated:Connect(function()
+				local wanted = math.clamp(current() + step, 0, 100)
+				player:SetAttribute(info[1], wanted) -- tout de suite à l'oreille ; le serveur l'enregistre
+				settingsEvent:FireServer(info[1], wanted)
+			end)
+		end
+		player:GetAttributeChangedSignal(info[1]):Connect(show)
+		show()
+	end
+	gear.Activated:Connect(function()
+		panel.Visible = not panel.Visible
+	end)
+	-- Le petit clic de tous les boutons de l'écran.
+	local function clicky(item: Instance)
+		if item:IsA("GuiButton") then
+			item.Activated:Connect(function()
+				Sounds.play("click")
+			end)
+		end
+	end
+	gui.DescendantAdded:Connect(clicky)
+	for _, item in gui:GetDescendants() do
+		clicky(item)
+	end
+	Sounds.start()
+end
+
 -- (Le son d'une nouvelle épée.)
 player:GetAttributeChangedSignal("Sword"):Connect(function()
 	Sounds.play("sword")
@@ -729,6 +831,11 @@ local function swing()
 		lastSwing = os.clock()
 		swings += 1
 		Sounds.play(if swings % 3 == 0 then "swingBig" else "swing")
+		-- (Le son propre à l'épée, par-dessus : le grognement du tigre pour sa griffe.)
+		local voice = Sounds.SWORD_VOICE[SwordPalette.gameOrder[math.clamp(player:GetAttribute("Sword") or 1, 1, #SwordPalette.gameOrder)]]
+		if voice then
+			Sounds.play(voice)
+		end
 		attackEvent:FireServer()
 	end
 end
