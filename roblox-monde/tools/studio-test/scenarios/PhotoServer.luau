@@ -1,6 +1,6 @@
 -- PETIT TEST (une trentaine de secondes), sans rejouer tout le jeu.
---   powershell -ExecutionPolicy Bypass -File tools/studio-test/run.ps1 -Test photo -Seconds 30
--- Ici : la vente au vendeur d'un familier de l'ENCLOS (elle plantait), d'un familier de l'ÉQUIPE, et d'un du SAC.
+--   powershell -ExecutionPolicy Bypass -File tools/studio-test/run.ps1 -Test photo -Seconds 40
+-- Ici : un œuf posé d'un clic (Eggs.placeNow), et la fenêtre « enclos plein : qui remplacer ? » puis l'échange.
 local Players = game:GetService("Players")
 local ServerStorage = game:GetService("ServerStorage")
 
@@ -11,33 +11,40 @@ return function(log)
 	end
 	local debug = ServerStorage:WaitForChild("SurviveDebug")
 	task.wait(8)
-	debug:Invoke("Pet", "Pig", 3)
-	debug:Invoke("Pet", "Duck", 1)
-	debug:Invoke("Pet", "Sheep", 2)
-	debug:Invoke("ToBag", 3)
-	task.wait(1)
 	local function state(): string
 		local data = debug:Invoke("Data")
-		local pets = 0
-		for _, spot in data.spots do
+		local pets, eggs, names = 0, 0, {}
+		for key, spot in data.spots do
 			if spot.v then
 				pets += 1
+				table.insert(names, key .. "=" .. spot.a)
+			else
+				eggs += 1
 			end
 		end
-		return "pièces " .. data.coins .. ", enclos " .. pets .. ", équipe " .. #data.team
+		table.sort(names)
+		return "enclos " .. pets .. " (" .. table.concat(names, " ") .. "), œufs qui couvent " .. eggs .. ", œufs au sac " .. data.bag .. ", équipe " .. table.concat(data.team, ",")
 	end
+	-- Une chèvre épique part au sac, puis l'enclos est rempli (5 places).
+	debug:Invoke("Pet", "Goat", 5)
+	debug:Invoke("ToBag", 1)
+	for _, pet in { { "Duck", 1 }, { "Rooster", 2 }, { "Pig", 3 }, { "Sheep", 4 }, { "Duck", 1 } } do
+		debug:Invoke("Pet", pet[1], pet[2])
+	end
+	debug:Invoke("Egg", 1, 2)
+	debug:Invoke("Egg", 1, 1)
+	task.wait(1)
 	log("Info", "[PHOTO] départ : " .. state())
-	local ok1, sold1 = pcall(function()
-		return debug:Invoke("SellPen", 2)
-	end)
-	log("Info", "[PHOTO] vente enclos (canard, place 2) : " .. tostring(ok1) .. " " .. tostring(sold1) .. " → " .. state())
-	local ok2, sold2 = pcall(function()
-		return debug:Invoke("SellPen", 1)
-	end)
-	log("Info", "[PHOTO] vente enclos (cochon de l'équipe, place 1) : " .. tostring(ok2) .. " " .. tostring(sold2) .. " → " .. state())
-	local ok3, sold3 = pcall(function()
-		return debug:Invoke("SellBag", 1)
-	end)
-	log("Info", "[PHOTO] vente sac (mouton) : " .. tostring(ok3) .. " " .. tostring(sold3) .. " → " .. state())
+	log("Info", "[PHOTO] œuf posé d'un clic : " .. tostring(debug:Invoke("EggNow", "Rooster", 2)) .. " → " .. state())
+	workspace:SetAttribute("OpenReplace", 1)
+	task.wait(2)
+	log("Info", "SHOT:photo_remplacer")
+	task.wait(1.5)
+	log("Info", "[PHOTO] échange (sac 1 ↔ place 1) : " .. tostring(debug:Invoke("Swap", 1, 1)) .. " → " .. state())
+	task.wait(1.5)
+	workspace:SetAttribute("OpenPanel", "BagPanel")
+	task.wait(1.5)
+	log("Info", "SHOT:photo_remplacer_apres")
+	task.wait(1.2)
 	log("Info", "[SURVIVE] TEST:done")
 end

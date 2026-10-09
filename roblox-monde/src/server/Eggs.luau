@@ -128,6 +128,45 @@ function Eggs.place(player: Player, x: number?, z: number?): (boolean, string?)
 	return true
 end
 
+-- POSER UN ŒUF D'UN CLIC (demande du créateur, 09/10 : « le système de poser, c'est trop la galère » ; son choix :
+-- « un clic et il est posé »). L'œuf de cet animal et de ce rang quitte le sac et se pose tout seul dans l'enclos,
+-- à l'endroit le plus dégagé : plus besoin de le porter ni de cliquer par terre.
+function Eggs.placeNow(player: Player, animal: string, rank: number): boolean
+	local data = PlayerData.get(player)
+	if not data then
+		return false
+	end
+	for index, egg in data.bag do
+		if egg.a == animal and egg.q == rank then
+			table.insert(data.bag, 1, table.remove(data.bag, index))
+			Eggs.release(player)
+			-- L'endroit le plus loin de tout ce qui est déjà posé, parmi quelques essais.
+			local pen = Pets.PEN
+			local bestX, bestZ, bestGap = (pen.minX + pen.maxX) / 2, (pen.minZ + pen.maxZ) / 2, -1
+			for _ = 1, 24 do
+				local x, z = random:NextNumber(pen.minX, pen.maxX), random:NextNumber(pen.minZ, pen.maxZ)
+				local gap = math.huge
+				for _, spot in data.spots do
+					if spot.x and spot.z then
+						gap = math.min(gap, (spot.x - x) ^ 2 + (spot.z - z) ^ 2)
+					end
+				end
+				if gap > bestGap then
+					bestX, bestZ, bestGap = x, z, gap
+				end
+			end
+			player:SetAttribute("Carrying", true)
+			local placed = Eggs.place(player, bestX, bestZ)
+			if not placed then
+				player:SetAttribute("Carrying", false)
+				PlayerData.changed(player)
+			end
+			return placed
+		end
+	end
+	return false
+end
+
 -- Fait éclore les œufs du joueur qui ont fini de couver (tous si `all`) : le familier reçoit sa valeur cachée.
 -- Renvoie le nombre d'œufs éclos.
 function Eggs.hatch(player: Player, all: boolean?): number
@@ -396,6 +435,29 @@ function Eggs.fromBag(player: Player, index: number): boolean
 	end
 	notify(player, "penFull")
 	return false
+end
+
+-- ENCLOS PLEIN : ÉCHANGER (demande du créateur, 09/10 : « cliquer sur un animal du sac pour le poser ouvre une
+-- fenêtre : enclos plein, par qui le remplacer, avec les deux côte à côte pour voir la différence »). Le familier
+-- numéro `index` du sac prend la place `spot` de l'enclos ; celui qui y était part au sac. Le nouveau garde l'endroit
+-- de l'ancien, et sa place dans l'équipe s'il y était.
+function Eggs.swap(player: Player, index: number, spot: number): boolean
+	local data = PlayerData.get(player)
+	local key = tostring(spot)
+	local incoming, outgoing = data and data.store[index], data and data.spots[key]
+	if not incoming or not outgoing or not outgoing.v then
+		return false
+	end
+	if held[player] == key then
+		setHeld(player, nil)
+	end
+	incoming.x, incoming.z = outgoing.x, outgoing.z
+	outgoing.x, outgoing.z = nil, nil
+	data.store[index] = outgoing
+	data.spots[key] = incoming
+	PlayerData.changed(player)
+	notify(player, "swapped", incoming.a, outgoing.a)
+	return true
 end
 
 -- « Équiper les meilleurs » : l'équipe devient les familiers qui tapent le plus fort. « Tout déséquiper » : plus

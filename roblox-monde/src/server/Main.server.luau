@@ -94,13 +94,24 @@ end
 placeEvent.OnServerEvent:Connect(function(player, position)
 	Eggs.place(player, local2(player, position))
 end)
--- Sortir un œuf de son sac (ou le rentrer), et poser le familier qu'on porte là où on clique dans son enclos.
+-- Un clic sur un œuf de la fenêtre : il se pose tout seul dans l'enclos (Eggs.placeNow). Et poser le familier
+-- qu'on porte là où on clique dans son enclos.
 local takeEvent = Instance.new("RemoteEvent")
 takeEvent.Name = "TakeEgg"
 takeEvent.Parent = ReplicatedStorage
 takeEvent.OnServerEvent:Connect(function(player, animal, rank)
 	if typeof(animal) == "string" and typeof(rank) == "number" then
-		Eggs.take(player, animal, rank)
+		Eggs.placeNow(player, animal, rank)
+	end
+end)
+-- Enclos plein : le familier du sac (son rang) prend la place d'un familier de l'enclos (sa place), qui part au sac.
+local swapEvent = Instance.new("RemoteEvent")
+swapEvent.Name = "SwapPet"
+swapEvent.Parent = ReplicatedStorage
+swapEvent.OnServerEvent:Connect(function(player, index, spot)
+	if typeof(index) == "number" and typeof(spot) == "number" and calm(player) then
+		Eggs.swap(player, math.floor(index), math.floor(spot))
+		Monsters.publishTeam(player)
 	end
 end)
 local putEvent = Instance.new("RemoteEvent")

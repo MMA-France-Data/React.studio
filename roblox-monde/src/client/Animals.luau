@@ -1472,6 +1472,7 @@ return function(env)
 	local bagGrid = grid(petTab, UDim2.new(1, -40, 1, -32), UDim2.fromOffset(20, 32))
 	local bagCards = {}
 	local unbagEvent = ReplicatedStorage:WaitForChild("UnbagPet")
+	local openReplace: (number) -> () -- (défini plus bas : la fenêtre « enclos plein : qui remplacer ? »)
 	local function refreshBag()
 		if not bagPanel.Visible then
 			return
@@ -1492,7 +1493,19 @@ return function(env)
 				item.frame.LayoutOrder = i
 				item.tick.Visible = false
 				item.frame.Activated:Connect(function()
-					unbagEvent:FireServer(i)
+					-- Une place libre : il y va. Enclos plein : on choisit qui il remplace.
+					local now = Pets.decode(player:GetAttribute("Spots"))
+					local free = player:GetAttribute("Places") or Pets.SPOTS_FREE
+					for _, spot in now do
+						if spot.v then
+							free -= 1
+						end
+					end
+					if free > 0 then
+						unbagEvent:FireServer(i)
+					else
+						openReplace(i)
+					end
 				end)
 				bagCards[i] = item
 			end
@@ -1512,6 +1525,150 @@ return function(env)
 		player:GetAttributeChangedSignal(name):Connect(refreshBag)
 	end
 	bagPanel:GetPropertyChangedSignal("Visible"):Connect(refreshBag)
+
+	-- ENCLOS PLEIN : QUI REMPLACER ? (sa demande du 09/10 : « cliquer sur un animal du sac pour le poser ouvre une
+	-- fenêtre : enclos plein, par qui le remplacer, avec les deux côte à côte pour voir la différence ».)
+	-- À gauche l'animal du sac qui entre, à droite celui de l'enclos qui sort ; les chiffres de celui qui entre sont
+	-- verts quand il est meilleur, rouges quand il est moins bon. En dessous, les animaux de l'enclos : un clic en
+	-- choisit un autre. Au départ : celui qui rapporte le moins.
+	local swapEvent = ReplicatedStorage:WaitForChild("SwapPet")
+	local replacePanel = window("ReplacePanel", tr("replaceTitle"), 760, 580, "paw", Color3.fromRGB(255, 150, 40))
+	replacePanel.ZIndex = 9
+	local function compareCard(x: number, head: string, headColor: Color3)
+		local frame = env.box(replacePanel, "Card", UDim2.fromOffset(340, 226), UDim2.fromOffset(x, 48), Color3.fromRGB(22, 18, 50))
+		frame.ZIndex = 4
+		frame.UIStroke.Thickness = 3
+		local title = env.text(frame, "Head", UDim2.new(1, -16, 0, 24), UDim2.fromOffset(8, 6), headColor, 20)
+		title.Text = head
+		title.ZIndex = 5
+		local view = portrait(frame, UDim2.fromOffset(140, 150), UDim2.fromOffset(8, 40))
+		local grade = env.text(frame, "Grade", UDim2.fromOffset(44, 32), UDim2.fromOffset(12, 36), nil, 30)
+		grade.TextXAlignment = Enum.TextXAlignment.Left
+		grade.ZIndex = 6
+		local name = env.text(frame, "Name", UDim2.fromOffset(176, 28), UDim2.fromOffset(156, 36), nil, 24)
+		name.TextXAlignment = Enum.TextXAlignment.Left
+		name.ZIndex = 5
+		local rarity = env.text(frame, "Rarity", UDim2.fromOffset(176, 20), UDim2.fromOffset(156, 64), nil, 17)
+		rarity.TextXAlignment = Enum.TextXAlignment.Left
+		rarity.ZIndex = 5
+		local lines = {}
+		for index = 1, 4 do
+			local line = env.text(frame, "Line" .. index, UDim2.fromOffset(176, 28), UDim2.fromOffset(156, 60 + index * 32), nil, 24)
+			line.TextXAlignment = Enum.TextXAlignment.Left
+			line.ZIndex = 5
+			lines[index] = line
+		end
+		return { frame = frame, view = view, grade = grade, name = name, rarity = rarity, lines = lines }
+	end
+	local newCard = compareCard(20, tr("replaceNew"), GREEN)
+	local oldCard = compareCard(400, tr("replaceOld"), RED)
+	env.text(replacePanel, "Arrow", UDim2.fromOffset(36, 40), UDim2.fromOffset(362, 140), GOLD, 34).Text = ">"
+	local replaceHint = env.text(replacePanel, "Pick", UDim2.new(1, -40, 0, 24), UDim2.fromOffset(20, 282), GOLD, 20)
+	replaceHint.Text = tr("replacePick")
+	replaceHint.TextXAlignment = Enum.TextXAlignment.Left
+	replaceHint.ZIndex = 5
+	local replaceGrid = grid(replacePanel, UDim2.new(1, -40, 0, 190), UDim2.fromOffset(20, 310))
+	local replaceGo = button(replacePanel, "Go", UDim2.new(1, -40, 0, 54), UDim2.new(0, 20, 1, -66), Color3.fromRGB(60, 200, 70), tr("replaceGo"))
+	local replaceCards = {}
+	local replaceIndex, replaceSpot = 0, 0 -- le numéro dans le sac de celui qui entre, la place de celui qui sort
+	local function figures(pet)
+		return { Pets.damageOf(pet), Pets.healthOf(pet), Pets.incomeOf(pet.a, pet.v), Pets.levelOf(pet) }
+	end
+	local function fillCompare(parts, pet, against)
+		local info = rarityInfo(pet.q)
+		parts.frame.UIStroke.Color = info.color
+		parts.grade.Text = Pets.gradeOf(pet)
+		parts.grade.TextColor3 = GRADE_COLORS[Pets.gradeOf(pet)]
+		parts.name.Text = tr(pet.a)
+		parts.rarity.Text = tr(info.key)
+		parts.rarity.TextColor3 = info.color
+		show(parts.view, pet.a .. pet.q, function()
+			return Pets.build(pet.a, pet.q, true)
+		end)
+		local mine, other = figures(pet), against and figures(against)
+		local texts = { tr("replaceFight", env.num(mine[1])), tr("replaceHealth", env.num(mine[2])), tr("income", amount(mine[3])), tr("lvlLong", mine[4]) }
+		for index, line in parts.lines do
+			line.Text = texts[index]
+			line.TextColor3 = if not other or mine[index] == other[index] then Color3.new(1, 1, 1) elseif mine[index] > other[index] then GREEN else RED
+		end
+	end
+	local function refreshReplace()
+		if not replacePanel.Visible then
+			return
+		end
+		local store = Pets.decodeStore(player:GetAttribute("Store"))
+		local spots = Pets.decode(player:GetAttribute("Spots"))
+		local inTeam = string.split(player:GetAttribute("Team") or "", ",")
+		local incoming = store[replaceIndex]
+		local pets = {}
+		for index, spot in spots do
+			if spot.v then
+				table.insert(pets, { index = tonumber(index), spot = spot })
+			end
+		end
+		if not incoming or #pets == 0 then
+			replacePanel.Visible = false
+			return
+		end
+		-- Ceux qui rapportent le moins d'abord ; au départ, c'est le premier qui est choisi.
+		table.sort(pets, function(a, b)
+			local x, y = Pets.incomeOf(a.spot.a, a.spot.v), Pets.incomeOf(b.spot.a, b.spot.v)
+			return if x == y then a.index < b.index else x < y
+		end)
+		if not spots[tostring(replaceSpot)] or not spots[tostring(replaceSpot)].v then
+			replaceSpot = pets[1].index
+		end
+		for i, entry in pets do
+			local item = replaceCards[i]
+			if not item then
+				item = card(replaceGrid, "Pen" .. i)
+				item.frame.LayoutOrder = i
+				item.frame.Activated:Connect(function()
+					replaceSpot = item.spot
+					refreshReplace()
+				end)
+				replaceCards[i] = item
+			end
+			item.spot = entry.index
+			item.frame.Visible = true
+			paint(item, entry.spot.q, entry.index == replaceSpot, Pets.gradeOf(entry.spot))
+			item.line.Text = tr("lvlLong", Pets.levelOf(entry.spot))
+			item.tick.Visible = table.find(inTeam, tostring(entry.index)) ~= nil
+			show(item.view, entry.spot.a .. entry.spot.q, function()
+				return Pets.build(entry.spot.a, entry.spot.q, true)
+			end)
+		end
+		for i = #pets + 1, #replaceCards do
+			replaceCards[i].frame.Visible = false
+		end
+		local outgoing = spots[tostring(replaceSpot)]
+		fillCompare(newCard, incoming, outgoing)
+		fillCompare(oldCard, outgoing, nil)
+		fitWindow(replacePanel)
+	end
+	function openReplace(index: number)
+		replaceIndex, replaceSpot = index, 0
+		replacePanel.Visible = true
+		refreshReplace()
+	end
+	replaceGo.Activated:Connect(function()
+		if replaceIndex > 0 and replaceSpot > 0 then
+			swapEvent:FireServer(replaceIndex, replaceSpot)
+		end
+		replacePanel.Visible = false
+	end)
+	-- (Le sac a changé pendant que la fenêtre était ouverte : les numéros ne sont plus sûrs, on la ferme.)
+	player:GetAttributeChangedSignal("Store"):Connect(function()
+		replacePanel.Visible = false
+	end)
+	player:GetAttributeChangedSignal("Spots"):Connect(refreshReplace)
+	-- (Pour les photos de test : l'attribut « OpenReplace » de workspace ouvre la fenêtre sur ce numéro du sac.)
+	workspace:GetAttributeChangedSignal("OpenReplace"):Connect(function()
+		local index = workspace:GetAttribute("OpenReplace")
+		if type(index) == "number" and index > 0 then
+			openReplace(index)
+		end
+	end)
 
 	-- LA FENÊTRE DE VENTE (au stand du vendeur) : tous les familiers, ceux de l'enclos puis ceux du sac, avec leur
 	-- prix. Un clic en choisit un, le bouton du bas le vend. Ceux de l'équipe portent leur coche.
@@ -1969,6 +2126,8 @@ return function(env)
 				end
 			end
 			env.gui.SellPanel.Visible = true
+		elseif key == "swapped" then
+			showToast(tr("swapped", tr(a), tr(b)), GOLD)
 		elseif key == "sellFar" then
 			showToast(tr("sellFar"), RED)
 		elseif key == "openPets" then

@@ -26,6 +26,12 @@ return function(world)
 				data.sd = 0
 			end
 			return require(script.Parent.Rewards).leaving(player)
+		elseif action == "EggNow" then
+			-- Pose d'un clic l'œuf de l'animal a et du rang b (comme la fenêtre des œufs).
+			return Eggs.placeNow(player, a, b)
+		elseif action == "Swap" then
+			-- Le familier numéro a du sac prend la place b de l'enclos.
+			return Eggs.swap(player, a, b)
 		elseif action == "SellPen" then
 			-- Vend le familier de la place a de l'enclos (comme le vendeur).
 			return Eggs.sell(player, a)
