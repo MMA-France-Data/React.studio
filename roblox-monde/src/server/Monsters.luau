@@ -124,7 +124,9 @@ end
 --   best : c'est lui qui a fait le plus de dégâts ; lui seul peut recevoir l'œuf.
 local function reward(monster, player: Player, share: number, best: boolean)
 	local def = monster.def
-	local coins, xp = math.floor(def.coins * share + 0.5), math.floor(def.xp * share + 0.5)
+	-- (Le bonus d'amis : + 10 % par ami présent dans le serveur, Rewards.luau.)
+	local friends = 1 + (player:GetAttribute("FriendBonus") or 0) / 100
+	local coins, xp = math.floor(def.coins * share * friends + 0.5), math.floor(def.xp * share * friends + 0.5)
 	PlayerData.addCoins(player, coins)
 	-- Chaque familier de l'équipe reçoit l'XP du monstre, lui aussi.
 	local data = PlayerData.get(player)

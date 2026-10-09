@@ -213,6 +213,15 @@ Config.PET_REGEN = 0.25
 -- LE REVENU HORS LIGNE (sa règle du 08/10 : « un tiers du revenu pendant l'absence, soit 8 h max par jour ») :
 -- quand le joueur revient, son enclos lui a rapporté OFFLINE_SHARE de ce qu'il rapporte en jeu, pendant toute son
 -- absence, comptée jusqu'à OFFLINE_MAX secondes (24 h : au plus l'équivalent de 8 heures d'enclos par jour).
+-- LE CADEAU DU TEMPS DE JEU (Rewards.luau) : un cadeau toutes les GIFT_EVERY secondes de jeu, dans cet ordre, puis on
+-- recommence. coins = autant de pièces que ce nombre de monstres du camp du milieu de son monde ; egg = un œuf de
+-- son monde, de ce rang (2 = peu commun, 4 = épique).
+Config.GIFT_EVERY = 15 * 60
+Config.GIFTS = { { coins = 40 }, { egg = 2 }, { coins = 90 }, { egg = 4 } }
+-- LE BONUS D'AMIS : chaque ami Roblox dans le même serveur donne FRIEND_BONUS d'XP et de pièces de combat en plus,
+-- jusqu'à FRIEND_MAX amis (sa règle : « + 10 % d'XP et de cash »).
+Config.FRIEND_BONUS = 0.10
+Config.FRIEND_MAX = 3
 Config.OFFLINE_SHARE = 1 / 3
 Config.OFFLINE_MAX = 24 * 3600
 Config.OFFLINE_MIN = 5 * 60 -- en dessous de cinq minutes d'absence : rien (un simple retour de connexion)

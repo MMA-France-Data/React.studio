@@ -38,8 +38,11 @@ local function defaults()
 		mv = 2, -- version de la monnaie (2 = tout est multiplié par 10)
 		seen = 0, -- heure (os.time) de la dernière sauvegarde : sert au revenu hors ligne
 		played = 0, -- temps de jeu, en secondes (compté par Leaderboards.luau, pour le classement)
-		vm = 30, -- réglages du joueur : volume de la musique et des sons, de 0 à 100 (Sounds.luau)
-		vf = 70,
+		gt = 0, -- cadeau du temps de jeu : secondes jouées depuis le dernier cadeau (Rewards.luau)
+		gs = 1, -- ... et le numéro du prochain cadeau (Config.GIFTS)
+		vm = 60, -- réglages du joueur : volume de la musique et des sons, de 0 à 100 (Sounds.luau)
+		vf = 10,
+		vv = 2, -- version de ces réglages (2 = départ à 60 et 10)
 		cv = 3, -- version des collections (3 = la jungle a le gorille et le tigre)
 		zone = 1, -- la zone la plus lointaine ouverte (battre le boss de la zone n ouvre la n + 1)
 		bag = {}, -- œufs pas encore posés : { a = animal, q = rang, r = zone, b = valeur tirée }
@@ -112,8 +115,16 @@ local function clean(raw)
 	if type(raw.played) == "number" and raw.played >= 0 then
 		data.played = math.floor(raw.played)
 	end
+	if type(raw.gt) == "number" and raw.gt >= 0 then
+		data.gt = math.floor(raw.gt)
+	end
+	if type(raw.gs) == "number" then
+		data.gs = math.clamp(math.floor(raw.gs), 1, #Config.GIFTS)
+	end
+	-- (Un joueur resté sur les anciens réglages de départ, 30 et 70, passe aux nouveaux.)
+	local untouched = raw.vv ~= 2 and raw.vm == 30 and raw.vf == 70
 	for _, key in { "vm", "vf" } do
-		if type(raw[key]) == "number" then
+		if type(raw[key]) == "number" and not untouched then
 			data[key] = math.clamp(math.floor(raw[key]), 0, 100)
 		end
 	end

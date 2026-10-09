@@ -169,6 +169,7 @@ Gym.start(world, notify)
 Eggs.start(world, notify, Gym.owns, Gym.plotOf)
 Monsters.start(world, notify)
 require(script.Parent.Leaderboards).start(world)
+require(script.Parent.Rewards).start(notify)
 
 -- (Un nouveau joueur commence SANS familier : il bat des canards à l'épée, qui lâchent souvent leur œuf.)
 local _ = Pets

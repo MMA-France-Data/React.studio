@@ -20,6 +20,12 @@ return function(world)
 			return data and { coins = data.coins, level = data.level, xp = data.xp, sword = data.sword, zone = data.zone, bag = #data.bag, team = table.clone(data.team), spots = data.spots }
 		elseif action == "Give" then
 			PlayerData.addCoins(player, a)
+		elseif action == "Gift" then
+			-- Le cadeau du temps de jeu : prêt dans a secondes (0 = tout de suite) ; « Claim » le réclame.
+			data.gt = Config.GIFT_EVERY - (a or 0)
+			return true
+		elseif action == "Claim" then
+			return require(script.Parent.Rewards).claim(player)
 		elseif action == "Offline" then
 			-- Comme si le joueur revenait après `a` secondes d'absence (même calcul que PlayerData au chargement).
 			local away = math.clamp(a, 0, Config.OFFLINE_MAX)

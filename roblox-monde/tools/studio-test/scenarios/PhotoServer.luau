@@ -1,6 +1,6 @@
 -- PETIT TEST EN IMAGES (une trentaine de secondes) : seulement des photos, sans rejouer tout le jeu.
 --   powershell -ExecutionPolicy Bypass -File tools/studio-test/run.ps1 -Test photo -Seconds 45
--- Ici : un monstre meurt, ses pièces tombent, attendent, puis filent vers le joueur (trois photos de suite).
+-- Ici : le cadeau du temps de jeu (compte à rebours, prêt, réclamé quatre fois) et le bouton des amis, PC et téléphone.
 local Players = game:GetService("Players")
 local ServerStorage = game:GetService("ServerStorage")
 
@@ -11,36 +11,27 @@ return function(log)
 	end
 	task.wait(8)
 	local debug = ServerStorage:WaitForChild("SurviveDebug")
-	debug:Invoke("Peaceful", true)
-	debug:Invoke("Travel", 1)
-	task.wait(2)
-	local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-	local target
-	for _, monster in debug:Invoke("Monsters") do
-		if monster.zone == 1 and monster.rank == 1 then
-			target = monster
-			break
-		end
+	local function shot(name: string)
+		task.wait(1)
+		log("Info", "SHOT:photo_" .. name)
+		task.wait(1.2)
 	end
-	root.CFrame = CFrame.new(target.position + Vector3.new(-12, 3, 0))
-	task.wait(1)
-	workspace:SetAttribute("ShotCam", CFrame.lookAt(target.position + Vector3.new(-6, 12, -22), target.position + Vector3.new(-6, 1, 0)))
-	task.wait(1)
-	for index, wait in { 0.75, 1.12, 1.22 } do
-		for _, monster in debug:Invoke("Monsters") do
-			if monster.zone == 1 and monster.rank == 1 and not monster.dead then
-				target = monster
-				break
-			end
-		end
-		root.CFrame = CFrame.new(target.position + Vector3.new(-12, 3, 0))
-		workspace:SetAttribute("ShotCam", CFrame.lookAt(target.position + Vector3.new(-6, 12, -22), target.position + Vector3.new(-6, 1, 0)))
-		task.wait(1.5)
-		debug:Invoke("Hurt", target.id, 1e9)
-		task.wait(wait)
-		log("Info", "SHOT:photo_pieces" .. index)
-		task.wait(2.5)
+	log("Info", "[DIAG] cadeau dans " .. tostring(player:GetAttribute("GiftIn")) .. " s, etape " .. tostring(player:GetAttribute("GiftStep")) .. ", amis " .. tostring(player:GetAttribute("FriendBonus")))
+	shot("cadeau_attente")
+	debug:Invoke("Gift", 2)
+	task.wait(3.5)
+	shot("cadeau_pret")
+	for step = 1, 4 do
+		debug:Invoke("Gift", 0)
+		task.wait(1.2)
+		local before = debug:Invoke("Data")
+		local ok = debug:Invoke("Claim")
+		local after = debug:Invoke("Data")
+		log("Info", string.format("[DIAG] cadeau %d : recu %s, pieces %d -> %d, oeufs au sac %d -> %d, prochain dans %s s", step, tostring(ok), before.coins, after.coins, before.bag, after.bag, tostring(player:GetAttribute("GiftIn"))))
 	end
-	workspace:SetAttribute("ShotCam", nil)
+	shot("cadeau_recu")
+	workspace:SetAttribute("PhoneHud", true)
+	shot("cadeau_tel")
+	workspace:SetAttribute("PhoneHud", nil)
 	log("Info", "[SURVIVE] TEST:done")
 end

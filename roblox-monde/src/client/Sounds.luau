@@ -38,7 +38,8 @@ Sounds.MUSIC = { "rbxassetid://127251981695845", "rbxassetid://103048093081041" 
 Sounds.WALK = { id = "rbxassetid://17600293022", volume = 0.25 }
 Sounds.MUSIC_VOLUME = 0.35 -- le volume de la musique quand son réglage est à 100
 -- Les réglages au départ (de 0 à 100).
-Sounds.DEFAULT_MUSIC, Sounds.DEFAULT_FX = 30, 70
+-- (Ses réglages du 09/10, « le mieux que j'ai trouvé » : musique 60 %, sons 10 %.)
+Sounds.DEFAULT_MUSIC, Sounds.DEFAULT_FX = 60, 10
 
 local player = Players.LocalPlayer
 local made, last = {}, {}
@@ -101,7 +102,7 @@ function Sounds.start()
 					if not sound:GetAttribute("Base") then
 						sound:SetAttribute("Base", sound.Volume)
 					end
-					sound.Volume = sound:GetAttribute("Base") * level("VolFx", Sounds.DEFAULT_FX) / (Sounds.DEFAULT_FX / 100)
+					sound.Volume = sound:GetAttribute("Base") * level("VolFx", Sounds.DEFAULT_FX) / 0.7
 				end
 			end
 		end

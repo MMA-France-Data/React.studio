@@ -357,6 +357,14 @@ local function applyHud()
 	local luck = pills.Luck.Parent
 	luck.Size = if small then UDim2.fromOffset(150, 34) else UDim2.fromOffset(118, 32)
 	luck.Position = if small then UDim2.fromOffset(2, 108) else UDim2.fromOffset(0, 0)
+	-- Le cadeau du temps de jeu et les amis, à côté de la chance (en dessous sur téléphone).
+	for index, name in { "Gift", "Friends" } do
+		local pill = side:FindFirstChild(name)
+		if pill then
+			pill.Size = luck.Size
+			pill.Position = if small then UDim2.fromOffset(2, 108 + index * 42) else UDim2.fromOffset(index * 126, 0)
+		end
+	end
 	-- La barre de niveau.
 	levelPill.Parent = if small then side else gui
 	levelPill.AnchorPoint = if small then Vector2.zero else Vector2.new(0.5, 1)
@@ -471,6 +479,19 @@ end
 
 local RED, GOLD = Color3.fromRGB(255, 90, 90), Color3.fromRGB(255, 221, 51)
 ReplicatedStorage:WaitForChild("Notify").OnClientEvent:Connect(function(key: string, a, b, c, d)
+	if key == "giftReady" then
+		showToast(tr("giftReady"), GOLD)
+		Sounds.play("level")
+	elseif key == "giftCoins" then
+		showToast(tr("giftCoins", num(a)), GOLD)
+		Sounds.play("coin")
+	elseif key == "giftEgg" then
+		showToast(tr("giftEgg"), GOLD)
+		Sounds.play("hatch")
+	elseif key == "friendHere" then
+		showToast(tr("friendHere", a, b), GOLD)
+		Sounds.play("level")
+	end
 	if key == "playerLevel" or key == "petLevel" or key == "zoneOpen" then
 		Sounds.play("level")
 	elseif key == "bossDown" then
@@ -682,6 +703,100 @@ do
 		clicky(item)
 	end
 	Sounds.start()
+end
+
+-- LE CADEAU DU TEMPS DE JEU ET LES AMIS (Rewards.luau) : deux boutons à côté de la chance.
+--   🎁 : le temps qu'il reste avant le cadeau ; « CADEAU ! » en vert quand il est prêt, un clic le donne.
+--   👥 : le bonus d'amis du moment ; un clic ouvre la fenêtre d'invitation de Roblox.
+do
+	local SocialService = game:GetService("SocialService")
+	local claimEvent = ReplicatedStorage:WaitForChild("ClaimGift")
+	local function pillButton(name: string, color: Color3): (TextButton, TextLabel)
+		local button = Instance.new("TextButton")
+		button.Name = name
+		button.Size = UDim2.fromOffset(118, 32)
+		button.BackgroundColor3 = color
+		button.Text = ""
+		button.AutoButtonColor = true
+		Instance.new("UICorner", button).CornerRadius = UDim.new(0, 8)
+		local outline = Instance.new("UIStroke")
+		outline.Thickness = 3
+		outline.Color = Color3.fromRGB(20, 20, 30)
+		outline.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+		outline.Parent = button
+		local label = text(button, "Label", UDim2.fromScale(0.92, 0.78), UDim2.fromScale(0.04, 0.11))
+		button.Parent = side
+		return button, label
+	end
+	local gift, giftLabel = pillButton("Gift", Color3.fromRGB(90, 96, 120))
+	local friends, friendsLabel = pillButton("Friends", Color3.fromRGB(60, 120, 220))
+	local function clockText(seconds: number): string
+		return string.format("%d:%02d", seconds // 60, seconds % 60)
+	end
+	local function showGift()
+		local left = player:GetAttribute("GiftIn")
+		if left == nil then
+			giftLabel.Text = "🎁"
+		elseif left <= 0 then
+			giftLabel.Text = tr("giftGo")
+			gift.BackgroundColor3 = Color3.fromRGB(50, 200, 80)
+		else
+			giftLabel.Text = tr("giftWait", clockText(left))
+			gift.BackgroundColor3 = Color3.fromRGB(90, 96, 120)
+		end
+	end
+	player:GetAttributeChangedSignal("GiftIn"):Connect(showGift)
+	showGift()
+	gift.Activated:Connect(function()
+		local left = player:GetAttribute("GiftIn") or 1
+		if left <= 0 then
+			claimEvent:FireServer()
+		else
+			showToast(tr("giftSoon", clockText(left)), GOLD)
+		end
+	end)
+	local function showFriends()
+		local bonus = player:GetAttribute("FriendBonus") or 0
+		friendsLabel.Text = if bonus > 0 then tr("friendsPill", bonus) else tr("friendsNone")
+	end
+	player:GetAttributeChangedSignal("FriendBonus"):Connect(showFriends)
+	showFriends()
+	friends.Activated:Connect(function()
+		showToast(tr("friendsInfo", math.floor(Config.FRIEND_BONUS * 100 + 0.5), Config.FRIEND_MAX), GOLD)
+		-- La fenêtre d'invitation de Roblox (elle n'existe pas partout : on essaie, sans erreur si elle manque).
+		task.spawn(function()
+			local ok, can = pcall(function()
+				return SocialService:CanSendGameInviteAsync(player)
+			end)
+			if ok and can then
+				pcall(function()
+					SocialService:PromptGameInvite(player)
+				end)
+			end
+		end)
+	end)
+	-- « TON AMI EST EN LIGNE » : de temps en temps, on regarde les amis connectés à Roblox qui ne sont pas dans ce
+	-- serveur, et on le dit (une seule fois par ami et par partie).
+	task.spawn(function()
+		local told = {}
+		task.wait(45)
+		while true do
+			local ok, list = pcall(function()
+				return player:GetFriendsOnline(30)
+			end)
+			if ok and list then
+				for _, friend in list do
+					local id = friend.VisitorId
+					if id and not told[id] and not Players:GetPlayerByUserId(id) then
+						told[id] = true
+						showToast(tr("friendOnline", friend.DisplayName or friend.UserName or "?", math.floor(Config.FRIEND_BONUS * 100 + 0.5)), GOLD)
+						break
+					end
+				end
+			end
+			task.wait(240)
+		end
+	end)
 end
 
 -- (Le son quand je perds de la vie.)
