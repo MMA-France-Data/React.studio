@@ -174,6 +174,10 @@ function Eggs.hatch(player: Player, all: boolean?): number
 end
 
 -- Vend le familier de cette place : des pièces, et la place est libre.
+-- (`held` : le familier que chaque joueur porte, [joueur] = clé de la place. Il doit être déclaré AVANT Eggs.sell :
+-- déclaré après, Eggs.sell lisait une variable vide et plantait, et on ne pouvait plus vendre un familier de
+-- l'enclos au vendeur. Retour du créateur, 09/10 : « je peux pas vendre des animaux de l'enclos ».)
+local held = {}
 local setHeld
 function Eggs.sell(player: Player, spot: number): boolean
 	local data = PlayerData.get(player)
@@ -199,7 +203,6 @@ end
 -- PORTER UN FAMILIER POUR LE VENDRE : le joueur prend le familier de cette place dans ses bras (attributs « Held »
 -- = la place, « HeldPet » = « animal:rang:grosseur » pour que les écrans le dessinent au-dessus de sa tête). Il va
 -- au stand « VENDRE » et y appuie sur E. Rappeler avec la même place : il le repose dans l'enclos.
-local held = {} -- [joueur] = clé de la place
 function setHeld(player: Player, key: string?)
 	held[player] = key
 	local data = PlayerData.get(player)

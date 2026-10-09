@@ -26,6 +26,11 @@ return function(world)
 				data.sd = 0
 			end
 			return require(script.Parent.Rewards).leaving(player)
+		elseif action == "SellPen" then
+			-- Vend le familier de la place a de l'enclos (comme le vendeur).
+			return Eggs.sell(player, a)
+		elseif action == "SellBag" then
+			return Eggs.sellStored(player, a)
 		elseif action == "Buy" then
 			-- Comme un achat en Robux réussi du produit a (rank, xp, coins, damage), sans passer par Roblox.
 			return require(script.Parent.Store).grant(player, a)
