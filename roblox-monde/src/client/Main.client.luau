@@ -682,6 +682,26 @@ do
 	Sounds.start()
 end
 
+-- (Le son quand je perds de la vie.)
+do
+	local function listen(character: Model)
+		local humanoid = character:WaitForChild("Humanoid", 10)
+		if humanoid and humanoid:IsA("Humanoid") then
+			local before = humanoid.Health
+			humanoid.HealthChanged:Connect(function(now: number)
+				if now < before - 0.5 then
+					Sounds.play("hurt")
+				end
+				before = now
+			end)
+		end
+	end
+	player.CharacterAdded:Connect(listen)
+	if player.Character then
+		task.spawn(listen, player.Character)
+	end
+end
+
 -- (Le son d'une nouvelle épée.)
 player:GetAttributeChangedSignal("Sword"):Connect(function()
 	Sounds.play("sword")
@@ -790,6 +810,7 @@ ReplicatedStorage:WaitForChild("Loot").OnClientEvent:Connect(function(position: 
 		sparks(position + Vector3.new(0, 2, 0), Color3.fromRGB(255, 150, 60), 6)
 	else
 		coinBurst(position)
+		Sounds.play("down")
 		Sounds.play("coin")
 	end
 	local anchor = Instance.new("Part")

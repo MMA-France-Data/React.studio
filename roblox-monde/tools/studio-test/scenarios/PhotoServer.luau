@@ -2,12 +2,9 @@
 local Players = game:GetService("Players")
 
 local IDS = {
-	"rbxassetid://137901267020570", -- sword swing
-	"rbxassetid://17600293022", -- classic walk sound effect
-	"rbxassetid://9120048710", -- Tiger Roars 11
-	"rbxassetid://88442833509532", -- ui-simple-button-click
-	"rbxassetid://127251981695845", -- Chill Bossa Nova Lounge Music
-	"rbxassetid://103048093081041", -- Enchanted Forest
+	"rbxassetid://70527060448610", -- AmberSugar_Attack
+	"rbxassetid://91185515112249", -- Sniff1
+	"rbxassetid://130394521743523", -- damage
 }
 
 return function(log)

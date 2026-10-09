@@ -18,7 +18,9 @@ Sounds.LIST = {
 	swing = { id = "rbxassetid://137901267020570", volume = 0.22, pitch = { 0.92, 1.12 }, gap = 0.05 }, -- le sien : « sword swing »
 	swingBig = { id = "rbxassetid://137901267020570", volume = 0.26, pitch = { 0.8, 0.9 }, gap = 0.05 }, -- un coup sur trois, plus grave
 	sword = { id = "rbxassetid://12222225", volume = 0.6, pitch = { 1, 1 } }, -- une nouvelle épée
-	coin = { id = "rbxasset://sounds/volume_slider.ogg", volume = 0.5, pitch = { 1.5, 1.9 }, gap = 0.08 }, -- des pièces
+	coin = { id = "rbxassetid://91185515112249", volume = 0.4, pitch = { 0.95, 1.1 }, gap = 0.6 }, -- le sien : « Sniff1 » : des pièces
+	hurt = { id = "rbxassetid://130394521743523", volume = 0.45, pitch = { 0.95, 1.05 }, gap = 0.35 }, -- le sien : « damage » : je perds de la vie
+	down = { id = "rbxassetid://70527060448610", volume = 0.4, pitch = { 0.9, 1.1 }, gap = 0.2 }, -- le sien : « AmberSugar_Attack » : un monstre meurt
 	boss = { id = "rbxasset://sounds/impact_explosion_03.mp3", volume = 0.6, pitch = { 0.9, 1 } }, -- un boss battu
 	level = { id = "rbxasset://sounds/action_get_up.mp3", volume = 0.6, pitch = { 1.25, 1.25 } }, -- un niveau gagné
 	hatch = { id = "rbxasset://sounds/action_jump_land.mp3", volume = 0.6, pitch = { 1.3, 1.5 } }, -- un œuf qui éclot
