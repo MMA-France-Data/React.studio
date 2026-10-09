@@ -18,7 +18,9 @@ local Sounds = require(script.Parent.Sounds)
 local SwordPalette = require(script.Parent.SwordPalette)
 
 local player = Players.LocalPlayer
-local lang = if LocalizationService.RobloxLocaleId:lower():sub(1, 2) == "fr" then "fr" else "en"
+-- (L'attribut « Lang » du Workspace force la langue : le tournage de la vidéo se fait en anglais, video.ps1.)
+local forcedLang = workspace:GetAttribute("Lang")
+local lang = if forcedLang == "fr" or forcedLang == "en" then forcedLang elseif LocalizationService.RobloxLocaleId:lower():sub(1, 2) == "fr" then "fr" else "en"
 
 local function tr(key: string, ...): string
 	return Texts.get(lang, key, ...)
@@ -930,6 +932,10 @@ local function setAuto(on: boolean)
 	anchor = if on and root then root.Position else nil
 	autoButton.BackgroundColor3 = if auto then Color3.fromRGB(60, 200, 90) else Color3.fromRGB(90, 96, 120)
 end
+-- (Pour le tournage de la vidéo : l'attribut « AutoAttack » du Workspace allume ou éteint l'attaque automatique.)
+workspace:GetAttributeChangedSignal("AutoAttack"):Connect(function()
+	setAuto(workspace:GetAttribute("AutoAttack") == true)
+end)
 attackButton.Activated:Connect(swing)
 autoButton.Activated:Connect(function()
 	setAuto(not auto)
@@ -1125,7 +1131,7 @@ require(script.Parent.Poses)()
 
 -- DANS STUDIO SEULEMENT : le bouton « VISITER » ouvre toutes les zones (pour aller voir les mondes suivants sans
 -- battre les boss). Il n existe pas dans le jeu publie.
-if RunService:IsStudio() then
+if RunService:IsStudio() and not workspace:GetAttribute("Filming") then
 	task.spawn(function()
 		local visit = ReplicatedStorage:WaitForChild("DebugVisit", 15)
 		if not visit then

@@ -17,6 +17,8 @@ const norm = (p) => p.split(path.sep).join('/');
 const scenarios = {
 	world: ['WorldServer.luau', 'WorldClient.luau'],
 	photo: ['PhotoServer.luau', 'PhotoClient.luau'],
+	// (pas un test : les plans de la vidéo de la page du jeu, filmés par OBS, voir video.ps1)
+	video: ['VideoServer.luau', 'VideoClient.luau'],
 };
 if (!scenarios[mode]) {
 	console.error(`Test inconnu : ${mode} (attendu : ${Object.keys(scenarios).join(', ')})`);
@@ -33,6 +35,11 @@ const absolute = (node) => {
 };
 absolute(tree);
 tree.ReplicatedStorage.__AutoPlayTest = { $className: 'NumberValue', $properties: { Value: Number(duration) } };
+// Le tournage : le jeu en anglais, sans les boutons de Studio (« VISITER », la molette qui change d'épée).
+if (mode === 'video') {
+	tree.Workspace = tree.Workspace || { $className: 'Workspace' };
+	tree.Workspace.$attributes = Object.assign({}, tree.Workspace.$attributes, { Lang: 'en', Filming: true });
+}
 const [serverScenario, clientScenario] = scenarios[mode];
 tree.ReplicatedStorage.__AutoTestScript = { $path: norm(path.join(here, 'scenarios', serverScenario)) };
 tree.ReplicatedStorage.__AutoTestClient = { $path: norm(path.join(here, 'scenarios', clientScenario)) };
