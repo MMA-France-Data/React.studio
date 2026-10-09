@@ -17,6 +17,8 @@ const norm = (p) => p.split(path.sep).join('/');
 const scenarios = {
 	world: ['WorldServer.luau', 'WorldClient.luau'],
 	photo: ['PhotoServer.luau', 'PhotoClient.luau'],
+	// save : la sauvegarde (écriture, relecture, verrou entre serveurs), avec une fausse sauvegarde en mémoire
+	save: ['SaveServer.luau', 'PhotoClient.luau'],
 	// (pas un test : les plans de la vidéo de la page du jeu, filmés par OBS, voir video.ps1)
 	video: ['VideoServer.luau', 'VideoClient.luau'],
 };
@@ -39,6 +41,11 @@ tree.ReplicatedStorage.__AutoPlayTest = { $className: 'NumberValue', $properties
 if (mode === 'video') {
 	tree.Workspace = tree.Workspace || { $className: 'Workspace' };
 	tree.Workspace.$attributes = Object.assign({}, tree.Workspace.$attributes, { Lang: 'en', Filming: true });
+}
+// Le test de la sauvegarde : PlayerData.luau y remplace Roblox par une fausse sauvegarde en mémoire.
+if (mode === 'save') {
+	tree.Workspace = tree.Workspace || { $className: 'Workspace' };
+	tree.Workspace.$attributes = Object.assign({}, tree.Workspace.$attributes, { FakeStore: true });
 }
 const [serverScenario, clientScenario] = scenarios[mode];
 tree.ReplicatedStorage.__AutoTestScript = { $path: norm(path.join(here, 'scenarios', serverScenario)) };

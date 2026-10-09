@@ -26,6 +26,41 @@ return function(world)
 				data.sd = 0
 			end
 			return require(script.Parent.Rewards).leaving(player)
+		elseif action == "Saved" then
+			-- (Test « save ».) Fait la sauvegarde du départ, puis renvoie ce qu'un serveur relirait à son retour.
+			local test = PlayerData.test
+			test.save(player, true)
+			local ok, raw = test.read(player)
+			local back = test.clean(raw)
+			local pets, eggs = 0, 0
+			for _, spot in back.spots do
+				if spot.v then
+					pets += 1
+				else
+					eggs += 1
+				end
+			end
+			return {
+				read = ok, locked = type(raw) == "table" and raw.lk ~= nil,
+				gt = back.gt, gs = back.gs, coins = back.coins, level = back.level, sword = back.sword, tu = back.tu,
+				potions = back.po.rank .. "/" .. back.po.xp .. "/" .. back.po.coins .. "/" .. back.po.damage,
+				pets = pets, eggs = eggs, store = #back.store, bag = #back.bag, team = #back.team,
+			}
+		elseif action == "LockTest" then
+			-- (Test « save ».) Un AUTRE serveur tient encore la sauvegarde (de vieilles données, 111 pièces) et la
+			-- libère dans a secondes (avec les bonnes, 222 pièces). Renvoie ce que ce serveur-ci finit par lire.
+			local HttpService = game:GetService("HttpService")
+			local key = "p" .. player.UserId
+			local raw = HttpService:JSONDecode(PlayerData.fake[key])
+			raw.lk, raw.coins = { "un-autre-serveur", os.time() }, 111
+			PlayerData.fake[key] = HttpService:JSONEncode(raw)
+			task.delay(a, function()
+				raw.lk, raw.coins = nil, 222
+				PlayerData.fake[key] = HttpService:JSONEncode(raw)
+			end)
+			local started = os.clock()
+			local _, got = PlayerData.test.read(player)
+			return { waited = math.floor((os.clock() - started) * 10 + 0.5) / 10, coins = got.coins, locked = got.lk ~= nil }
 		elseif action == "Tuto" then
 			-- Met le mini tutoriel à l'étape a (0 = fini).
 			data.tu = a

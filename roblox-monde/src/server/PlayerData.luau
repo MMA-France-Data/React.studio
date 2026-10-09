@@ -17,13 +17,40 @@ local PlayerData = {}
 local STORE_NAME = "Monde_v1"
 local SAVE_EVERY = 120
 
+-- LE VERROU DE LA SAUVEGARDE (10/10, retour du créateur : « quand je me suis déco reco, les cadeaux ont
+-- réinitialisé, ou alors c'est le redémarrage du serveur »). Tant qu'un joueur est dans un serveur, sa sauvegarde
+-- porte `lk` = { le serveur, l'heure } ; elle est rafraîchie à chaque sauvegarde et enlevée à la dernière, au
+-- départ. Un serveur qui lit une sauvegarde encore verrouillée par UN AUTRE serveur (le joueur vient de le quitter,
+-- son dernier enregistrement n'est pas encore arrivé) attend un peu et relit, au lieu de partir sur de vieilles
+-- données. Si le verrou ne part pas (serveur planté), on continue quand même après LOCK_TRIES essais.
+local LOCK_SECONDS = 200 -- un verrou plus vieux que ça ne compte plus (une sauvegarde a lieu toutes les SAVE_EVERY s)
+local LOCK_WAIT = 2
+local LOCK_TRIES = 6
+
 local store = nil
 if not RunService:IsStudio() then
 	local ok, result = pcall(function()
 		return DataStoreService:GetDataStore(STORE_NAME)
 	end)
 	store = if ok then result else nil
+elseif workspace:GetAttribute("FakeStore") == true then
+	-- (Le test « save » dans Studio : une fausse sauvegarde en mémoire, qui recopie les données comme Roblox le
+	-- fait (aller-retour en JSON), pour essayer la vraie écriture et la vraie lecture. PlayerData.fake la montre.)
+	local HttpService = game:GetService("HttpService")
+	local memory = {}
+	PlayerData.fake = memory
+	store = {
+		GetAsync = function(_, key)
+			return if memory[key] then HttpService:JSONDecode(memory[key]) else nil
+		end,
+		SetAsync = function(_, key, value)
+			memory[key] = HttpService:JSONEncode(value)
+		end,
+	}
 end
+-- (Pour relire sans passer par la copie que le serveur garde 4 secondes.)
+local freshRead = Instance.new("DataStoreGetOptions")
+freshRead.UseCache = false
 
 -- [joueur] = { data = {...}, canSave = bool, dirty = bool }
 local sessions = {}
@@ -284,19 +311,46 @@ local function publish(player: Player)
 	end
 end
 
+-- Lit la sauvegarde brute du joueur. Renvoie (true, ses données ou nil s'il est nouveau), ou false si la lecture a
+-- raté trois fois. Attend d'abord qu'un autre serveur ait fini d'écrire (le verrou, plus haut).
+local function readSaved(player: Player): (boolean, any)
+	local key = "p" .. player.UserId
+	for attempt = 1, 3 do
+		local ok, result = pcall(function()
+			return store:GetAsync(key)
+		end)
+		if ok then
+			local tries = 0
+			while tries < LOCK_TRIES
+				and type(result) == "table"
+				and type(result.lk) == "table"
+				and result.lk[1] ~= game.JobId
+				and os.time() - (tonumber(result.lk[2]) or 0) < LOCK_SECONDS
+				and player:IsDescendantOf(Players)
+			do
+				tries += 1
+				task.wait(LOCK_WAIT)
+				local again, fresh = pcall(function()
+					return store:GetAsync(key, freshRead)
+				end)
+				if again then
+					result = fresh
+				end
+			end
+			return true, result
+		end
+		warn(`[Monde] lecture des données de {player.Name} ratée ({attempt}/3) : {result}`)
+		task.wait(2)
+	end
+	return false, nil
+end
+
 local function load(player: Player)
 	local data, canSave = defaults(), store == nil
 	if store then
-		for attempt = 1, 3 do
-			local ok, result = pcall(function()
-				return store:GetAsync("p" .. player.UserId)
-			end)
-			if ok then
-				data, canSave = clean(result), true
-				break
-			end
-			warn(`[Monde] lecture des données de {player.Name} ratée ({attempt}/3) : {result}`)
-			task.wait(2)
+		local ok, result = readSaved(player)
+		if ok then
+			data, canSave = clean(result), true
 		end
 	end
 	if not player:IsDescendantOf(Players) then
@@ -355,13 +409,15 @@ local function load(player: Player)
 	end
 end
 
-local function save(player: Player)
+-- final : la dernière sauvegarde du joueur dans ce serveur (il part) : elle enlève le verrou.
+local function save(player: Player, final: boolean?)
 	local session = sessions[player]
 	if not session or not session.canSave or not session.dirty or not store then
 		return
 	end
 	session.dirty = false
 	session.data.seen = os.time()
+	session.data.lk = if final then nil else { game.JobId, os.time() }
 	local ok, result = pcall(function()
 		store:SetAsync("p" .. player.UserId, session.data)
 	end)
@@ -477,23 +533,40 @@ function PlayerData.start()
 		if sessions[player] then
 			sessions[player].dirty = true
 		end
-		save(player)
+		save(player, true)
 		sessions[player] = nil
 	end)
 	task.spawn(function()
 		while true do
 			task.wait(SAVE_EVERY)
-			for player in sessions do
+			for player, session in sessions do
+				-- (Toujours : le temps de jeu des cadeaux avance sans rien marquer, et le verrou doit rester frais.)
+				session.dirty = true
 				task.spawn(save, player)
 			end
 		end
 	end)
+	-- LE SERVEUR S'ÉTEINT (mise à jour du jeu, dernier joueur parti) : on attend que TOUTES les sauvegardes soient
+	-- finies, jusqu'à 20 secondes, au lieu de 2 secondes à l'aveugle.
 	game:BindToClose(function()
-		for player in sessions do
-			task.spawn(save, player)
+		local pending = 0
+		for player, session in sessions do
+			pending += 1
+			task.spawn(function()
+				session.dirty = true
+				save(player, true)
+				pending -= 1
+			end)
 		end
-		task.wait(2)
+		local deadline = os.clock() + 20
+		while pending > 0 and os.clock() < deadline do
+			task.wait(0.2)
+		end
 	end)
+	-- (Pour le test « save » : la vraie écriture, la vraie lecture et le tri des données lues.)
+	if PlayerData.fake then
+		PlayerData.test = { save = save, read = readSaved, clean = clean }
+	end
 end
 
 return PlayerData
