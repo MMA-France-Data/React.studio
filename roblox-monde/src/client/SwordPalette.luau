@@ -13,6 +13,17 @@ Palette.gameOrder = {
 	"Meteorite", "TrexJaw",
 }
 Palette.legacy = { "Iron", "Steel", "Frost", "Flame", "Storm", "Prismatic" }
+-- LES ICÔNES DES ÉPÉES pour les menus (images à fond transparent faites par ChatGPT, assets/sword-icons, importées
+-- par le créateur le 09/10/2026 : ce sont ses numéros d'image). Une épée sans icône garde son aperçu en 3D.
+Palette.icons = {
+	Iron = "rbxassetid://114902496621739", Steel = "rbxassetid://137992825864914",
+	Gold = "rbxassetid://112829984485436", Frost = "rbxassetid://115557300816484",
+	Flame = "rbxassetid://80129870908505", Storm = "rbxassetid://106348373440091",
+	Fusion = "rbxassetid://139352521776626", Void = "rbxassetid://102395554639357",
+	Prismatic = "rbxassetid://129187809677849", TigerClaw = "rbxassetid://83806997828909",
+	HyenaFang = "rbxassetid://85695900353156", TrexJaw = "rbxassetid://92808182227224",
+	Meteorite = "rbxassetid://71817145093245",
+}
 Palette.colors = {
 	Iron = Color3.fromRGB(191, 215, 241), Steel = Color3.fromRGB(220, 240, 255),
 	Gold = Color3.fromRGB(255, 202, 48), Frost = Color3.fromRGB(83, 226, 255),

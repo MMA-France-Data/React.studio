@@ -1604,7 +1604,33 @@ return function(env)
 
 	-- L'ÉPÉE : un bouton, et une fenêtre qui montre seulement mon épée et la suivante, avec leurs dégâts.
 	local swordButton = squareButton("SwordButton", 3, Color3.fromRGB(240, 80, 80))
-	Draw.icon(swordButton, "sword", UDim2.fromScale(0.5, 0.5), 0.56)
+	local swordDrawn = Draw.icon(swordButton, "sword", UDim2.fromScale(0.5, 0.5), 0.56)
+	-- LES ICÔNES DES ÉPÉES (SwordPalette.icons) : l'image de l'épée remplace l'aperçu en 3D dans « Mon épée », dans la
+	-- boutique et sur le bouton du menu. Tant qu'une image n'est pas arrivée (« IsLoaded » : pas encore validée par
+	-- Roblox, numéro faux), ce qu'elle remplace reste affiché dessous : l'aperçu en 3D ou le dessin.
+	local SWORD_ICONS = require(script.Parent.SwordPalette).icons
+	local iconPairs = {} -- { image = l'ImageLabel, behind = ce qu'elle remplace }
+	local function setIcon(pair, name: string?)
+		local id = name and SWORD_ICONS[name]
+		pair.image.Visible = id ~= nil
+		if id then
+			pair.image.Image = id
+		end
+		pair.behind.Visible = not (id and pair.image.IsLoaded)
+	end
+	local function picture(parent: Instance, size: UDim2, position: UDim2): ImageLabel
+		local image = Instance.new("ImageLabel")
+		image.Name = "SwordIcon"
+		image.BackgroundTransparency = 1
+		image.Size = size
+		image.Position = position
+		image.ScaleType = Enum.ScaleType.Fit
+		image.ZIndex = 5
+		image.Visible = false
+		image.Parent = parent
+		return image
+	end
+	local swordButtonImage = picture(swordButton, UDim2.fromScale(0.92, 0.92), UDim2.fromScale(0.04, 0.04))
 	local swordPanel = window("SwordPanel", tr("swordTitle"), 560, 380, "sword", Color3.fromRGB(240, 80, 80))
 	local SWORD_MODELS = require(script.Parent.SwordPalette).gameOrder
 	local function swordCard(x: number, title: string)
@@ -1615,9 +1641,12 @@ return function(env)
 		head.Text = title
 		head.ZIndex = 5
 		local view = portrait(frame, UDim2.fromOffset(220, 150), UDim2.fromOffset(10, 34))
+		local icon = picture(frame, UDim2.fromOffset(188, 178), UDim2.fromOffset(26, 20))
 		local damage = env.text(frame, "Damage", UDim2.new(1, -16, 0, 40), UDim2.fromOffset(8, 192), nil, 34)
 		damage.ZIndex = 5
-		return { frame = frame, view = view, damage = damage }
+		local pair = { image = icon, behind = view }
+		table.insert(iconPairs, pair)
+		return { frame = frame, view = view, pair = pair, damage = damage }
 	end
 	local swordNow, swordNext = swordCard(24, tr("swordNow")), swordCard(296, tr("swordNext"))
 	env.text(swordPanel, "Arrow", UDim2.fromOffset(32, 40), UDim2.fromOffset(264, 160), GOLD, 34).Text = ">"
@@ -1640,6 +1669,7 @@ return function(env)
 		for offset, item in { [0] = swordNow, [1] = swordNext } do
 			item.damage.Text = tr("swordDmg", env.num(Config.hitDamage(sword + offset, level)))
 			item.frame.UIStroke.Color = if offset == 0 then Color3.fromRGB(120, 200, 255) else GOLD
+			setIcon(item.pair, SWORD_MODELS[math.clamp(sword + offset, 1, #SWORD_MODELS)])
 			show(item.view, "sword" .. math.clamp(sword + offset, 1, #SWORD_MODELS), function()
 				return swordModel(sword + offset)
 			end)
@@ -1671,7 +1701,8 @@ return function(env)
 		row.ZIndex = 4
 		row.UIStroke.Color = color
 		row.UIStroke.Thickness = 3
-		Draw.icon(row, icon, UDim2.fromOffset(54, 55), 0.78)
+		local drawn = Draw.icon(row, icon, UDim2.fromOffset(54, 55), 0.78)
+		local image = picture(row, UDim2.fromOffset(96, 96), UDim2.fromOffset(6, 7))
 		local title = env.text(row, "Title", UDim2.new(1, -310, 0, 30), UDim2.fromOffset(104, 10), color, 26)
 		title.TextXAlignment = Enum.TextXAlignment.Left
 		title.ZIndex = 5
@@ -1682,7 +1713,9 @@ return function(env)
 		note.TextXAlignment = Enum.TextXAlignment.Left
 		note.ZIndex = 5
 		local buy = button(row, "Buy", UDim2.fromOffset(180, 70), UDim2.new(1, -194, 0, 20), Color3.fromRGB(60, 200, 70), "")
-		return { title = title, line = line, note = note, buy = buy }
+		local pair = { image = image, behind = drawn }
+		table.insert(iconPairs, pair)
+		return { title = title, line = line, note = note, buy = buy, pair = pair }
 	end
 	local swordRow = shopRow(62, "sword", Color3.fromRGB(255, 110, 110))
 	local penRow = shopRow(186, "paw", Color3.fromRGB(255, 170, 60))
@@ -1702,6 +1735,8 @@ return function(env)
 		local maxed = sword >= Config.swordMax(zone)
 		local price = Config.swordPrice(sword)
 		swordRow.title.Text = tr("shopSword", sword)
+		-- (L'image de l'épée qu'on achète : la suivante ; ou la sienne quand il n'y a plus rien à acheter.)
+		setIcon(swordRow.pair, SWORD_MODELS[math.clamp(if maxed then sword else sword + 1, 1, #SWORD_MODELS)])
 		swordRow.line.Text = tr("shopSwordLine", env.num(Config.hitDamage(sword, level)), env.num(Config.hitDamage(sword + 1, level)))
 		swordRow.note.Text = if maxed then tr("forgeMax", zone) else tr("shopSwordNote")
 		swordRow.buy.Label.Text = if maxed then "MAX" else env.num(price) .. " $"
@@ -1718,6 +1753,23 @@ return function(env)
 	for _, name in { "Coins", "Sword", "Zone", "Places", "Level" } do
 		player:GetAttributeChangedSignal(name):Connect(refreshShop)
 	end
+	-- Le bouton « Épée » du menu montre l'épée du joueur.
+	local buttonPair = { image = swordButtonImage, behind = swordDrawn }
+	table.insert(iconPairs, buttonPair)
+	local function refreshSwordButton()
+		setIcon(buttonPair, SWORD_MODELS[math.clamp(player:GetAttribute("Sword") or 1, 1, #SWORD_MODELS)])
+	end
+	player:GetAttributeChangedSignal("Sword"):Connect(refreshSwordButton)
+	refreshSwordButton()
+	-- (Dès qu'une image est arrivée, ce qu'elle remplace disparaît.)
+	task.spawn(function()
+		while true do
+			task.wait(0.3)
+			for _, pair in iconPairs do
+				pair.behind.Visible = not (pair.image.Visible and pair.image.IsLoaded)
+			end
+		end
+	end)
 	shopPanel:GetPropertyChangedSignal("Visible"):Connect(refreshShop)
 	shopButton.Activated:Connect(function()
 		shopPanel.Visible = not shopPanel.Visible
