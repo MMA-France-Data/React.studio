@@ -348,8 +348,10 @@ local function applyHud()
 	end
 	walletScale.Scale = if small then 0.7 else 1.25
 	-- L'épée, l'équipe, la chance.
-	side.AnchorPoint = if small then Vector2.new(0, 0.5) else Vector2.new(0, 1)
-	side.Position = if small then UDim2.new(0, 12, 0.5, 0) else UDim2.new(0, 14, 1, -106)
+	-- (Téléphone : tout EN HAUT à gauche, juste sous les boutons de Roblox. Au milieu de l'écran, le pouce qui
+	-- déplace le personnage cliquait dessus : « en me déplaçant, des fois ça clique sur Inviter ». Son retour du 10/10.)
+	side.AnchorPoint = if small then Vector2.zero else Vector2.new(0, 1)
+	side.Position = if small then UDim2.new(0, 10, 0, 6) else UDim2.new(0, 14, 1, -106)
 	side.Size = if small then UDim2.fromOffset(240, 250) else UDim2.fromOffset(380, 34)
 	sideScale.Scale = if small then 0.72 else 1
 	-- (Les pastilles « épée » et « équipe » sont enlevées, sa demande : l'épée a son bouton et sa fenêtre. Il reste
@@ -358,7 +360,7 @@ local function applyHud()
 	pills.Team.Parent.Visible = false
 	local luck = pills.Luck.Parent
 	luck.Size = if small then UDim2.fromOffset(150, 34) else UDim2.fromOffset(118, 32)
-	luck.Position = if small then UDim2.fromOffset(2, 108) else UDim2.fromOffset(0, 0)
+	luck.Position = if small then UDim2.fromOffset(2, 46) else UDim2.fromOffset(0, 0)
 	-- Le cadeau du temps de jeu et les amis, à côté de la chance (en dessous sur téléphone).
 	-- (Les pastilles des bonus n'apparaissent que pendant le bonus : on range à la suite celles qui sont visibles.)
 	local slot = 0
@@ -367,13 +369,15 @@ local function applyHud()
 		if pill and pill.Visible then
 			slot += 1
 			pill.Size = luck.Size
-			pill.Position = if small then UDim2.fromOffset(2, 108 + slot * 42) else UDim2.fromOffset(slot * 126, 0)
+			-- (Téléphone : trois par colonne, sous la barre de niveau ; les suivantes dans une colonne à côté, pour
+			-- ne jamais descendre vers le pouce.)
+			pill.Position = if small then UDim2.fromOffset(2 + (slot // 3) * 158, 46 + (slot % 3) * 42) else UDim2.fromOffset(slot * 126, 0)
 		end
 	end
 	-- La barre de niveau.
 	levelPill.Parent = if small then side else gui
 	levelPill.AnchorPoint = if small then Vector2.zero else Vector2.new(0.5, 1)
-	levelPill.Position = if small then UDim2.fromOffset(2, 62) else UDim2.new(0.5, 0, 1, -10)
+	levelPill.Position = if small then UDim2.fromOffset(2, 0) else UDim2.new(0.5, 0, 1, -10)
 	levelPill.Size = if small then UDim2.fromOffset(200, 38) else UDim2.fromOffset(540, 32)
 	-- Le menu.
 	for order, name in MENU do
