@@ -24,7 +24,10 @@ local notify
 
 local function done(step: number, data): boolean
 	if step == 1 then
-		return data.xp > 0 or data.level > 1 or data.sword > 1
+		-- (Un VRAI monstre battu : data.hz. Pas l'XP ni l'épée : le canard doré géant donne de l'XP et des pièces,
+		-- et un nouveau joueur qui n'a tapé que lui, même s'il s'achète l'épée 2 avec, n'a pas encore d'œuf à
+		-- poser. Un œuf ou un familier prouve aussi qu'il a combattu.)
+		return (data.hz or 0) > 0 or #data.bag > 0 or next(data.spots) ~= nil or #data.store > 0
 	elseif step == 2 then
 		return next(data.spots) ~= nil or #data.store > 0
 	elseif step == 3 then
