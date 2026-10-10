@@ -26,6 +26,14 @@ return function(world)
 				data.sd = 0
 			end
 			return require(script.Parent.Rewards).leaving(player)
+		elseif action == "Funnel" then
+			-- L'entonnoir : fait le point tout de suite, et renvoie la dernière marche du joueur et celles signalées.
+			local Funnel = require(script.Parent.Funnel)
+			if a ~= nil then
+				data.fn = a
+			end
+			Funnel.advance(player)
+			return { at = data.fn, logged = table.concat(Funnel.logged, " ") }
 		elseif action == "Saved" then
 			-- (Test « save ».) Fait la sauvegarde du départ, puis renvoie ce qu'un serveur relirait à son retour.
 			local test = PlayerData.test

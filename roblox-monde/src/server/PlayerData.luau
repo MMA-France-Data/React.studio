@@ -78,6 +78,7 @@ local function defaults()
 		po = { rank = 0, xp = 0, coins = 0, damage = 0 }, -- les potions en réserve (Potions.luau)
 		rc = {}, -- les reçus des derniers achats en Robux déjà comptés (Store.luau)
 		tu = 1, -- l'étape du mini tutoriel (Tutorial.luau) ; 0 = pas de tutoriel, ou fini
+		fn = 0, -- la dernière marche de l'entonnoir signalée à Roblox (Funnel.luau) ; -1 = joueur pas compté
 		px = 0, -- ... et l'heure (os.time) où s'arrêtent celles qui ont été bues : XP, pièces, dégâts
 		pc = 0,
 		pd = 0,
@@ -170,6 +171,13 @@ local function clean(raw)
 		data.tu = math.clamp(math.floor(raw.tu), 0, Config.TUTORIAL_STEPS)
 	else
 		data.tu = if (tonumber(raw.level) or 1) <= 1 and (tonumber(raw.sword) or 1) <= 1 then 1 else 0
+	end
+	-- (L'entonnoir ne compte que les nouveaux joueurs : une sauvegarde d'avant lui n'y entre pas, sauf si le joueur
+	-- n'avait encore rien fait.)
+	if type(raw.fn) == "number" then
+		data.fn = math.max(-1, math.floor(raw.fn))
+	else
+		data.fn = if data.tu == 1 then 0 else -1
 	end
 	if type(raw.rc) == "table" then
 		for _, id in raw.rc do
