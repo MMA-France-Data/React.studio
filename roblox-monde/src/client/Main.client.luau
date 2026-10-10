@@ -1376,8 +1376,59 @@ do
 	beam.Enabled = false
 	beam.Parent = anchor
 	anchor.Parent = workspace
-	-- LA QUÊTE EN COURS (Quests.luau ; attribut « Quest » = « monde:camp:quête:battus ») : une fois le tutoriel fini,
-	-- le même cadre affiche la quête : ce qu'il faut battre, où on en est, et ce qu'on gagne.
+	-- LA QUÊTE EN COURS (Quests.luau ; attribut « Quest » = « monde:camp:quête:battus »), une fois le tutoriel fini.
+	-- (10/10, son retour : « le bandeau de la quête cache tout mon écran sur téléphone, faudrait pouvoir le fermer
+	-- et le mettre plus discret ».) Un PETIT cadre à moitié transparent sous le bouton BASE : ce qu'il faut battre
+	-- et où on en est, et dessous, en petit, ce qu'on gagne. Sa croix le replie en une pastille « Quête 3/10 » ;
+	-- un clic sur la pastille le rouvre.
+	local questOpen = true
+	local lastQuestLook = 0
+	local questBox = box(gui, "QuestBox", UDim2.fromOffset(310, 46), UDim2.new(0.5, 0, 0, 28), Color3.fromRGB(34, 28, 70))
+	questBox.AnchorPoint = Vector2.new(0.5, 0)
+	questBox.BackgroundTransparency = 0.25
+	questBox.Visible = false
+	questBox.ZIndex = 1
+	questBox.UIStroke.Color = RING
+	questBox.UIStroke.Thickness = 2
+	local questScale = Instance.new("UIScale")
+	questScale.Parent = questBox
+	local questGoal = text(questBox, "Goal", UDim2.new(1, -38, 0, 22), UDim2.fromOffset(8, 3), nil, 19)
+	questGoal.TextXAlignment = Enum.TextXAlignment.Left
+	questGoal.UIStroke.Thickness = 2
+	local questReward = text(questBox, "Reward", UDim2.new(1, -38, 0, 15), UDim2.fromOffset(8, 27), RING, 13)
+	questReward.TextXAlignment = Enum.TextXAlignment.Left
+	questReward.UIStroke.Thickness = 1.5
+	local questClose = Instance.new("TextButton")
+	questClose.Name = "Close"
+	questClose.Size = UDim2.fromOffset(24, 24)
+	questClose.Position = UDim2.new(1, -29, 0, 5)
+	questClose.BackgroundColor3 = Color3.fromRGB(90, 96, 120)
+	questClose.Font = Enum.Font.FredokaOne
+	questClose.TextSize = 18
+	questClose.TextColor3 = Color3.new(1, 1, 1)
+	questClose.Text = "X"
+	Instance.new("UICorner", questClose).CornerRadius = UDim.new(0, 6)
+	questClose.Parent = questBox
+	local questPill = Instance.new("TextButton")
+	questPill.Name = "QuestPill"
+	questPill.AnchorPoint = Vector2.new(0.5, 0)
+	questPill.Size = UDim2.fromOffset(104, 22)
+	questPill.BackgroundColor3 = Color3.fromRGB(34, 28, 70)
+	questPill.BackgroundTransparency = 0.25
+	questPill.Text = ""
+	questPill.Visible = false
+	Instance.new("UICorner", questPill).CornerRadius = UDim.new(0, 8)
+	local pillLine = Instance.new("UIStroke")
+	pillLine.Thickness = 2
+	pillLine.Color = RING
+	pillLine.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	pillLine.Parent = questPill
+	local pillScale = Instance.new("UIScale")
+	pillScale.Parent = questPill
+	local pillLabel = text(questPill, "Label", UDim2.fromScale(0.92, 0.8), UDim2.fromScale(0.04, 0.1), RING, 15)
+	pillLabel.UIStroke.Thickness = 1.5
+	questPill.Parent = gui
+	-- Remplit le cadre de la quête. Renvoie false s'il n'y a pas de quête.
 	local function showQuest(): boolean
 		local z, r, s, n = string.match(player:GetAttribute("Quest") or "", "^(%d+):(%d+):(%d+):(%d+)$")
 		z, r, s, n = tonumber(z), tonumber(r), tonumber(s), tonumber(n)
@@ -1386,36 +1437,45 @@ do
 			return false
 		end
 		local animal = tr(animals[r])
-		local reward
+		local need = 1
 		if r >= 6 then
-			goal.Text = tr("questBossGoal", animal)
-			reward = tr("questRewardBoss", num(Config.monster(z, 5).coins * Config.QUESTS.bossCoins))
+			questGoal.Text = tr("questBossGoal", animal)
+			questReward.Text = tr("questRewardBoss", num(Config.monster(z, 5).coins * Config.QUESTS.bossCoins))
 		else
 			local stage = Config.QUESTS.stages[s]
-			goal.Text = tr("questKill", stage.kills, animal, n, stage.kills)
+			need = stage.kills
+			questGoal.Text = tr("questKill", stage.kills, animal, n, stage.kills)
 			if stage.reward == "coins" then
-				reward = tr("questRewardCoins", num(Config.monster(z, r).coins * Config.QUESTS.coins))
+				questReward.Text = tr("questRewardCoins", num(Config.monster(z, r).coins * Config.QUESTS.coins))
 			elseif stage.reward == "potion" then
-				reward = tr("questRewardPotion", tr("potion_" .. Config.QUESTS.potions[(r - 1) % #Config.QUESTS.potions + 1]))
+				questReward.Text = tr("questRewardPotion", tr("potion_" .. Config.QUESTS.potions[(r - 1) % #Config.QUESTS.potions + 1]))
 			else
-				reward = tr("questRewardEgg", animal, Pets.GRADES[Config.QUESTS.grade])
+				questReward.Text = tr("questRewardEgg", animal, Pets.GRADES[Config.QUESTS.grade])
 			end
 		end
-		stepLabel.Text = tr("questTitle", reward)
+		pillLabel.Text = tr("questPill", n, need)
 		return true
 	end
 	local function refresh()
 		local step = player:GetAttribute("Tutorial") or 0
 		ring.Parent = if step > 0 then target(step) else nil
 		local view = workspace.CurrentCamera.ViewportSize
-		frameScale.Scale = math.min(1, view.X / 860)
-		-- (La quête passe DERRIÈRE les fenêtres : elle cachait leur bandeau. Le tutoriel, lui, reste devant.)
-		frame.ZIndex = if step > 0 then 6 else 1
+		-- (Sur téléphone, le cadre du tutoriel est bien plus petit : il cachait l'écran.)
+		frameScale.Scale = if small then 0.6 else math.min(1, view.X / 860)
+		frame.Visible = step > 0
+		-- La quête : sous le bouton BASE, où qu'il soit (il descend sur téléphone).
+		local has = step <= 0 and showQuest()
+		local base = gui:FindFirstChild("ToBase")
+		local top = (if base then base.Position.Y.Offset else 0) + 28
+		questBox.Position = UDim2.new(0.5, 0, 0, top)
+		questPill.Position = UDim2.new(0.5, 0, 0, top)
+		questScale.Scale = if small then 0.78 else 1
+		pillScale.Scale = if small then 0.85 else 1
+		questBox.Visible = has and questOpen
+		questPill.Visible = has and not questOpen
 		if step <= 0 then
-			frame.Visible = showQuest()
 			return
 		end
-		frame.Visible = true
 		stepLabel.Text = tr("tutoStepTitle", step, Config.TUTORIAL_STEPS)
 		if step == 4 then
 			local price = Config.swordPrice(1)
@@ -1423,9 +1483,24 @@ do
 		else
 			goal.Text = tr("tuto" .. step)
 		end
-		local view = workspace.CurrentCamera.ViewportSize
-		frameScale.Scale = math.min(1, view.X / 860)
 	end
+	questClose.Activated:Connect(function()
+		questOpen = false
+		refresh()
+	end)
+	questPill.Activated:Connect(function()
+		questOpen = true
+		refresh()
+	end)
+	workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(refresh)
+	workspace:GetAttributeChangedSignal("PhoneHud"):Connect(function()
+		task.defer(refresh)
+	end)
+	-- (Pour les photos de test : l'attribut « QuestOpen » de workspace replie ou rouvre le cadre.)
+	workspace:GetAttributeChangedSignal("QuestOpen"):Connect(function()
+		questOpen = workspace:GetAttribute("QuestOpen") ~= false
+		refresh()
+	end)
 	for _, name in { "Tutorial", "Coins", "Quest" } do
 		player:GetAttributeChangedSignal(name):Connect(refresh)
 	end
@@ -1435,6 +1510,10 @@ do
 			if step > 0 then
 				refresh() -- (les boutons du menu sont créés après ce bloc : on les retrouve ici)
 				ringLine.Thickness = 4 + 3 * math.abs(math.sin(os.clock() * 4))
+			elseif os.clock() - lastQuestLook > 1 then
+				-- (La quête : une fois par seconde, pour suivre le bouton BASE qui bouge avec l'écran.)
+				lastQuestLook = os.clock()
+				refresh()
 			end
 			-- Le trait vers le canard le plus proche encore debout.
 			local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
