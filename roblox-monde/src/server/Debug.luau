@@ -26,6 +26,27 @@ return function(world)
 				data.sd = 0
 			end
 			return require(script.Parent.Rewards).leaving(player)
+		elseif action == "Quest" then
+			-- La quête : a = monde, b = camp, c = { quête, déjà battus } (rien = seulement la lire).
+			if a then
+				data.q = { z = a, r = b or 1, s = (c and c[1]) or 1, n = (c and c[2]) or 0 }
+				PlayerData.changed(player)
+			end
+			return data.q and string.format("%d:%d:%d:%d", data.q.z, data.q.r, data.q.s, data.q.n) or "rien"
+		elseif action == "Kill" then
+			-- Comme si le joueur venait de battre b monstres du monde a[1], camp a[2] (pour les quêtes).
+			for _ = 1, b or 1 do
+				require(script.Parent.Quests).onKill(player, a[1], a[2])
+			end
+			return true
+		elseif action == "Duck" then
+			-- Le canard doré géant arrive dans a secondes.
+			require(script.Parent.GoldenDuck).force(a or 0)
+			return true
+		elseif action == "Golden" then
+			-- Tous les monstres reviennent dorés (a = true) ou jamais (a = false) : règle la chance pour les tests.
+			Config.GOLDEN.chance = if a then 1 else 0
+			return true
 		elseif action == "Funnel" then
 			-- L'entonnoir : fait le point tout de suite, et renvoie la dernière marche du joueur et celles signalées.
 			local Funnel = require(script.Parent.Funnel)
@@ -76,7 +97,7 @@ return function(world)
 			return true
 		elseif action == "EggNow" then
 			-- Pose d'un clic l'œuf de l'animal a et du rang b (comme la fenêtre des œufs).
-			return Eggs.placeNow(player, a, b)
+			return Eggs.placeNow(player, a, b, c == true)
 		elseif action == "Swap" then
 			-- Le familier numéro a du sac prend la place b de l'enclos.
 			return Eggs.swap(player, a, b)

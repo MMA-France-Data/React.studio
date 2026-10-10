@@ -86,6 +86,8 @@ local function defaults()
 		gs = 1, -- ... et le numéro du prochain cadeau (Config.GIFTS)
 		gd = 0, -- le jour (os.time() // 86400) du dernier cadeau pris ; 0 = jamais
 		gc = 0, -- ... et combien il en a pris ce jour-là (limite : #Config.GIFTS par jour)
+		hz = 0, -- le camp le plus fort où il a battu un monstre : le monde...
+		hr = 0, -- ... et le camp (Monsters.luau ; sa progression, pour le canard doré géant)
 		vm = 60, -- réglages du joueur : volume de la musique et des sons, de 0 à 100 (Sounds.luau)
 		vf = 10,
 		vv = 2, -- version de ces réglages (2 = départ à 60 et 10)
@@ -174,6 +176,15 @@ local function clean(raw)
 	end
 	-- (L'entonnoir ne compte que les nouveaux joueurs : une sauvegarde d'avant lui n'y entre pas, sauf si le joueur
 	-- n'avait encore rien fait.)
+	-- La quête en cours (Quests.luau) ; rien = elle sera créée à la fin du tutoriel.
+	if type(raw.q) == "table" and type(raw.q.z) == "number" and type(raw.q.r) == "number" and type(raw.q.s) == "number" and type(raw.q.n) == "number" then
+		data.q = {
+			z = math.clamp(math.floor(raw.q.z), 0, #Config.ZONES),
+			r = math.clamp(math.floor(raw.q.r), 1, 6),
+			s = math.clamp(math.floor(raw.q.s), 1, #Config.QUESTS.stages),
+			n = math.max(0, math.floor(raw.q.n)),
+		}
+	end
 	if type(raw.fn) == "number" then
 		data.fn = math.max(-1, math.floor(raw.fn))
 	else
@@ -196,7 +207,7 @@ local function clean(raw)
 	if type(raw.gt) == "number" and raw.gt >= 0 then
 		data.gt = math.floor(raw.gt)
 	end
-	for _, key in { "gd", "gc" } do
+	for _, key in { "gd", "gc", "hz", "hr" } do
 		if type(raw[key]) == "number" and raw[key] >= 0 then
 			data[key] = math.floor(raw[key])
 		end
@@ -217,7 +228,7 @@ local function clean(raw)
 	if type(raw.bag) == "table" then
 		for _, egg in raw.bag do
 			if validEgg(egg) and #data.bag < Pets.MAX_BAG then
-				table.insert(data.bag, { a = egg.a, q = egg.q, r = if type(egg.r) == "number" then egg.r else 1, b = if type(egg.b) == "number" then egg.b else nil })
+				table.insert(data.bag, { a = egg.a, q = egg.q, r = if type(egg.r) == "number" then egg.r else 1, b = if type(egg.b) == "number" then egg.b else nil, g = if egg.g == true then true else nil })
 			end
 		end
 	end
@@ -236,9 +247,9 @@ local function clean(raw)
 			local spot = raw.spots[tostring(index)]
 			if validEgg(spot) and (index <= data.places or type(spot.t) == "number") then
 				if type(spot.v) == "number" then
-					data.spots[tostring(index)] = { a = spot.a, q = spot.q, v = math.floor(spot.v), l = if type(spot.l) == "number" then math.clamp(math.floor(spot.l), 0, 10000) else nil, x = tonumber(spot.x), z = tonumber(spot.z), lv = if type(spot.lv) == "number" then math.max(1, math.floor(spot.lv)) else 1, xp = if type(spot.xp) == "number" then math.max(0, math.floor(spot.xp)) else 0 }
+					data.spots[tostring(index)] = { a = spot.a, q = spot.q, v = math.floor(spot.v), l = if type(spot.l) == "number" then math.clamp(math.floor(spot.l), 0, 10000) else nil, x = tonumber(spot.x), z = tonumber(spot.z), lv = if type(spot.lv) == "number" then math.max(1, math.floor(spot.lv)) else 1, xp = if type(spot.xp) == "number" then math.max(0, math.floor(spot.xp)) else 0, g = if spot.g == true then true else nil }
 				elseif type(spot.t) == "number" then
-					data.spots[tostring(index)] = { a = spot.a, q = spot.q, r = spot.r, b = if type(spot.b) == "number" then spot.b else nil, t = spot.t, d = tonumber(spot.d) or 0, x = tonumber(spot.x) or 10, z = tonumber(spot.z) or 16 }
+					data.spots[tostring(index)] = { a = spot.a, q = spot.q, r = spot.r, b = if type(spot.b) == "number" then spot.b else nil, t = spot.t, d = tonumber(spot.d) or 0, x = tonumber(spot.x) or 10, z = tonumber(spot.z) or 16, g = if spot.g == true then true else nil }
 				end
 			end
 		end
@@ -246,7 +257,7 @@ local function clean(raw)
 	if type(raw.store) == "table" then
 		for _, pet in raw.store do
 			if validEgg(pet) and type(pet.v) == "number" and #data.store < Pets.STORE_MAX then
-				table.insert(data.store, { a = pet.a, q = pet.q, v = math.floor(pet.v), l = if type(pet.l) == "number" then math.floor(pet.l) else nil, lv = if type(pet.lv) == "number" then math.max(1, math.floor(pet.lv)) else 1, xp = if type(pet.xp) == "number" then math.max(0, math.floor(pet.xp)) else 0 })
+				table.insert(data.store, { a = pet.a, q = pet.q, v = math.floor(pet.v), l = if type(pet.l) == "number" then math.floor(pet.l) else nil, lv = if type(pet.lv) == "number" then math.max(1, math.floor(pet.lv)) else 1, xp = if type(pet.xp) == "number" then math.max(0, math.floor(pet.xp)) else 0, g = if pet.g == true then true else nil })
 			end
 		end
 	end
@@ -280,10 +291,10 @@ local function publish(player: Player)
 		first = nil
 	end
 	player:SetAttribute("BagNext", if first then first.a .. ":" .. first.q .. ":" .. math.floor((if first.b then Pets.along(first.q, first.b) else 0.5) * 100 + 0.5) else "")
-	-- Les œufs du sac, groupés pour la fenêtre des œufs (« Duck:1:12,Pig:3:2 » : animal, rang, nombre).
+	-- Les œufs du sac, groupés pour la fenêtre des œufs (« Duck:1:0:12,Pig:3:1:2 » : animal, rang, 1 = doré, nombre).
 	local groups, order = {}, {}
 	for _, egg in data.bag do
-		local key = egg.a .. ":" .. egg.q
+		local key = egg.a .. ":" .. egg.q .. ":" .. (if egg.g then 1 else 0)
 		if not groups[key] then
 			groups[key] = 0
 			table.insert(order, key)
@@ -302,7 +313,7 @@ local function publish(player: Player)
 	for _, key in data.team do
 		local pet = data.spots[key]
 		if pet and pet.v then
-			table.insert(members, pet.a .. ":" .. pet.q .. ":" .. math.floor(Pets.alongOf(pet) * 100 + 0.5) .. ":" .. Pets.levelOf(pet))
+			table.insert(members, pet.a .. ":" .. pet.q .. ":" .. math.floor(Pets.alongOf(pet) * 100 + 0.5) .. ":" .. Pets.levelOf(pet) .. ":" .. (if pet.g then 1 else 0))
 			luck = math.max(luck, Pets.luckOf(pet))
 		end
 	end

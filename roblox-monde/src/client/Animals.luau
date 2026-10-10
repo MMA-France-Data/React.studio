@@ -118,6 +118,31 @@ return function(env)
 	end
 
 	-- Un familier affiché : son modèle, son squelette (ou ses membres), sa demi-hauteur. factor : grossissement.
+	-- L'ALLURE DORÉE (monstre doré, familier doré, œuf doré) : un voile d'or sur tout le modèle et des étincelles.
+	local function gild(target: Instance, scale: number?, busy: boolean?)
+		local glow = Instance.new("Highlight")
+		glow.Name = "Gold"
+		glow.FillColor = Color3.fromRGB(255, 200, 40)
+		glow.FillTransparency = 0.3
+		glow.OutlineColor = Color3.fromRGB(255, 244, 170)
+		glow.DepthMode = Enum.HighlightDepthMode.Occluded
+		glow.Parent = target
+		local body = if target:IsA("BasePart") then target else ((target :: any).PrimaryPart or target:FindFirstChildWhichIsA("BasePart", true))
+		if body then
+			local k = scale or 1
+			local sparks = Instance.new("ParticleEmitter")
+			sparks.Name = "GoldSparks"
+			sparks.Texture = "rbxasset://textures/particles/sparkles_main.dds"
+			sparks.Color = ColorSequence.new(Color3.fromRGB(255, 230, 110))
+			sparks.LightEmission = 0.6
+			sparks.Rate = if busy then 40 else 10
+			sparks.Lifetime = NumberRange.new(0.8, 1.5)
+			sparks.Speed = NumberRange.new(2, 3 + 3 * k)
+			sparks.SpreadAngle = Vector2.new(180, 180)
+			sparks.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.35 * k), NumberSequenceKeypoint.new(1, 0) })
+			sparks.Parent = body
+		end
+	end
 	local function create(name: string, rarity: number, display: boolean, factor: number?)
 		local model = Pets.build(name, rarity, display)
 		-- (Retour du joueur : « au-dessus de la patte, la zone bleue et la violette se chevauchent parfois ». Deux
@@ -432,7 +457,7 @@ return function(env)
 			local velocity = root.AssemblyLinearVelocity
 			local walking = Vector3.new(velocity.X, 0, velocity.Z).Magnitude > 2
 			for index = 1, 3 do
-				local petName, rank, size, level = string.match(members[index] or "", "^(%a+):(%d+):(%d+):(%d+)$")
+				local petName, rank, size, level, gold = string.match(members[index] or "", "^(%a+):(%d+):(%d+):(%d+):(%d)$")
 				if not petName or not Pets.DEFS[petName] then
 					dropMember(other, index)
 					continue
@@ -450,6 +475,9 @@ return function(env)
 					anchor.Size = Vector3.new(1, 1, 1)
 					anchor.Parent = folder
 					entry = { key = members[index], pet = create(petName, tonumber(rank), false, TEAM_SCALE * (0.4 + 1.6 * tonumber(size) / 100)), cframe = root.CFrame, anchor = anchor }
+					if gold == "1" then
+						gild(entry.pet.model, 1)
+					end
 					entry.pet.model.Name = "Team_" .. petName
 					entry.bar = healthBar(anchor, entry.pet.half + 1.6, 3.6)
 					entry.bar.gui.MaxDistance = 60
@@ -534,7 +562,7 @@ return function(env)
 					continue
 				end
 				seen[id] = true
-				local key = if spot.v then "v" .. spot.a .. spot.q .. spot.v else "t" .. spot.a .. spot.q
+				local key = (if spot.v then "v" .. spot.a .. spot.q .. spot.v else "t" .. spot.a .. spot.q) .. (if spot.g then "g" else "")
 				local item = shown[id]
 				if not item or item.key ~= key then
 					clear(id)
@@ -546,15 +574,18 @@ return function(env)
 						-- son oeuf l'annoncait. (Le rang, lui, grossit deja l'animal : Pets.RARITIES.)
 						item.pet = create(spot.a, spot.q, true, PEN_SCALE * (0.4 + 1.6 * (spot.s or 0.5))) -- de 40 % a 200 %
 						item.pet.model.Name = "Pen_" .. spot.a .. spot.q
+						if spot.g then
+							gild(item.pet.model, 1.5)
+						end
 						item.position, item.target, item.rest = place, randomSpot(origin), math.random() * 2
 						item.origin = origin
 						item.facing = CFrame.new(place)
-						item.income = Pets.incomeOf(spot.a, spot.v)
+						item.income = Pets.incomeOf(spot.a, spot.v, spot.g)
 						item.pop = math.random()
 						local anchor = item.pet.model.PrimaryPart
 						local top, bottom = tag(anchor, item.pet.half + 2.2)
-						top.Text = tr(spot.a)
-						top.TextColor3 = rarityInfo(spot.q).color
+						top.Text = if spot.g then tr("goldenPet", tr(spot.a)) else tr(spot.a)
+						top.TextColor3 = if spot.g then Color3.fromRGB(255, 221, 51) else rarityInfo(spot.q).color
 						bottom.Text = tr("perSecond", amount(item.income))
 					else
 						local size = eggSize(3, spot.s)
@@ -562,8 +593,11 @@ return function(env)
 						item.egg.Position = place + Vector3.new(0, 0.15 + size * 0.65, 0)
 						settleEgg(item.egg)
 						item.top, item.bottom = tag(item.egg, size * 0.65 + 1.3)
-						item.top.Text = tr("eggName") .. "  " .. tr(rarityInfo(spot.q).key)
-						item.top.TextColor3 = rarityInfo(spot.q).color
+						item.top.Text = if spot.g then tr("goldenEgg") else tr("eggName") .. "  " .. tr(rarityInfo(spot.q).key)
+						item.top.TextColor3 = if spot.g then Color3.fromRGB(255, 221, 51) else rarityInfo(spot.q).color
+						if spot.g then
+							gild(item.egg, 1)
+						end
 						item.bottom.TextColor3 = Color3.new(1, 1, 1)
 					end
 					shown[id] = item
@@ -774,12 +808,21 @@ return function(env)
 			if not beast then
 				local name, boss = part:GetAttribute("Animal"), part:GetAttribute("Boss") == true
 				local chest = part:GetAttribute("Chest") == true
-				local pet = if chest then chestModel() else create(name, part:GetAttribute("Rank") or 1, false, part:GetAttribute("Scale") or 1.5)
+				-- (Doré : un monstre rare d'un camp, un peu plus gros ; event : le canard doré géant de la base.)
+				local golden, event = part:GetAttribute("Golden") == true, part:GetAttribute("Event") == true
+				local scale = (part:GetAttribute("Scale") or 1.5) * (if golden and not event then Config.GOLDEN.scale else 1)
+				local pet = if chest then chestModel() else create(name, part:GetAttribute("Rank") or 1, false, scale)
 				pet.model.Name = "Monster_" .. name
-				local bar = healthBar(part, pet.half * 2 + 1.5, if boss then 12 else 5)
-				bar.gui.MaxDistance = if boss then 160 else 70
-				bar.title.Text = if chest then tr("chest") else (if boss then "👑 " else "") .. tr(name) .. "  " .. tr("lvl", part:GetAttribute("Level") or 1)
-				bar.title.TextColor3 = if boss then Color3.fromRGB(255, 90, 90) else Color3.fromRGB(255, 221, 51)
+				if golden then
+					gild(pet.model, scale / 2, event)
+				end
+				local bar = healthBar(part, pet.half * 2 + 1.5, if event then 34 elseif boss then 12 else 5)
+				bar.gui.MaxDistance = if event then 400 elseif boss then 160 else 70
+				bar.title.Text = if chest then tr("chest")
+					elseif event then tr("duckName")
+					elseif golden then tr("goldenName", tr(name)) .. "  " .. tr("lvl", part:GetAttribute("Level") or 1)
+					else (if boss then "👑 " else "") .. tr(name) .. "  " .. tr("lvl", part:GetAttribute("Level") or 1)
+				bar.title.TextColor3 = if golden then Color3.fromRGB(255, 221, 51) elseif boss then Color3.fromRGB(255, 90, 90) else Color3.fromRGB(255, 221, 51)
 				bar.fill.BackgroundColor3 = Color3.fromRGB(240, 70, 70)
 				beast = { pet = pet, cframe = part.CFrame, bar = bar, last = part.Position }
 				beasts[part] = beast
@@ -1015,10 +1058,11 @@ return function(env)
 	end
 	-- grade : la note de taille (B, A, S) ; rien pour un œuf du sac.
 	local GRADE_COLORS = { C = Color3.fromRGB(200, 204, 214), B = Color3.fromRGB(120, 200, 255), A = Color3.fromRGB(120, 255, 120), S = GOLD }
-	local function paint(item, rarity: number, selected: boolean, grade: string?)
+	-- (golden : un œuf ou un familier doré : fond et contour en or. Le voile d'or ne se voit pas dans un portrait.)
+	local function paint(item, rarity: number, selected: boolean, grade: string?, golden: any?)
 		local info = rarityInfo(rarity)
-		item.frame.BackgroundColor3 = darker(info.color, 0.45)
-		item.stroke.Color = if selected then Color3.new(1, 1, 1) else info.color
+		item.frame.BackgroundColor3 = if golden then Color3.fromRGB(170, 120, 10) else darker(info.color, 0.45)
+		item.stroke.Color = if selected then Color3.new(1, 1, 1) elseif golden then GOLD else info.color
 		item.stroke.Thickness = if selected then 4 else 3
 		item.grade.Text = grade or ""
 		item.grade.TextColor3 = GRADE_COLORS[grade or ""] or info.color
@@ -1222,11 +1266,11 @@ return function(env)
 		-- avec le temps qu'il reste.
 		if eggPanel.Visible then
 			local ready, hatching = {}, {}
-			for animal, rank, count in string.gmatch(player:GetAttribute("BagList") or "", "(%a+):(%d):(%d+)") do
-				table.insert(ready, { animal = animal, rank = tonumber(rank), line = "x" .. count, bag = true })
+			for animal, rank, gold, count in string.gmatch(player:GetAttribute("BagList") or "", "(%a+):(%d):(%d):(%d+)") do
+				table.insert(ready, { animal = animal, rank = tonumber(rank), line = "x" .. count, bag = true, golden = gold == "1" })
 			end
 			for _, entry in eggs do
-				table.insert(hatching, { animal = entry.spot.a, rank = entry.spot.q, line = "⏳ " .. clock(entry.spot.t - workspace:GetServerTimeNow()), grade = Pets.gradeOf(entry.spot) })
+				table.insert(hatching, { animal = entry.spot.a, rank = entry.spot.q, line = "⏳ " .. clock(entry.spot.t - workspace:GetServerTimeNow()), grade = Pets.gradeOf(entry.spot), golden = entry.spot.g == true })
 			end
 			eggInfo.Text = if #ready == 0 then tr("eggsEmpty") else tr("eggsReady", bag)
 			hatchInfo.Text = if #hatching == 0 then tr("eggsNoHatch") else tr("eggsHatching", #hatching)
@@ -1240,16 +1284,16 @@ return function(env)
 						-- peut en poser plusieurs à la suite.
 						item.frame.Activated:Connect(function()
 							if item.bag then
-								takeEvent:FireServer(item.animal, item.rank)
+								takeEvent:FireServer(item.animal, item.rank, item.golden)
 							end
 						end)
 						cards[i] = item
 					end
 					item.frame.Visible = true
-					item.animal, item.rank, item.bag = entry.animal, entry.rank, entry.bag == true
+					item.animal, item.rank, item.bag, item.golden = entry.animal, entry.rank, entry.bag == true, entry.golden == true
 					item.out = entry.bag == true and string.match(player:GetAttribute("BagNext") or "", "^(%a+:%d)") == entry.animal .. ":" .. entry.rank
 					item.tick.Visible = item.out
-					paint(item, entry.rank, item.out, entry.grade)
+					paint(item, entry.rank, item.out, entry.grade, entry.golden)
 					item.line.Text = entry.line
 					show(item.view, entry.animal, function()
 						return eggModel(entry.animal)
@@ -1308,7 +1352,7 @@ return function(env)
 			end
 			item.spot = entry.index
 			item.frame.Visible = true
-			paint(item, entry.spot.q, entry.index == selected, Pets.gradeOf(entry.spot))
+			paint(item, entry.spot.q, entry.index == selected, Pets.gradeOf(entry.spot), entry.spot.g)
 			-- (En nourrissant : sur chaque familier, le niveau qu'atteindrait celui de la fiche en le mangeant.)
 			local eater = spots[tostring(selected)]
 			item.line.Text = if feeding and entry.index == doomed then tr("feedConfirm")
@@ -1335,14 +1379,15 @@ return function(env)
 			rankUp.Visible = potionCount("rank") > 0 and Pets.gradeOf(spot) ~= "S"
 			feed.Label.Text = if feeding then tr("feedCancel") else tr("feed")
 			feed.BackgroundColor3 = if feeding then Color3.fromRGB(90, 96, 120) else Color3.fromRGB(240, 170, 30)
-			sheetName.Text = tr(spot.a)
+			sheetName.Text = if spot.g then tr("goldenPet", tr(spot.a)) else tr(spot.a)
+			sheetName.TextColor3 = if spot.g then GOLD else Color3.new(1, 1, 1)
 			sheetRarity.Text = tr(info.key)
 			sheetRarity.TextColor3 = info.color
 			show(sheetView, spot.a .. spot.q, function()
 				return Pets.build(spot.a, spot.q, true)
 			end)
 			sheetFight.Text = tr("petFight", env.num(Pets.damageOf(spot)), env.num(Pets.healthOf(spot)))
-			sheetIncome.Text = tr("income", amount(Pets.incomeOf(spot.a, spot.v)))
+			sheetIncome.Text = tr("income", amount(Pets.incomeOf(spot.a, spot.v, spot.g)))
 			sheetLuck.Text = tr("luckLine", Pets.luckOf(spot))
 			local need = Pets.xpNeed(spot)
 			xpFill.Size = UDim2.fromScale(math.clamp((spot.xp or 0) / need, 0, 1), 1)
@@ -1508,7 +1553,7 @@ return function(env)
 				bagCards[i] = item
 			end
 			item.frame.Visible = true
-			paint(item, pet.q, false, Pets.gradeOf(pet))
+			paint(item, pet.q, false, Pets.gradeOf(pet), pet.g)
 			item.line.Text = tr("lvlLong", Pets.levelOf(pet))
 			show(item.view, pet.a .. pet.q, function()
 				return Pets.build(pet.a, pet.q, true)
@@ -1529,6 +1574,8 @@ return function(env)
 	-- À gauche l'animal du sac qui entre, à droite celui de l'enclos qui sort ; les chiffres de celui qui entre sont
 	-- verts quand il est meilleur, rouges quand il est moins bon. En dessous, les animaux de l'enclos : un clic en
 	-- choisit un autre. Au départ : celui qui rapporte le moins.
+	-- (Dans un bloc « do » : cette grande fonction touche la limite de 200 variables de Luau.)
+	do
 	local swapEvent = ReplicatedStorage:WaitForChild("SwapPet")
 	local replacePanel = window("ReplacePanel", tr("replaceTitle"), 760, 580, "paw", Color3.fromRGB(255, 150, 40))
 	replacePanel.ZIndex = 9
@@ -1570,14 +1617,15 @@ return function(env)
 	local replaceCards = {}
 	local replaceIndex, replaceSpot = 0, 0 -- le numéro dans le sac de celui qui entre, la place de celui qui sort
 	local function figures(pet)
-		return { Pets.damageOf(pet), Pets.healthOf(pet), Pets.incomeOf(pet.a, pet.v), Pets.levelOf(pet) }
+		return { Pets.damageOf(pet), Pets.healthOf(pet), Pets.incomeOf(pet.a, pet.v, pet.g), Pets.levelOf(pet) }
 	end
 	local function fillCompare(parts, pet, against)
 		local info = rarityInfo(pet.q)
 		parts.frame.UIStroke.Color = info.color
 		parts.grade.Text = Pets.gradeOf(pet)
 		parts.grade.TextColor3 = GRADE_COLORS[Pets.gradeOf(pet)]
-		parts.name.Text = tr(pet.a)
+		parts.name.Text = if pet.g then tr("goldenPet", tr(pet.a)) else tr(pet.a)
+		parts.name.TextColor3 = if pet.g then GOLD else Color3.new(1, 1, 1)
 		parts.rarity.Text = tr(info.key)
 		parts.rarity.TextColor3 = info.color
 		show(parts.view, pet.a .. pet.q, function()
@@ -1610,7 +1658,7 @@ return function(env)
 		end
 		-- Ceux qui rapportent le moins d'abord ; au départ, c'est le premier qui est choisi.
 		table.sort(pets, function(a, b)
-			local x, y = Pets.incomeOf(a.spot.a, a.spot.v), Pets.incomeOf(b.spot.a, b.spot.v)
+			local x, y = Pets.incomeOf(a.spot.a, a.spot.v, a.spot.g), Pets.incomeOf(b.spot.a, b.spot.v, b.spot.g)
 			return if x == y then a.index < b.index else x < y
 		end)
 		if not spots[tostring(replaceSpot)] or not spots[tostring(replaceSpot)].v then
@@ -1629,7 +1677,7 @@ return function(env)
 			end
 			item.spot = entry.index
 			item.frame.Visible = true
-			paint(item, entry.spot.q, entry.index == replaceSpot, Pets.gradeOf(entry.spot))
+			paint(item, entry.spot.q, entry.index == replaceSpot, Pets.gradeOf(entry.spot), entry.spot.g)
 			item.line.Text = tr("lvlLong", Pets.levelOf(entry.spot))
 			item.tick.Visible = table.find(inTeam, tostring(entry.index)) ~= nil
 			show(item.view, entry.spot.a .. entry.spot.q, function()
@@ -1667,6 +1715,7 @@ return function(env)
 			openReplace(index)
 		end
 	end)
+	end
 
 	-- LA FENÊTRE DE VENTE (au stand du vendeur) : tous les familiers, ceux de l'enclos puis ceux du sac, avec leur
 	-- prix. Un clic en choisit un, le bouton du bas le vend. Ceux de l'équipe portent leur coche.
@@ -1715,8 +1764,8 @@ return function(env)
 			local pet = entry.pet
 			item.frame.Visible = true
 			item.tick.Visible = entry.team
-			paint(item, pet.q, sellPick == entry.id, Pets.gradeOf(pet))
-			item.line.Text = env.num(Pets.sellPrice(pet.a, pet.v)) .. " $"
+			paint(item, pet.q, sellPick == entry.id, Pets.gradeOf(pet), pet.g)
+			item.line.Text = env.num(Pets.sellPrice(pet.a, pet.v, pet.g)) .. " $"
 			show(item.view, pet.a .. pet.q, function()
 				return Pets.build(pet.a, pet.q, true)
 			end)
@@ -1731,7 +1780,7 @@ return function(env)
 			sellPick = ""
 		end
 		sellInfo.Text = if #sellList == 0 then tr("sellEmpty") else tr("sellHint")
-		sellGo.Label.Text = if chosen then tr("sellNowGo", tr(chosen.pet.a), tr("lvlLong", Pets.levelOf(chosen.pet)), env.num(Pets.sellPrice(chosen.pet.a, chosen.pet.v))) else tr("sellPick")
+		sellGo.Label.Text = if chosen then tr("sellNowGo", tr(chosen.pet.a), tr("lvlLong", Pets.levelOf(chosen.pet)), env.num(Pets.sellPrice(chosen.pet.a, chosen.pet.v, chosen.pet.g))) else tr("sellPick")
 		sellGo.BackgroundColor3 = if chosen then Color3.fromRGB(226, 50, 50) else Color3.fromRGB(90, 96, 120)
 		sellGo:SetAttribute("Kind", chosen and chosen.kind or "")
 		sellGo:SetAttribute("Index", chosen and chosen.index or 0)
@@ -1919,6 +1968,7 @@ return function(env)
 	-- L'ONGLET « BONUS » (Store.luau) : en haut les deux pass À VIE (XP x2, pièces x2), en dessous les quatre potions.
 	-- Le bouton de chaque article montre son prix en Robux et ouvre la fenêtre d'achat de Roblox. Un article dont le
 	-- numéro vaut 0 (Config.STORE) n'existe pas encore : son bouton est gris, « Bientôt ».
+	do
 	local MarketplaceService = game:GetService("MarketplaceService")
 	local GREEN_BUY, GREY = Color3.fromRGB(60, 200, 70), Color3.fromRGB(90, 96, 120)
 	local realPrice = {} -- [numéro] = le vrai prix, relu chez Roblox
@@ -2019,6 +2069,7 @@ return function(env)
 		end
 		refreshBonus()
 	end)
+	end
 	-- Le bouton « Épée » du menu montre l'épée du joueur.
 	local buttonPair = { image = swordButtonImage, behind = swordDrawn }
 	table.insert(iconPairs, buttonPair)
@@ -2142,6 +2193,7 @@ return function(env)
 	-- LE MODE ADMIN (Admin.luau) : un petit bouton rouge en haut, que SEUL le créateur du jeu voit, et sa fenêtre :
 	-- une ligne par événement (pièces, XP, chance d'œuf), à lancer pour 5, 15 ou 30 minutes dans tous les serveurs,
 	-- ou à arrêter. (Le serveur revérifie que c'est bien lui à chaque clic.)
+	do
 	local adminEvent = ReplicatedStorage:WaitForChild("AdminEvent")
 	local adminButton = button(env.gui, "AdminButton", UDim2.fromOffset(64, 20), UDim2.fromOffset(0, 0), Color3.fromRGB(230, 60, 150), tr("adminButton"))
 	adminButton.AnchorPoint = Vector2.new(0.5, 0)
@@ -2202,4 +2254,5 @@ return function(env)
 			task.wait(0.5)
 		end
 	end)
+	end
 end

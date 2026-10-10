@@ -235,6 +235,14 @@ function Pets.rollValue(random: Random, rarity: number): number
 	return math.floor(range[1] + (range[2] - range[1]) * along + 0.5)
 end
 
+-- La valeur cachée d'un familier de cette rareté avec une NOTE imposée (1 = C ... 4 = S) : pour l'œuf promis d'une
+-- quête (Quests.luau).
+function Pets.valueOfGrade(random: Random, rarity: number, grade: number): number
+	local range = Pets.VALUE[math.clamp(rarity, 1, #Pets.VALUE)]
+	local along = (math.clamp(grade, 1, #Pets.GRADES) - 1 + random:NextNumber(0.1, 0.9)) / #Pets.GRADES
+	return math.floor(range[1] + (range[2] - range[1]) * along + 0.5)
+end
+
 -- Où se place cette valeur (celle de la salle 1) dans le palier de son rang : 0 = tout en bas, 1 = tout en haut.
 -- C'est ce qui donne la GROSSEUR de l'œuf, puis du familier (le joueur : « chaque animal donne entre tant et tant,
 -- la taille de l'œuf serait par rapport à ça ; un gros œuf de renard donne le renard max pièces »).
@@ -326,11 +334,14 @@ function Pets.levelOf(spot): number
 	local base = if def and def.rank then Config.monsterLevel(def.room or 1, def.rank) else 1
 	return base + (spot.lv or 1) - 1
 end
+-- UN FAMILIER DORÉ (né d'un œuf doré, lâché par un monstre doré : `g` dans ses données) : ses dégâts, sa vie, ses
+-- pièces par seconde et son prix de vente sont multipliés par GOLD.
+Pets.GOLD = 2
 function Pets.damageOf(spot): number
-	return math.max(1, math.floor(Pets.FIGHT_DMG[math.clamp(spot.q, 1, 6)] * fightFactor(spot) + 0.5))
+	return math.max(1, math.floor(Pets.FIGHT_DMG[math.clamp(spot.q, 1, 6)] * fightFactor(spot) * (if spot.g then Pets.GOLD else 1) + 0.5))
 end
 function Pets.healthOf(spot): number
-	return math.max(10, math.floor(Pets.FIGHT_HP[math.clamp(spot.q, 1, 6)] * fightFactor(spot) + 0.5))
+	return math.max(10, math.floor(Pets.FIGHT_HP[math.clamp(spot.q, 1, 6)] * fightFactor(spot) * (if spot.g then Pets.GOLD else 1) + 0.5))
 end
 -- XP gagnée dans son niveau, et XP qu'il faut pour le suivant (x FIGHT_ZONE par zone, comme l'XP des monstres... en
 -- moins vite : un familier d'une zone lointaine monte un peu plus lentement).
@@ -406,18 +417,20 @@ end
 -- rapportent environ deux fois ce que rapportent les combats.)
 -- (08/10 : deux fois moins qu'avant face au combat, puis x 10 comme tout le jeu.)
 Pets.INCOME = { 0.75, 1.5, 3.75, 10, 25, 60 }
-function Pets.incomeOf(name: string, value: number): number
+-- (golden : un familier doré rapporte Pets.GOLD fois plus.)
+function Pets.incomeOf(name: string, value: number, golden: any?): number
 	local def = Pets.DEFS[name]
+	local gold = if golden then Pets.GOLD else 1
 	if not def or not def.rank then
-		return if def then value / Pets.VALUE_PER_COIN * def.income else 0
+		return if def then value / Pets.VALUE_PER_COIN * def.income * gold else 0
 	end
 	local factor = Pets.roomFactor(def.room or 1)
-	return Pets.INCOME[def.rank] * (0.7 + 0.6 * Pets.along(def.rank, value / factor)) * factor
+	return Pets.INCOME[def.rank] * (0.7 + 0.6 * Pets.along(def.rank, value / factor)) * factor * gold
 end
 
 -- Pièces reçues en vendant un familier : ce qu'il rapporte en une minute (un canard : 2 à 4 pièces).
-function Pets.sellPrice(name: string, value: number): number
-	return math.max(1, math.floor(Pets.incomeOf(name, value) * 60 + 0.5))
+function Pets.sellPrice(name: string, value: number, golden: any?): number
+	return math.max(1, math.floor(Pets.incomeOf(name, value, golden) * 60 + 0.5))
 end
 
 -- Prix de la place suivante quand on en a `places` (nil au maximum).
@@ -435,7 +448,7 @@ function Pets.income(spots): number
 	local total = 0
 	for _, spot in spots do
 		if spot.v then
-			total += Pets.incomeOf(spot.a, spot.v)
+			total += Pets.incomeOf(spot.a, spot.v, spot.g)
 		end
 	end
 	return total
@@ -468,14 +481,15 @@ Pets.STORE_MAX = 200
 function Pets.encodeStore(store): string
 	local parts = {}
 	for _, pet in store do
-		table.insert(parts, string.format("%s:%d:%d:%d:%d:%d", pet.a, pet.q, pet.v, pet.l or 0, pet.lv or 1, pet.xp or 0))
+		table.insert(parts, string.format("%s:%d:%d:%d:%d:%d:%d", pet.a, pet.q, pet.v, pet.l or 0, pet.lv or 1, pet.xp or 0, if pet.g then 1 else 0))
 	end
 	return table.concat(parts, ";")
 end
 function Pets.decodeStore(text: string?)
 	local store = {}
-	for a, q, v, l, lv, xp in string.gmatch(text or "", "(%a+):(%d+):(%d+):(%d+):(%d+):(%d+)") do
-		table.insert(store, { a = a, q = tonumber(q), v = tonumber(v), l = tonumber(l), lv = tonumber(lv), xp = tonumber(xp) })
+	-- (Le dernier chiffre : 1 = un familier doré.)
+	for a, q, v, l, lv, xp, g in string.gmatch(text or "", "(%a+):(%d+):(%d+):(%d+):(%d+):(%d+):(%d)") do
+		table.insert(store, { a = a, q = tonumber(q), v = tonumber(v), l = tonumber(l), lv = tonumber(lv), xp = tonumber(xp), g = if g == "1" then true else nil })
 	end
 	return store
 end
@@ -490,7 +504,7 @@ function Pets.encode(spots): string
 	for _, index in keys do
 		local spot = spots[tostring(index)]
 		if spot then
-			table.insert(parts, string.format("%d:%s:%d:%s:%d:%d:%d:%d:%d:%d:%d", index, spot.a, spot.q, if spot.v then "v" else "t", spot.v or spot.t, math.round((spot.x or 0) * 10), math.round((spot.z or 0) * 10), if spot.v then Pets.luckOf(spot) else spot.d or 0, math.floor(Pets.alongOf(spot) * 100 + 0.5), spot.lv or 1, spot.xp or 0))
+			table.insert(parts, string.format("%d:%s:%d:%s:%d:%d:%d:%d:%d:%d:%d:%d", index, spot.a, spot.q, if spot.v then "v" else "t", spot.v or spot.t, math.round((spot.x or 0) * 10), math.round((spot.z or 0) * 10), if spot.v then Pets.luckOf(spot) else spot.d or 0, math.floor(Pets.alongOf(spot) * 100 + 0.5), spot.lv or 1, spot.xp or 0, if spot.g then 1 else 0))
 		end
 	end
 	return table.concat(parts, ",")
@@ -498,9 +512,9 @@ end
 
 function Pets.decode(text: string?)
 	local spots = {}
-	-- (Le dernier nombre : le niveau du familier.)
-	for index, name, rarity, kind, number, x, z, duration, size, level, xp in string.gmatch(text or "", "(%d+):(%a+):(%d):([vt]):(%d+):(-?%d+):(-?%d+):(%d+):(%d+):(%d+):(%d+)") do
-		local spot = { a = name, q = tonumber(rarity), x = tonumber(x) / 10, z = tonumber(z) / 10, d = tonumber(duration), s = tonumber(size) / 100, lv = tonumber(level), xp = tonumber(xp) }
+	-- (Les trois derniers nombres : le niveau du familier, son XP, et 1 s'il est doré.)
+	for index, name, rarity, kind, number, x, z, duration, size, level, xp, gold in string.gmatch(text or "", "(%d+):(%a+):(%d):([vt]):(%d+):(-?%d+):(-?%d+):(%d+):(%d+):(%d+):(%d+):(%d)") do
+		local spot = { a = name, q = tonumber(rarity), x = tonumber(x) / 10, z = tonumber(z) / 10, d = tonumber(duration), s = tonumber(size) / 100, lv = tonumber(level), xp = tonumber(xp), g = if gold == "1" then true else nil }
 		spot[kind] = tonumber(number)
 		if kind == "v" then
 			spot.l, spot.d = spot.d, nil

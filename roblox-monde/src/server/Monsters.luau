@@ -31,6 +31,8 @@ local lootEvent: RemoteEvent
 
 -- Les tests coupent les coups des monstres pour mesurer le reste au calme.
 Monsters.peaceful = false
+-- (Posé par Quests.luau : appelé pour chaque joueur qui a battu un monstre, avec son monde et son camp.)
+Monsters.onKill = nil :: ((Player, number, number) -> ())?
 
 local function rootOf(player: Player): BasePart?
 	local character = player.Character
@@ -78,13 +80,19 @@ end
 Monsters.publishTeam = publishTeam
 
 local function spawn(monster)
-	monster.hp = monster.def.hp
+	-- UN MONSTRE DORÉ (Config.GOLDEN) : de temps en temps, un monstre d'un camp revient doré : plus de vie, dix fois
+	-- plus de pièces, et son œuf à coup sûr. (monster.max : sa vie pleine, cette fois-ci.)
+	monster.golden = not monster.boss and not monster.chest and random:NextNumber() < Config.GOLDEN.chance
+	monster.max = monster.def.hp * (if monster.golden then Config.GOLDEN.hp else 1)
+	monster.hp = monster.max
 	monster.position = monster.home
 	monster.target = nil
 	monster.hitters = {}
 	monster.dead = false
 	monster.nextWander = 0
 	monster.part.CFrame = CFrame.new(monster.home)
+	monster.part:SetAttribute("Golden", monster.golden)
+	monster.part:SetAttribute("MaxHp", monster.max)
 	monster.part:SetAttribute("Hp", monster.hp)
 end
 
@@ -118,30 +126,13 @@ local function create(zone, rank: number, home: Vector3)
 	return monster
 end
 
--- CE QUE GAGNE UN JOUEUR QUI A FRAPPÉ LE MONSTRE (règle du joueur : « si plusieurs personnes tapent un monstre, XP
--- et or partagés suivant les dégâts infligés, et l'œuf à celui qui a infligé le plus de dégâts, les autres rien »).
---   share : sa part des dégâts, de 0 à 1 (1 quand il est seul) ; les pièces et l'XP sont multipliées par elle.
---   best : c'est lui qui a fait le plus de dégâts ; lui seul peut recevoir l'œuf.
-local function reward(monster, player: Player, share: number, best: boolean)
-	local def = monster.def
-	-- (Le bonus d'amis : + 10 % par ami présent dans le serveur, Rewards.luau.)
-	local friends = 1 + (player:GetAttribute("FriendBonus") or 0) / 100
-	-- (Le bonus « reste encore » : + 50 % d'XP pendant un quart d'heure, Rewards.leaving.)
+-- Donne de l'XP au joueur ET à chaque familier de son équipe (comme un monstre battu). Renvoie les niveaux gagnés
+-- par le joueur.
+function Monsters.giveXp(player: Player, xp: number): number
 	local data = PlayerData.get(player)
-	local now = os.time()
-	local stay = if now < (data.bx or 0) then 1 + Config.STAY_XP else 1
-	-- (Les potions bues : double XP, double pièces, tant qu'elles durent. Potions.luau.)
-	local potXp = if now < (data.px or 0) then Config.POTIONS.xp.mult else 1
-	local potCoins = if now < (data.pc or 0) then Config.POTIONS.coins.mult else 1
-	-- (Et les événements de l'admin, pour tout le monde : Admin.luau.)
-	potCoins *= Config.eventMult("coins")
-	potXp *= Config.eventMult("xp")
-	-- (Et les pass à vie de la boutique : Store.luau.)
-	potCoins *= PlayerData.passMult(player, "coins")
-	potXp *= PlayerData.passMult(player, "xp")
-	local coins, xp = math.floor(def.coins * share * friends * potCoins + 0.5), math.floor(def.xp * share * friends * stay * potXp + 0.5)
-	PlayerData.addCoins(player, coins)
-	-- Chaque familier de l'équipe reçoit l'XP du monstre, lui aussi.
+	if not data then
+		return 0
+	end
 	for _, key in data.team do
 		local pet = data.spots[key]
 		if pet and pet.v then
@@ -157,7 +148,47 @@ local function reward(monster, player: Player, share: number, best: boolean)
 			end
 		end
 	end
-	local levels = PlayerData.addXp(player, xp)
+	return PlayerData.addXp(player, xp)
+end
+
+-- CE QUE GAGNE UN JOUEUR QUI A FRAPPÉ LE MONSTRE (règle du joueur : « si plusieurs personnes tapent un monstre, XP
+-- et or partagés suivant les dégâts infligés, et l'œuf à celui qui a infligé le plus de dégâts, les autres rien »).
+--   share : sa part des dégâts, de 0 à 1 (1 quand il est seul) ; les pièces et l'XP sont multipliées par elle.
+--   best : c'est lui qui a fait le plus de dégâts ; lui seul peut recevoir l'œuf.
+local function reward(monster, player: Player, share: number, best: boolean)
+	local def = monster.def
+	-- (Le bonus d'amis : + 10 % par ami présent dans le serveur, Rewards.luau.)
+	local friends = 1 + (player:GetAttribute("FriendBonus") or 0) / 100
+	-- (Le bonus « reste encore » : + 50 % d'XP pendant un quart d'heure, Rewards.leaving.)
+	local data = PlayerData.get(player)
+	local now = os.time()
+	local stay = if now < (data.bx or 0) then 1 + Config.STAY_XP else 1
+	-- (Les potions bues : double XP, double pièces, tant qu'elles durent. Potions.luau.)
+	local potXp = if now < (data.px or 0) then Config.POTIONS.xp.mult else 1
+	local potCoins = if now < (data.pc or 0) then Config.POTIONS.coins.mult else 1
+	-- (Un monstre doré : ses pièces multipliées.)
+	if monster.golden then
+		potCoins *= Config.GOLDEN.coins
+	end
+	-- (Et les événements de l'admin, pour tout le monde : Admin.luau.)
+	potCoins *= Config.eventMult("coins")
+	potXp *= Config.eventMult("xp")
+	-- (Et les pass à vie de la boutique : Store.luau.)
+	potCoins *= PlayerData.passMult(player, "coins")
+	potXp *= PlayerData.passMult(player, "xp")
+	local coins, xp = math.floor(def.coins * share * friends * potCoins + 0.5), math.floor(def.xp * share * friends * stay * potXp + 0.5)
+	PlayerData.addCoins(player, coins)
+	-- LE CAMP LE PLUS FORT OÙ IL A BATTU UN MONSTRE (data.hz = le monde, data.hr = le camp) : la mesure de sa
+	-- progression, pour les récompenses du canard doré géant. Il faut avoir fait au moins la moitié des dégâts : un
+	-- débutant qui donne un coup au monstre d'un ancien ne saute pas de niveau.
+	if not monster.chest and share >= 0.5 and (monster.zone > (data.hz or 0) or monster.zone == data.hz and monster.rank > (data.hr or 0)) then
+		data.hz, data.hr = monster.zone, monster.rank
+	end
+	local levels = Monsters.giveXp(player, xp)
+	-- (Les quêtes comptent ce monstre : Quests.luau.)
+	if Monsters.onKill and not monster.chest then
+		Monsters.onKill(player, monster.zone, monster.rank)
+	end
 	publishTeam(player)
 	lootEvent:FireClient(player, monster.position, coins, xp)
 	if levels > 0 then
@@ -168,8 +199,12 @@ local function reward(monster, player: Player, share: number, best: boolean)
 	-- LE TOUT PREMIER MONSTRE BATTU lache toujours son oeuf (un joueur qui n a encore ni oeuf ni familier) : on a son
 	-- premier familier dans la premiere minute.
 	local newcomer = next(data.spots) == nil and #data.bag == 0 and not monster.chest
-	if best and (newcomer or random:NextNumber() < def.egg * Eggs.luck(player) * Config.eventMult("eggs")) then
-		Eggs.drop(player, monster.zone, if monster.chest then nil else monster.rank)
+	if best and (newcomer or monster.golden or random:NextNumber() < def.egg * Eggs.luck(player) * Config.eventMult("eggs")) then
+		-- (Un monstre doré lâche à coup sûr un œuf DORÉ.)
+		Eggs.drop(player, monster.zone, if monster.chest then nil else monster.rank, nil, monster.golden)
+	end
+	if monster.golden then
+		notify(player, "goldenDown", monster.animal, coins)
 	end
 	if monster.boss then
 		if PlayerData.openZone(player, monster.zone + 1) then
@@ -184,6 +219,20 @@ local function die(monster)
 	monster.dead = true
 	monster.target = nil
 	monster.part:SetAttribute("Hp", 0)
+	-- (Le monstre d'un événement : pas de pièces ni d'XP ici, pas de retour ; c'est l'événement qui récompense.)
+	if monster.event then
+		for player in monster.hitters do
+			local fight = fights[player]
+			if fight and fight.target == monster.id then
+				fight.target = nil
+				player:SetAttribute("Target", 0)
+			end
+		end
+		monsters[monster.id] = nil
+		task.delay(1.5, monster.part.Destroy, monster.part)
+		monster.onDown(monster)
+		return
+	end
 	-- La part de chacun, et celui qui a fait le plus de dégâts.
 	local total, top, topDealt = 0, nil, 0
 	for player, dealt in monster.hitters do
@@ -216,14 +265,18 @@ local function hurt(monster, player: Player, amount: number, kind: string)
 	end
 	-- (La potion double dégâts : tous les coups du joueur et de ses familiers. Potions.luau.)
 	local data = PlayerData.get(player)
-	if data and os.time() < (data.pd or 0) then
+	if monster.event then
+		amount = 1 -- (une piñata : chaque coup compte pour 1, quelle que soit l'épée)
+	elseif data and os.time() < (data.pd or 0) then
 		amount *= Config.POTIONS.damage.mult
 	end
 	amount = math.min(amount, monster.hp)
 	monster.hp -= amount
 	monster.hitters[player] = (monster.hitters[player] or 0) + amount
 	monster.part:SetAttribute("Hp", monster.hp)
-	if not monster.chest then
+	if monster.event then
+		player:SetAttribute("DuckHits", monster.hitters[player])
+	elseif not monster.chest then
 		monster.target = monster.target or player
 	end
 	lootEvent:FireClient(player, monster.position, amount, 0, kind)
@@ -339,7 +392,7 @@ local function stepMonster(monster, dt: number, now: number)
 				target:SetAttribute("Target", 0)
 			end
 			monster.target, target, targetRoot = nil, nil, nil
-			monster.hp = monster.def.hp
+			monster.hp = monster.max
 			monster.hitters = {}
 			monster.part:SetAttribute("Hp", monster.hp)
 		end
@@ -374,8 +427,8 @@ local function stepMonster(monster, dt: number, now: number)
 		if fromHome.Magnitude > 12 then
 			-- Il rentre chez lui, et se soigne en route.
 			goal = monster.home
-			if monster.hp < monster.def.hp then
-				monster.hp = monster.def.hp
+			if monster.hp < monster.max then
+				monster.hp = monster.max
 				monster.hitters = {}
 				monster.part:SetAttribute("Hp", monster.hp)
 			end
@@ -448,9 +501,63 @@ end
 function Monsters.list()
 	local list = {}
 	for id, monster in monsters do
-		list[id] = { id = id, zone = monster.zone, rank = monster.rank, chest = monster.chest, animal = monster.animal, hp = monster.hp, max = monster.def.hp, dead = monster.dead, position = monster.position, boss = monster.boss }
+		list[id] = { id = id, zone = monster.zone, rank = monster.rank, chest = monster.chest, animal = monster.animal, hp = monster.hp, max = monster.max, dead = monster.dead, golden = monster.golden, position = monster.position, boss = monster.boss }
 	end
 	return list
+end
+-- LE MONSTRE D'UN ÉVÉNEMENT (GoldenDuck.luau) : un monstre à part, hors des camps. Il ne bouge pas, ne vise
+-- personne, et chaque coup lui enlève 1 (info.hits = les coups qu'il faut). Battu : info.onDown est appelé.
+--   info : { animal, scale, hits, position, folder, onDown }
+function Monsters.spawnEvent(info)
+	local part = Instance.new("Part")
+	part.Name = "Monster_Event"
+	part.Anchored = true
+	part.CanCollide = false
+	part.CanQuery = false
+	part.CanTouch = false
+	part.Transparency = 1
+	part.Size = Vector3.new(2, 2, 2)
+	local id = #monsters + 1
+	part:SetAttribute("Id", id)
+	part:SetAttribute("Animal", info.animal)
+	part:SetAttribute("Rank", 1)
+	part:SetAttribute("Scale", info.scale)
+	part:SetAttribute("Boss", true)
+	part:SetAttribute("Chest", false)
+	part:SetAttribute("Golden", true)
+	part:SetAttribute("Event", true)
+	part:SetAttribute("Level", 0)
+	part:SetAttribute("MaxHp", info.hits)
+	part:SetAttribute("HitAt", 0)
+	part:AddTag("Monster")
+	local def = { hp = info.hits, damage = 0, coins = 0, xp = 0, egg = 0, scale = info.scale, speed = 0, level = 0 }
+	local monster = {
+		id = id, zone = 0, rank = 1, animal = info.animal, def = def, part = part, home = info.position, position = info.position,
+		boss = true, chest = false, event = true, golden = true, reach = Config.MONSTER_REACH + info.scale,
+		max = info.hits, hp = info.hits, hitters = {}, dead = false, nextWander = 0, onDown = info.onDown,
+	}
+	monsters[id] = monster
+	part.CFrame = CFrame.lookAt(info.position, info.position + Vector3.zAxis)
+	part:SetAttribute("Hp", info.hits)
+	part.Parent = info.folder
+	return monster
+end
+-- Il repart sans avoir été battu.
+function Monsters.removeEvent(monster)
+	if monster.dead then
+		return
+	end
+	monster.dead = true
+	monster.part:SetAttribute("Hp", 0)
+	for player in monster.hitters do
+		local fight = fights[player]
+		if fight and fight.target == monster.id then
+			fight.target = nil
+			player:SetAttribute("Target", 0)
+		end
+	end
+	monsters[monster.id] = nil
+	task.delay(1.5, monster.part.Destroy, monster.part)
 end
 function Monsters.hurt(player: Player, id: number, amount: number)
 	if monsters[id] then
@@ -518,7 +625,7 @@ function Monsters.start(world, notifier)
 			local dt = math.min(now - last, 0.5)
 			last = now
 			for _, monster in monsters do
-				if not monster.dead and not monster.chest then
+				if not monster.dead and not monster.chest and not monster.event then
 					stepMonster(monster, dt, now)
 				end
 			end

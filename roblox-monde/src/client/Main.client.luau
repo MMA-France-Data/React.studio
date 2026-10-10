@@ -511,6 +511,30 @@ ReplicatedStorage:WaitForChild("Notify").OnClientEvent:Connect(function(key: str
 		showToast(tr("potionNone"), RED)
 	elseif key == "adminSent" or key == "adminStopped" then
 		showToast(tr(key), GOLD)
+	elseif key == "questCoins" then
+		showToast(tr("questCoins", num(a)), GOLD)
+		Sounds.play("level")
+	elseif key == "questPotion" then
+		showToast(tr("questPotion", tr("potion_" .. a)), GOLD)
+		Sounds.play("level")
+	elseif key == "questEgg" then
+		showToast(tr("questEgg", tr(a), b), GOLD)
+		Sounds.play("hatch")
+	elseif key == "questBoss" then
+		showToast(tr("questBoss", num(b)), GOLD)
+		Sounds.play("level")
+	elseif key == "questBagFull" then
+		showToast(tr("questBagFull"), RED)
+	elseif key == "goldenDown" then
+		showToast(tr("goldenDown", tr(a), num(b)), GOLD)
+		Sounds.play("level")
+	elseif key == "duckWon" then
+		showToast(tr("duckWon", num(a), num(b), c), GOLD)
+		Sounds.play("level")
+	elseif key == "duckFew" then
+		showToast(tr("duckFew", b, a), RED)
+	elseif key == "duckLost" then
+		showToast(tr("duckLost"), RED)
 	elseif key == "tutoDone" then
 		showToast(tr("tutoDone"), GOLD)
 		Sounds.play("level")
@@ -1155,6 +1179,69 @@ do
 		end
 	end)
 
+	-- LE CANARD DORÉ GÉANT (GoldenDuck.luau) : en haut de l'écran, à côté de BASE, un petit canard avec le temps avant
+	-- sa prochaine venue (sa demande : « une icône en haut avec un timer »). 20 secondes avant : le grand bandeau, et
+	-- le minuteur passe au rouge. Pendant qu'il est là : ses coups et le temps qu'il reste, en vert. Un clic sur
+	-- l'icône emmène dans la base.
+	do
+		local D = Config.DUCK
+		local timer = Instance.new("TextButton")
+		timer.Name = "DuckTimer"
+		timer.AnchorPoint = Vector2.new(0.5, 0)
+		timer.Size = UDim2.fromOffset(104, 24)
+		timer.BackgroundColor3 = Color3.fromRGB(150, 110, 20)
+		timer.Text = ""
+		timer.Visible = false
+		Instance.new("UICorner", timer).CornerRadius = UDim.new(0, 8)
+		local line = Instance.new("UIStroke")
+		line.Thickness = 3
+		line.Color = DARK
+		line.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+		line.Parent = timer
+		shade(timer, 1, 0.7)
+		Draw.icon(timer, "duck", UDim2.fromOffset(15, 12), 0.24)
+		local timerLabel = text(timer, "Label", UDim2.new(1, -34, 0.84, 0), UDim2.new(0, 30, 0.08, 0), nil, 18)
+		timer.Parent = gui
+		timer.Activated:Connect(function()
+			ReplicatedStorage:WaitForChild("Travel"):FireServer("base")
+			showToast(tr("duckGo"), GOLD)
+		end)
+		local warned, announced = 0, 0
+		task.spawn(function()
+			local base = gui:WaitForChild("ToBase")
+			while true do
+				timer.Position = base.Position + UDim2.fromOffset(122, 0)
+				local now = workspace:GetServerTimeNow()
+				local at, stays = workspace:GetAttribute("DuckAt") or 0, workspace:GetAttribute("DuckUntil") or 0
+				if stays > now then
+					timer.Visible = true
+					timer.Size = UDim2.fromOffset(150, 24)
+					timer.BackgroundColor3 = Color3.fromRGB(50, 200, 80)
+					timerLabel.Text = tr("duckNow", player:GetAttribute("DuckHits") or 0, clockText(math.floor(stays - now)))
+					if announced ~= stays then
+						announced = stays
+						showBanner(tr("duckHere"), GOLD)
+						Sounds.play("level")
+					end
+				elseif at > 0 then
+					local left = math.max(0, at - now)
+					timer.Visible = true
+					timer.Size = UDim2.fromOffset(104, 24)
+					timer.BackgroundColor3 = if left <= D.warn then Color3.fromRGB(235, 50, 50) else Color3.fromRGB(150, 110, 20)
+					timerLabel.Text = clockText(math.floor(left))
+					if left <= D.warn and left > 0 and warned ~= at then
+						warned = at
+						showBanner(tr("duckSoon", D.warn), GOLD)
+						Sounds.play("level")
+					end
+				else
+					timer.Visible = false
+				end
+				task.wait(0.25)
+			end
+		end)
+	end
+
 	-- « TON AMI EST EN LIGNE » : de temps en temps, on regarde les amis connectés à Roblox qui ne sont pas dans ce
 	-- serveur, et on le dit (une seule fois par ami et par partie).
 	task.spawn(function()
@@ -1289,13 +1376,46 @@ do
 	beam.Enabled = false
 	beam.Parent = anchor
 	anchor.Parent = workspace
+	-- LA QUÊTE EN COURS (Quests.luau ; attribut « Quest » = « monde:camp:quête:battus ») : une fois le tutoriel fini,
+	-- le même cadre affiche la quête : ce qu'il faut battre, où on en est, et ce qu'on gagne.
+	local function showQuest(): boolean
+		local z, r, s, n = string.match(player:GetAttribute("Quest") or "", "^(%d+):(%d+):(%d+):(%d+)$")
+		z, r, s, n = tonumber(z), tonumber(r), tonumber(s), tonumber(n)
+		local animals = z and Pets.COLLECTIONS[z]
+		if not animals or not animals[r] then
+			return false
+		end
+		local animal = tr(animals[r])
+		local reward
+		if r >= 6 then
+			goal.Text = tr("questBossGoal", animal)
+			reward = tr("questRewardBoss", num(Config.monster(z, 5).coins * Config.QUESTS.bossCoins))
+		else
+			local stage = Config.QUESTS.stages[s]
+			goal.Text = tr("questKill", stage.kills, animal, n, stage.kills)
+			if stage.reward == "coins" then
+				reward = tr("questRewardCoins", num(Config.monster(z, r).coins * Config.QUESTS.coins))
+			elseif stage.reward == "potion" then
+				reward = tr("questRewardPotion", tr("potion_" .. Config.QUESTS.potions[(r - 1) % #Config.QUESTS.potions + 1]))
+			else
+				reward = tr("questRewardEgg", animal, Pets.GRADES[Config.QUESTS.grade])
+			end
+		end
+		stepLabel.Text = tr("questTitle", reward)
+		return true
+	end
 	local function refresh()
 		local step = player:GetAttribute("Tutorial") or 0
-		frame.Visible = step > 0
 		ring.Parent = if step > 0 then target(step) else nil
+		local view = workspace.CurrentCamera.ViewportSize
+		frameScale.Scale = math.min(1, view.X / 860)
+		-- (La quête passe DERRIÈRE les fenêtres : elle cachait leur bandeau. Le tutoriel, lui, reste devant.)
+		frame.ZIndex = if step > 0 then 6 else 1
 		if step <= 0 then
+			frame.Visible = showQuest()
 			return
 		end
+		frame.Visible = true
 		stepLabel.Text = tr("tutoStepTitle", step, Config.TUTORIAL_STEPS)
 		if step == 4 then
 			local price = Config.swordPrice(1)
@@ -1306,7 +1426,7 @@ do
 		local view = workspace.CurrentCamera.ViewportSize
 		frameScale.Scale = math.min(1, view.X / 860)
 	end
-	for _, name in { "Tutorial", "Coins" } do
+	for _, name in { "Tutorial", "Coins", "Quest" } do
 		player:GetAttributeChangedSignal(name):Connect(refresh)
 	end
 	task.spawn(function()
@@ -1321,7 +1441,7 @@ do
 			local nearest, best = nil, math.huge
 			if step == 1 and root then
 				for _, part in CollectionService:GetTagged("Monster") do
-					if part:IsA("BasePart") and part:GetAttribute("Rank") == 1 and (part:GetAttribute("Hp") or 0) > 0 then
+					if part:IsA("BasePart") and part:GetAttribute("Rank") == 1 and part:GetAttribute("Event") ~= true and (part:GetAttribute("Hp") or 0) > 0 then
 						local distance = (part.Position - root.Position).Magnitude
 						if distance < best then
 							nearest, best = part, distance
@@ -1637,10 +1757,12 @@ task.spawn(function()
 		-- (Jamais dans la base : il n'y a rien à combattre, et le personnage partirait tout seul vers la zone.)
 		local zone1 = workspace:FindFirstChild("Zones") and workspace.Zones:FindFirstChild("Zone1")
 		local inBase = root ~= nil and root.Position.Z < ((zone1 and zone1:GetAttribute("ZMin")) or 30) + 4
-		if inBase then
+		-- (Sauf quand le canard doré géant est là : c'est dans la base qu'on le combat.)
+		local duckHere = (workspace:GetAttribute("DuckUntil") or 0) > workspace:GetServerTimeNow()
+		if inBase and not duckHere then
 			anchor = nil
 		end
-		if auto and root and humanoid and humanoid.Health > 0 and not busy and not inBase then
+		if auto and root and humanoid and humanoid.Health > 0 and not busy and (not inBase or duckHere) then
 			if steering() then
 				lastSteer = os.clock()
 			end
@@ -1666,8 +1788,23 @@ task.spawn(function()
 				if best then
 					local reach = Config.ATTACK_REACH + (best:GetAttribute("Scale") or 1) - 1
 					local away = Vector3.new(root.Position.X - best.Position.X, 0, root.Position.Z - best.Position.Z)
-					if away.Magnitude > reach then
-						local goal = best.Position + away.Unit * (reach - 1.5)
+					-- (Un rond rouge du canard doré là où l'AUTO veut aller : il attend dehors au lieu d'y ramener le joueur
+					-- qui vient d'en sortir. Esquiver reste au joueur : l'AUTO ne sort pas du rond à sa place.)
+					local wanted = best.Position + away.Unit * (reach - 1.5)
+					local blocked = false
+					local hazards = workspace:FindFirstChild("GoldenDuck")
+					if hazards and away.Magnitude > reach then
+						for _, disc in hazards:GetChildren() do
+							if disc.Name == "DuckDanger" and Vector3.new(disc.Position.X - wanted.X, 0, disc.Position.Z - wanted.Z).Magnitude <= disc.Size.Y / 2 + 1.5 then
+								blocked = true
+								break
+							end
+						end
+					end
+					if blocked then
+						halt()
+					elseif away.Magnitude > reach then
+						local goal = wanted
 						local now = os.clock()
 						local point = route and route[routeIndex]
 						if point and now < routeUntil and (goal - routeGoal).Magnitude < 8 then

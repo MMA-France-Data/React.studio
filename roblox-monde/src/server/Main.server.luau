@@ -99,9 +99,9 @@ end)
 local takeEvent = Instance.new("RemoteEvent")
 takeEvent.Name = "TakeEgg"
 takeEvent.Parent = ReplicatedStorage
-takeEvent.OnServerEvent:Connect(function(player, animal, rank)
+takeEvent.OnServerEvent:Connect(function(player, animal, rank, golden)
 	if typeof(animal) == "string" and typeof(rank) == "number" then
-		Eggs.placeNow(player, animal, rank)
+		Eggs.placeNow(player, animal, rank, golden == true)
 	end
 end)
 -- Enclos plein : le familier du sac (son rang) prend la place d'un familier de l'enclos (sa place), qui part au sac.
@@ -186,6 +186,8 @@ require(script.Parent.Admin).start(notify)
 require(script.Parent.Store).start(notify)
 require(script.Parent.Tutorial).start(notify)
 require(script.Parent.Funnel).start()
+require(script.Parent.GoldenDuck).start(notify)
+require(script.Parent.Quests).start(notify)
 
 -- (Un nouveau joueur commence SANS familier : il bat des canards à l'épée, qui lâchent souvent leur œuf.)
 local _ = Pets

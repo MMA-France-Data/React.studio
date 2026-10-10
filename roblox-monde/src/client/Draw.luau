@@ -246,6 +246,18 @@ function Draw.gear(parent: Instance, position: UDim2, scale: number, color: Colo
 	return gear
 end
 
+-- UN CANARD (doré) : le corps, la tête, le bec, l'œil et une aile.
+function Draw.duck(parent: Instance, position: UDim2, scale: number, color: Color3?): Frame
+	local duck = holder(parent, "Duck", position, scale)
+	local feather = color or Color3.fromRGB(255, 205, 40)
+	Draw.shade(Draw.round(duck, "Body", UDim2.fromOffset(74, 54), UDim2.fromOffset(10, 50), feather, UDim.new(0.5, 0), 3), 1, 0.72)
+	Draw.round(duck, "Beak", UDim2.fromOffset(30, 14), UDim2.fromOffset(78, 34), Color3.fromRGB(255, 130, 30), UDim.new(0, 6), 3)
+	Draw.shade(Draw.round(duck, "Head", UDim2.fromOffset(44, 44), UDim2.fromOffset(48, 14), feather, UDim.new(0.5, 0), 3), 1, 0.8)
+	Draw.round(duck, "Eye", UDim2.fromOffset(9, 9), UDim2.fromOffset(72, 28), DARK, UDim.new(0.5, 0))
+	Draw.round(duck, "Wing", UDim2.fromOffset(36, 22), UDim2.fromOffset(20, 64), feather:Lerp(Color3.new(0, 0, 0), 0.18), UDim.new(0.5, 0))
+	return duck
+end
+
 -- L'ICÔNE PAR SON NOM (pour les bandeaux des fenêtres et les boutons du menu).
 local ICONS = {
 	gift = function(parent, position, scale, color)
@@ -264,6 +276,7 @@ local ICONS = {
 	cart = Draw.cart,
 	coin = Draw.coin,
 	gear = Draw.gear,
+	duck = Draw.duck,
 }
 function Draw.icon(parent: Instance, kind: string, position: UDim2, scale: number, color: Color3?): Frame
 	return ICONS[kind](parent, position, scale, color)

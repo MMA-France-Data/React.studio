@@ -34,13 +34,16 @@ end
 -- valeur cachée du futur familier est tirée aussi (`b`) : l'œuf est d'autant plus gros qu'elle est haute.
 -- Renvoie l'œuf, ou nil si le joueur ne peut plus en porter.
 -- rank : le rang de l'œuf (un monstre lâche l'œuf de SON animal) ; sans lui (un coffre), le rang est tiré au sort.
-function Eggs.drop(player: Player, zone: number, rank: number?)
+-- grade : la note promise (1 = C ... 4 = S), pour l'œuf d'une quête ; sans elle, la note est tirée au sort.
+-- golden : un œuf DORÉ (celui d'un monstre doré) : son familier sera doré (Pets.GOLD).
+function Eggs.drop(player: Player, zone: number, rank: number?, grade: number?, golden: boolean?)
 	local data = PlayerData.get(player)
 	if not data or not Pets.COLLECTIONS[zone] or #data.bag >= Pets.MAX_BAG then
 		return nil
 	end
 	rank = rank or Pets.roll(random, zone, Eggs.luck(player))
-	local egg = { a = Pets.COLLECTIONS[zone][rank], q = rank, r = zone, b = Pets.rollValue(random, rank) }
+	local value = if grade then Pets.valueOfGrade(random, rank, grade) else Pets.rollValue(random, rank)
+	local egg = { a = Pets.COLLECTIONS[zone][rank], q = rank, r = zone, b = value, g = if golden then true else nil }
 	table.insert(data.bag, egg)
 	PlayerData.changed(player)
 	notify(player, "eggDrop", egg.a, egg.q)
@@ -118,6 +121,7 @@ function Eggs.place(player: Player, x: number?, z: number?): (boolean, string?)
 		q = egg.q,
 		r = egg.r,
 		b = egg.b,
+		g = egg.g,
 		t = os.time() + seconds,
 		d = seconds,
 		x = math.clamp(x, pen.minX, pen.maxX),
@@ -131,13 +135,13 @@ end
 -- POSER UN ŒUF D'UN CLIC (demande du créateur, 09/10 : « le système de poser, c'est trop la galère » ; son choix :
 -- « un clic et il est posé »). L'œuf de cet animal et de ce rang quitte le sac et se pose tout seul dans l'enclos,
 -- à l'endroit le plus dégagé : plus besoin de le porter ni de cliquer par terre.
-function Eggs.placeNow(player: Player, animal: string, rank: number): boolean
+function Eggs.placeNow(player: Player, animal: string, rank: number, golden: boolean?): boolean
 	local data = PlayerData.get(player)
 	if not data then
 		return false
 	end
 	for index, egg in data.bag do
-		if egg.a == animal and egg.q == rank then
+		if egg.a == animal and egg.q == rank and (egg.g == true) == (golden == true) then
 			table.insert(data.bag, 1, table.remove(data.bag, index))
 			Eggs.release(player)
 			-- L'endroit le plus loin de tout ce qui est déjà posé, parmi quelques essais.
@@ -179,7 +183,7 @@ function Eggs.hatch(player: Player, all: boolean?): number
 		if spot.t and (all or now >= spot.t) then
 			local base = spot.b or Pets.rollValue(random, spot.q)
 			local value = base * Pets.roomFactor(spot.r or 1)
-			local pet = { a = spot.a, q = spot.q, v = value, l = Pets.luckPercent(base, spot.r or 1), x = spot.x, z = spot.z, lv = 1, xp = 0 }
+			local pet = { a = spot.a, q = spot.q, v = value, l = Pets.luckPercent(base, spot.r or 1), x = spot.x, z = spot.z, lv = 1, xp = 0, g = spot.g }
 			hatched += 1
 			-- Le familier prend une place libre de l'enclos (celle de son œuf, si c'en est une) ; enclos plein : au SAC.
 			local home = if tonumber(key) <= data.places then key else nil
@@ -198,7 +202,7 @@ function Eggs.hatch(player: Player, all: boolean?): number
 				if #data.team < Config.TEAM then
 					table.insert(data.team, home)
 				end
-				notify(player, "hatched", spot.a, spot.q, Pets.incomeOf(spot.a, value))
+				notify(player, "hatched", spot.a, spot.q, Pets.incomeOf(spot.a, value, spot.g))
 			else
 				pet.x, pet.z = nil, nil
 				table.insert(data.store, pet)
@@ -225,7 +229,7 @@ function Eggs.sell(player: Player, spot: number): boolean
 	if not pet or not pet.v then
 		return false
 	end
-	local coins = Pets.sellPrice(pet.a, pet.v)
+	local coins = Pets.sellPrice(pet.a, pet.v, pet.g)
 	if held[player] == key then
 		setHeld(player, nil)
 	end
@@ -290,7 +294,7 @@ function Eggs.hold(player: Player, spot: number): boolean
 		return true
 	end
 	setHeld(player, key)
-	notify(player, "holdPet", pet.a, Pets.sellPrice(pet.a, pet.v))
+	notify(player, "holdPet", pet.a, Pets.sellPrice(pet.a, pet.v, pet.g))
 	return true
 end
 -- Vend un familier du SAC (son rang dans le sac). Demande du créateur, 09/10 : la vente se fait au vendeur, sans y
@@ -302,7 +306,7 @@ function Eggs.sellStored(player: Player, index: number): boolean
 		return false
 	end
 	table.remove(data.store, index)
-	local coins = Pets.sellPrice(pet.a, pet.v)
+	local coins = Pets.sellPrice(pet.a, pet.v, pet.g)
 	PlayerData.addCoins(player, coins)
 	notify(player, "sold", pet.a, coins)
 	return true

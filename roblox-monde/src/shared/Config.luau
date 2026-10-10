@@ -257,6 +257,41 @@ Config.STORE = {
 	},
 }
 Config.PASS_ORDER = { "xp", "coins" }
+-- LES QUÊTES (Quests.luau) : pour chaque animal, trois quêtes à la suite. kills : les monstres à battre ; reward :
+-- ce qu'elle donne. coins : autant de pièces que ce nombre de monstres du camp ; bossCoins : pareil pour la quête
+-- du boss (en monstres du camp 5) ; potions : celles des quêtes « potion », à tour de rôle d'un camp à l'autre ;
+-- grade : la note promise de l'œuf de la troisième quête (4 = S, sa demande : « rang S sur le cochon quand tu en
+-- bats 30 »).
+Config.QUESTS = {
+	stages = { { kills = 10, reward = "coins" }, { kills = 20, reward = "potion" }, { kills = 30, reward = "egg" } },
+	coins = 25, bossCoins = 50, potions = { "xp", "coins", "damage" }, grade = 4,
+}
+-- LES MONSTRES DORÉS (10/10, pour casser la répétition) : de temps en temps, un monstre d'un camp revient DORÉ, un
+-- peu plus gros. chance : par retour d'un monstre (son chiffre : « sur 30 morts en moyenne ») ; coins : ses pièces
+-- sont multipliées par ça ; hp : sa vie aussi (« deux fois plus dur à tuer »).
+-- IL LÂCHE À COUP SÛR UN ŒUF DORÉ (« 100 % d'œuf doré, double stats avec animal doré ») : le familier qui en sort
+-- est doré, et ses dégâts, sa vie, ses pièces par seconde et son prix de vente sont multipliés par Pets.GOLD.
+-- (Pas d'XP en plus pour le monstre : c'est l'XP qui tient la durée des mondes.)
+Config.GOLDEN = { chance = 1 / 30, coins = 10, hp = 2, scale = 1.25 }
+-- LE CANARD DORÉ GÉANT (GoldenDuck.luau) : il apparaît dans l'allée de la base toutes les `every` secondes, l'alerte
+-- passe `warn` secondes avant, et il reste `stay` secondes au plus.
+--   hits : les coups qu'il faut (chaque coup compte pour 1), + hitsMore par joueur du serveur en plus du premier.
+--   minHits : les coups à donner pour avoir la récompense.
+--   LA RÉCOMPENSE (son choix du 10/10 : « full pièces, XP, rien d'autre, et suivant la progression du joueur ») :
+--   coins et xp = autant de pièces et d'XP que ce nombre de monstres du CAMP LE PLUS FORT qu'il a déjà battu
+--   (data.hz, data.hr). Pas d'œuf, pas de potion.
+--   eggRadius / eggWarn : le rond des œufs qui tombent et le temps pour en sortir ; stompRadius / stompWarn : le
+--   grand rond du coup de patte ; attackEvery : secondes entre deux attaques.
+Config.DUCK = {
+	every = 600, warn = 20, stay = 90,
+	-- (Dans l'allée, entre la porte de l'aventure et la banderole : loin du point d'apparition et de la fontaine.)
+	spot = Vector3.new(0, 0, -12), animal = "Duck", scale = 12,
+	hits = 60, hitsMore = 40, hitsMax = 300,
+	minHits = 10, coins = 15, xp = 15,
+	-- (Son retour : « laisse un temps pour esquiver, hein » : 2,5 s pour sortir d'un rond d'œuf, 3,5 s pour le
+	-- grand rond, et 6 s entre deux attaques.)
+	eggRadius = 8, eggWarn = 2.5, stompRadius = 24, stompWarn = 3.5, attackEvery = 6, eggRange = 40,
+}
 -- LE MINI TUTORIEL des nouveaux joueurs (Tutorial.luau) : le nombre d'étapes.
 Config.TUTORIAL_STEPS = 6
 -- LES MONDES SONT TOUJOURS OUVERTS (sa demande du 09/10 : « ouvrir tous les mondes tout le temps permet de visiter ;
