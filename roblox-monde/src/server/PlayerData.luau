@@ -227,7 +227,8 @@ local function clean(raw)
 	end
 	if type(raw.bag) == "table" then
 		for _, egg in raw.bag do
-			if validEgg(egg) and #data.bag < Pets.MAX_BAG then
+			-- (Un peu plus que MAX_BAG : les œufs promis des quêtes sont donnés même sac plein, Eggs.drop.)
+			if validEgg(egg) and #data.bag < Pets.MAX_BAG + 30 then
 				table.insert(data.bag, { a = egg.a, q = egg.q, r = if type(egg.r) == "number" then egg.r else 1, b = if type(egg.b) == "number" then egg.b else nil, g = if egg.g == true then true else nil })
 			end
 		end

@@ -67,8 +67,8 @@ local function finish(player: Player, data): boolean
 			Potions.give(player, kind, 1)
 			notify(player, "questPotion", kind)
 		else
-			-- L'œuf de CET animal, avec la note promise.
-			if not Eggs.drop(player, q.z, q.r, Q.grade) then
+			-- L'œuf de CET animal, avec la note promise. Il est donné même si le sac d'œufs est plein.
+			if not Eggs.drop(player, q.z, q.r, Q.grade, false, true) then
 				notify(player, "questBagFull")
 				return false
 			end
@@ -109,6 +109,12 @@ function Quests.start(notifier)
 			task.wait(1)
 			for _, player in Players:GetPlayers() do
 				ensure(player)
+				-- (Une quête restée « finie » sans sa récompense : on la redonne ici, sans attendre un monstre.)
+				local data = PlayerData.get(player)
+				local q = data and data.q
+				if q and q.z > 0 and q.n >= Quests.need(q) then
+					finish(player, data)
+				end
 				publish(player)
 			end
 		end

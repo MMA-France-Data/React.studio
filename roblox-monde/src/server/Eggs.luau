@@ -36,15 +36,22 @@ end
 -- rank : le rang de l'œuf (un monstre lâche l'œuf de SON animal) ; sans lui (un coffre), le rang est tiré au sort.
 -- grade : la note promise (1 = C ... 4 = S), pour l'œuf d'une quête ; sans elle, la note est tirée au sort.
 -- golden : un œuf DORÉ (celui d'un monstre doré) : son familier sera doré (Pets.GOLD).
-function Eggs.drop(player: Player, zone: number, rank: number?, grade: number?, golden: boolean?)
+-- promised : un œuf PROMIS (la récompense d'une quête) : il est donné même si le sac est plein, et rangé en tête
+-- du sac (c'est lui qui sera posé en premier). Retour du créateur, 10/10 : « j'ai fini la dernière quête et j'ai
+-- toujours le bandeau et pas d'œuf » : son sac était plein, la quête restait bloquée.
+function Eggs.drop(player: Player, zone: number, rank: number?, grade: number?, golden: boolean?, promised: boolean?)
 	local data = PlayerData.get(player)
-	if not data or not Pets.COLLECTIONS[zone] or #data.bag >= Pets.MAX_BAG then
+	if not data or not Pets.COLLECTIONS[zone] or (#data.bag >= Pets.MAX_BAG and not promised) then
 		return nil
 	end
 	rank = rank or Pets.roll(random, zone, Eggs.luck(player))
 	local value = if grade then Pets.valueOfGrade(random, rank, grade) else Pets.rollValue(random, rank)
 	local egg = { a = Pets.COLLECTIONS[zone][rank], q = rank, r = zone, b = value, g = if golden then true else nil }
-	table.insert(data.bag, egg)
+	if promised then
+		table.insert(data.bag, 1, egg)
+	else
+		table.insert(data.bag, egg)
+	end
 	PlayerData.changed(player)
 	notify(player, "eggDrop", egg.a, egg.q)
 	return egg
