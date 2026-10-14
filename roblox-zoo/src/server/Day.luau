@@ -10,6 +10,7 @@ local Animals = require(script.Parent.Animals)
 local Config = require(ReplicatedStorage.Shared.Config)
 local Map = require(script.Parent.Map)
 local Market = require(script.Parent.Market)
+local Weather = require(script.Parent.Weather)
 local Staff = require(script.Parent.Staff)
 local Tasks = require(script.Parent.Tasks)
 local Visitors = require(script.Parent.Visitors)
@@ -91,6 +92,12 @@ local function night()
 		total = total,
 		births = births,
 		lost = today.lost or 0,
+		old = today.old or 0,
+		refused = today.refused or 0,
+		weather = Weather.weather.fr,
+		event = if Weather.event then Weather.event.fr else nil,
+		inspection = today.inspection,
+		journalist = today.journalist,
 		starsBefore = before,
 		starsAfter = state.stars,
 		balance = state.money,
@@ -102,8 +109,19 @@ local function morning()
 	Zoo.resetToday()
 	setPhase("morning")
 	setClock(Config.OPEN_HOUR - 0.5)
+	-- La météo et l'événement du jour (Weather.luau), avant de savoir combien de visiteurs viendront.
+	Weather.morning(Zoo.state.day)
 	local expected = Visitors.morning()
 	Market.refresh() -- (les autres zoos ont de nouveaux animaux chaque matin)
+	-- (La tempête a renversé des poubelles : des papiers partout.)
+	if Weather.weather.trash then
+		local random = Random.new()
+		for _ = 1, Weather.weather.trash do
+			local edge = Config.PATH_EDGES[random:NextInteger(1, #Config.PATH_EDGES)]
+			local a, b = Config.PATH_NODES[edge[1]], Config.PATH_NODES[edge[2]]
+			Tasks.addTrash(a:Lerp(b, random:NextNumber()) + Vector3.new(random:NextNumber(-4, 4), 0, random:NextNumber(-4, 4)))
+		end
+	end
 	shared:SetAttribute("Expected", expected)
 	Zoo.notify(nil, "morning", Zoo.state.day, expected)
 end

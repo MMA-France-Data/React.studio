@@ -20,6 +20,7 @@ const scenarios = {
 	save: ['SaveServer.luau', 'PhotoClient.luau'],
 	ground: ['GroundServer.luau', 'PhotoClient.luau'],
 	market: ['MarketServer.luau', 'MarketClient.luau'],
+	life: ['LifeServer.luau', 'MarketClient.luau'],
 };
 if (!scenarios[mode]) {
 	console.error(`Test inconnu : ${mode} (attendu : ${Object.keys(scenarios).join(', ')})`);

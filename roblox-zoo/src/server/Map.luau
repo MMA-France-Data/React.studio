@@ -100,6 +100,25 @@ local LINKS = {
 	{ v3(54, 0, 88), v3(54, 0, 106), 9 }, -- devant le bar
 	{ v3(4, 0, 10), v3(29, 0, 10), 10 }, -- vers la deuxième réserve
 }
+-- Un petit chemin de chaque emplacement de stand jusqu'à l'allée (devant le stand).
+for _, spot in Config.SHOP_SPOTS do
+	local front = spot.center + spot.facing * (Config.SHOP_SIZE.Y / 2 + 1)
+	local best, bestDistance = front, math.huge
+	for _, edge in Config.PATH_EDGES do
+		local a, b = Config.PATH_NODES[edge[1]], Config.PATH_NODES[edge[2]]
+		local along = b - a
+		local t = math.clamp((front - a):Dot(along) / along:Dot(along), 0, 1)
+		local point = a + along * t
+		local distance = (point - front).Magnitude
+		if distance < bestDistance then
+			best, bestDistance = point, distance
+		end
+	end
+	if bestDistance < 40 then
+		table.insert(LINKS, { front, best, 9 })
+	end
+	table.insert(LINKS, { front - spot.facing * 1, front + spot.facing * 4, 14 })
+end
 -- La place (voir onPath) et le chemin des visiteurs dessus (Visitors.luau).
 local PLAZA_CENTER = v3(0, 0, 150)
 local PLAZA_LINKS = {
@@ -468,34 +487,59 @@ end
 -- LES RÉSERVES : le foin, le grain, la viande et les trousses de soins, sur un grand comptoir (les points où on les
 -- prend sont dans Map.stores, pour Tasks.luau et Staff.luau : { hay = bloc, grain = ..., facing = vers où on se tient }).
 Map.stores = {}
-local function buildStore(store)
+local function buildStore(store, index: number)
 	local base = CFrame.lookAt(store.center, store.center + store.facing)
 	Props.lodge(folder, base, 16, 10, 9, { openFront = true, title = "RÉSERVE", rise = 5 })
-	local points = { facing = store.facing }
-	for i, kind in { "hay", "grain", "meat", "kit" } do
-		local x = -6 + (i - 1) * 4
+	local points = { facing = store.facing, labels = {} }
+	-- Le comptoir : le foin, le grain, la viande, la pharmacie (les médicaments), les produits des stands.
+	for i, kind in { "hay", "grain", "meat", "pharmacy", "shop" } do
+		local x = -6 + (i - 1) * 3
 		local spot = base * CFrame.new(x, 0, -2)
 		if kind == "hay" then
 			for j = 0, 2 do
-				part(folder, "HayBale", v3(3, 1.6, 2.2), spot * CFrame.new(0, 1.6 + j * 1.6, 2), Config.FOODS.hay.color, M.Grass, true)
+				part(folder, "HayBale", v3(2.6, 1.6, 2.2), spot * CFrame.new(0, 1.6 + j * 1.6, 2), Config.FOODS.hay.color, M.Grass, true)
 			end
 		elseif kind == "grain" then
 			for j = 0, 2 do
-				Props.ball(folder, "GrainSack", 2.2, (spot * CFrame.new((j - 1) * 0.6, 1.8 + j * 0.9, 2)).Position, rgb(222, 206, 166), M.Fabric)
+				Props.ball(folder, "GrainSack", 2, (spot * CFrame.new((j - 1) * 0.5, 1.8 + j * 0.9, 2)).Position, rgb(222, 206, 166), M.Fabric)
 			end
 		elseif kind == "meat" then
-			part(folder, "Freezer", v3(3.4, 3.6, 2.4), spot * CFrame.new(0, 2.6, 2), rgb(236, 240, 244), M.Metal, true)
-		else
-			local box = part(folder, "Kit", v3(3, 2.2, 1.8), spot * CFrame.new(0, 2, 2), rgb(244, 244, 244), M.SmoothPlastic, true)
+			part(folder, "Freezer", v3(2.6, 3.6, 2.4), spot * CFrame.new(0, 2.6, 2), rgb(236, 240, 244), M.Metal, true)
+		elseif kind == "pharmacy" then
+			local box = part(folder, "Pharmacy", v3(2.6, 3, 1.4), spot * CFrame.new(0, 2.3, 2.4), rgb(244, 244, 244), M.SmoothPlastic, true)
 			Props.label(box, Enum.NormalId.Front, "+", rgb(220, 50, 50))
+		else
+			for j = 0, 2 do
+				part(folder, "Crate", v3(2.4, 1.4, 1.8), spot * CFrame.new(0, 1.5 + j * 1.45, 2), if j % 2 == 0 then rgb(196, 150, 96) else rgb(176, 130, 80), M.Wood, true)
+			end
 		end
-		-- Le point du comptoir où l'on prend la chose.
-		local counter = part(folder, "Take_" .. kind, v3(3.4, 0.4, 1.4), base * CFrame.new(x, 4.4, -5.6), Props.WOOD_LIGHT, M.Wood)
+		-- Le point du comptoir où l'on prend la chose, avec ce qu'il reste en stock.
+		local counter = part(folder, "Take_" .. kind, v3(2.8, 0.4, 1.4), base * CFrame.new(x, 4.4, -5.6), Props.WOOD_LIGHT, M.Wood)
 		counter.CanQuery = true
 		points[kind] = counter
+		local board = part(folder, "StockBoard", v3(2.8, 1.1, 0.2), base * CFrame.new(x, 5.4, -6.2), Props.WOOD, M.WoodPlanks)
+		points.labels[kind] = Props.label(board, Enum.NormalId.Front, "", rgb(255, 236, 170))
+	end
+	-- Le coin des cartons (on y range ceux du camion) et l'ordinateur des commandes, sur le côté.
+	local shelf = part(folder, "Shelf", v3(4, 0.5, 3), base * CFrame.new(-10.6, 0.25, -1), Props.WOOD_LIGHT, M.WoodPlanks, true)
+	for j = 0, 1 do
+		part(folder, "ShelfBox", v3(1.6, 1.2, 1.4), base * CFrame.new(-10.6 + (j - 0.5) * 1.8, 1.1, -0.4), rgb(186, 146, 96), M.Cardboard)
+	end
+	Props.sign(folder, (base * CFrame.new(-10.6, 0, 1.2)).Position, store.facing, "Cartons", 4)
+	points.shelf = shelf
+	if index == 1 then
+		local desk = part(folder, "Desk", v3(3, 3, 1.6), base * CFrame.new(-10.6, 1.5, 4.5), Props.WOOD, M.Wood, true)
+		local computer = part(folder, "Computer", v3(1.8, 1.3, 0.2), base * CFrame.new(-10.6, 3.7, 4.3), rgb(30, 34, 40), M.SmoothPlastic, true)
+		local screen = part(folder, "Screen", v3(1.6, 1.1, 0.05), base * CFrame.new(-10.6, 3.7, 4.18), rgb(90, 200, 255), M.Neon)
+		_ = desk
+		_ = screen
+		points.computer = computer
 	end
 	table.insert(Map.stores, points)
 end
+
+-- LE QUAI DE LIVRAISON : à côté de la première réserve, là où le camion dépose les cartons.
+Map.dock = Config.STORES[1].center + v3(14, 0, 2)
 
 -- LA VÉGÉTATION : des forêts tropicales tout autour du parc, sur les pentes, le long des allées, autour du lac.
 local slots = {}
@@ -663,8 +707,8 @@ function Map.build()
 	for _, plot in Config.PLOTS do
 		table.insert(slots, { center = plot.center, half = plot.size / 2 })
 	end
-	for _, building in Config.BUILDINGS do
-		table.insert(slots, { center = building.center, half = building.size / 2 + Vector2.new(2, 2) })
+	for _, spot in Config.SHOP_SPOTS do
+		table.insert(slots, { center = spot.center, half = Config.SHOP_SIZE / 2 + Vector2.new(3, 3) })
 	end
 	for _, store in Config.STORES do
 		table.insert(slots, { center = store.center, half = Vector2.new(9, 11) })
@@ -676,8 +720,8 @@ function Map.build()
 	buildLake(random)
 	buildEntrance()
 	buildPlaza(random)
-	for _, store in Config.STORES do
-		buildStore(store)
+	for index, store in Config.STORES do
+		buildStore(store, index)
 	end
 	buildPlants(random)
 	-- L'endroit où le joueur apparaît : sur la place, face au zoo.

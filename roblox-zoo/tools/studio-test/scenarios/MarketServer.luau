@@ -33,7 +33,9 @@ return function(log)
 	debug:Invoke("Buy", "s2", "sheep")
 	local brother = debug:Invoke("Give", "s2", "Sheep", "m", "Ferme test", 901, 902)
 	local sister = debug:Invoke("Give", "s2", "Sheep", "f", "Ferme test", 901, 902)
-	debug:Invoke("Breed", "s2", "Sheep", 5)
+	debug:Invoke("Conceive", 1)
+	debug:Invoke("Night")
+	debug:Invoke("Due", sister)
 	debug:Invoke("Night")
 	local babies = {}
 	for _, animal in debug:Invoke("InSpace", "s2") do

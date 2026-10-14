@@ -20,6 +20,7 @@ return function()
 	local source = ReplicatedStorage:WaitForChild("ZooAnimals")
 	local spaces = workspace:WaitForChild("Spaces")
 	local treat = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Treat")
+	local examine = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Examine")
 	local folder = Instance.new("Folder")
 	folder.Name = "ZooAnimalsView"
 	folder.Parent = workspace
@@ -144,6 +145,7 @@ return function()
 		corner.Parent = mark
 		cross.Parent = view.model.PrimaryPart
 		view.cross = cross
+		-- Malade : d'abord l'examiner (on saura ce qu'il a), puis le soigner avec le bon médicament.
 		local prompt = Instance.new("ProximityPrompt")
 		prompt.ActionText = "Soigner"
 		prompt.ObjectText = ""
@@ -153,7 +155,11 @@ return function()
 		prompt.KeyboardKeyCode = Enum.KeyCode.E
 		prompt.Parent = view.model.PrimaryPart
 		prompt.Triggered:Connect(function()
-			treat:FireServer(view.id)
+			if view.item:GetAttribute("Examined") then
+				treat:FireServer(view.id)
+			else
+				examine:FireServer(view.id)
+			end
 		end)
 		view.prompt = prompt
 	end
@@ -175,12 +181,16 @@ return function()
 		local item = view.item
 		local happy = item:GetAttribute("Happy") or 100
 		local sick = item:GetAttribute("Sick") == true
-		local mood = if sick then "malade" elseif happy >= 70 then "content" elseif happy >= 45 then "bof" else "triste"
+		local disease = Config.DISEASES[item:GetAttribute("Disease") or ""]
+		local examined = item:GetAttribute("Examined") == true
+		local mood = if sick then (if disease and examined then disease.fr else "malade") elseif (item:GetAttribute("Pregnant") or 0) > 0 then "enceinte" elseif happy >= 70 then "content" elseif happy >= 45 then "bof" else "triste"
 		view.tagLabel.Text = nameOf(view) .. "  ·  " .. mood
 		view.tagLabel.TextColor3 = if sick then Color3.fromRGB(255, 120, 120) elseif happy >= 70 then Color3.fromRGB(170, 255, 150) elseif happy >= 45 then Color3.fromRGB(255, 230, 140) else Color3.fromRGB(255, 160, 120)
 		view.cross.Enabled = sick
 		view.prompt.Enabled = sick
 		view.prompt.ObjectText = nameOf(view)
+		view.prompt.ActionText = if examined then "Soigner (" .. (if disease then Config.STOCK[disease.med].fr else "?") .. ")" else "Examiner"
+		view.prompt.HoldDuration = if examined then 1 else 2
 	end
 
 	-- (Re)fabrique le modèle d'un animal (au départ, et quand il grandit).

@@ -14,6 +14,8 @@ local Enclosures = require(script.Parent.Enclosures)
 local Map = require(script.Parent.Map)
 local Npc = require(script.Parent.Npc)
 local Paths = require(script.Parent.Paths)
+local Shops = require(script.Parent.Shops)
+local Stock = require(script.Parent.Stock)
 local Tasks = require(script.Parent.Tasks)
 local Visitors = require(script.Parent.Visitors)
 local Zoo = require(script.Parent.Zoo)
@@ -139,16 +141,29 @@ function JOBS.cashier(worker)
 	end
 end
 
+-- (Un manque dans le stock : on le dit au joueur, pas plus d'une fois par minute pour chaque produit.)
+local warned = {}
+local function shortage(item: string)
+	if os.clock() - (warned[item] or -999) > 60 then
+		warned[item] = os.clock()
+		Zoo.notify(nil, "staffShortage", Config.STOCK[item].fr)
+	end
+end
+
 function JOBS.keeper(worker)
 	while worker.alive do
-		-- La mangeoire la plus vide (sous 40 %) que personne d'autre n'est parti remplir.
+		-- La mangeoire la plus vide (sous 40 %) que personne d'autre n'est parti remplir, s'il y a du stock pour elle.
 		local best, bestLevel = nil, 40
 		for spaceId, space in Enclosures.spaces do
 			if space.open then
 				for food, trough in space.troughs do
 					local key = "trough|" .. spaceId .. "|" .. food
 					if not claimed[key] and trough.level < bestLevel then
-						best, bestLevel = { space = spaceId, food = food, key = key, trough = trough }, trough.level
+						if Stock.get(food) > 0 then
+							best, bestLevel = { space = spaceId, food = food, key = key, trough = trough }, trough.level
+						else
+							shortage(food)
+						end
 					end
 				end
 			end
@@ -160,7 +175,7 @@ function JOBS.keeper(worker)
 		end
 		claimed[best.key] = true
 		local ok = travel(worker, storeSpot(best.food, best.trough.position), 2)
-		if ok and Zoo.spend(Config.FOODS[best.food].price, "food") then
+		if ok and Stock.take(best.food, 1) > 0 then
 			task.wait(0.8)
 			if enter(worker, best.space, best.trough.position + (best.trough.base.LookVector * -2.5)) then
 				task.wait(1.2)
@@ -173,24 +188,36 @@ function JOBS.keeper(worker)
 	end
 end
 
+-- L'agent d'entretien : les crottes, les papiers, les poubelles presque pleines, les toilettes sales (au plus près).
 function JOBS.cleaner(worker)
 	while worker.alive do
 		local here = worker.npc.root.Position
-		local best, bestDistance = nil, math.huge
-		for _, item in Enclosures.allPoops() do
-			if not claimed[item] and item.Parent then
-				local distance = (item.Position - here).Magnitude
+		local best, bestDistance, bestKind = nil, math.huge, nil
+		local function consider(item, position: Vector3, kind: string, weight: number)
+			if not claimed[item] then
+				local distance = (position - here).Magnitude * weight
 				if distance < bestDistance then
-					best, bestDistance = item, distance
+					best, bestDistance, bestKind = item, distance, kind
 				end
 			end
 		end
+		for _, item in Enclosures.allPoops() do
+			if item.Parent then
+				consider(item, item.Position, "poop", 1)
+			end
+		end
 		for _, item in Tasks.trash() do
-			if not claimed[item] and item.Parent then
-				local distance = (item.Position - here).Magnitude * 0.8
-				if distance < bestDistance then
-					best, bestDistance = item, distance
-				end
+			if item.Parent then
+				consider(item, item.Position, "trash", 0.8)
+			end
+		end
+		for _, bin in Shops.fullBins(Config.BIN_MAX - 6) do
+			consider(bin, bin.part.Position, "bin", 0.6)
+		end
+		for id, spot in Shops.spots do
+			local shop = Zoo.state.shops[id]
+			if spot.open and shop and shop.t == "toilets" and shop.d >= 40 then
+				consider(spot, spot.front, "toilets", 0.5)
 			end
 		end
 		if not best then
@@ -199,20 +226,32 @@ function JOBS.cleaner(worker)
 			continue
 		end
 		claimed[best] = true
-		local spaceId = best:GetAttribute("Space")
-		local ok = if spaceId then enter(worker, spaceId, best.Position) else travel(worker, best.Position, 2)
-		if ok and best.Parent then
-			task.wait(0.8)
-			if spaceId then
+		if bestKind == "poop" then
+			if enter(worker, best:GetAttribute("Space"), best.Position) and best.Parent then
+				task.wait(0.8)
 				Enclosures.removePoop(best)
-			else
+			end
+		elseif bestKind == "trash" then
+			if travel(worker, best.Position, 2) and best.Parent then
+				task.wait(0.8)
 				Tasks.removeTrash(best)
+			end
+		elseif bestKind == "bin" then
+			if travel(worker, best.part.Position, 2.5) then
+				task.wait(1)
+				Shops.empty(best)
+			end
+		else
+			if travel(worker, best.front, 2) then
+				task.wait(2)
+				Shops.clean(best.def.id)
 			end
 		end
 		claimed[best] = nil
 	end
 end
 
+-- Le vétérinaire : il examine l'animal malade, prend le bon médicament à la réserve, et le soigne.
 function JOBS.vet(worker)
 	while worker.alive do
 		local patient = nil
@@ -229,35 +268,89 @@ function JOBS.vet(worker)
 		end
 		local key = "vet|" .. patient.id
 		claimed[key] = true
-		if travel(worker, storeSpot("kit", Enclosures.spaces[patient.sp].plot.center), 2) and Zoo.spend(Config.KIT.price, "care") then
-			task.wait(0.8)
-			if enter(worker, patient.sp, Enclosures.randomPoint(patient.sp, 5)) then
-				task.wait(1.5)
-				if Animals.treat(patient) then
-					Zoo.notify(nil, "treatedBy", Animals.nameOf(patient))
+		-- 1. L'examen (s'il n'a pas déjà été fait).
+		if not patient.e and enter(worker, patient.sp, Enclosures.randomPoint(patient.sp, 5)) then
+			task.wait(2)
+			Animals.examine(patient)
+		end
+		-- 2. Le bon médicament, puis le soin.
+		local disease = Config.DISEASES[patient.d or ""]
+		local med = disease and disease.med
+		if med and patient.k then
+			if Stock.get(med) <= 0 then
+				shortage(med)
+				task.wait(5)
+			elseif travel(worker, storeSpot("pharmacy", Enclosures.spaces[patient.sp].plot.center), 2) and Stock.take(med, 1) > 0 then
+				task.wait(0.8)
+				if enter(worker, patient.sp, Enclosures.randomPoint(patient.sp, 5)) then
+					task.wait(1.5)
+					if Animals.treat(patient, med) then
+						Zoo.notify(nil, "treatedBy", patient.n or Animals.nameOf(patient))
+					end
 				end
 			end
-		else
-			task.wait(5)
 		end
 		claimed[key] = nil
 	end
 end
 
-function JOBS.waiter(worker)
-	-- Le premier serveur tient le café, le deuxième le bar.
-	local list = workers.waiter or {}
-	local id = if table.find(list, worker) == 2 then "bar" else "cafe"
+-- Le magasinier : il range les cartons du quai dans la réserve, et remplit les stands presque vides.
+function JOBS.storekeeper(worker)
 	while worker.alive do
-		local building = Enclosures.buildings[id]
-		if building and building.open then
-			if (worker.npc.root.Position - building.counter).Magnitude > 3 then
-				travel(worker, building.counter, 1.5)
-				Npc.face(worker.npc, building.queueFirst)
+		local done = false
+		-- 1. Un carton sur le quai.
+		for _, box in Stock.boxes do
+			if not claimed[box] and box.Parent then
+				claimed[box] = true
+				local item, amount = box:GetAttribute("Item"), box:GetAttribute("Amount")
+				if travel(worker, box.Position, 3) and box.Parent and Stock.removeBox(box) then
+					task.wait(0.6)
+					travel(worker, (Map.stores[1].shelf :: BasePart).Position, 3)
+					task.wait(0.8)
+					local stored = Stock.add(item, amount)
+					if stored < amount then
+						Stock.returnBox(item, amount - stored)
+						shortage(item)
+					end
+				end
+				claimed[box] = nil
+				done = true
+				break
 			end
-			Visitors.serve(id, nil)
-			task.wait(Config.STAFF.waiter.every)
-		else
+		end
+		-- 2. Un stand presque vide (s'il y a des produits en stock).
+		if not done then
+			for id, spot in Shops.spots do
+				local product, missing = Shops.need(id)
+				if product and missing >= Config.SHOP_STOCK - 8 and not claimed[spot] then
+					if Stock.get(product) > 0 then
+						claimed[spot] = true
+						if travel(worker, storeSpot("shop", spot.front), 2) then
+							local got = Stock.take(product, math.min(missing, Config.STOCK[product].pack))
+							if got > 0 then
+								task.wait(0.8)
+								if travel(worker, spot.front, 2) then
+									task.wait(1)
+									local added = Shops.restock(id, got)
+									if added < got then
+										Stock.add(product, got - added)
+									end
+								else
+									Stock.add(product, got)
+								end
+							end
+						end
+						claimed[spot] = nil
+						done = true
+						break
+					else
+						shortage(product)
+					end
+				end
+			end
+		end
+		if not done then
+			travel(worker, IDLE_SPOT + v3(random:NextNumber(-4, 4), 0, random:NextNumber(-4, 4)), 2)
 			task.wait(3)
 		end
 	end
@@ -300,12 +393,6 @@ function Staff.hire(player: Player?, role: string): boolean
 	if count >= def.max then
 		if player then
 			Zoo.notify(player, "staffFull", def.fr)
-		end
-		return false
-	end
-	if role == "waiter" and not (Zoo.state.buildings.cafe or Zoo.state.buildings.bar) then
-		if player then
-			Zoo.notify(player, "needCafe")
 		end
 		return false
 	end

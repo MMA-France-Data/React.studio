@@ -25,7 +25,6 @@ local v3 = Vector3.new
 local terrain = workspace.Terrain
 
 Enclosures.spaces = {} -- [parcelle] = { plot, habitat, folder, open, floor, inner, gate, path, troughs, poops, pools }
-Enclosures.buildings = {} -- [id] = { def, folder, counter, queueFirst, queueStep, queueCount, open }
 -- Ce que font les invites (rempli par Tasks.luau et Visitors.luau) : trough(player, parcelle, nourriture),
 -- poop(player, crotte), serve(player, bâtiment).
 Enclosures.handlers = {}
@@ -698,6 +697,85 @@ function Enclosures.allPoops(): { BasePart }
 end
 
 -- CONSTRUIRE UNE PARCELLE ---------------------------------------------------------------------------------------------
+-- LES JEUX (sa demande du 15/10, « 4 ») : chacun se voit dans l'espace et rend ses animaux plus heureux (Animals.luau).
+local TOY_BUILDERS = {}
+function TOY_BUILDERS.salt(folder, at: Vector3)
+	part(folder, "SaltPost", v3(0.8, 3, 0.8), at + v3(0, 1.5, 0), Props.WOOD, M.Wood, true)
+	part(folder, "Salt", v3(1.8, 1.2, 1.8), at + v3(0, 3.4, 0), rgb(240, 236, 228), M.Salt)
+end
+function TOY_BUILDERS.brush(folder, at: Vector3)
+	for _, x in { -1.8, 1.8 } do
+		part(folder, "BrushPost", v3(0.8, 4, 0.8), at + v3(x, 2, 0), Props.WOOD, M.Wood, true)
+	end
+	part(folder, "Brush", v3(3, 1, 0.9), at + v3(0, 2.2, 0), rgb(200, 150, 80), M.Fabric, true)
+end
+function TOY_BUILDERS.ball(folder, at: Vector3)
+	Props.ball(folder, "Ball", 3.2, at + v3(0, 1.6, 0), rgb(230, 70, 60), M.SmoothPlastic).CanCollide = true
+	local stripe = part(folder, "BallStripe", v3(0.7, 3.26, 3.26), CFrame.new(at + v3(0, 1.6, 0)), rgb(250, 250, 250), M.SmoothPlastic)
+	stripe.Shape = Enum.PartType.Cylinder
+end
+function TOY_BUILDERS.log(folder, at: Vector3)
+	Props.stick(folder, "ScratchLog", at - v3(0, 1, 0), at + v3(0.6, 6, 0.4), 1.6, Props.WOOD_LIGHT, M.Wood, true)
+	Props.stick(folder, "Rope", at + v3(0, 1, 0), at + v3(0.3, 3.4, 0.2), 1.75, rgb(190, 170, 120), M.Fabric)
+end
+function TOY_BUILDERS.platform(folder, at: Vector3)
+	for _, x in { -2.6, 2.6 } do
+		for _, z in { -2.6, 2.6 } do
+			part(folder, "PlatformLeg", v3(0.8, 4.4, 0.8), at + v3(x, 2.2, z), Props.WOOD, M.Wood, true)
+		end
+	end
+	part(folder, "Platform", v3(6.4, 0.6, 6.4), at + v3(0, 4.6, 0), Props.WOOD_LIGHT, M.WoodPlanks, true)
+	part(folder, "PlatformRamp", v3(2, 0.4, 6), CFrame.new(at + v3(0, 2.3, 5.4)) * CFrame.Angles(math.rad(40), 0, 0), Props.WOOD_LIGHT, M.WoodPlanks, true)
+end
+function TOY_BUILDERS.ropes(folder, at: Vector3)
+	for _, x in { -3, 3 } do
+		Props.stick(folder, "Pole", at + v3(x, -1, 0), at + v3(x, 8, 0), 1, Props.WOOD_LIGHT, M.Wood, true)
+	end
+	Props.stick(folder, "Rope", at + v3(-3, 7.5, 0), at + v3(3, 7.5, 0), 0.35, rgb(190, 170, 120), M.Fabric)
+	part(folder, "Hammock", v3(5, 0.3, 2.2), at + v3(0, 3.2, 0), rgb(200, 120, 70), M.Fabric)
+	Props.stick(folder, "Rope", at + v3(-1, 7.4, 0), at + v3(-1, 1.5, 0), 0.3, rgb(190, 170, 120), M.Fabric)
+end
+function TOY_BUILDERS.pool(folder, at: Vector3)
+	local rim = part(folder, "PoolRim", v3(1, 9, 9), CFrame.new(at + v3(0, 0.5, 0)) * CFrame.Angles(0, 0, math.rad(90)), Props.STONE, M.Cobblestone, true)
+	rim.Shape = Enum.PartType.Cylinder
+	local water = part(folder, "PoolWater", v3(0.2, 7.6, 7.6), CFrame.new(at + v3(0, 1.05, 0)) * CFrame.Angles(0, 0, math.rad(90)), rgb(80, 160, 190), M.Glass)
+	water.Shape = Enum.PartType.Cylinder
+	water.Transparency = 0.25
+end
+
+local function placeToy(space, toy: string, index: number)
+	local builder = TOY_BUILDERS[toy]
+	if not builder then
+		return
+	end
+	local folder = space.folder:FindFirstChild("Toys") or Instance.new("Folder")
+	folder.Name = "Toys"
+	folder.Parent = space.folder
+	local random = Random.new(space.plot.index * 131 + index * 17)
+	builder(folder, Enclosures.randomPoint(space.id, 6, random))
+end
+
+function Enclosures.buyToy(player: Player?, id: string, toy: string): boolean
+	local space = Enclosures.spaces[id]
+	local def = Config.TOYS[toy]
+	if not space or not space.open or not def or not table.find(space.habitat.toys or {}, toy) then
+		return false
+	end
+	local owned = Zoo.state.toys[id] or {}
+	if table.find(owned, toy) then
+		return false
+	end
+	if not Zoo.spend(def.price, "toys", player) then
+		return false
+	end
+	table.insert(owned, toy)
+	Zoo.state.toys[id] = owned
+	placeToy(space, toy, #owned)
+	space.folder:SetAttribute("Toys", table.concat(owned, ","))
+	Zoo.notify(nil, "toyBought", def.fr, space.habitat.name)
+	return true
+end
+
 local function nameSign(space)
 	local plot = space.plot
 	local toward = plot.center - plot.view
@@ -705,6 +783,16 @@ local function nameSign(space)
 	local spot = plot.view + toward * 2.2 + v3(toward.Z, 0, -toward.X) * 7
 	local sign = Props.sign(space.folder, spot, -toward, space.habitat.name, 9)
 	sign.Name = "NameSign"
+	-- Le bouton des jeux de l'espace (et de sa fiche).
+	local prompt = Instance.new("ProximityPrompt")
+	prompt.ActionText = "Jeux de l'espace"
+	prompt.ObjectText = space.habitat.name
+	prompt.MaxActivationDistance = 10
+	prompt.RequiresLineOfSight = false
+	prompt.Parent = sign
+	prompt.Triggered:Connect(function(player)
+		Zoo.remotes.open:FireClient(player, "toys", space.id)
+	end)
 end
 
 -- La parcelle construite pour ces animaux.
@@ -721,6 +809,11 @@ local function openSpace(space, habitatId: string)
 	build(space.folder, space, random)
 	addTroughs(space)
 	nameSign(space)
+	-- Les jeux déjà installés.
+	for index, toy in Zoo.state.toys[space.id] or {} do
+		placeToy(space, toy, index)
+	end
+	space.folder:SetAttribute("Toys", table.concat(Zoo.state.toys[space.id] or {}, ","))
 	space.open = true
 	-- (Pour l'écran : où vont les animaux, à quelle hauteur, où sont les mares.)
 	local folder = space.folder
@@ -797,87 +890,6 @@ function Enclosures.buy(player: Player?, id: string, habitatId: string): boolean
 	return true
 end
 
--- LES BÂTIMENTS (CAFÉ, BAR) -------------------------------------------------------------------------------------------
-local function openBuilding(building)
-	local def = building.def
-	if building.forSale then
-		building.forSale:Destroy()
-		building.forSale = nil
-	end
-	local folder = building.folder
-	local base = CFrame.lookAt(def.center, def.center + v3(0, 0, 1))
-	Props.lodge(folder, base, def.size.X - 4, def.size.Y - 4, 10, { openFront = true, title = string.upper(def.name), rise = 6, roof = if def.id == "bar" then Props.THATCH else Props.ROOF, roofMaterial = if def.id == "bar" then M.Grass else M.Slate })
-	-- Le comptoir : le joueur (ou le serveur) se tient derrière ; les clients font la queue devant.
-	local counterZ = def.center.Z + (def.size.Y - 4) / 2 - 0.4
-	building.counter = v3(def.center.X, 0, counterZ - 3)
-	building.queueFirst = v3(def.center.X, 0, counterZ + 3.4)
-	building.queueStep = v3(0, 0, 3.2)
-	building.queueCount = 5
-	local till = part(folder, "Till", v3(1.4, 1, 1.2), v3(def.center.X + 2, 4.7, counterZ), Props.IRON, M.Metal)
-	local item = prompt(till, "Servir", def.name, 0, 10)
-	building.prompt = item
-	item.Enabled = false
-	item.Triggered:Connect(function(player)
-		if Enclosures.handlers.serve then
-			Enclosures.handlers.serve(player, def.id)
-		end
-	end)
-	local alert, alertText = alertBoard(till, "Des clients attendent !", rgb(230, 140, 40), 5)
-	building.alert, building.alertText = alert, alertText
-	-- La terrasse : des tables et des parasols.
-	for i, x in { -10, 10 } do
-		local spot = v3(def.center.X + x, 0, counterZ + 9)
-		local tableTop = part(folder, "Table", v3(0.4, 4, 4), CFrame.new(spot + v3(0, 2.6, 0)) * CFrame.Angles(0, 0, math.rad(90)), Props.WOOD_LIGHT, M.Wood, true)
-		tableTop.Shape = Enum.PartType.Cylinder
-		Props.stick(folder, "Parasol", spot, spot + v3(0, 8, 0), 0.3, Props.IRON, M.Metal)
-		local cloth = part(folder, "Cloth", v3(1.2, 9, 9), CFrame.new(spot + v3(0, 7.6, 0)) * CFrame.Angles(0, 0, math.rad(90)), if i == 1 then rgb(214, 196, 150) else rgb(196, 120, 70), M.Fabric)
-		cloth.Shape = Enum.PartType.Cylinder
-		for _, side in { -1, 1 } do
-			part(folder, "Stool", v3(1.4, 1.6, 1.4), spot + v3(side * 3, 0.8, 0), Props.WOOD, M.Wood)
-		end
-	end
-	building.open = true
-	folder:SetAttribute("Open", true)
-end
-
-local function buildingForSale(building)
-	local def = building.def
-	local folder = Instance.new("Folder")
-	folder.Name = "ForSale"
-	folder.Parent = building.folder
-	building.forSale = folder
-	local random = Random.new(#def.id * 17)
-	for _ = 1, 10 do
-		local spot = def.center + v3(random:NextNumber(-def.size.X / 2, def.size.X / 2), 0, random:NextNumber(-def.size.Y / 2, def.size.Y / 2))
-		Props.tallGrass(folder, spot, random, rgb(140, 160, 80))
-	end
-	local spot = v3(def.center.X, 0, def.center.Z + def.size.Y / 2 + 4)
-	local board = Props.sign(folder, spot, v3(0, 0, 1), "BIENTÔT\n" .. def.name, 9, rgb(255, 228, 140))
-	board.Size = v3(9, 4.2, 0.4)
-	board.CFrame = board.CFrame * CFrame.new(0, 0.8, 0)
-	local price = part(folder, "Price", v3(6, 1.6, 0.4), board.CFrame * CFrame.new(0, -3, 0), rgb(46, 104, 60), M.SmoothPlastic, true)
-	Props.label(price, Enum.NormalId.Front, Zoo.format(def.price) .. " $", Color3.new(1, 1, 1))
-	local item = prompt(board, "Construire", def.name .. " (" .. Zoo.format(def.price) .. " $)", 1, 12)
-	item.Triggered:Connect(function(player)
-		Enclosures.buyBuilding(player, def.id)
-	end)
-end
-
-function Enclosures.buyBuilding(player: Player?, id: string): boolean
-	local building = Enclosures.buildings[id]
-	if not building or building.open then
-		return false
-	end
-	if not Zoo.spend(building.def.price, "spaces", player) then
-		return false
-	end
-	Zoo.state.buildings[id] = true
-	Zoo.publish()
-	openBuilding(building)
-	Zoo.notify(nil, "buildingBought", building.def.name, if player then player.Name else "")
-	return true
-end
-
 -- Les parcelles ouvertes (avec des animaux).
 function Enclosures.openCount(): number
 	local count = 0
@@ -904,21 +916,14 @@ function Enclosures.build()
 			forSale(space)
 		end
 	end
-	for _, def in Config.BUILDINGS do
-		local folder = Instance.new("Folder")
-		folder.Name = def.id
-		folder.Parent = root
-		local building = { def = def, folder = folder, open = false }
-		Enclosures.buildings[def.id] = building
-		if Zoo.state.buildings[def.id] then
-			openBuilding(building)
-		else
-			buildingForSale(building)
-		end
-	end
 	Zoo.remotes.buyPlot.OnServerEvent:Connect(function(player, id, habitatId)
 		if typeof(id) == "string" and typeof(habitatId) == "string" then
 			Enclosures.buy(player, id, habitatId)
+		end
+	end)
+	Zoo.remotes.buyToy.OnServerEvent:Connect(function(player, id, toy)
+		if typeof(id) == "string" and typeof(toy) == "string" then
+			Enclosures.buyToy(player, id, toy)
 		end
 	end)
 end

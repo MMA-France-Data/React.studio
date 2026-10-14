@@ -45,15 +45,126 @@ function Config.visitorsPerDay(spaces: number, stars: number): number
 	return math.min(v.max, math.floor(v.base + v.perSpace * spaces + v.perStar * stars))
 end
 
--- LA NOURRITURE ET LES SOINS (à prendre à la réserve, à côté de l'entrée) --------------------------------------------
+local v3 = Vector3.new
+
+-- LA NOURRITURE DES ANIMAUX (prise à la réserve : une unité de stock remplit une mangeoire) ------------------------------
 Config.FOODS = {
-	hay = { fr = "Foin", price = 5, color = Color3.fromRGB(222, 196, 96) },
-	grain = { fr = "Grain", price = 4, color = Color3.fromRGB(214, 168, 92) },
-	meat = { fr = "Viande", price = 12, color = Color3.fromRGB(176, 62, 54) },
+	hay = { fr = "Foin", color = Color3.fromRGB(222, 196, 96) },
+	grain = { fr = "Grain", color = Color3.fromRGB(214, 168, 92) },
+	meat = { fr = "Viande", color = Color3.fromRGB(176, 62, 54) },
 }
 Config.FOOD_ORDER = { "hay", "grain", "meat" }
-Config.KIT = { fr = "Trousse de soins", price = 15 }
-Config.TROUGH_MAX = 100 -- une mangeoire pleine (une charge de nourriture la remplit)
+Config.TROUGH_MAX = 100 -- une mangeoire pleine
+
+-- LE STOCK ET LES COMMANDES (sa demande du 15/10, « 1 » : comme Supermarket Simulator). La réserve n'est plus infinie :
+-- on commande sur l'ordinateur de la réserve, le camion livre des cartons devant la réserve de l'entrée, on les porte et
+-- on les range. pack : unités dans un carton ; price : le prix d'un carton ; cap : ce que les réserves peuvent contenir ;
+-- kind : food (mangeoires), med (soins), shop (pour les stands des visiteurs).
+Config.STOCK = {
+	hay = { fr = "Foin", pack = 10, price = 40, cap = 60, kind = "food", color = Color3.fromRGB(222, 196, 96) },
+	grain = { fr = "Grain", pack = 10, price = 30, cap = 60, kind = "food", color = Color3.fromRGB(214, 168, 92) },
+	meat = { fr = "Viande", pack = 6, price = 60, cap = 36, kind = "food", color = Color3.fromRGB(176, 62, 54) },
+	syrup = { fr = "Sirop", pack = 4, price = 40, cap = 16, kind = "med", color = Color3.fromRGB(230, 120, 60) },
+	vermi = { fr = "Vermifuge", pack = 4, price = 50, cap = 16, kind = "med", color = Color3.fromRGB(110, 170, 90) },
+	bandage = { fr = "Bandage", pack = 4, price = 30, cap = 16, kind = "med", color = Color3.fromRGB(240, 236, 226) },
+	drinks = { fr = "Boissons", pack = 24, price = 36, cap = 96, kind = "shop", color = Color3.fromRGB(70, 150, 220) },
+	icecream = { fr = "Glaces", pack = 20, price = 40, cap = 80, kind = "shop", color = Color3.fromRGB(250, 180, 210) },
+	fries = { fr = "Frites", pack = 20, price = 40, cap = 80, kind = "shop", color = Color3.fromRGB(250, 200, 70) },
+	coffee = { fr = "Café et gâteaux", pack = 20, price = 50, cap = 80, kind = "shop", color = Color3.fromRGB(140, 96, 64) },
+	souvenirs = { fr = "Souvenirs", pack = 10, price = 60, cap = 40, kind = "shop", color = Color3.fromRGB(200, 90, 160) },
+}
+Config.STOCK_ORDER = { "hay", "grain", "meat", "syrup", "vermi", "bandage", "drinks", "icecream", "fries", "coffee", "souvenirs" }
+Config.START_STOCK = { hay = 20, grain = 20, meat = 6, syrup = 2, vermi = 2, bandage = 2 }
+Config.DELIVERY_SECONDS = 25 -- le temps que met le camion
+Config.BULK = { packs = 5, discount = 0.1 } -- 10 % de moins à partir de 5 cartons du même produit
+
+-- LES MALADIES (sa demande du 15/10, « 4 ») : on examine l'animal malade pour savoir ce qu'il a, puis on lui donne le
+-- bon médicament. hint : ce qu'on voit avant de l'examiner.
+Config.DISEASES = {
+	cold = { fr = "Rhume", med = "syrup", hint = "il éternue" },
+	worms = { fr = "Parasites", med = "vermi", hint = "il maigrit" },
+	wound = { fr = "Blessure", med = "bandage", hint = "il boite" },
+}
+Config.DISEASE_ORDER = { "cold", "worms", "wound" }
+
+-- LES JEUX DES ANIMAUX (« 4 ») : chaque espace peut en recevoir (Config.HABITATS.toys) ; chacun rend les animaux plus
+-- heureux (jusqu'à 3).
+Config.TOYS = {
+	salt = { fr = "Pierre à lécher", price = 60 },
+	brush = { fr = "Brosse à gratter", price = 80 },
+	ball = { fr = "Ballon géant", price = 100 },
+	log = { fr = "Tronc à griffer", price = 140 },
+	platform = { fr = "Plateforme en bois", price = 220 },
+	ropes = { fr = "Cordes et hamac", price = 200 },
+	pool = { fr = "Bassin pour se rafraîchir", price = 260 },
+}
+
+-- LES STANDS ET LES TOILETTES (sa demande du 15/10, « 2 » : les visiteurs ont faim, soif, envie d'aller aux toilettes).
+-- On les construit sur des emplacements le long des allées (Config.SHOP_SPOTS). Un stand vend un produit du stock
+-- (à lui apporter en cartons) ; les toilettes se salissent. price : la construction ; sale : le prix de vente au départ
+-- (on le change dans la fenêtre Prix) ; fair : le prix que les visiteurs trouvent normal ; needs : ce que ça calme.
+Config.SHOP_TYPES = {
+	drinks = { fr = "Buvette", product = "drinks", price = 1200, sale = 2, fair = 2, cost = 1.5, needs = { thirst = 100 }, color = Color3.fromRGB(70, 150, 220) },
+	icecream = { fr = "Glacier", product = "icecream", price = 1500, sale = 3, fair = 3, cost = 2, needs = { hunger = 35, thirst = 35 }, color = Color3.fromRGB(240, 150, 190) },
+	fries = { fr = "Friterie", product = "fries", price = 1800, sale = 4, fair = 4, cost = 2, needs = { hunger = 100 }, color = Color3.fromRGB(230, 180, 50) },
+	coffee = { fr = "Café", product = "coffee", price = 3000, sale = 5, fair = 5, cost = 2.5, needs = { hunger = 60, thirst = 60 }, color = Color3.fromRGB(140, 96, 64) },
+	toilets = { fr = "Toilettes", price = 1000, needs = { bladder = 100 }, color = Color3.fromRGB(110, 170, 200) },
+	souvenirs = { fr = "Boutique de souvenirs", product = "souvenirs", price = 4000, sale = 9, fair = 9, cost = 6, needs = {}, color = Color3.fromRGB(200, 90, 160) },
+}
+Config.SHOP_ORDER = { "drinks", "icecream", "fries", "coffee", "toilets", "souvenirs" }
+-- Les emplacements : au bord des allées ; facing : vers l'allée.
+Config.SHOP_SPOTS = {
+	{ id = "k1", center = v3(-54, 0, 78), facing = v3(0, 0, 1) },
+	{ id = "k2", center = v3(54, 0, 78), facing = v3(0, 0, 1) },
+	{ id = "k3", center = v3(-150, 0, 90), facing = v3(0, 0, 1) },
+	{ id = "k4", center = v3(150, 0, 90), facing = v3(0, 0, 1) },
+	{ id = "k5", center = v3(-194, 0, 30), facing = v3(-1, 0, 0) },
+	{ id = "k6", center = v3(194, 0, 30), facing = v3(1, 0, 0) },
+	{ id = "k7", center = v3(-70, 0, -488), facing = v3(0, 0, 1) },
+	{ id = "k8", center = v3(70, 0, -488), facing = v3(0, 0, 1) },
+	{ id = "k9", center = v3(-238, 0, -152), facing = v3(1, 0, 0) },
+	{ id = "k10", center = v3(238, 0, -152), facing = v3(-1, 0, 0) },
+}
+Config.SHOP_SIZE = Vector2.new(14, 10) -- largeur (le long de l'allée), profondeur
+Config.SHOP_STOCK = 30 -- un stand contient au plus 30 produits
+-- Les besoins des visiteurs (0 à 100) : ce qu'ils gagnent par seconde ; au-dessus de 70, ils cherchent un stand.
+Config.VISITOR_NEEDS = { hunger = 0.22, thirst = 0.28, bladder = 0.2, urgent = 70 }
+Config.BIN_MAX = 20 -- une poubelle pleine déborde (les papiers tombent par terre)
+
+-- LES PRIX (« 2 ») : le joueur fixe le prix du billet et de chaque produit. Les visiteurs comparent au prix normal :
+-- plus c'est cher, moins ils achètent (et ils râlent).
+Config.PRICE_LIMITS = { ticket = { 1, 200 }, shop = { 1, 60 } }
+function Config.buyChance(price: number, fair: number): number
+	local ratio = price / math.max(fair, 0.1)
+	if ratio <= 1 then
+		return 1
+	elseif ratio >= 1.8 then
+		return 0.05
+	end
+	return 1 - (ratio - 1) / 0.8 * 0.95
+end
+
+-- LA MÉTÉO ET LES ÉVÉNEMENTS (« 5 ») : tirés chaque matin.
+Config.WEATHER = {
+	{ id = "sun", fr = "Soleil", icon = "☀", chance = 0.5, visitors = 1.1 },
+	{ id = "clouds", fr = "Nuageux", icon = "☁", chance = 0.2, visitors = 1 },
+	{ id = "rain", fr = "Pluie", icon = "☂", chance = 0.15, visitors = 0.7, about = "Moins de visiteurs aujourd'hui." },
+	{ id = "heat", fr = "Canicule", icon = "♨", chance = 0.1, visitors = 1, thirst = 2, troughs = 1.3, about = "Les visiteurs ont très soif, les animaux mangent plus." },
+	{ id = "storm", fr = "Tempête", icon = "⚡", chance = 0.05, visitors = 0.5, trash = 12, about = "Le vent a renversé des poubelles !" },
+}
+Config.EVENTS = {
+	{ id = "school", fr = "Sortie scolaire", chance = 0.15, visitors = 1.4, kids = 0.75, about = "Beaucoup d'enfants aujourd'hui (et beaucoup de papiers) !" },
+	{ id = "inspection", fr = "Inspection sanitaire", chance = 0.12, hour = 13, about = "Un inspecteur visite le zoo cet après-midi : tout doit être propre !" },
+	{ id = "journalist", fr = "Journaliste", chance = 0.1, hour = 11, about = "Un journaliste visite le zoo : sa note compte pour 10 visiteurs !" },
+}
+
+-- LA VIE DES ANIMAUX (« 4 ») : combien de jours ils vivent (vieux à 80 %), et les jours d'attente d'une femelle enceinte
+-- (gestation = repro).
+Config.LIFE = {
+	Rooster = 30, Goat = 40, Pig = 40, Sheep = 40, Deer = 50, Boar = 50, Capybara = 45, Wolf = 55, Lynx = 55, Hyena = 55,
+	Crocodile = 90, Bear = 70, Buffalo = 60, Cheetah = 55, Gorilla = 80, Jaguar = 60, Tiger = 65, Rhino = 85, Lion = 60,
+	Elephant = 120, Horse = 60, Duck = 30, Ram = 45,
+}
 
 -- LES BESOINS DES ANIMAUX ------------------------------------------------------------------------------------------
 Config.NEEDS = {
@@ -188,24 +299,24 @@ end
 --   pit : une fosse, les animaux en bas, les visiteurs en haut derrière une rambarde.
 -- capacity : animaux au plus (les naissances s'arrêtent).
 Config.HABITATS = {
-	{ id = "farm", name = "Mini-ferme", species = { "Goat", "Pig", "Rooster" }, price = 0, decor = "farm", security = "fence", capacity = 14, hidden = true },
-	{ id = "sheep", name = "Moutons", species = { "Sheep" }, price = 200, decor = "meadow", security = "fence", capacity = 15 },
-	{ id = "deer", name = "Cerfs", species = { "Deer" }, price = 300, decor = "forest", security = "fence", capacity = 12 },
-	{ id = "boar", name = "Sangliers", species = { "Boar" }, price = 600, decor = "mud", security = "fence", capacity = 12 },
-	{ id = "capy", name = "Capybaras", species = { "Capybara" }, price = 900, decor = "pond", security = "fence", capacity = 15 },
-	{ id = "wolf", name = "Loups", species = { "Wolf" }, price = 1500, decor = "forest", security = "wall", capacity = 10 },
-	{ id = "lynx", name = "Lynx", species = { "Lynx" }, price = 1800, decor = "forest", security = "wall", capacity = 9 },
-	{ id = "croc", name = "Crocodiles", species = { "Crocodile" }, price = 2500, decor = "river", security = "moat", capacity = 9 },
-	{ id = "hyena", name = "Hyènes", species = { "Hyena" }, price = 3000, decor = "savanna", security = "wall", capacity = 10 },
-	{ id = "bear", name = "Ours", species = { "Bear" }, price = 3500, decor = "rocks", security = "pit", capacity = 8 },
-	{ id = "buffalo", name = "Buffles", species = { "Buffalo" }, price = 4000, decor = "savanna", security = "moat", capacity = 9 },
-	{ id = "cheetah", name = "Guépards", species = { "Cheetah" }, price = 4500, decor = "savanna", security = "moat", capacity = 9 },
-	{ id = "gorilla", name = "Gorilles", species = { "Gorilla" }, price = 6000, decor = "jungle", security = "moat", capacity = 9 },
-	{ id = "jaguar", name = "Jaguars", species = { "Jaguar" }, price = 7000, decor = "jungle", security = "moat", capacity = 8 },
-	{ id = "tiger", name = "Tigres", species = { "Tiger" }, price = 8000, decor = "jungle", security = "moat", capacity = 8 },
-	{ id = "rhino", name = "Rhinocéros", species = { "Rhino" }, price = 10000, decor = "savanna", security = "moat", capacity = 6 },
-	{ id = "lion", name = "Lions", species = { "Lion" }, price = 11000, decor = "savanna", security = "moat", capacity = 9 },
-	{ id = "elephant", name = "Éléphants", species = { "Elephant" }, price = 15000, decor = "savanna", security = "moat", capacity = 6 },
+	{ id = "farm", name = "Mini-ferme", species = { "Goat", "Pig", "Rooster" }, price = 0, decor = "farm", security = "fence", capacity = 14, hidden = true, toys = { "salt", "brush", "ball" } },
+	{ id = "sheep", name = "Moutons", species = { "Sheep" }, price = 200, decor = "meadow", security = "fence", capacity = 15, toys = { "salt", "brush" } },
+	{ id = "deer", name = "Cerfs", species = { "Deer" }, price = 300, decor = "forest", security = "fence", capacity = 12, toys = { "salt", "brush", "log" } },
+	{ id = "boar", name = "Sangliers", species = { "Boar" }, price = 600, decor = "mud", security = "fence", capacity = 12, toys = { "ball", "log", "pool" } },
+	{ id = "capy", name = "Capybaras", species = { "Capybara" }, price = 900, decor = "pond", security = "fence", capacity = 15, toys = { "pool", "salt", "ball" } },
+	{ id = "wolf", name = "Loups", species = { "Wolf" }, price = 1500, decor = "forest", security = "wall", capacity = 10, toys = { "log", "ball", "platform" } },
+	{ id = "lynx", name = "Lynx", species = { "Lynx" }, price = 1800, decor = "forest", security = "wall", capacity = 9, toys = { "log", "platform", "ropes" } },
+	{ id = "croc", name = "Crocodiles", species = { "Crocodile" }, price = 2500, decor = "river", security = "moat", capacity = 9, toys = { "pool", "log" } },
+	{ id = "hyena", name = "Hyènes", species = { "Hyena" }, price = 3000, decor = "savanna", security = "wall", capacity = 10, toys = { "log", "ball", "platform" } },
+	{ id = "bear", name = "Ours", species = { "Bear" }, price = 3500, decor = "rocks", security = "pit", capacity = 8, toys = { "log", "pool", "ball", "platform" } },
+	{ id = "buffalo", name = "Buffles", species = { "Buffalo" }, price = 4000, decor = "savanna", security = "moat", capacity = 9, toys = { "salt", "brush", "pool" } },
+	{ id = "cheetah", name = "Guépards", species = { "Cheetah" }, price = 4500, decor = "savanna", security = "moat", capacity = 9, toys = { "platform", "log", "ball" } },
+	{ id = "gorilla", name = "Gorilles", species = { "Gorilla" }, price = 6000, decor = "jungle", security = "moat", capacity = 9, toys = { "ropes", "ball", "platform" } },
+	{ id = "jaguar", name = "Jaguars", species = { "Jaguar" }, price = 7000, decor = "jungle", security = "moat", capacity = 8, toys = { "log", "ropes", "platform" } },
+	{ id = "tiger", name = "Tigres", species = { "Tiger" }, price = 8000, decor = "jungle", security = "moat", capacity = 8, toys = { "pool", "log", "ball" } },
+	{ id = "rhino", name = "Rhinocéros", species = { "Rhino" }, price = 10000, decor = "savanna", security = "moat", capacity = 6, toys = { "pool", "brush", "salt" } },
+	{ id = "lion", name = "Lions", species = { "Lion" }, price = 11000, decor = "savanna", security = "moat", capacity = 9, toys = { "platform", "log", "ball" } },
+	{ id = "elephant", name = "Éléphants", species = { "Elephant" }, price = 15000, decor = "savanna", security = "moat", capacity = 6, toys = { "pool", "ball", "brush" } },
 }
 Config.HABITAT_BY_ID = {}
 for _, habitat in Config.HABITATS do
@@ -250,26 +361,16 @@ function Config.marketPrice(species: string, sex: string, baby: boolean): number
 end
 Config.PIT = 10 -- la profondeur de la fosse aux ours
 
--- LES BÂTIMENTS (pour la fin du jeu) : on les achète, les visiteurs y dépensent. Même principe que le guichet : il faut
--- servir les clients soi-même, ou embaucher un serveur.
-Config.BUILDINGS = {
-	{ id = "cafe", name = "Café", price = 3000, center = v3(-54, 0, 76), size = Vector2.new(30, 18), sale = 6, chance = 0.55, staff = "waiter" },
-	{ id = "bar", name = "Bar à jus", price = 8000, center = v3(54, 0, 76), size = Vector2.new(30, 18), sale = 9, chance = 0.45, staff = "waiter" },
-}
-Config.BUILDING_BY_ID = {}
-for _, building in Config.BUILDINGS do
-	Config.BUILDING_BY_ID[building.id] = building
-end
 
 -- LE PERSONNEL (payé chaque soir) ------------------------------------------------------------------------------------
 Config.STAFF = {
 	cashier = { fr = "Caissier", salary = 60, max = 1, every = 2.6, about = "Scanne les billets à l'entrée." },
-	keeper = { fr = "Soigneur", salary = 80, max = 3, about = "Remplit les mangeoires (la nourriture reste à payer)." },
-	cleaner = { fr = "Agent d'entretien", salary = 70, max = 3, about = "Ramasse les crottes et les papiers." },
-	vet = { fr = "Vétérinaire", salary = 120, max = 2, about = "Soigne les animaux malades (la trousse reste à payer)." },
-	waiter = { fr = "Serveur", salary = 60, max = 2, every = 3, about = "Sert les clients du café et du bar." },
+	keeper = { fr = "Soigneur", salary = 80, max = 4, about = "Remplit les mangeoires avec le stock de la réserve." },
+	cleaner = { fr = "Agent d'entretien", salary = 70, max = 4, about = "Crottes, papiers, poubelles et toilettes." },
+	vet = { fr = "Vétérinaire", salary = 120, max = 2, about = "Examine et soigne les malades (avec les médicaments du stock)." },
+	storekeeper = { fr = "Magasinier", salary = 70, max = 3, about = "Range les cartons livrés et remplit les stands." },
 }
-Config.STAFF_ORDER = { "cashier", "keeper", "cleaner", "vet", "waiter" }
+Config.STAFF_ORDER = { "cashier", "keeper", "cleaner", "vet", "storekeeper" }
 Config.STAFF_SPEED = 13
 
 -- LA NOTE DU ZOO ---------------------------------------------------------------------------------------------------

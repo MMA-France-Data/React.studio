@@ -10,11 +10,15 @@
 --   son père et de sa mère, c = consanguin (ses parents étaient de la même famille proche : frère et sœur, ou parent
 --   et enfant). Un bébé consanguin tombe 3 fois plus souvent malade et se vend moitié prix. Les couples qui ne sont
 --   pas de la même famille proche ont leurs petits en premier.
+--   LA VIE (sa demande du 15/10, « 4 ») : g = le jour prévu de la naissance quand une femelle est enceinte (gf / gn /
+--   gc = le père, son prénom, consanguin) ; r = elle se repose jusqu'à ce jour-là ; l'âge vient de b et de
+--   Config.LIFE (vieux à 80 %, mort de vieillesse au bout) ; d = sa maladie (Config.DISEASES), e = examiné.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TextService = game:GetService("TextService")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local Enclosures = require(script.Parent.Enclosures)
+local Weather = require(script.Parent.Weather)
 local Zoo = require(script.Parent.Zoo)
 
 local Animals = {}
@@ -70,7 +74,10 @@ function Animals.happiness(animal, crowd: number?): number
 	local health = if animal.k then 15 else 100
 	local habitat = Animals.habitatOf(animal.sp)
 	local roomy = if habitat and (crowd or 0) > habitat.capacity then 50 else 100
-	return math.floor(food * 0.35 + clean * 0.25 + health * 0.3 + roomy * 0.1 + 0.5)
+	-- Les jeux de son espace (jusqu'à 3).
+	local toys = Zoo.state.toys[animal.sp]
+	local fun = 40 + 20 * math.min(3, if toys then #toys else 0)
+	return math.floor(food * 0.3 + clean * 0.2 + health * 0.25 + roomy * 0.1 + fun * 0.15 + 0.5)
 end
 
 -- Le bonheur moyen des animaux d'un espace (ce que voient les visiteurs). nil s'il est vide.
@@ -113,6 +120,23 @@ local function publish(animal, crowd: number?)
 	item:SetAttribute("Happy", Animals.happiness(animal, crowd))
 	item:SetAttribute("Price", Animals.price(animal))
 	item:SetAttribute("Name", animal.n or "")
+	item:SetAttribute("Pregnant", animal.g or 0)
+	item:SetAttribute("PregnantFather", animal.gn or "")
+	item:SetAttribute("Disease", animal.d or "")
+	item:SetAttribute("Examined", animal.e == true)
+	item:SetAttribute("Old", Animals.old(animal))
+	item:SetAttribute("Life", Animals.life(animal))
+end
+
+-- L'âge (en jours), la durée de vie de son espèce, et s'il est vieux (80 % de sa vie).
+function Animals.age(animal): number
+	return Zoo.days() - animal.b
+end
+function Animals.life(animal): number
+	return Config.LIFE[animal.s] or 60
+end
+function Animals.old(animal): boolean
+	return Animals.age(animal) >= Animals.life(animal) * 0.8
 end
 
 -- Un prénom au hasard, si possible pas déjà pris dans le zoo.
@@ -183,12 +207,27 @@ function Animals.addStarter(spaceId: string)
 	end
 end
 
--- Soigner un animal malade. Renvoie true s'il l'était.
-function Animals.treat(animal): boolean
+-- Soigner un animal malade avec un médicament (med : nil = n'importe lequel, pour les vieilles commandes de test).
+-- Renvoie true s'il est guéri, false si ce n'est pas le bon médicament (ou s'il n'était pas malade).
+function Animals.treat(animal, med: string?): boolean
 	if not animal or not animal.k then
 		return false
 	end
-	animal.k = nil
+	local disease = Config.DISEASES[animal.d or ""]
+	if med and disease and disease.med ~= med then
+		return false
+	end
+	animal.k, animal.d, animal.e = nil, nil, nil
+	publish(animal)
+	return true
+end
+
+-- L'examiner : on sait alors ce qu'il a.
+function Animals.examine(animal): boolean
+	if not animal or not animal.k then
+		return false
+	end
+	animal.e = true
 	publish(animal)
 	return true
 end
@@ -200,6 +239,9 @@ function Animals.price(animal): number
 		price *= 0.5
 	end
 	if animal.c then
+		price *= 0.5
+	end
+	if Animals.old(animal) then
 		price *= 0.5
 	end
 	return math.floor(price)
@@ -238,7 +280,9 @@ function Animals.tick(hours: number)
 		local key = animal.sp .. "|" .. def.food
 		eaters[key] = (eaters[key] or 0) + def.eat * (0.5 + 0.5 * Animals.growth(animal))
 	end
+	local appetite = Weather.factor("troughs")
 	for key, amount in eaters do
+		amount *= appetite
 		local spaceId, food = string.match(key, "^(.-)|(.+)$")
 		local space = Enclosures.spaces[spaceId]
 		local trough = space and space.troughs[food]
@@ -273,11 +317,12 @@ function Animals.tick(hours: number)
 			if animal.c then
 				chance *= 3 -- (un consanguin est fragile)
 			end
+			if Animals.old(animal) then
+				chance *= 2
+			end
 			local perHour = chance / (Config.CLOSE_HOUR - Config.OPEN_HOUR)
 			if random:NextNumber() < perHour * hours then
-				animal.k = now
-				local habitat = Animals.habitatOf(animal.sp)
-				Zoo.notify(nil, "sick", Animals.nameOf(animal), if habitat then habitat.name else "")
+				Animals.makeSick(animal)
 			end
 		end
 	end
@@ -289,6 +334,16 @@ function Animals.tick(hours: number)
 	Animals.publishAll()
 end
 
+-- Il tombe malade : une maladie au hasard, pas encore examinée.
+function Animals.makeSick(animal, disease: string?)
+	animal.k = Zoo.days()
+	animal.d = disease or Config.DISEASE_ORDER[random:NextInteger(1, #Config.DISEASE_ORDER)]
+	animal.e = nil
+	local habitat = Animals.habitatOf(animal.sp)
+	Zoo.notify(nil, "sick", animal.n or Animals.nameOf(animal), if habitat then habitat.name else "", Config.DISEASES[animal.d].hint)
+	publish(animal)
+end
+
 -- Le nom d'un animal (« Biche », « Faon »).
 function Animals.nameOf(animal): string
 	local def = Config.SPECIES[animal.s]
@@ -298,51 +353,74 @@ function Animals.nameOf(animal): string
 	return if animal.x == "m" then def.m else def.f
 end
 
--- LA NUIT : les couples heureux ont des petits (tous les `repro` jours, s'il reste de la place).
+-- LA NUIT (sa demande du 15/10, « 4 ») : les vieux animaux meurent au bout de leur vie ; les femelles enceintes ont
+-- leurs petits le jour prévu ; les couples heureux font de nouveaux petits (la femelle est enceinte Config.SPECIES.repro
+-- jours ; d'abord avec un mâle qui n'est pas de sa famille proche). Renvoie la liste des naissances.
+Animals.conceiveChance = 0.6
 function Animals.night(): { string }
 	local births = {}
 	local state = Zoo.state
+	local tomorrow = state.day + 1
+	-- 1. La vieillesse.
+	for _, animal in table.clone(state.animals) do
+		if Animals.age(animal) >= Animals.life(animal) + (animal.id % 5) then
+			Zoo.today.old = (Zoo.today.old or 0) + 1
+			Zoo.notify(nil, "oldDeath", animal.n or Animals.nameOf(animal), math.floor(Animals.age(animal)))
+			Animals.remove(animal)
+		end
+	end
 	for _, plot in Config.PLOTS do
 		local habitat = Animals.habitatOf(plot.id)
 		if habitat then
-			local space = { id = plot.id, capacity = habitat.capacity, species = habitat.species }
-			local list = Animals.inSpace(space.id)
-			local room = space.capacity - #list
-			for _, species in space.species do
+			local list = Animals.inSpace(plot.id)
+			local expected = 0
+			for _, animal in list do
+				if animal.g then
+					expected += 1
+				end
+			end
+			local room = habitat.capacity - #list
+			for _, species in habitat.species do
 				local def = Config.SPECIES[species]
-				local males, females = {}, {}
-				for _, animal in list do
-					if animal.s == species and Animals.adult(animal) and not animal.k and Animals.happiness(animal, #list) >= NEEDS.happyToBreed then
-						table.insert(if animal.x == "m" then males else females, animal)
-					end
-				end
-				-- Le couple : d'abord un mâle et une femelle qui ne sont pas de la même famille proche.
-				local father, mother = nil, nil
-				for _, male in males do
-					for _, female in females do
-						if not father or (Animals.related(father, mother) and not Animals.related(male, female)) then
-							father, mother = male, female
-						end
-					end
-				end
-				local key = space.id .. "|" .. species
-				if father and mother and room > 0 then
-					state.breed[key] = (state.breed[key] or 0) + 1
-					if state.breed[key] >= def.repro then
-						state.breed[key] = 0
-						local count = math.min(room, random:NextInteger(def.litter[1], def.litter[2]))
-						local consanguine = Animals.related(father, mother)
+				-- 2. Les naissances du jour.
+				for _, mother in list do
+					if mother.s == species and mother.g and mother.g <= tomorrow then
+						local count = math.min(math.max(room, 0), random:NextInteger(def.litter[1], def.litter[2]))
 						for _ = 1, count do
-							Animals.add(space.id, species, if random:NextNumber() < 0.5 then "m" else "f", state.day + 1, { fam = mother.fam, pa = father.id, ma = mother.id, pn = father.n, mn = mother.n, c = consanguine or nil })
+							Animals.add(plot.id, species, if random:NextNumber() < 0.5 then "m" else "f", tomorrow, { fam = mother.fam, pa = mother.gf, ma = mother.id, pn = mother.gn, mn = mother.n, c = mother.gc or nil })
 							room -= 1
 							state.born += 1
 							Zoo.today.births = (Zoo.today.births or 0) + 1
 						end
 						if count > 0 then
-							table.insert(births, def.baby .. (if count > 1 then " x" .. count else "") .. (if consanguine then " (consanguin)" else ""))
-							if consanguine then
+							table.insert(births, def.baby .. (if count > 1 then " x" .. count else "") .. " (" .. (mother.n or "?") .. ")" .. (if mother.gc then " consanguin" else ""))
+							if mother.gc then
 								Zoo.notify(nil, "consanguine", def.baby)
 							end
+						end
+						mother.g, mother.gf, mother.gn, mother.gc = nil, nil, nil, nil
+						mother.r = tomorrow + 1
+						expected -= 1
+					end
+				end
+				-- 3. Les nouveaux petits en route.
+				for _, mother in list do
+					local ready = mother.s == species and mother.x == "f" and not mother.g and Animals.adult(mother) and not Animals.old(mother)
+						and not mother.k and (mother.r or 0) <= tomorrow and Animals.happiness(mother, #list) >= NEEDS.happyToBreed
+					if ready and room - expected > 0 then
+						local father = nil
+						for _, male in list do
+							if male.s == species and male.x == "m" and Animals.adult(male) and not Animals.old(male) and not male.k and Animals.happiness(male, #list) >= NEEDS.happyToBreed then
+								if not father or (Animals.related(father, mother) and not Animals.related(male, mother)) then
+									father = male
+								end
+							end
+						end
+						if father and random:NextNumber() < Animals.conceiveChance then
+							mother.g = tomorrow + def.repro
+							mother.gf, mother.gn = father.id, father.n
+							mother.gc = Animals.related(father, mother) or nil
+							expected += 1
 						end
 					end
 				end

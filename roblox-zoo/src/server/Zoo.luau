@@ -77,6 +77,13 @@ Zoo.remotes = {
 	drop = remote("Drop"), -- poser ce qu'on porte
 	popup = remote("Popup"), -- (position, texte, couleur) un « +10 $ » qui s'envole
 	choose = remote("ChoosePlot"), -- (parcelle) ouvre la fenêtre du choix des animaux
+	open = remote("Open"), -- (fenêtre, ...) ouvre une fenêtre chez un joueur (commandes, pharmacie, stand, jeux)
+	order = remote("Order"), -- ({ [produit] = cartons }) passer une commande
+	take = remote("Take"), -- (produit) prendre un médicament ou un carton de produits à la réserve
+	setPrice = remote("SetPrice"), -- (« ticket » ou type de stand, prix)
+	buyShop = remote("BuyShop"), -- (emplacement, type) construire un stand
+	buyToy = remote("BuyToy"), -- (parcelle, jeu) installer un jeu
+	examine = remote("Examine"), -- (numéro de l'animal) l'examiner
 	buyPlot = remote("BuyPlot"), -- (parcelle, animaux) acheter une parcelle pour ces animaux
 }
 
@@ -99,8 +106,12 @@ local function defaults()
 		day = 1,
 		stars = Config.START_STARS,
 		plots = { farm = "farm" }, -- [parcelle] = les animaux choisis (Config.HABITATS)
-		buildings = {},
 		staff = {},
+		stock = table.clone(Config.START_STOCK), -- [produit] = unités dans les réserves (Stock.luau)
+		dock = {}, -- les cartons livrés pas encore rangés : { produit, unités }
+		shops = {}, -- [emplacement] = { t = type, n = produits, d = saleté } (Shops.luau)
+		prices = {}, -- [« ticket » ou type de stand] = le prix fixé par le joueur
+		toys = {}, -- [parcelle] = { jeux installés }
 		animals = {},
 		nextId = 1,
 		troughs = {},
@@ -131,6 +142,16 @@ local function clean(data)
 	end
 	for _, role in Config.STAFF_ORDER do
 		data.staff[role] = math.clamp(math.floor(tonumber(data.staff[role]) or 0), 0, Config.STAFF[role].max)
+	end
+	for key in data.staff do
+		if not Config.STAFF[key] then
+			data.staff[key] = nil
+		end
+	end
+	for item in data.stock do
+		if not Config.STOCK[item] then
+			data.stock[item] = nil
+		end
 	end
 	local animals = {}
 	for _, animal in data.animals do
@@ -285,8 +306,17 @@ function Zoo.publish()
 	for _, plot in Config.PLOTS do
 		shared:SetAttribute("Plot_" .. plot.id, state.plots[plot.id] or "")
 	end
-	for _, building in Config.BUILDINGS do
-		shared:SetAttribute("Building_" .. building.id, state.buildings[building.id] == true)
+	for _, item in Config.STOCK_ORDER do
+		shared:SetAttribute("Stock_" .. item, state.stock[item] or 0)
+	end
+	for _, spot in Config.SHOP_SPOTS do
+		local shop = state.shops[spot.id]
+		shared:SetAttribute("Shop_" .. spot.id, if shop then shop.t else "")
+	end
+	shared:SetAttribute("Price_ticket", state.prices.ticket or 0)
+	for _, kind in Config.SHOP_ORDER do
+		local def = Config.SHOP_TYPES[kind]
+		shared:SetAttribute("Price_" .. kind, state.prices[kind] or def.sale or 0)
 	end
 	for _, role in Config.STAFF_ORDER do
 		shared:SetAttribute("Staff_" .. role, state.staff[role] or 0)

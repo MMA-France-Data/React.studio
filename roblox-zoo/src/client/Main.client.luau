@@ -119,7 +119,13 @@ local function refreshBar()
 	local hours = math.floor(clock) % 24
 	local minutes = math.floor((clock - math.floor(clock)) * 60)
 	dayLabel.Text = string.format("Jour %d · %02dh%02d", state:GetAttribute("Day") or 1, hours, minutes)
-	phaseLabel.Text = PHASES[state:GetAttribute("Phase") or "open"] or ""
+	local weather = ""
+	for _, item in Config.WEATHER do
+		if item.id == state:GetAttribute("Weather") then
+			weather = " · " .. item.icon .. " " .. item.fr
+		end
+	end
+	phaseLabel.Text = (PHASES[state:GetAttribute("Phase") or "open"] or "") .. weather
 	moneyLabel.Text = money(state:GetAttribute("Money") or 0)
 	moneyLabel.TextColor3 = if (state:GetAttribute("Money") or 0) < 0 then RED else GOLD
 	local stars = state:GetAttribute("Stars") or 0
@@ -172,22 +178,100 @@ local function toast(message: string, color: Color3?)
 	end
 end
 
-local FOOD = { hay = "du foin", grain = "du grain", meat = "de la viande", kit = "une trousse de soins" }
+local STOCK = Config.STOCK
+local function stockName(item: string): string
+	return if STOCK[item] then STOCK[item].fr else item
+end
 local MESSAGES = {
 	noMoney = function(amount)
 		return "Pas assez d'argent (" .. money(amount) .. ")", RED
 	end,
-	took = function(kind)
-		return "Tu portes " .. (FOOD[kind] or kind) .. ".", nil
+	took = function(item, amount)
+		local def = STOCK[item]
+		if def and def.kind == "shop" then
+			return "Carton de " .. string.lower(def.fr) .. " x" .. amount .. " : apporte-le au stand.", nil
+		end
+		return "Tu portes : " .. stockName(item) .. ".", nil
 	end,
-	alreadyCarry = function(name)
-		return "Tu portes déjà : " .. name, nil
+	handsFull = function()
+		return "Tu portes déjà quelque chose (bouton Poser).", RED
+	end,
+	outOfStock = function(name)
+		return "Plus de " .. string.lower(name) .. " en stock : commande sur l'ordinateur de la réserve !", RED
+	end,
+	needBox = function()
+		return "Apporte ici un carton du quai de livraison.", RED
+	end,
+	storeFull = function(name)
+		return "La réserve est pleine de " .. string.lower(name) .. ".", RED
+	end,
+	stored = function(name, amount)
+		return name .. " rangé (+" .. amount .. ").", GREEN
+	end,
+	needProduct = function(name)
+		return "Il faut un carton de " .. string.lower(name) .. " (réserve, rayon Produits).", RED
+	end,
+	shopFull = function()
+		return "Ce stand est déjà plein.", nil
+	end,
+	restocked = function(name, amount)
+		return "Stand rempli : " .. string.lower(name) .. " +" .. amount .. ".", GREEN
+	end,
+	toiletsClean = function()
+		return "Toilettes propres !", GREEN
+	end,
+	examined = function(name, disease, med)
+		return name .. " a : " .. disease .. ". Il lui faut : " .. med .. " (pharmacie de la réserve).", Color3.fromRGB(200, 120, 40)
+	end,
+	needMed = function()
+		return "Il faut un médicament (pharmacie de la réserve). Examine-le d'abord !", RED
+	end,
+	wrongMed = function(name)
+		return "Le " .. string.lower(name) .. " ne soigne pas cette maladie. Examine-le !", RED
+	end,
+	ordered = function(count, cost, seconds)
+		return "Commande : " .. count .. " carton(s), " .. money(cost) .. ". Le camion arrive dans " .. seconds .. " s.", GREEN
+	end,
+	delivered = function(count)
+		return "Livraison : " .. count .. " carton(s) sur le quai, à côté de la réserve. Range-les !", GOLD
+	end,
+	staffShortage = function(name)
+		return "Ton personnel manque de " .. string.lower(name) .. " : commande-en !", RED
+	end,
+	shopBuilt = function(name, who)
+		return name .. " construit" .. (if who ~= "" then " (" .. who .. ")" else "") .. " ! Apporte-lui des produits.", GREEN
+	end,
+	toyBought = function(name, place)
+		return name .. " installé chez les " .. string.lower(place) .. " !", GREEN
+	end,
+	weather = function(id)
+		for _, item in Config.WEATHER do
+			if item.id == id then
+				return "Météo : " .. item.icon .. " " .. item.fr .. (if item.about then " — " .. item.about else ""), nil
+			end
+		end
+		return "", nil
+	end,
+	event = function(id)
+		for _, item in Config.EVENTS do
+			if item.id == id then
+				return "Aujourd'hui : " .. item.fr .. " — " .. item.about, GOLD
+			end
+		end
+		return "", nil
+	end,
+	inspected = function(grade, amount, score)
+		local verdict = if grade == "A" or grade == "B" then GREEN elseif grade == "C" then GOLD else RED
+		return "Inspection : note " .. grade .. " (" .. score .. "/100)" .. (if amount > 0 then " : prime de " .. money(amount) elseif amount < 0 then " : amende de " .. money(-amount) else ""), verdict
+	end,
+	journalist = function(value)
+		return "Le journaliste donne " .. value .. "/5 à ton zoo dans son article !", if value >= 3 then GREEN else RED
+	end,
+	oldDeath = function(name, days)
+		return name .. " est mort de vieillesse, à " .. days .. " jours.", nil
 	end,
 	needFood = function(name)
 		return "Il faut du " .. string.lower(name) .. " : va le chercher à la réserve.", RED
-	end,
-	needKit = function()
-		return "Il faut une trousse de soins (réserve).", RED
 	end,
 	filled = function(name)
 		return "Mangeoire remplie (" .. string.lower(name) .. ").", GREEN
@@ -198,8 +282,8 @@ local MESSAGES = {
 	buildingBought = function(name, who)
 		return name .. " construit ! (" .. who .. ")", GREEN
 	end,
-	sick = function(name, place)
-		return name .. " est malade (" .. place .. ") : soigne-le !", RED
+	sick = function(name, place, hint)
+		return name .. " est malade (" .. place .. ", " .. (hint or "") .. ") : examine-le !", RED
 	end,
 	lost = function(name)
 		return name .. " n'a pas été soigné à temps : les vétérinaires de la ville l'ont emmené.", RED
@@ -248,9 +332,6 @@ local MESSAGES = {
 	end,
 	staffFull = function(role)
 		return "Tu as déjà assez de : " .. role, RED
-	end,
-	needCafe = function()
-		return "Construis d'abord le café.", RED
 	end,
 	morning = function(day, expected)
 		return "Jour " .. day .. " : environ " .. expected .. " visiteurs attendus.", nil
@@ -305,13 +386,19 @@ local dropButton = button(carry, "Poser", UDim2.fromOffset(90, 34), UDim2.fromOf
 dropButton.Activated:Connect(function()
 	remotes.Drop:FireServer()
 end)
-local CARRY_NAMES = { hay = "Foin", grain = "Grain", meat = "Viande", kit = "Trousse de soins" }
 local function refreshCarry()
-	local kind = player:GetAttribute("Carry") or ""
-	carry.Visible = kind ~= ""
-	carryLabel.Text = "Tu portes : " .. (CARRY_NAMES[kind] or kind)
+	local value = player:GetAttribute("Carry") or ""
+	carry.Visible = value ~= ""
+	local kind, item = string.match(value, "^(%a+):(%a+)$")
+	local amount = player:GetAttribute("CarryAmount") or 0
+	local name = stockName(item or "")
+	carryLabel.Text = if kind == "box" then "Carton : " .. name .. " x" .. amount
+		elseif kind == "product" then "Pour un stand : " .. name .. " x" .. amount
+		elseif kind == "med" then "Médicament : " .. name
+		else "Ration : " .. name
 end
 player:GetAttributeChangedSignal("Carry"):Connect(refreshCarry)
+player:GetAttributeChangedSignal("CarryAmount"):Connect(refreshCarry)
 refreshCarry()
 
 -- LES CONSEILS DU DÉBUT ----------------------------------------------------------------------------------------------
@@ -326,7 +413,7 @@ tipsText.TextYAlignment = Enum.TextYAlignment.Top
 tipsText.TextWrapped = true
 local TIPS = {
 	"Des visiteurs arrivent ! Entre dans la cabine du guichet (à l'entrée) : vise le billet du visiteur avec le scanner et clique.",
-	"Prends du foin ou du grain à la RÉSERVE (à gauche de l'entrée) et remplis une mangeoire de la mini-ferme.",
+	"Prends du foin ou du grain à la RÉSERVE (à gauche de l'entrée) et remplis une mangeoire de la mini-ferme. Le stock baisse : commande sur l'ordinateur de la réserve.",
 	"Les animaux font des crottes : entre dans la mini-ferme (porte « Personnel ») et ramasse-en une.",
 	"Construis un espace (panneau « Parcelle à vendre », en face de la mini-ferme), puis achète ses animaux au Marché.",
 	"Embauche quelqu'un (bouton Personnel) : un caissier scanne les billets à ta place.",
@@ -644,7 +731,21 @@ function animalCard(id: number)
 	end
 	-- Âge et arrivée.
 	local days = math.max(0, math.floor(zooDays() - (item:GetAttribute("Birth") or zooDays())))
-	line("Âge", (if baby then "bébé" else "adulte") .. " · " .. days .. (if days > 1 then " jours" else " jour"))
+	local old = item:GetAttribute("Old") == true
+	line("Âge", (if baby then "bébé" elseif old then "âgé" else "adulte") .. " · " .. days .. (if days > 1 then " jours" else " jour") .. " (vit environ " .. (item:GetAttribute("Life") or 60) .. " jours)", if old then ORANGE else nil)
+	local due = item:GetAttribute("Pregnant") or 0
+	if due > 0 then
+		local left = math.max(0, math.ceil(due - zooDays()))
+		line("Enceinte", "de " .. (item:GetAttribute("PregnantFather") or "?") .. " · naissance " .. (if left <= 1 then "cette nuit" else "dans " .. left .. " jours"), GOLD)
+	end
+	local disease = Config.DISEASES[item:GetAttribute("Disease") or ""]
+	if disease then
+		if item:GetAttribute("Examined") then
+			line("Maladie", disease.fr .. " : il lui faut du " .. string.lower(STOCK[disease.med].fr) .. " (pharmacie)", ORANGE)
+		else
+			line("Maladie", "malade (" .. disease.hint .. ") : examine-le pour savoir ce qu'il a", ORANGE)
+		end
+	end
 	local origin = item:GetAttribute("Origin")
 	local from = item:GetAttribute("OriginZoo") or ""
 	local arrival = item:GetAttribute("Arrival") or 1
@@ -697,7 +798,7 @@ function animalCard(id: number)
 	health.LayoutOrder = order
 	round(health, 8)
 	local sick = item:GetAttribute("Sick") == true
-	gauge(health, "Santé", if sick then 15 else 100, UDim2.fromOffset(10, 8), 420, if sick then "malade : soigne-le !" else "en forme")
+	gauge(health, "Santé", if sick then 15 else 100, UDim2.fromOffset(10, 8), 420, if sick then "malade" else "en forme")
 	gauge(health, "Ventre plein", 100 - (item:GetAttribute("Hunger") or 0), UDim2.fromOffset(10, 38), 420)
 	gauge(health, "Bonheur", item:GetAttribute("Happy") or 0, UDim2.fromOffset(10, 68), 420)
 	line("Ce qu'il mange", Config.FOODS[def.food].fr)
@@ -755,8 +856,14 @@ function animalsWindow()
 				if item:GetAttribute("Consang") then
 					table.insert(flags, "CONSANGUIN")
 				end
+				if (item:GetAttribute("Pregnant") or 0) > 0 then
+					table.insert(flags, "ENCEINTE")
+				end
+				if item:GetAttribute("Old") then
+					table.insert(flags, "ÂGÉ")
+				end
 				if #flags > 0 then
-					local flag = text(row, table.concat(flags, " · "), UDim2.fromOffset(170, 22), UDim2.fromOffset(250, 6), ORANGE, Enum.Font.GothamBlack)
+					local flag = text(row, table.concat(flags, " · "), UDim2.fromOffset(220, 22), UDim2.fromOffset(250, 6), ORANGE, Enum.Font.GothamBlack)
 					flag.TextXAlignment = Enum.TextXAlignment.Left
 				end
 				local open = text(row, "Fiche ›", UDim2.fromOffset(90, 30), UDim2.new(1, -100, 0, 14), GOLD)
@@ -1057,15 +1164,309 @@ state:GetAttributeChangedSignal("MarketVersion"):Connect(function()
 	end
 end)
 
-local side = frame(gui, UDim2.fromOffset(130, 220), UDim2.new(1, -140, 0.5, -110))
+-- LES COMMANDES (l'ordinateur de la réserve, Stock.luau) : chaque produit, ce qu'il en reste, le prix d'un carton ; on
+-- choisit combien de cartons, et le camion les livre.
+local MED_FOR = {}
+for _, disease in Config.DISEASES do
+	MED_FOR[disease.med] = disease.fr
+end
+local KIND_NAMES = { food = "Nourriture des animaux", med = "Médicaments", shop = "Produits pour les stands" }
+local function ordersWindow()
+	local _, body = window("Commandes", 640, 540)
+	local cart = {}
+	local order = 1
+	local total: TextLabel
+	local function refreshTotal()
+		local cost, count = 0, 0
+		for item, packs in cart do
+			local def = STOCK[item]
+			local price = def.price * packs
+			if packs >= Config.BULK.packs then
+				price *= 1 - Config.BULK.discount
+			end
+			cost += price
+			count += packs
+		end
+		total.Text = count .. " carton(s) · " .. money(math.floor(cost + 0.5))
+	end
+	note(body, order, "Le camion livre les cartons sur le quai, à côté de la réserve de l'entrée : porte-les jusqu'au coin « Cartons » d'une réserve pour les ranger. À partir de " .. Config.BULK.packs .. " cartons du même produit : -" .. math.floor(Config.BULK.discount * 100) .. " %.")
+	local lastKind = nil
+	for _, item in Config.STOCK_ORDER do
+		local def = STOCK[item]
+		if def.kind ~= lastKind then
+			lastKind = def.kind
+			order += 1
+			local title = text(body, KIND_NAMES[def.kind], UDim2.new(1, -10, 0, 26), UDim2.new(), GOLD)
+			title.LayoutOrder = order
+			title.TextXAlignment = Enum.TextXAlignment.Left
+		end
+		order += 1
+		local row = frame(body, UDim2.new(1, -10, 0, 54), UDim2.new(), WOOD_LIGHT)
+		row.LayoutOrder = order
+		round(row, 10)
+		local swatch = frame(row, UDim2.fromOffset(10, 38), UDim2.fromOffset(8, 8), def.color)
+		round(swatch, 4)
+		local name = text(row, def.fr .. (if MED_FOR[item] then " (" .. string.lower(MED_FOR[item]) .. ")" else ""), UDim2.fromOffset(240, 24), UDim2.fromOffset(26, 4))
+		name.TextXAlignment = Enum.TextXAlignment.Left
+		local have = state:GetAttribute("Stock_" .. item) or 0
+		local info = text(row, "en stock " .. have .. " / " .. def.cap .. " · carton de " .. def.pack .. " : " .. money(def.price), UDim2.fromOffset(300, 18), UDim2.fromOffset(26, 30), if have <= 2 then ORANGE else MUTED, Enum.Font.GothamBold)
+		info.TextXAlignment = Enum.TextXAlignment.Left
+		local minus = button(row, "−", UDim2.fromOffset(40, 38), UDim2.new(1, -150, 0, 8), WOOD)
+		local count = text(row, "0", UDim2.fromOffset(50, 34), UDim2.new(1, -106, 0, 10), CREAM)
+		local plus = button(row, "+", UDim2.fromOffset(40, 38), UDim2.new(1, -52, 0, 8), GREEN)
+		local function set(value: number)
+			cart[item] = if value > 0 then value else nil
+			count.Text = tostring(value)
+			refreshTotal()
+		end
+		minus.Activated:Connect(function()
+			set(math.max(0, (cart[item] or 0) - 1))
+		end)
+		plus.Activated:Connect(function()
+			set(math.min(20, (cart[item] or 0) + 1))
+		end)
+	end
+	order += 1
+	local footer = frame(body, UDim2.new(1, -10, 0, 60), UDim2.new(), WOOD)
+	footer.LayoutOrder = order
+	round(footer, 10)
+	total = text(footer, "", UDim2.fromOffset(300, 30), UDim2.fromOffset(12, 6), GOLD)
+	total.TextXAlignment = Enum.TextXAlignment.Left
+	local onWay = text(footer, "en route : " .. (state:GetAttribute("Pending") or 0) .. " · sur le quai : " .. (state:GetAttribute("Dock") or 0), UDim2.fromOffset(300, 18), UDim2.fromOffset(12, 36), MUTED, Enum.Font.GothamBold)
+	onWay.TextXAlignment = Enum.TextXAlignment.Left
+	local send = button(footer, "Commander", UDim2.fromOffset(170, 44), UDim2.new(1, -180, 0, 8), GREEN)
+	send.Activated:Connect(function()
+		if next(cart) then
+			remotes.Order:FireServer(cart)
+			if openWindow then
+				openWindow:Destroy()
+				openWindow = nil
+			end
+		end
+	end)
+	refreshTotal()
+end
+
+-- LA PHARMACIE ET LES PRODUITS (le comptoir d'une réserve) : prendre un médicament, ou un carton pour un stand.
+local function storeWindow(kind: string)
+	local _, body = window(if kind == "med" then "Pharmacie" else "Produits pour les stands", 520, 420)
+	local order = 1
+	note(body, order, if kind == "med" then "Examine d'abord l'animal malade pour savoir ce qu'il a, puis apporte-lui le bon médicament." else "Prends un carton et apporte-le au stand qui vend ce produit (bouton Remplir).")
+	for _, item in Config.STOCK_ORDER do
+		local def = STOCK[item]
+		if def.kind == kind then
+			order += 1
+			local row = frame(body, UDim2.new(1, -10, 0, 54), UDim2.new(), WOOD_LIGHT)
+			row.LayoutOrder = order
+			round(row, 10)
+			local swatch = frame(row, UDim2.fromOffset(10, 38), UDim2.fromOffset(8, 8), def.color)
+			round(swatch, 4)
+			local name = text(row, def.fr .. (if MED_FOR[item] then " · soigne : " .. string.lower(MED_FOR[item]) else ""), UDim2.fromOffset(300, 24), UDim2.fromOffset(26, 4))
+			name.TextXAlignment = Enum.TextXAlignment.Left
+			local have = state:GetAttribute("Stock_" .. item) or 0
+			local info = text(row, "en stock : " .. have, UDim2.fromOffset(200, 18), UDim2.fromOffset(26, 30), if have <= 0 then ORANGE else MUTED, Enum.Font.GothamBold)
+			info.TextXAlignment = Enum.TextXAlignment.Left
+			local takeButton = button(row, "Prendre", UDim2.fromOffset(120, 38), UDim2.new(1, -130, 0, 8), if have > 0 then GREEN else Color3.fromRGB(120, 110, 100))
+			takeButton.Activated:Connect(function()
+				remotes.Take:FireServer(item)
+				if openWindow then
+					openWindow:Destroy()
+					openWindow = nil
+				end
+			end)
+		end
+	end
+end
+
+-- CONSTRUIRE UN STAND OU DES TOILETTES (un emplacement libre, Shops.luau).
+local SHOP_ABOUT = {
+	drinks = "calme la soif",
+	icecream = "un peu la faim et la soif",
+	fries = "calme la faim",
+	coffee = "la faim et la soif",
+	toilets = "pour les visiteurs pressés : à nettoyer souvent",
+	souvenirs = "les visiteurs achètent en partant",
+}
+local function buildShopWindow(spotId: string)
+	local _, body = window("Construis sur cet emplacement", 600, 500)
+	local cash = state:GetAttribute("Money") or 0
+	local order = 1
+	note(body, order, "Un stand vend un produit : apporte-lui des cartons pris à la réserve (rayon Produits). Tu fixes ses prix dans la fenêtre Prix.")
+	for _, kind in Config.SHOP_ORDER do
+		local def = Config.SHOP_TYPES[kind]
+		order += 1
+		local row = frame(body, UDim2.new(1, -10, 0, 70), UDim2.new(), WOOD_LIGHT)
+		row.LayoutOrder = order
+		round(row, 12)
+		local swatch = frame(row, UDim2.fromOffset(52, 52), UDim2.fromOffset(9, 9), def.color)
+		round(swatch, 10)
+		text(swatch, if kind == "toilets" then "WC" else string.sub(def.fr, 1, 2), UDim2.fromScale(0.8, 0.6), UDim2.fromScale(0.1, 0.2), Color3.new(1, 1, 1))
+		local name = text(row, def.fr, UDim2.fromOffset(280, 28), UDim2.fromOffset(72, 6))
+		name.TextXAlignment = Enum.TextXAlignment.Left
+		local info = text(row, (SHOP_ABOUT[kind] or "") .. (if def.product then " · vend " .. string.lower(STOCK[def.product].fr) else ""), UDim2.fromOffset(330, 20), UDim2.fromOffset(72, 40), MUTED, Enum.Font.GothamBold)
+		info.TextXAlignment = Enum.TextXAlignment.Left
+		local buy = button(row, money(def.price), UDim2.fromOffset(140, 46), UDim2.new(1, -150, 0, 12), if cash >= def.price then GREEN else Color3.fromRGB(120, 110, 100))
+		buy.Activated:Connect(function()
+			remotes.BuyShop:FireServer(spotId, kind)
+			if openWindow then
+				openWindow:Destroy()
+				openWindow = nil
+			end
+		end)
+	end
+end
+
+-- LES JEUX D'UN ESPACE (Enclosures.luau) : chacun rend ses animaux plus heureux (jusqu'à 3).
+local function toysWindow(plotId: string)
+	local habitat = habitatOfPlot(plotId)
+	if not habitat then
+		return
+	end
+	local _, body = window("Jeux : " .. habitat.name, 560, 440)
+	local cash = state:GetAttribute("Money") or 0
+	local folder = workspace:FindFirstChild("Spaces") and workspace.Spaces:FindFirstChild(plotId)
+	local owned = string.split(folder and folder:GetAttribute("Toys") or "", ",")
+	local order = 1
+	note(body, order, "Des animaux qui jouent sont plus heureux (et les visiteurs aussi). Jusqu'à 3 jeux comptent pour leur bonheur.")
+	for _, toy in habitat.toys or {} do
+		local def = Config.TOYS[toy]
+		local has = table.find(owned, toy) ~= nil
+		order += 1
+		local row = frame(body, UDim2.new(1, -10, 0, 56), UDim2.new(), WOOD_LIGHT)
+		row.LayoutOrder = order
+		round(row, 10)
+		local name = text(row, def.fr, UDim2.fromOffset(300, 26), UDim2.fromOffset(12, 6))
+		name.TextXAlignment = Enum.TextXAlignment.Left
+		local info = text(row, if has then "installé" else "+ bonheur pour les " .. string.lower(habitat.name), UDim2.fromOffset(300, 18), UDim2.fromOffset(12, 32), if has then GREEN else MUTED, Enum.Font.GothamBold)
+		info.TextXAlignment = Enum.TextXAlignment.Left
+		if not has then
+			local buy = button(row, money(def.price), UDim2.fromOffset(130, 40), UDim2.new(1, -140, 0, 8), if cash >= def.price then GREEN else Color3.fromRGB(120, 110, 100))
+			buy.Activated:Connect(function()
+				remotes.BuyToy:FireServer(plotId, toy)
+				task.wait(0.5)
+				toysWindow(plotId)
+			end)
+		end
+	end
+end
+
+-- LES PRIX (sa demande du 15/10, « 2 ») : le billet et chaque produit ; ce qu'en pensent les visiteurs.
+local pricesOpen = false
+local function pricesWindow()
+	local panel, body = window("Prix", 600, 500)
+	pricesOpen = true
+	panel.Destroying:Connect(function()
+		pricesOpen = false
+	end)
+	local order = 1
+	note(body, order, "Plus c'est cher, moins les visiteurs achètent (et ils râlent). Moins cher, ils sont contents mais tu gagnes moins.")
+	local function row(key: string, label: string, fair: number, limits: { number })
+		local current = state:GetAttribute("Price_" .. key) or 0
+		if current <= 0 then
+			current = fair
+		end
+		order += 1
+		local item = frame(body, UDim2.new(1, -10, 0, 64), UDim2.new(), WOOD_LIGHT)
+		item.LayoutOrder = order
+		round(item, 10)
+		local name = text(item, label, UDim2.fromOffset(220, 26), UDim2.fromOffset(12, 6))
+		name.TextXAlignment = Enum.TextXAlignment.Left
+		local chance = Config.buyChance(current, fair)
+		local ratio = current / math.max(fair, 0.1)
+		local verdict = if ratio < 0.85 then "bon marché" elseif ratio <= 1.0 then "correct" elseif ratio <= 1.3 then "un peu cher" else "trop cher"
+		local info = text(item, "prix normal " .. money(fair) .. " · " .. verdict .. " · ils achètent à " .. math.floor(chance * 100) .. " %", UDim2.fromOffset(330, 20), UDim2.fromOffset(12, 36), if ratio <= 1 then GREEN elseif ratio <= 1.3 then GOLD else ORANGE, Enum.Font.GothamBold)
+		info.TextXAlignment = Enum.TextXAlignment.Left
+		local function change(delta: number)
+			remotes.SetPrice:FireServer(key, math.clamp(current + delta, limits[1], limits[2]))
+		end
+		local down = button(item, "−", UDim2.fromOffset(38, 38), UDim2.new(1, -190, 0, 13), WOOD)
+		local value = text(item, money(current), UDim2.fromOffset(100, 34), UDim2.new(1, -148, 0, 15), GOLD)
+		local up = button(item, "+", UDim2.fromOffset(38, 38), UDim2.new(1, -46, 0, 13), GREEN)
+		_ = value
+		down.Activated:Connect(function()
+			change(-1)
+		end)
+		up.Activated:Connect(function()
+			change(1)
+		end)
+	end
+	row("ticket", "Billet d'entrée", Config.ticketPrice(state:GetAttribute("Stars") or 2.5), Config.PRICE_LIMITS.ticket)
+	for _, kind in Config.SHOP_ORDER do
+		local def = Config.SHOP_TYPES[kind]
+		if def.product then
+			row(kind, def.fr .. " (" .. string.lower(STOCK[def.product].fr) .. ")", def.fair, Config.PRICE_LIMITS.shop)
+		end
+	end
+end
+state.AttributeChanged:Connect(function(name)
+	if pricesOpen and openWindow and string.sub(name, 1, 6) == "Price_" then
+		pricesWindow()
+	end
+end)
+
+-- Le serveur ouvre une fenêtre (l'ordinateur, la pharmacie, un emplacement, les jeux d'un espace).
+remotes:WaitForChild("Open").OnClientEvent:Connect(function(kind, value)
+	if kind == "orders" then
+		ordersWindow()
+	elseif kind == "store" then
+		storeWindow(value)
+	elseif kind == "buildShop" then
+		buildShopWindow(value)
+	elseif kind == "toys" then
+		toysWindow(value)
+	end
+end)
+
+-- LA PLUIE ET LA TEMPÊTE (Weather.luau) : des gouttes autour du joueur, un ciel plus sombre.
+local Lighting = game:GetService("Lighting")
+local rainPart = Instance.new("Part")
+rainPart.Name = "Rain"
+rainPart.Anchored, rainPart.CanCollide, rainPart.CanQuery, rainPart.CanTouch = true, false, false, false
+rainPart.Transparency = 1
+rainPart.Size = Vector3.new(120, 1, 120)
+rainPart.Parent = workspace
+local rain = Instance.new("ParticleEmitter")
+rain.Texture = "rbxasset://textures/particles/sparkles_main.dds"
+rain.Color = ColorSequence.new(Color3.fromRGB(190, 210, 230))
+rain.Size = NumberSequence.new(0.15)
+rain.Transparency = NumberSequence.new(0.35)
+rain.Lifetime = NumberRange.new(1.2, 1.5)
+rain.Speed = NumberRange.new(55, 65)
+rain.EmissionDirection = Enum.NormalId.Bottom
+rain.Rate = 0
+rain.Parent = rainPart
+local function refreshWeather()
+	local weather = state:GetAttribute("Weather")
+	rain.Rate = if weather == "rain" then 500 elseif weather == "storm" then 900 else 0
+	local atmosphere = Lighting:FindFirstChildOfClass("Atmosphere")
+	if atmosphere then
+		atmosphere.Density = if weather == "rain" then 0.38 elseif weather == "storm" then 0.45 elseif weather == "clouds" then 0.28 else 0.22
+	end
+	local correction = Lighting:FindFirstChildOfClass("ColorCorrectionEffect")
+	if correction then
+		correction.TintColor = if weather == "heat" then Color3.fromRGB(255, 236, 210) elseif weather == "rain" or weather == "storm" then Color3.fromRGB(220, 228, 240) else Color3.fromRGB(255, 250, 240)
+		correction.Brightness = if weather == "storm" then -0.06 elseif weather == "rain" then -0.03 else 0.01
+	end
+end
+state:GetAttributeChangedSignal("Weather"):Connect(refreshWeather)
+refreshWeather()
+game:GetService("RunService").RenderStepped:Connect(function()
+	if rain.Rate > 0 then
+		rainPart.CFrame = CFrame.new(workspace.CurrentCamera.CFrame.Position + Vector3.new(0, 40, 0))
+	end
+end)
+
+local side = frame(gui, UDim2.fromOffset(130, 272), UDim2.new(1, -140, 0.5, -136))
 side.BackgroundTransparency = 1
 local staffButton = button(side, "Personnel", UDim2.fromOffset(130, 44), UDim2.fromOffset(0, 0), WOOD_LIGHT)
 local animalsButton = button(side, "Animaux", UDim2.fromOffset(130, 44), UDim2.fromOffset(0, 52), WOOD_LIGHT)
 local marketButton = button(side, "Marché", UDim2.fromOffset(130, 44), UDim2.fromOffset(0, 104), GREEN)
-local viewButton = button(side, "Vue", UDim2.fromOffset(130, 40), UDim2.fromOffset(0, 156), WOOD)
-local mouseHint = text(side, "M : la souris", UDim2.fromOffset(130, 18), UDim2.fromOffset(0, 200), CREAM, Enum.Font.GothamBold)
+local pricesButton = button(side, "Prix", UDim2.fromOffset(130, 44), UDim2.fromOffset(0, 156), WOOD_LIGHT)
+local viewButton = button(side, "Vue", UDim2.fromOffset(130, 40), UDim2.fromOffset(0, 208), WOOD)
+local mouseHint = text(side, "M : la souris", UDim2.fromOffset(130, 18), UDim2.fromOffset(0, 252), CREAM, Enum.Font.GothamBold)
 staffButton.Activated:Connect(staffWindow)
 animalsButton.Activated:Connect(animalsWindow)
+pricesButton.Activated:Connect(pricesWindow)
 marketButton.Activated:Connect(function()
 	marketWindow()
 end)
@@ -1209,7 +1610,8 @@ end)
 -- LE BILAN DU SOIR -----------------------------------------------------------------------------------------------------
 local LINES = {
 	{ "tickets", "Billets" }, { "shops", "Café et bar" }, { "sales", "Animaux vendus" }, { "food", "Nourriture" },
-	{ "care", "Soins" }, { "spaces", "Constructions" }, { "animals", "Animaux achetés" }, { "salaries", "Salaires" },
+	{ "orders", "Commandes" }, { "spaces", "Constructions" }, { "animals", "Animaux achetés" }, { "toys", "Jeux" },
+	{ "inspection", "Inspection" }, { "salaries", "Salaires" },
 }
 remotes:WaitForChild("Bilan").OnClientEvent:Connect(function(report)
 	local panel, body = window("Bilan du jour " .. report.day, 460, 470)
@@ -1237,6 +1639,22 @@ remotes:WaitForChild("Bilan").OnClientEvent:Connect(function(report)
 	line("Total du jour", (if report.total > 0 then "+" else "") .. money(report.total), if report.total >= 0 then GOLD else RED)
 	line("En caisse", money(report.balance), GOLD)
 	line("Note du zoo", string.format("%.1f → %.1f", report.starsBefore, report.starsAfter), if report.starsAfter >= report.starsBefore then GREEN else RED)
+	line("Météo", report.weather or "")
+	if report.event then
+		line("Événement", report.event, GOLD)
+	end
+	if report.inspection then
+		line("Inspection", "note " .. report.inspection, if report.inspection <= "B" then GREEN else RED)
+	end
+	if report.journalist then
+		line("Article du journaliste", string.format("%.1f / 5", report.journalist), if report.journalist >= 3 then GREEN else RED)
+	end
+	if (report.refused or 0) > 0 then
+		line("Repartis (billet trop cher)", tostring(report.refused), RED)
+	end
+	if (report.old or 0) > 0 then
+		line("Morts de vieillesse", tostring(report.old))
+	end
 	if #report.births > 0 then
 		line("Naissances", table.concat(report.births, ", "), GREEN)
 	end
@@ -1273,6 +1691,18 @@ workspace:GetAttributeChangedSignal("OpenWindow"):Connect(function()
 		if best then
 			animalCard(tonumber(best.Name))
 		end
+	elseif wanted == "orders" then
+		ordersWindow()
+	elseif wanted == "prices" then
+		pricesWindow()
+	elseif wanted == "pharmacy" then
+		storeWindow("med")
+	elseif wanted == "buildShop" then
+		buildShopWindow("k3")
+	elseif wanted == "toys" then
+		toysWindow("w1")
+	elseif wanted == "fiche_id" then
+		animalCard(workspace:GetAttribute("FicheId"))
 	elseif wanted == "animals" then
 		animalsWindow()
 	elseif wanted == "build" then
