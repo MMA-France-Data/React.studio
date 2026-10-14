@@ -4,6 +4,7 @@
 local Players = game:GetService("Players")
 
 local Npc = require(script.Parent.Npc)
+local Paths = require(script.Parent.Paths)
 local Map = require(script.Parent.Map)
 local Zoo = require(script.Parent.Zoo)
 local Enclosures = require(script.Parent.Enclosures)
@@ -17,6 +18,11 @@ local Debug = require(script.Parent.Debug)
 -- Les joueurs ne se cognent pas aux visiteurs ni au personnel.
 local function character(player: Player)
 	local function setup(model: Model)
+		-- (Le zoo est grand : le joueur marche plus vite que d'habitude.)
+		local humanoid = model:FindFirstChildOfClass("Humanoid") or model:WaitForChild("Humanoid", 5)
+		if humanoid and humanoid:IsA("Humanoid") then
+			humanoid.WalkSpeed = 26
+		end
 		for _, item in model:GetDescendants() do
 			if item:IsA("BasePart") then
 				item.CollisionGroup = "Player"
@@ -35,6 +41,7 @@ local function character(player: Player)
 end
 
 Npc.init()
+Paths.build()
 Players.PlayerAdded:Connect(character)
 for _, player in Players:GetPlayers() do
 	character(player)

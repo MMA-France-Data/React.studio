@@ -19,7 +19,7 @@ Config.START_STARS = 2.5 -- la note du zoo au départ (de 0 à 5 étoiles)
 Config.OPEN_HOUR = 9
 Config.CLOSE_HOUR = 18
 Config.LAST_ARRIVAL = 16.5 -- plus aucun visiteur n'arrive après 16 h 30
-Config.DAY_SECONDS = 480 -- 8 minutes de 9 h à 18 h
+Config.DAY_SECONDS = 600 -- 10 minutes de 9 h à 18 h (le zoo est grand : sa demande du 14/10, des parcs bien plus grands)
 Config.EVENING_MAX = 40 -- secondes, après 18 h, pour que les derniers visiteurs sortent (puis le bilan)
 Config.NIGHT_AUTO = 45 -- le jour suivant commence tout seul après ce temps de nuit (ou avant, avec le bouton)
 
@@ -30,7 +30,7 @@ Config.VISITORS = {
 	perStar = 5, -- en plus, par étoile de la note
 	max = 140,
 	inside = 32, -- au plus dans le zoo en même temps (les autres attendent dehors)
-	walk = 7, -- vitesse de marche
+	walk = 8, -- vitesse de marche
 	watch = { 5, 9 }, -- secondes devant un espace ouvert
 	patience = 60, -- secondes d'attente au guichet avant de repartir fâché (le trajet depuis le bus compte)
 	trash = 0.35, -- un visiteur sur trois jette un papier par terre
@@ -113,36 +113,64 @@ Config.GATE = {
 }
 -- La place derrière l'entrée.
 Config.PLAZA = { min = v3(-50, 0, 122), max = v3(50, 0, 200) }
--- La réserve (nourriture et trousses), dans le coin sud-ouest de la place.
-Config.STORE = { center = v3(-38, 0, 182), facing = v3(1, 0, 0) }
--- La grande allée en boucle (dans le sens des aiguilles d'une montre vue du ciel, en partant du bas).
-Config.PATH_WIDTH = 11
-Config.LOOP = {
-	v3(0, 0, 108), v3(94, 0, 108), v3(104, 0, 104), v3(108, 0, 94),
-	v3(108, 0, -94), v3(104, 0, -104), v3(94, 0, -108),
-	v3(-94, 0, -108), v3(-104, 0, -104), v3(-108, 0, -94),
-	v3(-108, 0, 94), v3(-104, 0, 104), v3(-94, 0, 108), v3(0, 0, 108),
+-- Les réserves (nourriture et trousses) : une dans le coin sud-ouest de la place, une au milieu du zoo.
+Config.STORES = {
+	{ center = v3(-38, 0, 182), facing = v3(1, 0, 0) },
+	{ center = v3(36, 0, 10), facing = v3(-1, 0, 0) },
 }
--- Le lac du milieu, avec sa cascade.
-Config.LAKE = { center = v3(0, 0, 12), radius = 30 }
+-- LES ALLÉES (sa demande du 14/10 : « 3 fois plus de terrain, des parcs bien plus grands ») : une grande boucle, une
+-- avenue au milieu du sud au nord, et une rue en travers ; les visiteurs et le personnel prennent le plus court chemin
+-- (Paths.luau). PATH_START : le carrefour où la place rejoint les allées.
+Config.PATH_WIDTH = 11
+Config.PATH_NODES = {
+	v3(0, 0, 108), v3(215, 0, 108), v3(215, 0, -180), v3(215, 0, -470), v3(0, 0, -470),
+	v3(-215, 0, -470), v3(-215, 0, -180), v3(-215, 0, 108), v3(0, 0, -180),
+}
+Config.PATH_EDGES = { { 1, 2 }, { 2, 3 }, { 3, 4 }, { 4, 5 }, { 5, 6 }, { 6, 7 }, { 7, 8 }, { 8, 1 }, { 1, 9 }, { 9, 5 }, { 7, 9 }, { 9, 3 } }
+Config.PATH_START = 1
+-- Le terrain plat du zoo (au-delà : les montagnes).
+Config.ZOO_RECT = { minX = -352, maxX = 352, minZ = -604, maxZ = 212 }
+-- Le lac, avec sa cascade (au sud-ouest du milieu).
+Config.LAKE = { center = v3(-120, 0, 10), radius = 40 }
 
 -- LES PARCELLES (sa demande du 14/10 : « de base ce serait des parcelles vides, et la déco change quand tu choisis,
 -- par exemple tigre à cet endroit, ça devient le décor tigre »). Une parcelle vide a un panneau « À vendre » : on y
 -- choisit ses animaux (Config.HABITATS), et elle se construit pour eux. La mini-ferme est la parcelle du départ.
--- center / size : le terrain (size = largeur est-ouest, profondeur nord-sud) ; view : où les visiteurs regardent,
--- sur l'allée ; side : le côté qui donne sur l'allée (« x- » = le côté ouest...).
+-- Chaque parcelle : ses bords (x0, x1 d'ouest en est, z0, z1 du nord au sud), le côté qui donne sur l'allée (side :
+-- « x- » = le côté ouest...) et où les visiteurs regardent (view, sur l'allée).
+local function plot(id: string, x0: number, x1: number, z0: number, z1: number, side: string, view: Vector3, fixed: string?)
+	return { id = id, center = v3((x0 + x1) / 2, 0, (z0 + z1) / 2), size = Vector2.new(x1 - x0, z1 - z0), side = side, view = view, fixed = fixed }
+end
 Config.PLOTS = {
-	{ id = "farm", center = v3(84, 0, 159), size = Vector2.new(58, 66), view = v3(46, 0, 159), side = "x-", fixed = "farm" },
-	{ id = "p1", center = v3(-84, 0, 159), size = Vector2.new(58, 66), view = v3(-46, 0, 152), side = "x+" },
-	{ id = "p2", center = v3(-152, 0, 52), size = Vector2.new(62, 74), view = v3(-112, 0, 52), side = "x+" },
-	{ id = "p3", center = v3(152, 0, 52), size = Vector2.new(62, 74), view = v3(112, 0, 52), side = "x-" },
-	{ id = "p4", center = v3(-152, 0, -52), size = Vector2.new(62, 74), view = v3(-112, 0, -52), side = "x+" },
-	{ id = "p5", center = v3(152, 0, -52), size = Vector2.new(62, 74), view = v3(112, 0, -52), side = "x-" },
-	{ id = "p6", center = v3(-80, 0, -153), size = Vector2.new(66, 62), view = v3(-80, 0, -112), side = "z+" },
-	{ id = "p7", center = v3(80, 0, -153), size = Vector2.new(66, 62), view = v3(80, 0, -112), side = "z+" },
-	{ id = "p8", center = v3(-54, 0, -66), size = Vector2.new(62, 52), view = v3(-54, 0, -104), side = "z-" },
-	{ id = "p9", center = v3(54, 0, -66), size = Vector2.new(62, 52), view = v3(54, 0, -104), side = "z-" },
-	{ id = "p10", center = v3(0, 0, -153), size = Vector2.new(66, 62), view = v3(0, 0, -112), side = "z+" },
+	plot("farm", 55, 113, 126, 192, "x-", v3(46, 0, 159), "farm"),
+	-- Au sud, de chaque côté de l'entrée.
+	plot("s1", -200, -58, 124, 202, "x+", v3(-48, 0, 152)),
+	plot("s2", 125, 205, 124, 202, "z-", v3(165, 0, 113)),
+	-- À l'ouest, le long de la grande boucle (dehors).
+	plot("w1", -340, -230, -12, 98, "x+", v3(-219, 0, 43)),
+	plot("w2", -340, -230, -142, -32, "x+", v3(-219, 0, -87)),
+	plot("w3", -340, -230, -272, -162, "x+", v3(-219, 0, -217)),
+	plot("w4", -340, -230, -402, -292, "x+", v3(-219, 0, -347)),
+	-- À l'est (dehors).
+	plot("e1", 230, 340, -12, 98, "x-", v3(219, 0, 43)),
+	plot("e2", 230, 340, -142, -32, "x-", v3(219, 0, -87)),
+	plot("e3", 230, 340, -272, -162, "x-", v3(219, 0, -217)),
+	plot("e4", 230, 340, -402, -292, "x-", v3(219, 0, -347)),
+	-- Au nord (dehors).
+	plot("n1", -200, -80, -592, -482, "z+", v3(-140, 0, -476)),
+	plot("n2", -60, 60, -592, -482, "z+", v3(0, 0, -476)),
+	plot("n3", 80, 200, -592, -482, "z+", v3(140, 0, -476)),
+	-- Dedans, entre la boucle, l'avenue et la rue.
+	plot("c1", -200, -90, -165, -55, "z-", v3(-145, 0, -176)),
+	plot("c2", 90, 200, -165, -55, "z-", v3(145, 0, -176)),
+	plot("c3", -197, -117, -315, -195, "x-", v3(-209, 0, -255)),
+	plot("c4", -97, -17, -315, -195, "x+", v3(-4, 0, -255)),
+	plot("c5", -197, -117, -455, -335, "x-", v3(-209, 0, -395)),
+	plot("c6", -97, -17, -455, -335, "x+", v3(-4, 0, -395)),
+	plot("c7", 17, 97, -315, -195, "x-", v3(4, 0, -255)),
+	plot("c8", 117, 197, -315, -195, "x+", v3(209, 0, -255)),
+	plot("c9", 17, 97, -455, -335, "x-", v3(4, 0, -395)),
+	plot("c10", 117, 197, -455, -335, "x+", v3(209, 0, -395)),
 }
 Config.PLOT_BY_ID = {}
 for index, plot in Config.PLOTS do
@@ -160,23 +188,23 @@ end
 -- capacity : animaux au plus (les naissances s'arrêtent).
 Config.HABITATS = {
 	{ id = "farm", name = "Mini-ferme", species = { "Goat", "Pig", "Rooster" }, price = 0, decor = "farm", security = "fence", capacity = 14, hidden = true },
-	{ id = "sheep", name = "Moutons", species = { "Sheep" }, price = 400, decor = "meadow", security = "fence", capacity = 10 },
-	{ id = "deer", name = "Cerfs", species = { "Deer" }, price = 600, decor = "forest", security = "fence", capacity = 8 },
-	{ id = "boar", name = "Sangliers", species = { "Boar" }, price = 1500, decor = "mud", security = "fence", capacity = 8 },
-	{ id = "capy", name = "Capybaras", species = { "Capybara" }, price = 2500, decor = "pond", security = "fence", capacity = 10 },
-	{ id = "wolf", name = "Loups", species = { "Wolf" }, price = 4000, decor = "forest", security = "wall", capacity = 7 },
-	{ id = "lynx", name = "Lynx", species = { "Lynx" }, price = 5000, decor = "forest", security = "wall", capacity = 6 },
-	{ id = "croc", name = "Crocodiles", species = { "Crocodile" }, price = 6000, decor = "river", security = "moat", capacity = 6 },
-	{ id = "hyena", name = "Hyènes", species = { "Hyena" }, price = 8000, decor = "savanna", security = "wall", capacity = 7 },
-	{ id = "bear", name = "Ours", species = { "Bear" }, price = 9000, decor = "rocks", security = "pit", capacity = 5 },
-	{ id = "buffalo", name = "Buffles", species = { "Buffalo" }, price = 10000, decor = "savanna", security = "moat", capacity = 6 },
-	{ id = "cheetah", name = "Guépards", species = { "Cheetah" }, price = 12000, decor = "savanna", security = "moat", capacity = 6 },
-	{ id = "gorilla", name = "Gorilles", species = { "Gorilla" }, price = 16000, decor = "jungle", security = "moat", capacity = 6 },
-	{ id = "jaguar", name = "Jaguars", species = { "Jaguar" }, price = 18000, decor = "jungle", security = "moat", capacity = 5 },
-	{ id = "tiger", name = "Tigres", species = { "Tiger" }, price = 22000, decor = "jungle", security = "moat", capacity = 5 },
-	{ id = "rhino", name = "Rhinocéros", species = { "Rhino" }, price = 26000, decor = "savanna", security = "moat", capacity = 4 },
-	{ id = "lion", name = "Lions", species = { "Lion" }, price = 30000, decor = "savanna", security = "moat", capacity = 6 },
-	{ id = "elephant", name = "Éléphants", species = { "Elephant" }, price = 40000, decor = "savanna", security = "moat", capacity = 4 },
+	{ id = "sheep", name = "Moutons", species = { "Sheep" }, price = 400, decor = "meadow", security = "fence", capacity = 15 },
+	{ id = "deer", name = "Cerfs", species = { "Deer" }, price = 600, decor = "forest", security = "fence", capacity = 12 },
+	{ id = "boar", name = "Sangliers", species = { "Boar" }, price = 1500, decor = "mud", security = "fence", capacity = 12 },
+	{ id = "capy", name = "Capybaras", species = { "Capybara" }, price = 2500, decor = "pond", security = "fence", capacity = 15 },
+	{ id = "wolf", name = "Loups", species = { "Wolf" }, price = 4000, decor = "forest", security = "wall", capacity = 10 },
+	{ id = "lynx", name = "Lynx", species = { "Lynx" }, price = 5000, decor = "forest", security = "wall", capacity = 9 },
+	{ id = "croc", name = "Crocodiles", species = { "Crocodile" }, price = 6000, decor = "river", security = "moat", capacity = 9 },
+	{ id = "hyena", name = "Hyènes", species = { "Hyena" }, price = 8000, decor = "savanna", security = "wall", capacity = 10 },
+	{ id = "bear", name = "Ours", species = { "Bear" }, price = 9000, decor = "rocks", security = "pit", capacity = 8 },
+	{ id = "buffalo", name = "Buffles", species = { "Buffalo" }, price = 10000, decor = "savanna", security = "moat", capacity = 9 },
+	{ id = "cheetah", name = "Guépards", species = { "Cheetah" }, price = 12000, decor = "savanna", security = "moat", capacity = 9 },
+	{ id = "gorilla", name = "Gorilles", species = { "Gorilla" }, price = 16000, decor = "jungle", security = "moat", capacity = 9 },
+	{ id = "jaguar", name = "Jaguars", species = { "Jaguar" }, price = 18000, decor = "jungle", security = "moat", capacity = 8 },
+	{ id = "tiger", name = "Tigres", species = { "Tiger" }, price = 22000, decor = "jungle", security = "moat", capacity = 8 },
+	{ id = "rhino", name = "Rhinocéros", species = { "Rhino" }, price = 26000, decor = "savanna", security = "moat", capacity = 6 },
+	{ id = "lion", name = "Lions", species = { "Lion" }, price = 30000, decor = "savanna", security = "moat", capacity = 9 },
+	{ id = "elephant", name = "Éléphants", species = { "Elephant" }, price = 40000, decor = "savanna", security = "moat", capacity = 6 },
 }
 Config.HABITAT_BY_ID = {}
 for _, habitat in Config.HABITATS do

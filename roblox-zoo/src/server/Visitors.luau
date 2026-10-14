@@ -11,6 +11,7 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local Enclosures = require(script.Parent.Enclosures)
 local Map = require(script.Parent.Map)
 local Npc = require(script.Parent.Npc)
+local Paths = require(script.Parent.Paths)
 local Tasks = require(script.Parent.Tasks)
 local Zoo = require(script.Parent.Zoo)
 
@@ -34,32 +35,51 @@ local function stop(kind: string, id: string)
 end
 local PLAZA_TOUR = {
 	v3(8, 0, 188), v3(7, 0, 172), v3(14, 0, 160), v3(22, 0, 156), stop("space", "farm"), v3(21, 0, 155),
-	v3(10, 0, 136), v3(-10, 0, 136), v3(-21, 0, 151), stop("space", "p1"), v3(-21, 0, 149), v3(-10, 0, 136),
+	v3(10, 0, 136), v3(-10, 0, 136), v3(-21, 0, 151), stop("space", "s1"), v3(-21, 0, 149), v3(-10, 0, 136),
 	v3(0, 0, 128),
-}
-local LOOP_TOUR = {
-	v3(0, 0, 116), v3(0, 0, 108), stop("building", "bar"), v3(94, 0, 108), v3(104, 0, 104), v3(108, 0, 94),
-	stop("space", "p3"), stop("space", "p5"), v3(108, 0, -94), v3(104, 0, -104), v3(94, 0, -108),
-	stop("space", "p7"), stop("space", "p9"), stop("space", "p10"), stop("space", "p8"), stop("space", "p6"),
-	v3(-94, 0, -108), v3(-104, 0, -104), v3(-108, 0, -94),
-	stop("space", "p4"), stop("space", "p2"), v3(-108, 0, 94), v3(-104, 0, 104), v3(-94, 0, 108),
-	stop("building", "cafe"), v3(0, 0, 108), v3(0, 0, 118),
 }
 local EXIT_TOUR = { v3(0, 0, 132), v3(-14, 0, 142), v3(-14, 0, 160), v3(-8, 0, 178), v3(-8, 0, 188), GATE.exit, GATE.exit + v3(0, 0, 10), v3(-14, 0, 230), Config.LEAVE }
 
--- Y a-t-il quelque chose d'ouvert sur la grande boucle ? (Sinon les visiteurs ne la font pas.)
-local function loopWorthIt(): boolean
-	for _, item in LOOP_TOUR do
-		if typeof(item) == "table" then
-			if item.space and Enclosures.spaces[item.space] and Enclosures.spaces[item.space].open then
-				return true
-			end
-			if item.building and Enclosures.buildings[item.building] and Enclosures.buildings[item.building].open then
-				return true
-			end
+-- LES ARRÊTS SUR LES ALLÉES : chaque parcelle (sauf celles de la place) et chaque bâtiment a son point sur le
+-- réseau des allées (Paths.attach, au démarrage). Le tour d'un visiteur passe par tous les arrêts ouverts, du plus
+-- proche au plus proche, puis revient à la place : il ne fait pas les allées où il n'y a rien à voir.
+local stops = {} -- { node, space = parcelle } ou { node, building = bâtiment }
+
+local function networkTour(): { any }
+	local targets = {}
+	for _, item in stops do
+		if item.space and Enclosures.spaces[item.space] and Enclosures.spaces[item.space].open then
+			table.insert(targets, item)
+		elseif item.building and Enclosures.buildings[item.building] and Enclosures.buildings[item.building].open then
+			table.insert(targets, item)
 		end
 	end
-	return false
+	local tour = {}
+	if #targets == 0 then
+		return tour
+	end
+	table.insert(tour, v3(0, 0, 116))
+	table.insert(tour, Paths.position(Config.PATH_START))
+	local current = Config.PATH_START
+	while #targets > 0 do
+		local best, bestDistance = 1, math.huge
+		for index, item in targets do
+			local distance = Paths.distance(current, item.node)
+			if distance < bestDistance then
+				best, bestDistance = index, distance
+			end
+		end
+		local item = table.remove(targets, best)
+		for _, point in Paths.route(current, item.node) do
+			table.insert(tour, point)
+		end
+		table.insert(tour, item)
+		current = item.node
+	end
+	for _, point in Paths.route(current, Config.PATH_START) do
+		table.insert(tour, point)
+	end
+	return tour
 end
 
 -- LE GUICHET ----------------------------------------------------------------------------------------------------------
@@ -296,10 +316,8 @@ local function life(visitor)
 	end
 	-- 2. Le tour du zoo.
 	local tour = table.clone(PLAZA_TOUR)
-	if loopWorthIt() then
-		for _, item in LOOP_TOUR do
-			table.insert(tour, item)
-		end
+	for _, item in networkTour() do
+		table.insert(tour, item)
 	end
 	for _, item in EXIT_TOUR do
 		table.insert(tour, item)
@@ -401,6 +419,16 @@ function Visitors.queueLength(): number
 end
 
 function Visitors.start()
+	-- Les arrêts sur les allées (les parcelles de la place sont dans PLAZA_TOUR).
+	for _, plot in Config.PLOTS do
+		if plot.id ~= "farm" and plot.id ~= "s1" then
+			table.insert(stops, { node = Paths.attach(plot.view), space = plot.id })
+		end
+	end
+	for _, building in Config.BUILDINGS do
+		table.insert(stops, { node = Paths.attach(v3(building.center.X, 0, 108)), building = building.id })
+	end
+	Paths.prepare()
 	scanPrompt = Enclosures.prompt(Map.scanner, "Scanner le billet", "Guichet", 0, 9)
 	scanPrompt.Enabled = false
 	scanPrompt.Triggered:Connect(function(player)

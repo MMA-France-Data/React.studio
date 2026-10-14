@@ -202,25 +202,39 @@ local function at(space, rx: number, rz: number): Vector3
 	return v3((inner[1] + inner[2]) / 2 + rx * (inner[2] - inner[1]) / 2, space.floor, (inner[3] + inner[4]) / 2 + rz * (inner[4] - inner[3]) / 2)
 end
 
+-- Combien d'éléments de décor pour cette parcelle (les décors sont écrits pour une parcelle de 50 x 60 ; une grande
+-- parcelle en a plus).
+local function many(space, count: number): number
+	local inner = space.inner
+	local area = (inner[2] - inner[1]) * (inner[4] - inner[3])
+	return math.max(1, math.round(count * math.clamp(area / 3000, 0.6, 4)))
+end
+-- La taille d'une mare, d'un rocher, selon la parcelle.
+local function wide(space, value: number): number
+	local inner = space.inner
+	local area = (inner[2] - inner[1]) * (inner[4] - inner[3])
+	return value * math.clamp(math.sqrt(area / 3000), 0.8, 1.8)
+end
+
 local function logs(folder, space, random, count: number)
-	for _ = 1, count do
+	for _ = 1, many(space, count) do
 		local spot = Enclosures.randomPoint(space.id, 6, random)
 		Props.stick(folder, "Log", spot + v3(-3, 0.7, 0), spot + v3(3, 0.7, random:NextNumber(-1.5, 1.5)), 1.5, Props.WOOD_LIGHT, M.Wood, true)
 	end
 end
 local function rocks(space, random, count: number, small: number, big: number)
-	for _ = 1, count do
+	for _ = 1, many(space, count) do
 		terrain:FillBall(Enclosures.randomPoint(space.id, 5, random) + v3(0, -0.5, 0), random:NextNumber(small, big), M.Rock)
 	end
 end
 
 function HABITATS.farm(folder, space, random)
-	pond(space, at(space, -0.45, -0.55), 4.5, 4)
-	for _ = 1, 5 do
+	pond(space, at(space, -0.45, -0.55), wide(space, 4.5), 4)
+	for _ = 1, many(space, 5) do
 		local spot = Enclosures.randomPoint(space.id, 6, random)
 		part(folder, "HayBale", v3(3.2, 2, 2.4), CFrame.new(spot + v3(0, 1, 0)) * CFrame.Angles(0, random:NextNumber(0, 3), 0), rgb(222, 196, 106), M.Grass, true)
 	end
-	for _ = 1, 6 do
+	for _ = 1, many(space, 6) do
 		Props.bush(folder, Enclosures.randomPoint(space.id, 3, random), random, 0.8, true)
 	end
 	-- Un petit poulailler.
@@ -238,15 +252,15 @@ function HABITATS.farm(folder, space, random)
 end
 
 function HABITATS.meadow(folder, space, random)
-	for _ = 1, 4 do
+	for _ = 1, many(space, 4) do
 		local spot = Enclosures.randomPoint(space.id, 6, random)
 		part(folder, "HayBale", v3(3.2, 2, 2.4), CFrame.new(spot + v3(0, 1, 0)) * CFrame.Angles(0, random:NextNumber(0, 3), 0), rgb(222, 196, 106), M.Grass, true)
 	end
-	for _ = 1, 30 do
+	for _ = 1, many(space, 30) do
 		local spot = Enclosures.randomPoint(space.id, 2, random)
 		Props.ball(folder, "Flower", 0.6, spot + v3(0, 0.3, 0), if random:NextNumber() < 0.5 then rgb(250, 250, 240) else rgb(250, 210, 70))
 	end
-	for _ = 1, 3 do
+	for _ = 1, many(space, 3) do
 		Props.tree(folder, Enclosures.randomPoint(space.id, 5, random), random, 0.9)
 	end
 	rocks(space, random, 3, 1.5, 2.4)
@@ -254,8 +268,8 @@ end
 
 function HABITATS.forest(folder, space, random)
 	repaint(space, M.Grass, M.LeafyGrass)
-	pond(space, at(space, 0.3, -0.5), 4, 4)
-	for _ = 1, 9 do
+	pond(space, at(space, 0.3, -0.5), wide(space, 4), 4)
+	for _ = 1, many(space, 9) do
 		local spot = Enclosures.randomPoint(space.id, 5, random)
 		if random:NextNumber() < 0.6 then
 			Props.pine(folder, spot, random, 0.9)
@@ -263,7 +277,7 @@ function HABITATS.forest(folder, space, random)
 			Props.tree(folder, spot, random, 0.9)
 		end
 	end
-	for _ = 1, 8 do
+	for _ = 1, many(space, 8) do
 		Props.fern(folder, Enclosures.randomPoint(space.id, 3, random), random, 1.2)
 	end
 	logs(folder, space, random, 3)
@@ -271,41 +285,41 @@ function HABITATS.forest(folder, space, random)
 end
 
 function HABITATS.mud(folder, space, random)
-	for _ = 1, 5 do
+	for _ = 1, many(space, 5) do
 		patch(Enclosures.randomPoint(space.id, 8, random), random:NextNumber(5, 9), M.Mud)
 	end
-	for _ = 1, 6 do
+	for _ = 1, many(space, 6) do
 		Props.tree(folder, Enclosures.randomPoint(space.id, 5, random), random, 0.95)
 	end
 	logs(folder, space, random, 4)
-	for _ = 1, 8 do
+	for _ = 1, many(space, 8) do
 		Props.bush(folder, Enclosures.randomPoint(space.id, 3, random), random, 1)
 	end
 end
 
 function HABITATS.pond(folder, space, random)
-	pond(space, at(space, 0, -0.1), 11, 6)
-	for _ = 1, 6 do
+	pond(space, at(space, 0, -0.1), wide(space, 11), 6)
+	for _ = 1, many(space, 6) do
 		Props.palm(folder, Enclosures.randomPoint(space.id, 4, random), random, 0.85)
 	end
-	for _ = 1, 10 do
+	for _ = 1, many(space, 6) do
 		Props.tallGrass(folder, Enclosures.randomPoint(space.id, 3, random), random, rgb(92, 150, 70))
 	end
-	for _ = 1, 5 do
+	for _ = 1, many(space, 5) do
 		Props.bush(folder, Enclosures.randomPoint(space.id, 3, random), random, 1, true)
 	end
 end
 
 function HABITATS.river(folder, space, random)
-	pond(space, at(space, -0.2, -0.35), 11, 7)
-	pond(space, at(space, 0.15, 0.3), 9, 7)
-	for _ = 1, 4 do
+	pond(space, at(space, -0.2, -0.35), wide(space, 11), 7)
+	pond(space, at(space, 0.15, 0.3), wide(space, 9), 7)
+	for _ = 1, many(space, 4) do
 		patch(Enclosures.randomPoint(space.id, 6, random), random:NextNumber(4, 6), M.Sand)
 	end
-	for _ = 1, 6 do
+	for _ = 1, many(space, 6) do
 		Props.palm(folder, Enclosures.randomPoint(space.id, 4, random), random)
 	end
-	for _ = 1, 6 do
+	for _ = 1, many(space, 6) do
 		Props.fern(folder, Enclosures.randomPoint(space.id, 3, random), random, 1.4)
 	end
 	rocks(space, random, 4, 2, 3.5)
@@ -315,12 +329,12 @@ function HABITATS.rocks(folder, space, random)
 	repaint(space, M.Ground, M.LeafyGrass)
 	-- Des rochers au fond (avec une grotte), un bassin, des sapins.
 	local back = at(space, 0, 0.55)
-	for _ = 1, 6 do
+	for _ = 1, many(space, 6) do
 		terrain:FillBall(back + v3(random:NextNumber(-12, 12), random:NextNumber(0, 4), random:NextNumber(-2, 2)), random:NextNumber(4, 6.5), M.Rock)
 	end
 	terrain:FillBall(back + v3(0, 2, -4), 3.5, M.Air)
-	pond(space, at(space, 0.5, -0.4), 5, 4)
-	for _ = 1, 5 do
+	pond(space, at(space, 0.5, -0.4), wide(space, 5), 4)
+	for _ = 1, many(space, 5) do
 		Props.pine(folder, Enclosures.randomPoint(space.id, 5, random), random, 1)
 	end
 	logs(folder, space, random, 3)
@@ -343,33 +357,33 @@ end
 
 function HABITATS.savanna(folder, space, random)
 	repaint(space, M.Grass, M.Ground)
-	for _ = 1, 6 do
+	for _ = 1, many(space, 6) do
 		patch(Enclosures.randomPoint(space.id, 8, random), random:NextNumber(5, 9), M.Sand)
 	end
-	pond(space, at(space, -0.45, 0.3), 5, 4)
+	pond(space, at(space, -0.45, 0.3), wide(space, 5), 4)
 	-- Le rocher des lions (un « kopje »).
 	local rock = at(space, 0.35, -0.2)
 	terrain:FillBall(rock, 6, M.Rock)
 	terrain:FillBall(rock + v3(4, 2, -2), 4.5, M.Rock)
 	terrain:FillBall(rock + v3(-3, 1, 3), 4, M.Rock)
-	for _ = 1, 3 do
+	for _ = 1, many(space, 3) do
 		acacia(folder, Enclosures.randomPoint(space.id, 6, random), random)
 	end
-	for _ = 1, 22 do
+	for _ = 1, many(space, 12) do
 		Props.tallGrass(folder, Enclosures.randomPoint(space.id, 2, random), random)
 	end
 end
 
 function HABITATS.jungle(folder, space, random)
 	repaint(space, M.Grass, M.LeafyGrass)
-	pond(space, at(space, 0.45, 0.1), 6, 5)
-	for _ = 1, 4 do
+	pond(space, at(space, 0.45, 0.1), wide(space, 6), 5)
+	for _ = 1, many(space, 4) do
 		Props.jungleTree(folder, Enclosures.randomPoint(space.id, 6, random), random, 0.9)
 	end
-	for _ = 1, 4 do
+	for _ = 1, many(space, 4) do
 		Props.palm(folder, Enclosures.randomPoint(space.id, 4, random), random)
 	end
-	for _ = 1, 10 do
+	for _ = 1, many(space, 10) do
 		Props.fern(folder, Enclosures.randomPoint(space.id, 3, random), random, 1.5)
 	end
 	-- Des troncs et des cordes pour grimper.
@@ -735,11 +749,12 @@ local function forSale(space)
 	local random = Random.new(plot.index * 104729)
 	space.inner = { plot.center.X - plot.size.X / 2 + 3, plot.center.X + plot.size.X / 2 - 3, plot.center.Z - plot.size.Y / 2 + 3, plot.center.Z + plot.size.Y / 2 - 3 }
 	space.floor = 0
-	for _ = 1, 26 do
+	-- (Peu de blocs : 23 parcelles vides, il ne faut pas que le téléphone rame.)
+	for _ = 1, 12 do
 		Props.tallGrass(folder, Enclosures.randomPoint(space.id, 2, random), random, rgb(140, 160, 80))
 	end
-	for _ = 1, 7 do
-		Props.bush(folder, Enclosures.randomPoint(space.id, 3, random), random, 1.2)
+	for _ = 1, 5 do
+		Props.bush(folder, Enclosures.randomPoint(space.id, 3, random), random, 1.4)
 	end
 	-- Des piquets et une corde le long du côté des visiteurs.
 	local from, to = sideSegment(plot, plot.side)

@@ -122,12 +122,14 @@ function Tasks.trash(): { BasePart }
 end
 
 function Tasks.start()
-	-- Les quatre points du comptoir de la réserve.
-	for kind, counter in Map.store do
-		local item = Enclosures.prompt(counter, "Prendre", NAMES[kind] .. " (" .. PRICES[kind] .. " $)", 0, 8)
-		item.Triggered:Connect(function(player)
-			take(player, kind)
-		end)
+	-- Les quatre points du comptoir de chaque réserve.
+	for _, store in Map.stores do
+		for _, kind in { "hay", "grain", "meat", "kit" } do
+			local item = Enclosures.prompt(store[kind], "Prendre", NAMES[kind] .. " (" .. PRICES[kind] .. " $)", 0, 8)
+			item.Triggered:Connect(function(player)
+				take(player, kind)
+			end)
+		end
 	end
 	-- Remplir une mangeoire.
 	Enclosures.handlers.trough = function(player: Player, spaceId: string, food: string)

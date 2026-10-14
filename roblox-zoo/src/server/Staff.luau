@@ -13,6 +13,7 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local Enclosures = require(script.Parent.Enclosures)
 local Map = require(script.Parent.Map)
 local Npc = require(script.Parent.Npc)
+local Paths = require(script.Parent.Paths)
 local Tasks = require(script.Parent.Tasks)
 local Visitors = require(script.Parent.Visitors)
 local Zoo = require(script.Parent.Zoo)
@@ -26,8 +27,6 @@ local claimed = {} -- ce qu'un employé est déjà parti faire (une mangeoire, u
 
 -- SE DÉPLACER PAR LES ALLÉES ------------------------------------------------------------------------------------------
 local insideOf: (Vector3) -> string?
-local LOOP = table.clone(Config.LOOP)
-table.remove(LOOP) -- (le dernier point est le premier)
 local PLAZA_DOOR = v3(0, 0, 124)
 
 local function inPlaza(position: Vector3): boolean
@@ -35,38 +34,21 @@ local function inPlaza(position: Vector3): boolean
 	return position.X >= plaza.min.X - 8 and position.X <= plaza.max.X + 8 and position.Z >= plaza.min.Z - 2 and position.Z <= plaza.max.Z + 2
 end
 
-local function nearestNode(position: Vector3): number
-	local best, bestDistance = 1, math.huge
-	for index, node in LOOP do
-		local distance = (Vector3.new(node.X - position.X, 0, node.Z - position.Z)).Magnitude
-		if distance < bestDistance then
-			best, bestDistance = index, distance
-		end
-	end
-	return best
-end
-
--- Le chemin d'un point à un autre : direct si c'est près ; sinon par la grande boucle, dans le sens le plus court.
+-- Le chemin d'un point à un autre : direct si c'est près ; sinon par les allées, le plus court (Paths.luau).
 local function route(from: Vector3, to: Vector3): { Vector3 }
 	local points = {}
 	if (to - from).Magnitude < 45 or (inPlaza(from) and inPlaza(to)) then
 		table.insert(points, to)
 		return points
 	end
-	local start = if inPlaza(from) then 1 else nearestNode(from)
-	local finish = if inPlaza(to) then 1 else nearestNode(to)
+	local start = if inPlaza(from) then Config.PATH_START else Paths.nearest(from)
+	local finish = if inPlaza(to) then Config.PATH_START else Paths.nearest(to)
 	if inPlaza(from) then
 		table.insert(points, PLAZA_DOOR)
 	end
-	local count = #LOOP
-	local forward = (finish - start) % count
-	local backward = (start - finish) % count
-	local step = if forward <= backward then 1 else -1
-	local index = start
-	table.insert(points, LOOP[index])
-	while index ~= finish do
-		index = (index - 1 + step) % count + 1
-		table.insert(points, LOOP[index])
+	table.insert(points, Paths.position(start))
+	for _, point in Paths.route(start, finish) do
+		table.insert(points, point)
 	end
 	if inPlaza(to) then
 		table.insert(points, PLAZA_DOOR)
@@ -129,10 +111,18 @@ local function enter(worker, spaceId: string, target: Vector3): boolean
 	return Npc.walkTo(worker.npc, target, 2, 25)
 end
 
--- Le point où l'on prend une chose à la réserve (devant le comptoir).
-local function storeSpot(kind: string): Vector3
-	local counter = Map.store[kind]
-	return v3(counter.Position.X + 2.5, 0, counter.Position.Z)
+-- Le point où l'on prend une chose, à la réserve la plus proche (devant le comptoir).
+local function storeSpot(kind: string, near: Vector3): Vector3
+	local best, bestDistance = nil, math.huge
+	for _, store in Map.stores do
+		local counter = store[kind]
+		local spot = v3(counter.Position.X, 0, counter.Position.Z) + store.facing * 2.5
+		local distance = (spot - near).Magnitude
+		if distance < bestDistance then
+			best, bestDistance = spot, distance
+		end
+	end
+	return best
 end
 
 local IDLE_SPOT = v3(-24, 0, 176)
@@ -169,7 +159,7 @@ function JOBS.keeper(worker)
 			continue
 		end
 		claimed[best.key] = true
-		local ok = travel(worker, storeSpot(best.food), 2)
+		local ok = travel(worker, storeSpot(best.food, best.trough.position), 2)
 		if ok and Zoo.spend(Config.FOODS[best.food].price, "food") then
 			task.wait(0.8)
 			if enter(worker, best.space, best.trough.position + (best.trough.base.LookVector * -2.5)) then
@@ -239,7 +229,7 @@ function JOBS.vet(worker)
 		end
 		local key = "vet|" .. patient.id
 		claimed[key] = true
-		if travel(worker, storeSpot("kit"), 2) and Zoo.spend(Config.KIT.price, "care") then
+		if travel(worker, storeSpot("kit", Enclosures.spaces[patient.sp].plot.center), 2) and Zoo.spend(Config.KIT.price, "care") then
 			task.wait(0.8)
 			if enter(worker, patient.sp, Enclosures.randomPoint(patient.sp, 5)) then
 				task.wait(1.5)
@@ -276,7 +266,7 @@ end
 -- EMBAUCHER, RENVOYER -------------------------------------------------------------------------------------------------
 local function spawnWorker(role: string)
 	local def = Config.STAFF[role]
-	local npc = Npc.make(role, Config.STORE.center + v3(8, 0, 0), def.fr)
+	local npc = Npc.make(role, Config.STORES[1].center + v3(8, 0, 0), def.fr)
 	if not npc then
 		return
 	end

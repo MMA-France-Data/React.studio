@@ -20,8 +20,18 @@ local terrain = workspace.Terrain
 local folder: Folder
 
 local RES = 4
-local EXTENT = 452 -- le terrain va de -EXTENT à +EXTENT (en x et en z)
-local ZOO = 204 -- le parc est plat dans le carré de côté 2 x ZOO ; les montagnes commencent au-delà
+-- Le terrain va de TERRAIN.minX à maxX (et de minZ à maxZ) ; le parc est plat dans Config.ZOO_RECT, les montagnes
+-- commencent au-delà. (Des multiples de 4.)
+local TERRAIN = { minX = -560, maxX = 560, minZ = -816, maxZ = 464 }
+local ZOO = Config.ZOO_RECT
+
+-- À quelle distance on est en dehors du parc (0 dedans), et à quelle distance du bord quand on est dedans.
+local function outside(x: number, z: number): number
+	return math.max(ZOO.minX - x, x - ZOO.maxX, ZOO.minZ - z, z - ZOO.maxZ, 0)
+end
+local function fromEdge(x: number, z: number): number
+	return math.min(x - ZOO.minX, ZOO.maxX - x, z - ZOO.minZ, ZOO.maxZ - z)
+end
 local BOTTOM = -24
 
 -- LA LUMIÈRE : un bel après-midi tropical, un peu de brume dans les montagnes.
@@ -88,6 +98,7 @@ local LINKS = {
 	{ v3(0, 0, 124), v3(0, 0, 104), 15 }, -- de la place à la boucle
 	{ v3(-54, 0, 88), v3(-54, 0, 106), 9 }, -- devant le café
 	{ v3(54, 0, 88), v3(54, 0, 106), 9 }, -- devant le bar
+	{ v3(4, 0, 10), v3(29, 0, 10), 10 }, -- vers la deuxième réserve
 }
 -- La place (voir onPath) et le chemin des visiteurs dessus (Visitors.luau).
 local PLAZA_CENTER = v3(0, 0, 150)
@@ -109,9 +120,8 @@ end
 
 local function onPath(x: number, z: number): boolean
 	local half = Config.PATH_WIDTH / 2
-	local loop = Config.LOOP
-	for i = 1, #loop - 1 do
-		if segmentDistance(x, z, loop[i], loop[i + 1]) <= half then
+	for _, edge in Config.PATH_EDGES do
+		if segmentDistance(x, z, Config.PATH_NODES[edge[1]], Config.PATH_NODES[edge[2]]) <= half then
 			return true
 		end
 	end
@@ -151,7 +161,7 @@ local function onRoad(x: number, z: number): boolean
 	if z < 198 then
 		return false
 	end
-	return math.abs(x) <= 20 and z <= EXTENT
+	return math.abs(x) <= 20 and z <= TERRAIN.maxZ
 end
 
 -- Le lac : son bord est un peu irrégulier.
@@ -165,16 +175,15 @@ end
 
 -- La hauteur du sol (0 dans le parc ; les montagnes autour).
 local function groundHeight(x: number, z: number): number
-	local d = math.max(math.abs(x), math.abs(z))
-	if d <= ZOO then
+	local t = outside(x, z)
+	if t <= 0 then
 		return 0
 	end
-	local t = d - ZOO
 	local ramp = math.clamp(t / 60, 0, 1)
 	local hills = math.noise(x / 120, z / 120, 0.37) * 60 + math.noise(x / 40, z / 40, 4.1) * 12
 	local h = t * 0.62 + hills * ramp + 6 * ramp
 	-- La vallée de la route, au sud.
-	if z > ZOO - 4 then
+	if z > ZOO.maxZ - 4 then
 		h *= math.clamp((math.abs(x) - 30) / 70, 0, 1)
 	end
 	return math.clamp(h, 0, 200)
@@ -183,18 +192,19 @@ Map.groundHeight = groundHeight
 
 -- LE TERRAIN, écrit par morceaux (WriteVoxels).
 local function buildTerrain()
-	local cells = EXTENT * 2 / RES
+	local cellsX = (TERRAIN.maxX - TERRAIN.minX) / RES
+	local cellsZ = (TERRAIN.maxZ - TERRAIN.minZ) / RES
 	local CHUNK = 32
-	for cx = 0, cells - 1, CHUNK do
-		for cz = 0, cells - 1, CHUNK do
-			local nx, nz = math.min(CHUNK, cells - cx), math.min(CHUNK, cells - cz)
+	for cx = 0, cellsX - 1, CHUNK do
+		for cz = 0, cellsZ - 1, CHUNK do
+			local nx, nz = math.min(CHUNK, cellsX - cx), math.min(CHUNK, cellsZ - cz)
 			-- La hauteur et le sol de chaque colonne du morceau.
 			local heights, tops, maxHeight = {}, {}, 0
 			for ix = 1, nx do
 				heights[ix], tops[ix] = {}, {}
 				for iz = 1, nz do
-					local x = -EXTENT + (cx + ix - 0.5) * RES
-					local z = -EXTENT + (cz + iz - 0.5) * RES
+					local x = TERRAIN.minX + (cx + ix - 0.5) * RES
+					local z = TERRAIN.minZ + (cz + iz - 0.5) * RES
 					local h = groundHeight(x, z)
 					local top = M.Grass
 					local water = nil
@@ -210,12 +220,12 @@ local function buildTerrain()
 						h = -1 + (distance - radius) / 4
 					elseif onRoad(x, z) then
 						top = M.Asphalt
-					elseif math.max(math.abs(x), math.abs(z)) <= ZOO and onPath(x, z) then
+					elseif outside(x, z) <= 0 and onPath(x, z) then
 						top = M.Pavement
 					elseif h > 0 then
 						local slope = (math.abs(groundHeight(x + RES, z) - groundHeight(x - RES, z)) + math.abs(groundHeight(x, z + RES) - groundHeight(x, z - RES))) / (RES * 2)
 						top = if slope > 1.25 or h > 150 then M.Rock elseif slope > 0.95 then M.Ground else M.LeafyGrass
-					elseif math.max(math.abs(x), math.abs(z)) > ZOO - 18 then
+					elseif outside(x, z) <= 0 and fromEdge(x, z) < 18 then
 						top = M.LeafyGrass
 					end
 					heights[ix][iz] = { h = h, top = top, water = water }
@@ -253,7 +263,7 @@ local function buildTerrain()
 					end
 				end
 			end
-			local corner = v3(-EXTENT + cx * RES, BOTTOM, -EXTENT + cz * RES)
+			local corner = v3(TERRAIN.minX + cx * RES, BOTTOM, TERRAIN.minZ + cz * RES)
 			local region = Region3.new(corner, corner + v3(nx * RES, ny * RES, nz * RES))
 			terrain:WriteVoxels(region, RES, materials, occupancy)
 		end
@@ -455,16 +465,14 @@ local function buildPlaza(random: Random)
 	Props.sign(folder, v3(24, 0, 193), v3(0, 0, -1), "Bienvenue au zoo !", 12)
 end
 
--- LA RÉSERVE : le foin, le grain, la viande et les trousses de soins, sur un grand comptoir (les points où on les
--- prend sont dans Map.store, pour Tasks.luau).
-Map.store = {}
-local function buildStore()
-	local store = Config.STORE
+-- LES RÉSERVES : le foin, le grain, la viande et les trousses de soins, sur un grand comptoir (les points où on les
+-- prend sont dans Map.stores, pour Tasks.luau et Staff.luau : { hay = bloc, grain = ..., facing = vers où on se tient }).
+Map.stores = {}
+local function buildStore(store)
 	local base = CFrame.lookAt(store.center, store.center + store.facing)
 	Props.lodge(folder, base, 16, 10, 9, { openFront = true, title = "RÉSERVE", rise = 5 })
-	-- Ce qu'il y a derrière le comptoir.
-	local items = { "hay", "grain", "meat", "kit" }
-	for i, kind in items do
+	local points = { facing = store.facing }
+	for i, kind in { "hay", "grain", "meat", "kit" } do
 		local x = -6 + (i - 1) * 4
 		local spot = base * CFrame.new(x, 0, -2)
 		if kind == "hay" then
@@ -480,13 +488,13 @@ local function buildStore()
 		else
 			local box = part(folder, "Kit", v3(3, 2.2, 1.8), spot * CFrame.new(0, 2, 2), rgb(244, 244, 244), M.SmoothPlastic, true)
 			Props.label(box, Enum.NormalId.Front, "+", rgb(220, 50, 50))
-			_ = box
 		end
-		-- Le point du comptoir où l'on prend la chose (devant le comptoir, côté place).
+		-- Le point du comptoir où l'on prend la chose.
 		local counter = part(folder, "Take_" .. kind, v3(3.4, 0.4, 1.4), base * CFrame.new(x, 4.4, -5.6), Props.WOOD_LIGHT, M.Wood)
 		counter.CanQuery = true
-		Map.store[kind] = counter
+		points[kind] = counter
 	end
+	table.insert(Map.stores, points)
 end
 
 -- LA VÉGÉTATION : des forêts tropicales tout autour du parc, sur les pentes, le long des allées, autour du lac.
@@ -505,9 +513,8 @@ function Map.isFree(x: number, z: number, margin: number): boolean
 	end
 	-- Pas sur les allées ni trop près.
 	local half = Config.PATH_WIDTH / 2 + margin
-	local loop = Config.LOOP
-	for i = 1, #loop - 1 do
-		if segmentDistance(x, z, loop[i], loop[i + 1]) <= half then
+	for _, edge in Config.PATH_EDGES do
+		if segmentDistance(x, z, Config.PATH_NODES[edge[1]], Config.PATH_NODES[edge[2]]) <= half then
 			return false
 		end
 	end
@@ -530,14 +537,13 @@ local function buildPlants(random: Random)
 	plants.Parent = folder
 	-- 1. La lisière de jungle tout autour du parc et sur le bas des pentes.
 	local placed = 0
-	for _ = 1, 2200 do
-		if placed >= 300 then
+	for _ = 1, 4000 do
+		if placed >= 340 then
 			break
 		end
-		local x, z = random:NextNumber(-330, 330), random:NextNumber(-330, 330)
-		local d = math.max(math.abs(x), math.abs(z))
+		local x, z = random:NextNumber(ZOO.minX - 90, ZOO.maxX + 90), random:NextNumber(ZOO.minZ - 90, ZOO.maxZ + 60)
 		local h = groundHeight(x, z)
-		if d > 188 and h < 70 and Map.isFree(x, z, 4) then
+		if (outside(x, z) > 0 or fromEdge(x, z) < 12) and h < 70 and Map.isFree(x, z, 4) then
 			local roll = random:NextNumber()
 			local at = v3(x, h, z)
 			if roll < 0.32 then
@@ -553,14 +559,13 @@ local function buildPlants(random: Random)
 		end
 	end
 	-- 2. Le long de la grande allée, des deux côtés : palmiers, arbres, buissons fleuris, fougères, lampadaires.
-	local loop = Config.LOOP
 	local lampCount = 0
-	for i = 1, #loop - 1 do
-		local a, b = loop[i], loop[i + 1]
+	for _, edge in Config.PATH_EDGES do
+		local a, b = Config.PATH_NODES[edge[1]], Config.PATH_NODES[edge[2]]
 		local length = (b - a).Magnitude
 		local direction = (b - a).Unit
 		local side = v3(-direction.Z, 0, direction.X)
-		local count = math.floor(length / 13)
+		local count = math.floor(length / 20)
 		for j = 1, count do
 			local along = a + direction * (j - 0.5) * length / count
 			for _, sign in { -1, 1 } do
@@ -587,7 +592,7 @@ local function buildPlants(random: Random)
 			end
 		end
 	end
-	-- 3. Le jardin du lac, au milieu de la boucle : palmiers, fougères, parterres, bancs.
+	-- 3. Le jardin du lac : palmiers, fougères, buissons fleuris ; et des arbres partout entre les parcelles.
 	local lake = Config.LAKE
 	for i = 1, 22 do
 		local angle = i / 22 * math.pi * 2 + random:NextNumber(-0.1, 0.1)
@@ -603,9 +608,9 @@ local function buildPlants(random: Random)
 			end
 		end
 	end
-	for _ = 1, 260 do
-		local x, z = random:NextNumber(-100, 100), random:NextNumber(-100, 100)
-		if Map.isFree(x, z, 2) then
+	for _ = 1, 300 do
+		local x, z = random:NextNumber(ZOO.minX, ZOO.maxX), random:NextNumber(ZOO.minZ, 100)
+		if fromEdge(x, z) > 14 and Map.isFree(x, z, 3) then
 			local roll = random:NextNumber()
 			if roll < 0.2 then
 				Props.tree(plants, v3(x, 0, z), random, 0.9)
@@ -618,21 +623,9 @@ local function buildPlants(random: Random)
 			end
 		end
 	end
-	-- 4. Entre les espaces et le bord : des buissons et des arbres, pour que les espaces paraissent dans la nature.
-	for _ = 1, 500 do
-		local x, z = random:NextNumber(-200, 200), random:NextNumber(-200, 200)
-		local d = math.max(math.abs(x), math.abs(z))
-		if d > 112 and d < 196 and Map.isFree(x, z, 3) then
-			if random:NextNumber() < 0.5 then
-				Props.bush(plants, v3(x, 0, z), random, 1.3)
-			else
-				Props.tree(plants, v3(x, 0, z), random)
-			end
-		end
-	end
-	-- 5. Des rochers sur les pentes.
-	for _ = 1, 140 do
-		local x, z = random:NextNumber(-EXTENT + 20, EXTENT - 20), random:NextNumber(-EXTENT + 20, EXTENT - 20)
+	-- 4. Des rochers sur les pentes.
+	for _ = 1, 220 do
+		local x, z = random:NextNumber(TERRAIN.minX + 20, TERRAIN.maxX - 20), random:NextNumber(TERRAIN.minZ + 20, TERRAIN.maxZ - 20)
 		local h = groundHeight(x, z)
 		if h > 6 then
 			terrain:FillBall(v3(x, h, z), random:NextNumber(4, 11), M.Rock)
@@ -673,7 +666,9 @@ function Map.build()
 	for _, building in Config.BUILDINGS do
 		table.insert(slots, { center = building.center, half = building.size / 2 + Vector2.new(2, 2) })
 	end
-	table.insert(slots, { center = Config.STORE.center, half = Vector2.new(9, 11) })
+	for _, store in Config.STORES do
+		table.insert(slots, { center = store.center, half = Vector2.new(9, 11) })
+	end
 	light()
 	colors()
 	buildTerrain()
@@ -681,7 +676,9 @@ function Map.build()
 	buildLake(random)
 	buildEntrance()
 	buildPlaza(random)
-	buildStore()
+	for _, store in Config.STORES do
+		buildStore(store)
+	end
 	buildPlants(random)
 	-- L'endroit où le joueur apparaît : sur la place, face au zoo.
 	local spawn = Instance.new("SpawnLocation")
