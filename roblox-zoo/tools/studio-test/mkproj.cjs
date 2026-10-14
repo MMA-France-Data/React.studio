@@ -21,6 +21,7 @@ const scenarios = {
 	ground: ['GroundServer.luau', 'PhotoClient.luau'],
 	market: ['MarketServer.luau', 'MarketClient.luau'],
 	life: ['LifeServer.luau', 'MarketClient.luau'],
+	admin: ['AdminServer.luau', 'MarketClient.luau'],
 };
 if (!scenarios[mode]) {
 	console.error(`Test inconnu : ${mode} (attendu : ${Object.keys(scenarios).join(', ')})`);

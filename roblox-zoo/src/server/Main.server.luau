@@ -21,6 +21,8 @@ local Debug = require(script.Parent.Debug)
 
 -- Les joueurs ne se cognent pas aux visiteurs ni au personnel.
 local function character(player: Player)
+	-- (Le créateur a le bouton Admin : l'argent illimité et tous les animaux.)
+	player:SetAttribute("Admin", Zoo.isAdmin(player))
 	local function setup(model: Model)
 		-- (Le zoo est grand : le joueur marche plus vite que d'habitude.)
 		local humanoid = model:FindFirstChildOfClass("Humanoid") or model:WaitForChild("Humanoid", 5)
@@ -70,6 +72,12 @@ Market.start()
 Staff.start()
 Day.start()
 Zoo.startSaving()
+Zoo.remotes.adminUnlimited.OnServerEvent:Connect(function(player, on)
+	if Zoo.isAdmin(player) and typeof(on) == "boolean" then
+		Zoo.setUnlimited(on)
+		Zoo.notify(player, "unlimited", on)
+	end
+end)
 Debug.start()
 Zoo.shared:SetAttribute("Ready", true)
 print(string.format("[ZOO] zoo de %s prêt en %.1f s", host.DisplayName, os.clock() - started))

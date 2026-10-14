@@ -201,7 +201,33 @@ function Market.swap(player: Player?, id: number, mine: number?): boolean
 	return true
 end
 
+-- (Le créateur : n'importe quel animal, tout de suite, sans payer s'il a l'argent illimité.)
+function Market.adminAnimal(player: Player, species: string, sex: string, baby: boolean): boolean
+	if not Config.SPECIES[species] or (sex ~= "m" and sex ~= "f") then
+		return false
+	end
+	local home = Market.homeFor(species)
+	if not home then
+		Zoo.notify(player, "needSpace", habitatName(species))
+		return false
+	end
+	if not Zoo.spend(Config.marketPrice(species, sex, baby), "animals", player) then
+		return false
+	end
+	local def = Config.SPECIES[species]
+	local age = if baby then math.max(1, math.floor(def.grow * 0.4)) else def.grow + 4
+	local animal = Animals.add(home, species, sex, Zoo.days() - age, { fam = "Zoo test " .. random:NextInteger(1, 99), o = "bought", oz = "Zoo test" })
+	Animals.publishAll()
+	Zoo.notify(nil, "bought", Animals.nameOf(animal), "Zoo test", player.Name)
+	return true
+end
+
 function Market.start()
+	Zoo.remotes.adminAnimal.OnServerEvent:Connect(function(player, species, sex, baby)
+		if Zoo.isAdmin(player) and typeof(species) == "string" and typeof(sex) == "string" then
+			Market.adminAnimal(player, species, sex, baby == true)
+		end
+	end)
 	local getMarket = Instance.new("RemoteFunction")
 	getMarket.Name = "GetMarket"
 	getMarket.OnServerInvoke = function()

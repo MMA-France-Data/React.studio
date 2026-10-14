@@ -84,6 +84,8 @@ Zoo.remotes = {
 	buyShop = remote("BuyShop"), -- (emplacement, type) construire un stand
 	buyToy = remote("BuyToy"), -- (parcelle, jeu) installer un jeu
 	examine = remote("Examine"), -- (numéro de l'animal) l'examiner
+	adminUnlimited = remote("AdminUnlimited"), -- (allumé) l'argent illimité (le créateur seulement)
+	adminAnimal = remote("AdminAnimal"), -- (espèce, sexe, bébé) un animal tout de suite (le créateur seulement)
 	buyPlot = remote("BuyPlot"), -- (parcelle, animaux) acheter une parcelle pour ces animaux
 }
 
@@ -276,7 +278,34 @@ function Zoo.addMoney(amount: number, reason: string)
 end
 
 -- Paie si le zoo a assez d'argent. Renvoie true si c'est payé.
+-- L'ARGENT ILLIMITÉ (sa demande du 15/10, pour tester tous les animaux) : allumé d'office dans Studio ; dans le jeu
+-- publié, seul le créateur peut l'allumer (bouton Admin). Rien n'est payé tant qu'il est allumé (il n'est pas
+-- sauvegardé : il s'éteint quand le serveur s'arrête).
+Zoo.unlimited = RunService:IsStudio() and workspace:GetAttribute("FakeStore") ~= true
+shared:SetAttribute("Unlimited", Zoo.unlimited)
+function Zoo.setUnlimited(on: boolean)
+	Zoo.unlimited = on
+	shared:SetAttribute("Unlimited", on)
+end
+
+-- Le créateur du jeu (dans Studio : tout le monde).
+function Zoo.isAdmin(player: Player): boolean
+	if RunService:IsStudio() then
+		return true
+	end
+	if game.CreatorType == Enum.CreatorType.User then
+		return player.UserId == game.CreatorId
+	end
+	local ok, rank = pcall(function()
+		return player:GetRankInGroup(game.CreatorId)
+	end)
+	return ok and rank == 255
+end
+
 function Zoo.spend(amount: number, reason: string, player: Player?): boolean
+	if Zoo.unlimited then
+		return true
+	end
 	if Zoo.state.money < amount then
 		if player then
 			Zoo.notify(player, "noMoney", amount)

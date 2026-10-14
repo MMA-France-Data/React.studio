@@ -126,7 +126,7 @@ local function refreshBar()
 		end
 	end
 	phaseLabel.Text = (PHASES[state:GetAttribute("Phase") or "open"] or "") .. weather
-	moneyLabel.Text = money(state:GetAttribute("Money") or 0)
+	moneyLabel.Text = if state:GetAttribute("Unlimited") then "∞ $" else money(state:GetAttribute("Money") or 0)
 	moneyLabel.TextColor3 = if (state:GetAttribute("Money") or 0) < 0 then RED else GOLD
 	local stars = state:GetAttribute("Stars") or 0
 	local full = math.floor(stars + 0.25)
@@ -311,6 +311,9 @@ local MESSAGES = {
 	end,
 	offerGone = function()
 		return "Cette offre n'est plus là.", RED
+	end,
+	unlimited = function(on)
+		return if on then "Argent illimité : ALLUMÉ (rien n'est payé)." else "Argent illimité : éteint.", GOLD
 	end,
 	badName = function()
 		return "Ce prénom n'est pas accepté.", RED
@@ -1025,6 +1028,13 @@ local function marketWindow(page: number?)
 	swapEntry.Activated:Connect(function()
 		marketWindow(0)
 	end)
+	if player:GetAttribute("Admin") then
+		local adminEntry = button(sidebar, "★  Tous (admin)", UDim2.new(1, -8, 0, 50), UDim2.new(), if marketPage == -1 then GREEN else Color3.fromRGB(150, 96, 40))
+		adminEntry.LayoutOrder = 100
+		adminEntry.Activated:Connect(function()
+			marketWindow(-1)
+		end)
+	end
 	-- La page à droite.
 	local content = Instance.new("ScrollingFrame")
 	content.Size = UDim2.new(1, -232, 1, 0)
@@ -1040,7 +1050,41 @@ local function marketWindow(page: number?)
 	contentList.SortOrder = Enum.SortOrder.LayoutOrder
 	contentList.Parent = content
 	local animals = ReplicatedStorage:WaitForChild("ZooAnimals")
-	if marketPage > 0 then
+	if marketPage == -1 then
+		-- LA PAGE DU CRÉATEUR : toutes les espèces, en mâle, femelle ou bébé, tout de suite.
+		note(content, 1, "Pour tester : n'importe quel animal, tout de suite. Il faut quand même un espace construit pour lui (panneau Parcelle à vendre).")
+		local grid = frame(content, UDim2.new(1, -10, 0, 0), UDim2.new(), WOOD)
+		grid.BackgroundTransparency = 1
+		grid.AutomaticSize = Enum.AutomaticSize.Y
+		grid.LayoutOrder = 2
+		local cells = Instance.new("UIGridLayout")
+		cells.CellSize = UDim2.fromOffset(200, 250)
+		cells.CellPadding = UDim2.fromOffset(10, 10)
+		cells.SortOrder = Enum.SortOrder.LayoutOrder
+		cells.Parent = grid
+		local index = 0
+		for _, habitat in Config.HABITATS do
+			for _, species in habitat.species do
+				index += 1
+				local def = Config.SPECIES[species]
+				local card = frame(grid, UDim2.fromOffset(200, 250), UDim2.new(), WOOD_LIGHT)
+				card.LayoutOrder = index
+				round(card, 12)
+				preview(card, species, "m", false, UDim2.fromOffset(184, 120), UDim2.fromOffset(8, 8))
+				local title = text(card, def.group, UDim2.fromOffset(184, 26), UDim2.fromOffset(8, 132), GOLD)
+				title.TextXAlignment = Enum.TextXAlignment.Left
+				local home = hasHome(species)
+				local where = text(card, if home then "espace : " .. habitat.name else "construis : " .. habitat.name, UDim2.fromOffset(184, 18), UDim2.fromOffset(8, 160), if home then MUTED else ORANGE, Enum.Font.GothamBold)
+				where.TextXAlignment = Enum.TextXAlignment.Left
+				for slot, choice in { { "m", false, "♂" }, { "f", false, "♀" }, { "m", true, "bébé" } } do
+					local give = button(card, choice[3], UDim2.fromOffset(58, 44), UDim2.fromOffset(8 + (slot - 1) * 62, 196), if home then GREEN else Color3.fromRGB(120, 110, 100))
+					give.Activated:Connect(function()
+						remotes.AdminAnimal:FireServer(species, if choice[2] then (if math.random() < 0.5 then "m" else "f") else choice[1], choice[2])
+					end)
+				end
+			end
+		end
+	elseif marketPage > 0 then
 		local zoo = Config.MARKET.zoos[marketPage]
 		-- La bannière du zoo.
 		local banner = frame(content, UDim2.new(1, -10, 0, 118), UDim2.new(), zoo.color)
@@ -1467,6 +1511,32 @@ local mouseHint = text(side, "M : la souris", UDim2.fromOffset(130, 18), UDim2.f
 staffButton.Activated:Connect(staffWindow)
 animalsButton.Activated:Connect(animalsWindow)
 pricesButton.Activated:Connect(pricesWindow)
+
+-- LE BOUTON ADMIN (le créateur seulement ; dans Studio, tout le monde) : l'argent illimité, tous les animaux.
+local adminButton = button(gui, "Admin", UDim2.fromOffset(130, 40), UDim2.new(1, -140, 0.5, 146), Color3.fromRGB(150, 96, 40))
+local function refreshAdmin()
+	adminButton.Visible = player:GetAttribute("Admin") == true
+end
+player:GetAttributeChangedSignal("Admin"):Connect(refreshAdmin)
+refreshAdmin()
+local function adminWindow()
+	local _, body = window("Admin (toi seul)", 460, 300)
+	local on = state:GetAttribute("Unlimited") == true
+	note(body, 1, "L'argent illimité : rien n'est payé (espaces, animaux, commandes, stands). Il s'éteint quand le serveur s'arrête.")
+	local toggle = button(body, if on then "Argent illimité : ALLUMÉ" else "Argent illimité : éteint", UDim2.new(1, -10, 0, 50), UDim2.new(), if on then GREEN else RED)
+	toggle.LayoutOrder = 2
+	toggle.Activated:Connect(function()
+		remotes.AdminUnlimited:FireServer(not on)
+		task.wait(0.4)
+		adminWindow()
+	end)
+	local all = button(body, "★ Tous les animaux (Marché)", UDim2.new(1, -10, 0, 50), UDim2.new(), WOOD_LIGHT)
+	all.LayoutOrder = 3
+	all.Activated:Connect(function()
+		marketWindow(-1)
+	end)
+end
+adminButton.Activated:Connect(adminWindow)
 marketButton.Activated:Connect(function()
 	marketWindow()
 end)
@@ -1699,6 +1769,8 @@ workspace:GetAttributeChangedSignal("OpenWindow"):Connect(function()
 		storeWindow("med")
 	elseif wanted == "buildShop" then
 		buildShopWindow("k3")
+	elseif wanted == "adminAnimals" then
+		marketWindow(-1)
 	elseif wanted == "toys" then
 		toysWindow("w1")
 	elseif wanted == "fiche_id" then

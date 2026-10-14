@@ -230,6 +230,13 @@ function ACTIONS.Bins()
 	end
 	return list
 end
+function ACTIONS.AdminAnimal(species, sex, baby)
+	local player = game:GetService("Players"):GetPlayers()[1]
+	return Market.adminAnimal(player, species, sex, baby == true)
+end
+function ACTIONS.Unlimited()
+	return Zoo.unlimited
+end
 function ACTIONS.Night()
 	return Animals.night()
 end
