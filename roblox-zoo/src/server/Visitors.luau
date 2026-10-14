@@ -12,6 +12,7 @@ local Enclosures = require(script.Parent.Enclosures)
 local Map = require(script.Parent.Map)
 local Npc = require(script.Parent.Npc)
 local Paths = require(script.Parent.Paths)
+local Scanner = require(script.Parent.Scanner)
 local Tasks = require(script.Parent.Tasks)
 local Zoo = require(script.Parent.Zoo)
 
@@ -93,13 +94,12 @@ local function queueSpot(index: number): Vector3
 	return last + v3(((index - count) % 3 - 1) * 2.2, 0, 3 + math.floor((index - count) / 3) * 2.4)
 end
 
-local scanPrompt: ProximityPrompt
 local boothAlert: BillboardGui
 local boothAlertText: TextLabel
 
 local function refreshGate()
 	local ready = queue[1] ~= nil and queue[1].ready == true
-	scanPrompt.Enabled = ready
+	Scanner.showTicket(ready)
 	Zoo.shared:SetAttribute("Queue", #queue)
 	local cashier = (Zoo.state.staff.cashier or 0) > 0
 	boothAlert.Enabled = #queue > 0 and not cashier
@@ -429,11 +429,9 @@ function Visitors.start()
 		table.insert(stops, { node = Paths.attach(v3(building.center.X, 0, 108)), building = building.id })
 	end
 	Paths.prepare()
-	scanPrompt = Enclosures.prompt(Map.scanner, "Scanner le billet", "Guichet", 0, 9)
-	scanPrompt.Enabled = false
-	scanPrompt.Triggered:Connect(function(player)
-		Visitors.scan(player)
-	end)
+	Scanner.onScan = function(player)
+		return Visitors.scan(player)
+	end
 	boothAlert, boothAlertText = Enclosures.alertBoard(Map.scanner, "Des visiteurs attendent !", Color3.fromRGB(230, 140, 40), 6)
 	Enclosures.handlers.serve = function(player, id)
 		Visitors.serve(id, player)

@@ -34,15 +34,18 @@ function Tasks.carrying(player: Player): string?
 	return carrying[player]
 end
 
--- Ce que le joueur a dans les bras (un bloc soudé devant lui).
+-- Ce que le joueur a dans les bras (un bloc soudé devant lui). (Rangé hors du personnage : en vue à la première
+-- personne, Roblox cache tout ce qui est dans le personnage.)
+local carriedFolder = Instance.new("Folder")
+carriedFolder.Name = "Carried"
+carriedFolder.Parent = workspace
+local carriedParts = {}
 local function holding(player: Player, kind: string?)
 	local character = player.Character
 	local root = character and character:FindFirstChild("HumanoidRootPart")
-	if character then
-		local old = character:FindFirstChild("Carried")
-		if old then
-			old:Destroy()
-		end
+	if carriedParts[player] then
+		carriedParts[player]:Destroy()
+		carriedParts[player] = nil
 	end
 	if not kind or not root then
 		return
@@ -63,7 +66,10 @@ local function holding(player: Player, kind: string?)
 	item.Anchored = false
 	item.Massless = true
 	item.CanCollide = false
-	item.CFrame = root.CFrame * CFrame.new(0, 0.4, -1.7)
+	item.CFrame = root.CFrame * CFrame.new(0, 0.4, -1.9)
+	item.CanQuery = false
+	item.Parent = carriedFolder
+	carriedParts[player] = item
 	local weld = Instance.new("WeldConstraint")
 	weld.Part0 = root
 	weld.Part1 = item
@@ -172,6 +178,10 @@ function Tasks.start()
 	end)
 	Players.PlayerRemoving:Connect(function(player)
 		carrying[player] = nil
+		if carriedParts[player] then
+			carriedParts[player]:Destroy()
+			carriedParts[player] = nil
+		end
 	end)
 	-- (Le joueur qui meurt ou réapparaît perd ce qu'il portait.)
 	Players.PlayerAdded:Connect(function(player)

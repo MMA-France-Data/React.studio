@@ -11,7 +11,7 @@
 local Config = {}
 
 -- L'ARGENT ---------------------------------------------------------------------------------------------------------
-Config.START_MONEY = 1000 -- assez pour l'espace des cerfs (600) dès le jour 1, et la nourriture
+Config.START_MONEY = 1500 -- assez pour l'espace des cerfs (300) et un cerf et une biche (860) dès le jour 1
 Config.START_STARS = 2.5 -- la note du zoo au départ (de 0 à 5 étoiles)
 
 -- LA JOURNÉE -------------------------------------------------------------------------------------------------------
@@ -106,7 +106,7 @@ Config.LEAVE = v3(-14, 0, 300) -- ... et y remontent
 Config.GATE = {
 	turnstile = v3(8, 0, 196), -- le tourniquet d'entrée
 	exit = v3(-8, 0, 196), -- la sortie
-	queueFirst = v3(8, 0, 205), -- la première place de la queue
+	queueFirst = v3(8, 0, 199.5), -- la première place de la queue (juste devant la fenêtre de la cabine)
 	queueStep = v3(0, 0, 3.4), -- de place en place, vers le sud
 	queueCount = 13,
 	booth = v3(0, 0, 197), -- la cabine du caissier (entre l'entrée et la sortie)
@@ -178,7 +178,8 @@ for index, plot in Config.PLOTS do
 	Config.PLOT_BY_ID[plot.id] = plot
 end
 
--- LES ANIMAUX QU'ON PEUT METTRE SUR UNE PARCELLE (le prix comprend le décor et le couple de départ, mâle et femelle).
+-- LES ANIMAUX QU'ON PEUT METTRE SUR UNE PARCELLE. Le prix : l'espace seul, construit vide (sa demande du 14/10 :
+-- « faire le terrain mais pas avoir d'animaux dedans ») ; les animaux s'achètent au Marché des autres zoos.
 -- decor : le décor (Enclosures.luau) ; security (sa demande, 14/10 : « plus de sécurité pour les animaux dangereux,
 -- par exemple fosse aux ours où ils sont en bas, truc plus sécurisé ») :
 --   fence : une clôture en bois (animaux calmes) ;
@@ -188,29 +189,46 @@ end
 -- capacity : animaux au plus (les naissances s'arrêtent).
 Config.HABITATS = {
 	{ id = "farm", name = "Mini-ferme", species = { "Goat", "Pig", "Rooster" }, price = 0, decor = "farm", security = "fence", capacity = 14, hidden = true },
-	{ id = "sheep", name = "Moutons", species = { "Sheep" }, price = 400, decor = "meadow", security = "fence", capacity = 15 },
-	{ id = "deer", name = "Cerfs", species = { "Deer" }, price = 600, decor = "forest", security = "fence", capacity = 12 },
-	{ id = "boar", name = "Sangliers", species = { "Boar" }, price = 1500, decor = "mud", security = "fence", capacity = 12 },
-	{ id = "capy", name = "Capybaras", species = { "Capybara" }, price = 2500, decor = "pond", security = "fence", capacity = 15 },
-	{ id = "wolf", name = "Loups", species = { "Wolf" }, price = 4000, decor = "forest", security = "wall", capacity = 10 },
-	{ id = "lynx", name = "Lynx", species = { "Lynx" }, price = 5000, decor = "forest", security = "wall", capacity = 9 },
-	{ id = "croc", name = "Crocodiles", species = { "Crocodile" }, price = 6000, decor = "river", security = "moat", capacity = 9 },
-	{ id = "hyena", name = "Hyènes", species = { "Hyena" }, price = 8000, decor = "savanna", security = "wall", capacity = 10 },
-	{ id = "bear", name = "Ours", species = { "Bear" }, price = 9000, decor = "rocks", security = "pit", capacity = 8 },
-	{ id = "buffalo", name = "Buffles", species = { "Buffalo" }, price = 10000, decor = "savanna", security = "moat", capacity = 9 },
-	{ id = "cheetah", name = "Guépards", species = { "Cheetah" }, price = 12000, decor = "savanna", security = "moat", capacity = 9 },
-	{ id = "gorilla", name = "Gorilles", species = { "Gorilla" }, price = 16000, decor = "jungle", security = "moat", capacity = 9 },
-	{ id = "jaguar", name = "Jaguars", species = { "Jaguar" }, price = 18000, decor = "jungle", security = "moat", capacity = 8 },
-	{ id = "tiger", name = "Tigres", species = { "Tiger" }, price = 22000, decor = "jungle", security = "moat", capacity = 8 },
-	{ id = "rhino", name = "Rhinocéros", species = { "Rhino" }, price = 26000, decor = "savanna", security = "moat", capacity = 6 },
-	{ id = "lion", name = "Lions", species = { "Lion" }, price = 30000, decor = "savanna", security = "moat", capacity = 9 },
-	{ id = "elephant", name = "Éléphants", species = { "Elephant" }, price = 40000, decor = "savanna", security = "moat", capacity = 6 },
+	{ id = "sheep", name = "Moutons", species = { "Sheep" }, price = 200, decor = "meadow", security = "fence", capacity = 15 },
+	{ id = "deer", name = "Cerfs", species = { "Deer" }, price = 300, decor = "forest", security = "fence", capacity = 12 },
+	{ id = "boar", name = "Sangliers", species = { "Boar" }, price = 600, decor = "mud", security = "fence", capacity = 12 },
+	{ id = "capy", name = "Capybaras", species = { "Capybara" }, price = 900, decor = "pond", security = "fence", capacity = 15 },
+	{ id = "wolf", name = "Loups", species = { "Wolf" }, price = 1500, decor = "forest", security = "wall", capacity = 10 },
+	{ id = "lynx", name = "Lynx", species = { "Lynx" }, price = 1800, decor = "forest", security = "wall", capacity = 9 },
+	{ id = "croc", name = "Crocodiles", species = { "Crocodile" }, price = 2500, decor = "river", security = "moat", capacity = 9 },
+	{ id = "hyena", name = "Hyènes", species = { "Hyena" }, price = 3000, decor = "savanna", security = "wall", capacity = 10 },
+	{ id = "bear", name = "Ours", species = { "Bear" }, price = 3500, decor = "rocks", security = "pit", capacity = 8 },
+	{ id = "buffalo", name = "Buffles", species = { "Buffalo" }, price = 4000, decor = "savanna", security = "moat", capacity = 9 },
+	{ id = "cheetah", name = "Guépards", species = { "Cheetah" }, price = 4500, decor = "savanna", security = "moat", capacity = 9 },
+	{ id = "gorilla", name = "Gorilles", species = { "Gorilla" }, price = 6000, decor = "jungle", security = "moat", capacity = 9 },
+	{ id = "jaguar", name = "Jaguars", species = { "Jaguar" }, price = 7000, decor = "jungle", security = "moat", capacity = 8 },
+	{ id = "tiger", name = "Tigres", species = { "Tiger" }, price = 8000, decor = "jungle", security = "moat", capacity = 8 },
+	{ id = "rhino", name = "Rhinocéros", species = { "Rhino" }, price = 10000, decor = "savanna", security = "moat", capacity = 6 },
+	{ id = "lion", name = "Lions", species = { "Lion" }, price = 11000, decor = "savanna", security = "moat", capacity = 9 },
+	{ id = "elephant", name = "Éléphants", species = { "Elephant" }, price = 15000, decor = "savanna", security = "moat", capacity = 6 },
 }
 Config.HABITAT_BY_ID = {}
 for _, habitat in Config.HABITATS do
 	Config.HABITAT_BY_ID[habitat.id] = habitat
 end
 Config.MOAT = 8 -- la largeur du fossé (côté visiteurs)
+
+-- LE MARCHÉ (sa demande du 14/10 : « un onglet d'achat à d'autres zoos fictifs où je leur achète mâle, femelle ou
+-- bébé, et des fois des échanges entre zoos pour la reproduction, éviter la consanguinité »). Chaque matin, chaque zoo
+-- propose de nouveaux animaux, et quelques échanges (un de leurs animaux contre un des tiens, de la même espèce et du
+-- même sexe : du sang neuf pour tes couples).
+Config.MARKET = {
+	zoos = { "Zoo de la Vallée", "Parc des Cimes", "Safari du Soleil", "Zoo des Îles", "Domaine des Grands Lacs" },
+	offersPerZoo = 5,
+	swaps = 4,
+	baby = 0.3, -- part des bébés dans les offres
+}
+-- Le prix d'un animal au Marché : plus cher qu'à la vente (une femelle plus qu'un mâle, un bébé moins cher).
+function Config.marketPrice(species: string, sex: string, baby: boolean): number
+	local sell = Config.SPECIES[species].sell
+	local price = sell * (if sex == "f" then 1.8 else 1.5) * (if baby then 0.55 else 1)
+	return math.floor(price / 5 + 0.5) * 5
+end
 Config.PIT = 10 -- la profondeur de la fosse aux ours
 
 -- LES BÂTIMENTS (pour la fin du jeu) : on les achète, les visiteurs y dépensent. Même principe que le guichet : il faut

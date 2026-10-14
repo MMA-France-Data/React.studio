@@ -7,6 +7,7 @@ local Config = require(ReplicatedStorage.Shared.Config)
 
 local Animals = require(script.Parent.Animals)
 local Day = require(script.Parent.Day)
+local Market = require(script.Parent.Market)
 local Enclosures = require(script.Parent.Enclosures)
 local Staff = require(script.Parent.Staff)
 local Visitors = require(script.Parent.Visitors)
@@ -80,6 +81,58 @@ function ACTIONS.Parts()
 		end
 	end
 	return count
+end
+-- Le Marché : la liste des offres, acheter la première d'une espèce, faire le premier échange.
+function ACTIONS.Offers()
+	return Market.offers, Market.swaps
+end
+function ACTIONS.MarketBuy(species)
+	for _, offer in Market.offers do
+		if not species or offer.species == species then
+			Zoo.state.money += offer.price
+			return Market.buy(nil, offer.id)
+		end
+	end
+	return false
+end
+function ACTIONS.MarketSwap()
+	local swap = Market.swaps[1]
+	return swap and Market.swap(nil, swap.id, nil) or false
+end
+function ACTIONS.Offer(species, sex, baby)
+	return Market.addOffer(species, sex, baby == true)
+end
+function ACTIONS.BuyOffer(id)
+	Zoo.state.money += 100000
+	return Market.buy(nil, id)
+end
+function ACTIONS.SwapOffer(species, sex)
+	return Market.addSwap(species, sex)
+end
+function ACTIONS.DoSwap(id, mine)
+	return Market.swap(nil, id, mine)
+end
+function ACTIONS.Give(plot, species, sex, fam, pa, ma)
+	local animal = Animals.add(plot, species, sex, Zoo.days() - 30, { fam = fam, pa = pa, ma = ma })
+	return animal.id
+end
+function ACTIONS.InSpace(plot)
+	return Animals.inSpace(plot)
+end
+function ACTIONS.Breed(plot, species, value)
+	Zoo.state.breed[plot .. "|" .. species] = value
+	return true
+end
+function ACTIONS.Today()
+	return Zoo.today
+end
+function ACTIONS.Refresh()
+	Market.refresh()
+	return #Market.offers, #Market.swaps
+end
+-- Une naissance consanguine : un frère et une sœur adultes, seuls dans leur espace, puis la nuit.
+function ACTIONS.Animals()
+	return Zoo.state.animals
 end
 function ACTIONS.Night()
 	return Animals.night()
