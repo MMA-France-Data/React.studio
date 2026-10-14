@@ -100,10 +100,31 @@ return function(log)
 		task.wait(0.8)
 	end
 	workspace:SetAttribute("ShotCam", CFrame.lookAt(Vector3.new(-30, 30, 214), Vector3.new(10, 0, 150)))
+	-- (Renommer un agneau depuis sa fiche.)
+	local lamb = babies[1]
+	if lamb then
+		workspace:SetAttribute("DoRename", lamb.id)
+		task.wait(1.5)
+		local renamed = false
+		for _, animal in debug:Invoke("InSpace", "s2") do
+			if animal.id == lamb.id and animal.n == "Biscuit" then
+				renamed = true
+			end
+		end
+		check(renamed, "l'agneau s'appelle maintenant Biscuit")
+	end
+	local named = true
+	for _, animal in debug:Invoke("InSpace", "farm") do
+		if not animal.n or animal.n == "" then
+			named = false
+		end
+	end
+	check(named, "chaque animal a un prénom")
 	shot("fenetre_marche", "market")
+	shot("fenetre_marche_safari", "market3")
 	shot("fenetre_echange", "swap")
+	shot("fenetre_fiche", "fiche")
 	shot("fenetre_animaux", "animals")
-	shot("fenetre_construire", "build")
 	workspace:SetAttribute("OpenWindow", "none")
 	log("Info", "[ZOO] TEST:done")
 end

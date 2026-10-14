@@ -79,13 +79,15 @@ function Market.refresh()
 	table.clear(swaps)
 	local mine = housed()
 	for _, zoo in M.zoos do
-		for _ = 1, M.offersPerZoo do
-			-- (La moitié des offres pour des espèces que le zoo peut déjà accueillir.)
-			local pool = if #mine > 0 and random:NextNumber() < 0.5 then mine else ALL
+		for index = 1, M.offersPerZoo do
+			-- Sa spécialité d'abord ; parfois une espèce que le zoo du joueur peut déjà accueillir.
+			local pool = if #zoo.species > 0 and index <= M.offersPerZoo - 2 then zoo.species elseif #mine > 0 and random:NextNumber() < 0.6 then mine else ALL
 			local species = pool[random:NextInteger(1, #pool)]
 			local sex = if random:NextNumber() < 0.5 then "m" else "f"
 			local baby = random:NextNumber() < M.baby
-			table.insert(offers, { id = nextId, zoo = zoo, species = species, sex = sex, baby = baby, price = Config.marketPrice(species, sex, baby) })
+			local def = Config.SPECIES[species]
+			local age = if baby then math.max(1, math.floor(def.grow * random:NextNumber(0.2, 0.6))) else def.grow + random:NextInteger(1, 12)
+			table.insert(offers, { id = nextId, zoo = zoo.name, species = species, sex = sex, baby = baby, age = age, name = Animals.newName(sex), price = Config.marketPrice(species, sex, baby) })
 			nextId += 1
 		end
 	end
@@ -102,6 +104,11 @@ function Market.refresh()
 		end
 		local pick = adults[random:NextInteger(1, #adults)]
 		local zoo = M.zoos[random:NextInteger(1, #M.zoos)]
+		for _, candidate in M.zoos do
+			if table.find(candidate.species, pick.s) and random:NextNumber() < 0.7 then
+				zoo = candidate
+			end
+		end
 		local exists = false
 		for _, swap in swaps do
 			if swap.species == pick.s and swap.sex == pick.x then
@@ -109,7 +116,8 @@ function Market.refresh()
 			end
 		end
 		if not exists then
-			table.insert(swaps, { id = nextId, zoo = zoo, species = pick.s, sex = pick.x })
+			local def = Config.SPECIES[pick.s]
+			table.insert(swaps, { id = nextId, zoo = zoo.name, species = pick.s, sex = pick.x, name = Animals.newName(pick.x), age = def.grow + random:NextInteger(1, 10) })
 			nextId += 1
 		end
 	end
@@ -145,9 +153,7 @@ function Market.buy(player: Player?, id: number): boolean
 		return false
 	end
 	table.remove(offers, index)
-	local def = Config.SPECIES[offer.species]
-	local birth = if offer.baby then Zoo.days() - def.grow * 0.3 else Zoo.days() - 30
-	local animal = Animals.add(home, offer.species, offer.sex, birth, { fam = offer.zoo })
+	local animal = Animals.add(home, offer.species, offer.sex, Zoo.days() - (offer.age or 10), { fam = offer.zoo, n = offer.name, o = "bought", oz = offer.zoo })
 	Animals.publishAll()
 	Zoo.notify(nil, "bought", Animals.nameOf(animal), offer.zoo, if player then player.Name else "")
 	bump()
@@ -188,7 +194,7 @@ function Market.swap(player: Player?, id: number, mine: number?): boolean
 	local given = Animals.nameOf(animal) .. " n°" .. animal.id
 	local plot = animal.sp
 	Animals.remove(animal)
-	local newcomer = Animals.add(plot, swap.species, swap.sex, Zoo.days() - 30, { fam = swap.zoo })
+	local newcomer = Animals.add(plot, swap.species, swap.sex, Zoo.days() - (swap.age or 10), { fam = swap.zoo, n = swap.name, o = "swap", oz = swap.zoo })
 	Animals.publishAll()
 	Zoo.notify(nil, "swapped", given, Animals.nameOf(newcomer), swap.zoo)
 	bump()
@@ -219,13 +225,13 @@ end
 Market.offers = offers
 Market.swaps = swaps
 function Market.addOffer(species: string, sex: string, baby: boolean): number
-	table.insert(offers, { id = nextId, zoo = M.zoos[1], species = species, sex = sex, baby = baby, price = Config.marketPrice(species, sex, baby) })
+	table.insert(offers, { id = nextId, zoo = M.zoos[1].name, species = species, sex = sex, baby = baby, age = if baby then 1 else 12, name = Animals.newName(sex), price = Config.marketPrice(species, sex, baby) })
 	nextId += 1
 	bump()
 	return nextId - 1
 end
 function Market.addSwap(species: string, sex: string): number
-	table.insert(swaps, { id = nextId, zoo = M.zoos[2], species = species, sex = sex })
+	table.insert(swaps, { id = nextId, zoo = M.zoos[2].name, species = species, sex = sex, name = Animals.newName(sex), age = 12 })
 	nextId += 1
 	bump()
 	return nextId - 1

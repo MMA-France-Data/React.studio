@@ -217,11 +217,30 @@ Config.MOAT = 8 -- la largeur du fossé (côté visiteurs)
 -- bébé, et des fois des échanges entre zoos pour la reproduction, éviter la consanguinité »). Chaque matin, chaque zoo
 -- propose de nouveaux animaux, et quelques échanges (un de leurs animaux contre un des tiens, de la même espèce et du
 -- même sexe : du sang neuf pour tes couples).
+-- Chaque zoo a sa couleur, son blason (deux lettres), sa ville, sa présentation et sa spécialité : il propose surtout
+-- les animaux de sa liste (sa demande du 15/10 : « un meilleur interface pour les autres zoos »).
 Config.MARKET = {
-	zoos = { "Zoo de la Vallée", "Parc des Cimes", "Safari du Soleil", "Zoo des Îles", "Domaine des Grands Lacs" },
-	offersPerZoo = 5,
+	zoos = {
+		{ name = "Zoo de la Vallée", badge = "ZV", color = Color3.fromRGB(96, 160, 72), city = "Vallée verte", about = "Un petit zoo familial, au bord d'une rivière. Ses fermiers élèvent aussi des cerfs et des sangliers.", species = { "Goat", "Pig", "Rooster", "Sheep", "Deer", "Boar" } },
+		{ name = "Parc des Cimes", badge = "PC", color = Color3.fromRGB(92, 120, 168), city = "Haute montagne", about = "Un parc dans les montagnes et les sapins, spécialiste des animaux de la forêt.", species = { "Wolf", "Lynx", "Bear", "Deer", "Boar", "Sheep" } },
+		{ name = "Safari du Soleil", badge = "SS", color = Color3.fromRGB(214, 150, 54), city = "Grande savane", about = "Un immense safari où les animaux de la savane vivent en liberté.", species = { "Lion", "Cheetah", "Hyena", "Buffalo", "Rhino", "Elephant" } },
+		{ name = "Zoo des Îles", badge = "ZI", color = Color3.fromRGB(46, 160, 160), city = "Archipel tropical", about = "Un zoo dans la jungle des îles : fauves, grands singes et animaux d'eau.", species = { "Tiger", "Jaguar", "Gorilla", "Crocodile", "Capybara" } },
+		{ name = "Domaine des Grands Lacs", badge = "GL", color = Color3.fromRGB(150, 96, 170), city = "Pays des lacs", about = "Un grand domaine qui échange un peu de tout avec les autres zoos.", species = {} },
+	},
+	offersPerZoo = 6,
 	swaps = 4,
 	baby = 0.3, -- part des bébés dans les offres
+}
+Config.ZOO_BY_NAME = {}
+for _, zoo in Config.MARKET.zoos do
+	Config.ZOO_BY_NAME[zoo.name] = zoo
+end
+
+-- LES PRÉNOMS (sa demande du 15/10 : « une vraie fiche perso sur chaque animal ») : chaque animal en reçoit un à sa
+-- naissance ou à son arrivée ; on peut le changer sur sa fiche.
+Config.NAMES = {
+	m = { "Max", "Léo", "Oscar", "Simba", "Rocky", "Hugo", "Milo", "Tom", "Noé", "Gaspard", "Félix", "Arthur", "Zeus", "Titan", "Kiko", "Bruno", "Jules", "Sacha", "Marius", "Pablo", "Elio", "Basile", "Nino", "Timo", "Caramel", "Moka", "Pépito", "Rango", "Kenzo", "Ulysse", "Balou", "Filou", "Gribouille", "Hector", "Igor", "Kaïo" },
+	f = { "Lila", "Nala", "Lola", "Mia", "Rosa", "Zoé", "Luna", "Perle", "Daisy", "Jade", "Iris", "Nina", "Kiara", "Bella", "Olive", "Capucine", "Praline", "Suzie", "Maya", "Élise", "Fleur", "Pomme", "Lili", "Noisette", "Cléo", "Ambre", "Vanille", "Myrtille", "Tara", "Zina", "Biscotte", "Cannelle", "Dune", "Gaïa", "Hermine", "Isis" },
 }
 -- Le prix d'un animal au Marché : plus cher qu'à la vente (une femelle plus qu'un mâle, un bébé moins cher).
 function Config.marketPrice(species: string, sex: string, baby: boolean): number

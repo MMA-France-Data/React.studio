@@ -158,12 +158,17 @@ return function()
 		view.prompt = prompt
 	end
 
+	-- Son prénom et son sexe (« Nala ♀ »), ou « Nala (bébé) ».
 	local function nameOf(view): string
-		local species = Config.SPECIES[view.species]
-		if view.growth < 1 then
-			return species.baby
+		local name = view.item:GetAttribute("Name") or ""
+		if name == "" then
+			local species = Config.SPECIES[view.species]
+			name = if view.growth < 1 then species.baby elseif view.sex == "m" then species.m else species.f
 		end
-		return (if view.sex == "m" then "♂ " .. species.m else "♀ " .. species.f)
+		if view.growth < 1 then
+			return name .. " (bébé)"
+		end
+		return name .. (if view.sex == "m" then " ♂" else " ♀")
 	end
 
 	local function refreshTag(view)
@@ -195,6 +200,13 @@ return function()
 			model.PrimaryPart = block
 		end
 		model.Parent = folder
+		-- (On peut le cliquer pour ouvrir sa fiche : Main.client.luau.)
+		model:SetAttribute("AnimalId", view.id)
+		for _, part in model:GetDescendants() do
+			if part:IsA("BasePart") and part.Transparency < 1 then
+				part.CanQuery = true
+			end
+		end
 		model:PivotTo(CFrame.new(0, 100, 0))
 		local low, high = AnimalModels.extents(model)
 		view.model = model

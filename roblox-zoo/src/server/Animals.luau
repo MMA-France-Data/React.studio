@@ -11,6 +11,7 @@
 --   et enfant). Un bébé consanguin tombe 3 fois plus souvent malade et se vend moitié prix. Les couples qui ne sont
 --   pas de la même famille proche ont leurs petits en premier.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TextService = game:GetService("TextService")
 
 local Config = require(ReplicatedStorage.Shared.Config)
 local Enclosures = require(script.Parent.Enclosures)
@@ -97,6 +98,12 @@ local function publish(animal, crowd: number?)
 		item:SetAttribute("Father", animal.pa or 0)
 		item:SetAttribute("Mother", animal.ma or 0)
 		item:SetAttribute("Consang", animal.c == true)
+		item:SetAttribute("Birth", animal.b)
+		item:SetAttribute("Origin", animal.o or "born")
+		item:SetAttribute("OriginZoo", animal.oz or "")
+		item:SetAttribute("Arrival", animal.od or 0)
+		item:SetAttribute("FatherName", animal.pn or "")
+		item:SetAttribute("MotherName", animal.mn or "")
 		item.Parent = folder
 		shown[animal.id] = item
 	end
@@ -105,6 +112,25 @@ local function publish(animal, crowd: number?)
 	item:SetAttribute("Hunger", math.floor(animal.h + 0.5))
 	item:SetAttribute("Happy", Animals.happiness(animal, crowd))
 	item:SetAttribute("Price", Animals.price(animal))
+	item:SetAttribute("Name", animal.n or "")
+end
+
+-- Un prénom au hasard, si possible pas déjà pris dans le zoo.
+function Animals.newName(sex: string): string
+	local list = Config.NAMES[sex] or Config.NAMES.m
+	local used = {}
+	for _, animal in Zoo.state.animals do
+		if animal.n then
+			used[animal.n] = true
+		end
+	end
+	for _ = 1, 12 do
+		local name = list[random:NextInteger(1, #list)]
+		if not used[name] then
+			return name
+		end
+	end
+	return list[random:NextInteger(1, #list)]
 end
 
 function Animals.publishAll()
@@ -117,11 +143,17 @@ function Animals.publishAll()
 	end
 end
 
--- info : { fam = sa famille, pa = son père, ma = sa mère, c = consanguin }.
+-- info : { fam = sa famille, pa / ma = son père / sa mère (numéros), pn / mn = leurs prénoms, c = consanguin,
+-- n = son prénom, o = d'où il vient (« born » né ici, « start » du départ, « bought » acheté, « swap » échangé),
+-- oz = le zoo d'où il vient }. od = le jour de son arrivée.
 function Animals.add(spaceId: string, species: string, sex: string, birth: number, info: any?)
 	local state = Zoo.state
 	local extra = info or {}
-	local animal = { id = state.nextId, s = species, x = sex, sp = spaceId, b = birth, h = 0, p = random:NextNumber(0, 2), fam = extra.fam or "Zoo", pa = extra.pa, ma = extra.ma, c = extra.c }
+	local animal = {
+		id = state.nextId, s = species, x = sex, sp = spaceId, b = birth, h = 0, p = random:NextNumber(0, 2),
+		fam = extra.fam or "Zoo", pa = extra.pa, ma = extra.ma, pn = extra.pn, mn = extra.mn, c = extra.c,
+		n = extra.n or Animals.newName(sex), o = extra.o or "born", oz = extra.oz, od = state.day,
+	}
 	state.nextId += 1
 	table.insert(state.animals, animal)
 	publish(animal)
@@ -143,11 +175,11 @@ end
 -- Le couple de départ d'un espace qu'on vient d'ouvrir : un mâle et une femelle adultes de chaque espèce.
 function Animals.addStarter(spaceId: string)
 	local habitat = Animals.habitatOf(spaceId)
-	local adult = Zoo.days() - 30
+	local adult = Zoo.days() - 6
 	for _, species in habitat and habitat.species or {} do
 		-- (Le mâle et la femelle du départ viennent de deux fermes différentes : pas de la même famille.)
-		Animals.add(spaceId, species, "m", adult, { fam = "Ferme du Moulin" })
-		Animals.add(spaceId, species, "f", adult, { fam = "Ferme des Saules" })
+		Animals.add(spaceId, species, "m", adult - random:NextInteger(1, 8), { fam = "Ferme du Moulin", o = "start", oz = "Ferme du Moulin" })
+		Animals.add(spaceId, species, "f", adult - random:NextInteger(1, 8), { fam = "Ferme des Saules", o = "start", oz = "Ferme des Saules" })
 	end
 end
 
@@ -301,7 +333,7 @@ function Animals.night(): { string }
 						local count = math.min(room, random:NextInteger(def.litter[1], def.litter[2]))
 						local consanguine = Animals.related(father, mother)
 						for _ = 1, count do
-							Animals.add(space.id, species, if random:NextNumber() < 0.5 then "m" else "f", state.day + 1, { fam = mother.fam, pa = father.id, ma = mother.id, c = consanguine or nil })
+							Animals.add(space.id, species, if random:NextNumber() < 0.5 then "m" else "f", state.day + 1, { fam = mother.fam, pa = father.id, ma = mother.id, pn = father.n, mn = mother.n, c = consanguine or nil })
 							room -= 1
 							state.born += 1
 							Zoo.today.births = (Zoo.today.births or 0) + 1
@@ -329,6 +361,33 @@ function Animals.start()
 		Animals.addStarter("farm")
 	end
 	Animals.publishAll()
+	-- (Les animaux d'une vieille sauvegarde, sans prénom : on leur en donne un.)
+	for _, animal in Zoo.state.animals do
+		if not animal.n then
+			animal.n = Animals.newName(animal.x)
+		end
+	end
+	Animals.publishAll()
+	-- Renommer un animal (sur sa fiche) : le prénom est filtré par Roblox (les autres joueurs le voient).
+	Zoo.remotes.rename.OnServerEvent:Connect(function(player, id, text)
+		local animal = typeof(id) == "number" and Animals.byId(id)
+		if not animal or typeof(text) ~= "string" then
+			return
+		end
+		text = string.sub((string.gsub(text, "^%s+", ""):gsub("%s+$", "")), 1, 20)
+		if #text < 1 then
+			return
+		end
+		local ok, filtered = pcall(function()
+			return TextService:FilterStringAsync(text, player.UserId, Enum.TextFilterContext.PublicChat):GetNonChatStringForBroadcastAsync()
+		end)
+		if ok and filtered and not string.find(filtered, "#", 1, true) then
+			animal.n = filtered
+			Animals.publishAll()
+		else
+			Zoo.notify(player, "badName")
+		end
+	end)
 	Zoo.remotes.sell.OnServerEvent:Connect(function(player, id)
 		local animal = typeof(id) == "number" and Animals.byId(id)
 		if not animal then

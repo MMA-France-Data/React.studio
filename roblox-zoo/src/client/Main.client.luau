@@ -228,6 +228,9 @@ local MESSAGES = {
 	offerGone = function()
 		return "Cette offre n'est plus là.", RED
 	end,
+	badName = function()
+		return "Ce prénom n'est pas accepté.", RED
+	end,
 	cantSwap = function()
 		return "Il te faut un adulte en bonne santé de la même espèce et du même sexe.", RED
 	end,
@@ -338,7 +341,8 @@ refreshTips()
 
 -- LES FENÊTRES ----------------------------------------------------------------------------------------------------------
 local openWindow: Frame? = nil
-local function window(title: string, width: number, height: number): (Frame, ScrollingFrame)
+-- raw : le corps est un cadre vide (pour une fenêtre en colonnes), sinon une liste qui défile.
+local function window(title: string, width: number, height: number, raw: boolean?): (Frame, any)
 	if openWindow then
 		openWindow:Destroy()
 	end
@@ -362,6 +366,15 @@ local function window(title: string, width: number, height: number): (Frame, Scr
 	free.BackgroundTransparency = 1
 	free.Text = ""
 	free.Parent = panel
+	if raw then
+		local plain = Instance.new("Frame")
+		plain.Size = UDim2.new(1, -20, 1, -60)
+		plain.Position = UDim2.fromOffset(10, 52)
+		plain.BackgroundTransparency = 1
+		plain.Parent = panel
+		openWindow = panel
+		return panel, plain
+	end
 	local body = Instance.new("ScrollingFrame")
 	body.Size = UDim2.new(1, -20, 1, -60)
 	body.Position = UDim2.fromOffset(10, 52)
@@ -410,23 +423,295 @@ local function staffWindow()
 end
 
 local SEX = { m = "♂", f = "♀" }
+local MUTED = Color3.fromRGB(210, 196, 160)
+local ORANGE = Color3.fromRGB(255, 160, 110)
 local function note(body: Instance, order: number, value: string, color: Color3?)
-	local label = text(body, value, UDim2.new(1, -10, 0, 40), UDim2.new(), color or Color3.fromRGB(210, 196, 160), Enum.Font.GothamBold)
+	local label = text(body, value, UDim2.new(1, -10, 0, 40), UDim2.new(), color or MUTED, Enum.Font.GothamBold)
 	label.LayoutOrder = order
 	label.TextWrapped = true
 	label.TextXAlignment = Enum.TextXAlignment.Left
 	return label
 end
 
--- Les animaux : chaque espace, et chaque animal avec son numéro, sa famille, ses parents, son humeur, s'il est malade
--- ou consanguin, et sa vente à un autre zoo.
-local function animalsWindow()
+-- L'animal en 3D dans un cadre (spin : il tourne doucement).
+local spinning = {}
+local function preview(parent: GuiObject, species: string, sex: string?, baby: boolean?, size: UDim2?, position: UDim2?, spin: boolean?): ViewportFrame
+	local view = Instance.new("ViewportFrame")
+	view.Size = size or UDim2.fromOffset(78, 78)
+	view.Position = position or UDim2.fromOffset(6, 6)
+	view.BackgroundColor3 = Color3.fromRGB(196, 214, 170)
+	view.Ambient = Color3.fromRGB(190, 190, 190)
+	view.LightColor = Color3.fromRGB(255, 255, 255)
+	view.LightDirection = Vector3.new(-1, -1, -1)
+	view.Parent = parent
+	round(view, 10)
+	local model = AnimalModels.build(species, sex or "m", if baby then 0.5 else 1)
+	if not model then
+		return view
+	end
+	model:PivotTo(CFrame.new())
+	local low, high = AnimalModels.extents(model)
+	local height = high - low
+	model.Parent = view
+	local camera = Instance.new("Camera")
+	camera.FieldOfView = 40
+	local center = Vector3.new(0, (low + high) / 2, 0)
+	camera.CFrame = CFrame.lookAt(center + Vector3.new(-height * 1.5, height * 0.5, -height * 1.6), center)
+	camera.Parent = view
+	view.CurrentCamera = camera
+	if spin then
+		spinning[view] = { camera = camera, center = center, distance = height * 2.3, angle = math.rad(220) }
+		view.Destroying:Connect(function()
+			spinning[view] = nil
+		end)
+	end
+	return view
+end
+game:GetService("RunService").RenderStepped:Connect(function(dt)
+	for _, item in spinning do
+		item.angle += dt * 0.5
+		local offset = Vector3.new(math.cos(item.angle), 0.35, math.sin(item.angle)) * item.distance
+		item.camera.CFrame = CFrame.lookAt(item.center + offset, item.center)
+	end
+end)
+
+-- Une barre (santé, faim, bonheur) : 0 à 100.
+local function gauge(parent: Instance, label: string, value: number, position: UDim2, width: number, caption: string?)
+	local name = text(parent, label, UDim2.fromOffset(110, 20), position, MUTED, Enum.Font.GothamBold)
+	name.TextXAlignment = Enum.TextXAlignment.Left
+	local back = frame(parent, UDim2.fromOffset(width - 120, 16), position + UDim2.fromOffset(112, 2), Color3.fromRGB(40, 30, 24))
+	round(back, 8)
+	local fraction = math.clamp(value / 100, 0, 1)
+	local fill = frame(back, UDim2.fromScale(fraction, 1), UDim2.new(), if fraction >= 0.66 then GREEN elseif fraction >= 0.4 then GOLD else RED)
+	round(fill, 8)
+	if caption then
+		local small = text(back, caption, UDim2.fromScale(1, 1), UDim2.new(), Color3.new(1, 1, 1), Enum.Font.GothamBold)
+		small.TextStrokeTransparency = 0.5
+	end
+end
+
+-- Le temps du zoo, en jours (comme Zoo.days côté serveur).
+local function zooDays(): number
+	local clock = state:GetAttribute("Clock") or Config.OPEN_HOUR
+	local part = math.clamp((clock - Config.OPEN_HOUR) / (Config.CLOSE_HOUR - Config.OPEN_HOUR), 0, 1)
+	return (state:GetAttribute("Day") or 1) + part
+end
+local function animalName(item: Instance): string
+	local def = Config.SPECIES[item:GetAttribute("Species")]
+	local sex = item:GetAttribute("Sex")
+	if (item:GetAttribute("Growth") or 1) < 1 then
+		return def.baby
+	end
+	return if sex == "m" then def.m else def.f
+end
+local function habitatOfPlot(plotId: string)
+	return Config.HABITAT_BY_ID[state:GetAttribute("Plot_" .. plotId) or ""]
+end
+-- Un petit bouton en forme d'étiquette (un prénom de la famille, cliquable).
+local function chip(parent: Instance, value: string, color: Color3?): TextButton
+	local item = Instance.new("TextButton")
+	item.AutomaticSize = Enum.AutomaticSize.X
+	item.Size = UDim2.fromOffset(0, 26)
+	item.BackgroundColor3 = color or WOOD
+	item.TextColor3 = CREAM
+	item.Font = Enum.Font.GothamBold
+	item.TextSize = 15
+	item.Text = "  " .. value .. "  "
+	item.Parent = parent
+	round(item, 8)
+	return item
+end
+
+-- LA FICHE D'UN ANIMAL (sa demande, 15/10 : « une vraie fiche perso sur chaque animal ») : son prénom (qu'on peut
+-- changer), son portrait en 3D qui tourne, son âge, d'où il vient, sa famille (parents, petits, frères et sœurs, on
+-- clique pour voir leur fiche), sa santé, sa faim, son bonheur, ce qu'il vaut, et la vente.
+local animalCard: (number) -> ()
+local animalsWindow: () -> ()
+function animalCard(id: number)
+	local animals = ReplicatedStorage:WaitForChild("ZooAnimals")
+	local item = animals:FindFirstChild(tostring(id))
+	if not item then
+		toast("Cet animal n'est plus au zoo.", RED)
+		return
+	end
+	local def = Config.SPECIES[item:GetAttribute("Species")]
+	local sex = item:GetAttribute("Sex")
+	local baby = (item:GetAttribute("Growth") or 1) < 1
+	local name = item:GetAttribute("Name") or "?"
+	local _, body = window("Fiche de " .. name, 760, 540, true)
+	-- À gauche : le portrait, le prénom, renommer.
+	preview(body, item:GetAttribute("Species"), sex, baby, UDim2.fromOffset(280, 280), UDim2.fromOffset(0, 0), true)
+	local title = text(body, name .. "  " .. SEX[sex], UDim2.fromOffset(280, 40), UDim2.fromOffset(0, 288), GOLD)
+	title.TextXAlignment = Enum.TextXAlignment.Left
+	local kind = text(body, animalName(item) .. (if baby then " (bébé)" else "") .. "  ·  n°" .. id, UDim2.fromOffset(280, 22), UDim2.fromOffset(0, 330), MUTED, Enum.Font.GothamBold)
+	kind.TextXAlignment = Enum.TextXAlignment.Left
+	local box = Instance.new("TextBox")
+	box.Size = UDim2.fromOffset(170, 34)
+	box.Position = UDim2.fromOffset(0, 362)
+	box.BackgroundColor3 = Color3.fromRGB(246, 236, 210)
+	box.TextColor3 = Color3.fromRGB(40, 30, 24)
+	box.Font = Enum.Font.GothamBold
+	box.TextSize = 16
+	box.PlaceholderText = "Nouveau prénom"
+	box.Text = ""
+	box.ClearTextOnFocus = false
+	box.Parent = body
+	round(box, 8)
+	local rename = button(body, "Renommer", UDim2.fromOffset(102, 34), UDim2.fromOffset(178, 362), WOOD_LIGHT)
+	rename.Activated:Connect(function()
+		if #box.Text > 0 then
+			remotes.Rename:FireServer(id, box.Text)
+			task.wait(0.6)
+			animalCard(id)
+		end
+	end)
+	local price = item:GetAttribute("Price") or 0
+	local sell = button(body, "Vendre " .. money(price), UDim2.fromOffset(280, 44), UDim2.fromOffset(0, 412), RED)
+	sell.Activated:Connect(function()
+		remotes.Sell:FireServer(id)
+		task.wait(0.4)
+		animalsWindow()
+	end)
+	-- À droite : tout ce qu'on sait de lui.
+	local info = Instance.new("ScrollingFrame")
+	info.Size = UDim2.new(1, -300, 1, 0)
+	info.Position = UDim2.fromOffset(296, 0)
+	info.BackgroundTransparency = 1
+	info.BorderSizePixel = 0
+	info.ScrollBarThickness = 6
+	info.AutomaticCanvasSize = Enum.AutomaticSize.Y
+	info.CanvasSize = UDim2.new()
+	info.Parent = body
+	local layout = Instance.new("UIListLayout")
+	layout.Padding = UDim.new(0, 6)
+	layout.SortOrder = Enum.SortOrder.LayoutOrder
+	layout.Parent = info
+	local order = 0
+	local function line(label: string, value: string, color: Color3?)
+		order += 1
+		local row = frame(info, UDim2.new(1, -10, 0, 0), UDim2.new(), WOOD_LIGHT)
+		row.AutomaticSize = Enum.AutomaticSize.Y
+		row.LayoutOrder = order
+		round(row, 8)
+		local pad = Instance.new("UIPadding")
+		pad.PaddingLeft, pad.PaddingRight, pad.PaddingTop, pad.PaddingBottom = UDim.new(0, 10), UDim.new(0, 10), UDim.new(0, 6), UDim.new(0, 6)
+		pad.Parent = row
+		local a = text(row, label, UDim2.fromOffset(120, 22), UDim2.new(), GOLD, Enum.Font.GothamBold)
+		a.TextXAlignment = Enum.TextXAlignment.Left
+		a.TextScaled = false
+		a.TextSize = 16
+		local b = text(row, value, UDim2.new(1, -124, 0, 0), UDim2.fromOffset(124, 0), color or CREAM, Enum.Font.GothamBold)
+		b.AutomaticSize = Enum.AutomaticSize.Y
+		b.TextScaled = false
+		b.TextSize = 16
+		b.TextWrapped = true
+		b.TextXAlignment = Enum.TextXAlignment.Left
+		return row
+	end
+	local function family(label: string, list: { Instance }, empty: string)
+		order += 1
+		local row = frame(info, UDim2.new(1, -10, 0, 0), UDim2.new(), WOOD_LIGHT)
+		row.AutomaticSize = Enum.AutomaticSize.Y
+		row.LayoutOrder = order
+		round(row, 8)
+		local pad = Instance.new("UIPadding")
+		pad.PaddingLeft, pad.PaddingRight, pad.PaddingTop, pad.PaddingBottom = UDim.new(0, 10), UDim.new(0, 10), UDim.new(0, 6), UDim.new(0, 6)
+		pad.Parent = row
+		local a = text(row, label, UDim2.fromOffset(120, 22), UDim2.new(), GOLD, Enum.Font.GothamBold)
+		a.TextXAlignment = Enum.TextXAlignment.Left
+		a.TextScaled = false
+		a.TextSize = 16
+		local holder = frame(row, UDim2.new(1, -124, 0, 0), UDim2.fromOffset(124, 0), WOOD_LIGHT)
+		holder.BackgroundTransparency = 1
+		holder.AutomaticSize = Enum.AutomaticSize.Y
+		local flow = Instance.new("UIListLayout")
+		flow.FillDirection = Enum.FillDirection.Horizontal
+		flow.Wraps = true
+		flow.Padding = UDim.new(0, 6)
+		flow.Parent = holder
+		if #list == 0 then
+			local none = text(holder, empty, UDim2.fromOffset(300, 22), UDim2.new(), MUTED, Enum.Font.GothamBold)
+			none.TextScaled = false
+			none.TextSize = 15
+			none.TextXAlignment = Enum.TextXAlignment.Left
+		end
+		for _, other in list do
+			local tag = chip(holder, (other:GetAttribute("Name") or "?") .. " " .. SEX[other:GetAttribute("Sex")], if other:GetAttribute("Consang") then Color3.fromRGB(150, 90, 50) else WOOD)
+			tag.Activated:Connect(function()
+				animalCard(tonumber(other.Name))
+			end)
+		end
+	end
+	-- Âge et arrivée.
+	local days = math.max(0, math.floor(zooDays() - (item:GetAttribute("Birth") or zooDays())))
+	line("Âge", (if baby then "bébé" else "adulte") .. " · " .. days .. (if days > 1 then " jours" else " jour"))
+	local origin = item:GetAttribute("Origin")
+	local from = item:GetAttribute("OriginZoo") or ""
+	local arrival = item:GetAttribute("Arrival") or 1
+	local e = if sex == "f" then "e" else ""
+	local arrivalText = if origin == "bought" then "acheté" .. e .. " au " .. from .. ", le jour " .. arrival
+		elseif origin == "swap" then "échangé" .. e .. " avec le " .. from .. ", le jour " .. arrival
+		elseif origin == "start" then "là depuis l'ouverture du zoo (venu" .. e .. " de la " .. from .. ")"
+		else "né" .. e .. " au zoo, le jour " .. arrival
+	line("Arrivée", arrivalText)
+	local plot = item:GetAttribute("Space")
+	local habitat = habitatOfPlot(plot)
+	line("Vit dans", if habitat then "l'espace « " .. habitat.name .. " »" else plot)
+	-- La famille.
+	line("Famille", (item:GetAttribute("Fam") or "?") .. (if item:GetAttribute("Consang") then "  ·  CONSANGUIN" else ""), if item:GetAttribute("Consang") then ORANGE else nil)
+	local father, mother = item:GetAttribute("Father") or 0, item:GetAttribute("Mother") or 0
+	local parents, children, siblings = {}, {}, {}
+	for _, other in animals:GetChildren() do
+		local otherId = tonumber(other.Name)
+		if otherId ~= id then
+			if otherId == father or otherId == mother then
+				table.insert(parents, other)
+			end
+			if other:GetAttribute("Father") == id or other:GetAttribute("Mother") == id then
+				table.insert(children, other)
+			end
+			if (father > 0 and other:GetAttribute("Father") == father) or (mother > 0 and other:GetAttribute("Mother") == mother) then
+				table.insert(siblings, other)
+			end
+		end
+	end
+	if father > 0 then
+		local gone = {}
+		for _, pair in { { father, item:GetAttribute("FatherName") }, { mother, item:GetAttribute("MotherName") } } do
+			if not animals:FindFirstChild(tostring(pair[1])) then
+				table.insert(gone, (pair[2] or "?") .. " (n°" .. pair[1] .. ", parti)")
+			end
+		end
+		family("Parents", parents, table.concat(gone, ", "))
+		if #parents > 0 and #gone > 0 then
+			line("", table.concat(gone, ", "), MUTED)
+		end
+	else
+		line("Parents", "inconnus : il vient d'un autre zoo (sang neuf pour tes couples)", MUTED)
+	end
+	family("Petits", children, "pas encore de petits")
+	family("Frères, sœurs", siblings, "aucun au zoo")
+	-- Santé, faim, bonheur.
+	order += 1
+	local health = frame(info, UDim2.new(1, -10, 0, 96), UDim2.new(), WOOD_LIGHT)
+	health.LayoutOrder = order
+	round(health, 8)
+	local sick = item:GetAttribute("Sick") == true
+	gauge(health, "Santé", if sick then 15 else 100, UDim2.fromOffset(10, 8), 420, if sick then "malade : soigne-le !" else "en forme")
+	gauge(health, "Ventre plein", 100 - (item:GetAttribute("Hunger") or 0), UDim2.fromOffset(10, 38), 420)
+	gauge(health, "Bonheur", item:GetAttribute("Happy") or 0, UDim2.fromOffset(10, 68), 420)
+	line("Ce qu'il mange", Config.FOODS[def.food].fr)
+	line("Valeur", money(price) .. (if item:GetAttribute("Consang") then " (moitié prix : consanguin)" else ""))
+end
+
+-- Les animaux : chaque espace, et chaque animal (son prénom, son âge, sa famille) : on ouvre sa fiche.
+function animalsWindow()
 	local _, body = window("Mes animaux", 640, 520)
 	local animals = ReplicatedStorage:WaitForChild("ZooAnimals")
 	local order = 1
-	note(body, order, "Consanguin : ses parents sont de la même famille proche (frère et sœur, parent et enfant). Il tombe plus souvent malade. Échange des animaux au Marché pour avoir du sang neuf.")
+	note(body, order, "Touche un animal pour ouvrir sa fiche (tu peux aussi cliquer sur lui dans son enclos). Consanguin : ses parents sont de la même famille proche.")
 	for _, plot in Config.PLOTS do
-		local space = Config.HABITAT_BY_ID[state:GetAttribute("Plot_" .. plot.id) or ""]
+		local space = habitatOfPlot(plot.id)
 		if space then
 			local all = {}
 			for _, item in animals:GetChildren() do
@@ -446,19 +731,22 @@ local function animalsWindow()
 				note(body, order, "Vide : achète ses animaux au Marché.")
 			end
 			for _, item in all do
-				local def = Config.SPECIES[item:GetAttribute("Species")]
 				local sex = item:GetAttribute("Sex")
 				local baby = (item:GetAttribute("Growth") or 1) < 1
-				local name = if baby then def.baby .. " " .. SEX[sex] else SEX[sex] .. " " .. (if sex == "m" then def.m else def.f)
 				order += 1
-				local row = frame(body, UDim2.new(1, -10, 0, 58), UDim2.new(), WOOD_LIGHT)
+				local row = Instance.new("TextButton")
+				row.Size = UDim2.new(1, -10, 0, 58)
+				row.BackgroundColor3 = WOOD_LIGHT
+				row.Text = ""
+				row.AutoButtonColor = true
 				row.LayoutOrder = order
+				row.Parent = body
 				round(row, 10)
-				local label = text(row, name .. "  n°" .. item.Name, UDim2.fromOffset(300, 26), UDim2.fromOffset(12, 4))
+				local label = text(row, (item:GetAttribute("Name") or "?") .. " " .. SEX[sex], UDim2.fromOffset(240, 26), UDim2.fromOffset(12, 4))
 				label.TextXAlignment = Enum.TextXAlignment.Left
-				local parents = if (item:GetAttribute("Father") or 0) > 0 then " · parents n°" .. item:GetAttribute("Father") .. " et n°" .. item:GetAttribute("Mother") else ""
-				local detail = "famille : " .. (item:GetAttribute("Fam") or "?") .. parents .. " · humeur " .. (item:GetAttribute("Happy") or 0) .. " %"
-				local info = text(row, detail, UDim2.fromOffset(440, 20), UDim2.fromOffset(12, 32), Color3.fromRGB(210, 196, 160), Enum.Font.GothamBold)
+				local days = math.max(0, math.floor(zooDays() - (item:GetAttribute("Birth") or zooDays())))
+				local detail = animalName(item) .. (if baby then " (bébé)" else "") .. " · " .. days .. " j · famille : " .. (item:GetAttribute("Fam") or "?") .. " · humeur " .. (item:GetAttribute("Happy") or 0) .. " %"
+				local info = text(row, detail, UDim2.fromOffset(470, 20), UDim2.fromOffset(12, 32), MUTED, Enum.Font.GothamBold)
 				info.TextXAlignment = Enum.TextXAlignment.Left
 				local flags = {}
 				if item:GetAttribute("Sick") then
@@ -468,14 +756,13 @@ local function animalsWindow()
 					table.insert(flags, "CONSANGUIN")
 				end
 				if #flags > 0 then
-					local flag = text(row, table.concat(flags, " · "), UDim2.fromOffset(160, 22), UDim2.fromOffset(300, 6), Color3.fromRGB(255, 140, 110), Enum.Font.GothamBlack)
+					local flag = text(row, table.concat(flags, " · "), UDim2.fromOffset(170, 22), UDim2.fromOffset(250, 6), ORANGE, Enum.Font.GothamBlack)
 					flag.TextXAlignment = Enum.TextXAlignment.Left
 				end
-				local sell = button(row, "Vendre " .. money(item:GetAttribute("Price") or 0), UDim2.fromOffset(150, 40), UDim2.new(1, -160, 0, 9), WOOD)
-				sell.Activated:Connect(function()
-					remotes.Sell:FireServer(tonumber(item.Name))
-					task.wait(0.4)
-					animalsWindow()
+				local open = text(row, "Fiche ›", UDim2.fromOffset(90, 30), UDim2.new(1, -100, 0, 14), GOLD)
+				_ = open
+				row.Activated:Connect(function()
+					animalCard(tonumber(item.Name))
 				end)
 			end
 		end
@@ -483,8 +770,8 @@ local function animalsWindow()
 end
 
 -- LE CHOIX DES ANIMAUX D'UNE PARCELLE (sa demande, 14/10 : « de base ce serait des parcelles vides, et la déco
--- change quand tu choisis »). Chaque animal : son image en 3D, son prix (le décor et le couple de départ), s'il est
--- dangereux (et comment on le protège), combien il en tient, ce qu'il mange.
+-- change quand tu choisis »). Chaque animal : son image en 3D, son prix (l'espace seul), s'il est dangereux (et comment
+-- on le protège), combien il en tient, ce qu'il mange.
 local SECURITY = {
 	fence = "Calme · clôture en bois",
 	wall = "Dangereux · hauts murs et vitre",
@@ -492,38 +779,12 @@ local SECURITY = {
 	pit = "Dangereux · fosse (ils sont en bas)",
 }
 local FOOD_NAMES = { hay = "foin", grain = "grain", meat = "viande" }
-local function preview(parent: GuiObject, species: string, sex: string?, baby: boolean?)
-	local view = Instance.new("ViewportFrame")
-	view.Size = UDim2.fromOffset(78, 78)
-	view.Position = UDim2.fromOffset(6, 6)
-	view.BackgroundColor3 = Color3.fromRGB(196, 214, 170)
-	view.Ambient = Color3.fromRGB(190, 190, 190)
-	view.LightColor = Color3.fromRGB(255, 255, 255)
-	view.LightDirection = Vector3.new(-1, -1, -1)
-	view.Parent = parent
-	round(view, 10)
-	local model = AnimalModels.build(species, sex or "m", if baby then 0.5 else 1)
-	if not model then
-		return
-	end
-	model:PivotTo(CFrame.new())
-	local low, high = AnimalModels.extents(model)
-	local height = high - low
-	model.Parent = view
-	local camera = Instance.new("Camera")
-	camera.FieldOfView = 40
-	local center = Vector3.new(0, (low + high) / 2, 0)
-	camera.CFrame = CFrame.lookAt(center + Vector3.new(-height * 1.5, height * 0.5, -height * 1.6), center)
-	camera.Parent = view
-	view.CurrentCamera = camera
-end
-
 local function chooseWindow(plotId: string)
 	local _, body = window("Construis un espace", 600, 500)
 	local cash = state:GetAttribute("Money") or 0
 	local order = 0
 	order += 1
-	local intro = text(body, "Le prix : l'espace seul, construit vide. Ses animaux s'achètent ensuite au Marché (mâles, femelles, bébés).", UDim2.new(1, -10, 0, 40), UDim2.new(), Color3.fromRGB(210, 196, 160), Enum.Font.GothamBold)
+	local intro = text(body, "Le prix : l'espace seul, construit vide. Ses animaux s'achètent ensuite au Marché (mâles, femelles, bébés).", UDim2.new(1, -10, 0, 40), UDim2.new(), MUTED, Enum.Font.GothamBold)
 	intro.LayoutOrder = order
 	intro.TextWrapped = true
 	intro.TextXAlignment = Enum.TextXAlignment.Left
@@ -538,9 +799,9 @@ local function chooseWindow(plotId: string)
 			local name = text(row, habitat.name, UDim2.fromOffset(250, 30), UDim2.fromOffset(96, 6))
 			name.TextXAlignment = Enum.TextXAlignment.Left
 			local danger = habitat.security ~= "fence"
-			local info = text(row, SECURITY[habitat.security] or "", UDim2.fromOffset(300, 20), UDim2.fromOffset(96, 38), if danger then Color3.fromRGB(255, 160, 120) else Color3.fromRGB(170, 230, 150), Enum.Font.GothamBold)
+			local info = text(row, SECURITY[habitat.security] or "", UDim2.fromOffset(300, 20), UDim2.fromOffset(96, 38), if danger then ORANGE else Color3.fromRGB(170, 230, 150), Enum.Font.GothamBold)
 			info.TextXAlignment = Enum.TextXAlignment.Left
-			local more = text(row, habitat.capacity .. " places · mange du " .. (FOOD_NAMES[species.food] or ""), UDim2.fromOffset(300, 18), UDim2.fromOffset(96, 62), Color3.fromRGB(210, 196, 160), Enum.Font.GothamBold)
+			local more = text(row, habitat.capacity .. " places · mange du " .. (FOOD_NAMES[species.food] or ""), UDim2.fromOffset(300, 18), UDim2.fromOffset(96, 62), MUTED, Enum.Font.GothamBold)
 			more.TextXAlignment = Enum.TextXAlignment.Left
 			local buy = button(row, money(habitat.price), UDim2.fromOffset(150, 46), UDim2.new(1, -162, 0, 22), if cash >= habitat.price then GREEN else Color3.fromRGB(120, 110, 100))
 			buy.Activated:Connect(function()
@@ -555,8 +816,9 @@ local function chooseWindow(plotId: string)
 end
 remotes:WaitForChild("ChoosePlot").OnClientEvent:Connect(chooseWindow)
 
--- LE MARCHÉ DES ZOOS (sa demande, 14/10) : acheter des mâles, des femelles, des bébés à d'autres zoos ; faire des
--- échanges pour du sang neuf (Market.luau).
+-- LE MARCHÉ DES ZOOS (sa demande, 14/10, et son « meilleur interface pour les autres zoos » du 15/10) : à gauche, les
+-- zoos (leur blason, leur couleur, combien d'animaux ils proposent) et les échanges ; à droite, la page du zoo choisi :
+-- sa présentation, sa spécialité, et ses animaux en cartes (portrait 3D, prénom, âge, prix).
 local function habitatFor(species: string)
 	for _, habitat in Config.HABITATS do
 		if table.find(habitat.species, species) then
@@ -569,7 +831,7 @@ end
 local function hasHome(species: string): boolean
 	local animals = ReplicatedStorage:WaitForChild("ZooAnimals")
 	for _, plot in Config.PLOTS do
-		local habitat = Config.HABITAT_BY_ID[state:GetAttribute("Plot_" .. plot.id) or ""]
+		local habitat = habitatOfPlot(plot.id)
 		if habitat and table.find(habitat.species, species) then
 			local count = 0
 			for _, item in animals:GetChildren() do
@@ -584,26 +846,25 @@ local function hasHome(species: string): boolean
 	end
 	return false
 end
+-- Le blason d'un zoo : un rond de sa couleur avec ses deux lettres.
+local function badge(parent: Instance, zoo, size: number, position: UDim2)
+	local circle = frame(parent, UDim2.fromOffset(size, size), position, zoo.color)
+	round(circle, size // 2)
+	stroke(circle, Color3.new(1, 1, 1), 2)
+	text(circle, zoo.badge, UDim2.fromScale(0.8, 0.6), UDim2.fromScale(0.1, 0.2), Color3.new(1, 1, 1))
+	return circle
+end
 
-local marketTab = "buy"
+local marketPage = 1 -- le numéro du zoo affiché, ou 0 pour les échanges
 local marketOpen = false
-local function marketWindow(tab: string?)
-	marketTab = tab or marketTab
-	local panel, body = window("Marché des zoos", 660, 540)
+local function marketWindow(page: number?)
+	if page then
+		marketPage = page
+	end
+	local panel, body = window("Marché des zoos", 900, 580, true)
 	marketOpen = true
 	panel.Destroying:Connect(function()
 		marketOpen = false
-	end)
-	local tabs = frame(body, UDim2.new(1, -10, 0, 44), UDim2.new(), WOOD)
-	tabs.BackgroundTransparency = 1
-	tabs.LayoutOrder = 0
-	local buyTab = button(tabs, "Acheter", UDim2.fromOffset(200, 40), UDim2.fromOffset(0, 2), if marketTab == "buy" then GREEN else WOOD_LIGHT)
-	local swapTab = button(tabs, "Échanger", UDim2.fromOffset(200, 40), UDim2.fromOffset(210, 2), if marketTab == "swap" then GREEN else WOOD_LIGHT)
-	buyTab.Activated:Connect(function()
-		marketWindow("buy")
-	end)
-	swapTab.Activated:Connect(function()
-		marketWindow("swap")
 	end)
 	local ok, data = pcall(function()
 		return remotes:WaitForChild("GetMarket"):InvokeServer()
@@ -612,70 +873,175 @@ local function marketWindow(tab: string?)
 		return
 	end
 	local cash = state:GetAttribute("Money") or 0
-	local order = 1
-	if marketTab == "buy" then
-		note(body, order, "Chaque matin, les autres zoos proposent de nouveaux animaux. Un animal acheté va dans un espace construit pour lui.")
-		local lastZoo = nil
+	-- La colonne des zoos.
+	local sidebar = Instance.new("ScrollingFrame")
+	sidebar.Size = UDim2.new(0, 220, 1, 0)
+	sidebar.BackgroundTransparency = 1
+	sidebar.BorderSizePixel = 0
+	sidebar.ScrollBarThickness = 4
+	sidebar.AutomaticCanvasSize = Enum.AutomaticSize.Y
+	sidebar.CanvasSize = UDim2.new()
+	sidebar.Parent = body
+	local sideList = Instance.new("UIListLayout")
+	sideList.Padding = UDim.new(0, 8)
+	sideList.SortOrder = Enum.SortOrder.LayoutOrder
+	sideList.Parent = sidebar
+	for index, zoo in Config.MARKET.zoos do
+		local count = 0
 		for _, offer in data.offers do
-			if offer.zoo ~= lastZoo then
-				lastZoo = offer.zoo
-				order += 1
-				local title = text(body, offer.zoo, UDim2.new(1, -10, 0, 28), UDim2.new(), GOLD)
-				title.LayoutOrder = order
-				title.TextXAlignment = Enum.TextXAlignment.Left
+			if offer.zoo == zoo.name then
+				count += 1
 			end
-			local def = Config.SPECIES[offer.species]
-			order += 1
-			local row = frame(body, UDim2.new(1, -10, 0, 90), UDim2.new(), WOOD_LIGHT)
-			row.LayoutOrder = order
-			round(row, 12)
-			preview(row, offer.species, offer.sex, offer.baby)
-			local name = if offer.baby then def.baby .. " " .. SEX[offer.sex] .. " (bébé)" else SEX[offer.sex] .. " " .. (if offer.sex == "m" then def.m else def.f) .. " adulte"
-			local label = text(row, name, UDim2.fromOffset(300, 30), UDim2.fromOffset(96, 8))
-			label.TextXAlignment = Enum.TextXAlignment.Left
-			local home = hasHome(offer.species)
-			local habitat = habitatFor(offer.species)
-			local info = text(row, if home then "famille : " .. offer.zoo else "Il te faut un espace : " .. (habitat and habitat.name or "?"), UDim2.fromOffset(330, 22), UDim2.fromOffset(96, 44), if home then Color3.fromRGB(210, 196, 160) else Color3.fromRGB(255, 160, 120), Enum.Font.GothamBold)
-			info.TextXAlignment = Enum.TextXAlignment.Left
-			local buy = button(row, money(offer.price), UDim2.fromOffset(150, 46), UDim2.new(1, -162, 0, 22), if home and cash >= offer.price then GREEN else Color3.fromRGB(120, 110, 100))
-			buy.Activated:Connect(function()
-				remotes.MarketBuy:FireServer(offer.id)
-				task.wait(0.5)
-				marketWindow()
-			end)
+		end
+		local entry = Instance.new("TextButton")
+		entry.Size = UDim2.new(1, -8, 0, 66)
+		entry.BackgroundColor3 = if index == marketPage then Color3.fromRGB(110, 84, 60) else WOOD_LIGHT
+		entry.Text = ""
+		entry.LayoutOrder = index
+		entry.Parent = sidebar
+		round(entry, 12)
+		if index == marketPage then
+			stroke(entry, zoo.color, 3)
+		end
+		badge(entry, zoo, 46, UDim2.fromOffset(8, 10))
+		local label = text(entry, zoo.name, UDim2.fromOffset(150, 34), UDim2.fromOffset(62, 6))
+		label.TextXAlignment = Enum.TextXAlignment.Left
+		label.TextWrapped = true
+		local small = text(entry, count .. " animaux à vendre", UDim2.fromOffset(150, 18), UDim2.fromOffset(62, 42), MUTED, Enum.Font.GothamBold)
+		small.TextXAlignment = Enum.TextXAlignment.Left
+		entry.Activated:Connect(function()
+			marketWindow(index)
+		end)
+	end
+	local swapEntry = button(sidebar, "⇄  Échanges (" .. #data.swaps .. ")", UDim2.new(1, -8, 0, 50), UDim2.new(), if marketPage == 0 then GREEN else WOOD)
+	swapEntry.LayoutOrder = 99
+	swapEntry.Activated:Connect(function()
+		marketWindow(0)
+	end)
+	-- La page à droite.
+	local content = Instance.new("ScrollingFrame")
+	content.Size = UDim2.new(1, -232, 1, 0)
+	content.Position = UDim2.fromOffset(232, 0)
+	content.BackgroundTransparency = 1
+	content.BorderSizePixel = 0
+	content.ScrollBarThickness = 6
+	content.AutomaticCanvasSize = Enum.AutomaticSize.Y
+	content.CanvasSize = UDim2.new()
+	content.Parent = body
+	local contentList = Instance.new("UIListLayout")
+	contentList.Padding = UDim.new(0, 10)
+	contentList.SortOrder = Enum.SortOrder.LayoutOrder
+	contentList.Parent = content
+	local animals = ReplicatedStorage:WaitForChild("ZooAnimals")
+	if marketPage > 0 then
+		local zoo = Config.MARKET.zoos[marketPage]
+		-- La bannière du zoo.
+		local banner = frame(content, UDim2.new(1, -10, 0, 118), UDim2.new(), zoo.color)
+		banner.LayoutOrder = 1
+		round(banner, 14)
+		local shade = Instance.new("UIGradient")
+		shade.Color = ColorSequence.new(Color3.new(1, 1, 1), Color3.fromRGB(120, 120, 120))
+		shade.Rotation = 90
+		shade.Parent = banner
+		badge(banner, zoo, 74, UDim2.fromOffset(14, 14))
+		local zooName = text(banner, zoo.name, UDim2.new(1, -110, 0, 34), UDim2.fromOffset(100, 10), Color3.new(1, 1, 1))
+		zooName.TextXAlignment = Enum.TextXAlignment.Left
+		zooName.TextStrokeTransparency = 0.6
+		local city = text(banner, zoo.city, UDim2.new(1, -110, 0, 18), UDim2.fromOffset(100, 44), Color3.fromRGB(255, 244, 220), Enum.Font.GothamBold)
+		city.TextXAlignment = Enum.TextXAlignment.Left
+		local about = text(banner, zoo.about, UDim2.new(1, -112, 0, 44), UDim2.fromOffset(100, 66), Color3.new(1, 1, 1), Enum.Font.Gotham)
+		about.TextXAlignment = Enum.TextXAlignment.Left
+		about.TextYAlignment = Enum.TextYAlignment.Top
+		about.TextWrapped = true
+		about.TextScaled = false
+		about.TextSize = 15
+		-- Ses animaux, en cartes.
+		local grid = frame(content, UDim2.new(1, -10, 0, 0), UDim2.new(), WOOD)
+		grid.BackgroundTransparency = 1
+		grid.AutomaticSize = Enum.AutomaticSize.Y
+		grid.LayoutOrder = 2
+		local cells = Instance.new("UIGridLayout")
+		cells.CellSize = UDim2.fromOffset(200, 276)
+		cells.CellPadding = UDim2.fromOffset(10, 10)
+		cells.SortOrder = Enum.SortOrder.LayoutOrder
+		cells.Parent = grid
+		local shown = 0
+		for _, offer in data.offers do
+			if offer.zoo == zoo.name then
+				shown += 1
+				local def = Config.SPECIES[offer.species]
+				local card = frame(grid, UDim2.fromOffset(200, 276), UDim2.new(), WOOD_LIGHT)
+				card.LayoutOrder = shown
+				round(card, 12)
+				stroke(card, zoo.color, 2)
+				preview(card, offer.species, offer.sex, offer.baby, UDim2.fromOffset(184, 128), UDim2.fromOffset(8, 8))
+				local title = text(card, (offer.name or "?") .. " " .. SEX[offer.sex], UDim2.fromOffset(184, 28), UDim2.fromOffset(8, 140), GOLD)
+				title.TextXAlignment = Enum.TextXAlignment.Left
+				local kind = if offer.baby then def.baby .. " (bébé)" else (if offer.sex == "m" then def.m else def.f)
+				local line1 = text(card, kind .. " · " .. (offer.age or "?") .. " jours", UDim2.fromOffset(184, 20), UDim2.fromOffset(8, 170), CREAM, Enum.Font.GothamBold)
+				line1.TextXAlignment = Enum.TextXAlignment.Left
+				local home = hasHome(offer.species)
+				local habitat = habitatFor(offer.species)
+				local line2 = text(card, if home then "sang neuf : famille " .. zoo.badge else "Il te faut un espace : " .. (habitat and habitat.name or "?"), UDim2.fromOffset(184, 18), UDim2.fromOffset(8, 192), if home then MUTED else ORANGE, Enum.Font.GothamBold)
+				line2.TextXAlignment = Enum.TextXAlignment.Left
+				local buy = button(card, money(offer.price), UDim2.fromOffset(184, 50), UDim2.fromOffset(8, 218), if home and cash >= offer.price then GREEN else Color3.fromRGB(120, 110, 100))
+				buy.Activated:Connect(function()
+					remotes.MarketBuy:FireServer(offer.id)
+					task.wait(0.5)
+					marketWindow()
+				end)
+			end
+		end
+		if shown == 0 then
+			local empty = note(content, 3, "Ce zoo n'a plus d'animaux à vendre aujourd'hui. Reviens demain matin.")
+			_ = empty
 		end
 	else
-		note(body, order, "Un échange fait entrer du SANG NEUF : leur animal n'est pas de ta famille. Donne de préférence un animal qui a déjà de la famille dans son espace.")
+		note(content, 1, "Un échange fait entrer du SANG NEUF : l'animal qui arrive n'est pas de ta famille. Donne plutôt un animal qui a déjà de la famille dans son espace (en orange).")
 		if #data.swaps == 0 then
-			order += 1
-			note(body, order, "Aucun échange aujourd'hui (il faut des adultes). Reviens demain matin.")
+			note(content, 2, "Aucun échange aujourd'hui (il faut des adultes). Reviens demain matin.")
 		end
-		local animals = ReplicatedStorage:WaitForChild("ZooAnimals")
-		for _, swap in data.swaps do
+		for index, swap in data.swaps do
+			local zoo = Config.ZOO_BY_NAME[swap.zoo] or Config.MARKET.zoos[1]
 			local def = Config.SPECIES[swap.species]
-			local animalName = if swap.sex == "m" then def.m else def.f
+			local animalKind = if swap.sex == "m" then def.m else def.f
 			local mine = {}
 			for _, item in animals:GetChildren() do
 				if item:GetAttribute("Species") == swap.species and item:GetAttribute("Sex") == swap.sex and (item:GetAttribute("Growth") or 1) >= 1 and not item:GetAttribute("Sick") then
 					table.insert(mine, item)
 				end
 			end
-			order += 1
-			local row = frame(body, UDim2.new(1, -10, 0, 96 + math.ceil(math.min(#mine, 6) / 2) * 40), UDim2.new(), WOOD_LIGHT)
-			row.LayoutOrder = order
-			round(row, 12)
-			preview(row, swap.species, swap.sex)
-			local label = text(row, swap.zoo .. " donne : " .. SEX[swap.sex] .. " " .. animalName, UDim2.fromOffset(440, 30), UDim2.fromOffset(96, 8))
-			label.TextXAlignment = Enum.TextXAlignment.Left
-			local info = text(row, "contre un de tes " .. SEX[swap.sex] .. " " .. animalName .. " adultes (touche celui que tu donnes) :", UDim2.fromOffset(440, 22), UDim2.fromOffset(96, 44), Color3.fromRGB(210, 196, 160), Enum.Font.GothamBold)
-			info.TextXAlignment = Enum.TextXAlignment.Left
-			for index, item in mine do
-				if index > 6 then
+			local card = frame(content, UDim2.new(1, -10, 0, 150 + math.max(0, math.ceil(math.min(#mine, 6) / 2) - 1) * 40), UDim2.new(), WOOD_LIGHT)
+			card.LayoutOrder = index + 2
+			round(card, 12)
+			stroke(card, zoo.color, 2)
+			badge(card, zoo, 40, UDim2.fromOffset(10, 10))
+			local who = text(card, zoo.name .. " propose :", UDim2.fromOffset(400, 26), UDim2.fromOffset(58, 16), GOLD)
+			who.TextXAlignment = Enum.TextXAlignment.Left
+			preview(card, swap.species, swap.sex, false, UDim2.fromOffset(110, 86), UDim2.fromOffset(10, 56))
+			local theirs = text(card, (swap.name or "?") .. " " .. SEX[swap.sex] .. " · " .. animalKind .. " · " .. (swap.age or "?") .. " j", UDim2.fromOffset(420, 24), UDim2.fromOffset(130, 58), CREAM)
+			theirs.TextXAlignment = Enum.TextXAlignment.Left
+			local against = text(card, if #mine > 0 then "⇄ contre un de tes " .. animalKind .. "s (touche celui que tu donnes) :" else "⇄ il te faut un " .. animalKind .. " adulte en bonne santé", UDim2.fromOffset(500, 20), UDim2.fromOffset(130, 86), MUTED, Enum.Font.GothamBold)
+			against.TextXAlignment = Enum.TextXAlignment.Left
+			for slot, item in mine do
+				if slot > 6 then
 					break
 				end
-				local column = (index - 1) % 2
-				local line = math.floor((index - 1) / 2)
-				local give = button(row, "n°" .. item.Name .. " · " .. (item:GetAttribute("Fam") or "?"), UDim2.fromOffset(260, 34), UDim2.fromOffset(96 + column * 270, 90 + line * 40), if item:GetAttribute("Consang") then Color3.fromRGB(190, 110, 60) else WOOD)
+				-- (En orange : un animal qui a de la famille proche dans son espace, le meilleur à donner.)
+				local relatives = 0
+				for _, other in animals:GetChildren() do
+					if other ~= item and other:GetAttribute("Space") == item:GetAttribute("Space") then
+						local a, b = tonumber(item.Name), tonumber(other.Name)
+						if other:GetAttribute("Father") == a or other:GetAttribute("Mother") == a or item:GetAttribute("Father") == b or item:GetAttribute("Mother") == b
+							or ((item:GetAttribute("Father") or 0) > 0 and item:GetAttribute("Father") == other:GetAttribute("Father"))
+							or ((item:GetAttribute("Mother") or 0) > 0 and item:GetAttribute("Mother") == other:GetAttribute("Mother")) then
+							relatives += 1
+						end
+					end
+				end
+				local column = (slot - 1) % 2
+				local row = math.floor((slot - 1) / 2)
+				local give = button(card, (item:GetAttribute("Name") or "?") .. " n°" .. item.Name .. (if relatives > 0 then " · " .. relatives .. " de sa famille ici" else ""), UDim2.fromOffset(250, 34), UDim2.fromOffset(130 + column * 260, 112 + row * 40), if relatives > 0 or item:GetAttribute("Consang") then Color3.fromRGB(190, 110, 60) else WOOD)
 				give.Activated:Connect(function()
 					remotes.MarketSwap:FireServer(swap.id, tonumber(item.Name))
 					task.wait(0.5)
@@ -804,6 +1170,42 @@ player.CharacterAdded:Connect(function(character)
 	applyView()
 end)
 
+-- CLIQUER (OU TOUCHER) UN ANIMAL DANS SON ENCLOS : sa fiche. (Pas avec le scanner en main.)
+local function animalAt(target: Instance?): number?
+	local view = workspace:FindFirstChild("ZooAnimalsView")
+	local current = target
+	while current and current ~= workspace do
+		if current:IsA("Model") and current.Parent == view then
+			return current:GetAttribute("AnimalId")
+		end
+		current = current.Parent
+	end
+	return nil
+end
+local function holdingTool(): boolean
+	return player.Character ~= nil and player.Character:FindFirstChildOfClass("Tool") ~= nil
+end
+UserInputService.InputBegan:Connect(function(input, processed)
+	if processed or input.UserInputType ~= Enum.UserInputType.MouseButton1 or holdingTool() then
+		return
+	end
+	local id = animalAt(mouse.Target)
+	if id then
+		animalCard(id)
+	end
+end)
+UserInputService.TouchTap:Connect(function(positions, processed)
+	if processed or not positions[1] or holdingTool() then
+		return
+	end
+	local ray = workspace.CurrentCamera:ViewportPointToRay(positions[1].X, positions[1].Y)
+	local hit = workspace:Raycast(ray.Origin, ray.Direction * 300)
+	local id = hit and animalAt(hit.Instance)
+	if id then
+		animalCard(id)
+	end
+end)
+
 -- LE BILAN DU SOIR -----------------------------------------------------------------------------------------------------
 local LINES = {
 	{ "tickets", "Billets" }, { "shops", "Café et bar" }, { "sales", "Animaux vendus" }, { "food", "Nourriture" },
@@ -854,9 +1256,23 @@ end)
 workspace:GetAttributeChangedSignal("OpenWindow"):Connect(function()
 	local wanted = workspace:GetAttribute("OpenWindow")
 	if wanted == "market" then
-		marketWindow("buy")
+		marketWindow(1)
+	elseif wanted == "market3" then
+		marketWindow(3)
 	elseif wanted == "swap" then
-		marketWindow("swap")
+		marketWindow(0)
+	elseif wanted == "fiche" then
+		local animals = ReplicatedStorage:WaitForChild("ZooAnimals")
+		local best = nil
+		for _, item in animals:GetChildren() do
+			if (item:GetAttribute("Father") or 0) > 0 and (not best or tonumber(item.Name) > tonumber(best.Name)) then
+				best = item
+			end
+		end
+		best = best or animals:GetChildren()[1]
+		if best then
+			animalCard(tonumber(best.Name))
+		end
 	elseif wanted == "animals" then
 		animalsWindow()
 	elseif wanted == "build" then

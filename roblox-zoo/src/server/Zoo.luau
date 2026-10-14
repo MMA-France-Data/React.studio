@@ -69,6 +69,7 @@ Zoo.remotes = {
 	hire = remote("Hire"), -- (rôle) embaucher
 	fire = remote("Fire"), -- (rôle) renvoyer
 	sell = remote("Sell"), -- (numéro de l'animal) le vendre à un autre zoo
+	rename = remote("Rename"), -- (numéro de l'animal, prénom) le renommer
 	marketBuy = remote("MarketBuy"), -- (numéro de l'offre) acheter un animal à un autre zoo
 	marketSwap = remote("MarketSwap"), -- (numéro de l'échange, numéro de mon animal) échanger avec un autre zoo
 	nextDay = remote("NextDay"), -- commencer le jour suivant
