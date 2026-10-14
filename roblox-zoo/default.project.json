@@ -1,0 +1,119 @@
+{
+  "name": "Zoo",
+  "tree": {
+    "$className": "DataModel",
+    "ReplicatedStorage": {
+      "Shared": {
+        "$path": "src/shared"
+      },
+      "MeshRigs": {
+        "$className": "Folder",
+        "Duck": {
+          "$path": "../roblox-monde/assets/collections/monde-01-ferme-maillages/Duck/Duck-rig-template.rbxmx"
+        },
+        "Goat": {
+          "$path": "../roblox-monde/assets/collections/monde-01-ferme-maillages/Goat/Goat-rig-template.rbxmx"
+        },
+        "Horse": {
+          "$path": "../roblox-monde/assets/collections/monde-01-ferme-maillages/Horse/Horse-rig-template.rbxmx"
+        },
+        "Pig": {
+          "$path": "../roblox-monde/assets/collections/monde-01-ferme-maillages/Pig/Pig-rig-template.rbxmx"
+        },
+        "Rooster": {
+          "$path": "../roblox-monde/assets/collections/monde-01-ferme-maillages/Rooster/Rooster-rig-template.rbxmx"
+        },
+        "Sheep": {
+          "$path": "../roblox-monde/assets/collections/monde-01-ferme-maillages/Sheep/Sheep-rig-template.rbxmx"
+        },
+        "Boar": {
+          "$path": "../roblox-monde/assets/collections/monde-02-foret-maillages/Boar/Boar-rig-template.rbxmx"
+        },
+        "Ram": {
+          "$path": "../roblox-monde/assets/collections/monde-02-foret-maillages/Ram/Ram-rig-template.rbxmx"
+        },
+        "Deer": {
+          "$path": "../roblox-monde/assets/collections/monde-02-foret-maillages/Deer/Deer-rig-template.rbxmx"
+        },
+        "Lynx": {
+          "$path": "../roblox-monde/assets/collections/monde-02-foret-maillages/Lynx/Lynx-rig-template.rbxmx"
+        },
+        "Wolf": {
+          "$path": "../roblox-monde/assets/collections/monde-02-foret-maillages/Wolf/Wolf-rig-template.rbxmx"
+        },
+        "Bear": {
+          "$path": "../roblox-monde/assets/collections/monde-02-foret-maillages/Bear/Bear-rig-template.rbxmx"
+        },
+        "Capybara": {
+          "$path": "../roblox-monde/assets/collections/monde-03-jungle-maillages/Capybara/Capybara-rig-template.rbxmx"
+        },
+        "Anaconda": {
+          "$path": "../roblox-monde/assets/collections/monde-03-jungle-maillages/Anaconda/Anaconda-rig-template.rbxmx"
+        },
+        "Crocodile": {
+          "$path": "../roblox-monde/assets/collections/monde-03-jungle-maillages/Crocodile/Crocodile-rig-template.rbxmx"
+        },
+        "Jaguar": {
+          "$path": "../roblox-monde/assets/collections/monde-03-jungle-maillages/Jaguar/Jaguar-rig-template.rbxmx"
+        },
+        "Gorilla": {
+          "$path": "../roblox-monde/assets/collections/monde-03-jungle-maillages/Gorilla/Gorilla-rig-template.rbxmx"
+        },
+        "Tiger": {
+          "$path": "../roblox-monde/assets/collections/monde-03-jungle-maillages/Tiger/Tiger-rig-template.rbxmx"
+        },
+        "Hyena": {
+          "$path": "../roblox-monde/assets/collections/monde-04-savane-maillages/Hyena/Hyena-rig-template.rbxmx"
+        },
+        "Buffalo": {
+          "$path": "../roblox-monde/assets/collections/monde-04-savane-maillages/Buffalo/Buffalo-rig-template.rbxmx"
+        },
+        "Cheetah": {
+          "$path": "../roblox-monde/assets/collections/monde-04-savane-maillages/Cheetah/Cheetah-rig-template.rbxmx"
+        },
+        "Rhino": {
+          "$path": "../roblox-monde/assets/collections/monde-04-savane-maillages/Rhino/Rhino-rig-template.rbxmx"
+        },
+        "Elephant": {
+          "$path": "../roblox-monde/assets/collections/monde-04-savane-maillages/Elephant/Elephant-rig-template.rbxmx"
+        },
+        "Lion": {
+          "$path": "../roblox-monde/assets/collections/monde-04-savane-maillages/Lion/Lion-rig-template.rbxmx"
+        }
+      },
+      "MeshImports": {
+        "$path": "../roblox-monde/assets/collections/imports"
+      }
+    },
+    "ServerScriptService": {
+      "Server": {
+        "$path": "src/server"
+      }
+    },
+    "StarterPlayer": {
+      "$properties": {
+        "CharacterUseJumpPower": false
+      },
+      "StarterPlayerScripts": {
+        "Client": {
+          "$path": "src/client"
+        }
+      }
+    },
+    "Lighting": {
+      "$properties": {
+        "Technology": "Future"
+      }
+    },
+    "Workspace": {
+      "$properties": {
+        "StreamingEnabled": false
+      }
+    },
+    "TextChatService": {
+      "$properties": {
+        "ChatVersion": "TextChatService"
+      }
+    }
+  }
+}
